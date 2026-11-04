@@ -30,9 +30,15 @@ export type GitGroup = Omit<Record_<ChangeGroupView>, "folder"> & {
   isWorking: boolean;
 };
 
+/** A linked worktree as it is sent. */
+export type GitWorktreeRecord = Record_<GitPageView>["worktrees"][number] & {
+  /** Whether its feature's agent works, which refuses its Clean and Remove. */
+  isWorking: boolean;
+};
+
 export type GitPageRecord = Omit<
   Record_<GitPageView>,
-  "branch" | "detached" | "fetchedAt" | "groups" | "stopped"
+  "branch" | "detached" | "fetchedAt" | "groups" | "stopped" | "worktrees"
 > & {
   /** Whether a chat's agent works in the main checkout, which refuses the page's writes. */
   agentWorking: boolean;
@@ -43,6 +49,7 @@ export type GitPageRecord = Omit<
   fetchFailure: string | null;
   groups: Array<GitGroup>;
   stopped: StoppedView | null;
+  worktrees: Array<GitWorktreeRecord>;
 };
 
 /** The page as it is sent, with whether an agent works in each checkout. */
@@ -65,6 +72,10 @@ export async function gitPage(ctx: RepoContext): Promise<GitPageRecord> {
       isWorking: group.folder !== undefined && folders.includes(group.folder),
     })),
     stopped: view.stopped ?? null,
+    worktrees: view.worktrees.map((worktree) => ({
+      ...worktree,
+      isWorking: worktree.folder !== undefined && folders.includes(worktree.folder),
+    })),
   };
 }
 

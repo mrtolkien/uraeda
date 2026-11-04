@@ -5,7 +5,7 @@
 // background. Every write is refused while an agent works in its checkout: its buttons are
 // disabled, and the page says why.
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { type RefObject, Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { EditorHandle } from "../fields/editor/Editor.tsx";
 import { readUnsaved, unsavedKey } from "../fields/unsaved.ts";
@@ -25,7 +25,8 @@ import { gitRefusalTitle } from "../writes/labels.ts";
 import { RefusedHere } from "../writes/RefusedHere.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
 import { gitAddress, type Picked, pickedOf } from "./address.ts";
-import { ChangesGroup, RowEnd, TreeLine, treeKey } from "./ChangesTree.tsx";
+import { useOpenedFromGit } from "./Back.tsx";
+import { Group, treeKey } from "./ChangesTree.tsx";
 import { ConflictEditor } from "./ConflictEditor.tsx";
 import { conflictKey, Conflicts, isEditable } from "./Conflicts.tsx";
 import { type GitGroup, type GitPageData, GitPageView, useGitPage } from "./data.ts";
@@ -33,7 +34,6 @@ import { Detail } from "./Diff.tsx";
 import { History, historyKey, useMoreHistory } from "./History.tsx";
 import { MergePicker } from "./MergePicker.tsx";
 import { PlaceError } from "./PlaceError.tsx";
-import { Row } from "./Row.tsx";
 import { Sync } from "./Sync.tsx";
 import { buildTree, type FileChange } from "./tree.ts";
 import { type GitActions, type ListRow, pickOf, useGitKeys } from "./useGitKeys.ts";
@@ -160,13 +160,18 @@ function useActions(
         void writes.discard(row.group, row.row.path, row.row.file?.state === "new");
         return true;
       }
-      if (row.kind === "worktree" && offerOf(row.worktree) === "remove" && !page?.agentWorking) {
+      if (
+        row.kind === "worktree" &&
+        offerOf(row.worktree) === "remove" &&
+        !page?.agentWorking &&
+        !row.worktree.isWorking
+      ) {
         void writes.remove(row.worktree);
         return true;
       }
       return false;
     },
-    fetch: () => void (page?.hasRemote && writes.fetch()),
+    fetch: () => void (page?.hasRemote && !page.agentWorking && writes.fetch()),
     fold: (group, path) => {
       const key = treeKey(group.folder, path, true);
       setFolded((folded) => {
@@ -192,7 +197,8 @@ function useActions(
     push: () => void (page?.hasRemote && !stuck && writes.push()),
     stageAll: (group) => {
       if (writable(group) && group.files.length > 0) {
-        const all = group.files.every((file) => file.staged === "yes");
+        // As the boxes show it, a staging still answering included.
+        const all = filesShown(group, writes).every((file) => file.staged === "yes");
         void writes.stage(
           group,
           group.files.map((file) => file.path),
@@ -203,6 +209,80 @@ function useActions(
   };
 }
 
+/** The list's sections, each row picked by `onPick` and `shown` the one picked. */
+function Sections({
+  actions,
+  commitFields,
+  history,
+  onMerge,
+  onPick,
+  page,
+  rows,
+  shown,
+  writes,
+}: {
+  actions: GitActions;
+  commitFields: RefObject<Map<string | null, EditorHandle | null>>;
+  history: ReturnType<typeof useMoreHistory>;
+  onMerge: () => void;
+  onPick: (key: string) => void;
+  page: GitPageData;
+  rows: ReadonlyArray<ListRow>;
+  shown: string | undefined;
+  writes: GitWrites;
+}) {
+  return (
+    <VStack gap={4}>
+      <Sync onMerge={onMerge} page={page} writes={writes} />
+      <Banners page={page} writes={writes} />
+      <Conflicts cursor={shown} onPick={onPick} page={page} writes={writes} />
+      {page.groups.map((group) => (
+        <Group
+          commitRef={(handle) => {
+            commitFields.current.set(group.folder, handle);
+          }}
+          cursor={shown}
+          group={group}
+          isDisabled={refusedIn(page, group)}
+          key={group.folder ?? ""}
+          onFold={(path) => actions.fold(group, path)}
+          onPick={onPick}
+          rows={rows}
+          writes={writes}
+        />
+      ))}
+      <History
+        commits={history.commits}
+        cursor={shown}
+        hasMore={history.hasMore}
+        onPick={onPick}
+        onShowMore={() => void history.showMore()}
+      />
+      <Worktrees
+        branch={page.branch ?? page.detached ?? "main"}
+        cursor={shown}
+        isDisabled={page.agentWorking}
+        onPick={onPick}
+        worktrees={page.worktrees}
+        writes={writes}
+      />
+    </VStack>
+  );
+}
+
+/**
+ * The row the keys or the pointer selected, `undefined` until one is: it follows `picked`, the
+ * address's, each time that changes, as by Back or a link.
+ */
+function useCursor(picked: Picked | undefined) {
+  const address = picked && gitAddress(picked);
+  const [cursor, setCursor] = useState<{ address: string | undefined; key: string }>();
+  return [
+    cursor?.address === address ? cursor?.key : undefined,
+    (key: string) => setCursor({ address, key }),
+  ] as const;
+}
+
 /** The Git page, at `/git`. */
 export function GitPage() {
   const fate = useFateClient();
@@ -211,11 +291,12 @@ export function GitPage() {
   const picked = pickedOf(useSearch());
   const writes = useGitWrites();
   const [folded, setFolded] = useState<Folded>(new Set());
-  const [cursor, setCursor] = useState<string>();
+  const [cursor, setCursor] = useCursor(picked);
   const [isMerging, setMerging] = useState(false);
   const commitFields = useRef(new Map<string | null, EditorHandle | null>());
   const history = useMoreHistory(page ?? EMPTY);
   useRestoreScroll(page !== null);
+  useOpenedFromGit();
   // The page fetches as it opens, outside the toast: its failure is the fetcher's to keep.
   useEffect(() => {
     void fate.mutations.git.fetch({ input: { quiet: true }, view: GitPageView }).catch(() => {});
@@ -242,7 +323,6 @@ export function GitPage() {
       ? undefined
       : (pickOf(rows.find((row) => row.key === shown)) ??
         rows.map(pickOf).find((one) => one !== undefined)));
-  const branch = page.branch ?? page.detached ?? "main";
   return (
     <Page kind="panes">
       <Panes
@@ -254,51 +334,28 @@ export function GitPage() {
         }
         detailKey={detailOf && gitAddress(detailOf)}
         list={
+          // The list's keys take a div's ref, which Astryx's VStack, typed for any element's, refuses.
           <div ref={listRef}>
-            <VStack gap={4}>
-              <Sync onMerge={() => setMerging(true)} page={page} writes={writes} />
-              <Banners page={page} writes={writes} />
-              <Conflicts cursor={shown} onPick={setCursor} page={page} writes={writes} />
-              {page.groups.map((group) => (
-                <Group
-                  commitRef={(handle) => {
-                    commitFields.current.set(group.folder, handle);
-                  }}
-                  cursor={shown}
-                  group={group}
-                  isDisabled={refusedIn(page, group)}
-                  key={group.folder ?? ""}
-                  onFold={(path) => actions.fold(group, path)}
-                  onPick={setCursor}
-                  rows={rows}
-                  writes={writes}
-                />
-              ))}
-              <History
-                commits={history.commits}
-                cursor={shown}
-                hasMore={history.hasMore}
-                onPick={setCursor}
-                onShowMore={() => void history.showMore()}
-              />
-              <Worktrees
-                branch={branch}
-                cursor={shown}
-                isDisabled={page.agentWorking}
-                onPick={setCursor}
-                worktrees={page.worktrees}
-                writes={writes}
-              />
-            </VStack>
+            <Sections
+              actions={actions}
+              commitFields={commitFields}
+              history={history}
+              onMerge={() => setMerging(true)}
+              onPick={setCursor}
+              page={page}
+              rows={rows}
+              shown={shown}
+              writes={writes}
+            />
           </div>
         }
       />
       <MergePicker
         branches={page.branches}
-        into={branch}
+        into={page.branch ?? page.detached ?? "main"}
         isOpen={isMerging}
         onClose={() => setMerging(false)}
-        onPick={(picked) => void writes.merge(picked)}
+        onPick={(branch) => void writes.merge(branch)}
       />
     </Page>
   );
@@ -385,56 +442,5 @@ function StageButton({
       onClick={() => writes.stage(target.group, [target.file.path], !staged)}
       variant="ghost"
     />
-  );
-}
-
-/** A group's pane, its rows among the list's. */
-function Group({
-  commitRef,
-  cursor,
-  group,
-  isDisabled,
-  onFold,
-  onPick,
-  rows,
-  writes,
-}: {
-  commitRef: (handle: EditorHandle | null) => void;
-  cursor: string | undefined;
-  group: GitGroup;
-  isDisabled: boolean;
-  onFold: (path: string) => void;
-  onPick: (key: string) => void;
-  rows: ReadonlyArray<ListRow>;
-  writes: GitWrites;
-}) {
-  if (group.files.length === 0) {
-    return null;
-  }
-  return (
-    <ChangesGroup commitRef={commitRef} group={group} isDisabled={isDisabled} writes={writes}>
-      {rows.map(
-        (row) =>
-          row.kind === "tree" &&
-          row.group === group && (
-            <Row
-              end={<RowEnd row={row.row} />}
-              isInline
-              isPicked={cursor === row.key}
-              key={row.key}
-              onPick={() => onPick(row.key)}
-              rowKey={row.key}
-            >
-              <TreeLine
-                group={group}
-                isDisabled={isDisabled}
-                onFold={onFold}
-                row={row.row}
-                writes={writes}
-              />
-            </Row>
-          ),
-      )}
-    </ChangesGroup>
   );
 }

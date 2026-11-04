@@ -1,6 +1,7 @@
 // The Git page's history: the checked-out branch's commits, newest first, those `origin` has that
 // it lacks marked ↓ until pulled, those it has that `origin` lacks ↑. Each opens its files.
-// "Show more" reads the next page after the last commit shown.
+// "Show more" reads the next page after the last commit shown; when the history lost that commit, it
+// reads the first page again.
 import { Button } from "@astryxdesign/core/Button";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -11,7 +12,12 @@ import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { useNow } from "../useNow.ts";
 import { gitAddress } from "./address.ts";
-import { type GitCommitRow, GitHistoryPageView, type GitPageData } from "./data.ts";
+import {
+  GIT_PAGE_REQUEST,
+  type GitCommitRow,
+  GitHistoryPageView,
+  type GitPageData,
+} from "./data.ts";
 import { Row } from "./Row.tsx";
 
 /** The key of a commit's row among the list's rows. */
@@ -49,17 +55,31 @@ export function useMoreHistory(page: GitPageData) {
   const current =
     more.after === last ? more : { after: last, commits: [], hasMore: page.hasMoreHistory };
   const commits = [...page.history, ...current.commits];
+  /** The page of the history after the commit `from`, none when the server refused it. */
+  const readPage = async (from: string) => {
+    const { gitHistoryPage } = await fate.request(
+      { gitHistoryPage: { id: from, view: GitHistoryPageView } },
+      { mode: "network-only" },
+    );
+    if (!gitHistoryPage) {
+      return undefined;
+    }
+    const { data } = await fate.readView(GitHistoryPageView, gitHistoryPage);
+    return data as unknown as { commits: ReadonlyArray<GitCommitRow>; hasMore: boolean };
+  };
   const showMore = async () => {
     const from = commits.at(-1)?.id;
     if (from === undefined) {
       return;
     }
-    const { gitHistoryPage } = await fate.request(
-      { gitHistoryPage: { id: from, view: GitHistoryPageView } },
-      { mode: "network-only" },
-    );
-    const { data } = await fate.readView(GitHistoryPageView, gitHistoryPage);
-    const read = data as unknown as { commits: ReadonlyArray<GitCommitRow>; hasMore: boolean };
+    const read = await readPage(from).catch(() => undefined);
+    if (read === undefined) {
+      // The history no longer holds the last commit shown, as after a rebase (R23): it starts over
+      // from its first page, read again.
+      setMore({ after: undefined, commits: [], hasMore: false });
+      await fate.request(GIT_PAGE_REQUEST, { mode: "network-only" }).catch(() => {});
+      return;
+    }
     setMore({ after: last, commits: [...current.commits, ...read.commits], hasMore: read.hasMore });
   };
   return { commits, hasMore: current.hasMore, showMore };

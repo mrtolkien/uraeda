@@ -417,3 +417,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `bench_note_writes_and_commits_within_its_bound`, on the default branch too (checked on `main` at
   the time): it was already there, and is named in the pull request.
 - **Where**: task 12.
+
+## R30: The sync's buttons sit under the title's line, and the page's details go back the way they came
+
+- **Decision**: the Git page's Fetch, Pull, Push, and "Merge into main…" sit under the title's line
+  at every width, wrapping there, not beside the title. Fetch and `f` are disabled while a chat's
+  agent works in the main checkout, as the guard refuses a loud fetch then (R20). The view's
+  worktrees carry `isWorking`, their feature's agent at work, which disables their Clean and Remove
+  as the guard refuses them. Each history entry the page opens while drawn records the page's
+  address it came from as its `from`, and the phone's Back of a diff, a commit, or a conflict goes
+  back in the browser's history when there is one, else to the sections afresh. "Show more" on a
+  history that lost its last commit shown (R23) forgets the pages read and reads the first again. A
+  box pressed twice stays as the last press shows it until that press's write answers.
+- **Rationale**: beside the title, in the list's column at 1440 px, the four buttons kept their
+  width and squeezed "Git" onto three lines; `PageTitle` is shared by every page. The sections come
+  back where they were scrolled only through the browser's Back, and a detail opened from another
+  page, or loaded directly, has none of the Git page's before it.
+- **If wrong**: the title's row is a line taller on wide screens than the mockup's.
+- **Where**: task 9, after the review of tasks 8 and 9.

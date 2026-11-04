@@ -1142,8 +1142,9 @@ banners (agent working, a refusal, a fetch failure with its message), Changes pe
 Commit, History with "Show more" over `GitHistoryPage`, Worktrees with Clean and Remove asking first
 (the mockup's `'Clean "Master" PR?'`, Keep and Clean; Remove: "Remove <path>?", Keep and Remove),
 the diff detail through `CodeBlock isDiff` with the binary and capped texts, "Merge into main…"
-opening a popover of `branches` (a sheet on the phone). Every write disabled while `agentWorking`,
-or its group `isWorking`.
+opening the shared `KeyPicker` over `branches` (a dialog on wide screens, a sheet on the phone).
+Every write disabled while `agentWorking`, or its group `isWorking`; a worktree's Clean and Remove
+while its feature's agent works too (the view's `worktrees[].isWorking`).
 
 - [x] **Step 2: Write the tests**
 

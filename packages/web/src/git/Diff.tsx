@@ -5,7 +5,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -13,7 +12,8 @@ import { type ReactNode, useState } from "react";
 import { useLiveView, useRequest } from "react-fate";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { navigateHere, useRepoPath } from "../routes.tsx";
+import { useRepoPath } from "../routes.tsx";
+import { Back } from "./Back.tsx";
 import { gitAddress, type Picked } from "./address.ts";
 import { GitCommitView, gitDiffId, GitDiffView } from "./data.ts";
 
@@ -54,18 +54,6 @@ export function binaryLine(before: number | null, after: number | null): string 
   return after === null
     ? `Binary file, deleted, ${size(before)}`
     : `Binary file, ${size(before)} to ${size(after)}`;
-}
-
-/** The phone's way back from the detail to the sections. */
-function Back({ isNarrow }: { isNarrow: boolean }) {
-  return isNarrow ? (
-    <Button
-      icon={<Icon icon="arrowLeft" />}
-      label="Back"
-      onClick={() => navigateHere(gitAddress())}
-      variant="ghost"
-    />
-  ) : null;
 }
 
 /** A diff's text, its sizes, or its counts with "Show the whole diff". */

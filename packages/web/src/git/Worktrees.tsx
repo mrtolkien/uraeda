@@ -1,7 +1,7 @@
 // The Git page's worktrees: the main checkout first, then each linked one, its feature's name or
 // its folder's, over its path and its state. A merged feature's offers Clean, as `ura clean` does;
 // one with no changes, or whose folder is gone, Remove, which keeps its branch. One with changes
-// offers neither.
+// offers neither. Both are disabled while an agent works in the main checkout or in the worktree.
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Pane } from "../layout/Pane.tsx";
@@ -60,7 +60,7 @@ function Worktree({
           // The row's action is what the list's keys focus on it.
           <span data-row-link="">
             <WriteButton
-              isDisabled={isDisabled}
+              isDisabled={isDisabled || worktree.isWorking}
               label={offer === "clean" ? "Clean" : "Remove"}
               onClick={() => (offer === "clean" ? writes.clean(worktree) : writes.remove(worktree))}
               variant="secondary"

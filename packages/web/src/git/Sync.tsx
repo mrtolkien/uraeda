@@ -1,8 +1,9 @@
 // The Git page's title: its line says the checked-out branch against `origin`, "main · 3 to pull · 6
-// to push · fetched just now", "main · no remote", or "detached at 4f8c2b7"; beside it, Fetch, Pull,
+// to push · fetched just now", "main · no remote", or "detached at 4f8c2b7"; under it, Fetch, Pull,
 // Push, and "Merge into main…", each disabled while it cannot run.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { VStack } from "@astryxdesign/core/VStack";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import { useNow } from "../useNow.ts";
 import { WriteButton } from "../writes/WriteButton.tsx";
@@ -54,8 +55,8 @@ const counted = (label: string, n: number) => (n > 0 ? `${label} · ${n}` : labe
 
 /**
  * The title, its line, and the sync's buttons: without a remote, no Fetch, Pull, or Push; on a
- * detached `HEAD`, Pull, Push, and Merge disabled; while an agent works in the checkout, every one
- * but Fetch. Pull is the main action while there is something to pull, else Push.
+ * detached `HEAD`, Pull, Push, and Merge disabled; while an agent works in the checkout, every one,
+ * as the guard refuses a fetch then too (R20). Pull is the main action while there is something to pull, else Push.
  */
 export function Sync({
   onMerge,
@@ -70,38 +71,41 @@ export function Sync({
   const now = useNow(30_000);
   const isStuck = page.agentWorking || Boolean(page.detached);
   const branch = page.branch ?? "main";
+  // The buttons go under the title's line at every width, wrapping there: beside the title, in the
+  // list's column, four of them squeezed "Git" onto three lines.
   return (
-    <PageTitle
-      aside={
-        <HStack gap={1} wrap="wrap">
-          {page.hasRemote && (
-            <>
-              <WriteButton label="Fetch" onClick={writes.fetch} variant="secondary" />
-              <WriteButton
-                isDisabled={isStuck}
-                label={counted("Pull", page.behind)}
-                onClick={writes.pull}
-                variant={page.behind > 0 ? "primary" : "secondary"}
-              />
-              <WriteButton
-                isDisabled={isStuck}
-                label={counted("Push", page.ahead)}
-                onClick={writes.push}
-                variant={page.behind === 0 && page.ahead > 0 ? "primary" : "secondary"}
-              />
-            </>
-          )}
-          <Button
-            isDisabled={isStuck || page.branches.length === 0}
-            label={`Merge into ${branch}…`}
-            onClick={onMerge}
-            variant="ghost"
-          />
-        </HStack>
-      }
-      meta={{ text: syncLine(page, now) }}
-    >
-      Git
-    </PageTitle>
+    <VStack gap={2}>
+      <PageTitle meta={{ text: syncLine(page, now) }}>Git</PageTitle>
+      <HStack gap={1} wrap="wrap">
+        {page.hasRemote && (
+          <>
+            <WriteButton
+              isDisabled={page.agentWorking}
+              label="Fetch"
+              onClick={writes.fetch}
+              variant="secondary"
+            />
+            <WriteButton
+              isDisabled={isStuck}
+              label={counted("Pull", page.behind)}
+              onClick={writes.pull}
+              variant={page.behind > 0 ? "primary" : "secondary"}
+            />
+            <WriteButton
+              isDisabled={isStuck}
+              label={counted("Push", page.ahead)}
+              onClick={writes.push}
+              variant={page.behind === 0 && page.ahead > 0 ? "primary" : "secondary"}
+            />
+          </>
+        )}
+        <Button
+          isDisabled={isStuck || page.branches.length === 0}
+          label={`Merge into ${branch}…`}
+          onClick={onMerge}
+          variant="ghost"
+        />
+      </HStack>
+    </VStack>
   );
 }
