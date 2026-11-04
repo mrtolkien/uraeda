@@ -74,6 +74,11 @@ const styles = stylex.create({
   },
 });
 
+/** Text a group draws outside its panes, from the panes' left edge, as its heading. */
+function PageText({ children }: { children: ReactNode }) {
+  return <div {...stylex.props(pageText)}>{children}</div>;
+}
+
 /**
  * A group of the spec's parts: its heading, its icon, title, and what it counts ("· 4"), from the
  * panes' left edge, then its parts.
@@ -193,7 +198,9 @@ function groups({
         wide={part.wide}
       >
         {intro.length > 0 && (
-          <Blocks document={part.document} ids={intro} selection={part.selection} />
+          <PageText>
+            <Blocks document={part.document} ids={intro} selection={part.selection} />
+          </PageText>
         )}
         {items.stories.map((story) => (
           <StoryCard {...part} key={story.id} story={story} />
@@ -245,7 +252,9 @@ function groups({
     ),
     ...otherParts(items).map((other) => (
       <Group id={other.anchor} key={other.heading} title={other.title} wide={part.wide}>
-        <Blocks document={part.document} ids={other.blocks} selection={part.selection} />
+        <PageText>
+          <Blocks document={part.document} ids={other.blocks} selection={part.selection} />
+        </PageText>
       </Group>
     )),
   ];

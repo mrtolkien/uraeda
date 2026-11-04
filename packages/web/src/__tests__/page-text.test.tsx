@@ -6,7 +6,8 @@ import { screen } from "@testing-library/react";
 import * as stylex from "@stylexjs/stylex";
 import { expect, test } from "vite-plus/test";
 import { pageText } from "../layout/Page.tsx";
-import { fixtureRepo, renderPage, today } from "./helpers.tsx";
+import { commitOnBranch } from "uraeda-binding/test-utils";
+import { fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 today("2026-10-11");
 
@@ -21,14 +22,29 @@ function inTextColumn(element: HTMLElement) {
   return false;
 }
 
-// Break: drop `pageText` from a spec's `Group` heading, or from `YourReview`'s box.
-test("a spec's group headings and its review's end start at its panes' edge", async () => {
-  await renderPage("/f/2026-10-06-recurring-tasks/spec.md", fixtureRepo());
+const FOLDER = "2026-10-06-recurring-tasks";
+const SPEC = `specs/${FOLDER}/spec.md`;
+
+// Break: drop `pageText` from a spec's `Group` heading, its stories' intro, a part it does not know,
+// or `YourReview`'s box; or put it on a box holding the panes.
+test("a spec's group headings, loose text, and review's end start at its panes' edge", async () => {
+  const repo = fixtureRepo();
+  const spec = git(repo, "show", `${FOLDER}:${SPEC}`);
+  commitOnBranch(repo, FOLDER, {
+    [SPEC]: spec
+      .replace("## User stories\n", "## User stories\n\nThe stories, most important first.\n")
+      .replace("## Architecture\n", "## Rollout\n\nShipped behind no flag.\n\n## Architecture\n"),
+  });
+  await renderPage(`/f/${FOLDER}/spec.md`, repo);
 
   const decisions = await screen.findByRole("heading", { level: 2, name: /^Decisions/ });
   expect(inTextColumn(decisions)).toBe(true);
   const stories = await screen.findByRole("heading", { level: 2, name: /^User stories/ });
   expect(inTextColumn(stories)).toBe(true);
+  expect(inTextColumn(await screen.findByText("The stories, most important first."))).toBe(true);
+  expect(inTextColumn(await screen.findByText("Shipped behind no flag."))).toBe(true);
+  // A pane keeps its own width, past the text column's where it is wider.
+  expect(inTextColumn(screen.getByRole("region", { name: /^US1/ }))).toBe(false);
   const review = await screen.findByRole("heading", { level: 2, name: "Your review" });
   expect(inTextColumn(review)).toBe(true);
   expect(inTextColumn(await screen.findByRole("button", { name: "Approve" }))).toBe(true);
