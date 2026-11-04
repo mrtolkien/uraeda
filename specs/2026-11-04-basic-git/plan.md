@@ -1326,7 +1326,7 @@ and checked under 100 ms in a release build (ruling R29).
 
 - [x] **Step 3: Update the documentation**
 
-- [ ] **Step 4: Run the benchmark and the complete validation**
+- [x] **Step 4: Run the benchmark and the complete validation**
 
 - Run: `nix develop -c vp run bench`,
   `nix develop -c cargo nextest run --cargo-profile release -p uraeda-core --test git_page --run-ignored only`,

@@ -413,4 +413,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   build, and `vp run bench` makes a debug one, where one status alone takes about 100 ms.
 - **If wrong**: `vp run bench` never fails on the page's time: the release command above is the one
   that checks it, by hand in the review.
+- **The run's other failure**: `vp run bench` also fails `uraeda-cli`'s
+  `bench_note_writes_and_commits_within_its_bound`, on the default branch too (checked on `main` at
+  the time): it was already there, and is named in the pull request.
 - **Where**: task 12.
