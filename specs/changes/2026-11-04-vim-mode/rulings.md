@@ -20,8 +20,8 @@ proposal and the decisions. None binds future work: those are decisions.
 ## R2: The drawn selection is the accent at 25%
 
 - **Decision**: Vim's selection, drawn by CodeMirror's layer, takes the accent, Catppuccin's mauve
-  as Visual mode's colour, mixed at 25% over the field's ground. The browser's selection, with Vim
-  off, keeps its grey.
+  as Visual mode's colour, mixed at 25% over the field's ground, and 12% in a field without the
+  focus. The browser's selection, with Vim off, keeps its grey.
 - **Rationale**: once drawn, the selection in `--color-background-gray` hardly showed on the field's
   ground in Latte. Mixed from a token, it follows the light and dark schemes, and the text reads on
   it in both, reviewed in the sandbox.
