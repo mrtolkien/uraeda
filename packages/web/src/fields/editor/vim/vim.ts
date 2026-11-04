@@ -7,7 +7,7 @@
 // Escape; a field's own normal-mode keys, as a picker's `j` and `k`, run before the engine's; a yank
 // also reaches the clipboard; and the human's commands run when it starts, each refusal with its
 // line.
-import { type Extension, Prec } from "@codemirror/state";
+import { EditorState, type Extension, Prec } from "@codemirror/state";
 import { drawSelection, EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
 import { type Mode, setFocused, setMode } from "../modeStore.ts";
@@ -269,12 +269,14 @@ const vimTheme = EditorView.theme({
 
 /**
  * The layer, for each field's slot: the engine, the field's keys before it, its look, its mode, and
- * CodeMirror's own drawn selection, since the engine hides the browser's and draws none itself.
+ * CodeMirror's own drawn selection, since the engine hides the browser's and draws none itself, of
+ * several ranges, one a line, as visual block mode selects.
  */
 export const extension = (): Extension => [
   fieldFirst,
   Prec.highest(vim()),
   drawSelection(),
+  EditorState.allowMultipleSelections.of(true),
   vimTheme,
   modeReport,
   afterFocus,
