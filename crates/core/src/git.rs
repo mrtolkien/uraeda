@@ -15,6 +15,8 @@ mod log;
 pub(crate) mod process;
 mod refresh;
 mod remote;
+mod resolve;
+mod staging;
 mod status;
 mod stopped;
 mod worktrees;
@@ -24,6 +26,7 @@ pub use checkout::{CheckoutState, Conflict, ConflictKind, FileChange, FileState,
 pub use commit::{OnOutput, Stage, others_staged};
 pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff};
 pub use history::{CommitInfo, CommitPaths, Range};
+pub use resolve::Resolution;
 pub use stopped::{Stopped, StoppedKind};
 pub use worktrees::{Worktree, WorktreeRecord};
 

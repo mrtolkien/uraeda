@@ -326,6 +326,52 @@ impl TestRepo {
         );
         run_git(&remover, &["push", "--quiet", "origin", "HEAD:main"]);
         self.git(&["fetch", "--quiet", "origin"]);
+    /// Leaves the pull of [`TestRepo::stopped_pull`] stopped with `rebase.autoStash` on, and an
+    /// uncommitted edit of `path`, a tracked file, stashed by the pull.
+    pub fn stopped_pull_autostashed(&self, path: &str, text: &str) {
+        self.stopped_pull();
+        self.git(&["rebase", "--abort"]);
+        self.git(&["config", "rebase.autoStash", "true"]);
+        self.write(path, text);
+        let pulled = without_user_git(
+            Command::new("git")
+                .args(["pull", "--quiet", "--rebase", "origin", "main"])
+                .current_dir(&self.path),
+        )
+        .output()
+        .expect("git runs");
+        assert!(!pulled.status.success(), "the pull did not stop");
+        assert!(self.path.join(".git/rebase-merge/autostash").exists());
+    }
+
+    /// The files staged, sorted, from `git diff --cached`.
+    pub fn staged(&self) -> Vec<String> {
+        self.lines(&["diff", "--cached", "--name-only", "-z"])
+    }
+
+    /// The files the index holds as conflicted, sorted.
+    pub fn unmerged(&self) -> Vec<String> {
+        self.lines(&["diff", "--name-only", "--diff-filter=U", "-z"])
+    }
+
+    /// The commits `HEAD` has that `origin/main` lacks.
+    pub fn ahead(&self) -> usize {
+        self.git(&["rev-list", "--count", "origin/main..HEAD"])
+            .trim()
+            .parse()
+            .unwrap()
+    }
+
+    /// The paths a `-z` git command prints, sorted.
+    fn lines(&self, args: &[&str]) -> Vec<String> {
+        let mut paths: Vec<String> = self
+            .git(args)
+            .split('\0')
+            .filter(|path| !path.is_empty())
+            .map(String::from)
+            .collect();
+        paths.sort();
+        paths
     }
 }
 

@@ -702,18 +702,21 @@ git commit -m "feat(basic-git): fetch, pull, and push the checked-out branch, ne
     empty message with `"Write a commit message first."` and an empty index with
     `"Nothing is staged."`; the files stay staged when a hook refuses;
   - in `git/resolve.rs`: `pub enum Resolution { Ours, Theirs, Delete }`;
-    `impl Git { pub fn resolve(&self, path: &str, resolution: Resolution) -> Result<(), GitError>; pub fn continue_stopped(&self, on_output: OnOutput) -> Result<(), GitError>; pub fn abort_stopped(&self, on_output: OnOutput) -> Result<(), GitError>; pub fn merge_branch(&self, branch: &str, on_output: OnOutput) -> Result<(), GitError> }`:
-    - `resolve` refuses a path that is not conflicted; `Ours` and `Theirs` take git's stage 2 or 3
-      whole (a side that deleted the file deletes it), then stage it; `Delete` removes it;
+    `impl Git { pub fn resolve_conflict(&self, path: &str, resolution: Resolution) -> Result<(), GitError>; pub fn continue_stopped(&self, on_output: OnOutput) -> Result<(), GitError>; pub fn abort_stopped(&self, on_output: OnOutput) -> Result<(), GitError>; pub fn merge_branch(&self, branch: &str, on_output: OnOutput) -> Result<(), GitError> }`:
+    - `resolve_conflict` (`Git::resolve` already names a revision's commit, ruling R13) refuses a
+      path that is not conflicted with "<path> has no conflict."; `Ours` and `Theirs` take git's
+      stage 2 or 3 whole (a side that deleted the file deletes it), then stage it; `Delete` removes
+      it;
     - `continue_stopped` stages each conflicted file that `is_resolved`, refuses with "1 file still
       conflicts." or "N files still conflict." when one is not, then runs `git rebase --continue` or
-      `git merge --continue`; a stash's stop only stages the resolved files, keeping the stash;
+      `git merge --continue`; a stash's stop only stages the resolved files, keeping the stash; a
+      continue that stops on the next conflict returns `Ok`;
     - `abort_stopped` runs `git rebase --abort` or `git merge --abort`, which puts an autostash
-      back; a stash's stop has no abort, and refuses;
-    - `merge_branch` runs `git merge --no-edit --end-of-options <branch>`; a merge that stops on a
-      conflict returns `Ok`.
+      back; a stash's stop has no abort, and refuses; with nothing stopped, both refuse;
+    - `merge_branch` runs `git merge --no-edit --end-of-options <branch>`, refused as a commit is
+      while a pull or a merge is stopped; a merge that stops on a conflict returns `Ok`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `staging_moves_only_the_named_files`: two changed files, staging one leaves the other unstaged;
   staging a folder's two files stages both; unstaging all leaves none staged; `notes/a b ü.md`
@@ -727,31 +730,33 @@ git commit -m "feat(basic-git): fetch, pull, and push the checked-out branch, ne
   in `HEAD`; an untracked note is deleted; a staged new file is unstaged and deleted; the other
   changed file is untouched in every row. Break: `git checkout -- .`.
 - `a_stopped_pull_continues_once_resolved_or_aborts`, a sequence: `stopped_pull`; Continue refuses
-  with "1 file still conflicts."; `resolve(Ours)` takes `origin/main`'s text; Continue lands,
-  nothing is stopped, `ahead` counts the replayed commits. A second repository: `stopped_pull` with
-  an autostashed edit, `resolve(Theirs)`, then `abort_stopped`: `HEAD` is the pull's starting commit
-  and the edit is back. Break: `git add` of every conflicted file before checking for markers.
+  with "1 file still conflicts."; `resolve_conflict(Theirs)` takes `main`'s text; Continue lands,
+  nothing is stopped, `ahead` counts the replayed commit. A second repository: `stopped_pull` with
+  an autostashed edit, `resolve_conflict(Ours)` takes `origin/main`'s text, then `abort_stopped`:
+  `HEAD` is the pull's starting commit and the edit is back. (Theirs comes first: taking
+  `origin/main` whole leaves the replayed commit empty, which git drops, so nothing is ahead.)
+  Break: `git add` of every conflicted file before checking for markers.
 - `merge_brings_a_branch_into_main`: a branch `2026-11-04-vim-mode` merges and `ahead == 1` more
   than before; a branch named `-x` merges as a branch, not an option; a conflicting branch stops as
   `Merge`, with `Ok`. Break: dropping `--end-of-options`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_staging --test git_resolve`
 - Expected: FAIL, `stage_paths` not found.
 
-- [ ] **Step 3: Implement the writes**
+- [x] **Step 3: Implement the writes**
 
 As the interfaces say, through `git_write`. `is_resolved` comes from task 2's reading of a conflict;
 until task 2 merges, read the markers with the same one-line test in a private helper of
 `resolve.rs`, to be replaced by task 2's at the wave's merge (see ruling R4).
 
-- [ ] **Step 4: Run the task's validation, and make the breaks**
+- [x] **Step 4: Run the task's validation, and make the breaks**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Make each break, see it fail, revert it, report it in the commit body.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core specs/2026-11-04-basic-git/plan.md

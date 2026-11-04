@@ -37,8 +37,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R4: Conflict markers are read in the core and in the bar
 
-- **Decision**: the core marks a conflicted file resolved when it holds no line starting `<<<<<<< `
-  nor `>>>>>>> `, and refuses Continue otherwise; the conflict bar parses the blocks of the text
+- **Decision**: the core marks a conflicted file resolved when it holds no line starting `  nor `>>>>>>> `, and refuses Continue otherwise; the conflict bar parses the blocks of the text
   being edited. Task 4 holds a private copy of the core's line test until task 2's merges, then uses
   task 2's.
 - **Rationale**: the bar edits unsaved text in the editor, so it cannot ask the core at each press;
@@ -102,6 +101,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   instead of prompting.
 - **Where**: task 1.
 
+<<<<<<< HEAD
 ## R11: A binary or a delete conflict is never resolved by its markers
 
 - **Decision**: a conflict's `is_resolved` holds only for a text file both sides have
@@ -133,3 +133,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `GIT_TERMINAL_PROMPT=0`.
 - **If wrong**: a fetch on a detached `HEAD` shows its failure like any other.
 - **Where**: task 3.
+
+## R13: Resolving a conflict is `Git::resolve_conflict`
+
+- **Decision**: the plan's `Git::resolve(path, resolution)` is named `resolve_conflict`, and task
+  6's `git_resolve` calls it.
+- **Rationale**: `Git::resolve(revision)` already names the commit a revision points to, with six
+  callers; renaming it would touch files other tasks of the wave change.
+- **Where**: tasks 4 and 6.
+
+## R14: The page's paths are taken literally, and discard deletes only a file git lists
+
+- **Decision**: every path the page's writes take is passed with `--literal-pathspecs`, and refused
+  as "<path> is not in this checkout." when it is absolute, holds `..`, `.`, or `.git`, or goes
+  through a symbolic link to a folder outside. `discard_path` deletes a file `HEAD` lacks only when
+  the index holds it or git lists it as untracked; an ignored file is refused with "<path> has no
+  changes to discard.".
+- **Rationale**: a file named `*.md` must stage itself alone, and a path the web sends must never
+  make the core delete a file the page did not list, like `.git/config` or an ignored `.env`.
+- **Where**: task 4.
