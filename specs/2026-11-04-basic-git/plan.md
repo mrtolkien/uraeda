@@ -882,8 +882,7 @@ signed in can overwrite or delete.
 - Consumes: tasks 3 and 4's writes, `actions::clean::clean`, `Git::remove_worktree`,
   `prune_worktrees`.
 - Produces, in `api/git_writes.rs`, each under `write_lock(repo)`, each acting on the group's root
-  (task 5's `group_root`, until then a private copy replaced at the merge), the remote writes on the
-  main checkout only:
+  (task 5's `group_root`), the remote writes on the main checkout only:
   - `git_fetch(repo, on_output) -> Result<()>`, `git_pull`, `git_push`,
     `git_merge(repo, branch: &str, on_output)`, `git_continue(repo, on_output)`,
     `git_abort(repo, on_output)`;
@@ -894,8 +893,8 @@ signed in can overwrite or delete.
   - `git_resolve(repo, path: &str, resolution: &str /* "ours" | "theirs" | "delete" */) -> Result<()>`;
   - `save_conflict_file(repo, path: &str, text: &str, hash: &str) -> Result<ConflictFileView>`:
     refused unless `path` passes `Git::checked` and is conflicted in the main checkout, not binary,
-    and not a symbolic link; `"conflict"` when the file changed since `hash`; never stages. Until
-    the merge, `ConflictFileView` is a private copy in `api/git_writes.rs`, with task 5's fields;
+    and not a symbolic link; `"conflict"` when the file changed since `hash`; never stages;
+    `ConflictFileView` is task 5's;
   - `git_remove_worktree(repo, path: &str) -> Result<()>`: only a path `worktree_records` lists,
     matched by its path from the main checkout's root (`clean::relative`), never the main checkout;
     a missing one prunes; one with changes is refused, "<path> has changes: commit or discard them

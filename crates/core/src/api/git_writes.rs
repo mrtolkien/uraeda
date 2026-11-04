@@ -3,38 +3,16 @@
 //! remote writes, the merge, and a conflict's writes act on the main checkout. Each writes only a
 //! file or a worktree the page lists, and none forces (see `specs/decisions/git.md`).
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::error::commit_error;
+use super::git_page::group_root;
 use super::{ConflictFileView, Result, find, open, refused, write_lock};
 use crate::actions::ActionError;
 use crate::actions::clean::{self, Left, Leftover, WhyLeft, relative};
 use crate::files::document::hash;
 use crate::git::{Git, Resolution};
 use crate::view::CommitView;
-use crate::workspace::Workspace;
-
-/// The checkout of a page's group: the main checkout for `None`, a feature's worktree for its
-/// folder, refused otherwise.
-pub(crate) fn group_root(
-    git: &Git,
-    workspace: &Workspace,
-    folder: Option<&str>,
-) -> Result<PathBuf> {
-    let Some(folder) = folder else {
-        return Ok(git.main_root());
-    };
-    let no_worktree = || refused(format!("{folder} has no worktree."));
-    let branch = find(workspace, folder)?
-        .branch
-        .clone()
-        .ok_or_else(no_worktree)?;
-    git.worktrees()?
-        .into_iter()
-        .find(|worktree| worktree.branch.as_deref() == Some(&branch) && worktree.path.exists())
-        .map(|worktree| worktree.path)
-        .ok_or_else(no_worktree)
-}
 
 /// The checkout of the group `folder`, opened: the workspace is read only for a feature's.
 fn group(repo: &Path, folder: Option<&str>) -> Result<Git> {
