@@ -954,10 +954,11 @@ git commit -m "feat(basic-git): the Git page's writes"
 
 - Create: `packages/server/src/fate/views-git.ts`, `packages/server/src/fate/git-mutations.ts`,
   `packages/server/src/fate/git-guard.ts`
-- Modify: `packages/server/src/fate/sources.ts`, `fate/views.ts` (`Root`), `fate.ts` (exports),
-  `fate/mutations.ts`, `packages/server/src/live.ts` (`publish`),
+- Modify: `packages/server/src/fate/sources.ts`, `fate.ts` (`Root` and exports),
+  `fate/mutations.ts`, `packages/server/src/live.ts` (`publish`, `publishGit`),
   `packages/server/src/runner/sessions.ts` (`chatWorking`), `packages/server/src/writes/queue.ts`
-  (`background`)
+  (`background`), `packages/server/src/__tests__/request-fixture.ts` (the new views),
+  `__tests__/live.test.ts` (a turn's state change sends the Git page)
 - Test: `packages/server/src/__tests__/git-page.test.ts`
 
 **Interfaces:**
@@ -966,28 +967,35 @@ git commit -m "feat(basic-git): the Git page's writes"
 - Produces, in `views-git.ts`: data views and sources for `GitPage`, `GitSummary`, `GitDiff`,
   `GitCommit`, `GitHistoryPage`, `ConflictFile`, exported from `fate.ts` with their entity types and
   `GIT_ID = "git"`. `GitPage`'s record is the core's view plus `agentWorking: boolean` (a chat works
-  in the main checkout) and, on each group, `isWorking: boolean` (its feature's agent works). A
-  `GitDiff` id is `JSON.stringify([folder ?? null, commit ?? null, path, whole])`.
+  in the main checkout) and, on each group, `isWorking: boolean` (its feature's agent works), its
+  `folder` null for the main checkout; the records' top-level optional fields are sent as null. A
+  `GitDiff` id is `JSON.stringify([folder ?? null, commit ?? null, path, whole])`, made by
+  `gitDiffId(folder, commit, path, whole)`, exported from `fate.ts`.
 - Produces, in `runner/sessions.ts`: `chatWorking(repo: string): boolean`, whether a session with
   `folder === null` has a turn running, starting, or queued.
 - Produces, in `git-guard.ts`:
   `checkoutWritable(ctx: RepoContext, folder: string | null): Promise<void>`, throwing
   `callSiteError("refused: An agent works in this checkout: wait for its turn to end.")` for the
   main checkout while `chatWorking`, and calling `writable(ctx, {folder})` for a feature's.
-- Produces, in `writes/queue.ts`: `background(land: Land, keys?: string[]): Promise<unknown>`,
-  landed in turn with the record's writes, never in `writes()`.
+- Produces, in `writes/queue.ts`: `background(land: Land): Promise<unknown>`, landed in turn with
+  the record's writes, never in `writes()`.
 - Produces, in `git-mutations.ts`, each returning the `GitPage` view, each guarded, each a write of
   the queue labelled by its `write` input (`writeHere(...)` on the web), with its output streamed,
   answering once it lands: `git.pull`, `git.push`, `git.merge {branch}`, `git.continue`,
   `git.abort`, `git.fetch {quiet?: boolean}` (quiet: in `queue.background`, without a toast; task 8
   makes it join the fetcher), `git.stage {folder, paths}`, `git.unstage {folder, paths}`,
   `git.discard {folder, path}`, `git.commit {folder, message}`, `git.resolve {path, resolution}`,
-  `git.saveConflict {path, text, hash}`, `git.removeWorktree {path}`, `git.clean {folder}`. Keys:
-  `["git"]` for the main checkout, `featureKeys(folder)` for a group.
+  `git.removeWorktree {path}`, `git.clean {folder}`. Keys: `["git"]` for the main checkout,
+  `featureKeys(folder)` for a group. A refusal stays in the queue's record and answers the call.
+  `git.saveConflict {path, text, hash}` answers the `ConflictFile` with its new hash, through
+  `landed`, its refusal leaving the record. The quiet `git.fetch` is not guarded;
+  `git.removeWorktree` is guarded as the main checkout's and as its feature's; `git.clean` as both
+  (R20).
 - Produces: after each landed or refused git write, after `changes.git` from the watcher, and when a
-  session's turn starts or ends, `live.update` of `GitPage` and `GitSummary` at `GIT_ID`.
+  session's turn starts or ends (a change with a `state`, in `sessionPublisher`), `live.update` of
+  `GitPage` and `GitSummary` at `GIT_ID`, by `publishGit(bus)` in `live.ts`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `the page refuses its writes while a chat works in the checkout`: a chat's turn running on the
   fake agent: `GitPage`'s `agentWorking` is true, and `git.pull`, `git.stage`, `git.commit` each
@@ -1001,19 +1009,19 @@ git commit -m "feat(basic-git): the Git page's writes"
   while it runs, and `GitPage`'s `behind` is then 0; a commit refused by `heldHook` stays in the
   queue as `failure: "hook"` with its output.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/git-page.test.ts`
 - Expected: FAIL, the source `GitPage` unknown.
 
-- [ ] **Step 3: Implement the views, the guard, the mutations, and the live updates**
+- [x] **Step 3: Implement the views, the guard, the mutations, and the live updates**
 
-- [ ] **Step 4: Run the task's validation, and make the break**
+- [x] **Step 4: Run the task's validation, and make the break**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Make the break, see it fail, revert it, report it in the commit body.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-11-04-basic-git/plan.md

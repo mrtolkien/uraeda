@@ -10,6 +10,7 @@ import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { LEDGER_ID } from "./fate/views-ledger.ts";
 import { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 import { COMMIT_PANES_ID } from "./fate/views-buffer.ts";
+import { GIT_ID } from "./fate/views-git.ts";
 import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
@@ -34,6 +35,17 @@ const sender = (bus: LiveBus) => (type: string, id: string) =>
  * first, as the hosts' watches publish its sessions.
  */
 export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
+
+/**
+ * Sends the Git page's live updates on a repository's bus: the page, and the sidebar's count. They
+ * go after each of the page's writes, each change of a checkout's git state, and each turn's start
+ * and end, which refuses or lets the page's writes.
+ */
+export function publishGit(bus: LiveBus) {
+  const update = sender(bus);
+  update("GitPage", GIT_ID);
+  update("GitSummary", GIT_ID);
+}
 
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
@@ -74,6 +86,9 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
     live.update("CommitPanes", COMMIT_PANES_ID, { eventId: eventId("commit-panes") });
+  }
+  if (changes.git) {
+    publishGit(live);
   }
   // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
   if (changes.decisions || changes.inbox) {
@@ -236,6 +251,10 @@ export function sessionPublisher(
         update("Feature", change.folder);
       }
       update("Workspace", WORKSPACE_ID);
+      // A turn's start or end refuses or lets the Git page's writes.
+      if (change.state !== undefined) {
+        publishGit(bus);
+      }
       return;
     }
     let entry = sessions.get(session);

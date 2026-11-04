@@ -163,9 +163,12 @@ export class Sessions {
 
   /** The folders of the repository whose session has a turn running, starting, or queued. */
   working(repo: string): Array<string> {
-    return this.#busy(repo)
-      .filter((live) => live.folder !== null)
-      .map((live) => live.folder as string);
+    return this.#busy(repo).flatMap((live) => (live.folder === null ? [] : [live.folder]));
+  }
+
+  /** Whether a chat, a session without a feature, has a turn running, starting, or queued. */
+  chatWorking(repo: string): boolean {
+    return this.#busy(repo).some((live) => live.folder === null);
   }
 
   /** Whether any session of the repository, a chat's too, has a turn running, starting, or queued. */
@@ -470,8 +473,6 @@ export class Sessions {
       }
     }
   }
-
-  // Sessions and their owners.
 
   /** The session, when it is one of the repository's: the cache holds every repository's. */
   async #own(repo: string, session: string): Promise<SessionRow> {

@@ -228,3 +228,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   checkout; a merge on a detached `HEAD` moves no branch.
 - **If wrong**: discarding a folder takes one press per file; nothing else changes.
 - **Where**: tasks 2, 3, 4, and 5, after the review of tasks 2 to 4.
+
+## R20: Which of the page's writes the guard refuses, and what a conflict's save answers
+
+- **Decision**: the quiet `git.fetch`, the page's on its open, is not guarded; a loud one is. The
+  removal of a worktree is refused while a chat works in the main checkout, and while the agent of
+  the feature on its branch works; a clean, while either works. `git.saveConflict` answers the
+  `ConflictFile`, with its new hash, not the page, and lands through `landed`, so a stale save
+  leaves the queue's record and answers where it was made; every other refusal stays in the record
+  and answers the call. `WriteQueue.background` takes no keys: no committing call waits for a fetch.
+  The roots of the new views are in `fate.ts`'s `Root`, as the write queue's are, since
+  `fate/views.ts` is at the file length limit.
+- **Rationale**: a fetch changes no file of a checkout, and the fetcher (task 8) runs every 5
+  minutes whatever the agents do; a worktree's removal writes the main checkout's git folder and the
+  feature's worktree; the editor's next save names the hash the save gave back.
+- **If wrong**: a quiet fetch while a chat works moves `origin`'s refs under it, which no file of
+  the checkout shows.
+- **Where**: task 7.
