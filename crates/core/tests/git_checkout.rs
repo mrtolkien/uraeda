@@ -65,6 +65,7 @@ fn the_state_lists_each_file_with_its_stage() {
     repo.git(&["add", "docs/staged.md", "docs/partly.md"]);
     repo.write("docs/partly.md", "one\nfour\nfive\n");
     repo.write("notes/a b ü.md", "a note\n");
+    repo.write("big.txt", &"a line\n".repeat(200_000));
     repo.remove("gone.md");
 
     let state = state(&repo);
@@ -81,6 +82,12 @@ fn the_state_lists_each_file_with_its_stage() {
     }
     let partly = file(&state, "docs/partly.md");
     assert_eq!((partly.added, partly.removed), (Some(2), Some(1)));
+    // A text file past the cap is listed without counts, as a binary one: never diffed on a read.
+    let big = file(&state, "big.txt");
+    assert_eq!(
+        (big.state, big.added, big.removed),
+        (FileState::New, None, None)
+    );
 }
 
 /// US4 1 and more 3, and the edge case of a binary conflict: a stop names its sides by branch,

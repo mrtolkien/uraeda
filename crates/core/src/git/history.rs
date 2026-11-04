@@ -101,7 +101,8 @@ impl Git {
     /// A page of `count` commits of the checked-out branch's history, after the commit `after`, or
     /// from the first: the commits its `origin` branch has that it lacks first, each `ToPull`,
     /// then those of `HEAD`, the ones `origin` lacks `ToPush`, each run newest first. During a
-    /// stopped rebase, the branch replayed is the one compared.
+    /// stopped rebase, the branch replayed is the one compared. Refused when `after` is not in it,
+    /// as when the branch moved since the page was read.
     pub fn history_page(
         &self,
         after: Option<ObjectId>,
@@ -130,10 +131,17 @@ impl Git {
         });
         let mut rows = pulls.chain(local);
         if let Some(after) = after {
+            let mut found = false;
             for (info, _) in rows.by_ref() {
                 if info?.id == after {
+                    found = true;
                     break;
                 }
+            }
+            if !found {
+                return Err(GitError::Refused(format!(
+                    "{after} is not in this history."
+                )));
             }
         }
         rows.take(count)

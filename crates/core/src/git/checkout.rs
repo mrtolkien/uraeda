@@ -11,6 +11,10 @@ use gix::status::index_worktree::iter::Summary;
 use super::diff::{is_binary as is_binary_blob, line_counts, on_disk, starts_binary};
 use super::{Git, GitError, ObjectId, Stopped, read_error};
 
+/// The largest file, in bytes, whose lines the state counts: a bigger one is listed without counts,
+/// as a binary one is, so a big text file is not diffed on every read of the page.
+const COUNT_CAP: usize = 1 << 20;
+
 /// How a file differs from `HEAD`: an untracked file, or one staged as added, is `New`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileState {
@@ -35,7 +39,8 @@ pub struct FileChange {
     pub path: String,
     pub state: FileState,
     pub staged: Staged,
-    /// Lines added and removed from `HEAD` to the file on disk; `None` for a binary file.
+    /// Lines added and removed from `HEAD` to the file on disk; `None` for a binary file, or one
+    /// past 1 MiB, its lines never counted on a read.
     pub added: Option<u32>,
     pub removed: Option<u32>,
 }
@@ -127,14 +132,19 @@ impl Git {
         let conflicts = self.conflicts()?;
         let mut files = Vec::new();
         for (path, row) in self.rows(&conflicts)? {
-            // A binary file on disk is told from its first bytes, never read whole.
-            let counts = if starts_binary(&self.root, &path) {
+            // A binary file on disk is told from its first bytes, and a big one from its size,
+            // never read whole.
+            let big = std::fs::symlink_metadata(self.root.join(&path))
+                .is_ok_and(|meta| meta.len() > COUNT_CAP as u64);
+            let counts = if big || starts_binary(&self.root, &path) {
                 None
             } else {
-                line_counts(
-                    &self.at_head(&path)?.unwrap_or_default(),
-                    &on_disk(&self.root, &path)?.unwrap_or_default(),
-                )
+                let before = self.at_head(&path)?.unwrap_or_default();
+                if before.len() > COUNT_CAP {
+                    None
+                } else {
+                    line_counts(&before, &on_disk(&self.root, &path)?.unwrap_or_default())
+                }
             };
             files.push(FileChange {
                 state: row.state(),

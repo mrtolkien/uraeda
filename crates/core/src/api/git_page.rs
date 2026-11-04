@@ -51,17 +51,21 @@ pub fn git_page(repo: &Path) -> Result<GitPageView> {
     let mut worktrees = Vec::new();
     for record in records {
         let feature = workspace.as_deref().and_then(|w| feature_on(w, &record));
-        let changes = !record.missing && has_changes(&record.path);
-        if let Some(feature) = feature.filter(|_| changes) {
+        // A worktree that cannot be read counts as having changes, so nothing offers to remove
+        // it, and has no group: its files are unknown.
+        let read = (!record.missing).then(|| Git::open(&record.path)?.checkout_state());
+        let changes = match &read {
+            None => false,
+            Some(Ok(state)) => !state.files.is_empty() || !state.conflicts.is_empty(),
+            Some(Err(_)) => true,
+        };
+        if let (Some(feature), Some(Ok(state))) = (feature, &read)
+            && !state.files.is_empty()
+        {
             groups.push(ChangeGroupView {
                 folder: Some(feature.folder.clone()),
                 name: feature_title(feature),
-                files: Git::open(&record.path)?
-                    .checkout_state()?
-                    .files
-                    .iter()
-                    .map(file_view)
-                    .collect(),
+                files: state.files.iter().map(file_view).collect(),
             });
         }
         worktrees.push(worktree_view(&main, &record, feature, changes));
@@ -119,10 +123,9 @@ pub fn git_summary(repo: &Path) -> Result<GitSummaryView> {
             if record.missing || feature_on(workspace, &record).is_none() {
                 continue;
             }
-            let worktree = Git::open(&record.path)?;
-            if worktree.has_local_changes()? {
-                changes += worktree.changed_count()?;
-            }
+            // A worktree that cannot be read is left out of the count, never failing it.
+            let count = Git::open(&record.path).and_then(|worktree| worktree.changed_count());
+            changes += count.unwrap_or(0);
         }
     }
     let branch = main.current_branch().or_else(|| main.rebasing());
@@ -162,7 +165,7 @@ pub fn git_diff(repo: &Path, at: &GitAt, path: &str, whole: bool) -> Result<GitD
         }
     };
     Ok(GitDiffView {
-        id: format!("{of}:{}", diff.path),
+        id: format!("{of}:{}{}", diff.path, if whole { ":whole" } else { "" }),
         path: diff.path,
         text: diff.text,
         binary_before: diff.binary.map(|(before, _)| before as f64),
@@ -216,7 +219,12 @@ pub fn conflict_file(repo: &Path, path: &str) -> Result<ConflictFileView> {
             "{path} is binary: take a side whole instead."
         )));
     }
-    let bytes = std::fs::read(root.join(&conflict.path)).unwrap_or_default();
+    let file = root.join(&conflict.path);
+    if file.symlink_metadata().is_ok_and(|meta| meta.is_symlink()) {
+        return Err(refused(format!("{path} is not in this checkout.")));
+    }
+    let bytes =
+        std::fs::read(&file).map_err(|error| refused(format!("cannot read {path}: {error}")))?;
     let text = String::from_utf8(bytes)
         .map_err(|_| refused(format!("{path} is not text: take a side whole instead.")))?;
     Ok(ConflictFileView {
@@ -262,14 +270,6 @@ fn feature_on<'a>(workspace: &'a Workspace, record: &WorktreeRecord) -> Option<&
     workspace.features.iter().find(|feature| {
         feature.branch.as_deref().or(feature.left_branch.as_deref()) == Some(branch)
     })
-}
-
-/// Whether a worktree has changes: one that cannot be read counts as having some, so nothing
-/// offers to remove it.
-fn has_changes(root: &Path) -> bool {
-    Git::open(root)
-        .and_then(|git| git.has_local_changes())
-        .unwrap_or(true)
 }
 
 fn worktree_view(
@@ -360,7 +360,7 @@ fn rows(commits: Vec<(CommitInfo, Mark)>) -> Vec<CommitRowView> {
 }
 
 /// The other local branches, then `origin`'s, each sorted.
-fn merge_candidates(git: &Git, current: Option<&str>) -> Result<Vec<String>> {
+pub(crate) fn merge_candidates(git: &Git, current: Option<&str>) -> Result<Vec<String>> {
     let branches = git.branches()?;
     let local = branches
         .iter()

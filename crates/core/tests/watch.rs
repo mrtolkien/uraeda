@@ -205,6 +205,20 @@ fn staging_a_file_reports_git() {
     assert!(changes.git, "{changes:?}");
 }
 
+/// The page shows a stopped stash's stash: dropping it, which touches no index, reports `git`.
+#[test]
+fn dropping_a_stash_reports_git() {
+    let repo = repo();
+    repo.write("specs/README.md", "# Stashed\n");
+    repo.git(&["stash", "push", "--quiet"]);
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.git(&["stash", "drop", "--quiet"]);
+
+    let changes = next(&receiver);
+    assert!(changes.git, "{changes:?}");
+}
+
 /// Writes the priorities, and returns every report up to the one that saw the write: the
 /// snapshot that saw it was read after everything done before the write.
 fn until_priorities(

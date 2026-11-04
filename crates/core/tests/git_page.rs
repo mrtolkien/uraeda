@@ -163,10 +163,56 @@ fn the_page_groups_changes_and_lists_worktrees() {
     };
     let diff = api::git_diff(repo.path(), &feature, PROPOSAL, false).unwrap();
     assert_eq!((diff.added, diff.removed), (2, 0));
+    assert_eq!(diff.id, format!("{FOLDER}:{PROPOSAL}"));
+    let whole = api::git_diff(repo.path(), &feature, PROPOSAL, true).unwrap();
+    assert_eq!(whole.id, format!("{FOLDER}:{PROPOSAL}:whole"));
     let main = api::GitAt::default();
-    assert!(api::git_diff(repo.path(), &main, "../outside.md", false).is_err());
+    std::fs::write(repo.parent().join("outside.md"), "outside\n").unwrap();
+    let outside = api::git_diff(repo.path(), &main, "../outside.md", false);
+    assert_eq!(refused(outside), "../outside.md is not in this checkout.");
     assert!(api::conflict_file(repo.path(), "docs/notes.md").is_err());
 
     let summary = api::git_summary(repo.path()).unwrap();
     assert_eq!((summary.changes, summary.behind), (2, 0));
+}
+
+/// A worktree that cannot be read fails neither the page nor the count: its row reads `changes`,
+/// so nothing offers to remove it, and it has no group. A commit the history does not hold, as on
+/// another branch, is refused, so the web reloads the first page. Breaks: a worktree's read error
+/// returned; the history's walk ending with no page.
+#[test]
+fn an_unreadable_worktree_or_an_unknown_commit_fails_no_read() {
+    let repo = repo();
+    let read = api::read_buffer(repo.path(), PROPOSAL).unwrap();
+    let saved = format!("{}\nA line more.\n", read.text);
+    api::save_buffer(repo.path(), PROPOSAL, &saved, &read.hash).unwrap();
+    repo.write("docs/notes.md", "# Notes\n");
+
+    let elsewhere = repo.git(&["rev-parse", FOLDER]);
+    let history = api::git_history(repo.path(), elsewhere.trim());
+    assert_eq!(
+        refused(history),
+        format!("{} is not in this history.", elsewhere.trim())
+    );
+
+    std::fs::write(
+        repo.path()
+            .join(".git/worktrees")
+            .join(FOLDER)
+            .join("index"),
+        "not an index",
+    )
+    .unwrap();
+    let page = api::git_page(repo.path()).unwrap();
+    assert_eq!(page.groups.len(), 1);
+    assert_eq!(page.worktrees[0].state, "changes");
+    let summary = api::git_summary(repo.path()).unwrap();
+    assert_eq!(summary.changes, 1);
+}
+
+fn refused<T: std::fmt::Debug>(result: Result<T, api::ApiError>) -> String {
+    match result {
+        Err(error) if error.code == "refused" => error.message,
+        other => panic!("not refused: {other:?}"),
+    }
 }
