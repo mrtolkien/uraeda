@@ -3,7 +3,7 @@ kind: change
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/70
 supersedes: [2026-10-25-feature-page]
-superseded-by: [2026-10-29-performance-pass]
+superseded-by: [2026-10-29-performance-pass, 2026-11-03-vim-text]
 ---
 
 # Record: Phone bottom bars on more pages
@@ -15,6 +15,8 @@ superseded-by: [2026-10-29-performance-pass]
 > in git: `git log -- specs/changes/2026-10-30-phone-bottom/`.
 >
 > Superseded in part by [2026-10-29-performance-pass](2026-10-29-performance-pass.md).
+>
+> Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
 
 ## What and why
 

@@ -32,7 +32,7 @@ The human writes proposals, answers, notes, and messages in the web UI, and edit
 everywhere else. Astryx's three kinds of fields each behaved their own way, and a one-line field cut
 a long priority on a phone. One editor gives every field the same keys, highlighting, and wrapping.
 CodeMirror's Vim engine is the one Overleaf and JupyterLab ship: a hand-written one would never
-catch up. History: [Vim in text edit mode](../2026-11-03-vim-text/spec.md).
+catch up. History: [Vim in text edit mode](../done/2026-11-03-vim-text.md).
 
 ## Alternatives considered
 

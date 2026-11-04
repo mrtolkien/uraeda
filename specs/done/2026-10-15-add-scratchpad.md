@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/20
-superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-master-pr]
+superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-master-pr, 2026-11-03-vim-text]
 ---
 
 # Record: Inbox
@@ -18,6 +18,8 @@ superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-
 > Superseded in part by [2026-11-01-move-relinks](2026-11-01-move-relinks.md).
 >
 > Superseded in part by [2026-11-03-master-pr](2026-11-03-master-pr.md).
+>
+> Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
 
 ## What and why
 
