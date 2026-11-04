@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
@@ -432,9 +433,11 @@ export async function click(element: HTMLElement) {
 /**
  * The page's features, loaded: a link to a fixture feature that waits on the human, which home
  * lists whatever its heading says. What the tests wait on is the repository's data, not a title.
+ * In the page, not the sidebar, which lists the same feature and can draw before Home's chunk.
  */
-export function homeShown() {
-  return screen.findAllByRole("link", { name: /Web UI for the workflow files/ });
+export async function homeShown() {
+  const page = await screen.findByRole("main");
+  return within(page).findAllByRole("link", { name: /Web UI for the workflow files/ });
 }
 
 /**
