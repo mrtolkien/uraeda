@@ -469,9 +469,6 @@ fn commit_listed(
             "INBOX.md and PRIORITIES.md have no change to commit".to_string(),
         ));
     }
-    let mut candidates = listed.paths.clone();
-    candidates.extend(images_folders(&listed.paths));
-    place::ensure_only_staged(place, &candidates)?;
     let mut paths = listed.paths.clone();
     paths.extend(linked_images(place, &listed.paths)?);
     let change = Change {
@@ -480,8 +477,9 @@ fn commit_listed(
         body,
     };
     // A message that may not amend is one the human typed.
+    // Alone: files the human staged stay staged, out of the commit.
     let mode = Mode {
-        only: false,
+        only: true,
         amends,
         typed: !amends,
     };

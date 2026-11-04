@@ -13,7 +13,7 @@ use super::{Git, GitError, ObjectId, Stopped, read_error};
 
 /// The largest file, in bytes, whose lines the state counts: a bigger one is listed without counts,
 /// as a binary one is, so a big text file is not diffed on every read of the page.
-const COUNT_CAP: usize = 1 << 20;
+pub(super) const COUNT_CAP: usize = 1 << 20;
 
 /// How a file differs from `HEAD`: an untracked file, or one staged as added, is `New`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -8,7 +8,7 @@ use crate::gates;
 use crate::today::Date;
 use crate::workspace::{Feature, FileKind};
 
-use super::images::{images_folder, linked_images};
+use super::images::linked_images;
 use super::place::Place;
 use super::{ActionError, Change, list};
 
@@ -338,16 +338,13 @@ pub fn remove_settled_comment(
     )
 }
 
-/// Submits the latest round and commits it, refused before anything is written when other files
-/// are staged.
+/// Submits the latest round and commits it alone: files the human staged stay staged, out of it.
 pub fn submit_and_commit(
     place: &Place,
     feature: &Feature,
     today: Date,
     resumes: bool,
 ) -> Result<super::Committed, ActionError> {
-    let path = round_path(feature)?;
-    super::place::ensure_only_staged(place, &[path, images_folder(&feature.path)])?;
     let change = submit(place, feature, today, resumes)?;
-    super::commit::commit(place, &change)
+    super::commit::commit_only(place, &change)
 }

@@ -1610,28 +1610,36 @@ fn files_git_would_not_add_are_no_change() {
     );
 }
 
-/// A refusal over other staged files comes before any image is deleted.
+/// Final review I4: a file the human left staged, as the Git page does, stays staged and out of an
+/// action's commit, on `main` and in a feature's worktree. Break: `commit` with
+/// `ensure_only_staged`, which refuses the action over the human's file.
 #[test]
-fn a_refusal_over_staged_files_keeps_the_images() {
-    let repo = repo_with(&round("", "", ""));
+fn a_staged_file_stays_out_of_an_actions_commit() {
+    let repo = proposal_file_repo();
+    let (main, moved) = proposal_file_with_image(&repo);
+    put(&main, "docs/web-ui.md", b"# Web UI\n");
+    common::repo::run_git(&main.root, &["add", "docs/web-ui.md"]);
+
+    text::commit(&main, &moved).unwrap();
+
+    assert!(
+        !repo
+            .changed_in("main")
+            .contains(&"docs/web-ui.md".to_string())
+    );
+    assert_eq!(repo.staged(), ["docs/web-ui.md"]);
+
+    let repo = repo_with(&round("B", "A", "A"));
     let (feature, place) = reach(&repo);
-    append(&place, PROPOSAL, "More.");
-    put(&place, &format!("{IMAGES}/old.webp"), b"old");
     put(&place, "specs/README.md", b"# Changed\n");
     common::repo::run_git(&place.root, &["add", "specs/README.md"]);
 
-    let error = text::commit(&place, PROPOSAL).unwrap_err();
-    assert!(
-        error.to_string().contains("other files are staged"),
-        "{error}"
-    );
-    let error = answer::submit_and_commit(&place, &feature, today(), false).unwrap_err();
-    assert!(
-        error.to_string().contains("other files are staged"),
-        "{error}"
-    );
+    answer::submit_and_commit(&place, &feature, today(), false).unwrap();
 
-    assert!(place.root.join(IMAGES).join("old.webp").exists());
+    let staged = common::repo::run_git(&place.root, &["diff", "--cached", "--name-only"]);
+    assert_eq!(staged, "specs/README.md\n");
+    let committed = common::repo::run_git(&place.root, &["show", "--name-only", "--format="]);
+    assert!(!committed.contains("specs/README.md"), "{committed}");
 }
 
 /// A replaced review's image that no other file links goes with the verdict.

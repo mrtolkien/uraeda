@@ -65,12 +65,12 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
 
 - An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`. A review
   comment with a line starting with `#`. They would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them. The exceptions are `ura note`'s,
-  which commits `INBOX.md`, or an agent's note file, alone, `ura clean`'s, which commits
-  `PRIORITIES.md` alone, and `ura start`'s, which commits its own files alone: the other changes,
-  uncommitted or staged, stay as they are. A start is refused instead during a merge or a
-  cherry-pick on the default branch, where git refuses a commit of some files alone, and during a
-  revert or a `git am`, which such a commit would end or leave half applied.
+- The commit `ura start <change> --feature` makes on the branch while other files are staged there,
+  since it would carry them. Every other commit holds its own files alone, as an answer's, a
+  verdict's, a note's, or a start's: the other changes, uncommitted or staged, stay as they are. A
+  start is refused instead during a merge or a cherry-pick on the default branch, where git refuses
+  a commit of some files alone, and during a revert or a `git am`, which such a commit would end or
+  leave half applied.
 - With `--switch`, a branch switch over uncommitted changes.
 - A start whose folder or branch name is taken: choose another slug with `--slug`. With `--feature`,
   rename or remove that branch or folder first.

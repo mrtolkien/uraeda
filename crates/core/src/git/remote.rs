@@ -11,6 +11,10 @@ use super::{Git, GitError, OnOutput};
 /// connection, would else hold every write queued after it.
 pub const FETCH_DEADLINE: Duration = Duration::from_secs(120);
 
+/// How long a pull or a push may take before it is stopped, longer than a fetch's: a big push
+/// over a slow link takes minutes, and a pull's rebase runs hooks.
+pub const SYNC_DEADLINE: Duration = Duration::from_secs(600);
+
 /// What git prints when it needed credentials it could not ask for.
 const CREDENTIAL_FAILURES: [&str; 5] = [
     "terminal prompts disabled",
@@ -37,25 +41,20 @@ impl Git {
             return Ok(());
         }
         let fetch = ["fetch", "--prune", "origin"];
-        process::git_write_within(&fetch, &self.root, on_output.unwrap_or(&|_| {}), deadline)
+        sync_within(&fetch, &self.root, on_output, deadline)
             .map(drop)
-            .map_err(|failure| match failure {
-                Failure::Deadline => GitError::Command {
-                    subcommand: "fetch".to_string(),
-                    message: format!(
-                        "origin gave no answer in {}, so the fetch was stopped.",
-                        duration_text(deadline)
-                    ),
-                    output: String::new(),
-                },
-                failure => remote_error(failure, "fetch"),
-            })
+            .map_err(|failure| remote_error(failure, "fetch", deadline))
     }
 
     /// Pulls the checked-out branch from `origin`, rebasing when the configuration says neither
     /// how to pull nor how to fast-forward, else as it says. A pull that stops on a conflict
     /// succeeds: [`Git::stopped`] then shows it.
     pub fn pull(&self, on_output: OnOutput) -> Result<(), GitError> {
+        self.pull_within(SYNC_DEADLINE, on_output)
+    }
+
+    /// [`Git::pull`], stopped after `deadline`.
+    pub fn pull_within(&self, deadline: Duration, on_output: OnOutput) -> Result<(), GitError> {
         let branch = self.branch_to_sync("pull from")?;
         let mut pull = vec!["pull", "--no-edit"];
         if self.rebases_by_default(&branch) {
@@ -63,22 +62,29 @@ impl Git {
         }
         pull.extend(["origin", "--end-of-options", branch.as_str()]);
         let was_stopped = self.stopped().is_some();
-        match process::git_write(&pull, &self.root, on_output) {
+        match sync_within(&pull, &self.root, on_output, deadline) {
             Ok(_) => Ok(()),
-            // A fresh read: the pull rewrote the index this `Git` may hold.
-            Err(_)
-                if !was_stopped
+            // A fresh read: the pull rewrote the index this `Git` may hold. A pull stopped at its
+            // deadline fails even when its rebase is left in progress, which the page shows.
+            Err(failure)
+                if !matches!(failure, Failure::Deadline)
+                    && !was_stopped
                     && Git::open(&self.root).is_ok_and(|git| git.stopped().is_some()) =>
             {
                 Ok(())
             }
-            Err(failure) => Err(remote_error(failure, "pull")),
+            Err(failure) => Err(remote_error(failure, "pull", deadline)),
         }
     }
 
     /// Pushes the checked-out branch to `origin`, never forced: when `origin` has commits the
     /// branch lacks, it is refused, saying to pull first.
     pub fn push(&self, on_output: OnOutput) -> Result<(), GitError> {
+        self.push_within(SYNC_DEADLINE, on_output)
+    }
+
+    /// [`Git::push`], stopped after `deadline`.
+    pub fn push_within(&self, deadline: Duration, on_output: OnOutput) -> Result<(), GitError> {
         let branch = self.branch_to_sync("push to")?;
         let push = [
             "push",
@@ -87,12 +93,12 @@ impl Git {
             "--end-of-options",
             branch.as_str(),
         ];
-        match process::git_write(&push, &self.root, on_output) {
+        match sync_within(&push, &self.root, on_output, deadline) {
             Ok(_) => Ok(()),
             Err(Failure::Exit { output, .. }) if is_rejected(&output) => Err(GitError::Refused(
                 format!("origin has commits {branch} lacks: pull first."),
             )),
-            Err(failure) => Err(remote_error(failure, "push")),
+            Err(failure) => Err(remote_error(failure, "push", deadline)),
         }
     }
 
@@ -154,10 +160,28 @@ fn duration_text(duration: Duration) -> String {
     format!("{count} {unit}{plural}")
 }
 
+/// Runs `git` with `args` in `dir` to talk to `origin`, stopped after `deadline`.
+fn sync_within(
+    args: &[&str],
+    dir: &std::path::Path,
+    on_output: OnOutput,
+    deadline: Duration,
+) -> Result<Vec<u8>, Failure> {
+    process::git_write_within(args, dir, on_output.unwrap_or(&|_| {}), deadline)
+}
+
 /// The error of `git <subcommand>` talking to `origin`: git's, with the credential hint after its
-/// line when the remote needed credentials git could not ask for.
-fn remote_error(failure: Failure, subcommand: &str) -> GitError {
+/// line when the remote needed credentials git could not ask for, or the stop at `deadline`.
+fn remote_error(failure: Failure, subcommand: &str, deadline: Duration) -> GitError {
     match failure {
+        Failure::Deadline => GitError::Command {
+            subcommand: subcommand.to_string(),
+            message: format!(
+                "origin gave no answer in {}, so the {subcommand} was stopped.",
+                duration_text(deadline)
+            ),
+            output: String::new(),
+        },
         Failure::Exit { message, output }
             if CREDENTIAL_FAILURES
                 .iter()

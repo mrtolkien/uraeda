@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
 use super::{Result, find, refused};
+use crate::actions::clean::relative;
 use crate::cache;
 use crate::files::document::hash;
 use crate::git::{
@@ -319,12 +320,8 @@ fn worktree_view(
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
     WorktreeView {
-        path: record
-            .path
-            .strip_prefix(main_root)
-            .unwrap_or(&record.path)
-            .to_string_lossy()
-            .into_owned(),
+        // As removal reads it back: `../repo-spike` for one outside the main checkout.
+        path: relative(main_root, &record.path),
         name: feature.map_or(folder_name, feature_title),
         branch: record.branch.clone(),
         folder: feature.map(|feature| feature.folder.clone()),

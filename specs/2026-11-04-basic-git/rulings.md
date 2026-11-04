@@ -378,25 +378,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sidebar's count after a decision saved on the default branch.
 - **Where**: task 11.
 
-## R28: A fetch stops after 2 minutes, and the page's writes queue in the order they came
+## R28: A fetch stops after 2 minutes, a pull or a push after 10, and writes queue in order
 
 - **Decision**: `Git::fetch` runs git in a process group of its own, through
   `process::git_write_within`, and past `FETCH_DEADLINE`, 2 minutes, stops the whole group, failing
   "git fetch failed: origin gave no answer in 2 minutes, so the fetch was stopped."; the core
   depends on `libc` on unix for that stop. `Git::fetch_within` takes the deadline, as the test's
-  second. The page's writes run their checks before the queueing, the guard and the removal's read
-  of its feature, in `WriteQueue.arrive`, one after another in the order the calls came, each queued
-  before the next one's checks start; the web's commit waits for its group's staging writes still
-  answering. A refusal by the guard before the queueing still never reaches the record.
+  second. `Git::pull` and `Git::push` run the same way past `SYNC_DEADLINE`, 10 minutes, as a big
+  push is slow, failing "git pull failed: origin gave no answer in 10 minutes, so the pull was
+  stopped." (and "push"); `pull_within` and `push_within` take the deadline. A pull stopped inside
+  its rebase leaves the rebase in progress, which the page shows as a stopped pull, and Abort puts
+  the branch back: the pull still fails with the deadline's text. The page's writes run their checks
+  before the queueing, the guard and the removal's read of its feature, in `WriteQueue.arrive`, one
+  after another in the order the calls came, each queued before the next one's checks start; the
+  web's commit waits for its group's staging writes still answering. A refusal by the guard before
+  the queueing still never reaches the record.
 - **Rationale**: a fetch on a remote that never answers, as a hung ssh connection, held the queue's
   tail, and every write behind it, forever; git alone stopped leaves ssh, or the remote's
   upload-pack, holding its output, so the stop must reach what it started; the user's http and ssh
   configuration stay as they are. A guard waits on a read of the main checkout, uncached the first
   time, so a commit made just after a staging could be queued first, and commit nothing; queueing
   first and guarding only at the landing would put every agent's refusal in the toast.
-- **If wrong**: a fetch over a slow link that needs more than 2 minutes always fails; a slow check,
-  as the removal's read of the page, holds the next write's queueing.
-- **Where**: tasks 3 and 7, after the review of tasks 8 and 9.
+- **If wrong**: a fetch over a slow link that needs more than 2 minutes always fails, and a pull or
+  a push that needs more than 10; a slow check, as the removal's read of the page, holds the next
+  write's queueing.
+- **Where**: tasks 3 and 7, after the review of tasks 8 and 9; the pull's and the push's deadline
+  after the final review.
 
 ## R29: The page reads its checkouts at once, and SC-001's 100 ms is checked on a release build
 
@@ -463,3 +470,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a text file that conflicts again under the same path after a stop ends opens afresh
   only once the page lists it again.
 - **Where**: tasks 10 and 11, after their review.
+
+## R32: A continue skips a replayed commit its resolution left empty
+
+- **Decision**: `continue_stopped`, for a rebase, runs `git rebase --skip` in place of `--continue`
+  when, once the conflicted files are staged, the index holds `HEAD`'s tree
+  (`git diff --cached --quiet`). A skip that stops on the next commit's conflict succeeds, as a
+  continue does, and the page shows the new stop. `TestRepo::stopped_pull` takes
+  `rebase.backend apply` too.
+- **Rationale**: git's apply backend refuses `--continue` on a commit left empty, "No changes - did
+  you forget to use 'git add'?", and the page offered only Abort. git 2.56's merge backend drops
+  such a commit itself, so the test sets `rebase.backend apply` to reach the refusal.
+- **If wrong**: a replayed commit the human meant to keep empty is dropped, as git's merge backend
+  drops it too.
+- **Where**: task 11, after the final review.
+
+## R33: An action's commit leaves the human's staged files staged
+
+- **Decision**: every action that commits its own files, a proposal file, a note file, or a proposal
+  (`text::commit`), an answered round (`answer::submit_and_commit`, the default rounds' `submit` and
+  `retry`), a verdict (`approve_and_commit`, `request_changes_and_commit`), a try again
+  (`api::retry_commit`), and the inbox's and the priorities' commit (`commit_listed`), commits them
+  alone through `commit_only`, as `ura note`, `ura clean`, and the inbox already did: files staged
+  by hand stay staged, out of the commit. `place::ensure_only_staged` goes, with
+  `GitError::OtherStagedFiles` left to `Git::commit` (`ura start --feature`'s commit on the branch).
+  The CLI reference says so. The Git page's worktree path is `clean::relative` from the main
+  checkout, as removal reads it back: `../repo-spike` for a worktree beside it. A typed message's
+  blank lines around it are dropped before the commit. A diff with a text side past 1 MiB is capped
+  before its lines are counted: its counts are 0 until the whole is asked for.
+- **Rationale**: staging files and leaving them staged is the Git page's normal flow; refusing every
+  answer, verdict, and proposal commit while one file is staged on `main` blocked Uraeda's own
+  workflow. A file the action commits and the human staged is committed as it is on disk.
+- **If wrong**: a human who staged files to ride along with an answer's commit must commit them on
+  the Git page.
+- **Where**: the final review's fixes.

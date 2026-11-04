@@ -15,8 +15,9 @@ fn refusal<T: std::fmt::Debug>(result: Result<T, GitError>) -> String {
 }
 
 /// US4 3, more 1, more 2; edge "Abort after files were resolved": `Theirs` keeps `main`'s side
-/// and `Ours` `origin/main`'s, as the sides are named during a rebase. Break: `git add` of every
-/// conflicted file before checking for markers, which stages the markers.
+/// and `Ours` `origin/main`'s, as the sides are named during a rebase. Breaks: `git add` of every
+/// conflicted file before checking for markers, which stages the markers; `--continue` on a
+/// replayed commit left empty, which git refuses.
 #[test]
 fn a_stopped_pull_continues_once_resolved_or_aborts() {
     let repo = TestRepo::with_origin();
@@ -38,6 +39,20 @@ fn a_stopped_pull_continues_once_resolved_or_aborts() {
     assert_eq!(repo.current_branch(), "main");
     assert_eq!(repo.ahead(), 1);
     assert_eq!(repo.subjects("main")[0], "chore: local priorities");
+
+    // Final review I2: `Ours`, `origin/main`'s side whole, empties the replayed commit, which
+    // the apply backend's `--continue` refuses: it is skipped, and `main` lands on `origin/main`.
+    let repo = TestRepo::with_origin();
+    repo.git(&["config", "rebase.backend", "apply"]);
+    repo.stopped_pull();
+    assert!(repo.exists(".git/rebase-apply"));
+    let git = Git::discover(repo.path()).unwrap();
+    git.resolve_conflict(PRIORITIES, Resolution::Ours).unwrap();
+    git.continue_stopped(None).unwrap();
+    assert_eq!(git.stopped(), None);
+    assert_eq!(repo.current_branch(), "main");
+    assert_eq!(repo.ahead(), 0);
+    assert_eq!(repo.subjects("main")[0], "chore: upstream priorities");
 
     let repo = TestRepo::with_origin();
     repo.stopped_pull_autostashed("README.md", "# Test\n\nEdited\n");

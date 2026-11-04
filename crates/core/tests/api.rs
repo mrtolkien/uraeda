@@ -666,9 +666,9 @@ fn try_again_drops_an_image_staged_then_unlinked() {
     assert!(!repo.exists(&format!("{worktree}/specs/2026-10-11-web-ui/images")));
 }
 
-/// Trying again checks the staged files before deleting any image.
+/// Final review I4: trying again leaves other staged files staged, out of its commit.
 #[test]
-fn try_again_refuses_other_staged_files_before_deleting_images() {
+fn try_again_leaves_other_staged_files_staged() {
     let repo = repo();
     let worktree = ".worktrees/2026-10-11-web-ui";
     repo.set_hook("exit 1");
@@ -680,14 +680,17 @@ fn try_again_refuses_other_staged_files_before_deleting_images() {
     repo.write(&format!("{worktree}/specs/README.md"), "# Changed\n");
     common::repo::run_git(&repo.path().join(worktree), &["add", "specs/README.md"]);
 
-    let error = api::retry_commit(repo.path(), FOLDER, "spec.md").unwrap_err();
+    api::retry_commit(repo.path(), FOLDER, "spec.md").unwrap();
 
+    let at = repo.path().join(worktree);
+    let staged = common::repo::run_git(&at, &["diff", "--cached", "--name-only"]);
+    assert_eq!(staged, "specs/README.md\n");
     assert!(
-        error.message.contains("other files are staged"),
-        "{}",
-        error.message
+        !repo
+            .changed_in(FOLDER)
+            .contains(&"specs/README.md".to_string())
     );
-    assert!(repo.exists(&image));
+    assert!(!repo.exists(&image));
 }
 
 /// R1: a feature's problems and notes in the web UI hold `ura check`'s errors, never its warnings.

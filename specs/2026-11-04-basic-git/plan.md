@@ -49,8 +49,8 @@ The conditions the spec implies but does not name. Each is pinned in the task th
    every remote write names `origin` and the branch. Task 3.
 4. **A staged new file discarded**: it is deleted, after the same question; a file staged and also
    changed since is restored whole to `HEAD`. Task 4.
-5. **Commit with nothing staged**, or an empty message: refused with git's message, nothing
-   committed. Task 4.
+5. **Commit with nothing staged**, or an empty message: refused before git runs, "Nothing is
+   staged." or "Write a commit message first.", nothing committed. Task 4.
 6. **A background fetch that fails** never shows in the toast, never blocks the next write, and its
    failure clears once a fetch succeeds. Task 8.
 7. **A conflict file with CRLF line endings, or `diff3` markers** with the base section: the bar
@@ -635,12 +635,15 @@ git commit -m "feat(basic-git): read the checkout's files, conflicts, and diffs"
   - `pub fn pull(&self, on_output: OnOutput) -> Result<(), GitError>`:
     `git pull --no-edit [--rebase] origin --end-of-options <branch>`, `--rebase` only when none of
     `pull.rebase`, `pull.ff`, and `branch.<branch>.rebase` is set (read through gix's
-    configuration). A pull that stops on a conflict returns `Ok`: `stopped()` then shows it;
+    configuration). A pull that stops on a conflict returns `Ok`: `stopped()` then shows it. Stopped
+    after `SYNC_DEADLINE`, 10 minutes, as a fetch is, failing "git pull failed: origin gave no
+    answer in 10 minutes, so the pull was stopped."; `pull_within(deadline, on_output)` takes
+    another (R28);
   - `pub fn push(&self, on_output: OnOutput) -> Result<(), GitError>`:
     `git push --porcelain origin --end-of-options <branch>`, never `--force` nor
     `--force-with-lease`; a rejected ref (`!` and `[rejected]` in the porcelain output, not a hook's
     `[remote rejected]`) is `GitError::Refused("origin has commits main lacks: pull first.")` with
-    the branch's name.
+    the branch's name. Stopped after `SYNC_DEADLINE` as a pull is, `push_within` taking another.
   - A failure whose output holds `terminal prompts disabled`, `could not read Username`,
     `Authentication failed`, `Permission denied (publickey)`, or
     `Could not read from remote repository` keeps git's first line as its message, followed by " The
