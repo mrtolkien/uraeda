@@ -6,8 +6,6 @@
 >
 > Still wanted for my personal usage
 
-- [Vim in text edit mode](/specs/2026-11-03-vim-text/proposal.md)
-
 - Review the UI guidelines properly
 
 - See if we can integrate Claude Design
