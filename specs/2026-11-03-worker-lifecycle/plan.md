@@ -1171,10 +1171,12 @@ Rows where nothing is sent and the turn stays `interrupted`:
 
 "US4.2: a commit on the branch sets the count back to 0", with a cap of 2:
 
-- a gate continue, whose turn meets the session's limit, then the limit's continue: the count is 2;
-  a gate continue cannot follow a gate continue, which rule 2 forbids;
-- the limit's continue calls `commitOnBranch` on the feature's branch, then stops before the gate;
-- the stop continues: a third gate message is sent, and the count is 1.
+- the run stops before its gate, and the gate's continue meets the session's limit: its wait is
+  decided, and the count is 1; a gate continue cannot follow a gate continue, which rule 2 forbids;
+- at the reset, the limit's continue, the second, calls `commitOnBranch` on the feature's branch,
+  then stops before the gate;
+- the stop continues: a second gate message is sent, after one limit message, in 4 turns, and the
+  count is 1, where the cap of 2 would have asked without the commit.
 
 The US3 test also records the statuses the manager publishes: the first end reads `waiting`, the
 second `halted`, so no end is published before its decision.
