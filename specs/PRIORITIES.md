@@ -8,7 +8,6 @@
 
 - [In vim mode, visual mode seems to be working properly... except selected text…](/specs/changes/2026-11-04-vim-mode/proposal.md)
 - [Basic git UI in the web ui (pull, see diffs, ...)](/specs/2026-11-04-basic-git/proposal.md)
-- [Some stuff is weirdly left-aligned, like sections titles, headers, and graphs.](/specs/changes/2026-11-04-some-stuff/proposal.md)
 - [There shouldn't be a limit of 6 user stories in a feature.](/specs/changes/2026-11-04-6-stories/proposal.md)
 
 - Review the UI guidelines properly
