@@ -11,12 +11,14 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
+import { WRITE_QUEUE_ID } from "../fate/write-queue.ts";
 import type { Binding } from "../fate/context.ts";
 import { livePreviews } from "../live.ts";
 import type { Previews } from "../preview/runner.ts";
-import { Hosts } from "../repositories.ts";
+import { type Host, Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
+import type { QueuedWrite } from "../writes/queue.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
 import type { ServerSettings } from "../settings.ts";
@@ -106,6 +108,33 @@ export async function testHosts(
   opening.hosts = hosts;
   opened.push(hosts);
   return { adapter, dataDir, hosts, names: added, sessions };
+}
+
+/**
+ * The writes of `host`'s queue once `check` holds of them: read now, then at each of the record's
+ * live updates, as a page reads it. It sets no deadline of its own, the test's timeout bounds it:
+ * on a loaded runner a write is queued or moves later, never otherwise, and a poll's deadline of a
+ * second failed there.
+ */
+export async function queueWhen(
+  host: Pick<Host, "live" | "queue">,
+  check: (writes: Array<QueuedWrite>) => boolean,
+): Promise<Array<QueuedWrite>> {
+  const stop = new AbortController();
+  try {
+    return await new Promise((resolve) => {
+      const read = () => {
+        const writes = host.queue.writes();
+        if (check(writes)) {
+          resolve(writes);
+        }
+      };
+      host.live.listen!("WriteQueue", WRITE_QUEUE_ID, read, { signal: stop.signal });
+      read();
+    });
+  } finally {
+    stop.abort();
+  }
 }
 
 /** The options of `createApp` a test may add: sign-in and the built UI. */
