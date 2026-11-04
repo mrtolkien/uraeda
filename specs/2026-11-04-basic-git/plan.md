@@ -452,14 +452,14 @@ own commits, or lets one land on a detached `HEAD`.
   clone and fetching; `TestRepo::stopped_pull(&self)`, leaving a rebase stopped on one conflicting
   file `specs/PRIORITIES.md`. Tasks 2 to 6 use them.
 
-- [ ] **Step 1: Check the credentials from a process without a terminal**
+- [x] **Step 1: Check the credentials from a process without a terminal**
 
 - Run, in the main checkout: `setsid -w env GIT_TERMINAL_PROMPT=0 git fetch origin main </dev/null`
   and `setsid -w env GIT_TERMINAL_PROMPT=0 git push --dry-run origin main </dev/null`
 - Expected: both exit 0. If either fails, stop: the build goes back to the human with a new round of
   questions, as the spec marks this unverified.
 
-- [ ] **Step 2: Move the worktree functions out of `git.rs`**
+- [x] **Step 2: Move the worktree functions out of `git.rs`**
 
 Structural only: `worktrees`, `worktree_records`, `add_worktree`, `add_worktree_new`,
 `exclude_worktrees`, `prune_worktrees`, `remove_worktree`, and their types move to
