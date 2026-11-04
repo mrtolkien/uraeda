@@ -2,9 +2,8 @@
 //! the branch, so a branch with no upstream set works too. Each runs through the one write runner,
 //! which never prompts; a push never forces (see `specs/decisions/git.md`).
 
-use super::commit::refused;
 use super::process::{self, Failure};
-use super::{Git, GitError, OnOutput, StoppedKind};
+use super::{Git, GitError, OnOutput};
 
 /// What git prints when it needed credentials it could not ask for.
 const CREDENTIAL_FAILURES: [&str; 5] = [
@@ -81,11 +80,7 @@ impl Git {
         if !self.has_origin() {
             return Err(GitError::Refused(format!("There is no remote to {to}.")));
         }
-        match self.stopped().map(|stopped| stopped.kind) {
-            Some(StoppedKind::Pull) => return Err(refused("pull")),
-            Some(StoppedKind::Merge) => return Err(refused("merge")),
-            Some(StoppedKind::Stash) | None => {}
-        }
+        self.ensure_not_stopped()?;
         self.current_branch().ok_or_else(|| {
             let default = self.default_branch().unwrap_or_else(|| "main".to_string());
             GitError::Refused(format!("{default} is not checked out: HEAD is detached."))

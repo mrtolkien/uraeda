@@ -30,17 +30,10 @@ pub(super) fn on_default(
     }
 }
 
-/// The working tree that has the default branch checked out, if any.
+/// The working tree that holds the default branch, if any, as an action reaches it: a stopped
+/// rebase of the branch still holds it.
 pub(crate) fn default_checkout(git: &Git, default: &str) -> Option<PathBuf> {
-    if git.current_branch().as_deref() == Some(default) {
-        Some(git.root().to_path_buf())
-    } else {
-        git.worktrees()
-            .unwrap_or_default()
-            .into_iter()
-            .find(|worktree| worktree.branch.as_deref() == Some(default))
-            .map(|worktree| worktree.path)
-    }
+    place::holder(git, default).ok().flatten()
 }
 
 /// Lets a tool act on a proposal file, a note file, or the priorities, at `path` from the root,
@@ -54,10 +47,10 @@ pub fn on_default_branch(repo: &Path, path: &str, text: &str) -> Result<()> {
     let Some(default) = git.default_branch() else {
         return Ok(());
     };
-    if git.current_branch().as_deref() == Some(default.as_str()) {
+    let checkout = default_checkout(&git, &default);
+    if checkout.as_deref() == Some(git.root()) {
         return Ok(());
     }
-    let checkout = default_checkout(&git, &default);
     let theirs = match &checkout {
         Some(checkout) => std::fs::read_to_string(checkout.join(path)).ok(),
         None => git

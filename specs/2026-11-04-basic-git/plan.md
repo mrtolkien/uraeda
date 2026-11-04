@@ -441,17 +441,21 @@ own commits, or lets one land on a detached `HEAD`.
     a `Merge`; `ours` is the current branch, `theirs` the merged branch's name, from the local or
     `origin` branch whose tip is `MERGE_HEAD`, else its short id;
   - no operation but unmerged index entries is a `Stash`: a stash put back with conflicts; `ours` is
-    the current branch, `theirs` is `"the stash"`, `stash` is `Some("stash@{0}")`;
+    the current branch, `theirs` is `"the stash"`, `stash` is `Some("stash@{0}")` when `refs/stash`
+    exists, else `None`;
   - otherwise `None`.
 - Produces, in `git/stopped.rs`: `impl Git { pub fn rebasing(&self) -> Option<String> }`, the branch
-  a stopped rebase replays. `place::reach` takes a checkout rebasing a branch as holding it, so an
-  action on `main` reaches the main checkout and its commit is refused, rather than failing on
-  `git worktree add` (ruling R10).
-- Produces: `Git::commit_staged` refuses with
-  `GitError::Refused("A pull is stopped: continue or abort it first.")` when `stopped()` is a
-  `Pull`, and `"A merge is stopped: continue or abort it first."` when a `Merge`, before running
-  anything. Task 4's Continue runs `git rebase --continue` and `git merge --continue`, never
-  `commit_staged`.
+  a stopped rebase replays. `place::reach` takes a checkout rebasing a branch as holding it
+  (`place::holder`, which `default_checkout` shares), so an action on `main` reaches the main
+  checkout and is refused there before it writes, rather than failing on `git worktree add` (rulings
+  R10, R15).
+- Produces, in `git/stopped.rs`:
+  `impl Git { pub fn ensure_not_stopped(&self) -> Result<(), GitError> }`, the one owner of the
+  refusal: `GitError::Refused("A pull is stopped: continue or abort it first.")` when `stopped()` is
+  a `Pull`, and `"A merge is stopped: continue or abort it first."` when a `Merge`. `place::reach`,
+  `place::reach_switching`, the start's checks, `commit_staged` (as a backstop), the pull, the push,
+  and the merge call it before running anything. Task 4's Continue runs `git rebase --continue` and
+  `git merge --continue`, never `commit_staged`.
 - Produces, in `tests/common/repo.rs`: `TestRepo::with_origin() -> TestRepo`, a repository whose
   `main` is pushed to a bare `origin` and tracks it;
   `TestRepo::upstream_commit(&self, path, text, msg)`, committing to `origin/main` through a second
@@ -477,8 +481,12 @@ Commit alone: `refactor(basic-git): move the worktree functions out of git.rs`.
 `a_stopped_pull_refuses_every_commit`: on `stopped_pull()`, `Git::stopped()` is a `Pull` with
 `ours == "origin/main"` and `theirs == "main"`; then an inbox action that commits on `main`
 (`api::add_to_inbox` or the action the inbox tests use) is refused with exactly "A pull is stopped:
-continue or abort it first.", and `git rev-parse HEAD` did not move. The break it catches: the guard
-reading gix's `operation_in_progress`, which returns `None` for a rebase.
+continue or abort it first.", `git rev-parse HEAD` did not move, and `git status --porcelain` is
+unchanged, also when the inbox already had a change. The break it catches: the guard reading gix's
+`operation_in_progress`, which returns `None` for a rebase.
+`a_stopped_merge_refuses_every_commit_and_a_stash_does_not` does the same on
+`TestRepo::stopped_merge()` with the merge's text, and checks a stash put back with conflicts, its
+stash dropped, refuses nothing and names no stash (ruling R15).
 
 - [x] **Step 4: Run it to check it fails**
 

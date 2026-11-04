@@ -4,7 +4,6 @@
 
 use gix::state::InProgress;
 
-use super::commit::refused;
 use super::{ConflictKind, Git, GitError, OnOutput, StoppedKind, process};
 
 /// How a conflicted file is resolved: git's stage 2 whole, its stage 3 whole, or deleted. A side
@@ -89,11 +88,7 @@ impl Git {
     /// Merges `branch`, local or on `origin`, into the branch checked out, `branch` never read as
     /// an option. Refused while a pull or a merge is stopped.
     pub fn merge_branch(&self, branch: &str, on_output: OnOutput) -> Result<(), GitError> {
-        match self.stopped().map(|stopped| stopped.kind) {
-            Some(StoppedKind::Pull) => return Err(refused("pull")),
-            Some(StoppedKind::Merge) => return Err(refused("merge")),
-            Some(StoppedKind::Stash) | None => {}
-        }
+        self.ensure_not_stopped()?;
         let merge = ["merge", "--no-edit", "--end-of-options", branch];
         self.run_stop(&merge, on_output)
     }

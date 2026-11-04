@@ -31,35 +31,44 @@ pub fn worktree_path(git: &Git, branch: &str) -> PathBuf {
 }
 
 /// Reaches a branch: this working tree when it has it, another one that has it, or a worktree
-/// created for it at `.worktrees/<branch>/`. In a repository that defers its commits, records what
-/// the place's `specs/` holds, for the undo of a refused commit.
+/// created for it at `.worktrees/<branch>/`. Refused, before anything is written, when the
+/// checkout reached has a pull or a merge stopped. In a repository that defers its commits,
+/// records what the place's `specs/` holds, for the undo of a refused commit.
 pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     let place = reached(git, branch)?;
+    if !place.created {
+        Git::open(&place.root)?.ensure_not_stopped()?;
+    }
     super::deferred::record(git, &place);
     Ok(place)
 }
 
-/// A checkout holds the branch checked out, or the one a stopped rebase replays: its commits are
-/// then refused, never written in a new worktree, which git refuses for that branch.
+/// A checkout holds the branch checked out, or the one a stopped rebase replays: its writes are
+/// then refused, never made in a new worktree, which git refuses for that branch.
 fn holds(git: &Git) -> Option<String> {
     git.current_branch().or_else(|| git.rebasing())
 }
 
-fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
+/// The working tree that holds `branch`: this one, or another that exists.
+pub(crate) fn holder(git: &Git, branch: &str) -> Result<Option<PathBuf>, GitError> {
     if holds(git).as_deref() == Some(branch) {
-        return Ok(Place {
-            root: git.root().to_path_buf(),
-            created: false,
-            switched: None,
-        });
+        return Ok(Some(git.root().to_path_buf()));
     }
     let worktrees = git.worktrees()?;
-    if let Some(worktree) = worktrees.iter().find(|worktree| {
-        let held = || Git::open(&worktree.path).ok().as_ref().and_then(holds);
-        worktree.path.exists() && worktree.branch.clone().or_else(held).as_deref() == Some(branch)
-    }) {
+    Ok(worktrees
+        .into_iter()
+        .find(|worktree| {
+            let held = || Git::open(&worktree.path).ok().as_ref().and_then(holds);
+            worktree.path.exists()
+                && worktree.branch.clone().or_else(held).as_deref() == Some(branch)
+        })
+        .map(|worktree| worktree.path))
+}
+
+fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
+    if let Some(root) = holder(git, branch)? {
         return Ok(Place {
-            root: worktree.path.clone(),
+            root,
             created: false,
             switched: None,
         });
@@ -83,6 +92,7 @@ fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
 pub fn reach_switching(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     let current = git.current_branch();
     if current.as_deref() == Some(branch) {
+        git.ensure_not_stopped()?;
         return Ok(Place {
             root: git.root().to_path_buf(),
             created: false,

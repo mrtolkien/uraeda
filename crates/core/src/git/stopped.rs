@@ -1,9 +1,13 @@
 //! The operation a checkout stopped in, on a conflict, and its two sides named by branch, whatever
-//! git calls "ours": during a rebase, git's stage 2 is the branch rebased onto.
+//! git calls "ours": during a rebase, git's stage 2 is the branch rebased onto. Every write but
+//! ending the stop is refused while it lasts, with one text, [`Git::ensure_not_stopped`]'s.
+//!
+//! gix reads which operation is in progress, but has no API for a rebase's `head-name` and
+//! `onto`, nor for `MERGE_HEAD`'s id: those are read from git's folder with `std::fs`.
 
 use gix::state::InProgress;
 
-use super::{Git, ObjectId};
+use super::{Git, GitError, ObjectId};
 
 /// What stopped: a pull, as a rebase or a merge of the branch's `origin` tip; a merge of another
 /// branch; or a stash put back with conflicts, which leaves no operation to continue or abort.
@@ -40,9 +44,23 @@ impl Git {
                 kind: StoppedKind::Stash,
                 ours: self.here(),
                 theirs: "the stash".to_string(),
-                stash: Some("stash@{0}".to_string()),
+                stash: self.has_stash().then(|| "stash@{0}".to_string()),
             }),
         }
+    }
+
+    /// Refuses while a pull or a merge is stopped here: a commit would land on a rebase's detached
+    /// `HEAD` or end a merge, a sync or a merge would start over it, and an action's write would
+    /// be left in the way of Continue. A stash put back with conflicts refuses nothing.
+    pub fn ensure_not_stopped(&self) -> Result<(), GitError> {
+        let operation = match self.stopped().map(|stopped| stopped.kind) {
+            Some(StoppedKind::Pull) => "pull",
+            Some(StoppedKind::Merge) => "merge",
+            Some(StoppedKind::Stash) | None => return Ok(()),
+        };
+        Err(GitError::Refused(format!(
+            "A {operation} is stopped: continue or abort it first."
+        )))
     }
 
     /// The branch a stopped rebase replays, which detached `HEAD`: still the branch this checkout
@@ -133,6 +151,15 @@ impl Git {
             .map(|branch| branch.name.clone())
             .or_else(remote)
             .unwrap_or_else(|| short(id))
+    }
+
+    /// Whether `refs/stash` exists: a stash put back with conflicts is kept there.
+    fn has_stash(&self) -> bool {
+        self.repo
+            .try_find_reference("refs/stash")
+            .ok()
+            .flatten()
+            .is_some()
     }
 
     /// Whether the index holds an entry of a conflict's stages.

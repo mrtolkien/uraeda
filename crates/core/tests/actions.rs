@@ -2040,14 +2040,27 @@ fn refused_during(repo: &TestRepo, state: &str) -> String {
 }
 
 /// A start during a merge on the main checkout, where git refuses a commit of some files alone,
-/// is refused before anything is written.
+/// is refused before anything is written, as every action is while a merge is stopped.
 #[test]
 fn a_start_during_a_merge_is_refused_before_any_write() {
     let repo = conflicted(&["merge", "--quiet", "other"], "MERGE_HEAD");
 
     assert_eq!(
         refused_during(&repo, "MERGE_HEAD"),
-        "cannot start: a merge is in progress on main: finish or abort it first"
+        "A merge is stopped: continue or abort it first."
+    );
+}
+
+/// A start during a stopped rebase of `main`, which the main checkout still holds, is refused
+/// before anything is written. Break: reaching the rebasing checkout without the stop's refusal,
+/// which writes the change's files before the commit refuses.
+#[test]
+fn a_start_during_a_stopped_rebase_is_refused_before_any_write() {
+    let repo = conflicted(&["rebase", "--quiet", "other"], "rebase-merge");
+
+    assert_eq!(
+        refused_during(&repo, "rebase-merge"),
+        "A pull is stopped: continue or abort it first."
     );
 }
 

@@ -228,6 +228,12 @@ mod tests {
     /// A write never waits on a terminal: git sees no prompt and no editor, streamed or not.
     #[test]
     fn a_write_runs_git_without_a_prompt_or_an_editor() {
+        // SAFETY: nextest runs each test in a process of its own. Without these in the test's own
+        // environment, only `git_write` can set them for git.
+        unsafe {
+            std::env::remove_var("GIT_TERMINAL_PROMPT");
+            std::env::remove_var("GIT_EDITOR");
+        }
         let env = ["-c", "alias.env=!env", "env"];
         let lines = Mutex::new(Vec::new());
         let streamed = git_write(
