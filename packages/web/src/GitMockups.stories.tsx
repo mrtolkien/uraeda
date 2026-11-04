@@ -1,10 +1,11 @@
 // The git page's mockups (`specs/2026-11-04-basic-git/spec.md`): the page of the main checkout, its
-// sync, Uraeda's commit pane, the changes to stage, the history, and the worktrees, with the picked
+// sync, the changed files to stage, the history, and the worktrees, with the picked
 // row's diff beside them on wide screens and alone on the phone; a pull stopped by a conflict; an
 // agent working in the checkout; a refused pull; and Clean's question. Built from the real components
 // over fixed text, with no server: the stories show the look, and the page's data is the real page's
 // once built.
 import { Button } from "@astryxdesign/core/Button";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -95,73 +96,75 @@ function Sync({ isWorking = false }: { isWorking?: boolean }) {
   );
 }
 
-/** Uraeda's own edits, described, as the Commit page's pane shows them today. */
-function Described() {
+/** A changed file: a checkbox, staged or not, which Space ticks, then its counts. */
+function File({
+  added,
+  isPicked = false,
+  isStaged = false,
+  isWorking = false,
+  path,
+  removed,
+}: {
+  added: number;
+  isPicked?: boolean;
+  isStaged?: boolean;
+  isWorking?: boolean;
+  path: string;
+  removed: number;
+}) {
   return (
-    <Pane
-      actions={<Button label="Commit" size="sm" variant="primary" />}
-      count={2}
-      title="Uraeda's edits"
-    >
-      <VStack gap={1}>
-        <Text display="block">{'Remove from the priorities: "Master" PR'}</Text>
-        <Text display="block">Add to the inbox: Pull before starting a feature?</Text>
-        <Text color="secondary" display="block" type="supporting">
-          {'chore: remove "Master" PR from the priorities, and 1 more'}
-        </Text>
-      </VStack>
-    </Pane>
+    <Row end={<DiffCount added={added} removed={removed} />} isPicked={isPicked}>
+      <CheckboxInput isDisabled={isWorking} label={path} value={isStaged} />
+    </Row>
   );
 }
 
-/** Every other changed file, staged or not, with its counts and the key that moves it. */
+/**
+ * Every changed file of the main checkout, staged first, the inbox and the priorities as any other;
+ * then a feature's worktree with a buffer's save, as its own group with its own commit.
+ */
 function Changes({ isWorking = false }: { isWorking?: boolean }) {
   return (
-    <Pane
-      actions={<Button isDisabled={isWorking} label="Commit staged" size="sm" variant="primary" />}
-      count={3}
-      title="Changes"
-    >
-      <VStack gap={1}>
-        <Text color="secondary" type="supporting">
-          Staged
-        </Text>
-        <Row
-          end={
-            <>
-              <DiffCount added={12} removed={3} />
-              <Button isDisabled={isWorking} label="Unstage" size="sm" variant="ghost" />
-            </>
-          }
-        >
-          <Path path="packages/web/src/App.tsx" />
-        </Row>
-        <Text color="secondary" type="supporting">
-          Not staged
-        </Text>
-        <Row
-          end={
-            <>
-              <DiffCount added={4} removed={1} />
-              <Button isDisabled={isWorking} label="Stage" size="sm" variant="ghost" />
-            </>
-          }
-          isPicked
-        >
-          <Path path="crates/core/src/git.rs" />
-        </Row>
-        <Row
-          end={
-            <>
-              <DiffCount added={2} removed={0} />
-              <Button isDisabled={isWorking} label="Stage" size="sm" variant="ghost" />
-            </>
-          }
-        >
-          <Path path="docs/web-ui.md" />
-        </Row>
-      </VStack>
-    </Pane>
+    <VStack gap={4}>
+      <Pane
+        actions={
+          <Button isDisabled={isWorking} label="Commit staged" size="sm" variant="primary" />
+        }
+        count={4}
+        title="Changes"
+      >
+        <VStack gap={1}>
+          <Text color="secondary" type="supporting">
+            Staged
+          </Text>
+          <File added={3} isStaged isWorking={isWorking} path="specs/INBOX.md" removed={0} />
+          <Text color="secondary" type="supporting">
+            Not staged
+          </Text>
+          <File
+            added={4}
+            isPicked
+            isWorking={isWorking}
+            path="crates/core/src/git.rs"
+            removed={1}
+          />
+          <File added={0} isWorking={isWorking} path="specs/PRIORITIES.md" removed={2} />
+          <File added={2} isWorking={isWorking} path="docs/web-ui.md" removed={0} />
+        </VStack>
+      </Pane>
+      <Pane
+        actions={<Button isDisabled={isWorking} label="Commit" size="sm" variant="secondary" />}
+        count={1}
+        title="Vim mode"
+      >
+        <File
+          added={6}
+          isWorking={isWorking}
+          path="specs/changes/2026-11-04-vim-mode/proposal.md"
+          removed={1}
+        />
+      </Pane>
+    </VStack>
   );
 }
 
@@ -278,7 +281,6 @@ function GitPage({
             {banner}
             {sections ?? (
               <>
-                <Described />
                 <Changes isWorking={isWorking} />
                 <History />
                 <Worktrees />
@@ -361,8 +363,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * After a pull request merged: 3 commits to pull, Uraeda's 6 chores to push, Uraeda's edits waiting,
- * other changes, one staged, and the picked file's diff beside the sections.
+ * After a pull request merged: 3 commits to pull, 6 chores to push, changed files, one staged, a
+ * feature's buffer save in its own group, and the picked file's diff beside the sections.
  */
 export const Behind: Story = { args: { detail: <Diff /> } };
 
