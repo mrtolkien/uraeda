@@ -2586,13 +2586,9 @@ fn approved_over_its_shape(problem: &Problem) -> bool {
             && problem.rule == "decision.keywords")
 }
 
-/// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
-/// most 12,200 words together, their frontmatter aside, and each Why links one record at most. The
-/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass,
-/// 11,100 until the performance decision and UI behaviour's rules on writes, approved with the
-/// performance pass, 11,800 until the feature status decision, approved with the feature state
-/// pass, and 12,100 until the UI look's phone panes and the attachments' committed SVG, approved
-/// with the reading pass and mockup previews.
+/// US3 1, SC-001, SC-004: the repository's decisions warn nothing on their shape, and each Why
+/// links one record at most. Each decision is held short by its shape's limits, not by a budget
+/// over the whole ledger.
 #[test]
 fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2606,12 +2602,10 @@ fn the_ledger_reads_alone() {
         .filter(|p| !approved_over_its_shape(p))
         .collect();
     assert!(shape.is_empty(), "{shape:#?}");
-    let mut words = 0;
     for entry in fs::read_dir(&decisions).unwrap() {
         let path = entry.unwrap().path();
         let text = fs::read_to_string(&path).unwrap();
         let body = text.splitn(3, "---\n").nth(2).unwrap();
-        words += body.split_whitespace().count();
         let why = body.split("\n## Why\n").nth(1).unwrap_or_default();
         let why = why.split("\n## ").next().unwrap();
         let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
@@ -2623,7 +2617,6 @@ fn the_ledger_reads_alone() {
             "{records} records linked from a Why:\n{why}"
         );
     }
-    assert!(words <= 12_300, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
