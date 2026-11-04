@@ -136,3 +136,64 @@ fn discard_restores_one_file_as_git_does() {
         assert_eq!(repo.read("docs/web-ui.md"), "# Changed\n", "{path}");
     }
 }
+
+/// Review focus 4: discard takes one file, never a folder or a conflict. Breaks: checking out a
+/// folder `HEAD` has, which wipes every edit under it; prefix-matching the index for a folder
+/// `HEAD` lacks, which unstages its files and then fails to delete it; checking out `HEAD` over a
+/// conflicted file, which takes a side unasked.
+#[test]
+fn discard_refuses_a_folder_and_a_conflict() {
+    let repo = changed_files();
+    repo.write("notes/staged.md", "Staged\n");
+    repo.git(&["add", "notes/staged.md"]);
+    let git = Git::discover(repo.path()).unwrap();
+
+    for folder in ["docs", "notes"] {
+        let refused = format!("{folder} is a folder: discard its files one by one.");
+        assert_eq!(refusal(git.discard_path(folder)), refused);
+    }
+    assert_eq!(repo.read("docs/web-ui.md"), "# Changed\n");
+    assert_eq!(repo.staged(), ["notes/staged.md"]);
+
+    let repo = TestRepo::new();
+    repo.stopped_merge();
+    let before = repo.read("specs/PRIORITIES.md");
+    let git = Git::discover(repo.path()).unwrap();
+
+    let refused = refusal(git.discard_path("specs/PRIORITIES.md"));
+
+    assert_eq!(refused, "specs/PRIORITIES.md conflicts: take a side.");
+    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
+    assert_eq!(repo.unmerged(), ["specs/PRIORITIES.md"]);
+}
+
+/// Review focus 1 and 4: a path names one file, inside the checkout. Breaks: dropping
+/// `--literal-pathspecs`, so `*.md` stages every Markdown file; discarding a file git ignores,
+/// which deletes `.env`; following a symbolic link to a folder outside the checkout.
+#[test]
+fn a_path_names_one_file_of_this_checkout() {
+    let repo = changed_files();
+    repo.write("*.md", "A star\n");
+    repo.write(".gitignore", ".env\n");
+    repo.write(".env", "SECRET=1\n");
+    std::os::unix::fs::symlink(repo.parent(), repo.path().join("up")).unwrap();
+    std::fs::write(repo.parent().join("outside.md"), "Not the repository's\n").unwrap();
+    let git = Git::discover(repo.path()).unwrap();
+
+    git.stage_paths(&paths(&["*.md"])).unwrap();
+    assert_eq!(repo.staged(), ["*.md"]);
+
+    assert_eq!(
+        refusal(git.discard_path(".env")),
+        ".env has no changes to discard."
+    );
+    assert_eq!(repo.read(".env"), "SECRET=1\n");
+
+    let refused = "up/outside.md is not in this checkout.";
+    assert_eq!(
+        refusal(git.stage_paths(&paths(&["up/outside.md"]))),
+        refused
+    );
+    assert_eq!(refusal(git.discard_path("up/outside.md")), refused);
+    assert!(repo.parent().join("outside.md").exists());
+}

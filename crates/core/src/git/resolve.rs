@@ -2,8 +2,6 @@
 //! merge of a branch into the one checked out. A merge or a continue that stops on a conflict
 //! succeeds: [`Git::stopped`] then shows it.
 
-use gix::state::InProgress;
-
 use super::{ConflictKind, Git, GitError, OnOutput, StoppedKind, process};
 
 /// How a conflicted file is resolved: git's stage 2 whole, its stage 3 whole, or deleted. A side
@@ -86,9 +84,10 @@ impl Git {
     }
 
     /// Merges `branch`, local or on `origin`, into the branch checked out, `branch` never read as
-    /// an option. Refused while a pull or a merge is stopped.
+    /// an option. Refused while a pull or a merge is stopped, and on a detached `HEAD`.
     pub fn merge_branch(&self, branch: &str, on_output: OnOutput) -> Result<(), GitError> {
         self.ensure_not_stopped()?;
+        self.branch_to_write()?;
         let merge = ["merge", "--no-edit", "--end-of-options", branch];
         self.run_stop(&merge, on_output)
     }
@@ -104,11 +103,10 @@ impl Git {
 
     /// The command of the operation stopped here: `rebase` for a rebase, else `merge`.
     fn operation(&self) -> &'static str {
-        match self.repo.state() {
-            Some(
-                InProgress::Rebase | InProgress::RebaseInteractive | InProgress::ApplyMailboxRebase,
-            ) => "rebase",
-            _ => "merge",
+        if self.is_rebasing() {
+            "rebase"
+        } else {
+            "merge"
         }
     }
 }

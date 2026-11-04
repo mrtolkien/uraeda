@@ -157,7 +157,6 @@ pub fn git_diff(repo: &Path, at: &GitAt, path: &str, whole: bool) -> Result<GitD
                 }
             };
             let checkout = Git::open(&root)?;
-            let path = checkout.checked(path)?;
             let diff = checkout.file_diff(DiffOf::Worktree, path, whole)?;
             (diff, at.folder.clone().unwrap_or_default())
         }

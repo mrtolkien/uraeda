@@ -3,6 +3,8 @@
 
 use std::path::{Component, Path};
 
+use gix::index::entry::Stage;
+
 use super::{Git, GitError, process};
 
 impl Git {
@@ -17,19 +19,27 @@ impl Git {
     }
 
     /// Makes the file at `path` as `HEAD` has it, in the index and on disk. A file `HEAD` lacks,
-    /// untracked or staged new, is taken out of the index and deleted, never with `git clean`.
+    /// untracked or staged new, is taken out of the index and deleted, never with `git clean`. A
+    /// folder is refused, so one press never discards more than the file it names, and so is a
+    /// conflicted file: taking a side resolves it.
     pub fn discard_path(&self, path: &str) -> Result<(), GitError> {
         let path = self.checked(path)?;
-        if let Some(head) = self.head()
-            && self.entry_id(head, path).is_some()
-        {
+        let refused = |why: &str| Err(GitError::Refused(format!("{path} {why}")));
+        let stages = self.index_stages(path)?;
+        if stages.iter().any(|stage| *stage != Stage::Unconflicted) {
+            return refused("conflicts: take a side.");
+        }
+        let on_disk = std::fs::symlink_metadata(self.root.join(path));
+        let at_head = self.head().and_then(|head| self.entry_mode(head, path));
+        if on_disk.is_ok_and(|meta| meta.is_dir()) || at_head.is_some_and(|mode| mode.is_tree()) {
+            return refused("is a folder: discard its files one by one.");
+        }
+        if at_head.is_some() {
             return self.write_paths(&["checkout", "--quiet", "HEAD"], &[path.to_string()]);
         }
-        let staged = self.in_index(path)?;
+        let staged = !stages.is_empty();
         if !staged && !self.is_untracked(path)? {
-            return Err(GitError::Refused(format!(
-                "{path} has no changes to discard."
-            )));
+            return refused("has no changes to discard.");
         }
         if staged {
             self.write_paths(&["reset", "--quiet"], &[path.to_string()])?;
@@ -91,5 +101,21 @@ impl Git {
         ];
         let output = self.output("ls-files", &args)?;
         Ok(output.split('\0').any(|listed| listed == path))
+    }
+
+    /// The stages the index holds for the file at `path` exactly: none when it is not staged, one
+    /// when staged, several when it conflicts.
+    fn index_stages(&self, path: &str) -> Result<Vec<Stage>, GitError> {
+        let index = self
+            .repo
+            .index_or_empty()
+            .map_err(super::read_error("the index"))?;
+        let stages = index
+            .entries()
+            .iter()
+            .filter(|entry| entry.path(&index) == path.as_bytes())
+            .map(|entry| entry.stage())
+            .collect();
+        Ok(stages)
     }
 }

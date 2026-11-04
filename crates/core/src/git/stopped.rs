@@ -34,10 +34,10 @@ impl Git {
     /// `origin` tip, else a merge; conflicts with no operation are a stash put back. Any other
     /// operation, or none, is `None`.
     pub fn stopped(&self) -> Option<Stopped> {
+        if self.is_rebasing() {
+            return Some(self.stopped_rebase());
+        }
         match self.repo.state() {
-            Some(
-                InProgress::Rebase | InProgress::RebaseInteractive | InProgress::ApplyMailboxRebase,
-            ) => Some(self.stopped_rebase()),
             Some(InProgress::Merge) => Some(self.stopped_merge()),
             Some(_) => None,
             None => self.has_conflicts().then(|| Stopped {
@@ -61,6 +61,16 @@ impl Git {
         Err(GitError::Refused(format!(
             "A {operation} is stopped: continue or abort it first."
         )))
+    }
+
+    /// Whether a rebase is in progress here, of any kind git has.
+    pub(super) fn is_rebasing(&self) -> bool {
+        matches!(
+            self.repo.state(),
+            Some(
+                InProgress::Rebase | InProgress::RebaseInteractive | InProgress::ApplyMailboxRebase,
+            )
+        )
     }
 
     /// The branch a stopped rebase replays, which detached `HEAD`: still the branch this checkout
