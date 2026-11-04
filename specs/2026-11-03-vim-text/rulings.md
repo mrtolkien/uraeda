@@ -281,3 +281,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   same.
 - **If wrong**: `typed` in `actions/changes/panes.rs` splits the subject from the body again.
 - **Where**: task 7 (final review's fix pass)
+
+## R23: The benchmark gates the spec's two targets, and reports the others
+
+- **Decision**: task 11's benchmark step checks the keystroke within 16 ms and the reloads within 1
+  second, the spec's SC-002 and SC-003. The performance pass's other rows are reported in the pull
+  request, not fixed here.
+- **Rationale**: on a quiet machine, the keystroke drew within 15 ms at worst and the 20 reloads
+  within 388 ms. Three clicks passed 100 ms, a target the Performance decision says SHOULD hold: two
+  feature pages (122 and 173 ms, their server reads) and the Commit page (132 ms, its server read of
+  every branch's pane, which this feature adds). Runs under load missed other rows each time.
+- **If wrong**: the Commit page's read caches each worktree's pane until its record or files change.
+- **Where**: task 11
