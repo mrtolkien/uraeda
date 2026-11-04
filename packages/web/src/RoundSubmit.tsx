@@ -9,6 +9,7 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { pageText } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 import { jumpTo } from "./roundJump.ts";
@@ -165,8 +166,8 @@ function QuestionsLeft({ blank }: { blank: ReadonlyArray<QuestionItem> }) {
 /**
  * The end of a round's page: its notes, read-only once submitted; else the notes as typed, with
  * "Edit notes", which `onEditNotes` opens their field for, the questions left, the submit's error,
- * and Submit, all under `id="notes"`. `end` holds it all, `submitRow` Submit's buttons, which the
- * bar's Submit scrolls to and focuses.
+ * and Submit, all under `id="notes"`, from the panes' left edge, a reading pane wide. `end` holds
+ * it all, `submitRow` Submit's buttons, which the bar's Submit scrolls to and focuses.
  */
 export function RoundEnd({
   blank,
@@ -207,7 +208,7 @@ export function RoundEnd({
     const unsaved = notes.field.entry;
     // The refused round reads as answered: its refusal stays, with Try again.
     return (
-      <>
+      <VStack gap={3} xstyle={pageText}>
         {undone}
         {refused}
         {unsaved && (
@@ -223,11 +224,11 @@ export function RoundEnd({
             <strong>Notes:</strong> {notes.read}
           </Paragraph>
         )}
-      </>
+      </VStack>
     );
   }
   return (
-    <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={margin}>
+    <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={[pageText, margin]}>
       <NotesRead fieldShown={notesShown} notes={notes} onEdit={onEditNotes} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {undone}

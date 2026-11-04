@@ -14,6 +14,8 @@ import type {
   RowChangeKind,
 } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import * as stylex from "@stylexjs/stylex";
+import { pageText } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Spans } from "../Spans.tsx";
@@ -122,7 +124,12 @@ function SectionBlocks({
 export function DataPart({ document, level = 3, model, prefix = "data-" }: DataPartProps) {
   return (
     <>
-      {model.intro.length > 0 && <Blocks document={document} ids={model.intro} />}
+      {model.intro.length > 0 && (
+        // Outside the panes, from their left edge, as the page's other text.
+        <div {...stylex.props(pageText)}>
+          <Blocks document={document} ids={model.intro} />
+        </div>
+      )}
       {model.sections.map((section) => (
         <Pane
           icon="uraeda:database"
