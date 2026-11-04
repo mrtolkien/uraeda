@@ -27,14 +27,18 @@ decisions. None binds future work: those are decisions.
   [`Question.tsx`](/packages/web/src/Question.tsx).
 - **Where**: [`Question.tsx`](/packages/web/src/Question.tsx)
 
-## R3: A diagram wider than its room is drawn again to fit, then scaled within a tenth
+## R3: A diagram much wider than its room is laid out for it, one within a tenth is scaled
 
-- **Decision**: a diagram wider than its room is drawn again with Pele's `maxWidth`, as Pele's own
-  `mount()` does, and kept when narrower. One still at most a tenth wider than its room is scaled
-  down to fit. Wider than that, it scrolls sideways, as before.
+- **Decision**: a diagram more than a tenth wider than its room is drawn again with Pele's
+  `maxWidth`, as Pele's own `mount()` does, the room taken in steps of 8 px, and shows that layout
+  once it is in, when narrower. One within a tenth of its room, natural or fitted, is scaled down to
+  fit, its text a few percent smaller. Wider than that, it scrolls sideways, as before.
 - **Rationale**: Pele's fitted layout turned the mockup's flowchart top-down at 651 px, 17 px past
   its 634 px room: scrolling for 17 px hides a label's end behind a scroll bar, where 3% smaller
-  text reads the same.
-- **If wrong**: `NEAR_FIT` in [`Diagram.tsx`](/packages/web/src/Diagram.tsx); 1 turns the scaling
-  off.
-- **Where**: [`Diagram.tsx`](/packages/web/src/Diagram.tsx)
+  text reads the same. A natural layout already within a tenth keeps its shape, scaled, rather than
+  turn into a taller one. A diagram to fit shows nothing until its fitted layout is in, so the page
+  never shows one layout, then another of a new height; while the room changes, the last fitted
+  layout stays until the next is in.
+- **If wrong**: `NEAR_FIT` and `FIT_STEP` in
+  [`useDiagramDraw.ts`](/packages/web/src/useDiagramDraw.ts); `NEAR_FIT` at 1 turns the scaling off.
+- **Where**: [`useDiagramDraw.ts`](/packages/web/src/useDiagramDraw.ts)
