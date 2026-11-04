@@ -92,15 +92,16 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
 export type Fonts = Record<FontRole, string>;
 
 /**
- * Monaspace for the interface, headings, and the human's messages; prose in a proportional font,
- * Atkinson's, which reads best; and code and keys, which every text field writes in, in JetBrains
- * Mono, a standard monospace font, as Krypton was "too aggressive" in the editor.
+ * Monaspace for the interface, headings, and the human's messages, these in the interface's Neon
+ * rather than Radon's handwriting; prose in a proportional font, Atkinson's, which reads best; and
+ * code and keys, which every text field writes in, in JetBrains Mono, a standard monospace font, as
+ * Krypton was "too aggressive" in the editor.
  */
 export const DEFAULT_FONTS: Fonts = {
   body: "neon",
   code: "jetbrains",
   heading: "xenon",
-  human: "radon",
+  human: "neon",
   reading: "atkinson",
 };
 

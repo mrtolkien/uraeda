@@ -159,7 +159,7 @@ today.
   width. The texts between its calls are context, in the secondary colour: "The in-turn responses
   are interesting context but not actual info."
 - **The agent's text is at the reading measure**, about 80 characters a line, not the page's width.
-- **The human's sent messages** are on a faint blue, in their own font (Radon).
+- **The human's sent messages** are on a faint blue, in their own font (Neon by default).
 - **Jump to the latest** goes to the start of the agent's last message, where its reply reads from;
   while the session works, to its end, following it. On wide screens, a small arrow over the
   composer's top; on the phone, the bottom bar's ↓ alone.
