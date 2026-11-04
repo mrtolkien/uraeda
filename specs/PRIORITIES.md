@@ -6,9 +6,9 @@
 >
 > Still wanted for my personal usage
 
-- Review the UI guidelines properly
+- [In vim mode, visual mode seems to be working properly... except selected text…](/specs/changes/2026-11-04-vim-mode/proposal.md)
 
-- See if we can integrate Claude Design
+- Review the UI guidelines properly
 
 - Basic git UI in the web ui (pull, see diffs, ...)
   - Pretty much web lazygit?
