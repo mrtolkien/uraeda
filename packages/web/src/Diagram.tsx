@@ -6,8 +6,9 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type MouseEvent, useEffect, useId, useRef, useState } from "react";
+import { type MouseEvent, useId, useRef } from "react";
 import { useWidthOf } from "./layout/useWidthOf.ts";
+import { useDiagramDraw } from "./useDiagramDraw.ts";
 
 const styles = stylex.create({
   block: {
@@ -39,73 +40,6 @@ const styles = stylex.create({
     "--pele-surface-alt": colorVars["--color-background-card"],
   },
 });
-
-/** The largest a diagram shows, in px: a bigger one is scaled down, keeping its proportions. */
-const MAX_WIDTH = 4000;
-const MAX_HEIGHT = 3000;
-/**
- * How much wider than its room a diagram may be and still be scaled down to fit it, its text a few
- * percent smaller, rather than scroll for a sliver of itself: Pele's fitted layout often ends a few
- * px past its room.
- */
-const NEAR_FIT = 1.1;
-
-/** A diagram drawn: Pele's SVG, its size in pixels, and its type, "flowchart" or "git graph". */
-type Drawn = { height: number; kind: string; svg: string; width: number };
-
-/** The fonts a diagram is drawn in: the theme's, as `styles.theme` sets them on `element`. */
-type Fonts = { family: string; mono: string };
-
-/** The fonts `element` draws a diagram in, from its `--pele-font` and `--pele-font-mono`. */
-function fontsOf(element: Element): Fonts {
-  const style = getComputedStyle(element);
-  return {
-    family: style.getPropertyValue("--pele-font").trim(),
-    mono: style.getPropertyValue("--pele-font-mono").trim(),
-  };
-}
-
-/**
- * Loads `fonts`, so Pele measures their own glyphs rather than a fallback's; a font that does not
- * load leaves the fallback, which the page draws too.
- */
-async function loaded({ family, mono }: Fonts) {
-  const faces = typeof document === "undefined" ? undefined : document.fonts;
-  if (!faces) {
-    return;
-  }
-  await Promise.all(
-    [family, mono].filter(Boolean).map((font) => faces.load(`1em ${font}`).catch(() => [])),
-  );
-}
-
-/**
- * Draws `source` with Pele, imported on demand, its ids starting with `idPrefix`, its labels
- * measured in `fonts`, the ones the page draws them in: with Pele's own metrics, a label in the
- * theme's wider monospace font ran into the next one and past the diagram's edge. With `maxWidth`,
- * laid out to fit it where Pele can, as a flowchart's long labels wrapping.
- */
-async function draw(
-  source: string,
-  idPrefix: string,
-  fonts: Fonts,
-  maxWidth?: number,
-): Promise<Drawn> {
-  const [{ renderAsync }] = await Promise.all([import("pele/lazy"), loaded(fonts)]);
-  const { height, svg, type, width } = await renderAsync(source, {
-    idPrefix,
-    ...(maxWidth === undefined ? {} : { maxWidth }),
-    ...(fonts.family ? { fontFamily: fonts.family } : {}),
-    ...(fonts.mono ? { fontFamilyMono: fonts.mono } : {}),
-  });
-  // A source that does not parse throws above, rather than drawing an error picture.
-  return {
-    height,
-    kind: type.replaceAll(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`),
-    svg,
-    width,
-  };
-}
 
 /**
  * Opens a click on a diagram's link in a new tab: the diagram is part of the page, so the browser
@@ -139,56 +73,13 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
   // Letters, digits, and dashes, unique on the page: Pele names the diagram's title and
   // description by it.
   const idPrefix = `pele-${useId().replaceAll(/[^\w-]/g, "")}`;
-  const [natural, setNatural] = useState<Drawn | "failed" | undefined>(undefined);
-  // Drawn again to fit its room, while it is narrower than the natural one: the room it fits.
-  const [fitted, setFitted] = useState<{ drawn: Drawn; room: number }>();
   // The same element for the diagram's life, drawn or not, so its width is followed throughout.
   const scroller = useRef<HTMLDivElement>(null);
-  const fonts = useRef<Fonts>({ family: "", mono: "" });
   const room = Math.floor(useWidthOf(scroller));
-  useEffect(() => {
-    let live = true;
-    const element = scroller.current;
-    fonts.current = element ? fontsOf(element) : { family: "", mono: "" };
-    draw(source, idPrefix, fonts.current).then(
-      (result) => live && setNatural(result),
-      () => live && setNatural("failed"),
-    );
-    return () => {
-      live = false;
-    };
-  }, [idPrefix, source]);
-  const wider = typeof natural === "object" && room > 0 && natural.width > room;
-  useEffect(() => {
-    if (!wider) {
-      return;
-    }
-    let live = true;
-    // Pele cannot always fit: a layout no narrower than the natural one is not kept.
-    draw(source, idPrefix, fonts.current, room).then(
-      (result) => live && setFitted({ drawn: result, room }),
-      () => {},
-    );
-    return () => {
-      live = false;
-    };
-  }, [idPrefix, room, source, wider]);
-  const drawn =
-    wider && fitted?.room === room && fitted.drawn.width < natural.width ? fitted.drawn : natural;
+  const { drawn, scrolls, width } = useDiagramDraw(source, idPrefix, scroller, room);
   const drawnNow = typeof drawn === "object" ? drawn : undefined;
-  const near = drawnNow && room > 0 && drawnNow.width <= room * NEAR_FIT;
-  const scale = drawnNow
-    ? Math.min(
-        1,
-        near ? room / drawnNow.width : 1,
-        MAX_WIDTH / drawnNow.width,
-        MAX_HEIGHT / drawnNow.height,
-      )
-    : 1;
-  const width = drawnNow ? drawnNow.width * scale : 0;
   const title = drawnNow ? titleOf(drawnNow.kind, place) : undefined;
   // Wider than its card, it scrolls: the keyboard reaches it, as a region named for what it holds.
-  const scrolls = drawnNow !== undefined && room > 0 && width > room;
   return (
     <div
       ref={scroller}
