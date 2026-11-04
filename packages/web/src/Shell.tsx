@@ -80,8 +80,8 @@ const styles = stylex.create({
   },
   status: {
     // The status line takes the window's bottom row: what is as tall as the window ends above it,
-    // and the page's end scrolls past it.
-    "--size-status-line": spacingVars["--spacing-8"],
+    // and the page's end scrolls past it. One row of its text and little more, as a terminal's.
+    "--size-status-line": spacingVars["--spacing-5"],
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
     // The surface goes on under the status line, which the phone's lets show between its corner
     // buttons, under a short page too.
