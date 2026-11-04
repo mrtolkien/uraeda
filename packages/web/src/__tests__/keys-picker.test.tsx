@@ -12,10 +12,12 @@ import {
   atRepo,
   atWidth,
   fakeAgent,
+  fieldText,
   fixtureRepo,
   quiet,
   renderPage,
   serverFetch,
+  type,
 } from "./helpers.tsx";
 
 /** What `openPicker` captured: the hook's opener, to open the picker again. */
@@ -43,13 +45,6 @@ async function openPicker(kind: Parameters<ReturnType<typeof useKeyPicker>["open
 async function press(element: Element, key: string) {
   await act(async () => {
     fireEvent.keyDown(element, { key });
-  });
-}
-
-/** Types a query in the picker's field. */
-async function type(field: HTMLElement, query: string) {
-  await act(async () => {
-    fireEvent.change(field, { target: { value: query } });
   });
 }
 
@@ -218,7 +213,7 @@ test("the dialog shows at once, saying Loading…, and the list comes when the r
     expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
   );
   expect(screen.queryByText("Loading…")).toBeNull();
-  expect((field as HTMLInputElement).value).toBe("ui");
+  expect(fieldText(field)).toBe("ui");
   await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
 });
 

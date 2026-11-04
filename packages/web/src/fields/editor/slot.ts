@@ -64,6 +64,17 @@ export const readFirst = Facet.define<boolean, boolean>({
   combine: (values) => values.some(Boolean),
 });
 
+/** A key of a field's own in a layer's normal mode, as `"j"`: `run` says whether it took the key. */
+export type NormalKey = { key: string; run: () => boolean };
+
+/**
+ * A field's own keys in a layer's normal mode, before the layer's: a picker's filter moves its
+ * highlighted row on `j` and `k`, as LazyVim's picker does. Outside a layer, they are only text.
+ */
+export const normalKeys = Facet.define<ReadonlyArray<NormalKey>, ReadonlyArray<NormalKey>>({
+  combine: (values) => values.flat(),
+});
+
 const actions = new WeakMap<EditorView, EditorActions>();
 
 /** Adds an editor, with its actions, to those the slot reaches. Returns its removal. */

@@ -52,7 +52,8 @@ Every text field is one editor, with keys of its own that the page never hears.
   keys. A field opens in insert mode, typing as without Vim. `Escape` goes to normal mode, and
   `Escape` in normal mode is the field's own `Escape`, as above. `Shift+Escape` leaves the field
   from any mode. `Enter` in normal mode saves a row, and moves down a line in a field of several
-  lines.
+  lines. In a picker's filter, as in LazyVim's picker, `j` and `k` in normal mode move the
+  highlighted row and `Enter` opens it; `Escape` in normal mode closes the picker.
 - **Vim's commands** work in every field: `:w` is the field's `Ctrl+Enter`, `:q` its `Escape`, and
   `:wq` both. A yank also reaches the system clipboard; a delete never replaces what was copied.
 - **Touch screens** have no Vim: on a phone, or wherever the main pointer is a finger, fields type

@@ -29,7 +29,14 @@ import { fieldKeys } from "./keys.ts";
 import { markdown } from "./markdown.ts";
 import { setFocused, setPlace, type Place } from "./modeStore.ts";
 import { oneLine } from "./oneLine.ts";
-import { type EditorActions, mountEditor, readFirst, slotContent, vimSlot } from "./slot.ts";
+import {
+  type EditorActions,
+  mountEditor,
+  normalKeys,
+  readFirst,
+  slotContent,
+  vimSlot,
+} from "./slot.ts";
 import { hearLeave, takeDown } from "./leave.ts";
 import { editorTheme, sizeTheme } from "./theme.ts";
 
@@ -46,6 +53,11 @@ export type EditorHandle = {
 export type FieldKey = { key: string; run: () => boolean };
 
 export type EditorProps = {
+  /**
+   * Attributes of the content element beyond the editor's, like a search's combobox role and the
+   * list it controls.
+   */
+  attributes?: Readonly<Record<string, string>>;
   /** The content element's id, as a field's own: `document.getElementById(id)?.focus()` works. */
   id?: string;
   isAutoFocused?: boolean;
@@ -61,6 +73,11 @@ export type EditorProps = {
   label: string;
   /** The composer's tallest, in lines, which it grows to from `rows` before scrolling inside. */
   maxRows?: number;
+  /**
+   * Keys of the field's own in Vim's normal mode, before the engine's, like a picker's `j` and `k`
+   * that move its highlighted row, bound as `keys` are. Without Vim, they are typed as text.
+   */
+  normalKeys?: ReadonlyArray<FieldKey>;
   /** The focus left the field, for anything but its own prompt, like Vim's `:`. */
   onBlur?: () => void;
   onChange: (value: string) => void;
@@ -108,12 +125,21 @@ const parts = {
 /** The props the parts are made of. */
 type PartProps = Pick<
   EditorProps,
-  "id" | "isAutoFocused" | "isDisabled" | "label" | "maxRows" | "placeholder" | "rows" | "variant"
+  | "attributes"
+  | "id"
+  | "isAutoFocused"
+  | "isDisabled"
+  | "label"
+  | "maxRows"
+  | "placeholder"
+  | "rows"
+  | "variant"
 >;
 
 /** Each part's content, from the props. */
 function partsOf(props: PartProps) {
   const {
+    attributes,
     id,
     isAutoFocused,
     isDisabled = false,
@@ -131,6 +157,7 @@ function partsOf(props: PartProps) {
       ...(id === undefined ? {} : { id }),
       // What an overlay gives its focus to once drawn (`useFieldFocus`), as Astryx's fields say.
       ...(isAutoFocused ? { "data-autofocus": "" } : {}),
+      ...attributes,
     }),
     editable: [EditorView.editable.of(!isDisabled), EditorState.readOnly.of(isDisabled)],
     placeholder: placeholder ? placeholderText(placeholder) : [],
@@ -295,11 +322,14 @@ function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorAc
   };
 }
 
-/** The caller's own keys, as bound at the first render, each running the latest props' `run`. */
-function ownKeys(latest: { current: EditorProps }): Array<KeyBinding> {
-  return (latest.current.keys ?? []).map(({ key }) => ({
+/** The caller's `keys` or `normalKeys`, bound at the first render, each running its latest `run`. */
+function ownKeys(
+  latest: { current: EditorProps },
+  which: "keys" | "normalKeys" = "keys",
+): Array<KeyBinding & FieldKey> {
+  return (latest.current[which] ?? []).map(({ key }) => ({
     key,
-    run: () => latest.current.keys?.find((each) => each.key === key)?.run() ?? false,
+    run: () => latest.current[which]?.find((each) => each.key === key)?.run() ?? false,
   }));
 }
 
@@ -310,6 +340,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
     // First: a layer like Vim's takes its keys before the field's own.
     vimSlot.of(slotContent()),
     readFirst.of(latest.current.isReadFirst === true),
+    normalKeys.of(ownKeys(latest, "normalKeys")),
     fieldKeys(() => ({
       ...actions(),
       enters: latest.current.onEnter !== undefined,
@@ -363,6 +394,8 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
 export function Editor(props: EditorProps) {
   const { id, isAutoFocused, isDisabled, label, maxRows, placeholder, ref, rows, value, variant } =
     props;
+  // The attributes as one value, so a caller's new object of the same attributes changes nothing.
+  const attributesKey = JSON.stringify(props.attributes ?? {});
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const latest = useRef(props);
@@ -409,6 +442,7 @@ export function Editor(props: EditorProps) {
 
   useLayoutEffect(() => {
     const now = partsOf({
+      attributes: JSON.parse(attributesKey) as Record<string, string>,
       id,
       isAutoFocused,
       isDisabled,
@@ -423,7 +457,7 @@ export function Editor(props: EditorProps) {
         compartment.reconfigure(now[part as keyof typeof parts]),
       ),
     });
-  }, [id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant]);
+  }, [attributesKey, id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant]);
 
   useImperativeHandle(
     ref,

@@ -330,3 +330,65 @@ test("saved commands lose their blank lines in the field, which an error's line 
   );
   expect(fieldText(field).split("\n")[1]).toBe("nmpa Q dd");
 });
+
+test("in the picker's filter, normal mode's `j` and `k` move the highlighted row, and Enter opens it", async () => {
+  const config = vimOn();
+  await renderPage("/inbox", fixtureRepo(), { config });
+  await screen.findByRole("heading", { name: "Inbox" });
+  await waitFor(() => expect(slotContent()).not.toHaveLength(0));
+  fireEvent.keyDown(document.body, { key: " " });
+  fireEvent.keyDown(document.body, { key: " " });
+  const field = await screen.findByRole("combobox", { name: "Find anything" });
+  await waitFor(() => expect(document.activeElement).toBe(field));
+  await waitFor(() => expect(getCM(EditorView.findFromDOM(field)!)).not.toBeNull());
+  expect(mode()).toBe("insert");
+
+  await keys(field, "ui");
+  await waitFor(() =>
+    expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
+  );
+  const highlighted = () =>
+    document.getElementById(field.getAttribute("aria-activedescendant") ?? "")?.textContent;
+  await waitFor(() => expect(highlighted()).toMatch(/^UI behaviour/));
+  const second = screen.getAllByRole("option")[1]!.textContent;
+  // In insert mode, the arrows move, as without Vim.
+  await act(async () => void fireEvent.keyDown(field, { key: "ArrowDown" }));
+  await waitFor(() => expect(highlighted()).toBe(second));
+  await act(async () => void fireEvent.keyDown(field, { key: "ArrowUp" }));
+  await waitFor(() => expect(highlighted()).toMatch(/^UI behaviour/));
+
+  // Escape goes to normal mode, the picker open: `j` and `k` move, typing nothing.
+  await keys(field, "<Esc>");
+  expect(mode()).toBe("normal");
+  expect(screen.getByRole("combobox", { name: "Find anything" })).toBe(field);
+  await keys(field, "j");
+  await waitFor(() => expect(highlighted()).toBe(second));
+  await keys(field, "k");
+  await waitFor(() => expect(highlighted()).toMatch(/^UI behaviour/));
+  await act(async () => void fireEvent.keyDown(field, { key: "ArrowDown" }));
+  await waitFor(() => expect(highlighted()).toBe(second));
+  await act(async () => void fireEvent.keyDown(field, { key: "ArrowUp" }));
+  await waitFor(() => expect(highlighted()).toMatch(/^UI behaviour/));
+  expect(fieldText(field)).toBe("ui");
+
+  await keys(field, "<CR>");
+  await waitFor(() => expect(window.location.pathname).toMatch(/\/decisions\/ui-behaviour$/));
+  expect(screen.queryByRole("combobox", { name: "Find anything" })).toBeNull();
+});
+
+test("Escape in the picker's normal mode closes it", async () => {
+  const config = vimOn();
+  await renderPage("/inbox", fixtureRepo(), { config });
+  await screen.findByRole("heading", { name: "Inbox" });
+  await waitFor(() => expect(slotContent()).not.toHaveLength(0));
+  fireEvent.keyDown(document.body, { key: " " });
+  fireEvent.keyDown(document.body, { key: " " });
+  const field = await screen.findByRole("combobox", { name: "Find anything" });
+  await waitFor(() => expect(document.activeElement).toBe(field));
+  await waitFor(() => expect(getCM(EditorView.findFromDOM(field)!)).not.toBeNull());
+
+  await keys(field, "<Esc>");
+  expect(screen.getByRole("combobox", { name: "Find anything" })).toBe(field);
+  await keys(field, "<Esc>");
+  await waitFor(() => expect(screen.queryByRole("combobox", { name: "Find anything" })).toBeNull());
+});

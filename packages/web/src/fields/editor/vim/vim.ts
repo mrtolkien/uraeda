@@ -4,14 +4,15 @@
 // mode at focus, but in a field read first, Escape in normal mode and Shift+Escape in any mode run
 // the field's Escape, Enter in normal mode its Enter, `:w` its Ctrl+Enter, `:q` its quit, which is
 // its Escape but where it leaves its page, `:wq` both, a one-line field it saved left without its
-// Escape; a yank also reaches the clipboard; and the human's commands run when it starts, each
-// refusal with its line.
+// Escape; a field's own normal-mode keys, as a picker's `j` and `k`, run before the engine's; a yank
+// also reaches the clipboard; and the human's commands run when it starts, each refusal with its
+// line.
 import { type Extension, Prec } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
 import { placeOf } from "../Editor.tsx";
 import { type Mode, setFocused, setMode } from "../modeStore.ts";
-import { editorActions, readFirst } from "../slot.ts";
+import { editorActions, normalKeys, readFirst } from "../slot.ts";
 
 type CM = CodeMirror;
 
@@ -132,6 +133,17 @@ const fieldFirst = Prec.highest(
       if (event.key === "Escape" && normal && pending(cm)) {
         // Escape after `d` drops the keys typed, as Vim's does, and leaves the field alone.
         Vim.handleKey(cm, "<Esc>", "user");
+        event.preventDefault();
+        return true;
+      }
+      // A field's own key in normal mode, as a picker's `j` and `k`, which move its highlighted
+      // row as LazyVim's picker does. The decision's "Vim's keys come from the engine" covers
+      // editing text: these keys are the picker's actions, never the text's.
+      const own =
+        normal && !pending(cm)
+          ? view.state.facet(normalKeys).find(({ key }) => key === event.key)
+          : undefined;
+      if (own?.run()) {
         event.preventDefault();
         return true;
       }

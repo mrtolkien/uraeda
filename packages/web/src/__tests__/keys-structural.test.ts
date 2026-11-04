@@ -37,9 +37,10 @@ const LISTENERS = new RegExp(
     String.raw`\bdomEventHandlers\b`,
     String.raw`\bkeymap\.of\b`,
     // A view plugin's handlers, `eventHandlers: { keydown() {} }`, and the shared editor's own keys
-    // a field gives it, `<Editor keys={...} />`, or a one-line field's, `<TextLine keys={...} />`.
+    // a field gives it, `<Editor keys={...} />`, or a one-line field's, `<TextLine keys={...} />`,
+    // and its keys in Vim's normal mode, `normalKeys={...}`.
     String.raw`\beventHandlers:`,
-    String.raw`<(Editor|TextLine|TextField)\b[^<]*?\bkeys=\{`,
+    String.raw`<(Editor|TextLine|TextField)\b[^<]*?\b(keys|normalKeys)=\{`,
   ].join("|"),
   "g",
 );
@@ -93,12 +94,20 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
       "the shared editor's own keys: Ctrl or Cmd+Enter submits, Enter runs a one-line field's " +
       "action, Escape leaves the field or cancels it",
   },
+  "fields/editor/PickerEditor.tsx": {
+    hits: 2,
+    reason:
+      "the picker's filter's own keys, the editor's: Down, Up, PageDown, and PageUp move the " +
+      "palette's highlighted row, and in Vim's normal mode j and k do; and the palette's own " +
+      "key handler, which those keys and Enter are handed to, as its own input hands them",
+  },
   "fields/editor/vim/vim.ts": {
     hits: 2,
     reason:
       "the Vim layer's keys before the engine's, each the field's own action: Shift+Escape " +
-      "leaves the field, Escape after a pending key drops it, Enter in normal mode runs a " +
-      "one-line field's Enter; and its plugin's focus, which opens insert mode, no key",
+      "leaves the field, Escape after a pending key drops it, a field's own normal-mode keys, " +
+      "like a picker's j and k, and Enter in normal mode runs a one-line field's Enter; and its " +
+      "plugin's focus, which opens insert mode, no key",
   },
   "Folds.tsx": {
     hits: 1,

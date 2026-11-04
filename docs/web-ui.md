@@ -110,6 +110,10 @@ and Escape in normal mode leaves the field. Shift+Escape leaves it from any mode
 Ctrl+Enter does, `:q` leaves the field, and `:wq` does both. A yank also copies to the system
 clipboard; a delete never replaces what you copied.
 
+A picker's filter, like `Space Space`'s, takes Vim's keys too, as LazyVim's picker does: Escape goes
+to normal mode with the picker open, where `j` and `k` move along the list and Enter opens the
+highlighted item; Escape in normal mode closes the picker.
+
 The status line at the bottom opens with the mode: NAV while keys act on the page, else the field's,
 like NORMAL or INSERT. At its right end, it shows the cursor's place, like "Top 3:9".
 
