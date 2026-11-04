@@ -17,6 +17,7 @@ import {
   fixtureRepo,
   git,
   quiet,
+  refreshUntil,
   renderPage,
   serverFetch,
   today,
@@ -101,13 +102,13 @@ test("a feature typed in the Feature card starts into its session", async () => 
     `---\ndiscovery: low\n---\n\n# ${TEXT}\n`,
   );
   await quiet();
-  // Row: once its session page saw it land, the New page's composer is empty.
+  // Row: once its session page saw it land, the New page's composer is empty. Live updates do not
+  // reach these tests: a queue read while the start ran stays as read, and the page shown again
+  // within 2 s does not read it again, so the page reads it as a return to the foreground does.
   await act(async () => navigate(atRepo(sessionPath(FOLDER))));
-  await waitFor(
+  await refreshUntil(
     () => expect(window.localStorage.getItem(unsavedKey(repo, "new-draft"))).toBeNull(),
-    {
-      timeout: 10_000,
-    },
+    { timeout: 10_000 },
   );
   await act(async () => navigate(atRepo("/new?kind=feature")));
   const box = await screen.findByRole("textbox", { name: "Write Proposal" });
