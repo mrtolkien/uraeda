@@ -124,8 +124,9 @@ to push.
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
 time it goes on, and its session says so above the composer: a message you send goes at once, and
-Stop ends the wait. Past the continues in a row set under Runs, without a commit or a message from
-you, the run reads "The agent keeps stopping." and asks for you.
+Stop ends the wait. A run whose agent set itself a wakeup, to check on CI later, reads "Waiting"
+until it, and nothing asks it to go on before. Past the continues in a row set under Runs, without a
+commit or a message from you, the run reads "The agent keeps stopping." and asks for you.
 
 On Home, Needs you has "Continue all" in its border while a run there failed, was stopped, or ended
 early, at a step where the agent works. It sends each such run its step's message, in its own

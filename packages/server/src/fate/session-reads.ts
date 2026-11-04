@@ -58,12 +58,13 @@ export function turnsOf(cache: SessionCache, session: string) {
 }
 
 /**
- * The session's status, from its turns, when it was seen, its feature's step, and whether it is its
- * feature's `latestSession`, with when its run continues by itself while it waits.
+ * The session's status, from its turns, whether its process waits for a wakeup the agent set, when
+ * it was seen, its feature's step, and whether it is its feature's `latestSession`, with when its
+ * run continues by itself while it waits.
  */
 export function statusOf(
   row: SessionRow,
-  read: Pick<ReturnType<typeof turnsOf>, "blocked" | "latest" | "queued">,
+  read: Pick<ReturnType<typeof turnsOf>, "blocked" | "latest" | "queued"> & { wakeup?: boolean },
   feature?: FeatureView,
   latestSession = true,
 ) {
@@ -76,6 +77,7 @@ export function statusOf(
     ...(feature ? { stepName: feature.step.name } : {}),
     waitsOnAgent: feature?.step.waitsOn === "agent",
     waitsOnHuman: feature?.step.waitsOn === "human",
+    wakeup: read.wakeup === true,
   });
   return {
     status: status.status,

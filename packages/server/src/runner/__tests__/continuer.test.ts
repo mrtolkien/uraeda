@@ -78,7 +78,7 @@ const latest = (cache: SessionCache, session: string) => cache.turns(session).at
 const continues = (adapter: FakeAdapter) =>
   adapter.sent.filter((message) => message.text === LIMIT_MESSAGE).length;
 /** The turn's status, as its session's latest, its feature at `plan`, waiting on the agent. */
-const statusOf = (cache: SessionCache, turn: number) =>
+const statusOf = (cache: SessionCache, turn: number, wakeup = false) =>
   sessionStatus({
     blocked: false,
     latest: cache.turn(turn),
@@ -87,6 +87,7 @@ const statusOf = (cache: SessionCache, turn: number) =>
     stepName: "plan",
     waitsOnAgent: true,
     waitsOnHuman: false,
+    wakeup,
   });
 const sentOf = (adapter: FakeAdapter, text: string) =>
   adapter.sent.filter((message) => message.text === text).length;
@@ -689,6 +690,38 @@ test("US3: a run that stops before its gate is asked once, and a second stop ask
   expect(cache.turns(session.id)).toHaveLength(2);
   expect(statusOf(cache, asked.id).reason).toBe("halted");
   expect(published).toEqual(["waiting", "halted"]);
+});
+
+/** US6: an agent that set a wakeup waits by it: the gate's continue never interrupts it. */
+test("a run done before its gate with a pending wakeup is not asked, and works until it", async () => {
+  const published: Array<string | undefined> = [];
+  // The status reads the live process's wakeup through the manager, once it exists.
+  const manager: { sessions?: Sessions } = {};
+  const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    onChange: (change, cache) => {
+      const session = "session" in change ? change.session : undefined;
+      const turn = session === undefined ? undefined : cache.turns(session).at(-1);
+      if (session !== undefined && turn?.state === "done") {
+        const wakeup = manager.sessions?.wakeup(session);
+        published.push(statusOf(cache, turn.id, wakeup).reason);
+      }
+    },
+    runs: () => ON,
+  });
+  manager.sessions = sessions;
+  const time = clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([{ at: new Date(Date.now() + 25 * 60_000).toISOString(), type: "wakeup" }]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Wait for CI", workflow: PLAN });
+  await sessions.settled(turn);
+
+  time.by(25 * 60_000 - 1);
+  await flush();
+  expect(sentOf(adapter, GATE_MESSAGE)).toBe(0);
+  expect(cache.turn(turn)).toMatchObject({ continueReason: null, state: "done" });
+  expect(published.length).toBeGreaterThan(0);
+  expect(published).not.toContain("halted");
+  expect(statusOf(cache, turn, sessions.wakeup(session.id)).reason).toBe("waiting");
 });
 
 /** A gate past the cap was never asked: once the human sends the run on, its next stop is. */

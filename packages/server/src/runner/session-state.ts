@@ -232,6 +232,11 @@ export type SessionContext = {
   turns: Turns;
 };
 
+/** Whether the process is open, and waits for a wakeup the agent set: it goes on by itself then. */
+export function wakeupPending(proc: Proc | undefined): boolean {
+  return proc !== undefined && !proc.closing && (proc.wakeup ?? 0) > Date.now();
+}
+
 export const refused = (text: string) => new Error(`refused: ${text}`);
 
 /** The session's row, which the cache must hold. */

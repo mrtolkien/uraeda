@@ -1125,6 +1125,8 @@ The rules:
    - `beforeGate` is on;
    - the turn is not the gate's own continue's turn, whose first line is `continuedLine("gate")`: a
      gate past the cap was never asked, so after the human's message the next stop is;
+   - its open process holds no pending wakeup the agent set: it goes on by itself then, and its
+     status reads `waiting` meanwhile (ruling R24);
    - the turn was refused no action the human has not allowed: a blocked turn keeps asking, as
      today. The same holds for every kind of continue.
 

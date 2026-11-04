@@ -266,3 +266,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a session's other changes reach its views a few milliseconds late while a turn's
   continue is decided.
 - **Where**: task 8, `packages/server/src/runner/turns.ts`, `sessions.ts`, and `session-state.ts`.
+
+## R24: A run that waits for its own wakeup is not asked to go on, and reads waiting
+
+- **Decision**: `Continuer.ended` decides no gate continue while the session's open process holds a
+  pending wakeup, `wakeupPending(proc)` in `session-state.ts`. Meanwhile `sessionStatus` reads such
+  a done turn, which would read `halted`, as `waiting`, "Waiting", `working`, without a wait's time.
+  The session records feed it from the live process, `Sessions.wakeup`, as they already read its
+  background commands: nothing is stored. Once the wakeup passed, the turn the agent resumes ends as
+  any other, and its gate continue is decided then; an agent that never resumes reads `halted` once
+  its process closes, a minute after the wakeup.
+- **Rationale**: US6 has the agent wait by its own wakeup. The gate's continue sent "You stopped
+  before the next human gate" at once, and its turn's second stop read halted and notified while the
+  wakeup was pending, against SC-003. Found by the final review.
+- **If wrong**: a wakeup set in a run that should have gone on to its gate delays that run until the
+  wakeup, at most a day (R16).
+- **Where**: final review, `packages/server/src/runner/continuer.ts`, `status.ts`, and
+  `packages/server/src/fate/session-reads.ts`.

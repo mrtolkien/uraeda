@@ -82,7 +82,11 @@ async function readStatus(ctx: RepoContext, feature: FeatureView): Promise<Featu
     return { ...IDLE, ...NEEDS_YOU, ...of };
   }
   const blocked = blockedOf(cache, read.latest);
-  const { status, statusLabel, statusReason, wait } = statusOf(row, { ...read, blocked }, feature);
+  const { status, statusLabel, statusReason, wait } = statusOf(
+    row,
+    { ...read, blocked, wakeup: ctx.sessions.wakeup(row.id) },
+    feature,
+  );
   return { label: statusLabel, reason: statusReason, status, wait, ...of };
 }
 
