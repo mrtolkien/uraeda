@@ -1,11 +1,19 @@
 // Dropping a change or a feature, shared by the session's "…" and the feature's page: the question
 // it asks first, the write, and the lines that say what stayed. Each page decides what the result
 // does to itself.
-import { useFateClient } from "react-fate";
+import { useFateClient, view } from "react-fate";
+import type { Dropped as DroppedRecord } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
 import type { MoveNote } from "./offers.ts";
-import { DroppedView } from "./views.ts";
+
+/** A change or a feature dropped: its branch, which stays, and the worktree left, with why. */
+export const DroppedView = view<DroppedRecord>()({
+  branch: true,
+  committed: true,
+  id: true,
+  worktreeLeft: true,
+});
 
 /** The change or the feature a session belongs to, as its page reads it. */
 export type SessionItem = {
