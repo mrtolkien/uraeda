@@ -3,6 +3,7 @@ kind: feature
 finished: 2026-11-02
 pull-request: https://github.com/mrtolkien/uraeda/pull/86
 supersedes: [2026-10-13-image-attachments, 2026-10-15-add-scratchpad]
+superseded-by: [2026-11-03-vim-text]
 ---
 
 # Record: Moving a file never breaks a link to it
@@ -12,6 +13,8 @@ supersedes: [2026-10-13-image-attachments, 2026-10-15-add-scratchpad]
 > The record of a merged feature, not instructions to follow. Started on 2026-11-01, finished on
 > 2026-11-02, in [its pull request](https://github.com/mrtolkien/uraeda/pull/86). Its full files are
 > in git: `git log -- specs/2026-11-01-move-relinks/`.
+>
+> Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
 
 ## What and why
 

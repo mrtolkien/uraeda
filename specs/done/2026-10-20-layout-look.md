@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-24
 pull-request: https://github.com/mrtolkien/uraeda/pull/55
+superseded-by: [2026-11-03-vim-text]
 ---
 
 # Record: Layout and look and feel
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/55
 > The record of a merged feature, not instructions to follow. Started on 2026-10-20, finished on
 > 2026-10-24, in [its pull request](https://github.com/mrtolkien/uraeda/pull/55). Its full files are
 > in git: `git log -- specs/2026-10-20-layout-look/`.
+>
+> Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
 
 ## What and why
 

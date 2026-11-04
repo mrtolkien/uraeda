@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-15
 pull-request: https://github.com/mrtolkien/uraeda/pull/16
+superseded-by: [2026-11-03-vim-text]
 ---
 
 # Record: Text inputs and comments
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/16
 > The record of a merged feature, not instructions to follow. Started on 2026-10-14, finished on
 > 2026-10-15, in [its pull request](https://github.com/mrtolkien/uraeda/pull/16). Its full files are
 > in git: `git log -- specs/2026-10-14-text-inputs/`.
+>
+> Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
 
 ## What and why
 
