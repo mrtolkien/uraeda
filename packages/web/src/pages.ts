@@ -26,6 +26,7 @@ export const FeaturePage = page(
   async () => (await import("./feature/FeaturePage.tsx")).FeaturePage,
 );
 export const FilePage = page(async () => (await import("./FilePage.tsx")).FilePage);
+export const GitPage = page(async () => (await import("./git/GitPage.tsx")).GitPage);
 export const InboxRoute = page(async () => (await import("./pane/DetailRoutes.tsx")).InboxRoute);
 export const MockupPage = page(async () => (await import("./MockupPage.tsx")).MockupPage);
 export const NewPage = page(async () => (await import("./NewPage.tsx")).NewPage);

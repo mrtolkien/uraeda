@@ -124,12 +124,13 @@ let left: string | undefined;
 
 /**
  * Whether `path` shows another proposal or note beside the same list as now: the list stays, and
- * the text left unsaved in the pane comes back, with its notice, as that item opens again.
+ * the text left unsaved in the pane comes back, with its notice, as that item opens again. The Git
+ * page's picked row is its query: its commit message stays, drawn or not.
  */
 function besideSameList(path: string) {
   const from = parseLocation(window.location.pathname).route.page;
   const to = parseLocation(new URL(path, window.location.href).pathname).route.page;
-  return (from === "proposal" || from === "note") && to === from;
+  return (from === "proposal" || from === "note" || from === "git") && to === from;
 }
 
 /**

@@ -7,7 +7,13 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Link } from "@astryxdesign/core/Link";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
-import { REFUSED_ID, useDismissWrite, useRefusal, type Where } from "./useWriteQueue.ts";
+import {
+  REFUSED_ID,
+  useDismissWrite,
+  useRefusal,
+  type Where,
+  type Write,
+} from "./useWriteQueue.ts";
 import { WriteButton } from "./WriteButton.tsx";
 
 /** The commit page's path, which a failed write's banner links, but on the commit page itself. */
@@ -16,14 +22,17 @@ const COMMIT_PAGE = "/commit";
 /**
  * The refusal of the latest write at `where`: `what` says what a hook's refusal put back, as "the
  * spec awaits your verdict again."; `onRetry`, the place's Try again, commits what a failure left
- * written.
+ * written. `title`, where the write is no commit of a change, like the Git page's pull, says what
+ * failed instead, its output under it.
  */
 export function RefusedHere({
   onRetry,
+  title,
   what,
   where,
 }: {
   onRetry?: () => Promise<void>;
+  title?: (write: Write) => string;
   what: string;
   where: Where;
 }) {
@@ -36,7 +45,10 @@ export function RefusedHere({
   }
   const failed = write.failure === "failed";
   // A feature's file is on its branch: the commit page lists only the default branch's lists.
-  const listed = !onCommitPage && (write.folder === undefined || write.file === undefined);
+  const listed =
+    !onCommitPage &&
+    title === undefined &&
+    (write.folder === undefined || write.file === undefined);
   return (
     <div id={REFUSED_ID}>
       <AnnouncedBanner
@@ -46,9 +58,10 @@ export function RefusedHere({
         onDismiss={() => void dismiss(write.id)}
         status="error"
         title={
-          failed
+          title?.(write) ??
+          (failed
             ? "The commit failed: the change is still written, not committed."
-            : `The pre-commit hook refused the commit: ${what}`
+            : `The pre-commit hook refused the commit: ${what}`)
         }
         {...(failed && onRetry
           ? { endContent: <WriteButton label="Try again" onClick={onRetry} /> }

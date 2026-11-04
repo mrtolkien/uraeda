@@ -1092,10 +1092,13 @@ git commit -m "feat(basic-git): fetch on the page's open and every 5 minutes"
 - Create: `packages/web/src/git/GitPage.tsx`, `git/Sync.tsx`, `git/ChangesTree.tsx`, `git/tree.ts`,
   `git/CommitField.tsx`, `git/Diff.tsx`, `git/History.tsx`, `git/Worktrees.tsx`,
   `git/MergePicker.tsx`, `git/address.ts`, `git/useGitWrites.ts`, `git/useGitKeys.ts`,
-  `git/GitPage.stories.tsx` (the page's named states, over the real server's fixture)
-- Modify: `packages/web/src/views.ts`, `data.ts` (`useGitPage`, `useGitSummary`, the views),
-  `routeTable.ts` (`{page: "git"}` at `/git`), `pages.ts`, `App.tsx` (the route),
-  `lists/useListKeys.ts` (rows found by their checkbox too), `writes/labels.ts` (the writes' labels)
+  `git/Row.tsx`, `git/PlaceError.tsx`, `git/data.ts` (`useGitPage`, `useGitSummary`, the views:
+  `views.ts` and `data.ts` are at the file limit, R22), `git/GitPage.stories.tsx` (the fixture's
+  main checkout, wide and on the phone, R25)
+- Modify: `routeTable.ts` (`{page: "git"}` at `/git`), `pages.ts`, `App.tsx` (the route),
+  `lists/useListKeys.ts` (rows found by their checkbox too), `writes/labels.ts` (`gitRefusalTitle`),
+  `writes/RefusedHere.tsx` (`title`), `routeHistory.ts` and `fields/LeaveGuard.tsx` (no "Leave
+  page?" between two of the page's addresses)
 - Test: `packages/web/src/__tests__/git-page.test.tsx`
 
 **Interfaces:**
@@ -1113,19 +1116,20 @@ git commit -m "feat(basic-git): fetch on the page's open and every 5 minutes"
   folder's counts summed and its box ticked, empty, or mixed from its files, `paths` the files a
   Space on it stages. Task 10 does not use it.
 - Produces, in `git/useGitWrites.ts`: `useGitWrites()` returning the page's writes, each a
-  `fate.mutations.git.*` call with `write: writeHere(label)`, clearing the refusal first, the
-  refusal shown by `RefusedHere` next to the section it concerns. Task 10 adds its writes beside
-  them, in its own hook.
+  `fate.mutations.git.*` call with `write: { href: placeHref(place), label }`, clearing its place's
+  refusals first, the refusal shown by `RefusedHere` (with `title={gitRefusalTitle}`) next to the
+  section it concerns, or by `PlaceError` when the call was refused before the queue (R22). Task 10
+  adds its writes beside them, in its own hook, with the place `"sync"`.
 - Keys, in `git/useGitKeys.ts`, through `useKeys`: `p`, `P`, `f`, `a`, `c`, `d`, `M`, Enter, as the
   global constraints say; `m` is task 10's. Space is the checkbox's own; rows are found by
   `useListKeys` through `[data-row] input[type="checkbox"]` as well as its links, so `j`/`k` move
   over the tree, the history, and the worktrees.
 - The commit field: the shared editor through `useTextField("git:<folder or main>#message", "")`,
-  marked unsaved, dropped once its commit lands and kept on a refusal, as
-  `commit/usePaneWrites.ts`'s `landing` does today; `mod+Enter` in it commits.
+  marked unsaved, dropped once `git.commit` answers landed and kept on a refusal (R22); `mod+Enter`
+  in it commits, and `c` with no message typed focuses it.
 - On open, the page calls `git.fetch {quiet: true}`.
 
-- [ ] **Step 1: Build the page from the stories**
+- [x] **Step 1: Build the page from the stories**
 
 From the mockups' components, over `useGitPage()`: the title's line (global constraints), the
 banners (agent working, a refusal, a fetch failure with its message), Changes per group with its
@@ -1135,7 +1139,7 @@ the diff detail through `CodeBlock isDiff` with the binary and capped texts, "Me
 opening a popover of `branches` (a sheet on the phone). Every write disabled while `agentWorking`,
 or its group `isWorking`.
 
-- [ ] **Step 2: Write the tests**
+- [x] **Step 2: Write the tests**
 
 - `Space on a file row stages it, and the row keeps its place`: the fixture with `specs/INBOX.md`
   and `docs/web-ui.md` changed; focus `specs/INBOX.md`'s box, press Space: once the write lands,
@@ -1145,21 +1149,21 @@ or its group `isWorking`.
 - `discard asks first, and only Discard restores the file`: `d` on `docs/web-ui.md` asks "Discard
   the changes to docs/web-ui.md?"; Keep leaves it changed; Discard restores it.
 
-- [ ] **Step 3: Run them**
+- [x] **Step 3: Run them**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/git-page.test.tsx`
 - Expected: PASS
 
-- [ ] **Step 4: Review the page in the sandbox**
+- [x] **Step 4: Review the page in the sandbox**
 
 `nix develop -c vp run sandbox`: both themes, at 375 px and 1440 px.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-11-04-basic-git/plan.md
