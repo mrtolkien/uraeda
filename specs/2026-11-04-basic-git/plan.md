@@ -1334,7 +1334,7 @@ and checked under 100 ms in a release build (ruling R29).
   and `nix develop -c vp run ready`
 - Expected: PASS, the release benchmark's mean printed under 100 ms.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/samples docs README.md crates/core/tests specs/2026-11-04-basic-git/plan.md
