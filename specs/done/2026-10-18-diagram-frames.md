@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-18
 pull-request: https://github.com/mrtolkien/uraeda/pull/39
+superseded-by: [2026-11-04-some-stuff]
 ---
 
 # Record: Diagram frames
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/39
 > The record of a merged change, not instructions to follow. Started on 2026-10-18, finished on
 > 2026-10-18, in [its pull request](https://github.com/mrtolkien/uraeda/pull/39). Its full files are
 > in git: `git log -- specs/changes/2026-10-18-diagram-frames/`.
+>
+> Superseded in part by [2026-11-04-some-stuff](2026-11-04-some-stuff.md).
 
 ## What and why
 
