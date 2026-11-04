@@ -165,7 +165,9 @@ test("a conflict resolved from its row leaves the editor", async () => {
     .filter((button) => !button.closest(".cm-editor"));
   await click(row!);
 
-  await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
+  // Main's side is HEAD's: once taken, the file is no longer unmerged, and nothing is staged.
+  await waitFor(() => expect(git(repo, "ls-files", "--unmerged")).toBe(""));
+  expect(read(repo)).toMatch(/^Main's first line\n/);
   await refreshUntil(() =>
     expect(document.body.textContent).toContain("specs/PRIORITIES.md no longer conflicts."),
   );
