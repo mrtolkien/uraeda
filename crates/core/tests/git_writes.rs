@@ -18,7 +18,7 @@ const PRIORITIES: &str = "specs/PRIORITIES.md";
 
 /// A merged feature whose branch stays checked out in its worktree, as `ura clean` finds it; a
 /// hand-made worktree, `.worktrees/coherence-before`, on a branch of its own; one with an
-/// untracked file; and one whose folder was deleted.
+/// untracked file; two whose folder was deleted; and a locked one whose folder was deleted.
 fn worktrees() -> TestRepo {
     let repo = TestRepo::new();
     repo.switch_new(FOLDER);
@@ -33,12 +33,15 @@ fn worktrees() -> TestRepo {
     repo.switch("main");
     repo.git(&["merge", "--quiet", "--ff-only", FOLDER]);
     place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
-    for name in ["coherence-before", "busy", "gone"] {
+    for name in ["coherence-before", "busy", "gone", "gone-too", "held"] {
         let path = format!(".worktrees/{name}");
         repo.git(&["worktree", "add", "--quiet", "-b", name, &path]);
     }
     repo.write(".worktrees/busy/notes.txt", "mine\n");
-    fs::remove_dir_all(repo.path().join(".worktrees/gone")).unwrap();
+    repo.git(&["worktree", "lock", ".worktrees/held"]);
+    for name in ["gone", "gone-too", "held"] {
+        fs::remove_dir_all(repo.path().join(".worktrees").join(name)).unwrap();
+    }
     repo
 }
 
@@ -68,9 +71,13 @@ fn the_page_writes_only_what_it_lists() {
     let save = api::save_conflict_file(at, "README.md", "mine\n", &hash(&readme));
     assert_eq!(refused(save), "README.md has no conflict.");
     assert_eq!(repo.read("README.md"), readme);
-    let save = api::save_conflict_file(at, "../x", "mine\n", &hash(""));
+    fs::write(repo.parent().join("x"), "outside\n").unwrap();
+    let save = api::save_conflict_file(at, "../x", "mine\n", &hash("outside\n"));
     assert_eq!(refused(save), "../x is not in this checkout.");
-    assert!(!repo.parent().join("x").exists());
+    assert_eq!(
+        fs::read_to_string(repo.parent().join("x")).unwrap(),
+        "outside\n"
+    );
 
     let stage = api::git_stage(at, None, &["/etc/passwd".to_string()]);
     assert_eq!(refused(stage), "/etc/passwd is not in this checkout.");
@@ -97,6 +104,13 @@ fn the_page_writes_only_what_it_lists() {
     assert!(listed(&repo, ".worktrees/gone"));
     api::git_remove_worktree(at, ".worktrees/gone").unwrap();
     assert!(!listed(&repo, ".worktrees/gone"));
+    assert!(listed(&repo, ".worktrees/gone-too"));
+    let removed = api::git_remove_worktree(at, ".worktrees/held");
+    assert_eq!(
+        refused(removed),
+        ".worktrees/held is locked: unlock it first."
+    );
+    assert!(listed(&repo, ".worktrees/held"));
 
     api::clean_feature(at, FOLDER).unwrap();
     assert!(!repo.exists(WORKTREE));
@@ -111,6 +125,10 @@ fn the_page_writes_only_what_it_lists() {
     assert_eq!(repo.staged(), ["README.md"]);
     repo.commit("docs: readme");
 
+    let merge = api::git_merge(at, "HEAD~1", |_| {});
+    assert_eq!(refused(merge), "HEAD~1 is not a branch to merge.");
+    api::git_merge(at, "coherence-before", |_| {}).unwrap();
+
     repo.stopped_merge();
     let text = repo.read(PRIORITIES);
     let stale = api::save_conflict_file(at, PRIORITIES, "# Mine\n", &hash("other"));
@@ -122,4 +140,40 @@ fn the_page_writes_only_what_it_lists() {
         ("# Mine\n", hash("# Mine\n"))
     );
     assert_eq!(repo.read(PRIORITIES), "# Mine\n");
+
+    // A conflicted file gone from disk is no empty text to save over; a link is not followed.
+    repo.remove(PRIORITIES);
+    let save = api::save_conflict_file(at, PRIORITIES, "# Mine\n", &hash(""));
+    assert!(refused(save).starts_with("cannot read specs/PRIORITIES.md"));
+    assert!(!repo.exists(PRIORITIES));
+    std::os::unix::fs::symlink(repo.parent().join("x"), repo.path().join(PRIORITIES)).unwrap();
+    let read = api::conflict_file(at, PRIORITIES);
+    assert_eq!(
+        refused(read),
+        "specs/PRIORITIES.md is not in this checkout."
+    );
+}
+
+/// The fetcher's fetch runs every 5 minutes: a slow `origin` holds no other write of the
+/// repository behind it. Break caught: `git_fetch` under the write lock, which holds the stage
+/// until the fetch ends.
+#[test]
+fn a_slow_fetch_holds_no_other_write() {
+    let repo = TestRepo::with_origin();
+    repo.git(&[
+        "config",
+        "remote.origin.uploadpack",
+        "sleep 3; git-upload-pack",
+    ]);
+    let at = repo.path().to_path_buf();
+    let fetch = std::thread::spawn(move || api::git_fetch(&at, |_| {}));
+    std::thread::sleep(std::time::Duration::from_millis(300));
+
+    repo.write("README.md", "# Changed\n");
+    let started = std::time::Instant::now();
+    api::git_stage(repo.path(), None, &["README.md".to_string()]).unwrap();
+
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+    assert_eq!(repo.staged(), ["README.md"]);
+    fetch.join().unwrap().unwrap();
 }
