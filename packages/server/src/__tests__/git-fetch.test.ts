@@ -73,3 +73,19 @@ test("the fetcher fetches every 5 minutes, outside the toast", async () => {
   await fiveMinutes();
   expect((await page()).fetchFailure).toBeNull();
 });
+
+test("a quiet fetch that fails answers the page, and logs nothing", async () => {
+  const repo = fixtureRepo();
+  withOrigin(repo);
+  git(repo, "remote", "set-url", "origin", join(repo, "missing"));
+  const server = await testServer(repo);
+  await server.hosts.byPath(repo)!.queue.idle();
+  const logged = vi.spyOn(process.stderr, "write");
+
+  const fetched = await mutate(server.app, "git.fetch", { quiet: true }, ["id", "fetchFailure"]);
+
+  expect(fetched.error).toBeUndefined();
+  expect(fetched.data.fetchFailure).toEqual(expect.any(String));
+  expect(logged.mock.calls.flat().join("")).not.toContain("A binding call failed");
+  logged.mockRestore();
+});

@@ -1,6 +1,10 @@
 import type { SessionRow } from "./cache.ts";
 import type { Live } from "./session-state.ts";
 
+/** Whether a turn of the session runs, starts, or waits. */
+export const working = (live: Live) =>
+  live.turn !== undefined || live.starting === true || live.queue.length > 0;
+
 /**
  * The sessions this server keeps in memory while they are used, each with one lock for its sends
  * and turn starts. A session with nothing left in memory is forgotten.
@@ -38,6 +42,11 @@ export class LiveSessions {
 
   values(): IterableIterator<Live> {
     return this.#live.values();
+  }
+
+  /** The sessions of the main checkout `root` with a turn running, starting, or waiting. */
+  working(root: string): Array<Live> {
+    return [...this.#live.values()].filter((live) => live.repo === root && working(live));
   }
 
   /**

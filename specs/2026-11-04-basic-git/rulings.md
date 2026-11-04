@@ -236,9 +236,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the feature on its branch works; a clean, while either works. `git.saveConflict` answers the
   `ConflictFile`, with its new hash, not the page, and lands through `landed`, so a stale save
   leaves the queue's record and answers where it was made; every other refusal stays in the record
-  and answers the call. `WriteQueue.background` takes no keys: no committing call waits for a fetch.
-  The roots of the new views are in `fate.ts`'s `Root`, as the write queue's are, since
-  `fate/views.ts` is at the file length limit.
+  and answers the call. No committing call waits for a fetch: `WriteQueue.background` takes no keys,
+  and the core's `git_fetch` takes no write lock; a queued write still lands after it, in the
+  queue's order. The roots of the new views are in `fate.ts`'s `Root`, as the write queue's are,
+  since `fate/views.ts` is at the file length limit.
 - **Rationale**: a fetch changes no file of a checkout, and the fetcher (task 8) runs every 5
   minutes whatever the agents do; a worktree's removal writes the main checkout's git folder and the
   feature's worktree; the editor's next save names the hash the save gave back.
@@ -283,3 +284,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   index.
 - **If wrong**: a big file's counts show only in its diff; nothing else changes.
 - **Where**: tasks 5 and 6, after their review.
+
+## R24: The guard runs again as a write lands, and the main checkout's git writes hold the lists
+
+- **Decision**: each of the page's writes, `git.saveConflict` too, runs its guard as it is queued
+  and again as it lands, a refusal at the landing staying in the queue's record. The main checkout's
+  writes are keyed `["git", LISTS]`, so the inbox's, the priorities', and the proposals' commits
+  wait for them; `git.removeWorktree` reads the folder of the worktree's feature before it is
+  queued, and adds its `featureKeys`.
+- **Rationale**: a write queued behind a slow one, a held hook, lands after a chat's turn may have
+  started, which the guard at the queueing never saw (SC-004); a pull or a merge writes the lists'
+  files, which a list's commit, keyed `LISTS` alone, wrote meanwhile; a worktree's removal writes
+  the feature's files, which its commits wait for.
+- **If wrong**: a list's commit waits for a slow push, which writes none of its files.
+- **Where**: task 7.

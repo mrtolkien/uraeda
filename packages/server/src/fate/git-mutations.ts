@@ -1,26 +1,28 @@
-// The Git page's writes. Each is refused while an agent works in its checkout (`git-guard.ts`),
-// then lands in the repository's write queue, after the writes made before it, named by its
-// `write` input, git's output streamed into the queue's record for the toast. It answers once it
-// landed, with the page; a refusal stays in the record and answers the call too. After each, landed
-// or refused, the page and the sidebar's count are sent again.
+// The Git page's writes. Each is refused while an agent works in its checkout (`git-guard.ts`), as
+// it is queued and again as it lands, in the repository's write queue, after the writes made
+// before it, named by its `write` input, git's output streamed into the queue's record for the
+// toast. It answers once it landed, with the page; a refusal stays in the record and answers the
+// call too. After each, landed or refused, the page and the sidebar's count are sent again.
 import { publishGit } from "../live.ts";
 import type { Land, NewWrite, WriteInput } from "../writes/queue.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { refusable } from "./errors.ts";
 import { checkoutWritable } from "./git-guard.ts";
-import { working } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { conflictFileDataView, gitPage, gitPageDataView } from "./views-git.ts";
-import { featureKeys, landed, type Queued } from "./write-queue.ts";
+import { featureKeys, landed, LISTS, type Queued } from "./write-queue.ts";
 
-/** The key of the main checkout's git writes. */
-const GIT = "git";
+/**
+ * The keys of the main checkout's git writes: the lists' commits, the inbox's, the priorities',
+ * and the proposals', wait for them, as a pull or a merge may write their files.
+ */
+const MAIN = ["git", LISTS];
 
 /** A group's checkout: a feature's folder, or null for the main checkout. */
 type Group = { folder: string | null };
 
 /** The keys of the writes to a group's checkout. */
-const keysOf = (folder: string | null) => (folder === null ? [GIT] : featureKeys(folder));
+const keysOf = (folder: string | null) => (folder === null ? MAIN : featureKeys(folder));
 
 /** What a write is named by, without the web's `write`: on the Git page, with `label`. */
 const named = (write: WriteInput | undefined, label: string): NewWrite =>
@@ -34,25 +36,35 @@ const changed = (ctx: RepoContext) => {
   }
 };
 
+/** The page masked to `select`. */
+const page = async ({ ctx, select }: Resolver<unknown>) =>
+  sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
+
 /**
- * Runs `land` as a write of the repository's queue once `guard` lets it, and answers with the page
- * masked to `select`. Without a host, it lands at once.
+ * Runs `land` as a write of the repository's queue once `guard` lets it, `guard` checked again as
+ * it lands: an agent may have started meanwhile. Its refusal then stays in the record. It answers
+ * with the page masked to `select`. Without a host, it lands at once.
  */
 async function gitWrite(
-  { ctx, select }: Resolver<unknown>,
+  args: Resolver<unknown>,
   guard: () => Promise<void>,
   write: NewWrite & { keys: Array<string> },
   land: Land,
 ) {
+  const { ctx } = args;
   try {
     await guard();
     const queue = ctx.hosts.byPath(ctx.repo)?.queue;
     const { keys, ...record } = write;
-    await refusable(() => (queue ? queue.enqueue(record, land, keys) : land(() => {})));
+    const guarded: Land = async (onOutput) => {
+      await guard();
+      return land(onOutput);
+    };
+    await refusable(() => (queue ? queue.enqueue(record, guarded, keys) : land(() => {})));
   } finally {
     changed(ctx);
   }
-  return sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
+  return page(args);
 }
 
 /** A write of the main checkout, refused while a chat's agent works in it. */
@@ -64,7 +76,7 @@ const mainWrite = (
   gitWrite(
     args,
     () => checkoutWritable(args.ctx, null),
-    { ...named(args.input.write, label), keys: [GIT] },
+    { ...named(args.input.write, label), keys: MAIN },
     (onOutput) => land(args.ctx.repo, onOutput),
   );
 
@@ -81,17 +93,18 @@ const groupWrite = (
     () => land(args.ctx.repo, args.input.folder),
   );
 
-/**
- * Refuses the removal of the worktree at `path` while a chat's agent works in the main checkout, or
- * the agent of the feature on its branch works in it.
- */
-async function removable(ctx: RepoContext, path: string) {
-  await checkoutWritable(ctx, null);
-  if ((await working(ctx)).length === 0) {
-    return;
-  }
+/** The folder of the feature whose branch the worktree at `path` holds, if any. */
+async function worktreeFolder(ctx: RepoContext, path: string): Promise<string | undefined> {
   const { worktrees } = await refusable(() => ctx.binding.gitPage(ctx.repo));
-  const folder = worktrees.find((worktree) => worktree.path === path)?.folder;
+  return worktrees.find((worktree) => worktree.path === path)?.folder ?? undefined;
+}
+
+/**
+ * Refuses a write of the main checkout and of `folder`'s, while a chat's agent works in the main
+ * checkout, or the agent of the feature works in its worktree.
+ */
+async function bothWritable(ctx: RepoContext, folder: string | undefined) {
+  await checkoutWritable(ctx, null);
   if (folder !== undefined) {
     await checkoutWritable(ctx, folder);
   }
@@ -108,11 +121,8 @@ export const gitMutations = {
       const { ctx, input } = args;
       return gitWrite(
         args,
-        async () => {
-          await checkoutWritable(ctx, null);
-          await checkoutWritable(ctx, input.folder);
-        },
-        { ...named(input.write, "Cleaning"), keys: [GIT, ...featureKeys(input.folder)] },
+        () => bothWritable(ctx, input.folder),
+        { ...named(input.write, "Cleaning"), keys: [...MAIN, ...featureKeys(input.folder)] },
         () => ctx.binding.cleanFeature(ctx.repo, input.folder),
       );
     },
@@ -149,11 +159,11 @@ export const gitMutations = {
   // `fetchFailure`. A loud one is the human's write, whose outcome the fetcher keeps too.
   "git.fetch": {
     resolve: async (args: Resolver<Queued<{ quiet?: boolean }>>) => {
-      const { ctx, input, select } = args;
+      const { ctx, input } = args;
       const fetcher = ctx.hosts.byPath(ctx.repo)?.fetcher;
       if (input.quiet) {
         await fetcher?.now();
-        return sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
+        return page(args);
       }
       return mainWrite(args, "Fetching", async (repo, onOutput) => {
         try {
@@ -185,12 +195,17 @@ export const gitMutations = {
     type: "GitPage",
   },
   "git.removeWorktree": {
-    resolve: (args: Resolver<Queued<{ path: string }>>) => {
+    resolve: async (args: Resolver<Queued<{ path: string }>>) => {
       const { ctx, input } = args;
+      // Its removal writes the main checkout's git folder and the feature's worktree.
+      const folder = await worktreeFolder(ctx, input.path);
       return gitWrite(
         args,
-        () => removable(ctx, input.path),
-        { ...named(input.write, `Removing ${input.path}`), keys: [GIT] },
+        () => bothWritable(ctx, folder),
+        {
+          ...named(input.write, `Removing ${input.path}`),
+          keys: [...MAIN, ...(folder === undefined ? [] : featureKeys(folder))],
+        },
         () => ctx.binding.gitRemoveWorktree(ctx.repo, input.path),
       );
     },
@@ -213,8 +228,14 @@ export const gitMutations = {
     }: Resolver<Queued<{ hash: string; path: string; text: string }>>) => {
       try {
         await checkoutWritable(ctx, null);
-        const saved = await landed(ctx, [GIT], named(input.write, `Saving ${input.path}`), () =>
-          ctx.binding.saveConflictFile(ctx.repo, input.path, input.text, input.hash),
+        const saved = await landed(
+          ctx,
+          MAIN,
+          named(input.write, `Saving ${input.path}`),
+          async () => {
+            await checkoutWritable(ctx, null);
+            return ctx.binding.saveConflictFile(ctx.repo, input.path, input.text, input.hash);
+          },
         );
         return sources.masked(conflictFileDataView, ctx, { ...saved }, select);
       } finally {

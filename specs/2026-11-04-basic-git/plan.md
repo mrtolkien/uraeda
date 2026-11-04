@@ -987,12 +987,13 @@ git commit -m "feat(basic-git): the Git page's writes"
   `git.abort`, `git.fetch {quiet?: boolean}` (quiet: in `queue.background`, without a toast; task 8
   makes it join the fetcher), `git.stage {folder, paths}`, `git.unstage {folder, paths}`,
   `git.discard {folder, path}`, `git.commit {folder, message}`, `git.resolve {path, resolution}`,
-  `git.removeWorktree {path}`, `git.clean {folder}`. Keys: `["git"]` for the main checkout,
-  `featureKeys(folder)` for a group. A refusal stays in the queue's record and answers the call.
-  `git.saveConflict {path, text, hash}` answers the `ConflictFile` with its new hash, through
-  `landed`, its refusal leaving the record. The quiet `git.fetch` is not guarded;
-  `git.removeWorktree` is guarded as the main checkout's and as its feature's; `git.clean` as both
-  (R20).
+  `git.removeWorktree {path}`, `git.clean {folder}`. Keys: `["git", LISTS]` for the main checkout,
+  `featureKeys(folder)` for a group, both for a clean and for the removal of a feature's worktree.
+  Each guard runs as the write is queued and again as it lands (R24). A refusal stays in the queue's
+  record and answers the call. `git.saveConflict {path, text, hash}` answers the `ConflictFile` with
+  its new hash, through `landed`, its refusal leaving the record. The quiet `git.fetch` is not
+  guarded; `git.removeWorktree` is guarded as the main checkout's and as its feature's; `git.clean`
+  as both (R20).
 - Produces: after each landed or refused git write, after `changes.git` from the watcher, and when a
   session's turn starts or ends (a change with a `state`, in `sessionPublisher`), `live.update` of
   `GitPage` and `GitSummary` at `GIT_ID`, by `publishGit(bus)` in `live.ts`.
