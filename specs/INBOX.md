@@ -11,6 +11,3 @@
 ## Deferred fixes
 
 ## UI
-
-- [worker-lifecycle]
-  [Some stuff is weirdly left-aligned, like sections titles, headers, and graphs.](notes/some-stuff-is-weirdly-left-aligned-like-sections/note.md)
