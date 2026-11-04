@@ -1,5 +1,4 @@
 import { homedir } from "node:os";
-import type { Inbox, Priorities } from "uraeda-binding";
 import { homePath, suggest } from "../folders.ts";
 import { NEEDS_YOU_ID, needsYouList, needsYouListDataView } from "./needs-you.ts";
 import { featureStatusOf, IDLE } from "./feature-status.ts";
@@ -41,10 +40,8 @@ import {
   fileDataView,
   INBOX_ID,
   inboxDataView,
-  type InboxRecord,
   PRIORITIES_ID,
   prioritiesDataView,
-  type PrioritiesRecord,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
   type FeatureRecord,
@@ -87,30 +84,8 @@ import {
   repositoriesDataView,
   type RepositoriesRecord,
 } from "./views-repositories.ts";
+import { sentInbox, sentPriorities } from "./sent-lists.ts";
 import { writeQueueSource } from "./write-queue.ts";
-
-/** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
-export function sentInbox(inbox: Inbox): InboxRecord {
-  return {
-    ...inbox,
-    id: INBOX_ID,
-    imageRemoved: null,
-    removed: null,
-    triage: inbox.triage ?? null,
-  };
-}
-
-/** The priorities as they are sent: each running feature's step as `sentStep` sends it. */
-export const sentPriorities = (read: Priorities): Omit<PrioritiesRecord, "id"> => ({
-  ...read,
-  sections: read.sections.map((section) => ({
-    ...section,
-    proposals: section.proposals.map(({ running, ...proposal }) => ({
-      ...proposal,
-      ...(running && { running: { ...running, step: sentStep(running.step) } }),
-    })),
-  })),
-});
 
 /** Reads each id, leaving out the ones that cannot be read. */
 async function each<T>(ids: Array<string>, read: (id: string) => Promise<T>): Promise<Array<T>> {

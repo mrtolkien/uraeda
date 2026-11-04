@@ -1,7 +1,8 @@
 /** The records the repository's mutations answer with, masked to the fields the client selected. */
 import type { Inbox, Priorities, RemovedImage } from "uraeda-binding";
 import type { Context } from "./context.ts";
-import { sentInbox, sentPriorities, sources } from "./sources.ts";
+import { sentInbox, sentPriorities } from "./sent-lists.ts";
+import { sources } from "./sources.ts";
 import {
   inboxDataView,
   PRIORITIES_ID,

@@ -8,7 +8,6 @@ import type {
   BranchDecision,
   CommitPanes,
   ProposalFile,
-  Dropped,
   Feature,
   FolderSuggestions,
   History,
@@ -143,20 +142,12 @@ export const FeatureView = view<Feature>()({
   worktree: true,
 });
 
-/** A change or a feature dropped: its branch, which stays, and the worktree left, with why. */
 /** A feature's start, as planned: the session opens on its folder with its message. */
 export const StartPlanView = view<StartPlan>()({
   folder: true,
   id: true,
   message: true,
   title: true,
-});
-
-export const DroppedView = view<Dropped>()({
-  branch: true,
-  committed: true,
-  id: true,
-  worktreeLeft: true,
 });
 
 /** A feature's branch changes, by its folder: null without a branch, and whether they `failed`. */

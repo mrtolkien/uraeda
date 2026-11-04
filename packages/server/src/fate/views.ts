@@ -48,11 +48,14 @@ import { bufferDataView, commitPanesDataView } from "./views-buffer.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
+import { type WorkflowMessageRecord, workflowMessageDataView } from "./views-workflow-message.ts";
 
 export type Record_<T> = { [Key in keyof T]: T[Key] };
 
 export { proposalFileDataView, proposalHintsDataView, slugProposalDataView };
 export type { ProposalFileRecord, ProposalHintsRecord, SlugProposalRecord };
+export { workflowMessageDataView };
+export type { WorkflowMessageRecord };
 
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
@@ -279,18 +282,6 @@ export type SessionListRecord = { id: string; rows: Array<SessionRowRecord> };
 /** The sessions whose title or messages hold the query, which is its ID: not live. */
 export type SessionSearchRecord = { id: string; rows: Array<SessionRowRecord> };
 
-/**
- * The workflow's message for a feature and a trigger, `<folder>:<trigger>[:<file>]`, which the
- * composer is filled with. Empty, with the refusal, when the feature does not wait on the agent.
- */
-export type WorkflowMessageRecord = {
-  id: string;
-  refusal: string | null;
-  /** The step the message starts. */
-  step: string;
-  text: string;
-};
-
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   currentBranch: true,
   defaultBranch: true,
@@ -449,13 +440,6 @@ export const sessionListDataView = dataView<SessionListRecord>("SessionList")({
 export const sessionSearchDataView = dataView<SessionSearchRecord>("SessionSearch")({
   id: true,
   rows: true,
-});
-
-export const workflowMessageDataView = dataView<WorkflowMessageRecord>("WorkflowMessage")({
-  id: true,
-  refusal: true,
-  step: true,
-  text: true,
 });
 
 /** The ids of the records there is one of. */
