@@ -43,6 +43,12 @@ const styles = stylex.create({
 /** The largest a diagram shows, in px: a bigger one is scaled down, keeping its proportions. */
 const MAX_WIDTH = 4000;
 const MAX_HEIGHT = 3000;
+/**
+ * How much wider than its room a diagram may be and still be scaled down to fit it, its text a few
+ * percent smaller, rather than scroll for a sliver of itself: Pele's fitted layout often ends a few
+ * px past its room.
+ */
+const NEAR_FIT = 1.1;
 
 /** A diagram drawn: Pele's SVG, its size in pixels, and its type, "flowchart" or "git graph". */
 type Drawn = { height: number; kind: string; svg: string; width: number };
@@ -76,12 +82,19 @@ async function loaded({ family, mono }: Fonts) {
 /**
  * Draws `source` with Pele, imported on demand, its ids starting with `idPrefix`, its labels
  * measured in `fonts`, the ones the page draws them in: with Pele's own metrics, a label in the
- * theme's wider monospace font ran into the next one and past the diagram's edge.
+ * theme's wider monospace font ran into the next one and past the diagram's edge. With `maxWidth`,
+ * laid out to fit it where Pele can, as a flowchart's long labels wrapping.
  */
-async function draw(source: string, idPrefix: string, fonts: Fonts): Promise<Drawn> {
+async function draw(
+  source: string,
+  idPrefix: string,
+  fonts: Fonts,
+  maxWidth?: number,
+): Promise<Drawn> {
   const [{ renderAsync }] = await Promise.all([import("pele/lazy"), loaded(fonts)]);
   const { height, svg, type, width } = await renderAsync(source, {
     idPrefix,
+    ...(maxWidth === undefined ? {} : { maxWidth }),
     ...(fonts.family ? { fontFamily: fonts.family } : {}),
     ...(fonts.mono ? { fontFamilyMono: fonts.mono } : {}),
   });
@@ -117,33 +130,60 @@ function titleOf(kind: string, place: Place | undefined): string {
 export type Place = { index: number; total: number };
 
 /**
- * A Mermaid diagram, drawn in the page, which scrolls sideways inside its card when it is wider. It
- * says "Drawing the diagram…" until drawn. A source that does not parse, or a `pele` that does not
+ * A Mermaid diagram, drawn in the page. Wider than its card, it is drawn again to fit, as Pele's own
+ * `mount` does, and scrolls sideways inside the card for what still does not fit. It says "Drawing
+ * the diagram…" until drawn. A source that does not parse, or a `pele` that does not
  * load, shows the source as code under "This diagram could not be drawn."
  */
 export function Diagram({ place, source }: { place?: Place; source: string }) {
   // Letters, digits, and dashes, unique on the page: Pele names the diagram's title and
   // description by it.
   const idPrefix = `pele-${useId().replaceAll(/[^\w-]/g, "")}`;
-  const [drawn, setDrawn] = useState<Drawn | "failed" | undefined>(undefined);
+  const [natural, setNatural] = useState<Drawn | "failed" | undefined>(undefined);
+  // Drawn again to fit its room, while it is narrower than the natural one: the room it fits.
+  const [fitted, setFitted] = useState<{ drawn: Drawn; room: number }>();
   // The same element for the diagram's life, drawn or not, so its width is followed throughout.
   const scroller = useRef<HTMLDivElement>(null);
-  const room = useWidthOf(scroller);
+  const fonts = useRef<Fonts>({ family: "", mono: "" });
+  const room = Math.floor(useWidthOf(scroller));
   useEffect(() => {
     let live = true;
     const element = scroller.current;
-    const fonts = element ? fontsOf(element) : { family: "", mono: "" };
-    draw(source, idPrefix, fonts).then(
-      (result) => live && setDrawn(result),
-      () => live && setDrawn("failed"),
+    fonts.current = element ? fontsOf(element) : { family: "", mono: "" };
+    draw(source, idPrefix, fonts.current).then(
+      (result) => live && setNatural(result),
+      () => live && setNatural("failed"),
     );
     return () => {
       live = false;
     };
   }, [idPrefix, source]);
+  const wider = typeof natural === "object" && room > 0 && natural.width > room;
+  useEffect(() => {
+    if (!wider) {
+      return;
+    }
+    let live = true;
+    // Pele cannot always fit: a layout no narrower than the natural one is not kept.
+    draw(source, idPrefix, fonts.current, room).then(
+      (result) => live && setFitted({ drawn: result, room }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [idPrefix, room, source, wider]);
+  const drawn =
+    wider && fitted?.room === room && fitted.drawn.width < natural.width ? fitted.drawn : natural;
   const drawnNow = typeof drawn === "object" ? drawn : undefined;
+  const near = drawnNow && room > 0 && drawnNow.width <= room * NEAR_FIT;
   const scale = drawnNow
-    ? Math.min(1, MAX_WIDTH / drawnNow.width, MAX_HEIGHT / drawnNow.height)
+    ? Math.min(
+        1,
+        near ? room / drawnNow.width : 1,
+        MAX_WIDTH / drawnNow.width,
+        MAX_HEIGHT / drawnNow.height,
+      )
     : 1;
   const width = drawnNow ? drawnNow.width * scale : 0;
   const title = drawnNow ? titleOf(drawnNow.kind, place) : undefined;
