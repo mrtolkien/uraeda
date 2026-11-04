@@ -26,6 +26,8 @@ import { RefusedHere } from "../writes/RefusedHere.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
 import { gitAddress, type Picked, pickedOf } from "./address.ts";
 import { ChangesGroup, RowEnd, TreeLine, treeKey } from "./ChangesTree.tsx";
+import { ConflictEditor } from "./ConflictEditor.tsx";
+import { conflictKey, Conflicts, isEditable } from "./Conflicts.tsx";
 import { type GitGroup, type GitPageData, GitPageView, useGitPage } from "./data.ts";
 import { Detail } from "./Diff.tsx";
 import { History, historyKey, useMoreHistory } from "./History.tsx";
@@ -69,6 +71,12 @@ function rowsOf(
     }));
   });
   return [
+    ...page.conflicts.map((conflict): ListRow => ({
+      conflict,
+      isEditable: isEditable(conflict),
+      key: conflictKey(conflict.path),
+      kind: "conflict",
+    })),
     ...trees,
     ...commits.map((commit): ListRow => ({ commit, key: historyKey(commit.id), kind: "commit" })),
     ...page.worktrees
@@ -83,6 +91,9 @@ function rowsOf(
 
 /** The key of the row `picked` names, among the list's rows. */
 function keyOfPicked(picked: Picked | undefined): string | undefined {
+  if (picked?.kind === "conflict") {
+    return conflictKey(picked.path);
+  }
   if (picked?.kind === "file") {
     return treeKey(picked.folder ?? null, picked.file, false);
   }
@@ -247,7 +258,7 @@ export function GitPage() {
             <VStack gap={4}>
               <Sync onMerge={() => setMerging(true)} page={page} writes={writes} />
               <Banners page={page} writes={writes} />
-              {/* Task 10: the stopped pull's or merge's banner, and the Conflicts section. */}
+              <Conflicts cursor={shown} onPick={setCursor} page={page} writes={writes} />
               {page.groups.map((group) => (
                 <Group
                   commitRef={(handle) => {
@@ -331,6 +342,19 @@ function PickedDetail({
   picked: Picked;
   writes: GitWrites;
 }) {
+  if (picked.kind === "conflict") {
+    return page.stopped ? (
+      <Suspense fallback={null}>
+        <ConflictEditor
+          isDisabled={page.agentWorking}
+          isNarrow={isNarrow}
+          key={picked.path}
+          path={picked.path}
+          stopped={page.stopped}
+        />
+      </Suspense>
+    ) : null;
+  }
   const target = picked.kind === "file" ? fileOf(page, picked) : undefined;
   return (
     <Suspense fallback={null}>

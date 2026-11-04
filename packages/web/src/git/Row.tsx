@@ -56,7 +56,8 @@ export function Row({
     >
       <div {...stylex.props(styles.text)}>{children}</div>
       {end && (
-        <HStack align="center" gap={2} xstyle={styles.end}>
+        // On the phone's head line, actions wrap rather than cut their labels.
+        <HStack align="center" gap={2} wrap={narrow ? "wrap" : "nowrap"} xstyle={styles.end}>
           {end}
         </HStack>
       )}

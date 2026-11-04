@@ -8,16 +8,27 @@ import { useKeys } from "../keys/registry.tsx";
 import { useListKeys } from "../lists/useListKeys.ts";
 import type { Picked } from "./address.ts";
 import type { GitCommitRow, GitGroup } from "./data.ts";
+import type { GitConflict } from "./useConflictWrites.ts";
 import type { TreeRow } from "./tree.ts";
 
-/** A row the list's keys move over: a tree's, a commit's, or a worktree's with an action. */
+/**
+ * A row the list's keys move over: a conflict's, a tree's, a commit's, or a worktree's with an
+ * action.
+ */
 export type ListRow =
+  | { conflict: GitConflict; isEditable: boolean; key: string; kind: "conflict" }
   | { group: GitGroup; key: string; kind: "tree"; row: TreeRow }
   | { commit: GitCommitRow; key: string; kind: "commit" }
   | { key: string; kind: "worktree"; worktree: GitWorktree };
 
-/** What a row opens in the detail: a file's diff, or a commit; none for a folder or a worktree. */
+/**
+ * What a row opens in the detail: a file's diff, a commit, or a text conflict's editor; none for a
+ * folder, a worktree, or a conflict taken whole only.
+ */
 export function pickOf(row: ListRow | undefined): Picked | undefined {
+  if (row?.kind === "conflict") {
+    return row.isEditable ? { kind: "conflict", path: row.conflict.path } : undefined;
+  }
   if (row?.kind === "commit") {
     return { commit: row.commit.id, kind: "commit" };
   }

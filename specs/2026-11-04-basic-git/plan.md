@@ -326,16 +326,17 @@ Existing guarantees to keep:
 
 ## Complexity tracking
 
-| Abstraction or exception                                | Why it is needed                                                                                             | Simpler alternative rejected because                                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `process::git_write`, the one runner of the page's git  | Every write must never prompt (`GIT_TERMINAL_PROMPT=0`) nor open an editor (`GIT_EDITOR=true`), in one place | Setting the environment in each write would let one forget it, and hang on a prompt                   |
-| `Git::stopped` and `Stopped`                            | Which operation is stopped, and its sides by branch, is read by the state, the commit guard, and the writes  | Each reading gix's state would name a rebase's sides three times, and "ours" swaps during a rebase    |
-| `GitError::Refused`                                     | The page's own refusals carry exact text ("origin has commits main lacks: pull first.")                      | Reusing `Command` would mix our text with git's, and lose which one the human reads                   |
-| The page's views (`GitPageView`, `GitSummaryView`, ...) | The sidebar reads a cheap count on every page; the page reads everything in one call                         | One view for both would run every file's diff counts on every page of the app                         |
-| `WriteQueue.background`                                 | The fetcher's writes must land in turn with the others, without a toast                                      | A `silent` flag on the record would make the toast and every reader of `writes()` filter it           |
-| `git/tree.ts`, the changes' tree from the flat list     | Folding, single-child chains, and mixed boxes are presentation, built from the core's flat list              | A tree from the core would make the core own folding state, which lives in the page                   |
-| `fields/editor/conflicts.ts` and the conflict bar       | The bar edits the editor's text between markers: an editor extension, as the spec's architecture says        | A core call per press would make each "Use origin/main" a round trip, and the text no longer editable |
-| `Editor`'s `extensions` prop                            | The conflict bar is the only extension a page adds to the shared editor                                      | A second editor for conflicts would break the Text editing decision                                   |
+| Abstraction or exception                                 | Why it is needed                                                                                             | Simpler alternative rejected because                                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `process::git_write`, the one runner of the page's git   | Every write must never prompt (`GIT_TERMINAL_PROMPT=0`) nor open an editor (`GIT_EDITOR=true`), in one place | Setting the environment in each write would let one forget it, and hang on a prompt                   |
+| `Git::stopped` and `Stopped`                             | Which operation is stopped, and its sides by branch, is read by the state, the commit guard, and the writes  | Each reading gix's state would name a rebase's sides three times, and "ours" swaps during a rebase    |
+| `GitError::Refused`                                      | The page's own refusals carry exact text ("origin has commits main lacks: pull first.")                      | Reusing `Command` would mix our text with git's, and lose which one the human reads                   |
+| The page's views (`GitPageView`, `GitSummaryView`, ...)  | The sidebar reads a cheap count on every page; the page reads everything in one call                         | One view for both would run every file's diff counts on every page of the app                         |
+| `WriteQueue.background`                                  | The fetcher's writes must land in turn with the others, without a toast                                      | A `silent` flag on the record would make the toast and every reader of `writes()` filter it           |
+| `git/tree.ts`, the changes' tree from the flat list      | Folding, single-child chains, and mixed boxes are presentation, built from the core's flat list              | A tree from the core would make the core own folding state, which lives in the page                   |
+| `fields/editor/conflicts.ts` and the conflict bar        | The bar edits the editor's text between markers: an editor extension, as the spec's architecture says        | A core call per press would make each "Use origin/main" a round trip, and the text no longer editable |
+| `Editor`'s `extensions` prop                             | The conflict bar is the only extension a page adds to the shared editor                                      | A second editor for conflicts would break the Text editing decision                                   |
+| Astryx gap: the conflict bar's buttons are the browser's | CodeMirror draws the bar among its lines, in a widget, where React cannot render Astryx's `Button`           | Portals into each widget would remount the buttons at every edit, and lose their focus                |
 
 The conflict markers are read in two places: the core says whether a conflicted file still holds
 markers (to mark it resolved and to refuse Continue), and the bar finds them in the text being
@@ -1177,8 +1178,11 @@ git commit -m "feat(basic-git): the Git page"
 - Start from: `packages/web/src/GitMockups.stories.tsx` (`Conflict`)
 - Create: `packages/web/src/fields/editor/conflicts.ts`, `fields/editor/conflictBar.ts`,
   `packages/web/src/git/Conflicts.tsx`, `git/ConflictEditor.tsx`, `git/useConflictWrites.ts`
-- Modify: `packages/web/src/fields/editor/Editor.tsx` (`extensions` prop),
-  `packages/web/src/git/GitPage.tsx` (the section, the banner, the detail, `m`)
+- Modify: `packages/web/src/fields/editor/Editor.tsx` (`extensions` prop; `hearLabels` moved to
+  `fields/editor/labels.ts`, as the file was at its length limit),
+  `packages/web/src/git/GitPage.tsx` (the section and its banner, the conflicts' rows, the detail),
+  `git/useGitKeys.ts` (a conflict's row), `git/useGitWrites.ts` (`run` returned, for the conflicts'
+  writes), `git/Row.tsx` (the phone's head line wraps) (R26)
 - Test: `packages/web/src/fields/editor/conflicts.test.ts`
 
 **Interfaces:**
@@ -1187,43 +1191,50 @@ git commit -m "feat(basic-git): the Git page"
   `git.saveConflict`, `git.continue`, `git.abort` (task 7).
 - Produces, in `conflicts.ts`: `conflictsIn(text: string): ReadonlyArray<ConflictBlock>` with
   `ConflictBlock = { from: number; to: number; ours: string; theirs: string }` (offsets of the
-  block's first marker and the end of its last, the base section of `diff3` dropped), and
+  block's first marker and the end of its last, its line break included, the base section of `diff3`
+  dropped), `chosenLines(text, block, choice)`, the lines replacing the block, and
   `resolveBlock(text: string, block: ConflictBlock, choice: "ours" | "theirs" | "both"): string`,
   keeping the file's line endings.
 - Produces: `Editor`'s `extensions?: ReadonlyArray<Extension>`, added after its own;
   `conflictBar(labels: { ours: string; theirs: string }): Extension`, a bar over each block with
   "Use <ours>", "Use <theirs>", "Use both", each replacing the block in the editor's text, unsaved
-  until the human saves.
+  until the human saves. Its buttons are the browser's, in a CodeMirror widget, styled from the
+  Astryx theme's tokens: an Astryx gap (R26).
 - The section: Conflicts lists each file with its kind in words ("both changed", "deleted on
   origin/main, changed on main"), its whole sides ("Use origin/main", "Use main", or "Keep the file"
   and "Delete the file"), and opens a text file in the editor at `/git?conflict=<path>`. The banner
-  reads "The pull stopped: N file(s) conflict(s)." or "The merge stopped: ...", with Abort (asking
-  "Abort the pull? The resolved files go back as they were." once a file is resolved) and Continue.
-  `m` opens Continue and Abort as a menu. A stash's stop reads that the pull's stash could not be
-  put back, naming it, without Abort.
+  reads "The pull stopped: N file(s) conflict(s)." or "The merge stopped: ...", N the files not yet
+  resolved, with Abort and Continue in the section's title, as the mockup draws them. Abort always
+  asks (SC-003): "Abort the pull? The resolved files go back as they were." once a file reads
+  resolved or had a side taken on the page, else "main goes back as it was before the pull.".
+  Continue is enabled once every conflict reads resolved. `m` opens Continue and Abort as a menu,
+  anchored at Continue. A stash's stop reads that the pull's stash could not be put back, naming it,
+  without Abort. The writes are `useConflictWrites` (`git/useConflictWrites.ts`), through
+  `useGitWrites`' `run`, at the place `"sync"`; the editor's save shows its refusal in its own pane,
+  its toast opening the editor's address.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `each choice resolves its block`, a table: ours, theirs, both, on a `merge`-style block; a `diff3`
 block with its base; two blocks, resolving the second; CRLF lines; a file with no block gives none.
 Break: dropping the line ending of the block's last line.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/web/src/fields/editor/conflicts.test.ts`
 - Expected: FAIL, `conflictsIn` not found.
 
-- [ ] **Step 3: Implement the parser, the bar, the section, and the editor's page**
+- [x] **Step 3: Implement the parser, the bar, the section, and the editor's page**
 
-- [ ] **Step 4: Review in the sandbox**, both themes, 375 px and 1440 px, on the sample's conflict
+- [x] **Step 4: Review in the sandbox**, both themes, 375 px and 1440 px, on the sample's conflict
       once task 12 adds it, or on a stopped pull made by hand in `.sandbox/`.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-11-04-basic-git/plan.md

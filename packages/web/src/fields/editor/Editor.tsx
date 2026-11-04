@@ -37,6 +37,7 @@ import {
   slotContent,
   vimSlot,
 } from "./slot.ts";
+import { hearLabels } from "./labels.ts";
 import { hearLeave, takeDown } from "./leave.ts";
 import { editorTheme, sizeTheme } from "./theme.ts";
 
@@ -58,6 +59,8 @@ export type EditorProps = {
    * list it controls.
    */
   attributes?: Readonly<Record<string, string>>;
+  /** Extensions of the caller's, after the editor's own, like the conflict bar: the first render's. */
+  extensions?: ReadonlyArray<Extension>;
   /** The content element's id, as a field's own: `document.getElementById(id)?.focus()` works. */
   id?: string;
   isAutoFocused?: boolean;
@@ -178,27 +181,6 @@ function reportFocus(update: ViewUpdate) {
     focusedView = null;
     setFocused(null);
   }
-}
-
-/** Whether a click's label is a field's own, whose `for` names its content element. */
-let labelsHeard = false;
-
-/**
- * Gives a field the focus when its label is clicked, as a form field's label does: `for` names the
- * editor's content element, which is no form field the browser focuses. Once for the page.
- */
-function hearLabels(page: Document) {
-  if (labelsHeard) {
-    return;
-  }
-  labelsHeard = true;
-  page.addEventListener("click", (event) => {
-    const label = (event.target as Element | null)?.closest?.("label[for]");
-    const content = label && page.getElementById((label as HTMLLabelElement).htmlFor);
-    if (content?.classList.contains("cm-content")) {
-      EditorView.findFromDOM(content)?.focus();
-    }
-  });
 }
 
 /** Makes the caller's text the field's, changing only what differs, so the cursor keeps its place. */
@@ -335,6 +317,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
         latest.current.onChange(update.state.doc.toString());
       }
     }),
+    ...(latest.current.extensions ?? []),
   ];
 }
 
