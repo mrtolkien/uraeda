@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Basic git UI in the web UI
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions, about 15 minutes.
+> Answered on 2026-11-04.
 >
 > - Verdict: worth building, with changes: a generic client as you asked, where worktrees are the
 >   only real choice.
@@ -111,7 +111,7 @@ Why it matters: it decides whether the page can fix a feature's branch, and how 
   - [pro] the smallest.
   - [con] a feature's conflicts still need a terminal.
 
-**Answer:**
+**Answer:** C
 
 ## Q2: What can you do in a worktree while its agent works?
 
@@ -131,7 +131,7 @@ Why it matters: it decides whether the page can surprise a running agent.
   - [pro] you never wait.
   - [con] the agent may commit your half-fixed files, or fail on them.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: How does the page bring `main` into a feature's branch?
 
@@ -157,7 +157,7 @@ that.
   - [pro] the smallest.
   - [con] a pull request's conflicts still need a terminal or an agent.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Does the page commit files other than Uraeda's own edits?
 
@@ -180,7 +180,7 @@ Why it matters: it decides whether a change by hand, or an agent's leftover, eve
   - [pro] nothing new to guard.
   - [con] committing code stays in a terminal.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Which actions does the worktree list offer?
 
@@ -203,7 +203,7 @@ Why it matters: removing is the one destructive action of the list.
   - [pro] lazygit's full panel.
   - [con] Uraeda's starts already create the ones you need.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -231,4 +231,4 @@ Why it matters: removing is the one destructive action of the list.
 - **The sandbox's sample projects** get a remote, a commit to pull, a feature behind `main`, and a
   conflict, so the page can be tried. See [round 01](discovery-01.md#likely-changes).
 
-**Notes:**
+**Notes:** Use the uraeda design system for the mockups
