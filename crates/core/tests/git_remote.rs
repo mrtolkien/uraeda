@@ -3,7 +3,9 @@
 mod common;
 
 use common::repo::{TestRepo, unauthorized_remote, without_user_git_config};
-use uraeda_core::git::{Git, GitError, StoppedKind};
+use std::time::Duration;
+
+use uraeda_core::git::{FETCH_DEADLINE, Git, GitError, StoppedKind};
 
 fn git(repo: &TestRepo) -> Git {
     Git::discover(repo.path()).unwrap()
@@ -198,4 +200,26 @@ fn a_push_a_hook_refuses_keeps_git_message() {
     assert!(!matches!(failed, GitError::Refused(_)), "{failed:?}");
     let failed = failed.to_string();
     assert!(failed.contains("main is protected"), "{failed}");
+}
+
+/// Review I1: a remote that never answers is stopped at the deadline, with whatever it started,
+/// so no write waits behind it. `origin`'s upload-pack sleeps for an hour: the fetch returns only
+/// once every process holding its output is gone. Breaks: no deadline, which hangs until nextest
+/// stops the test; killing git alone, which leaves the sleep holding git's stderr.
+#[test]
+fn a_fetch_that_never_answers_is_stopped() {
+    without_user_git_config();
+    let repo = TestRepo::with_origin();
+    repo.git(&["config", "remote.origin.uploadpack", "sleep 3600; :"]);
+
+    let failed = git(&repo)
+        .fetch_within(Duration::from_secs(1), None)
+        .unwrap_err()
+        .to_string();
+
+    assert_eq!(
+        failed,
+        "git fetch failed: origin gave no answer in 1 second, so the fetch was stopped."
+    );
+    assert_eq!(FETCH_DEADLINE, Duration::from_secs(120));
 }

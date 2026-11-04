@@ -2,8 +2,14 @@
 //! the branch, so a branch with no upstream set works too. Each runs through the one write runner,
 //! which never prompts; a push never forces (see `specs/decisions/git.md`).
 
+use std::time::Duration;
+
 use super::process::{self, Failure};
 use super::{Git, GitError, OnOutput};
+
+/// How long a fetch may take before it is stopped: a remote that never answers, as a hung ssh
+/// connection, would else hold every write queued after it.
+pub const FETCH_DEADLINE: Duration = Duration::from_secs(120);
 
 /// What git prints when it needed credentials it could not ask for.
 const CREDENTIAL_FAILURES: [&str; 5] = [
@@ -19,15 +25,31 @@ const CREDENTIAL_HINT: &str =
     " The server runs git without a terminal: give it a credential helper or an ssh-agent.";
 
 impl Git {
-    /// Fetches `origin`, pruning the branches it deleted. Without an `origin`, does nothing. Runs
-    /// on a detached `HEAD` too: it changes no branch.
+    /// Fetches `origin`, pruning the branches it deleted, stopped after [`FETCH_DEADLINE`]. Without
+    /// an `origin`, does nothing. Runs on a detached `HEAD` too: it changes no branch.
     pub fn fetch(&self, on_output: OnOutput) -> Result<(), GitError> {
+        self.fetch_within(FETCH_DEADLINE, on_output)
+    }
+
+    /// [`Git::fetch`], stopped after `deadline`.
+    pub fn fetch_within(&self, deadline: Duration, on_output: OnOutput) -> Result<(), GitError> {
         if !self.has_origin() {
             return Ok(());
         }
-        process::git_write(&["fetch", "--prune", "origin"], &self.root, on_output)
+        let fetch = ["fetch", "--prune", "origin"];
+        process::git_write_within(&fetch, &self.root, on_output.unwrap_or(&|_| {}), deadline)
             .map(drop)
-            .map_err(|failure| remote_error(failure, "fetch"))
+            .map_err(|failure| match failure {
+                Failure::Deadline => GitError::Command {
+                    subcommand: "fetch".to_string(),
+                    message: format!(
+                        "origin gave no answer in {}, so the fetch was stopped.",
+                        duration_text(deadline)
+                    ),
+                    output: String::new(),
+                },
+                failure => remote_error(failure, "fetch"),
+            })
     }
 
     /// Pulls the checked-out branch from `origin`, rebasing when the configuration says neither
@@ -118,6 +140,18 @@ fn is_rejected(output: &str) -> bool {
     output
         .lines()
         .any(|line| line.starts_with('!') && line.contains("\t[rejected]"))
+}
+
+/// `duration` in words, in whole minutes from one minute up, else in seconds: "2 minutes".
+fn duration_text(duration: Duration) -> String {
+    let seconds = duration.as_secs();
+    let (count, unit) = if seconds >= 60 && seconds.is_multiple_of(60) {
+        (seconds / 60, "minute")
+    } else {
+        (seconds, "second")
+    };
+    let plural = if count == 1 { "" } else { "s" };
+    format!("{count} {unit}{plural}")
 }
 
 /// The error of `git <subcommand>` talking to `origin`: git's, with the credential hint after its

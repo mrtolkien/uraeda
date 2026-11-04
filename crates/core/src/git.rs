@@ -26,6 +26,7 @@ pub use checkout::{CheckoutState, Conflict, ConflictKind, FileChange, FileState,
 pub use commit::{OnOutput, Stage, others_staged};
 pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff};
 pub use history::{CommitInfo, CommitPaths, Mark, Range};
+pub use remote::FETCH_DEADLINE;
 pub use resolve::Resolution;
 pub use stopped::{Stopped, StoppedKind};
 pub use worktrees::{Worktree, WorktreeRecord};
