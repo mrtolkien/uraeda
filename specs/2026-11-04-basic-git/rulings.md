@@ -245,3 +245,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a quiet fetch while a chat works moves `origin`'s refs under it, which no file of
   the checkout shows.
 - **Where**: task 7.
+
+## R21: The fetcher is the host's, a quiet fetch answers its failure in the page, and a loud one's outcome is kept
+
+- **Decision**: each listed repository's `Host` holds its `fetcher`, started with its pull requests'
+  refresher and stopped with it; the fetcher fetches at the host's start too, so the sidebar's count
+  is fresh before the page opens. The quiet `git.fetch` joins the fetcher's fetch and answers the
+  page, a failure in `fetchFailure` rather than as the call's error. `Fetcher` gains
+  `settle(error?)`, by which a loud `git.fetch`, still a queued write with its toast, sets or clears
+  the failure. A fetch's outcome is kept, and the next call fetches again, as its landing ends,
+  before the queue's next write starts. The fetcher publishes the page only when its failure
+  changed: what a fetch brings, the refs and `FETCH_HEAD`, reaches it through the watcher's `git`
+  change.
+- **Rationale**: the quiet fetch reaches the fetcher through the context's host, as the queue is
+  reached; a failure the page reads in its view needs no error path on the web; a loud fetch that
+  succeeds after a failing background one must clear the page's message; a publish after each fetch
+  sent every repository's page at the server's start, with nothing new.
+- **If wrong**: the page's open shows a failing fetch only in its view, not as a refused call.
+- **Where**: task 8.

@@ -1,5 +1,5 @@
 // The data views of the Git page: the page, read at once, with whether an agent works in each of
-// its checkouts; the sidebar's count; a file's diff; a commit; a page of the history; and a
+// its checkouts and why the last background fetch failed; the sidebar's count; a file's diff; a commit; a page of the history; and a
 // conflicted file for the editor. The core reads the repository at each request (R3): nothing is
 // kept here. A record's optional fields are sent as null, as fate merges a record's fields
 // shallowly and would keep a field an update leaves out.
@@ -39,6 +39,8 @@ export type GitPageRecord = Omit<
   branch: string | null;
   detached: string | null;
   fetchedAt: number | null;
+  /** Why the last background fetch failed, until one succeeds. */
+  fetchFailure: string | null;
   groups: Array<GitGroup>;
   stopped: StoppedView | null;
 };
@@ -56,6 +58,7 @@ export async function gitPage(ctx: RepoContext): Promise<GitPageRecord> {
     branch: view.branch ?? null,
     detached: view.detached ?? null,
     fetchedAt: view.fetchedAt ?? null,
+    fetchFailure: ctx.hosts.byPath(ctx.repo)?.fetcher?.failure() ?? null,
     groups: view.groups.map((group) => ({
       ...group,
       folder: group.folder ?? null,
@@ -74,6 +77,7 @@ export const gitPageDataView = dataView<GitPageRecord>("GitPage")({
   conflicts: true,
   detached: true,
   fetchedAt: true,
+  fetchFailure: true,
   groups: true,
   hasMoreHistory: true,
   hasRemote: true,

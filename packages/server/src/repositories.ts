@@ -5,17 +5,21 @@ import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 import { keyFolders, WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
-import { publish } from "./live.ts";
+import { type Fetcher, startFetcher } from "./git-fetch.ts";
+import { publish, publishGit } from "./live.ts";
 import { type PullRequests, startPullRequests } from "./pulls.ts";
 import type { Sessions } from "./runner/sessions.ts";
 import { WriteQueue } from "./writes/queue.ts";
 
 /**
  * A listed repository, as the server serves it: its own fate server and live bus, so its views
- * receive its updates only, and its write queue, which lands the commits its writes defer.
+ * receive its updates only, its write queue, which lands the commits its writes defer, and its
+ * fetcher.
  */
 export type Host = {
   fate: FateServer;
+  /** Fetches `origin` every 5 minutes, and keeps the last failure: none for a missing folder. */
+  fetcher?: Fetcher;
   live: LiveBus;
   missing: boolean;
   name: string;
@@ -253,6 +257,7 @@ export class Hosts {
     if (!missing) {
       // The core defers this repository's commits for the queue from now on.
       binding.deferCommits(path, true);
+      entry.host.fetcher = startFetcher(path, binding, queue, () => publishGit(live));
       entry.pulls = startPullRequests(path, binding, (features) =>
         publish(
           {
@@ -301,6 +306,7 @@ export class Hosts {
     }
     entry?.watch?.close();
     entry?.pulls?.stop();
+    entry?.host.fetcher?.stop();
     this.#entries.delete(name);
     if (entry) {
       this.#options.stopped?.(entry.host);
@@ -316,6 +322,7 @@ export class Hosts {
       this.#undefer(host);
       watch?.close();
       pulls?.stop();
+      host.fetcher?.stop();
     }
     this.#entries.clear();
   }
