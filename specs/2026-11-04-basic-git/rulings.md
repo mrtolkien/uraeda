@@ -504,3 +504,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a human who staged files to ride along with an answer's commit must commit them on
   the Git page.
 - **Where**: the final review's fixes.
+
+## R34: A working tree's diff is read again as it opens and as its file's row changes
+
+- **Decision**: the server sends no `GitDiff` live. A working tree's diff is read with
+  `stale-while-revalidate`, so each opening draws the diff held and reads it again behind; while it
+  is open, it is read again whenever the page's record of its file (state, staged, counts) changes.
+  A commit's diff stays cache-first: it never changes.
+- **Rationale**: the page's record is already sent live on every change of a checkout's git state;
+  keying the read on it costs no server change and no request while nothing changes. Publishing each
+  open diff from the server would need the server to track which diffs are drawn.
+- **If wrong**: an edit that keeps the file's line counts and staging, made while its diff is open,
+  shows once the diff is opened again.
+- **Where**: the final review's fixes.

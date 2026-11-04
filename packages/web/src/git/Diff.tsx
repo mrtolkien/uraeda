@@ -8,8 +8,8 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type ReactNode, useState } from "react";
-import { useLiveView, useRequest } from "react-fate";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useFateClient, useLiveView, useRequest } from "react-fate";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
@@ -56,19 +56,40 @@ export function binaryLine(before: number | null, after: number | null): string 
     : `Binary file, ${size(before)} to ${size(after)}`;
 }
 
-/** A diff's text, its sizes, or its counts with "Show the whole diff". */
+/**
+ * A diff's text, its sizes, or its counts with "Show the whole diff". A commit's diff never changes
+ * and comes from the cache; a working tree's is read again as it opens, and as `version`, the page's
+ * record of its file, changes, while the one held shows: the server sends no diff live.
+ */
 function DiffBody({
   commit,
   folder,
   path,
+  version,
 }: {
   commit: string | null;
   folder: string | null;
   path: string;
+  version?: string | undefined;
 }) {
+  const fate = useFateClient();
   const [whole, setWhole] = useState(false);
-  const request = { gitDiff: { id: gitDiffId(folder, commit, path, whole), view: GitDiffView } };
-  const { gitDiff } = useRequest(request);
+  const id = gitDiffId(folder, commit, path, whole);
+  const request = { gitDiff: { id, view: GitDiffView } };
+  const { gitDiff } = useRequest(request, {
+    mode: commit === null ? "stale-while-revalidate" : "cache-first",
+  });
+  // The first draw's read is the request's own: only a later change of the file reads it again.
+  const read = useRef(version);
+  useEffect(() => {
+    if (commit !== null || read.current === version) {
+      return;
+    }
+    read.current = version;
+    void fate
+      .request({ gitDiff: { id, view: GitDiffView } }, { mode: "network-only" })
+      .catch(() => {});
+  }, [commit, fate, id, version]);
   const diff = useLiveView(GitDiffView, gitDiff);
   if (!diff) {
     return null;
@@ -129,17 +150,21 @@ function CommitDetail({ actions, id }: { actions: ReactNode; id: string }) {
 }
 
 /**
- * The picked row's detail: a changed file's diff, with `stage` its Stage or Unstage; a commit; or a
+ * The picked row's detail: a changed file's diff, with `stage` its Stage or Unstage and `version`
+ * the page's record of it; a commit; or a
  * commit's file's diff. A conflict's editor is the conflicts' own (task 10).
  */
 export function Detail({
   isNarrow,
   picked,
   stage,
+  version,
 }: {
   isNarrow: boolean;
   picked: Picked;
   stage?: ReactNode;
+  /** The page's record of a changed file, its diff read again as it changes. */
+  version?: string | undefined;
 }) {
   const back = <Back isNarrow={isNarrow} />;
   if (picked.kind === "conflict") {
@@ -164,6 +189,7 @@ export function Detail({
         folder={picked.kind === "file" ? (picked.folder ?? null) : null}
         key={JSON.stringify(picked)}
         path={path}
+        version={version}
       />
     </Pane>
   );

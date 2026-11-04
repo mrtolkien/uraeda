@@ -436,6 +436,7 @@ function PickedDetail({
         isNarrow={isNarrow}
         picked={picked}
         stage={target && <StageButton page={page} target={target} writes={writes} />}
+        version={target && JSON.stringify(target.file)}
       />
     </Suspense>
   );

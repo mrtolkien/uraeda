@@ -1,8 +1,8 @@
 // The Git page's writes the human could lose without seeing it: Space stages the file its row's
 // box is, leaving the row in its place (US3 1); a typed commit message stays through a hook's
 // refusal and goes once its commit lands (US3 more 6); Discard asks before it restores a file
-// (US3 more 4, SC-003); and a conflicted file's editor never keeps a text that no longer conflicts
-// (US4).
+// (US3 more 4, SC-003); a conflicted file's editor never keeps a text that no longer conflicts
+// (US4); and a working tree's diff never shows a file that has changed since.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -204,4 +204,24 @@ test("a stopped merge disables Merge and its key", async () => {
   expect(merge).toHaveProperty("disabled", true);
   await act(async () => void fireEvent.keyDown(document.body, { key: "M", shiftKey: true }));
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+/** Whether the page draws `text`. */
+const shows = (text: string) => expect(document.body.textContent).toContain(text);
+
+// Review (diff cache). Break: a working tree's diff read from the cache, which nothing updates.
+test("a working tree's diff reads the file afresh, open and opened again", async () => {
+  const repo = changedRepo();
+  await renderPage("/git?file=docs/web-ui.md", repo);
+  await waitFor(() => shows("It draws the specs."));
+
+  write(repo, "docs/web-ui.md", "# The web UI\n\nIt draws the specs.\n\nAnd the git.\n");
+  await refreshUntil(() => shows("And the git."));
+
+  await act(async () => navigate(atRepo("/priorities")));
+  await waitFor(() => expect(document.body.textContent).not.toContain("And the git."));
+  write(repo, "docs/web-ui.md", "# The web UI\n\nIt draws the specs.\n\nAnd the work.\n");
+  await act(async () => navigate(atRepo("/git?file=docs/web-ui.md")));
+
+  await waitFor(() => shows("And the work."));
 });
