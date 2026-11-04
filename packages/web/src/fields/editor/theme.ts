@@ -12,6 +12,9 @@ const LINE = 1.5;
 const PAD_BLOCK = "var(--spacing-1-5)";
 const PAD_INLINE = "var(--spacing-2)";
 
+/** The drawn selection's colour: the accent, Catppuccin's mauve, over the field's ground. */
+const SELECTION = "color-mix(in srgb, var(--color-accent) 25%, transparent)";
+
 /** The height of `lines` lines of text, with the room around them. */
 const linesHigh = (lines: number) => `calc(${lines} * ${LINE}em + 2 * ${PAD_BLOCK})`;
 
@@ -27,14 +30,12 @@ export const editorTheme: Extension = EditorView.theme({
   // A disabled field, as Astryx's: its text dimmed.
   "&:has(.cm-content[contenteditable='false'])": { color: "var(--color-text-disabled)" },
   "&.cm-focused": { borderColor: "var(--color-accent)", outline: "none" },
-  // The selection, the browser's own, or drawn by CodeMirror's layer, which the Vim layer adds.
+  // The text, and the browser's own selection, with Vim off.
   ".cm-content": {
     caretColor: "var(--color-text-primary)",
     padding: `${PAD_BLOCK} 0`,
   },
-  ".cm-content ::selection, .cm-selectionBackground": {
-    backgroundColor: "var(--color-background-gray)",
-  },
+  ".cm-content ::selection": { backgroundColor: "var(--color-background-gray)" },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--color-text-primary)",
     borderLeftWidth: "2px",
@@ -42,8 +43,11 @@ export const editorTheme: Extension = EditorView.theme({
   ".cm-line": { padding: `0 ${PAD_INLINE}` },
   ".cm-placeholder": { color: "var(--color-syntax-comment)" },
   ".cm-scroller": { fontFamily: "var(--font-family-code)", lineHeight: String(LINE) },
+  // The selection CodeMirror's layer draws, which the Vim layer adds: Visual mode's mauve, faint
+  // enough for the text to read on it, where the grey hardly showed on the field's ground.
+  ".cm-selectionBackground": { backgroundColor: SELECTION },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
-    backgroundColor: "var(--color-background-gray)",
+    backgroundColor: SELECTION,
   },
 });
 
