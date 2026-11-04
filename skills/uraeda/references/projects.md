@@ -27,21 +27,22 @@ when they say so.
 
 For a project with a UI, propose next a preview decision, `specs/decisions/preview.md`, from
 [the template](../assets/templates/specs/decisions/preview.md): the Storybook in which mockups are
-stories, which the preview runs and shows live. Its `preview-folder` is the folder Storybook runs
-in, and its `preview-command` starts it with `{port}` and `--host 127.0.0.1`, as
-`npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
+stories, which a tool that shows the preview runs for each worktree. Its `preview-folder` is the
+folder Storybook runs in, and its `preview-command` starts it with `{port}` and `--host 127.0.0.1`,
+as `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
 
 - **A stack Storybook supports** uses its own Storybook, in the folder that holds the UI, on
-  Storybook's Vite builder: the preview stops a webpack Storybook. Its `.storybook/main.ts` is
-  wrapped by `uraeda-preview.js`, and its preview loads `uraeda-pick.js`, both copied from this
+  Storybook's Vite builder: `uraeda-preview.js` stops a webpack Storybook. Its `.storybook/main.ts`
+  is wrapped by `uraeda-preview.js`, and its preview loads `uraeda-pick.js`, both copied from this
   skill's `assets/storybook/`. Its packages are pinned to exact versions, and its telemetry is off.
 - **Any other stack**, like Rails or Django, gets a mockups Storybook in `storybook/` at the
   repository's root, in React with Astryx, with the same two files, reading
   `specs/*/mockups/*.stories.tsx` and `specs/changes/*/mockups/*.stories.tsx`. Its stories are
   mockups only, and leave with the feature's or the change's folder when it finishes.
-- **Data**: the preview forwards only Storybook's GET and HEAD requests and WebSocket upgrades, in
-  sandboxed frames. A story that reads data with POSTs needs a Storybook-only middleware turning
-  GETs back into POSTs, and event streams opened without credentials: say so in the decision.
+- **Data**: a tool that shows the preview forwards only Storybook's GET and HEAD requests and
+  WebSocket upgrades, in sandboxed frames. A story that reads data with POSTs needs a Storybook-only
+  middleware turning GETs back into POSTs, and event streams opened without credentials: say so in
+  the decision.
 
 The decision stays `proposed` until the human approves it; then set Storybook up, in a commit of its
 own. A "no" is recorded as [Discovery](discovery.md#what-to-ask-and-what-to-settle) describes.

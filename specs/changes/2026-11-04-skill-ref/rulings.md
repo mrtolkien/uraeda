@@ -33,22 +33,36 @@ proposal and the decisions. None binds future work: those are decisions.
   users in `docs/`, and an agent following the workflow acts on none of these lines.
 - **Where**: [`docs/web-ui.md`](/docs/web-ui.md)
 
-## R3: The preview's requirements stay in the skill, as the preview's
+## R3: The preview's requirements stay in the skill, said of a tool that shows it
 
-- **Decision**: setting up a project's preview keeps its requirements, Storybook's Vite builder, the
-  two files of `assets/storybook/`, and data read by GET, now said of the preview, not of Uraeda.
-  The Storybook assets and the example's preview decision are unchanged.
-- **Rationale**: an agent setting up a project must meet them, in any harness, and the preview
-  decision is a workflow file of the project.
-- **Where**: [`projects.md`](/skills/uraeda/references/projects.md)
+- **Decision**: setting up a project's preview keeps its requirements: Storybook's Vite builder,
+  which `uraeda-preview.js` enforces, the two files of `assets/storybook/`, and data read by GET.
+  What the web UI does with the preview is said of "a tool that shows the preview". The preview
+  decision's template and the example's keep naming Uraeda, as a project's decision names the tool
+  it relies on: the example's "Uraeda's helper" became `uraeda-preview.js`, the file that checks it.
+- **Rationale**: an agent setting up a project must meet these requirements, in any harness, and the
+  preview decision is a workflow file of the project, not an instruction of the skill.
+- **Where**: [`projects.md`](/skills/uraeda/references/projects.md),
+  [`spec.md`](/skills/uraeda/references/spec.md),
+  [`conventions.md`](/skills/uraeda/references/conventions.md)
 
 ## R4: A test keeps the web UI out of the skill
 
 - **Decision**: `the_skill_never_describes_the_web_ui`, in [`skill.rs`](/crates/cli/tests/skill.rs),
-  fails when `SKILL.md`, a reference, or a template names the web UI: "web UI", "uraeda-offer", "in
-  Uraeda", "Uraeda shows", or "Uraeda's helper". It caught a line of `decisions-check.md` the first
-  pass missed.
+  fails when `SKILL.md`, a reference, a template, or an example file names the web UI: "web UI",
+  "uraeda-offer", "in Uraeda", "Uraeda shows", or "Uraeda's helper". It caught a line of
+  `decisions-check.md` the first pass missed.
 - **Rationale**: the mix grew one line at a time, with each feature of the web UI; a review would
   miss the next one as easily.
 - **If wrong**: a phrase the list lacks slips through; add it to the list.
 - **Where**: [`skill.rs`](/crates/cli/tests/skill.rs)
+
+## R5: The offer block's language has one home, in the server
+
+- **Decision**: `OFFER_LANGUAGE` lives in
+  [`instructions.ts`](/packages/server/src/runner/instructions.ts), and the web UI's
+  [`offers.ts`](/packages/web/src/offers.ts) imports it. A web test reads the instructions' example
+  offer with `lastOffer`, as the card would.
+- **Rationale**: the instructions teach the block the card parses: a copy of the constant, or an
+  example the parser does not read, would let the two drift apart.
+- **Where**: [`offer-instructions.test.ts`](/packages/web/src/__tests__/offer-instructions.test.ts)

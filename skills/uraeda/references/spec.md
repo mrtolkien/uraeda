@@ -306,8 +306,8 @@ behaviour, and wins when the two disagree.
 
 **With an active preview decision**, `specs/decisions/preview.md`, mockups are Storybook stories,
 written where the decision says: one export per state. Embed each one by a
-[story link](conventions.md#markdown) alone in its paragraph, where the preview shows it live, at a
-phone's width and a desktop's.
+[story link](conventions.md#markdown) alone in its paragraph, where a tool that shows the preview
+draws it live.
 
 ```markdown
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)

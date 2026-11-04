@@ -20,8 +20,8 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
 - **Story links**: a link to a `*.stories.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, or `.svelte` file,
   from the repository root or relative, then `#` and the story's export name, an ASCII identifier:
   `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
-  story link alone in its paragraph shows the story in the preview, and opens it in Storybook. A
-  variant's story link is a paragraph of its option.
+  story link alone in its paragraph is a mockup: a tool that shows the preview draws it live, and
+  anywhere else it opens in Storybook. A variant's story link is a paragraph of its option.
 - **Diagrams**: a fenced code block whose language is `mermaid`. Use it for a flow, a sequence, or
   states that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a
   `stateDiagram-v2`. It reads as text anywhere, and renders on GitHub. Never an image of a diagram,
@@ -164,10 +164,10 @@ source of truth.
   `## C4: Decision task-storage, lines 20–21, under "Rules"`. The lines are those of the decision's
   file at `commit`, on the branch. A comment on a part the branch removed points to the default
   branch's lines, with `removed` after them: `lines 18–19 removed`.
-- **A comment on a story**, written from Uraeda, starts with `Story <file name>#<export>`. When the
-  human picked an element, `, <phone or desktop>, <role> “<name>”` follows. The width is there only
-  while both showed. Without a name, it is `<role> with “<its text's first 40 characters>”`, or the
-  role alone when it has no text either. Then `: ` and the text:
+- **A comment on a story** starts with `Story <file name>#<export>`. When the human picked an
+  element, `, <phone or desktop>, <role> “<name>”` follows. The width is there only while both
+  showed. Without a name, it is `<role> with “<its text's first 40 characters>”`, or the role alone
+  when it has no text either. Then `: ` and the text:
   `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.` On a question's
   variant, the same line is added to its answer, and in a session to the human's message.
 - **Changes requested** need at least one comment.
@@ -227,7 +227,8 @@ Tools save the human's edits and never commit them on their own. An edit waits u
 commits it, or runs an action that says it commits, like submitting a round's answers. Starting a
 feature or a change may commit on its own. Each branch with changes commits apart, the default
 branch's and each feature's, with its own message. An edit of a whole file under `specs/` commits as
-one change, `edit <path>`, in place of the changes its lines would read as.
+one change, `edit <path>`, in place of the changes its lines would read as, on the feature's branch
+for a file of a feature's folder.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and other tools write the same messages. A message the human typed

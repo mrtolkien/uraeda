@@ -15,6 +15,7 @@
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",
     "./round-messages": "./src/runner/round-messages.ts",
+    "./instructions": "./src/runner/instructions.ts",
     "./status": "./src/runner/status.ts",
     "./triage-messages": "./src/runner/triage-messages.ts",
     "./runner/adapter": "./src/runner/adapter.ts",

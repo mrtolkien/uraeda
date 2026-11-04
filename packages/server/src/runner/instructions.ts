@@ -2,7 +2,7 @@
 // workflow, for any harness, and never describes the web UI; these instructions hold what only the
 // web UI does with the agent's messages. The Claude adapter appends them to its system prompt.
 
-/** The fence's language of an offer block, as the web UI's `offers.ts` reads it. */
+/** The fence's language of an offer block: the web UI's `offers.ts` reads it from here. */
 export const OFFER_LANGUAGE = "uraeda-offer";
 
 /** The instructions the web UI appends to every session's system prompt. */
@@ -27,7 +27,7 @@ Offer once: only the latest offer of a session has buttons. A session only moves
 
 When the card starts the change, this session goes on in the change's worktree. Its next message names the worktree, the branch, and the files you edited on the main checkout, to carry over. A file the human also edited since stays on the main checkout: merge it by hand. Leave every other uncommitted file where it is.
 
-When the human says yes in words instead, do not start the change yourself, as the skill would: offer the block again, and ask them to start the change from its card. Only the card moves this session into the change's worktree. Started any other way, the change later gets a second session in the same worktree. The human may also start it from the New page, and talk in the change's session.
+When the human says yes in words instead, do not start the change or make it a feature yourself, as the skill would: offer the block again, and ask them to accept it from its card. Only the card moves this session into the change's worktree, and the change's sessions to the feature. Started any other way, the change later gets a second session in the same worktree. The human may also start it from the New page, and talk in the change's session.
 
 A change or a feature may hold several sessions, all in its worktree, and only one of them works at a time.
 

@@ -46,8 +46,8 @@ The web UI reads the workflow's files as the skill writes them, and draws them:
   or a change's page with its slug. "Add" leaves it uncommitted, and "Add as a file" saves a note
   with images as a file of its own. A note's page adds images with "Add images", or by dropping
   them, and draws them under its text.
-- The inbox page's "Answer it" and the decisions page's "Check decisions" open their round in the
-  questions view, where Submit commits it.
+- The banners of the inbox's triage and of the decisions check open their round with "Answer it", in
+  the questions view, where Submit commits it.
 - A done feature's page repairs links its files lost to a later move with "Fix moved links", as
   `ura check --fix` does.
 
@@ -202,9 +202,13 @@ Sessions need `claude` installed and signed in on the machine, with a paid plan:
 
 Every conversation with the agent is a session. "＋ New" opens one in the main checkout, or starts a
 change or a feature. Its three cards share one text, kept until it starts. A feature asks its slug
-and its research effort, then opens its session. A line's Start, on the priorities, puts the line in
-that text, in place of what it held, with an Undo. A change or a feature holds one or more sessions,
-in its worktree, where the workflow's runs and your messages follow each other.
+and its research effort, then opens its session. It starts with no proposal file: the text's first
+line is the title, and the research effort goes in the proposal's `discovery` field. A change starts
+from a typed request, an inbox note, or a priorities line. A line of **Now** it was filled from is
+replaced by the new link in the start commit. "Drop the change…" and "Drop the feature…", in a
+session's actions, drop it. A line's Start, on the priorities, puts the line in that text, in place
+of what it held, with an Undo. A change or a feature holds one or more sessions, in its worktree,
+where the workflow's runs and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open its session with the workflow's message in the composer. Nothing goes
@@ -232,12 +236,6 @@ the pointer or focused, it tints the runs it continues and dims every other row;
 the first tap shows this and the second sends. A run it could not continue, as while another session
 of its feature works, stays as it was, and a toast says why. A run waiting for a usage limit's reset
 reads in In progress, with the time it goes on.
-
-"＋ New" starts a feature from a typed text, with no proposal file: its first line is the title, and
-its research effort goes in the proposal's `discovery` field. It starts a change from a typed
-request, an inbox note, or a priorities line. A line of **Now** it was filled from is replaced by
-the new link in the start commit. "Drop the change…" and "Drop the feature…", in a session's
-actions, drop it.
 
 When you ask a session on the main checkout for a code change, the agent offers it as a change, in a
 card holding its proposal: edit the proposal and its slug, then start it, and the session goes on in

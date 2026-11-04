@@ -71,6 +71,7 @@ fn the_skill_never_describes_the_web_ui() {
     let mut files = vec![skill.join("SKILL.md")];
     markdown_files(&skill.join("references"), &mut files);
     markdown_files(&skill.join("assets/templates"), &mut files);
+    markdown_files(&skill.join("assets/example"), &mut files);
 
     for file in files {
         let text = fs::read_to_string(&file).unwrap();

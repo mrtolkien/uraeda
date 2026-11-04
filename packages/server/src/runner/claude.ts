@@ -36,9 +36,10 @@ function endWithServer() {
 
 /**
  * The arguments of a session's process: print mode, stream-json both ways, `auto` mode, the skill,
- * the web UI's instructions, appended to the system prompt on every start, and the chat images' folder, which the agent reads even when the user blocks reads outside the
- * working directory. Only that folder is added, never the whole data folder: `auto` mode lets the
- * agent write to added folders.
+ * the web UI's instructions, appended to the system prompt on every start, and the chat images'
+ * folder, which the agent reads even when the user blocks reads outside the working directory.
+ * Only that folder is added, never the whole data folder: `auto` mode lets the agent write to added
+ * folders.
  */
 export function claudeArgs(
   options: OpenOptions,
