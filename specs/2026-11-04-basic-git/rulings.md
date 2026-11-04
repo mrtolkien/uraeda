@@ -171,3 +171,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an action during a stopped pull could write and wait for the commit; nothing else
   changes.
 - **Where**: tasks 1, 3, and 4.
+
+## R16: A rename conflict lists under its new path alone
+
+- **Decision**: `ConflictView` has one `path`: a file renamed on one side and changed on the other
+  lists under its new path, with no `other_path`.
+- **Rationale**: git's index holds every stage of such a conflict at the new path; the old path is
+  only in the merge's rename detection, which gix is built without (see `path_events`), so naming it
+  would mean a `git diff -M` of each side per read of the page.
+- **If wrong**: the spec's niche edge, "listed with both paths", reads one path; a rename whose
+  content conflicts is `both-changed`, so it is offered the editor as well as the whole sides.
+- **Where**: task 5.
+
+## R17: The page's view names the main checkout by its branch, and reads a diff's path checked
+
+- **Decision**: the main checkout's group is named by the branch it has checked out (or its detached
+  id), not by the default branch; a worktree's state is the first of `missing`, `changes`, `locked`,
+  `merged`, `clean` that holds, so a merged feature's worktree with changes reads "has changes"; a
+  working tree's diff takes its path through `Git::checked`, task 4's check, so `../x` is refused
+  before any file is read; `git_history` takes a commit id, the first page coming with the page's
+  view; `Changes::git` hashes each checkout's `HEAD`, index size and time, `MERGE_HEAD`, and rebase
+  folder, the main branch's tip and its `origin` tip, and `FETCH_HEAD`'s time.
+- **Rationale**: the main checkout may sit on another branch, and its name is what a commit lands
+  on; the spec offers neither Clean nor Remove on a worktree with changes; a diff reads the file on
+  disk, so a path the web sends must stay inside the checkout; a push moves only `origin`'s tip, and
+  a stopped operation or a stage only git's folder.
+- **Where**: task 5.

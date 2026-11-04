@@ -62,7 +62,7 @@ impl Git {
 
     /// `path` once it is a path inside this checkout, from its top level: not absolute, without
     /// `..`, `.`, or `.git`, and not through a symbolic link to a folder outside.
-    pub(super) fn checked<'a>(&self, path: &'a str) -> Result<&'a str, GitError> {
+    pub(crate) fn checked<'a>(&self, path: &'a str) -> Result<&'a str, GitError> {
         let outside = || GitError::Refused(format!("{path} is not in this checkout."));
         let plain = Path::new(path).components().all(|component| {
             matches!(component, Component::Normal(name) if !name.eq_ignore_ascii_case(".git"))

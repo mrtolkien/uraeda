@@ -55,6 +55,7 @@ const repositoryMutations = {
           decisions: false,
           features: [input.folder],
           files: [],
+          git: false,
           inbox: false,
           priorities: false,
           workspace: true,

@@ -102,6 +102,7 @@ test("a repository's change is heard on the global bus", () => {
       decisions: false,
       features: [HUMAN],
       files: [],
+      git: false,
       inbox: false,
       priorities: false,
       workspace: false,

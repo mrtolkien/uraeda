@@ -146,6 +146,9 @@ export declare function commitText(repo: string, path: string): Promise<CommitVi
  */
 export declare function configDir(custom?: string | undefined | null): string
 
+/** A conflicted text file of the main checkout, for the editor, with its hash. */
+export declare function conflictFile(repo: string, path: string): Promise<ConflictFileView>
+
 /**
  * Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
  * process's environment, else the operating system's default.
@@ -230,6 +233,27 @@ export declare function expandProposal(repo: string, id: string, previous: strin
  * the feature read again; rejects a feature not on the default branch.
  */
 export declare function fixLinks(repo: string, folder: string): Promise<FeatureView>
+
+/** A commit of the main checkout's history, by its id, with the files it changed. */
+export declare function gitCommit(repo: string, id: string): Promise<GitCommitView>
+
+/**
+ * The diff of a file, of a commit or of a group's working tree, capped past 1,000 lines unless
+ * `whole`.
+ */
+export declare function gitDiff(repo: string, at: GitAt, path: string, whole: boolean): Promise<GitDiffView>
+
+/** The page of the main checkout's history after the commit `after`. */
+export declare function gitHistory(repo: string, after: string): Promise<GitHistoryPageView>
+
+/**
+ * The Git page: the main checkout's sync, changes, conflicts, and history's first page, each
+ * feature's worktree with changes, and every worktree.
+ */
+export declare function gitPage(repo: string): Promise<GitPageView>
+
+/** The sidebar's count: the files to commit in every group, and the commits to pull. */
+export declare function gitSummary(repo: string): Promise<GitSummaryView>
 
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
@@ -825,6 +849,16 @@ export interface ChangedFile {
   removed?: number
 }
 
+/** The changed files of one checkout. */
+export interface ChangeGroupView {
+  /** The feature's folder; none for the main checkout. */
+  folder?: string
+  /** The main checkout's branch, or the feature's title. */
+  name: string
+  /** Sorted by path; a conflicted file is under the page's conflicts instead. */
+  files: Array<FileChangeView>
+}
+
 /** What changed since the last report. */
 export interface Changes {
   /** The folders of the features whose files or step changed. */
@@ -853,6 +887,11 @@ export interface Changes {
   decisions: boolean
   /** Whether a feature, a branch, or a worktree appeared or went. */
   workspace: boolean
+  /**
+   * Whether what the Git page shows of a checkout changed: its `HEAD`, its index, a stopped
+   * operation, the main checkout's branch or its `origin` branch, or the last fetch.
+   */
+  git: boolean
 }
 
 /** An option of a question. */
@@ -890,10 +929,45 @@ export interface CommentItem {
   text: string
 }
 
+/** A commit of the history. */
+export interface CommitRowView {
+  id: string
+  /** Its first 7 characters. */
+  short: string
+  subject: string
+  /** In Unix seconds. */
+  authored: number
+  /** `pull` for a commit only `origin` has, `push` for one only the branch has, else empty. */
+  mark: string
+}
+
 /** A commit an action made. */
 export interface CommitView {
   subject: string
   commit: string
+}
+
+/** A conflicted text file of the main checkout, for the editor. */
+export interface ConflictFileView {
+  /** Its path. */
+  id: string
+  path: string
+  text: string
+  /** What a save over it names, to be refused when it changed since. */
+  hash: string
+}
+
+/** A conflicted file of the main checkout. */
+export interface ConflictView {
+  /** A renamed file's new path. */
+  path: string
+  /**
+   * `both-changed`, `both-added`, `deleted-ours`, `deleted-theirs`, `both-deleted`,
+   * `added-ours`, or `added-theirs`; `ours` is the stopped operation's `ours` side.
+   */
+  kind: string
+  isBinary: boolean
+  isResolved: boolean
 }
 
 /**
@@ -1128,6 +1202,19 @@ export interface FieldChange {
   after?: string
 }
 
+/** A changed file of a group. */
+export interface FileChangeView {
+  /** From the checkout's top level. */
+  path: string
+  /** `modified`, `new`, or `deleted`. */
+  state: string
+  /** `no`, `yes`, or `partly`. */
+  staged: string
+  /** Lines added and removed from `HEAD`; none for a binary file. */
+  added?: number
+  removed?: number
+}
+
 export interface FileSummary {
   name: string
   /** `proposal`, `clarifications`, `spec`, ... */
@@ -1192,6 +1279,89 @@ export interface FileView {
    * when `answered` is.
    */
   sinceReview?: SinceReview
+}
+
+/**
+ * What a diff is of: a commit of the main checkout's history, else a group's working tree, the
+ * main checkout's for no folder.
+ */
+export interface GitAt {
+  folder?: string
+  commit?: string
+}
+
+/** A commit, with the files it changed. */
+export interface GitCommitView {
+  /** Its full id. */
+  id: string
+  subject: string
+  body: string
+  authored: number
+  files: Array<ChangedFile>
+}
+
+/** A file's diff. */
+export interface GitDiffView {
+  /** What it is of and its path: `<commit or folder or "">:<path>`. */
+  id: string
+  path: string
+  /** The unified diff; none for a binary file, or one capped. */
+  text?: string
+  /** A binary file's sizes before and after, in bytes. */
+  binaryBefore?: number
+  binaryAfter?: number
+  added: number
+  removed: number
+  /** Over 1,000 lines, and the whole was not asked for. */
+  isCapped: boolean
+}
+
+/** A page of the history, after a commit. */
+export interface GitHistoryPageView {
+  /** The commit it continues after. */
+  id: string
+  commits: Array<CommitRowView>
+  hasMore: boolean
+}
+
+/** The Git page, read at once. */
+export interface GitPageView {
+  /** Always `git`: the page is one view. */
+  id: string
+  /** The main checkout's branch, or the one a stopped rebase replays. */
+  branch?: string
+  /** `HEAD`'s short id when it is detached and nothing is stopped. */
+  detached?: string
+  hasRemote: boolean
+  ahead: number
+  behind: number
+  /** When `origin` was last fetched, in Unix seconds. */
+  fetchedAt?: number
+  stopped?: StoppedView
+  /** The main checkout's group first, always there, then each feature's worktree with changes. */
+  groups: Array<ChangeGroupView>
+  /** The main checkout's conflicted files. */
+  conflicts: Array<ConflictView>
+  /** The history's first page. */
+  history: Array<CommitRowView>
+  hasMoreHistory: boolean
+  /** The linked worktrees, by path. */
+  worktrees: Array<WorktreeView>
+  /**
+   * The branches a merge into the checked-out one may pick: the other local ones, then
+   * `origin`'s, as `origin/<name>`.
+   */
+  branches: Array<string>
+}
+
+/** The sidebar's count. */
+export interface GitSummaryView {
+  /** Always `git`. */
+  id: string
+  /** The changed and conflicted files of every group. */
+  changes: number
+  /** The commits to pull into the main checkout's branch. */
+  behind: number
 }
 
 /** A feature's or a change's stages, and what it produced. */
@@ -2122,6 +2292,18 @@ export interface StepView {
   order: number
 }
 
+/** The operation the main checkout stopped in, its sides named by branch. */
+export interface StoppedView {
+  /** `pull`, `merge`, or `stash`. */
+  kind: string
+  /** Git's stage 2, like `origin/main` during a pull. */
+  ours: string
+  /** Git's stage 3. */
+  theirs: string
+  /** The stash a stash's stop kept, like `stash@{0}`. */
+  stash?: string
+}
+
 export interface Story {
   /** `US2`. */
   id: string
@@ -2227,4 +2409,20 @@ export interface WorkspaceView {
    * is not written, and none once it is set up.
    */
   setup: Array<SetupItem>
+}
+
+/** A linked worktree. */
+export interface WorktreeView {
+  /** From the main checkout's top level, or absolute outside it. */
+  path: string
+  /** The feature's title, else its folder's name. */
+  name: string
+  branch?: string
+  /** The folder of the feature on its branch. */
+  folder?: string
+  /**
+   * `missing`, `changes`, `locked`, `merged` for a feature done, or `clean`, the first that
+   * holds.
+   */
+  state: string
 }

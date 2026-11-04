@@ -11,6 +11,7 @@ const moved: Changes = {
   decisions: false,
   features: ["2026-10-20-sidebar-resize"],
   files: [],
+  git: false,
   inbox: false,
   priorities: false,
   workspace: false,

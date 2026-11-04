@@ -17,10 +17,10 @@ use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
 mod feature;
 
-pub(crate) use feature::recorded_pull_request;
 pub use feature::{
     FeatureView, FileSummary, PlannedView, PromotedView, StartStepView, StartedView, StepView,
 };
+pub(crate) use feature::{feature_title, recorded_pull_request};
 
 mod since;
 mod version;

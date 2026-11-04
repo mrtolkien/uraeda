@@ -176,6 +176,20 @@ impl From<&Step> for StepView {
     }
 }
 
+/// A feature's title: its proposal's, or its record's once finished, else its slug.
+pub(crate) fn feature_title(feature: &Feature) -> String {
+    match feature.file(FileKind::Record) {
+        Some(record) => feature
+            .text(&record.name)
+            .and_then(title)
+            .map(|title| title.strip_prefix("Record: ").unwrap_or(&title).to_string()),
+        None => feature
+            .text(crate::workspace::first_file(feature.kind))
+            .and_then(title),
+    }
+    .unwrap_or_else(|| feature.slug.clone())
+}
+
 impl FeatureView {
     pub fn new(feature: &Feature, extra: &[Problem]) -> FeatureView {
         // The workspace's own problems set the step to `none`: they always block, whatever
@@ -183,7 +197,6 @@ impl FeatureView {
         let (blocking, notes): (Vec<&Problem>, Vec<&Problem>) =
             extra.iter().partition(|p| p.blocks());
         let problems = feature.problems.iter().chain(blocking);
-        let first = crate::workspace::first_file(feature.kind);
         let mut files: Vec<&WorkflowFile> = feature.files.iter().collect();
         files.sort_by(|a, b| workflow_key(a).cmp(&workflow_key(b)));
         FeatureView {
@@ -191,14 +204,7 @@ impl FeatureView {
             folder: feature.folder.clone(),
             path: crate::workspace::folder_path(feature.kind, &feature.folder),
             slug: feature.slug.clone(),
-            title: match feature.file(FileKind::Record) {
-                Some(record) => feature
-                    .text(&record.name)
-                    .and_then(title)
-                    .map(|title| title.strip_prefix("Record: ").unwrap_or(&title).to_string()),
-                None => feature.text(first).and_then(title),
-            }
-            .unwrap_or_else(|| feature.slug.clone()),
+            title: feature_title(feature),
             branch: feature.branch.clone(),
             source: kebab(&feature.source),
             worktree: feature.worktree.clone(),

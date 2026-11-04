@@ -775,11 +775,16 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
 
 **Files:**
 
-- Create: `crates/core/src/api/git_page.rs`, `crates/binding/src/git_reads.rs`
+- Create: `crates/core/src/api/git_page.rs`, its views in `api/git_page/views.rs`,
+  `crates/binding/src/git_reads.rs`
 - Modify: `crates/core/src/api.rs` (re-exports), `crates/core/src/git/history.rs` (`history_page`),
+  `crates/core/src/git/staging.rs` (`checked` made `pub(crate)` for a worktree's diff),
+  `crates/core/src/view/feature.rs` (`feature_title`, shared with the groups' names),
   `crates/core/src/watch.rs` (`Changes::git`), `crates/binding/src/lib.rs` (module line),
-  `packages/binding/index.d.ts` and `index.js` (generated)
-- Test: `crates/core/tests/git_page.rs`
+  `packages/binding/index.d.ts` and `index.js` (generated), the server's `Changes` literals
+  (`git: false`)
+- Test: `crates/core/tests/git_page.rs`, `staging_a_file_reports_git` in
+  `crates/core/tests/watch.rs`
 
 **Interfaces:**
 
@@ -788,17 +793,19 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
   `pub fn history_page(&self, after: Option<ObjectId>, count: usize) -> Result<Vec<(CommitInfo, Mark)>, GitError>`
   with `pub enum Mark { None, ToPull, ToPush }`: the checked-out branch's commits and those of its
   `origin` branch it lacks, newest first, `ToPull` for those only on `origin`, `ToPush` for those
-  only local.
+  only local: the `ToPull` run first, then `HEAD`'s walk, each newest first; no marks without an
+  `origin` branch.
 - Produces, in `api/git_page.rs`, every struct a napi object with camelCase fields:
   - `GitPageView { id: String /* "git" */, branch: Option<String>, detached: Option<String>, has_remote: bool, ahead: u32, behind: u32, fetched_at: Option<i64> /* seconds */, stopped: Option<StoppedView>, groups: Vec<ChangeGroupView>, conflicts: Vec<ConflictView>, history: Vec<CommitRowView>, has_more_history: bool, worktrees: Vec<WorktreeView>, branches: Vec<String> }`;
   - `StoppedView { kind: String /* "pull" | "merge" | "stash" */, ours: String, theirs: String, stash: Option<String> }`;
-  - `ChangeGroupView { folder: Option<String> /* None: the main checkout */, name: String /* the default branch, or the feature's title */, files: Vec<FileChangeView> }`,
+  - `ChangeGroupView { folder: Option<String> /* None: the main checkout */, name: String /* the main checkout's branch, else its detached id, or the feature's title */, files: Vec<FileChangeView> }`,
     the main checkout's group first and always there, then one per feature worktree with changes;
   - `FileChangeView { path: String, state: String /* "modified" | "new" | "deleted" */, staged: String /* "no" | "yes" | "partly" */, added: Option<u32>, removed: Option<u32> }`;
   - `ConflictView { path: String, kind: String /* "both-changed" | "both-added" | "deleted-ours" | "deleted-theirs" | "both-deleted" | "added-ours" | "added-theirs" */, is_binary: bool, is_resolved: bool }`;
   - `CommitRowView { id: String, short: String, subject: String, authored: i64, mark: String /* "" | "pull" | "push" */ }`;
   - `WorktreeView { path: String /* from the main checkout's root */, name: String, branch: Option<String>, folder: Option<String>, state: String /* "merged" | "changes" | "missing" | "locked" | "clean" */ }`,
-    the linked worktrees only, `merged` for a feature whose step is `Done`;
+    the linked worktrees only, sorted by path, the first state that holds in that order, `merged`
+    for a feature whose step is `Done` (matched by its branch or its `left_branch`);
   - `GitSummaryView { id: String /* "git" */, changes: u32, behind: u32 }`, `changes` summed over
     every group;
   - `GitDiffView { id: String, path: String, text: Option<String>, binary_before: Option<f64>, binary_after: Option<f64>, added: u32, removed: u32, is_capped: bool }`;
@@ -810,19 +817,20 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
     `git_diff(repo, at: &GitAt, path: &str, whole: bool) -> Result<GitDiffView>` with
     `GitAt { folder: Option<String>, commit: Option<String> }` (both `None`: the main checkout's
     working tree), `git_commit(repo, id: &str) -> Result<GitCommitView>`,
-    `git_history(repo, after: &str) -> Result<GitHistoryPageView>` (pages of 50; the page view's
-    first page too), `conflict_file(repo, path: &str) -> Result<ConflictFileView>` (refused for a
-    file that is not conflicted, or binary).
+    `git_history(repo, after: &str) -> Result<GitHistoryPageView>` (pages of 50, `after` a commit
+    id; the page view's first page too),
+    `conflict_file(repo, path: &str) -> Result<ConflictFileView>` (refused for a file that is not
+    conflicted, or binary).
   - `pub(crate) fn group_root(git: &Git, workspace: &Workspace, folder: Option<&str>) -> Result<PathBuf>`:
     the main checkout for `None`, a feature's worktree for its folder, refused otherwise. Task 6's
-    writes use it.
+    writes use it as `super::git_page::group_root`; `git_diff` uses it too.
 - Produces, in `watch.rs`: `Changes::git: bool`, true when `HEAD`, the index, `FETCH_HEAD`, or a
   stopped operation of the main checkout or a worktree changed.
 - Produces, in the binding: `gitPage(repo)`, `gitSummary(repo)`, `gitDiff(repo, at, path, whole)`,
   `gitCommit(repo, id)`, `gitHistory(repo, after)`, `conflictFile(repo, path)`, each a promise of
   its view.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `the_history_marks_commits_to_pull_and_to_push`: 2 local, 3 upstream commits: the first page's
   first 3 rows are `pull`, the next 2 `push`, newest first in each. Break: walking `HEAD` alone.
@@ -832,23 +840,23 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
   `proposal.md`; the worktrees read `changes`, `clean`, and `missing`. Break: listing every worktree
   as a group.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_page`
 - Expected: FAIL, `git_page` not found.
 
-- [ ] **Step 3: Implement the views, `history_page`, `Changes::git`, and the binding's reads**
+- [x] **Step 3: Implement the views, `history_page`, `Changes::git`, and the binding's reads**
 
 The page's view reads `checkout_state` of the main checkout and of each feature worktree with local
 changes (`has_local_changes` first, so clean ones cost one stop of the status). Then regenerate the
 binding: `nix develop -c vp run --filter uraeda-binding build`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding specs/2026-11-04-basic-git/plan.md

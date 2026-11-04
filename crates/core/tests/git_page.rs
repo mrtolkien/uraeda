@@ -1,0 +1,172 @@
+//! The Git page's views: the history marked to pull and to push, the changes grouped by checkout,
+//! and the worktrees with their state.
+
+mod common;
+
+use common::repo::TestRepo;
+use common::texts::proposal;
+use uraeda_core::api::{self, ChangeGroupView, FileChangeView, WorktreeView};
+
+const FOLDER: &str = "2026-10-11-web-ui";
+const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
+
+/// Break caught: the history walking `HEAD` alone, which never shows the commits to pull.
+#[test]
+fn the_history_marks_commits_to_pull_and_to_push() {
+    let repo = TestRepo::with_origin();
+    for n in 1..=2 {
+        repo.write(&format!("local-{n}.md"), "local\n");
+        repo.commit(&format!("chore: local {n}"));
+    }
+    for n in 1..=3 {
+        repo.upstream_commit(
+            &format!("upstream-{n}.md"),
+            "upstream\n",
+            &format!("chore: upstream {n}"),
+        );
+    }
+
+    let page = api::git_page(repo.path()).unwrap();
+
+    let rows: Vec<(&str, &str)> = page
+        .history
+        .iter()
+        .map(|row| (row.subject.as_str(), row.mark.as_str()))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("chore: upstream 3", "pull"),
+            ("chore: upstream 2", "pull"),
+            ("chore: upstream 1", "pull"),
+            ("chore: local 2", "push"),
+            ("chore: local 1", "push"),
+            ("chore: start", ""),
+        ]
+    );
+    assert!(!page.has_more_history);
+    assert_eq!((page.ahead, page.behind), (2, 3));
+
+    // The next page continues after the row it names.
+    let next = api::git_history(repo.path(), &page.history[2].id).unwrap();
+    let subjects: Vec<&str> = next
+        .commits
+        .iter()
+        .map(|row| row.subject.as_str())
+        .collect();
+    assert_eq!(
+        subjects,
+        ["chore: local 2", "chore: local 1", "chore: start"]
+    );
+}
+
+/// A repository on `main` with its priorities, and a feature on its own branch.
+fn repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n- Web UI\n",
+    );
+    repo.commit("chore: specs");
+    repo.switch_new(FOLDER);
+    repo.write(PROPOSAL, &proposal());
+    repo.commit("discovery(web-ui): web UI");
+    repo.switch("main");
+    repo
+}
+
+/// US3 more 7 and US6 3: a buffer's save in a feature's worktree is a group of its own, named by
+/// the feature; a hand-made worktree is listed, not grouped. Break caught: listing every worktree
+/// as a group.
+#[test]
+fn the_page_groups_changes_and_lists_worktrees() {
+    let repo = repo();
+    let read = api::read_buffer(repo.path(), PROPOSAL).unwrap();
+    let saved = format!("{}\nA line more.\n", read.text);
+    api::save_buffer(repo.path(), PROPOSAL, &saved, &read.hash).unwrap();
+    repo.write("docs/notes.md", "# Notes\n");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        ".worktrees/coherence-before",
+        "-b",
+        "coherence-before",
+    ]);
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        ".worktrees/gone",
+        "-b",
+        "gone",
+    ]);
+    std::fs::remove_dir_all(repo.path().join(".worktrees/gone")).unwrap();
+
+    let page = api::git_page(repo.path()).unwrap();
+
+    let file = |path: &str, state: &str, added: u32| FileChangeView {
+        path: path.to_string(),
+        state: state.to_string(),
+        staged: "no".to_string(),
+        added: Some(added),
+        removed: Some(0),
+    };
+    assert_eq!(
+        page.groups,
+        [
+            ChangeGroupView {
+                folder: None,
+                name: "main".to_string(),
+                files: vec![file("docs/notes.md", "new", 1)],
+            },
+            ChangeGroupView {
+                folder: Some(FOLDER.to_string()),
+                name: "Feature".to_string(),
+                files: vec![file(PROPOSAL, "modified", 2)],
+            },
+        ]
+    );
+    let worktree =
+        |path: &str, name: &str, branch: &str, folder: Option<&str>, state: &str| WorktreeView {
+            path: path.to_string(),
+            name: name.to_string(),
+            branch: Some(branch.to_string()),
+            folder: folder.map(String::from),
+            state: state.to_string(),
+        };
+    assert_eq!(
+        page.worktrees,
+        [
+            worktree(
+                ".worktrees/2026-10-11-web-ui",
+                "Feature",
+                FOLDER,
+                Some(FOLDER),
+                "changes"
+            ),
+            worktree(
+                ".worktrees/coherence-before",
+                "coherence-before",
+                "coherence-before",
+                None,
+                "clean"
+            ),
+            worktree(".worktrees/gone", "gone", "gone", None, "missing"),
+        ]
+    );
+
+    // A group's diff reads its own checkout, and nothing outside it.
+    let feature = api::GitAt {
+        folder: Some(FOLDER.to_string()),
+        commit: None,
+    };
+    let diff = api::git_diff(repo.path(), &feature, PROPOSAL, false).unwrap();
+    assert_eq!((diff.added, diff.removed), (2, 0));
+    let main = api::GitAt::default();
+    assert!(api::git_diff(repo.path(), &main, "../outside.md", false).is_err());
+    assert!(api::conflict_file(repo.path(), "docs/notes.md").is_err());
+
+    let summary = api::git_summary(repo.path()).unwrap();
+    assert_eq!((summary.changes, summary.behind), (2, 0));
+}
