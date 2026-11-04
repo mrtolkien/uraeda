@@ -364,12 +364,14 @@ test.each(["Stop", "a dismiss"])("%s during a wait ends it for good", async (act
 
 /**
  * US1, more scenarios 3 and 4: a wait is kept in the cache, and an overdue one goes at once; the
- * overdue waits of several runs go a minute apart, in their order.
+ * overdue waits of several runs go a minute apart, in their order. A repository removed from the
+ * server's list shows its runs nowhere: its wait never goes.
  */
 test.each([
   { name: "at its time", runs: 1, startsAt: "2026-11-03T15:00:00Z" },
   { name: "at once once overdue", runs: 1, startsAt: "2026-11-04T01:30:00Z" },
   { name: "a minute apart, two runs overdue", runs: 2, startsAt: "2026-11-04T01:30:00Z" },
+  { name: "never, its repository no longer listed", runs: 0, startsAt: "2026-11-03T15:00:00Z" },
 ])("a wait survives a restart, and continues $name", async ({ runs, startsAt }) => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });
   const { adapter, cache } = setup;
@@ -377,7 +379,7 @@ test.each([
   const first = await sendLimited(setup, AGENT);
   const second = runs === 2 ? await sendLimited(setup, HUMAN) : undefined;
 
-  const next = await restart(setup.sessions, { runs: () => ON });
+  const next = await restart(setup.sessions, { hosted: () => runs > 0, runs: () => ON });
   time.to(Date.parse(startsAt));
   await next.startContinues();
   if (second) {
@@ -389,6 +391,13 @@ test.each([
     expect(cache.turn(second.turn)?.continueAt).toBeNull();
   }
   time.by(Math.max(0, AFTER_RESET - Date.parse(startsAt)));
+  if (runs === 0) {
+    // The fire queues its turn in the claim's step: none is queued, and the wait is dropped.
+    await flush();
+    expect(cache.turns(first.session).map((turn) => turn.id)).toEqual([first.turn]);
+    expect(cache.turn(first.turn)).toMatchObject({ continueAt: null, continueReason: null });
+    return;
+  }
   await until(() => continues(adapter) === runs);
   expect(adapter.sent.at(-1)?.text).toBe(LIMIT_MESSAGE);
 });

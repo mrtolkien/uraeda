@@ -217,11 +217,13 @@ export class Continuer {
 
   /**
    * Whether the claimed continue is refused: the agent unavailable, a move or a drop holding the
-   * session, or the human took the run over another way, a new session, Allow, or an archive.
+   * session, its repository no longer listed, or the human took the run over another way, a new
+   * session, Allow, or an archive.
    */
   #refused(claimed: TurnRow, row: SessionRow, live: Live): boolean {
     return (
       !this.#available() ||
+      !this.#hosted(row.repo) ||
       this.#context.live.moving(live) ||
       ofDropped(row) ||
       !this.#current(row) ||
@@ -264,8 +266,7 @@ export class Continuer {
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
     for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
       const session = cache.session(turn.sessionId);
-      // A repository removed from the server's list shows its runs nowhere: none goes on there.
-      if (session && this.#hosted(session.repo) && adapter.hasSession(session.nativeId)) {
+      if (session && adapter.hasSession(session.nativeId)) {
         await this.#decide(turn, "restart", Date.now, this.#taken(session.id));
       }
     }
@@ -324,10 +325,11 @@ export class Continuer {
 
   /**
    * Waits the turn for its continue of `reason` at `at()`, or, at the session's cap, marks it
-   * capped: nothing when that kind is off, the session is not its folder's latest, nor a chat, the
-   * turn is not its latest, or it was refused an action the human has not allowed. A commit in the
-   * feature's worktree since the session's last continue sets its count back to 0 first. The run
-   * taken over since `taken`, or the switch turned off, while it reads, drops it.
+   * capped: nothing when that kind is off, its repository is no longer listed, the session is not
+   * its folder's latest, nor a chat, the turn is not its latest, or it was refused an action the
+   * human has not allowed. A commit in the feature's worktree since the session's last continue sets
+   * its count back to 0 first. The run taken over since `taken`, or the switch turned off, while it
+   * reads, drops it.
    */
   async #decide(
     turn: TurnRow,
@@ -338,7 +340,13 @@ export class Continuer {
   ): Promise<void> {
     const { cache } = this.#context;
     const session = cache.session(turn.sessionId);
-    if (!session || !this.#runs()[SWITCHES[reason]] || !this.#current(session)) {
+    // A repository removed from the server's list shows its runs nowhere: none goes on there.
+    if (
+      !session ||
+      !this.#hosted(session.repo) ||
+      !this.#runs()[SWITCHES[reason]] ||
+      !this.#current(session)
+    ) {
       return;
     }
     if (cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed)) {
