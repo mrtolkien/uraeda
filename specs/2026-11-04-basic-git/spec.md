@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 2
+status: awaiting-human
+revision: 3
 clarifications: 2
 risk-tier: high
 plan-review: false
@@ -8,20 +8,19 @@ plan-review: false
 
 # Spec: Basic git UI in the web UI
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-04: 1 comment in spec-review.md.
+> Spec to review again, about 5 minutes.
 >
 > - You approve a generic git page for the main checkout, replacing the Commit page. It pulls,
 >   pushes, merges, stages and commits any file, and fixes conflicts in the shared editor.
-> - Changed since your review: Uraeda's described edits are gone. Every changed file is in one list,
->   the inbox and priorities included, staged by Space as in lazygit.
-> - Gone with them: suggested messages, amending the latest chore, and Discard's undo of note moves.
->   Their tests are under Replaced behaviour.
-> - Read one way: a feature's worktree with uncommitted buffer edits gets its own group in the list,
->   so those edits can still be committed.
-> - Keyboard tension: Space stages a focused file row, as a checkbox, which `fields.ts` already lets
->   own Space. There the leader menu opens with Ctrl+K. The Keyboard decision does not change.
+> - Changed since your review: Changes is a file tree, as in lazygit. Enter folds a folder, Space
+>   stages a file or a whole folder, and `a` toggles every file.
+> - Staged files stay where they are, ticked: no more Staged and Not staged groups.
+> - Still to weigh from the last revision: no described edits, suggested messages, or amends, and
+>   Space on a row stages, so the leader menu opens with Ctrl+K there.
+> - Read one way: a feature's worktree with uncommitted buffer edits gets its own tree, so those
+>   edits can still be committed.
 > - Unverified: credentials when the server runs git without a terminal. The plan's first task
 >   checks a pull and a push.
 > - Changed decision: Git, "the Commit page" renamed. Risk tier high: discards, removals, and a
@@ -36,11 +35,10 @@ the answers of [round 01](clarifications-01.md) and [round 02](clarifications-02
 
 ## Your review
 
-- **C1** (one list of changed files, Space stages): done. Changes lists every file, the inbox and
-  the priorities included, with `j`/`k` or the arrows to move and Space to stage or unstage. The
-  described pane is gone.
-- **C2** (capital letters for keys, `p` pull and `P` push): done. The keys are in
-  [Assumptions](#assumptions), lazygit's, capitals included.
+- **C1** (Changes as a file tree, Enter folds, `a` toggles all, staged files stay in place): done.
+  Changes is a tree of folders and files, each with its checkbox; a folder's is ticked, empty, or
+  mixed. Enter folds or unfolds a folder, Space stages the picked file or folder, and `a` stages
+  every file, or unstages them all when all are staged. A file staged keeps its row.
 
 ## Decisions
 
@@ -121,29 +119,37 @@ More scenarios:
 
 ### US3: Stage and commit any file (P1)
 
-Every changed file is in one list, the inbox and priorities included, as in lazygit. The human moves
-with `j`/`k` or the arrows, stages with Space, and commits what is staged.
+Every changed file is in one tree, the inbox and priorities included, as in lazygit. The human moves
+with `j`/`k` or the arrows, folds a folder with Enter, stages with Space, and commits what is
+staged.
 
 [Behind](/packages/web/src/GitMockups.stories.tsx#Behind)
 
 Key scenarios:
 
 1. **Given** `specs/INBOX.md` and `docs/web-ui.md` changed, **When** the human picks
-   `specs/INBOX.md` and presses Space, **Then** it moves under "Staged".
-2. **Given** `specs/INBOX.md` staged, **When** the human writes "chore: notes" and presses `c`,
+   `specs/INBOX.md` and presses Space, **Then** its box is ticked, and its row stays where it was.
+2. **Given** `specs/` holds `INBOX.md` and `PRIORITIES.md`, both changed, **When** the human picks
+   `specs/` and presses Space, **Then** both are staged, and the folder's box is ticked.
+3. **Given** `specs/INBOX.md` staged, **When** the human writes "chore: notes" and presses `c`,
    **Then** a commit holds `specs/INBOX.md` alone, through the human's hooks.
-3. **Given** `docs/web-ui.md` changed, **When** the human presses `d`, **Then** it asks "Discard the
-   changes to docs/web-ui.md?", and only Discard restores it.
 
 More scenarios:
 
-1. **Given** an untracked note file, **When** it is listed, **Then** it reads "new", and Space adds
+1. **Given** `specs/` picked and unfolded, **When** the human presses Enter, **Then** it folds to
+   one row, its counts summed, "+3 −2"; Enter again unfolds it.
+2. **Given** one of `specs/`'s two files staged, **When** the tree shows, **Then** the folder's box
+   is mixed.
+3. **Given** some files staged, **When** the human presses `a`, **Then** every file is staged; `a`
+   again unstages them all.
+4. **Given** `docs/web-ui.md` changed, **When** the human presses `d`, **Then** it asks "Discard the
+   changes to docs/web-ui.md?", and only Discard restores it.
+5. **Given** an untracked note file, **When** it is listed, **Then** it reads "new", and Space adds
    it.
-2. **Given** a hook refuses the commit, **When** it lands, **Then** its output shows above Changes,
+6. **Given** a hook refuses the commit, **When** it lands, **Then** its output shows above Changes,
    and the files stay staged.
-3. **Given** a buffer saved `spec.md` in the Vim mode worktree, **When** the page opens, **Then**
-   Changes shows it under "Vim mode", with its own Commit.
-4. **Given** nothing staged, **When** the human presses `a`, **Then** every file of main is staged.
+7. **Given** a buffer saved `proposal.md` in the Vim mode worktree, **When** the page opens,
+   **Then** Changes shows it in a tree of its own, "Vim mode", with its own Commit.
 
 ### US4: Fix conflicts in the page (P1)
 
@@ -266,8 +272,10 @@ the app's panes, Astryx's `CodeBlock` for diffs, and the shared editor for confl
   checkout, and a worktree group's while its feature's agent works. It owns that rule, beside
   `writable`'s for features.
 - **The Git page** (web) draws the sections and the picked row's diff, the picked row in the
-  address. It replaces `CommitPage.tsx` and its panes. A file row is a checkbox, staged or not, so
-  Space ticks it.
+  address. It replaces `CommitPage.tsx` and its panes. Changes is a tree: a folder folds with Enter,
+  and a single-child chain of folders reads as one row, `crates/core/src`. Each row is a checkbox,
+  so Space ticks it; a folder's is mixed when some of its files are staged. A row never moves when
+  staged.
 - **The conflict bar** (web) is an extension of the shared editor: a bar over each conflict, its
   sides named by branch, then both.
 
@@ -326,9 +334,10 @@ while writing this spec:
 - **Delete and rename conflicts** offer whole sides only, in plain words, as lazygit does. See
   [lazygit](discovery-01.md#lazygit).
 - **The sidebar's count** is the changes to commit plus the commits to pull, "Git · 3 · ↓3".
-- **Keys**, lazygit's: `p` pull, `P` push, `f` fetch, Space stage or unstage, `a` stage all, `c`
-  commit staged, `d` discard the file or remove the worktree, `M` merge into main, `m` continue or
-  abort a stopped pull or merge, `j`/`k` and Enter in the lists.
+- **Keys**, lazygit's: `p` pull, `P` push, `f` fetch, Space stage or unstage, `a` stage or unstage
+  all, Enter fold a folder or open a file's diff, `c` commit staged, `d` discard the file or remove
+  the worktree, `M` merge into main, `m` continue or abort a stopped pull or merge, `j`/`k` and
+  Enter in the lists.
 
 ## Constitution check
 
@@ -342,6 +351,26 @@ while writing this spec:
 confirmation or the human's git configuration.
 
 ## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-04: Changes as a file tree, like lazygit's, with staged files kept in
+> place.
+>
+> - You approve a generic git page for the main checkout, replacing the Commit page. It pulls,
+>   pushes, merges, stages and commits any file, and fixes conflicts in the shared editor.
+> - Changed since your review: Uraeda's described edits are gone. Every changed file is in one list,
+>   the inbox and priorities included, staged by Space as in lazygit.
+> - Gone with them: suggested messages, amending the latest chore, and Discard's undo of note moves.
+>   Their tests are under Replaced behaviour.
+> - Read one way: a feature's worktree with uncommitted buffer edits gets its own group in the list,
+>   so those edits can still be committed.
+> - Keyboard tension: Space stages a focused file row, as a checkbox, which `fields.ts` already lets
+>   own Space. There the leader menu opens with Ctrl+K. The Keyboard decision does not change.
+> - Unverified: credentials when the server runs git without a terminal. The plan's first task
+>   checks a pull and a push.
+> - Changed decision: Git, "the Commit page" renamed. Risk tier high: discards, removals, and a
+>   rebasing pull, each asked first or as your git configuration says.
 
 > [!NOTE]
 >

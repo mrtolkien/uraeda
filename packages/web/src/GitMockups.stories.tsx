@@ -41,6 +41,10 @@ const styles = stylex.create({
   },
   rowNarrow: { alignItems: "stretch", flexDirection: "column-reverse", gap: 0 },
   text: { flexGrow: 1, minWidth: 0 },
+  // A row inside a folder: indented one step, as the mockup's tree has one level.
+  nested: { paddingInlineStart: spacingVars["--spacing-5"] },
+  // A file's room where a folder's chevron sits, so names line up.
+  leaf: { flexShrink: 0, width: spacingVars["--spacing-4"] },
   // A conflict's bar, over its lines in the editor: the sides by name, then both.
   bar: {
     backgroundColor: colorVars["--color-background-muted"],
@@ -59,13 +63,16 @@ const styles = stylex.create({
 function Row({
   children,
   end,
+  isInline = false,
   isPicked = false,
 }: {
   children: ReactNode;
   end?: ReactNode;
+  /** A tree's short row keeps its counts beside it on the phone too, so the tree stays compact. */
+  isInline?: boolean;
   isPicked?: boolean;
 }) {
-  const narrow = isNarrow(useWidthClass());
+  const narrow = isNarrow(useWidthClass()) && !isInline;
   return (
     <div {...stylex.props(styles.row, narrow && styles.rowNarrow, isPicked && pickedStyles.picked)}>
       <div {...stylex.props(styles.text)}>{children}</div>
@@ -96,32 +103,57 @@ function Sync({ isWorking = false }: { isWorking?: boolean }) {
   );
 }
 
-/** A changed file: a checkbox, staged or not, which Space ticks, then its counts. */
-function File({
-  added,
-  isPicked = false,
-  isStaged = false,
-  isWorking = false,
-  path,
-  removed,
-}: {
+/** A row of the changes' tree, a folder or a file, at its depth. */
+type Node = {
   added: number;
-  isPicked?: boolean;
-  isStaged?: boolean;
-  isWorking?: boolean;
-  path: string;
+  depth: number;
+  isOpen?: boolean;
+  name: string;
   removed: number;
+  staged: boolean | "indeterminate";
+};
+
+/**
+ * A row of the changes' tree: its chevron for a folder, its box, staged, empty, or mixed, which
+ * Space ticks, then its counts. A staged file keeps its place.
+ */
+function TreeRow({
+  isPicked = false,
+  isWorking = false,
+  node,
+}: {
+  isPicked?: boolean;
+  isWorking?: boolean;
+  node: Node;
 }) {
+  const isFolder = node.isOpen !== undefined;
   return (
-    <Row end={<DiffCount added={added} removed={removed} />} isPicked={isPicked}>
-      <CheckboxInput isDisabled={isWorking} label={path} value={isStaged} />
+    <Row end={<DiffCount added={node.added} removed={node.removed} />} isInline isPicked={isPicked}>
+      <HStack gap={1} xstyle={node.depth > 0 && styles.nested}>
+        {isFolder ? (
+          <Icon icon={node.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+        ) : (
+          <span {...stylex.props(styles.leaf)} />
+        )}
+        <CheckboxInput isDisabled={isWorking} label={node.name} value={node.staged} />
+      </HStack>
     </Row>
   );
 }
 
+/** The main checkout's changed files, as a tree: `specs/` mixed, `docs/` folded. */
+const MAIN: ReadonlyArray<Node> = [
+  { added: 4, depth: 0, isOpen: true, name: "crates/core/src", removed: 1, staged: false },
+  { added: 4, depth: 1, name: "git.rs", removed: 1, staged: false },
+  { added: 2, depth: 0, isOpen: false, name: "docs", removed: 0, staged: false },
+  { added: 3, depth: 0, isOpen: true, name: "specs", removed: 2, staged: "indeterminate" },
+  { added: 3, depth: 1, name: "INBOX.md", removed: 0, staged: true },
+  { added: 0, depth: 1, name: "PRIORITIES.md", removed: 2, staged: false },
+];
+
 /**
- * Every changed file of the main checkout, staged first, the inbox and the priorities as any other;
- * then a feature's worktree with a buffer's save, as its own group with its own commit.
+ * Every changed file of the main checkout, as a tree, the inbox and the priorities as any other;
+ * then a feature's worktree with a buffer's save, as a tree of its own with its own commit.
  */
 function Changes({ isWorking = false }: { isWorking?: boolean }) {
   return (
@@ -133,23 +165,15 @@ function Changes({ isWorking = false }: { isWorking?: boolean }) {
         count={4}
         title="Changes"
       >
-        <VStack gap={1}>
-          <Text color="secondary" type="supporting">
-            Staged
-          </Text>
-          <File added={3} isStaged isWorking={isWorking} path="specs/INBOX.md" removed={0} />
-          <Text color="secondary" type="supporting">
-            Not staged
-          </Text>
-          <File
-            added={4}
-            isPicked
-            isWorking={isWorking}
-            path="crates/core/src/git.rs"
-            removed={1}
-          />
-          <File added={0} isWorking={isWorking} path="specs/PRIORITIES.md" removed={2} />
-          <File added={2} isWorking={isWorking} path="docs/web-ui.md" removed={0} />
+        <VStack gap={0}>
+          {MAIN.map((node, index) => (
+            <TreeRow
+              isPicked={index === 1}
+              isWorking={isWorking}
+              key={`${node.depth}-${node.name}`}
+              node={node}
+            />
+          ))}
         </VStack>
       </Pane>
       <Pane
@@ -157,12 +181,23 @@ function Changes({ isWorking = false }: { isWorking?: boolean }) {
         count={1}
         title="Vim mode"
       >
-        <File
-          added={6}
-          isWorking={isWorking}
-          path="specs/changes/2026-11-04-vim-mode/proposal.md"
-          removed={1}
-        />
+        <VStack gap={0}>
+          <TreeRow
+            isWorking={isWorking}
+            node={{
+              added: 6,
+              depth: 0,
+              isOpen: true,
+              name: "specs/changes/2026-11-04-vim-mode",
+              removed: 1,
+              staged: false,
+            }}
+          />
+          <TreeRow
+            isWorking={isWorking}
+            node={{ added: 6, depth: 1, name: "proposal.md", removed: 1, staged: false }}
+          />
+        </VStack>
       </Pane>
     </VStack>
   );
@@ -363,8 +398,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * After a pull request merged: 3 commits to pull, 6 chores to push, changed files, one staged, a
- * feature's buffer save in its own group, and the picked file's diff beside the sections.
+ * After a pull request merged: 3 commits to pull, 6 chores to push, the changed files as a tree,
+ * one staged in place, a feature's buffer save in its own tree, and the picked file's diff beside the sections.
  */
 export const Behind: Story = { args: { detail: <Diff /> } };
 
