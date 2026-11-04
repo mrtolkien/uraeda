@@ -2,13 +2,10 @@
 //! merge of a branch into the one checked out. A merge or a continue that stops on a conflict
 //! succeeds: [`Git::stopped`] then shows it.
 
-use std::collections::BTreeMap;
-
-use gix::index::entry::Stage;
 use gix::state::InProgress;
 
 use super::commit::refused;
-use super::{Git, GitError, OnOutput, StoppedKind, process, read_error};
+use super::{ConflictKind, Git, GitError, OnOutput, StoppedKind, process};
 
 /// How a conflicted file is resolved: git's stage 2 whole, its stage 3 whole, or deleted. A side
 /// that deleted the file deletes it.
@@ -24,17 +21,18 @@ impl Git {
     /// that is not conflicted.
     pub fn resolve_conflict(&self, path: &str, resolution: Resolution) -> Result<(), GitError> {
         let path = self.checked(path)?;
-        let Some(stages) = self.conflicts()?.remove(path) else {
+        let conflicts = self.conflicts()?;
+        let Some(conflict) = conflicts.iter().find(|conflict| conflict.path == path) else {
             return Err(GitError::Refused(format!("{path} has no conflict.")));
         };
         let side = match resolution {
-            Resolution::Ours => Some(("--ours", Stage::Ours)),
-            Resolution::Theirs => Some(("--theirs", Stage::Theirs)),
+            Resolution::Ours => Some(("--ours", has_ours(conflict.kind))),
+            Resolution::Theirs => Some(("--theirs", has_theirs(conflict.kind))),
             Resolution::Delete => None,
         };
         let paths = [path.to_string()];
         match side {
-            Some((side, stage)) if stages.contains(&stage) => {
+            Some((side, true)) => {
                 self.write_paths(&["checkout", side], &paths)?;
                 self.write_paths(&["add"], &paths)
             }
@@ -42,28 +40,27 @@ impl Git {
         }
     }
 
-    /// Stages each conflicted file whose conflicts are all resolved, refusing while one still
-    /// holds markers, then continues the stopped rebase or merge. A stash put back with conflicts
+    /// Stages each conflicted file, refusing while one is not [`super::Conflict::is_resolved`],
+    /// then continues the stopped rebase or merge. A stash put back with conflicts
     /// has nothing to continue: its files are staged, and the stash kept.
     pub fn continue_stopped(&self, on_output: OnOutput) -> Result<(), GitError> {
         let Some(stopped) = self.stopped() else {
             return Err(nothing_stopped());
         };
-        let paths: Vec<String> = self.conflicts()?.into_keys().collect();
-        let mut left = 0;
-        for path in &paths {
-            match std::fs::read(self.root.join(path)) {
-                Ok(text) if has_markers(&text) => left += 1,
-                Ok(_) => {}
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                Err(error) => return Err(read_error(path.as_str())(error)),
-            }
-        }
-        match left {
+        let conflicts = self.conflicts()?;
+        match conflicts
+            .iter()
+            .filter(|conflict| !conflict.is_resolved)
+            .count()
+        {
             0 => {}
             1 => return Err(GitError::Refused("1 file still conflicts.".to_string())),
             n => return Err(GitError::Refused(format!("{n} files still conflict."))),
         }
+        let paths: Vec<String> = conflicts
+            .into_iter()
+            .map(|conflict| conflict.path)
+            .collect();
         self.write_paths(&["add", "--all"], &paths)?;
         if stopped.kind == StoppedKind::Stash {
             return Ok(());
@@ -119,28 +116,30 @@ impl Git {
             _ => "merge",
         }
     }
-
-    /// Each conflicted file of the index, read from disk, with the stages it holds.
-    fn conflicts(&self) -> Result<BTreeMap<String, Vec<Stage>>, GitError> {
-        let index = self.repo.open_index().map_err(read_error("the index"))?;
-        let mut conflicts: BTreeMap<String, Vec<Stage>> = BTreeMap::new();
-        for entry in index.entries() {
-            if entry.stage() != Stage::Unconflicted {
-                let path = entry.path(&index).to_string();
-                conflicts.entry(path).or_default().push(entry.stage());
-            }
-        }
-        Ok(conflicts)
-    }
 }
 
 fn nothing_stopped() -> GitError {
     GitError::Refused("Nothing is stopped: there is nothing to continue or abort.".to_string())
 }
 
-/// Whether a file still holds one of git's conflict markers: task 2's `Conflict::is_resolved`
-/// replaces it at the wave's merge (ruling R4).
-fn has_markers(text: &[u8]) -> bool {
-    text.split(|byte| *byte == b'\n')
-        .any(|line| line.starts_with(b"<<<<<<< ") || line.starts_with(b">>>>>>> "))
+/// Whether git's stage 2, `ours`, holds the file.
+fn has_ours(kind: ConflictKind) -> bool {
+    matches!(
+        kind,
+        ConflictKind::BothChanged
+            | ConflictKind::BothAdded
+            | ConflictKind::DeletedTheirs
+            | ConflictKind::AddedOurs
+    )
+}
+
+/// Whether git's stage 3, `theirs`, holds the file.
+fn has_theirs(kind: ConflictKind) -> bool {
+    matches!(
+        kind,
+        ConflictKind::BothChanged
+            | ConflictKind::BothAdded
+            | ConflictKind::DeletedOurs
+            | ConflictKind::AddedTheirs
+    )
 }

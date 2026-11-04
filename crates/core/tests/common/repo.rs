@@ -326,6 +326,8 @@ impl TestRepo {
         );
         run_git(&remover, &["push", "--quiet", "origin", "HEAD:main"]);
         self.git(&["fetch", "--quiet", "origin"]);
+    }
+
     /// Leaves the pull of [`TestRepo::stopped_pull`] stopped with `rebase.autoStash` on, and an
     /// uncommitted edit of `path`, a tracked file, stashed by the pull.
     pub fn stopped_pull_autostashed(&self, path: &str, text: &str) {

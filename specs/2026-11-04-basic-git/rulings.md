@@ -37,9 +37,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R4: Conflict markers are read in the core and in the bar
 
-- **Decision**: the core marks a conflicted file resolved when it holds no line starting `  nor `>>>>>>> `, and refuses Continue otherwise; the conflict bar parses the blocks of the text
-  being edited. Task 4 holds a private copy of the core's line test until task 2's merges, then uses
-  task 2's.
+- **Decision**: the core marks a conflicted file resolved when it holds no line starting `<<<<<<< `
+  nor `>>>>>>> `, and refuses Continue otherwise; the conflict bar parses the blocks of the text
+  being edited. Task 4's Continue reads task 2's `Conflict::is_resolved`, which holds the one line
+  test, `checkout::holds_markers`: task 4's private copy is gone.
 - **Rationale**: the bar edits unsaved text in the editor, so it cannot ask the core at each press;
   the core must still refuse to continue over markers whatever the browser sent.
 - **If wrong**: the two disagree only on a marker line git did not write.
@@ -101,14 +102,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   instead of prompting.
 - **Where**: task 1.
 
-<<<<<<< HEAD
 ## R11: A binary or a delete conflict is never resolved by its markers
 
 - **Decision**: a conflict's `is_resolved` holds only for a text file both sides have
   (`BothChanged`, `BothAdded`) whose working file has no marker line. A binary conflict, or one
   where a side deleted or alone added the file, stays unresolved until a whole side is taken, which
-  stages it and takes it out of the conflicts. Task 4's Continue reads `Conflict::is_resolved`, and
-  its private marker test gives way to `checkout::holds_markers` at the wave's merge.
+  stages it and takes it out of the conflicts. Task 4's Continue reads `Conflict::is_resolved`, so
+  it refuses while such a conflict has no side taken.
 - **Rationale**: git writes no markers in those files, so the marker test alone would read them
   resolved at once, and Continue would stage git's leftover side without the human choosing one, as
   the spec offers only whole sides for them.
