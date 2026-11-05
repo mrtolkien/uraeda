@@ -10,7 +10,7 @@ import { RefusedHere } from "../writes/RefusedHere.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
 import type { GitWorktree } from "./data.ts";
 import { PlaceError } from "./PlaceError.tsx";
-import { Row } from "./Row.tsx";
+import { Row, useRowLines } from "./Row.tsx";
 import { type GitWrites, placeHref } from "./useGitWrites.ts";
 
 /** The key of a worktree's row among the list's rows. */
@@ -53,6 +53,7 @@ function Worktree({
 }) {
   const key = worktreeKey(worktree.path);
   const offer = offerOf(worktree);
+  const lines = useRowLines();
   return (
     <Row
       end={
@@ -73,8 +74,8 @@ function Worktree({
       rowKey={offer ? key : undefined}
     >
       <VStack gap={0}>
-        <Text>{worktree.name}</Text>
-        <Text color="secondary" type="supporting">
+        <Text maxLines={lines}>{worktree.name}</Text>
+        <Text color="secondary" maxLines={lines} type="supporting">
           {lineOf(worktree)}
         </Text>
       </VStack>

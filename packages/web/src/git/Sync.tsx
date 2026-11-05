@@ -100,7 +100,7 @@ export function Sync({
   const ahead = isStopped ? 0 : page.ahead;
   const branch = page.branch ?? "main";
   const buttons = (
-    <HStack gap={1} justify="end" wrap="wrap">
+    <HStack gap={1} wrap="wrap">
       {page.hasRemote && (
         <>
           <WriteButton
@@ -136,7 +136,8 @@ export function Sync({
     </HStack>
   );
   return (
-    <PageTitle aside={buttons} meta={{ text: syncLine(page, now) }}>
+    // In the list's narrow column, as lazygit's status pane: the buttons under the branch's line.
+    <PageTitle aside={buttons} isAsideBelow meta={{ text: syncLine(page, now) }}>
       Git
     </PageTitle>
   );

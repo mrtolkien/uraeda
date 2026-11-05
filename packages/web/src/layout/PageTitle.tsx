@@ -31,8 +31,9 @@ export type TitleMeta = { marks?: ReactNode; text: ReactNode };
  * another element, as a block a comment can select. `count` follows it, a badge without words, as
  * the inbox's review asked (C3). `actions` stay beside it at every width, as a "…" menu; `aside`
  * sits at the row's end on wider screens, shrinking first, its own items wrapping, and under the
- * title's lines on the phone, as a search or a page's main tool. `above` is the line over it, a file's path; `status` a workflow file's status, as a
- * badge over it; `meta` the supporting line under it, the subject's state; `description` the
+ * title's lines on the phone, as a search or a page's main tool, and at every width with
+ * `isAsideBelow`, for a title in a narrow column. `above` is the line over it, a file's path;
+ * `status` a workflow file's status, as a badge over it; `meta` the supporting line under it, the subject's state; `description` the
  * secondary text under them, what the page is for.
  */
 export function PageTitle({
@@ -44,6 +45,7 @@ export function PageTitle({
   count,
   description,
   id,
+  isAsideBelow = false,
   meta,
   status,
 }: {
@@ -55,10 +57,12 @@ export function PageTitle({
   count?: number;
   description?: ReactNode;
   id?: string;
+  isAsideBelow?: boolean;
   meta?: TitleMeta;
   status?: ReturnType<typeof fileStatusBadge>;
 }) {
   const narrow = isNarrow(useWidthClass());
+  const below = isAsideBelow || narrow;
   const heading = around(
     <Heading id={id} level={1}>
       {children}
@@ -71,7 +75,7 @@ export function PageTitle({
         {count !== undefined && <Badge label={String(count)} variant="neutral" />}
       </HStack>
       {actions && <div {...stylex.props(styles.beside)}>{actions}</div>}
-      {aside && !narrow && <div {...stylex.props(styles.aside)}>{aside}</div>}
+      {aside && !below && <div {...stylex.props(styles.aside)}>{aside}</div>}
     </HStack>
   );
   return (
@@ -91,7 +95,7 @@ export function PageTitle({
           </Text>
         </HStack>
       )}
-      {aside && narrow && aside}
+      {aside && below && aside}
       {description && <Paragraph color="secondary">{description}</Paragraph>}
     </VStack>
   );

@@ -14,7 +14,9 @@ import { useFateClient, useLiveView, useRequest } from "react-fate";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
+import { useNow } from "../useNow.ts";
 import { Back } from "./Back.tsx";
+import { age } from "./History.tsx";
 import { gitAddress, type Picked } from "./address.ts";
 import { GitCommitView, gitDiffId, GitDiffView } from "./data.ts";
 
@@ -149,12 +151,16 @@ function CommitDetail({ actions, id }: { actions: ReactNode; id: string }) {
   const here = useRepoPath();
   const { gitCommit } = useRequest({ gitCommit: { id, view: GitCommitView } });
   const commit = useLiveView(GitCommitView, gitCommit);
+  const now = useNow(60_000);
   if (!commit) {
     return null;
   }
   return (
     <Pane actions={actions} title={commit.subject}>
       <VStack gap={3}>
+        <Text color="secondary" hasTabularNumbers type="supporting">
+          {commit.id.slice(0, 7)} · {age(now - commit.authored * 1000)} ago
+        </Text>
         {commit.body && <Text display="block">{commit.body}</Text>}
         <VStack gap={1}>
           {commit.files.map((file) => (

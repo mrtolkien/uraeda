@@ -32,6 +32,13 @@ import { type GitActions, type ListRow, pickOf, useGitKeys } from "./useGitKeys.
 import { filesShown, type GitWrites, placeHref, useGitWrites } from "./useGitWrites.ts";
 import { offerOf, Worktrees, worktreeKey } from "./Worktrees.tsx";
 
+/**
+ * The list's and the detail's columns, as lazygit lays them out: the list a narrow column of
+ * one-line rows, two fifths of the room, and the detail, a diff or a commit, the rest, about 80
+ * characters of a diff on a wide screen.
+ */
+const COLUMNS = "minmax(0, 2fr) minmax(0, 3fr)";
+
 /** The folded folders of each group, by `treeKey`. */
 type Folded = ReadonlySet<string>;
 
@@ -349,7 +356,7 @@ export function GitPage() {
   return (
     <Page kind="panes">
       <Panes
-        columns="minmax(0, 1fr) minmax(0, 1fr)"
+        columns={COLUMNS}
         detail={
           detailOf && (
             <PickedDetail isNarrow={narrow} page={page} picked={detailOf} writes={writes} />

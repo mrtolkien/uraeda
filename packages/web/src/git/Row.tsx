@@ -24,6 +24,20 @@ const styles = stylex.create({
   text: { flexGrow: 1, minWidth: 0 },
 });
 
+/** A row's link cut to one line: no wider than the row's text, so its ellipsis shows. */
+export const rowStyles = stylex.create({
+  oneLine: { maxWidth: "100%" },
+});
+
+/**
+ * The lines a row's text takes: one beside the detail on wider screens, cut by an ellipsis as a
+ * terminal's list is, the detail showing it whole; as many as it needs on the phone, where the
+ * text takes the whole width.
+ */
+export function useRowLines(): 0 | 1 {
+  return isNarrow(useWidthClass()) ? 0 : 1;
+}
+
 /**
  * A row, `isPicked` when the keys or the pointer chose it: its text, then `end` beside it on wider
  * screens, and on a head line over it on the phone, unless `isInline`, a tree's short row, which

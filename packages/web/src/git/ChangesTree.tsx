@@ -23,7 +23,7 @@ import { gitAddress } from "./address.ts";
 import { CommitField } from "./CommitField.tsx";
 import type { GitGroup } from "./data.ts";
 import { PlaceError } from "./PlaceError.tsx";
-import { Row } from "./Row.tsx";
+import { Row, useRowLines } from "./Row.tsx";
 import type { TreeRow } from "./tree.ts";
 import type { ListRow } from "./useGitKeys.ts";
 import { filesShown, placeHref, type GitWrites } from "./useGitWrites.ts";
@@ -84,6 +84,7 @@ export function TreeLine({
   writes: GitWrites;
 }) {
   const here = useRepoPath();
+  const lines = useRowLines();
   const folder = group.folder ?? undefined;
   return (
     <HStack align="center" gap={1} xstyle={styles.depth(row.depth)}>
@@ -109,13 +110,19 @@ export function TreeLine({
       />
       {row.folder ? (
         // The text's own colour: a name reads as a file, not as the accent of a link.
-        <Link color="primary" onClick={() => onFold(row.path)} xstyle={styles.name}>
+        <Link
+          color="primary"
+          maxLines={lines}
+          onClick={() => onFold(row.path)}
+          xstyle={styles.name}
+        >
           {row.name}
         </Link>
       ) : (
         <Link
           color="primary"
           href={here(gitAddress({ file: row.path, folder, kind: "file" }))}
+          maxLines={lines}
           xstyle={styles.name}
         >
           {row.name}
