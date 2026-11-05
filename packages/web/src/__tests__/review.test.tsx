@@ -5,6 +5,7 @@ import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { GENERAL_ID } from "../YourReview.tsx";
 import {
+  atWidth,
   fieldText,
   fixture,
   fixtureRepo,
@@ -419,4 +420,31 @@ test("a block selected from its toggle gives its comment field the focus", async
   await click(toggle);
   const text = await field();
   await waitFor(() => expect(document.activeElement).toBe(text));
+});
+
+/**
+ * On a wide screen, the comment quotes the start of its block; on the phone, the block shows, marked,
+ * right above the comment's sheet, and a copy of it in the sheet pushed Add comment out of sight.
+ * Break: the quote back in the phone's sheet (T3).
+ */
+test("on the phone, a block's comment quotes nothing: the block shows above it", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await openUS2();
+  await click(await scenario(FIRST));
+  await waitFor(async () => expect((await form()).textContent).toContain("weekly task due Monday"));
+  await click(within(await form()).getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(writing()).toHaveLength(0));
+
+  atWidth(402);
+  try {
+    await renderPage(PAGE, r);
+    await openUS2();
+    await click(await scenario(FIRST));
+    const sheet = await form();
+    expect(within(sheet).getByRole("button", { name: "Add comment" })).toBeTruthy();
+    expect(sheet.textContent).not.toContain("weekly task due Monday");
+  } finally {
+    atWidth(1440);
+  }
 });

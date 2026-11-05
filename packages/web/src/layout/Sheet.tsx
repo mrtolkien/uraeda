@@ -10,6 +10,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { glassStyles } from "./glass.ts";
+import { safeAreaVars } from "./safeArea.stylex.ts";
 import { useFieldFocus } from "./useFieldFocus.ts";
 import { useKeyboardInset } from "./useKeyboardInset.ts";
 
@@ -23,10 +24,20 @@ const styles = stylex.create({
     interpolateSize: "allow-keywords",
     transitionProperty: "transform, opacity, height, max-height, margin-block-end",
   },
-  // A sheet shorter than the screen, over the phone's keyboard: lifted by what it covers. Astryx
-  // follows the keyboard for a tall sheet alone, and a field focused as the sheet opens does not
-  // scroll the page to it.
-  lifted: (inset: number) => ({ marginBlockEnd: inset }),
+  // A sheet shorter than the screen, over the phone's keyboard: lifted by what it covers, and no
+  // taller than the room left above it, its content scrolling inside. Astryx follows the keyboard
+  // for a tall sheet alone, and a field focused as the sheet opens does not scroll the page to it.
+  // Astryx's sheet runs on under the screen's edge by its bleed, padded by it and by the safe area:
+  // over the keyboard, both go under it, and the sheet's end, its last button, sits on it.
+  lifted: {
+    marginBlockEnd: `calc(var(--sheet-lift) - ${safeAreaVars["--sheet-bleed"]} - ${safeAreaVars["--safe-area-bottom"]})`,
+    maxHeight: `calc(var(--sheet-most) + ${safeAreaVars["--sheet-bleed"]} + ${safeAreaVars["--safe-area-bottom"]})`,
+  },
+  // How far it lifts, and how tall it may be.
+  liftedBy: (inset: number, most: number) => ({
+    "--sheet-lift": `${inset}px`,
+    "--sheet-most": `${most}px`,
+  }),
   // The sheet's heading over its content, which takes the rest of the sheet's height: a part of it
   // that scrolls on its own stays in the sheet, under the parts after it.
   fill: {
@@ -56,19 +67,43 @@ const styles = stylex.create({
 const TOP_ROOM_PX = 16;
 
 /**
- * How far a sheet `height` tall lifts over a keyboard covering `keyboard` of a screen `screen`
- * tall: by the keyboard, but never so far that its top, its title and Close, leaves the screen.
+ * How a sheet sits over a keyboard covering `keyboard` of a screen `screen` tall, under a bar
+ * `top` tall, the phone's tabs: lifted by the whole keyboard, so its end, where its buttons are,
+ * stays above it, and at most as tall as the room left, so its top, its title and Close, stays in
+ * view. Nothing while no keyboard shows.
  */
-export function liftOf(keyboard: number, height: number, screen: number) {
-  return Math.max(0, Math.min(keyboard, screen - height - TOP_ROOM_PX));
+export function keyboardFit(keyboard: number, screen: number, top = 0) {
+  return keyboard > 0
+    ? { lift: keyboard, most: Math.max(0, screen - keyboard - top - TOP_ROOM_PX) }
+    : undefined;
 }
 
-/** The lift of the sheet `panel`, when it `isShort`, over the phone's keyboard while it shows. */
+/**
+ * The lift of the sheet `panel`, when it `isShort`, over the phone's keyboard while it shows; and,
+ * as the keyboard opens, its form scrolled to its end inside the sheet, so the field and the
+ * buttons after it, as Add comment, show above the keyboard together.
+ */
 function useKeyboardLift(panel: RefObject<HTMLDivElement | null>, isShort: boolean) {
   const keyboard = useKeyboardInset();
-  const height = panel.current?.getBoundingClientRect().height ?? 0;
-  const lift = isShort && keyboard > 0 ? liftOf(keyboard, height, window.innerHeight) : 0;
-  return lift > 0 && styles.lifted(lift);
+  // The tabs stay over a sheet that leaves the page usable: it keeps its top below them.
+  const top = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  const fit = isShort ? keyboardFit(keyboard, window.innerHeight, top) : undefined;
+  const isLifted = fit !== undefined;
+  useEffect(() => {
+    const focused = document.activeElement as HTMLElement | null;
+    if (!isLifted || !focused || !panel.current?.contains(focused)) {
+      return undefined;
+    }
+    // Once the sheet has its new height.
+    const frame = requestAnimationFrame(() => {
+      const form = focused.closest("form");
+      const room = panel.current?.getBoundingClientRect().height ?? 0;
+      const whole = form && form.getBoundingClientRect().height < room;
+      (whole ? form : focused).scrollIntoView?.({ block: whole ? "end" : "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isLifted, panel]);
+  return isLifted && [styles.lifted, styles.liftedBy(fit.lift, fit.most)];
 }
 
 /** The sheet's top, its handle and its title row, where a drag up takes it to the whole screen. */

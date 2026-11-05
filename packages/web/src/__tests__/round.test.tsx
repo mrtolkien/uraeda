@@ -5,6 +5,7 @@ import { expect, test } from "vite-plus/test";
 import {
   answered as readAnswered,
   answersSoFar,
+  atWidth,
   fieldText,
   fixtureRepo,
   git,
@@ -200,4 +201,26 @@ test("Commit writes the edit of a comment renumbered by a removal into that comm
   );
 
   expect(await committedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Edited delete comment.`);
+});
+
+/** The sticky header of a question: the box holding its title. */
+function stickyHead(id: string) {
+  return document.getElementById(`${id}-title`)!.parentElement as HTMLElement;
+}
+
+// Break: on the phone, a question's header stuck over the comment being typed, which the keyboard
+// leaves a third of the screen to (T3).
+test("on the phone, a question's header lets go while its comment is typed in", async () => {
+  atWidth(402);
+  try {
+    await renderPage(PAGE, fixtureRepo());
+    const field = await waitFor(() => comment("Q1"));
+    expect(getComputedStyle(stickyHead("Q1")).position).toBe("sticky");
+    act(() => field.focus());
+    await waitFor(() => expect(getComputedStyle(stickyHead("Q1")).position).toBe("static"));
+    act(() => field.blur());
+    await waitFor(() => expect(getComputedStyle(stickyHead("Q1")).position).toBe("sticky"));
+  } finally {
+    atWidth(1440);
+  }
 });

@@ -21,6 +21,8 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { useAboveKeyboard } from "./layout/useAboveKeyboard.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { startingLetters } from "./readLetters.ts";
 import type { useAnswer } from "./useAnswer.ts";
 import { StatusText } from "./fields/StatusText.tsx";
@@ -193,6 +195,9 @@ export function AnswerComment({
   takes: boolean;
 }) {
   const { field } = answer;
+  // On the phone, the field and its Save comment stay above the keyboard while it is typed in.
+  const box = useRef<HTMLDivElement>(null);
+  useAboveKeyboard(box, isNarrow(useWidthClass()) && !readOnly);
   if (readOnly) {
     return (
       <>
@@ -219,7 +224,7 @@ export function AnswerComment({
           restored={field.restored}
         />
       )}
-      <div>
+      <div ref={box}>
         <CommentField
           comment={field.text}
           id={id}

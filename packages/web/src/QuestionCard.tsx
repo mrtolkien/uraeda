@@ -1,7 +1,7 @@
 import { Card } from "@astryxdesign/core/Card";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useContext, useRef } from "react";
+import { type ReactNode, type RefObject, useContext, useEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
 import { glassStyles } from "./layout/glass.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -74,6 +74,11 @@ const styles = stylex.create({
     marginInline: "var(--page-bleed)",
     paddingInline: "var(--page-inset)",
   },
+  // On the phone, while its comment is typed in: the header scrolls with its card, and the room
+  // above the keyboard goes to the text (T3).
+  let: {
+    position: "static",
+  },
   stretch: {
     alignSelf: "stretch",
   },
@@ -112,6 +117,8 @@ function StickyHead({
   const place = useRef<HTMLDivElement>(null);
   const sticky = useRef<HTMLDivElement>(null);
   const isStuck = useStuck(place, sticky);
+  // On the phone, while its comment is typed in, it scrolls with its card.
+  const isLetGo = useTypingIn(place) && !wide;
   return (
     <>
       <div aria-hidden ref={place} />
@@ -120,14 +127,40 @@ function StickyHead({
         {...stylex.props(
           styles.stickyHead,
           !wide && styles.stickyHeadPhone,
-          isStuck && [glassStyles.surface, glassStyles.dockedTop],
+          isStuck && !isLetGo && [glassStyles.surface, glassStyles.dockedTop],
           text,
+          isLetGo && styles.let,
         )}
       >
         {children}
       </div>
     </>
   );
+}
+
+/** A field one types in, as a comment's editor, not an option's radio or checkbox. */
+const TYPED = '[contenteditable="true"], textarea, input:not([type=radio], [type=checkbox])';
+
+/** Whether the focus is in a field of the question `inside` is in: typing, not reading. */
+function useTypingIn(inside: RefObject<HTMLElement | null>) {
+  const [is, setIs] = useState(false);
+  useEffect(() => {
+    const card = inside.current?.closest("section");
+    if (!card) {
+      return undefined;
+    }
+    const update = () => {
+      const focused = document.activeElement as HTMLElement | null;
+      setIs(Boolean(focused && card.contains(focused) && focused.matches(TYPED)));
+    };
+    card.addEventListener("focusin", update);
+    card.addEventListener("focusout", update);
+    return () => {
+      card.removeEventListener("focusin", update);
+      card.removeEventListener("focusout", update);
+    };
+  }, [inside]);
+  return is;
 }
 
 /**
