@@ -38,6 +38,8 @@ When two conflict, the higher one wins.
 
 ## The guides
 
+- [Guidelines](guidelines.md): what books, design systems, and WCAG say, as rules with a check each,
+  and where they differ from these guides.
 - [Personas](personas.md): the humans the UI is built for, Tolki on the keyboard, Lolly with the
   mouse, and T3 on an iPhone, one of whom each persona walkthrough plays.
 - [Reading](reading.md): fonts, line lengths, hierarchy, lists, tables, and what not to put in text.
