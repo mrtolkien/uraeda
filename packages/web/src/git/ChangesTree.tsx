@@ -18,7 +18,6 @@ import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { gitRefusalTitle } from "../writes/labels.ts";
 import { RefusedHere } from "../writes/RefusedHere.tsx";
-import { WriteButton } from "../writes/WriteButton.tsx";
 import { gitAddress } from "./address.ts";
 import { CommitField } from "./CommitField.tsx";
 import type { GitGroup } from "./data.ts";
@@ -95,6 +94,7 @@ export function TreeLine({
           label={row.isOpen ? `Fold ${row.path}` : `Unfold ${row.path}`}
           onClick={() => onFold(row.path)}
           size="sm"
+          tooltip={row.isOpen ? "Fold" : "Unfold"}
           variant="ghost"
         />
       ) : (
@@ -133,8 +133,8 @@ export function TreeLine({
 }
 
 /**
- * A group's pane: its refusals above it, its tree, then its message and Commit, which commits what
- * is staged. `children` draws the rows, which the page owns for its keys.
+ * A group's pane: its refusals above it, its tree, then its message and, under it, its Commit,
+ * which commits what is staged. `children` draws the rows, which the page owns for its keys.
  */
 export function ChangesGroup({
   children,
@@ -161,14 +161,6 @@ export function ChangesGroup({
       />
       <PlaceError href={placeHref(place)} message={writes.errorAt(place)} />
       <Pane
-        actions={
-          <WriteButton
-            isDisabled={isDisabled || staged === 0}
-            label={isMain ? "Commit staged" : "Commit"}
-            onClick={() => writes.commit(group)}
-            variant={isMain ? "primary" : "secondary"}
-          />
-        }
         count={group.files.length}
         id={isMain ? "changes" : `changes-${group.folder}`}
         title={isMain ? "Changes" : group.name}
@@ -178,8 +170,10 @@ export function ChangesGroup({
           <CommitField
             group={group}
             isDisabled={isDisabled}
+            isPrimary={isMain}
             onCommit={() => writes.commit(group)}
             ref={commitRef}
+            staged={staged}
           />
         </VStack>
       </Pane>

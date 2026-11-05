@@ -82,9 +82,6 @@ async function press(target: HTMLElement, key: string) {
 /** The commit message's field. */
 const message = () => screen.getByRole("textbox", { name: "Message" });
 
-/** The hint under the message, `aria-hidden` while the field is not focused. */
-const hint = () => screen.getByText(/commits what is staged/).closest("[aria-hidden]");
-
 /** The files staged in `repo`, one per line. */
 const staged = (repo: string) => git(repo, "diff", "--cached", "--name-only");
 
@@ -118,14 +115,14 @@ test("a typed message stays once its commit is refused, and goes once it lands",
   await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
   await type(screen.getByRole("textbox", { name: "Message" }), "chore: plan the undo");
 
-  await click(screen.getByRole("button", { name: "Commit staged" }));
+  await click(screen.getByRole("button", { name: "Commit 1 file" }));
 
   await refreshUntil(() => expect(document.body.textContent).toContain(OUTPUT));
   expect(fieldText(screen.getByRole("textbox", { name: "Message" }))).toBe("chore: plan the undo");
   expect(staged(repo)).toBe("specs/PRIORITIES.md\n");
 
   writeFileSync(hook, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-  await click(screen.getByRole("button", { name: "Commit staged" }));
+  await click(screen.getByRole("button", { name: "Commit 1 file" }));
 
   await waitFor(() => expect(git(repo, "log", "-1", "--format=%s")).toBe("chore: plan the undo\n"));
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global redo\n`);
@@ -134,8 +131,8 @@ test("a typed message stays once its commit is refused, and goes once it lands",
   );
 });
 
-// Break: the field empty though a default is offered, `c` committing without the field, Enter
-// adding a line instead of committing, or its hint shown while Enter is not the field's.
+// Break: the field empty though a default is offered, `c` committing without the field, or Enter
+// adding a line instead of committing.
 test("`c` goes to the message, filled with the default, and Enter commits it", async () => {
   const repo = fixtureRepo();
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
@@ -143,17 +140,41 @@ test("`c` goes to the message, filled with the default, and Enter commits it", a
   await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
   await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
   await refreshUntil(() => expect(fieldText(message())).toBe("chore: add Global undo"));
-  expect(hint()?.getAttribute("aria-hidden")).toBe("true");
 
   await press(boxOf("specs/PRIORITIES.md"), "c");
 
   expect(document.activeElement).toBe(message());
-  expect(hint()?.getAttribute("aria-hidden")).toBe("false");
   expect(git(repo, "log", "-1", "--format=%s")).not.toBe("chore: add Global undo\n");
   await type(message(), "chore: add Global undo now");
   await press(message(), "Enter");
   await waitFor(() =>
     expect(git(repo, "log", "-1", "--format=%s")).toBe("chore: add Global undo now\n"),
+  );
+});
+
+// Break: Commit back in the pane's border, a second copy beside the one under the field, the
+// boilerplate line under the field back, or Commit not saying what it commits.
+test("one Commit, under the message, names the files it commits", async () => {
+  const repo = fixtureRepo();
+  write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
+  await renderPage("/git", repo);
+  const box = await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" });
+  const none = screen.getByRole("button", { name: "Commit" });
+  expect(
+    none.getAttribute("aria-disabled") === "true" || (none as HTMLButtonElement).disabled,
+  ).toBe(true);
+
+  await click(box);
+
+  const commit = await screen.findByRole("button", { name: "Commit 1 file" });
+  expect(screen.getAllByRole("button", { name: /^Commit/ })).toHaveLength(1);
+  // Under the field, after it in the page's order, and in no pane's title.
+  expect(message().compareDocumentPosition(commit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(commit.closest("h2, h3, legend")).toBeNull();
+  expect(screen.queryByText(/commits what is staged/)).toBeNull();
+  await click(commit);
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s")).toBe("chore: add Global undo\n"),
   );
 });
 
