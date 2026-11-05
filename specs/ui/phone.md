@@ -52,7 +52,7 @@ What goes in it, in this order:
 2. **At its end, the one step that moves the human forward**: Next to the next blank question,
    Verdict to the review's end, or a feature's next step, which its Next pane's button also does: "I
    know it's duplication, but it's clearer". An icon in the accent, never a filled block, even when
-   it is the step that finishes the page, like Submit once every question has an answer.
+   it is the step that finishes the page, like Commit once every question has an answer.
 
 A page with one main action has a bar of it alone, in the accent: the draft editor's Start, which
 opens the Start pane as a sheet, the slug focused; the inbox's and the priorities' Add, which opens
