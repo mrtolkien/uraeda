@@ -98,6 +98,11 @@ export type ComposerProps = {
    */
   sendsOnEnter?: boolean;
   session?: string;
+  /**
+   * Whether its field takes the focus as it opens, as a page that starts something does: a
+   * hand-over's session, its message ready for Enter.
+   */
+  takesFocus?: boolean;
   value: string;
   /**
    * The workflow's trigger, whether its run starts fresh, and the step its message was read at,
@@ -143,13 +148,16 @@ function attachRefusal(
       : imageRefusal(agent, unavailable, workflow);
 }
 
-/** A new session opens to write its first message: its field takes the focus. */
-function useFocusOnOpen(input: RefObject<EditorHandle | null>, isNewSession = false) {
+/**
+ * A new session opens to write its first message, and a hand-over's to send the workflow's: its
+ * field takes the focus, where Enter goes.
+ */
+function useFocusOnOpen(input: RefObject<EditorHandle | null>, isOpening = false) {
   useEffect(() => {
-    if (isNewSession) {
+    if (isOpening) {
       requestAnimationFrame(() => input.current?.focus());
     }
-  }, [input, isNewSession]);
+  }, [input, isOpening]);
 }
 
 /**
@@ -347,7 +355,7 @@ export function Composer(given: ComposerProps) {
   const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
   const place = useRef<HTMLDivElement>(null);
   useInsertKey(input, place, Boolean(unavailable));
-  useFocusOnOpen(input, given.isNewSession);
+  useFocusOnOpen(input, given.isNewSession === true || given.takesFocus === true);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
   const buttons = sendButtons({

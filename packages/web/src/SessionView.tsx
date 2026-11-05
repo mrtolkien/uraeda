@@ -441,6 +441,8 @@ export function SessionPane({
           {...composerDraft(draft)}
           {...(id === undefined ? { isNewSession } : { session: id })}
           sendsOnEnter
+          // A hand-over's message waits for Enter: on a keyboard, the field has the focus.
+          takesFocus={wide && !isBoxed && handing.workflow !== undefined}
           working={session?.status === "working"}
           {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
           {...returned.handing}
