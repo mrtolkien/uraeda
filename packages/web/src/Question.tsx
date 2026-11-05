@@ -1,5 +1,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
+import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -116,7 +117,15 @@ export function QuestionHead({
           {parent ? `${id} · follows ${parent}, because you picked ${parentLetter}` : id}
         </Text>
         {onAsk && (
-          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
+          // A filled button, as the review's comment form draws the same action: a ghost one read
+          // as the header's text until hovered.
+          <Button
+            icon={<Icon icon="uraeda:step-questions" />}
+            label="Ask the agent"
+            onClick={() => onAsk(question)}
+            size="sm"
+            variant="secondary"
+          />
         )}
       </HStack>
       <Heading

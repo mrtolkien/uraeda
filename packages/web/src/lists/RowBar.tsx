@@ -62,10 +62,13 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-3"],
     display: "flex",
     flexWrap: "wrap",
-    // A line's room above and below it.
-    paddingBlock: listVars["--list-row-room"],
     position: "relative",
     zIndex: 2,
+  },
+  // An action, with the line's room above and below it in its own box rather than the bar's, so
+  // the bar stays as tall and each target is 24 px at least, as WCAG 2.5.8 asks of a pointer's.
+  action: {
+    paddingBlock: listVars["--list-row-room"],
   },
   // The phone's bar: liquid glass (`glassStyles`), square, floating over the page above the
   // screen's bottom, as wide as its actions.
@@ -290,7 +293,7 @@ export function RowBar({
           <button
             onClick={pressed(action)}
             type="button"
-            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit, styles.action)}
           >
             <KeyCap>{action.keys}</KeyCap> {action.label}
           </button>
