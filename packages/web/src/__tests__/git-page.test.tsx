@@ -278,3 +278,15 @@ test("a working tree's diff reads the file afresh, open and opened again", async
 
   await waitFor(() => shows("And the work."));
 });
+
+// Break: git's header of the file, `--- a/` and `+++ b/`, drawn over the hunks again, or a hunk
+// dropped with it.
+test("a file's diff leaves out git's header of the file, and keeps its hunks", async () => {
+  const repo = changedRepo();
+  await renderPage("/git?file=docs/web-ui.md", repo);
+  await waitFor(() => shows("It draws the specs."));
+
+  shows("@@");
+  const text = document.querySelector("[data-git-diff]")?.textContent ?? "";
+  expect(text).not.toMatch(/--- a\/|\+\+\+ b\/|diff --git/);
+});

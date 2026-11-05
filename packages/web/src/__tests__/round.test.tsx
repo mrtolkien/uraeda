@@ -90,7 +90,9 @@ test("a comment being written is not replaced by an answer changed elsewhere", a
 
 /** The round's single Commit, at its end, under its notes: not the app's way to the Git page. */
 const commitButton = () =>
-  within(document.getElementById("notes") as HTMLElement).getByRole("button", { name: "Commit" });
+  within(document.getElementById("notes") as HTMLElement).getByRole("button", {
+    name: "Commit answers",
+  });
 
 test("Commit saves a comment not saved yet", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });

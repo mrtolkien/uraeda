@@ -135,8 +135,9 @@ test("p on a note with a note file offers every proposal, and a level moves its 
     );
     expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
   });
-  // The move ends on its toast, once its line is read back: the test ends after it.
-  await screen.findByText(/Moved to Later/);
+  // The move ends on its toast, once its line is read back, in plain words, no git's: the test ends
+  // after it.
+  await screen.findByText("Moved to Later · waits on the Git page");
 });
 
 test("a note with a note file added to a proposal's file goes into its Notes, and Undo puts it back", async () => {

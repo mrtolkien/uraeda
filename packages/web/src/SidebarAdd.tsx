@@ -20,6 +20,7 @@ import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
 import { addUndone, proposalRemoved } from "./optimisticLists.ts";
 import { useRoute } from "./routes.tsx";
 import { InboxView, PrioritiesView } from "./views.ts";
+import { waitsOnGit } from "./writes/labels.ts";
 
 /** The form a ＋ opened, if any. */
 type Form = "note" | "proposal" | undefined;
@@ -161,7 +162,7 @@ function ProposalOverlay({
   // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
     const title = titleOf(section);
-    toast(`Added to ${title}, not committed`, async () => {
+    toast(waitsOnGit(`Added to ${title}`), async () => {
       // Found again in the file as it is now, by its text: the proposal it added, wherever it is.
       const now = await readPriorities(fate);
       const same = now.sections.flatMap((s) => s.proposals).filter((p) => p.text === line?.text);
@@ -236,12 +237,12 @@ function NoteOverlay({
   const added = ({ file, note }: NoteAdded) => {
     onClose();
     if (file === undefined) {
-      toast("Added to the inbox, not committed", () => undoAdd(fate, note));
+      toast(waitsOnGit("Added to the inbox"), () => undoAdd(fate, note));
       return;
     }
     picked.clear();
     // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
-    toast("Added to the inbox as a file, not committed", async () =>
+    toast(waitsOnGit("Added to the inbox as a file"), async () =>
       note
         ? undoAsFile(fate, note)
         : `Could not undo: the note linking ${file} is no longer in INBOX.md.`,
