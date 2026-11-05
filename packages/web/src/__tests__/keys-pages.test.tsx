@@ -240,7 +240,7 @@ test("on a round with no blank question, `n` takes the focus to the page's Commi
   // The round's end mounts once its questions are in: its Commit is the page's.
   const commit = await waitFor(() =>
     within(document.getElementById("notes") as HTMLElement).getByRole("button", {
-      name: "Commit",
+      name: "Commit answers",
     }),
   );
 

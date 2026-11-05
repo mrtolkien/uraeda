@@ -38,3 +38,9 @@ export function gitRefusalTitle(write: { failure?: string | undefined; label: st
   const verb = write.label.split(" ")[0] ?? "";
   return GIT_FAILED[verb] ?? `${write.label} failed.`;
 }
+
+/**
+ * What a toast adds to a write that saves without committing, in plain words: the change waits on
+ * the Git page for its Commit, "Moved to Now · waits on the Git page".
+ */
+export const waitsOnGit = (done: string) => `${done} · waits on the Git page`;

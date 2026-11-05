@@ -245,7 +245,7 @@ export function RoundEnd({
         ) : (
           <CommitActions
             isDisabled={blank.length > 0}
-            label="Commit"
+            label="Commit answers"
             onCommit={submit}
             // A round asked during the implementation may continue it, the spec as approved.
             {...(file.resumable
