@@ -6,9 +6,6 @@
 >
 > Still wanted for my personal usage
 
-- [Basic git UI in the web ui (pull, see diffs, ...)](/specs/2026-11-04-basic-git/proposal.md)
-- [Code in the editor uses the code font, prose the UI font](/specs/changes/2026-11-05-code-editor/proposal.md)
-
 - Review the UI guidelines properly
 
 - Global undo
