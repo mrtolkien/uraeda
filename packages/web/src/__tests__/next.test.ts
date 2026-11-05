@@ -114,3 +114,18 @@ test.each([
     label: "Open the session",
   });
 });
+
+test("a merged feature whose branch is left offers Clean, else its pull request", () => {
+  const done = { ...at("done"), pullRequest: PULL };
+
+  expect(nextOf({ ...done, leftBranch: FOLDER }, { working: false }).action).toEqual({
+    kind: "clean",
+    label: "Clean",
+  });
+  expect(nextOf(done, { working: false }).action).toEqual({
+    external: true,
+    href: PULL.url,
+    kind: "link",
+    label: "Open pull request #75",
+  });
+});

@@ -40,6 +40,7 @@ import { Missing } from "../layout/Missing.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import { featurePage } from "../dropItem.ts";
 import { RefusedHere } from "../writes/RefusedHere.tsx";
+import { useClean } from "../git/useClean.ts";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -123,7 +124,32 @@ function NextStep({
   // A human gate is peach, unless an agent works on it; the agent's turn, a build, or a merge is
   // the active pane.
   const tone = feature.step.waitsOn === "human" && !working ? "attention" : "active";
-  return <NextPane folder={feature.folder} next={next} onRun={onRun} tone={tone} />;
+  const clean = useClean();
+  const [refused, setRefused] = useState<string>();
+  // Stable while the feature is: `n` and Enter are declared again only when what they do changes.
+  const onClean = useCallback(() => {
+    setRefused(undefined);
+    void clean({
+      folder: feature.folder,
+      href: featurePage(feature.folder),
+      name: feature.title,
+    }).then(setRefused);
+  }, [clean, feature.folder, feature.title]);
+  return (
+    <VStack gap={2}>
+      <NextPane folder={feature.folder} next={next} onClean={onClean} onRun={onRun} tone={tone} />
+      {refused && (
+        <AnnouncedBanner
+          collapsible={false}
+          dismissLabel="Dismiss"
+          isDismissable
+          onDismiss={() => setRefused(undefined)}
+          status="error"
+          title={refused}
+        />
+      )}
+    </VStack>
+  );
 }
 
 /** What a finished feature left behind: its worktree, its branch, or both. */
@@ -148,9 +174,9 @@ function LeftBanner({ feature }: { feature: FeatureData }) {
           {feature.leftWorktree && feature.leftBranch && " and the branch "}
           {!feature.leftWorktree && "The branch "}
           {feature.leftBranch && <Code>{feature.leftBranch}</Code>}
-          {feature.leftWorktree && feature.leftBranch ? " are" : " is"} still there. Run{" "}
-          <Code>ura clean</Code> to remove{" "}
-          {feature.leftWorktree && feature.leftBranch ? "them" : "it"}.
+          {feature.leftWorktree && feature.leftBranch ? " are" : " is"} still there. Clean, under
+          Next, removes {feature.leftWorktree && feature.leftBranch ? "them" : "it"}, and its line
+          of the priorities.
         </>
       }
       status="info"

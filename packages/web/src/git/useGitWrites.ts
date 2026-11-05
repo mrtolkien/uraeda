@@ -15,6 +15,7 @@ import { useRepositoryPath } from "../routes.tsx";
 import { refusedAt, useDismissWrite, useWriteQueue } from "../writes/useWriteQueue.ts";
 import { GIT_PATH } from "./address.ts";
 import { type GitGroup, GitPageView, type GitWorktree } from "./data.ts";
+import { cleanQuestion } from "./useClean.ts";
 import type { FileChange } from "./tree.ts";
 
 /**
@@ -84,17 +85,6 @@ function removeQuestion(worktree: GitWorktree): ConfirmOptions {
     confirm: "Remove",
     destructive: true,
     title: `Remove ${worktree.path}?`,
-  };
-}
-
-/** What Clean asks, as `ura clean` acts. */
-function cleanQuestion(worktree: GitWorktree): ConfirmOptions {
-  return {
-    body: `Removes ${worktree.path}, deletes its branch, and removes ${worktree.name} from the priorities.`,
-    cancel: "Keep",
-    confirm: "Clean",
-    destructive: true,
-    title: `Clean ${worktree.name}?`,
   };
 }
 
@@ -229,7 +219,7 @@ export function useGitWrites() {
     return (
       folder !== undefined &&
       folder !== null &&
-      (await confirm(cleanQuestion(worktree))) &&
+      (await confirm(cleanQuestion(worktree.name, worktree.path))) &&
       run("worktrees", `Cleaning ${worktree.name}`, (write) =>
         git.clean({ input: { folder, write }, view }),
       )

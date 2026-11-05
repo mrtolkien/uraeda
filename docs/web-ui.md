@@ -209,6 +209,10 @@ Clean, which removes its worktree, its branch, and its priorities line, as `ura 
 without changes, or whose folder is gone, offers Remove, which keeps its branch; `d` on its row asks
 the same. One with changes offers neither.
 
+Clean is offered outside the Git page too, even once the worktree is gone: a merged feature's page
+shows it as Next's button while its worktree or its branch is left, and `Enter` presses it; `c` on
+its priorities line cleans it, from the line's bar.
+
 While an agent works in the main checkout, the page reads "An agent works in this checkout.", and
 its writes are disabled until the turn ends. Every write shows in the toast, and a refusal shows
 next to what it concerns.

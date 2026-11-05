@@ -14,10 +14,14 @@ type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
 
 /**
  * A row key that the row's bar shows (see `RowBar`), with its key as written there and its icon on
- * the phone, for the rows `isFor` accepts: the status line names none of them.
+ * the phone, for the rows `isFor` accepts, a fixed row's only with `isOnFixed`: the status line
+ * names none of them.
  */
 type BarKey = RowKey & {
-  bar?: Pick<BarAction, "icon" | "keys"> & { isFor?: (row: WorkRow) => boolean };
+  bar?: Pick<BarAction, "icon" | "keys"> & {
+    isFor?: (row: WorkRow) => boolean;
+    isOnFixed?: boolean;
+  };
 };
 
 /** The order of the bar's actions, by their keys. */
@@ -25,10 +29,12 @@ const BAR_ORDER = ["m", "c", "Tab", "shift+Tab", "p", "e", "s", "v", "d"];
 
 /**
  * A key of a list's own that acts on a row, shown in its bar: its key, its label, its icon on the
- * phone, the rows it is for, and what it does.
+ * phone, the rows it is for, and what it does. With `isOnFixed`, it acts on a fixed row too, as a
+ * merged proposal's Clean: every other key leaves a fixed row as it is.
  */
 export type RowAction = Pick<BarAction, "icon" | "keys" | "label"> & {
   isFor?: (row: WorkRow) => boolean;
+  isOnFixed?: boolean;
   run: (row: WorkRow) => void;
 };
 
@@ -197,13 +203,18 @@ function actionKeys(
   select: (key: string) => void,
   rowActions: ReadonlyArray<RowAction>,
 ): Array<BarKey> {
-  return rowActions.map(({ icon, isFor, keys: key, label, run }) => ({
-    bar: { ...(icon === undefined ? {} : { icon }), ...(isFor ? { isFor } : {}), keys: key },
+  return rowActions.map(({ icon, isFor, isOnFixed = false, keys: key, label, run }) => ({
+    bar: {
+      ...(icon === undefined ? {} : { icon }),
+      ...(isFor ? { isFor } : {}),
+      isOnFixed,
+      keys: key,
+    },
     keys: key,
     label,
     run: (at) => {
       const row = rows[at];
-      if (row === undefined || row.isFixed === true || !(isFor?.(row) ?? true)) {
+      if (row === undefined || (row.isFixed === true && !isOnFixed) || !(isFor?.(row) ?? true)) {
         return false;
       }
       select(row.key);
@@ -253,7 +264,8 @@ function moveModeKey(rows: ReadonlyArray<WorkRow>, onMoveMode: (row: WorkRow) =>
 /**
  * What the bar under `row` shows: the keys that act on it, in the bar's order. Enter first, which
  * edits a row edited in place and opens any other; `m` puts it in the move mode, whose bar the
- * list draws. A row that stays where it is only opens, and one that adds a line has no bar.
+ * list draws. A row that stays where it is only opens, besides the keys for a fixed row, and one
+ * that adds a line has no bar.
  */
 function barOf(
   row: WorkRow,
@@ -273,11 +285,13 @@ function barOf(
             ? { icon: "uraeda:pencil", keys: "⏎", label: "edit", run: () => onOpen(row) }
             : { icon: "uraeda:enter", keys: "⏎", label: "open", run: () => onOpen(row) },
         ];
-  if (row.isFixed === true) {
-    return open;
-  }
   const own = keys
-    .filter((key) => key.bar !== undefined && (key.bar.isFor?.(row) ?? true))
+    .filter(
+      (key) =>
+        key.bar !== undefined &&
+        (row.isFixed !== true || key.bar.isOnFixed === true) &&
+        (key.bar.isFor?.(row) ?? true),
+    )
     .map((key) => ({
       ...(key.bar?.icon === undefined ? {} : { icon: key.bar.icon }),
       keys: key.bar?.keys ?? key.keys,

@@ -357,6 +357,9 @@ export async function featureRecord(
     ...feature,
     agent: agentTime(turns),
     ...itemLooks(ctx)(feature.folder),
+    // Null once cleaned, not left out: a client keeps the fields a record leaves out.
+    leftBranch: feature.leftBranch ?? null,
+    leftWorktree: feature.leftWorktree ?? null,
     // Said, not left out: a client that read the folder missing before its start landed keeps the
     // fields a record leaves out.
     missing: false,

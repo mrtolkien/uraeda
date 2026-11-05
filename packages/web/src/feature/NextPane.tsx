@@ -12,16 +12,19 @@ import type { Next } from "./next.ts";
 /**
  * "Next": a pane named "Next", peach when a human gate waits on you, active otherwise, holding what
  * comes next, its line, and its one button: a link, or "Continue", which opens the session with
- * the message in its composer and sends nothing.
+ * the message in its composer and sends nothing, or Clean, which `onClean` does.
  */
 export function NextPane({
   folder,
   next,
+  onClean,
   onRun,
   tone,
 }: {
   folder: string;
   next: Next;
+  /** What Clean does: it removes what a merged feature left. */
+  onClean?: () => void;
   /** Hears what its button does, for `n`, or that it does nothing. */
   onRun?: (run: (() => void) | undefined) => void;
   tone: "active" | "attention";
@@ -38,8 +41,10 @@ export function NextPane({
       }
     } else if (action?.kind === "continue") {
       handOver(folder, action.trigger);
+    } else if (action?.kind === "clean") {
+      onClean?.();
     }
-  }, [action, folder, here]);
+  }, [action, folder, here, onClean]);
   // Told to the page as it changes, which declares `n` (see `NextKey`).
   useEffect(() => onRun?.(action ? run : undefined), [action, onRun, run]);
   useEffect(() => () => onRun?.(undefined), [onRun]);
@@ -62,6 +67,9 @@ export function NextPane({
             {...(action.external ? { rel: "noopener noreferrer", target: "_blank" } : {})}
             variant="primary"
           />
+        )}
+        {action?.kind === "clean" && (
+          <Button clickAction={() => onClean?.()} label={action.label} variant="primary" />
         )}
         {action?.kind === "continue" && (
           <Button

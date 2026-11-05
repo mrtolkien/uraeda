@@ -80,12 +80,16 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 };
 
 /** A feature, or `missing` alone when no feature has its folder. */
-export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
+export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorktree" | "step"> &
   // Its name in the sidebar, or null (R2).
   ItemLook & {
     /** Its sessions' agent time, null when no turn has a start. */
     agent: FeatureAgent | null;
     id: string;
+    /** For a merged feature, its local branch still there, else null. */
+    leftBranch: string | null;
+    /** For a merged feature, its worktree still there, else null. */
+    leftWorktree: string | null;
     missing?: boolean;
     /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;

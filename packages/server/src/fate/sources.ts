@@ -199,6 +199,8 @@ function missingFeature(folder: string): FeatureRecord {
     id: folder,
     kind: "",
     label: null,
+    leftBranch: null,
+    leftWorktree: null,
     missing: true,
     mockups: [],
     notes: [],

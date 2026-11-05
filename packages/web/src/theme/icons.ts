@@ -77,7 +77,7 @@ import {
   shield,
 } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
-import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
+import { arrowRightLeft, brain, brushCleaning, indent, outdent, trash } from "./activityIcons.ts";
 import { play, save } from "./barIcons.ts";
 import { compass, replace, square, squareDashed, textCursorInput } from "./editorIcons.ts";
 
@@ -202,6 +202,7 @@ export const uraedaIcons = {
   "uraeda:book-open": bookOpen,
   "uraeda:bot": bot,
   "uraeda:brain": brain,
+  "uraeda:brush-cleaning": brushCleaning,
   "uraeda:columns-3": columns3,
   "uraeda:comment": comment,
   "uraeda:compass": compass,

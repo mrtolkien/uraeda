@@ -26,6 +26,7 @@ import {
   type WorkSection,
 } from "./WorkList.tsx";
 import { proposalFilePage } from "../readAhead.ts";
+import { useClean } from "../git/useClean.ts";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -383,6 +384,14 @@ export function PrioritiesList({
   useNewAtTop(outline);
   const all = sectionsOf(outline, priorities, here);
   const { onPromote, onStart, open } = useProposalKeys(priorities, outline, onMoveRefused);
+  const clean = useClean();
+  /** The merged feature a line links, which `c` cleans: a nested row is its line's. */
+  const mergedOf = (row: WorkRow) =>
+    row.parent === undefined
+      ? priorities.sections
+          .flatMap((section) => section.proposals)
+          .find((proposal) => proposal.key === row.key)?.merged
+      : undefined;
 
   /** A proposal moved by a drop or its keys, in turn with the outline's writes. */
   const onMove = (key: string, section: string, index: number) =>
@@ -428,6 +437,24 @@ export function PrioritiesList({
       onOutline={outline.onOutline}
       onPromote={onPromote}
       onStart={onStart}
+      rowActions={[
+        {
+          icon: "uraeda:brush-cleaning",
+          isFor: (row) => mergedOf(row) !== undefined,
+          isOnFixed: true,
+          keys: "c",
+          label: "clean",
+          run: (row) => {
+            const merged = mergedOf(row);
+            if (merged) {
+              onMoveRefused?.(undefined);
+              void clean({ folder: merged.folder, href: pathname, name: row.text }).then(
+                (refused) => refused && onMoveRefused?.(refused),
+              );
+            }
+          },
+        },
+      ]}
       sections={all}
       selected={selected}
     />

@@ -9,10 +9,12 @@ import { day } from "./times.ts";
 
 /**
  * The one action of "Next": a link to a page of the app, by its path within the repository, or to a
- * URL; or "continue", which opens the session with the workflow's message in the composer, unsent.
+ * URL; "continue", which opens the session with the workflow's message in the composer, unsent; or
+ * "clean", which removes what a merged feature left, as `ura clean` does.
  */
 export type NextAction =
   | { external: boolean; href: string; kind: "link"; label: string }
+  | { kind: "clean"; label: string }
   | { kind: "continue"; label: string; trigger: Trigger };
 
 /** The workflow's recommended message, or why there is none, as the server reads it. */
@@ -26,6 +28,9 @@ export type Next = { action?: NextAction; line?: string; title: string };
 
 /** What "Next" reads of a feature. */
 export type NextFeature = Pick<FeatureView, "files" | "folder" | "path"> & {
+  /** For a merged feature, its branch and its worktree still there. */
+  leftBranch?: string | null;
+  leftWorktree?: string | null;
   pullRequest?: { number: number; url: string } | null;
   step: Pick<StepView, "file" | "fileKind" | "name" | "waitsOn"> & {
     progress?: TaskProgress | null;
@@ -64,7 +69,10 @@ function openPull(pull: { number: number; url: string }): NextAction {
   };
 }
 
-/** The merge: its day, and its pull request, opened from here, when the record names one. */
+/**
+ * The merge: its day, and Clean while its worktree or its branch is left, else its pull request,
+ * opened from here, when the record names one.
+ */
 function merged(feature: NextFeature, at?: string): Next {
   const pull = feature.pullRequest;
   const line = at
@@ -72,8 +80,14 @@ function merged(feature: NextFeature, at?: string): Next {
       ? `On ${day(at)}, in pull request #${pull.number}.`
       : `On ${day(at)}.`
     : undefined;
+  const left = Boolean(feature.leftBranch) || Boolean(feature.leftWorktree);
+  const action: NextAction | undefined = left
+    ? { kind: "clean", label: "Clean" }
+    : pull
+      ? openPull(pull)
+      : undefined;
   return {
-    ...(pull ? { action: openPull(pull) } : {}),
+    ...(action ? { action } : {}),
     ...(line ? { line } : {}),
     title: "Merged",
   };
