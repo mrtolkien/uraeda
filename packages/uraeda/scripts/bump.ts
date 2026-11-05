@@ -1,10 +1,11 @@
 /**
- * `vp run release <version>`: starts a release from an up-to-date `main`. It writes the version's
- * section of `CHANGELOG.md` from the records added to `specs/done/` since the last tag, sets the
- * Cargo workspace's version, then, once confirmed, commits, tags `v<version>`, and pushes both.
+ * `vp run release <version>`: starts a release from an up-to-date `main`. It asks for the release's
+ * name, unless `--name` gives it, writes the version's section of `CHANGELOG.md` from the records
+ * added to `specs/done/` since the last tag, sets the Cargo workspace's version, then, once
+ * confirmed, commits, tags `v<version>`, and pushes both.
  *
- * The tag does the rest: `release.yml` releases `ura`, with the changelog's section as the GitHub
- * release's notes, and `npm.yml` publishes the npm packages at the same version, which
+ * The tag does the rest: `release.yml` releases `ura`, with the section's heading,
+ * `<version> - <name>`, as the GitHub release's title and its body as the notes, and `npm.yml` publishes the npm packages at the same version, which
  * `release.ts prepare` writes into them. The `package.json` files in git stay at `0.0.0`.
  *
  * `--dry-run` prints the notes and changes nothing.
@@ -57,13 +58,13 @@ export function absoluteLinks(text: string, path: string, version: string): stri
   });
 }
 
-/** The version's section: features, then changes, each record linked at the tag. */
-export function notes(version: string, date: string, records: Array<Record>): string {
+/** The version's section, titled with its name: features, then changes, each linked at the tag. */
+export function notes(version: string, name: string, date: string, records: Array<Record>): string {
   const groups: Array<[string, Array<Record>]> = [
     ["Features", records.filter(({ kind }) => kind !== "change")],
     ["Changes", records.filter(({ kind }) => kind === "change")],
   ];
-  const lines = [`## ${version} - ${date}`, ""];
+  const lines = [`## ${version} - ${name}`, "", `Released on ${date}.`, ""];
   if (records.length === 0) {
     lines.push("No feature or change recorded in `specs/done/`.", "");
   }
@@ -156,23 +157,27 @@ function newRecords(): Array<Record> {
     .map((path) => parseRecord(path, readFileSync(join(ROOT, path), "utf8")));
 }
 
-async function confirm(question: string): Promise<boolean> {
+async function ask(question: string): Promise<string> {
   const prompt = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    return /^y(es)?$/i.test((await prompt.question(question)).trim());
+    return (await prompt.question(question)).trim();
   } finally {
     prompt.close();
   }
 }
 
+async function confirm(question: string): Promise<boolean> {
+  return /^y(es)?$/i.test(await ask(question));
+}
+
 async function main() {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { "dry-run": { type: "boolean" } },
+    options: { "dry-run": { type: "boolean" }, name: { type: "string" } },
   });
   const [given] = positionals;
   if (!given || positionals.length > 1) {
-    throw new Error("usage: vp run release <version> [--dry-run]");
+    throw new Error("usage: vp run release <version> [--name <name>] [--dry-run]");
   }
   const { version } = releaseOf(given);
   const tag = `v${version}`;
@@ -180,7 +185,11 @@ async function main() {
   if (!isAfter(version, current)) {
     throw new Error(`${version} does not come after the current version ${current}`);
   }
-  const section = notes(version, new Date().toISOString().slice(0, 10), newRecords());
+  const name = (values.name ?? (await ask('Release name, such as "Vim mode + git page": '))).trim();
+  if (!name) {
+    throw new Error("a release needs a name");
+  }
+  const section = notes(version, name, new Date().toISOString().slice(0, 10), newRecords());
   process.stdout.write(`${section}\n`);
   if (values["dry-run"]) {
     return;

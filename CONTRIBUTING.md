@@ -61,11 +61,13 @@ It builds the realistic project afresh, and writes the 12 WebP files of `docs/im
 
 ## Releasing
 
-On an up-to-date `main`, `vp run release` writes the notes in `CHANGELOG.md`, sets the version,
-tags, and pushes:
+On an up-to-date `main`, `vp run release` asks for the release's name, writes the notes in
+`CHANGELOG.md` under `<version> - <name>`, the GitHub release's title, sets the version, tags, and
+pushes:
 
 ```sh
 vp run release 0.5.0
+vp run release 0.5.0 --name "Vim mode + git page"
 ```
 
 ## Licenses

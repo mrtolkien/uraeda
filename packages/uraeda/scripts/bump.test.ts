@@ -33,7 +33,7 @@ test("a record gives its kind, title, pull request, and first paragraph of what 
   });
 });
 
-test("the notes list features then changes, linked at the tag", () => {
+test("the notes, titled with the name, list features then changes, linked at the tag", () => {
   const feature = parseRecord("specs/done/a.md", RECORD);
   const change = {
     ...feature,
@@ -42,9 +42,11 @@ test("the notes list features then changes, linked at the tag", () => {
     pullRequest: null,
     title: "B",
   };
-  expect(notes("0.5.0", "2026-10-15", [change, feature])).toBe(
+  expect(notes("0.5.0", "Comments", "2026-10-15", [change, feature])).toBe(
     [
-      "## 0.5.0 - 2026-10-15",
+      "## 0.5.0 - Comments",
+      "",
+      "Released on 2026-10-15.",
       "",
       "### Features",
       "",
@@ -59,8 +61,8 @@ test("the notes list features then changes, linked at the tag", () => {
 });
 
 test("a release without records says so", () => {
-  expect(notes("0.5.1", "2026-10-16", [])).toBe(
-    "## 0.5.1 - 2026-10-16\n\nNo feature or change recorded in `specs/done/`.\n",
+  expect(notes("0.5.1", "Fixes", "2026-10-16", [])).toBe(
+    "## 0.5.1 - Fixes\n\nReleased on 2026-10-16.\n\nNo feature or change recorded in `specs/done/`.\n",
   );
 });
 
