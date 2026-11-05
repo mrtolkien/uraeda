@@ -1,12 +1,8 @@
-// The bars' own lengths: the phone's top tabs (`shell/Tabs.tsx`), the tiles of its bottom bar
-// (`NavBar.tsx`), the row bar that floats over the phone's keyboard (`lists/RowBar.tsx`), and how
-// far each slides to hide.
+// The bars' own lengths: the tiles of the phone's bottom bar (`NavBar.tsx`), the row bar that
+// floats over the phone's keyboard (`lists/RowBar.tsx`), and how far each slides to hide.
 import * as stylex from "@stylexjs/stylex";
 
 export const barVars = stylex.defineVars({
-  // Half the glass between two of the phone's top tabs' fills, inside their 44 px targets: a 4 px
-  // strip in all.
-  "--bar-tab-room": "0.125rem",
   // A tile of the bottom bar that is a button of its own, one of one or two: a 44 px target at
   // least, inside the bar's row.
   "--bar-button": "2.75rem",

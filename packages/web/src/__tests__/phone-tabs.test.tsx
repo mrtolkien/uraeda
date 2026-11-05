@@ -1,6 +1,6 @@
-// The phone's tabs fit a 375 px phone with Git showing: Decisions and Settings wait in a `…`,
+// The phone's tabs fit a 375 px phone, Git always among them: Decisions and Settings wait in a `…`,
 // whose popover holds them, and which is the current page's tab while one of them is open. Their
-// 44 px targets touch, and each fill stops a thin strip of glass short of its target's sides.
+// 44 px targets touch, and none is filled: a terminal's tab line, its counts small numbers.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -46,19 +46,29 @@ test("the … is the current page's tab, named by it, while Decisions or Setting
   expect(more.getAttribute("aria-current")).toBe("page");
 });
 
-// Break: the tabs' fills edge to edge again, so the current tab's, Git's, and New's run into their
-// neighbours; or a gap taken out of the targets, which leaves taps between two tabs reaching none.
-// A tap test on a 375 px phone (centre and ±4 px inside each edge) reached the aimed tab every time
-// with or without the strip: the targets are unchanged, the strip is drawn inside them.
-test("each tab's fill stops a strip short of its target's sides, its target still touching the next", async () => {
-  const tabs = await tabsAt("/");
+// Break: a tab filled again, the current one's grey or Git's and New's accent blocks; or a count
+// back in a filled badge over its icon.
+test("no tab is filled, and a count is a small number after its icon", async () => {
+  const tabs = await tabsAt("/inbox");
   const controls = [...within(tabs).getAllByRole("link"), ...within(tabs).getAllByRole("button")];
   for (const control of controls) {
-    const style = getComputedStyle(control);
-    expect(style.backgroundClip).toBe("padding-box");
-    expect(style.borderInlineStartWidth).toBe("0.125rem");
-    expect(style.borderInlineEndWidth).toBe("0.125rem");
+    expect(control.getAttribute("data-variant")).toBe("ghost");
   }
+  const inbox = within(tabs).getByRole("link", { name: /^Inbox/ });
+  expect(inbox.getAttribute("aria-current")).toBe("page");
+  const git = within(tabs).getByRole("link", { name: /^Git, 1 change/ });
+  expect(git.querySelector("[data-tab-count]")?.textContent).toBe("1");
   // No room between the targets themselves: eight 44 px controls fill a 375 px phone.
   expect(getComputedStyle(tabs).gap).toBe("0");
+});
+
+// Break: Git gone from the tabs while nothing waits on it, which left the phone no way to the Git
+// page, its sidebar holding no copy of the tabs.
+test("Git is a tab with nothing to commit, without a count", async () => {
+  await renderPage("/git", fixtureRepo());
+  const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+  await quiet();
+  const git = within(tabs).getByRole("link", { name: "Git" });
+  expect(git.getAttribute("aria-current")).toBe("page");
+  expect(git.querySelector("[data-tab-count]")).toBeNull();
 });
