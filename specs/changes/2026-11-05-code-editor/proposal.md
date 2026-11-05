@@ -4,3 +4,8 @@ Inside the markdown editor, fenced code blocks and inline code are set in the "c
 Settings, Fonts, and the rest of the text is set in the UI font, so code stands apart from prose.
 This applies to every editor field (composer, comments, draft editor), and the reading guide's
 exception for markdown source in the code font changes to match.
+
+Do the same for headings btw.
+
+We have font settings, they should properly be used for the markdown formatting inside the editor
+blocks. Do the same for user messages in sessions.
