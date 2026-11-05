@@ -11,6 +11,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { createContext, use } from "react";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { usePaneTone } from "../layout/paneContext.tsx";
 import { columnVars } from "../shell/column.stylex.ts";
@@ -23,6 +24,12 @@ import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { StatusText } from "../fields/StatusText.tsx";
 import { pickedStyles } from "../layout/picked.ts";
+
+/**
+ * Whether the cards are stacked, as in the sidebar's narrow column: the name on a row of its own,
+ * the status after the second line's words, never a two-line button beside a name it would break.
+ */
+export const StackedCards = createContext(false);
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
@@ -131,6 +138,7 @@ const styles = stylex.create({
   // Why its Dismiss was refused, under its name.
   refused: { paddingInlineStart: spacingVars["--spacing-6"] },
   spacer: { flexGrow: 1 },
+  step: { whiteSpace: "nowrap" },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-6"],
@@ -264,13 +272,15 @@ function Meta({
       <HStack
         align="center"
         gap={2}
+        // A step reads whole: what follows it goes to a line of its own rather than breaking it.
+        wrap="wrap"
         xstyle={[
           styles.meta,
           // Beside a two-line button, the line ends where its room does.
           !hasButton && (item.status.status === "idle" ? styles.reachGap : styles.reachStatus),
         ]}
       >
-        <Text color="secondary" type="supporting">
+        <Text color="secondary" type="supporting" xstyle={styles.step}>
           {step?.label}
         </Text>
         {progress && (
@@ -413,6 +423,7 @@ export function ItemCard({
     onStatus !== undefined && item.status.status === "needs-you" && item.step?.kind !== "problem";
   // A session works on it: its status is a button to the session, as big.
   const hasWork = onStatus !== undefined && item.status.status === "working";
+  const isStacked = use(StackedCards);
   const hasButton = hasNext || hasWork;
   const isRail = useClosedRail();
   const tone = usePaneTone();
@@ -440,8 +451,9 @@ export function ItemCard({
         hasRing={!isPicked}
         href={href}
         icon={<KindIcon item={item} />}
-        isEndTall={hasButton}
+        isEndTall={hasButton && !isStacked}
         isSelected={isSelected}
+        isStacked={isStacked}
         label={item.label}
         name={cardName(item)}
         sub={
@@ -451,7 +463,8 @@ export function ItemCard({
               {detail}
             </Text>
           ) : item.step ? (
-            <Meta hasButton={hasButton} item={item} />
+            // Stacked, the status follows the line: it reaches no further than its room.
+            <Meta hasButton={hasButton || isStacked} item={item} />
           ) : undefined
         }
         {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}

@@ -13,7 +13,14 @@ import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { pickedStyles } from "../layout/picked.ts";
-import { byStatus, type Feature, isSessionCard, type Row, rowOf } from "../sidebar/cards.ts";
+import {
+  byStatus,
+  type Feature,
+  isSessionCard,
+  needsYou,
+  type Row,
+  rowOf,
+} from "../sidebar/cards.ts";
 import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
 import { waitTime } from "../wait.ts";
 import { ContinueAll, previewStyles } from "./ContinueAll.tsx";
@@ -92,6 +99,9 @@ function part(
 }
 
 /** A session's card in the core. */
+/** Whether a session waits on the human: in Needs you, as in the sidebar. */
+const asks = (row: Row) => needsYou({ label: row.statusLabel, status: row.status });
+
 const session = (row: Row): CoreCard => ({
   key: `s:${row.id}`,
   node: <SessionCard pathname="" row={row} />,
@@ -152,7 +162,9 @@ export function coreParts({
   ).map(({ row }) => row);
   // A session at work is in progress, after the features; the others wait in Sessions.
   const working = all.filter((row) => row.status === "working");
-  const sessions = all.filter((row) => row.status !== "working");
+  // A session waiting on the human needs you, as in the sidebar; the others wait in Sessions.
+  const waitingRows = all.filter((row) => row.status !== "working" && asks(row));
+  const sessions = all.filter((row) => row.status !== "working" && !asks(row));
   const progress = [...agents.map((f) => feature(f, progressDetail(f))), ...working.map(session)];
   return [
     ...(invalid.length === 0
@@ -179,12 +191,12 @@ export function coreParts({
                 />
               ),
             }),
-        count: human.length,
+        count: human.length + waitingRows.length,
         icon: "uraeda:hourglass",
         title: "Needs you",
         tone: "attention",
       },
-      human.map((f) => feature(f, waiting(f).line)),
+      [...human.map((f) => feature(f, waiting(f).line)), ...waitingRows.map(session)],
       "Nothing waits on you.",
       look,
     ),

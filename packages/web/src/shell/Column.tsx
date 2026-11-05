@@ -22,6 +22,7 @@ import { ColumnActions, ColumnFoot, ColumnHeading, Navigate, Unfold } from "./Co
 import { useColumnWidth } from "./columnWidth.ts";
 import { LogoButton, useRail } from "./Rail.tsx";
 import { ShellPanes, useShellPath } from "./ShellPanes.tsx";
+import { StackedCards } from "../sidebar/ItemCard.tsx";
 
 const styles = stylex.create({
   easing: {
@@ -192,7 +193,9 @@ export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
         <ColumnActions />
         {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
         <div {...stylex.props(styles.scroll)}>
-          <ShellPanes />
+          <StackedCards value>
+            <ShellPanes />
+          </StackedCards>
           <Allowance />
         </div>
       </div>
@@ -269,7 +272,9 @@ export function Column({ isWide }: { isWide: boolean }) {
               {...(isWide ? { lead: <Unfold isShown={column.isFolded} onUnfold={fold} /> } : {})}
             />
             <div {...stylex.props(styles.scroll, isClosed && styles.scrollRail)}>
-              <ShellPanes before={<Navigate pathname={pathname} />} isFitted />
+              <StackedCards value>
+                <ShellPanes before={<Navigate pathname={pathname} />} isFitted />
+              </StackedCards>
             </div>
             <ColumnFoot pathname={pathname} />
           </div>

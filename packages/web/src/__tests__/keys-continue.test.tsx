@@ -16,9 +16,12 @@ const WEB_UI_PAGE = "clarifications-01.md";
 
 const press = (key: string) => fireEvent.keyDown(document.body, { key });
 
-/** The home, drawn, with the requests answered; the repository's features left as they are. */
+/**
+ * The inbox, drawn, with the requests answered; the repository's features left as they are. Off
+ * home, where the sidebar draws its Needs you cards.
+ */
 async function atHome(repo = fixtureRepo()) {
-  await renderPage("/", repo);
+  await renderPage("/inbox", repo);
   await screen.findByRole("navigation", { name: "Navigation" });
   await quiet();
 }
@@ -104,7 +107,7 @@ test("with none, the menu says Nothing needs you, and the page stays (edge)", as
   expect(within(menu).queryByText("Continue")).toBeNull();
 
   press("c");
-  expect(window.location.pathname).toBe(atRepo("/"));
+  expect(window.location.pathname).toBe(atRepo("/inbox"));
   expect(screen.queryByRole("combobox", { name: "Continue" })).toBeNull();
 });
 
@@ -125,5 +128,5 @@ test("with none, a Space c typed fast says Nothing needs you in a toast", async 
   press("c");
 
   expect(await screen.findByText("Nothing needs you")).toBeTruthy();
-  expect(window.location.pathname).toBe(atRepo("/"));
+  expect(window.location.pathname).toBe(atRepo("/inbox"));
 });

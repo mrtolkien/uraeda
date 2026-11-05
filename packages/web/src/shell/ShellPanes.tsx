@@ -2,13 +2,15 @@
 // changes, and sessions at work in progress, each the oldest started first and left out while empty,
 // then the latest done items. The column draws them under Navigate, as many done items as fit; the
 // phone's sessions page draws them as its own.
-import { type ReactNode, type RefObject, useRef } from "react";
+import { type ReactNode, type RefObject, use, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { byStart } from "../sidebar/cards.ts";
 import { EntryCard } from "../sidebar/Cards.tsx";
+import { StackedCards } from "../sidebar/ItemCard.tsx";
 import { DoneArea } from "../sidebar/DoneArea.tsx";
+import { withProblems } from "../home/features.ts";
 import { doneRows, useKeptSession } from "../sidebar/done.ts";
 import { type Data, type Entry, entriesOf, entryKey, splitNeedsYou } from "../sidebar/entries.ts";
 
@@ -81,15 +83,31 @@ function Work({
   pathname: string;
 }) {
   const entries = entriesOf(data, { found: undefined, ...(kept ? { kept } : {}), query: "" });
-  const { rest: others, waiting } = splitNeedsYou(entries);
+  const { rest: others, waiting: all } = splitNeedsYou(entries);
+  // The features their files stop, apart as on home: Needs you counts the same rows in both.
+  const stopped = new Set(
+    withProblems(all.flatMap((e) => (e.kind === "feature" ? [e.feature] : []))),
+  );
+  const isStopped = (entry: Entry) => entry.kind === "feature" && stopped.has(entry.feature);
+  const problems = all.filter(isStopped);
+  const waiting = all.filter((entry) => !isStopped(entry));
   const rest = byStart(others);
   const sessions = rest.filter((entry) => !inProgress(entry));
   const progress = rest.filter(inProgress);
+  // The sidebar beside home leaves out what home's own panes show.
+  const isBesideHome = use(StackedCards) && pathname === "/";
   return (
     <>
-      <ShellPane count={waiting.length} title="Needs you" tone="attention">
-        <Cards entries={waiting} pathname={pathname} />
-      </ShellPane>
+      {!isBesideHome && (
+        <>
+          <ShellPane count={problems.length} title="Problems" tone="problem">
+            <Cards entries={problems} pathname={pathname} />
+          </ShellPane>
+          <ShellPane count={waiting.length} title="Needs you" tone="attention">
+            <Cards entries={waiting} pathname={pathname} />
+          </ShellPane>
+        </>
+      )}
       <ShellPane count={sessions.length} title="Sessions">
         <Cards entries={sessions} pathname={pathname} />
       </ShellPane>
