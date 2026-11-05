@@ -8,19 +8,11 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { EditorHandle } from "../fields/editor/Editor.tsx";
-import { readUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Panes } from "../layout/Panes.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import {
-  navigateHere,
-  redirect,
-  useRepoPath,
-  useRepositoryPath,
-  useRestoreScroll,
-  useSearch,
-} from "../routes.tsx";
+import { navigateHere, redirect, useRepoPath, useRestoreScroll, useSearch } from "../routes.tsx";
 import { gitRefusalTitle } from "../writes/labels.ts";
 import { RefusedHere } from "../writes/RefusedHere.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
@@ -37,13 +29,7 @@ import { PlaceError } from "./PlaceError.tsx";
 import { isSyncStuck, Sync } from "./Sync.tsx";
 import { buildTree, type FileChange } from "./tree.ts";
 import { type GitActions, type ListRow, pickOf, useGitKeys } from "./useGitKeys.ts";
-import {
-  filesShown,
-  type GitWrites,
-  messageField,
-  placeHref,
-  useGitWrites,
-} from "./useGitWrites.ts";
+import { filesShown, type GitWrites, placeHref, useGitWrites } from "./useGitWrites.ts";
 import { offerOf, Worktrees, worktreeKey } from "./Worktrees.tsx";
 
 /** The folded folders of each group, by `treeKey`. */
@@ -140,7 +126,6 @@ function useActions(
   setFolded: (change: (folded: Folded) => Folded) => void,
 ): GitActions {
   const here = useRepoPath();
-  const repo = useRepositoryPath();
   const writable = (group: GitGroup) => page !== null && !refusedIn(page, group);
   const stuck = page === null || isSyncStuck(page);
   return {
@@ -148,12 +133,11 @@ function useActions(
       if (!writable(group)) {
         return;
       }
-      // With no message typed yet, `c` goes to the message first.
-      if (!readUnsaved(unsavedKey(repo, messageField(group.folder)))?.text.trim()) {
-        commitField(group)?.focus();
-        return;
-      }
-      void writes.commit(group);
+      // `c` goes to the message, filled with the default, its cursor at the end: Enter commits.
+      const field = commitField(group);
+      field?.focus();
+      const view = field?.view();
+      view?.dispatch({ selection: { anchor: view.state.doc.length } });
     },
     discard: (row) => {
       if (row.kind === "tree" && !row.row.folder && writable(row.group)) {

@@ -195,3 +195,43 @@ fn a_slow_fetch_holds_no_other_write() {
     assert_eq!(repo.staged(), ["README.md"]);
     fetch.join().unwrap().unwrap();
 }
+
+/// A commit with no message typed takes the one the page offers: a line added to a file is quoted,
+/// any other change names the file. Breaks: a blank message refused, or the default read from the
+/// file on disk instead of the index, which quotes a line not staged.
+#[test]
+fn a_blank_message_commits_with_the_default() {
+    let repo = TestRepo::new();
+    let at = repo.path();
+    repo.write(PRIORITIES, "# Priorities\n\n## Now\n\n- Global undo\n");
+    repo.commit("chore: priorities");
+
+    repo.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n- Review the UI\n- Global undo\n",
+    );
+    api::git_stage(at, None, &[PRIORITIES.to_string()]).unwrap();
+    repo.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n- Review the UI\n- Global undo\n- More\n",
+    );
+    let page = api::git_page(at).unwrap();
+    assert_eq!(
+        page.groups[0].default_message.as_deref(),
+        Some("chore: add Review the UI")
+    );
+    let committed = api::git_commit_staged(at, None, "  \n", |_| {}).unwrap();
+    assert_eq!(committed.subject, "chore: add Review the UI");
+
+    api::git_stage(at, None, &[PRIORITIES.to_string(), "README.md".to_string()]).unwrap();
+    repo.write("README.md", "# Changed\n");
+    api::git_stage(at, None, &["README.md".to_string()]).unwrap();
+    let committed = api::git_commit_staged(at, None, "", |_| {}).unwrap();
+    assert_eq!(committed.subject, "chore: update 2 files");
+
+    repo.write("README.md", "# Changed again\n");
+    api::git_stage(at, None, &["README.md".to_string()]).unwrap();
+    let committed = api::git_commit_staged(at, None, "", |_| {}).unwrap();
+    assert_eq!(committed.subject, "chore: update README.md");
+    assert_eq!(api::git_page(at).unwrap().groups[0].default_message, None);
+}

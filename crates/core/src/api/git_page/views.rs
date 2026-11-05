@@ -62,6 +62,8 @@ pub struct ChangeGroupView {
     pub name: String,
     /// Sorted by path; a conflicted file is under the page's conflicts instead.
     pub files: Vec<FileChangeView>,
+    /// The message a commit takes when none is typed, from what is staged; none when nothing is.
+    pub default_message: Option<String>,
 }
 
 /// A changed file of a group.

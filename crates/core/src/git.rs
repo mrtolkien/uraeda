@@ -12,6 +12,7 @@ mod commit;
 mod diff;
 mod history;
 mod log;
+mod message;
 pub(crate) mod process;
 mod refresh;
 mod remote;

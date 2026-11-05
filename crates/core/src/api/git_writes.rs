@@ -95,9 +95,9 @@ pub fn git_discard(repo: &Path, folder: Option<&str>, path: &str) -> Result<()> 
     Ok(group(repo, folder)?.discard_path(path)?)
 }
 
-/// Commits what is staged in the group `folder`'s checkout with `message` as typed, through the
-/// hooks, `on_output` given their output as it comes. A hook's refusal is `hook`, with the whole
-/// output, and leaves the files staged.
+/// Commits what is staged in the group `folder`'s checkout with `message` as typed, or with
+/// [`Git::default_message`] when it is blank, through the hooks, `on_output` given their output
+/// as it comes. A hook's refusal is `hook`, with the whole output, and leaves the files staged.
 pub fn git_commit_staged(
     repo: &Path,
     folder: Option<&str>,
@@ -105,8 +105,14 @@ pub fn git_commit_staged(
     on_output: impl Fn(&str),
 ) -> Result<CommitView> {
     let _lock = write_lock(repo);
-    let message = without_blank_lines_around(message);
-    let commit = group(repo, folder)?
+    let git = group(repo, folder)?;
+    let default = if message.trim().is_empty() {
+        git.default_message(&git.staged_files()?)?
+    } else {
+        None
+    };
+    let message = without_blank_lines_around(default.as_deref().unwrap_or(message));
+    let commit = git
         .commit_index(message, Some(&on_output))
         .map_err(commit_error)?;
     Ok(CommitView {

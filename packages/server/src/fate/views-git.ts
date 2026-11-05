@@ -24,7 +24,9 @@ import type { Record_ } from "./views.ts";
 export const GIT_ID = "git";
 
 /** A group of changes as it is sent: its folder null for the main checkout's. */
-export type GitGroup = Omit<Record_<ChangeGroupView>, "folder"> & {
+export type GitGroup = Omit<Record_<ChangeGroupView>, "defaultMessage" | "folder"> & {
+  /** The message a commit takes when none is typed; null when nothing is staged. */
+  defaultMessage: string | null;
   folder: string | null;
   /** Whether its feature's agent works, which refuses its writes. */
   isWorking: boolean;
@@ -68,6 +70,7 @@ export async function gitPage(ctx: RepoContext): Promise<GitPageRecord> {
     fetchFailure: ctx.hosts.byPath(ctx.repo)?.fetcher?.failure() ?? null,
     groups: view.groups.map((group) => ({
       ...group,
+      defaultMessage: group.defaultMessage ?? null,
       folder: group.folder ?? null,
       isWorking: group.folder !== undefined && folders.includes(group.folder),
     })),

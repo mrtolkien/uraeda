@@ -61,11 +61,7 @@ pub fn git_page(repo: &Path) -> Result<GitPageView> {
         .clone()
         .or_else(|| state.detached.clone())
         .unwrap_or_else(|| "HEAD".to_string());
-    let mut groups = vec![ChangeGroupView {
-        folder: None,
-        name,
-        files: state.files.iter().map(file_view).collect(),
-    }];
+    let mut groups = vec![change_group(main.root(), None, name, &state.files)];
     let mut worktrees = Vec::new();
     for (record, read) in records.into_iter().zip(reads) {
         let feature = workspace.as_deref().and_then(|w| feature_on(w, &record));
@@ -79,11 +75,12 @@ pub fn git_page(repo: &Path) -> Result<GitPageView> {
         if let (Some(feature), Some(Ok(state))) = (feature, &read)
             && !state.files.is_empty()
         {
-            groups.push(ChangeGroupView {
-                folder: Some(feature.folder.clone()),
-                name: feature_title(feature),
-                files: state.files.iter().map(file_view).collect(),
-            });
+            groups.push(change_group(
+                &record.path,
+                Some(feature.folder.clone()),
+                feature_title(feature),
+                &state.files,
+            ));
         }
         worktrees.push(worktree_view(&main, &record, feature, changes));
     }
@@ -326,6 +323,30 @@ fn worktree_view(
         branch: record.branch.clone(),
         folder: feature.map(|feature| feature.folder.clone()),
         state: state.to_string(),
+    }
+}
+
+/// A checkout's changed files, with the message a commit of what is staged takes by default:
+/// none when it cannot be read, as the page still lists the files.
+fn change_group(
+    root: &Path,
+    folder: Option<String>,
+    name: String,
+    files: &[FileChange],
+) -> ChangeGroupView {
+    let staged: Vec<String> = files
+        .iter()
+        .filter(|file| file.staged != Staged::No)
+        .map(|file| file.path.clone())
+        .collect();
+    ChangeGroupView {
+        folder,
+        name,
+        files: files.iter().map(file_view).collect(),
+        default_message: Git::open(root)
+            .and_then(|git| git.default_message(&staged))
+            .ok()
+            .flatten(),
     }
 }
 

@@ -120,11 +120,13 @@ fn the_page_groups_changes_and_lists_worktrees() {
                 folder: None,
                 name: "main".to_string(),
                 files: vec![file("docs/notes.md", "new", 1)],
+                default_message: None,
             },
             ChangeGroupView {
                 folder: Some(FOLDER.to_string()),
                 name: "Feature".to_string(),
                 files: vec![file(PROPOSAL, "modified", 2)],
+                default_message: None,
             },
         ]
     );

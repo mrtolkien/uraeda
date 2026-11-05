@@ -172,9 +172,9 @@ on this feature. Stop it first, or wait for it." Its edit then waits too, on the
 
 Saving never commits. The inbox, the priorities, proposal and note files, and buffers only save
 their files, and you commit them on the Git page. Actions that say they commit, like submitting a
-round's answers or a review's verdict, still commit at once. Git, in the sidebar, or `Space g`,
-opens it; `/commit`, the Commit page's old address, leads there. The sidebar's Git shows how many
-files changed, and how many commits wait on `origin`, as "↓3".
+round's answers or a review's verdict, still commit at once. Git, in the sidebar, `Space g`, or
+`g G` opens it; `/commit`, the Commit page's old address, leads there. The sidebar's Git shows how
+many files changed, and how many commits wait on `origin`, as "↓3".
 
 The page works on the main checkout. Its title's line reads the branch against `origin`, as "main ·
 3 to pull · 6 to push · fetched just now". It fetches as it opens, and again every 5 minutes while
@@ -188,9 +188,12 @@ Changes lists every changed file as a tree of folders, in the main checkout's gr
 group per feature's worktree a buffer saved into. `j` and `k`, or the arrows, move over the rows,
 Enter folds or unfolds a folder, and Space ticks a row's box, staging its file, or every file under
 a folder. `a` stages every file of the group, or unstages them all when all are staged. A staged
-file keeps its row. Each group has its commit message, empty until you type it, and `c`, its Commit,
-or Ctrl+Enter in the message commits what is staged, through your hooks. A hook's refusal shows
-above Changes, and the files stay staged. `d` asks before discarding a file's changes.
+file keeps its row. Each group has its commit message, filled with a default from what is staged:
+`chore: add <the line>` for a single line added to a file, `chore: update <the file>` for any other
+change to one file, and `chore: update <count> files` for several. `c` goes to the message, where
+you can change it, and Enter, or its Commit, commits what is staged, through your hooks; Shift+Enter
+adds a line for a body. A hook's refusal shows above Changes, and the files stay staged. `d` asks
+before discarding a file's changes.
 
 Picking a file shows its diff beside the sections, or as a page of its own on the phone, with Back
 to the sections. Past 1,000 lines, it shows its counts and "Show the whole diff". History lists the

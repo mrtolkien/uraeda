@@ -1,5 +1,6 @@
 // The Git page's keys, declared in the key registry, as lazygit's: `p` pull, `P` push, `f` fetch,
-// `a` stage or unstage all, `c` commit what is staged, `M` merge into the branch, and on a row, `d`
+// `a` stage or unstage all, `c` go to the commit message, where Enter commits what is
+// staged, `M` merge into the branch, and on a row, `d`
 // to discard its file or remove its worktree. The list's keys move over the tree, the history, and
 // the worktrees, `j`/`k` and the arrows; Enter folds a folder or opens a file's or a commit's
 // detail. Space is a row's box's own: it stages.

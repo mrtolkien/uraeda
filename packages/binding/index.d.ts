@@ -886,6 +886,8 @@ export interface ChangeGroupView {
   name: string
   /** Sorted by path; a conflicted file is under the page's conflicts instead. */
   files: Array<FileChangeView>
+  /** The message a commit takes when none is typed, from what is staged; none when nothing is. */
+  defaultMessage?: string
 }
 
 /** What changed since the last report. */

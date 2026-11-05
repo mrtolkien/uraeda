@@ -1,6 +1,7 @@
 // The Git page's writes the human could lose without seeing it: Space stages the file its row's
 // box is, leaving the row in its place (US3 1); a typed commit message stays through a hook's
-// refusal and goes once its commit lands (US3 more 6); Discard asks before it restores a file
+// refusal and goes once its commit lands (US3 more 6), and `c` goes to the message, filled with
+// the default, which Enter commits; Discard asks before it restores a file
 // (US3 more 4, SC-003); a conflicted file's editor never keeps a text that no longer conflicts
 // (US4); and a working tree's diff never shows a file that has changed since.
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -78,6 +79,9 @@ async function press(target: HTMLElement, key: string) {
   });
 }
 
+/** The commit message's field. */
+const message = () => screen.getByRole("textbox", { name: "Message" });
+
 /** The files staged in `repo`, one per line. */
 const staged = (repo: string) => git(repo, "diff", "--cached", "--name-only");
 
@@ -124,6 +128,28 @@ test("a typed message stays once its commit is refused, and goes once it lands",
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global redo\n`);
   await refreshUntil(() =>
     expect(fieldText(screen.getByRole("textbox", { name: "Message" }))).toBe(""),
+  );
+});
+
+// Break: the field empty though a default is offered, `c` committing without the field, or Enter
+// adding a line instead of committing.
+test("`c` goes to the message, filled with the default, and Enter commits it", async () => {
+  const repo = fixtureRepo();
+  write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
+  await renderPage("/git", repo);
+  await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
+  await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
+  await refreshUntil(() => expect(fieldText(message())).toBe("chore: add Global undo"));
+  expect(screen.getByText(/commits what is staged/)).toBeTruthy();
+
+  await press(boxOf("specs/PRIORITIES.md"), "c");
+
+  expect(document.activeElement).toBe(message());
+  expect(git(repo, "log", "-1", "--format=%s")).not.toBe("chore: add Global undo\n");
+  await type(message(), "chore: add Global undo now");
+  await press(message(), "Enter");
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s")).toBe("chore: add Global undo now\n"),
   );
 });
 
