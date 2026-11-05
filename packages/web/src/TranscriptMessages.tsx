@@ -20,7 +20,7 @@ import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
 import { SessionView } from "./views.ts";
-import { humanWords } from "./theme/fonts.ts";
+import { agentWords, humanWords } from "./theme/fonts.ts";
 
 /** The page's width: the list's 12 px at the sides, less the page's inset, given back. */
 const AGENT_WIDTH = `calc(100% + 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-2"]}))`;
@@ -230,7 +230,9 @@ function AgentMessage({
       <ChatMessageBubble
         variant="ghost"
         width={AGENT_WIDTH}
+        // In markdown prose's font and measure (`theme/fonts.ts`), where the width reads it too.
         xstyle={[
+          agentWords,
           styles.agent,
           proseStyles.measure,
           !wide && styles.agentPhone,

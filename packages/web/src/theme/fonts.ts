@@ -181,10 +181,19 @@ const styles = stylex.create({
     "--font-family-reading": "var(--font-family-markdown)",
     fontFamily: "var(--font-family-markdown)",
   },
+  // An agent's reply, its prose in markdown prose's font, at that font's measure: about 80
+  // characters a line, whatever it is.
+  agent: {
+    "--font-family-reading": "var(--font-family-markdown)",
+    "--size-reading-measure": "var(--size-markdown-measure)",
+  },
 });
 
 /** The human's sent messages' font, for their bubble's style (`TranscriptMessages.tsx`). */
 export const humanWords = styles.human;
+
+/** An agent's messages' prose font and measure, for their bubble's style (`TranscriptMessages.tsx`). */
+export const agentWords = styles.agent;
 
 /** The style of a root that only carries the fonts, with no box of its own. */
 export const fontRoot = styles.root;
