@@ -3,7 +3,7 @@
 What established books, articles, and design systems say about a good interface, distilled into
 rules an agent can check. The other guides here hold the human's own rulings for Uraeda; this one
 holds the outside rules they rest on, and fills the gaps between them. Where the two disagree, the
-guides win, and the disagreement is listed at the end as a question for the human.
+guides win until the human rules, and the disagreement is listed at the end with the ruling.
 
 ## The bar is great
 
@@ -14,6 +14,13 @@ the layout, the control, or the flow rather than nudging a margin, then check th
 and by looking at it at each width. Measure the rules below; argue a choice with a source or a
 comparable product, never with habit. What only the human can decide is proposed, with the
 recommendation and its cost.
+
+Great is also Uraeda's own: a terminal, after LazyVim and modern Linux desktops, not a generic iOS
+or shadcn UI ([Its own look](README.md#its-own-look)). These rules come from products that look
+nothing like it, and applying them is arbitration, not copying. Keep the need each rule names, a
+line one reads, a target one hits, a state one sees, and find the terminal's way to meet it. Drop
+neither silently: a rule that would make a view generic, or a look that would fail a need, is
+proposed to the human.
 
 ## How to use it in a review
 
@@ -350,40 +357,31 @@ indicators][progress-indicators]
   browser's; the field above the keyboard, at 16 px; 44 pt targets with room between them; actions
   in the thumb's reach; dynamic viewport heights; sheets that do not scroll the page.
 
-## Where this differs from our guides
+## Where this differed from our guides
 
-Each is a question for the human. Until answered, the guides stand.
+The human ruled on each, on 2026-11-05; the guides now say so.
 
-1. **Lines longer than 90 characters.** Butterick's range ends at 90. The detail dialog shows a
-   row's whole text at 108 characters ([Surfaces](surfaces.md#a-lists-detail)), and a session's page
-   goes to 95 ([Reading](reading.md#the-scale-of-widths)). Should the detail dialog's prose keep the
-   reading measure?
-2. **Borders everywhere.** Refactoring UI asks for fewer borders; the terminal look draws every pane
-   bordered ([UI look](../decisions/ui-look.md)). The look stands; should borders inside a pane stay
-   limited to controls, as the separators rule already leans?
-3. **Rows of short prose in the UI's monospace font.** Butterick keeps monospace for code. A row's
-   two or three lines, a note's or a proposal's, are in the UI font ([Reading](reading.md)). Should
-   a row's text past one line switch to the reading font?
-4. **Icon-only controls.** NN/g finds most icons need a word. The phone's bottom bar shows icons
-   with no word ([the phone](phone.md#the-bottom-bar)), and the guides say "the icons are enough"
-   for a row's file and link. Lolly and T3 need clear buttons: should the bar's less common tiles,
-   like Outline or Produced, carry a word, or show it on a long press?
-5. **Empty sections disappear.** NN/g asks for an empty state that says what would be there; the
-   guides remove an empty pane ([Look and feel](look-and-feel.md)). Fine for Tolki; Lolly may not
-   know the pane exists. Should first-run empty states say what fills them?
-6. **Hover moves the selection.** WCAG 1.4.13 and Fitts favour hover that only brightens. Moving the
-   selection on hover ([Keyboard](keyboard.md#selection)) can take it from under Tolki's keys when
-   the page scrolls under a resting pointer. Should hover move it only after the pointer moves?
-7. **The undo toast lasts 5 seconds.** WCAG 2.2.1 asks that a time limit can be extended. A screen
-   reader or a slow reader can miss it ([Surfaces](surfaces.md#undo)). Should the toast stay while
-   hovered or focused?
-8. **Tabs with no room between them.** Apple asks for about 12 pt around a bezelled control and
-   Android 8 dp. The phone's eight 44 px top tabs touch each other
-   ([the phone](phone.md#the-frame)). Their edges are flat, so this may be fine: should a tap test
-   on a 375 px phone decide?
-9. **Desktop targets smaller than 24 px.** WCAG 2.5.8 asks for 24 CSS px. The status line's hints
-   and the row bar's actions are drawn as text ([Components](components.md)), and may be shorter.
-   Should they keep at least 24 px of height, padding included?
+1. **Lines longer than 90 characters.** 90 is the limit, kept by drawing prose through `Prose` and
+   its measure rather than view by view; a wider page's extra room is for code and tables. The
+   detail dialog's text now reads at the measure ([Reading](reading.md#line-length)).
+2. **Borders everywhere.** Inside a pane, a border is a control's, and panes nest two levels deep at
+   most ([Look and feel](look-and-feel.md#shapes)).
+3. **Rows of short prose in the UI's monospace font.** What is written, in a field, is monospace;
+   what is read, a session's messages included, is in the reading font; a list's rows stay in the UI
+   font, scanned rather than read ([Reading](reading.md#three-fonts-three-jobs)).
+4. **Icon-only controls.** The phone's bottom bar's tiles carry a small word under their icon
+   ([the phone](phone.md#the-bottom-bar)).
+5. **Empty sections disappear.** Only ongoing status panes do; what the human makes, the inbox and
+   the priorities, is always there
+   ([Look and feel](look-and-feel.md#every-element-earns-its-place)).
+6. **Hover moves the selection.** Only a moving pointer does ([Keyboard](keyboard.md#selection)).
+7. **The undo toast lasts 5 seconds.** It pauses while hovered or focused
+   ([Surfaces](surfaces.md#undo)).
+8. **Tabs with no room between them.** Left to a tap test on a 375 px phone, as long as the result
+   is convenient and keeps the glassy terminal look ([the phone](phone.md#the-frame)).
+9. **Desktop targets smaller than 24 px.** 24 px high at least, padding included, the hit area
+   growing where the text stays dense
+   ([Look and feel](look-and-feel.md#what-can-be-pressed-looks-pressable)).
 
 [refactoring-ui]: https://www.refactoringui.com/
 [laws-of-ux-proximity]: https://lawsofux.com/law-of-proximity/

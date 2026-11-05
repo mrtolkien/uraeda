@@ -78,8 +78,10 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   my keyboard-driven cursor on 'add to now/next/...' and press enter").
 - **It moves in two dimensions** where the page has columns: `h` `l` cross them, keeping the row's
   height where it can.
-- **The mouse moves it too.** Hovering a row in a list moves the selection there; a click selects; a
-  click on the selected row, or a double click, edits it.
+- **The mouse moves it too.** Moving the pointer onto a row in a list moves the selection there; a
+  click selects; a click on the selected row, or a double click, edits it. A row that slides under a
+  resting pointer, as the page scrolls or a list grows, takes nothing: only a pointer that moves
+  does, so the keys' selection is never taken from under them.
 - **A widget with keys of its own**, like home's grid of cards or a radio group, takes its arrows
   before the registry does, and leaves a letter typed while a sequence or the leader's menu waits to
   them.
