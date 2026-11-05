@@ -35,8 +35,12 @@ whose answers either continue the implementation or revise the spec.
   the Git page, unless the action says it commits.
 - **Changes are a tree, staged as in lazygit**: one tree per checkout with changes, the main
   checkout's first. Space stages a file or a folder, `a` stages or unstages them all, and a staged
-  file keeps its row. Each tree has its own message, empty until typed, and its own Commit, which
-  commits what is staged.
+  file keeps its row. Each tree has its own message, empty until typed, and under it its own Commit,
+  where the eye ends after typing, which commits what is staged and says how many files, "Commit 2
+  files"; Enter in the message does the same, the key shown on the button on wide screens. No line
+  under the field explains it, and no second Commit sits in the pane's border.
+- **Plain words where it waits**: a write that saves without committing says so in a toast, "Moved
+  to Now · waits on the Git page", not in git's words.
 - **Discard asks first**, through the shared confirmation, and restores one file, as git does.
 - **Pull, push, fetch, and merge are the page's**, as lazygit's keys, `p`, `P`, `f`, and `M`; a
   conflict they stop on is fixed in the page, in the shared editor, then continued or aborted.
@@ -63,8 +67,8 @@ whose answers either continue the implementation or revise the spec.
 ## Answering questions
 
 - **Each answer saves as it is picked**, an option's card toggled, a comment saved with its button.
-- **The page's end commits the round**, with one Commit; `n` and `p` reach the blank questions, and
-  the phone's bar ends with Next until none is left.
+- **The page's end commits the round**, with one "Commit answers", a verb and its object; `n` and
+  `p` reach the blank questions, and the phone's bar ends with Next until none is left.
 
 ## Moving things
 

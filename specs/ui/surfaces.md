@@ -40,9 +40,10 @@ Something behaving like an Outliner."
 
 The actions of the selected row, under it, each with its key written out: "⏎ edit", "m move", "d
 delete". It shows when a row is selected, by keys or by a click, and while its field is edited,
-never on hover alone. In move mode the row's bar shows the move keys instead, and the row's border
-changes, so the mode is visible where it acts. On the phone the same actions float at the screen's
-bottom as big icons on glass (see [the phone](phone.md)).
+never on hover alone. In move mode the row's bar shows the move keys instead, the arrows ↑ ↓ ← →,
+which anyone knows (Vim's `k j h l` move it too), and the row's border changes, so the mode is
+visible where it acts. On the phone the same actions float at the screen's bottom as big icons on
+glass (see [the phone](phone.md)).
 
 The row's bar replaced the rows' `…` menus, icons drawn over the row's text, and a right-click menu:
 "The `...` are weird af." A `…` menu is the last resort, and never inside a card or a pane: only a
@@ -70,8 +71,13 @@ A picker chooses one thing among many: a place, a category, where a note is prom
 or anything at all (`Space Space`). It is `keys/KeyPicker.tsx`'s dialog on wide screens and a sheet
 on the phone: it opens with its filter focused, the arrows move through it, `Enter` picks, and the
 human lands on the result. Its rows show a thing as the sidebar's card does, its icon and its state.
-When picking moves something, the picker shows where it lands, by level first ("Show the priority
-levels first").
+Every picker is this one component, and beside its list on wide screens it previews the item under
+the cursor as the app draws that content (`keys/PickerPreview.tsx`): a document rendered as its page
+renders it, its frontmatter left out; a level, a proposal, a note, or a category as its list's pane
+and rows; anything else as plain lines. "Render it for all pickers really." When picking moves
+something, the picker shows where it lands, by level first ("Show the priority levels first"), the
+note's place highlighted as a picked row is. Raw markdown in the preview, rulings R1 and R28 of the
+layout look, was overruled on 2026-11-05.
 
 ## Dialogs
 

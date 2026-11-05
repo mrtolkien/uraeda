@@ -40,8 +40,13 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **A row's name is text, not a link**: a file of the Git page's changes opens its diff, yet its
   name is in the text's colour, as the row, picked by the keys or the pointer, is the target: "The
   files list should just be white, not purple."
+- **A row bar's action is framed**: its key and its word in a 1 px square line, drawn inside its 24
+  px box, brighter under the pointer, so a mouse sees what it can press before any hover, as a
+  terminal's button, never a rounded pill. A fill alone read as a tint of the row, and a fill with
+  the frame as a generic button.
 - **A diff reads its changes at a glance**: added lines on a green tint, removed ones on a red one,
-  their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat" otherwise.
+  their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat" otherwise. Git's
+  header of the file, `--- a/` and `+++ b/`, is left out: the pane's title names the file.
 - **A field looks writable**: the composer has a border.
 - **A target is 24 px high at least** on a desktop, padding included: a status line's hint, a row
   bar's action, any text that is pressed. Where the look is denser, the hit area grows, not the
