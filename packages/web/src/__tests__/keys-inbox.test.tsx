@@ -161,7 +161,13 @@ test("m puts the note in the move mode, whose j moves it into the next category 
   await press("m", link);
 
   const row = within(rowOf("Idea two"));
-  for (const action of ["k up", "j down", "h previous section", "l next section", "⏎ done"]) {
+  for (const action of [
+    "Up arrow up",
+    "Down arrow down",
+    "Left arrow previous section",
+    "Right arrow next section",
+    "⏎ done",
+  ]) {
     expect(row.getByRole("button", { name: action }), action).toBeTruthy();
   }
   // Down from a category's last note: the start of the next one.

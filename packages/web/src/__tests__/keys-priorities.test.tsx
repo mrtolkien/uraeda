@@ -159,7 +159,13 @@ test("m puts the selected line in the move mode: its bar names the move keys, an
   await press("m", link);
 
   const row = within(rowOf("Next line 1"));
-  for (const action of ["k up", "j down", "h previous column", "l next column", "⏎ done"]) {
+  for (const action of [
+    "Up arrow up",
+    "Down arrow down",
+    "Left arrow previous column",
+    "Right arrow next column",
+    "⏎ done",
+  ]) {
     expect(row.getByRole("button", { name: action }), action).toBeTruthy();
   }
   await press("j", controlOf("Next line 1"));
@@ -170,6 +176,21 @@ test("m puts the selected line in the move mode: its bar names the move keys, an
     expect(within(rowOf("Next line 1")).queryByRole("button", { name: "⏎ done" })).toBeNull(),
   );
   expect(within(rowOf("Next line 1")).getByRole("button", { name: "m move" })).toBeTruthy();
+});
+
+// Break: the bar naming Vim's letters again, a press on its arrow not moving the line, or the
+// arrow keys not moving it in the move mode.
+test("the move mode's bar leads with the arrows: a press on one, or its key, moves the line", async () => {
+  const { link, repo } = await onLine("Next line 1");
+  await press("m", link);
+  const bar = within(rowOf("Next line 1"));
+  expect(bar.queryByRole("button", { name: /^[kjhl] / })).toBeNull();
+
+  await act(async () => bar.getByRole("button", { name: "Down arrow down" }).click());
+  await waitFor(() => expect(read(repo)).toContain("## Next\n\n- Next line 2\n- Next line 1\n"));
+
+  await press("ArrowUp", controlOf("Next line 1"));
+  await waitFor(() => expect(read(repo)).toContain("## Next\n\n- Next line 1\n- Next line 2\n"));
 });
 
 test("the line the keys pick shows its own keys in a bar under it", async () => {
