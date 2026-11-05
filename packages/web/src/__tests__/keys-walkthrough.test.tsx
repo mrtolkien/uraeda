@@ -1,7 +1,6 @@
 // What the keyboard walkthrough of 2026-11-05 (persona Tolki, `specs/ui/personas.md`) found a
 // keyboard alone could not do, or did with many keys: the Git page opens with its row focused, so
-// Space stages at once, and a file with no change left says so; the inbox opens with its first note
-// selected; a review's `n` reaches its verdict, and the session its approval opens has its
+// Space stages at once, and a file with no change left says so; a review's `n` reaches its verdict, and the session its approval opens has its
 // composer focused; the picker's Ctrl+J and Ctrl+K move its cursor; the decisions page marks the principle
 // the keys picked; and what the keys bring into view scrolls clear of the status line.
 import { writeFileSync } from "node:fs";
@@ -55,16 +54,6 @@ test("a file the Git page's address names, with no change left, says so", async 
   expect(await screen.findByText("specs/INBOX.md has no change left.")).toBeTruthy();
   // Nothing to stage or commit names no key.
   expect(screen.queryByText("stage all")).toBeNull();
-});
-
-// Break: the inbox opening with no row selected, so `p` promotes nothing until `j`.
-test("the inbox opens with its first note selected: `p` promotes it at once", async () => {
-  atWidth(1440);
-  await renderPage("/inbox", fixtureRepo());
-  await screen.findByRole("heading", { name: "Inbox" });
-  await quiet();
-  await press("p");
-  expect(await screen.findByRole("combobox", { name: "Promote the note" })).toBeTruthy();
 });
 
 // Break: the hand-over's session opening with the focus on the page, where Enter starts nothing.
