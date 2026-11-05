@@ -26,8 +26,11 @@ not a desktop squeezed down, and not a lesser version.
   one, a `…`, and New (`shell/Tabs.tsx`). The `…` holds Decisions and Settings, the least visited
   places, in a popover anchored to it; while one of them is open, the `…` is the current tab. Eight
   44 px controls are what a 375 px phone holds, so from 375 px the bar never scrolls sideways,
-  Commit showing or not; a narrower one, 360 px, scrolls it 3 px. The sidebar opens over the page,
-  up to 400 px, animated, and holds no copy of the tabs' places.
+  Commit showing or not; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as there
+  is no room for Apple's or Android's spacing, and a tap test at 375 px found every tap on or near a
+  tab reaching one: a filled tab's colour stops 2 px short of its sides instead, so a strip of the
+  bar's glass shows between two filled tabs. The sidebar opens over the page, up to 400 px,
+  animated, and holds no copy of the tabs' places.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 - **The home-screen app** is the phone's main way in: the page names its icon, its name, and
@@ -51,11 +54,11 @@ What goes in it, in this order:
 
 1. **The page's companions, as its side column has them on wide screens**: Outline, Notes, and
    Session on a round; Contents, Comments (while a review waits), and Session on a spec or a plan;
-   Activity, Changes, Sub-agents (while any run), and the plan's progress on a session; Produced and
-   Links (while it has one) on a feature, its wide column, then its Session once it has one, which
-   opens the session's page. Each opens its sheet; the open one's icon is in the accent. A session's
-   bar starts with ↓, the jump to the latest, dimmed at the end, so the other tiles never move; its
-   Activity and Changes each open their own sheet.
+   Activity, Changes, Sub-agents (while any run, its word Agents), and the plan's progress (Plan) on
+   a session; Produced and Links (while it has one) on a feature, its wide column, then its Session
+   once it has one, which opens the session's page. Each opens its sheet; the open one's icon is in
+   the accent. A session's bar starts with ↓, the jump to the latest, dimmed at the end, so the
+   other tiles never move; its Activity and Changes each open their own sheet.
 2. **At its end, the one step that moves the human forward**: Next to the next blank question,
    Verdict to the review's end, or a feature's next step, which its Next pane's button also does: "I
    know it's duplication, but it's clearer". An icon in the accent, never a filled block, even when
