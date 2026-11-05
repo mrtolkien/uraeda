@@ -365,7 +365,7 @@ function useFollow(placed: { key: string } | undefined, named: { key: string } |
  * then each category in the file's order, the empty ones too, each note a row with its children; a
  * drop moves the note to its place in `INBOX.md`. A category's title renames it in place, and its
  * menu deletes it. A refused move or delete goes to `onRefused`, and a conflict reads the inbox
- * again.
+ * again. It opens with a row selected, as every list does: the first category's first.
  */
 export function InboxList({
   actions,
@@ -425,6 +425,7 @@ export function InboxList({
       {images.dropZone(
         <WorkList
           follow={follow}
+          initial={sections[0]?.rows[0]?.key}
           onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
           onDelete={deleteOf(placedOf)}
           onMove={onMove}
