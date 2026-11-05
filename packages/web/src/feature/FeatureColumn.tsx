@@ -80,6 +80,9 @@ export function WithFeatureColumn({ content, ...column }: ColumnProps & { conten
   return (
     <SideColumn
       content={content}
+      // No title at its top: its panes name themselves. Its name is for screen readers and its fold
+      // button, whose row the empty header keeps.
+      header={<></>}
       isShown={isShown}
       label="The feature's column"
       onShownChange={setShown}

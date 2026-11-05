@@ -115,7 +115,7 @@ export function RoundColumn({
 }) {
   const wide = !isNarrow(useWidthClass());
   const agent = useAgent();
-  useBlankKeys(nav);
+  useBlankKeys(nav, onSubmit);
   // With Session shown, an image dropped goes to its composer, never to the notes.
   const queued = useNotesDrop({
     onOpen: actions.editNotes,
