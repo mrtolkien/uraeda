@@ -291,7 +291,7 @@ test("on a feature's page, `j` and `k` move the focus along its links and button
 test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed then theirs", async () => {
   await renderPage("/edit/specs/proposals/git-listener.md", fixtureRepo());
   const text = await screen.findByRole("textbox", { name: "Text" });
-  const slug = screen.getByRole("textbox", { name: "Slug" });
+  const slug = screen.getByRole("textbox", { name: "Short name" });
 
   await press("i");
   await waitFor(() => expect(document.activeElement).toBe(text));

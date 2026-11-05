@@ -48,7 +48,9 @@ async function sendFeature() {
   await click(await screen.findByRole("button", { name: "Start the feature" }));
   const dialog = await screen.findByRole("dialog", { name: "Name the feature" });
   await waitFor(() =>
-    expect(fieldText(within(dialog).getByRole("textbox", { name: "Slug" }))).toBe("dark-mode"),
+    expect(fieldText(within(dialog).getByRole("textbox", { name: "Short name" }))).toBe(
+      "dark-mode",
+    ),
   );
   return dialog;
 }

@@ -30,7 +30,7 @@ test("Start stops when the text could not be saved", async () => {
   const before = git(repo, "rev-parse", "HEAD");
 
   await type(field, "# Mine\n");
-  await type(screen.getByRole("textbox", { name: "Slug" }), "git-listener");
+  await type(screen.getByRole("textbox", { name: "Short name" }), "git-listener");
   await click(startButton());
 
   expect(
@@ -64,7 +64,7 @@ test("Start saves the text typed, then opens the session at once (US4 2)", async
   await renderPage("/edit/specs/proposals/git-listener.md", repo);
   const typed = "# Git listener process\n\n## What\n\nStarted as typed.\n";
   await type(await edit(), typed);
-  await type(screen.getByRole("textbox", { name: "Slug" }), "git-listener");
+  await type(screen.getByRole("textbox", { name: "Short name" }), "git-listener");
 
   await click(startButton());
 
