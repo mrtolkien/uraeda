@@ -231,7 +231,9 @@ test("a stopped merge disables Merge and its key", async () => {
   await renderPage("/git", repo);
   const merge = await screen.findByRole("button", { name: "Merge into main…" });
 
-  expect(merge).toHaveProperty("disabled", true);
+  // Disabled, yet focusable through `aria-disabled`, as Astryx keeps a button with a tooltip.
+  expect(merge.getAttribute("aria-disabled")).toBe("true");
+  await click(merge);
   await act(async () => void fireEvent.keyDown(document.body, { key: "M", shiftKey: true }));
   expect(screen.queryByRole("dialog")).toBeNull();
 });
