@@ -34,7 +34,9 @@ const styles = stylex.create({
   },
   // Columns of their own, `columns`, the room's width up to `most`: the two together are put in
   // the middle of the room right of the sidebar (`useScreenCentre`).
+  // A gutter between them, as two framed panes side by side read cramped without one.
   sized: (columns: string, most: string) => ({
+    columnGap: spacingVars["--spacing-6"],
     gridTemplateColumns: columns,
     maxWidth: most,
     width: "100%",

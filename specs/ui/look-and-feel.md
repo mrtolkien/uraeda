@@ -35,6 +35,11 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **Two targets look like two**: a card and the button inside it never highlight together, since
   they lead to different places.
 - **A link looks like a link**: a running line of the priorities links to its feature, and shows it.
+- **A row's name is text, not a link**: a file of the Git page's changes opens its diff, yet its
+  name is in the text's colour, as the row, picked by the keys or the pointer, is the target: "The
+  files list should just be white, not purple."
+- **A diff reads its changes at a glance**: added lines on a green tint, removed ones on a red one,
+  their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat" otherwise.
 - **A field looks writable**: the composer has a border.
 - **A selected element is unmistakable**, the same way on every page (see
   [Keyboard](keyboard.md#selection)), and a mode, like moving a row, changes the row's border and

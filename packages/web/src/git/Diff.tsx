@@ -1,4 +1,5 @@
-// The Git page's detail: the picked file's diff, unified, in the theme's diff colours, its path as
+// The Git page's detail: the picked file's diff, unified, in the theme's diff colours, the lines it
+// keeps greyed, its path as
 // its pane's title; a binary file's sizes; past 1,000 lines, its counts and "Show the whole diff".
 // A commit shows its message and its files, each opening its diff. Beside the sections on wide
 // screens, a page of its own on the phone, with Back to the sections.
@@ -16,6 +17,13 @@ import { useRepoPath } from "../routes.tsx";
 import { Back } from "./Back.tsx";
 import { gitAddress, type Picked } from "./address.ts";
 import { GitCommitView, gitDiffId, GitDiffView } from "./data.ts";
+
+/**
+ * A diff's lines that change nothing, greyed so the added and removed ones stand out: a stylesheet,
+ * as no prop of `CodeBlock` reaches its lines. It names Astryx's attributes, a line's `data-line`
+ * and a change's `data-diff`: look at a diff after an Astryx upgrade.
+ */
+const CONTEXT_CSS = `[data-git-diff] [data-line]:not([data-diff]) { opacity: 0.6; }`;
 
 /** The language a diff's lines are highlighted as, by its file's extension. */
 const LANGUAGES: Readonly<Record<string, string>> = {
@@ -96,14 +104,18 @@ function DiffBody({
   }
   if (diff.text !== null && diff.text !== undefined) {
     return (
-      <CodeBlock
-        code={diff.text}
-        hasLineNumbers
-        isDiff
-        isWrapped
-        language={languageOf(path)}
-        width="100%"
-      />
+      // A div for the stylesheet to reach the lines: Astryx's stacks take no data attribute.
+      <div data-git-diff="">
+        <style>{CONTEXT_CSS}</style>
+        <CodeBlock
+          code={diff.text}
+          hasLineNumbers
+          isDiff
+          isWrapped
+          language={languageOf(path)}
+          width="100%"
+        />
+      </div>
     );
   }
   if (diff.isCapped) {

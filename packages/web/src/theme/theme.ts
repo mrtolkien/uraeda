@@ -6,6 +6,7 @@ import { neutralTheme } from "@astryxdesign/theme-neutral";
 // A package import, `package.json`'s `imports`: the theme's build copies the specifier into
 // `built/uraeda.js` as it is written, where a relative path would not resolve.
 import { uraedaIcons } from "#theme-icons";
+import { mix } from "#theme-colour";
 import { MEASURE, measureOf, WIDTHS } from "#theme-scale";
 
 /** Text, controls, and spacing at 120% of Astryx's sizes at every width, the UI look decision's. */
@@ -120,18 +121,6 @@ type Role = keyof typeof LATTE;
 
 /** A role's `[latte, mocha]` pair. */
 const pair = (role: Role): [string, string] => [LATTE[role], MOCHA[role]];
-
-/** A `#rrggbb` colour's red, green, and blue, from 0 to 255. */
-const channels = (hex: string) => [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16));
-
-/** `colour` at `share` over `under`, as `#rrggbb`: a tint the build writes as a plain colour. */
-function mix(colour: string, share: number, under: string) {
-  const [top, bottom] = [channels(colour), channels(under)];
-  return `#${top
-    .map((value, at) => Math.round(value * share + bottom[at]! * (1 - share)))
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("")}`;
-}
 
 /** A hue's tint over the base, light enough that its own text and secondary text keep 4.5:1 on it. */
 const tint = (role: Role): [string, string] => [
@@ -471,6 +460,18 @@ export const uraedaTheme = defineTheme({
     "--color-skeleton": [LATTE.surface0, MOCHA.surface1],
     "--color-success": pair("green"),
     "--color-success-muted": tint("green"),
+    // A diff's added and removed lines: a green and a red tint over the code's background, strong
+    // enough to read the change at a glance, and their `+` and `-` in the same hue.
+    "--color-syntax-added": [
+      mix(LATTE.green, 0.18, LATTE.mantle),
+      mix(MOCHA.green, 0.16, MOCHA.mantle),
+    ],
+    "--color-syntax-added-marker": pair("green"),
+    "--color-syntax-removed": [
+      mix(LATTE.red, 0.16, LATTE.mantle),
+      mix(MOCHA.red, 0.16, MOCHA.mantle),
+    ],
+    "--color-syntax-removed-marker": pair("red"),
     "--color-text-accent": pair("mauve"),
     "--color-text-disabled": pair("dim"),
     "--color-text-gray": [LATTE.text, MOCHA.subtext1],

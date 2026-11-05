@@ -108,11 +108,13 @@ export function TreeLine({
         value={row.staged}
       />
       {row.folder ? (
-        <Link onClick={() => onFold(row.path)} xstyle={styles.name}>
+        // The text's own colour: a name reads as a file, not as the accent of a link.
+        <Link color="primary" onClick={() => onFold(row.path)} xstyle={styles.name}>
           {row.name}
         </Link>
       ) : (
         <Link
+          color="primary"
           href={here(gitAddress({ file: row.path, folder, kind: "file" }))}
           xstyle={styles.name}
         >
