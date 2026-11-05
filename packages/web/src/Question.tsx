@@ -118,9 +118,10 @@ export function QuestionHead({
         </Text>
         {onAsk && (
           // A filled button, as the review's comment form draws the same action: a ghost one read
-          // as the header's text until hovered.
+          // as the header's text until hovered. Its icon is as tall as its label's line, as the
+          // sidebar's are beside the same size of text.
           <Button
-            icon={<Icon icon="uraeda:step-questions" />}
+            icon={<Icon icon="uraeda:step-questions" size="md" />}
             label="Ask the agent"
             onClick={() => onAsk(question)}
             size="sm"

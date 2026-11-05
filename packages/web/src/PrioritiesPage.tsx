@@ -47,7 +47,8 @@ function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
 
 /**
  * The switch between the columns and the list, each its icon and its word: the icons alone were
- * not clear to a pointer's user, who has no `v` to learn them by. `v` switches too.
+ * not clear to a pointer's user, who has no `v` to learn them by. `v` switches too. Each icon is
+ * the small one, the size of the switch's label.
  */
 function LayoutSwitch({
   layout,
@@ -64,11 +65,15 @@ function LayoutSwitch({
       value={layout}
     >
       <SegmentedControlItem
-        icon={<Icon icon="uraeda:columns-3" />}
+        icon={<Icon icon="uraeda:columns-3" size="sm" />}
         label="Columns"
         value="columns"
       />
-      <SegmentedControlItem icon={<Icon icon="uraeda:rows-3" />} label="List" value="stack" />
+      <SegmentedControlItem
+        icon={<Icon icon="uraeda:rows-3" size="sm" />}
+        label="List"
+        value="stack"
+      />
     </SegmentedControl>
   );
 }
