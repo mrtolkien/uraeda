@@ -81,9 +81,9 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 ## Counts
 
 A count is `· N` in a titled box, a pane's or a group's title (`Inbox · 10`); a badge only in the
-navigation (the sidebar's `10`); plain text where a sentence says it ("10 notes to organize"). The
-rule bends to what matters: "each component looks good, is easy to read, and conveys the key
-information".
+navigation (the sidebar's `10`); a small number after its icon on the phone's tabs, no badge; plain
+text where a sentence says it ("10 notes to organize"). The rule bends to what matters: "each
+component looks good, is easy to read, and conveys the key information".
 
 ## Glass
 

@@ -26,17 +26,19 @@ not a desktop squeezed down, and not a lesser version.
   width. A card whose step waits on the human has no ＞: the whole card is the target, and leads to
   the step, as the ＞ did. A button that leads elsewhere, the agent's at work on it, stays at the
   head line's end, the head line as tall as it.
-- **The top tabs** stay in view: the sidebar's toggle on their far left, set apart, then Home (with
-  the Needs-you count on its icon), Inbox, Priorities, Sessions, Commit while something waits for
-  one, a `…`, and New (`shell/Tabs.tsx`). The `…` holds Decisions and Settings, the least visited
-  places, in a popover anchored to it; while one of them is open, the `…` is the current tab. Eight
-  44 px controls are what a 375 px phone holds, so from 375 px the bar never scrolls sideways,
-  Commit showing or not; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as there
-  is no room for Apple's or Android's spacing, and a tap test at 375 px found every tap on or near a
-  tab reaching one: a filled tab's colour stops 2 px short of its sides instead, so a strip of the
-  bar's glass shows between two filled tabs. The sidebar opens over the page, up to 400 px,
-  animated, and holds no copy of the tabs' places, Git and New included: its heading, then the
-  panes.
+- **The top tabs** stay in view, a terminal's tab line (`shell/Tabs.tsx`): the sidebar's toggle on
+  their far left, set apart, then Home, Inbox, Priorities, Sessions, Git, a `…`, and New. Git is
+  always there, the phone's way to the Git page. The `…` holds Decisions and Settings, the least
+  visited places, in a popover anchored to it; while one of them is open, the `…` is the current
+  tab. Nothing is filled: the current page's tab is in the accent, its icon and its count, with a
+  thin line in the accent under it on the bar's bottom edge; New is a ＋ framed in the accent. A
+  count is a small number after its icon, in the muted text, Home's needs-you count bold in the
+  Needs you pane's colour; Git counts what waits on it, the changes and the commits to pull, only
+  while any do. Eight 44 px controls are what a 375 px phone holds, so from 375 px the bar never
+  scrolls sideways; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as there is no
+  room for Apple's or Android's spacing, and take the bar's height. The sidebar opens over the page,
+  up to 400 px, animated, and holds no copy of the tabs' places, Git and New included: its heading,
+  then the panes.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 - **The home-screen app** is the phone's main way in: the page names its icon, its name, and
