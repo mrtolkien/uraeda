@@ -30,7 +30,8 @@ not a desktop squeezed down, and not a lesser version.
   is no room for Apple's or Android's spacing, and a tap test at 375 px found every tap on or near a
   tab reaching one: a filled tab's colour stops 2 px short of its sides instead, so a strip of the
   bar's glass shows between two filled tabs. The sidebar opens over the page, up to 400 px,
-  animated, and holds no copy of the tabs' places.
+  animated, and holds no copy of the tabs' places, Git and New included: its heading, then the
+  panes.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 - **The home-screen app** is the phone's main way in: the page names its icon, its name, and

@@ -1,7 +1,7 @@
 // T3, on an iPhone from the home screen: what is typed, and the button that sends it, stay above
-// the keyboard; the phone hints no key; and the priorities are one column there.
+// the keyboard; the phone hints no key; the priorities are one column there; and its sidebar copies no tab.
 import { LayerProvider } from "@astryxdesign/core/Layer";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { scrollAboveKeyboard, useAboveKeyboard } from "../layout/useAboveKeyboard.ts";
@@ -131,4 +131,29 @@ test("on the phone, the priorities are one column until the columns are picked",
   await screen.findByRole("region", { name: "Columns" });
   expect(window.localStorage.getItem("uraeda:priorities:layout")).toBe("columns");
   window.localStorage.removeItem("uraeda:priorities:layout");
+});
+
+// Break: Git and ＋ New back in the phone's sidebar, a copy of the tabs' Commit and New; or gone
+// from the wide column, which has no tabs.
+test("the phone's sidebar holds no Git and no New, which the tabs have; the wide column keeps them", async () => {
+  const repo = fixtureRepo();
+  atWidth(375);
+  await renderPage("/", repo);
+  await screen.findByRole("navigation", { name: "Tabs" });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Sidebar" }));
+  });
+  const phone = within(await screen.findByRole("navigation", { name: "Navigation" }));
+  await phone.findByRole("group", { name: "Needs you" });
+  expect(phone.queryByRole("link", { name: /^Git/ })).toBeNull();
+  expect(phone.queryByRole("link", { name: /^New/ })).toBeNull();
+  expect(
+    within(screen.getByRole("navigation", { name: "Tabs" })).getByRole("link", { name: /^New/ }),
+  ).toBeTruthy();
+
+  atWidth(1440);
+  await renderPage("/", repo);
+  const wide = within(await screen.findByRole("navigation", { name: "Navigation" }));
+  expect(await wide.findByRole("link", { name: /^Git/ })).toBeTruthy();
+  expect(wide.getByRole("link", { name: /^New/ })).toBeTruthy();
 });

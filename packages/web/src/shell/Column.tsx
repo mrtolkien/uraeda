@@ -184,7 +184,8 @@ const FOLD_MS = 200;
 
 /**
  * The phone's column, which the tabs' toggle opens over the page, up to 400 px wide, under the tabs
- * and above the status line: the whole column, as the open rail draws it, never folded.
+ * and above the status line: the column as the open rail draws it, never folded, without Git and
+ * New, which the tabs have.
  */
 export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
   return (
@@ -194,8 +195,7 @@ export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
     >
       <div {...stylex.props(styles.inner)}>
         <ColumnHeading />
-        <ColumnActions />
-        {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
+        {/* No Git and no New, as no Navigate pane and no Settings: the tabs above have them, and the column holds no copy of the tabs' places. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
         <div {...stylex.props(styles.scroll)}>
           <StackedCards value>
             <ShellPanes />
