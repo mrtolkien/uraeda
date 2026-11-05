@@ -100,8 +100,10 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   place instead.
 - After an action that sends the human somewhere, they land there, with the result selected: a note
   promoted to the priorities opens the priorities at that line.
-- A page with a list opens with a row selected: the first of its first section, or the one the
-  address names. Where Space is the row's own, as a Git page's box, the row also has the focus.
+- A list opens with no row selected, unless the address names one: a selection nobody made looks odd
+  under a mouse ("it's ok to have no focus on open in a list"). The first `j` selects its first row.
+  Where Space is the row's own, as a Git page's box, the page opens with its first row selected and
+  focused, so that Space stages at once.
 
 ## What shows the keys
 
