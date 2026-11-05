@@ -67,6 +67,14 @@ const styles = stylex.create({
     flexGrow: 1,
     minWidth: 0,
   },
+  // Stacked: the second line, its words then the row's end, which the name no longer shares.
+  under: {
+    alignItems: "center",
+    display: "flex",
+    gap: spacingVars["--spacing-2"],
+    minWidth: 0,
+  },
+  underText: { flexGrow: 1, minWidth: 0 },
 });
 
 /** The closed rail's look of a row: what of it shows (`rail`). */
@@ -106,6 +114,45 @@ function Sub({ sub }: { sub: ReactNode }) {
   );
 }
 
+/** The row's end, beside its lines: two lines high when `isTall`, lit with the card when not. */
+function End({
+  children,
+  isLit,
+  isTall,
+  xstyle,
+}: {
+  children: ReactNode;
+  isLit: boolean;
+  isTall: boolean;
+  xstyle: stylex.StyleXStyles | false | undefined;
+}) {
+  return (
+    <span
+      {...stylex.props(
+        styles.end,
+        isTall && styles.endTall,
+        // Passive, it is the card's: lit with it.
+        isLit && !isTall && styles.lit,
+        xstyle,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** A stacked row's second line: its words, then the row's end, which the name no longer shares. */
+function Under({ end, sub }: { end: ReactNode; sub: ReactNode }) {
+  return (
+    <span {...stylex.props(styles.under)}>
+      <span {...stylex.props(styles.underText)}>
+        <Sub sub={sub} />
+      </span>{" "}
+      <span {...stylex.props(styles.end)}>{end}</span>
+    </span>
+  );
+}
+
 /**
  * Where the pointer is over a row whose end, or what follows its link, is a button, when
  * `isSplit`: the card and the button are two surfaces, and only the one under it brightens.
@@ -136,6 +183,7 @@ export function CardRow({
   isEndTall = false,
   isPicked = false,
   isSelected,
+  isStacked = false,
   label,
   name,
   onClick,
@@ -155,6 +203,11 @@ export function CardRow({
   /** Its link tinted as a list's selected row, as the keys or the pointer picked it. */
   isPicked?: boolean;
   isSelected: boolean;
+  /**
+   * The name takes the row's whole width, and the end goes on the second line, after its words:
+   * a narrow column's cards, whose names would break mid-word beside a button.
+   */
+  isStacked?: boolean;
   /** Its name, shown whole. */
   label: string;
   /** What screen readers read, in full words. */
@@ -200,20 +253,15 @@ export function CardRow({
         <span {...stylex.props(styles.icon, isCardLit && styles.lit, railIcon)}>{icon}</span>
         <span {...stylex.props(styles.text, isCardLit && styles.lit, railRest)}>
           <span {...stylex.props(styles.name)}>{label}</span>
-          {sub !== undefined && <Sub sub={sub} />}
+          {sub !== undefined &&
+            (isStacked ? <Under end={endContent} sub={sub} /> : <Sub sub={sub} />)}
         </span>
         {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
-        <span
-          {...stylex.props(
-            styles.end,
-            isEndTall && styles.endTall,
-            // Passive, it is the card's: lit with it.
-            isCardLit && !isEndTall && styles.lit,
-            railRest,
-          )}
-        >
-          {endContent}
-        </span>
+        {!(isStacked && sub !== undefined) && (
+          <End isLit={isCardLit} isTall={isEndTall} xstyle={railRest}>
+            {endContent}
+          </End>
+        )}
       </RouterAnchor>
       {after !== undefined && (
         <span data-card-after {...stylex.props(styles.end, railRest)}>
