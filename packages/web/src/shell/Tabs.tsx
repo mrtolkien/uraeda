@@ -20,6 +20,7 @@ import { selects } from "../sidebar/Row.tsx";
 import { useShellPath } from "./ShellPanes.tsx";
 import { plural } from "../labels.ts";
 import { ruleStyles } from "../layout/rules.ts";
+import { barVars } from "../layout/bar.stylex.ts";
 
 const styles = stylex.create({
   badge: {
@@ -35,8 +36,9 @@ const styles = stylex.create({
     alignItems: "center",
     boxSizing: "border-box",
     display: "flex",
-    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone
-    // holds, so Decisions and Settings wait in the `…` (see `MoreTab`).
+    // None between their targets at the least: eight 44 px buttons and the line are what a 375 px
+    // phone holds, so Decisions and Settings wait in the `…` (see `MoreTab`). Each tab draws its
+    // own room inside its target instead (`tab`).
     gap: 0,
     height: spacingVars["--spacing-12"],
     justifyContent: "space-between",
@@ -52,10 +54,21 @@ const styles = stylex.create({
     display: "inline-flex",
     position: "relative",
   },
+  // A tab's fill, the current page's or a filled one's like New, stops a thin strip short of the
+  // target's sides, so two fills side by side show the bar's glass between them; the target keeps
+  // its 44 px, the strip included, and a tap on it still reaches the tab.
   small: {
     // A small badge, its count in the type it had: less padding, and a step less tall.
     height: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-1"],
+  },
+  tab: {
+    backgroundClip: "padding-box",
+    borderColor: "transparent",
+    // Over Astryx's button, which draws none: its longhands, which win over its shorthands.
+    borderInlineEndWidth: barVars["--bar-tab-room"],
+    borderInlineStartWidth: barVars["--bar-tab-room"],
+    borderStyle: "solid",
   },
   toggle: {
     // The sidebar's toggle apart, further left than the tabs: its own group, then a line.
@@ -110,6 +123,7 @@ function Tab({
       }
       label={shown ? `${label}, ${counted(count)}` : label}
       variant={isCurrent ? "secondary" : variant}
+      xstyle={styles.tab}
     />
   );
 }
@@ -169,6 +183,7 @@ function MoreTab({ at }: { at: (to: string) => boolean }) {
           icon={<Icon icon="moreHorizontal" />}
           label={current ? `More, ${current.label}` : "More"}
           variant={current ? "secondary" : "ghost"}
+          xstyle={styles.tab}
           {...props}
         />
       )}
@@ -218,6 +233,7 @@ export function Tabs({
           label="Sidebar"
           onClick={onToggleSidebar}
           variant={isSidebarOpen ? "secondary" : "ghost"}
+          xstyle={styles.tab}
         />
         <span aria-hidden="true" {...stylex.props(styles.divider)} />
       </div>

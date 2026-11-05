@@ -1,5 +1,6 @@
 // The phone's tabs fit a 375 px phone with Git showing: Decisions and Settings wait in a `…`,
-// whose popover holds them, and which is the current page's tab while one of them is open.
+// whose popover holds them, and which is the current page's tab while one of them is open. Their
+// 44 px targets touch, and each fill stops a thin strip of glass short of its target's sides.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -43,4 +44,21 @@ test("the … is the current page's tab, named by it, while Decisions or Setting
   const tabs = await tabsAt("/decisions");
   const more = within(tabs).getByRole("button", { name: "More, Decisions" });
   expect(more.getAttribute("aria-current")).toBe("page");
+});
+
+// Break: the tabs' fills edge to edge again, so the current tab's, Git's, and New's run into their
+// neighbours; or a gap taken out of the targets, which leaves taps between two tabs reaching none.
+// A tap test on a 375 px phone (centre and ±4 px inside each edge) reached the aimed tab every time
+// with or without the strip: the targets are unchanged, the strip is drawn inside them.
+test("each tab's fill stops a strip short of its target's sides, its target still touching the next", async () => {
+  const tabs = await tabsAt("/");
+  const controls = [...within(tabs).getAllByRole("link"), ...within(tabs).getAllByRole("button")];
+  for (const control of controls) {
+    const style = getComputedStyle(control);
+    expect(style.backgroundClip).toBe("padding-box");
+    expect(style.borderInlineStartWidth).toBe("0.125rem");
+    expect(style.borderInlineEndWidth).toBe("0.125rem");
+  }
+  // No room between the targets themselves: eight 44 px controls fill a 375 px phone.
+  expect(getComputedStyle(tabs).gap).toBe("0");
 });
