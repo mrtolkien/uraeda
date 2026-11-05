@@ -358,8 +358,7 @@ test("a kind has one icon in the New group, the Find group, and the picker's row
   fake.adapter.script([{ text: "Done.", type: "text" }]);
   const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the drafts" });
   await fake.sessions.settled(turn);
-  // Off home, where the sidebar draws its Needs you cards.
-  await renderPage("/inbox", repo, { agent: fake });
+  await renderPage("/", repo, { agent: fake });
   await screen.findByRole("navigation", { name: "Navigation" });
   await quiet();
   const added = menuAfter(" ", "n");
