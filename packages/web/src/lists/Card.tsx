@@ -28,6 +28,7 @@ import {
 } from "react";
 import type { ConfirmOptions } from "../fields/Confirm.tsx";
 import { pickedStyles } from "../layout/picked.ts";
+import { isPointerMoved } from "../pointerMoved.ts";
 import type { PageRequest } from "../readAhead.ts";
 import { type BarAction, RowBar } from "./RowBar.tsx";
 
@@ -275,7 +276,7 @@ function pointerOf(row: WorkRow, { onHover }: RowEvents) {
   return {
     // A row scrolled under a still pointer takes nothing.
     onPointerMove: (event: PointerEvent) => {
-      if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
+      if (isPointerMoved(event)) {
         onHover?.(row);
       }
     },

@@ -1,0 +1,29 @@
+// Whether a mouse's `pointermove` is the human moving it: what moves the selection, or the focus,
+// to what the pointer is over. The page scrolling, by the keys or by content arriving, under a
+// still pointer moves nothing: a browser may still send a move then, or fill its `movementX` in,
+// but the pointer is where it was in the window.
+import type { PointerEvent } from "react";
+
+/** Where the last move left the pointer in the window, none before the first. */
+let last: { x: number; y: number } | undefined;
+/** The moves that changed where the pointer is: the page's handlers run after the document's. */
+const moved = new WeakSet<Event>();
+
+function track(event: globalThis.PointerEvent) {
+  if (last !== undefined && (event.clientX !== last.x || event.clientY !== last.y)) {
+    moved.add(event);
+  }
+  last = { x: event.clientX, y: event.clientY };
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("pointermove", track, { capture: true, passive: true });
+}
+
+/**
+ * A mouse's move that took the pointer elsewhere in the window since the last one. The first move
+ * seen only marks where the pointer is: a real move sends many.
+ */
+export function isPointerMoved(event: PointerEvent) {
+  return event.pointerType === "mouse" && moved.has(event.nativeEvent);
+}

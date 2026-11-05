@@ -6,6 +6,7 @@
 // before the page's keys, which then leave them. Each card is found by its `data-core-key`.
 import { type KeyboardEvent, type PointerEvent, type RefObject, useCallback } from "react";
 import { useLeaderWaits, useSingleKeys } from "../keys/registry.tsx";
+import { isPointerMoved } from "../pointerMoved.ts";
 
 /** A move of the keys among the core's cards. */
 export type CoreStep = "down" | "up" | "left" | "right";
@@ -131,7 +132,7 @@ export function useCoreKeys(
  * from it. A card scrolled under a still pointer takes nothing.
  */
 export function onCorePointer(event: PointerEvent) {
-  if (event.pointerType !== "mouse" || (event.movementX === 0 && event.movementY === 0)) {
+  if (!isPointerMoved(event)) {
     return;
   }
   const card = (event.target as Element).closest("[data-core-key]");
