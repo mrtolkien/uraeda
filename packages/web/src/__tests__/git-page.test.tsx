@@ -83,6 +83,9 @@ async function press(target: HTMLElement, key: string) {
 /** The commit message's field. */
 const message = () => screen.getByRole("textbox", { name: "Message" });
 
+/** The hint under the message, `aria-hidden` while the field is not focused. */
+const hint = () => screen.getByText(/commits what is staged/).closest("[aria-hidden]");
+
 /** The files staged in `repo`, one per line. */
 const staged = (repo: string) => git(repo, "diff", "--cached", "--name-only");
 
@@ -132,8 +135,8 @@ test("a typed message stays once its commit is refused, and goes once it lands",
   );
 });
 
-// Break: the field empty though a default is offered, `c` committing without the field, or Enter
-// adding a line instead of committing.
+// Break: the field empty though a default is offered, `c` committing without the field, Enter
+// adding a line instead of committing, or its hint shown while Enter is not the field's.
 test("`c` goes to the message, filled with the default, and Enter commits it", async () => {
   const repo = fixtureRepo();
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
@@ -141,11 +144,12 @@ test("`c` goes to the message, filled with the default, and Enter commits it", a
   await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
   await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
   await refreshUntil(() => expect(fieldText(message())).toBe("chore: add Global undo"));
-  expect(screen.getByText(/commits what is staged/)).toBeTruthy();
+  expect(hint()?.getAttribute("aria-hidden")).toBe("true");
 
   await press(boxOf("specs/PRIORITIES.md"), "c");
 
   expect(document.activeElement).toBe(message());
+  expect(hint()?.getAttribute("aria-hidden")).toBe("false");
   expect(git(repo, "log", "-1", "--format=%s")).not.toBe("chore: add Global undo\n");
   await type(message(), "chore: add Global undo now");
   await press(message(), "Enter");
@@ -253,8 +257,8 @@ test("a working tree's diff reads the file afresh, open and opened again", async
   await waitFor(() => shows("And the work."));
 });
 
-// Break: "Enter commits what is staged, Shift+Enter adds a line" on a phone, whose keyboard has no
-// Shift+Enter, and where no key is hinted (T3).
+// Break: "⏎ commits what is staged" on a phone, which hints no key, Commit staged being the tap
+// (T3).
 test("on the phone, the message hints no key", async () => {
   const repo = fixtureRepo();
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);

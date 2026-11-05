@@ -42,10 +42,10 @@ not a desktop squeezed down, and not a lesser version.
 
 A page with a side column on wide screens, a round, a spec, a plan, a document, a data model, a
 session, and a feature, has a bottom bar on the phone (`layout/ColumnStatusLine.tsx`): one row of
-icon tiles in frosted glass, as tall as the top tabs. Its shape follows its count
-(`layout/NavBar.tsx`): one tile is a single square glass button at the bottom right, two are a
-button in each corner, and three or more the bar across the screen. A button sits inside the bar's
-row, so the page's end always shows above it.
+icon tiles in frosted glass, as tall as the top tabs, each with a small word under its icon. Its
+shape follows its count (`layout/NavBar.tsx`): one tile is a single square glass button at the
+bottom right, two are a button in each corner, and three or more the bar across the screen. A button
+sits inside the bar's row, so the page's end always shows above it.
 
 What goes in it, in this order:
 
@@ -65,8 +65,9 @@ A page with one main action has a bar of it alone, in the accent: the draft edit
 opens the Start pane as a sheet, the slug focused; the inbox's and the priorities' Add, which opens
 their add form, as the sidebar's ＋ does. A buffer's bar holds Back and Save.
 
-What does not go in it: words, keys, counts written out (a tile's label says them to screen
-readers), a page's content, and anything the page already shows in reach.
+What does not go in it: sentences, keys, counts written out (a tile's label says them to screen
+readers), a page's content, and anything the page already shows in reach. A tile's word is one,
+under its icon, short enough to stay whole at 360 px.
 
 It slides away as the page scrolls down, out of the reading's way, and back as it scrolls up, at the
 page's top, and at its end. A jump of more than a screen, like a restored place, moves it neither

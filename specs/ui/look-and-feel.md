@@ -22,9 +22,11 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
   summary field said nothing more.
 - **Icons where the icon is clear.** A row's file, a link, or a running feature shows as its icon,
   not as a word after the text: "the icons are enough". Every icon-only control keeps a label for
-  screen readers.
-- **Empty sections disappear.** A pane with nothing to show, like Sessions when none is open, is not
-  drawn.
+  screen readers. A control that stands alone as a tile, like the phone's bottom bar's, carries a
+  small word under its icon, sized to fit its tile: an icon alone there was a guess.
+- **Empty status panes disappear.** A pane of ongoing work with nothing to show, like Needs you,
+  Sessions, or In progress, is not drawn: the human meets it once there is work. What the human
+  makes, the inbox and the priorities, is always there, its empty state saying what goes in it.
 
 ## What can be pressed looks pressable
 
@@ -41,6 +43,9 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **A diff reads its changes at a glance**: added lines on a green tint, removed ones on a red one,
   their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat" otherwise.
 - **A field looks writable**: the composer has a border.
+- **A target is 24 px high at least** on a desktop, padding included: a status line's hint, a row
+  bar's action, any text that is pressed. Where the look is denser, the hit area grows, not the
+  text.
 - **A selected element is unmistakable**, the same way on every page (see
   [Keyboard](keyboard.md#selection)), and a mode, like moving a row, changes the row's border and
   its bar's hints where it acts.
@@ -54,7 +59,9 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **Icons on one axis**: the rail's icons are 20 px, aligned on one vertical axis whatever their row
   holds; a card's and a row's icons are the small and medium sizes, aligned within their column.
 - **Separators only between sections**, at the same place every time; inside a section, room or a
-  card's own border separates its rows.
+  card's own border separates its rows. Inside a pane, a border is a control's, a field's or a
+  button's, never decoration.
+- **Panes nest two levels deep at most**: a pane inside a pane, never a third inside them.
 
 ## Colours
 

@@ -7,22 +7,25 @@ everything at once.
 ## Three fonts, three jobs
 
 - **The reading font**, proportional, for prose: a document's paragraphs and lists, a question's
-  context, an option's sentence, a settled point, an edge case, a comment's text, and the agent's
-  replies in a session, as "agents love sending long messages". Drawn through `Prose`
-  (`proseStyles.reading`, `proseStyles.doc`) or `Blocks`, never by hand.
-- **The markdown prose font**, monospace by default, for markdown shown as its source, as the human
-  writes it: the text typed in every field, and the human's messages in a session. Its code, marks
-  included, is in the code font, and its headings in the heading font, as the human asked:
-  "codeblocks inside the editor use a different font than prose", "do the same for headings", and
-  "the same for user messages in sessions".
+  context, an option's sentence, a settled point, an edge case, a comment's text, a list's detail,
+  and a session's messages, the agent's, as "agents love sending long messages", and the human's
+  once sent. Drawn through `Prose` (`proseStyles.reading`, `proseStyles.doc`) or `Blocks`, never by
+  hand. A sent message keeps its code in the code font and its headings in the heading font.
+- **The markdown prose font**, monospace by default, for markdown being written: the text typed in
+  every field, where monospace feels natural, most of all in Vim's modes. Its code, marks included,
+  is in the code font, and its headings in the heading font, as the human asked: "codeblocks inside
+  the editor use a different font than prose" and "do the same for headings".
 - **The UI font**, monospace, for everything that is the tool rather than the text: titles in pane
   borders, labels, buttons, keys, ids, counts, rows of lists, the status line.
 
 A block of prose set in the UI font is a bug: it happened to a spec's "What you approve", its
 tradeoffs, and its scenarios, drawn with `Text type="inherit"`, and they read badly until they went
-through `Prose`. If a sentence is meant to be read, it is in the reading font, or in a field or the
-human's messages, in the markdown prose font. A file that is not markdown, in a buffer or a
-conflict, is all in the code font: a `#` there starts no heading.
+through `Prose`. If a sentence is meant to be read, it is in the reading font; if it is being
+written, in a field, it is in the markdown prose font: "the text editors themselves should use
+monospace", while "displaying the text can be proportional". A row of a list stays in the UI font,
+whatever its lines: it is scanned, not read, and its detail reads it in the reading font. A file
+that is not markdown, in a buffer or a conflict, is all in the code font: a `#` there starts no
+heading.
 
 ## Fonts, by role
 
@@ -42,6 +45,10 @@ measure, so a line holds about 80 characters whatever font is picked. Lines are 
 - **The target is about 80 characters of prose a line**: "Let's target 80 characters per line
   actually for prose." A line much longer reads badly: 96 characters in a round's Goal was "a bit
   too long".
+- **No line of prose past 90 characters**, Butterick's limit: "90 is a good limit". It is kept by
+  drawing prose through `Prose`, whose measure caps it, rather than view by view; a wider page, like
+  a session's at 95 characters or the detail dialog at 108, holds prose at the measure, and its
+  extra width is for code, tables, and tool output.
 - **Prose's measure is about 80 characters**: `--size-reading-measure`, 60 of the reading font's
   "0", which hold about 80 of its letters and spaces. It is set in the reading size, not in `ch`,
   since `ch` would be measured in the font of whatever element reads it.
@@ -60,8 +67,9 @@ measure, so a line holds about 80 characters whatever font is picked. Lines are 
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
-- Columns of rows are **400 px at least**: "400 IS THE MINIMUM." The priorities' four columns are
-  the exception, 360 px at least, so that all four fit a 1920 px window beside the sidebar.
+- Columns of rows are **400 px at least**: "400 IS THE MINIMUM." A column may go slightly under it
+  only where that greatly improves the page's layout, and a spec says so: the priorities' four
+  columns take 360 px at least, so that all four fit a 1920 px window beside the sidebar.
 
 ## The scale of widths
 

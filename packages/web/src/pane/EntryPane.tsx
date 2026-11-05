@@ -17,7 +17,7 @@ import type { Span } from "uraeda-binding";
 import { listStyles } from "../BlockList.tsx";
 import { LineField } from "../EditableLine.tsx";
 import { markVars } from "../marks.stylex.ts";
-import { proseRhythm } from "../Prose.tsx";
+import { proseRhythm, proseStyles } from "../Prose.tsx";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -117,6 +117,9 @@ export function EntryText({
           {...stylex.props(
             listStyles.native(markVars["--mark-list-room"]),
             listStyles.disc,
+            // Read, not edited: the reading font, at about 80 characters a line.
+            proseStyles.reading,
+            proseStyles.measure,
             styles.children,
           )}
         >

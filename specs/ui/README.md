@@ -16,6 +16,20 @@ decoration: each element earns its place, shows what it does, and looks the same
 appears. What moves, glides; what is pressed, answers at once. The phone gets the same product,
 reshaped for a thumb, not a smaller desktop.
 
+## Its own look
+
+Uraeda's look is its own: its inspiration is LazyVim, terminal interfaces, and modern Linux
+desktops, tiling, glassy, and keyboard-driven, never a generic iOS app or a shadcn page. It is a
+paradigm not seen before, and every view should feel like it belongs to that terminal, not to a web
+template.
+
+The principles below and the [guidelines](guidelines.md) say what a view must achieve; the look says
+how it looks while achieving it. The two pull apart often, and neither wins by default: the outside
+guidelines exist for a reason, a reader's eyes, a hand's precision, a screen reader, so a need they
+name is met, in the terminal's own way where one exists, like a hit area grown under dense text
+rather than a rounded button. Where no terminal way meets the need, or where meeting it would make
+the view generic, the conflict is the human's to arbitrate, proposed with each side's cost.
+
 ## The principles, by priority
 
 When two conflict, the higher one wins.

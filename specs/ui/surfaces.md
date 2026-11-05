@@ -51,11 +51,11 @@ page's header holds one, a session's and a feature's.
 ## A list's detail
 
 A row shows two or three lines. Its whole text, a proposal's or a note's, opens in the detail dialog
-(`pane/DetailOverlay.tsx`), 108 characters wide, on the row's own address, over the list, which
-keeps its selection and its scroll; a row with a file opens the file's page instead. Where reading
-an item is the page's job, the decisions page draws the list beside the item it reads, as the
-[UI layout](../decisions/ui-layout.md) decision asks. The priorities' side pane, and a hover card
-that followed the selection, were tried and removed.
+(`pane/DetailOverlay.tsx`), 108 characters wide, its text in the reading font at the measure, on the
+row's own address, over the list, which keeps its selection and its scroll; a row with a file opens
+the file's page instead. Where reading an item is the page's job, the decisions page draws the list
+beside the item it reads, as the [UI layout](../decisions/ui-layout.md) decision asks. The
+priorities' side pane, and a hover card that followed the selection, were tried and removed.
 
 ## The leader menu and the `g` keys
 
@@ -94,10 +94,11 @@ exist?" A proposal file opens its page, not an overlay. On the phone a dialog is
 
 A write the human may regret, but that needs no question first, like a note promoted out of the
 inbox or an empty category deleted, shows a toast with Undo for 5 seconds
-(`layout/useUndoToast.ts`); `u` presses the newest one's Undo. A note of the inbox deleted with `d`
-gets one too, after its question: Undo puts back the note and the note file that went with it.
-Committing clears them. A toast is for this, for a confirmation from another page, and for the git
-writes still landing, never for an error alone, which stays next to what it concerns.
+(`layout/useUndoToast.ts`), its time paused while the pointer is over it or the focus in it, so a
+slow reader or a screen reader keeps it; `u` presses the newest one's Undo. A note of the inbox
+deleted with `d` gets one too, after its question: Undo puts back the note and the note file that
+went with it. Committing clears them. A toast is for this, for a confirmation from another page, and
+for the git writes still landing, never for an error alone, which stays next to what it concerns.
 
 ## The commit toast
 
@@ -139,7 +140,9 @@ the page's end.
 The left column, the shell's, is global: the repository, what needs the human, what is in progress,
 running sessions among it, the other open sessions, the usage, and Commit while changes wait. Folded
 to a rail, it unfolds over the page on hover or on `[`, without moving anything ("NOTHING SHOULD
-CHANGE PLACES"). It is not a page's place for its own controls.
+CHANGE PLACES"). It is not a page's place for its own controls. It is app-global: it shows the same
+panes on every page, home included, so what needs the human is seen from anywhere; home's own panes
+repeating some of it is expected.
 
 ## The status line
 
@@ -173,12 +176,12 @@ today.
 
 ## The bottom bar, on the phone
 
-The phone's version of the side column: one row of icon tiles in frosted glass, a page's companions
-as its side column has them, each opening a sheet, then at its end the one help that moves the human
-forward, Next or Verdict, in the accent. It is drawn by the pages with a side column, through
-`layout/ColumnStatusLine.tsx`, and slides away as the page scrolls down and back as it scrolls up.
-One or two tiles are glass buttons in the corners instead of a bar. See [the phone](phone.md) for
-what goes in it.
+The phone's version of the side column: one row of icon tiles in frosted glass, each with its word,
+a page's companions as its side column has them, each opening a sheet, then at its end the one help
+that moves the human forward, Next or Verdict, in the accent. It is drawn by the pages with a side
+column, through `layout/ColumnStatusLine.tsx`, and slides away as the page scrolls down and back as
+it scrolls up. One or two tiles are glass buttons in the corners instead of a bar. See
+[the phone](phone.md) for what goes in it.
 
 ## Sheets
 
