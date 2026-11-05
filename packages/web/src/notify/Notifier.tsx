@@ -5,6 +5,7 @@ import { Component, type ReactNode, Suspense, use } from "react";
 import { FateClient } from "react-fate";
 import { useNeedsYou } from "../data.ts";
 import { ListClientContext } from "../ListClient.tsx";
+import { useLocalPath } from "../routes.tsx";
 import { NotificationBanner } from "./NotificationBanner.tsx";
 import { useNotificationBanner } from "./permission.ts";
 import { useNotifier } from "./useNotifier.ts";
@@ -44,8 +45,17 @@ export function Notifier() {
   );
 }
 
-/** The banner that asks to notify, or says why notifications cannot show, while it shows. */
+/** Whether a page shows the banner: home and the settings, never a page of work. */
+export const showsBanner = (path: string) => path === "/" || /^\/settings(\/|$)/.test(path);
+
+/**
+ * The banner that asks to notify, or says why notifications cannot show, while it shows: on home
+ * and the settings only, so a page of work keeps its whole height, a session's composer in view.
+ */
 export function NotifyBanner() {
   const { dismiss, state, turnOn } = useNotificationBanner();
-  return state ? <NotificationBanner onDismiss={dismiss} onTurnOn={turnOn} state={state} /> : null;
+  const path = useLocalPath();
+  return state && showsBanner(path) ? (
+    <NotificationBanner onDismiss={dismiss} onTurnOn={turnOn} state={state} />
+  ) : null;
 }
