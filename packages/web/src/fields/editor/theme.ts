@@ -1,7 +1,8 @@
-// The editor's look, a terminal's text after `mockups/editor.css`: the theme's monospace font, a 1 px
-// frame, square corners, no inner shadow. CodeMirror styles the elements it creates itself, which
-// StyleX cannot reach, so the look is CodeMirror's `EditorView.theme` over the Astryx theme's tokens,
-// read as CSS variables: it follows the light and dark themes, and no global stylesheet is added.
+// The editor's look, a terminal's text after `mockups/editor.css`: the fonts picked for markdown
+// (`markdown.ts`), a 1 px frame, square corners, no inner shadow. CodeMirror styles the elements it
+// creates itself, which StyleX cannot reach, so the look is CodeMirror's `EditorView.theme` over
+// the Astryx theme's tokens, read as CSS variables: it follows the light and dark themes, and no
+// global stylesheet is added.
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import type { Variant } from "./Editor.tsx";
@@ -43,7 +44,7 @@ export const editorTheme: Extension = EditorView.theme({
   },
   ".cm-line": { padding: `0 ${PAD_INLINE}` },
   ".cm-placeholder": { color: "var(--color-syntax-comment)" },
-  ".cm-scroller": { fontFamily: "var(--font-family-code)", lineHeight: String(LINE) },
+  ".cm-scroller": { lineHeight: String(LINE) },
   // The selection CodeMirror's layer draws, which the Vim layer adds: Visual mode's mauve, faint
   // enough for the text to read on it, where the grey hardly showed on the field's ground; fainter
   // still in a field without the focus.

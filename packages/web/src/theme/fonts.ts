@@ -1,14 +1,15 @@
 // The fonts, picked for each part of the UI, kept in this browser: the interface, the headings,
-// prose, code and keys, and the human's messages in a session. Each part is a font family token of
-// the theme, written over the theme's own by a StyleX style on the app's root, and on what draws
-// outside it (`useFontStyle`), from the app's first draw, so no text changes face. One choice for
-// the whole app: the settings' Fonts section and `Space u f` show and pick the same.
+// prose, code and keys, and markdown prose, the text of the editor and of a session's messages.
+// Each part is a font family token of the theme, written over the theme's own by a StyleX style on
+// the app's root, and on what draws outside it (`useFontStyle`), from the app's first draw, so no
+// text changes face. One choice for the whole app: the settings' Fonts section and `Space u f` show
+// and pick the same.
 import * as stylex from "@stylexjs/stylex";
 import { useSyncExternalStore } from "react";
 import { measureOf, WIDTHS } from "./scale.ts";
 
 /** A part of the UI with a font of its own. */
-export type FontRole = "body" | "heading" | "reading" | "code" | "human";
+export type FontRole = "body" | "heading" | "reading" | "code" | "markdown";
 
 /** A font the UI bundles: its name, its CSS family with fallbacks, and its prose measure. */
 export type Font = {
@@ -69,22 +70,22 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
   },
   { help: "Pages' titles and sections' headings.", key: "h", label: "Headings", role: "heading" },
   {
-    help: "What is read at length: proposals, rounds, specs, plans, and documents. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
+    help: "What is read at length: proposals, rounds, specs, plans, documents, and the agent's replies. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
     key: "p",
     label: "Prose",
     role: "reading",
   },
   {
-    help: "Code, paths, keys, and the text you type.",
+    help: "Code, in the editor and in messages, paths, and keys.",
     key: "c",
     label: "Code and keys",
     role: "code",
   },
   {
-    help: "Your messages in a session, once sent.",
-    key: "u",
-    label: "Your messages",
-    role: "human",
+    help: "The text you type, and your messages in a session.",
+    key: "m",
+    label: "Markdown prose",
+    role: "markdown",
   },
 ];
 
@@ -92,16 +93,16 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
 export type Fonts = Record<FontRole, string>;
 
 /**
- * Monaspace for the interface, headings, and the human's messages, these in the interface's Neon
- * rather than Radon's handwriting; prose in a proportional font, Atkinson's, which reads best; and
- * code and keys, which every text field writes in, in JetBrains Mono, a standard monospace font, as
- * Krypton was "too aggressive" in the editor.
+ * Monaspace for the interface, headings, and markdown prose, this in the interface's Neon rather
+ * than Radon's handwriting; prose in a proportional font, Atkinson's, which reads best; and code
+ * and keys in JetBrains Mono, a standard monospace font, as Krypton was "too aggressive" in the
+ * editor.
  */
 export const DEFAULT_FONTS: Fonts = {
   body: "neon",
   code: "jetbrains",
   heading: "xenon",
-  human: "neon",
+  markdown: "neon",
   reading: "atkinson",
 };
 
@@ -114,9 +115,13 @@ export function fontOf(role: FontRole, id: string | undefined): Font {
   );
 }
 
-/** The fonts picked on this browser, the defaults for any part not picked, or unreadable. */
-function readFonts(): Fonts {
-  let stored: Partial<Record<FontRole, unknown>> = {};
+/**
+ * The fonts picked on this browser, the defaults for any part not picked, or unreadable. Markdown
+ * prose was the human's messages' font, kept as `human` before its rename: a font picked then
+ * stays picked.
+ */
+export function readFonts(): Fonts {
+  let stored: Partial<Record<FontRole | "human", unknown>> = {};
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? "{}");
     stored = parsed && typeof parsed === "object" ? parsed : {};
@@ -125,7 +130,7 @@ function readFonts(): Fonts {
   }
   const picked = { ...DEFAULT_FONTS };
   for (const { role } of ROLES) {
-    const id = stored[role];
+    const id = role === "markdown" ? (stored.markdown ?? stored.human) : stored[role];
     picked[role] = fontOf(role, typeof id === "string" ? id : undefined).id;
   }
   return picked;
@@ -149,13 +154,13 @@ const styles = stylex.create({
     heading: string,
     reading: string,
     code: string,
-    human: string,
+    markdown: string,
     measure: string,
   ) => ({
     "--font-family-body": body,
     "--font-family-code": code,
     "--font-family-heading": heading,
-    "--font-family-human": human,
+    "--font-family-markdown": markdown,
     "--font-family-reading": reading,
     "--size-reading-measure": measure,
     fontFamily: "var(--font-family-body)",
@@ -170,11 +175,11 @@ const styles = stylex.create({
   }),
   // The app's root, which only carries the fonts: no box of its own.
   root: { display: "contents" },
-  // A human's message once sent, in their font, its prose too.
+  // A human's message once sent, in markdown prose's font, its prose too.
   human: {
-    "--font-family-body": "var(--font-family-human)",
-    "--font-family-reading": "var(--font-family-human)",
-    fontFamily: "var(--font-family-human)",
+    "--font-family-body": "var(--font-family-markdown)",
+    "--font-family-reading": "var(--font-family-markdown)",
+    fontFamily: "var(--font-family-markdown)",
   },
 });
 
@@ -197,7 +202,7 @@ export function useFontStyle(): ReadonlyArray<stylex.StyleXStyles> {
       family("heading"),
       family("reading"),
       family("code"),
-      family("human"),
+      family("markdown"),
       measureOf(fontOf("reading", fonts.reading).measure),
     ),
     // Custom properties alone, which StyleX's types read as no style at all.

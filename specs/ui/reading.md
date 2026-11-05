@@ -4,32 +4,38 @@ The human spends most of their time in Uraeda reading: proposals, rounds of ques
 and an agent's sessions. Reading comfort comes before density, before cleverness, and before showing
 everything at once.
 
-## Two fonts, two jobs
+## Three fonts, three jobs
 
 - **The reading font**, proportional, for prose: a document's paragraphs and lists, a question's
-  context, an option's sentence, a settled point, an edge case, a comment's text. Drawn through
-  `Prose` (`proseStyles.reading`, `proseStyles.doc`) or `Blocks`, never by hand.
+  context, an option's sentence, a settled point, an edge case, a comment's text, and the agent's
+  replies in a session, as "agents love sending long messages". Drawn through `Prose`
+  (`proseStyles.reading`, `proseStyles.doc`) or `Blocks`, never by hand.
+- **The markdown prose font**, monospace by default, for markdown shown as its source, as the human
+  writes it: the text typed in every field, and the human's messages in a session. Its code, marks
+  included, is in the code font, and its headings in the heading font, as the human asked:
+  "codeblocks inside the editor use a different font than prose", "do the same for headings", and
+  "the same for user messages in sessions".
 - **The UI font**, monospace, for everything that is the tool rather than the text: titles in pane
   borders, labels, buttons, keys, ids, counts, rows of lists, the status line.
 
 A block of prose set in the UI font is a bug: it happened to a spec's "What you approve", its
 tradeoffs, and its scenarios, drawn with `Text type="inherit"`, and they read badly until they went
-through `Prose`. If a sentence is meant to be read, it is in the reading font. The one exception is
-text edited as its markdown source, like a proposal file's in its editor, which is in the code font
-on purpose: its marks are what the human edits.
+through `Prose`. If a sentence is meant to be read, it is in the reading font, or in a field or the
+human's messages, in the markdown prose font. A file that is not markdown, in a buffer or a
+conflict, is all in the code font: a `#` there starts no heading.
 
 ## Fonts, by role
 
 Each role has its font, picked in Settings, Fonts, or with `Space u f` then the role's key, each
-font's name drawn in its own face: the UI, headings, prose, code and keys, and the human's sent
-messages in a session (`theme/fonts.ts`). By default the UI and the human's messages are Monaspace
-Neon, headings Xenon, and prose Atkinson Hyperlegible Next: "Make hyperlegible + monaspace fonts the
-default". The human's sent bubbles keep a role of their own, but Radon, a handwriting face, was
-"weird": "the normal monaspace font" instead. Code and keys, and so every text field, are in
-JetBrains Mono: Krypton was "too aggressive" in the editor, "go back to a standard monospace one".
-`Space u f d` restores them, after a confirmation. Each font sets its own reading measure, so a line
-holds about 80 characters whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4
-everywhere".
+font's name drawn in its own face: the UI, headings, prose, code and keys, and markdown prose
+(`theme/fonts.ts`). By default the UI and markdown prose are Monaspace Neon, headings Xenon, and
+prose Atkinson Hyperlegible Next: "Make hyperlegible + monaspace fonts the default". Markdown prose
+was the human's sent messages' font, "Your messages", renamed "markdown prose" when the editor took
+it too; Radon, a handwriting face, was "weird" for it: "the normal monaspace font" instead. Code and
+keys are in JetBrains Mono: Krypton was "too aggressive" in the editor, "go back to a standard
+monospace one". `Space u f d` restores them, after a confirmation. Each font sets its own reading
+measure, so a line holds about 80 characters whatever font is picked. Lines are 1.4 high everywhere:
+"just do 1.4 everywhere".
 
 ## Line length
 

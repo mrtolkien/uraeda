@@ -2,7 +2,14 @@
 // from its first draw, and put back to the defaults, which are forgotten rather than kept.
 import { act, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
-import { DEFAULT_FONTS, FONTS, fontOf, pickFont, restoreDefaultFonts } from "../theme/fonts.ts";
+import {
+  DEFAULT_FONTS,
+  FONTS,
+  fontOf,
+  pickFont,
+  readFonts,
+  restoreDefaultFonts,
+} from "../theme/fonts.ts";
 import { PickedFonts } from "../theme/PickedFonts.tsx";
 
 const KEY = "uraeda.fonts";
@@ -52,4 +59,17 @@ test("restoring the defaults forgets the fonts picked", () => {
   expect(window.localStorage.getItem(KEY)).toBeNull();
   const heading = fontOf("heading", DEFAULT_FONTS.heading);
   expect(rootStyle()()).toContain(heading.family);
+});
+
+// Break: read only `stored.markdown` in `readFonts`.
+test("the font picked for the human's messages, before the rename, is markdown prose's", () => {
+  window.localStorage.setItem(KEY, JSON.stringify({ human: "literata" }));
+  expect(readFonts().markdown).toBe("literata");
+});
+
+test("markdown prose's font is on the root", () => {
+  const style = rootStyle();
+  const literata = FONTS.find((font) => font.id === "literata")!;
+  act(() => pickFont("markdown", "literata"));
+  expect(style()).toContain(`font-family-markdown: ${literata.family}`);
 });
