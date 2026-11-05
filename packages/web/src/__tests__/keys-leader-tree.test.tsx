@@ -21,7 +21,9 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 const stored = () => window.localStorage.getItem("uraeda.theme");
-const press = (key: string) => fireEvent.keyDown(document.body, { key });
+/** A key as the keyboard sends it: a capital letter with Shift. */
+const press = (key: string) =>
+  fireEvent.keyDown(document.body, { key, shiftKey: /^[A-Z]$/.test(key) });
 const keys = (...all: Array<string>) => all.forEach(press);
 
 /** The home, drawn, with the requests answered. */
@@ -56,7 +58,7 @@ test("each page of the top level opens in at most three presses from the home (S
     [[" ", "s"], "/sessions"],
     [[" ", ","], "/settings"],
     [[" ", "g"], "/git"],
-    [["g", "c"], "/git"],
+    [["g", "G"], "/git"],
     [[" ", "n", "s"], "/new"],
     [[" ", "n", "c"], "/new"],
     [[" ", "n", "f"], "/new"],
@@ -242,7 +244,7 @@ test("the menu's place entries draw the icon and label of the navigation column'
   const menu = menuAfter(" ");
   expectPlaces(menu, nav, [decisions, git, home, inbox, priorities, settings]);
   press("Escape");
-  // `g`'s menu names the same places the same way, Git by `g c`.
+  // `g`'s menu names the same places the same way, Git by `g G`.
   expectPlaces(menuAfter("g"), nav, [decisions, git, home, inbox, priorities, settings]);
 });
 

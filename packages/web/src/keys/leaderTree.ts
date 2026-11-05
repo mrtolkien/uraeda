@@ -43,13 +43,12 @@ export function goNewBinding(go: (path: string) => void): Binding {
 }
 
 /**
- * `Space g` and `g c`: the Git page. Not one of `PLACES`: `Space c` is Continue's and `g g` the
- * top of a list, so the leader takes `g` for it and the go keys `c`, as for the Commit page it
- * replaced.
+ * `Space g` and `g G`: the Git page. Not one of `PLACES`: `Space c` is Continue's and `g g` the
+ * top of a list, so the go keys take `G` for it.
  */
 export function goGitBindings(go: (path: string) => void): Array<Binding> {
   const git = DESTINATIONS.git;
-  return ["space g", "g c"].map((keys) => ({
+  return ["space g", "g G"].map((keys) => ({
     icon: git.icon,
     keys,
     label: git.label,
