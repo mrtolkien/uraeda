@@ -273,6 +273,19 @@ test("on a feature a broken file stops, `n` opens that file", async () => {
   await waitFor(() => expect(address()).toMatch(new RegExp(`/f/${folder}/spec\\.md$`)));
 });
 
+/** A feature's page has no list: `j` moves the focus along its links and buttons, in order. */
+test("on a feature's page, `j` and `k` move the focus along its links and buttons", async () => {
+  await renderPage(`/f/${FOLDER}`, roundRepo());
+  const next = await screen.findByRole("link", { name: "Answer the questions" });
+
+  await press("j");
+  await press("j");
+  await waitFor(() => expect(document.activeElement).toBe(next));
+  await press("j");
+  await press("k");
+  await waitFor(() => expect(document.activeElement).toBe(next));
+});
+
 // Break: `i` and `s` querying a `textarea` and an `input`, which the editor has none of: the focus
 // stayed on the page, and the letters typed next ran its keys.
 test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed then theirs", async () => {
