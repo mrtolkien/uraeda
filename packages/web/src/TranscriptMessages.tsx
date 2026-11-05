@@ -176,8 +176,8 @@ function Message({
     >
       <ChatMessageBubble
         variant={pending ? "ghost" : "filled"}
-        // In markdown prose's font (`theme/fonts.ts`), as its code and headings are in theirs from
-        // the start: it keeps its face once the agent reads it.
+        // In the reading font (`theme/fonts.ts`), its code and headings in theirs, from the start:
+        // it keeps its face once the agent reads it.
         xstyle={pending ? humanWords : [styles.user, humanWords]}
       >
         <MessageBody item={item} pending={pending} />

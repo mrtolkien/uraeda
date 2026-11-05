@@ -1,5 +1,5 @@
 // The fonts, picked for each part of the UI, kept in this browser: the interface, the headings,
-// prose, code and keys, and markdown prose, the text of the editor and of a session's messages.
+// prose, code and keys, and markdown prose, the text typed in the editor.
 // Each part is a font family token of the theme, written over the theme's own by a StyleX style on
 // the app's root, and on what draws outside it (`useFontStyle`), from the app's first draw, so no
 // text changes face. One choice for the whole app: the settings' Fonts section and `Space u f` show
@@ -70,7 +70,7 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
   },
   { help: "Pages' titles and sections' headings.", key: "h", label: "Headings", role: "heading" },
   {
-    help: "What is read at length: proposals, rounds, specs, plans, documents, and the agent's replies. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
+    help: "What is read at length: proposals, rounds, specs, plans, documents, and a session's messages. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
     key: "p",
     label: "Prose",
     role: "reading",
@@ -82,7 +82,7 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
     role: "code",
   },
   {
-    help: "The text you type, and your messages in a session.",
+    help: "The text you type, in every field.",
     key: "m",
     label: "Markdown prose",
     role: "markdown",
@@ -175,11 +175,13 @@ const styles = stylex.create({
   }),
   // The app's root, which only carries the fonts: no box of its own.
   root: { display: "contents" },
-  // A human's message once sent, in markdown prose's font, its prose too.
+  // A human's message once sent, read rather than typed: in the reading font, at its size, as the
+  // agent's replies are. The field it was typed in keeps markdown prose's font.
   human: {
-    "--font-family-body": "var(--font-family-markdown)",
-    "--font-family-reading": "var(--font-family-markdown)",
-    fontFamily: "var(--font-family-markdown)",
+    "--font-family-body": "var(--font-family-reading)",
+    fontFamily: "var(--font-family-reading)",
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
   },
 });
 
