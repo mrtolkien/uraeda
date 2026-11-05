@@ -97,6 +97,13 @@ export function tabAddress(key: string | undefined): string {
   return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
 }
 
+/**
+ * What each tab past the second needs for its icon to stay, in px: at the column's least width, two
+ * tabs keep their icons, and three drop them, so that the third's name reads whole beside the fold
+ * button rather than fading out of the strip.
+ */
+const ICONS_ROOM = 60;
+
 /** The id of the tab `key` among the tabs `ids`. */
 const tabId = (ids: string, key: string) => `${ids}-tab-${key}`;
 
@@ -196,7 +203,7 @@ function Drawn({
       header={
         <ColumnTabs
           ids={ids}
-          isCompact={resizable.size < LIMITS.min}
+          isCompact={resizable.size < LIMITS.min + ICONS_ROOM * Math.max(0, panels.length - 2)}
           label={label}
           onChange={setOpen}
           open={open}

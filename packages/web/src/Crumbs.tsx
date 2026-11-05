@@ -13,6 +13,18 @@ const styles = stylex.create({
     // A crumb's link fills its item, which the theme makes a control's height under a touch pointer.
     alignItems: "stretch",
   },
+  // The feature between Home and the page: a long title, as a change's first line, ends in an
+  // ellipsis, so the page's own crumb stays on the same line.
+  middle: {
+    display: "inline-block",
+    // Half a line of prose: Home and the page's own crumb fit beside it.
+    "--crumb-max": "calc(var(--size-reading-pane) / 2)",
+    maxWidth: "var(--crumb-max)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    verticalAlign: "bottom",
+    whiteSpace: "nowrap",
+  },
 });
 
 /**
@@ -54,7 +66,9 @@ export function Crumbs({
       ) : (
         <>
           <BreadcrumbItem href={here(`/f/${folder}`)} xstyle={styles.item}>
-            {title}
+            <span title={title} {...stylex.props(styles.middle)}>
+              {title}
+            </span>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrent xstyle={styles.item}>
             {page}

@@ -195,12 +195,15 @@ function firstMounted(questions: ReadonlyArray<QuestionItem>, { at, kept }: Roun
   return opened ? groups.indexOf(opened) + 1 : 0;
 }
 
-/** Submit, at the page's end, `end`, in view, and its first button in `row` focused. */
+/**
+ * Submit, at the page's end, `end`, in view, and its first button in `row` focused. The row comes to
+ * the middle of the screen, clear of the status line, which an end aligned to the bottom slid under.
+ */
 function toSubmit(end: RefObject<HTMLDivElement | null>, row: RefObject<HTMLDivElement | null>) {
   const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     ? "auto"
     : "smooth";
-  end.current?.scrollIntoView?.({ behavior, block: "end" });
+  (row.current ?? end.current)?.scrollIntoView?.({ behavior, block: "center" });
   row.current
     ?.querySelector<HTMLButtonElement>("button:not([disabled])")
     ?.focus({ preventScroll: true });

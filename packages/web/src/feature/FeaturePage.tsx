@@ -320,6 +320,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         <Blocking
           change={feature.kind === "change"}
           folder={feature.folder}
+          isNextKey={!hasNext}
           problems={feature.problems}
         />
         <LeftBanner feature={feature} />

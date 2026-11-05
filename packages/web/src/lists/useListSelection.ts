@@ -56,6 +56,9 @@ export function useListSelection({
   return { barred, pick, selected, setBarred, setSelected };
 }
 
+/** How many frames a followed row is waited for, about two seconds. */
+const FOLLOW_FRAMES = 120;
+
 /**
  * A row a write placed elsewhere, as an indent did, is selected again where it went, with the
  * focus, once it is drawn there: each new `follow` selects it again. Not while a field is open,
@@ -71,17 +74,29 @@ export function useFollow(
       return;
     }
     pick(key);
-    // With the focus, once drawn, and in view: it may have come from elsewhere on the page.
-    requestAnimationFrame(() => {
-      controlOf(key)?.focus({ preventScroll: true });
+    // With the focus, once drawn, and in view: it may have come from elsewhere on the page, and a
+    // row a move placed may be drawn only once the move's answer reaches the list, some frames on.
+    let tries = FOLLOW_FRAMES;
+    const focus = () => {
+      const control = controlOf(key);
+      if (!control) {
+        if (--tries > 0) {
+          frame = requestAnimationFrame(focus);
+        }
+        return;
+      }
+      control.focus({ preventScroll: true });
       document
         .querySelector(`[data-row-key="${CSS.escape(key)}"]`)
         ?.scrollIntoView({ block: "nearest" });
-    });
+    };
+    let frame = requestAnimationFrame(focus);
+    return () => cancelAnimationFrame(frame);
   });
   useEffect(() => {
     if (follow !== undefined) {
-      onFollow(follow.key);
+      return onFollow(follow.key);
     }
+    return undefined;
   }, [follow]);
 }

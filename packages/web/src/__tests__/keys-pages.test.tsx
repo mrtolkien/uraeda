@@ -226,6 +226,53 @@ test("US6 1, US2 more 3: the questions page's status line reads `n p unanswered`
   await waitFor(() => expect(document.activeElement?.textContent).toContain("Q1"));
 });
 
+/**
+ * With every question answered, `n` does what the column's Commit does: the page's Commit, at its
+ * end, takes the focus, so Enter commits the round without tabbing through every option.
+ */
+test("on a round with no blank question, `n` takes the focus to the page's Commit", async () => {
+  const repo = roundRepo();
+  const path = join(repo, ".worktrees", FOLDER, "specs", FOLDER, "clarifications-01.md");
+  writeFileSync(path, readFileSync(path, "utf8").replaceAll("**Answer:**\n", "**Answer:** A\n"));
+  await renderPage(`/f/${FOLDER}/clarifications-01.md`, repo);
+  await screen.findAllByText(/Who may move a chat up to a change/);
+
+  // The round's end mounts once its questions are in: its Commit is the page's.
+  const commit = await waitFor(() =>
+    within(document.getElementById("notes") as HTMLElement).getByRole("button", {
+      name: "Commit",
+    }),
+  );
+
+  await press("n");
+
+  await waitFor(() => expect(document.activeElement).toBe(commit));
+});
+
+/**
+ * A feature its files stop has no next step but fixing them: `n` opens the file the banner names,
+ * as its button does, and the status line says so.
+ */
+test("on a feature a broken file stops, `n` opens that file", async () => {
+  const repo = fixtureRepo();
+  const folder = "2026-10-06-recurring-tasks";
+  git(repo, "worktree", "add", "--quiet", join(".worktrees", folder), folder);
+  const path = join(repo, ".worktrees", folder, "specs", folder, "spec.md");
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace("status: awaiting-human", "status: aproved"),
+  );
+  git(join(repo, ".worktrees", folder), "commit", "--quiet", "--no-verify", "--all", "-m", "spec");
+  await renderPage(`/f/${folder}`, repo);
+  await screen.findByText(/cannot go on/);
+  const line = await screen.findByRole("contentinfo", { name: "Status line" });
+  await waitFor(() => expect(line.textContent).toContain("n open spec.md"));
+
+  await press("n");
+
+  await waitFor(() => expect(address()).toMatch(new RegExp(`/f/${folder}/spec\\.md$`)));
+});
+
 // Break: `i` and `s` querying a `textarea` and an `input`, which the editor has none of: the focus
 // stayed on the page, and the letters typed next ran its keys.
 test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed then theirs", async () => {

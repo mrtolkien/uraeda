@@ -8,7 +8,8 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Pane } from "../layout/Pane.tsx";
-import { useRepoPath } from "../routes.tsx";
+import { useKeys } from "../keys/registry.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { useOpenKeys } from "../useOpenKeys.ts";
 
 /**
@@ -42,29 +43,38 @@ function ProblemLines({ problems }: { problems: Array<Problem> }) {
   );
 }
 
-/** The problems that stop the workflow, and a button to the first one's file. */
+/**
+ * The problems that stop the workflow, and a button to the first one's file. While "Next" has no
+ * action, `isNextKey`, opening that file is the page's next step, and `n` does it too.
+ */
 export function Blocking({
   change,
   folder,
+  isNextKey,
   problems,
 }: {
   change: boolean;
   folder: string;
+  isNextKey: boolean;
   problems: Array<Problem>;
 }) {
   const here = useRepoPath();
   const first = problems[0];
-  if (!first) {
+  const name = first && fileName(first.file);
+  const href = name && here(`/f/${folder}/${name}`);
+  useKeys(
+    href && isNextKey
+      ? [{ hint: "n", keys: "n", label: `open ${name}`, run: () => navigate(href) }]
+      : [],
+  );
+  if (!first || !href) {
     return null;
   }
-  const name = fileName(first.file);
   return (
     <AnnouncedBanner
       collapsible={false}
       description={<ProblemLines problems={problems} />}
-      endContent={
-        <Button href={here(`/f/${folder}/${name}`)} label={`Open ${name}`} variant="secondary" />
-      }
+      endContent={<Button href={href} label={`Open ${name}`} variant="secondary" />}
       status="error"
       title={`This ${change ? "change" : "feature"} cannot go on`}
     />
