@@ -44,7 +44,7 @@ export function NotificationBanner({
   }
   return (
     <Banner
-      description="Uraeda tells this browser when questions, a review, a pull request, or a blocked agent wait on you, while its tab is in the background."
+      description="Uraeda notifies you when questions, a review, a pull request, or a blocked agent wait, while the app is in the background."
       endContent={
         <HStack gap={2}>
           <Button label="Not now" onClick={onDismiss} variant="ghost" />
