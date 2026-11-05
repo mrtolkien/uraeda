@@ -12,6 +12,9 @@ finding.
 - **Values efficiency and coherence**: one key means one thing everywhere, and a key learned on one
   page works the same on the next. Remembering an Uraeda shortcut should be simple: few keys,
   mnemonic, and shown where they apply.
+- **Rices their Unix desktop**: a tiling window manager, windows without decorations, and a light
+  transparency. The app runs in a tiled window of any size, often a half or a third of the screen,
+  and looks right at each.
 - **Uses LazyVim every day**, and expects its habits: `j` `k` to move, `Space` as the leader, `g` to
   go, `Escape` to leave, Vim's keys in text fields. See [Keyboard](keyboard.md).
 
