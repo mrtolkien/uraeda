@@ -73,6 +73,13 @@ export function syncLine(
   return [branch, ...counts, fetched].join(" · ");
 }
 
+/**
+ * What a sync button does, in plain words for whoever does not know git's: its tooltip, by how many
+ * commits it moves, `one` for one, `many` for more, `none` for none.
+ */
+const plural = (n: number, one: string, many: string, none: string) =>
+  n === 0 ? none : n === 1 ? one : many;
+
 /** A button's label with its count, "Pull · 3", or alone at 0. */
 const counted = (label: string, n: number) => (n > 0 ? `${label} · ${n}` : label);
 
@@ -108,6 +115,7 @@ export function Sync({
             label="Fetch"
             onClick={writes.fetch}
             size="sm"
+            tooltip="Check the server for new commits, without changing your files"
             variant="secondary"
           />
           <WriteButton
@@ -115,6 +123,12 @@ export function Sync({
             label={counted("Pull", behind)}
             onClick={writes.pull}
             size="sm"
+            tooltip={plural(
+              behind,
+              "Bring in the server's new commit",
+              "Bring in the server's new commits",
+              "Bring in the server's new commits, once there are some",
+            )}
             variant={behind > 0 ? "primary" : "secondary"}
           />
           <WriteButton
@@ -122,6 +136,12 @@ export function Sync({
             label={counted("Push", ahead)}
             onClick={writes.push}
             size="sm"
+            tooltip={plural(
+              ahead,
+              "Send your commit to the server",
+              "Send your commits to the server",
+              "Send your commits to the server, once there are some",
+            )}
             variant={behind === 0 && ahead > 0 ? "primary" : "secondary"}
           />
         </>
@@ -131,6 +151,7 @@ export function Sync({
         label={`Merge into ${branch}…`}
         onClick={onMerge}
         size="sm"
+        tooltip={`Bring another branch's work into ${branch}`}
         variant="ghost"
       />
     </HStack>

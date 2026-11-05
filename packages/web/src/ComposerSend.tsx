@@ -79,12 +79,14 @@ export function sendButtons({
       isDisabled={pending}
       isIconOnly
       label="Send"
+      tooltip="Send"
     />
   ) : (
     <ChatSendButton
       isDisabled={!canSend || pending}
       isStopShown={false}
       onSend={send}
+      tooltip="Send"
       xstyle={styles.square}
     />
   );
