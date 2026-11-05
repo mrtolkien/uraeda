@@ -6,7 +6,7 @@
 // The history: opening is one entry, the overlay's, which Back goes over; an address opened by a
 // link, a reload, or Forward is given one by `DetailHost`. Previous and Next replace the entry, so
 // they add none.
-import { useToast } from "@astryxdesign/core/Toast";
+import { useTimedToast } from "../layout/useTimedToast.tsx";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -123,7 +123,7 @@ export function DetailHost({
   proposalKey: string;
 }) {
   const here = useRepoPath();
-  const showToast = useToast();
+  const showToast = useTimedToast();
   // Whether the line was there when its address came up: a line deleted from its own overlay is
   // gone for a moment before Back closes it, and that is no news.
   const [arrived, setArrived] = useState<{ key: string; there: boolean }>();

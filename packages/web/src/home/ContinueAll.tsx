@@ -3,7 +3,7 @@
 // focused, home previews which runs it continues (`Core.tsx`); on a touch screen, which has no
 // pointer over it, the first tap shows the preview and the second sends (R21).
 import { Button } from "@astryxdesign/core/Button";
-import { useToast } from "@astryxdesign/core/Toast";
+import { useTimedToast } from "../layout/useTimedToast.tsx";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
 import {
@@ -114,7 +114,7 @@ export function ContinueAll({
 }) {
   const fate = useFateClient();
   const described = useId();
-  const showToast = useToast();
+  const showToast = useTimedToast();
   const own = useRef<HTMLSpanElement>(null);
   const tap = useTapPreview(own);
   const [isHovered, setHovered] = useState(false);
