@@ -1,5 +1,5 @@
-// US3 1, 3, and the priorities' own keys, on the outliner: `a` opens the add form in its default
-// place, `o` opens a new row being typed under the selected line, in its section, `i` turns the line
+// US3 1, 3, and the priorities' own keys, on the outliner: `a` opens the add form in the selected
+// row's section, or its default place with none, `o` opens a new row being typed under the selected line, in its section, `i` turns the line
 // into its field in place, and `m` puts it in the move mode, which its bar names. The row picked
 // shows its own keys in a bar under it, and the status line names only the page's. A key pressed on
 // the focused line reaches the window as a user's does; none of them acts in a text field or under
@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { sectionOfRow } from "../lists/priorityAddKey.ts";
+import type { WorkSection } from "../lists/WorkList.tsx";
 import { atWidth, fieldText, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
@@ -109,20 +111,73 @@ test("o on a line of Now opens the new row in Now", async () => {
   await waitFor(() => expect(read(repo)).toContain("## Now\n\n- Now line 1\n- Now line 2\n"));
 });
 
-test("a opens the add form in its default place, Next, whatever line is selected", async () => {
+test("a opens the add form in the selected line's section", async () => {
   const { link } = await onLine("Later line 1");
 
   await press("a", link);
 
-  await expectSection("Next");
+  await expectSection("Later");
 });
 
-test("a opens the add form with the focus on the page too", async () => {
+test("a on the Add row of Now opens the add form in Now", async () => {
+  await onLine("Next line 1");
+  const add = controlOf("Add to Now");
+  act(() => add.focus());
+
+  await press("a", add);
+
+  await expectSection("Now");
+});
+
+test("a opens the add form in the selected line's section with the focus on the page too", async () => {
   await onLine("Later line 1");
+  // The focus on the page: the line the page opened on, the first of Now, is the selected one.
+  act(() => (document.activeElement as HTMLElement | null)?.blur());
 
   await press("a");
 
-  await expectSection("Next");
+  await expectSection("Now");
+});
+
+test("a reads a row's section from its place: a nested row's is its line's, an Add row's its own", () => {
+  const sections: ReadonlyArray<WorkSection> = [
+    {
+      id: "ongoing",
+      rows: [
+        {
+          children: [
+            { href: "", key: "n", lines: [], spot: { index: 0, section: "now" }, text: "Nested" },
+          ],
+          href: "",
+          key: "r",
+          lines: [],
+          spot: { index: 0, section: "now" },
+          text: "Running",
+        },
+      ],
+      title: "Ongoing",
+      tone: "green",
+    },
+    {
+      id: "later",
+      rows: [
+        {
+          href: "",
+          key: "add:later",
+          lines: [],
+          spot: { index: 0, section: "later" },
+          text: "Add",
+        },
+      ],
+      title: "Later",
+      tone: "gray",
+    },
+  ];
+
+  expect(sectionOfRow(sections, "r")).toBe("now");
+  expect(sectionOfRow(sections, "n")).toBe("now");
+  expect(sectionOfRow(sections, "add:later")).toBe("later");
+  expect(sectionOfRow(sections, "gone")).toBeUndefined();
 });
 
 test("i turns the selected line into its field, with the line's text, and Enter saves it (US3)", async () => {

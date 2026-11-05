@@ -15,7 +15,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `h` `l`, `←` `→`          | Move between columns or panes                                                                                             | A page of columns: home, priorities   |
 | `Enter`                   | The selection's obvious action: open it, or the page's next step                                                          | Every page with a selection or a step |
 | `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                       | Every editable selection              |
-| `a`, `o`                  | Add: at the page's default place, or beside the selection                                                                 | A list of rows: priorities, inbox     |
+| `a`, `o`                  | Add: `a` in the selected row's section on the priorities, else at the page's default place; `o` beside the selection      | A list of rows: priorities, inbox     |
 | `d`, `dd`                 | Delete the selection, after a yes/no                                                                                      | A list of rows                        |
 | `m`                       | Move mode: the row moves with the move keys, across sections, until `Enter` or `Escape`                                   | A list of rows                        |
 | `u`                       | Undo the last write that offers one (see [Surfaces](surfaces.md#undo))                                                    | Every page                            |

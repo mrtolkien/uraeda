@@ -27,6 +27,7 @@ import {
 } from "./WorkList.tsx";
 import { proposalFilePage } from "../readAhead.ts";
 import { useClean } from "../git/useClean.ts";
+import { useAddKey } from "./priorityAddKey.ts";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -436,6 +437,7 @@ export function PrioritiesList({
       onOpen={open}
       onOutline={outline.onOutline}
       onPromote={onPromote}
+      onSelected={useAddKey(all)}
       onStart={onStart}
       rowActions={[
         {
