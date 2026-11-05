@@ -22,7 +22,7 @@ import { Group, treeKey } from "./ChangesTree.tsx";
 import { ConflictEditor, NoConflict } from "./ConflictEditor.tsx";
 import { conflictKey, Conflicts, isEditable } from "./Conflicts.tsx";
 import { type GitGroup, type GitPageData, GitPageView, useGitPage } from "./data.ts";
-import { Detail } from "./Diff.tsx";
+import { Detail, NoChange } from "./Diff.tsx";
 import { History, historyKey, useMoreHistory } from "./History.tsx";
 import { MergePicker } from "./MergePicker.tsx";
 import { PlaceError } from "./PlaceError.tsx";
@@ -287,6 +287,25 @@ function detailShown(
   );
 }
 
+/**
+ * The page opens with its selected row focused, once its rows are drawn, on a keyboard's screen:
+ * Space, a row's box's own, stages it at once, rather than opening the leader's menu. Not where
+ * something else already took the focus, like the commit message.
+ */
+function useFocusOnArrival(focusSelected: () => boolean, isReady: boolean) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (!isReady || done.current) {
+      return;
+    }
+    done.current = true;
+    const active = document.activeElement;
+    if (active === null || active === document.body) {
+      focusSelected();
+    }
+  }, [focusSelected, isReady]);
+}
+
 /** The Git page, at `/git`. */
 export function GitPage() {
   const fate = useFateClient();
@@ -315,7 +334,14 @@ export function GitPage() {
   );
   const rows = page ? rowsOf(page, history.commits, folded, writes) : [];
   const shown = cursor ?? keyOfPicked(picked) ?? rows[0]?.key;
-  const listRef = useGitKeys({ actions, cursor: shown, main: page?.groups[0], rows, setCursor });
+  const { focusSelected, ref: listRef } = useGitKeys({
+    actions,
+    cursor: shown,
+    main: page?.groups[0],
+    rows,
+    setCursor,
+  });
+  useFocusOnArrival(focusSelected, rows.length > 0 && !narrow);
   if (!page) {
     return null;
   }
@@ -414,6 +440,9 @@ function PickedDetail({
     );
   }
   const target = picked.kind === "file" ? fileOf(page, picked) : undefined;
+  if (picked.kind === "file" && target === undefined) {
+    return <NoChange isNarrow={isNarrow} path={picked.file} />;
+  }
   return (
     <Suspense fallback={null}>
       <Detail

@@ -19,6 +19,18 @@ import { gitAddress, type Picked } from "./address.ts";
 import { GitCommitView, gitDiffId, GitDiffView } from "./data.ts";
 
 /**
+ * A file the address names that has no change left, as once its commit landed: its path, and that,
+ * rather than the diff of a file git no longer lists.
+ */
+export function NoChange({ isNarrow, path }: { isNarrow: boolean; path: string }) {
+  return (
+    <Pane actions={<Back isNarrow={isNarrow} />} title={path}>
+      <Text color="secondary">{path} has no change left.</Text>
+    </Pane>
+  );
+}
+
+/**
  * A diff's lines that change nothing, greyed so the added and removed ones stand out: a stylesheet,
  * as no prop of `CodeBlock` reaches its lines. It names Astryx's attributes, a line's `data-line`
  * and a change's `data-diff`: look at a diff after an Astryx upgrade.
