@@ -2,7 +2,9 @@
 // `SideNavItem` takes its label as a string on one line, cut by an ellipsis, where the card's name
 // must read whole. Its link holds the kind's icon, the name, wrapping onto a second line when it
 // must, the step under it, and the status at its end; after the link, a button of its own at the
-// first line's end, such as Dismiss. It is drawn from the styles Astryx shares for nav rows.
+// first line's end, such as Dismiss. On the phone, headed: the icon, the name, and the status on a
+// head line, and the second line under it at the row's full width. It is drawn from the styles
+// Astryx shares for nav rows.
 import { navItemStyles } from "@astryxdesign/core/NavItem/navItemStyles.stylex";
 import { Text } from "@astryxdesign/core/Text";
 import { fontWeightVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -29,6 +31,15 @@ const styles = stylex.create({
     "--card-end-tall": "calc(2 * var(--size-label-line))",
     height: "var(--card-end-tall)",
   },
+  // Headed, the phone's: the icon, the name, and the end on a line of their own.
+  head: {
+    alignItems: "flex-start",
+    display: "flex",
+    gap: spacingVars["--spacing-2"],
+    minWidth: 0,
+  },
+  // Headed, the link's lines one under the other, the second at the row's full width.
+  headed: { alignItems: "stretch", flexDirection: "column", gap: 0 },
   icon: {
     alignItems: "center",
     display: "flex",
@@ -49,6 +60,22 @@ const styles = stylex.create({
   },
   // Under the pointer, the card's own parts brighten, where its end is a button of its own.
   lit: { filter: "brightness(1.25)" },
+  // Headed, the name takes the head line's room up to its end.
+  headName: { flexGrow: 1, minWidth: 0 },
+  // Headed with a button at its end, the next step's or the agent's square, a line and a third
+  // high (`ItemCard`'s `next`): the head line takes its height, and the icon and the name keep
+  // their middle on its middle.
+  headEnd: {
+    "--card-head-end": "calc(1.35 * var(--size-label-line))",
+    height: "var(--card-head-end)",
+  },
+  headPad: {
+    "--card-head-pad": "calc((1.35 - 1) / 2 * var(--size-label-line))",
+    paddingBlock: "var(--card-head-pad)",
+  },
+  // Headed, the second line as tall as a label's, with or without its counts, so rows keep one
+  // rhythm.
+  headSub: { justifyContent: "center", minHeight: "var(--size-label-line)" },
   name: {
     // Whole, on as many lines as it takes: a slug breaks at its hyphens, or anywhere when it has
     // none. The panes' titles set `nowrap`, which this row never inherits.
@@ -156,6 +183,80 @@ function Under({ end, sub }: { end: ReactNode; sub: ReactNode }) {
   );
 }
 
+/** The phone's row: the icon, the name, and the end on a head line, the second line under it. */
+function Headed({
+  endContent,
+  icon,
+  isEndTall,
+  label,
+  sub,
+}: {
+  endContent: ReactNode;
+  icon: ReactNode;
+  isEndTall: boolean;
+  label: string;
+  sub: ReactNode;
+}) {
+  return (
+    <>
+      <span {...stylex.props(styles.head)}>
+        <span {...stylex.props(styles.icon, isEndTall && styles.headEnd)}>{icon}</span>
+        <span {...stylex.props(styles.name, styles.headName, isEndTall && styles.headPad)}>
+          {label}
+        </span>{" "}
+        <End isLit={false} isTall={false} xstyle={isEndTall && styles.headEnd}>
+          {endContent}
+        </End>
+      </span>
+      {sub !== undefined && (
+        <span {...stylex.props(styles.text, styles.headSub)}>
+          <Sub sub={sub} />
+        </span>
+      )}
+    </>
+  );
+}
+
+/** The row's lines beside its icon, on a wide screen: the name, its second line, and its end. */
+function Lines({
+  endContent,
+  icon,
+  isCardLit,
+  isEndTall,
+  isStacked,
+  label,
+  railIcon,
+  railRest,
+  sub,
+}: {
+  endContent: ReactNode;
+  icon: ReactNode;
+  isCardLit: boolean;
+  isEndTall: boolean;
+  isStacked: boolean;
+  label: string;
+  railIcon: stylex.StyleXStyles | false | undefined;
+  railRest: stylex.StyleXStyles | false | undefined;
+  sub: ReactNode;
+}) {
+  return (
+    <>
+      <span {...stylex.props(styles.icon, isCardLit && styles.lit, railIcon)}>{icon}</span>
+      <span {...stylex.props(styles.text, isCardLit && styles.lit, railRest)}>
+        <span {...stylex.props(styles.name)}>{label}</span>
+        {sub !== undefined &&
+          (isStacked ? <Under end={endContent} sub={sub} /> : <Sub sub={sub} />)}
+      </span>
+      {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
+      {!(isStacked && sub !== undefined) && (
+        <End isLit={isCardLit} isTall={isEndTall} xstyle={railRest}>
+          {endContent}
+        </End>
+      )}
+    </>
+  );
+}
+
 /**
  * Where the pointer is over a row whose end, or what follows its link, is a button, when
  * `isSplit`: the card and the button are two surfaces, and only the one under it brightens.
@@ -177,22 +278,8 @@ function useSplitHover(isSplit: boolean) {
   return { isCardLit: isSplit && over === "card", pointer };
 }
 
-export function CardRow({
-  after,
-  endContent,
-  hasRing = true,
-  href,
-  icon,
-  isEndTall = false,
-  isPicked = false,
-  isSelected,
-  isStacked = false,
-  label,
-  name,
-  onClick,
-  rail,
-  sub,
-}: {
+/** What a card's row draws, and how. */
+type CardRowProps = {
   /** A button after the link, at the first line's end, like a run's Dismiss: no link holds one. */
   after?: ReactNode;
   /** Passive content at the link's end, like its status. */
@@ -201,8 +288,16 @@ export function CardRow({
   hasRing?: boolean;
   href: string;
   icon: ReactNode;
-  /** Whether its end is two lines high, the name's and the second's. */
+  /**
+   * Whether its end is a button two lines high, the name's and the second's; headed, the head line
+   * takes the button's height instead.
+   */
   isEndTall?: boolean;
+  /**
+   * The phone's: the icon, the name, and the end on a head line, and the second line under it at the
+   * row's full width, as multi-line text takes the phone's whole width. Over `isStacked`.
+   */
+  isHeaded?: boolean;
   /** Its link tinted as a list's selected row, as the keys or the pointer picked it. */
   isPicked?: boolean;
   isSelected: boolean;
@@ -220,8 +315,26 @@ export function CardRow({
   rail?: RailLook;
   /** Its second line, like a feature's step, which `name` reads after the name. */
   sub?: ReactNode;
-}) {
-  const isSplit = isEndTall || after !== undefined;
+};
+
+export function CardRow({
+  after,
+  endContent,
+  hasRing = true,
+  href,
+  icon,
+  isEndTall = false,
+  isHeaded = false,
+  isPicked = false,
+  isSelected,
+  isStacked = false,
+  label,
+  name,
+  onClick,
+  rail,
+  sub,
+}: CardRowProps) {
+  const isSplit = (isEndTall && !isHeaded) || after !== undefined;
   const { isCardLit, pointer } = useSplitHover(isSplit);
   // What the closed rail hides after the icon, and the icon itself under a card's mark alone.
   const railRest = rail === "row" ? railStyles.gone : rail && railStyles.hidden;
@@ -250,20 +363,30 @@ export function CardRow({
         {...stylex.props(
           focusOutlineStyles.suppressed,
           styles.link,
+          isHeaded && styles.headed,
           isPicked && pickedStyles.picked,
         )}
       >
-        <span {...stylex.props(styles.icon, isCardLit && styles.lit, railIcon)}>{icon}</span>
-        <span {...stylex.props(styles.text, isCardLit && styles.lit, railRest)}>
-          <span {...stylex.props(styles.name)}>{label}</span>
-          {sub !== undefined &&
-            (isStacked ? <Under end={endContent} sub={sub} /> : <Sub sub={sub} />)}
-        </span>
-        {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
-        {!(isStacked && sub !== undefined) && (
-          <End isLit={isCardLit} isTall={isEndTall} xstyle={railRest}>
-            {endContent}
-          </End>
+        {isHeaded ? (
+          <Headed
+            endContent={endContent}
+            icon={icon}
+            isEndTall={isEndTall}
+            label={label}
+            sub={sub}
+          />
+        ) : (
+          <Lines
+            endContent={endContent}
+            icon={icon}
+            isCardLit={isCardLit}
+            isEndTall={isEndTall}
+            isStacked={isStacked}
+            label={label}
+            railIcon={railIcon}
+            railRest={railRest}
+            sub={sub}
+          />
         )}
       </RouterAnchor>
       {after !== undefined && (

@@ -50,6 +50,7 @@ export function FeatureCard({
       onDismiss={item.pending === undefined ? onDismiss : undefined}
       onOpen={() => navigate(here(to))}
       onStatus={() => navigate(here(statusPath(feature, item.status)))}
+      statusHref={here(statusPath(feature, item.status))}
     />
   );
   const base = toCard(feature, row);

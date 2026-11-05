@@ -1,5 +1,6 @@
 // T3, on an iPhone from the home screen: what is typed, and the button that sends it, stay above
-// the keyboard; the phone hints no key; the priorities are one column there; and its sidebar copies no tab.
+// the keyboard; the phone hints no key; the priorities are one column there; its sidebar copies no
+// tab; and a card is a head line over its text.
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useEffect, useRef } from "react";
@@ -156,4 +157,44 @@ test("the phone's sidebar holds no Git and no New, which the tabs have; the wide
   const wide = within(await screen.findByRole("navigation", { name: "Navigation" }));
   expect(await wide.findByRole("link", { name: /^Git/ })).toBeTruthy();
   expect(wide.getByRole("link", { name: /^New/ })).toBeTruthy();
+});
+
+/** The links of home's Needs you cards, outside the sidebar, which has its own. */
+async function homeNeedsYou() {
+  const main = await screen.findByRole("main");
+  const group = await within(main).findByRole("region", { name: /^Needs you/ });
+  await waitFor(() => expect(group.querySelector("[data-card]")).not.toBeNull());
+  return [...group.querySelectorAll<HTMLElement>("[data-card]")].map((card) =>
+    card.querySelector("a")!,
+  );
+}
+
+// Break: the ＞ back beside a Needs you card's text on the phone, which squeezed it into a column
+// between the icon and the button; its detail beside the icon again; or the card, once the ＞ is
+// gone, leading to the feature's page rather than to the step that waits on the human.
+test("on the phone, a Needs you card is a head line over its text, and leads to the step", async () => {
+  const repo = fixtureRepo();
+  atWidth(375);
+  await renderPage("/", repo);
+  const phone = await homeNeedsYou();
+  expect(phone.length).toBeGreaterThan(0);
+  const steps = phone.map((link) => link.getAttribute("href")!);
+  for (const link of phone) {
+    expect(link.querySelector("[data-card-status]")).toBeNull();
+    // The head line holds the icon and the name; the text follows it, a line of its own.
+    const [head, text] = [...link.children];
+    expect(head!.querySelector("svg")).not.toBeNull();
+    expect(text!.textContent!.trim()).not.toBe("");
+    expect(head!.textContent).not.toContain(text!.textContent!.trim());
+  }
+
+  atWidth(1440);
+  await renderPage("/", repo);
+  const wide = await homeNeedsYou();
+  expect(wide).toHaveLength(phone.length);
+  wide.forEach((link, i) => {
+    // The ＞ on a wide screen, the card leading to the feature's page, the step under it.
+    expect(link.querySelector("[data-card-status]")).not.toBeNull();
+    expect(steps[i]!.startsWith(`${link.getAttribute("href")}/`)).toBe(true);
+  });
 });
