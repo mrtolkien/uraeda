@@ -13,11 +13,11 @@ const styles = stylex.create({
   square: { borderRadius: 0 },
 });
 
-/** The send key drawn in the button, beside its label: Ctrl and the Enter key. */
-function SendKeys() {
+/** The send key drawn in the button, beside its label: the Enter key, after Ctrl unless `isEnter`. */
+function SendKeys({ isEnter }: { isEnter: boolean }) {
   return (
     <HStack align="center" aria-hidden="true" gap={1}>
-      <span>Ctrl</span>
+      {!isEnter && <span>Ctrl</span>}
       <Icon icon="uraeda:enter" label="Enter" />
     </HStack>
   );
@@ -44,6 +44,7 @@ export function sendButtons({
   allow,
   canSend,
   hasContent,
+  isEnter = false,
   keys,
   label,
   pending,
@@ -55,6 +56,8 @@ export function sendButtons({
   allow: ComposerProps["allow"];
   canSend: boolean;
   hasContent: boolean;
+  /** Whether Enter sends, not Ctrl+Enter alone: the send key drawn is Enter. */
+  isEnter?: boolean;
   /**
    * Whether the screen is wide, where a keyboard is likely: the send key, Ctrl+Enter, shows; else
    * the composer is on the phone's glass, where Send is a button as the paperclip is.
@@ -108,7 +111,7 @@ export function sendButtons({
       sendButton: (
         <Button
           clickAction={send}
-          endContent={keys && <SendKeys />}
+          endContent={keys && <SendKeys isEnter={isEnter} />}
           isDisabled={!canSend}
           isLoading={pending}
           label={label ?? (working ? "Start once this turn ends" : "Start the agent")}

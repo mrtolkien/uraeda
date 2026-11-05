@@ -44,6 +44,9 @@ Every text field is one editor, with keys of its own that the page never hears.
 - **`Enter`** runs a one-line field's action, like saving a row; in a field of several lines it adds
   a line. `Ctrl+Enter` sends what any field holds, as its button does: a commit message's commits
   its pane.
+- **A session's composer sends on `Enter`**, as a chat does, and `Shift+Enter` adds a line. Under a
+  finger, whose keyboard has no `Shift+Enter`, `Enter` adds a line and the Send button sends. The
+  New page's composers keep `Enter` for a line: a stray one there would start a feature.
 - **`Escape` leaves the field**, keeping its text, and the page's keys work again: `j` moves the
   selection. A changed row asks "Discard your changes?" first; in a layer, it is the layer's Escape.
 - **Vim mode**, a switch in the settings' Keyboard section, off by default, gives every field Vim's

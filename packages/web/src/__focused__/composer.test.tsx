@@ -117,3 +117,62 @@ test.each([
   expect(thumbnails()).toEqual(["Remove third.png"]);
   expect(fieldText(field())).toBe("Look");
 });
+
+/** Presses Enter in the field, with Shift when `shift`. */
+async function enter(shift = false) {
+  await act(async () => {
+    fireEvent.keyDown(field(), { key: "Enter", shiftKey: shift });
+  });
+}
+
+/** A session's composer holding "Hi", Enter sending there when `sendsOnEnter`. */
+const chat = (sendsOnEnter: boolean) =>
+  renderComposer(
+    { session: "chat-1", ...(sendsOnEnter ? { sendsOnEnter } : {}) },
+    {
+      // Refused, so that nothing is left waiting once the test ends.
+      mutations: { "session.send": () => Promise.reject(refused("Not now.")) },
+      sessions: [sessionRecord("chat-1")],
+      value: "Hi",
+    },
+  );
+
+test("Enter sends a session's message, and Shift+Enter does not", async () => {
+  const { endpoint } = await chat(true);
+
+  await enter(true);
+  await settle();
+  expect(endpoint.sent("session.send")).toHaveLength(0);
+
+  await enter();
+  await waitFor(() => expect(endpoint.sent("session.send")).toHaveLength(1));
+  expect(endpoint.sent("session.send")[0]).toMatchObject({ session: "chat-1", text: "Hi" });
+});
+
+test("Enter sends nothing from a composer that does not send on Enter", async () => {
+  const { endpoint } = await chat(false);
+
+  await enter();
+  await settle();
+
+  expect(endpoint.sent("session.send")).toHaveLength(0);
+});
+
+test("under a finger, Enter adds a line even in a session: its keyboard has no Shift+Enter", async () => {
+  const before = window.matchMedia;
+  window.matchMedia = ((query: string) => ({
+    addEventListener: () => {},
+    matches: query === "(pointer: coarse)",
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia;
+  try {
+    const { endpoint } = await chat(true);
+
+    await enter();
+    await settle();
+
+    expect(endpoint.sent("session.send")).toHaveLength(0);
+  } finally {
+    window.matchMedia = before;
+  }
+});

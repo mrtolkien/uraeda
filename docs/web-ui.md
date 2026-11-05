@@ -122,8 +122,10 @@ vim_commands = ["imap jj <Esc>", "nmap Y y$"]  # run in order when Vim starts, e
 Every text field is the same editor, in the look of a terminal's text. Markdown is highlighted as
 you type, its marks dimmed, and long lines wrap. A one-line field grows with its text, up to 9
 lines, then scrolls; a pasted line break becomes a space. Enter saves a one-line field, and
-Ctrl+Enter saves any field, as its button does. Escape leaves the field and keeps its text, so the
-page's keys work again. A changed row asks "Discard your changes?" first.
+Ctrl+Enter saves any field, as its button does. In a session, Enter sends the message and
+Shift+Enter adds a line; on a touch screen, Enter adds a line and the Send button sends. Escape
+leaves the field and keeps its text, so the page's keys work again. A changed row asks "Discard your
+changes?" first.
 
 ### Vim mode
 

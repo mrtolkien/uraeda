@@ -440,6 +440,7 @@ export function SessionPane({
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
           {...(id === undefined ? { isNewSession } : { session: id })}
+          sendsOnEnter
           working={session?.status === "working"}
           {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
           {...returned.handing}

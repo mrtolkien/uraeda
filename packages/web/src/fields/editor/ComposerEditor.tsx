@@ -3,6 +3,7 @@
 // the composer's box focuses the field through its input control, as a click on its empty space.
 import { type ChatComposerInputControl, useChatComposerContext } from "@astryxdesign/core/Chat";
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
+import { useCoarsePointer } from "../../layout/useCoarsePointer.ts";
 import { Editor, type EditorHandle } from "./Editor.tsx";
 
 /** The images a paste carries, the clipboard's files. */
@@ -27,7 +28,9 @@ function register(control: RefObject<ChatComposerInputControl | null>, focus: ()
 
 /**
  * The composer's field: `rows` lines empty, growing upward with its text to `maxRows`, then
- * scrolling inside. Enter adds a line; Ctrl+Enter or Cmd+Enter runs `onSubmit`; Escape leaves the
+ * scrolling inside. Enter adds a line, unless `sendsOnEnter`, where Enter runs `onSubmit` and
+ * Shift+Enter adds a line, except under a finger, whose keyboard has no Shift+Enter: there the
+ * Send button sends. Ctrl+Enter or Cmd+Enter runs `onSubmit` everywhere; Escape leaves the
  * field, keeping the draft, even inside a layer: the composer has no menu of its own (no `@` or `/`
  * triggers). A pasted image goes to `onFiles`, never into the text; a dropped one is the page's drop
  * target's, which the composer's box is. `handleRef` reaches the field, for a page that focuses it
@@ -40,6 +43,7 @@ export function ComposerEditor({
   onFiles,
   onSubmit,
   rows,
+  sendsOnEnter = false,
 }: {
   handleRef?: RefObject<EditorHandle | null>;
   label: string;
@@ -47,7 +51,9 @@ export function ComposerEditor({
   onFiles: (files: Array<File>) => void;
   onSubmit?: () => void;
   rows: number;
+  sendsOnEnter?: boolean;
 }) {
+  const isFinger = useCoarsePointer();
   const composer = useChatComposerContext();
   const own = useRef<EditorHandle>(null);
   const handle = handleRef ?? own;
@@ -74,6 +80,8 @@ export function ComposerEditor({
         return "handled";
       }}
       {...(onSubmit ? { onSubmit } : {})}
+      // Enter sends, or does nothing while there is nothing to send: never a line break.
+      {...(sendsOnEnter && !isFinger ? { onEnter: () => onSubmit?.() } : {})}
       onPaste={(event) => {
         const files = pastedFiles(event);
         if (files.length > 0) {

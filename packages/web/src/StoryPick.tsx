@@ -3,6 +3,7 @@
 // frames, whose element picked opens the form naming it; "Comment" opens the form on the story
 // alone. Escape, in the page or inside a frame, ends pick mode without a form. The form is in place
 // under the frames on wide screens, and a sheet on narrow ones.
+import { useCoarsePointer } from "./layout/useCoarsePointer.ts";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -10,7 +11,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { StoryTarget } from "uraeda-binding";
 import { CommentForm } from "./CommentForm.tsx";
 import { readUnsaved, unsavedKey } from "./fields/unsaved.ts";
@@ -122,20 +123,6 @@ export function PickControls({ pick, wide }: { pick: StoryPick; wide: boolean })
         />
       )}
     </>
-  );
-}
-
-const COARSE = "(pointer: coarse)";
-
-/** Whether the pointer is coarse, as a finger: a tap, not a click. */
-function useCoarsePointer() {
-  return useSyncExternalStore(
-    (changed) => {
-      const query = window.matchMedia(COARSE);
-      query.addEventListener("change", changed);
-      return () => query.removeEventListener("change", changed);
-    },
-    () => window.matchMedia(COARSE).matches,
   );
 }
 

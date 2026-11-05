@@ -92,6 +92,11 @@ export type ComposerProps = {
   run?: DraftRun;
   /** The send button's label, a primary button's, instead of Send. */
   sendLabel?: string;
+  /**
+   * Whether Enter sends and Shift+Enter adds a line, as a session's chat: elsewhere Enter adds a
+   * line, and Ctrl+Enter sends. Under a finger, Enter adds a line either way.
+   */
+  sendsOnEnter?: boolean;
   session?: string;
   value: string;
   /**
@@ -150,7 +155,8 @@ function useFocusOnOpen(input: RefObject<EditorHandle | null>, isNewSession = fa
 /**
  * `i`, the registry's key, comes back to the field, into view, unless it is disabled. The field's
  * own keys are the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
- * decision); Enter adds a line, on every screen; Escape leaves the field for the page, keeping the
+ * decision); Enter adds a line, except in a session's composer (`sendsOnEnter`), where Enter sends
+ * and Shift+Enter adds a line, on a keyboard; Escape leaves the field for the page, keeping the
  * draft. A message of images alone, or images still being saved, are the send's to judge.
  */
 function useInsertKey(
@@ -290,7 +296,7 @@ function isBlank(
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
  * once this turn ends" while the session works on a chat. Ctrl+Enter or Cmd+Enter sends, and the button
- * shows the key on wide screens; Enter adds a line. It sends to
+ * shows the key on wide screens; Enter adds a line, or sends with `sendsOnEnter`. It sends to
  * `session`, else to the feature of `folder`, else to a new chat, then calls `onSent` with the
  * session's ID. A refused send keeps the text and the images, with the reason under it until the
  * next send, as a refused Stop does.
@@ -349,6 +355,7 @@ export function Composer(given: ComposerProps) {
     allow: props.allow,
     canSend,
     hasContent,
+    isEnter: props.sendsOnEnter === true,
     keys: wide,
     label: props.sendLabel,
     pending,
@@ -379,6 +386,7 @@ export function Composer(given: ComposerProps) {
               onFiles={attaching.addFiles}
               {...(canSend ? { onSubmit: () => submit(value.trim()) } : {})}
               send={buttons.sendButton}
+              sendsOnEnter={props.sendsOnEnter === true}
             />
           }
           isDisabled={Boolean(unavailable)}
