@@ -187,12 +187,21 @@ export function KindCards({
           >
             {compact ? (
               <div {...stylex.props(styles.chip, isPicked && styles.chipPicked)}>
-                <Icon icon={card.icon} size="sm" />
+                <Icon icon={isPicked ? "check" : card.icon} size="sm" />
                 {card.name}
                 <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
               </div>
             ) : (
-              <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
+              // Picked: the accent's frame, a tint, and a check after its name, which a glance
+              // tells from the composer's ring under it.
+              <Pane
+                icon={card.icon}
+                isActive={isPicked}
+                isGroup
+                isTinted={isPicked}
+                title={card.name}
+                titleSuffix={isPicked ? <Icon icon="check" size="sm" /> : undefined}
+              >
                 <div {...stylex.props(styles.body)}>
                   {/* The drawing says what it is; the sentence is for screen readers. */}
                   <KindArt kind={card.kind} />

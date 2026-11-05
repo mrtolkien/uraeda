@@ -59,9 +59,11 @@ const styles = stylex.create({
     color: colorVars["--color-text-primary"],
     paddingInline: spacingVars["--spacing-1"],
   },
+  // Picked: the letter filled with the success colour, a check before it. The accent stays the
+  // keyboard's focus and the selection's, never what was answered.
   letterOn: {
-    backgroundColor: colorVars["--color-accent"],
-    color: colorVars["--color-on-accent"],
+    backgroundColor: colorVars["--color-success"],
+    color: colorVars["--color-on-success"],
   },
   option: {
     // One square border, the text inset by `--option-inset` from its outer edge, whatever the
@@ -90,12 +92,13 @@ const styles = stylex.create({
     opacity: 1,
   },
   picked: {
-    // Picked: the accent's border, twice as thick, without Astryx's inner ring.
+    // Picked: a green tint and border at the usual width, without Astryx's inner ring, apart from
+    // the keyboard's accent ring around a focused option.
     "--_card-ring": "0 0 transparent",
-    "--option-border": `calc(2 * ${borderVars["--border-width"]})`,
-    borderColor: colorVars["--color-accent"],
+    backgroundColor: colorVars["--color-success-muted"],
+    borderColor: colorVars["--color-border-green"],
   },
-  pickedTag: { color: colorVars["--color-text-accent"] },
+  pickedTag: { color: colorVars["--color-success"] },
   point: {
     paddingInlineStart: spacingVars["--spacing-5"],
     position: "relative",
@@ -225,7 +228,9 @@ export function OptionCard({
             styles.legend,
           )}
         >
-          <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>
+          <span {...stylex.props(styles.letter, selected && styles.letterOn)}>
+            {selected ? `✓ ${choice.letter}` : choice.letter}
+          </span>
           {choice.recommended && <span {...stylex.props(styles.tag)}>★ Recommended</span>}
           {selected && <span {...stylex.props(styles.pickedTag)}>picked</span>}
         </span>
