@@ -7,7 +7,6 @@
 > Still wanted for my personal usage
 
 - [Basic git UI in the web ui (pull, see diffs, ...)](/specs/2026-11-04-basic-git/proposal.md)
-- [Check that there's a clear distinction between the skill/references and the…](/specs/changes/2026-11-04-skill-ref/proposal.md)
 
 - Review the UI guidelines properly
 
