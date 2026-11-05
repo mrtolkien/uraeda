@@ -64,6 +64,8 @@ export type EditorProps = {
   /** The content element's id, as a field's own: `document.getElementById(id)?.focus()` works. */
   id?: string;
   isAutoFocused?: boolean;
+  /** Whether its text is a file's code, not markdown: all of it in the code font. */
+  isCode?: boolean;
   isDisabled?: boolean;
   /** Read before it is edited, as a file Vim opens: Vim's mode kept at focus, normal at first. */
   isReadFirst?: boolean;
@@ -121,6 +123,7 @@ const fromCaller = Annotation.define<boolean>();
 const parts = {
   attributes: new Compartment(),
   editable: new Compartment(),
+  language: new Compartment(),
   placeholder: new Compartment(),
   size: new Compartment(),
 };
@@ -131,6 +134,7 @@ type PartProps = Pick<
   | "attributes"
   | "id"
   | "isAutoFocused"
+  | "isCode"
   | "isDisabled"
   | "label"
   | "maxRows"
@@ -145,6 +149,7 @@ function partsOf(props: PartProps) {
     attributes,
     id,
     isAutoFocused,
+    isCode = false,
     isDisabled = false,
     label,
     maxRows,
@@ -163,6 +168,7 @@ function partsOf(props: PartProps) {
       ...attributes,
     }),
     editable: [EditorView.editable.of(!isDisabled), EditorState.readOnly.of(isDisabled)],
+    language: markdown(isCode),
     placeholder: placeholder ? placeholderText(placeholder) : [],
     size: [sizeTheme(variant, rows, maxRows), variant === "line" ? oneLine : []],
   };
@@ -293,7 +299,6 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       ...defaultKeymap.filter(({ key }) => key !== "Escape"),
       ...historyKeymap,
     ]),
-    markdown(),
     EditorView.lineWrapping,
     editorTheme,
     ...Object.entries(parts).map(([part, compartment]) =>
@@ -323,7 +328,8 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
 
 /** Reconfigures each part of the view's state as the props it is made of change. */
 function useParts(viewRef: RefObject<EditorView | null>, props: PartProps) {
-  const { id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant } = props;
+  const { id, isAutoFocused, isCode, isDisabled, label, maxRows, placeholder, rows, variant } =
+    props;
   // The attributes as one value, so a caller's new object of the same attributes changes nothing.
   const attributesKey = JSON.stringify(props.attributes ?? {});
   useLayoutEffect(() => {
@@ -331,6 +337,7 @@ function useParts(viewRef: RefObject<EditorView | null>, props: PartProps) {
       attributes: JSON.parse(attributesKey) as Record<string, string>,
       id,
       isAutoFocused,
+      isCode,
       isDisabled,
       label,
       maxRows,
@@ -347,6 +354,7 @@ function useParts(viewRef: RefObject<EditorView | null>, props: PartProps) {
     attributesKey,
     id,
     isAutoFocused,
+    isCode,
     isDisabled,
     label,
     maxRows,

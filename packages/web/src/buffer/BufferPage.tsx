@@ -8,6 +8,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Editor } from "../fields/editor/Editor.tsx";
+import { isMarkdownPath } from "../fields/editor/markdown.ts";
 import { RestoreNotice } from "../fields/RestoreNotice.tsx";
 import { useVimOn } from "../fields/editor/vim/load.ts";
 import { useKeys } from "../keys/registry.tsx";
@@ -99,6 +100,7 @@ export function BufferPage({ path }: { path: string }) {
           <div {...stylex.props(styles.fill)}>
             <Editor
               isAutoFocused
+              isCode={!isMarkdownPath(path)}
               isReadFirst
               label={path}
               onChange={buffer.field.change}

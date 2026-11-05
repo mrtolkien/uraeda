@@ -16,6 +16,7 @@ import { useRefreshOnShow } from "../data.ts";
 import { conflictBar } from "../fields/editor/conflictBar.ts";
 import { conflictsIn } from "../fields/editor/conflicts.ts";
 import { Editor } from "../fields/editor/Editor.tsx";
+import { isMarkdownPath } from "../fields/editor/markdown.ts";
 import { RestoreNotice } from "../fields/RestoreNotice.tsx";
 import { readVersion, useFileEditor } from "../fields/useFileEditor.ts";
 import { useKeys } from "../keys/registry.tsx";
@@ -121,6 +122,7 @@ export function ConflictEditor({
         {/* Keyed by the sides' names, which the bar's extension, the editor's first, carries. */}
         <Editor
           extensions={[bar]}
+          isCode={!isMarkdownPath(path)}
           isDisabled={isDisabled}
           key={`${stopped.ours}\u0000${stopped.theirs}`}
           label={path}
