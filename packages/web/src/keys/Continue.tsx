@@ -11,7 +11,7 @@ import { statusPath } from "../sidebar/statusPath.ts";
 import { type Entry, needsYouEntries } from "../sidebar/entries.ts";
 import { KeyPicker } from "./KeyPicker.tsx";
 import { KIND_ICONS } from "./kinds.ts";
-import type { PickerItem } from "./pickerSources.ts";
+import { type PickerItem, textPreview } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
 
 /** What the entry and the toast say while nothing needs the human. */
@@ -27,7 +27,7 @@ function itemOf(entry: Entry): PickerItem {
       id: path,
       kind: "sessions",
       path,
-      preview: [entry.row.title, entry.status.label].join("\n"),
+      preview: textPreview(entry.row.title, entry.status.label),
       title: entry.row.title,
     };
   }
@@ -39,7 +39,7 @@ function itemOf(entry: Entry): PickerItem {
     id: `/f/${encodeURIComponent(feature.folder)}`,
     kind: isChange ? "changes" : "features",
     path: statusPath(feature, entry.status),
-    preview: [feature.title, stepOf(feature).label, entry.status.label].join("\n"),
+    preview: textPreview(feature.title, stepOf(feature).label, entry.status.label),
     title: feature.title,
   };
 }
