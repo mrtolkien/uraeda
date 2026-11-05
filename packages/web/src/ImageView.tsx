@@ -9,6 +9,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { createContext, type MouseEvent, type ReactNode, useContext, useState } from "react";
+import { scrimStyles } from "./layout/scrim.ts";
 import { useBackCloses } from "./layout/useBackCloses.ts";
 
 const styles = stylex.create({
@@ -129,6 +130,8 @@ export function ImageView({
     // The lightbox is drawn where the image is: in a review's block, a click in it would select
     // the block. Its keys are left to bubble: Astryx closes it on an Escape the document hears.
     onClick: (event: MouseEvent) => event.stopPropagation(),
+    // Dimmed, not blurred: a blurred backdrop is drawn again on every frame the image pans.
+    xstyle: scrimStyles.unblurred,
   });
   useBackCloses(`Image ${src}`, lightbox.isOpen, lightbox.close);
 

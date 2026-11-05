@@ -1,7 +1,8 @@
 // The picker's filter: the shared editor in Astryx's `CommandPalette`, as the custom input its
 // `input` slot takes, wired as the palette's own input is: the palette's search as its text, the
-// combobox's attributes on its content element, and the palette's keys. With Vim on, normal mode's
-// `j` and `k` move the highlighted row and Enter opens it, as LazyVim's picker does.
+// combobox's attributes on its content element, and the palette's keys. Ctrl+J and Ctrl+K move the
+// highlighted row, and with Vim on, normal mode's `j` and `k` too, Enter opening it, as LazyVim's
+// picker does.
 import { useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
@@ -42,12 +43,18 @@ function toPalette(palette: Palette | null, key: string) {
   } as KeyboardEvent);
 }
 
-/** The palette's keys from the field: Down, Up, PageDown, and PageUp move its highlighted row. */
-const listKeys = (palette: Palette | null): Array<FieldKey> =>
-  ["ArrowDown", "ArrowUp", "PageDown", "PageUp"].map((key) => ({
+/**
+ * The palette's keys from the field: Down, Up, PageDown, and PageUp move its highlighted row, and
+ * Ctrl+J and Ctrl+K move it down and up, as in LazyVim's picker, in any mode.
+ */
+const listKeys = (palette: Palette | null): Array<FieldKey> => [
+  ...["ArrowDown", "ArrowUp", "PageDown", "PageUp"].map((key) => ({
     key,
     run: () => took(() => toPalette(palette, key)),
-  }));
+  })),
+  { key: "Ctrl-j", run: () => took(() => toPalette(palette, "ArrowDown")) },
+  { key: "Ctrl-k", run: () => took(() => toPalette(palette, "ArrowUp")) },
+];
 
 /**
  * The picker's filter, named `label`: typing searches the palette's items, Down, Up, PageDown, and

@@ -25,6 +25,7 @@ import { type KeyRow, keyMapSections, type KeySection, searchKeyMap, written } f
 import { menuVars } from "./menu.stylex.ts";
 import { useListed, useSingleKeys } from "./registry.tsx";
 import type { Binding } from "./store.ts";
+import { scrimStyles } from "../layout/scrim.ts";
 
 /** What the key map is called: its dialog, its sheet, and its history entry. */
 export const KEY_MAP_TITLE = "Keyboard shortcuts";
@@ -187,7 +188,7 @@ export function KeyMap({
       padding={4}
       purpose="info"
       width="var(--size-palette)"
-      xstyle={[glassStyles.surface, glassStyles.floating, styles.glass]}
+      xstyle={[glassStyles.surface, glassStyles.floating, styles.glass, scrimStyles.unblurred]}
     >
       {/* Its title only while open: a closed dialog's heading stays in the page, among its own. */}
       {isOpen && (

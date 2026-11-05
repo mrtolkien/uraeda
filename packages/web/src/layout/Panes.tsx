@@ -24,6 +24,15 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-3"],
     paddingInline: spacingVars["--spacing-2"],
   },
+  // The detail's content grows to its foot (`fills`), as a diff in lazygit fills its side: held
+  // at the page's top room as the list scrolls, and ending a step above the status line.
+  filled: {
+    display: "flex",
+    flexDirection: "column",
+    height: `calc(var(--size-viewport-height) - ${spacingVars["--spacing-6"]} - ${spacingVars["--spacing-3"]})`,
+    paddingBlockEnd: 0,
+    top: spacingVars["--spacing-6"],
+  },
   list: {
     minWidth: 0,
   },
@@ -56,6 +65,7 @@ export function Panes({
   columns,
   detail,
   detailKey,
+  fills = false,
   isSplit,
   list,
   most = "none",
@@ -64,6 +74,8 @@ export function Panes({
   columns?: string;
   detail: ReactNode | undefined;
   detailKey?: string;
+  /** Whether the detail's content, given `flexGrow`, fills the detail down to its foot. */
+  fills?: boolean;
   isSplit?: boolean;
   list: ReactNode;
   /** With `columns`, the most the two take together. */
@@ -97,7 +109,11 @@ export function Panes({
       <div {...stylex.props(styles.list)}>{list}</div>
       <section
         ref={pane}
-        {...stylex.props(styles.detail, columns !== undefined && styles.framed)}
+        {...stylex.props(
+          styles.detail,
+          columns !== undefined && styles.framed,
+          fills && styles.filled,
+        )}
         aria-label="Detail"
       >
         {detail}

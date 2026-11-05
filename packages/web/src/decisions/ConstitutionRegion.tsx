@@ -55,10 +55,18 @@ export function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinc
 
 /**
  * The constitution, first: its principles, highest first, each a row of its numeral and count of
- * rules, its title, and its first rule, each a link to the whole constitution, one page.
+ * rules, its title, and its first rule, each a link to the whole constitution, one page; the
+ * principle `selected` is marked, as the list's selection.
  * "No constitution yet." without `CONSTITUTION.md`.
  */
-export function ConstitutionRegion({ constitution }: { constitution: LedgerConstitution | null }) {
+export function ConstitutionRegion({
+  constitution,
+  selected,
+}: {
+  constitution: LedgerConstitution | null;
+  /** The index of the principle the list marks, the reader scrolled to it. */
+  selected?: number | undefined;
+}) {
   const here = useRepoPath();
   return (
     <section aria-label="Constitution">
@@ -76,7 +84,7 @@ export function ConstitutionRegion({ constitution }: { constitution: LedgerConst
         </VStack>
         {constitution ? (
           <List aria-label="Principles" hasDividers>
-            {constitution.principles.map((principle) => {
+            {constitution.principles.map((principle, index) => {
               const rules = rulesOf(constitution, principle);
               return (
                 <ListItem
@@ -84,6 +92,7 @@ export function ConstitutionRegion({ constitution }: { constitution: LedgerConst
                   data-row=""
                   description={rules[0] && <Text color="secondary">{plain(rules[0].spans)}</Text>}
                   href={here("/decisions/constitution")}
+                  isSelected={selected === index}
                   key={principle.slug}
                   label={
                     // Its numeral and count of rules, then its title in bold, its first rule

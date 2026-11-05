@@ -239,7 +239,8 @@ test("without the browser's permission, nothing notifies, and the title still co
 test("the tab's title counts what needs the human", async () => {
   permission = "default";
   window.localStorage.setItem("uraeda.notifications", "dismissed");
-  await renderPage("/");
+  // Off home, where the sidebar draws its Needs you cards.
+  await renderPage("/inbox");
   const nav = within(await screen.findByRole("navigation", { name: "Navigation" }));
   const needsYou = within(await nav.findByRole("group", { name: "Needs you" }));
   const count = needsYou.getAllByRole("link").length;

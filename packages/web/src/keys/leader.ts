@@ -1,15 +1,14 @@
-// The leader's runtime: the pending sequence of `sequence.ts`, and the two delays that act on it.
-// The menu shows 300 ms after the last key while it is hidden, and once shown it stays and
-// follows each key at once; a pending `g` ends two seconds after its key. A step of the leader
-// (Space, or Ctrl or Cmd+K) has no end of its own: it is closed by Escape, a layer, a page change, or
-// the switch. A plain store, read through `useSyncExternalStore`.
-import { CHORD, LEADER, next, type Step } from "./sequence.ts";
+// The leader's runtime: the pending sequence of `sequence.ts`, and the delay that acts on it. The
+// menu shows 300 ms after the last key while it is hidden, and once shown it stays and follows each
+// key at once. A pending step has no end of its own, a `g` as the leader's (Space, or Ctrl or
+// Cmd+K): its menu, being read, waits for its key, as LazyVim's which-key does. It is closed by
+// Escape, a key no sequence uses, a layer, a page change, or the switch. A plain store, read
+// through `useSyncExternalStore`.
+import { CHORD, next, type Step } from "./sequence.ts";
 import type { KeyStore } from "./store.ts";
 
 /** How long after the last key a hidden menu shows: quick typing shows nothing. */
 export const SHOW_AFTER = 300;
-/** How long a pending `g` waits for its second key. */
-export const WAIT = 2000;
 
 export type Pressed = {
   /** The key belongs to the sequence: the page does not hear it. */
@@ -21,7 +20,6 @@ export type Pressed = {
 export function createLeader() {
   let step: Step | null = null;
   let showing: ReturnType<typeof setTimeout> | undefined;
-  let ending: ReturnType<typeof setTimeout> | undefined;
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -29,11 +27,8 @@ export function createLeader() {
       listener();
     }
   };
-  const disarm = () => {
-    clearTimeout(showing);
-    clearTimeout(ending);
-  };
-  /** Starts the delays of the step a key just left. */
+  const disarm = () => clearTimeout(showing);
+  /** Starts the delay of the step a key just left. */
   const arm = () => {
     disarm();
     if (step === null) {
@@ -46,9 +41,6 @@ export function createLeader() {
           notify();
         }
       }, SHOW_AFTER);
-    }
-    if (step.path[0] !== LEADER) {
-      ending = setTimeout(() => change(null), WAIT);
     }
   };
   const change = (to: Step | null) => {

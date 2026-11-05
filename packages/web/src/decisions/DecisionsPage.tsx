@@ -31,6 +31,7 @@ import { TopBarSlot } from "../layout/TopBarSlot.tsx";
 import { useStartChat } from "../StartChat.tsx";
 import { ConstitutionReader } from "./ConstitutionReader.tsx";
 import { ConstitutionRegion } from "./ConstitutionRegion.tsx";
+import { usePrinciple } from "./principle.ts";
 import { DecisionDetail } from "./DecisionDetail.tsx";
 import { DecisionList } from "./DecisionList.tsx";
 import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
@@ -162,6 +163,7 @@ function LedgerList({
   // Hinted on wide screens only: the phone hints no key.
   const narrow = isNarrow(useWidthClass());
   const singleKeys = useSingleKeys() && !narrow;
+  const principle = usePrinciple(ledger.constitution);
   const { ref } = useListKeys({
     // What Escape does, on the status line: back to the constitution, or nothing when it shows.
     escapeLabel: open && pane ? "constitution" : null,
@@ -176,8 +178,13 @@ function LedgerList({
     // Nothing here is edited: Enter opens the row.
     onEdit: () => false,
     // Beside the list, the reader follows the selection; without it, only the focus moves.
-    onSelect: (index) => (isSplit ? pane?.follow(here(paths[index])) : undefined),
-    selected: paths.indexOf(shown ?? ""),
+    onSelect: (index) => {
+      principle.pick(index, isSplit);
+      if (isSplit) {
+        pane?.follow(here(paths[index]));
+      }
+    },
+    selected: shown === CONSTITUTION ? principle.index : paths.indexOf(shown ?? ""),
   });
   return (
     <ListFrame>
@@ -197,7 +204,10 @@ function LedgerList({
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
           <VStack gap={6}>
-            <ConstitutionRegion constitution={ledger.constitution} />
+            <ConstitutionRegion
+              constitution={ledger.constitution}
+              selected={shown === CONSTITUTION ? principle.index : undefined}
+            />
             <DecisionList
               decisions={decisions}
               onSort={onSort}

@@ -46,6 +46,7 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
 import type { PickerItem } from "./pickerSources.ts";
 import { PickerPreview } from "./PickerPreview.tsx";
+import { scrimStyles } from "../layout/scrim.ts";
 
 export { useKeyPicker } from "./pickerState.ts";
 
@@ -370,6 +371,7 @@ export function KeyPicker({
       onOpenChange={onOpenChange}
       padding={0}
       width="var(--size-palette)"
+      xstyle={scrimStyles.unblurred}
     >
       {body}
     </Dialog>

@@ -107,57 +107,63 @@ export function Sync({
   const ahead = isStopped ? 0 : page.ahead;
   const branch = page.branch ?? "main";
   const buttons = (
-    <HStack gap={1} justify="end" wrap="wrap">
-      {page.hasRemote && (
-        <>
-          <WriteButton
-            isDisabled={page.agentWorking}
-            label="Fetch"
-            onClick={writes.fetch}
-            size="sm"
-            tooltip="Check the server for new commits, without changing your files"
-            variant="secondary"
-          />
-          <WriteButton
-            isDisabled={isStuck}
-            label={counted("Pull", behind)}
-            onClick={writes.pull}
-            size="sm"
-            tooltip={plural(
-              behind,
-              "Bring in the server's new commit",
-              "Bring in the server's new commits",
-              "Bring in the server's new commits, once there are some",
-            )}
-            variant={behind > 0 ? "primary" : "secondary"}
-          />
-          <WriteButton
-            isDisabled={isStuck}
-            label={counted("Push", ahead)}
-            onClick={writes.push}
-            size="sm"
-            tooltip={plural(
-              ahead,
-              "Send your commit to the server",
-              "Send your commits to the server",
-              "Send your commits to the server, once there are some",
-            )}
-            variant={behind === 0 && ahead > 0 ? "primary" : "secondary"}
-          />
-        </>
-      )}
-      <Button
-        isDisabled={isStuck || page.branches.length === 0}
-        label={`Merge into ${branch}…`}
-        onClick={onMerge}
+    <HStack gap={1} wrap="wrap">
+      <WriteButton
+        isDisabled={page.agentWorking}
+        label="Fetch"
+        onClick={writes.fetch}
         size="sm"
-        tooltip={`Bring another branch's work into ${branch}`}
-        variant="ghost"
+        tooltip="Check the server for new commits, without changing your files"
+        variant="secondary"
+      />
+      <WriteButton
+        isDisabled={isStuck}
+        label={counted("Pull", behind)}
+        onClick={writes.pull}
+        size="sm"
+        tooltip={plural(
+          behind,
+          "Bring in the server's new commit",
+          "Bring in the server's new commits",
+          "Bring in the server's new commits, once there are some",
+        )}
+        variant={behind > 0 ? "primary" : "secondary"}
+      />
+      <WriteButton
+        isDisabled={isStuck}
+        label={counted("Push", ahead)}
+        onClick={writes.push}
+        size="sm"
+        tooltip={plural(
+          ahead,
+          "Send your commit to the server",
+          "Send your commits to the server",
+          "Send your commits to the server, once there are some",
+        )}
+        variant={behind === 0 && ahead > 0 ? "primary" : "secondary"}
       />
     </HStack>
   );
+  // Beside the title, as a branch's own action: the sync buttons under the line keep to one line.
+  const merge = (
+    <Button
+      isDisabled={isStuck || page.branches.length === 0}
+      label={`Merge into ${branch}…`}
+      onClick={onMerge}
+      size="sm"
+      tooltip={`Bring another branch's work into ${branch}`}
+      variant="ghost"
+    />
+  );
   return (
-    <PageTitle aside={buttons} meta={{ text: syncLine(page, now) }}>
+    // In the list's narrow column, as lazygit's status pane: the sync buttons under the branch's
+    // line.
+    <PageTitle
+      actions={merge}
+      aside={page.hasRemote ? buttons : undefined}
+      isAsideBelow
+      meta={{ text: syncLine(page, now) }}
+    >
       Git
     </PageTitle>
   );

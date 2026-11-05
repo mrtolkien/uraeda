@@ -11,6 +11,7 @@ import { useKeys } from "../keys/registry.tsx";
 import { Page } from "../layout/Page.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import { PickedCard } from "../layout/picked.ts";
+import { isPointerMoved } from "../pointerMoved.ts";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepository } from "../routes.tsx";
 import { Allowance } from "../sidebar/Allowance.tsx";
@@ -60,7 +61,7 @@ function useCardKeys(page: RefObject<HTMLDivElement | null>) {
   ]);
   /** The mouse moving over a card or a row takes the focus to it, as over a list's row. */
   return (event: PointerEvent) => {
-    if (event.pointerType !== "mouse" || (event.movementX === 0 && event.movementY === 0)) {
+    if (!isPointerMoved(event)) {
       return;
     }
     const target = event.target as Element;

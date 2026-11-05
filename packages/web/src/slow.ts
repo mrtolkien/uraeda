@@ -45,7 +45,8 @@ function shortText(element: Element): string {
 function accessibleName(target: Node | null): string {
   const node = target?.nodeType === Node.ELEMENT_NODE ? (target as Element) : target?.parentElement;
   const element = node?.closest(NAMED) ?? node;
-  if (!element) {
+  // The page itself names nothing: its text starts with the development build's stylesheets.
+  if (!element || element === document.body || element === document.documentElement) {
     return "";
   }
   const labelledBy = element.getAttribute("aria-labelledby");
