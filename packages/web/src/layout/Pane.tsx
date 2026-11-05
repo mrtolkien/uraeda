@@ -123,6 +123,9 @@ const styles = stylex.create({
     flexWrap: "wrap",
     minWidth: 0,
   },
+  // The title's words, which give up their room to the title's width: a title of one line, as the
+  // Git page's detail draws, cuts itself there rather than run past the pane.
+  words: { minWidth: 0 },
   // A pane in a pane: its room's width, which that pane keeps, or more, as a live window grows.
   nested: { maxWidth: "none" },
   new: { borderColor: colorVars["--color-border-green"] },
@@ -298,7 +301,9 @@ function PaneName({
             <Icon icon={icon} size="sm" />
           </span>
         )}
-        <span id={titleId}>{titleNode ?? title}</span>
+        <span id={titleId} {...stylex.props(styles.words)}>
+          {titleNode ?? title}
+        </span>
         {/* The space is for the text's reading: flex items show no space between them. */}
         {count !== undefined && " "}
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}

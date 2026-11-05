@@ -20,12 +20,13 @@ over them, clipped to the rail, then grows.
 - The status line shows the page's hints, and the counts when they fit; where they do not, the
   counts go first, then the hints past the line's end.
 - A question's card keeps one column below its [split width](reading.md#the-scale-of-widths).
-- The Git page is laid out as lazygit: its sections a column of two fifths of the room, each row one
-  line cut by an ellipsis, a commit's naming its hash alone, and the title's buttons under the
-  branch's line; the detail, a diff or a commit with its hash and age, takes the rest. Wide screens
-  keep the same shape, the diff about 80 characters wide.
-- What sits in two places on wide screens may share a line here: the sessions page's Usage and Done
-  side by side, each half as wide, Done greyed.
+- The Git page is laid out as lazygit, over the whole window: its sections a column of two fifths of
+  the room, 20rem at least and 36rem at most, each row one line cut by an ellipsis, a commit's
+  naming its hash alone; Merge beside the title, the sync buttons on one line under the branch's
+  line, and a group's Commit under its message. The detail, a diff or a commit with its hash and
+  age, takes the rest to the window's edge, and its height down to the status line, scrolling on its
+  own; its title is one line, a path's folders cut at their start before the file's name, the whole
+  in a tooltip. Wide screens keep the same shape.
 
 ## Everything else is wide
 

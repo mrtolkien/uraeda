@@ -33,11 +33,12 @@ import { filesShown, type GitWrites, placeHref, useGitWrites } from "./useGitWri
 import { offerOf, Worktrees, worktreeKey } from "./Worktrees.tsx";
 
 /**
- * The list's and the detail's columns, as lazygit lays them out: the list a narrow column of
- * one-line rows, two fifths of the room, and the detail, a diff or a commit, the rest, about 80
- * characters of a diff on a wide screen.
+ * The list's and the detail's columns, as lazygit lays them out over the whole window: the list a
+ * column of one-line rows, two fifths of the room up to a reading width, 36rem, and never under
+ * 20rem, where its sync buttons hold on a line; the detail, a diff or a commit, the rest, to the
+ * window's edge.
  */
-const COLUMNS = "minmax(0, 2fr) minmax(0, 3fr)";
+const COLUMNS = "minmax(20rem, min(36rem, 40%)) minmax(0, 1fr)";
 
 /** The folded folders of each group, by `treeKey`. */
 type Folded = ReadonlySet<string>;
@@ -354,7 +355,7 @@ export function GitPage() {
   }
   const detailOf = detailShown(picked, narrow, rows, shown);
   return (
-    <Page kind="panes">
+    <Page kind="window">
       <Panes
         columns={COLUMNS}
         detail={
@@ -363,6 +364,7 @@ export function GitPage() {
           )
         }
         detailKey={detailOf && gitAddress(detailOf)}
+        fills
         list={
           // The list's keys take a div's ref, which Astryx's VStack, typed for any element's, refuses.
           <div ref={listRef}>
