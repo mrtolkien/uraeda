@@ -17,6 +17,13 @@ const PAD_INLINE = "var(--spacing-2)";
 const selection = (percent: number) =>
   `color-mix(in srgb, var(--color-accent) ${percent}%, transparent)`;
 
+/**
+ * A one-line field's room above and below its text on a touch screen: what makes it a control's
+ * height, `--size-element-md`, 44 px there as every Astryx control, its frame included, its text in
+ * its middle. A line it grows by adds a line's height alone.
+ */
+const TOUCH_PAD_BLOCK = `calc((var(--size-element-md) - 2 * var(--border-width, 1px) - ${LINE}em) / 2)`;
+
 /** The height of `lines` lines of text, with the room around them. */
 const linesHigh = (lines: number) => `calc(${lines} * ${LINE}em + 2 * ${PAD_BLOCK})`;
 
@@ -91,7 +98,18 @@ export function sizeTheme(variant: Variant, rows: number, maxRows = rows): Exten
         ? composerTheme(rows, maxRows)
         : EditorView.theme(
             variant === "line"
-              ? { ".cm-scroller": { maxHeight: linesHigh(9), overflow: "auto" } }
+              ? {
+                  ".cm-scroller": { maxHeight: linesHigh(9), overflow: "auto" },
+                  // A finger's target on a touch screen, as tall as a control there: through its
+                  // scroller, over the look every field shares, which CodeMirror adds after this one.
+                  "@media (pointer: coarse)": {
+                    ".cm-scroller .cm-content": {
+                      // Its height exact, where the line's fraction of a pixel rounds down.
+                      minHeight: "calc(var(--size-element-md) - 2 * var(--border-width, 1px))",
+                      padding: `${TOUCH_PAD_BLOCK} 0`,
+                    },
+                  },
+                }
               : variant === "page"
                 ? { ".cm-scroller": { overflow: "auto" }, "&": { height: "100%" } }
                 : { ".cm-scroller": { height: linesHigh(rows), overflow: "auto" } },
