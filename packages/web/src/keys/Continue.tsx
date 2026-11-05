@@ -2,7 +2,7 @@
 // picker of them whose Enter opens the selected, and none says so: the entry in the menu reads
 // "Nothing needs you" and a toast says it to a key typed fast. The cards are the shell's Needs you
 // pane's, through the selection the status line counts (`needsYouEntries`), never a copy.
-import { useToast } from "@astryxdesign/core/Toast";
+import { useTimedToast } from "../layout/useTimedToast.tsx";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { navigateHere, sessionIdPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -47,7 +47,7 @@ function itemOf(entry: Entry): PickerItem {
 /** The `Space c` binding, and the picker it opens, for the caller to draw. */
 export function useContinue(): { binding: Binding; picker: ReactNode } {
   const items = needsYouEntries(useNavigation()).map(itemOf);
-  const showToast = useToast();
+  const showToast = useTimedToast();
   const [isOpen, setOpen] = useState(false);
   // Drawn from its first opening on: the page's focus is its own until then.
   const [isDrawn, setDrawn] = useState(false);
