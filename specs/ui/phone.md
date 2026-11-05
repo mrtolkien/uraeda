@@ -30,6 +30,13 @@ not a desktop squeezed down, and not a lesser version.
   up to 400 px, animated, and holds no copy of the tabs' places.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
+- **The home-screen app** is the phone's main way in: the page names its icon, its name, and
+  `display: standalone` (`index.html`, `public/manifest.webmanifest`), and reaches under the
+  screen's rounded corners and home indicator (`viewport-fit=cover`). Every bar pads by the safe
+  areas (`layout/safeArea.stylex.ts`): the tabs below the status bar, the bottom bar's tiles, a
+  sheet's buttons, and the sidebar's end above the home indicator, so no control sits where the
+  system takes the swipe home, and the bottom bar's glass goes on under it, as an iPhone's tab bar
+  does. A page's end scrolls clear of it too.
 
 ## The bottom bar
 
@@ -70,7 +77,9 @@ way.
 A session's composer comes after the transcript, at the page's end, above the bottom bar, in its
 glass box alone, nothing drawn around it: the transcript has the whole screen while the human reads
 it. Empty and unfocused, it folds to one line, its field and Send; a tap opens it, its paperclip and
-actions on one line. Send is an icon, as the paperclip is, not a filled button.
+actions on one line. Send is an icon, as the paperclip is, not a filled button. While it is typed
+in, the page scrolls so its end, Send included, stays above the keyboard, as a question's comment
+and its Save do (`layout/useAboveKeyboard.ts`): iOS scrolls only the caret into view.
 
 ## The decisions page
 
@@ -96,10 +105,19 @@ never wraps.
   (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make them
   all 3 the same component"). A side column's sheet, the session's Activity or Changes, draws its
   title in its content, which scrolls it away, and its Close alone stays. It opens with the focus in
-  its field, and a drag up on its top takes it to the whole screen.
+  its field, and a drag up on its top takes it to the whole screen. Over the keyboard, a sheet
+  shorter than the screen lifts by the whole keyboard and shrinks to the room left under the tabs,
+  its form scrolled to its end, so the field and its last button show together.
 - **Menus and selectors are popovers**, as on wide screens, not sheets: a `…`'s actions, a sort, a
   category to choose ("Decision sort should just open a selector… It shouldn't be a sheet").
 - **Pages for anything read**: a proposal file, a session, a spec.
+
+## Pages
+
+- **A round**: a question's header sticks below the tabs while its card is on screen, but lets go
+  while its comment is typed in, so the room the keyboard leaves goes to the text.
+- **A review**: the comment's sheet quotes no block: the block shows, marked, right above it.
+- **The priorities**: one column, the table, until the human picks the columns on the phone.
 
 ## Flows
 
