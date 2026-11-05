@@ -39,8 +39,8 @@ const styles = stylex.create({
   counts: {
     // At the line's end, whatever comes before. The hints give way to them first; short of room
     // still, where no hint shows, the counts wrap onto a second line, each whole, never cut or past
-    // the edge.
-    alignItems: "center",
+    // the edge. Each as tall as the line, so a count pressed is a 24 px target.
+    alignItems: "stretch",
     columnGap: spacingVars["--spacing-4"],
     display: "flex",
     flexShrink: 1,
@@ -50,10 +50,16 @@ const styles = stylex.create({
     minWidth: 0,
     rowGap: 0,
   },
+  // A hint, its button the line's height: a 24 px target, padding included (WCAG 2.5.8), drawn as
+  // the line's text all the same.
   hint: {
+    display: "flex",
     flexShrink: 0,
   },
+  // A button drawn as the line's text, as tall as the line.
+  fill: { alignSelf: "stretch" },
   hints: {
+    alignItems: "stretch",
     // The hints take the room the counts leave, from none, so they give way first, and those past
     // its end are cut, never wrapped.
     display: "flex",
@@ -137,7 +143,7 @@ function Hints() {
             onClick={() => press(hint.press)}
             onMouseDown={keepFocus}
             type="button"
-            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit, styles.fill)}
           >
             <KeyCap>{hint.keys}</KeyCap> {hint.label}
           </button>
@@ -161,7 +167,7 @@ function Counts() {
           <button
             onClick={() => navigate(here(needsYouPath(entries)))}
             type="button"
-            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit, styles.fill)}
           >
             {waiting} need you
           </button>

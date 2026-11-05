@@ -17,6 +17,7 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
+import { targetVars } from "../layout/target.stylex.ts";
 import { listVars } from "./list.stylex.ts";
 import {
   type ComponentProps,
@@ -193,6 +194,8 @@ const styles = stylex.create({
   stretched: {
     "::after": { content: '""', inset: 0, position: "absolute" },
     color: "inherit",
+    // A 24 px target on one line too, a third of a pixel past its text's line (WCAG 2.5.8).
+    minHeight: targetVars["--target-least"],
     // No ring of its own around the text: the card's frame draws the focus ring, and a second one,
     // as wide as the text, showed as bars inside a selected card.
     outlineStyle: { ":focus-visible": "none", default: null },
