@@ -321,16 +321,49 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
   ];
 }
 
+/** Reconfigures each part of the view's state as the props it is made of change. */
+function useParts(viewRef: RefObject<EditorView | null>, props: PartProps) {
+  const { id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant } = props;
+  // The attributes as one value, so a caller's new object of the same attributes changes nothing.
+  const attributesKey = JSON.stringify(props.attributes ?? {});
+  useLayoutEffect(() => {
+    const now = partsOf({
+      attributes: JSON.parse(attributesKey) as Record<string, string>,
+      id,
+      isAutoFocused,
+      isDisabled,
+      label,
+      maxRows,
+      placeholder,
+      rows,
+      variant,
+    });
+    viewRef.current?.dispatch({
+      effects: Object.entries(parts).map(([part, compartment]) =>
+        compartment.reconfigure(now[part as keyof typeof parts]),
+      ),
+    });
+  }, [
+    attributesKey,
+    id,
+    isAutoFocused,
+    isDisabled,
+    label,
+    maxRows,
+    placeholder,
+    rows,
+    variant,
+    viewRef,
+  ]);
+}
+
 /**
  * A text field: `line` wraps and grows to 9 lines, then scrolls inside, and refuses line breaks;
  * `lines` is `rows` lines tall; `composer` grows from `rows` to `maxRows`. Ctrl+Enter runs
  * `onSubmit`, Enter `onEnter`, Escape `onEscape`, none of them while an input method composes.
  */
 export function Editor(props: EditorProps) {
-  const { id, isAutoFocused, isDisabled, label, maxRows, placeholder, ref, rows, value, variant } =
-    props;
-  // The attributes as one value, so a caller's new object of the same attributes changes nothing.
-  const attributesKey = JSON.stringify(props.attributes ?? {});
+  const { ref, value } = props;
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const latest = useRef(props);
@@ -375,24 +408,7 @@ export function Editor(props: EditorProps) {
     }
   }, [value]);
 
-  useLayoutEffect(() => {
-    const now = partsOf({
-      attributes: JSON.parse(attributesKey) as Record<string, string>,
-      id,
-      isAutoFocused,
-      isDisabled,
-      label,
-      maxRows,
-      placeholder,
-      rows,
-      variant,
-    });
-    viewRef.current?.dispatch({
-      effects: Object.entries(parts).map(([part, compartment]) =>
-        compartment.reconfigure(now[part as keyof typeof parts]),
-      ),
-    });
-  }, [attributesKey, id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant]);
+  useParts(viewRef, props);
 
   useImperativeHandle(
     ref,
