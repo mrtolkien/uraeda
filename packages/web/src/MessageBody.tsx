@@ -8,9 +8,10 @@ import { fontRuns } from "./fields/editor/markdown.ts";
 import { chatImageSrc } from "./sessions.ts";
 
 const styles = stylex.create({
-  // Markdown's code and headings, in the fonts the editor wrote them in (`fields/editor/markdown.ts`).
-  code: { fontFamily: "var(--font-family-code)" },
-  heading: { fontFamily: "var(--font-family-heading)" },
+  // Markdown's code and headings, in the fonts the editor wrote them in
+  // (`fields/editor/markdown.ts`), at a line height that leaves the message's lines as tall.
+  code: { fontFamily: "var(--font-family-code)", lineHeight: "100%" },
+  heading: { fontFamily: "var(--font-family-heading)", lineHeight: "100%" },
   images: {
     // A message's images, above its text, side by side while they fit.
     display: "flex",

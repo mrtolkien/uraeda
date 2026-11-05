@@ -79,9 +79,9 @@ const kinds = stylex.create({
   },
   // The whole width of the window, for a page of columns.
   window: { "--page-column": "none" },
-  // A draft's editor: its panes hold the file's text in markdown prose's font, monospace by default, up to
-  // the formatter's 100 columns of it, centred as a reading page's, and the page as wide as that
-  // pane and its Start beside it, 22rem, where the screen has the room.
+  // A draft's editor: its panes hold the file's text in markdown prose's font, monospace by
+  // default, up to the formatter's 100 columns of it, centred as a reading page's, and the page as
+  // wide as that pane and its Start beside it, 22rem, where the screen has the room.
   code: {
     "--pane-centre": "auto",
     "--pane-max": "var(--size-code)",

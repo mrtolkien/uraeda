@@ -1,7 +1,8 @@
 // The editor's look, a terminal's text after `mockups/editor.css`: the fonts picked for markdown
-// (`markdown.ts`), a 1 px frame, square corners, no inner shadow. CodeMirror styles the elements it creates itself, which
-// StyleX cannot reach, so the look is CodeMirror's `EditorView.theme` over the Astryx theme's tokens,
-// read as CSS variables: it follows the light and dark themes, and no global stylesheet is added.
+// (`markdown.ts`), a 1 px frame, square corners, no inner shadow. CodeMirror styles the elements it
+// creates itself, which StyleX cannot reach, so the look is CodeMirror's `EditorView.theme` over
+// the Astryx theme's tokens, read as CSS variables: it follows the light and dark themes, and no
+// global stylesheet is added.
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import type { Variant } from "./Editor.tsx";

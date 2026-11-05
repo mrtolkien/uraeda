@@ -15,8 +15,9 @@ const codeFont = Tag.define();
 const headingFont = Tag.define();
 
 /**
- * Markdown's own tags, with the font's on the whole node, passed on to each part inside it (`/...`):
- * without it, a part with a tag of its own, as a backtick or a `#`, would lose the node's.
+ * Markdown's own tags, with the font's on the whole node, passed on to each part inside it
+ * (`/...`): without it, a part with a tag of its own, as a backtick or a `#`, would lose the
+ * node's.
  */
 const fontTags = styleTags({
   "ATXHeading1/... SetextHeading1/...": [tags.heading1, headingFont],
@@ -48,38 +49,55 @@ const style = HighlightStyle.define([
   { color: "var(--color-syntax-comment)", tag: tags.processingInstruction },
 ]);
 
-/** The fonts, apart from the colours, as a message draws them too. Code last: it wins in a heading. */
+/**
+ * The fonts, apart from the colours, as a message draws them too. Code last: it wins in a heading.
+ * A line height of 1 keeps another font's ascent and descent inside the line's own height: at the
+ * line's 1.5, a line holding code was 1 px taller than prose's, and grew as its backtick closed.
+ */
 const fontStyle = HighlightStyle.define([
-  { fontFamily: "var(--font-family-heading)", tag: headingFont },
-  { fontFamily: "var(--font-family-code)", tag: codeFont },
+  { fontFamily: "var(--font-family-heading)", lineHeight: "1", tag: headingFont },
+  { fontFamily: "var(--font-family-code)", lineHeight: "1", tag: codeFont },
 ]);
 
 /** A font markdown sets apart from its prose. */
 export type MarkdownFont = "code" | "heading";
 
+/** The class the editor colours text of `tag` with: a test reads it. */
+export const colourClass = (tag: Tag) => style.style([tag]) ?? "";
+
 /** The class the editor draws text in `font` with: a test reads it. */
 export const fontClass = (font: MarkdownFont) =>
   fontStyle.style([font === "code" ? codeFont : headingFont]) ?? "";
 
-/** Markdown's language, with the fonts' tags. */
-const language = () =>
-  // Its own keys stay off: Enter adds a plain line, as the fields did before the editor, rather
-  // than continuing a list.
-  markdownLanguage({ addKeymap: false, extensions: { props: [fontTags] } });
+/**
+ * Markdown's language, with the fonts' tags, made once: a field given a new language reparses its
+ * whole text. Its own keys stay off: Enter adds a plain line, as the fields did before the editor,
+ * rather than continuing a list.
+ */
+const language = markdownLanguage({ addKeymap: false, extensions: { props: [fontTags] } });
 
 /** The field's text in one family: markdown prose's, or code's. */
 const textIn = (family: string) =>
   EditorView.theme({ ".cm-scroller": { fontFamily: `var(--font-family-${family})` } });
 
 /**
- * Markdown's language, its highlighting, and its fonts; or, for a file's code, as a buffer of a
- * TypeScript file, all of it in the code font, as a `#` there starts no heading.
+ * Each field's markdown, made once, as a theme made again adds CSS rules that stay: its language,
+ * highlighting, and fonts; or, for a file's code, as a buffer of a TypeScript file, all of it in
+ * the code font, as a `#` there starts no heading.
  */
-export const markdown = (isCode = false): Extension => [
-  language(),
-  syntaxHighlighting(style),
-  isCode ? textIn("code") : [textIn("markdown"), syntaxHighlighting(fontStyle)],
-];
+const extensions = {
+  code: [language, syntaxHighlighting(style), textIn("code")],
+  markdown: [
+    language,
+    syntaxHighlighting(style),
+    textIn("markdown"),
+    syntaxHighlighting(fontStyle),
+  ],
+};
+
+/** A field's markdown, or a file's code: the same extension each time, which changes nothing. */
+export const markdown = (isCode = false): Extension =>
+  isCode ? extensions.code : extensions.markdown;
 
 /** Whether the file at `path` is markdown, whose text the editor draws in markdown's fonts. */
 export const isMarkdownPath = (path: string) => /\.(md|markdown)$/i.test(path);
@@ -107,7 +125,7 @@ export function fontRuns(text: string): Array<FontRun> {
       runs.push(font ? { font, text: part } : { text: part });
     }
   };
-  const tree = language().language.parser.parse(text);
+  const tree = language.language.parser.parse(text);
   highlightCode(
     text,
     tree,

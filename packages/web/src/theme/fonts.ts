@@ -1,8 +1,9 @@
 // The fonts, picked for each part of the UI, kept in this browser: the interface, the headings,
-// prose, code and keys, and markdown prose, the text of the editor and of a session's messages. Each part is a font family token of
-// the theme, written over the theme's own by a StyleX style on the app's root, and on what draws
-// outside it (`useFontStyle`), from the app's first draw, so no text changes face. One choice for
-// the whole app: the settings' Fonts section and `Space u f` show and pick the same.
+// prose, code and keys, and markdown prose, the text of the editor and of a session's messages.
+// Each part is a font family token of the theme, written over the theme's own by a StyleX style on
+// the app's root, and on what draws outside it (`useFontStyle`), from the app's first draw, so no
+// text changes face. One choice for the whole app: the settings' Fonts section and `Space u f` show
+// and pick the same.
 import * as stylex from "@stylexjs/stylex";
 import { useSyncExternalStore } from "react";
 import { measureOf, WIDTHS } from "./scale.ts";
@@ -93,8 +94,9 @@ export type Fonts = Record<FontRole, string>;
 
 /**
  * Monaspace for the interface, headings, and markdown prose, this in the interface's Neon rather
- * than Radon's handwriting; prose in a proportional font, Atkinson's, which reads best; and code and
- * keys in JetBrains Mono, a standard monospace font, as Krypton was "too aggressive" in the editor.
+ * than Radon's handwriting; prose in a proportional font, Atkinson's, which reads best; and code
+ * and keys in JetBrains Mono, a standard monospace font, as Krypton was "too aggressive" in the
+ * editor.
  */
 export const DEFAULT_FONTS: Fonts = {
   body: "neon",
@@ -192,7 +194,7 @@ const styles = stylex.create({
 /** The human's sent messages' font, for their bubble's style (`TranscriptMessages.tsx`). */
 export const humanWords = styles.human;
 
-/** An agent's messages' prose font and measure, for their bubble's style (`TranscriptMessages.tsx`). */
+/** An agent's messages' font and measure, for their bubble's style (`TranscriptMessages.tsx`). */
 export const agentWords = styles.agent;
 
 /** The style of a root that only carries the fonts, with no box of its own. */
