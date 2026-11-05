@@ -1,5 +1,80 @@
 # Changelog
 
+## 1.1.0 - 2026-11-05
+
+### Features
+
+- **["Master" PR](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-03-master-pr.md)**
+  ([#89](https://github.com/mrtolkien/uraeda/pull/89)): Features built in parallel conflicted when
+  they merged, half the time only in workflow files every branch edited: `PRIORITIES.md`, where each
+  finish removed its own line next to another start's, `INBOX.md`, where agents' notes went at the
+  end of the same categories, and old records whose links both sides repaired. The proposal asked
+  for pull requests that merge smoothly, perhaps through a "master" pull request; once the options
+  were laid out, the human kept only the file changes: branches stop writing the shared files, and
+  no pull request flow changes.
+- **[Vim in text edit mode](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-03-vim-text.md)**
+  ([#90](https://github.com/mrtolkien/uraeda/pull/90)): The human edits text in Neovim everywhere
+  else, and asked for Vim's keys in all text fields of the web UI, "as many keys as possible",
+  client side and instant, without reinventing the wheel, and would have dropped it if it cost too
+  much. They also asked for a status indicator at the bottom naming the mode, and an "open as
+  buffer" shortcut that opens any file, like the inbox or the priorities, as the text it is. The
+  answers made every field one CodeMirror editor, Markdown highlighted even without Vim; the spec's
+  review added a Commit page that commits each branch apart, with a message the human can rewrite,
+  since a buffer's save never commits.
+- **[Worker lifecycle](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-03-worker-lifecycle.md)**
+  ([#91](https://github.com/mrtolkien/uraeda/pull/91)): Agent runs stopped for reasons outside the
+  work, and each stop waited for the human to type "Continue", often overnight. A server restart
+  killed the runs it hosted, a Claude Code session limit failed them until its reset, and agents
+  ended their turn before the next human gate or polled their background work in loops. In the 18
+  days before the feature, that was about 14.5 hours idle after limits, 7 runs killed by restarts,
+  and 19 hours in wait loops. Uraeda now continues those runs by itself, says so in each session,
+  and lets the human cap and turn off each kind of continue. Run options and scheduled jobs, also in
+  the proposal, became proposals of their own.
+- **[Basic git UI in the web UI](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-basic-git.md)**
+  ([#97](https://github.com/mrtolkien/uraeda/pull/97)): A Git page in the web UI, so the human works
+  fully remotely: they pull `main` after a pull request merges, push Uraeda's chores, read diffs and
+  the history, stage and commit any file, merge a branch, fix conflicts, and clean worktrees,
+  without a terminal. It is a simple, generic client in lazygit's spirit, for the main checkout, and
+  it replaces the Commit page. The human runs these commands, never an agent.
+
+### Changes
+
+- **[Why is the right border so much bigger than the left](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-03-why-right.md)**
+  ([#88](https://github.com/mrtolkien/uraeda/pull/88)): The human asked why the right border is so
+  much bigger than the left, and to fix it. Their screenshot showed a round of questions on an
+  iPhone: each line of prose started about 8 px after the pane's left border, but stopped 40 to 180
+  px before its right one, so the text looked pushed left in its pane.
+- **[There shouldn't be a limit of 6 user stories in a feature.](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-6-stories.md)**
+  ([#95](https://github.com/mrtolkien/uraeda/pull/95)): The skill's split rule capped a spec at 6
+  stories, 30 scenarios, or 2 changed decisions. The human asked for no hard-coded limit there, "we
+  should keep it generic", and for an agent to offer a split only "if the implementation of the
+  first feature has real implications on the next step, and should be done separately".
+- **[Reading long responses is not comfortable because the composer always stays…](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-reading-long.md)**
+  ([#93](https://github.com/mrtolkien/uraeda/pull/93)): Reading an agent's long reply was
+  uncomfortable: the session's composer stayed at the window's foot, an empty box covering about a
+  third of the window. The human asked for the composer to be "always at the end, after the
+  messages", so that the agent's messages have all the vertical space.
+- **[Skill and web UI apart](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-skill-ref.md)**
+  ([#96](https://github.com/mrtolkien/uraeda/pull/96)): The human asked for a clear line between the
+  skill and its references, and the web UI: "The web ui is its own thing. Don't mix both." The skill
+  had grown lines only the web UI needs, its offer blocks and cards, sessions moving between
+  worktrees, its pages, and what it folds, draws, or shows live. An agent in another harness read
+  instructions it could not follow, and a reader could not tell the workflow from one tool.
+- **[Some stuff is weirdly left-aligned](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-some-stuff.md)**
+  ([#94](https://github.com/mrtolkien/uraeda/pull/94)): On the spec page and the questions page,
+  section titles, headings, and graphs sat at the page's left edge while the panes beside them were
+  centred; the human's screenshot showed a data model's "Data" heading, its intro, and its state
+  diagram far left of its centred tables. These are the two most important pages and the hardest to
+  read, so they "need to be _perfect_": the human asked for a review of every part of both, by
+  driving the app in a headless browser, with more room where it reads better.
+- **[In vim mode, visual mode seems to be working properly... except selected text…](https://github.com/mrtolkien/uraeda/blob/v1.1.0/specs/done/2026-11-04-vim-mode.md)**
+  ([#92](https://github.com/mrtolkien/uraeda/pull/92)): With Vim mode on, the human found that
+  visual mode selected text without highlighting it. They also found the editor's font "too
+  aggressive", asking to "go back to a standard monospace one", the status line "way too tall", and
+  its line and column count, with Vim's "All", distracting. While the change was built, they asked
+  for their own messages in a session to default to "the normal monaspace font and not the weird
+  handwriting one".
+
 ## 1.0.1 - 2026-11-02
 
 ### Features
