@@ -21,6 +21,11 @@ not a desktop squeezed down, and not a lesser version.
 - **Text of more than one line takes the full width**, always, but in extremely rare cases: "On
   mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
   date goes on a line of its own above the text, never in a column beside it that squeezes it.
+- **A card is a head line over its text**, on home and in the sidebar (`sidebar/ItemCard.tsx`): its
+  icon, its name, and its status on the head line, then its step or what it asks at the card's full
+  width. A card whose step waits on the human has no ＞: the whole card is the target, and leads to
+  the step, as the ＞ did. A button that leads elsewhere, the agent's at work on it, stays at the
+  head line's end, the head line as tall as it.
 - **The top tabs** stay in view: the sidebar's toggle on their far left, set apart, then Home (with
   the Needs-you count on its icon), Inbox, Priorities, Sessions, Commit while something waits for
   one, a `…`, and New (`shell/Tabs.tsx`). The `…` holds Decisions and Settings, the least visited
