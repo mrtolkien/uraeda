@@ -202,7 +202,7 @@ export function HomeHub() {
   // under it, each clearing the other. A card is picked as it takes the focus, by the keys or the
   // pointer. Down from a column's last card selects the list's row under it, and up from the
   // list's top row comes back to the core; a key with no row selected goes on from the picked
-  // card, or starts at the first one.
+  // card, or starts at the first one, the right column's for `l`.
   const core = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<string>();
   const [follow, setFollow] = useState<{ column: number }>();
@@ -216,8 +216,11 @@ export function HomeHub() {
       return focusCore(core, column, "last");
     }
     const step = STEP_OF[move];
+    // With no card picked yet, `l` starts at the right column's first card, as its key says, and
+    // every other key at the first one.
     return (
-      (picked !== undefined && stepCore(core, picked, step, onLeave)) || focusCore(core, 0, "first")
+      (picked !== undefined && stepCore(core, picked, step, onLeave)) ||
+      focusCore(core, step === "right" ? 1 : 0, "first")
     );
   };
   const onCoreFocus = (event: FocusEvent) => {

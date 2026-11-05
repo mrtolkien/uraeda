@@ -405,3 +405,18 @@ test("an edit of a review comment follows it when a comment before it is removed
   await saved("C1 · line 52", "Second, edited.");
   expect(read(r, REVIEW)).toContain("Third.");
 });
+
+/**
+ * A block selected from the keyboard, Enter on its toggle as a click, opens its comment with the
+ * focus in its field on a wide screen: the letters typed next are the comment's, never the page's
+ * keys, which `Space d` would have taken to the decisions.
+ */
+test("a block selected from its toggle gives its comment field the focus", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  const toggle = await scenario(FIRST);
+  act(() => toggle.focus());
+  await click(toggle);
+  const text = await field();
+  await waitFor(() => expect(document.activeElement).toBe(text));
+});

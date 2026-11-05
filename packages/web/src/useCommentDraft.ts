@@ -113,6 +113,35 @@ async function placeAboveSheet(
   window.scrollBy({ behavior: reducedMotion() ? "auto" : "smooth", top: by });
 }
 
+/** The text field of the first comment form after `element` in the page, if any. */
+function fieldAfter(element: HTMLElement) {
+  return [
+    ...document.querySelectorAll<HTMLElement>('form[aria-label="Comment"] [role="textbox"]'),
+  ].find((field) => element.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
+/**
+ * On a wide screen, a tap, or Enter on a block's toggle, gives the comment field under the tapped
+ * block, `tapped`, the focus once drawn, so typing goes to it and never to the page's keys: each new
+ * `last`, but the one the page opened on, restored. On the phone the sheet opens without raising
+ * the keyboard.
+ */
+function useFieldAfterTap(
+  wide: boolean,
+  tapped: RefObject<HTMLElement | null>,
+  last: Last | undefined,
+) {
+  const [restored] = useState(last);
+  useEffect(() => {
+    const element = tapped.current;
+    if (!wide || last === undefined || last === restored || !element) {
+      return undefined;
+    }
+    const frame = requestAnimationFrame(() => fieldAfter(element)?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [wide, last, restored, tapped]);
+}
+
 /**
  * The comment being written on a review: the lines selected by tapping blocks, and the last block
  * tapped, under which the field opens on wide screens. Its text is the field's, in the unsaved
@@ -146,6 +175,7 @@ export function useCommentDraft(
     }
     void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
   }, [wide, draft?.kind, selection]);
+  useFieldAfterTap(wide, lastElement, last);
 
   /** Keeps the last tapped block in place as the form leaves it, then forgets it. */
   const leave = () => {

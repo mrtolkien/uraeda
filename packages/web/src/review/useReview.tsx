@@ -159,7 +159,7 @@ export function ReviewIntro({ file, review }: { file: File; review: Review }) {
         />
       )}
       <Text color="secondary" type="supporting">
-        Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
+        Select a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
         {file.committed && ", which differs from the file on disk"}.
       </Text>
     </VStack>

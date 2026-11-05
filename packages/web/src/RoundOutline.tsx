@@ -23,7 +23,7 @@ import {
 
 const styles = stylex.create({
   action: {
-    // Next or Submit keeps its width beside the count: its label is never cut.
+    // Next or Commit keeps its width beside the count: its label is never cut.
     flexShrink: 0,
   },
 });
@@ -97,7 +97,7 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
   const end: Array<OutlineRow> = [
     ...groupRow(group("behaviour")),
     ...groupRow(group("hood")),
-    { id: PART_IDS.notes, label: "Notes and submit", mark: "✎", nested: false },
+    { id: PART_IDS.notes, label: "Notes and commit", mark: "✎", nested: false },
   ];
   return [opening, asked, end].filter((run) => run.length > 0);
 }
@@ -144,19 +144,26 @@ function useBlankJumps(questions: ReadonlyArray<NavQuestion>) {
 
 /**
  * `n` and `p`, to the next and previous blank question, whatever the column's open tab and the
- * width, declared in the key registry with the status line's hint for them, `n p unanswered`. A
- * jump under way ends with the page: the next round's starts from its own top.
+ * width, declared in the key registry with the status line's hint for them, `n p unanswered`. `n`
+ * does what the column's Next does: past the last blank question it goes on from the first, and
+ * once none is blank it takes the page to its Commit, `onSubmit`. A jump under way ends with the
+ * page: the next round's starts from its own top.
  */
-export function useBlankKeys(questions: ReadonlyArray<NavQuestion>) {
-  const { next, previous } = useBlankJumps(questions);
+export function useBlankKeys(questions: ReadonlyArray<NavQuestion>, onSubmit: () => void) {
+  const { blank, next, previous } = useBlankJumps(questions);
   useEffect(() => endJump, []);
   useKeys([
-    { hint: "n p", keys: "n", label: "unanswered", run: () => next(false) },
+    {
+      hint: "n p",
+      keys: "n",
+      label: "unanswered",
+      run: () => (blank.length ? next(true) : onSubmit()),
+    },
     { keys: "p", label: "previous unanswered", run: previous },
   ]);
 }
 
-/** Next, to the next blank question, or Submit once none is, which `onSubmit` does. */
+/** Next, to the next blank question, or Commit once none is, which `onSubmit` does. */
 export function NextOrSubmit({
   onSubmit,
   questions,
@@ -168,12 +175,12 @@ export function NextOrSubmit({
   return blank.length ? (
     <Button label="Next" onClick={() => next(true)} variant="primary" xstyle={styles.action} />
   ) : (
-    <Button label="Submit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
+    <Button label="Commit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
   );
 }
 
 /**
- * The phone's bar's Next, or Submit once no question is blank, which `onSubmit` does: each its icon
+ * The phone's bar's Next, or Commit once no question is blank, which `onSubmit` does: each its icon
  * in the accent, no filled block on the glass.
  */
 export function NextTile({
@@ -187,7 +194,7 @@ export function NextTile({
   return blank.length ? (
     <NavTile icon="uraeda:arrow-right" isTinted label="Next" onPress={() => next(true)} />
   ) : (
-    <NavTile icon="uraeda:badge-check" isTinted label="Submit" onPress={onSubmit} />
+    <NavTile icon="uraeda:badge-check" isTinted label="Commit" onPress={onSubmit} />
   );
 }
 
@@ -197,7 +204,7 @@ const countOf = (questions: ReadonlyArray<NavQuestion>) =>
 
 /**
  * The round's outline: how many questions are answered, Next, which goes to the next blank
- * question, or Submit once none is, then every part of the round, its questions with their
+ * question, or Commit once none is, then every part of the round, its questions with their
  * follow-ups under them, the part at the top marked. A row brings its part to the top. While
  * `isActive`, it follows the page's scroll. `onSubmit` takes the page to its end.
  */

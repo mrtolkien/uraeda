@@ -80,6 +80,11 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },
+  // Beside the page, the fold button sits over the header's end (`bar`): the header's tabs or name
+  // end before it, never under it.
+  headerBeside: {
+    paddingInlineEnd: `calc(${sizeVars["--size-element-md"]} + 2 * ${spacingVars["--spacing-2"]})`,
+  },
   hidden: {
     // Still focusable, and shown once focused: only its look waits for the pointer.
     opacity: { ":focus-visible": 1, "@media (hover: none)": 1, default: 0 },
@@ -149,12 +154,15 @@ type ColumnParts = {
 /** The column's content at its width, under its header. */
 function Content({
   children,
+  hasFold = false,
   header,
   isFilled,
   label,
   onPointer,
   width,
 }: Pick<ColumnParts, "children" | "header" | "isFilled" | "label"> & {
+  /** Whether the fold button sits over the header's end, beside the page. */
+  hasFold?: boolean;
   onPointer?: (over: boolean) => void;
   width: number;
 }) {
@@ -164,7 +172,9 @@ function Content({
       onPointerLeave={() => onPointer?.(false)}
       {...stylex.props(styles.full, isFilled && styles.filled, widths.of(width))}
     >
-      <div {...stylex.props(styles.header)}>{header ?? <Text type="label">{label}</Text>}</div>
+      <div {...stylex.props(styles.header, hasFold && styles.headerBeside)}>
+        {header ?? <Text type="label">{label}</Text>}
+      </div>
       {children}
     </div>
   );
@@ -207,6 +217,7 @@ function Column({
       >
         {isShown ? (
           <Content
+            hasFold
             header={header}
             isFilled={isFilled}
             label={label}
