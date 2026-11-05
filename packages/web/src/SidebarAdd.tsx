@@ -64,6 +64,8 @@ function Plus({ form, label, text }: { form: Form; label: string; text?: string 
       isIconOnly={text === undefined}
       label={label}
       onClick={() => open(form)}
+      // The ＋ alone says what it adds on hover.
+      {...(text === undefined ? { tooltip: label } : {})}
       variant="ghost"
     >
       {text}

@@ -94,6 +94,7 @@ export function TreeLine({
           label={row.isOpen ? `Fold ${row.path}` : `Unfold ${row.path}`}
           onClick={() => onFold(row.path)}
           size="sm"
+          tooltip={row.isOpen ? "Fold" : "Unfold"}
           variant="ghost"
         />
       ) : (
