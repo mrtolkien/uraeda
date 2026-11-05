@@ -14,7 +14,9 @@ decisions. None binds future work: those are decisions.
   characters ([`theme/fonts.ts`](/packages/web/src/theme/fonts.ts)).
 - **Alternatives considered**: Atkinson as the default, keeping the replies as they were, but
   turning the editor and the human's messages proportional, which the human had not asked for.
-- **If wrong**: one line of `DEFAULT_FONTS`; anyone can pick another font for the role meanwhile.
+- **If wrong**: the [UI look](/specs/decisions/ui-look.md) decision asks for "a proportional one
+  where it reads better, such as long prose", and a long reply may read better in Atkinson. Its
+  default is one line of `DEFAULT_FONTS`, and anyone can pick another font for the role meanwhile.
 - **Where**: [`theme/fonts.ts`](/packages/web/src/theme/fonts.ts)
 
 ## R2: The role's key is `m`, and a font picked before the rename stays picked

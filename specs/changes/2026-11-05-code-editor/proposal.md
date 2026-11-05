@@ -9,3 +9,13 @@ Do the same for headings btw.
 
 We have font settings, they should properly be used for the markdown formatting inside the editor
 blocks. Do the same for user messages in sessions.
+
+Rename one font option too: "your messages" becomes "markdown prose"
+
+So there'd be options for:
+
+- interface
+- prose in long documents
+- prose in markdown (editor/messages boxes/agent responses)
+- headers
+- code
