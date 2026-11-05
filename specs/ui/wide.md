@@ -30,11 +30,11 @@ page and its companions side by side.
 
 ## Pages of columns
 
-The priorities are a page of columns, one per section, each 500 px at least, taking the window's
-whole width, or, at the human's choice with `v`, one centred list, its text column a reading pane,
-as on every page of rows. The switch is the human's, not a breakpoint's: "Instead of doing the
-switch ourself it should simply be up to the user." Moving the selection across columns glides the
-view sideways to it.
+The priorities are a page of columns, one per section, each 360 px at least, so the four fit a 1920
+px window beside the sidebar, taking the window's whole width, or, at the human's choice with `v`,
+one centred list, its text column a reading pane, as on every page of rows. The switch is the
+human's, not a breakpoint's: "Instead of doing the switch ourself it should simply be up to the
+user." Moving the selection across columns glides the view sideways to it.
 
 ## Layers
 

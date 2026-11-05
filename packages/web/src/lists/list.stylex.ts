@@ -16,10 +16,10 @@ export const listVars = stylex.defineVars({
   "--list-mark-width": "1rem",
   // The marks after a row's text, smaller than it.
   "--list-marks-size": "0.85em",
-  // A column of a row of lists at its narrowest, and a column of a list whose lines are long, as
-  // the priorities'.
+  // A column of a row of lists at its narrowest, and a column of the priorities' page of columns:
+  // its four sections fit a 1920 px window beside the sidebar.
   "--list-column-least": "400px",
-  "--list-column-roomy": "500px",
+  "--list-column-roomy": "360px",
   // On the phone, the room under an outline's last row for the bar floating at the screen's
   // bottom, which a row scrolls clear of.
   "--list-bar-room": "6rem",

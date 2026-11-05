@@ -56,7 +56,7 @@ export type WorkListProps = {
   /** `layout` is the human's choice: kept at every width, the phone's too. */
   isLayoutChosen?: boolean;
   /**
-   * For lines that run long, as the priorities': the columns start at 500 px, not 400, and the
+   * For lines that run long, as the priorities': the columns start at 360 px, not 400, and the
    * table is centred, 80 characters a line at most, its panes roomier inside past 600 px.
    */
   isRoomy?: boolean;

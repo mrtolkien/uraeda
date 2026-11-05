@@ -60,7 +60,8 @@ measure, so a line holds about 80 characters whatever font is picked. Lines are 
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
-- Columns of rows are **400 px at least**, 500 px for the priorities' cards. "400 IS THE MINIMUM."
+- Columns of rows are **400 px at least**: "400 IS THE MINIMUM." The priorities' four columns are
+  the exception, 360 px at least, so that all four fit a 1920 px window beside the sidebar.
 
 ## The scale of widths
 

@@ -35,7 +35,8 @@ const styles = stylex.create({
     flexShrink: 0,
     minWidth: 0,
   },
-  // A column of a list whose lines are long, as the priorities': at least 500 px.
+  // A column of the priorities', a page of four columns: at least 360 px, so all four fit a 1920 px
+  // window beside the sidebar.
   roomy: { "--column-least": listVars["--list-column-roomy"] },
   // The pane's side room, which its text, its rows, and its footer share: a bullet sits near the
   // border, as a list's does.
