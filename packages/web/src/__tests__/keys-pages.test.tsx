@@ -147,6 +147,22 @@ test("US3 2: `i` in a session focuses the composer, and Escape leaves it keeping
   expect(fieldText(field)).toBe("hello");
 });
 
+// Break: a card's plain line gone, or no longer read as the card's description.
+test("each New card says in a short plain line what it is for, read as its description", async () => {
+  await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  for (const [kind, line] of [
+    ["Session", "Ask or explore"],
+    ["Change", "Fix or adjust"],
+    ["Feature", "Plan something new"],
+  ] as const) {
+    expect(card(kind).textContent, kind).toContain(line);
+    const described = document.getElementById(card(kind).getAttribute("aria-describedby") ?? "");
+    expect(described?.textContent, kind).toContain(line);
+  }
+});
+
 test("US3 5: on the New page, `f`, `c`, and `s` pick a card as a click would", async () => {
   await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
   await screen.findByRole("radiogroup", { name: "What to start" });
@@ -240,7 +256,7 @@ test("on a round with no blank question, `n` takes the focus to the page's Commi
   // The round's end mounts once its questions are in: its Commit is the page's.
   const commit = await waitFor(() =>
     within(document.getElementById("notes") as HTMLElement).getByRole("button", {
-      name: "Commit",
+      name: "Commit answers",
     }),
   );
 
@@ -291,7 +307,7 @@ test("on a feature's page, `j` and `k` move the focus along its links and button
 test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed then theirs", async () => {
   await renderPage("/edit/specs/proposals/git-listener.md", fixtureRepo());
   const text = await screen.findByRole("textbox", { name: "Text" });
-  const slug = screen.getByRole("textbox", { name: "Slug" });
+  const slug = screen.getByRole("textbox", { name: "Short name" });
 
   await press("i");
   await waitFor(() => expect(document.activeElement).toBe(text));

@@ -38,6 +38,9 @@ const TONES: Record<string, Tone> = {
   now: "blue",
 };
 
+/** A section's colour, as its pane's title has it: Now blue, Later grey, the rest neutral. */
+export const sectionTone = (section: string): Tone => TONES[section] ?? "neutral";
+
 /**
  * What a proposal's row draws of it besides its text: the icon of the step running on it, as the
  * sidebar draws it, done's with "Merged" and its pull request once merged, or an icon for its file.
@@ -257,7 +260,7 @@ function sectionsOf(
           : []),
       ],
       title,
-      tone: TONES[section.id] ?? "neutral",
+      tone: sectionTone(section.id),
     };
   });
   // "Ongoing" shows only when something runs.

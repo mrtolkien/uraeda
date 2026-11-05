@@ -252,7 +252,9 @@ test("a stopped merge disables Merge and its key", async () => {
   await renderPage("/git", repo);
   const merge = await screen.findByRole("button", { name: "Merge into main…" });
 
-  expect(merge).toHaveProperty("disabled", true);
+  // Disabled, yet focusable through `aria-disabled`, as Astryx keeps a button with a tooltip.
+  expect(merge.getAttribute("aria-disabled")).toBe("true");
+  await click(merge);
   await act(async () => void fireEvent.keyDown(document.body, { key: "M", shiftKey: true }));
   expect(screen.queryByRole("dialog")).toBeNull();
 });
@@ -275,4 +277,16 @@ test("a working tree's diff reads the file afresh, open and opened again", async
   await act(async () => navigate(atRepo("/git?file=docs/web-ui.md")));
 
   await waitFor(() => shows("And the work."));
+});
+
+// Break: git's header of the file, `--- a/` and `+++ b/`, drawn over the hunks again, or a hunk
+// dropped with it.
+test("a file's diff leaves out git's header of the file, and keeps its hunks", async () => {
+  const repo = changedRepo();
+  await renderPage("/git?file=docs/web-ui.md", repo);
+  await waitFor(() => shows("It draws the specs."));
+
+  shows("@@");
+  const text = document.querySelector("[data-git-diff]")?.textContent ?? "";
+  expect(text).not.toMatch(/--- a\/|\+\+\+ b\/|diff --git/);
 });

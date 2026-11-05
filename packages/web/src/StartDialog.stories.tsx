@@ -11,14 +11,14 @@ const EFFORT: Effort = { initial: "high", levels: ["low", "medium", "high"] };
 const CHANGE: Question = {
   confirm: "Start the change",
   description: "Two words at most: it names the folder and the branch.",
-  label: "Slug",
+  label: "Short name",
   title: "Name the change",
 };
 
 const FEATURE: Question = {
   confirm: "Start the feature",
   description: "Two words at most: it names the folder and the branch.",
-  label: "Slug",
+  label: "Short name",
   title: "Name the feature",
 };
 

@@ -32,6 +32,7 @@ export function RemovableThumbnail({
         label={`Remove ${name}${alt ? ` — ${alt}` : ""}`}
         onClick={onRemove}
         size="sm"
+        tooltip="Remove"
         variant="ghost"
       />
     </VStack>

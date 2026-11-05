@@ -83,6 +83,7 @@ export function NoteImages({
               label={`Remove ${imageName(path)}`}
               onClick={() => onRemove(path)}
               size="sm"
+              tooltip="Remove the image"
               variant="ghost"
             />
           </VStack>

@@ -15,6 +15,7 @@ import { LeaderKeys } from "./keys/LeaderKeys.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
+import { targetVars } from "./layout/target.stylex.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { UndoKey, useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -80,8 +81,9 @@ const styles = stylex.create({
   },
   status: {
     // The status line takes the window's bottom row: what is as tall as the window ends above it,
-    // and the page's end scrolls past it. One row of its text and little more, as a terminal's.
-    "--size-status-line": spacingVars["--spacing-5"],
+    // and the page's end scrolls past it. One row of its text and little more, as a terminal's:
+    // a row as tall as a pointer's target, which its hints fill, under its hairline.
+    "--size-status-line": `calc(${targetVars["--target-least"]} + ${borderVars["--border-width"]})`,
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
     // The surface goes on under the status line, which the phone's lets show between its corner
     // buttons, under a short page too.

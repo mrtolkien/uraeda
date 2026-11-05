@@ -1,15 +1,16 @@
 // The key picker (US4): the Jump palette made general, one dialog over a list of items of any kind,
-// with the item under the cursor previewed beside the list as raw markdown, on wide and semi-wide
-// screens. Astryx's `CommandPalette` draws the search and the list, inline in a dialog of our own,
-// its search the shared editor in its input slot (`PickerEditor`), Vim mode included,
-// so the preview can sit beside them: an Astryx gap (plan, Complexity tracking), for the palette
-// has no preview slot, and the markdown is drawn as plain wrapped text. A part in its footer reads the cursor
+// with the item under the cursor previewed beside the list on wide and semi-wide screens, drawn as
+// the app draws that content (`PickerPreview`). Every picker of the app is this one: Find, Space
+// Space, promote, a category's, a font's, a merge's. Astryx's `CommandPalette` draws the search and
+// the list, inline in a dialog of our own, its search the shared editor in its input slot
+// (`PickerEditor`), Vim mode included, so the preview can sit beside them: an Astryx gap (plan,
+// Complexity tracking), for the palette has no preview slot. A part in its footer reads the cursor
 // from the palette's context, puts it on the first result after each letter, so Enter opens it, and
-// lifts it to the preview (rulings R1 and R28 of the layout look). On narrow screens it is the
-// phone's sheet (`Sheet`), titled, its list alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the
-// focus returns to where it was: the dialog's own (Astryx's `Dialog` and `BottomSheet` keep the
-// element that had the focus as they open, whatever it is, and give it back as they close), so a pick
-// is left to the page it opens (R33).
+// lifts it to the preview. On narrow screens it is the phone's sheet (`Sheet`), titled, its list
+// alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the focus returns
+// to where it was: the dialog's own (Astryx's `Dialog` and `BottomSheet` keep the element that had
+// the focus as they open, whatever it is, and give it back as they close), so a pick is left to the
+// page it opens (R33).
 import {
   CommandPalette,
   CommandPaletteFooter,
@@ -23,7 +24,6 @@ import {
   colorVars,
   fontWeightVars,
   spacingVars,
-  typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import type { SearchableItem, SearchSource } from "@astryxdesign/core/Typeahead";
 import * as stylex from "@stylexjs/stylex";
@@ -45,6 +45,7 @@ import { useBackCloses } from "../layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
 import type { PickerItem } from "./pickerSources.ts";
+import { PickerPreview } from "./PickerPreview.tsx";
 import { scrimStyles } from "../layout/scrim.ts";
 
 export { useKeyPicker } from "./pickerState.ts";
@@ -70,8 +71,7 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     minWidth: spacingVars["--spacing-6"],
   },
-  // As the file is written, its lines wrapped at the words: Astryx's wrapped code block breaks a
-  // word anywhere ("app" and "roved."), which reads badly in prose.
+  // The item under the cursor, beside the list, scrolling on its own.
   preview: {
     borderInlineStartColor: colorVars["--color-border"],
     borderInlineStartStyle: "solid",
@@ -79,15 +79,7 @@ const styles = stylex.create({
     maxHeight: "var(--size-palette-height)",
     minWidth: 0,
     overflowY: "auto",
-  },
-  // A preview in a font of its own: the font picker's.
-  face: (family: string) => ({ fontFamily: family }),
-  raw: {
-    fontFamily: typographyVars["--font-family-code"],
-    margin: 0,
-    overflowWrap: "break-word",
     padding: spacingVars["--spacing-4"],
-    whiteSpace: "pre-wrap",
   },
   row: {
     flexGrow: 1,
@@ -174,21 +166,11 @@ function CursorFooter({
   return <CommandPaletteFooter />;
 }
 
-/** The item under the cursor, as its file is written. */
+/** The item under the cursor, drawn as the app draws it. */
 function Preview({ item }: { item: PickerItem | undefined }) {
   return (
     <section aria-label="Preview" {...stylex.props(styles.preview)}>
-      {item && (
-        <div {...stylex.props(styles.raw, item.family !== undefined && styles.face(item.family))}>
-          {/* A line is its own block, an empty one held open by a break. */}
-          {item.preview
-            .split("\n")
-            .map((text, id) => ({ id, text }))
-            .map(({ id, text }) => (
-              <div key={id}>{text === "" ? <br /> : text}</div>
-            ))}
-        </div>
-      )}
+      {item && <PickerPreview preview={item.preview} />}
     </section>
   );
 }

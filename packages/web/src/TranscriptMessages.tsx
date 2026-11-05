@@ -165,6 +165,7 @@ function Message({
                 isIconOnly
                 label="Take back"
                 size="sm"
+                tooltip="Take back"
                 variant="ghost"
               />
             )}

@@ -7,6 +7,12 @@ import type { useTextField } from "./fields/useTextField.ts";
 /** What the notice says when the slug the file's name gives changed since one was typed. */
 const SLUG_CHANGED = "The proposal's name changed since.";
 
+/**
+ * The slug's field's name wherever one is asked: words a human uses, as "slug" is the web's jargon
+ * for a short name in an address.
+ */
+export const SLUG_LABEL = "Short name";
+
 /** What the field says of the slug, unless the page words it shorter. */
 const DESCRIPTION = "Two words at most: it names the folder and the branch.";
 
@@ -42,7 +48,7 @@ export function SlugField({
       {/* Escape leaves the field, its text kept: the page's keys work again. */}
       <TextLine
         description={description}
-        label="Slug"
+        label={SLUG_LABEL}
         onChange={field.change}
         value={field.text}
         {...(fieldRef ? { ref: fieldRef } : {})}

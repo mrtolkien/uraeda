@@ -10,7 +10,7 @@ import { Home } from "../Home.tsx";
 import { Shell } from "../Shell.tsx";
 import { KeyPicker } from "./KeyPicker.tsx";
 import { KIND_ICONS } from "./kinds.ts";
-import type { PickerItem } from "./pickerSources.ts";
+import { markdownPreview, type PickerItem, textPreview } from "./pickerSources.ts";
 
 const UI_BEHAVIOUR = `---
 status: active
@@ -34,7 +34,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/decisions/ui-behaviour",
     kind: "decisions",
     path: "/decisions/ui-behaviour",
-    preview: UI_BEHAVIOUR,
+    preview: markdownPreview(UI_BEHAVIOUR),
     title: "UI behaviour",
   },
   {
@@ -42,7 +42,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/decisions/ui-layout",
     kind: "decisions",
     path: "/decisions/ui-layout",
-    preview: "---\nstatus: active\n---\n\n# UI layout\n",
+    preview: markdownPreview("---\nstatus: active\n---\n\n# UI layout\n"),
     title: "UI layout",
   },
   {
@@ -50,7 +50,9 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/f/2026-10-26-leader-key",
     kind: "features",
     path: "/f/2026-10-26-leader-key",
-    preview: "# Leader key/shortcut map\n\n## What\n\nThe whole UI from the keyboard.\n",
+    preview: markdownPreview(
+      "# Leader key/shortcut map\n\n## What\n\nThe whole UI from the keyboard.\n",
+    ),
     title: "Leader key/shortcut map",
   },
   {
@@ -58,7 +60,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/sessions/1",
     kind: "sessions",
     path: "/sessions/1",
-    preview: "Fix the status line\nNeeds you\nmain",
+    preview: textPreview("Fix the status line", "Needs you", "main"),
     title: "Fix the status line",
   },
   {
@@ -66,7 +68,11 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/inbox/text-input-feels-laggy",
     kind: "notes",
     path: "/inbox/text-input-feels-laggy",
-    preview: "Text input feels laggy on the sessions page",
+    preview: {
+      kind: "outline",
+      rows: [{ depth: 0, text: "Text input feels laggy on the sessions page" }],
+      title: "UI",
+    },
     title: "Text input feels laggy on the sessions page",
   },
   {
@@ -74,7 +80,15 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     id: "/priorities/nix-docker",
     kind: "priorities",
     path: "/priorities/nix-docker",
-    preview: "- Nix + Docker based execution environments\n  - with a cache",
+    preview: {
+      kind: "outline",
+      rows: [
+        { depth: 0, text: "Nix + Docker based execution environments" },
+        { depth: 1, text: "with a cache" },
+      ],
+      title: "Later",
+      tone: "gray",
+    },
     title: "Nix + Docker based execution environments",
   },
 ];

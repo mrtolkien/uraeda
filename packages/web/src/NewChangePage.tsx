@@ -16,6 +16,7 @@ import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
+import { SLUG_LABEL } from "./SlugField.tsx";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -115,7 +116,7 @@ function SlugQuestion({
       question={{
         confirm: "Start the change",
         description: "Two words at most: it names the folder and the branch.",
-        label: "Slug",
+        label: SLUG_LABEL,
         title: "Name the change",
       }}
     />

@@ -76,13 +76,15 @@ test("the decisions picker lists the matches of “ui”, the first's file raw b
   await waitFor(() =>
     expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
   );
-  // The first is under the cursor, shown as its file is written: the frontmatter, the rules' marks.
-  await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
+  // The first is under the cursor, rendered as a page draws it: headings and a list, no
+  // frontmatter, no markdown's marks.
+  await waitFor(() => expect(within(preview()).getByRole("heading", { name: "UI behaviour" })));
   const raw = read(repo, "specs/decisions/ui-behaviour.md");
   expect(raw.startsWith("---\n")).toBe(true);
-  expect(preview().textContent).toContain("approved-by: mrtolkien");
-  expect(preview().textContent).toContain("## Rules");
-  expect(preview().textContent).toContain("- ");
+  expect(preview().textContent).not.toContain("approved-by");
+  expect(within(preview()).getByRole("heading", { name: "Rules" })).toBeTruthy();
+  expect(within(preview()).getAllByRole("listitem").length).toBeGreaterThan(0);
+  expect(preview().textContent).not.toMatch(/^#|\n- /);
 
   await press(field, "Enter");
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/ui-behaviour")));
@@ -147,8 +149,11 @@ test("a note and a proposal preview as their text and their lines", async () => 
   await openPicker("priorities");
   const field = await screen.findByRole("combobox", { name: "Find priorities" });
   await type(field, "Nix");
-  await waitFor(() => expect(preview().textContent).toContain("- Nix + Docker based"));
-  expect(preview().textContent).toContain("  - with a cache");
+  // As the priorities page draws it: its level's pane, the line, and its nested line.
+  await waitFor(() => expect(preview().textContent).toContain("Nix + Docker based"));
+  expect(within(preview()).getByRole("heading", { name: /^Later/ })).toBeTruthy();
+  expect(within(preview()).getByText("with a cache")).toBeTruthy();
+  expect(preview().textContent).not.toContain("- ");
 });
 
 test("at a phone's width the picker is a sheet showing the list alone (US4 more 2)", async () => {
@@ -214,7 +219,7 @@ test("the dialog shows at once, saying Loading…, and the list comes when the r
   );
   expect(screen.queryByText("Loading…")).toBeNull();
   expect(fieldText(field)).toBe("ui");
-  await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
+  await waitFor(() => expect(preview().textContent).toContain("UI behaviour"));
 });
 
 test("records that fail to load close the picker with a message, and the page stays", async () => {
@@ -297,7 +302,7 @@ test("a pick opens its page, and the page keeps the focus: the opener does not t
   await waitFor(() =>
     expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
   );
-  await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
+  await waitFor(() => expect(preview().textContent).toContain("UI behaviour"));
   await press(field, "Enter");
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/ui-behaviour")));
 
@@ -315,7 +320,7 @@ test("opened again over another kind, the picker shows no preview of the first o
   await openPicker("decisions");
   const field = await screen.findByRole("combobox", { name: "Find decisions" });
   await type(field, "ui");
-  await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
+  await waitFor(() => expect(preview().textContent).toContain("UI behaviour"));
   await press(field, "Escape");
   await waitFor(() =>
     expect(screen.queryByRole("combobox", { name: "Find decisions" })).toBeNull(),

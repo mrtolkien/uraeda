@@ -1,6 +1,5 @@
 // The Git page's detail: the picked file's diff, unified, in the theme's diff colours, the lines it
-// keeps greyed, its path as
-// its pane's title; a binary file's sizes; past 1,000 lines, its counts and "Show the whole diff".
+// keeps greyed, its path as its pane's title, so git's header of the file is left out; a binary file's sizes; past 1,000 lines, its counts and "Show the whole diff".
 // A commit shows its message and its files, each opening its diff. Beside the sections on wide
 // screens, a page of its own on the phone, with Back to the sections.
 import { Button } from "@astryxdesign/core/Button";
@@ -73,6 +72,16 @@ const LANGUAGES: Readonly<Record<string, string>> = {
 
 const languageOf = (path: string) => LANGUAGES[path.split(".").at(-1) ?? ""] ?? "text";
 
+/**
+ * A diff's text without its file header, `diff --git`, `index`, `--- a/`, and `+++ b/`, the lines
+ * before its first hunk: the pane's title names the file. The hunks are kept whole.
+ */
+export function withoutFileHeader(text: string): string {
+  const lines = text.split("\n");
+  const hunk = lines.findIndex((line) => line.startsWith("@@"));
+  return hunk <= 0 ? text : lines.slice(hunk).join("\n");
+}
+
 /** A size in bytes, "12 KB", as a binary file's diff says it. */
 export function size(bytes: number): string {
   if (bytes < 1024) {
@@ -136,7 +145,7 @@ function DiffBody({
       <div data-git-diff="">
         <style>{CONTEXT_CSS}</style>
         <CodeBlock
-          code={diff.text}
+          code={withoutFileHeader(diff.text)}
           hasLineNumbers
           isDiff
           isWrapped

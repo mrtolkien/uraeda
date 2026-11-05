@@ -58,6 +58,8 @@ export function AttachButton({
         isIconOnly={isIconOnly}
         label={label}
         onClick={() => input.current?.click()}
+        // An icon alone says its name on hover.
+        {...(isIconOnly ? { tooltip: shown } : {})}
       >
         {isIconOnly ? undefined : shown}
       </Button>

@@ -23,7 +23,7 @@ const LAYOUT_KEY = "uraeda:priorities:layout";
 const isLayout = (value: string | null): value is WorkLayout =>
   value === "columns" || value === "stack";
 
-/** How the list shows, as columns until the human picks the table, kept in the browser. */
+/** How the list shows, as columns until the human picks the list, kept in the browser. */
 function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
   const [layout, setLayout] = useState<WorkLayout>(() => {
     try {
@@ -45,7 +45,11 @@ function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
   return [layout, choose];
 }
 
-/** The switch between the columns and the table, by their icons; `v` switches too. */
+/**
+ * The switch between the columns and the list, each its icon and its word: the icons alone were
+ * not clear to a pointer's user, who has no `v` to learn them by. `v` switches too. Each icon is
+ * the small one, the size of the switch's label.
+ */
 function LayoutSwitch({
   layout,
   onChange,
@@ -61,15 +65,13 @@ function LayoutSwitch({
       value={layout}
     >
       <SegmentedControlItem
-        icon={<Icon icon="uraeda:columns-3" />}
-        isLabelHidden
+        icon={<Icon icon="uraeda:columns-3" size="sm" />}
         label="Columns"
         value="columns"
       />
       <SegmentedControlItem
-        icon={<Icon icon="uraeda:rows-3" />}
-        isLabelHidden
-        label="Table"
+        icon={<Icon icon="uraeda:rows-3" size="sm" />}
+        label="List"
         value="stack"
       />
     </SegmentedControl>

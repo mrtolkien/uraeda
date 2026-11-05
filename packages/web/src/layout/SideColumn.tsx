@@ -418,6 +418,7 @@ function ColumnAt({
             onClick={toggle}
             onPointerEnter={() => setPointer(true)}
             onPointerLeave={() => setPointer(false)}
+            tooltip={isShown ? `Hide ${name}` : `Show ${name}`}
             variant="ghost"
             xstyle={[styles.button, isShown && !revealed && styles.hidden]}
           />

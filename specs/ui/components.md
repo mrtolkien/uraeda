@@ -32,6 +32,7 @@ anything, and a change made to one is made once.
 | A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page                 |
 | A row's whole text                         | `pane/DetailOverlay.tsx`                                                                           |
 | Choosing one of many                       | `keys/KeyPicker.tsx`, its rows with the card's icon and state; its filter `PickerEditor.tsx`       |
+| A picker's preview of its item             | `keys/PickerPreview.tsx`: markdown rendered, a list's pane and rows, or plain lines                |
 | A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers                          |
 | A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys     |
 | An undo                                    | `layout/useUndoToast.ts`                                                                           |
@@ -56,7 +57,8 @@ are its own:
 - `layout/NavBar.tsx`: the glass tile, an icon and its small word in the bottom bar, flat, stretched
   to share it, or a square glass button of its own when the bar has one or two; and with its word
   under a big icon in the phone's row actions.
-- `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text.
+- `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text in a 1 px square
+  frame.
 - `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line; its
   sections and their triangles in `shell/status/`, as the bundled fonts have no Powerline glyphs.
 - `fields/editor/`: every text field, over CodeMirror, as the

@@ -8,7 +8,7 @@ import { StartDialog } from "../StartDialog.tsx";
 const QUESTION = {
   confirm: "Start",
   description: "The feature's folder and branch.",
-  label: "Slug",
+  label: "Short name",
   title: "Start the feature",
 };
 

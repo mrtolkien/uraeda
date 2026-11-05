@@ -191,15 +191,15 @@ a folder. `a` stages every file of the group, or unstages them all when all are 
 file keeps its row. Each group has its commit message, one line, filled with a default from what is
 staged: `chore: add <the line>` for a single line added to a file, `chore: update <the file>` for
 any other change to one file, and `chore: update <count> files` for several. `c` goes to the
-message, where you can change it, and Enter, or its Commit, commits what is staged, through your
-hooks. A hook's refusal shows above Changes, and the files stay staged. `d` asks before discarding a
-file's changes.
+message, where you can change it, and Enter, or the Commit under it, which names how many files it
+commits, commits what is staged, through your hooks. A hook's refusal shows above Changes, and the
+files stay staged. `d` asks before discarding a file's changes.
 
-Picking a file shows its diff beside the sections, or as a page of its own on the phone, with Back
-to the sections. Past 1,000 lines, it shows its counts and "Show the whole diff". History lists the
-branch's commits, newest first: ↓ marks those to pull, ↑ those to push. A commit opens its message
-and its files, each with its diff, and "Show more" reads older ones. The picked row is in the
-address, so a reload or a shared link opens it again.
+Picking a file shows its diff, from its first change, beside the sections, or as a page of its own
+on the phone, with Back to the sections. Past 1,000 lines, it shows its counts and "Show the whole
+diff". History lists the branch's commits, newest first: ↓ marks those to pull, ↑ those to push. A
+commit opens its message and its files, each with its diff, and "Show more" reads older ones. The
+picked row is in the address, so a reload or a shared link opens it again.
 
 "Merge into main…", or `M`, merges a local branch, or one of `origin`'s, into the checked-out one.
 When a pull or a merge stops on a conflict, a banner reads "The pull stopped: 1 file conflicts.",

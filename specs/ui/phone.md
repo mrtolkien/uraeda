@@ -58,8 +58,9 @@ A page with one main action has a bar of it alone, in the accent: the draft edit
 opens the Start pane as a sheet, the slug focused; the inbox's and the priorities' Add, which opens
 their add form, as the sidebar's ＋ does. A buffer's bar holds Back and Save.
 
-What does not go in it: words, keys, counts written out (a tile's label says them to screen
-readers), a page's content, and anything the page already shows in reach.
+What does not go in it: sentences, keys, counts written out (a tile's label says them to screen
+readers), a page's content, and anything the page already shows in reach. A tile's word is one,
+under its icon, short enough to stay whole at 360 px.
 
 It slides away as the page scrolls down, out of the reading's way, and back as it scrolls up, at the
 page's top, and at its end. A jump of more than a screen, like a restored place, moves it neither
