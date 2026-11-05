@@ -18,6 +18,7 @@ import { takeOut } from "./takeOut.ts";
 import { remember } from "./useStart.ts";
 import { StartPlanView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
+import { SLUG_LABEL } from "./SlugField.tsx";
 
 /** The research effort picked first, as a proposal without the field reads. */
 const INITIAL_EFFORT = "high";
@@ -98,7 +99,7 @@ function FeatureQuestion({
       question={{
         confirm: "Start the feature",
         description: "Two words at most: it names the folder and the branch.",
-        label: "Slug",
+        label: SLUG_LABEL,
         title: "Name the feature",
       }}
     />
