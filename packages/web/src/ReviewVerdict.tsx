@@ -9,6 +9,7 @@ import { StatusText } from "./fields/StatusText.tsx";
 import { approvedFile } from "./review/approved.ts";
 import { approveChoices, type Choices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
+import { useKeys } from "./keys/registry.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
 import { kindName, useFeatureTitle } from "./writes/labels.ts";
@@ -239,6 +240,8 @@ export function ReviewVerdict({
   const holdsApproval = file.kind === "spec" && targeted > 0;
   const spec = (file.committed ?? file.current).items.spec;
   const { retry, verdict } = useVerdict(file, choices, refusals);
+  // The page's next step, as a round's `n` reaches its Commit: the verdict, from anywhere on it.
+  useKeys([{ hint: "n", keys: "n", label: "verdict", run: toVerdict }]);
   return (
     <>
       {file.kind === "spec" && (
