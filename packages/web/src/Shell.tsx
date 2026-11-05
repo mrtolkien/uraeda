@@ -8,6 +8,7 @@ import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "./layout/safeArea.stylex.ts";
 import { type ReactNode, Suspense, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
@@ -65,11 +66,14 @@ const styles = stylex.create({
     minHeight: "var(--size-viewport-height)",
   },
   header: {
-    // The phone's tabs, in view while the page scrolls.
+    // The phone's tabs, in view while the page scrolls, below the status bar of a home-screen app
+    // that draws under it. Over a question's sticky header too, which slides up under the tabs as
+    // its card leaves (`QuestionCard.tsx`), never over them.
     backgroundColor: colorVars["--color-background-body"],
+    paddingBlockStart: safeAreaVars["--safe-area-top"],
     position: "sticky",
     top: 0,
-    zIndex: 2,
+    zIndex: 3,
   },
   main: {
     flexGrow: 1,
@@ -96,10 +100,13 @@ const styles = stylex.create({
   // On the phone, the tabs' bar on top too (`shell/Tabs.tsx`).
   narrow: {
     "--size-page-height": `calc(var(--size-viewport-height) - ${spacingVars["--spacing-12"]})`,
+    // The page's end scrolls clear of the home indicator, as an iPhone's own lists do.
+    paddingBlockEnd: safeAreaVars["--safe-area-bottom"],
   },
   statusNarrow: {
-    // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next.
-    "--size-status-line": spacingVars["--spacing-12"],
+    // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next,
+    // above the home indicator and clear of the screen's rounded corners: the safe area under it.
+    "--size-status-line": `calc(${spacingVars["--spacing-12"]} + ${safeAreaVars["--safe-area-bottom"]})`,
   },
 });
 

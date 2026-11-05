@@ -2,8 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- viewport-fit=cover: the page reaches under the phone's rounded corners and home indicator,
+         and its bars pad themselves by env(safe-area-inset-*) to keep their controls clear. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Added to an iPhone's home screen, it opens full screen, with its own icon and name. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Uraeda" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eff1f5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1e2e" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Uraeda</title>
   </head>
   <body>

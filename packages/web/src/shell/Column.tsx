@@ -12,6 +12,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "../layout/safeArea.stylex.ts";
 import { useCallback, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { ClosedRail } from "../layout/closedRail.ts";
@@ -64,7 +65,10 @@ const styles = stylex.create({
     // and closes as the desktop's does, a reveal from its start edge over 200 ms, its content laid
     // out at the open width throughout.
     insetBlockEnd: "var(--size-status-line, 0px)",
-    insetBlockStart: spacingVars["--spacing-12"],
+    // Below the tabs, under the status bar of a home-screen app that draws under it (`Shell.tsx`).
+    insetBlockStart: `calc(${spacingVars["--spacing-12"]} + ${safeAreaVars["--safe-area-top"]})`,
+    // With no status line, its list ends clear of the home indicator, its surface under it.
+    paddingBlockEnd: `max(0px, calc(${safeAreaVars["--safe-area-bottom"]} - var(--size-status-line, 0px)))`,
     position: "fixed",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "clip-path, visibility",

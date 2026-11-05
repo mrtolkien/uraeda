@@ -8,6 +8,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "./safeArea.stylex.ts";
 import { barVars } from "./bar.stylex.ts";
 import {
   Children,
@@ -76,8 +77,14 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
-  // Three tiles or more: the glass across the screen, which takes the taps under it.
-  bar: { pointerEvents: "auto" },
+  // Three tiles or more: the glass across the screen, which takes the taps under it, and goes on
+  // down to the screen's edge under the home indicator, as an iPhone's tab bar does, its tiles
+  // above it.
+  bar: {
+    marginBlockEnd: `calc(-1 * ${safeAreaVars["--safe-area-bottom"]})`,
+    paddingBlockEnd: safeAreaVars["--safe-area-bottom"],
+    pointerEvents: "auto",
+  },
   // One or two tiles: no glass between them, and the page under it takes the taps.
   buttons: {
     alignItems: "flex-end",
