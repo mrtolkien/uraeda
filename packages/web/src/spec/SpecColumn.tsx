@@ -63,6 +63,7 @@ function PhoneParts({
           isOpen={open === "review"}
           label={commentsLabel(review.count)}
           onPress={() => setSheet("review")}
+          word="Comments"
         />
       )}
       {session && (

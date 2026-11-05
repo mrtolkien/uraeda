@@ -173,6 +173,7 @@ function ChangesTile({
       isOpen={isOpen}
       label={`Changes ${count} · ${fileCount(count)} edited`}
       onPress={onOpen}
+      word="Changes"
     />
   );
 }
@@ -256,6 +257,7 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
         isDisabled={jump === undefined}
         label="Jump to the latest"
         onPress={() => jump?.()}
+        word="Latest"
       />
       <NavTile
         icon="uraeda:activity"
@@ -281,6 +283,7 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
           isOpen={open === SUBAGENTS}
           label="Sub-agents"
           onPress={() => setSheet(SUBAGENTS)}
+          word="Agents"
         />
       )}
       {folder !== undefined && (

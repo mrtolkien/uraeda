@@ -78,6 +78,7 @@ export function FeatureBar({
         isOpen={open === "produced"}
         label={produced}
         onPress={() => setSheet("produced")}
+        word="Produced"
       />
       {links && (
         <NavTile
@@ -94,7 +95,9 @@ export function FeatureBar({
           onPress={() => navigate(here(sessionPath(feature.folder)))}
         />
       )}
-      {next && <NavTile icon="uraeda:arrow-right" isTinted label="Next step" onPress={next} />}
+      {next && (
+        <NavTile icon="uraeda:arrow-right" isTinted label="Next step" onPress={next} word="Next" />
+      )}
     </NavTiles>
   );
   return <ColumnStatusLine buttons={buttons} sheet={sheet} sheets={sheets} />;
