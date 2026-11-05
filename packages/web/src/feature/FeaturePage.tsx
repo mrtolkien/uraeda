@@ -291,8 +291,35 @@ function FeatureNotes({ feature }: { feature: FeatureData }) {
   );
 }
 
+/** What `j` and `k` move along on a feature's page: its links and buttons, in reading order. */
+const STOPS = "a[href], button:not([disabled])";
+
+/**
+ * `j` `k` and the arrows on a feature's page, which has no list of its own: they move the focus
+ * along `page`'s links and buttons, Next's, the sessions', the timeline's, in reading order, and
+ * `Enter` opens the one focused, as its click does. The first press starts at the first.
+ */
+function usePageStops(page: RefObject<HTMLDivElement | null>) {
+  const step = (by: 1 | -1) => {
+    const stops = [...(page.current?.querySelectorAll<HTMLElement>(STOPS) ?? [])].filter(
+      (stop) => stop.offsetParent !== null,
+    );
+    const at = stops.indexOf(document.activeElement as HTMLElement);
+    const next = at === -1 ? (by === 1 ? 0 : stops.length - 1) : at + by;
+    stops[Math.min(Math.max(next, 0), stops.length - 1)]?.focus();
+  };
+  useKeys([
+    { hint: "j k", keys: "j", label: "move", run: () => step(1) },
+    { keys: "ArrowDown", label: "move", run: () => step(1) },
+    { keys: "k", label: "move up", run: () => step(-1) },
+    { keys: "ArrowUp", label: "move up", run: () => step(-1) },
+  ]);
+}
+
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
+  const stops = useRef<HTMLDivElement>(null);
+  usePageStops(stops);
   const history = useHistory(feature.folder);
   // The record's folds, which a figure of the column opens.
   const keys = useOpenKeys();
@@ -315,7 +342,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   const page = (
     <Page kind="rows">
       <Crumbs folder={feature.folder} />
-      <VStack gap={6}>
+      <VStack gap={6} ref={stops}>
         <FeatureTitle done={done} feature={feature} />
         <Blocking
           change={feature.kind === "change"}
