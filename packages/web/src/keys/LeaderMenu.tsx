@@ -66,7 +66,8 @@ const styles = stylex.create({
     listStyle: "none",
     margin: 0,
     padding: 0,
-    rowGap: spacingVars["--spacing-1"],
+    // No gap: the room between the rows is in their buttons (`full`), a press there lands.
+    rowGap: 0,
   },
   entry: {
     alignItems: "center",
@@ -85,9 +86,11 @@ const styles = stylex.create({
     transitionProperty: "height, width",
     transitionTimingFunction: easeVars["--ease-standard"],
   },
-  // A row's button, as wide as its row.
+  // A row's button, as wide as its row, with half the room between rows above and below its text:
+  // the rows sit as far apart as with a gap, and each is a 24 px target at least (WCAG 2.5.8).
   full: {
     display: "block",
+    paddingBlock: spacingVars["--spacing-0-5"],
     width: "100%",
   },
   oneColumn: {
@@ -112,6 +115,10 @@ const styles = stylex.create({
   square: { borderRadius: 0 },
   // A row or a footer key that presses its key when clicked, as a link in the text.
   press: { textAlign: "start" },
+  // The footer's keys, a 24 px target each (WCAG 2.5.8): room above and below their text, which the
+  // footer gives back, so it sits where it did.
+  footer: { marginBlock: `calc(-1 * ${spacingVars["--spacing-0-5"]})` },
+  footerKey: { paddingBlock: spacingVars["--spacing-0-5"] },
   sheet: {
     insetInline: spacingVars["--spacing-2"],
     minWidth: 0,
@@ -200,13 +207,13 @@ function MenuContent({
           </li>
         ))}
       </ul>
-      <Text color="secondary" type="supporting" xstyle={styles.text}>
+      <Text color="secondary" type="supporting" xstyle={[styles.text, styles.footer]}>
         {/* oxlint-disable-next-line react/forbid-elements -- the menu's back key, pressed as its key is, drawn as the menu's text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
         <button
           onClick={() => pressKeys("Backspace")}
           onMouseDown={keepFocus}
           type="button"
-          {...stylex.props(bareButtonStyles.bare, styles.press, brighten)}
+          {...stylex.props(bareButtonStyles.bare, styles.press, styles.footerKey, brighten)}
         >
           <KeyCap>
             <BackGlyph />
@@ -218,7 +225,7 @@ function MenuContent({
           onClick={() => pressKeys("Escape")}
           onMouseDown={keepFocus}
           type="button"
-          {...stylex.props(bareButtonStyles.bare, styles.press, brighten)}
+          {...stylex.props(bareButtonStyles.bare, styles.press, styles.footerKey, brighten)}
         >
           <KeyCap>esc</KeyCap> close
         </button>

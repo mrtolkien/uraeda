@@ -1,9 +1,9 @@
 import { createElement, useCallback, useSyncExternalStore } from "react";
 import { Button } from "@astryxdesign/core/Button";
-import { useToast } from "@astryxdesign/core/Toast";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
+import { useTimedToast } from "./useTimedToast.tsx";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /** The undo toasts on screen, by the function that closes each. */
@@ -92,7 +92,8 @@ export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void
 }
 
 /**
- * Confirms a change the human cannot see on screen, for 5 seconds, with one Undo that reverts it.
+ * Confirms a change the human cannot see on screen, for 5 seconds, with one Undo that reverts it:
+ * longer while the pointer is over it or the focus inside it (`useTimedToast`).
  * `undo` resolves with nothing once reverted, or with the error to show instead: in the page,
  * under the top bar, until dismissed, as a toast must not be the only place an error shows. With
  * `commits`, Undo commits its revert: a git write, the toast open until its call answers, its
@@ -103,7 +104,7 @@ export function useUndoToast(): (
   undo: () => Promise<string | undefined>,
   commits?: boolean,
 ) => void {
-  const showToast = useToast();
+  const showToast = useTimedToast();
   const singleKeys = useSingleKeys();
   // The phone hints no key: its Undo is a tap.
   const narrow = isNarrow(useWidthClass());

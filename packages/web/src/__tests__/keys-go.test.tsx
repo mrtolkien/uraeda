@@ -1,5 +1,6 @@
 // The `g` go keys on the real app (US2 1, 2, 3, more 2): `g` then a letter goes to a page, `g g`
-// scrolls to the top, and a pending `g` ends after 2 seconds or on a key no sequence uses. The keys
+// scrolls to the top, and a pending `g`, its menu shown, waits for its key, ending on Escape or a key
+// no sequence uses. The keys
 // are pressed on the page as a user's reach it; only the timers are faked, after the page loaded.
 import { act, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
@@ -67,8 +68,11 @@ test("g g scrolls the page to the top (US2 2)", async () => {
   expect(scrollTo.mock.calls[0]?.[0]).toMatchObject({ top: 0 });
 });
 
-// On the settings, a page with no rows, where `j` scrolls: home's lists take it.
-test("a pending g ends after 2 seconds, and a later key acts as itself (US2 3)", async () => {
+// On the settings, a page with no rows, where `j` scrolls: home's lists take it. Changed by the
+// keyboard walkthrough of 2026-11-05, which asked that a menu being read waits for its key, as
+// LazyVim's which-key does: it once ended after 2 seconds, under the reader's eyes (US2 3).
+// Break: a pending g ending on its own once its menu shows.
+test("a pending g waits for its key past 2 seconds, and Escape ends it, a later key acting as itself", async () => {
   await loaded("/settings");
   // The frames too, which the scroll glides on.
   vi.useFakeTimers({
@@ -81,14 +85,15 @@ test("a pending g ends after 2 seconds, and a later key acts as itself (US2 3)",
     ],
   });
   press("g");
-  act(() => void vi.advanceTimersByTime(1999));
+  act(() => void vi.advanceTimersByTime(5000));
   // Still pending: the vertical key is the sequence's, and nothing scrolls.
   press("j");
   act(() => void vi.advanceTimersByTime(1000));
   expect(scrolled()).toBe(0);
 
   press("g");
-  act(() => void vi.advanceTimersByTime(2000));
+  act(() => void vi.advanceTimersByTime(5000));
+  press("Escape");
   press("j");
   act(() => void vi.advanceTimersByTime(1000));
   expect(scrolled()).toBeGreaterThan(0);
@@ -97,16 +102,15 @@ test("a pending g ends after 2 seconds, and a later key acts as itself (US2 3)",
   expect(window.location.pathname).toBe(atRepo("/settings"));
 });
 
-test("after the 2 seconds a go key's pending g is over, and `a` acts as the page's own (US2 3)", async () => {
+test("a pending g read past 2 seconds still goes: `g` then `i` opens the inbox (US2 3)", async () => {
   await loaded("/");
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   press("g");
-  act(() => void vi.advanceTimersByTime(2000));
+  act(() => void vi.advanceTimersByTime(5000));
 
-  // `a` is no go key (`g a` is nothing): it opens the New page, as on Home it does.
-  press("a");
+  press("i");
 
-  expect(window.location.pathname).toBe(atRepo("/new"));
+  expect(window.location.pathname).toBe(atRepo("/inbox"));
 });
 
 test("g then a key no sequence uses ends it, and the key does nothing (US2 more 2)", async () => {

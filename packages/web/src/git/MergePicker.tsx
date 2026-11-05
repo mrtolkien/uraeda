@@ -2,7 +2,7 @@
 // then `origin`'s, as the page's view lists them; a pick merges it into the checked-out branch.
 // The phone's sheet on narrow screens, as every picker.
 import { KeyPicker } from "../keys/KeyPicker.tsx";
-import type { PickerItem } from "../keys/pickerSources.ts";
+import { type PickerItem, textPreview } from "../keys/pickerSources.ts";
 
 /** A branch as the picker lists it, previewed by what a pick does. */
 const itemOf = (branch: string, into: string): PickerItem => ({
@@ -10,7 +10,7 @@ const itemOf = (branch: string, into: string): PickerItem => ({
   id: branch,
   kind: "changes",
   path: "",
-  preview: `Merges ${branch} into ${into}.`,
+  preview: textPreview(`Merges ${branch} into ${into}.`),
   title: branch,
 });
 

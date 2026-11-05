@@ -5,7 +5,8 @@
 // where nested, its file would no longer be found by its link: it goes into a file's "Notes", its
 // note file's text under its title, the note file gone, and a proposal that links nothing gets its
 // file first; one that links a feature or a web page is not offered.
-// Each item's preview is the place it lands in, the note in it. A pick runs as the note's
+// Each item's preview is the place it lands in, drawn as its page draws it, the note in it
+// highlighted: a level or a proposal as the priorities' pane, a file rendered. A pick runs as the note's
 // actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities with the
 // note's row selected, or the proposal file's page.
 import { useEffect } from "react";
@@ -13,36 +14,74 @@ import type { Proposal } from "uraeda-server/fate";
 import { type ProposalFileText, usePriorities } from "./data.ts";
 import { KeyPicker } from "./keys/KeyPicker.tsx";
 import { isPending } from "./lists/outline.ts";
-import type { PickerItem } from "./keys/pickerSources.ts";
-import { TITLES } from "./QuickAdd.tsx";
+import {
+  itemRows,
+  type PickerItem,
+  type PickerPreview,
+  textPreview,
+} from "./keys/pickerSources.ts";
+import { lookOf, sectionTone } from "./lists/PrioritiesList.tsx";
+import type { Tone } from "./lists/workSection.ts";
+import { TITLES, titleOf } from "./QuickAdd.tsx";
 import { plain } from "./Spans.tsx";
 import { type Placed, useNoteActions } from "./useNoteActions.ts";
 
-/** Where a note lands, shown as the file has it: a mark at the end of the note's first line. */
-const HERE = "   ← here";
-
-/** The note's lines, `indent` spaces in, its first one marked. */
-function noteLines(placed: Placed, indent: number) {
-  return placed.note.lines.map((line, at) => `${" ".repeat(indent)}${line}${at === 0 ? HERE : ""}`);
+/** The note as the preview's rows, `depth` in, where a pick lands. */
+function noteRows(placed: Placed, depth: number) {
+  return itemRows(placed.note, { depth, isHere: true });
 }
 
-/** A section of the priorities with the note at its end. */
-function levelPreview(title: string, proposals: ReadonlyArray<Proposal>, placed: Placed) {
-  return [
-    `## ${title}`,
-    "",
-    ...proposals.map((proposal) => `- ${proposal.text}`),
-    ...noteLines(placed, 0),
-  ].join("\n");
+/** A level's proposals as its pane lists them: not those running, which Ongoing lists. */
+const listed = (proposals: ReadonlyArray<Proposal>) =>
+  proposals.filter((proposal) => !proposal.running);
+
+/** A proposal's rows, as the priorities draw it, and its own items. */
+const proposalRows = (proposal: Proposal) => itemRows(proposal, { look: lookOf(proposal) });
+
+/** A level of the priorities, as its pane draws it, with the note at its end. */
+function levelPreview(
+  section: string,
+  proposals: ReadonlyArray<Proposal>,
+  placed: Placed,
+): PickerPreview {
+  return {
+    kind: "outline",
+    rows: [...listed(proposals).flatMap(proposalRows), ...noteRows(placed, 0)],
+    title: titleOf(section),
+    tone: sectionTone(section),
+  };
 }
 
-/** A proposal with its own items, and the note as the last of them. */
-function linePreview(proposal: Proposal, placed: Placed) {
-  return [
-    `- ${proposal.text}`,
-    ...proposal.children.map((child) => `${"  ".repeat(child.depth)}- ${child.text}`),
-    ...noteLines(placed, 2),
-  ].join("\n");
+/** A pane of the priorities' page, as a proposal's preview draws it: its title and its proposals. */
+type PrioritiesPane = { proposals: ReadonlyArray<Proposal>; title: string; tone: Tone };
+
+/**
+ * The pane `proposal` is drawn in, among `sections`: Ongoing, green, with every running proposal,
+ * for a running one; else its level's, with the proposals not running.
+ */
+function paneOf(
+  proposal: Proposal,
+  section: string,
+  sections: ReadonlyArray<{ proposals: ReadonlyArray<Proposal>; section: string }>,
+): PrioritiesPane {
+  if (proposal.running) {
+    const running = sections.flatMap((one) => one.proposals.filter((each) => each.running));
+    return { proposals: running, title: "Ongoing", tone: "green" };
+  }
+  const own = sections.find((one) => one.section === section)?.proposals ?? [];
+  return { proposals: listed(own), title: titleOf(section), tone: sectionTone(section) };
+}
+
+/** The pane of `proposal`, as the priorities draw it, with the note as the last of its items. */
+function linePreview(proposal: Proposal, pane: PrioritiesPane, placed: Placed): PickerPreview {
+  return {
+    kind: "outline",
+    rows: pane.proposals.flatMap((one) =>
+      one.key === proposal.key ? [...proposalRows(one), ...noteRows(placed, 1)] : proposalRows(one),
+    ),
+    title: pane.title,
+    tone: pane.tone,
+  };
 }
 
 /**
@@ -62,23 +101,33 @@ function sectionEnd(lines: ReadonlyArray<string>, name: string) {
   return end;
 }
 
+/** A file in three parts: before the note, the note, highlighted, and after it. */
+const parts = (
+  before: ReadonlyArray<string>,
+  note: string,
+  after: ReadonlyArray<string>,
+): PickerPreview => ({
+  kind: "markdown",
+  parts: [{ text: before.join("\n") }, { isHere: true, text: note }, { text: after.join("\n") }],
+});
+
 /**
  * A proposal file's text with the note where an add puts it: at the end of its "What", else at its
  * end. A note with a note file goes, under its title, at the end of its "Notes", added at its end
  * when the file has none.
  */
-function filePreview(text: string, placed: Placed) {
+function filePreview(text: string, placed: Placed): PickerPreview {
   const lines = text.split("\n");
   if (placed.note.file !== undefined) {
-    const heading = `### ${placed.note.fileTitle ?? placed.note.text}${HERE}`;
+    const heading = `### ${placed.note.fileTitle ?? placed.note.text}`;
     const end = sectionEnd(lines, "Notes");
     if (end === undefined) {
-      return [text.trimEnd(), "", "## Notes", "", heading].join("\n");
+      return parts([text.trimEnd(), "", "## Notes"], heading, []);
     }
-    return [...lines.slice(0, end), "", heading, ...lines.slice(end)].join("\n");
+    return parts(lines.slice(0, end), heading, lines.slice(end));
   }
   const end = sectionEnd(lines, "What") ?? text.trimEnd().split("\n").length;
-  return [...lines.slice(0, end), ...noteLines(placed, 0), ...lines.slice(end)].join("\n");
+  return parts(lines.slice(0, end), placed.note.lines.join("\n"), lines.slice(end));
 }
 
 /**
@@ -101,6 +150,7 @@ function newFilePreview(proposal: Proposal, placed: Placed) {
  */
 function proposalItem(
   proposal: Proposal,
+  pane: PrioritiesPane,
   placed: Placed,
   textOf: (path: string) => string | undefined,
 ): PickerItem | undefined {
@@ -109,7 +159,8 @@ function proposalItem(
   const title = plain(proposal.spans);
   if (file !== undefined) {
     const text = textOf(file);
-    const preview = text === undefined ? "Loading the proposal…" : filePreview(text, placed);
+    const preview =
+      text === undefined ? textPreview("Loading the proposal…") : filePreview(text, placed);
     return {
       icon: "uraeda:file-text",
       id: `file:${file}`,
@@ -133,7 +184,7 @@ function proposalItem(
       title,
     };
   }
-  const preview = linePreview(proposal, placed);
+  const preview = linePreview(proposal, pane, placed);
   return {
     icon: "uraeda:list",
     id: `line:${proposal.key}`,
@@ -172,9 +223,12 @@ export function PromotePicker({
   }, [actions.message, onRefused]);
   const sections = priorities?.sections ?? [];
   // A proposal not written yet has no id the core knows: it is offered once written.
-  const proposals = sections
-    .flatMap((section) => section.proposals)
-    .filter((proposal) => !isPending(proposal.key));
+  const placedProposals = sections.flatMap((section) =>
+    section.proposals
+      .filter((proposal) => !isPending(proposal.key))
+      .map((proposal) => ({ proposal, section })),
+  );
+  const proposals = placedProposals.map((one) => one.proposal);
   const textOf = (path: string) => files?.find((file) => file.path === path)?.text;
   const linked = new Set(
     proposals.flatMap((proposal) => (proposal.file ? [proposal.file.path] : [])),
@@ -186,13 +240,16 @@ export function PromotePicker({
       kind: "priorities" as const,
       path: "",
       preview: levelPreview(
-        title,
+        id,
         sections.find((section) => section.section === id)?.proposals ?? [],
         placed,
       ),
       title,
     })),
-    ...proposals.flatMap((proposal) => proposalItem(proposal, placed, textOf) ?? []),
+    ...placedProposals.flatMap(
+      ({ proposal, section }) =>
+        proposalItem(proposal, paneOf(proposal, section.section, sections), placed, textOf) ?? [],
+    ),
     ...(files ?? [])
       .filter((file) => !linked.has(file.path))
       .map((file) => ({

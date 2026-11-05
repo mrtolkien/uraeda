@@ -175,7 +175,7 @@ export function NextOrSubmit({
   return blank.length ? (
     <Button label="Next" onClick={() => next(true)} variant="primary" xstyle={styles.action} />
   ) : (
-    <Button label="Commit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
+    <Button label="Commit answers" onClick={onSubmit} variant="primary" xstyle={styles.action} />
   );
 }
 
@@ -194,7 +194,7 @@ export function NextTile({
   return blank.length ? (
     <NavTile icon="uraeda:arrow-right" isTinted label="Next" onPress={() => next(true)} />
   ) : (
-    <NavTile icon="uraeda:badge-check" isTinted label="Commit" onPress={onSubmit} />
+    <NavTile icon="uraeda:badge-check" isTinted label="Commit answers" onPress={onSubmit} />
   );
 }
 

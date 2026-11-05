@@ -121,7 +121,7 @@ never wraps.
 - **A round**: a question's header sticks below the tabs while its card is on screen, but lets go
   while its comment is typed in, so the room the keyboard leaves goes to the text.
 - **A review**: the comment's sheet quotes no block: the block shows, marked, right above it.
-- **The priorities**: one column, the table, until the human picks the columns on the phone.
+- **The priorities**: one column, the list, until the human picks the columns on the phone.
 
 ## Flows
 

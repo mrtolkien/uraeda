@@ -9,13 +9,14 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { safeAreaVars } from "./layout/safeArea.stylex.ts";
-import { type ReactNode, Suspense, useState } from "react";
+import { type ReactNode, Suspense, useLayoutEffect, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
 import { LeaderKeys } from "./keys/LeaderKeys.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
+import { targetVars } from "./layout/target.stylex.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { UndoKey, useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -84,8 +85,9 @@ const styles = stylex.create({
   },
   status: {
     // The status line takes the window's bottom row: what is as tall as the window ends above it,
-    // and the page's end scrolls past it. One row of its text and little more, as a terminal's.
-    "--size-status-line": spacingVars["--spacing-5"],
+    // and the page's end scrolls past it. One row of its text and little more, as a terminal's:
+    // a row as tall as a pointer's target, which its hints fill, under its hairline.
+    "--size-status-line": `calc(${targetVars["--target-least"]} + ${borderVars["--border-width"]})`,
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
     // The surface goes on under the status line, which the phone's lets show between its corner
     // buttons, under a short page too.
@@ -155,6 +157,7 @@ function Frame({
   top?: ReactNode;
 }) {
   const status = bottom !== undefined;
+  useStatusLineScrollPadding(status && !isNarrow);
   return (
     <div
       {...stylex.props(
@@ -175,6 +178,24 @@ function Frame({
       {bottom}
     </div>
   );
+}
+
+/**
+ * While the status line takes the window's bottom row, what the keys bring into view, a list's
+ * selected row or a focused button, scrolls clear of it: the document's scroll padding is its
+ * height (WCAG 2.4.11, focus not obscured). The phone's bar slides away, and keeps its own.
+ */
+function useStatusLineScrollPadding(isOn: boolean) {
+  useLayoutEffect(() => {
+    if (!isOn) {
+      return undefined;
+    }
+    const root = document.documentElement;
+    root.style.scrollPaddingBlockEnd = spacingVars["--spacing-5"];
+    return () => {
+      root.style.scrollPaddingBlockEnd = "";
+    };
+  }, [isOn]);
 }
 
 /** The single-key switch's state and its setter, as `useState` gives them. */

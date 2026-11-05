@@ -1,4 +1,4 @@
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
@@ -47,8 +47,11 @@ const styles = stylex.create({
     position: "relative",
   },
   selectable: {
-    // A block a review can select: tapped as a whole, tinted with a bar once selected.
-    borderInlineStartColor: "transparent",
+    // A block a review can select: tapped as a whole, tinted with a bar once selected. Under the
+    // pointer it shows its bar and a light tint, as a card brightens, so a pointer's user sees it
+    // can be pressed before pressing it; a selected block's own tint and bar stay.
+    backgroundColor: { ":hover": colorVars["--color-background-muted"], default: null },
+    borderInlineStartColor: { ":hover": colorVars["--color-border"], default: "transparent" },
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: spacingVars["--spacing-1"],
     cursor: "pointer",

@@ -448,3 +448,12 @@ test("on the phone, a block's comment quotes nothing: the block shows above it",
     atWidth(1440);
   }
 });
+
+/** A pointer's user reads what the low, medium, and high choices set before picking one. */
+test("the risk tier's choices are named in words beside them", async () => {
+  await renderPage(PAGE, repo());
+  const tiers = await screen.findByRole("radiogroup", { name: "Risk tier" });
+
+  expect(tiers.parentElement?.textContent).toContain("Risk tier");
+  expect(tiers.textContent).not.toContain("Risk tier");
+});

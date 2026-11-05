@@ -1,7 +1,7 @@
 // The inbox's panes: the notes of each category, and each category as a section of the list and
 // as its pickers list it.
 import type { useInbox } from "./data.ts";
-import type { PickerItem } from "./keys/pickerSources.ts";
+import { itemRows, type PickerItem } from "./keys/pickerSources.ts";
 
 /** The inbox as the page reads it. */
 export type Inbox = NonNullable<ReturnType<typeof useInbox>>;
@@ -35,7 +35,11 @@ export function itemOf(category: Category): PickerItem {
     id: sectionId(category.name),
     kind: "notes",
     path: "",
-    preview: [`## ${title}`, "", ...category.notes.map((note) => `- ${note.text}`)].join("\n"),
+    preview: {
+      kind: "outline",
+      rows: category.notes.flatMap((note) => itemRows(note)),
+      title,
+    },
     title,
   };
 }

@@ -13,7 +13,7 @@ import { PrioritiesList } from "./lists/PrioritiesList.tsx";
 import type { WorkLayout } from "./lists/WorkList.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { useRestoreScroll } from "./routes.tsx";
-import { AddBar, useOpenAddForm } from "./SidebarAdd.tsx";
+import { AddBar } from "./SidebarAdd.tsx";
 import { PrioritiesView } from "./views.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -25,9 +25,9 @@ const isLayout = (value: string | null): value is WorkLayout =>
   value === "columns" || value === "stack";
 
 /**
- * How the list shows, as columns until the human picks the table, kept in the browser. On the
- * phone, one column of content, the table, until the human picks the columns there: four columns
- * scrolled sideways hid Next and Later past the screen's edge (T3).
+ * How the list shows, as columns until the human picks the list, kept in the browser. On the phone,
+ * one column of content, the list, until the human picks the columns there: four columns scrolled
+ * sideways hid Next and Later past the screen's edge (T3).
  */
 function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
   const unpicked: WorkLayout = isNarrow(useWidthClass()) ? "stack" : "columns";
@@ -51,7 +51,11 @@ function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
   return [layout ?? unpicked, choose];
 }
 
-/** The switch between the columns and the table, by their icons; `v` switches too. */
+/**
+ * The switch between the columns and the list, each its icon and its word: the icons alone were
+ * not clear to a pointer's user, who has no `v` to learn them by. `v` switches too. Each icon is
+ * the small one, the size of the switch's label.
+ */
 function LayoutSwitch({
   layout,
   onChange,
@@ -68,15 +72,13 @@ function LayoutSwitch({
       value={layout}
     >
       <SegmentedControlItem
-        icon={<Icon icon="uraeda:columns-3" />}
-        isLabelHidden
+        icon={<Icon icon="uraeda:columns-3" size="sm" />}
         label="Columns"
         value="columns"
       />
       <SegmentedControlItem
-        icon={<Icon icon="uraeda:rows-3" />}
-        isLabelHidden
-        label="Table"
+        icon={<Icon icon="uraeda:rows-3" size="sm" />}
+        label="List"
         value="stack"
       />
     </SegmentedControl>
@@ -94,10 +96,6 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   const fate = useFateClient();
   const priorities = usePriorities();
   useBufferKey(withText("specs/PRIORITIES.md", priorities));
-  const openForm = useOpenAddForm();
-  // The ＋ next to Priorities, from the keyboard: the form in its default place. Not named in the
-  // status line.
-  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("proposal") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();

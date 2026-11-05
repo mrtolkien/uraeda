@@ -22,12 +22,11 @@ export function FontPicker({ onClose, role }: { onClose: () => void; role: FontR
   const fonts = useFonts();
   const part = ROLES.find((one) => one.role === role);
   const items: ReadonlyArray<PickerItem> = FONTS.map((font) => ({
-    family: font.family,
     icon: "uraeda:palette",
     id: font.id,
     kind: "notes",
     path: "",
-    preview: SAMPLE,
+    preview: { family: font.family, kind: "text", lines: SAMPLE.split("\n") },
     title: role && fonts[role] === font.id ? `${font.label} · in use` : font.label,
   }));
   return (

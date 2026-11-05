@@ -1,6 +1,5 @@
 // The Git page's detail: the picked file's diff, unified, in the theme's diff colours, the lines it
-// keeps greyed, its path as
-// its pane's title; a binary file's sizes; past 1,000 lines, its counts and "Show the whole diff".
+// keeps greyed, its path as its pane's title, so git's header of the file is left out; a binary file's sizes; past 1,000 lines, its counts and "Show the whole diff".
 // A commit shows its message and its files, each opening its diff. Beside the sections on wide
 // screens, a page of its own on the phone, with Back to the sections.
 import { Button } from "@astryxdesign/core/Button";
@@ -9,14 +8,42 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient, useLiveView, useRequest } from "react-fate";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
+import { useNow } from "../useNow.ts";
 import { Back } from "./Back.tsx";
+import { DetailTitle } from "./DetailTitle.tsx";
+import { age } from "./History.tsx";
 import { gitAddress, type Picked } from "./address.ts";
 import { GitCommitView, gitDiffId, GitDiffView } from "./data.ts";
+
+export const detailStyles = stylex.create({
+  // Down to the detail's foot, as lazygit's diff fills its side (`Panes`' `fills`): the detail
+  // scrolls it on its own.
+  fills: { flexGrow: 1 },
+});
+
+/**
+ * A file the address names that has no change left, as once its commit landed: its path, and that,
+ * rather than the diff of a file git no longer lists.
+ */
+export function NoChange({ isNarrow, path }: { isNarrow: boolean; path: string }) {
+  return (
+    <Pane
+      // No empty box of actions on wide screens: the title would make room for it.
+      actions={isNarrow ? <Back isNarrow /> : undefined}
+      title={path}
+      titleNode={<DetailTitle isPath text={path} />}
+      xstyle={[detailStyles.fills]}
+    >
+      <Text color="secondary">{path} has no change left.</Text>
+    </Pane>
+  );
+}
 
 /**
  * A diff's lines that change nothing, greyed so the added and removed ones stand out: a stylesheet,
@@ -44,6 +71,16 @@ const LANGUAGES: Readonly<Record<string, string>> = {
 };
 
 const languageOf = (path: string) => LANGUAGES[path.split(".").at(-1) ?? ""] ?? "text";
+
+/**
+ * A diff's text without its file header, `diff --git`, `index`, `--- a/`, and `+++ b/`, the lines
+ * before its first hunk: the pane's title names the file. The hunks are kept whole.
+ */
+export function withoutFileHeader(text: string): string {
+  const lines = text.split("\n");
+  const hunk = lines.findIndex((line) => line.startsWith("@@"));
+  return hunk <= 0 ? text : lines.slice(hunk).join("\n");
+}
 
 /** A size in bytes, "12 KB", as a binary file's diff says it. */
 export function size(bytes: number): string {
@@ -108,7 +145,7 @@ function DiffBody({
       <div data-git-diff="">
         <style>{CONTEXT_CSS}</style>
         <CodeBlock
-          code={diff.text}
+          code={withoutFileHeader(diff.text)}
           hasLineNumbers
           isDiff
           isWrapped
@@ -133,16 +170,25 @@ function DiffBody({
 }
 
 /** A commit's message and its files, each opening its diff. */
-function CommitDetail({ actions, id }: { actions: ReactNode; id: string }) {
+function CommitDetail({ actions, id }: { actions?: ReactNode; id: string }) {
   const here = useRepoPath();
   const { gitCommit } = useRequest({ gitCommit: { id, view: GitCommitView } });
   const commit = useLiveView(GitCommitView, gitCommit);
+  const now = useNow(60_000);
   if (!commit) {
     return null;
   }
   return (
-    <Pane actions={actions} title={commit.subject}>
+    <Pane
+      actions={actions}
+      title={commit.subject}
+      titleNode={<DetailTitle text={commit.subject} />}
+      xstyle={[detailStyles.fills]}
+    >
       <VStack gap={3}>
+        <Text color="secondary" hasTabularNumbers type="supporting">
+          {commit.id.slice(0, 7)} · {age(now - commit.authored * 1000)} ago
+        </Text>
         {commit.body && <Text display="block">{commit.body}</Text>}
         <VStack gap={1}>
           {commit.files.map((file) => (
@@ -178,7 +224,8 @@ export function Detail({
   /** The page's record of a changed file, its diff read again as it changes. */
   version?: string | undefined;
 }) {
-  const back = <Back isNarrow={isNarrow} />;
+  // Back on the phone alone: on wide screens an empty box of actions would take the title's room.
+  const back = isNarrow ? <Back isNarrow /> : undefined;
   if (picked.kind === "conflict") {
     return null;
   }
@@ -195,6 +242,8 @@ export function Detail({
         </HStack>
       }
       title={path}
+      titleNode={<DetailTitle isPath text={path} />}
+      xstyle={[detailStyles.fills]}
     >
       <DiffBody
         commit={picked.kind === "commit" ? picked.commit : null}

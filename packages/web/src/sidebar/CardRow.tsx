@@ -9,6 +9,7 @@ import { fontWeightVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { interactionOverlayStyles } from "@astryxdesign/core/utils/interactionOverlay.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { targetVars } from "../layout/target.stylex.ts";
 import { type MouseEvent, type PointerEvent, type ReactNode, useState } from "react";
 import { pickedStyles } from "../layout/picked.ts";
 import { RouterAnchor } from "../links.tsx";
@@ -41,6 +42,8 @@ const styles = stylex.create({
     display: "flex",
     flexGrow: 1,
     gap: spacingVars["--spacing-2"],
+    // A 24 px target on one line too, a third of a pixel past its text's line (WCAG 2.5.8).
+    minHeight: targetVars["--target-least"],
     minWidth: 0,
     textDecoration: "none",
   },

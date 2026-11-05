@@ -1,12 +1,12 @@
 // What a row can do, under its text, each with its key as the status line writes it: "⏎ edit",
-// "m move", "d delete". It shows under the row the keys or a click picked, and under a row's field
+// "m move", "d delete", each in a thin square frame, so a mouse sees what it can press. It shows under the row the keys or a click picked, and under a row's field
 // while it is edited, so a mouse and a finger reach what the keys do. A press keeps the focus where
 // it is, in the row or in its field. On the phone, where keys are no help, the bar floats at the
 // screen's bottom instead, over the keyboard when it shows, a big icon for each action over its
 // word, on frosted glass.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { barVars } from "../layout/bar.stylex.ts";
 import { listVars } from "./list.stylex.ts";
@@ -62,10 +62,22 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-3"],
     display: "flex",
     flexWrap: "wrap",
-    // A line's room above and below it.
-    paddingBlock: listVars["--list-row-room"],
+    // Two lines of actions keep their frames apart.
     position: "relative",
+    rowGap: spacingVars["--spacing-1"],
     zIndex: 2,
+  },
+  // An action, with the line's room above and below it in its own box rather than the bar's, so
+  // the bar stays as tall and each target is 24 px at least, as WCAG 2.5.8 asks of a pointer's.
+  // Framed by a 1px square line, drawn inside its box so the bar keeps its height, the line
+  // brighter under the pointer: it reads as pressable, as a terminal's button does, before any hover.
+  action: {
+    boxShadow: {
+      ":hover": `inset 0 0 0 ${borderVars["--border-width"]} ${colorVars["--color-border-emphasized"]}`,
+      default: `inset 0 0 0 ${borderVars["--border-width"]} ${colorVars["--color-border"]}`,
+    },
+    paddingBlock: listVars["--list-row-room"],
+    paddingInline: spacingVars["--spacing-1"],
   },
   // The phone's bar: liquid glass (`glassStyles`), square, floating over the page above the
   // screen's bottom, as wide as its actions.
@@ -286,11 +298,11 @@ export function RowBar({
     <div onMouseDown={keepFocus} {...stylex.props(styles.bar)}>
       {actions.map((action) => (
         <Text color="secondary" key={action.label} type="supporting">
-          {/* oxlint-disable-next-line react/forbid-elements -- an action pressed as its key is, drawn as the row's supporting text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
+          {/* oxlint-disable-next-line react/forbid-elements -- an action pressed as its key is, drawn as the row's supporting text in a 1px square frame, with no surface, which Astryx's Button, with its own height and surface, does not draw (an Astryx gap) */}
           <button
             onClick={pressed(action)}
             type="button"
-            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit, styles.action)}
           >
             <KeyCap>{action.keys}</KeyCap> {action.label}
           </button>

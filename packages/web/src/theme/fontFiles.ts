@@ -31,3 +31,5 @@ import "@fontsource/monaspace-krypton/500.css";
 import "@fontsource/monaspace-krypton/600.css";
 import "@fontsource/monaspace-krypton/700.css";
 import "@fontsource/monaspace-krypton/400-italic.css";
+// Monaspace again, its capitals centred in their line (`capsCentred.ts`).
+import "./capsCentred.ts";

@@ -27,6 +27,7 @@ import {
 } from "./WorkList.tsx";
 import { proposalFilePage } from "../readAhead.ts";
 import { useClean } from "../git/useClean.ts";
+import { useAddKey } from "./priorityAddKey.ts";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -36,6 +37,9 @@ const TONES: Record<string, Tone> = {
   next: "neutral",
   now: "blue",
 };
+
+/** A section's colour, as its pane's title has it: Now blue, Later grey, the rest neutral. */
+export const sectionTone = (section: string): Tone => TONES[section] ?? "neutral";
 
 /**
  * What a proposal's row draws of it besides its text: the icon of the step running on it, as the
@@ -256,7 +260,7 @@ function sectionsOf(
           : []),
       ],
       title,
-      tone: TONES[section.id] ?? "neutral",
+      tone: sectionTone(section.id),
     };
   });
   // "Ongoing" shows only when something runs.
@@ -436,6 +440,7 @@ export function PrioritiesList({
       onOpen={open}
       onOutline={outline.onOutline}
       onPromote={onPromote}
+      onSelected={useAddKey(all)}
       onStart={onStart}
       rowActions={[
         {

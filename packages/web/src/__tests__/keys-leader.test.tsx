@@ -174,19 +174,20 @@ test("the menu lists an entry whose guard holds at the focus, and not one whose 
   expect(ran).toEqual(["space b"]);
 });
 
-test("a pending g shows its menu at 300 ms, ends at 2 s, and then a is a again", () => {
+// Changed by the keyboard walkthrough of 2026-11-05: a shown menu waits for its key, as LazyVim's
+// which-key does, where it once ended at 2 s under the reader's eyes.
+// Break: a shown g menu ending on its own.
+test("a pending g shows its menu at 300 ms, and waits for its key past 2 s", () => {
   show();
   press("g");
   wait(299);
   expect(menu("g")).toBeNull();
   wait(1);
   expect(menu("g")).not.toBeNull();
-  wait(1700);
-  // Ended at 2 s, as its slide starts: `a` is the page's own again.
-  press("a");
-  expect(ran).toEqual(["a"]);
-  slid();
-  expect(menu("g")).toBeNull();
+  wait(5000);
+  expect(menu("g")).not.toBeNull();
+  press("i");
+  expect(ran).toEqual(["g i"]);
 });
 
 test("g then i runs g i, and g then a key no g sequence uses runs nothing", () => {

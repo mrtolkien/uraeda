@@ -11,6 +11,7 @@ import { useFateClient } from "react-fate";
 import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { useNow } from "../useNow.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { gitAddress } from "./address.ts";
 import {
   GIT_PAGE_REQUEST,
@@ -18,7 +19,7 @@ import {
   GitHistoryPageView,
   type GitPageData,
 } from "./data.ts";
-import { Row } from "./Row.tsx";
+import { Row, rowStyles, useRowLines } from "./Row.tsx";
 
 /** The key of a commit's row among the list's rows. */
 export const historyKey = (id: string) => `h:${id}`;
@@ -100,6 +101,10 @@ export function History({
 }) {
   const here = useRepoPath();
   const now = useNow(60_000);
+  const lines = useRowLines();
+  // Beside the detail, the narrow column keeps a row's room for its subject, as lazygit's list
+  // does: its age shows in the commit's detail. The phone's head line has the room.
+  const hasAge = isNarrow(useWidthClass());
   if (commits.length === 0) {
     return null;
   }
@@ -114,7 +119,8 @@ export function History({
               end={
                 <Text color="secondary" hasTabularNumbers type="supporting">
                   {mark ? `${mark} ` : ""}
-                  {commit.short} · {age(now - commit.authored * 1000)}
+                  {commit.short}
+                  {hasAge && ` · ${age(now - commit.authored * 1000)}`}
                 </Text>
               }
               isPicked={cursor === key}
@@ -122,7 +128,11 @@ export function History({
               onPick={() => onPick(key)}
               rowKey={key}
             >
-              <Link href={here(gitAddress({ commit: commit.id, kind: "commit" }))}>
+              <Link
+                href={here(gitAddress({ commit: commit.id, kind: "commit" }))}
+                maxLines={lines}
+                xstyle={rowStyles.oneLine}
+              >
                 {commit.subject}
               </Link>
             </Row>

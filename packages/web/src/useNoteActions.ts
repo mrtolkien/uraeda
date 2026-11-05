@@ -13,6 +13,7 @@ import { notePutBack, notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
 import { InboxView, PrioritiesView, ProposalFileView } from "./views.ts";
+import { waitsOnGit } from "./writes/labels.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
@@ -118,7 +119,7 @@ function useMovesOut(
     const proposalKey = result.result?.sections
       .find((s) => s.section === section)
       ?.proposals.at(-1)?.key;
-    toast(`Moved to ${TITLES.get(section)}, not committed`, async () =>
+    toast(waitsOnGit(`Moved to ${TITLES.get(section)}`), async () =>
       undone(
         fate,
         fate.mutations.inbox.undoToProposal({
@@ -156,7 +157,7 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    toast(`Moved under "${shortened(line.text)}", not committed`, async () =>
+    toast(waitsOnGit(`Moved under "${shortened(line.text)}"`), async () =>
       undone(
         fate,
         fate.mutations.inbox.undoUnderProposal({
@@ -201,7 +202,7 @@ function useAddsIn(
       return;
     }
     const path = (result.result as { path?: string } | undefined)?.path ?? file;
-    toast(`Added to ${shortened(title)}, not committed`, async () =>
+    toast(waitsOnGit(`Added to ${shortened(title)}`), async () =>
       undone(
         fate,
         fate.mutations.inbox.undoIntoProposal({

@@ -17,6 +17,7 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
+import { targetVars } from "../layout/target.stylex.ts";
 import { listVars } from "./list.stylex.ts";
 import {
   type ComponentProps,
@@ -28,6 +29,7 @@ import {
 } from "react";
 import type { ConfirmOptions } from "../fields/Confirm.tsx";
 import { pickedStyles } from "../layout/picked.ts";
+import { isPointerMoved } from "../pointerMoved.ts";
 import type { PageRequest } from "../readAhead.ts";
 import { type BarAction, RowBar } from "./RowBar.tsx";
 
@@ -193,6 +195,8 @@ const styles = stylex.create({
   stretched: {
     "::after": { content: '""', inset: 0, position: "absolute" },
     color: "inherit",
+    // A 24 px target on one line too, a third of a pixel past its text's line (WCAG 2.5.8).
+    minHeight: targetVars["--target-least"],
     // No ring of its own around the text: the card's frame draws the focus ring, and a second one,
     // as wide as the text, showed as bars inside a selected card.
     outlineStyle: { ":focus-visible": "none", default: null },
@@ -275,7 +279,7 @@ function pointerOf(row: WorkRow, { onHover }: RowEvents) {
   return {
     // A row scrolled under a still pointer takes nothing.
     onPointerMove: (event: PointerEvent) => {
-      if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
+      if (isPointerMoved(event)) {
         onHover?.(row);
       }
     },

@@ -6,6 +6,7 @@ import { Sheet } from "./Sheet.tsx";
 import { useBackCloses } from "./useBackCloses.ts";
 import { useFieldFocus } from "./useFieldFocus.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
+import { scrimStyles } from "./scrim.ts";
 
 const styles = stylex.create({
   // The dialog's content, laid out by the dialog: a box only to find its field in.
@@ -90,6 +91,7 @@ export function Overlay({
         padding={4}
         purpose={purpose}
         width={size?.width}
+        xstyle={scrimStyles.unblurred}
       >
         <DialogHeader hasDivider={false} onOpenChange={onOpenChange} title={label} />
         <div ref={body} {...stylex.props(styles.body)}>

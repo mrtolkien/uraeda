@@ -3,7 +3,7 @@
 // so its history entry and its focus return are the picker's own. Its dialog shows at once,
 // "Loading…" until its records are read, and a read that fails closes it with a toast: the read
 // never suspends, so neither a wait nor an error takes the page with it.
-import { useToast } from "@astryxdesign/core/Toast";
+import { useTimedToast } from "../layout/useTimedToast.tsx";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { navigateHere } from "../routes.tsx";
 import { KeyPicker } from "./KeyPicker.tsx";
@@ -19,7 +19,7 @@ const FAILED = "Could not load the list to search.";
 /** Draws the picker the shell's keys opened; mounted once, in the shell. */
 export function KeyPickerHost() {
   const { isOpen, kind, opening } = usePickerState();
-  const showToast = useToast();
+  const showToast = useTimedToast();
   // The page it was opened on goes, and the picker with it.
   useEffect(() => resetPicker, []);
   const read = usePickerItems(kind ?? "all", kind !== null);

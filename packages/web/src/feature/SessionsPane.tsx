@@ -16,7 +16,7 @@ import { useAgent } from "../data.ts";
 import { progressText, stepLabel } from "../labels.ts";
 import { Pane } from "../layout/Pane.tsx";
 import { KeyPicker } from "../keys/KeyPicker.tsx";
-import type { PickerItem } from "../keys/pickerSources.ts";
+import { type PickerItem, textPreview } from "../keys/pickerSources.ts";
 import { useKeys } from "../keys/registry.tsx";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation, useSession, useTurn } from "../sessionData.ts";
@@ -169,7 +169,7 @@ function useSessionKeys(
         id: path,
         kind: "sessions",
         path,
-        preview: [label, started].join("\n"),
+        preview: textPreview(label, started),
         title: `${started} · ${label}`,
       },
     ];

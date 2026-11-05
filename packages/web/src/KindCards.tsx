@@ -1,10 +1,11 @@
 // The New page's three kinds, Session, Change, and Feature, as cards: each a titled pane with its
-// icon and a drawing of what it starts (`KindArt.tsx`), so that a card looks like what it is (US5);
-// its one sentence is for screen readers. The cards are a group of radios, with the radios' keys. An Astryx gap
+// icon, a short plain line of what it is for, and a drawing of what it starts (`KindArt.tsx`), so
+// that a card looks like what it is (US5); its one sentence is for screen readers. The cards are a group of radios, with the radios' keys. An Astryx gap
 // (plan, Complexity tracking; R12): `SelectableCard` is a checkbox and `RadioList` draws round
 // radios, which approval comment C3 forbids, so the group is drawn by the page, each card a raw
 // element holding the shared `Pane`.
 import { Icon } from "@astryxdesign/core/Icon";
+import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
@@ -61,6 +62,8 @@ type Kind = {
   /** The key that picks the card, a mnemonic of its name. */
   key: "c" | "f" | "s";
   kind: NewKind;
+  /** What it is for, in a few plain words, under its name: so a newcomer can tell which fits. */
+  line: string;
   name: string;
   sentence: string;
 };
@@ -71,6 +74,7 @@ const KINDS: Array<Kind> = [
     icon: "uraeda:bot",
     key: "s",
     kind: "session",
+    line: "Ask or explore",
     name: "Session",
     sentence: "A plain chat with the agent.",
   },
@@ -78,6 +82,7 @@ const KINDS: Array<Kind> = [
     icon: "uraeda:wrench",
     key: "c",
     kind: "change",
+    line: "Fix or adjust",
     name: "Change",
     sentence: "A message in, a pull request out.",
   },
@@ -85,10 +90,59 @@ const KINDS: Array<Kind> = [
     icon: "uraeda:file-text",
     key: "f",
     kind: "feature",
+    line: "Plan something new",
     name: "Feature",
     sentence: "Questions, a spec you review, then a pull request.",
   },
 ];
+
+/**
+ * What a card shows: on the phone once a card is picked, its icon and name alone; else its pane,
+ * its line of what it is for, and its drawing. Its line and sentence, hidden, are its description,
+ * `description` its id: a radio's content is presentational.
+ */
+function CardFace({
+  card,
+  description,
+  isCompact,
+  isPicked,
+}: {
+  card: Kind;
+  description: string;
+  isCompact: boolean;
+  isPicked: boolean;
+}) {
+  const described = (
+    <VisuallyHidden id={description}>{`${card.line}. ${card.sentence}`}</VisuallyHidden>
+  );
+  return isCompact ? (
+    <div {...stylex.props(styles.chip, isPicked && styles.chipPicked)}>
+      <Icon icon={isPicked ? "check" : card.icon} size="sm" />
+      {card.name}
+      {described}
+    </div>
+  ) : (
+    // Picked: the accent's frame, a tint, and a check after its name, which a glance tells from the
+    // composer's ring under it.
+    <Pane
+      icon={card.icon}
+      isActive={isPicked}
+      isGroup
+      isTinted={isPicked}
+      title={card.name}
+      titleSuffix={isPicked ? <Icon icon="check" size="sm" /> : undefined}
+    >
+      <div {...stylex.props(styles.body)}>
+        {/* What it is for, in plain words; the drawing shows what it does. */}
+        <Text aria-hidden="true" color="secondary" display="block">
+          {card.line}
+        </Text>
+        <KindArt kind={card.kind} />
+        {described}
+      </div>
+    </Pane>
+  );
+}
 
 /** The index the keys move to from `index`, wrapping at the ends, or none for another key. */
 function moved(key: string, index: number): number | undefined {
@@ -170,8 +224,8 @@ export function KindCards({
         return (
           <div
             aria-checked={isPicked}
-            // A radio's content is presentational: its name is the card's, and its body, the
-            // sentence, is read as its description; the drawing is for the eye.
+            // A radio's content is presentational: its name is the card's, and its line and
+            // sentence are read as its description; the drawing is for the eye.
             aria-describedby={`${bodies}-${card.kind}`}
             aria-label={card.name}
             key={card.kind}
@@ -185,30 +239,12 @@ export function KindCards({
             tabIndex={isPicked || (kind === undefined && index === 0) ? 0 : -1}
             {...stylex.props(styles.card, focusOutlineStyles.focusVisible)}
           >
-            {compact ? (
-              <div {...stylex.props(styles.chip, isPicked && styles.chipPicked)}>
-                <Icon icon={isPicked ? "check" : card.icon} size="sm" />
-                {card.name}
-                <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
-              </div>
-            ) : (
-              // Picked: the accent's frame, a tint, and a check after its name, which a glance
-              // tells from the composer's ring under it.
-              <Pane
-                icon={card.icon}
-                isActive={isPicked}
-                isGroup
-                isTinted={isPicked}
-                title={card.name}
-                titleSuffix={isPicked ? <Icon icon="check" size="sm" /> : undefined}
-              >
-                <div {...stylex.props(styles.body)}>
-                  {/* The drawing says what it is; the sentence is for screen readers. */}
-                  <KindArt kind={card.kind} />
-                  <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
-                </div>
-              </Pane>
-            )}
+            <CardFace
+              card={card}
+              description={`${bodies}-${card.kind}`}
+              isCompact={compact}
+              isPicked={isPicked}
+            />
           </div>
         );
       })}

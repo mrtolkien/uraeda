@@ -59,7 +59,8 @@ export type GitActions = {
 
 /**
  * The page's keys over `rows`, `cursor` the selected row's key, `setCursor` what moves it. `main`
- * is the group `a` and `c` act on when the selection is in no group.
+ * is the group `a` and `c` act on when the selection is in no group. Returns the list's ref, and
+ * what focuses the selected row, where Space stages.
  */
 export function useGitKeys({
   actions,
@@ -77,7 +78,7 @@ export function useGitKeys({
   const selected = rows.findIndex((row) => row.key === cursor);
   const current = rows[selected];
   const group = current?.kind === "tree" ? current.group : main;
-  const { ref } = useListKeys({
+  const { focusSelected, ref } = useListKeys({
     escapeLabel: null,
     keys: rows.map((row) => row.key),
     onClose: () => false,
@@ -111,7 +112,8 @@ export function useGitKeys({
     { hint: "p", keys: "p", label: "pull", run: actions.pull },
     { hint: "P", keys: "P", label: "push", run: actions.push },
     { keys: "f", label: "fetch", run: actions.fetch },
-    ...(group
+    // Nothing to stage or commit names no key: the line shows what can be done.
+    ...(group && group.files.length > 0
       ? [
           { hint: "a", keys: "a", label: "stage all", run: () => actions.stageAll(group) },
           { hint: "c", keys: "c", label: "commit", run: () => actions.commit(group) },
@@ -119,5 +121,5 @@ export function useGitKeys({
       : []),
     { keys: "M", label: "merge", run: actions.merge },
   ]);
-  return ref;
+  return { focusSelected, ref };
 }

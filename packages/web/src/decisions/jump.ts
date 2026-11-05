@@ -4,7 +4,7 @@
 import type { Ledger } from "uraeda-server/fate";
 import { type LedgerPrinciple, rulesOf } from "./ConstitutionRegion.tsx";
 import { DESTINATIONS } from "../destinations.ts";
-import type { PickerItem } from "../keys/pickerSources.ts";
+import { markdownPreview, type PickerItem } from "../keys/pickerSources.ts";
 import type { LedgerDecision } from "./model.ts";
 import { decisionIcon } from "../theme/icons.ts";
 import { plain } from "../Spans.tsx";
@@ -137,7 +137,7 @@ export function pickerItemOf(entry: JumpEntry): PickerItem {
     kind: "decisions",
     mark: entry.kind === "principle" ? entry.principle.number : undefined,
     path: entry.path,
-    preview: entry.preview,
+    preview: markdownPreview(entry.preview),
     summary: entry.summary,
     title: entry.title,
   };

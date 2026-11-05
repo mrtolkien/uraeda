@@ -6,10 +6,11 @@
 >
 > Still wanted for my personal usage
 
+- j -> gj in nvim. Simpler.
 - Review the UI guidelines properly
 
 - Global undo
-- Keyboard nav in questions and specs
+- [Keyboard nav in questions and specs](/specs/proposals/keyboard-nav-in-questions-and-specs.md)
 
 ## Next
 

@@ -116,8 +116,8 @@ test("on the phone, the priorities are one column until the columns are picked",
   atWidth(402);
   await renderPage("/priorities", fixtureRepo());
   await screen.findByRole("heading", { name: "Priorities" });
-  const table = await screen.findByRole("radio", { name: "Table" });
-  expect(table.getAttribute("aria-checked")).toBe("true");
+  const list = await screen.findByRole("radio", { name: "List" });
+  expect(list.getAttribute("aria-checked")).toBe("true");
   expect(screen.queryByRole("region", { name: "Columns" })).toBeNull();
 
   await act(async () => {

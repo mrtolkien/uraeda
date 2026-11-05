@@ -5,11 +5,11 @@
 // proposal without a file gets its file first.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
-import { atRepo, atWidth, fieldText, fixtureRepo, read, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, fieldText, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const INBOX = `# Inbox
 
@@ -69,6 +69,37 @@ test("p on a note offers the levels, a proposal to go under, and a proposal's fi
   }
 });
 
+/** The picker's preview, beside its list. */
+const preview = () => screen.getByRole("region", { name: "Preview" });
+
+/** The part of the preview where the note lands, highlighted. */
+const landing = () =>
+  preview().querySelector("[aria-current='true'], [data-here]") as HTMLElement | null;
+
+// Break: a preview drawn as raw markdown again, `## Now` and the mark "← here", or the note's place
+// no longer highlighted.
+test("the picker previews a level as the priorities draw it, the note's place highlighted", async () => {
+  await promoting("Loose note");
+
+  await waitFor(() => expect(within(preview()).getByRole("heading", { name: /^Now/ })));
+  expect(preview().textContent).not.toMatch(/##|← here|\]\(/);
+  await waitFor(() => expect(landing()?.textContent).toContain("Loose note"));
+});
+
+// Break: a proposal's file previewed as its raw text, or the note not highlighted in it.
+test("the picker previews a proposal's file rendered, the note highlighted where it lands", async () => {
+  await promoting("Loose note");
+  const field = screen.getByRole("combobox", { name: "Promote the note" });
+  await act(async () => {
+    field.focus();
+  });
+  await type(field, "Git listener");
+
+  await waitFor(() => expect(landing()?.textContent).toContain("Loose note"));
+  expect(landing()?.querySelector("li")).not.toBeNull();
+  expect(preview().textContent).not.toMatch(/^#|\n## /);
+});
+
 test("p on a note with a note file offers every proposal, and a level moves its file as a proposal's", async () => {
   const repo = await promoting("Dark mode");
 
@@ -104,8 +135,9 @@ test("p on a note with a note file offers every proposal, and a level moves its 
     );
     expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
   });
-  // The move ends on its toast, once its line is read back: the test ends after it.
-  await screen.findByText(/Moved to Later/);
+  // The move ends on its toast, once its line is read back, in plain words, no git's: the test ends
+  // after it.
+  await screen.findByText("Moved to Later · waits on the Git page");
 });
 
 test("a note with a note file added to a proposal's file goes into its Notes, and Undo puts it back", async () => {

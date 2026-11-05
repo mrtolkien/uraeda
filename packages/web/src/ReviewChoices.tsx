@@ -1,5 +1,7 @@
+import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
+import { Text } from "@astryxdesign/core/Text";
 import type { SpecItems } from "uraeda-binding";
 
 /** What the choices read of a spec: its risk tier, and the tiers it offers. */
@@ -38,15 +40,22 @@ export function ReviewChoices({
     planReview ?? spec?.tiers.find((choice) => choice.value === tier)?.planReview ?? false;
   return (
     <>
-      <SegmentedControl
-        label="Risk tier"
-        onChange={(value: string) => onChange({ planReview, tier: value })}
-        value={tier}
-      >
-        {spec?.tiers.map((choice) => (
-          <SegmentedControlItem key={choice.value} label={choice.value} value={choice.value} />
-        ))}
-      </SegmentedControl>
+      {/* Its name written before it, as the switch's is beside it: Astryx's control shows none,
+          and "low medium high" alone does not say what it sets. */}
+      <HStack align="center" gap={3} wrap="wrap">
+        <Text aria-hidden type="supporting">
+          Risk tier
+        </Text>
+        <SegmentedControl
+          label="Risk tier"
+          onChange={(value: string) => onChange({ planReview, tier: value })}
+          value={tier}
+        >
+          {spec?.tiers.map((choice) => (
+            <SegmentedControlItem key={choice.value} label={choice.value} value={choice.value} />
+          ))}
+        </SegmentedControl>
+      </HStack>
       <Switch
         label="The plan waits for your review"
         onChange={(checked: boolean) => onChange({ planReview: checked, tier })}
