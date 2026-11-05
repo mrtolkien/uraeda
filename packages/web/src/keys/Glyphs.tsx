@@ -44,3 +44,28 @@ export const BackGlyph = () => (
     <path d="m14 9.5-4 5" />
   </Glyph>
 );
+
+/** The arrows' strokes, on a 16-unit-wide box: a shaft and a head, all of one length. */
+const ARROWS = {
+  "←": { label: "Left arrow", path: "M14 12H2m5-5-5 5 5 5" },
+  "→": { label: "Right arrow", path: "M2 12h12m-5-5 5 5-5 5" },
+  "↑": { label: "Up arrow", path: "M8 20V4M3 9l5-5 5 5" },
+  "↓": { label: "Down arrow", path: "M8 4v16m-5-5 5 5 5-5" },
+} as const;
+
+/** Whether `key` is an arrow drawn by `ArrowGlyph`. */
+export const isArrow = (key: unknown): key is keyof typeof ARROWS =>
+  typeof key === "string" && key in ARROWS;
+
+/**
+ * An arrow key, drawn: the fonts' arrows differ in size, the up and down ones a letter tall, the left
+ * and right ones a small mark, so the four are drawn alike, each a letter's size.
+ */
+export function ArrowGlyph({ arrow }: { arrow: keyof typeof ARROWS }) {
+  const { label, path } = ARROWS[arrow];
+  return (
+    <Glyph label={label} width={16}>
+      <path d={path} />
+    </Glyph>
+  );
+}

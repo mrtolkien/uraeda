@@ -6,7 +6,8 @@ import type { ItemMove } from "./useListKeys.ts";
 
 /**
  * The bar of the row in the move mode: its keys, which move it, and the one that ends it, `onDone`.
- * A press on one moves it too. In columns, the sideways keys go to the next column; one under the
+ * A press on one moves it too. The bar names the arrows, which anyone knows; Vim's `k j h l` move it
+ * as well. In columns, the sideways keys go to the next column; one under the
  * other, to the next section.
  */
 export function moveBarOf(
@@ -30,12 +31,12 @@ export function moveBarOf(
   };
   const across = asColumns ? "column" : "section";
   return [
-    { keys: "k", label: "up", run: step("up") },
-    { keys: "j", label: "down", run: step("down") },
+    { keys: "↑", label: "up", run: step("up") },
+    { keys: "↓", label: "down", run: step("down") },
     ...(row.parent === undefined
       ? [
-          { keys: "h", label: `previous ${across}`, run: step("left") },
-          { keys: "l", label: `next ${across}`, run: step("right") },
+          { keys: "←", label: `previous ${across}`, run: step("left") },
+          { keys: "→", label: `next ${across}`, run: step("right") },
         ]
       : []),
     { keys: "⏎", label: "done", run: onDone },
