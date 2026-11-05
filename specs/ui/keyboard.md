@@ -33,9 +33,9 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                               | Every field of several lines          |
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
-for its sessions, the inbox's `c` to move a note to a category and `p` to promote it, the
-priorities' `e` to expand a proposal into a file, `c` to clean a merged one, and `v` to switch
-between columns and a list. A page never gives a base key another meaning.
+for its sessions, a review's `n` for its verdict, the inbox's `c` to move a note to a category and
+`p` to promote it, the priorities' `e` to expand a proposal into a file, `c` to clean a merged one,
+and `v` to switch between columns and a list. A page never gives a base key another meaning.
 
 ## In a field
 
@@ -55,6 +55,8 @@ Every text field is one editor, with keys of its own that the page never hears.
   from any mode. `Enter` in normal mode saves a row, and moves down a line in a field of several
   lines. In a picker's filter, as in LazyVim's picker, `j` and `k` in normal mode move the
   highlighted row and `Enter` opens it; `Escape` in normal mode closes the picker.
+- **A picker's filter** moves its highlighted row with `Ctrl+J` and `Ctrl+K` too, Vim mode or not,
+  as LazyVim's picker does, besides the arrows.
 - **Vim's commands** work in every field: `:w` is the field's `Ctrl+Enter`, `:q` its `Escape`, and
   `:wq` both. A yank also reaches the system clipboard; a delete never replaces what was copied.
 - **Touch screens** have no Vim: on a phone, or wherever the main pointer is a finger, fields type
@@ -90,13 +92,14 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   shared confirmation focuses Cancel, so that Enter changes nothing.
 - `Escape` gives the focus back where it was before the layer opened.
 - A page that starts something opens with the focus in its text field: the New page in the picked
-  kind's composer, and again after `s c f` pick a card, and a feature's New session in its composer.
+  kind's composer, and again after `s c f` pick a card, a feature's New session in its composer, and
+  on a keyboard's screen, the session a hand-over opens, the workflow's message waiting for `Enter`.
   `Escape` gives the page its keys back. Back to a New page scrolled down its entries keeps its
   place instead.
 - After an action that sends the human somewhere, they land there, with the result selected: a note
   promoted to the priorities opens the priorities at that line.
 - A page with a list opens with a row selected: the first of its first section, or the one the
-  address names.
+  address names. Where Space is the row's own, as a Git page's box, the row also has the focus.
 
 ## What shows the keys
 
@@ -130,4 +133,5 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
 Keys answer at once. A move, an edit, or a reorder shows its result immediately and writes behind it
 ("make everything optimistic and changes async"); a refused write puts it back and says why where it
 happened. The leader menu waits a moment before showing (300 ms), so a quick sequence never flashes
-it, and slides in when it does.
+it, and slides in when it does. Once shown, a menu waits for its key, a `g`'s as Space's, as
+LazyVim's which-key does: it never closes under the human reading it.
