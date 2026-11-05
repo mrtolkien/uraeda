@@ -96,7 +96,11 @@ page, so the human chose the lighter glass for every surface
 ([the key map's round](/specs/done/2026-10-29-help-keybindings.md#q1-how-should-the-key-map-look-in-the-light-theme)).
 A glass that holds the focus on a wide screen, the key map, dims the page under it lightly
 (`--glass-dim`), not as Astryx's dialogs do, which turns the glass grey; the phone's sheets keep
-their dim. A new floating surface uses those styles, never a second glass. Not the gradients of
-early 2010s mobile interfaces: "just a bit square… extremely blurred". Glass marks what floats over
-the page; it is not a background for panes. Nothing on glass is a filled block, not even the main
-action: an action stands out by its icon in the accent.
+their dim. Glass blurs its own box, never the whole window: a dialog, a picker, the key map, and an
+image's lightbox dim the page behind them without blurring it (`layout/scrim.ts`), as a terminal's
+popup does. A blur over the whole window is drawn again on every frame the dialog changes, and cost
+about 45 ms per key typed in a dialog's field ("performance is very important"). A new floating
+surface uses those styles, never a second glass. Not the gradients of early 2010s mobile interfaces:
+"just a bit square… extremely blurred". Glass marks what floats over the page; it is not a
+background for panes. Nothing on glass is a filled block, not even the main action: an action stands
+out by its icon in the accent.
