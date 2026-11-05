@@ -1,12 +1,17 @@
-// What the key picker lists: one source per kind of thing, each item with its address and its raw
-// markdown preview. The picker reads only what its kind needs, in one request, once it is opened
+// What the key picker lists: one source per kind of thing, each item with its address and its
+// preview, drawn as the app draws that content (`PickerPreview.tsx`). The picker reads only what its kind needs, in one request, once it is opened
 // (never while closed, so no page waits on it); a feature's and a change's proposal comes in one
 // more request after the list, as a batch of the files, and joins the previews when it arrives.
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useFateClient, useLiveView, view, type ViewRef } from "react-fate";
+import type { Span } from "uraeda-binding";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
 import { isPending } from "../lists/outline.ts";
+import { lookOf, sectionTone } from "../lists/PrioritiesList.tsx";
+import type { Tone } from "../lists/workSection.ts";
+import { titleOf } from "../QuickAdd.tsx";
+import { plain } from "../Spans.tsx";
 import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
@@ -25,8 +30,6 @@ export type PickerItem = {
    * its step's for a feature, and its status's mark, the agent's at work on it, as the card does.
    */
   card?: CardItem;
-  /** The font its preview is written in, a font's in the font picker; the code's otherwise. */
-  family?: string;
   icon: IconName;
   /** An address, which the kind's page is at: unique among the items. */
   id: string;
@@ -35,12 +38,86 @@ export type PickerItem = {
   mark?: string;
   /** Where Enter goes, from the repository's top level. */
   path: string;
-  /** The raw markdown shown beside the list. */
-  preview: string;
+  /** What shows beside the list, drawn as the app draws it (`PickerPreview.tsx`). */
+  preview: PickerPreview;
   /** A first sentence, which a search reads after the title. */
   summary?: string | null;
   title: string;
 };
+
+/**
+ * A row of an outline's preview, as a list of the priorities or the inbox draws it: its text, its
+ * depth under its line (0 for a line), the icon in the place of its bullet, whether its text is a
+ * link, as a proposal's file, and whether it is where a pick lands, highlighted.
+ */
+export type PreviewRow = {
+  depth: number;
+  icon?: IconName;
+  isHere?: boolean;
+  isLinked?: boolean;
+  /** Small text after its own, as "Merged". */
+  marks?: string;
+  text: string;
+};
+
+/**
+ * What a picker's item previews, beside the list on wide screens, drawn by one renderer:
+ * - `markdown`: a document, rendered as a page draws it, its frontmatter left out; its parts are
+ *   drawn one after the other, a part `isHere` highlighted, as where a pick lands in a file;
+ * - `outline`: a section of a list, as its page draws it, its pane titled, its rows bulleted;
+ * - `text`: plain lines in the UI's font, or in `family`, as a font's sample.
+ */
+export type PickerPreview =
+  | { kind: "markdown"; parts: ReadonlyArray<{ isHere?: boolean; text: string }> }
+  | {
+      kind: "outline";
+      rows: ReadonlyArray<PreviewRow>;
+      title: string;
+      /** The colour of its pane's title, as its page's. */
+      tone?: Tone;
+    }
+  | { family?: string; kind: "text"; lines: ReadonlyArray<string> };
+
+/** A document's preview, as one part. */
+export const markdownPreview = (text: string): PickerPreview => ({
+  kind: "markdown",
+  parts: [{ text }],
+});
+
+/** A preview of plain lines. */
+export const textPreview = (...lines: ReadonlyArray<string>): PickerPreview => ({
+  kind: "text",
+  lines,
+});
+
+/** An item of a list with its nested items: a note of the inbox, a proposal of the priorities. */
+type Nesting = {
+  children: ReadonlyArray<{ depth: number; spans: ReadonlyArray<Span> }>;
+  spans: ReadonlyArray<Span>;
+};
+
+/**
+ * An item and its nested items as the preview's rows, as its list draws them: its words, its links'
+ * text without their targets. `look` is what its row draws besides, as a proposal's file's icon;
+ * `depth` sets the whole item in, as a note promoted under a proposal.
+ */
+export function itemRows(
+  item: Nesting,
+  {
+    depth = 0,
+    isHere = false,
+    look = {},
+  }: {
+    depth?: number;
+    isHere?: boolean;
+    look?: Pick<PreviewRow, "icon" | "isLinked" | "marks">;
+  } = {},
+): Array<PreviewRow> {
+  return [
+    { depth, text: plain(item.spans), ...look, ...(isHere ? { isHere } : {}) },
+    ...item.children.map((child) => ({ depth: depth + child.depth, text: plain(child.spans) })),
+  ];
+}
 
 /** A proposal's text alone: the picker's previews do not need the rest of the file. */
 const ProposalTextView = view<WorkflowFile>()({
@@ -166,12 +243,19 @@ function featureItems(
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",
       path: `/f/${encodeURIComponent(feature.folder)}`,
-      preview:
-        proposals.texts.get(feature.folder) ??
-        (proposals.failed.has(feature.folder) ? PROPOSAL_FAILED : ""),
+      preview: previewOfProposal(proposals, feature.folder),
       title: feature.title,
     };
   });
+}
+
+/** A feature's or a change's preview: its proposal, rendered, once read. */
+function previewOfProposal(proposals: Proposals, folder: string): PickerPreview {
+  const text = proposals.texts.get(folder);
+  if (text !== undefined) {
+    return markdownPreview(text);
+  }
+  return proposals.failed.has(folder) ? textPreview(PROPOSAL_FAILED) : textPreview();
 }
 
 /**
@@ -194,7 +278,7 @@ function sessionItems(
         id: sessionIdPath(row.id),
         kind: "sessions",
         path: sessionIdPath(row.id),
-        preview: [row.title, state, branch ?? "no branch"].join("\n"),
+        preview: textPreview(row.title, state, branch ?? "no branch"),
         title: row.title,
       };
     },
@@ -270,7 +354,11 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
           id: `/inbox/${encodeURIComponent(note.key)}`,
           kind: "notes",
           path: `/inbox/${encodeURIComponent(note.key)}`,
-          preview: note.text,
+          preview: {
+            kind: "outline",
+            rows: itemRows(note),
+            title: category.name ?? "No category",
+          },
           title: note.text,
         })),
     ),
@@ -282,7 +370,12 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
           id: `/priorities/${encodeURIComponent(proposal.key)}`,
           kind: "priorities",
           path: `/priorities/${encodeURIComponent(proposal.key)}`,
-          preview: proposal.lines.join("\n"),
+          preview: {
+            kind: "outline",
+            rows: itemRows(proposal, { look: lookOf(proposal) }),
+            title: titleOf(section.section),
+            tone: sectionTone(section.section),
+          },
           title: proposal.text,
         })),
     ),
