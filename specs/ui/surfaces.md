@@ -159,7 +159,10 @@ today.
   width. The texts between its calls are context, in the secondary colour: "The in-turn responses
   are interesting context but not actual info."
 - **The agent's text is at the reading measure**, about 80 characters a line, not the page's width.
-- **The human's sent messages** are on a faint blue, in their own font (Neon by default).
+- **The human's sent messages** are on a faint blue, in the markdown prose font (Neon by default),
+  their code and headings in their own fonts, as the editor drew them.
+- **The agent's text is in the markdown prose font** too, at that font's measure, not in the reading
+  font of documents.
 - **Jump to the latest** goes to the start of the agent's last message, where its reply reads from;
   while the session works, to its end, following it. On wide screens, a small arrow at the window's
   foot, over the composer's top at the end; on the phone, the bottom bar's ↓ alone.
