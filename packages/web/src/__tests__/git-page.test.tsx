@@ -11,6 +11,7 @@ import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
   atRepo,
+  atWidth,
   click,
   fieldText,
   fixtureRepo,
@@ -250,4 +251,20 @@ test("a working tree's diff reads the file afresh, open and opened again", async
   await act(async () => navigate(atRepo("/git?file=docs/web-ui.md")));
 
   await waitFor(() => shows("And the work."));
+});
+
+// Break: "Enter commits what is staged, Shift+Enter adds a line" on a phone, whose keyboard has no
+// Shift+Enter, and where no key is hinted (T3).
+test("on the phone, the message hints no key", async () => {
+  const repo = fixtureRepo();
+  write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
+  atWidth(402);
+  try {
+    await renderPage("/git", repo);
+    await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
+    await refreshUntil(() => expect(fieldText(message())).toBe("chore: add Global undo"));
+    expect(screen.queryByText(/commits what is staged/)).toBeNull();
+  } finally {
+    atWidth(1440);
+  }
 });
