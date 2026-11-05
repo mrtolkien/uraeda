@@ -1,11 +1,16 @@
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { useMemo } from "react";
 import type { ChatImage } from "uraeda-server/fate";
 import { ImageView } from "./ImageView.tsx";
 import { useRepository } from "./routes.tsx";
+import { fontRuns } from "./fields/editor/markdown.ts";
 import { chatImageSrc } from "./sessions.ts";
 
 const styles = stylex.create({
+  // Markdown's code and headings, in the fonts the editor wrote them in (`fields/editor/markdown.ts`).
+  code: { fontFamily: "var(--font-family-code)" },
+  heading: { fontFamily: "var(--font-family-heading)" },
   images: {
     // A message's images, above its text, side by side while they fit.
     display: "flex",
@@ -37,6 +42,21 @@ const styles = stylex.create({
     opacity: 0.6,
   },
 });
+
+/** A message's text, its code and headings in their fonts, as the editor drew it. */
+function MessageText({ text }: { text: string }) {
+  const runs = useMemo(() => fontRuns(text), [text]);
+  return runs.map(({ font, text: part }, index) =>
+    font ? (
+      // The runs never move: their place is their key.
+      <span data-font={font} key={index} {...stylex.props(styles[font])}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
 
 /**
  * A chat message's images, each a preview that opens full screen, told apart by their place: one
@@ -84,7 +104,9 @@ export function MessageBody({
         </div>
       )}
       {item.text !== "" && (
-        <span {...stylex.props(styles.message, pending && styles.pending)}>{item.text}</span>
+        <span {...stylex.props(styles.message, pending && styles.pending)}>
+          <MessageText text={item.text} />
+        </span>
       )}
     </>
   );
