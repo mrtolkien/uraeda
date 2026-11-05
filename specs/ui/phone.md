@@ -136,7 +136,8 @@ focus to its composer, its send button in view: "new -> pick -> composer".
 
 ## Touch
 
-- Every target is a thumb's size, 44 px at least.
+- Every target is a thumb's size, 44 px at least. A one-line field is 44 px tall on a touch screen,
+  frame included, as Astryx's controls there, its text in its middle (`fields/editor/theme.ts`).
 - Every keyboard action has a tap: a row's bar, a tile, a sheet.
 - Dragging works on touch after a long press, nesting included.
 - Keys still work with a keyboard attached; nothing hints them.
