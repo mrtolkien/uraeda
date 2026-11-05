@@ -235,7 +235,9 @@ export function Navigate({ pathname }: { pathname: string }) {
       )}
       <Item
         actions={<AddProposalButton />}
-        endContent={count(now)}
+        // Now's own lines, not every priority: none shows nothing, rather than a "0" that reads as
+        // an empty file; its tooltip says what it counts.
+        endContent={now > 0 && <span title={`${now} in Now`}>{count(now)}</span>}
         icon={<Icon icon={DESTINATIONS.priorities.icon} />}
         label={DESTINATIONS.priorities.label}
         pathname={pathname}
