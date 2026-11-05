@@ -147,6 +147,22 @@ test("US3 2: `i` in a session focuses the composer, and Escape leaves it keeping
   expect(fieldText(field)).toBe("hello");
 });
 
+// Break: a card's plain line gone, or no longer read as the card's description.
+test("each New card says in a short plain line what it is for, read as its description", async () => {
+  await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  for (const [kind, line] of [
+    ["Session", "Ask or explore"],
+    ["Change", "Fix or adjust"],
+    ["Feature", "Plan something new"],
+  ] as const) {
+    expect(card(kind).textContent, kind).toContain(line);
+    const described = document.getElementById(card(kind).getAttribute("aria-describedby") ?? "");
+    expect(described?.textContent, kind).toContain(line);
+  }
+});
+
 test("US3 5: on the New page, `f`, `c`, and `s` pick a card as a click would", async () => {
   await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
   await screen.findByRole("radiogroup", { name: "What to start" });
