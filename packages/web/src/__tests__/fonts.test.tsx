@@ -67,10 +67,9 @@ test("the font picked for the human's messages, before the rename, is markdown p
   expect(readFonts().markdown).toBe("literata");
 });
 
-test("markdown prose's font is on the root, with its own measure", () => {
+test("markdown prose's font is on the root", () => {
   const style = rootStyle();
   const literata = FONTS.find((font) => font.id === "literata")!;
   act(() => pickFont("markdown", "literata"));
   expect(style()).toContain(`font-family-markdown: ${literata.family}`);
-  expect(style()).toContain(`size-markdown-measure: calc(${literata.measure} *`);
 });

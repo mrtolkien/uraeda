@@ -70,7 +70,7 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
   },
   { help: "Pages' titles and sections' headings.", key: "h", label: "Headings", role: "heading" },
   {
-    help: "What is read at length: proposals, rounds, specs, plans, and documents. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
+    help: "What is read at length: proposals, rounds, specs, plans, documents, and the agent's replies. A pane of prose widens with a monospace font, to keep about 80 characters a line.",
     key: "p",
     label: "Prose",
     role: "reading",
@@ -82,7 +82,7 @@ export const ROLES: ReadonlyArray<{ help: string; key: string; label: string; ro
     role: "code",
   },
   {
-    help: "The text you type, your messages in a session, and the agent's replies. Its replies widen with a monospace font, to keep about 80 characters a line.",
+    help: "The text you type, and your messages in a session.",
     key: "m",
     label: "Markdown prose",
     role: "markdown",
@@ -156,14 +156,12 @@ const styles = stylex.create({
     code: string,
     markdown: string,
     measure: string,
-    markdownMeasure: string,
   ) => ({
     "--font-family-body": body,
     "--font-family-code": code,
     "--font-family-heading": heading,
     "--font-family-markdown": markdown,
     "--font-family-reading": reading,
-    "--size-markdown-measure": markdownMeasure,
     "--size-reading-measure": measure,
     fontFamily: "var(--font-family-body)",
   }),
@@ -183,19 +181,10 @@ const styles = stylex.create({
     "--font-family-reading": "var(--font-family-markdown)",
     fontFamily: "var(--font-family-markdown)",
   },
-  // An agent's reply, its prose in markdown prose's font, at that font's measure: about 80
-  // characters a line, whatever it is.
-  agent: {
-    "--font-family-reading": "var(--font-family-markdown)",
-    "--size-reading-measure": "var(--size-markdown-measure)",
-  },
 });
 
 /** The human's sent messages' font, for their bubble's style (`TranscriptMessages.tsx`). */
 export const humanWords = styles.human;
-
-/** An agent's messages' font and measure, for their bubble's style (`TranscriptMessages.tsx`). */
-export const agentWords = styles.agent;
 
 /** The style of a root that only carries the fonts, with no box of its own. */
 export const fontRoot = styles.root;
@@ -215,7 +204,6 @@ export function useFontStyle(): ReadonlyArray<stylex.StyleXStyles> {
       family("code"),
       family("markdown"),
       measureOf(fontOf("reading", fonts.reading).measure),
-      measureOf(fontOf("markdown", fonts.markdown).measure),
     ),
     // Custom properties alone, which StyleX's types read as no style at all.
     styles.widths(

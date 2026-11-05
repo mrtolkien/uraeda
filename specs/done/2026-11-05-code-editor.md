@@ -17,9 +17,9 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/98
 The web UI's editor drew all of a field's markdown in the code font, so code did not stand apart
 from prose. Code now takes the code font and headings the heading font, the rest a font of its own,
 "Markdown prose", which the "Your messages" font role became. It covers markdown shown as its source
-or as a conversation: the text typed in every field, the human's messages in a session, and the
-agent's replies. The font roles are now: the interface, prose in long documents, markdown prose,
-headings, and code.
+as the human writes it: the text typed in every field, and the human's messages in a session. The
+agent's replies stay in the reading font, the prose of long documents. The font roles are now: the
+interface, prose in long documents, markdown prose, headings, and code.
 
 ## Behaviour
 
@@ -30,12 +30,9 @@ headings, and code.
   code font, without markdown's heading and code fonts: a `#` there starts no heading.
 - The human's sent messages show their markdown source with the same fonts as the editor drew it, in
   their one text colour.
-- The agent's text in a session, its reply and the texts between its calls, is in markdown prose's
-  font, at that font's measure: about 80 characters a line, so a reply in a monospace font is wider.
-  Documents' prose stays in the reading font.
+- The agent's text in a session stays in the reading font, at its measure, as documents' prose.
 - The "Your messages" role is "Markdown prose" in Settings, Fonts, and under `Space u f m`, where it
-  was `Space u f u`. Its default stays Monaspace Neon, so the agent's replies moved from Atkinson
-  Hyperlegible Next to Neon by default. A font picked for the old role stays picked.
+  was `Space u f u`. Its default stays Monaspace Neon. A font picked for the old role stays picked.
 
 ## Design
 
@@ -49,10 +46,8 @@ headings, and code.
 - **Sent messages**: [`MessageBody`](/packages/web/src/MessageBody.tsx) cuts the text into runs with
   the same parser and tags (`fontRuns`), each code or heading run a span in its font.
 - **The role**: [`fonts.ts`](/packages/web/src/theme/fonts.ts) names it `markdown`, reads a font
-  stored under the old `human` name, and sets `--font-family-markdown` and
-  `--size-markdown-measure`. The agent's bubble in
-  [`TranscriptMessages`](/packages/web/src/TranscriptMessages.tsx) points the reading font and
-  measure tokens at them, as the human's bubble does for its font.
+  stored under the old `human` name, and sets `--font-family-markdown`, which the human's bubble in
+  [`TranscriptMessages`](/packages/web/src/TranscriptMessages.tsx) points its fonts at.
 - The guides [reading](/specs/ui/reading.md) and [surfaces](/specs/ui/surfaces.md) name the three
   prose fonts and where each is used.
 
@@ -71,8 +66,6 @@ headings, and code.
 
 ## Changes after approval
 
-- The agent's replies moved from the reading font, Atkinson Hyperlegible Next, to markdown prose's,
-  Monaspace Neon by default, as the human put them in that role and its default stayed the one
-  picked for their messages. The [UI look](/specs/decisions/ui-look.md) decision wants a
-  proportional font where it reads better, such as long prose: the default is one line to change.
+- The agent's replies stay in the reading font, asked on the pull request: "agents love sending long
+  messages". They had moved to markdown prose's font, as the human first listed them there.
 - A font picked under the old role's name is kept, and its key is `m`, after its new label.
