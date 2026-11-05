@@ -1,5 +1,5 @@
-// The sections besides Server and Runs: the colour scheme, signing out, and the settings later
-// features bring, each a row of the form.
+// The sections besides Server, Keyboard, and Runs: the colour scheme, the fonts, and signing out,
+// each setting a row of the form.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -9,7 +9,7 @@ import { type Scheme, useScheme } from "../theme.tsx";
 import { Selector, SelectorOption, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import * as stylex from "@stylexjs/stylex";
 import { FONTS, fontOf, pickFont, ROLES, useFonts } from "../theme/fonts.ts";
-import { type Category, PLANNED_ICON, plannedHelp, settingOf } from "./categories.ts";
+import { type Category, settingOf } from "./categories.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
 /** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
@@ -127,41 +127,5 @@ export function SignInSettings({
         )}
       </SettingRows>
     </VStack>
-  );
-}
-
-/**
- * The rows of the settings later features bring to a section, that `shows` keeps: each with the
- * feature that brings it, and no control.
- */
-export function PlannedRows({
-  category,
-  shows,
-}: {
-  category: Category;
-  shows: (label: string) => boolean;
-}) {
-  return (category.planned ?? [])
-    .filter((setting) => shows(setting.label))
-    .map((setting) => (
-      <SettingRow
-        key={setting.label}
-        setting={{ help: plannedHelp(setting), icon: PLANNED_ICON, label: setting.label }}
-      />
-    ));
-}
-
-/** A section whose settings later features bring, the rows that `shows` keeps. */
-export function PlannedSettings({
-  category,
-  shows,
-}: {
-  category: Category;
-  shows: (label: string) => boolean;
-}) {
-  return (
-    <SettingRows>
-      <PlannedRows category={category} shows={shows} />
-    </SettingRows>
   );
 }

@@ -26,14 +26,8 @@ test.each([
   ["light", [["Colour scheme", "Appearance"]]],
   // A setting's help finds it too.
   ["tailnet", [["Allowed host names", "Server"]]],
-  [
-    "  model ",
-    [
-      ["The model and effort of each step", "Agents"],
-      ["The review's command, model, and number of reviewers", "Reviews"],
-      ["A second review by another model", "Reviews"],
-    ],
-  ],
+  // The search is trimmed, in any case.
+  ["  vimrc ", [["Vim commands", "Keyboard"]]],
   [
     "sign-IN",
     [

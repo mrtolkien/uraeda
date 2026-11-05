@@ -10,7 +10,6 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { EditableLine } from "../EditableLine.tsx";
 import { type Category, settingOf } from "./categories.ts";
 import { CONTINUE_SETTINGS, type ContinueKey } from "./optimistic.ts";
-import { PlannedRows } from "./OtherSettings.tsx";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 import {
   FileProblem,
@@ -144,9 +143,6 @@ export function RunSettings({
           </Text>
         </VStack>
       )}
-      <SettingRows>
-        <PlannedRows category={category} shows={shows} />
-      </SettingRows>
     </VStack>
   );
 }

@@ -1,19 +1,10 @@
 // The settings page's sections, in the order the form shows them, each with its settings: their
-// icon, name, and line of help, then the settings later features bring, each named with the
-// feature that brings it; and the search that filters the form's rows, the settings to come too.
+// icon, name, and line of help; and the search that filters the form's rows.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
 import { ROLES } from "../theme/fonts.ts";
 
-export type CategoryId =
-  | "server"
-  | "appearance"
-  | "fonts"
-  | "keyboard"
-  | "sign-in"
-  | "agents"
-  | "runs"
-  | "reviews";
+export type CategoryId = "server" | "appearance" | "fonts" | "keyboard" | "sign-in" | "runs";
 
 /** An icon's name, as Astryx's `Icon` takes it. */
 export type IconName = ComponentProps<typeof Icon>["icon"];
@@ -27,24 +18,13 @@ export type Setting = {
   terms?: ReadonlyArray<string>;
 };
 
-/** A setting a later feature brings: what it sets, and that feature. */
-export type PlannedSetting = { feature: string; label: string };
-
 export type Category = {
   icon: IconName;
   id: CategoryId;
   label: string;
-  /** The settings to come, which later features bring. */
-  planned?: ReadonlyArray<PlannedSetting>;
   /** The settings the section shows today, in its order. */
   settings: ReadonlyArray<Setting>;
 };
-
-/** The icon of a setting to come: it waits for its feature. */
-export const PLANNED_ICON: IconName = "clock";
-
-/** The help line of a setting to come. */
-export const plannedHelp = (setting: PlannedSetting) => `Comes with ${setting.feature}.`;
 
 export const CATEGORIES: ReadonlyArray<Category> = [
   {
@@ -136,27 +116,9 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     ],
   },
   {
-    icon: "uraeda:harness-agent",
-    id: "agents",
-    label: "Agents",
-    planned: [
-      { feature: "the Codex runtime", label: "The agent that runs each step" },
-      { feature: "the Codex runtime", label: "The model and effort of each step" },
-    ],
-    settings: [],
-  },
-  {
     icon: "uraeda:workflow",
     id: "runs",
     label: "Runs",
-    planned: [
-      {
-        feature: "run options",
-        label: "One session for the whole feature, or a new session at each step",
-      },
-      { feature: "run options", label: "Sub-agents during the implementation" },
-      { feature: "run options", label: "A different choice for one feature" },
-    ],
     settings: [
       {
         help: "When a spec is approved, the plan and the build start in a new agent session instead of continuing the one that wrote the spec. Each approval can change it for its run. A change applies at once.",
@@ -185,16 +147,6 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       },
     ],
   },
-  {
-    icon: "uraeda:step-review",
-    id: "reviews",
-    label: "Reviews",
-    planned: [
-      { feature: "review settings", label: "The review's command, model, and number of reviewers" },
-      { feature: "the adversarial review", label: "A second review by another model" },
-    ],
-    settings: [],
-  },
 ];
 
 /** The category a path names, or undefined for an unknown one. */
@@ -202,12 +154,9 @@ export function categoryOf(id: string): Category | undefined {
   return CATEGORIES.find((category) => category.id === id);
 }
 
-/** Whether a setting of `category`, today's or to come, holds `text` in what the search reads. */
-function holds(category: Category, setting: Setting | PlannedSetting, needle: string): boolean {
-  const words =
-    "help" in setting
-      ? [setting.label, setting.help, ...(setting.terms ?? [])]
-      : [setting.label, plannedHelp(setting)];
+/** Whether a setting of `category` holds `text` in what the search reads. */
+function holds(category: Category, setting: Setting, needle: string): boolean {
+  const words = [setting.label, setting.help, ...(setting.terms ?? [])];
   return [category.label, ...words].some((word) => word.toLowerCase().includes(needle));
 }
 
@@ -215,11 +164,7 @@ function holds(category: Category, setting: Setting | PlannedSetting, needle: st
  * Whether the search's `text`, trimmed and in any case, shows a setting of `category`: its name,
  * its help, one of its terms, or its section's name holds it. An empty text shows every setting.
  */
-export function settingShown(
-  category: Category,
-  setting: Setting | PlannedSetting,
-  text: string,
-): boolean {
+export function settingShown(category: Category, setting: Setting, text: string): boolean {
   const needle = text.trim().toLowerCase();
   return needle === "" || holds(category, setting, needle);
 }
@@ -233,10 +178,10 @@ export function settingOf(category: Category, label: string): Setting {
   return found;
 }
 
-/** The labels of the settings of `category`, today's and to come, that the search's `text` shows. */
+/** The labels of the settings of `category` that the search's `text` shows. */
 export function shownLabels(category: Category, text: string): Set<string> {
   return new Set(
-    [...category.settings, ...(category.planned ?? [])]
+    category.settings
       .filter((setting) => settingShown(category, setting, text))
       .map(({ label }) => label),
   );
