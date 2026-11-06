@@ -4,6 +4,7 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
 import { useTimedToast } from "./useTimedToast.tsx";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /** The undo toasts on screen, by the function that closes each. */
 const open = new Set<() => void>();
@@ -105,6 +106,8 @@ export function useUndoToast(): (
 ) => void {
   const showToast = useTimedToast();
   const singleKeys = useSingleKeys();
+  // The phone hints no key: its Undo is a tap.
+  const narrow = isNarrow(useWidthClass());
   return useCallback(
     (message, undo, commits = false) => {
       nextToast += 1;
@@ -112,8 +115,9 @@ export function useUndoToast(): (
       // A toast that hid on its own stays listed: only the newest few can still be on screen.
       shown.push(id);
       shown.splice(0, Math.max(0, shown.length - SHOWN_MAX));
-      // `u` presses it too: its key, after its label, while the single keys are on.
-      const key = singleKeys ? createElement(KeyCap, null, "u") : undefined;
+      // `u` presses it too: its key, after its label, while the single keys are on, but on the
+      // phone.
+      const key = singleKeys && !narrow ? createElement(KeyCap, null, "u") : undefined;
       const revert = async () => {
         // A read or a write of the Undo that fails shows as its refusal does, never as a rejection
         // nothing catches.
@@ -160,6 +164,6 @@ export function useUndoToast(): (
       // Closing a toast already hidden after its 5 seconds does nothing.
       open.add(close);
     },
-    [showToast, singleKeys],
+    [narrow, showToast, singleKeys],
   );
 }

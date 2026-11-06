@@ -10,6 +10,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "../layout/safeArea.stylex.ts";
 import { type ReactNode, useEffect } from "react";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -96,6 +97,9 @@ const styles = stylex.create({
   // It slides out of the way as the page scrolls down, and back as it scrolls up.
   phoneLine: {
     backgroundColor: "transparent",
+    // Its row of tiles above the home indicator: the safe area under it is part of its height
+    // (`Shell.tsx`), out of reach of a tap meant for the system's swipe home.
+    paddingBlockEnd: safeAreaVars["--safe-area-bottom"],
     paddingInline: 0,
     pointerEvents: "none",
     transform: "translateY(0)",

@@ -11,6 +11,7 @@ import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
   atRepo,
+  atWidth,
   click,
   fieldText,
   fixtureRepo,
@@ -277,6 +278,24 @@ test("a working tree's diff reads the file afresh, open and opened again", async
   await act(async () => navigate(atRepo("/git?file=docs/web-ui.md")));
 
   await waitFor(() => shows("And the work."));
+});
+
+// Break: the Enter key's icon on Commit on a phone, which hints no key, Commit being the tap (T3).
+test("on the phone, Commit hints no key", async () => {
+  const repo = fixtureRepo();
+  write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
+  const commitButton = async () => {
+    await renderPage("/git", repo);
+    await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
+    return screen.findByRole("button", { name: "Commit 1 file" });
+  };
+  expect((await commitButton()).innerHTML).toContain("Enter");
+  atWidth(402);
+  try {
+    expect((await commitButton()).innerHTML).not.toContain("Enter");
+  } finally {
+    atWidth(1440);
+  }
 });
 
 // Break: git's header of the file, `--- a/` and `+++ b/`, drawn over the hunks again, or a hunk

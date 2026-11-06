@@ -343,6 +343,7 @@ function ReaderBar({
           isDisabled={onClose === undefined}
           label="Constitution and decisions"
           onPress={() => onClose?.()}
+          word="Decisions"
         />
         {steps && (
           <NavTile

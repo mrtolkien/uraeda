@@ -1,13 +1,14 @@
 // The phone's bottom bar as a page's navigation, in the status line's row: a tile for each of the
-// page's parts, its icon alone, as the column's tabs on a wide screen, the open one in the accent;
-// and the step that moves the human forward last, its icon in the accent, as Next, Verdict, or Submit:
-// no filled block on the glass. One tile is a single glass button at the bottom right, two are a
-// button in each corner, and three or more the bar of glass across the screen. The same tile, its
-// word under its icon, is an action of the phone's floating row bar (see `RowBar`).
+// page's parts, its icon over a small word, as the column's tabs on a wide screen, the open one in
+// the accent; and the step that moves the human forward last, in the accent, as Next, Verdict, or
+// Submit: no filled block on the glass. One tile is a single glass button at the bottom right, two
+// are a button in each corner, and three or more the bar of glass across the screen. The same
+// tile, its word a step bigger, is an action of the phone's floating row bar (see `RowBar`).
 import { Icon } from "@astryxdesign/core/Icon";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "./safeArea.stylex.ts";
 import { barVars } from "./bar.stylex.ts";
 import {
   Children,
@@ -30,25 +31,27 @@ const styles = stylex.create({
     color: colorVars["--color-text-primary"],
     display: "flex",
   },
-  // The bottom bar's tile: its icon alone, centred, sharing the bar's width.
+  // The bottom bar's tile: its icon over its word, centred, sharing the bar's width.
   shared: {
     flexBasis: 0,
+    flexDirection: "column",
     flexGrow: 1,
+    gap: barVars["--bar-word-gap"],
     justifyContent: "center",
     minWidth: 0,
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
-  // A tile alone or one of two: a glass button of its own, square, a finger wide, at the bottom
-  // of the bar's row and inside it, so the page's end shows above it.
+  // A tile alone or one of two: a glass button of its own, a finger wide at least, and wider when
+  // its word asks, at the bottom of the bar's row and inside it, so the page's end shows above it.
   floating: {
     flexBasis: "auto",
     flexGrow: 0,
     flexShrink: 0,
-    height: barVars["--bar-button"],
     justifyContent: "center",
+    minHeight: barVars["--bar-button"],
+    minWidth: barVars["--bar-button"],
     pointerEvents: "auto",
-    width: barVars["--bar-button"],
   },
   // The row bar's tile: its icon over its word, as wide as a finger at least. A step of room on
   // each side of its word, no more: five tiles fit a 360 px phone's bar.
@@ -63,11 +66,15 @@ const styles = stylex.create({
   // room, it ends in an ellipsis inside its tile, never over its neighbour's.
   word: {
     fontSize: barVars["--bar-word"],
+    lineHeight: barVars["--bar-word-line"],
     maxWidth: "100%",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
+  // The bottom bar's word, a step smaller than the row bar's, so the icon keeps its size in a tile
+  // as tall as the top tabs.
+  smallWord: { fontSize: barVars["--bar-word-small"] },
   // The tiles share the bar's width, each as tall as the bar.
   tiles: {
     alignSelf: "stretch",
@@ -76,8 +83,14 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
-  // Three tiles or more: the glass across the screen, which takes the taps under it.
-  bar: { pointerEvents: "auto" },
+  // Three tiles or more: the glass across the screen, which takes the taps under it, and goes on
+  // down to the screen's edge under the home indicator, as an iPhone's tab bar does, its tiles
+  // above it.
+  bar: {
+    marginBlockEnd: `calc(-1 * ${safeAreaVars["--safe-area-bottom"]})`,
+    paddingBlockEnd: safeAreaVars["--safe-area-bottom"],
+    pointerEvents: "auto",
+  },
   // One or two tiles: no glass between them, and the page under it takes the taps.
   buttons: {
     alignItems: "flex-end",
@@ -96,9 +109,12 @@ const styles = stylex.create({
 });
 
 /**
- * A tile of the glass: `icon` alone, named by `label`, sharing the bar's width; or, `hasWord`, its
- * icon over `label`, as wide as its word. `isOpen` while its part shows, or `isTinted` for the step
- * forward, its icon in the accent.
+ * A tile of the glass: `icon` over a small `word`, named by `label`, sharing the bar's width; or,
+ * `hasWord`, its icon over `label`, the row bar's action, as wide as its word. `word` is short, one
+ * word the name holds, so a spoken command finds the tile by what it shows, and eight letters at
+ * most, so five tiles keep their words whole on a 360 px phone; it is `label` itself when that is
+ * short already. `isOpen` while its part shows, or `isTinted` for the step forward, in
+ * the accent.
  */
 export function NavTile({
   hasWord = false,
@@ -108,6 +124,7 @@ export function NavTile({
   isTinted = false,
   label,
   onPress,
+  word = label,
 }: {
   hasWord?: boolean;
   icon: ComponentProps<typeof Icon>["icon"];
@@ -116,10 +133,11 @@ export function NavTile({
   isTinted?: boolean;
   label: string;
   onPress: (event: MouseEvent<HTMLButtonElement>) => void;
+  word?: string;
 }) {
   const isFloating = use(Floating) && !hasWord;
   return (
-    // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's glass, its icon alone and stretched to share the bottom bar's width, or its big icon over its word on the floating row bar, flat, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
+    // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's glass, its icon over a small word and stretched to share the bottom bar's width, or its big icon over its word on the floating row bar, flat, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
     <button
       aria-label={hasWord ? undefined : label}
       aria-pressed={isOpen}
@@ -138,7 +156,9 @@ export function NavTile({
       )}
     >
       <Icon icon={icon} size="lg" />
-      {hasWord && <span {...stylex.props(styles.word)}>{label}</span>}
+      <span {...stylex.props(styles.word, !hasWord && styles.smallWord)}>
+        {hasWord ? label : word}
+      </span>
     </button>
   );
 }

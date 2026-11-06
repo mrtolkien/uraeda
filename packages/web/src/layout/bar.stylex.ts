@@ -13,6 +13,13 @@ export const barVars = stylex.defineVars({
   "--bar-tile-least": "3.5rem",
   // A tile's word, small under its icon: no type token is 0.75 rem on every screen.
   "--bar-word": "0.75rem",
+  // The bottom bar's word, a step smaller, as a phone's tab bar writes its words: its icon and its
+  // word fit a tile as tall as the top tabs.
+  "--bar-word-small": "0.6875rem",
+  // A word's line, no taller than its letters, so it sits close under its icon.
+  "--bar-word-line": "1.2",
+  // The room between a bottom bar tile's icon and its word.
+  "--bar-word-gap": "0.125rem",
   // The room between the phone's keyboard and the row bar floating over it.
   "--bar-keyboard-room": "0.5rem",
   // How far past its own height a bar slides to hide: the row bar, and the bottom bar, its shadow

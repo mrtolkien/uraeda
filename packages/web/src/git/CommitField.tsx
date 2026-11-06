@@ -2,7 +2,8 @@
 // typing: the shared editor, filled with the message the commit takes by default, from what is
 // staged, until something else is typed. Typed text stays unsaved until its commit lands, kept on a
 // refusal for the next try, and marked as unsaved. One line, as a commit's subject: Enter in it
-// commits what is staged, as Commit does, whose button shows the key on wide screens.
+// commits what is staged, as Commit does, whose button shows the key on wide screens. The phone
+// hints no key: Commit is the tap.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";

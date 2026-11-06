@@ -16,6 +16,7 @@ import { useRestoreScroll } from "./routes.tsx";
 import { AddBar } from "./SidebarAdd.tsx";
 import { PrioritiesView } from "./views.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 
 /** Where the page keeps how its list shows. */
 const LAYOUT_KEY = "uraeda:priorities:layout";
@@ -23,15 +24,20 @@ const LAYOUT_KEY = "uraeda:priorities:layout";
 const isLayout = (value: string | null): value is WorkLayout =>
   value === "columns" || value === "stack";
 
-/** How the list shows, as columns until the human picks the list, kept in the browser. */
+/**
+ * How the list shows, as columns until the human picks the list, kept in the browser. On the phone,
+ * one column of content, the list, until the human picks the columns there: four columns scrolled
+ * sideways hid Next and Later past the screen's edge (T3).
+ */
 function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
-  const [layout, setLayout] = useState<WorkLayout>(() => {
+  const unpicked: WorkLayout = isNarrow(useWidthClass()) ? "stack" : "columns";
+  const [layout, setLayout] = useState<WorkLayout | undefined>(() => {
     try {
       const stored = window.localStorage.getItem(LAYOUT_KEY);
-      return isLayout(stored) ? stored : "columns";
+      return isLayout(stored) ? stored : undefined;
     } catch {
-      // No storage, as in a private window: columns.
-      return "columns";
+      // No storage, as in a private window: the width's own.
+      return undefined;
     }
   });
   const choose = (next: WorkLayout) => {
@@ -42,7 +48,7 @@ function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
       // No storage: the choice lasts until the page closes.
     }
   };
-  return [layout, choose];
+  return [layout ?? unpicked, choose];
 }
 
 /**
@@ -61,7 +67,8 @@ function LayoutSwitch({
     <SegmentedControl
       label="View"
       onChange={(value: string) => isLayout(value) && onChange(value)}
-      size="sm"
+      // On the phone, each a thumb's width: small, they were 33 px wide.
+      size={isNarrow(useWidthClass()) ? "md" : "sm"}
       value={layout}
     >
       <SegmentedControlItem

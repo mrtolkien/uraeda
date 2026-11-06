@@ -1,13 +1,20 @@
-// The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
-// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Git while
-// something waits on it, a `…` that holds Decisions and Settings, and New, each an icon named by
-// its page, the current page's marked. The Sessions tab opens the shell's panes as a page of
-// their own. The phone's status line holds a page's own controls only: these counts are its counts.
-import { Badge } from "@astryxdesign/core/Badge";
+// The phone's bar of tabs, at the top of every page, a terminal's tab line: Home with the count of
+// what needs the human, Inbox with its notes' count, Priorities, Sessions with the running
+// sessions' count, Git with what waits on it, a `…` that holds Decisions and Settings, and New, each
+// an icon named by its page. Nothing is filled: the current page's tab is in the accent, a line in
+// the accent under it at the bar's edge; a count is a small number after its icon; New is framed.
+// The Sessions tab opens the shell's panes as a page of their own. The phone's status line holds a
+// page's own controls only: these counts are its counts.
 import { DropdownMenu, type DropdownMenuTriggerProps } from "@astryxdesign/core/DropdownMenu";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  borderVars,
+  colorVars,
+  fontWeightVars,
+  sizeVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox } from "../data.ts";
@@ -22,44 +29,95 @@ import { plural } from "../labels.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
-  badge: {
-    // At the icon's top end corner, off its glyph: it overlaps the corner by a step at most.
-    display: "flex",
-    insetBlockEnd: `calc(100% - ${spacingVars["--spacing-1"]})`,
-    insetInlineStart: `calc(100% - ${spacingVars["--spacing-1"]})`,
-    pointerEvents: "none",
-    position: "absolute",
-  },
   bar: {
     // The phone's top bar, as tall as before: the pages' sticky parts stay below `--spacing-12`.
-    alignItems: "center",
+    // Its tabs take its whole height, so the current one's line sits on its bottom edge.
+    alignItems: "stretch",
     boxSizing: "border-box",
     display: "flex",
-    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone
-    // holds, so Decisions and Settings wait in the `…` (see `MoreTab`).
+    // None between their targets at the least: eight 44 px buttons and the line are what a 375 px
+    // phone holds, so Decisions and Settings wait in the `…` (see `MoreTab`).
     gap: 0,
     height: spacingVars["--spacing-12"],
     justifyContent: "space-between",
     paddingInline: spacingVars["--spacing-2"],
   },
+  // A tab's count, after its icon: small, its figures as wide as each other, in the muted text.
+  count: {
+    color: colorVars["--color-text-secondary"],
+    fontSize: "var(--font-size-sm)",
+    fontVariantNumeric: "tabular-nums",
+    lineHeight: "100%",
+    // Its figures' middle on the icon's: centred by its box, they sat 0.7 px high, as a figure's
+    // ink is not its box's middle.
+    transform: "translateY(0.05em)",
+  },
+  // What needs the human, Home's count: in the Needs you pane's colour, bold.
+  countNeeds: {
+    color: colorVars["--color-text-orange"],
+    fontWeight: fontWeightVars["--font-weight-bold"],
+  },
+  // The current tab's count, in the accent with its icon.
+  countCurrent: { color: colorVars["--color-accent"] },
+  // The current page's tab, and the sidebar's toggle while the sidebar is open: in the accent.
+  current: { color: colorVars["--color-accent"] },
   divider: {
     // The line between the sidebar's toggle and the pages' tabs.
+    alignSelf: "center",
     backgroundColor: colorVars["--color-border"],
     height: spacingVars["--spacing-5"],
     width: borderVars["--border-width"],
   },
   icon: {
+    alignItems: "center",
     display: "inline-flex",
-    position: "relative",
+    gap: spacingVars["--spacing-0-5"],
   },
-  small: {
-    // A small badge, its count in the type it had: less padding, and a step less tall.
-    height: spacingVars["--spacing-4"],
-    paddingInline: spacingVars["--spacing-1"],
+  // The current page's line, under its tab on the bar's bottom edge, over the bar's own rule.
+  line: {
+    "::after": {
+      backgroundColor: colorVars["--color-accent"],
+      content: '""',
+      height: spacingVars["--spacing-0-5"],
+      insetBlockEnd: `calc(-1 * ${borderVars["--border-width"]})`,
+      insetInlineEnd: spacingVars["--spacing-1-5"],
+      insetInlineStart: spacingVars["--spacing-1-5"],
+      pointerEvents: "none",
+      position: "absolute",
+    },
+  },
+  // New's frame, inside its target: a line in the accent, no fill.
+  frame: {
+    alignItems: "center",
+    borderColor: colorVars["--color-accent"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    boxSizing: "border-box",
+    color: colorVars["--color-accent"],
+    display: "flex",
+    flexShrink: 0,
+    height: spacingVars["--spacing-7"],
+    justifyContent: "center",
+    // Square, over the icon's slot, which is the icon's width.
+    minWidth: spacingVars["--spacing-7"],
+    width: spacingVars["--spacing-7"],
+  },
+  tab: {
+    // The bar's height, a control's width at least, wider with its count: no fill, ever, under
+    // the pointer only Astryx's own overlay.
+    // Not square, as an icon's button is in Astryx: as wide as its icon and count.
+    "--button-icon-only-aspect": "auto",
+    backgroundColor: "transparent",
+    height: "auto",
+    minWidth: sizeVars["--size-element-md"],
+    overflow: "visible",
+    paddingInline: spacingVars["--spacing-0-5"],
+    position: "relative",
+    width: "auto",
   },
   toggle: {
     // The sidebar's toggle apart, further left than the tabs: its own group, then a line.
-    alignItems: "center",
+    alignItems: "stretch",
     display: "flex",
     gap: spacingVars["--spacing-1"],
     marginInlineStart: `calc(-1 * ${spacingVars["--spacing-1"]})`,
@@ -69,28 +127,26 @@ const styles = stylex.create({
 type IconName = ComponentProps<typeof Icon>["icon"];
 
 /**
- * A tab: its page's icon, named by the page, with a count over it while there is one, which its
- * name says after the page's, in `counted`'s words.
+ * A tab: its page's icon, named by the page, with a small count after it while there is one, which
+ * its name says after the page's, in `counted`'s words.
  */
 function Tab({
-  badge = "info",
   count,
   counted = String,
   icon,
   isCurrent,
+  isNeeds = false,
   label,
   to,
-  variant = "ghost",
 }: {
-  /** The count's colour: the usual info, or a warning for what waits on the human. */
-  badge?: "info" | "warning";
   count?: number | undefined;
   counted?: (n: number) => string;
   icon: IconName;
   isCurrent: boolean;
+  /** Its count is what needs the human, in the Needs you pane's colour. */
+  isNeeds?: boolean;
   label: string;
   to: string;
-  variant?: "ghost" | "primary";
 }) {
   const here = useRepoPath();
   const shown = count !== undefined && count > 0;
@@ -102,29 +158,35 @@ function Tab({
         <span {...stylex.props(styles.icon)}>
           <Icon icon={icon} />
           {shown && (
-            <span {...stylex.props(styles.badge)}>
-              <Badge aria-hidden label={String(count)} variant={badge} xstyle={styles.small} />
+            <span
+              aria-hidden
+              data-tab-count
+              {...stylex.props(
+                styles.count,
+                isNeeds && styles.countNeeds,
+                isCurrent && styles.countCurrent,
+              )}
+            >
+              {count}
             </span>
           )}
         </span>
       }
       label={shown ? `${label}, ${counted(count)}` : label}
-      variant={isCurrent ? "secondary" : variant}
+      variant="ghost"
+      xstyle={[styles.tab, isCurrent && [styles.current, styles.line]]}
     />
   );
 }
 
 /**
- * The Git tab, while something waits on the Git page: the changes to commit and the commits to
- * pull, counted together over its icon, and each named after the page.
+ * The Git tab, always there, the phone's way to the Git page: the changes to commit and the commits
+ * to pull, counted together after its icon while any wait, and each named after the page.
  */
 function GitTab({ isCurrent }: { isCurrent: boolean }) {
   const summary = useGitSummary();
   const changes = summary?.changes ?? 0;
   const behind = summary?.behind ?? 0;
-  if (changes + behind === 0) {
-    return null;
-  }
   const counted = () =>
     [
       ...(changes > 0 ? [plural(changes, "change")] : []),
@@ -132,14 +194,31 @@ function GitTab({ isCurrent }: { isCurrent: boolean }) {
     ].join(", ");
   return (
     <Tab
-      badge="warning"
       count={changes + behind}
       counted={counted}
       icon={DESTINATIONS.git.icon}
       isCurrent={isCurrent}
       label={DESTINATIONS.git.label}
       to={DESTINATIONS.git.path}
-      variant="primary"
+    />
+  );
+}
+
+/** New, framed in the accent rather than filled, its target the bar's height as every tab's. */
+function NewTab({ isCurrent }: { isCurrent: boolean }) {
+  const here = useRepoPath();
+  return (
+    <IconButton
+      aria-current={isCurrent ? "page" : undefined}
+      href={here(DESTINATIONS.new.path)}
+      icon={
+        <span {...stylex.props(styles.frame)}>
+          <Icon icon={DESTINATIONS.new.icon} />
+        </span>
+      }
+      label={DESTINATIONS.new.label}
+      variant="ghost"
+      xstyle={[styles.tab, isCurrent && styles.line]}
     />
   );
 }
@@ -168,7 +247,8 @@ function MoreTab({ at }: { at: (to: string) => boolean }) {
           aria-current={current ? "page" : undefined}
           icon={<Icon icon="moreHorizontal" />}
           label={current ? `More, ${current.label}` : "More"}
-          variant={current ? "secondary" : "ghost"}
+          variant="ghost"
+          xstyle={[styles.tab, current !== undefined && [styles.current, styles.line]]}
           {...props}
         />
       )}
@@ -217,16 +297,17 @@ export function Tabs({
           icon={<Icon icon="uraeda:panel-left" />}
           label="Sidebar"
           onClick={onToggleSidebar}
-          variant={isSidebarOpen ? "secondary" : "ghost"}
+          variant="ghost"
+          xstyle={[styles.tab, isSidebarOpen && styles.current]}
         />
         <span aria-hidden="true" {...stylex.props(styles.divider)} />
       </div>
       <Tab
-        badge="warning"
         count={needsYouEntries(data).length}
         counted={(n) => `${n} need you`}
         icon={DESTINATIONS.home.icon}
         isCurrent={at(DESTINATIONS.home.path)}
+        isNeeds
         label={DESTINATIONS.home.label}
         to={DESTINATIONS.home.path}
       />
@@ -251,18 +332,20 @@ export function Tabs({
         label={DESTINATIONS.sessions.label}
         to={DESTINATIONS.sessions.path}
       />
-      <Suspense fallback={null}>
+      <Suspense
+        fallback={
+          <Tab
+            icon={DESTINATIONS.git.icon}
+            isCurrent={at(DESTINATIONS.git.path)}
+            label={DESTINATIONS.git.label}
+            to={DESTINATIONS.git.path}
+          />
+        }
+      >
         <GitTab isCurrent={at(DESTINATIONS.git.path)} />
       </Suspense>
-      {/* Between Git and New, so their two filled blocks do not run into one. */}
       <MoreTab at={at} />
-      <Tab
-        icon={DESTINATIONS.new.icon}
-        isCurrent={at(DESTINATIONS.new.path)}
-        label={DESTINATIONS.new.label}
-        to={DESTINATIONS.new.path}
-        variant="primary"
-      />
+      <NewTab isCurrent={at(DESTINATIONS.new.path)} />
     </nav>
   );
 }

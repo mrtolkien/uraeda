@@ -163,7 +163,8 @@ function CursorFooter({
   useEffect(() => {
     onCursor(id);
   }, [onCursor, id]);
-  return <CommandPaletteFooter />;
+  // The keys that move and pick, on a keyboard: the phone shows none, and its list gets the row.
+  return isNarrow(useWidthClass()) ? null : <CommandPaletteFooter />;
 }
 
 /** The item under the cursor, drawn as the app draws it. */

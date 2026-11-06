@@ -204,6 +204,7 @@ function PhoneParts({
         isOpen={open === "outline"}
         label={`Outline, ${count} answered`}
         onPress={() => setSheet("outline")}
+        word="Outline"
       />
       <NavTile
         icon="uraeda:pencil"

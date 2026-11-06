@@ -167,7 +167,10 @@ function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
   );
 }
 
-/** On the phone's bottom bar, the plan's tile, opening the plan at the task, "2 / 7" its name's start. */
+/**
+ * On the phone's bottom bar, the plan's tile, opening the plan at the task, "Plan" its word, and
+ * "Plan 2/7" its name's start.
+ */
 export function ProgressChip({ folder }: { folder: string }) {
   const task = usePlanTask(folder);
   return task ? <AtTask folder={folder} link={Chip} task={task} /> : null;
@@ -180,8 +183,9 @@ function Chip({ anchor, task }: { anchor: string; task: PlanTask }) {
     <NavTile
       icon="uraeda:list-checks"
       // Its name starts with what it shows, as a spoken command names it.
-      label={`${task.done} / ${task.total} · ${task.label}`}
+      label={`Plan ${task.done}/${task.total} · ${task.label}`}
       onPress={() => navigate(here(`${task.href}${anchor}`))}
+      word="Plan"
     />
   );
 }

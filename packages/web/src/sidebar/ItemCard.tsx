@@ -1,9 +1,10 @@
 // A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
 // Its first line is its kind's icon, its whole name, wrapping when it must, and at the end its
 // background command and status, then, for a run that asks until dismissed, its Dismiss. Under the
-// name, a change's or a feature's step; then, while it
-// has any, its task's progress and the lines its branch changed, with its pull request; then its
-// running sub-agents.
+// name, a change's or a feature's step; then its task's progress and the lines its branch changed,
+// with its pull request, while it has any; then its running sub-agents. On the phone, the icon, the
+// name, and the status are a head line, the rest at the card's full width under it, and a card whose
+// step waits on the human has no chevron: the whole card leads to the step.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -19,11 +20,13 @@ import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import { CardRow } from "./CardRow.tsx";
+import { cardClick } from "./cardClick.ts";
 import { brighten } from "./brighten.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { StatusText } from "../fields/StatusText.tsx";
 import { pickedStyles } from "../layout/picked.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 
 /**
  * Whether the cards are stacked, as in the sidebar's narrow column: the name on a row of its own,
@@ -138,6 +141,7 @@ const styles = stylex.create({
   // Why its Dismiss was refused, under its name.
   refused: { paddingInlineStart: spacingVars["--spacing-6"] },
   spacer: { flexGrow: 1 },
+  statusFlat: { display: "flex" },
   step: { whiteSpace: "nowrap" },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
@@ -171,10 +175,13 @@ export function cardName(item: CardItem) {
 function Status({
   hasNext,
   hasWork,
+  isHeaded = false,
   item,
 }: {
   hasNext: boolean;
   hasWork: boolean;
+  /** On the phone's head line, its mark centred on the line, not on a baseline below its middle. */
+  isHeaded?: boolean;
   item: CardItem;
 }) {
   return (
@@ -185,7 +192,7 @@ function Status({
         <Spinner aria-hidden size="sm" />
       ) : item.status.status === "idle" ? null : (
         // A click on it opens the status's own page: see `onStatus`.
-        <span data-card-status>
+        <span data-card-status {...stylex.props(isHeaded && styles.statusFlat)}>
           {hasNext ? (
             // A step waits on the human: a chevron on the accent leads to it, where a "!" read as
             // an alert; the fill, as the status mark's, shows it is a button.
@@ -368,24 +375,21 @@ function Refused({ error, isRail }: { error: string; isRail: boolean }) {
   );
 }
 
-/**
- * A click on the card: on its pull request, opens it in a new tab; on its status, what the status
- * points to (`onStatus`); anywhere else, the item's page inside the app (`onOpen`).
- */
-function cardClick(onOpen: (() => void) | undefined, onStatus: (() => void) | undefined) {
-  return (event: React.MouseEvent) => {
-    const pr = (event.target as Element).closest("[data-card-pr]");
-    if (pr) {
-      event.preventDefault();
-      window.open(pr.getAttribute("data-card-pr") ?? "", "_blank", "noopener");
-    } else if (onStatus && (event.target as Element).closest("[data-card-status]")) {
-      event.preventDefault();
-      onStatus();
-    } else if (onOpen) {
-      event.preventDefault();
-      onOpen();
-    }
-  };
+/** Its running sub-agents, a line each, their descriptions gone in the closed rail. */
+function Subagents({ isRail, item }: { isRail: boolean; item: CardItem }) {
+  return item.subagents?.map((subagent) => (
+    <HStack
+      align="center"
+      gap={2}
+      key={subagent.id}
+      xstyle={[styles.subagent, isRail && styles.railSubagent]}
+    >
+      <StatusMark isSubagent label="Working" small status="working" />
+      <Text color="secondary" type="supporting" xstyle={isRail && styles.railGone}>
+        {subagent.description}
+      </Text>
+    </HStack>
+  ));
 }
 
 export function ItemCard({
@@ -398,6 +402,7 @@ export function ItemCard({
   onDismiss,
   onOpen,
   onStatus,
+  statusHref,
 }: {
   /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
   detail?: string | undefined;
@@ -417,6 +422,8 @@ export function ItemCard({
   onOpen?: () => void;
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
+  /** Where its status points, the card's link on the phone while its step waits on the human. */
+  statusHref?: string;
 }) {
   // A step waits on the human: its status is a button to it, two lines high.
   const hasNext =
@@ -424,8 +431,12 @@ export function ItemCard({
   // A session works on it: its status is a button to the session, as big.
   const hasWork = onStatus !== undefined && item.status.status === "working";
   const isStacked = use(StackedCards);
-  const hasButton = hasNext || hasWork;
   const isRail = useClosedRail();
+  const isHeaded = isNarrow(useWidthClass()) && !isRail;
+  // On the phone, the card is the step's own button: a chevron beside it squeezed its text.
+  const leadsToStep = isHeaded && hasNext;
+  const hasButton = (hasNext && !leadsToStep) || hasWork;
+  const open = leadsToStep ? onStatus : onOpen;
   const tone = usePaneTone();
   // A card of one line is too short for its icon with the mark under it: the rail shows the mark alone.
   const isMarkOnly = !detail && !item.step && item.status.status !== "idle";
@@ -447,11 +458,16 @@ export function ItemCard({
       <CardRow
         {...(isRail ? { rail: isMarkOnly ? "mark" : "card" } : {})}
         {...(onDismiss ? { after: <Dismiss label={item.label} onDismiss={onDismiss} /> } : {})}
-        endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
+        endContent={
+          leadsToStep ? null : (
+            <Status hasNext={hasNext} hasWork={hasWork} isHeaded={isHeaded} item={item} />
+          )
+        }
         hasRing={!isPicked}
-        href={href}
+        href={leadsToStep ? (statusHref ?? href) : href}
         icon={<KindIcon item={item} />}
-        isEndTall={hasButton && !isStacked}
+        isEndTall={hasButton && (isHeaded || !isStacked)}
+        isHeaded={isHeaded}
         isSelected={isSelected}
         isStacked={isStacked}
         label={item.label}
@@ -464,25 +480,13 @@ export function ItemCard({
             </Text>
           ) : item.step ? (
             // Stacked, the status follows the line: it reaches no further than its room.
-            <Meta hasButton={hasButton || isStacked} item={item} />
+            <Meta hasButton={hasButton || isStacked || isHeaded} item={item} />
           ) : undefined
         }
-        {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}
+        {...(onOpen || onStatus ? { onClick: cardClick(open, onStatus) } : {})}
       />
       {dismissError && <Refused error={dismissError} isRail={isRail} />}
-      {item.subagents?.map((subagent) => (
-        <HStack
-          align="center"
-          gap={2}
-          key={subagent.id}
-          xstyle={[styles.subagent, isRail && styles.railSubagent]}
-        >
-          <StatusMark isSubagent label="Working" small status="working" />
-          <Text color="secondary" type="supporting" xstyle={isRail && styles.railGone}>
-            {subagent.description}
-          </Text>
-        </HStack>
-      ))}
+      <Subagents isRail={isRail} item={item} />
     </div>
   );
 }

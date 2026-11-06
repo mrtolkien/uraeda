@@ -111,7 +111,14 @@ export function CommentHost({
       {children}
       {draft.draft &&
         createPortal(
-          <ReviewForm actions={actions} draft={draft} field={field} images={images} tree={tree} />,
+          <ReviewForm
+            actions={actions}
+            draft={draft}
+            field={field}
+            images={images}
+            tree={tree}
+            wide={wide}
+          />,
           container,
         )}
     </ReviewImagesContext>
@@ -125,19 +132,23 @@ function ReviewForm({
   field,
   images,
   tree,
+  wide,
 }: {
   actions: ReturnType<typeof useReviewActions>;
   draft: Draft;
   field: ReviewField;
   images: Images;
   tree: Document;
+  wide: boolean;
 }) {
   if (!draft) {
     return undefined;
   }
   // The selected lines' first block, quoted in the comment field: a decision's lines quote none of
-  // the file's blocks.
+  // the file's blocks. Not on the phone, where the block shows, marked, right above the sheet: its
+  // copy there pushed the sheet's Add comment out of sight (T3).
   const first =
+    wide &&
     selection &&
     !selection.decision &&
     tree.blocks

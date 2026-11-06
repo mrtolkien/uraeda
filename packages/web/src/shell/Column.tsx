@@ -12,6 +12,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { safeAreaVars } from "../layout/safeArea.stylex.ts";
 import { useCallback, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { ClosedRail } from "../layout/closedRail.ts";
@@ -64,7 +65,10 @@ const styles = stylex.create({
     // and closes as the desktop's does, a reveal from its start edge over 200 ms, its content laid
     // out at the open width throughout.
     insetBlockEnd: "var(--size-status-line, 0px)",
-    insetBlockStart: spacingVars["--spacing-12"],
+    // Below the tabs, under the status bar of a home-screen app that draws under it (`Shell.tsx`).
+    insetBlockStart: `calc(${spacingVars["--spacing-12"]} + ${safeAreaVars["--safe-area-top"]})`,
+    // With no status line, its list ends clear of the home indicator, its surface under it.
+    paddingBlockEnd: `max(0px, calc(${safeAreaVars["--safe-area-bottom"]} - var(--size-status-line, 0px)))`,
     position: "fixed",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "clip-path, visibility",
@@ -180,7 +184,8 @@ const FOLD_MS = 200;
 
 /**
  * The phone's column, which the tabs' toggle opens over the page, up to 400 px wide, under the tabs
- * and above the status line: the whole column, as the open rail draws it, never folded.
+ * and above the status line: the column as the open rail draws it, never folded, without Git and
+ * New, which the tabs have.
  */
 export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
   return (
@@ -190,8 +195,7 @@ export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
     >
       <div {...stylex.props(styles.inner)}>
         <ColumnHeading />
-        <ColumnActions />
-        {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
+        {/* No Git and no New, as no Navigate pane and no Settings: the tabs above have them, and the column holds no copy of the tabs' places. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
         <div {...stylex.props(styles.scroll)}>
           <StackedCards value>
             <ShellPanes />

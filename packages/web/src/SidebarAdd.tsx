@@ -101,6 +101,7 @@ export function AddBar({ form }: { form: "note" | "proposal" }) {
           isTinted
           label={form === "note" ? "Add a note to the inbox" : "Add a proposal"}
           onPress={() => open(form)}
+          word="Add"
         />
       </NavTiles>
     </TopBarSlot>

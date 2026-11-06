@@ -15,6 +15,7 @@ import { type DraftImage, useChatImages } from "./attach/chatImages.ts";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
+import { useAboveKeyboard } from "./layout/useAboveKeyboard.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
@@ -358,6 +359,8 @@ export function Composer(given: ComposerProps) {
   useFocusOnOpen(input, given.isNewSession === true || given.takesFocus === true);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
+  // On the phone, Send and the paperclip stay above the keyboard while the message is typed.
+  useAboveKeyboard(box, !wide);
   const buttons = sendButtons({
     actions: props.actions,
     allow: props.allow,
