@@ -66,3 +66,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `node_modules/`, farther from the only package that reads it.
 - **If wrong**: removing the cache folder, or any change of a source, builds the fixture as before.
 - **Where**: task 7 of the plan.
+
+## R3: A ready Storybook's compiles live in their own unit
+
+- **Decision**: [`compiles.ts`](/packages/server/src/preview/compiles.ts) holds one ready
+  Storybook's compiles: each story's once, shared by every ask, ended by its warm or after
+  `WARM_MS`, and aborted with its Storybook, whose ends then send no update. The runner's entry gets
+  one as it turns ready, and aborts it wherever it stops polling: a stop, a failure, an exit.
+- **Rationale**: the runner was at 367 of 500 lines; the rule "a story is ready once compiled" stays
+  in one place, beside the warmer it drives, and the runner only forwards to it.
+- **Alternatives considered**: a map of compiles on the runner's entry, as the plan's task 5
+  sketched: the same behaviour, with the runner growing past 450 lines.
+- **Where**: task 5 of the plan.

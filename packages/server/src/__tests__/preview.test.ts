@@ -11,6 +11,7 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
+import { releaseModules } from "../preview/__tests__/helpers.ts";
 import { IDLE_MS } from "../preview/runner.ts";
 import { byId, type Data, fixtureRepo, mutate, running, testApp, testServer } from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
@@ -62,6 +63,24 @@ test("a story's first read starts its Storybook, and turns ready live (US1.1)", 
     state: "ready",
     storybook: `/f/${STORY_FEATURE}/storybook?path=/story/sidebarhandle--dragging`,
   });
+});
+
+test("a story stays starting until its compile ends, then turns ready live (US3.1, SC-004)", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo, { preview: { mode: "hold-modules" } });
+  const { app, frames, name, previews } = await testApp(repo);
+  const updates = await liveUpdates(app, name, "Story", STORY);
+  await expect
+    .poll(async () => (await byId(app, "Preview", [STORY_FEATURE], ["state"]))[0]?.state, WAIT)
+    .toBe("ready");
+
+  const [held] = await byId(app, "Story", [STORY], FIELDS);
+
+  expect(held).toMatchObject({ frame: null, state: "starting" });
+  const before = updates.mark();
+  await releaseModules(previews, `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`);
+  expect(await updates.arrival('"state":"ready"', before), "no live update to ready").toBeDefined();
+  await updates.close();
 });
 
 test("an export not in the index is missing", async () => {
