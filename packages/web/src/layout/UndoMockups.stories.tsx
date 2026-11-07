@@ -9,7 +9,7 @@ import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
 import { ConfirmHost } from "../fields/Confirm.tsx";
 import { Home } from "../Home.tsx";
 import { pressKeys } from "../keys/press.ts";
-import { localPath } from "../routes.tsx";
+import { localPath, useRepository } from "../routes.tsx";
 import { Shell } from "../Shell.tsx";
 import { type UndoEntry, undoStack } from "../undo/stack.ts";
 import { useUndo } from "../undo/useUndo.ts";
@@ -17,11 +17,11 @@ import { useUndo } from "../undo/useUndo.ts";
 type State = "deleted" | "undone" | "committed" | "refused";
 
 /** "Color themes" deleted from Next, or moved, on the page open: its undo and redo write nothing. */
-function actionOf(state: State): UndoEntry {
+function actionOf(state: State, repo: string): UndoEntry {
   return {
     ...(state === "committed" ? { committed: async () => true } : {}),
     label: state === "committed" ? "Moved “Color themes” to Now" : "Deleted “Color themes”",
-    place: { path: localPath(window.location.pathname) },
+    place: { path: localPath(window.location.pathname), repo },
     redo: async () => undefined,
     undo: async () =>
       state === "refused"
@@ -33,13 +33,14 @@ function actionOf(state: State): UndoEntry {
 /** Records the action, then, but for the delete's own toast, presses `u`. */
 function Acting({ state }: { state: State }) {
   const record = useUndo();
+  const repo = useRepository();
   useEffect(() => {
     undoStack.clear();
-    record(actionOf(state));
+    record(actionOf(state, repo));
     if (state !== "deleted") {
       pressKeys("u");
     }
-  }, [record, state]);
+  }, [record, repo, state]);
   return null;
 }
 

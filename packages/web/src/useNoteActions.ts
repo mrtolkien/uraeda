@@ -10,7 +10,7 @@ import { withFreshBase } from "./freshBase.ts";
 import { rereadingFile } from "./inboxUndo.ts";
 import { notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
+import { currentEntry, navigate, selectOnArrival, useRepoPath, useRepository } from "./routes.tsx";
 import { changeEntry } from "./undo/changeEntry.ts";
 import {
   InboxChangeView,
@@ -46,9 +46,10 @@ async function shownGone(fate: Fate, placed: Placed) {
 function useRecordMove(placed: Placed) {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return (change: UndoChange | null | undefined, label: string, file?: string) => {
     if (change) {
-      const place = { path: "/inbox", select: placed.note.key };
+      const place = { path: "/inbox", repo, select: placed.note.key };
       const entry = changeEntry(fate, change, label, place, placed.note.text);
       record(file === undefined ? entry : rereadingFile(fate, entry, file));
     }

@@ -32,7 +32,13 @@ test("a failed request leaves the entry on top; a conflict drops it, with its te
   ];
   const fate = fakeFate(() => answers.shift()!());
   const stack = createUndoStack(() => 0);
-  const entry = changeEntry(fate, CHANGE, "Deleted “Color themes”", { path: "/" }, "Color themes");
+  const entry = changeEntry(
+    fate,
+    CHANGE,
+    "Deleted “Color themes”",
+    { path: "/", repo: "uraeda" },
+    "Color themes",
+  );
   stack.record(entry);
 
   await expect(stack.undo(never)).rejects.toThrow("fetch failed");
@@ -56,7 +62,13 @@ test("a failed redo rejects and leaves the entry on the redo side; a refusal dro
   ];
   const fate = fakeFate(() => answers.shift()!());
   const stack = createUndoStack(() => 0);
-  const entry = changeEntry(fate, CHANGE, "Deleted “Color themes”", { path: "/" }, "Color themes");
+  const entry = changeEntry(
+    fate,
+    CHANGE,
+    "Deleted “Color themes”",
+    { path: "/", repo: "uraeda" },
+    "Color themes",
+  );
   stack.record(entry);
   expect(await stack.undo(never)).toEqual({ entry, kind: "done" });
 

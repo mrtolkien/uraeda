@@ -14,7 +14,7 @@ import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
-import { useRoute } from "./routes.tsx";
+import { useRepository, useRoute } from "./routes.tsx";
 import { changeEntry } from "./undo/changeEntry.ts";
 import { useUndo } from "./undo/useUndo.ts";
 
@@ -155,11 +155,12 @@ function ProposalOverlay({
 }) {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
 
   // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
     if (line?.change) {
-      const place = { path: "/priorities", select: line.key };
+      const place = { path: "/priorities", repo, select: line.key };
       record(changeEntry(fate, line.change, `Added to ${titleOf(section)}`, place, line.text));
     }
   };
@@ -198,6 +199,7 @@ function NoteOverlay({
 }) {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   const { route } = useRoute();
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
@@ -209,7 +211,7 @@ function NoteOverlay({
     }
     if (change) {
       const label = file === undefined ? "Added to the inbox" : "Added to the inbox as a file";
-      const place = note ? { path: "/inbox", select: note.key } : { path: "/inbox" };
+      const place = note ? { path: "/inbox", repo, select: note.key } : { path: "/inbox", repo };
       record(changeEntry(fate, change, label, place, note?.text ?? file ?? ""));
     }
   };

@@ -5,7 +5,14 @@
 import { useLayoutEffect, useSyncExternalStore } from "react";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { useKeys } from "../keys/registry.tsx";
-import { currentEntry, localPath, navigateHere, selectOnArrival } from "../routes.tsx";
+import {
+  currentEntry,
+  localPath,
+  navigate,
+  parseLocation,
+  repoPath,
+  selectOnArrival,
+} from "../routes.tsx";
 import { showPageError } from "./pageErrors.ts";
 import { type UndoEntry, undoStack } from "./stack.ts";
 import { setReplay, useStackToast } from "./useUndo.ts";
@@ -27,13 +34,16 @@ function lowered(label: string) {
 }
 
 /**
- * Takes the human where the action happened, with what came back selected: its page opens, in a
- * new history entry that Back leaves, or, on that page already, the row is selected in place.
+ * Takes the human where the action happened, with what came back selected: its repository's page
+ * opens, in a new history entry that Back leaves, or, on that page of that repository already, the
+ * row is selected in place. The stack is the tab's: an entry may come from another repository. A
+ * location that names none, a story's, is taken as the entry's.
  */
-function goTo({ path, select }: UndoEntry["place"]) {
+export function goTo({ path, repo, select }: UndoEntry["place"]) {
   const page = path.split(/[?#]/, 1)[0];
-  if (page !== localPath(window.location.pathname)) {
-    navigateHere(path, select === undefined ? undefined : { select });
+  const here = parseLocation(window.location.pathname).repo ?? repo;
+  if (here !== repo || page !== localPath(window.location.pathname)) {
+    navigate(repoPath(repo, path), select === undefined ? undefined : { select });
   } else if (select !== undefined) {
     selectOnArrival(currentEntry().id, select);
   }

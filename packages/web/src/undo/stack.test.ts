@@ -17,7 +17,7 @@ function clock() {
 function entry(label: string, extra: Partial<UndoEntry> = {}): UndoEntry {
   return {
     label,
-    place: { path: "PRIORITIES.md" },
+    place: { path: "/priorities", repo: "uraeda" },
     redo: vi.fn(async () => undefined),
     undo: vi.fn(async () => undefined),
     ...extra,
@@ -29,7 +29,7 @@ function move(label: string, list: string, log: Array<string>): UndoEntry {
   const own: UndoEntry = {
     label,
     move: { join: (earlier) => joined(earlier, own), list },
-    place: { path: "PRIORITIES.md" },
+    place: { path: "/priorities", repo: "uraeda" },
     redo: async () => {
       log.push(`redo ${label}`);
       return undefined;
