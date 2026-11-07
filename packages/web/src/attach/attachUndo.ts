@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useFateClient } from "react-fate";
 import type { ChangeView } from "uraeda-binding";
 import { splitProposal } from "../pane/proposalText.ts";
+import { useRepository } from "../routes.tsx";
 import { changeEntry, joinChanges } from "../undo/changeEntry.ts";
 import type { UndoEntry } from "../undo/stack.ts";
 import { useUndo } from "../undo/useUndo.ts";
@@ -51,7 +52,7 @@ export function fileName(path: string) {
  * its frontmatter included, changed since: an edit after the links' save is not the action's to
  * take back.
  */
-export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undefined {
+export function attachedEntry(fate: Fate, attached: Attached, repo: string): UndoEntry | undefined {
   const [first, ...rest] = attached.changes;
   if (!first) {
     return undefined;
@@ -62,7 +63,7 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
   const label = `Added ${count === 1 ? "an image" : `${count} images`} to “${subject}”`;
   // The file's page where the last replay left it: back at its start after an undo, at the path the
   // run left it, in its folder, after a redo.
-  let place = { path: `/edit/${attached.path}` };
+  let place = { path: `/edit/${attached.path}`, repo };
   const base = changeEntry(fate, images, label, place, subject);
   // The entry over the images and the text's save, made by the first undo, which reads the save.
   let whole: UndoEntry | undefined;
@@ -92,7 +93,7 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
     const refused = await whole.undo();
     await reread();
     if (refused === undefined) {
-      place = { path: `/edit/${attached.start.path}` };
+      place = { path: `/edit/${attached.start.path}`, repo };
     }
     return refused;
   };
@@ -106,7 +107,7 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
       const refused = await (whole ?? base).redo();
       await reread();
       if (refused === undefined) {
-        place = { path: `/edit/${attached.path}` };
+        place = { path: `/edit/${attached.path}`, repo };
       }
       return refused;
     },
@@ -123,6 +124,7 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
 export function useRecordAttached() {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   const start = useRef<Attached["start"]>(undefined);
   const pending = useRef<() => void>(undefined);
   const take = useCallback(() => {
@@ -135,7 +137,7 @@ export function useRecordAttached() {
       // The run's start, as the next run's own replaces it.
       const started = start.current;
       pending.current = () => {
-        const entry = started && attachedEntry(fate, { ...run, start: started });
+        const entry = started && attachedEntry(fate, { ...run, start: started }, repo);
         if (entry) {
           record(entry);
         }

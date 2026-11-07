@@ -13,6 +13,7 @@ import { fileIndex } from "./cardMoves.ts";
 import type { Priorities } from "./PrioritiesList.tsx";
 import type { UndoEntry } from "../undo/stack.ts";
 import { useUndo } from "../undo/useUndo.ts";
+import { useRepository } from "../routes.tsx";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -22,9 +23,12 @@ const LIST = "priorities";
 /** The page of the priorities, from the repository. */
 const PAGE = "/priorities";
 
-/** The place of a row of the priorities, `select` its key, to select once it is back. */
-export function prioritiesPlace(select?: string): UndoEntry["place"] {
-  return select === undefined ? { path: PAGE } : { path: PAGE, select };
+/**
+ * The place of a row of the priorities of the repository `repo`, `select` its key, to select once
+ * it is back.
+ */
+export function prioritiesPlace(repo: string, select?: string): UndoEntry["place"] {
+  return select === undefined ? { path: PAGE, repo } : { path: PAGE, repo, select };
 }
 
 /** Each move entry's change, label, place, and subject, which the run it starts keeps. */
@@ -80,13 +84,14 @@ type Answered = { error?: unknown; result?: { change?: ChangeView | null } | nul
 export function usePrioritiesUndo() {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return useCallback(
     <R extends Answered>(call: () => Promise<R>, made: Recorded | undefined) =>
       async () => {
         const answer = await call();
         const change = answer.error ? undefined : answer.result?.change;
         if (change && made) {
-          const place = prioritiesPlace(made.select);
+          const place = prioritiesPlace(repo, made.select);
           record(
             made.isMove
               ? moveEntry(fate, change, made.label, place, made.subject)
@@ -95,7 +100,7 @@ export function usePrioritiesUndo() {
         }
         return answer;
       },
-    [fate, record],
+    [fate, record, repo],
   );
 }
 
@@ -168,6 +173,7 @@ export function movedRecorded(
 export function useRecordExpand() {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return useCallback(
     (
       answer: { change?: ChangeView | null; path?: unknown } | null | undefined,
@@ -176,11 +182,11 @@ export function useRecordExpand() {
     ) => {
       if (answer?.change && typeof answer.path === "string") {
         const label = `Expanded ${quoted(text)} into a file`;
-        const entry = changeEntry(fate, answer.change, label, prioritiesPlace(key), text);
+        const entry = changeEntry(fate, answer.change, label, prioritiesPlace(repo, key), text);
         record(rereadingFile(fate, entry, answer.path));
       }
     },
-    [fate, record],
+    [fate, record, repo],
   );
 }
 

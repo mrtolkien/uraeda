@@ -13,7 +13,7 @@ import {
 import { filePage } from "./readAhead.ts";
 import { reviewEditKey } from "./reviewField.ts";
 import { quoteOfRange } from "./reviewQuote.ts";
-import { useRepositoryPath } from "./routes.tsx";
+import { useRepository, useRepositoryPath } from "./routes.tsx";
 import type { useRefusals } from "./ReviewVerdict.tsx";
 import { changeEntry } from "./undo/changeEntry.ts";
 import { useUndo } from "./undo/useUndo.ts";
@@ -64,6 +64,7 @@ function followRestored(keyOf: (number: number) => string, number: number, count
 function useRecord(file: Reviewed) {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return (
     answer: Answer,
     label: string,
@@ -74,7 +75,7 @@ function useRecord(file: Reviewed) {
     if (!change) {
       return;
     }
-    const place = { path: `/f/${file.folder}/${file.name}` };
+    const place = { path: `/f/${file.folder}/${file.name}`, repo };
     const entry = changeEntry(fate, change, label, place, subject);
     const replayed = (replay: () => Promise<string | undefined>, then?: () => void) => async () => {
       const refused = await replay();

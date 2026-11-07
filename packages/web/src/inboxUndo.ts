@@ -66,12 +66,21 @@ export function outlineWrite(
 const moves = new WeakMap<UndoEntry, { change: ChangeView; write: InboxWrite }>();
 
 /**
- * The entry of a write of the inbox that answered `change`, at `/inbox`. A move joins the run of
- * moves of the inbox on top: the run is named and placed as its first move, its change from before
- * the first to after the last.
+ * The entry of a write of the inbox of the repository `repo` that answered `change`, at `/inbox`. A
+ * move joins the run of moves of the inbox on top: the run is named and placed as its first move,
+ * its change from before the first to after the last.
  */
-export function inboxEntry(fate: Fate, change: ChangeView, write: InboxWrite): UndoEntry {
-  const place = { path: "/inbox", ...(write.select === undefined ? {} : { select: write.select }) };
+export function inboxEntry(
+  fate: Fate,
+  change: ChangeView,
+  write: InboxWrite,
+  repo: string,
+): UndoEntry {
+  const place = {
+    path: "/inbox",
+    repo,
+    ...(write.select === undefined ? {} : { select: write.select }),
+  };
   const entry = changeEntry(fate, change, write.label, place, write.subject);
   if (!write.move) {
     return entry;
@@ -81,7 +90,9 @@ export function inboxEntry(fate: Fate, change: ChangeView, write: InboxWrite): U
     move: {
       join: (earlier) => {
         const first = moves.get(earlier);
-        return first ? inboxEntry(fate, joinChanges(first.change, change), first.write) : moved;
+        return first
+          ? inboxEntry(fate, joinChanges(first.change, change), first.write, repo)
+          : moved;
       },
       list: "inbox",
     },

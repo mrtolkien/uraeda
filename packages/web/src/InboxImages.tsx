@@ -130,6 +130,7 @@ function noteOfRow(outline: Outline, key: string) {
 function useImageRemoval(onRefused: (message: string | undefined) => void) {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return async (note: InboxNote, path: string) => {
     // A read that failed, the connection lost, shows as a refusal does, never as a rejection.
     const change = await removeNoteImage(fate, note, path).catch((error: unknown) =>
@@ -147,7 +148,7 @@ function useImageRemoval(onRefused: (message: string | undefined) => void) {
       select: note.key,
       subject: imageName(path),
     };
-    record(rereadingFile(fate, inboxEntry(fate, change, write), note.file ?? ""));
+    record(rereadingFile(fate, inboxEntry(fate, change, write, repo), note.file ?? ""));
   };
 }
 
@@ -158,6 +159,7 @@ function useImageRemoval(onRefused: (message: string | undefined) => void) {
 function useAttachRecorded() {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   const { attach, status } = useAttachToNote();
   const attachTo = async (
     now: Pick<Inbox, "categories" | "hash">,
@@ -173,7 +175,8 @@ function useAttachRecorded() {
     const images = files.length === 1 ? "an image" : `${files.length} images`;
     const label = `Added ${images} to ${quoted(row.text)}`;
     if (sent.change) {
-      const entry = inboxEntry(fate, sent.change, { label, select: row.key, subject: row.text });
+      const write = { label, select: row.key, subject: row.text };
+      const entry = inboxEntry(fate, sent.change, write, repo);
       record(rereadingFile(fate, entry, sent.file));
     }
     return undefined;
