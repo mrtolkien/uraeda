@@ -459,6 +459,32 @@ test("a selection's key runs before the page's and the shell's, and clashes only
   expect(document.body.textContent).toContain('"b" is bound twice, to pick b and to again');
 });
 
+// Break: the clash across layers checked for same-length keys only, or not at all; a selection's
+// fallback let through, which would run after the page's ordinary binding of its key.
+test("across layers, a key never starts another's sequence, and a selection has no fallback", () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const ran: Array<string> = [];
+  const cases: Array<[{ fallback?: boolean; keys: string }, string]> = [
+    [{ keys: "g" }, '"g" (pick) is a key and the start of the sequence "g g" (top)'],
+    [{ keys: "x y" }, '"x" (cut) is a key and the start of the sequence "x y" (pick)'],
+    [{ fallback: true, keys: "j" }, '"j" (pick) is a selection\'s fallback'],
+  ];
+  for (const [selection, problem] of cases) {
+    render(
+      <KeysProvider>
+        <Harness keys="g g" label="top" place="shell" ran={ran} />
+        <Harness keys="x" label="cut" ran={ran} />
+        <Harness keys="j" label="down" ran={ran} />
+        <Boundary>
+          <Harness {...selection} label="pick" place="selection" ran={ran} />
+        </Boundary>
+      </KeysProvider>,
+    );
+    expect(document.body.textContent).toContain(problem);
+    cleanup();
+  }
+});
+
 /** Says how many hints it reads, and tells `onRender` each time it renders. */
 function Reader({ onRender }: { onRender: () => void }) {
   onRender();
