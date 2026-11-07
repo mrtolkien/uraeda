@@ -1,5 +1,5 @@
-//! A write recorded as a change: the bytes each file under its scope held before and after it,
-//! whatever their kind, and the replay that writes one side back while every file holds the
+//! A write recorded as a change: the bytes each regular file under its scope held before and after
+//! it, whatever their kind, and the replay that writes one side back while every file holds the
 //! other. A deferred commit's undo puts its files back the same way, from what it kept.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -55,15 +55,28 @@ impl ChangedFile {
 /// write, without the images and other files beside them.
 pub const MARKDOWN: &str = "specs/**/*.md";
 
-/// The bytes of every file under each of `scope`'s entries, from `root`: a file or a folder,
-/// [`MARKDOWN`], or a folder's path and the start of a name followed by `*`, every file or folder
-/// of that folder whose name starts so, as `specs/proposals/look*`.
+/// The bytes of every regular file under each of `scope`'s entries, from `root`: a file or a
+/// folder, [`MARKDOWN`], or a folder's path and the start of a name followed by `*`, every file or
+/// folder of that folder whose name starts so, as `specs/proposals/look*`. A symbolic link or a
+/// special file stays out, never read nor written back: a link to a secret would put its bytes in
+/// the change, and a pipe would block the read under the write lock.
 pub(crate) fn snapshot(root: &Path, scope: &[&str]) -> BTreeMap<String, Vec<u8>> {
     scope
         .iter()
         .flat_map(|entry| scoped(root, entry.trim_end_matches('/')))
-        .filter_map(|file| Some((file.clone(), fs::read(root.join(&file)).ok()?)))
+        .filter_map(|file| Some((file.clone(), regular(root, &file)??)))
         .collect()
+}
+
+/// What the regular file at `path` from `root` holds: `Some(None)` when nothing stands there,
+/// `None` when something other than a regular file does, a symbolic link or a special file.
+fn regular(root: &Path, path: &str) -> Option<Option<Vec<u8>>> {
+    let full = root.join(path);
+    match fs::symlink_metadata(&full) {
+        Ok(metadata) if metadata.is_file() => Some(fs::read(&full).ok()),
+        Ok(_) => None,
+        Err(_) => Some(None),
+    }
 }
 
 /// The files of one scope's `entry`, as [`snapshot`] reads them.
@@ -108,15 +121,16 @@ pub(crate) fn diff(
     Change { commit, files }
 }
 
-/// The first file that no longer holds what the replay in `direction` expects: changed since.
+/// The first file that no longer holds what the replay in `direction` expects: changed since, as
+/// is one where a symbolic link or a special file stands now.
 pub(crate) fn changed_since<'a>(
     root: &Path,
     files: &'a [ChangedFile],
     direction: Direction,
 ) -> Option<&'a ChangedFile> {
-    files
-        .iter()
-        .find(|file| fs::read(root.join(&file.path)).ok().as_deref() != file.expected(direction))
+    files.iter().find(|file| {
+        regular(root, &file.path).as_ref().map(Option::as_deref) != Some(file.expected(direction))
+    })
 }
 
 /// Writes each file's side for `direction`, deleting a file absent on it with the folders it

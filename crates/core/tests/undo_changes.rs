@@ -332,3 +332,40 @@ fn an_image_attached_to_a_single_note_file_has_its_relinks_undone() {
     assert!(repo.exists("specs/notes/dark-mode.md"));
     assert_eq!(repo.porcelain(), "");
 }
+
+/// A symbolic link in a note's folder stays out of its change: its target's bytes are never read
+/// into it, and an undo writes nothing through it.
+#[cfg(unix)]
+#[test]
+fn a_symbolic_link_in_a_note_folder_stays_out_of_its_change() {
+    let repo = fixture_repo();
+    let note = "A note with a link";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    repo.commit("docs: a note");
+    let secret = repo.path().join("secret.txt");
+    std::fs::write(&secret, "the secret").unwrap();
+    let folder = file.trim_end_matches("/note.md").to_string();
+    let link = format!("{folder}/secret.txt");
+    std::os::unix::fs::symlink(&secret, repo.path().join(&link)).unwrap();
+
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&read, note);
+    let (_, change) = undo::recorded(repo.path(), undo::NOTES, || {
+        api::remove_note(repo.path(), &id, &read.hash)
+    })
+    .unwrap();
+
+    assert!(change.files.iter().all(|changed| changed.path != link));
+    let secret_bytes = b"the secret".as_slice();
+    assert!(change.files.iter().all(|changed| {
+        changed.before.as_deref() != Some(secret_bytes)
+            && changed.after.as_deref() != Some(secret_bytes)
+    }));
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+    assert!(repo.exists(&file));
+    assert_eq!(std::fs::read_to_string(&secret).unwrap(), "the secret");
+}
