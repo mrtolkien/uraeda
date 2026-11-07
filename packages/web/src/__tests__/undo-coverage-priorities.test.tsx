@@ -184,10 +184,16 @@ test("a line indented, outdented, moved, and moved to a section each undo and re
   ];
   for (const [key, line, moved] of moves) {
     const before = contents(repo, ["specs/PRIORITIES.md"]);
+    const earlier = undoStack.top();
     await press(key, focus(line));
     await waitFor(() => expect(moved(read(repo)), `${key}: ${read(repo)}`).toBe(true));
-    // A move shows no toast: its entry is on the stack once its write answered.
-    await waitFor(() => expect(undoStack.top()?.label).toBe(`Moved “${line}”`));
+    // A move shows no toast: its own entry is on the stack once its write answered, and a tick
+    // later no toast drew.
+    await waitFor(() => {
+      expect(undoStack.top()).not.toBe(earlier);
+      expect(undoStack.top()?.label).toBe(`Moved “${line}”`);
+    });
+    await act(async () => {});
     expect(screen.queryByText(/^Moved/)).toBeNull();
     // The undo and the redo end the run: the next move is a step of its own.
     await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
