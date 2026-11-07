@@ -149,7 +149,7 @@ pick is per browser while custom themes would live in the settings file.
 ### The palettes
 
 Contrast is computed with WCAG 2.x's formula against each variant's page background, by the research
-and by the [prototype](mockups/themes.html), whose `render.js` prints the failures.
+and by the prototype (`mockups/themes.html`, deleted), whose `render.js` prints the failures.
 
 | Family      | Dark variants              | Light variants               | Licence                           | Under 4.5:1 as text                                              |
 | ----------- | -------------------------- | ---------------------------- | --------------------------------- | ---------------------------------------------------------------- |
