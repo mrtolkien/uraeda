@@ -939,7 +939,10 @@ Breaks: a hue in a string, in a member key, or in a prop slipping by.
 The rule reports a string or template piece matching
 `--color-(text|border|background|icon|fill)-(red|orange|yellow|green|teal|cyan|blue|purple|pink|gray|lavender|sapphire)\b`,
 and a JSX `variant` or `color` attribute whose literal value, or a condition's, is one of those
-hues. Then each view takes the role of what it means, from the discovery's
+hues. Its review added three forms, each a row of `hue-token.tsx`, which the lint test counts seven
+reports on: an object's `variant` or `color` property set to a hue, a string that is a hue's name
+alone, and a template's text ending in `--color-(text|border|background|icon|fill)-` before an
+expression. Then each view takes the role of what it means, from the discovery's
 [table](discovery-01.md#what-each-colour-means-today) and the data model: `-orange` → `needs-you`,
 `-purple` → `changed` (a pane's "changed") or `action` where it is what can be pressed, `-green` →
 `added`, `-red` → `removed`, `-yellow` → `caution`, `-blue` → `context`, `yours`, `link`, or
