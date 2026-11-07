@@ -5,7 +5,7 @@ import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { SinceBlock } from "./sinceMarks.tsx";
-import type { Range } from "./useCommentDraft.ts";
+import type { Range } from "./commentRange.ts";
 
 /**
  * How a review selects blocks: which are selected, what a tap does, given the block and the element

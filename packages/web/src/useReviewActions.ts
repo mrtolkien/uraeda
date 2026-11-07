@@ -1,7 +1,7 @@
 import { startTransition, useOptimistic } from "react";
 import { useFateClient } from "react-fate";
 import type { CommentItem } from "uraeda-binding";
-import { decisionOf } from "./commentRange.ts";
+import { decisionOf, type Range } from "./commentRange.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { renumberUnsaved, unsavedKey } from "./fields/unsaved.ts";
@@ -10,7 +10,7 @@ import { placeOf, reviewEditKey } from "./reviewField.ts";
 import { quoteOfRange } from "./reviewQuote.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import type { useRefusals } from "./ReviewVerdict.tsx";
-import type { Range, useCommentDraft } from "./useCommentDraft.ts";
+import type { useCommentDraft } from "./useCommentDraft.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;

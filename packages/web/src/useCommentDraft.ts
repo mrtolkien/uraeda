@@ -3,8 +3,6 @@ import type { Block } from "uraeda-binding";
 import { merged, type Range } from "./commentRange.ts";
 import { frame, keepPlace, scrollInstantly, scrollMark, topOf } from "./keepPlace.ts";
 
-export type { Range };
-
 /**
  * The last tapped element, under which the form opens: a block of the reviewed file, by its id, or
  * a part of a decision, by the decision and the part's last line.
