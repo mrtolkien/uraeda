@@ -157,9 +157,14 @@ pub fn note_to_proposal(
     priorities_previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<()>> {
-    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
-        api::note_to_proposal(repo, &id, &section, &previous, &priorities_previous)
-    })
+    recording(
+        repo,
+        undo,
+        scope(undo::RELINKING_PROMOTION),
+        move |repo: &Path| {
+            api::note_to_proposal(repo, &id, &section, &previous, &priorities_previous)
+        },
+    )
 }
 
 /// Moves a note under the proposal `proposal` of the priorities, `now-2`, as its last item, over
@@ -302,7 +307,7 @@ pub fn attach_note_images(
     undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
     let images = note_images(images, names);
-    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+    recording(repo, undo, scope(undo::NOTE_IMAGES), move |repo: &Path| {
         let (_, file) = api::attach_note_images(repo, &id, &images, &previous)?;
         Ok(file)
     })

@@ -67,8 +67,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   file's or a proposal file's, rather than `NOTES`; an image attached to a single proposal file or
   note file records the file, the folders named after it, and every Markdown file of `specs/`, the
   file becoming a folder and its links followed in every file; one attached to any other file, the
-  file and its folder. A promotion that moves a note file or takes it into a proposal,
-  `noteToProposalFile`, `noteIntoProposal`, and `noteIntoProposalLine`, records
+  file and its folder. A note's images attached from the inbox, `attachNoteImages`, record
+  `NOTE_IMAGES`: `NOTES` and every Markdown file of `specs/`, as a single note file becomes a folder
+  and its links are followed. A promotion that moves a note file or takes it into a proposal,
+  `noteToProposal`, `noteToProposalFile`, `noteIntoProposal`, and `noteIntoProposalLine`, records
   `RELINKING_PROMOTION`: `PROMOTION` and every Markdown file of `specs/`, as its relink may write
   any of them.
 - **Rationale**: `removeNoteImage` also takes images out of proposal files, outside `specs/notes`,
@@ -77,7 +79,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   stay out of the snapshot, which keeps its cost to the Markdown's bytes.
 - **If wrong**: a large `specs/` makes these writes slower to record; the scope narrows to the lists
   and the file's folder at the cost of links elsewhere left moved.
-- **Where**: task 1, `api::undo::{MARKDOWN, RELINKING_PROMOTION, attached}`
+- **Where**: task 1, `api::undo::{MARKDOWN, NOTE_IMAGES, RELINKING_PROMOTION, attached}`
 
 ## R7: The stack's method is `record`, not `push`
 
