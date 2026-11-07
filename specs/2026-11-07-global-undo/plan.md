@@ -233,20 +233,20 @@ with real time except where they fake `Date` to pin the second of a run.
 | US5.3, more 1-2: the second ends a run; other actions     | 3    | `stack.test.ts` "moves of one list less than a second apart join one entry"                                                                                                    |
 | US5 more 3: the run's redo and its label                  | 3    | `stack.test.ts` "moves of one list less than a second apart join one entry"                                                                                                    |
 | Edge: the page not open                                   | 5    | as US1.3                                                                                                                                                                       |
-| Edge: a category holding notes still asks                 | —    | existing: its question is unchanged; its undo is a row of `undo-coverage.test.tsx`                                                                                             |
+| Edge: a category holding notes still asks                 | —    | existing: its question is unchanged; its undo is the row "a category deleted with its notes" of `undo-coverage-inbox.test.tsx`                                                 |
 | Edge: single keys off                                     | —    | none: the registry drops single keys and keeps `mod+` chords, tested by `keys-registry.test.tsx`                                                                               |
 | Edge: the stack empty, nothing to redo                    | 3    | `stack.test.ts` "undo and redo on an empty side do nothing"                                                                                                                    |
 | Edge: a second `u` while the first is on its way          | 3    | `stack.test.ts` "an undo pressed during another waits for it"                                                                                                                  |
 | Edge: the phone                                           | 5    | `undo-toast.test.tsx` "on the phone, the toast's button shows no key", moved from `phone-t3.test.tsx`                                                                          |
 | Edge: the thing deleted on another page                   | 1    | as US4.1: the file changed since                                                                                                                                               |
 | SC-001: `d` takes one key                                 | 9    | as US1.1                                                                                                                                                                       |
-| SC-002: every write has an undo and a redo                | 6-8  | `undo-coverage.test.tsx`, one row per kind of write                                                                                                                            |
+| SC-002: every write has an undo and a redo                | 6-8  | `undo-coverage-inbox.test.tsx`, `undo-coverage-priorities.test.tsx`, `undo-coverage-reviews.test.tsx` (R11), one row per kind of write                                         |
 | SC-003: the 50th action back, no toast on screen          | 3    | as US1 more 4                                                                                                                                                                  |
 | SC-004: no git command commits, resets, or reverts        | 1    | `undo_changes.rs` "undo and redo write files and never commit"                                                                                                                 |
 | Review focus: a change across files, one changed          | 1    | `undo_changes.rs` "undo refuses once a file changed since, writing nothing"                                                                                                    |
 | Review focus: an uncommitted image                        | 1    | as US1 more 3                                                                                                                                                                  |
 | Review focus: another tab's write in between              | 1    | none of its own: the lock is held by the recording; a deadlock fails every row of `undo_changes.rs`                                                                            |
-| Review focus: a refused write records nothing             | 4, 6 | `undo-coverage.test.tsx` row "a write refused by its hash"                                                                                                                     |
+| Review focus: a refused write records nothing             | 4, 6 | `undo-coverage-inbox.test.tsx` row "a write refused by its hash leaves nothing to undo"                                                                                        |
 | Review focus: two lists in one second                     | 3    | a row of "moves of one list less than a second apart join one entry"                                                                                                           |
 | Review focus: review file created or deleted              | 8    | rows "a first comment", "Start over" of `undo-coverage.test.tsx`                                                                                                               |
 | Review focus: the page already open                       | 5    | an assertion of "u from another page …": a second `u` on the open page keeps Back's target                                                                                     |
@@ -645,11 +645,14 @@ git commit -m "feat(global-undo): u, U, and their toasts over the tab's stack"
 **Files:**
 
 - Create: `packages/web/src/inboxUndo.ts` (the inbox's labels and entries)
-- Modify: `InboxList.tsx` (`useInboxOutline`, `useNoteDelete`, the inbox's arrival selection),
-  `useNoteActions.ts`, `InboxImages.tsx`, `NoteImage.tsx`, `inboxImages.ts`,
-  `lists/useCategoryActions.ts`
-- Test: `packages/web/src/__tests__/undo-coverage.test.tsx` (created here), helpers in
-  `__tests__/helpers.tsx`
+- Modify: `InboxList.tsx` (`useInboxOutline` and its `useRun`; `useNoteDelete` and its `putBack`
+  removed, the outline's delete recording it), `InboxImages.tsx`, `NoteImage.tsx`, `inboxImages.ts`,
+  `lists/useCategoryActions.ts`; `optimisticLists.ts` (`notePutBack`) and `views.ts`
+  (`InboxRemovedView`) lose what only the replaced undos used. The promotions (`useNoteActions.ts`)
+  recorded their change in task 5 (R9), and the inbox's arrival selection came with task 5's
+  `useNamedRow`: both stay as they are.
+- Test: `packages/web/src/__tests__/undo-coverage-inbox.test.tsx` (created here, R11), its helpers
+  in the file
 
 **Interfaces:**
 
@@ -662,17 +665,24 @@ git commit -m "feat(global-undo): u, U, and their toasts over the tab's stack"
   their labels today; an image attached to a note ("Added an image to “…”"). The place is `/inbox`
   with the note's key, or the page the promotion opened. The inbox selects a row named by
   `navigate`'s `select` on arrival, as the priorities do.
+- In `inboxUndo.ts`: `inboxEntry(fate, change, write: InboxWrite): UndoEntry`, where
+  `InboxWrite = { label, move?, select?, subject }`, a move joining the run of the list `inbox`;
+  `outlineWrite(now, id, at, kind, text)`, the `InboxWrite` of an outline edit by its kind;
+  `movedWrite(row)`; `rowOfNote(now, id, at?)`; `quoted(text)`; and
+  `rereadingFile(fate, entry, file)`, which reads a note file again after the replay.
+  `useAttachToNote`'s `attach` resolves with `{ change?, file }` or the refusal, and
+  `useAddWithImage`'s answer gains `change`.
 
-- [ ] **Step 1: Write the failing test**: `undo-coverage.test.tsx`, "every kind of write has an undo
-      and a redo", one row per kind above, each: do it through the page, `u`, the file as before,
-      `U`, the file as after; and the row "a write refused by its hash": nothing to undo. The break
-      each row catches: a write that records no entry, or the wrong scope.
-- [ ] **Step 2: Run it to check it fails**
-  - Run: `nix develop -c vp test packages/web/src/__tests__/undo-coverage.test.tsx`
+- [x] **Step 1: Write the failing test**: `undo-coverage-inbox.test.tsx`, "every kind of write has
+      an undo and a redo", one row per kind above, each: do it through the page, `u`, the file as
+      before, `U`, the file as after; and the row "a write refused by its hash": nothing to undo.
+      The break each row catches: a write that records no entry, or the wrong scope.
+- [x] **Step 2: Run it to check it fails**
+  - Run: `nix develop -c vp test packages/web/src/__tests__/undo-coverage-inbox.test.tsx`
   - Expected: FAIL on the first row, the file unchanged after `u`
-- [ ] **Step 3: Record each write**, `InboxList.tsx` staying under 500 lines
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Record each write**, `InboxList.tsx` staying under 500 lines
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

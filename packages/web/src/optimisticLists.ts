@@ -79,19 +79,6 @@ export function noteAdded(
   return categories && inboxWith(categories);
 }
 
-/**
- * The inbox with `note` back at `index` of `category`, as an Undo writes its lines back; `undefined`
- * when they show no notes now.
- */
-export function notePutBack(
-  inbox: Pick<Inbox, "categories">,
-  { category, index, note }: { category?: string; index: number; note: Note },
-) {
-  const back = { ...note, ...temporary() };
-  const categories = placed(inbox.categories, category, back, index);
-  return categories && inboxWith(categories);
-}
-
 /** The inbox without the notes `gone` tells: a category left without notes shows no more. */
 export function notesRemoved(categories: Categories, gone: (note: Note) => boolean) {
   return inboxWith(

@@ -244,18 +244,6 @@ export const InboxView = view<Inbox>()({
   triage: true,
 });
 
-/** The inbox as a category's delete answers it: with `removed`, the file as it was. */
-export const InboxRemovedView = view<Inbox>()({
-  categories: true,
-  changes: true,
-  count: true,
-  hash: true,
-  id: true,
-  names: true,
-  removed: true,
-  triage: true,
-});
-
 export const ProposalFileView = view<ProposalFile>()({
   committed: true,
   discovery: true,
