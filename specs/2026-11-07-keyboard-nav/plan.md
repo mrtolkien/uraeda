@@ -488,12 +488,12 @@ its end; scrolling a fitting pane only to its stop.
   `"block"` stop before it, then removes ("d delete"). A fold's toggle, a story's Comment, and a
   window's Full screen are `"control"` stops, whose own Enter acts.
 
-- [ ] **Step 1: Mark the stops and draw the held look and bar**, as the mockups show.
+- [x] **Step 1: Mark the stops and draw the held look and bar**, as the mockups show.
 
-- [ ] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS. No new test: the
+- [x] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS. No new test: the
       look and the stops are UI behaviour the sandbox shows.
 
-- [ ] **Step 3: Commit**: `feat(keyboard-nav): blocks, comments, folds, and embeds as stops`
+- [x] **Step 3: Commit**: `feat(keyboard-nav): blocks, comments, folds, and embeds as stops`
 
 ## Task 6: The review pages' keys
 
