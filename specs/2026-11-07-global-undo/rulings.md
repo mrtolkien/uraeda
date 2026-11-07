@@ -118,3 +118,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's toast of an action is its label and ` · waits on the Git page`; each of
   these writes does wait on it.
 - **Where**: task 5, `packages/web/src/undo/useUndo.ts`; `inbox-images.test.tsx` reads the new text
+
+## R11: The UI coverage test is split in three files, by task
+
+- **Decision**: SC-002's UI test is three files, one per task that records writes:
+  `undo-coverage-inbox.test.tsx` (task 6), `undo-coverage-priorities.test.tsx` (task 7), and
+  `undo-coverage-reviews.test.tsx` (task 8), rather than one `undo-coverage.test.tsx`.
+- **Rationale**: tasks 6 to 8 run in parallel, each on its own branch: one file written by the three
+  would conflict at each merge. Each file holds its own helpers, which keeps `__tests__/helpers.tsx`
+  out of the conflict too.
+- **If wrong**: merging the three files into one is a move of their tests, with their helpers.
+- **Where**: tasks 6 to 8, `packages/web/src/__tests__/undo-coverage-*.test.tsx`
+
+## R12: A drop that nests a note is recorded, but no UI row drags
+
+- **Decision**: a drop through `inbox.drop`, nesting a note or moving a nested row, records a move
+  as the keys' moves do, but the coverage test has no row of its own for it: its rows move by keys
+  (`Tab`, `Shift+Tab`, `K`, `L`, `m`, `c`), which write through `inbox.outline` and `inbox.place`.
+- **Rationale**: the UI tests have no way to drag a row in happy-dom; the drop's recording is the
+  same `run` with `movedWrite` as `inbox.place`'s, which the rows check.
+- **If wrong**: a drop that records nothing would go unnoticed until a drag test exists.
+- **Where**: task 6, `packages/web/src/InboxList.tsx`

@@ -230,7 +230,8 @@ test("the selected note shows its images under its row, and Remove takes one out
   // The image's file stays, for `ura inbox clean` or a commit to delete.
   expect(filesOf(repo, file).images).toEqual([image]);
   // Undo puts the link back where it was, the file as it was before.
-  await click(await screen.findByRole("button", { name: /^Undo/ }));
+  // The drop's toast, with its own Undo, came before: the removal's is the last.
+  await click((await screen.findAllByRole("button", { name: /^Undo/ })).at(-1)!);
   await waitFor(() => expect(filesOf(repo, file).text).toBe(before));
 });
 
@@ -276,7 +277,8 @@ test("a note file opened after an image's removal is undone shows the image agai
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
   await screen.findByText(`Removed ${image} from the note's file · waits on the Git page`);
 
-  await click(await screen.findByRole("button", { name: /^Undo/ }));
+  // The drop's toast, with its own Undo, came before: the removal's is the last.
+  await click((await screen.findAllByRole("button", { name: /^Undo/ })).at(-1)!);
   await waitFor(() => expect(filesOf(repo, file).text).toBe(before));
   // The undo ends on the inbox, its toast saying so: the file is opened after it.
   await screen.findByText(`Undone: removed ${image} from the note's file`);
