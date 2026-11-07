@@ -261,3 +261,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: two fields of `ThemeProblem` and the summary's and banner's sentences in
   `settings/AppearanceSettings.tsx`.
 - **Where**: tasks 2 and 6, their review's fix
+
+## R20: The in-page layer is its own file, and the cursor starts on the theme in use
+
+- **Decision**: `KeyPicker`'s page mode draws its list in `keys/InPage.tsx`, a raw `role="dialog"`
+  box with its fade, its press outside, and its focus return, which `KeyPicker.tsx` uses; and
+  `inPage` takes `start`, the item the cursor starts on, which the theme picker sets to the theme in
+  use in the mode shown. After a letter is typed, the cursor goes to the first result, as before.
+- **Rationale**: the mode put in `KeyPicker.tsx` took it to 563 lines, over the 500 of the code
+  quality decision. With the cursor on the first row, Catppuccin Mocha, opening the picker in light
+  mode would redraw the app in a dark theme before any key; starting on the theme in use changes
+  nothing until the cursor moves. Astryx's `Dialog` is always modal, which blocks the page that is
+  the preview: an Astryx gap, with its reason in the file.
+- **If wrong**: the layer moves back into `KeyPicker.tsx` once it has room; `start` dropped, the
+  cursor starts on the first row.
+- **Where**: task 8
+
+## R21: A pointer moving over the page under an open layer moves no selection
+
+- **Decision**: `isPointerMoved` answers no while a layer is open (`keys/layers.ts`), so a card or a
+  row under the pointer no longer takes the selection and the focus from the theme picker's field.
+- **Rationale**: the theme picker is the one layer that leaves the page in reach of the pointer; in
+  the running app a move over home's cards took the focus from its field, and its keys then went to
+  the page. Every other layer is modal, so the page received no pointer move under it already.
+- **If wrong**: the check moves into the three handlers that call `isPointerMoved`, or the picker
+  puts a transparent layer under its list.
+- **Where**: task 8

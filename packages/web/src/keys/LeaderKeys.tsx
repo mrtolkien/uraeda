@@ -1,7 +1,8 @@
 // The leader's tree: what `Space` and `g` lead to, declared where the shell mounts it. Each entry
 // runs what a button or a page already runs: the places navigate (`destinations.ts`), New opens
 // the page or the form of its button, Find opens the key picker over a kind, Continue opens what
-// needs the human, `r` the repository menu, `u m` cycles the colour mode, and `u f` then a part's
+// needs the human, `r` the repository menu, `u m` cycles the colour mode, `u t` opens the theme
+// picker (`ThemePicker`), and `u f` then a part's
 // key opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
 // confirmed. `?` and `Space ?` open the key map (`KeyMap`), of the keys that work where the focus
 // was. The entries of the UI group that fold the navigation and the right column are declared by
@@ -17,6 +18,7 @@ import { FontPicker } from "./FontPicker.tsx";
 import { useContinue } from "./Continue.tsx";
 import { useKeyPicker } from "./KeyPicker.tsx";
 import { useKeyMap } from "./KeyMap.tsx";
+import { ThemePicker } from "./ThemePicker.tsx";
 import {
   findBindings,
   goGitBindings,
@@ -31,6 +33,19 @@ import type { Binding } from "./store.ts";
 /** The mode after each: the system's, then Light, then Dark, then the system's again. */
 const NEXT: Record<Mode, Mode> = { dark: "system", light: "dark", system: "light" };
 
+/** Restores the default fonts, once the human confirms it. */
+async function confirmDefaultFonts(confirm: ReturnType<typeof useConfirm>) {
+  const restores = await confirm({
+    body: "Every part of the UI goes back to its default font: Atkinson Hyperlegible Next for prose, Monaspace for the rest.",
+    cancel: "Keep mine",
+    confirm: "Restore",
+    title: "Restore the default fonts?",
+  });
+  if (restores) {
+    restoreDefaultFonts();
+  }
+}
+
 /** Declares the tree, and draws what it opens: Continue's picker and the repository menu. */
 export function LeaderKeys() {
   const current = useRepository();
@@ -38,6 +53,7 @@ export function LeaderKeys() {
   const picker = useKeyPicker();
   const [picks, pick] = usePicks();
   const [fontRole, setFontRole] = useState<FontRole>();
+  const [isPickingTheme, setPickingTheme] = useState(false);
   const confirm = useConfirm();
   const { binding: continuing, picker: continuePicker } = useContinue();
   const { bindings: keyMapping, keyMap } = useKeyMap();
@@ -74,6 +90,12 @@ export function LeaderKeys() {
       label: "Mode",
       run: () => pick({ mode: NEXT[picks.mode] }),
     },
+    {
+      icon: "uraeda:palette",
+      keys: "space u t",
+      label: "Theme…",
+      run: () => setPickingTheme(true),
+    },
     ...ROLES.map(({ key, label, role }) => ({
       icon: "uraeda:palette" as const,
       keys: `space u f ${key}`,
@@ -84,17 +106,7 @@ export function LeaderKeys() {
       icon: "uraeda:palette",
       keys: "space u f d",
       label: "Default fonts…",
-      run: async () => {
-        const restores = await confirm({
-          body: "Every part of the UI goes back to its default font: Atkinson Hyperlegible Next for prose, Monaspace for the rest.",
-          cancel: "Keep mine",
-          confirm: "Restore",
-          title: "Restore the default fonts?",
-        });
-        if (restores) {
-          restoreDefaultFonts();
-        }
-      },
+      run: () => confirmDefaultFonts(confirm),
     },
     {
       // A fallback, as `G` is: a list's `g g` goes to its first row instead.
@@ -123,6 +135,7 @@ export function LeaderKeys() {
       <RepositoryMenuHost current={current} />
       {continuePicker}
       <FontPicker onClose={() => setFontRole(undefined)} role={fontRole} />
+      <ThemePicker isOpen={isPickingTheme} onClose={() => setPickingTheme(false)} />
       {keyMap}
     </>
   );
