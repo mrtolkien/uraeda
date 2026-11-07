@@ -141,7 +141,10 @@ export async function showNew(page: Page, kind: keyof typeof NEW_FORMS = "sessio
   await settle(page);
 }
 
-/** Forgets the browser's unsaved text and choices, but the theme: the next view opens as new. */
+/**
+ * Forgets the browser's unsaved text and choices, but the theme's keys, `uraeda.theme` and every
+ * `uraeda.theme.*` (the picks and the drawn cache): the next view opens as new, in its theme.
+ */
 export async function forget(page: Page) {
   // A page that has not opened the app yet has nothing kept, and no storage to reach.
   if (page.url() === "about:blank") {
@@ -149,7 +152,7 @@ export async function forget(page: Page) {
   }
   await page.evaluate(() => {
     for (const key of Object.keys(window.localStorage)) {
-      if (key !== "uraeda.theme") {
+      if (key !== "uraeda.theme" && !key.startsWith("uraeda.theme.")) {
         window.localStorage.removeItem(key);
       }
     }
