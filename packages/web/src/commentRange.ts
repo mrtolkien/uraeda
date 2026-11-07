@@ -1,3 +1,5 @@
+import type { CommentItem } from "uraeda-binding";
+
 /**
  * Lines of the reviewed file, and the heading above them; or, with `decision`, lines of a decision
  * the reviewed spec changes, `removed` for lines of a part the branch removed, at the merge base.
@@ -8,6 +10,13 @@ export type Range = {
   heading: string;
   start: number;
 };
+
+/** The decision a review comment's lines are of, as a range names it: none for the reviewed file's. */
+export const decisionOf = ({
+  decision,
+  removed,
+}: Pick<CommentItem, "decision" | "removed">): Range["decision"] =>
+  decision === undefined ? undefined : { name: decision, removed };
 
 /** Whether two ranges are of the same file: the reviewed file, or the same side of a decision. */
 export function sameFile(a: Range, b: Range) {

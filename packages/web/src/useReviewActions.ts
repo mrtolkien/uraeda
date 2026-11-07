@@ -1,6 +1,7 @@
 import { startTransition, useOptimistic } from "react";
 import { useFateClient } from "react-fate";
 import type { CommentItem } from "uraeda-binding";
+import { decisionOf } from "./commentRange.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { renumberUnsaved, unsavedKey } from "./fields/unsaved.ts";
@@ -103,10 +104,7 @@ function useRemoveComment(file: File, removed: Draft["removed"], run: Refusals["
     const extent = comment.general
       ? {}
       : {
-          decision:
-            comment.decision === undefined
-              ? undefined
-              : { name: comment.decision, removed: comment.removed },
+          decision: decisionOf(comment),
           endLine: comment.endLine,
           startLine: comment.startLine,
         };
