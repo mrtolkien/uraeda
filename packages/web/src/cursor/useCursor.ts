@@ -7,7 +7,7 @@ import { areaOf, areasOf, type Area, glideBy, pendingOf } from "../keys/scroll.t
 import { useKeys } from "../keys/registry.tsx";
 import type { Binding } from "../keys/store.ts";
 import { topBarBottom } from "../layout/topBar.ts";
-import { cursorOn, heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
+import { claimFocus, cursorOn, heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
 import { type Box, cursorStep, placed, scrollFor, type View } from "./move.ts";
 import { stopOf, stopsOf } from "./stops.ts";
 
@@ -85,6 +85,7 @@ function withBar(stop: HTMLElement, pending: number): Box {
 function take(stop: HTMLElement, by: number, area: Area, scroll?: (box: Box) => number) {
   markByKey();
   stop.focus({ preventScroll: true });
+  claimFocus(stop);
   if (by !== 0) {
     glideBy(area, by);
   }
