@@ -164,3 +164,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   wrote; Start over drops every comment at once, the page's "Your review".
 - **If wrong**: the subject is one argument of `useRecord` in `useReviewActions.ts`.
 - **Where**: task 8, `packages/web/src/useReviewActions.ts`
+
+## R15: A change's bytes travel to the tab and stay with the stack's entries
+
+- **Decision**: a write answers its change whole, each file's bytes before and after it in base64,
+  and the tab keeps it in the stack's entry, 50 entries at most, sending it back with each undo and
+  redo. Both sides are kept: an undo writes the before side and checks the file still holds the
+  after side, a redo writes the after side and checks the before.
+- **Rationale**: the spec keeps the stack in the tab's memory, which a reload empties; the change is
+  what the entry replays, so it lives where the entry does.
+- **Rejected**: keeping the bytes on the server under an id, which the entry would send back: a
+  server restart loses them while the tab still offers the undo, and the stack's memory moves to the
+  server, for every tab it serves.
+- **If wrong**: a cap on the bytes an entry keeps, past which the action records no undo, or asks
+  before running as one that loses work for good.
+- **Where**: tasks 3 and 4, `crates/binding/src/undo.rs` and `packages/web/src/undo/changeEntry.ts`
