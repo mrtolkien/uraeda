@@ -313,33 +313,40 @@ with `roles.ts`; no DOM. The UI tests that change render the app with happy-dom 
 
 - Produces: `node packages/web/scripts/palette-probe.ts`, which task 6 extends with `--first-paint`.
 
-- [ ] **Step 1: Write the probe**
+- [x] **Step 1: Write the probe**
 
-A Playwright script over `serveUi` (`scripts/shots.ts`) and a `FakeAdapter`, as the shots scripts
-do. It loads Home, adds one unlayered `<style>` to the page's `<head>`:
+A Playwright script in Chromium over `serveUi` (`scripts/shots.ts`) and a `FakeAdapter`, as the
+shots scripts do. In each mode it loads Home, adds one unlayered `<style>` at the end of the page's
+`<head>`:
 
 ```css
 [data-astryx-theme="uraeda"][data-theme="dark"] {
   --color-background-body: #ff0000;
-  --color-text-primary: #00ff00;
+  --color-background-surface: #ff00ff;
   --color-border: #0000ff;
+  --color-text-primary: #00ff00;
 }
 ```
 
-and the same for `light`, then reads computed colours: the page's background, a pane's border and
-its text, a dialog opened by `Space u f i` (Astryx portals it), a popover from a `Selector`, and the
-sandbox bar when mounted (`vp run sandbox` serves it; mount it as `mountSandboxBar` does, or open
-the sandbox page). It also loads one story in Storybook's preview (`storybook dev`, or the built
-`storybook-static`), adds the same rule to the frame's document, and reads its body's background. It
-prints one line per surface, `ok` or the colour found, and exits non-zero on any miss.
+and the same for `light`, then reads, on each surface, the four tokens as computed there and a
+painted colour: the page's background (the element painting beside the panes, which draws
+`--color-background-surface`), Astryx's `Theme` wrapper, a pane's background, border, and text, a
+dialog opened by `Space u f i` (Astryx portals it) and its option's text, a `Selector`'s popover on
+`/settings/fonts` and its option's text, and the sandbox bar, mounted in the page's document as the
+sandbox page mounts it (`mountSandboxBar`). It also starts `storybook dev`, loads the `Sandbox/Bar`
+story's `iframe.html`, posts it the mode as an embedding page does (`{ uraeda: "mode", mode }`),
+adds the same rule to the frame's document, and reads the tokens on its root element and its
+wrapper: no element paints a story's background, with the built theme as with the rule (R7). It
+prints which elements carry the theme's attributes, one line per surface, `ok` or what it read, and
+exits non-zero on any miss.
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 - Run: `nix develop -c node packages/web/scripts/palette-probe.ts`
 - Expected: every surface `ok`. On a miss, stop the build here and go back to the human, as the
   spec's approval block says: each theme would then be its own built stylesheet.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web/scripts/palette-probe.ts specs/2026-11-07-color-themes/plan.md
