@@ -7,8 +7,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-/// The folder whose files a change can hold.
-const SPECS: &str = "specs";
+use super::attach::SPECS;
 
 /// The files a write changed, with what each held on both sides, and the commit its checkout was
 /// at when it ran, `None` before the first commit.
