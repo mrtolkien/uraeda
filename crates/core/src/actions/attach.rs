@@ -17,7 +17,8 @@ use super::relink;
 /// so its relink of every file skips them.
 pub(crate) const LISTS: [&str; 2] = ["specs/PRIORITIES.md", "specs/INBOX.md"];
 
-/// The folder whose files a move relinks.
+/// The folder of the workflow's files: what a move relinks, and what a change or a deferred commit
+/// holds.
 pub(crate) const SPECS: &str = "specs";
 
 /// The longest image name, without its extension.
