@@ -3,6 +3,7 @@
 // same on every page (UI components), and what it holds is mounted only while open (UI behaviour).
 // A session's Activity rows fold their output their own way, as rows of a log (`ActivityRows.tsx`).
 import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { stableClassName } from "@astryxdesign/core/naming";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
@@ -18,12 +19,16 @@ const styles = stylex.create({
   },
 });
 
+/** Astryx's class on a `Collapsible`'s trigger, the button that opens and closes it. */
+const TRIGGER = `.${stableClassName("collapsible-trigger")}`;
+
 /**
  * Marks the fold's toggle a stop of the keyboard's cursor, whose own Enter opens and closes it:
- * Astryx's `Collapsible` hands its props to its root, not to the button it draws first inside it.
+ * Astryx's `Collapsible` hands its props to its root, not to its trigger, found by Astryx's class,
+ * its own and not a fold's inside it.
  */
 function markToggle(root: HTMLDivElement | null) {
-  const toggle = root?.querySelector(":scope > button");
+  const toggle = root?.querySelector(`:scope > ${TRIGGER}`);
   for (const [name, value] of Object.entries(stopProps("control", true))) {
     toggle?.setAttribute(name, String(value));
   }
