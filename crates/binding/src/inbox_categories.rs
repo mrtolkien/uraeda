@@ -28,7 +28,7 @@ pub fn add_category(
     previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
         api::add_category(repo, &name, &previous)
     })
 }
@@ -42,7 +42,7 @@ pub fn rename_category(
     previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
         api::rename_category(repo, &from, &to, &previous)
     })
 }

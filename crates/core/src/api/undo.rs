@@ -16,7 +16,7 @@ use crate::cache;
 use crate::git::Git;
 use crate::workspace::Workspace;
 
-/// The inbox alone: a note's add, edit, and move.
+/// The inbox alone: a note's add, edit, and move, and a category's add and rename.
 pub const INBOX: &[&str] = &["specs/INBOX.md"];
 /// The inbox and the note files: a note's removal, a category's, and a note's images.
 pub const NOTES: &[&str] = &["specs/INBOX.md", "specs/notes"];
