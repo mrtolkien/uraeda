@@ -1,44 +1,15 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
+import { merged, type Range } from "./commentRange.ts";
 import { frame, keepPlace, scrollInstantly, scrollMark, topOf } from "./keepPlace.ts";
 
-/**
- * Lines of the reviewed file, and the heading above them; or, with `decision`, lines of a decision
- * the reviewed spec changes, `removed` for lines of a part the branch removed, at the merge base.
- */
-export type Range = {
-  decision?: { name: string; removed: boolean };
-  end: number;
-  heading: string;
-  start: number;
-};
+export type { Range };
 
 /**
  * The last tapped element, under which the form opens: a block of the reviewed file, by its id, or
  * a part of a decision, by the decision and the part's last line.
  */
 export type Last = number | { decision: string; line: number; removed: boolean };
-
-/** Whether two ranges are of the same file: the reviewed file, or the same side of a decision. */
-function sameFile(a: Range, b: Range) {
-  return a.decision?.name === b.decision?.name && a.decision?.removed === b.decision?.removed;
-}
-
-/**
- * The selection once lines are tapped: the lines added to it, under the heading of the first, or a
- * new one with them when they are of another file than its.
- */
-function selected(selection: Range | undefined, range: Range): Range {
-  if (!selection || !sameFile(selection, range)) {
-    return range;
-  }
-  return {
-    ...selection,
-    end: Math.max(selection.end, range.end),
-    heading: range.start < selection.start ? range.heading : selection.heading,
-    start: Math.min(selection.start, range.start),
-  };
-}
 
 /** Where the form opens once a part of a decision is tapped: under that part. */
 const partLast = ({ decision, end }: Range & { decision: NonNullable<Range["decision"]> }) => ({
@@ -214,7 +185,7 @@ export function useCommentDraft(
 
   /** Adds tapped lines to the selection, or starts one with them. */
   const select = (range: Range, tapped: Last, element: HTMLElement) => {
-    const next = selected(selection, range);
+    const next = merged(selection, range);
     mark(element);
     setSelection(next);
     setLast(tapped);
@@ -235,6 +206,21 @@ export function useCommentDraft(
   /** Adds a tapped part of a decision to the selection, or starts one with it. */
   const tapPart = (range: Parameters<typeof partLast>[0], element: HTMLElement) =>
     select(range, partLast(range), element);
+
+  /** Sets the selection the keys stretch, the review's yellow, without opening the form. */
+  const stretch = (range: Range) => {
+    setSelection(range);
+    onSelect(range);
+  };
+
+  /** Drops the selection the keys stretched, but not one a form is open on. */
+  const drop = () => {
+    if (draft?.kind === "lines") {
+      return;
+    }
+    setSelection(undefined);
+    onSelect(undefined);
+  };
 
   /** Starts a comment on the whole file, or an edit of a pending comment. */
   const start = (next: Exclude<CommentDraft, { kind: "lines" }>) => {
@@ -269,5 +255,18 @@ export function useCommentDraft(
     }
   };
 
-  return { close, draft, last, removed, selection, sheet, start, tap, tapPart, writing };
+  return {
+    close,
+    draft,
+    drop,
+    last,
+    removed,
+    selection,
+    sheet,
+    start,
+    stretch,
+    tap,
+    tapPart,
+    writing,
+  };
 }
