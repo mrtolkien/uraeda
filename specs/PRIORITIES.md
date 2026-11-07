@@ -7,8 +7,8 @@
 > Still wanted for my personal usage
 
 - [Keyboard nav in questions and specs](/specs/2026-11-07-keyboard-nav/proposal.md)
+- [Global undo](/specs/2026-11-07-global-undo/proposal.md)
 
-- Global undo
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
 
