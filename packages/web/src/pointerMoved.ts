@@ -4,7 +4,7 @@
 // but the pointer is where it was in the window. Nor does a move over the page under a layer that
 // leaves the page in reach, as the theme picker's list: the layer keeps the focus.
 import type { PointerEvent } from "react";
-import { isLayerOpen } from "./keys/layers.ts";
+import { isLayerOpenCached } from "./keys/layers.ts";
 
 /** Where the last move left the pointer in the window, none before the first. */
 let last: { x: number; y: number } | undefined;
@@ -24,10 +24,11 @@ if (typeof document !== "undefined") {
 
 /**
  * A mouse's move that took the pointer elsewhere in the window since the last one, with no layer
- * open over the page. The first move seen only marks where the pointer is: a real move sends many.
+ * open over the page, by the answer cached for the frame: a move scans no document. The first move
+ * seen only marks where the pointer is: a real move sends many.
  */
 export function isPointerMoved(event: PointerEvent) {
-  return isNativePointerMoved(event.nativeEvent) && !isLayerOpen();
+  return isNativePointerMoved(event.nativeEvent) && !isLayerOpenCached();
 }
 
 /**

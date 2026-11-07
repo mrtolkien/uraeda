@@ -117,11 +117,15 @@ function subscribe(listener: () => void) {
   };
 }
 
+/**
+ * Whether a layer is open, as of the last frame that followed a change while `useLayerOpen` has a
+ * listener, so a caller as frequent as a pointer move scans nothing; checked now when it has none.
+ */
+export function isLayerOpenCached() {
+  return stop === null ? isLayerOpen() : open;
+}
+
 /** Whether a layer is open now, re-rendering the caller as one opens or closes. */
 export function useLayerOpen() {
-  return useSyncExternalStore(
-    subscribe,
-    () => (stop === null ? isLayerOpen() : open),
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, isLayerOpenCached, () => false);
 }
