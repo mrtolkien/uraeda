@@ -80,7 +80,14 @@ import {
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, brushCleaning, indent, outdent, trash } from "./activityIcons.ts";
 import { play, save } from "./barIcons.ts";
-import { compass, replace, square, squareDashed, textCursorInput } from "./editorIcons.ts";
+import {
+  compass,
+  replace,
+  square,
+  squareDashed,
+  swatchBook,
+  textCursorInput,
+} from "./editorIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The licenses
@@ -177,6 +184,7 @@ const DECISION_ICONS = {
   "scan-eye": scanEye,
   settings,
   "square-terminal": squareTerminal,
+  "swatch-book": swatchBook,
   terminal,
   "text-cursor-input": textCursorInput,
   "triangle-alert": triangleAlert,
