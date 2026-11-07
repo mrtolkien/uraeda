@@ -1,9 +1,10 @@
 // The theme picker, `Space u t` (US2): the key picker in page mode over every theme, dark ones
 // first, the two in use marked. The page is the preview: the theme under the cursor draws the app,
-// its mode included, until the picker closes. Enter keeps it as its mode's theme, switching the mode
-// to it when the page showed the other; Escape, Back, or a tap outside put back the theme in use,
-// for every close but Enter's goes through `onClose` (review focus 5). The preview names a theme by
-// its id, so a file changed meanwhile redraws in its new colours (review focus 6).
+// its mode included, until the picker closes. Enter keeps it as its mode's theme, switching the
+// mode to it when the page showed the other; Escape, Back, a tap outside, or the focus leaving it,
+// as Tab does, put back the theme in use, for every close but Enter's goes through `onClose`
+// (review focus 5). The preview names a theme by its id, so a file changed meanwhile redraws in its
+// new colours (review focus 6).
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useEffect, useState } from "react";
 import type { Theme } from "uraeda-binding";

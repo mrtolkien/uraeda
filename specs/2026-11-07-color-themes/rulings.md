@@ -289,3 +289,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the check moves into the three handlers that call `isPointerMoved`, or the picker
   puts a transparent layer under its list.
 - **Where**: task 8
+
+## R22: In the theme picker, a letter searches, and any key wakes the faded list
+
+- **Decision**: spec US2's scenario 2, "pressing `j` brings it back at once, the cursor on the next
+  theme", reads as the shared key picker reads keys: the theme picker stays that one picker, whose
+  letters search, `j` among them, and whose arrows, Ctrl+J and Ctrl+K, and Vim's `j` and `k` in
+  normal mode with Vim on, move the cursor. Any key in the list wakes it, a letter as an arrow, and
+  a press in it does too, as a phone's tap may send no pointer move first.
+- **Rationale**: the spec draws the theme picker as the shared key picker in page mode (a kind of
+  information is drawn by one shared component); a `j` that moves the cursor outside Vim mode would
+  take a letter from its search, and a key picker whose `j` alone moved would be two pickers.
+- **If wrong**: the theme picker's field gives `j` and `k` to the cursor in every mode, and its
+  search loses those two letters.
+- **Where**: task 8, its review's fix
