@@ -124,3 +124,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `views.ts`; the hook is the same as `useSettings`, reading the one `Themes` record.
 - **If wrong**: a move of one function and its view into `data.ts`, once it has room.
 - **Where**: tasks 3 and 6
+
+## R11: The neutral theme's own colours stay its own, and Latte's cursor row follows its accent
+
+- **Decision**: five colours the built theme inherits from Astryx's neutral theme,
+  `--astryx-theme-neutral-color-destructive-overlay-hover` and `-pressed`, and `-on-tint-neutral`,
+  `-on-tint-overlay-hover` and `-pressed`, are not mapped: no role sets them, and SC-001's test
+  lists them as exceptions. Latte's `mauve-tint`, its `cursor-row`, stays `mauve-floor` at 10% over
+  `base`, so it moves with the recomputed `mauve-floor`, from `#e3def3` to `#e4ddf4`; its
+  `overlay2-floor` is then the step that reads at 4.5:1 on that row, `#5e6173`.
+- **Rationale**: the five are Astryx's constants, the same in every theme, which no view of the app
+  reads as a colour of its own; the cursor row's comment in the file says what it is made of, and
+  the floor step measures the row as it ships.
+- **If wrong**: a role for them is a row of the mapping in `roles.ts`; a hand-picked `mauve-tint` is
+  one line of the Latte file, with `scripts/theme-floor.ts` run again.
+- **Where**: task 4

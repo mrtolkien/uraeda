@@ -31,21 +31,22 @@ surface0 = "#ccd0da"
 base = "#eff1f5"
 mantle = "#e6e9ef"
 crust = "#dce0e8"
-# Not Catppuccin's: its accents darkened to 4.5:1 as text on the page.
-mauve-floor = "#7b2fe0"
-red-floor = "#bc0d33"
-peach-floor = "#a63f00"
-yellow-floor = "#875800"
-green-floor = "#2c6f1f"
-teal-floor = "#0f6c72"
-sky-floor = "#0a688e"
-sapphire-floor = "#04699a"
-blue-floor = "#1957d5"
-lavender-floor = "#4254c8"
-# Not Catppuccin's: overlay2 darkened to 4.5:1 on a selected row.
-overlay2-floor = "#5f6276"
+# Not Catppuccin's: its accents darkened, a whole percent of HSL lightness at a time, to the first
+# step at which every pair they are in reaches the contrast floor (4.5:1 as text on the page).
+mauve-floor = "#7d26ed"
+red-floor = "#be0e34"
+peach-floor = "#a83e01"
+yellow-floor = "#875612"
+green-floor = "#2d711e"
+teal-floor = "#116a6f"
+sky-floor = "#036991"
+sapphire-floor = "#177282"
+blue-floor = "#0a54e5"
+lavender-floor = "#3654fc"
+# Not Catppuccin's: overlay2 darkened the same way, to 4.5:1 on a selected row.
+overlay2-floor = "#5e6173"
 # Not Catppuccin's: mauve-floor at 10% over base.
-mauve-tint = "#e3def3"
+mauve-tint = "#e4ddf4"
 # Not Catppuccin's: text on a filled action or status.
 white = "#ffffff"
 

@@ -607,16 +607,21 @@ git commit -m "feat(color-themes): the themes folder watched and served live"
     `export function tokensOf(roles: Roles, mode: "dark" | "light"): Tokens`, every colour token of
     the built theme that the mapping sets plus `--role-<role>` for every role and
     `--role-<role>-tint` for `action`, `needs-you`, `changed`, `added`, `removed`, `caution`,
-    `context`, `yours`, `link`, `working`, `live`, `example`, `sub-agent` (12% over `page`).
+    `context`, `yours`, `link`, `working`, `live`, `example`, `sub-agent` (12% over `page`); and
+    `MEDIA`, the constants `--color-on-dark` and `--color-on-light` (R5), `TINTED`, and `Mode`.
   - `palette.ts`:
     `export function applyPalette(tokens: { dark?: Tokens; light?: Tokens }, doc?: Document): void`,
     which writes one `<style id="uraeda-palette">` in `doc.head` (the page's by default) with a
     block per given mode, selector `[data-astryx-theme="uraeda"][data-theme="<mode>"]`, unlayered;
     and `export function paletteCss(tokens: { dark?: Tokens; light?: Tokens }): string`, its text.
-  - `pairs.ts`: `TEXT_PAIRS`, `CONTROL_PAIRS`,
+  - `pairs.ts`: `TEXT_PAIRS`, `CONTROL_PAIRS` (the scrim over white and the pane border on a card
+    and the muted background included), `export function ratio(tokens, front, back): number`, and
     `export function failures(tokens: Tokens): Array<{ back: string; front: string; ratio: number; floor: number }>`.
   - `floor.ts`:
-    `export function floorStep(colour: string, passes: (colour: string) => boolean, away: "lighter" | "darker"): string`.
+    `export function floorStep(colour: string, passes: (colour: string) => boolean, away: "lighter" | "darker"): string`;
+    `hslOf(colour)` and `fromHsl(hue, saturation, lightness)`; and
+    `export function entryPasses(theme: { mode; roles; sources }, entry: string, colour: string): boolean`,
+    whether every pair a role naming the palette entry feeds passes with the entry in `colour`.
 
 The mapping, which the plan pins as SC-001's test checks it (`tint(x)` is `mix(x, 0.12, page)`; "a"
 appends an alpha in hex):
@@ -646,7 +651,7 @@ appends an alpha in hex):
 | `--color-overlay`, `--color-shadow`                                                                                                      | light `ink` `b3`, dark `sunken` `cc`; light `ink` `1a`, dark `sunken` `4d`                             |
 | `--color-on-dark`, `--color-on-light`                                                                                                    | not mapped: the built theme's constants, drawn over media (R5)                                         |
 
-- [ ] **Step 1: Freeze today's Catppuccin, then write the failing tests**
+- [x] **Step 1: Freeze today's Catppuccin, then write the failing tests**
 
 Before any change, write `__tests__/fixtures/catppuccin-today.json`: every colour token of today's
 built CSS resolved in each slot, `{ "light": { token: "#…" }, "dark": { … } }`, with a one-off
@@ -663,21 +668,25 @@ script or the old test's `resolve`. Then:
   TOML files.
 - "every floor step of %s is the smallest", one row per shipped theme: each palette entry named
   `<x>-floor` has an entry `<x>`; it is `floorStep(<x>, …)` for the pairs its roles are in, which
-  means: same HSL hue and saturation as `<x>` (within 1 unit), every pair passes with it, and one
-  step back toward `<x>` makes a pair fail. Breaks: a floor colour picked by hand, or two steps past
-  the floor.
+  means: it is `fromHsl` of `<x>`'s hue and saturation at a whole percent of lightness, every pair
+  its roles are in passes with it (`entryPasses`), and one step back toward `<x>` makes a pair fail.
+  Breaks: a floor colour picked by hand, or two steps past the floor.
+- "with the hand-picked floors, Catppuccin draws today's %s", one row per R4 exception: the roles
+  with the entries R4 recomputed put back at their hand-picked colours draw the fixture, so the
+  light rows the floors moved are still checked. The neutral theme's own colours are exceptions too
+  (R11).
 
 `theme-tokens.test.ts`, rewritten: the same pairs, from `pairs.ts`, measured on `tokensOf(theme)`
 for every shipped theme the binding returns, its mode only: "in %s, %s reads at 4.5:1 on %s" and "in
 %s, %s stands 3:1 from %s", the scrim and the pane border rows kept. Today's tests become its
 Catppuccin rows.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/theme-roles.test.ts`
 - Expected: FAIL, `Failed to resolve import "../theme/roles.ts"`.
 
-- [ ] **Step 3: Implement the mapping, the rule, the pairs, and the floor step**
+- [x] **Step 3: Implement the mapping, the rule, the pairs, and the floor step**
 
 - `roles.ts` as the table above, with `mix` from `colour.ts`.
 - `theme.ts`: its `LATTE` and `MOCHA` hue objects become two literal role sets, `LATTE_ROLES` and
@@ -690,7 +699,7 @@ Catppuccin rows.
 - The Catppuccin files' `-floor` entries: run the script, and set each to its output (R4). Then
   `theme.ts`'s literals to match, and rebuild.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/theme-roles.test.ts packages/web/src/__tests__/theme-tokens.test.ts`,
@@ -698,7 +707,7 @@ Catppuccin rows.
 - Expected: PASS, the theme build unchanged after the rebuild. Deferred to `ready`: the UI tests,
   Storybook's build.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web crates/core/themes specs/2026-11-07-color-themes

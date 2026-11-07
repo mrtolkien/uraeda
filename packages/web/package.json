@@ -6,6 +6,7 @@
   "imports": {
     "#theme-colour": "./src/theme/colour.ts",
     "#theme-icons": "./src/theme/icons.ts",
+    "#theme-roles": "./src/theme/roles.ts",
     "#theme-scale": "./src/theme/scale.ts"
   },
   "scripts": {
