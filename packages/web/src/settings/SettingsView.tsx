@@ -19,7 +19,8 @@ import {
   shownLabels,
 } from "./categories.ts";
 import { KeyboardSettings } from "./KeyboardSettings.tsx";
-import { AppearanceSettings, FontSettings, SignInSettings } from "./OtherSettings.tsx";
+import { AppearanceSettings, type AppearanceThemes } from "./AppearanceSettings.tsx";
+import { FontSettings, SignInSettings } from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
@@ -53,18 +54,20 @@ function Rows({
   server,
   serverActions,
   shows,
+  themes,
 }: {
   category: Category;
   server: ServerValues;
   serverActions: ServerActions;
   shows: (label: string) => boolean;
+  themes: AppearanceThemes;
 }) {
   const props = { actions: serverActions, category, shows, values: server };
   switch (category.id) {
     case "server":
       return <ServerSettings {...props} />;
     case "appearance":
-      return <AppearanceSettings category={category} />;
+      return <AppearanceSettings category={category} shows={shows} themes={themes} />;
     case "fonts":
       return <FontSettings category={category} shows={shows} />;
     case "keyboard":
@@ -135,12 +138,15 @@ export function SettingsView({
   initialSearch = "",
   server,
   serverActions,
+  themes,
 }: {
   category: CategoryId | undefined;
   /** The search's text when the page opens, for the stories; empty by default. */
   initialSearch?: string;
   server: ServerValues;
   serverActions: ServerActions;
+  /** The colour themes, as the server serves them. */
+  themes: AppearanceThemes;
 }) {
   const wide = !isNarrow(useWidthClass());
   const [text, setText] = useState(initialSearch);
@@ -164,6 +170,7 @@ export function SettingsView({
           server={server}
           serverActions={serverActions}
           shows={(label) => shown.has(label)}
+          themes={themes}
         />
       </Pane>
     ));

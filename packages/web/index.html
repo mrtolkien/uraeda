@@ -10,8 +10,56 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Uraeda" />
+    <!-- The browser's bar: the built Catppuccin's page, until the picked theme sets it. -->
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eff1f5" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1e2e" />
+    <!-- The first paint: the mode picked, and the colours the picked themes drew last, from this
+         browser's cache, before any stylesheet or module loads, so the first frame is the theme's.
+         The rule's text is `paletteCss`'s, in src/theme/palette.ts, and the keys `theme.tsx`'s.
+         On any error, such as storage refused or a corrupt cache, it does nothing: the built
+         Catppuccin draws. -->
+    <script>
+      try {
+        (function () {
+          var stored = localStorage.getItem("uraeda.theme");
+          var mode =
+            stored === "dark" || stored === "mocha"
+              ? "dark"
+              : stored === "light" || stored === "latte"
+                ? "light"
+                : matchMedia("(prefers-color-scheme: dark)").matches
+                  ? "dark"
+                  : "light";
+          var root = document.documentElement;
+          root.setAttribute("data-astryx-theme", "uraeda");
+          root.setAttribute("data-theme", mode);
+          var drawn = JSON.parse(localStorage.getItem("uraeda.theme.drawn") || "{}") || {};
+          var css = "";
+          ["dark", "light"].forEach(function (each) {
+            var tokens = drawn[each];
+            var declarations = "";
+            Object.keys(tokens && typeof tokens === "object" ? tokens : {}).forEach(
+              function (name) {
+                var colour = tokens[name];
+                if (/^--[\w-]+$/.test(name) && /^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(colour)) {
+                  declarations += "  " + name + ": " + colour + ";\n";
+                }
+              },
+            );
+            if (declarations) {
+              var selector = '[data-astryx-theme="uraeda"][data-theme="' + each + '"]';
+              css += selector + " {\n" + declarations + "}\n";
+              css +=
+                "html" + selector + " {\n  background-color: var(--color-background-body);\n}\n";
+            }
+          });
+          var style = document.createElement("style");
+          style.id = "uraeda-palette";
+          style.textContent = css;
+          document.head.append(style);
+        })();
+      } catch (error) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />

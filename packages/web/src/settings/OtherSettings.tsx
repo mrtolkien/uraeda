@@ -1,36 +1,14 @@
-// The sections besides Server, Keyboard, and Runs: the colour scheme, the fonts, and signing out,
-// each setting a row of the form.
+// The sections besides Server, Appearance, Keyboard, and Runs: the fonts, and signing out, each
+// setting a row of the form.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useSignOut, useSignOutEverywhere } from "../sign-in/useSignOut.ts";
-import { type Scheme, useScheme } from "../theme.tsx";
 import { Selector, SelectorOption, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import * as stylex from "@stylexjs/stylex";
 import { FONTS, fontOf, pickFont, ROLES, useFonts } from "../theme/fonts.ts";
 import { type Category, settingOf } from "./categories.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
-
-/** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
-export function AppearanceSettings({ category }: { category: Category }) {
-  const [scheme, setScheme] = useScheme();
-  return (
-    <SettingRows>
-      <SettingRow setting={settingOf(category, "Colour scheme")}>
-        <SegmentedControl
-          label="Colour scheme"
-          onChange={(value: string) => setScheme(value as Scheme)}
-          value={scheme}
-        >
-          <SegmentedControlItem label="Mocha" value="mocha" />
-          <SegmentedControlItem label="Latte" value="latte" />
-          <SegmentedControlItem label="System" value="system" />
-        </SegmentedControl>
-      </SettingRow>
-    </SettingRows>
-  );
-}
 
 const styles = stylex.create({
   // A font's name, written in it.

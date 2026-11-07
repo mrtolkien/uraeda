@@ -164,3 +164,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: 26 files, each read from its published source, touch no file in common; one
   implementer would have held the wave for hours.
 - **Where**: task 5
+
+## R14: The palette rule paints `<html>` in the page's colour
+
+- **Decision**: for each mode it sets, the palette rule, and the first paint's script with it, adds
+  `html[data-astryx-theme="uraeda"][data-theme="<mode>"] { background-color: var(--color-background-body); }`.
+- **Rationale**: nothing paints `<html>`, so before the app mounts the first frame showed the
+  browser's own canvas, whatever the cache held: `palette-probe.ts --first-paint` read
+  `rgba(0, 0, 0, 0)` there without it. Painting it in `page`, the ground behind everything, makes
+  SC-003's first frame the theme's, and a phone's overscroll with it.
+- **If wrong**: a story's document, once task 9 applies the rule there, paints its canvas in the
+  theme's page instead of the frame's (R7); one line of `paletteCss` and of the script.
+- **Where**: task 6
+
+## R15: The drawn colours are a function of the themes and the picks, which the provider calls
+
+- **Decision**: `drawnTokens(themes, picks, preview?)` in `theme.tsx` holds the rule "a pick the
+  lists lack draws its mode's default", and the test of a deleted theme calls it on the themes the
+  binding reads, not on a rendered provider. The provider learns the server's themes from
+  `ThemesFeed`, a component drawn where the app is signed in under a `Suspense` of its own, since
+  the provider sits above the sign-in page, where no themes can be read.
+- **Rationale**: the same guarantee, tested without a fate client or a DOM, as the testing
+  decision's "pure logic with many cases" asks.
+- **If wrong**: a test rendering the provider over a fake themes record.
+- **Where**: task 6

@@ -65,7 +65,20 @@ out.
 ## Settings
 
 Settings, at the bottom of the sidebar, shows and changes the server's settings. It also holds the
-theme, kept on each browser, and signing out.
+colours and the fonts, kept on each browser, and signing out.
+
+Its Appearance section picks the mode, System, Light, or Dark, then a dark theme and a light theme,
+each from its own list: the shipped themes, then [yours](#colour-themes), marked "yours". System
+follows the device, the light theme by day and the dark one by night; `Space u m` cycles the three
+modes. Each browser keeps its own picks, as it keeps its fonts: a phone opened for the first time
+shows Catppuccin, whatever the laptop picked. A browser that picked Mocha or Latte before themes
+existed shows Catppuccin Mocha in Dark mode, or Latte in Light. A picked theme that leaves the
+lists, such as a file of yours deleted, draws its mode's default, Catppuccin Mocha or Latte. A
+reload draws the picked theme from its first frame, the sign-in page included, from the colours the
+browser drew last. A private window that refuses storage keeps the picks until the page reloads.
+
+The section also lists your theme files, each with its mode, the theme it extends, and its problems,
+or says where to put one.
 
 The server's settings are kept in `~/.config/uraeda/config.toml`, a file you can also edit by hand
 and keep in your dotfiles. It is in `$XDG_CONFIG_HOME/uraeda/` when `XDG_CONFIG_HOME` is set, or in

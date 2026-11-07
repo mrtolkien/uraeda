@@ -3,9 +3,13 @@
  * colour themes apply, wins in every surface that draws Uraeda's colours: the page, a pane, a
  * dialog Astryx portals, a Selector's popover, the sandbox bar, and a story in Storybook's preview,
  * its own document. Prints a line per surface and mode, `ok` or what it read, and exits non-zero on
- * any miss. Run by hand, not by `ready`:
+ * any miss. With `--first-paint`, it checks instead that a reload paints the picked theme in its
+ * first frame, before React mounts, and once the page shows, on Home and on the sign-in page
+ * (SC-003): the first paint's script in `index.html` draws the cache of the picked themes. Run by
+ * hand, not by `ready`:
  *
  *     nix develop -c node packages/web/scripts/palette-probe.ts
+ *     nix develop -c node packages/web/scripts/palette-probe.ts --first-paint
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -305,6 +309,72 @@ async function checkStory(browser: Browser, url: string, mode: Mode) {
   await context.close();
 }
 
+/** Dracula's page, as the drawn cache holds it and as the browser computes it. */
+const DRACULA = { cached: "#282a36", painted: "rgb(40, 42, 54)" } as const;
+
+/** What the first frame read: `<html>`'s background and mode, the rule, and whether React mounted. */
+type FirstFrame = { background: string; mode: string; mounted: boolean; palette: boolean };
+
+/**
+ * Reloads a page with Dracula picked for the mode Dark, in a light system, its colours cached as
+ * the provider caches them, and reads `<html>` in the first frame, then once the page shows.
+ */
+async function checkFirstFrame(browser: Browser, url: string, path: string, signedOut: boolean) {
+  const surface = signedOut ? "sign-in page" : "Home";
+  const context = await browser.newContext({ baseURL: url, colorScheme: "light" });
+  const drawn = JSON.stringify({
+    dark: {
+      "--color-background-body": DRACULA.cached,
+      "--color-background-surface": DRACULA.cached,
+    },
+  });
+  await context.addInitScript((drawn) => {
+    window.localStorage.setItem("uraeda.notifications", "dismissed");
+    window.localStorage.setItem("uraeda.theme", "dark");
+    window.localStorage.setItem("uraeda.theme.dark", "dracula");
+    window.localStorage.setItem("uraeda.theme.drawn", drawn);
+    // Added before any script of the page: the first frame's callbacks run before it paints.
+    requestAnimationFrame(() => {
+      const html = document.documentElement;
+      (window as unknown as { firstFrame: FirstFrame }).firstFrame = {
+        background: getComputedStyle(html).backgroundColor,
+        mode: html.dataset.theme ?? "(none)",
+        mounted: (document.getElementById("root")?.childElementCount ?? 0) > 0,
+        palette: document.getElementById("uraeda-palette") !== null,
+      };
+    });
+  }, drawn);
+  const page = await context.newPage();
+  if (signedOut) {
+    // A server with sign-in answers a browser without a session so: fate's requests, not its modules.
+    await page.route(
+      (address) => /\/fate(\/live)?$/.test(address.pathname),
+      (route) => route.fulfill({ json: { error: "Sign in to Uraeda." }, status: 401 }),
+    );
+  }
+  await page.goto(path);
+  await page
+    .getByText(signedOut ? "Sign in to Uraeda" : "Overview")
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await settle(page);
+  const first = await page.evaluate(
+    () => (window as unknown as { firstFrame: FirstFrame }).firstFrame,
+  );
+  const shown = await page.evaluate(
+    () => getComputedStyle(document.documentElement).backgroundColor,
+  );
+  const wrong = [
+    first.background !== DRACULA.painted && `first frame's background ${first.background}`,
+    first.mode !== "dark" && `first frame's mode ${first.mode}`,
+    first.mounted && "React had mounted in the first frame",
+    !first.palette && "no palette rule in the first frame",
+    shown !== DRACULA.painted && `shown page's background ${shown}`,
+  ].filter((miss): miss is string => typeof miss === "string");
+  report(`first frame, ${surface}`, "dark", wrong, `background ${first.background}, then ${shown}`);
+  await context.close();
+}
+
 async function main() {
   const repo = repository(root);
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
@@ -321,13 +391,18 @@ async function main() {
   let storybook: ChildProcess | undefined;
   const browser = await chromium.launch();
   try {
-    for (const mode of ["dark", "light"] as const) {
-      await checkApp(browser, url, at, mode);
-    }
-    const started = await startStorybook();
-    storybook = started.process;
-    for (const mode of ["dark", "light"] as const) {
-      await checkStory(browser, started.url, mode);
+    if (process.argv.includes("--first-paint")) {
+      await checkFirstFrame(browser, url, `${at}/`, false);
+      await checkFirstFrame(browser, url, "/", true);
+    } else {
+      for (const mode of ["dark", "light"] as const) {
+        await checkApp(browser, url, at, mode);
+      }
+      const started = await startStorybook();
+      storybook = started.process;
+      for (const mode of ["dark", "light"] as const) {
+        await checkStory(browser, started.url, mode);
+      }
     }
   } finally {
     await browser.close();

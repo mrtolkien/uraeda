@@ -45,7 +45,7 @@ import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.ts
 import { Shell } from "./Shell.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";
 import { useSignedOut } from "./sign-in/signedOut.ts";
-import { ThemeModeProvider } from "./theme.tsx";
+import { ThemeProvider, ThemesFeed } from "./theme.tsx";
 import { Missing } from "./layout/Missing.tsx";
 import type { LedgerOpen } from "./decisions/DecisionsPage.tsx";
 import {
@@ -407,7 +407,7 @@ export function App({
   const keysSwitch = useState(true);
   return (
     <FateClient client={clientFor(null)}>
-      <ThemeModeProvider>
+      <ThemeProvider>
         {(mode) => (
           <Theme mode={mode} theme={uraedaTheme}>
             <PickedFonts>
@@ -419,6 +419,9 @@ export function App({
                       <SignInPage onSignedIn={onSignedIn} />
                     ) : (
                       <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                        <Suspense fallback={null}>
+                          <ThemesFeed />
+                        </Suspense>
                         <Suspense fallback={<Loading />}>
                           <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
                             <Suspense fallback={<Loading />}>
@@ -438,7 +441,7 @@ export function App({
             </PickedFonts>
           </Theme>
         )}
-      </ThemeModeProvider>
+      </ThemeProvider>
     </FateClient>
   );
 }

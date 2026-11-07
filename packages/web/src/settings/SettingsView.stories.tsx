@@ -2,11 +2,12 @@
 // overrides, with a file that cannot be read, opened at its Runs or Keyboard section, the keyboard
 // switch off, and searched, with a match and without one.
 // The Server values are records as the server's settings source gives them, passed in, as
-// `SettingsPage` passes the one it reads; Sign-in and Appearance are the real ones.
+// `SettingsPage` passes the one it reads, and so are the themes; Sign-in is the real one.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RepositoryPathContext } from "../routes.tsx";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
+import { sampleThemes } from "./sampleThemes.ts";
 
 /** Vim's settings at their defaults: off, without commands. */
 const vimDefaults: Pick<ServerValues["keyboard"], "vimCommands" | "vimMode"> = {
@@ -56,7 +57,7 @@ const serverActions: ServerActions = {
 };
 
 const meta = {
-  args: { category: undefined, server, serverActions },
+  args: { category: undefined, server, serverActions, themes: sampleThemes(true) },
   component: SettingsView,
   // The lines edited in place keep their unsaved text under the repository's path.
   decorators: [

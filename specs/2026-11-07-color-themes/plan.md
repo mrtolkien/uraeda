@@ -782,14 +782,21 @@ The body lists each theme's colours moved to the floor, published and shipped.
 **Files:**
 
 - Start from: `ThemeMockups.stories.tsx#AppearanceSection` and `#NoThemesYet`
-- Modify: `packages/web/src/theme.tsx` (rewritten), `packages/web/src/App.tsx` (the provider),
-  `packages/web/index.html` (the first paint's script, the `theme-color` metas),
-  `packages/web/src/settings/OtherSettings.tsx` (`AppearanceSettings`), `settings/categories.ts`,
-  `keys/LeaderKeys.tsx` (`space u m` in place of `space u t`), `ThemeMockups.stories.tsx` (its
-  Appearance stories draw `AppearanceSettings`' rows over fixed data), `docs/web-ui.md` (Settings,
-  Appearance), `packages/web/scripts/palette-probe.ts` (`--first-paint`)
+- Create: `packages/web/src/settings/AppearanceSettings.tsx` (`AppearanceSettings` and the rows it
+  draws, `AppearanceRows`, moved out of `OtherSettings.tsx`), `settings/sampleThemes.ts` (the
+  stories' fixed themes and files)
+- Modify: `packages/web/src/theme.tsx` (rewritten), `packages/web/src/App.tsx` (the provider, and
+  `ThemesFeed` where the app is signed in), `packages/web/index.html` (the first paint's script, the
+  `theme-color` metas), `theme/palette.ts` (the rule paints `<html>`, R14), `.storybook/preview.tsx`
+  (its mode's type is `Mode`), `settings/SettingsPage.tsx` and `SettingsView.tsx` (the themes passed
+  in, as the server's values are), `SettingsView.stories.tsx`, `settings/OtherSettings.tsx`
+  (`AppearanceSettings` leaves), `settings/categories.ts`, `keys/LeaderKeys.tsx` (`space u m` in
+  place of `space u t`), `ThemeMockups.stories.tsx` (its Appearance stories draw
+  `AppearanceSettings`' rows over fixed data), `docs/web-ui.md` (Settings, Appearance),
+  `packages/web/scripts/palette-probe.ts` (`--first-paint`)
 - Test: `packages/web/src/__tests__/theme.test.ts` (rewritten), `__tests__/categories.test.ts` (rows
-  20 to 26), `__tests__/keys-leader-tree.test.tsx` (line 148)
+  20 to 26), `__tests__/keys-leader-tree.test.tsx` (line 148), `__tests__/theme-roles.test.ts` (the
+  palette rule's text, with `<html>`'s block)
 
 **Interfaces:**
 
@@ -801,8 +808,11 @@ The body lists each theme's colours moved to the floor, published and shipped.
   - `export function storedPicks(read: (key: string) => string | null): Picks`.
   - `export function storedDrawn(text: string | null): { dark?: Tokens; light?: Tokens }`: the
     cache, empty when absent or unreadable.
+  - `export function drawnTokens(themes, picks, preview?): { dark?: Tokens; light?: Tokens }`: what
+    each mode draws, a pick the lists lack drawn as its mode's default (R15).
   - `export function ThemeProvider({ children }: { children: (mode: "light" | "dark") => ReactNode })`,
-    in place of `ThemeModeProvider`.
+    in place of `ThemeModeProvider`, and `export function ThemesFeed()`, drawn where the app is
+    signed in, which gives it the server's themes (R15).
   - `export function usePicks(): [Picks, (next: Partial<Picks>) => void]`.
   - `export function useThemeList(): ReadonlyArray<Theme>`: the server's themes, or the two
     Catppuccin defaults when signed out.
@@ -811,7 +821,7 @@ The body lists each theme's colours moved to the floor, published and shipped.
   - `export function useDrawnTokens(): { dark?: Tokens; light?: Tokens }`: what the page draws now,
     for the story frames (task 9).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `theme.test.ts`:
 
@@ -820,21 +830,24 @@ The body lists each theme's colours moved to the floor, published and shipped.
   → mode `dark`, `latte` → `light`, `dark`, `light`, `system` as themselves, `solarized` → `system`;
   `uraeda.theme.dark` `dracula` → `dark: "dracula"`. Breaks: Mocha picked before reading as System
   (US1.3).
-- "an unknown pick draws its mode's default": a provider given themes without `ember` and picks
-  `dark: "ember"` draws `tokensOf(catppuccin-mocha)`. Breaks: a deleted theme drawing nothing.
+- "an unknown pick draws its mode's default": `drawnTokens` given the themes the binding reads,
+  without `ember`, and picks `dark: "ember"` draws `tokensOf(catppuccin-mocha)`. Breaks: a deleted
+  theme drawing nothing. A second test draws a known pick, Dracula, and a preview, Alucard, in its
+  mode's place.
 - "the drawn cache %j reads as %j": `null`, `"{"`, `"[]"`, `{"dark":{"--x":"#000000"}}` → `{}`,
   `{}`, `{}`, `{ dark: {…} }`. Breaks: a corrupt cache throwing at load (review focus 4).
 
 `categories.test.ts` rows 20 to 26: "colour", "scheme", "mocha", "Latte", "THEME", "dark", "light"
-find the Appearance rows ("Mode", "Dark theme", "Light theme", or "Your themes" as the terms say).
-`keys-leader-tree.test.tsx` line 148 becomes "Space u m cycles the mode: System, Light, then Dark".
+find the Appearance rows ("Mode", "Dark theme", "Light theme", or "Your themes" as the terms say),
+and "toml" finds "Your themes". `keys-leader-tree.test.tsx` line 148 becomes "Space u m cycles the
+mode: System, Light, then Dark".
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/theme.test.ts`
 - Expected: FAIL, `storedPicks is not exported` or the import's error.
 
-- [ ] **Step 3: Implement the picks and the provider**
+- [x] **Step 3: Implement the picks and the provider**
 
 - `theme.tsx`: the picks per the data model, written as `store` writes today (removed when equal to
   the default; storage errors swallowed). The provider resolves the mode as today, the pick of each
@@ -845,25 +858,30 @@ find the Appearance rows ("Mode", "Dark theme", "Light theme", or "Your themes" 
 - `index.html`: a classic inline script in `<head>`, before any stylesheet's paint: reads
   `uraeda.theme` and `uraeda.theme.drawn`, resolves the mode with `matchMedia`, sets
   `data-astryx-theme="uraeda"` and `data-theme` on `<html>`, and writes the same rule text as
-  `paletteCss` into `<style id="uraeda-palette">`, inside `try`, doing nothing on any error.
+  `paletteCss` into `<style id="uraeda-palette">`, inside `try`, doing nothing on any error. The
+  rule paints `<html>` in `--color-background-body`, as nothing else paints it before the app mounts
+  (R14).
 - Appearance: from the mockup story, three rows, Mode (System, Light, Dark), Dark theme and Light
   theme (Astryx `Selector`, the user's themes after the shipped ones, labelled `<Name> · yours`),
-  and Your themes: each file of `useThemes().files` with its summary line and its problems in an
-  `AnnouncedBanner`, as the mockup shows, or, with none, where to put one (`folder`). The help texts
-  are the mockup's.
+  and Your themes: each file of `useThemes().files` with its summary line (name, mode, the theme it
+  extends, and its counts of problems and warnings) and its problems in an `AnnouncedBanner` per
+  kind, the core's messages as they are, as the mockup shows; the row's help names `folder`, where
+  to put one. The help texts are the mockup's. `SettingsPage` reads `useThemes()` and passes it to
+  `SettingsView`, as it passes the server's settings, so the stories pass fixed themes.
 - `space u m` in `LeaderKeys.tsx`, label "Mode", cycling System → Light → Dark → System. `space u t`
   goes until task 8.
 - The mockup stories `AppearanceSection` and `NoThemesYet` draw the real rows over fixed themes.
 
-- [ ] **Step 4: Check the first paint in a browser**
+- [x] **Step 4: Check the first paint in a browser**
 
 - Run: `nix develop -c node packages/web/scripts/palette-probe.ts --first-paint`, which stores
   `uraeda.theme.dark` and a drawn cache for a theme whose page is `#282a36`, reloads, and reads
   `<html>`'s background in the first frame (`page.evaluate` in a `requestAnimationFrame` before
-  React mounts, or a `load` listener added by `addInitScript`), on Home and on the sign-in page.
+  React mounts, or a `load` listener added by `addInitScript`), then once the page shows, on Home
+  and on the sign-in page.
 - Expected: `ok` for both.
 
-- [ ] **Step 5: Run the task's validation, and look**
+- [x] **Step 5: Run the task's validation, and look**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/theme.test.ts packages/web/src/__tests__/categories.test.ts packages/web/src/__tests__/keys-leader-tree.test.tsx`,
@@ -871,7 +889,7 @@ find the Appearance rows ("Mode", "Dark theme", "Light theme", or "Your themes" 
 - Expected: PASS. Then `vp run sandbox`: Appearance at a phone's and a desktop's width, in a dark
   and a light theme. Deferred to `ready`: the other UI tests, Storybook's build.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web docs/web-ui.md specs/2026-11-07-color-themes/plan.md

@@ -1,17 +1,16 @@
 // The leader's tree: what `Space` and `g` lead to, declared where the shell mounts it. Each entry
 // runs what a button or a page already runs: the places navigate (`destinations.ts`), New opens
 // the page or the form of its button, Find opens the key picker over a kind, Continue opens what
-// needs the human, `r` the repository menu, `u t` cycles the theme, and `u f` then a part's key
-// opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
-// confirmed. `?` and `Space ?` open the key map (`KeyMap`), of the keys that work where the focus was.
-// The entries of the UI group
-// that fold the navigation and the right column are declared by those columns (`u [`, `u ]`), as
-// a key belongs to the owner of its action.
+// needs the human, `r` the repository menu, `u m` cycles the colour mode, and `u f` then a part's
+// key opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
+// confirmed. `?` and `Space ?` open the key map (`KeyMap`), of the keys that work where the focus
+// was. The entries of the UI group that fold the navigation and the right column are declared by
+// those columns (`u [`, `u ]`), as a key belongs to the owner of its action.
 import { useState } from "react";
 import { openRepositoryMenu, RepositoryMenuHost } from "../RepositoryMenu.tsx";
 import { navigateHere, useRepository } from "../routes.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
-import { type Scheme, useScheme } from "../theme.tsx";
+import { type Mode, usePicks } from "../theme.tsx";
 import { useConfirm } from "../fields/Confirm.tsx";
 import { type FontRole, restoreDefaultFonts, ROLES } from "../theme/fonts.ts";
 import { FontPicker } from "./FontPicker.tsx";
@@ -29,15 +28,15 @@ import { useKeys } from "./registry.tsx";
 import { edge } from "./scroll.ts";
 import type { Binding } from "./store.ts";
 
-/** The theme after each: Mocha, then Latte, then the system's, then Mocha again. */
-const NEXT: Record<Scheme, Scheme> = { latte: "system", mocha: "latte", system: "mocha" };
+/** The mode after each: the system's, then Light, then Dark, then the system's again. */
+const NEXT: Record<Mode, Mode> = { dark: "system", light: "dark", system: "light" };
 
 /** Declares the tree, and draws what it opens: Continue's picker and the repository menu. */
 export function LeaderKeys() {
   const current = useRepository();
   const openForm = useOpenAddForm();
   const picker = useKeyPicker();
-  const [scheme, setScheme] = useScheme();
+  const [picks, pick] = usePicks();
   const [fontRole, setFontRole] = useState<FontRole>();
   const confirm = useConfirm();
   const { binding: continuing, picker: continuePicker } = useContinue();
@@ -71,9 +70,9 @@ export function LeaderKeys() {
     },
     {
       icon: "uraeda:palette",
-      keys: "space u t",
-      label: "Theme",
-      run: () => setScheme(NEXT[scheme]),
+      keys: "space u m",
+      label: "Mode",
+      run: () => pick({ mode: NEXT[picks.mode] }),
     },
     ...ROLES.map(({ key, label, role }) => ({
       icon: "uraeda:palette" as const,
