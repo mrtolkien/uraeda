@@ -21,7 +21,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a role a file leaves out takes its parent's expression, a palette name or a colour,
   resolved against the file's palette merged over its parent's. A family's variant can then extend
-  its first theme and change only the palette.
+  its first theme and change only the palette. A role naming a palette entry that does not exist
+  keeps the parent's expression too, resolved against the merged palette: the parent's colour,
+  unless the file redefines the palette name that expression names.
 - **Rationale**: Helix's loader does the same, merging palettes before resolving; the data model
   says a role names an entry "of the same file, or of a theme it extends".
 - **If wrong**: a user who redefines a palette name their parent uses changes every role naming it.

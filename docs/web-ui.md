@@ -146,9 +146,9 @@ pane-title = "#e0a070"
 
 - `name`: the name in the lists; the id when absent.
 - `mode`: `"dark"` or `"light"`, the list the theme shows in; taken from `extends` when absent.
-- `extends`: the id of a theme of the same mode, shipped or yours, which every role the file leaves
-  out comes from. Without it, a theme extends its mode's default, Catppuccin Mocha or Catppuccin
-  Latte.
+- `extends`: the id of a theme of the same mode, shipped or yours, in any case, which every role the
+  file leaves out comes from. Without it, a theme extends its mode's default, Catppuccin Mocha or
+  Catppuccin Latte.
 - `[palette]`: your own colours, named freely, each `#rrggbb` or `#rrggbbaa`. It is merged over the
   palette of the theme it extends: redefining one of its names changes every role you left out that
   names it.
@@ -207,10 +207,14 @@ A theme of yours applies as written, as soon as it is saved. A problem never sto
 setting from applying, and Settings' Appearance section lists your files, each with its problems and
 their lines:
 
-- A file that is not valid TOML, or cannot be read, leaves the lists: "Could not read: line 4: …".
+- A file that is not valid TOML, or cannot be read, such as a symlink to nothing, leaves the lists:
+  "Could not read: line 4: …".
 - A role naming a palette entry that does not exist, or giving something that is not a colour, keeps
   the colour of the theme it extends.
-- An unknown `extends` extends the mode's default instead.
+- An unknown `extends` extends the mode's default instead; without a `mode`, the file has no mode to
+  take, and leaves the lists.
+- A file extending a theme of yours that has problems leaving the lists extends its mode's default
+  instead: `extends "a", which has problems of its own: see its row.`
 - A loop of `extends`, a theme extending one of the other mode, a file with neither `mode` nor
   `extends`, a `mode` other than `"dark"` or `"light"`, and a file named like a shipped theme leave
   the lists.
