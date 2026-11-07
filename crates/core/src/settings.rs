@@ -14,6 +14,8 @@ mod file;
 mod list;
 mod rules;
 
+pub(crate) use file::line;
+
 /// The start of a file the first write creates.
 const HEADER: &str =
     "# Uraeda's settings. The settings page writes this file too, and keeps your comments.\n";

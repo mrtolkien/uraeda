@@ -104,7 +104,10 @@ pub struct Theme {
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThemeProblem {
+    /// The line it is on, from 1, to sort and to point at; absent for the whole file.
     pub line: Option<u32>,
+    /// The full text as shown, some already beginning `Line 4: `: a UI must never prefix the line
+    /// itself.
     pub message: String,
     pub is_warning: bool,
 }

@@ -265,7 +265,7 @@ fn allowed_hosts(item: &Item) -> Result<Vec<String>, (Option<Range<usize>>, Stri
 }
 
 /// The line, from 1, holding `offset`.
-fn line(text: &str, offset: usize) -> usize {
+pub(crate) fn line(text: &str, offset: usize) -> usize {
     text[..offset.min(text.len())].matches('\n').count() + 1
 }
 
