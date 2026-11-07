@@ -105,7 +105,7 @@ function assertCanonical(bindings: ReadonlyArray<Binding>) {
     if (bad !== undefined) {
       throw new Error(
         `"${keys}" (${label}) can never run: "${bad}" is not a key as the browser names it ` +
-          `(modifiers lowercase, "mod+" only before a lowercase character or a named key, ` +
+          `(modifiers lowercase, "mod+" only before a lowercase character or a named key, "mod+shift+" before a lowercase character, ` +
           `named keys as in event.key, Space as "space")`,
       );
     }

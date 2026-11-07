@@ -155,9 +155,11 @@ test("a token is canonical where tokenOf can give it, and not otherwise", () => 
     expect(isCanonical(token ?? ""), `${token}`).toBe(true);
   }
   // Ctrl or Cmd with a named key is a binding's too, as the draft page's `mod+Enter`; with Shift
-  // and a letter, the case is Shift's and the token is never given.
+  // and a letter, the letter stays lowercase, as `tokenOf` writes Ctrl+Shift+Z for redo.
   expect(isCanonical("mod+Enter")).toBe(true);
-  expect(isCanonical("mod+shift+k")).toBe(false);
+  expect(isCanonical(tokenOf(press("Z", { ctrlKey: true, shiftKey: true })) ?? "")).toBe(true);
+  expect(isCanonical("mod+shift+k")).toBe(true);
+  expect(isCanonical("mod+shift+K")).toBe(false);
   for (const token of [
     "Space",
     "escape",
