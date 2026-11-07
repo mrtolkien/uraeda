@@ -24,12 +24,14 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 type Draft = ReturnType<typeof useCommentDraft>;
 type Refusals = ReturnType<typeof useRefusals>;
 type Fate = ReturnType<typeof useFateClient>;
+/** The reviewed file, by its feature's folder and its name. */
+type Reviewed = Pick<File, "folder" | "name">;
 
 /** A new comment being added: its text, and its lines, if on lines. */
 export type Adding = { range?: Range; text: string };
 
 /** The reviewed file as a review's write answers it, with the change the undo stack takes. */
-const ReviewChangeView = view<WorkflowFile>()({
+export const ReviewChangeView = view<WorkflowFile>()({
   ...FileView,
   change: { commit: true, files: true },
 });
@@ -59,7 +61,7 @@ function followRestored(keyOf: (number: number) => string, number: number, count
  * reviewed file's page: each undo and redo reads the file again, so the page shows its comments as
  * they now are, then runs `after`'s side, which keeps the comments typed but not sent with theirs.
  */
-function useRecord(file: File) {
+function useRecord(file: Reviewed) {
   const fate = useFateClient();
   const record = useUndo();
   return (
@@ -90,8 +92,18 @@ function useRecord(file: File) {
   };
 }
 
+/**
+ * Records a new comment on `file`, its text `text`, once `review.comment` answered `answer`
+ * through `ReviewChangeView`: "Added a comment", as the review page's own comments are, for the
+ * other forms that comment on a review, the mockup page's and an embedded story's.
+ */
+export function useRecordComment(file: Reviewed) {
+  const recorded = useRecord(file);
+  return (answer: Answer, text: string) => recorded(answer, "Added a comment", subjectOf(text));
+}
+
 /** Reads the reviewed file again, once an undo or a redo wrote it: a failed read changes nothing. */
-async function reread(fate: Fate, file: File) {
+async function reread(fate: Fate, file: Reviewed) {
   await fate
     .request(filePage(file.folder, file.name), { mode: "network-only" })
     .catch(() => undefined);
@@ -167,6 +179,7 @@ export function useReviewActions(
   const { close, draft, selection } = commentDraft;
   const fate = useFateClient();
   const recorded = useRecord(file);
+  const recordComment = useRecordComment(file);
   const remove = useRemove(file, commentDraft, run);
   // Shown from "Add comment" until the comment is written, in a transition of its own.
   const [adding, setAdding] = useOptimistic<Adding | undefined>(undefined);
@@ -176,7 +189,7 @@ export function useReviewActions(
       input: { ...input, text, ...extent },
       view: ReviewChangeView,
     });
-    recorded(result, "Added a comment", subjectOf(text));
+    recordComment(result, text);
     return result;
   };
   const add = (text: string) => {
