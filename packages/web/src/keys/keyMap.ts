@@ -34,7 +34,8 @@ function sectionOf({ binding, place }: Placed): string {
   if (path[0] === "g" && path.length === 2) {
     return GO;
   }
-  return place === "page" ? PAGE : SHELL;
+  // A held selection's keys are this page's too, for as long as it holds.
+  return place === "shell" ? SHELL : PAGE;
 }
 
 /** The sections' order: the page's, the shell's, the menu's, each group's as named, then `g`'s. */

@@ -147,8 +147,9 @@ export function KeysProvider({
 type Shape = Omit<Binding, "run" | "when"> & { hasWhen: boolean };
 
 /**
- * Declares the keys that work while the caller is mounted: its page's, or `place` "shell" for the
- * shell's own. The handlers are the latest closures of the last render, though readers (the hints,
+ * Declares the keys that work while the caller is mounted: its page's, `place` "shell" for the
+ * shell's own, or "selection" for a held stop's, which run first and may reuse the page's keys.
+ * The handlers are the latest closures of the last render, though readers (the hints,
  * the menu) hear only of a change in what the bindings say. Throws, in every build but production,
  * where a key would mean two things.
  */

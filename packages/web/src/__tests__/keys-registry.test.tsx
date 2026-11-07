@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { Component, type ReactNode, memo, useState } from "react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { type Binding, KeysProvider, useHints, useKeys } from "../keys/registry.tsx";
+import type { Place } from "../keys/store.ts";
 
 afterEach(() => {
   cleanup();
@@ -15,18 +16,22 @@ afterEach(() => {
 /** Declares one binding, `keys`, which logs `ran` with its label. */
 function Harness({
   fallback,
+  hint,
   keys,
   label = keys,
+  place,
   ran,
   result,
 }: {
   fallback?: boolean;
+  hint?: string;
   keys: string;
   label?: string;
+  place?: Place;
   ran: Array<string>;
   result?: false;
 }) {
-  useKeys([{ fallback, keys, label, run: () => (ran.push(label), result) }]);
+  useKeys([{ fallback, hint, keys, label, run: () => (ran.push(label), result) }], place);
   return null;
 }
 
@@ -405,6 +410,53 @@ test("a handler that returns false lets the fallback run, any other stops it", (
   );
   press("j");
   expect(ran).toEqual(["move"]);
+});
+
+/** A held selection's own keys, `a` and `b`, as a question's letters. */
+function Letters({ ran }: { ran: Array<string> }) {
+  useKeys(
+    ["a", "b"].map((keys) => ({
+      hint: keys,
+      keys,
+      label: `pick ${keys}`,
+      run: () => void ran.push(`pick ${keys}`),
+    })),
+    "selection",
+  );
+  return null;
+}
+
+// Break: a selection's key checked against the page's, which throws on mount; the page's or the
+// shell's running first; a selection's key that stays once it is unmounted.
+test("a selection's key runs before the page's and the shell's, and clashes only with another selection's", () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const ran: Array<string> = [];
+  function Page({ held, twice = false }: { held: boolean; twice?: boolean }) {
+    return (
+      <KeysProvider>
+        <Harness keys="b" label="Back" place="shell" ran={ran} />
+        <Harness hint="a" keys="a" label="page" ran={ran} />
+        <Boundary key={String(twice)}>
+          {held && <Letters ran={ran} />}
+          {twice && <Harness keys="b" label="again" place="selection" ran={ran} />}
+        </Boundary>
+        <Line />
+      </KeysProvider>
+    );
+  }
+  const { rerender } = render(<Page held />);
+  // The selection's hints are its stop's to draw, not the status line's.
+  expect(document.body.textContent).toBe("a page");
+  press("a");
+  press("b");
+  expect(ran).toEqual(["pick a", "pick b"]);
+  ran.length = 0;
+  rerender(<Page held={false} />);
+  press("a");
+  press("b");
+  expect(ran).toEqual(["page", "Back"]);
+  rerender(<Page held twice />);
+  expect(document.body.textContent).toContain('"b" is bound twice, to pick b and to again');
 });
 
 /** Says how many hints it reads, and tells `onRender` each time it renders. */
