@@ -408,11 +408,12 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   ([R6](rulings.md#r6-the-cursor-hears-the-last-key-through-the-registrys-watch)).
 - Produces, `cursor/move.ts`, pure: `MARGIN = 100`;
   `cursorStep(stops: ReadonlyArray<Box>, current: number | null, direction: 1 | -1, view: View): { focus: number; scrollBy: number } | null`,
-  with `Box = { top, bottom, pane?: { id, top, bottom } }` and `View = { top, bottom }`, the room
-  between the top bar and the status line, in window pixels; a pane is the nearest `data-pane`
-  around a stop, its element as its `id`. `null` at either end: the key goes on to the scroll
-  fallback. `scrollFor(next: Box, held: Box | undefined, view: View): number`, the scroll of a move
-  to a given stop, which `focusStop` uses.
+  with `Box = { top, bottom, pane?: { id, top, bottom }, parent?: number }`, `parent` the index of
+  the stop holding it among the same list, and `View = { top, bottom }`, the room between the top
+  bar and the status line, in window pixels; a pane is the nearest `data-pane` around a stop, its
+  element as its `id`. `null` at either end: the key goes on to the scroll fallback.
+  `scrollFor(next: Box, held: Box | undefined, view: View): number`, the scroll of a move to a given
+  stop, which `focusStop` uses.
 - Produces, `cursor/useCursor.ts`: `useCursor(on = true): void`, the page's `j` `↓` (hint "j k",
   "move"), `k` `↑`, and Escape (clears the cursor; `false` when no stop is focused), only while
   `on`: a spec or plan under review, a document with Ask
@@ -423,8 +424,9 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   `type StopKey = { keys: string; label: string; run: () => void | false; bar?: string }`;
   `useStopKeys(keys: ReadonlyArray<StopKey>, held: boolean): void`, declared in the selection's
   place while held; `StopBar({ held, keys })`, the `RowBar` of the keys with a `bar` text, without
-  the single keys when they are off, and nothing when narrow or not held. `bar` is the keys as the
-  bar writes them, "J K", and `label` the word after them, "range"
+  the single keys when they are off, and nothing when narrow or not held; the bar is `RowBar`'s
+  `isCursor`, its buttons out of Tab's way and marked `data-stop-bar`. `bar` is the keys as the bar
+  writes them, "J K", and `label` the word after them, "range"
   ([R7](rulings.md#r7-a-stops-bar-writes-its-keys-from-bar-and-its-word-from-label)).
 - Produces, `helpers.tsx`: `hold(element: HTMLElement)`, which presses a key no binding has, then
   focuses the element, as the cursor would.
@@ -436,11 +438,17 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
 1. With no cursor, or one wholly outside the view, take the first stop whose top is inside the view,
    else the first whose bottom is below the view's top, scrolled as in 3.
 2. A stop taller than the room (`view.bottom - view.top - 2 * MARGIN`) whose end is past the margin
-   in the key's direction scrolls by the smaller of what is past and the room, and stays.
-3. Else take the next stop in the direction. Into another pane that fits the view, scroll the least
-   that shows the pane whole. Else scroll so the stop's top is `MARGIN` below the view's top, or its
-   bottom `MARGIN` above the view's bottom, whichever it crosses; a stop taller than the room shows
-   its top after `j`, and its bottom after `k`.
+   in the key's direction scrolls by what is past when it is no more than the view, else by the
+   room, and stays.
+3. Else take the next stop in the direction: forward, the next not nested in the held stop;
+   backward, the outermost stop holding the previous one that does not hold the held one
+   ([R12](rulings.md#r12-inside-a-question-card-an-embeds-buttons-are-reached-by-tab)). Into another
+   pane that fits inside the margins, scroll the least that shows the pane whole inside them, then,
+   once the stop's bar mounted, the little more that keeps the bar inside them too
+   ([R13](rulings.md#r13-a-pane-fits-inside-the-margins-and-a-held-stops-bar-counts)). Else scroll
+   so the stop's top is `MARGIN` below the view's top, or its bottom `MARGIN` above the view's
+   bottom, whichever it crosses; a stop taller than the room shows its top after `j`, and its bottom
+   after `k`.
 
 - [x] **Step 1: Write the failing tests**
 

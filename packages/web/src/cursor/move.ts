@@ -1,10 +1,12 @@
 // Where a cursor's key takes it among a page's stops, and how far the page scrolls for it: a pure
 // function of where the stops are, so it is tested without a browser. The page scrolls only when a
 // stop comes within `MARGIN` of the screen's top or bottom edge, the top bar and the status line
-// counted, or enters another pane that fits the screen, which then shows whole. A stop taller than
-// the screen less the margins is read a screen at a time before the cursor leaves it, and shows its
-// top or its end as the cursor moves onto it down or up (R5). With no cursor, or one scrolled off
-// screen, either key takes the topmost stop whose top is on screen (R4).
+// counted, or enters another pane that fits inside the margins, which then shows whole inside them
+// (R13). A stop taller than the screen less the margins is read a screen at a time before the
+// cursor leaves it, and shows its top or its end as the cursor moves onto it down or up (R5). The
+// stops nested in another, an embed's buttons in a question card, are passed by when the cursor
+// leaves it forward, and lead to it backward: Tab reaches them (R12). With no cursor, or one
+// scrolled off screen, either key takes the topmost stop whose top is on screen (R4).
 
 /** The room kept between a stop and the screen's top or bottom edge, in px. */
 export const MARGIN = 100;
@@ -12,8 +14,11 @@ export const MARGIN = 100;
 /** Where a pane is: what tells it apart from another, and its edges. */
 export type PaneBox = { bottom: number; id: unknown; top: number };
 
-/** Where a stop is, in window pixels, and the pane holding it, if any. */
-export type Box = { bottom: number; pane?: PaneBox; top: number };
+/**
+ * Where a stop is, in window pixels, the pane holding it, if any, and the index of the stop holding
+ * it among the same list, if any, as an embed's button inside a question card.
+ */
+export type Box = { bottom: number; pane?: PaneBox; parent?: number; top: number };
 
 /** The room between the top bar and the status line, in window pixels. */
 export type View = { bottom: number; top: number };
@@ -46,15 +51,18 @@ export function placed(box: Box, view: View, direction: 1 | -1 = 1): number {
   return box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
 }
 
-/** The least scroll that shows a pane whole, `null` when it is taller than the view. */
+/**
+ * The least scroll that shows a pane whole inside the margins, `null` when it is taller than the
+ * room: such a pane is placed by its stop alone.
+ */
 function shownWhole(pane: PaneBox, view: View) {
-  if (pane.bottom - pane.top > view.bottom - view.top) {
+  if (pane.bottom - pane.top > roomOf(view)) {
     return null;
   }
-  if (pane.top < view.top) {
-    return pane.top - view.top;
+  if (pane.top < view.top + MARGIN) {
+    return pane.top - (view.top + MARGIN);
   }
-  return Math.max(pane.bottom - view.bottom, 0);
+  return Math.max(pane.bottom - (view.bottom - MARGIN), 0);
 }
 
 /**
@@ -66,6 +74,51 @@ export function scrollFor(next: Box, held: Box | undefined, view: View, directio
   const whole =
     next.pane !== undefined && next.pane.id !== held?.pane?.id ? shownWhole(next.pane, view) : null;
   return whole ?? placed(next, view, direction);
+}
+
+/** Whether the stop at `index` is nested, at any depth, in the stop at `outer`. */
+function isWithin(stops: ReadonlyArray<Box>, index: number, outer: number) {
+  for (let at = stops[index]?.parent; at !== undefined; at = stops[at]?.parent) {
+    if (at === outer) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * The stop a move in `direction` from `current` takes: forward, the next not nested in the held
+ * stop; backward, the previous, or the outermost stop holding it that does not hold the held one,
+ * so a card is landed on, not the last of its inner buttons.
+ */
+function nextOf(stops: ReadonlyArray<Box>, current: number, direction: 1 | -1) {
+  let focus = current + direction;
+  if (direction === 1) {
+    while (focus < stops.length && isWithin(stops, focus, current)) {
+      focus += 1;
+    }
+    return focus;
+  }
+  for (let at = stops[focus]?.parent; at !== undefined; at = stops[at]?.parent) {
+    if (!isWithin(stops, current, at)) {
+      focus = at;
+    }
+  }
+  return focus;
+}
+
+/**
+ * The scroll that reads on through a tall stop in `direction`, 0 at its end: what is left past the
+ * margin, in one step when it is no more than the view, as what was at one edge comes to the other
+ * and nothing is passed by, else a room at a time, keeping 200 px of the last in view (R5).
+ */
+function readOn(held: Box, view: View, direction: 1 | -1) {
+  const past =
+    direction === 1 ? held.bottom - (view.bottom - MARGIN) : view.top + MARGIN - held.top;
+  if (past <= 0) {
+    return 0;
+  }
+  return direction * (past <= view.bottom - view.top ? past : roomOf(view));
 }
 
 /**
@@ -94,16 +147,13 @@ export function cursorStep(
     const box = stops[start];
     return box === undefined ? null : { focus: start, scrollBy: scrollFor(box, undefined, view) };
   }
-  const room = roomOf(view);
-  if (held.bottom - held.top > room) {
-    // What of the tall stop is past the margin in the key's direction, still to read.
-    const past =
-      direction === 1 ? held.bottom - (view.bottom - MARGIN) : view.top + MARGIN - held.top;
-    if (past > 0) {
-      return { focus: current, scrollBy: direction * Math.min(past, room) };
+  if (held.bottom - held.top > roomOf(view)) {
+    const scrollBy = readOn(held, view, direction);
+    if (scrollBy !== 0) {
+      return { focus: current, scrollBy };
     }
   }
-  const focus = current + direction;
+  const focus = nextOf(stops, current, direction);
   const next = stops[focus];
   if (next === undefined) {
     return null;

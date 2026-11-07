@@ -48,12 +48,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R5: A tall stop scrolls by a screen less the margins
 
 - **Decision**: `j` on a stop whose end is below the screen's bottom edge less 100 px scrolls down
-  by the smaller of what is left and the screen's height less 200 px, and keeps the cursor; `k`
-  mirrors it at the top. Moved onto, a tall stop shows its top 100 px under the top bar after `j`,
-  and its end 100 px above the status line after `k`, so the next key in the same direction reads
-  through its body.
-- **Rationale**: the spec's 1,400 px card on a 900 px screen shows its end at the first `j`; a
-  taller one is read a screen at a time, each step keeping 200 px of the last in view.
+  and keeps the cursor: by all that is left when it is no more than the screen's height, between the
+  top bar and the status line, else by that height less 200 px. `k` mirrors it at the top. Moved
+  onto, a tall stop shows its top 100 px under the top bar after `j`, and its end 100 px above the
+  status line after `k`, so the next key in the same direction reads through its body.
+- **Rationale**: the spec's 1,400 px card on a 900 px screen shows its end at the first `j`, and the
+  next moves on (US4 more 1). Its top 100 px under the top bar, what is left past the bottom margin
+  is about the screen's height: a step of a room, 200 px less, left a third `j` for the last 200 px.
+  A step of up to a screen passes nothing by, as what was at the screen's bottom edge comes to its
+  top. A taller stop is read a room at a time, each step keeping 200 px of the last in view, then
+  its rest in one step.
+- **Alternatives considered**: the rest in one step only when it is less than the room and one
+  margin, which keeps 100 px of the last in view: on a 900 px screen, with the top bar and the
+  status line, the spec's card still took three `j`.
 - **Where**: task 4, `cursor/move.ts`
 
 ## R6: The cursor hears the last key through the registry's watch
@@ -141,6 +148,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   by shared components, drawn on pages that mount no cursor, where the held look, the blur on a
   mouse move, and the refocus on Escape acted for a cursor that was not there.
 - **Where**: review of task 5, `cursor/held.ts`, `cursor/useCursor.ts`
+
+## R12: Inside a question card, an embed's buttons are reached by Tab
+
+- **Decision**: a stop nested in another, as a story's "Comment", a live window's "Full screen", or
+  a fold inside a question card, is passed by when `j` leaves the stop holding it, and `k` from
+  below lands on the outermost stop holding it, the card, not its inner buttons. Tab reaches them,
+  and from one held by Tab, `j` and `k` move among its siblings, then out. `Box.parent` names the
+  stop holding a stop, by its index in the list `cursorStep` is given.
+- **Rationale**: after `j` reads a tall card to its end, the next `j` took the embed's button near
+  the card's top and scrolled back up, undoing the read-through (US4 more 1). The card's own keys
+  name what a human does there; its embed's buttons are a click's, and Tab's.
+- **If wrong**: `nextOf` in `move.ts` walks into the nested stops, and a read-through skips those
+  above the screen instead.
+- **Where**: final review, `cursor/move.ts` (`nextOf`), `cursor/useCursor.ts` (`boxesOf`, `beyond`)
+
+## R13: A pane fits inside the margins, and a held stop's bar counts
+
+- **Decision**: a pane the cursor enters shows whole only when it fits the screen less the two 100
+  px margins, and then shows inside them, its top 100 px under the top bar or its end 100 px above
+  the status line. In the frame after the cursor takes a new stop, once its bar mounted, the stop is
+  measured again with its bar, the cursor's `RowBar` being marked `data-stop-bar`, and the page
+  scrolls the little more the same rule asks.
+- **Rationale**: SC-003 asks for the stop 100 px inside after any move. A pane shown whole flush to
+  the status line, then its bar mounting under the held stop, ended 75 to 90 px from it, the pane's
+  end cut off. The bar mounts after the focus moves, as the held state is read from the focus, so it
+  cannot be measured before the move.
+- **Alternatives considered**: reserving the bar's height in the stop before it is held, which would
+  draw an empty line under every block.
+- **Where**: final review, `cursor/move.ts` (`shownWhole`), `cursor/useCursor.ts` (`take`,
+  `withBar`), `lists/RowBar.tsx` (`isCursor`)
 
 ## R14: The cursor is on only where blocks are stops
 

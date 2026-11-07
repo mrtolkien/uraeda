@@ -9,7 +9,7 @@ import type { Binding } from "../keys/store.ts";
 import { topBarBottom } from "../layout/topBar.ts";
 import { cursorOn, heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
 import { type Box, cursorStep, placed, scrollFor, type View } from "./move.ts";
-import { stopsOf } from "./stops.ts";
+import { stopOf, stopsOf } from "./stops.ts";
 
 /** An element's box in the window, `undefined` where it is not drawn, as a hidden status line. */
 function drawn(selector: string) {
@@ -53,13 +53,53 @@ function boxOf(stop: HTMLElement, pending: number): Box {
   };
 }
 
-/** Gives a stop the focus, held, and scrolls the area by `by` px, gliding. */
-function take(stop: HTMLElement, by: number, area: Area) {
+/**
+ * The boxes of `stops`, each naming the index of the stop holding it among them, if any, as an
+ * embed's button inside a question card.
+ */
+function boxesOf(stops: ReadonlyArray<HTMLElement>, pending: number): Array<Box> {
+  const indexes = new Map(stops.map((stop, index) => [stop, index]));
+  return stops.map((stop) => {
+    const outer = stopOf(stop.parentElement);
+    const parent = outer === null ? undefined : indexes.get(outer);
+    const box = boxOf(stop, pending);
+    return parent === undefined ? box : { ...box, parent };
+  });
+}
+
+/**
+ * A held stop with its bar, which mounts under it once it holds the focus: the stop's box, its end
+ * at the bar's when the bar is lower.
+ */
+function withBar(stop: HTMLElement, pending: number): Box {
+  const box = boxOf(stop, pending);
+  const bar = document.querySelector("[data-stop-bar]")?.getBoundingClientRect();
+  return bar === undefined ? box : { ...box, bottom: Math.max(box.bottom, bar.bottom - pending) };
+}
+
+/**
+ * Gives a stop the focus, held, and scrolls the area by `by` px, gliding. In the next frame, once
+ * the held stop's bar mounted, scrolls the little more that `scroll` asks of the stop with its bar,
+ * so the bar keeps the margin as the stop does (R13).
+ */
+function take(stop: HTMLElement, by: number, area: Area, scroll?: (box: Box) => number) {
   markByKey();
   stop.focus({ preventScroll: true });
   if (by !== 0) {
     glideBy(area, by);
   }
+  if (scroll === undefined) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    if (heldStop() !== stop) {
+      return;
+    }
+    const more = scroll(withBar(stop, pendingOf(area)));
+    if (Math.abs(more) >= 1) {
+      glideBy(area, more);
+    }
+  });
 }
 
 /**
@@ -78,7 +118,10 @@ function land(stop: HTMLElement, from: HTMLElement | undefined, direction: 1 | -
   const area = areaOf(stop);
   const pending = pendingOf(area);
   const held = from && boxOf(from, pending);
-  take(stop, scrollFor(boxOf(stop, pending), held, viewOf(area), direction), area);
+  const view = viewOf(area);
+  take(stop, scrollFor(boxOf(stop, pending), held, view, direction), area, (box) =>
+    scrollFor(box, held, view, direction),
+  );
 }
 
 /**
@@ -107,22 +150,45 @@ function move(direction: 1 | -1) {
   const { area, stops } = areaToMove(all, held);
   const pending = pendingOf(area);
   const index = held === null ? -1 : stops.indexOf(held);
-  const step = cursorStep(
-    stops.map((stop) => boxOf(stop, pending)),
-    index === -1 ? null : index,
-    direction,
-    viewOf(area),
-  );
+  const boxes = boxesOf(stops, pending);
+  const view = viewOf(area);
+  const step = cursorStep(boxes, index === -1 ? null : index, direction, view);
   const stop = step === null ? undefined : stops[step.focus];
-  if (step !== null && stop !== undefined) {
+  if (step === null || stop === undefined) {
+    const next = held === null ? undefined : beyond(all, held, direction);
+    if (next === undefined) {
+      return false;
+    }
+    land(next, undefined, direction);
+    return;
+  }
+  if (stop === held) {
+    // Reading on through a tall stop: its bar is drawn already.
     take(stop, step.scrollBy, area);
     return;
   }
-  const next = held === null ? undefined : all[all.indexOf(held) + direction];
-  if (next === undefined) {
-    return false;
+  const from = boxes[index];
+  take(stop, step.scrollBy, area, (box) => scrollFor(box, from, view, direction));
+}
+
+/**
+ * The stop past `held` in document order, out of its scroll area (R8): forward, the next it does not
+ * hold; backward, the previous, or the outermost stop holding it, as `cursorStep` moves (R12).
+ */
+function beyond(all: ReadonlyArray<HTMLElement>, held: HTMLElement, direction: 1 | -1) {
+  let at = all.indexOf(held) + direction;
+  while (direction === 1 && all[at] !== undefined && held.contains(all[at]!)) {
+    at += 1;
   }
-  land(next, undefined, direction);
+  let next = all[at];
+  const first = direction === -1 ? stopOf(next?.parentElement ?? null) : null;
+  for (let outer = first; outer !== null;) {
+    if (!outer.contains(held)) {
+      next = outer;
+    }
+    outer = stopOf(outer.parentElement);
+  }
+  return next;
 }
 
 /**
