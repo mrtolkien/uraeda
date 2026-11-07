@@ -14,35 +14,56 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eff1f5" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e1e2e" />
     <!-- The first paint: the mode picked, and the colours the picked themes drew last, from this
-         browser's cache, before any stylesheet or module loads, so the first frame is the theme's.
-         The rule's text is `paletteCss`'s, in src/theme/palette.ts, and the keys `theme.tsx`'s.
-         On any error, such as storage refused or a corrupt cache, it does nothing: the built
-         Catppuccin draws. -->
+         browser's cache, before any stylesheet or module loads, so the first frame is the theme's,
+         and the browser's bar with it: each theme-color meta says the page's colour of the mode it
+         shows, as `paintBar` in `theme.tsx` does once the app mounts. The rule's text is
+         `paletteCss`'s, in src/theme/palette.ts, and the keys `theme.tsx`'s. A corrupt cache draws
+         nothing; on any other error, such as storage refused, it does nothing: the built
+         Catppuccin draws. Checked by `__tests__/first-paint.test.ts`. -->
     <script>
       try {
         (function () {
           var stored = localStorage.getItem("uraeda.theme");
-          var mode =
+          // The mode picked, or none under System; `mocha` and `latte` are an earlier version's.
+          var picked =
             stored === "dark" || stored === "mocha"
               ? "dark"
               : stored === "light" || stored === "latte"
                 ? "light"
-                : matchMedia("(prefers-color-scheme: dark)").matches
-                  ? "dark"
-                  : "light";
+                : null;
+          var mode =
+            picked || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
           var root = document.documentElement;
           root.setAttribute("data-astryx-theme", "uraeda");
           root.setAttribute("data-theme", mode);
-          var drawn = JSON.parse(localStorage.getItem("uraeda.theme.drawn") || "{}") || {};
+          var drawn = {};
+          try {
+            drawn = JSON.parse(localStorage.getItem("uraeda.theme.drawn") || "{}") || {};
+          } catch (error) {}
+          var colour = /^#[\da-f]{6}(?:[\da-f]{2})?$/i;
+          var metas = document.querySelectorAll('meta[name="theme-color"]');
+          // Each meta's own mode, by its media query.
+          var ownOf = function (meta) {
+            return (meta.getAttribute("media") || "").indexOf("dark") === -1 ? "light" : "dark";
+          };
+          var built = {};
+          metas.forEach(function (meta) {
+            built[ownOf(meta)] = meta.getAttribute("content");
+          });
+          metas.forEach(function (meta) {
+            var own = ownOf(meta);
+            var shown = picked || own;
+            var page = drawn[shown] && drawn[shown]["--color-background-body"];
+            meta.setAttribute("content", colour.test(page) ? page : built[shown]);
+          });
           var css = "";
           ["dark", "light"].forEach(function (each) {
             var tokens = drawn[each];
             var declarations = "";
             Object.keys(tokens && typeof tokens === "object" ? tokens : {}).forEach(
               function (name) {
-                var colour = tokens[name];
-                if (/^--[\w-]+$/.test(name) && /^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(colour)) {
-                  declarations += "  " + name + ": " + colour + ";\n";
+                if (/^--[\w-]+$/.test(name) && colour.test(tokens[name])) {
+                  declarations += "  " + name + ": " + tokens[name] + ";\n";
                 }
               },
             );

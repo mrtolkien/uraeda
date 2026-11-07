@@ -860,7 +860,9 @@ mode: System, Light, then Dark".
   `data-astryx-theme="uraeda"` and `data-theme` on `<html>`, and writes the same rule text as
   `paletteCss` into `<style id="uraeda-palette">`, inside `try`, doing nothing on any error. The
   rule paints `<html>` in `--color-background-body`, as nothing else paints it before the app mounts
-  (R14).
+  (R14), and sets each `theme-color` meta to the cached `--color-background-body` of the mode it
+  shows, as the provider does after mount. `__tests__/first-paint.test.ts` runs the script in
+  happy-dom and holds what it draws equal to `storedPicks` and `storedDrawn`.
 - Appearance: from the mockup story, three rows, Mode (System, Light, Dark), Dark theme and Light
   theme (Astryx `Selector`, the user's themes after the shipped ones, labelled `<Name> · yours`),
   and Your themes: each file of `useThemes().files` with its summary line (name, mode, the theme it
