@@ -188,3 +188,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   between them over the text it used to scroll.
 - **Where**: final review, `cursor/useCursor.ts`, `spec/SpecPage.tsx`, `PlanPage.tsx`,
   `DocumentPage.tsx`
+
+## R15: One helper makes a pane a stop, ringed over it on a narrow screen
+
+- **Decision**: a question card, the round's notes, and its Submit are made stops by `usePaneStop`
+  in [`cursor/PaneStop.tsx`](/packages/web/src/cursor/PaneStop.tsx): the pane's mark, the stop's,
+  its own focus ring off, its held look, and a `HeldKeys` mounted only while held, as the blocks and
+  the comments mount theirs. On a narrow screen the held look is `pickedStyles.paneNarrow`, an
+  `::after` overlay inside the pane, over its content, the sticky header included, which lets every
+  press through; on a wide one, the ring outside it as before.
+- **Rationale**: the three panes copied the same marks and look, and declared their keys from a hook
+  always mounted, which on `k` from Submit to the notes declared the notes' Enter before Submit let
+  its own go, and threw "Enter is bound twice". On the phone a card reaches the screen's edges: its
+  ring outside fell off them, and the sticky header and the option rows painted over it.
+- **Where**: final review, `cursor/PaneStop.tsx`, `layout/picked.ts`, `QuestionCard.tsx`,
+  `RoundNotes.tsx`, `RoundSubmit.tsx`

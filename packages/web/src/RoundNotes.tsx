@@ -5,9 +5,8 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
-import { useHeld } from "./cursor/held.ts";
-import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
-import { stopProps } from "./cursor/stops.ts";
+import { usePaneStop } from "./cursor/PaneStop.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
@@ -20,7 +19,6 @@ import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
@@ -30,10 +28,6 @@ import { Pane } from "./layout/Pane.tsx";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
-  // The stop around the notes' pane, which the pane's own ring shows held: none of its own.
-  stop: {
-    outlineStyle: "none",
-  },
   text: {
     // The notes as typed, their lines kept.
     whiteSpace: "pre-wrap",
@@ -197,20 +191,13 @@ export function NotesRead({
   const narrow = isNarrow(useWidthClass());
   const { field, save } = notes;
   const written = field.text.trim() !== "";
-  const stop = useRef<HTMLDivElement>(null);
-  const held = useHeld(stop);
   const keys: ReadonlyArray<StopKey> = [{ bar: "⏎", keys: "Enter", label: "notes", run: onEdit }];
-  useStopKeys(keys, held);
+  const stop = usePaneStop<HTMLDivElement>(keys);
   return (
-    <div
-      // A pane to the keyboard's cursor, around the notes' own: shown whole as it moves onto it.
-      data-pane=""
-      ref={stop}
-      {...stopProps("pane")}
-      {...stylex.props(styles.stop)}
-    >
+    // A pane to the keyboard's cursor, around the notes' own: shown whole as it moves onto it.
+    <div {...stop.props} {...stylex.props(stop.style)}>
       {/* A pane of the round, as its other parts: on the phone, little room inside its border. */}
-      <Pane icon="uraeda:pencil" isSnugOnPhone title="Notes" xstyle={[held && pickedStyles.pane]}>
+      <Pane icon="uraeda:pencil" isSnugOnPhone title="Notes" xstyle={[stop.look]}>
         <VStack gap={2}>
           {!fieldShown && <NotesRestored notes={notes} />}
           {written ? (
@@ -230,7 +217,7 @@ export function NotesRead({
             />
             <SaveStatus dirty={field.dirty} state={save.state} />
           </HStack>
-          <StopBar held={held} keys={keys} />
+          {stop.bar}
         </VStack>
       </Pane>
     </div>
