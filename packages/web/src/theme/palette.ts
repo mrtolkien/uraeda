@@ -11,6 +11,11 @@ const ID = "uraeda-palette";
 const NAME = /^--[\w-]+$/;
 const COLOUR = /^#[\da-f]{6}(?:[\da-f]{2})?$/i;
 
+/** Whether a value is a colour the core gives, a hex one: what a stored cache may hold besides. */
+export function isColour(value: unknown): value is string {
+  return typeof value === "string" && COLOUR.test(value);
+}
+
 /**
  * The rule's text: a block per given mode, each setting its tokens, then painting the root element
  * in the page's colour, which shows before the app mounts and where it does not reach, such as a
