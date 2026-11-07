@@ -252,7 +252,7 @@ clash.
   other selection bindings (and page and shell bindings only with each other), and they publish no
   status line hint: their stop draws them. The single-key switch drops them as any other.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 test("a selection's key runs before the page's and the shell's, and clashes only with another selection's", () => {
@@ -265,24 +265,24 @@ test("a selection's key runs before the page's and the shell's, and clashes only
 The breaks it catches: a selection's key checked against the page's (throws on mount); the page's or
 the shell's running first; a selection's key that stays after it is unmounted.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/keys-registry.test.tsx`
 - Expected: FAIL, `A key means two things on this page: "b" is bound twice`
 
-- [ ] **Step 3: Implement the layer in `keys/store.ts`**
+- [x] **Step 3: Implement the layer in `keys/store.ts`**
 
 Order `placed()` as selection, page, shell. In `set`, check a selection entry against selection
 entries only, and the others against page and shell entries only. Leave selection bindings out of
 `publish`. The key map lists them with the page's keys, or under a heading of their own if it groups
 by place. Back stays as it is (see [R1](rulings.md#r1-back-stays-a-plain-binding)).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(keyboard-nav): a selection's own keys in the registry`
 
