@@ -25,7 +25,7 @@ green = "#859900"
 # Not Solarized's: its colours lightened, a whole percent of HSL lightness at a time, to the
 # first step at which every pair they are in reaches the contrast floor (4.5:1 for text, 3:1 for a
 # rule).
-base01-floor = "#8da3aa"
+base01-floor = "#8ba0a7"
 base00-floor = "#687f87"
 base0-floor = "#91a0a1"
 yellow-floor = "#c29300"
@@ -36,18 +36,24 @@ violet-floor = "#9599d5"
 blue-floor = "#52a5e0"
 cyan-floor = "#2eb2a8"
 green-floor = "#92a800"
+# Not Solarized's: Uraeda's own mix for the row under the cursor, which Solarized draws in base02,
+# the tone of raised panes and chips here: blue, its accent, at 14% over base03, as Catppuccin's
+# cursor row is its accent at 14% over its page.
+blue-tint = "#05384c"
 
 [roles]
 page = "base03"
 raised = "base02"
 sunken = "base03"
 chip = "base02"
-cursor-row = "base02"
-# Solarized has one tone for secondary content, base01, which quiet and faint text share; base01's
-# floor step for text is too light for a rule, which takes base00's own step.
+cursor-row = "blue-tint"
+# Solarized's three tones of content, in its order: base1 emphasised, base0 body text, base01
+# secondary. At the floor, base01's step reads brighter than base0's, so the text takes base1, what
+# reads second base0, and faint text base01. base01's floor step for text is too light for a rule,
+# which takes base00's own step.
 rule = "base00-floor"
-ink = "base0-floor"
-ink-quiet = "base01-floor"
+ink = "base1"
+ink-quiet = "base0-floor"
 ink-faint = "base01-floor"
 on-action = "base03"
 quote = "base01-floor"

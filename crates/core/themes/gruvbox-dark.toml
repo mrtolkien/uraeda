@@ -49,13 +49,17 @@ gray_245-floor = "#aca195"
 bright_red-floor = "#fc7d6e"
 bright_blue-floor = "#89a99d"
 dark3-floor = "#7b6f65"
+# Not Gruvbox's: Uraeda's own mix for the row under the cursor, which Gruvbox draws in dark1, the
+# chip's tone here: bright_blue, its accent, at 14% over dark0, as Catppuccin's cursor row is its
+# accent at 14% over its page.
+bright_blue-tint = "#353a38"
 
 [roles]
 page = "dark0"
 raised = "dark0_hard"
 sunken = "dark0_hard"
 chip = "dark1"
-cursor-row = "dark1"
+cursor-row = "bright_blue-tint"
 marked = "bright_yellow"
 rule = "dark3-floor"
 pane-title = "bright_green"

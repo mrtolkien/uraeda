@@ -9,6 +9,7 @@ import { temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { mix } from "../theme/colour.ts";
 import { entryPasses, floorStep, fromHsl, hslOf } from "../theme/floor.ts";
+import { ratio } from "../theme/pairs.ts";
 import { paletteCss } from "../theme/palette.ts";
 import { tokensOf } from "../theme/roles.ts";
 import today from "./fixtures/catppuccin-today.json" with { type: "json" };
@@ -281,16 +282,49 @@ test.each(FLOORS)("every floor step of %s is the smallest: %s", (_, floor, theme
   );
 });
 
-/** Catppuccin's cursor-row tint: the entry it is mixed from, and its share over `base` (R11). */
+const SHIPPED = themes
+  .filter((theme) => theme.isShipped)
+  .map((theme) => [theme.id, theme] as const);
+
+// The row under the cursor shows where it is only where it differs from what it sits on: the page,
+// a raised pane, or a chip.
+test.each(SHIPPED)("in %s, the cursor row differs from page, raised, and chip", (_, { roles }) => {
+  for (const ground of ["page", "raised", "chip"]) {
+    expect(roles["cursor-row"]!.toLowerCase(), `cursor-row against ${ground}`).not.toBe(
+      roles[ground]!.toLowerCase(),
+    );
+  }
+});
+
+// The text levels read in their order: what reads second never stands out more than the text.
+test.each(SHIPPED)(
+  "in %s, ink reads over ink-quiet, and ink-quiet over ink-faint, on page",
+  (_, { roles }) => {
+    const [ink, quiet, faint] = ["ink", "ink-quiet", "ink-faint"].map((role) =>
+      ratio(roles, role, "page"),
+    );
+    expect(ink, "ink against ink-quiet").toBeGreaterThanOrEqual(quiet!);
+    expect(quiet, "ink-quiet against ink-faint").toBeGreaterThanOrEqual(faint!);
+  },
+);
+
+/**
+ * A cursor-row tint mixed by Uraeda, not published: the theme, the entry, the entry it is mixed
+ * from, its share, and the page it lies over (R11, R18).
+ */
 const TINTS = [
-  ["catppuccin-mocha", "mauve", 0.14],
-  ["catppuccin-latte", "mauve-floor", 0.1],
+  ["catppuccin-mocha", "mauve-tint", "mauve", 0.14, "base"],
+  ["catppuccin-latte", "mauve-tint", "mauve-floor", 0.1, "base"],
+  ["solarized-dark", "blue-tint", "blue", 0.14, "base03"],
+  ["solarized-light", "blue-tint", "blue", 0.1, "base3"],
+  ["gruvbox-dark", "bright_blue-tint", "bright_blue", 0.14, "dark0"],
+  ["gruvbox-light", "faded_blue-tint", "faded_blue", 0.1, "light0"],
 ] as const;
 
 // The tint is written by hand in the TOML file: a recomputed floor must not leave it stale.
-test.each(TINTS)("the mauve-tint of %s is %s mixed over base", (id, from, share) => {
+test.each(TINTS)("in %s, %s is %s mixed over its page", (id, tint, from, share, under) => {
   const { palette } = shipped(id);
-  expect(palette["mauve-tint"]).toBe(mix(palette[from]!, share, palette.base!));
+  expect(palette[tint]).toBe(mix(palette[from]!, share, palette[under]!));
 });
 
 test("the palette rule drops a name or a colour that is not one", () => {
