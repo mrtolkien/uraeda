@@ -32,7 +32,7 @@ export function Overlay({
   size,
 }: {
   /**
-   * Asked before Close, Escape, or a tap outside closes it: `false` keeps it open, as a form with
+   * Asked before Close, Escape, a swipe down, or a tap outside closes it: `false` keeps it open, as a form with
    * text does when the human keeps it. Back closes it without asking.
    */
   canClose?: () => Promise<boolean>;
@@ -49,7 +49,7 @@ export function Overlay({
   isTitleInContent?: boolean;
   label: string;
   onClose: () => void;
-  /** `info` also closes on a click outside; `form`, the default, only on Close, Back, or Escape. */
+  /** `info` also closes on a click outside; `form`, the default, on Close, Back, Escape, or a swipe. */
   purpose?: "form" | "info";
   /**
    * On narrow screens, the sheet's height: Astryx's `tall` (92%), `capped` (62%), or `hug`, as tall

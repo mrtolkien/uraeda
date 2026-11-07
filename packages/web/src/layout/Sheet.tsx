@@ -123,20 +123,38 @@ function isScrolledDown(target: EventTarget | null, panel: HTMLElement) {
   return false;
 }
 
+/** How long after a close another close is the same one, from Astryx's gesture or the sheet's. */
+const SAME_CLOSE_MS = 600;
+
+/**
+ * `onClose`, called once for one gesture: a swipe down closes an `info` sheet from Astryx's own
+ * gesture and from the sheet's, and a second close would go Back twice, leaving the page.
+ */
+function useOneClose(onClose: () => void) {
+  const last = useRef(Number.NEGATIVE_INFINITY);
+  return () => {
+    const now = performance.now();
+    if (now - last.current >= SAME_CLOSE_MS) {
+      last.current = now;
+      onClose();
+    }
+  };
+}
+
 /**
  * Follows a swipe on the top of the sheet `panel`: up takes it to the whole screen, `onFull`, as
  * soon as it passes `PULL_PX`, since Astryx's sheet opens at its tallest height, and has no stop
- * above it; down past `SWIPE_PX` closes it as the finger lets go, `onClose`, when given, since
- * Astryx's sheet closes on a swipe only when its purpose is `info`. A swipe that starts on content
- * scrolled down scrolls it back up, and does neither. A finger is read from its touch events,
- * which iOS WebKit keeps sending on the handle where it cancels the pointer's; a mouse or a pen
- * from its pointer events.
+ * above it; down past `SWIPE_PX` closes it as the finger lets go, `onClose`, since Astryx's sheet
+ * closes on a swipe only when its purpose is `info`, and from its handle's pointer events alone. A
+ * swipe that starts on content scrolled down scrolls it back up, and does neither. A finger is
+ * read from its touch events, which a browser keeps sending where it takes the pointer's for its
+ * own gestures; a mouse or a pen from its pointer events.
  */
 function useTopSwipe(
   panel: RefObject<HTMLDivElement | null>,
   isOpen: boolean,
   onFull: () => void,
-  onClose: (() => void) | undefined,
+  onClose: () => void,
 ) {
   const close = useRef(onClose);
   useEffect(() => {
@@ -162,7 +180,7 @@ function useTopSwipe(
       const swiped = start !== undefined && y !== undefined && y - start > SWIPE_PX;
       start = undefined;
       if (swiped) {
-        close.current?.();
+        close.current();
       }
     };
     const isMouse = (event: PointerEvent) => event.pointerType !== "touch";
@@ -245,7 +263,7 @@ export function Sheet({
   isTitleInContent?: boolean;
   label: string;
   onClose: () => void;
-  /** `form` closes only on Close, Back, or Escape; `info` also on a tap outside, or a swipe. */
+  /** `form` closes on Close, Back, Escape, or a swipe down; `info` also on a tap outside. */
   purpose?: "form" | "info";
   ref?: RefObject<HTMLDivElement | null>;
 }) {
@@ -258,8 +276,8 @@ export function Sheet({
     setFull(false);
   }
   const [onFull] = useState(() => () => setFull(true));
-  // Astryx closes an `info` sheet on a swipe itself: closing it again would go Back twice.
-  useTopSwipe(panel, isOpen, onFull, purpose === "form" ? onClose : undefined);
+  const closeOnce = useOneClose(onClose);
+  useTopSwipe(panel, isOpen, onFull, closeOnce);
   useFieldFocus(panel, isOpen);
   const lift = useKeyboardLift(panel, height !== "tall" && !full);
   const close = (
@@ -294,7 +312,7 @@ export function Sheet({
       label={label}
       onOpenChange={(open: boolean) => {
         if (!open) {
-          onClose();
+          closeOnce();
         }
       }}
       padding={isPadded ? 4 : 0}

@@ -54,14 +54,15 @@ test("a swipe down on a form sheet's top closes it", () => {
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
-// Astryx closes an `info` sheet on a swipe itself: a second close would go Back twice, leaving the
-// page. Break: give `useTopSwipe` the `onClose` of every sheet.
-test("a swipe down on an info sheet is Astryx's to close, so it closes once", () => {
+// An info sheet closes on the same swipe from Astryx's own gesture, through its `onOpenChange`, as
+// Escape does: a second close would go Back twice, leaving the page. Break: drop `useOneClose`.
+test("a swipe down closes an info sheet once, though Astryx closes it too", () => {
   const { onClose, panel } = openSheet("info");
 
   swipe(panel.firstElementChild ?? panel, TOP + 10, TOP + 150);
+  expect(onClose).toHaveBeenCalledTimes(1);
   act(() => {
-    fireEvent.click(panel.querySelector('[aria-label="Close"]') ?? panel);
+    fireEvent.keyDown(document, { key: "Escape" });
   });
 
   expect(onClose).toHaveBeenCalledTimes(1);
