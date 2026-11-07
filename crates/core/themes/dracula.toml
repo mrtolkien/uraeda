@@ -22,14 +22,11 @@ background-lighter = "#424450"
 background-light = "#343746"
 background-dark = "#21222c"
 background-darker = "#191a21"
-# Not Dracula's: foreground at 75% over background, the text that reads second, which Dracula's
-# palette has no colour for.
-foreground-quiet = "#c4c5c3"
 # The spec's opaque line highlight, for an editor without alpha.
 current-line-opaque = "#353747"
 # Not Dracula's: each published colour lightened, a whole percent of HSL lightness at a time,
 # to the first step at which every pair its roles are in reaches the contrast floor.
-comment-floor = "#98a2c3"
+comment-floor = "#a5aecb"
 red-floor = "#ff7575"
 
 [roles]
@@ -42,7 +39,9 @@ marked = "yellow"
 rule = "current-line"
 pane-title = "purple"
 ink = "foreground"
-ink-quiet = "foreground-quiet"
+# Dracula's specification publishes no colour for secondary text: what reads second takes its
+# comment colour, at its floor step, as faint text does.
+ink-quiet = "comment-floor"
 ink-faint = "comment-floor"
 action = "purple"
 on-action = "background-darker"
