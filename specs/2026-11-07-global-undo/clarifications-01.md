@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Global undo
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions, about 25 minutes.
+> Answered on 2026-11-07.
 >
 > - Verdict: worth building, with changes: `U` redoes in Helix, not in Neovim. Asking before every
 >   action without undo would mean about 25 new questions, which guidance says get clicked through.
@@ -116,7 +116,7 @@ out either asks first or stays as it is.
   - [pro] the smallest change.
   - [con] the same kind of action keeps differing from page to page.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How far back can `u` reach?
 
@@ -143,7 +143,7 @@ Why it matters: it decides whether undo is a moment or a habit, and whether the 
   - [pro] nothing new to build.
   - [con] no stack, which the proposal asks for.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which keys redo?
 
@@ -165,7 +165,7 @@ Why it matters: a habit key that does nothing, or the wrong thing, is felt at ev
   - [pro] a habit from every other app works.
   - [con] the same keys mean the field's undo or the app's, depending on the focus.
 
-**Answer:**
+**Answer:** A and C
 
 ## Q4: Which actions without undo ask before they run?
 
@@ -198,7 +198,7 @@ Why it matters: it sets how often you meet a question, and the rule every new pa
   - [pro] nothing irreversible happens without a yes.
   - [con] about 25 new questions, the pattern guidance warns against.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Does a delete that can be undone still ask first?
 
@@ -223,7 +223,7 @@ three.
   - [pro] two guards against a slip.
   - [con] it breaks the UI behaviour decision, and the question soon goes unread.
 
-**Answer:**
+**Answer:** A: Dd disappears and becomes d, right? I’m down with it
 
 ## Q6: What does `u` do when the action happened on another page?
 
@@ -251,7 +251,7 @@ Why it matters: it decides whether you see what came back, or must trust a toast
   - [pro] no surprise.
   - [con] one stack per page, not the global one you asked for.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How do you see what can be undone?
 
@@ -277,7 +277,7 @@ Why it matters: it decides whether you can tell what `u` will do before pressing
   - [pro] nothing new on screen.
   - [con] after the toast hides, you cannot tell what `u` will do.
 
-**Answer:**
+**Answer:** C: But show U in the status bar when a redo is possible
 
 ## Q8: Where do these rules live?
 
@@ -301,7 +301,7 @@ question.
   - [pro] nothing to approve beyond the spec.
   - [con] a later feature may skip undo without anything saying so.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -334,3 +334,6 @@ question.
   [discovery](discovery-01.md#important-reads).
 
 **Notes:**
+
+- **An undo after a Git-page commit**: The undo should have a validation dialog then, a new write is
+  a big change
