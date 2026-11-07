@@ -482,7 +482,7 @@ export const undoStack: UndoStack; // the tab's one stack
   is `kept`, the entry staying where it was; a refused entry leaves its side; one undo or redo at a
   time, in the order pressed.
 
-- [ ] **Step 1: Write the failing tests**, with a clock the test moves:
+- [x] **Step 1: Write the failing tests**, with a clock the test moves:
   - "undo takes back the latest entry first, minutes later": two entries, the clock 10 minutes on;
     two undos call the second's then the first's `undo`.
   - "the stack keeps the latest 50 entries": 51 pushes; 50 undos succeed, the 51st is `empty`.
@@ -501,12 +501,12 @@ export const undoStack: UndoStack; // the tab's one stack
   - The break each catches: a stack that pops oldest first; one that grows past 50; a redo side kept
     after a new action; a timer measured from the run's first move, or runs across lists; a refused
     entry kept on top; two replays at once.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c vp test packages/web/src/undo/stack.test.ts`
   - Expected: FAIL, `Failed to resolve import "./stack.ts"`
-- [ ] **Step 3: Implement `undo/stack.ts`**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Implement `undo/stack.ts`**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/undo
