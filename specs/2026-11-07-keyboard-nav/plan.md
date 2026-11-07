@@ -308,7 +308,7 @@ by place. Back stays as it is (see [R1](rulings.md#r1-back-stays-a-plain-binding
       field's focus effects, or the tap's `select`, out of its body. The tests pass before and
       after. Commit: `refactor(keyboard-nav): split the comment draft`.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```ts
 test("a range spans its anchor and head in either order, under the upper heading, in one file", () => {
@@ -321,16 +321,16 @@ test("a range spans its anchor and head in either order, under the upper heading
 The breaks: a head above the anchor reversing the lines; the lower block's heading; a range across
 two files.
 
-- [ ] **Step 3: Run it to check it fails**
+- [x] **Step 3: Run it to check it fails**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/comment-range.test.ts`
 - Expected: FAIL, `Failed to resolve import "../commentRange.ts"`
 
-- [ ] **Step 4: Implement `commentRange.ts`, and `stretch` and `drop` in the draft**
+- [x] **Step 4: Implement `commentRange.ts`, and `stretch` and `drop` in the draft**
 
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 6: Commit**: `feat(keyboard-nav): the comment's range, for taps and keys`
+- [x] **Step 6: Commit**: `feat(keyboard-nav): the comment's range, for taps and keys`
 
 ## Task 3: Undo a removed comment
 
