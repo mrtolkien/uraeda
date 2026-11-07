@@ -166,7 +166,7 @@ export function useProposalActions(
   };
 
   return {
-    expand: useExpand(proposal.id, hash, subject, run),
+    expand: useExpand(proposal, hash, subject, run),
     message,
     move,
     remove,

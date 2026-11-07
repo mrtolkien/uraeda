@@ -4,6 +4,7 @@
 import { useCallback } from "react";
 import { useFateClient } from "react-fate";
 import type { ChangeView, Span } from "uraeda-binding";
+import { rereadingFile } from "../inboxUndo.ts";
 import { plain } from "../Spans.tsx";
 import { changeEntry, joinChanges } from "../undo/changeEntry.ts";
 import { PrioritiesChangeView } from "../undo/changeViews.ts";
@@ -150,17 +151,24 @@ export function movedRecorded(
 }
 
 /**
- * Records a proposal's expand into a file, `text` its line, once its write answered `answer`: its
- * place is the file's page, which the expand opened.
+ * Records a proposal's expand into a file, `text` its line and `key` its key, once its write
+ * answered `answer`. Its place is the priorities, the proposal selected, rather than the file's page
+ * the expand opened, which its undo deletes; each undo and redo reads the file again, for a page
+ * open on it.
  */
 export function useRecordExpand() {
   const fate = useFateClient();
   const record = useUndo();
   return useCallback(
-    (answer: { change?: ChangeView | null; path?: unknown } | null | undefined, text: string) => {
+    (
+      answer: { change?: ChangeView | null; path?: unknown } | null | undefined,
+      text: string,
+      key: string,
+    ) => {
       if (answer?.change && typeof answer.path === "string") {
         const label = `Expanded ${quoted(text)} into a file`;
-        record(changeEntry(fate, answer.change, label, { path: `/edit/${answer.path}` }, text));
+        const entry = changeEntry(fate, answer.change, label, prioritiesPlace(key), text);
+        record(rereadingFile(fate, entry, answer.path));
       }
     },
     [fate, record],
