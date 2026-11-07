@@ -2,8 +2,9 @@
 // function of where the stops are, so it is tested without a browser. The page scrolls only when a
 // stop comes within `MARGIN` of the screen's top or bottom edge, the top bar and the status line
 // counted, or enters another pane that fits the screen, which then shows whole. A stop taller than
-// the screen less the margins is read a screen at a time before the cursor leaves it (R5). With no
-// cursor, or one scrolled off screen, either key takes the topmost stop on screen (R4).
+// the screen less the margins is read a screen at a time before the cursor leaves it, and shows its
+// top or its end as the cursor moves onto it down or up (R5). With no cursor, or one scrolled off
+// screen, either key takes the topmost stop whose top is on screen (R4).
 
 /** The room kept between a stop and the screen's top or bottom edge, in px. */
 export const MARGIN = 100;
@@ -27,11 +28,18 @@ const isOutside = (box: Box, view: View) => box.bottom <= view.top || box.top >=
 
 /**
  * The scroll that brings a stop inside the margins, whichever edge it crosses; a stop taller than
- * the room shows its top.
+ * the room shows its top when the cursor moves down onto it, 1, and its end when it moves up, -1,
+ * so the next key in that direction reads through its body.
  */
-export function placed(box: Box, view: View): number {
+export function placed(box: Box, view: View, direction: 1 | -1 = 1): number {
   const top = view.top + MARGIN;
   const bottom = view.bottom - MARGIN;
+  if (direction === -1) {
+    if (box.bottom > bottom) {
+      return box.bottom - bottom;
+    }
+    return box.top < top ? Math.max(box.top - top, box.bottom - bottom) : 0;
+  }
   if (box.top < top) {
     return box.top - top;
   }
@@ -50,13 +58,23 @@ function shownWhole(pane: PaneBox, view: View) {
 }
 
 /**
- * How far the page scrolls for the cursor to take `next` from `held`: the least that shows the pane
- * it enters whole, if that pane fits the view, else what brings the stop inside the margins.
+ * How far the page scrolls for the cursor to take `next` from `held`, moving in `direction`: the
+ * least that shows the pane it enters whole, if that pane fits the view, else what brings the stop
+ * inside the margins.
  */
-export function scrollFor(next: Box, held: Box | undefined, view: View) {
+export function scrollFor(next: Box, held: Box | undefined, view: View, direction: 1 | -1 = 1) {
   const whole =
     next.pane !== undefined && next.pane.id !== held?.pane?.id ? shownWhole(next.pane, view) : null;
-  return whole ?? placed(next, view);
+  return whole ?? placed(next, view, direction);
+}
+
+/**
+ * The stop the cursor starts from: the first whose top is inside the view, so a stop that only
+ * peeks under the top bar is passed by, else the first that reaches into it or lies under it.
+ */
+function startOf(stops: ReadonlyArray<Box>, view: View) {
+  const inside = stops.findIndex((box) => box.top >= view.top && box.top < view.bottom);
+  return inside === -1 ? stops.findIndex((box) => box.bottom > view.top) : inside;
 }
 
 /**
@@ -72,9 +90,9 @@ export function cursorStep(
 ): Step | null {
   const held = current === null ? undefined : stops[current];
   if (current === null || held === undefined || isOutside(held, view)) {
-    const topmost = stops.findIndex((box) => box.bottom > view.top);
-    const box = stops[topmost];
-    return box === undefined ? null : { focus: topmost, scrollBy: placed(box, view) };
+    const start = startOf(stops, view);
+    const box = stops[start];
+    return box === undefined ? null : { focus: start, scrollBy: scrollFor(box, undefined, view) };
   }
   const room = roomOf(view);
   if (held.bottom - held.top > room) {
@@ -90,5 +108,5 @@ export function cursorStep(
   if (next === undefined) {
     return null;
   }
-  return { focus, scrollBy: scrollFor(next, held, view) };
+  return { focus, scrollBy: scrollFor(next, held, view, direction) };
 }

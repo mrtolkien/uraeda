@@ -430,14 +430,14 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
 [R4](rulings.md#r4-k-with-no-cursor-starts-from-the-topmost-stop-too),
 [R5](rulings.md#r5-a-tall-stop-scrolls-by-a-screen-less-the-margins):
 
-1. With no cursor, or one wholly outside the view, take the first stop whose bottom is below the
-   view's top.
+1. With no cursor, or one wholly outside the view, take the first stop whose top is inside the view,
+   else the first whose bottom is below the view's top, scrolled as in 3.
 2. A stop taller than the room (`view.bottom - view.top - 2 * MARGIN`) whose end is past the margin
    in the key's direction scrolls by the smaller of what is past and the room, and stays.
 3. Else take the next stop in the direction. Into another pane that fits the view, scroll the least
    that shows the pane whole. Else scroll so the stop's top is `MARGIN` below the view's top, or its
    bottom `MARGIN` above the view's bottom, whichever it crosses; a stop taller than the room shows
-   its top.
+   its top after `j`, and its bottom after `k`.
 
 - [x] **Step 1: Write the failing tests**
 
