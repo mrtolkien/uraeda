@@ -280,19 +280,23 @@ test("a working tree's diff reads the file afresh, open and opened again", async
   await waitFor(() => shows("And the work."));
 });
 
+/** Commit, once it commits the one file staged. */
+const commitOne = () => screen.findByRole("button", { name: "Commit 1 file" });
+
 // Break: the Enter key's icon on Commit on a phone, which hints no key, Commit being the tap (T3).
 test("on the phone, Commit hints no key", async () => {
   const repo = fixtureRepo();
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);
-  const commitButton = async () => {
-    await renderPage("/git", repo);
-    await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
-    return screen.findByRole("button", { name: "Commit 1 file" });
-  };
-  expect((await commitButton()).innerHTML).toContain("Enter");
+  await renderPage("/git", repo);
+  await click(await screen.findByRole("checkbox", { name: "specs/PRIORITIES.md" }));
+  expect((await commitOne()).innerHTML).toContain("Enter");
+  // The page drawn again on the phone reads the file staged: the box shows ticked before its write
+  // lands, so the page waits for git's index first.
+  await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
   atWidth(402);
   try {
-    expect((await commitButton()).innerHTML).not.toContain("Enter");
+    await renderPage("/git", repo, { reload: true });
+    expect((await commitOne()).innerHTML).not.toContain("Enter");
   } finally {
     atWidth(1440);
   }
