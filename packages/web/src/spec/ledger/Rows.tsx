@@ -121,9 +121,11 @@ export function Part({ context, part }: { context: Context; part: PartChange }) 
   if (!parts || !range) {
     return text;
   }
+  const { keys } = parts;
   return (
     <Tappable
       after={parts.after(range)}
+      keys={keys && ((toggle) => keys(range, toggle))}
       lines={linesMark(range.start, range.end, range.decision)}
       onTap={(element) => parts.onTap(range, element)}
       pressed={parts.isSelected(range)}

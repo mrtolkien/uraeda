@@ -1,8 +1,12 @@
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, type Ref, useId, useState } from "react";
 import type { Block } from "uraeda-binding";
+import { useHeld } from "./cursor/held.ts";
+import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { stopProps } from "./cursor/stops.ts";
+import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { SinceBlock } from "./sinceMarks.tsx";
 import type { Range } from "./commentRange.ts";
@@ -10,12 +14,14 @@ import type { Range } from "./commentRange.ts";
 /**
  * How a review selects blocks: which are selected, what a tap does, given the block and the element
  * that draws it, and what follows a block. `canSelect` narrows the blocks a tap selects, every
- * selectable one by default: the others still have what follows them.
+ * selectable one by default: the others still have what follows them. `keys` are the keys a block
+ * has while the keyboard's cursor holds its toggle, given the block and the toggle, drawn under it.
  */
 export type Selection = {
   after?: (block: Block) => ReactNode;
   canSelect?: (block: Block) => boolean;
   isSelected: (block: Block) => boolean;
+  keys?: (block: Block, toggle: HTMLElement) => ReadonlyArray<StopKey>;
   onTap: (block: Block, element: HTMLElement) => void;
   /** How a review selects the parts of the decisions a spec changes, which are not its blocks. */
   parts?: PartSelection;
@@ -23,11 +29,13 @@ export type Selection = {
 
 /**
  * How a review selects a part of a decision, by its lines in the decision's file, `range`, whose
- * `decision` names the file: what follows it, whether it is selected, and what a tap does.
+ * `decision` names the file: what follows it, whether it is selected, what a tap does, and the keys
+ * it has while the keyboard's cursor holds it, as a block's.
  */
 export type PartSelection = {
   after: (range: DecisionRange) => ReactNode;
   isSelected: (range: DecisionRange) => boolean;
+  keys?: (range: DecisionRange, toggle: HTMLElement) => ReadonlyArray<StopKey>;
   onTap: (range: DecisionRange, element: HTMLElement) => void;
 };
 
@@ -157,46 +165,80 @@ function tapProps(lines: string, onTap: (element: HTMLElement) => void) {
 
 /**
  * A selectable element's toggle, for the keyboard and screen readers: named by its text, `textId`,
- * or by `label` when it has no text.
+ * or by `label` when it has no text. It is the block's stop, where the keyboard's cursor holds it.
  */
-function Toggle({ label, pressed, textId }: { label?: string; pressed: boolean; textId: string }) {
+function Toggle({
+  label,
+  pressed,
+  ref,
+  textId,
+}: {
+  label?: string;
+  pressed: boolean;
+  ref: Ref<HTMLButtonElement>;
+  textId: string;
+}) {
   return (
     // oxlint-disable-next-line react/forbid-elements -- the review's selectable block, a toggle as large as a block of document text, which no Astryx component draws (an Astryx gap, see the plan)
     <button
       aria-pressed={pressed}
+      ref={ref}
       type="button"
+      {...stopProps("block", true)}
       {...(label === undefined ? { "aria-labelledby": textId } : { "aria-label": label })}
       {...stylex.props(focusOutlineStyles.focusVisible, styles.toggle)}
     />
   );
 }
 
+const NO_KEYS: ReadonlyArray<StopKey> = [];
+
+/**
+ * A selectable element's toggle as the keyboard's cursor holds it: whether it is held, its keys
+ * declared while it is, `keysOf` given the toggle, and their bar, drawn under the element.
+ */
+function useToggleStop(keysOf: ((toggle: HTMLElement) => ReadonlyArray<StopKey>) | undefined) {
+  // The toggle in a state rather than a ref, as its keys are made from it while drawing.
+  const [toggle, setToggle] = useState<HTMLButtonElement | null>(null);
+  const held = useHeld({ current: toggle });
+  const keys = held && toggle !== null && keysOf !== undefined ? keysOf(toggle) : NO_KEYS;
+  useStopKeys(keys, held);
+  return { bar: <StopBar held={held} keys={keys} />, held, setToggle };
+}
+
 /**
  * What makes a block tappable in a review, or nothing outside one. A tap anywhere on the block
  * selects it, but on a link of its text; the keyboard and screen readers have its toggle, a button
  * named by the block's text, beside the text rather than around it, so its links stay reachable.
- * A table row draws itself with `row`, `cell`, and `above`: its first cell holds the toggle.
+ * A table row draws itself with `row`, `cell`, and `above`: its first cell holds the toggle. Held by
+ * the keyboard's cursor, the block has the picked look, `held`, and its keys' `bar` follows it.
  */
 export function useSelect(block: Block, selection: Selection | undefined) {
   const textId = useId();
-  if (!selection || !selectable(block) || selection.canSelect?.(block) === false) {
+  const isOn = !!selection && selectable(block) && selection.canSelect?.(block) !== false;
+  const keys = isOn ? selection.keys : undefined;
+  const { bar, held, setToggle } = useToggleStop(keys && ((toggle) => keys(block, toggle)));
+  if (!isOn) {
     return undefined;
   }
   const pressed = selection.isSelected(block);
   return {
     above: stylex.props(styles.above),
+    bar,
     block: tapProps(linesMark(block.startLine, block.endLine), (element) =>
       selection.onTap(block, element),
     ),
     cell: styles.cell,
+    held,
     pressed,
-    row: [styles.selectable, pressed && styles.selectedRow],
+    row: [styles.selectable, pressed && styles.selectedRow, held && pickedStyles.picked],
     textId,
     // A rule has no text: its lines name it.
     toggle: (
       <Toggle
         label={block.kind === "rule" ? `Line ${block.startLine}` : undefined}
         pressed={pressed}
+        ref={setToggle}
         textId={textId}
       />
     ),
@@ -256,6 +298,8 @@ export function Selectable({
           !isInList && styles.spaced,
           select.pressed && styles.selected,
           select.pressed && isNarrowScreen && styles.selectedNarrow,
+          // The keyboard's cursor, over the review's yellow.
+          select.held && pickedStyles.picked,
         )}
       >
         {select.toggle}
@@ -263,6 +307,7 @@ export function Selectable({
           {children}
         </div>
       </div>
+      {select.bar}
       <After>{selection?.after?.(block)}</After>
     </>
   );
@@ -290,33 +335,42 @@ export function SelectionRoom({
 
 /**
  * Something else than a block a review can tap, like a part of a decision: selected as a block is,
- * `pressed` once selected, with what follows it, `after`. `lines` names the lines it holds.
+ * `pressed` once selected, with what follows it, `after`. `lines` names the lines it holds. Held by
+ * the keyboard's cursor, it has the keys `keys` gives, given its toggle, their bar under it.
  */
 export function Tappable({
   after,
   children,
+  keys,
   lines,
   onTap,
   pressed,
 }: {
   after?: ReactNode;
   children: ReactNode;
+  keys?: (toggle: HTMLElement) => ReadonlyArray<StopKey>;
   lines: string;
   onTap: (element: HTMLElement) => void;
   pressed: boolean;
 }) {
   const textId = useId();
+  const { bar, held, setToggle } = useToggleStop(keys);
   return (
     <>
       <div
         {...tapProps(lines, onTap)}
-        {...stylex.props(styles.selectable, pressed && styles.selected)}
+        {...stylex.props(
+          styles.selectable,
+          pressed && styles.selected,
+          held && pickedStyles.picked,
+        )}
       >
-        <Toggle pressed={pressed} textId={textId} />
+        <Toggle pressed={pressed} ref={setToggle} textId={textId} />
         <div id={textId} {...stylex.props(styles.above)}>
           {children}
         </div>
       </div>
+      {bar}
       <After>{after}</After>
     </>
   );
