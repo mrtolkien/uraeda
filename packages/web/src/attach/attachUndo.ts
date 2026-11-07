@@ -17,8 +17,11 @@ export type Attached = {
   changes: ReadonlyArray<ChangeView>;
   /** The file's path once the run ended: a single file becomes a folder with its first image. */
   path: string;
-  /** The file's path, and its whole text, as the run started, its typing saved. */
-  start: { path: string; text: string };
+  /**
+   * The file's path, its whole text, and its frontmatter, as the run started, its typing saved:
+   * the links' save writes that frontmatter back before the field's text.
+   */
+  start: { head: string; path: string; text: string };
   /** The field's text the run handed over, its links in it, which the editor saves. */
   text: string;
 };
@@ -44,8 +47,9 @@ export function fileName(path: string) {
 
 /**
  * The entry of the images `attached` added: the images' writes joined, with the save of the text
- * that links them, read as the file holds it when the undo runs. It is refused once the text
- * changed since: an edit after the links' save is not the action's to take back.
+ * that links them, read as the file holds it when the undo runs. It is refused once the file's text,
+ * its frontmatter included, changed since: an edit after the links' save is not the action's to
+ * take back.
  */
 export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undefined {
   const [first, ...rest] = attached.changes;
@@ -68,7 +72,9 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
   const undo = async () => {
     if (!whole) {
       const now = await readProposalFile(fate, attached.path).catch(() => undefined);
-      if (!now || splitProposal(now).body !== attached.text) {
+      // The whole file, its frontmatter too, as the links' save wrote it: an edit of either since
+      // is not the action's to take back.
+      if (!now || now.text !== `${attached.start.head}${attached.text}`) {
         return `Could not undo: “${subject}” changed since in ${attached.path}.`;
       }
       const saved = images.files.find((file) => file.path === attached.path);
@@ -114,7 +120,7 @@ export function useRecordAttached() {
     },
     started: async (path: string) => {
       const read = await readProposalFile(fate, path).catch(() => undefined);
-      start.current = read && { path, text: read.text };
+      start.current = read && { head: splitProposal(read).head, path, text: read.text };
     },
   };
 }

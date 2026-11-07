@@ -337,31 +337,41 @@ test("the sidebar's add of a note with an image undoes and redoes, its note file
   await waitFor(() => expect(tree(repo, "specs")).toEqual(after));
 });
 
-// Break: an image whose undo leaves the image, or the file moved into its folder.
-test("an image dropped on a proposal file's page undoes and redoes, its link with it", async () => {
-  const repo = fixtureRepo();
+/**
+ * Drops an image on the page of `PROPOSAL`, open over `repo`, and waits for the file to have
+ * become a folder holding it, its text linking it: the path of its text then.
+ */
+async function dropImage(repo: string) {
   await renderPage(`/edit/${PROPOSAL}`, repo);
   await screen.findByRole("textbox", { name: "Text" });
-  const before = tree(repo, "specs/proposals");
   const dataTransfer = { dropEffect: "none", files: [png("listener.png")], types: ["Files"] };
   await act(async () => {
     fireEvent.dragEnter(document.body, { dataTransfer });
     fireEvent.drop(document.body, { dataTransfer });
   });
   // The file becomes a folder holding the image, and its text links it.
+  let linked: string | undefined;
   await waitFor(
-    () =>
-      expect(
-        Object.entries(tree(repo, "specs/proposals")).some(
-          ([path, bytes]) =>
-            path.endsWith(".md") &&
-            path.includes("git-listener") &&
-            Buffer.from(bytes, "base64").toString().includes("](images/listener"),
-        ),
-      ).toBe(true),
+    () => {
+      linked = Object.entries(tree(repo, "specs/proposals")).find(
+        ([path, bytes]) =>
+          path.endsWith(".md") &&
+          path.includes("git-listener") &&
+          Buffer.from(bytes, "base64").toString().includes("](images/listener"),
+      )?.[0];
+      expect(linked).toBeDefined();
+    },
     { timeout: 10_000 },
   );
   await screen.findByText(/^Added an image to “git-listener” · waits on the Git page/);
+  return linked!;
+}
+
+// Break: an image whose undo leaves the image, or the file moved into its folder.
+test("an image dropped on a proposal file's page undoes and redoes, its link with it", async () => {
+  const repo = fixtureRepo();
+  const before = tree(repo, "specs/proposals");
+  await dropImage(repo);
   const after = tree(repo, "specs/proposals");
 
   await press("u");
@@ -369,4 +379,17 @@ test("an image dropped on a proposal file's page undoes and redoes, its link wit
   await waitFor(() => expect(screen.getAllByText(/^Undone: /).length).toBeGreaterThan(0));
   await press("U");
   await waitFor(() => expect(tree(repo, "specs/proposals")).toEqual(after));
+});
+
+// Break: the undo checking only the text after the frontmatter, so it takes back a frontmatter
+// written since without a word.
+test("an image's undo is refused once the file's frontmatter changed since", async () => {
+  const repo = fixtureRepo();
+  const path = await dropImage(repo);
+  writeFileSync(join(repo, path), `---\nstatus: draft\n---\n\n${read(repo, path)}`);
+  const changed = tree(repo, "specs/proposals");
+
+  await press("u");
+  await screen.findByText(/^Could not undo: “git-listener” changed since in /);
+  expect(tree(repo, "specs/proposals")).toEqual(changed);
 });
