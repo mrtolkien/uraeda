@@ -1,25 +1,17 @@
-// The preview runner: the only code that starts, watches, and stops Storybook processes, one per
-// checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view starts the checkout's Storybook, which
-// is ready once its index answers; a view after its checkout's commit moved starts it again; it
-// stops after 30 minutes without a view, when its checkout or its repository is removed, and with
-// the server. Its state lives in memory, and its process groups
-// in a record the next start reads, should the server be killed.
-import { type ChildProcess, spawn } from "node:child_process";
+// The preview runner: the only code that starts, watches, and stops Storybook processes, each
+// through `run.ts`, one per checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view
+// starts the checkout's Storybook, which is ready once its index answers; a view after its
+// checkout's commit moved starts it again; it stops after 30 minutes without a view, when its
+// checkout or its repository is removed, and with the server. Its state lives in memory, and its
+// process groups in a record the next start reads, should the server be killed.
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { freePort } from "../free-port.ts";
 import { readIndex, type StoryIndex, UNREADABLE_INDEX } from "./index.ts";
-import {
-  endWithServer,
-  type GroupRecorder,
-  groups,
-  keepLines,
-  lastReason,
-  portTaken,
-  signalGroup,
-} from "./process.ts";
+import { type GroupRecorder, lastReason, portTaken } from "./process.ts";
+import { KILL_MS, killRun, type Run, startRun } from "./run.ts";
 
-export { freePort, type GroupRecorder };
+export { freePort, type GroupRecorder, KILL_MS };
 
 /** A checkout's Storybook: starting, ready on its port, or failed, with the sentence to show. */
 export type PreviewState =
@@ -48,8 +40,6 @@ export const POLL_MS = 500;
 export const START_MS = 120_000;
 /** How long a Storybook runs without a view. */
 export const IDLE_MS = 30 * 60_000;
-/** How long a stopped Storybook has to exit before it is killed. */
-export const KILL_MS = 5000;
 /** How long a ready Storybook's index may take to answer. */
 export const INDEX_MS = 5000;
 
@@ -57,15 +47,6 @@ export const TIMED_OUT = "Storybook did not start within 2 minutes.";
 export const NO_PORT = "No free port for Storybook.";
 /** The state a stopped runner gives every view: it starts nothing (R19). */
 export const NOT_RUNNING = "Storybook is not running for this branch.";
-
-/** One started process: its port, its last lines of output, and a promise of its end. */
-type Run = {
-  child: ChildProcess;
-  closed: Promise<void>;
-  lines: Array<string>;
-  port: number;
-  running: boolean;
-};
 
 /** One checkout's Storybook, from its first view until it is stopped. */
 type Entry = {
@@ -286,66 +267,16 @@ export class Previews {
     if (entry.stopped) {
       return;
     }
-    // A process group of its own, which its signals reach whole: Storybook's own children end
-    // with it.
-    const child = spawn("sh", ["-c", command.replaceAll("{port}", String(port))], {
+    const run = startRun({
+      base,
+      command,
       cwd,
-      detached: true,
-      env: { ...process.env, URAEDA_PREVIEW_BASE: base },
-      stdio: ["ignore", "pipe", "pipe"],
+      ended: (ended, why) => void this.#exited(entry, ended, why),
+      port,
+      record: this.#record,
     });
-    const run = this.#watch(entry, child, port);
     entry.run = run;
     entry.timer = setInterval(() => this.#poll(entry, run), POLL_MS);
-  }
-
-  /** Watches a started process: its output, and its end. */
-  #watch(entry: Entry, child: ChildProcess, port: number): Run {
-    let close!: () => void;
-    const run: Run = {
-      child,
-      closed: new Promise((resolve) => (close = resolve)),
-      lines: [],
-      port,
-      running: child.pid !== undefined,
-    };
-    if (child.pid !== undefined) {
-      groups.add(child.pid);
-      endWithServer();
-      this.#record?.add(child.pid);
-    }
-    keepLines(child.stdout, run.lines);
-    keepLines(child.stderr, run.lines);
-    // What the command started may outlive it, and keep its output open: its whole group goes
-    // as soon as it exits, so its output closes, and its end follows at once.
-    const stopGroup = () => {
-      run.running = false;
-      if (child.pid !== undefined && groups.delete(child.pid)) {
-        signalGroup(child.pid, "SIGKILL");
-        this.#record?.remove(child.pid);
-      }
-    };
-    child.once("exit", stopGroup);
-    let done = false;
-    const ended = (why: string) => {
-      if (done) {
-        return;
-      }
-      done = true;
-      stopGroup();
-      close();
-      void this.#exited(entry, run, why);
-    };
-    child.once("error", (error) => {
-      run.lines.push(error.message);
-      ended(error.message);
-    });
-    child.once("close", (code, signal) => {
-      ended(
-        signal ? `The command was stopped by ${signal}.` : `The command exited with code ${code}.`,
-      );
-    });
-    return run;
   }
 
   /** Reads a starting Storybook's index: ready on its first answer, failed after 2 minutes. */
@@ -418,7 +349,7 @@ export class Previews {
     this.#idle(entry);
     entry.state = { error, state: "failed" };
     if (entry.run !== undefined) {
-      void this.#kill(entry.run);
+      void killRun(entry.run);
     }
     this.#onChange(entry.checkout.base);
   }
@@ -431,17 +362,6 @@ export class Previews {
       this.#entries.delete(entry.checkout.base);
       this.#onChange(entry.checkout.base);
     }
-    return entry.run === undefined ? Promise.resolve() : this.#kill(entry.run);
-  }
-
-  /** Sends SIGTERM to the process's group, then SIGKILL after 5 seconds; resolves once it ended. */
-  #kill(run: Run): Promise<void> {
-    const pid = run.child.pid;
-    if (!run.running || pid === undefined) {
-      return run.closed;
-    }
-    signalGroup(pid, "SIGTERM");
-    const timer = setTimeout(() => signalGroup(pid, "SIGKILL"), KILL_MS);
-    return run.closed.then(() => clearTimeout(timer));
+    return entry.run === undefined ? Promise.resolve() : killRun(entry.run);
   }
 }
