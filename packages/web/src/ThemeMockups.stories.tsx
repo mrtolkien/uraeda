@@ -1,10 +1,11 @@
 // The colour themes' mockups (`specs/2026-11-07-color-themes/spec.md`): the settings' Appearance
 // section, with the mode, a theme for each mode, and your theme files, their problems included; the
-// theme picker of `Space u t`; and a document's headings, a colour per level. Built from the real
+// theme picker of `Space u t`, a list over the app, which is the preview, fading after a second; and a document's headings, a colour per level. Built from the real
 // components over fixed text, with no server: the stories show the look, and the data is the real
 // page's once built. TEMPORARY: the headings' colours stand in for the heading roles until they
 // exist.
 import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
@@ -14,8 +15,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { Home } from "./Home.tsx";
-import { KeyPicker } from "./keys/KeyPicker.tsx";
-import { markdownPreview, type PickerItem } from "./keys/pickerSources.ts";
+import { glassStyles } from "./layout/glass.ts";
+import { pickedStyles } from "./layout/picked.ts";
+import { TextLine } from "./fields/TextLine.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { SettingRow, SettingRows } from "./settings/SettingRow.tsx";
@@ -30,6 +32,29 @@ const styles = stylex.create({
   heading1: { color: colorVars["--color-text-accent"] },
   heading2: { color: colorVars["--color-text-blue"] },
   heading3: { color: colorVars["--color-text-green"] },
+  // The theme picker: a narrow list at the top of the page, over the app with no scrim.
+  picker: {
+    insetInlineStart: "50%",
+    maxHeight: "var(--size-palette-height)",
+    position: "fixed",
+    top: spacingVars["--spacing-10"],
+    transform: "translateX(-50%)",
+    transitionDuration: "200ms",
+    transitionProperty: "opacity",
+    width: "var(--size-palette-list)",
+    zIndex: 10,
+  },
+  // A second on one row: the list nearly gone, the page whole behind it.
+  faded: { opacity: 0.1 },
+  pickerField: {
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-3"],
+  },
+  pickerList: { listStyle: "none", margin: 0, overflowY: "auto", padding: 0 },
+  pickerRow: {
+    paddingBlock: spacingVars["--spacing-1"],
+    paddingInline: spacingVars["--spacing-3"],
+  },
 });
 
 /** The shipped themes, by mode, as the lists show them; yours after them. */
@@ -182,52 +207,60 @@ function Appearance({
   );
 }
 
-/** What each theme's preview shows: a document's headings, prose, a list, and code. */
-const SAMPLE = `# Color themes
+/** A row of the picker: a theme's name and mode, the ones in use marked. */
+type Row = { inUse?: boolean; mode: "dark" | "light"; name: string };
 
-Pick a theme for light mode and one for dark mode.
-
-## Questions
-
-### Q1: Which themes ship?
-
-- **A (recommended).** Every free variant.
-- **B.** One per family.
-
-\`\`\`ts
-export function next(spec: Spec) {
-  return spec.rounds[0] ?? "discovery";
-}
-\`\`\`
-`;
-
-/** A picker's row for a theme: its name, its mode, and the one in use marked. */
-const item = (name: string, mode: "dark" | "light", inUse = false): PickerItem => ({
-  icon: "uraeda:palette",
-  id: name,
-  kind: "notes",
-  path: "",
-  preview: markdownPreview(SAMPLE),
-  title: `${name} · ${mode}${inUse ? " · in use" : ""}`,
-});
-
-const PICKER: ReadonlyArray<PickerItem> = [
-  item("Catppuccin Mocha", "dark", true),
-  ...DARK.slice(1).map((name) => item(name, "dark")),
-  item("Ember", "dark"),
-  item("Catppuccin Latte", "light", true),
-  ...LIGHT.slice(1).map((name) => item(name, "light")),
-  item("Dusk", "light"),
+const ROWS: ReadonlyArray<Row> = [
+  { inUse: true, mode: "dark", name: "Catppuccin Mocha" },
+  ...DARK.slice(1, 9).map((name) => ({ mode: "dark" as const, name })),
 ];
 
-/** `Space u t`: every theme, the dark ones first; the page shows the one under the cursor. */
-function Picker() {
+/**
+ * `Space u t`: a narrow list of every theme, dark ones first, over the app with no scrim: the app
+ * itself is the preview, drawn in the theme under the cursor. After a second on one row, the list
+ * fades to 10% (`isFaded`), and the whole page shows; a key or the pointer brings it back.
+ */
+function Picker({ isFaded = false }: { isFaded?: boolean }) {
   return (
     <>
       <Shell>
         <Home />
       </Shell>
-      <KeyPicker isOpen items={PICKER} onClose={() => {}} onPick={() => {}} title="Theme" />
+      <VStack
+        aria-label="Theme"
+        role="dialog"
+        xstyle={[glassStyles.surface, glassStyles.floating, styles.picker, isFaded && styles.faded]}
+      >
+        <VStack xstyle={styles.pickerField}>
+          <TextLine
+            isLabelHidden
+            label="Theme"
+            onChange={() => {}}
+            placeholder="Find a theme…"
+            value=""
+          />
+        </VStack>
+        <VStack as="ul" xstyle={styles.pickerList}>
+          {ROWS.map((row, at) => (
+            <HStack
+              as="li"
+              gap={2}
+              justify="space-between"
+              key={row.name}
+              xstyle={[styles.pickerRow, at === 3 && pickedStyles.picked]}
+            >
+              <Text>{row.name}</Text>
+              <Text color="secondary" type="supporting">
+                {row.mode}
+                {row.inUse ? " · in use" : ""}
+              </Text>
+            </HStack>
+          ))}
+        </VStack>
+        <Text color="secondary" type="supporting" xstyle={styles.pickerField}>
+          Enter keeps Dracula · Esc puts Catppuccin Mocha back
+        </Text>
+      </VStack>
     </>
   );
 }
@@ -279,11 +312,18 @@ export const AppearanceSection: Story = { args: { files: FILES, mode: "system" }
 /** No theme of yours yet: the row says where to put one. */
 export const NoThemesYet: Story = { args: { files: [], mode: "dark" } };
 
-/** `Space u t`, open over Home: the list of themes, the one in use marked, its preview beside. */
+/** `Space u t`, open over Home, the cursor on Dracula: the app behind is the preview. */
 export const ThemePicker: Story = {
   args: { files: [], mode: "system" },
   decorators: [inRepositoryFolder],
   render: () => <Picker />,
+};
+
+/** A second on Dracula: the list fades to 10%, and the page shows whole in the theme. */
+export const ThemePickerFaded: Story = {
+  args: { files: [], mode: "system" },
+  decorators: [inRepositoryFolder],
+  render: () => <Picker isFaded />,
 };
 
 /** A spec's headings in Catppuccin Mocha: mauve, blue, then green. */

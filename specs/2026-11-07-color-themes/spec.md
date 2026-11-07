@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,19 +8,17 @@ plan-review: false
 
 # Spec: Color themes
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-07: 2 comments in spec-review.md.
+> Spec to review, about 5 minutes for what changed.
 >
 > - You approve 28 shipped colour themes, picked per device as one for light mode and one for dark
 >   mode, and your own themes as TOML files. Each theme maps its own palette onto about 50 roles
 >   named by meaning, which every view asks for instead of a hue.
-> - A new decision, Colour themes, and changes to UI look (no more "Catppuccin colours"; the floor
->   covers shipped themes) and Settings (a themes folder beside the settings file).
-> - Today's look stays: Catppuccin maps one to one onto the roles, checked by a test. Headings are
->   the one change: a colour per level, mauve, blue, then green.
-> - Read one way: "the contrast rule only applies to the default themes" reads as the shipped
->   themes, against yours. Their colours under the floor move by the smallest step that reaches it.
+> - Since your review: the theme picker is a narrow list over the app, with no preview pane and no
+>   dimmed page. The app itself is the preview; a second on one row fades the list to 10%.
+> - The picker stays the shared key picker, with a mode that previews in the page: no second picker.
+> - A new decision, Colour themes, and changes to UI look and Settings, unchanged since your review.
 > - Not run yet: a palette rule winning over the built theme in every surface, read in Astryx's
 >   source. The plan's first task checks it; if it fails, each theme is built as its own stylesheet.
 > - Risk tier `medium`: a new file format and about 90 places in the views that change.
@@ -29,6 +27,14 @@ Uraeda's web UI gets the classic open source colour themes, split into light and
 write your own, so the tool you read for hours looks the way you like. Views stop asking for hues:
 they ask for what a colour means, and each theme decides how that meaning looks. See the
 [proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (fade the picker, no preview pane): done. The picker is a narrow list at the top of the
+  page, with no preview pane and no scrim. A second on one row fades it to 10% opacity, and the
+  whole app shows in that theme; a key or the pointer brings it back.
+- **C2** (an easy preview before committing): done, as you suggested. Moving the cursor redraws the
+  app at once, and nothing is kept until Enter: Escape, or closing, puts back the theme in use.
 
 ## Decisions
 
@@ -83,18 +89,30 @@ More scenarios:
 
 ### US2: Try themes from the keyboard (P2)
 
-`Space u t` opens a picker of every theme, dark ones first, the two in use marked. Moving the cursor
-redraws the whole app in the theme under it; Enter keeps it, Escape puts back the one in use.
-`Space u m` cycles the mode: System, Light, Dark.
+`Space u t` opens a narrow list of every theme at the top of the page, dark ones first, the two in
+use marked. The page is not dimmed and has no preview pane beside the list: the app itself is the
+preview, redrawn in the theme under the cursor. After a second on one row, the list fades to 10% so
+the whole app shows; any key or a pointer move brings it back. Enter keeps the theme, and Escape
+puts back the one in use. `Space u m` cycles the mode: System, Light, Dark.
 
 [Theme picker](/packages/web/src/ThemeMockups.stories.tsx#ThemePicker)
+
+[Theme picker, faded after a second](/packages/web/src/ThemeMockups.stories.tsx#ThemePickerFaded)
 
 Key scenarios:
 
 1. **Given** Catppuccin Mocha in use in dark mode, **When** you open `Space u t` and move to Nord,
    **Then** the app is drawn in Nord; Escape draws it in Mocha again.
-2. **Given** dark mode, **When** you pick Rosé Pine Dawn, a light theme, **Then** it becomes the
+2. **Given** the cursor on Dracula, **When** a second passes without a key, **Then** the list fades
+   to 10% opacity over 200 ms; pressing `j` brings it back at once, the cursor on the next theme.
+3. **Given** dark mode, **When** you pick Rosé Pine Dawn, a light theme, **Then** it becomes the
    light theme, and the mode becomes Light so you see it.
+
+More scenarios:
+
+1. **Given** the list faded, **When** the pointer moves over the page, **Then** the list comes back.
+2. **Given** the system asks for reduced motion, **When** the list fades, **Then** it goes to 10% at
+   once, without the 200 ms transition.
 
 ### US3: Write a theme of your own (P2)
 
@@ -173,7 +191,9 @@ theme, which wins in every surface that reads the theme. Views read roles only. 
 - **Theme picks**, in the web, keep the mode and the two themes per browser, read old picks, and
   cache the drawn colours.
 - **The views** ask for roles, and lint refuses a hue token outside the theme.
-- **Appearance, the picker, and the mode key** show and change the picks. Story frames and the
+- **The key picker** gains a mode that previews in the page: a narrow list, no scrim, no preview
+  pane, fading after a second on one row. It stays the one shared picker.
+- **Appearance, the theme picker, and the mode key** show and change the picks. Story frames and the
   sandbox bar receive the theme's colours with the mode.
 
 Tradeoffs:
@@ -240,3 +260,22 @@ Settled while writing this spec:
 
 **Medium**: a new file format read from the config folder, and about 90 places in the views that
 change, with no stored data converted beyond the browser's pick.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-07: 2 comments in spec-review.md.
+>
+> - You approve 28 shipped colour themes, picked per device as one for light mode and one for dark
+>   mode, and your own themes as TOML files. Each theme maps its own palette onto about 50 roles
+>   named by meaning, which every view asks for instead of a hue.
+> - A new decision, Colour themes, and changes to UI look (no more "Catppuccin colours"; the floor
+>   covers shipped themes) and Settings (a themes folder beside the settings file).
+> - Today's look stays: Catppuccin maps one to one onto the roles, checked by a test. Headings are
+>   the one change: a colour per level, mauve, blue, then green.
+> - Read one way: "the contrast rule only applies to the default themes" reads as the shipped
+>   themes, against yours. Their colours under the floor move by the smallest step that reaches it.
+> - Not run yet: a palette rule winning over the built theme in every surface, read in Astryx's
+>   source. The plan's first task checks it; if it fails, each theme is built as its own stylesheet.
+> - Risk tier `medium`: a new file format and about 90 places in the views that change.
