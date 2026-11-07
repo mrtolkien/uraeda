@@ -488,3 +488,17 @@ fn extends_finds_a_theme_in_any_case_an_exact_match_first() {
         Some("light")
     );
 }
+
+#[test]
+fn a_dangling_symlink_is_a_row_that_could_not_be_read() {
+    let dir = tempdir();
+    write(dir.path(), &[]);
+    let folder = themes::themes_dir(dir.path());
+    std::os::unix::fs::symlink(dir.path().join("gone.toml"), folder.join("gone.toml")).unwrap();
+    let read = themes::read(dir.path());
+    let row = file(&read, "gone.toml");
+    assert!(!row.is_listed);
+    let messages: Vec<_> = row.problems.iter().map(|p| p.message.as_str()).collect();
+    assert_eq!(messages, ["Could not read: entity not found."]);
+    assert_shipped_listed(&read);
+}

@@ -211,7 +211,8 @@ fn shipped() -> Vec<Source> {
 }
 
 /// The theme files in `folder`, by file name: regular files, symlinks followed, whose name ends in
-/// `.toml`, hidden ones skipped. None when the folder cannot be read.
+/// `.toml`, hidden ones skipped, and a symlink to nothing as a file that cannot be read. None when
+/// the folder cannot be read.
 fn user_files(folder: &Path) -> Vec<Source> {
     let Ok(entries) = fs::read_dir(folder) else {
         return Vec::new();
@@ -224,11 +225,16 @@ fn user_files(folder: &Path) -> Vec<Source> {
             if name.starts_with('.') || id.is_empty() {
                 return None;
             }
-            let metadata = fs::metadata(entry.path()).ok()?;
-            metadata.is_file().then(|| Source {
+            // A symlink to nothing is a theme file that cannot be read, not a file that vanished.
+            let parsed = match fs::metadata(entry.path()) {
+                Ok(metadata) if metadata.is_file() => load(&entry.path(), metadata.len()),
+                Ok(_) => return None,
+                Err(error) => Parsed::unreadable(format!("{}.", error.kind()), None),
+            };
+            Some(Source {
                 is_shipped: false,
                 id: id.to_owned(),
-                parsed: load(&entry.path(), metadata.len()),
+                parsed,
                 file: name.clone(),
             })
         })
