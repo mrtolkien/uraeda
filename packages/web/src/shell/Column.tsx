@@ -105,6 +105,12 @@ const styles = stylex.create({
     top: 0,
     zIndex: 2,
   },
+  // While the rail is open over the page, its place too: the place holds the open rail's
+  // `zIndex`, and stays under a question's sticky header (`QuestionCard.tsx`), level with it and
+  // earlier in the page, otherwise.
+  placeOver: {
+    zIndex: 3,
+  },
   // The rail's room in the page's flow.
   rail: {
     width: "var(--size-rail)",
@@ -247,6 +253,7 @@ export function Column({ isWide }: { isWide: boolean }) {
     <div
       {...stylex.props(
         styles.place,
+        rail.isOpen && styles.placeOver,
         isRail ? styles.rail : widths.of(column.width),
         easing && styles.easing,
       )}
