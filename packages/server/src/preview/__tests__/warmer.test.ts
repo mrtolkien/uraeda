@@ -40,10 +40,10 @@ async function requests(port: number): Promise<Array<string>> {
 }
 
 test("a story's compile fetches its page's modules and its file's static imports, each once (US3.2)", async () => {
-  // A stories file importing a module, which imports one under the base, one missing, and one
-  // dynamically.
+  // A stories file importing a module, which imports one under the base, one missing, one whose
+  // address cannot be parsed, and one dynamically.
   const { checkout, port } = await readyWith({
-    "packages/web/src/Dep.tsx": `import "${BASE}src/Leaf.tsx";\nimport "./Missing.tsx";\nimport("./Lazy.tsx");`,
+    "packages/web/src/Dep.tsx": `import "${BASE}src/Leaf.tsx";\nimport "./Missing.tsx";\nimport x from "https://";\nimport("./Lazy.tsx");`,
     "packages/web/src/Leaf.tsx": `import "./Dep.tsx";`,
     "packages/web/src/Warm.stories.tsx": `import "./Dep.tsx";\nexport const A = {};`,
   });
