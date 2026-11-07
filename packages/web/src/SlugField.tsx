@@ -3,6 +3,7 @@ import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import type { useTextField } from "./fields/useTextField.ts";
+import { VERBATIM } from "./fields/editor/Editor.tsx";
 
 /** What the notice says when the slug the file's name gives changed since one was typed. */
 const SLUG_CHANGED = "The proposal's name changed since.";
@@ -47,6 +48,7 @@ export function SlugField({
       )}
       {/* Escape leaves the field, its text kept: the page's keys work again. */}
       <TextLine
+        attributes={VERBATIM}
         description={description}
         label={SLUG_LABEL}
         onChange={field.change}

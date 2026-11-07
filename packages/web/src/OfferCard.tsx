@@ -20,6 +20,7 @@ import { TextField } from "./fields/TextField.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 import { SLUG_LABEL } from "./SlugField.tsx";
+import { VERBATIM } from "./fields/editor/Editor.tsx";
 
 /** The session an offer moves: its ID, its change's folder for a feature's offer, and whether its agent works. */
 export type OfferSession = { folder?: string; id: string; working: boolean };
@@ -133,6 +134,7 @@ function SlugField({ onChange, value }: { onChange: (slug: string) => void; valu
   return (
     <>
       <TextLine
+        attributes={VERBATIM}
         description="Two words at most: it names the folder and the branch."
         label={SLUG_LABEL}
         onChange={onChange}

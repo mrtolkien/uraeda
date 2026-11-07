@@ -41,6 +41,7 @@ import { RepositoriesView } from "./views.ts";
 import { ActionsMenu } from "./layout/ActionsMenu.tsx";
 import { pickedStyles } from "./layout/picked.ts";
 import { StatusText } from "./fields/StatusText.tsx";
+import { VERBATIM } from "./fields/editor/Editor.tsx";
 
 const styles = stylex.create({
   brand: {
@@ -233,6 +234,7 @@ function Menu({
   return (
     <VStack gap={2}>
       <TextLine
+        attributes={VERBATIM}
         isLabelHidden
         // The arrows move along the rows from the field, and Enter opens the one they are on.
         keys={arrowKeys(move)}

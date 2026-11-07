@@ -103,3 +103,19 @@ test("a save over a change made elsewhere keeps the text, and offers the new ver
     "# Changed elsewhere\n",
   );
 });
+
+/**
+ * A phone's keyboard suggests and corrects in a field of prose, as in any text field, and types a
+ * slug as is: CodeMirror turns both off by default.
+ */
+test("a field of prose has the phone's corrections, and a slug has none", async () => {
+  await renderPage("/edit/specs/proposals/git-listener.md");
+  const text = await edit();
+  expect(text.getAttribute("autocorrect")).toBe("on");
+  expect(text.getAttribute("autocapitalize")).toBe("sentences");
+  expect(text.getAttribute("spellcheck")).toBe("true");
+  const slug = screen.getByRole("textbox", { name: "Short name" });
+  expect(slug.getAttribute("autocorrect")).toBe("off");
+  expect(slug.getAttribute("autocapitalize")).toBe("off");
+  expect(slug.getAttribute("spellcheck")).toBe("false");
+});

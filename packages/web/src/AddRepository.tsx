@@ -15,6 +15,7 @@ import { refusal } from "./errors.ts";
 import { arrowKeys, TextLine } from "./fields/TextLine.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
+import { VERBATIM } from "./fields/editor/Editor.tsx";
 
 const styles = stylex.create({
   // On the first run, the form as wide as a dialog's, not the page's column.
@@ -161,6 +162,7 @@ export function AddRepository({
   return (
     <VStack gap={3} xstyle={inline && styles.inline}>
       <TextLine
+        attributes={VERBATIM}
         hasAutoFocus={!inline}
         keys={arrowKeys(move)}
         label="Folder"

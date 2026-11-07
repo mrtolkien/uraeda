@@ -116,6 +116,15 @@ export type EditorProps = {
  */
 export type Variant = "line" | "lines" | "composer" | "page";
 
+/** A field of prose's keyboard: corrected, spell-checked, and capitalized as sentences. */
+const PROSE = { autocapitalize: "sentences", autocorrect: "on", spellcheck: "true" } as const;
+
+/**
+ * The attributes of a field whose text is typed as is, as a slug or a folder: no corrections, no
+ * capitals, no spelling marks.
+ */
+export const VERBATIM = { autocapitalize: "off", autocorrect: "off", spellcheck: "false" } as const;
+
 /** Marks a change the caller's text made, which is no typing to report back. */
 const fromCaller = Annotation.define<boolean>();
 
@@ -165,6 +174,10 @@ function partsOf(props: PartProps) {
       ...(id === undefined ? {} : { id }),
       // What an overlay gives its focus to once drawn (`useFieldFocus`), as Astryx's fields say.
       ...(isAutoFocused ? { "data-autofocus": "" } : {}),
+      // A text field's keyboard on the phone, with its suggestions and corrections: CodeMirror turns
+      // them off by default, as a code editor's. A file's code, or a caller's `VERBATIM`, keeps them
+      // off.
+      ...(isCode ? {} : PROSE),
       ...attributes,
     }),
     editable: [EditorView.editable.of(!isDisabled), EditorState.readOnly.of(isDisabled)],
