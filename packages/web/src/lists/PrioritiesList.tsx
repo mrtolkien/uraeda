@@ -1,7 +1,7 @@
 // The priorities on the shared list, as an outliner (see `useOutline`): "Ongoing", the proposals
-// whose feature or change runs, in `added`, then Now, Next, Later, and Blocked, in the file's order,
-// as columns, each with its context, its colour, and its Add row. Blocked shows only when it has
-// proposals. Each proposal draws its nested items as rows of their own, at any depth, edited in
+// whose feature or change runs, in `added`, then Now, Next, Later, and Blocked, in the file's
+// order, as columns, each with its context, its colour, and its Add row. Blocked shows only when it
+// has proposals. Each proposal draws its nested items as rows of their own, at any depth, edited in
 // place. The file keeps the started proposals at the top of Now; on screen they show apart.
 import { useEffect } from "react";
 import { useFateClient } from "react-fate";

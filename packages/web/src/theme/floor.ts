@@ -1,7 +1,7 @@
-// The floor step of a shipped theme (R4): a colour under the contrast floor ships as the first step,
-// 1% of HSL lightness at a time from its published colour, at which every pair its roles are in
-// passes, hue and saturation kept. Used by `scripts/theme-floor.ts`, which prints a theme's floor
-// entries, and checked by `theme-roles.test.ts`.
+// The floor step of a shipped theme (R4): a colour under the contrast floor ships as the first
+// step, 1% of HSL lightness at a time from its published colour, at which every pair its roles are
+// in passes, hue and saturation kept. Used by `scripts/theme-floor.ts`, which prints a theme's
+// floor entries, and checked by `theme-roles.test.ts`.
 import { failures } from "./pairs.ts";
 import { type Mode, type Roles, tokensOf } from "./roles.ts";
 

@@ -1,10 +1,11 @@
-// A story's frame, sandboxed without `allow-same-origin`, and the messages of its window. One frame,
-// at the phone's width or the desktop's: a change of width resizes and rescales it, and never
-// reloads it. It is drawn by the live window's frame (`LiveFrame`): at its real width, scaled to
-// fit, at 100% in full screen. The frame is as tall as its story says, up to the theme's maximum,
-// the phone's frame 50% taller. Its colour mode and the tokens the page draws, so it draws in the
-// picked theme, are sent when it says it is ready and when they change, with pick mode, and its pick script reports the elements picked. It loads its story only
-// once its box is on screen, then stays loaded.
+// A story's frame, sandboxed without `allow-same-origin`, and the messages of its window. One
+// frame, at the phone's width or the desktop's: a change of width resizes and rescales it, and
+// never reloads it. It is drawn by the live window's frame (`LiveFrame`): at its real width, scaled
+// to fit, at 100% in full screen. The frame is as tall as its story says, up to the theme's
+// maximum, the phone's frame 50% taller. Its colour mode and the tokens the page draws, so it draws
+// in the picked theme, are sent when it says it is ready and when they change, with pick mode, and
+// its pick script reports the elements picked. It loads its story only once its box is on screen,
+// then stays loaded.
 import { useTheme } from "@astryxdesign/core/theme";
 import { type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bottomOf, keepPlace } from "./keepPlace.ts";

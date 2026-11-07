@@ -139,8 +139,8 @@ async function attributes(page: Page, mode: Mode, where: string) {
 }
 
 /**
- * The element that paints the point at `x`, `y` of the viewport: the first, from the topmost element
- * there up, whose background is not transparent, marked for its locator.
+ * The element that paints the point at `x`, `y` of the viewport: the first, from the topmost
+ * element there up, whose background is not transparent, marked for its locator.
  */
 async function painter(page: Page, x: number, y: number): Promise<Locator> {
   const found = await page.evaluate(
@@ -312,7 +312,9 @@ async function checkStory(browser: Browser, url: string, mode: Mode) {
 /** Dracula's page, as the drawn cache holds it and as the browser computes it. */
 const DRACULA = { cached: "#282a36", painted: "rgb(40, 42, 54)" } as const;
 
-/** What the first frame read: `<html>`'s background and mode, the rule, and whether React mounted. */
+/**
+ * What the first frame read: `<html>`'s background and mode, the rule, and whether React mounted.
+ */
 type FirstFrame = { background: string; mode: string; mounted: boolean; palette: boolean };
 
 /**
@@ -346,7 +348,8 @@ async function checkFirstFrame(browser: Browser, url: string, path: string, sign
   }, drawn);
   const page = await context.newPage();
   if (signedOut) {
-    // A server with sign-in answers a browser without a session so: fate's requests, not its modules.
+    // A server with sign-in answers a browser without a session so: fate's requests, not its
+    // modules.
     await page.route(
       (address) => /\/fate(\/live)?$/.test(address.pathname),
       (route) => route.fulfill({ json: { error: "Sign in to Uraeda." }, status: 401 }),

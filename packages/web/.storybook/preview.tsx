@@ -42,8 +42,8 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * The tokens of each mode a message carries, `{ dark?, light? }`, each a custom property's name to a
- * `#` colour; nothing when the message has none or another shape. `applyPalette` checks each name
+ * The tokens of each mode a message carries, `{ dark?, light? }`, each a custom property's name to
+ * a `#` colour; nothing when the message has none or another shape. `applyPalette` checks each name
  * and colour again before writing them.
  */
 function paletteOf(palette: unknown): Drawn | undefined {

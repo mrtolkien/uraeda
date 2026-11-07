@@ -1,5 +1,5 @@
-// The colour themes the server serves, in their one record: the shipped themes and the user's, every
-// role resolved, with the problems of each theme file of the user's.
+// The colour themes the server serves, in their one record: the shipped themes and the user's,
+// every role resolved, with the problems of each theme file of the user's.
 import { useLiveView, useRequest, view } from "react-fate";
 import type { Themes } from "uraeda-server/fate";
 import { useRefreshOnShow } from "./data.ts";

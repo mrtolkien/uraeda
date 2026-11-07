@@ -1,8 +1,8 @@
 // The colour themes' mockups (`specs/2026-11-07-color-themes/spec.md`): the settings' Appearance
 // section, with the mode, a theme for each mode, and your theme files, their problems included; the
-// theme picker of `Space u t`, a list over the app, which is the preview, fading after a second; and
-// a document's headings, a colour per level. Built from the real components over fixed text; the
-// picker is the real one, over the themes the story's server serves.
+// theme picker of `Space u t`, a list over the app, which is the preview, fading after a second;
+// and a document's headings, a colour per level. Built from the real components over fixed text;
+// the picker is the real one, over the themes the story's server serves.
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { Theme } from "@astryxdesign/core/theme";
