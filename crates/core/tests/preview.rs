@@ -98,3 +98,38 @@ fn a_checkout_commit_is_its_own_and_moves_with_a_commit() {
     assert_eq!(after.as_deref().map(str::len), Some(40));
     assert_eq!(api::checkout_commit(repo.path()).unwrap(), main);
 }
+
+/// A commit's files, as paths and texts.
+type Files = &'static [(&'static str, &'static str)];
+
+/// A Storybook restarts only for a commit outside `specs/`.
+#[test]
+fn a_code_version_moves_only_outside_specs() {
+    let rows: &[(&str, Files, bool)] = &[
+        (
+            "specs only",
+            &[("specs/x/clarifications-01.md", "answered")],
+            false,
+        ),
+        ("code", &[("packages/web/src/A.tsx", "a")], true),
+        (
+            "both",
+            &[
+                ("specs/x/spec.md", "s"),
+                ("packages/web/.storybook/main.ts", "m"),
+            ],
+            true,
+        ),
+    ];
+    for (case, files, moves) in rows {
+        let repo = TestRepo::new();
+        let before = api::code_version(repo.path()).unwrap();
+        for (path, text) in *files {
+            repo.write(path, text);
+        }
+        repo.commit("chore: a commit");
+        let after = api::code_version(repo.path()).unwrap();
+        assert!(before.is_some(), "{case}");
+        assert_eq!(before != after, *moves, "{case}");
+    }
+}

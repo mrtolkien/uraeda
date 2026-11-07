@@ -331,7 +331,7 @@ git commit -m "feat(storybook-previews): compile a story by fetching its modules
   `None` before the first commit. A tree without `specs` gives its own id.
 - Produces: the binding's `codeVersion(checkout: string): Promise<string | null>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 /// A Storybook restarts only for a commit outside `specs/`.
@@ -355,19 +355,19 @@ fn a_code_version_moves_only_outside_specs() {
 The break: a version that is the commit (the specs row moves), or that ignores the tree (the code
 rows do not).
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test preview`
 - Expected: FAIL to compile, no function `code_version` in `api`.
 
-- [ ] **Step 3: Implement `code_version`, and the binding's `codeVersion`**
+- [x] **Step 3: Implement `code_version`, and the binding's `codeVersion`**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run --filter uraeda-binding build && nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding/index.js packages/binding/index.d.ts
