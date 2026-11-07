@@ -9,9 +9,11 @@ use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi_derive::napi;
 use uraeda_core::actions::commit::InboxAdded;
 use uraeda_core::api;
+use uraeda_core::api::undo;
 use uraeda_core::files::inbox::Inbox;
 use uraeda_core::view::FileView;
 
+use super::undo::{recording, scope};
 use super::{Job, job};
 
 /// The inbox, with the count of the changes waiting for a commit and the triage's status.
@@ -29,8 +31,11 @@ pub fn add_note(
     previous: String,
     category: Option<String>,
     about: Option<String>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::add_note(Path::new(&repo), category, about, &text, &previous))
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
+        api::add_note(repo, category, about, &text, &previous)
+    })
 }
 
 /// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
@@ -66,8 +71,18 @@ pub fn outline_note(
     kind: String,
     text: Option<String>,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::outline_note(Path::new(&repo), &id, at, &kind, text.as_deref(), &previous))
+    recording(
+        repo,
+        undo,
+        scope(if kind == "remove" {
+            undo::NOTES
+        } else {
+            undo::INBOX
+        }),
+        move |repo: &Path| api::outline_note(repo, &id, at, &kind, text.as_deref(), &previous),
+    )
 }
 
 /// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
@@ -79,14 +94,24 @@ pub fn drop_note(
     at: Option<u32>,
     to: api::DropAt,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::drop_note(Path::new(&repo), &id, at, &to, &previous))
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
+        api::drop_note(repo, &id, at, &to, &previous)
+    })
 }
 
 /// Removes a note, sub-items included, and its note file, which `insertNote` brings back.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn remove_note(repo: String, id: String, previous: String) -> AsyncTask<Job<Inbox>> {
-    job(move || api::remove_note(Path::new(&repo), &id, &previous))
+pub fn remove_note(
+    repo: String,
+    id: String,
+    previous: String,
+    undo: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        api::remove_note(repo, &id, &previous)
+    })
 }
 
 /// Removes a note as `removeNote` does, then commits `INBOX.md` alone when it had no other change:
@@ -110,8 +135,11 @@ pub fn move_note_to_category(
     id: String,
     previous: String,
     category: Option<String>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::move_note_to_category(Path::new(&repo), &id, category, &previous))
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
+        api::move_note_to_category(repo, &id, category, &previous)
+    })
 }
 
 /// Moves a note before the note at `index` of a category, or of the notes without one, or to its
@@ -123,8 +151,11 @@ pub fn place_note(
     index: u32,
     previous: String,
     category: Option<String>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::place_note(Path::new(&repo), &id, category, index, &previous))
+    recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
+        api::place_note(repo, &id, category, index, &previous)
+    })
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
@@ -148,15 +179,10 @@ pub fn note_to_proposal(
     section: String,
     previous: String,
     priorities_previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<()>> {
-    job(move || {
-        api::note_to_proposal(
-            Path::new(&repo),
-            &id,
-            &section,
-            &previous,
-            &priorities_previous,
-        )
+    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
+        api::note_to_proposal(repo, &id, &section, &previous, &priorities_previous)
     })
 }
 
@@ -169,15 +195,10 @@ pub fn note_under_proposal(
     proposal: String,
     previous: String,
     priorities_previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<()>> {
-    job(move || {
-        api::note_under_proposal(
-            Path::new(&repo),
-            &id,
-            &proposal,
-            &previous,
-            &priorities_previous,
-        )
+    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
+        api::note_under_proposal(repo, &id, &proposal, &previous, &priorities_previous)
     })
 }
 
@@ -190,15 +211,10 @@ pub fn note_to_proposal_file(
     section: String,
     previous: String,
     priorities_previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    job(move || {
-        api::note_to_proposal_file(
-            Path::new(&repo),
-            &id,
-            &section,
-            &previous,
-            &priorities_previous,
-        )
+    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
+        api::note_to_proposal_file(repo, &id, &section, &previous, &priorities_previous)
     })
 }
 
@@ -212,8 +228,11 @@ pub fn note_into_proposal(
     id: String,
     proposal: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    job(move || api::note_into_proposal(Path::new(&repo), &id, &proposal, &previous))
+    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
+        api::note_into_proposal(repo, &id, &proposal, &previous)
+    })
 }
 
 /// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
@@ -227,15 +246,10 @@ pub fn note_into_proposal_line(
     proposal: String,
     previous: String,
     priorities_previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    job(move || {
-        api::note_into_proposal_line(
-            Path::new(&repo),
-            &id,
-            &proposal,
-            &previous,
-            &priorities_previous,
-        )
+    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
+        api::note_into_proposal_line(repo, &id, &proposal, &previous, &priorities_previous)
     })
 }
 
@@ -254,6 +268,14 @@ fn note_images(images: Vec<Buffer>, names: Vec<String>) -> Vec<api::NoteImage> {
         .collect()
 }
 
+/// Where a new note goes, a category, or the notes without one, and the feature or change folder
+/// it is `about`.
+#[napi(object)]
+pub struct NewNote {
+    pub category: Option<String>,
+    pub about: Option<String>,
+}
+
 /// Adds a note as a new note file's folder holding its text and the `images`, linked from the end
 /// of a category, all written or none. `names` holds each image's file name, empty for a pasted
 /// one. Returns the note file's path.
@@ -264,19 +286,17 @@ pub fn add_note_with_images(
     previous: String,
     images: Vec<Buffer>,
     names: Vec<String>,
-    category: Option<String>,
-    about: Option<String>,
+    note: Option<NewNote>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
     let images = note_images(images, names);
-    job(move || {
-        let (_, file) = api::add_note_with_images(
-            Path::new(&repo),
-            category,
-            about,
-            &text,
-            &images,
-            &previous,
-        )?;
+    let NewNote { category, about } = note.unwrap_or(NewNote {
+        category: None,
+        about: None,
+    });
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        let (_, file) =
+            api::add_note_with_images(repo, category, about, &text, &images, &previous)?;
         Ok(file)
     })
 }
@@ -290,10 +310,11 @@ pub fn attach_note_images(
     previous: String,
     images: Vec<Buffer>,
     names: Vec<String>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
     let images = note_images(images, names);
-    job(move || {
-        let (_, file) = api::attach_note_images(Path::new(&repo), &id, &images, &previous)?;
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        let (_, file) = api::attach_note_images(repo, &id, &images, &previous)?;
         Ok(file)
     })
 }

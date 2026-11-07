@@ -19,29 +19,29 @@ export declare class WatchHandle {
 export declare function addAllowedHost(dir: string, name: string): Promise<Settings>
 
 /** Adds a category at the end of the inbox. */
-export declare function addCategory(repo: string, name: string, previous: string): Promise<Inbox>
+export declare function addCategory(repo: string, name: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * Comments on lines of a file as committed, on lines of the decision `decision` names for a
  * spec, or on the whole file without lines.
  */
-export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string, decision?: DecisionTarget | undefined | null): Promise<FileView>
+export declare function addComment(repo: string, folder: string, file: string, lines: CommentLines | undefined | null, text: string, decision?: DecisionTarget | undefined | null, undo?: string | undefined | null): Promise<FileView>
 
 /**
  * Adds a note at the end of a category, or of the notes without one, marked with the slug of the
  * feature or change folder `about`.
  */
-export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
+export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * Adds a note as a new note file's folder holding its text and the `images`, linked from the end
  * of a category, all written or none. `names` holds each image's file name, empty for a pasted
  * one. Returns the note file's path.
  */
-export declare function addNoteWithImages(repo: string, text: string, previous: string, images: Array<Buffer>, names: Array<string>, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
+export declare function addNoteWithImages(repo: string, text: string, previous: string, images: Array<Buffer>, names: Array<string>, note?: NewNote | undefined | null, undo?: string | undefined | null): Promise<string>
 
 /** Adds a line at the end of a section of the priorities. */
-export declare function addProposal(repo: string, section: string, text: string, previous: string): Promise<Priorities>
+export declare function addProposal(repo: string, section: string, text: string, previous: string, undo?: string | undefined | null): Promise<Priorities>
 
 /**
  * Adds the git repository holding `folder`, an absolute path, to the list; one listed already
@@ -58,6 +58,13 @@ export declare function addSettledComment(repo: string, folder: string, subject:
  */
 export declare function allBranchChanges(repo: string): Promise<Array<FeatureChanges>>
 
+/**
+ * Writes back a change's `before` side for `undo`, or its `after` side for `redo`, once every file
+ * holds the other. Refused with `conflict: Could not undo: “<subject>” changed since in <file>.`
+ * otherwise, nothing written. Resolves with the commit the files' checkout is at.
+ */
+export declare function applyChange(repo: string, change: ChangeView, direction: 'undo' | 'redo', subject: string): Promise<string | null>
+
 /** Approves a spec or a plan, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -66,13 +73,13 @@ export declare function approve(repo: string, folder: string, file: string, summ
  * returns its link. `name` is the file's name, absent for a pasted image. A single proposal file
  * becomes a folder first.
  */
-export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
+export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null, undo?: string | undefined | null): Promise<AttachedView>
 
 /**
  * Adds `images` to the note `id`, into its note file or into the note file it gets. `names` holds
  * each image's file name, empty for a pasted one. Returns the note file's path.
  */
-export declare function attachNoteImages(repo: string, id: string, previous: string, images: Array<Buffer>, names: Array<string>): Promise<string>
+export declare function attachNoteImages(repo: string, id: string, previous: string, images: Array<Buffer>, names: Array<string>, undo?: string | undefined | null): Promise<string>
 
 /**
  * The files a feature's branch changed outside its folder, from the default branch's merge base,
@@ -101,6 +108,22 @@ export interface CategoryRemoved {
   before: string
 }
 
+/** A file of a change, by its path from the top level. */
+export interface ChangedFileView {
+  path: string
+  before: string | null
+  after: string | null
+}
+
+/**
+ * A change as the server hands it over and back: the commit its checkout was at, and each file's
+ * bytes before and after, base64-encoded, `null` on the side where it did not exist.
+ */
+export interface ChangeView {
+  commit: string | null
+  files: Array<ChangedFileView>
+}
+
 /**
  * `typed`, trimmed, when it is a cap on automatic continues, a whole number from 1 to 10. Throws
  * the problem otherwise, `Automatic continues in a row is a whole number from 1 to 10.`
@@ -122,8 +145,17 @@ export declare function checkoutCommit(checkout: string): Promise<string | null>
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
 
+/** The lines a comment is on, from `start` to `end`, the line `start` alone without `end`. */
+export interface CommentLines {
+  start: number
+  end?: number
+}
+
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
+
+/** Whether a commit since the change holds any of its files otherwise: its undo then asks first. */
+export declare function committedSince(repo: string, change: ChangeView): Promise<boolean>
 
 /**
  * Commits a proposal file or a note file, with the priorities and the inbox when they changed, or
@@ -169,25 +201,25 @@ export declare function dropItem(repo: string, folder: string): Promise<DroppedV
  * Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
  * writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
  */
-export declare function dropNote(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Inbox>
+export declare function dropNote(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * Moves a proposal, or with `at` its nested item at `at`, its own items with it, to `to`:
  * what a drop writes. Under a line, or else a line of `to`'s list, a section.
  */
-export declare function dropProposal(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Priorities>
+export declare function dropProposal(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string, undo?: string | undefined | null): Promise<Priorities>
 
 /** Replaces an allowed host name with another, in its place. */
 export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
 
 /** Replaces the text of a pending comment. */
-export declare function editComment(repo: string, folder: string, file: string, number: number, text: string): Promise<FileView>
+export declare function editComment(repo: string, folder: string, file: string, number: number, text: string, undo?: string | undefined | null): Promise<FileView>
 
 /** Replaces a note's text, its marks kept. */
 export declare function editNote(repo: string, id: string, text: string, previous: string): Promise<Inbox>
 
 /** Replaces a proposal's text. */
-export declare function editProposal(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+export declare function editProposal(repo: string, id: string, text: string, previous: string, undo?: string | undefined | null): Promise<Priorities>
 
 /** Writes comment `number` on the settled point `subject` over its text last read. */
 export declare function editSettledComment(repo: string, folder: string, number: number, subject: string, text: string, previous: string): Promise<FileView>
@@ -213,7 +245,7 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  * Expands a proposal into a file by its id, like `next-2`, over the priorities read at
  * `previous`.
  */
-export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
+export declare function expandProposal(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<ProposalFileView>
 
 /**
  * Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
@@ -319,10 +351,19 @@ export declare function land(repo: string, id: string, onOutput: (line: string) 
 export declare function mainRoot(repo: string): Promise<string>
 
 /** Moves a note to the end of a category, or of the notes without one. */
-export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null): Promise<Inbox>
+export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null, undo?: string | undefined | null): Promise<Inbox>
 
 /** Moves a proposal before the line at `index` of a section, or to its end. */
-export declare function moveProposal(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
+export declare function moveProposal(repo: string, id: string, section: string, index: number, previous: string, undo?: string | undefined | null): Promise<Priorities>
+
+/**
+ * Where a new note goes, a category, or the notes without one, and the feature or change folder
+ * it is `about`.
+ */
+export interface NewNote {
+  category?: string
+  about?: string
+}
 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
@@ -339,7 +380,7 @@ export interface NoteImageRemoved {
  * `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
  * made a folder for the images changes.
  */
-export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string): Promise<string>
+export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string, undo?: string | undefined | null): Promise<string>
 
 /**
  * Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
@@ -347,22 +388,22 @@ export declare function noteIntoProposal(repo: string, id: string, proposal: str
  * line, and the note file's text goes into its `## Notes`, over both lists as read. Returns the new
  * proposal file's path.
  */
-export declare function noteIntoProposalLine(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string): Promise<string>
+export declare function noteIntoProposalLine(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string, undo?: string | undefined | null): Promise<string>
 
 /** Moves a note to the end of a section of the priorities, over both files as read. */
-export declare function noteToProposal(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
+export declare function noteToProposal(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string, undo?: string | undefined | null): Promise<void>
 
 /**
  * Makes a note a new proposal file, linked from the end of a section of the priorities, or moves
  * its note file among the proposals. Returns the proposal file's path, from the top level.
  */
-export declare function noteToProposalFile(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<string>
+export declare function noteToProposalFile(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string, undo?: string | undefined | null): Promise<string>
 
 /**
  * Moves a note under the proposal `proposal` of the priorities, `now-2`, as its last item, over
  * both files as read.
  */
-export declare function noteUnderProposal(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string): Promise<void>
+export declare function noteUnderProposal(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string, undo?: string | undefined | null): Promise<void>
 
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
@@ -372,14 +413,14 @@ export declare function openRepository(dataDir: string, name: string): Promise<R
  * file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`, `indent`,
  * `outdent`, `up`, or `down`; `text` is the line those that write one write.
  */
-export declare function outlineNote(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Inbox>
+export declare function outlineNote(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * Edits a proposal's outline: the line, or with `at`, its nested item at `at` in the order
  * of the file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`,
  * `indent`, `outdent`, `up`, or `down`; `text` is the line those that write one write.
  */
-export declare function outlineProposal(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Priorities>
+export declare function outlineProposal(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string, undo?: string | undefined | null): Promise<Priorities>
 
 /**
  * The folder of the feature or the change that a path from the top level is in: `<folder>` for
@@ -392,7 +433,7 @@ export declare function pathFolder(path: string): string | null
  * Moves a note before the note at `index` of a category, or of the notes without one, or to its
  * end, `index` counting the category's notes once the note has left it.
  */
-export declare function placeNote(repo: string, id: string, index: number, previous: string, category?: string | undefined | null): Promise<Inbox>
+export declare function placeNote(repo: string, id: string, index: number, previous: string, category?: string | undefined | null, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * What starting a proposed feature, or a change with the kind `"change"`, would make: every check
@@ -498,13 +539,13 @@ export declare function removeAllowedHost(dir: string, name: string): Promise<Se
  * Deletes a category: its notes stay without a category with `keepNotes`, and go with it
  * otherwise.
  */
-export declare function removeCategory(repo: string, name: string, keepNotes: boolean, previous: string): Promise<CategoryRemoved>
+export declare function removeCategory(repo: string, name: string, keepNotes: boolean, previous: string, undo?: string | undefined | null): Promise<CategoryRemoved>
 
 /** Removes a pending comment. */
-export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
+export declare function removeComment(repo: string, folder: string, file: string, number: number, undo?: string | undefined | null): Promise<FileView>
 
 /** Removes a note, sub-items included, and its note file, which `insertNote` brings back. */
-export declare function removeNote(repo: string, id: string, previous: string): Promise<Inbox>
+export declare function removeNote(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /**
  * Removes a note as `removeNote` does, then commits `INBOX.md` alone when it had no other change:
@@ -517,10 +558,10 @@ export declare function removeNoteAndCommit(repo: string, id: string, previous: 
  * level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
  * since it was read at `previous`.
  */
-export declare function removeNoteImage(repo: string, file: string, image: string, previous: string): Promise<NoteImageRemoved>
+export declare function removeNoteImage(repo: string, file: string, image: string, previous: string, undo?: string | undefined | null): Promise<NoteImageRemoved>
 
 /** Removes a proposal and its nested lines. */
-export declare function removeProposal(repo: string, id: string, previous: string): Promise<Priorities>
+export declare function removeProposal(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<Priorities>
 
 /** Takes a repository off the list, leaving its folder and sessions as they are. */
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
@@ -529,7 +570,7 @@ export declare function removeRepository(dataDir: string, name: string): Promise
 export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
 
 /** Renames a category, every heading of its name. */
-export declare function renameCategory(repo: string, from: string, to: string, previous: string): Promise<Inbox>
+export declare function renameCategory(repo: string, from: string, to: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
@@ -642,7 +683,7 @@ export declare function startChange(repo: string, text: string, images: Array<Bu
 export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null, day?: string | undefined | null): Promise<StartedView>
 
 /** Deletes the pending review of a file. */
-export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
+export declare function startOver(repo: string, folder: string, file: string, undo?: string | undefined | null): Promise<FileView>
 
 /**
  * Starts a feature typed as a text, or a change with the kind `"change"`, with its images, in its
@@ -670,6 +711,9 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
  * hash `previous`.
  */
 export declare function submitRound(repo: string, id: string, previous: string): Promise<FileView>
+
+/** The change recorded under `token`, handed over once: `null` when none was, or it was taken. */
+export declare function takeChange(token: string): ChangeView | null
 
 /**
  * The commits the writes to the repository at `repo` deferred since the last call, each handed

@@ -14,6 +14,7 @@ test = false
 doctest = false
 
 [dependencies]
+base64.workspace = true
 napi.workspace = true
 napi-derive.workspace = true
 uraeda-core = { workspace = true, features = ["napi"] }
