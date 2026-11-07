@@ -218,7 +218,7 @@ with real time except where they fake `Date` to pin the second of a run.
 | US1.1: `d` deletes at once, with its toast                | 9    | `undo-keys.test.tsx` "d deletes at once; u brings it back and offers Redo; U deletes it again"                                                                                 |
 | US1.2: two `u` take back an indent, then a move           | 3    | `stack.test.ts` "undo takes back the latest entry first, minutes later"                                                                                                        |
 | US1.3: `u` from another page opens it, selected; Back     | 5    | `undo-keys.test.tsx` "u from another page opens the action's page with what came back selected"                                                                                |
-| US1 more 1-2: a comment's removal, Start over             | 8    | `undo-coverage.test.tsx`, rows "a comment removed", "Start over"                                                                                                               |
+| US1 more 1-2: a comment's removal, Start over             | 8    | `undo-coverage-reviews.test.tsx`, rows "a comment removed", "Start over"                                                                                                       |
 | US1 more 3: a note with its note file                     | 1    | `undo_changes.rs` "a note deleted with its folder comes back with its image"                                                                                                   |
 | US1 more 4: 51 actions keep 50                            | 3    | `stack.test.ts` "the stack keeps the latest 50 entries"                                                                                                                        |
 | US1 more 5: a reload empties the stack                    | —    | none: the stack is module memory, which a reload discards                                                                                                                      |
@@ -248,7 +248,7 @@ with real time except where they fake `Date` to pin the second of a run.
 | Review focus: another tab's write in between              | 1    | none of its own: the lock is held by the recording; a deadlock fails every row of `undo_changes.rs`                                                                            |
 | Review focus: a refused write records nothing             | 4, 6 | `undo-coverage-inbox.test.tsx` row "a write refused by its hash leaves nothing to undo"                                                                                        |
 | Review focus: two lists in one second                     | 3    | a row of "moves of one list less than a second apart join one entry"                                                                                                           |
-| Review focus: review file created or deleted              | 8    | rows "a first comment", "Start over" of `undo-coverage.test.tsx`                                                                                                               |
+| Review focus: review file created or deleted              | 8    | rows "a first comment", "Start over" of `undo-coverage-reviews.test.tsx`                                                                                                       |
 | Review focus: the page already open                       | 5    | an assertion of "u from another page …": a second `u` on the open page keeps Back's target                                                                                     |
 | Replaced: `d` asks first                                  | 9    | `inbox-note-delete.test.tsx` and two tests of `keys-row-editing.test.tsx` rewritten, as the spec lists                                                                         |
 | Replaced: `u` only while its toast shows                  | 5    | `undo-toast.test.tsx` "an Undo that rejects shows its failure in the page" removed                                                                                             |
@@ -734,25 +734,27 @@ git commit -m "feat(global-undo): every edit of the priorities and proposals can
 
 **Files:**
 
-- Modify: `useReviewActions.ts`, and where its results land (`review/useReview.tsx`,
-  `ReviewComments.tsx`, `YourReview.tsx` only as needed)
-- Test: rows of `undo-coverage.test.tsx`
+- Modify: `useReviewActions.ts`
+- Test: `packages/web/src/__tests__/undo-coverage-reviews.test.tsx`
 
 **Interfaces:**
 
 - Consumes: as task 6.
 - Produces: a comment's add ("Added a comment"), edit ("Edited a comment"), and removal ("Removed a
   comment"), and Start over ("Started the review over"), each with its toast; the place is the
-  reviewed file's page, with the comment's block selected when it has one. The page's comments come
-  back from the file once the undo lands, and a comment typed but not sent stays.
+  reviewed file's page, `/f/<folder>/<file>`, alone, as the review page selects no block on arrival.
+  Each undo and redo reads the reviewed file again, so the page's comments come back from the file
+  once it lands; an edit typed but not sent, kept or open, follows its comment's number back and
+  forth, and a new comment typed stays. A refusal names the comment's first line, or "Your review"
+  for Start over (ruling R11).
 
-- [ ] **Step 1: Write the failing test**: the rows "a first comment", "an edited comment", "a
+- [x] **Step 1: Write the failing test**: the rows "a first comment", "an edited comment", "a
       comment removed", and "Start over", on a spec of the fixture: after `u`, the review file is as
       before, absent after the first comment's undo, back with every comment after Start over's.
-- [ ] **Step 2: Run it to check it fails**: as task 6, the review file unchanged after `u`
-- [ ] **Step 3: Record each write**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run it to check it fails**: as task 6, no entry recorded, so no toast
+- [x] **Step 3: Record each write**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
