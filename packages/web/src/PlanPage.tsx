@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
+import { useCursor } from "./cursor/useCursor.ts";
 import type { useFile } from "./data.ts";
 import { useHashFold } from "./Folds.tsx";
 import { Page, pageText } from "./layout/Page.tsx";
@@ -225,9 +226,10 @@ function ReviewedPlan({
  * A plan, in panes in its file's order, its column of Contents, and Session where the agent can be
  * asked, beside it: waiting for review, with the review's selection, comments, and verdict;
  * otherwise read as it is now. Its session's draft is kept whatever its status, and so are its
- * review's refusals, for an approval taken back.
+ * review's refusals, for an approval taken back. The keyboard's cursor moves along it.
  */
 export function PlanPage({ file }: { file: File }) {
+  useCursor();
   const session = usePageSession(file);
   const kept = useVerdictState(file);
   return file.status === "awaiting-human" ? (

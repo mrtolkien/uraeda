@@ -92,6 +92,7 @@ export function useReview(
   const storyComments = useStoryComments(file);
   const blocks = useReviewSelection({
     actions,
+    changes: file.decisionChanges,
     commentDraft,
     comments,
     container,

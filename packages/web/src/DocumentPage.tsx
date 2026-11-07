@@ -6,6 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
+import { useCursor } from "./cursor/useCursor.ts";
 import type { useFile } from "./data.ts";
 import { documentEntries } from "./document/entries.ts";
 import { SectionPane } from "./document/SectionPane.tsx";
@@ -26,10 +27,11 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 
 /**
  * A workflow file, drawn from the core's document tree, in panes: a document with no `##` section
- * is one pane, titled by its file's name.
+ * is one pane, titled by its file's name. The keyboard's cursor moves along it.
  */
 export function DocumentPage({ file }: { file: File }) {
   const here = useRepoPath();
+  useCursor();
   const session = usePageSession(file);
   const selection = useAskSelection(file, session?.ask);
   const { document } = file.current;

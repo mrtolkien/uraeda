@@ -9,6 +9,7 @@ import {
   fieldText,
   fixture,
   fixtureRepo,
+  hold,
   git,
   renderPage,
   serverFetch,
@@ -442,6 +443,33 @@ test("a block selected from its toggle gives its comment field the focus", async
   await click(toggle);
   const text = await field();
   await waitFor(() => expect(document.activeElement).toBe(text));
+});
+
+/** Presses a key where the focus is, as a user's reaches the window; a capital typed with Shift. */
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key,
+      shiftKey: /^[A-Z]$/.test(key),
+    });
+  });
+}
+
+/**
+ * US2 1–2: `J` on a held block stretches the comment's range to the next, and Enter opens one
+ * comment on both blocks' lines. Breaks: `J` moving without stretching, Enter on the head alone.
+ */
+test("J then Enter writes one comment on both scenarios' lines", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await openUS2();
+  hold(await scenario(FIRST));
+  await press("J");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
+  await press("Enter");
+  await comment("Both.");
+  await saved(/^C1/, "Both.");
+  expect(read(r, REVIEW)).toMatch(/## C1: Lines 92–95\b[^#]*Both\./);
 });
 
 /**
