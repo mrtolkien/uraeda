@@ -14,16 +14,20 @@ decisions. None binds future work: those are decisions.
   to close it.
 - **Where**: `packages/web/src/layout/Sheet.tsx`, `useTopSwipe`
 
-## R2: An info sheet's swipe stays Astryx's
+## R2: Every sheet closes on the sheet's own swipe, once
 
-- **Decision**: On an `info` sheet, Astryx alone closes it on a swipe down; the sheet's own swipe
-  only takes it up.
-- **Rationale**: Closing it from both would close it twice, and the second close goes Back once
-  more, off the page.
-- **If wrong**: If Astryx's own swipe fails on a phone, an info sheet (the key map, a picker) does
-  not close on a swipe. Passing `onClose` for every sheet, with a guard against the second close,
-  fixes it.
-- **Where**: `packages/web/src/layout/Sheet.tsx`, `Sheet`
+- **Decision**: An `info` sheet closes on the sheet's own swipe down too, not on Astryx's alone. A
+  close that comes within 600 ms of another, from Astryx's gesture or the sheet's, is the same one,
+  and is dropped.
+- **Rationale**: Astryx's handle reads pointer events alone, which a phone's browser may take back
+  for its own gestures: on such a phone, the key map and the pickers would not close on a swipe.
+  Closing from both, without the guard, would close twice, and the second close goes Back once more,
+  off the page.
+- **Alternatives considered**: Leaving an info sheet's swipe to Astryx: it closes them only after a
+  fling, or a drag past 40% of their height, where a form closes after 48 px.
+- **If wrong**: An Escape or a tap outside within 600 ms of a swipe whose form asked to keep its
+  text is dropped once. The Close button is never dropped.
+- **Where**: `packages/web/src/layout/Sheet.tsx`, `useOneClose`
 
 ## R3: Only the sheet's top takes the swipe
 
