@@ -6,7 +6,7 @@ import type { Document, QuestionItem } from "uraeda-binding";
 import { useHeld } from "./cursor/held.ts";
 import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
 import { stopProps } from "./cursor/stops.ts";
-import { usePress } from "./keys/registry.tsx";
+import { useHints, usePress } from "./keys/registry.tsx";
 import { glassStyles } from "./layout/glass.ts";
 import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -226,8 +226,8 @@ const KEY_LETTERS = new Set(["A", "B", "C", "D", "E", "F"]);
  * A question's card as a stop of the keyboard's cursor: held, its options' letters from `a` to `f`
  * toggle them and save, but on a read-only round, which leaves the letters to the page; `i` or
  * Enter focuses its comment field, and `s` asks the agent, with `onAsk`. Its bar also names the
- * page's `n`, which goes on to the next blank question, pressed as the key is: the card does not
- * take it. The section is kept in a state, as its keys' bar is drawn from what it holds.
+ * page's `n`, where the page has it and the round is not read-only, which goes on to the next blank
+ * question, pressed as the key is: the card does not take it. The section is kept in a state, as its keys' bar is drawn from what it holds.
  */
 function useQuestionStop(
   answer: ReturnType<typeof useAnswer>,
@@ -260,7 +260,13 @@ function useQuestionStop(
     keys.push({ bar: "s", keys: "s", label: "ask", run: () => onAsk(question) });
   }
   useStopKeys(keys, held);
-  const shown = [...keys, { bar: "n", keys: "n", label: "unanswered", run: () => press("n") }];
+  // The page's `n`, named only where the page has it: the round's column declares it, which a
+  // read-only round does not mount.
+  const hasNext = useHints().some((hint) => hint.press === "n");
+  const shown =
+    !readOnly && hasNext
+      ? [...keys, { bar: "n", keys: "n", label: "unanswered", run: () => press("n") }]
+      : keys;
   return { bar: <StopBar held={held} keys={shown} />, held, setSection };
 }
 
