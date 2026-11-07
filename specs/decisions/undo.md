@@ -34,7 +34,7 @@ Git page like any edit.
 An undo the human can count on lets edits happen in one key, without a question each time: a
 confirmation asked for every write gets clicked through unread. Committing and starting actions hand
 work to git and the agent, which an undo cannot take back safely. Git stays the backstop, and the
-human's commits stay theirs. History: [Global undo](../2026-11-07-global-undo/spec.md).
+human's commits stay theirs. History: [Global undo](../done/2026-11-07-global-undo.md).
 
 ## Alternatives considered
 
