@@ -80,6 +80,10 @@ test("u from another page opens the action's page with what came back selected",
   const entries = window.history.length;
   await press("U");
   await waitFor(() => expect(read(repo, "specs/INBOX.md")).not.toContain("Loose note"));
+  await screen.findByText("Redone: moved to Now");
+  // Another row selected first: the undo has to select the row that came back.
+  await press("j");
+  await waitFor(() => expect(rowOf("Another note")?.getAttribute("aria-current")).toBe("true"));
   await press("u");
   await waitFor(() => expect(read(repo, "specs/INBOX.md")).toContain("- Loose note\n"));
   await waitFor(() => expect(rowOf("Loose note")?.getAttribute("aria-current")).toBe("true"));
