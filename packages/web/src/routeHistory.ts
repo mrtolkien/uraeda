@@ -90,6 +90,7 @@ export function selectOnArrival(id: string | undefined, key: string) {
   if (id === undefined || entry().id !== id) {
     return;
   }
+  named += 1;
   window.history.replaceState({ ...entry(), select: key }, "");
   for (const listener of arrivals) {
     listener();
@@ -98,6 +99,14 @@ export function selectOnArrival(id: string | undefined, key: string) {
 
 /** Who hears `selectOnArrival` name a row: the lists that select it. */
 const arrivals = new Set<() => void>();
+
+/** How many rows `selectOnArrival` named: the same row named again is a new naming. */
+let named = 0;
+
+/** How many rows `selectOnArrival` named so far. */
+export function namedCount() {
+  return named;
+}
 
 /** Calls `onChange` each time a row is named for the page to select; returns the unsubscribe. */
 export function subscribeArrival(onChange: () => void) {

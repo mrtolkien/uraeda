@@ -1,12 +1,10 @@
 // T3, on an iPhone from the home screen: what is typed, and the button that sends it, stay above
-// the keyboard; the phone hints no key; the priorities are one column there; its sidebar copies no
-// tab; and a card is a head line over its text.
-import { LayerProvider } from "@astryxdesign/core/Layer";
+// the keyboard; the priorities are one column there; its sidebar copies no tab; and a card is a
+// head line over its text. Its toast's button, which hints no key there, is in `undo-toast`.
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { scrollAboveKeyboard, useAboveKeyboard } from "../layout/useAboveKeyboard.ts";
-import { useUndoToast } from "../layout/useUndoToast.ts";
 import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
 
 /** A visual viewport the test moves, as a phone's keyboard does as it opens. */
@@ -71,44 +69,6 @@ test("while a field of the box is typed in, the keyboard opening scrolls its Sen
     await new Promise((done) => requestAnimationFrame(done));
   });
   await waitFor(() => expect(scroll).toHaveBeenCalledWith({ top: 336 - 40 + 8 }));
-});
-
-/** A toast with an Undo, as a change the page does not show. */
-function Toasting() {
-  const toast = useUndoToast();
-  useEffect(() => {
-    toast("Moved to Later", () => Promise.resolve(undefined));
-  }, [toast]);
-  return null;
-}
-
-/** The toast's Undo, once shown. */
-function undo() {
-  return waitFor(() => {
-    const button = document.querySelector<HTMLButtonElement>("[data-undo] button");
-    expect(button).not.toBeNull();
-    return button!;
-  });
-}
-
-// Break: "Undo u" on a touch screen, where no key is hinted.
-test("on the phone, the toast's Undo shows no key; on a wide screen it shows `u`", async () => {
-  atWidth(402);
-  const phone = render(
-    <LayerProvider>
-      <Toasting />
-    </LayerProvider>,
-  );
-  expect((await undo()).textContent?.trim()).toBe("Undo");
-  phone.unmount();
-
-  atWidth(1440);
-  render(
-    <LayerProvider>
-      <Toasting />
-    </LayerProvider>,
-  );
-  await waitFor(async () => expect((await undo()).textContent).toMatch(/Undo\s*u/));
 });
 
 // Break: four columns on a phone, scrolled sideways, Next and Later past the screen's edge.

@@ -97,3 +97,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   context's in the server, as the tests replace it.
 - **If wrong**: splitting it into two types is a second data view and its registrations.
 - **Where**: task 4, `packages/server/src/fate/views-undo.ts`
+
+## R9: The promotions record their change in task 5
+
+- **Decision**: the four promotions of a note (to a level, under a proposal, into a proposal file,
+  into a proposal line) record `changeEntry` with the change they answer in task 5, rather than
+  their own undo with a redo, ahead of task 6. Every other existing caller keeps its own undo until
+  tasks 6 to 8.
+- **Rationale**: task 5's test of a committed action undoes a promotion, and only an entry made from
+  a change has the committed check; the change also gives the promotions their redo.
+- **If wrong**: the promotions' own reverses (`inbox.undoToProposal` and the others) were more
+  forgiving of an edit of either file since; going back is their former toast's undo, from git.
+- **Where**: task 5, `packages/web/src/useNoteActions.ts`
+
+## R10: Every action's toast says it waits on the Git page
+
+- **Decision**: `useUndo` adds ` · waits on the Git page` to every entry's label, those whose toast
+  did not say it before too ("Removed … from the note's file", "Deleted the note"), but for the New
+  page's "Draft replaced", which the browser holds.
+- **Rationale**: the spec's toast of an action is its label and ` · waits on the Git page`; each of
+  these writes does wait on it.
+- **Where**: task 5, `packages/web/src/undo/useUndo.ts`; `inbox-images.test.tsx` reads the new text
