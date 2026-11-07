@@ -254,6 +254,31 @@ fn resolve_rows() -> Vec<(&'static str, Row)> {
             },
         ),
         (
+            "self-loop",
+            Row {
+                files: &[("a.toml", b"mode = \"dark\"\nextends = \"a\"\n")],
+                file: "a.toml",
+                listed: false,
+                message: Message::Exactly("extends forms a loop: a \u{2192} a."),
+                line: Some(2),
+            },
+        ),
+        (
+            "parent with problems of its own",
+            Row {
+                files: &[
+                    ("dim.toml", b"mode = \"dim\"\n"),
+                    ("child.toml", b"mode = \"dark\"\nextends = \"dim\"\n"),
+                ],
+                file: "child.toml",
+                listed: true,
+                message: Message::Exactly(
+                    "extends \"dim\", which has problems of its own: see its row.",
+                ),
+                line: Some(2),
+            },
+        ),
+        (
             "other mode",
             Row {
                 files: &[(
@@ -319,6 +344,18 @@ fn name_rows() -> Vec<(&'static str, Row)> {
                 listed: true,
                 message: Message::Exactly("Line 3: inkk is not a role, and is ignored."),
                 line: Some(3),
+            },
+        ),
+        (
+            "unknown key",
+            Row {
+                files: &[("odd.toml", b"mode = \"dark\"\ncolour = \"x\"\n")],
+                file: "odd.toml",
+                listed: true,
+                message: Message::Exactly(
+                    "Line 2: colour is not a key of a theme, and is ignored.",
+                ),
+                line: Some(2),
             },
         ),
         (
@@ -501,4 +538,124 @@ fn a_dangling_symlink_is_a_row_that_could_not_be_read() {
     let messages: Vec<_> = row.problems.iter().map(|p| p.message.as_str()).collect();
     assert_eq!(messages, ["Could not read: entity not found."]);
     assert_shipped_listed(&read);
+}
+
+#[test]
+fn mode_comes_from_extends_when_absent() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        &[("dusk.toml", b"extends = \"catppuccin-mocha\"\n")],
+    );
+    let read = themes::read(dir.path());
+    assert_eq!(theme(&read, "dusk").map(|t| t.mode.as_str()), Some("dark"));
+    assert_eq!(file(&read, "dusk.toml").mode.as_deref(), Some("dark"));
+}
+
+#[test]
+fn a_light_theme_extending_an_unknown_theme_extends_latte() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        &[("day.toml", b"mode = \"light\"\nextends = \"x\"\n")],
+    );
+    let read = themes::read(dir.path());
+    let latte = theme(&read, DEFAULT_LIGHT).unwrap();
+    assert_eq!(theme(&read, "day").expect("day listed").roles, latte.roles);
+}
+
+#[test]
+fn a_huge_file_is_one_row_that_could_not_be_read() {
+    let dir = tempdir();
+    let huge = format!("mode = \"dark\"\n{}", "# padding\n".repeat(110_000));
+    write(dir.path(), &[("huge.toml", huge.as_bytes())]);
+    let read = themes::read(dir.path());
+    let row = file(&read, "huge.toml");
+    assert!(!row.is_listed);
+    let messages: Vec<_> = row.problems.iter().map(|p| p.message.as_str()).collect();
+    assert_eq!(messages, ["Could not read: the file is over 1 MB."]);
+    assert_shipped_listed(&read);
+}
+
+/// The warnings of a light theme of `roles`, over Latte.
+fn warnings(roles: &str) -> Vec<String> {
+    let dir = tempdir();
+    let text = format!("mode = \"light\"\n[roles]\n{roles}");
+    write(dir.path(), &[("probe.toml", text.as_bytes())]);
+    let read = themes::read(dir.path());
+    let row = file(&read, "probe.toml");
+    assert!(row.is_listed, "{:?}", row.problems);
+    row.problems
+        .iter()
+        .filter(|problem| problem.is_warning)
+        .map(|problem| problem.message.clone())
+        .collect()
+}
+
+#[test]
+fn a_ratio_just_under_the_floor_is_truncated_never_shown_as_the_floor() {
+    // #777777 on white is 4.48:1.
+    let warnings = warnings("page = \"#ffffff\"\nraised = \"#ffffff\"\nink = \"#777777\"\n");
+    assert!(
+        warnings.contains(&"ink is 4.4:1 on page, under 4.5.".to_owned()),
+        "{warnings:?}"
+    );
+}
+
+#[test]
+fn a_mark_is_measured_at_three_to_one() {
+    // #8a8a8a on white is 3.45:1: under the text floor, over the marks'.
+    let warnings = warnings("page = \"#ffffff\"\nraised = \"#ffffff\"\nrule = \"#8a8a8a\"\n");
+    assert!(
+        !warnings.iter().any(|warning| warning.starts_with("rule ")),
+        "{warnings:?}"
+    );
+}
+
+#[test]
+fn syntax_is_measured_on_code_ground() {
+    // Black passes on a white page, and fails on a dark grey code ground.
+    let warnings =
+        warnings("page = \"#ffffff\"\ncode-ground = \"#333333\"\nsyntax-keyword = \"#000000\"\n");
+    let keyword: Vec<_> = warnings
+        .iter()
+        .filter(|warning| warning.starts_with("syntax-keyword "))
+        .collect();
+    assert_eq!(keyword.len(), 1, "{warnings:?}");
+    assert!(
+        keyword[0].ends_with(" on code-ground, under 4.5."),
+        "{keyword:?}"
+    );
+}
+
+#[test]
+fn a_text_role_is_measured_on_raised_too() {
+    // Black passes on a white page, and fails on a dark grey raised surface.
+    let warnings = warnings("page = \"#ffffff\"\nraised = \"#555555\"\nink = \"#000000\"\n");
+    let ink: Vec<_> = warnings
+        .iter()
+        .filter(|warning| warning.starts_with("ink is "))
+        .collect();
+    assert_eq!(ink.len(), 1, "{warnings:?}");
+    assert!(ink[0].ends_with(" on raised, under 4.5."), "{ink:?}");
+}
+
+#[test]
+fn the_schema_lists_every_role_in_order() {
+    let text = include_str!("../../../schemas/theme.json");
+    let schema: serde_json::Value = serde_json::from_str(text).unwrap();
+    let properties = schema["properties"]["roles"]["properties"]
+        .as_object()
+        .expect("the roles' properties");
+    let mut keys: Vec<&str> = properties.keys().map(String::as_str).collect();
+    let mut roles = ROLES.to_vec();
+    keys.sort_unstable();
+    roles.sort_unstable();
+    assert_eq!(keys, roles, "the schema's roles are ROLES");
+    // serde_json sorts its keys: the order is the text's.
+    let at: Vec<usize> = ROLES
+        .iter()
+        .map(|role| text.find(&format!("\"{role}\": {{")).unwrap())
+        .collect();
+    assert!(at.is_sorted(), "the schema's roles in ROLES' order");
 }
