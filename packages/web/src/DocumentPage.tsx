@@ -27,13 +27,14 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 
 /**
  * A workflow file, drawn from the core's document tree, in panes: a document with no `##` section
- * is one pane, titled by its file's name. The keyboard's cursor moves along it.
+ * is one pane, titled by its file's name. The keyboard's cursor moves along it where the agent can be
+ * asked, its blocks stops.
  */
 export function DocumentPage({ file }: { file: File }) {
   const here = useRepoPath();
-  useCursor();
   const session = usePageSession(file);
   const selection = useAskSelection(file, session?.ask);
+  useCursor(selection !== undefined);
   const { document } = file.current;
   const { opening, sections } = planParts(document, undefined);
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);

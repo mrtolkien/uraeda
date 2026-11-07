@@ -413,8 +413,10 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   around a stop, its element as its `id`. `null` at either end: the key goes on to the scroll
   fallback. `scrollFor(next: Box, held: Box | undefined, view: View): number`, the scroll of a move
   to a given stop, which `focusStop` uses.
-- Produces, `cursor/useCursor.ts`: `useCursor(): void`, the page's `j` `↓` (hint "j k", "move"), `k`
-  `↑`, and Escape (clears the cursor; `false` when no stop is focused); and
+- Produces, `cursor/useCursor.ts`: `useCursor(on = true): void`, the page's `j` `↓` (hint "j k",
+  "move"), `k` `↑`, and Escape (clears the cursor; `false` when no stop is focused), only while
+  `on`: a spec or plan under review, a document with Ask
+  ([R14](rulings.md#r14-the-cursor-is-on-only-where-blocks-are-stops)); and
   `focusStop(stop: HTMLElement, from?: HTMLElement): void`, which focuses a stop and scrolls by the
   rule, for a stop's own keys such as `J`.
 - Produces, `cursor/StopKeys.tsx`:

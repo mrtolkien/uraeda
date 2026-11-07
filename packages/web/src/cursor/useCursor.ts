@@ -159,8 +159,11 @@ function refocus(stop: HTMLElement) {
  * now at its place, or the last. The stop is remembered while it holds the focus: once it lets the
  * focus go and stays on the page, by Escape or a mouse move, a redraw brings no cursor back.
  */
-function useKeepHeld() {
+function useKeepHeld(on: boolean) {
   useEffect(() => {
+    if (!on) {
+      return;
+    }
     let last: { index: number; stop: HTMLElement } | null = null;
     const onFocus = () => {
       const stop = heldStop();
@@ -195,15 +198,19 @@ function useKeepHeld() {
       document.removeEventListener("focusout", onBlur);
       observer.disconnect();
     };
-  }, []);
+  }, [on]);
 }
 
+const NONE: ReadonlyArray<Binding> = [];
+
 /**
- * The cursor's keys, for as long as the page is mounted: `j` `↓` and `k` `↑` move it, "j k move" in
- * the status line, and Escape clears it. Only while a page mounts it does a stop show as held.
+ * The cursor's keys, for as long as the page is mounted and `on`: `j` `↓` and `k` `↑` move it, "j k
+ * move" in the status line, and Escape clears it. Only while a page has it does a stop show as held.
+ * A page is `on` where its blocks are stops, a spec under review, a document with Ask: elsewhere its
+ * folds alone would be stops, and `j` `k` scroll the text as they do on any page (R14).
  */
-export function useCursor(): void {
-  useKeys(BINDINGS);
-  useKeepHeld();
-  useEffect(cursorOn, []);
+export function useCursor(on = true): void {
+  useKeys(on ? BINDINGS : NONE);
+  useKeepHeld(on);
+  useEffect(() => (on ? cursorOn() : undefined), [on]);
 }
