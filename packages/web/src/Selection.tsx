@@ -145,6 +145,23 @@ export function linesMark(start: number, end: number, decision?: Range["decision
   return `${decision ? sideMark(decision) : ""}${start}-${end}`;
 }
 
+/**
+ * The lines a mark of `linesMark` stands for, read back: its decision's side, if any, then its
+ * lines; `undefined` for anything else.
+ */
+export function linesOfMark(mark: string): Pick<Range, "decision" | "end" | "start"> | undefined {
+  const match = /^(?:(.+?)( removed)?:)?(\d+)-(\d+)$/.exec(mark);
+  if (!match) {
+    return undefined;
+  }
+  const [, name, removed, start, end] = match;
+  return {
+    ...(name === undefined ? {} : { decision: { name, removed: removed !== undefined } }),
+    end: Number(end),
+    start: Number(start),
+  };
+}
+
 /** What starts the mark of each part of a decision's side, `linesMark`. */
 export function sideMark(decision: NonNullable<Range["decision"]>) {
   return `${decision.name}${decision.removed ? " removed" : ""}:`;
