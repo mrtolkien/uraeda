@@ -6,11 +6,9 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::Path;
 
+use crate::actions::attach::SPECS;
 use crate::actions::change::{files_under, remove_empty_folders};
 use crate::git::Git;
-
-/// The folder whose files a deferred commit can put back.
-const SPECS: &str = "specs";
 
 /// What a file under `specs/` held.
 #[derive(Clone, Debug, PartialEq, Eq)]
