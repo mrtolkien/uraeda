@@ -72,15 +72,10 @@ async function noteImage(context: Context<{ Variables: FateVariables }>) {
     const names = images.map((_, index) => queried[index] ?? "");
     const path =
       id === undefined
-        ? await ctx.binding.addNoteWithImages(
-            ctx.repo,
-            text ?? "",
-            hash,
-            images,
-            names,
-            field("category"),
-            field("about"),
-          )
+        ? await ctx.binding.addNoteWithImages(ctx.repo, text ?? "", hash, images, names, {
+            about: field("about"),
+            category: field("category"),
+          })
         : await ctx.binding.attachNoteImages(ctx.repo, id, hash, images, names);
     return context.json({ file: path });
   } catch (error) {

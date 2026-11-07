@@ -11,6 +11,7 @@ use napi::bindgen_prelude::{AsyncTask, Buffer, ToNapiValue, TypeName};
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
+use undo::{recording, scope};
 use uraeda_core::api::{self, ApiError, BranchDecision, Ledger};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
@@ -37,6 +38,7 @@ pub mod note_images;
 pub mod proposal_writes;
 pub mod settings;
 pub mod start;
+pub mod undo;
 
 /// A core operation, run off the main thread.
 pub struct Job<T: Send + 'static> {
@@ -196,8 +198,11 @@ pub fn expand_proposal(
     repo: String,
     id: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<ProposalFileView>> {
-    job(move || api::expand_proposal(Path::new(&repo), &id, &previous))
+    recording(repo, undo, scope(api::undo::EXPAND), move |repo: &Path| {
+        api::expand_proposal(repo, &id, &previous)
+    })
 }
 
 /// Saves a proposal file or a proposal as typed, over the version read at `previous`; resolves with
@@ -323,9 +328,18 @@ pub fn attach_image(
     path: String,
     bytes: Buffer,
     name: Option<String>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<AttachedView>> {
     let bytes = Vec::<u8>::from(bytes);
-    job(move || api::attach_image(Path::new(&repo), &path, &bytes, name.as_deref()))
+    recording(
+        repo,
+        undo,
+        {
+            let scope = api::undo::attached(&path);
+            move |_: &Path| Ok(scope)
+        },
+        move |repo: &Path| api::attach_image(repo, &path, &bytes, name.as_deref()),
+    )
 }
 
 /// Checks and re-encodes an image for a chat message, without writing it. `name` is its file name,

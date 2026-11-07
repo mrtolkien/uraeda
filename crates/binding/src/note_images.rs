@@ -7,8 +7,10 @@ use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
 use uraeda_core::actions::inbox::RemovedImage;
 use uraeda_core::api;
+use uraeda_core::api::undo;
 use uraeda_core::files::inbox::Inbox;
 
+use super::undo::recording;
 use super::{Job, job};
 
 /// An image's removal's answer: the inbox, and what `restoreNoteImage` takes back.
@@ -27,11 +29,20 @@ pub fn remove_note_image(
     file: String,
     image: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<NoteImageRemoved>> {
-    job(move || {
-        let (inbox, removed) = api::remove_note_image(Path::new(&repo), &file, &image, &previous)?;
-        Ok(NoteImageRemoved { inbox, removed })
-    })
+    recording(
+        repo,
+        undo,
+        {
+            let scope = undo::note_image(&file);
+            move |_: &Path| Ok(scope)
+        },
+        move |repo: &Path| {
+            let (inbox, removed) = api::remove_note_image(repo, &file, &image, &previous)?;
+            Ok(NoteImageRemoved { inbox, removed })
+        },
+    )
 }
 
 /// Takes back an image's removal: its lines go back where they were, over the proposal file as it

@@ -49,3 +49,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   token adds an optional parameter rather than changing the answer of about 25 functions and their
   callers.
 - **Where**: tasks 1 and 4
+
+## R5: Two binding functions fold two arguments to take the token
+
+- **Decision**: `addComment` takes its lines as one `lines?: { start, end? }` instead of `startLine`
+  and `endLine`, and `addNoteWithImages` its category and `about` as one
+  `note?: { category?, about? }`, so that each takes the `undo` token within 7 arguments.
+- **Rationale**: clippy's limit of 7 arguments, from the code quality decision, refuses an eighth,
+  and a lint exemption is a new marker, which needs the human's approval. Each function has one
+  caller in the server, changed with it.
+- **If wrong**: an exemption marker, approved, would give back the separate arguments.
+- **Where**: task 1, and the server's `attach.ts` and `fate/file-mutations.ts`
+
+## R6: The scope of an image's removal and an image's attachment
+
+- **Decision**: an image's removal records the inbox and the folder of the file it leaves, a note
+  file's or a proposal file's, rather than `NOTES`; an image attached to a single proposal file or
+  note file records all of `specs/`, the file becoming a folder and its links followed in every
+  file, and one attached to any other file, its folder.
+- **Rationale**: `removeNoteImage` also takes images out of proposal files, outside `specs/notes`,
+  and the relink of a single file that becomes a folder may write any file of `specs/`: a narrower
+  scope would leave part of the write out of its undo.
+- **If wrong**: a large `specs/` makes the first image of a single file slower to record; the scope
+  narrows to the lists and the file's folder at the cost of links elsewhere left moved.
+- **Where**: task 1
