@@ -18,7 +18,6 @@ import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { targetVars } from "./layout/target.stylex.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
-import { UndoKey, useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
@@ -33,6 +32,8 @@ import { SingleKeysSetting } from "./settings/SingleKeysSetting.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { StatusLineCoverProvider } from "./statusHints.tsx";
 import { CommitToast } from "./writes/CommitToast.tsx";
+import { useUndoErrors } from "./undo/pageErrors.ts";
+import { UndoKeys } from "./undo/UndoKeys.tsx";
 import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
@@ -112,7 +113,7 @@ const styles = stylex.create({
   },
 });
 
-/** The errors of refused Undos, each until dismissed. */
+/** The refusals of undos and redos, and of writes whose form closed, each until dismissed. */
 function UndoErrors() {
   const [errors, dismiss] = useUndoErrors();
   const wide = !isNarrow(useWidthClass());
@@ -265,7 +266,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                   <CommitToast />
                 </Suspense>
                 <ScrollKeys />
-                <UndoKey />
+                <UndoKeys />
                 <LeaderKeys />
                 <NotifyBanner />
                 <Notifier />

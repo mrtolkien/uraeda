@@ -1,89 +1,55 @@
-// Mockups of the global undo (specs/2026-11-07-global-undo): a delete that goes at once, with the
-// toast's Undo; the toast an undo shows, with its Redo, and `U` in the status line while there is
-// something to redo; the question an undo asks once its action was committed; and an undo refused
-// because what it would restore changed since.
-import { Button } from "@astryxdesign/core/Button";
+// The states of the global undo (specs/2026-11-07-global-undo), drawn by the undo stack itself over
+// the home: a delete's toast, with Undo; the toast an undo shows, with its Redo, and `U` in the
+// status line while there is something to redo; the question an undo asks once its action was
+// committed; and an undo refused because what it would restore changed since. Each records an
+// entry that writes nothing, then presses `u` as the keyboard would.
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createElement, useEffect } from "react";
+import { useEffect } from "react";
 import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
-import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
+import { ConfirmHost } from "../fields/Confirm.tsx";
 import { Home } from "../Home.tsx";
-import { KeyCap } from "../keys/KeyCap.tsx";
-import { useKeys } from "../keys/registry.tsx";
+import { pressKeys } from "../keys/press.ts";
+import { localPath } from "../routes.tsx";
 import { Shell } from "../Shell.tsx";
-import { showPageError } from "./useUndoToast.ts";
-import { useTimedToast } from "./useTimedToast.tsx";
+import { type UndoEntry, undoStack } from "../undo/stack.ts";
+import { useUndo } from "../undo/useUndo.ts";
 
-/** How long a mockup's toast stays: long enough to review it, where the app's stays 5 seconds. */
-const REVIEW_MS = 600_000;
+type State = "deleted" | "undone" | "committed" | "refused";
 
-/** A toast as the undo stack shows it: what happened, and one button with its key. */
-function useMockToast(body: string, label: string, key: string) {
-  const showToast = useTimedToast();
+/** "Color themes" deleted from Next, or moved, on the page open: its undo and redo write nothing. */
+function actionOf(state: State): UndoEntry {
+  return {
+    ...(state === "committed" ? { committed: async () => true } : {}),
+    label: state === "committed" ? "Moved “Color themes” to Now" : "Deleted “Color themes”",
+    place: { path: localPath(window.location.pathname) },
+    redo: async () => undefined,
+    undo: async () =>
+      state === "refused"
+        ? "Could not undo: “Color themes” changed since in PRIORITIES.md."
+        : undefined,
+  };
+}
+
+/** Records the action, then, but for the delete's own toast, presses `u`. */
+function Acting({ state }: { state: State }) {
+  const record = useUndo();
   useEffect(() => {
-    showToast({
-      autoHideDuration: REVIEW_MS,
-      body,
-      endContent: createElement(Button, {
-        endContent: createElement(KeyCap, null, key),
-        label,
-        variant: "ghost",
-      }),
-    });
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the action shows it
-  }, []);
-}
-
-/** `d` on "Color themes" in Next: the line goes at once, and the toast offers its Undo. */
-function Deleted() {
-  useMockToast("Deleted “Color themes” · waits on the Git page", "Undo", "u");
+    undoStack.clear();
+    record(actionOf(state));
+    if (state !== "deleted") {
+      pressKeys("u");
+    }
+  }, [record, state]);
   return null;
 }
 
-/**
- * `u` after it: the line is back in Next, selected, and the toast says what came back, with Redo.
- * `U` shows in the status line while there is something to redo.
- */
-function Undone() {
-  useKeys([{ hint: "U", keys: "U", label: "redo", run: () => undefined }], "shell");
-  useMockToast("Undone: deleted “Color themes”", "Redo", "U");
-  return null;
-}
-
-/** `u` on a move committed since on the Git page: the undo would be a new change, so it asks. */
-function AskCommitted() {
-  const confirm = useConfirm();
-  useEffect(() => {
-    void confirm({
-      body: "Moved “Color themes” to Now",
-      cancel: "Keep it",
-      confirm: "Undo",
-      detail:
-        "This change was committed since. Undoing it writes the reverse as a new change, which waits on the Git page.",
-      title: "Undo a committed change?",
-    });
-  }, [confirm]);
-  return null;
-}
-
-/** `u` once "Color themes" was edited elsewhere: nothing changes, and the page says why. */
-function Refused() {
-  useEffect(() => {
-    showPageError("Could not undo: “Color themes” changed since in PRIORITIES.md.");
-  }, []);
-  return null;
-}
-
-/** The shell around the home, with one of the states above over it, inside the shell's keys. */
-function UndoState({ state }: { state: "deleted" | "undone" | "committed" | "refused" }) {
+/** The shell around the home, with one of the states over it, inside the shell's keys. */
+function UndoState({ state }: { state: State }) {
   return (
     <ConfirmHost>
       <Shell>
         <Home />
-        {state === "deleted" && <Deleted />}
-        {state === "undone" && <Undone />}
-        {state === "committed" && <AskCommitted />}
-        {state === "refused" && <Refused />}
+        <Acting state={state} />
       </Shell>
     </ConfirmHost>
   );
@@ -94,7 +60,7 @@ const meta = {
   component: UndoState,
   decorators: [inRepositoryFolder],
   parameters: { layout: "fullscreen" },
-  title: "Mockups/Global undo",
+  title: "Global undo",
 } satisfies Meta<typeof UndoState>;
 
 export default meta;

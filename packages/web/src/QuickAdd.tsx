@@ -8,7 +8,7 @@ import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
-import { showPageError } from "./layout/useUndoToast.ts";
+import { showPageError } from "./undo/pageErrors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { proposalAdded } from "./optimisticLists.ts";
 import { TextField } from "./fields/TextField.tsx";

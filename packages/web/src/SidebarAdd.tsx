@@ -15,12 +15,11 @@ import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
 import { addUndone, proposalRemoved } from "./optimisticLists.ts";
 import { useRoute } from "./routes.tsx";
+import { cannotRedo, useUndo } from "./undo/useUndo.ts";
 import { InboxView, PrioritiesView } from "./views.ts";
-import { waitsOnGit } from "./writes/labels.ts";
 
 /** The form a ＋ opened, if any. */
 type Form = "note" | "proposal" | undefined;
@@ -158,12 +157,12 @@ function ProposalOverlay({
   section?: string;
 }) {
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const record = useUndo();
 
   // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
     const title = titleOf(section);
-    toast(waitsOnGit(`Added to ${title}`), async () => {
+    const undo = async () => {
       // Found again in the file as it is now, by its text: the proposal it added, wherever it is.
       const now = await readPriorities(fate);
       const same = now.sections.flatMap((s) => s.proposals).filter((p) => p.text === line?.text);
@@ -177,7 +176,20 @@ function ProposalOverlay({
         view: PrioritiesView,
       });
       return result.error ? refusal(result.error).message : undefined;
-    });
+    };
+    // The line written again at its section's end, over the priorities as they are now.
+    const redo = async () => {
+      if (!line) {
+        return cannotRedo(`Added to ${title}`)();
+      }
+      const now = await readPriorities(fate);
+      const result = await fate.mutations.proposals.add({
+        input: { hash: now.hash, section, text: line.text },
+        view: PrioritiesView,
+      });
+      return result.error ? refusal(result.error).message : undefined;
+    };
+    record({ label: `Added to ${title}`, place: { path: "/priorities" }, redo, undo });
   };
 
   return (
@@ -230,24 +242,31 @@ function NoteOverlay({
   picked: ReturnType<typeof usePickedImages>[1];
 }) {
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const record = useUndo();
   const { route } = useRoute();
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
   const added = ({ file, note }: NoteAdded) => {
     onClose();
+    const place = { path: "/inbox" };
     if (file === undefined) {
-      toast(waitsOnGit("Added to the inbox"), () => undoAdd(fate, note));
+      const label = "Added to the inbox";
+      record({ label, place, redo: cannotRedo(label), undo: () => undoAdd(fate, note) });
       return;
     }
     picked.clear();
     // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
-    toast(waitsOnGit("Added to the inbox as a file"), async () =>
-      note
-        ? undoAsFile(fate, note)
-        : `Could not undo: the note linking ${file} is no longer in INBOX.md.`,
-    );
+    const label = "Added to the inbox as a file";
+    record({
+      label,
+      place,
+      redo: cannotRedo(label),
+      undo: async () =>
+        note
+          ? undoAsFile(fate, note)
+          : `Could not undo: the note linking ${file} is no longer in INBOX.md.`,
+    });
   };
 
   // Asked before Close, Escape, or a click outside closes the form: it asks while it holds text.

@@ -17,12 +17,12 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ImageView } from "./ImageView.tsx";
 import { imageName, removeNoteImage, restoreNoteImage } from "./inboxImages.ts";
 import type { Inbox } from "./inboxPanes.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
 import { OutlineImages } from "./lists/OutlineEditor.tsx";
 import { useAttachToNote } from "./NoteImage.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
 import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { imagePath } from "./Spans.tsx";
+import { useUndo } from "./undo/useUndo.ts";
 
 const styles = stylex.create({
   // Under the row, from its text's edge, over the rows after it: it pushes none of them. On a
@@ -121,6 +121,37 @@ function noteOfRow(outline: Outline, key: string) {
 }
 
 /**
+ * The removal of an image from a note's file, recorded on the undo stack: its undo puts the lines
+ * linking it back, and its redo removes it again. A refusal goes to `onRefused`.
+ */
+function useImageRemoval(onRefused: (message: string | undefined) => void) {
+  const fate = useFateClient();
+  const record = useUndo();
+  return async (note: InboxNote, path: string) => {
+    const removed = await removeNoteImage(fate, note, path);
+    if (typeof removed === "string") {
+      onRefused(removed);
+      return;
+    }
+    // The last removal, which the undo puts back: a redo removes the image again.
+    let last = removed;
+    record({
+      label: `Removed ${imageName(path)} from the note's file`,
+      place: { path: "/inbox", select: note.key },
+      redo: async () => {
+        const again = await removeNoteImage(fate, note, path);
+        if (typeof again === "string") {
+          return again;
+        }
+        last = again;
+        return undefined;
+      },
+      undo: () => restoreNoteImage(fate, last),
+    });
+  };
+}
+
+/**
  * The images of the inbox's notes: `imagesOf` draws a note's under its row, `withPaste` gives a
  * row's field the paste of images into its note, and `dropZone` takes the files dropped on the page
  * for the selected note (`onSelected` hears it), or, with none, for a new note: the add form opens
@@ -137,8 +168,6 @@ export function useInboxImages({
   onRefused: (message: string | undefined) => void;
   outline: Outline;
 }) {
-  const fate = useFateClient();
-  const toast = useUndoToast();
   const openForm = useOpenAddForm();
   const { attach, status } = useAttachToNote();
   const box = useRef<HTMLDivElement>(null);
@@ -185,14 +214,7 @@ export function useInboxImages({
     ref: box,
   });
 
-  const remove = async (note: InboxNote, path: string) => {
-    const removed = await removeNoteImage(fate, note, path);
-    if (typeof removed === "string") {
-      onRefused(removed);
-      return;
-    }
-    toast(`Removed ${imageName(path)} from the note's file`, () => restoreNoteImage(fate, removed));
-  };
+  const remove = useImageRemoval(onRefused);
 
   return {
     /** Wraps the list: the drop's zone, outlined while it is the drop's target. */
