@@ -13,6 +13,7 @@ import { useFateClient } from "react-fate";
 import type { DataModelItems, DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
+import { useCursor } from "../cursor/useCursor.ts";
 import { useFile, usePreviewOn } from "../data.ts";
 import { readAlong, storyRead } from "../readAhead.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
@@ -278,7 +279,7 @@ function useDataModel(file: File, isReviewed: boolean) {
 
 /**
  * The page of a spec, `version` of `file`, drawn from its items, with `review` while it waits: its
- * comments, its selection, and its verdict, at the page's end.
+ * comments, its selection, and its verdict, at the page's end. The keyboard's cursor moves along it.
  */
 function SpecLayout({
   file,
@@ -293,6 +294,7 @@ function SpecLayout({
   session: PageSession | undefined;
   wide: boolean;
 }) {
+  useCursor();
   const data = useDataModel(file, review !== undefined);
   const version = review?.version ?? file.current;
   const items = version.items.spec;

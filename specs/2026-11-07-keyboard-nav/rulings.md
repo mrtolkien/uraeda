@@ -99,3 +99,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a column a key moves into could start from its topmost stop on screen instead of the
   next in document order.
 - **Where**: task 4, `cursor/useCursor.ts`, `keys/scroll.ts` (`areasOf`)
+
+## R9: The keys read a block's range from its mark
+
+- **Decision**: `J` `K` find the next or previous block among the cursor's `"block"` stops, and read
+  its lines from its element's `data-lines` mark: a block of the reviewed file takes its heading
+  from the document tree, a decision's part its section's title from the decisions the spec changes,
+  so `useKeyRange` takes `changes` beside `tree`. A held block's keys are made by `blockKeys`,
+  shared by the blocks and the decisions' parts. Enter clicks the toggle, the existing tap, so the
+  form opens under the head with the range merged. The plan's test named lines 92–93: those are the
+  first scenario's alone, the two scenarios span 92–95.
+- **Rationale**: the next block's range is not known until the cursor holds it, as `Selection.keys`
+  is called only while a toggle is held; the mark is the one place every selectable element names
+  its lines, and a decision's heading matters, as "Ask the agent" quotes a rule by it.
+- **Alternatives considered**: a `data-heading` mark beside `data-lines`, which every selectable
+  element would draw for the keys alone.
+- **Where**: task 6, `review/useKeyRange.ts`
