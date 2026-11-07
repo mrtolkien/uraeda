@@ -1061,20 +1061,20 @@ git commit -m "feat(color-themes): Space u t previews each theme in the page"
 - Produces: the message `{ uraeda: "mode", mode, palette?: { dark?: Tokens; light?: Tokens } }`; a
   frame given none keeps the built theme.
 
-- [ ] **Step 1: Implement the message and its use**
+- [x] **Step 1: Implement the message and its use**
 
 `StoryFrames` sends the drawn tokens with the mode, at ready and on every change; the preview checks
 the message's shape as it does the mode's (each token name `--…`, each value a `#` colour), and
 calls `applyPalette(palette, document)`. Storybook's own pages, with no parent, keep the built
 Catppuccin.
 
-- [ ] **Step 2: Run the task's validation, and look**
+- [x] **Step 2: Run the task's validation, and look**
 
 - Run: `nix develop -c vp check`, then `nix develop -c vp run storybook:build`
 - Expected: PASS. Then in the sandbox, a spec with stories, its frames in Dracula and in Alucard. No
   test: a look seen in use, at the early stage (testing decision). Deferred to `ready`: the rest.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web specs/2026-11-07-color-themes/plan.md

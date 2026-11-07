@@ -1,7 +1,7 @@
 /// <reference types="vite-plus/client" />
 // Every story of Uraeda's Storybook, as the app draws it: Astryx's stylesheets and Uraeda's theme,
-// with the fonts the app picked in this browser, or its defaults, in the colour mode of the page
-// that embeds it, inside the fixture repository's providers, on a
+// with the fonts the app picked in this browser, or its defaults, in the colour mode and the theme
+// of the page that embeds it, inside the fixture repository's providers, on a
 // fate client that reaches Uraeda's server in Storybook through GETs (R4), and that server's preview
 // URLs under Storybook's base (R43). The skill's pick script lets Uraeda's embeds pick an element in
 // it.
@@ -19,8 +19,9 @@ import { fateClients } from "../src/clients.ts";
 import { ListClientContext } from "../src/ListClient.tsx";
 import { RepositoryContext } from "../src/routes.tsx";
 import { PreviewBase } from "../src/stories.tsx";
-import type { Mode } from "../src/theme.tsx";
+import type { Drawn, Mode } from "../src/theme.tsx";
 import { uraedaTheme } from "../src/theme/built/uraeda.js";
+import { applyPalette } from "../src/theme/palette.ts";
 import { PickedFonts } from "../src/theme/PickedFonts.tsx";
 import { fetchOverGet, liveWithoutCredentials } from "./fateOverGet.ts";
 
@@ -35,11 +36,40 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 /** The fate clients, under Storybook's base. */
 const clientFor = fateClients({ fetch: fetchOverGet, origin: BASE });
 
+/** Whether `value` is a plain object. */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
- * The colour mode the embedding page sends, `{ uraeda: "mode", mode }`, from `window.parent` only;
- * the system's until then, and on Storybook's own pages. The page sends it as soon as the pick
- * script says the frame is ready, before the story renders: it is listened for as the preview
- * loads, and kept.
+ * The tokens of each mode a message carries, `{ dark?, light? }`, each a custom property's name to a
+ * `#` colour; nothing when the message has none or another shape. `applyPalette` checks each name
+ * and colour again before writing them.
+ */
+function paletteOf(palette: unknown): Drawn | undefined {
+  if (!isObject(palette)) {
+    return undefined;
+  }
+  const modes = Object.entries(palette);
+  const valid = modes.every(
+    ([mode, tokens]) =>
+      (mode === "dark" || mode === "light") &&
+      isObject(tokens) &&
+      Object.entries(tokens).every(
+        ([name, colour]) =>
+          name.startsWith("--") && typeof colour === "string" && colour.startsWith("#"),
+      ),
+  );
+  return valid ? (palette as Drawn) : undefined;
+}
+
+/**
+ * The colour mode the embedding page sends, `{ uraeda: "mode", mode, palette? }`, from
+ * `window.parent` only; the system's until then, and on Storybook's own pages. The page sends it as
+ * soon as the pick script says the frame is ready, before the story renders: it is listened for as
+ * the preview loads, and kept. The palette, the tokens the page draws, is drawn over the built
+ * theme, so the story shows the picked theme; a frame sent none, and Storybook's own pages, keep
+ * the built Catppuccin.
  */
 const embeddingMode = (() => {
   let mode: Mode = "system";
@@ -55,6 +85,10 @@ const embeddingMode = (() => {
       "mode" in data &&
       (data.mode === "light" || data.mode === "dark")
     ) {
+      const palette = "palette" in data ? paletteOf(data.palette) : undefined;
+      if (palette) {
+        applyPalette(palette, document);
+      }
       mode = data.mode;
       for (const listener of listeners) {
         listener();
