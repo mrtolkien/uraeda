@@ -356,7 +356,7 @@ function useProposalKeys(
         onMoveRefused?.(made.error ? refusal(made.error).message : "Nothing was made.");
         return;
       }
-      recordExpand(made.result, plain(proposal.spans));
+      recordExpand(made.result, plain(proposal.spans), proposal.key);
       navigate(here(`/edit/${path}`), { focus: "text" });
     })();
     return undefined;

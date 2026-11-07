@@ -236,15 +236,39 @@ test("the pane's rename, section, and delete each undo and redo", async () => {
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
 });
 
-// Break: an expand whose undo leaves the file, or the line out of the priorities.
-test("e expands a line into a file, which u takes back and U makes again", async () => {
+/** Whether the row of the priorities whose text is `text` is the one selected. */
+const isSelected = (text: string) =>
+  controlOf(text)?.closest("[data-row]")?.getAttribute("aria-current") === "true";
+
+/**
+ * Checks an expand of "Second", made through `expand`: `u` takes the file and the link back, and
+ * opens the priorities with "Second" selected, not the file's page, which the undo deleted.
+ */
+async function expandUndoesAndRedoes(expand: () => Promise<void>) {
   const repo = await onPriorities();
   const paths = ["specs/PRIORITIES.md", "specs/proposals/second.md"];
   const before = contents(repo, paths);
-  await press("e", focus("Second"));
+  await expand();
   await waitFor(() => expect(existsSync(join(repo, "specs/proposals/second.md"))).toBe(true));
   await screen.findByText("Expanded “Second” into a file · waits on the Git page");
+  await waitFor(() => expect(window.location.pathname).toContain("/edit/"));
   await undoesAndRedoes(repo, paths, before);
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities")));
+  await waitFor(() => expect(isSelected("Second")).toBe(true));
+}
+
+// Break: an expand whose undo leaves the file, the line out of the priorities, or the trip to the
+// file's page the undo deleted.
+test("e expands a line into a file, which u takes back and U makes again", async () => {
+  await expandUndoesAndRedoes(() => press("e", focus("Second")));
+});
+
+// Break: the pane's Expand placed at the file's page, which its undo deletes.
+test("the pane's Expand undoes to the priorities, the proposal selected", async () => {
+  await expandUndoesAndRedoes(async () => {
+    await act(async () => navigate(atRepo("/priorities/second")));
+    await click(await screen.findByRole("button", { name: "Expand" }));
+  });
 });
 
 // Break: the sidebar's adds keeping a redo that is refused, or none.

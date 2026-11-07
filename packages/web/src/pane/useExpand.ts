@@ -5,11 +5,11 @@ import { navigate, useRepoPath } from "../routes.tsx";
 import { ProposalFileChangeView } from "../undo/changeViews.ts";
 
 /**
- * Expands the proposal `proposal` of the priorities of `hash`, whose text is `text`, into a file,
- * and opens it. `run` shows a refusal in the pane.
+ * Expands the proposal `proposal` of the priorities of `hash`, its key `key` and its text `text`,
+ * into a file, and opens it. `run` shows a refusal in the pane.
  */
 export function useExpand(
-  proposal: string,
+  { id: proposal, key }: { id: string; key: string },
   hash: string,
   text: string,
   run: <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>,
@@ -23,7 +23,7 @@ export function useExpand(
     );
     const path = result.result?.path;
     if (!result.error && typeof path === "string") {
-      recordExpand(result.result, text);
+      recordExpand(result.result, text, key);
       navigate(here(`/edit/${path}`));
     }
   };
