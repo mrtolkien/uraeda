@@ -116,6 +116,15 @@ test("a stop taller than the room scrolls through before the next", () => {
   // Its end at the margin: the next j leaves it, for the stop under it, which ends 100 px above
   // the status line.
   expect(cursorStep(card(-640), 0, 1, VIEW), "the second j").toEqual({ focus: 1, scrollBy: 60 });
+  // Its end a fraction of a pixel past the margin, as a layout of fractional heights leaves it:
+  // read, as a scroll cannot move by less than a pixel.
+  const fraction = [{ bottom: 760.03, top: -640 + 0.03 }, card(-640)[1]!];
+  expect(cursorStep(fraction, 0, 1, VIEW)?.focus, "j with a fraction left").toBe(1);
+  const below = [
+    { bottom: 100, top: 40 },
+    { bottom: 1560, top: 159.97 },
+  ];
+  expect(cursorStep(below, 1, -1, VIEW)?.focus, "k with a fraction left").toBe(0);
   // A card of 2,000 px is read a room at a time, then its rest in one step.
   const long = [{ bottom: 2160, top: 160 }];
   expect(cursorStep(long, 0, 1, VIEW), "a longer card's first j").toEqual({
