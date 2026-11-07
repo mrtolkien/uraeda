@@ -42,6 +42,17 @@ export function markByKey() {
   setByKey(true);
 }
 
+/**
+ * Claims the focus `element` holds as the cursor's, after a key gave it: a stop already focused, by
+ * a click, takes no new focus, so no `focusin` says the key's focus is there.
+ */
+export function claimFocus(element: HTMLElement) {
+  if (document.activeElement === element && keyFocus !== element) {
+    keyFocus = element;
+    publish();
+  }
+}
+
 /** Forgets the last input, as on a page just loaded: for the tests, which share the module. */
 export function resetHeld() {
   setByKey(false);
@@ -60,6 +71,9 @@ export function cursorOn(): () => void {
     publish();
   };
 }
+
+/** Whether the last input was a key, on a page with the cursor: a jump by a key then holds. */
+export const isCursorKey = () => pages > 0 && isByKey;
 
 /** Whether the last input was a key: a stop given the focus now is held. */
 export const isKeyInput = () => isByKey;
