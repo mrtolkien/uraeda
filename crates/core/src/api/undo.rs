@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::buffer::{branch_of, inside};
-use super::{ApiError, Result, default_checkout, open, plain, refused, write_lock};
+use super::{ApiError, Result, default_checkout, open, refused, write_lock};
 use crate::actions::change;
 pub use crate::actions::change::{Change, ChangedFile, Direction};
 use crate::actions::{attach, place, review};
@@ -155,10 +155,14 @@ pub fn committed_since(repo: &Path, change: &Change) -> Result<bool> {
         .any(|file| entry(then, &file.path) != entry(now, &file.path)))
 }
 
-/// Whether `path` is `specs/` or a plain path under it.
+/// Whether `path` is `specs/` or a path under it whose parts are names: a hidden file, as a
+/// folder's `.DS_Store`, is one, unlike `.` and `..`. Symbolic links are refused by `inside`.
 fn of_specs(path: &str) -> bool {
     let path = path.trim_end_matches('/');
-    plain(path) && (path == "specs" || path.starts_with("specs/"))
+    let named = path
+        .split('/')
+        .all(|part| !part.is_empty() && part != "." && part != ".." && !part.contains(['\\', ':']));
+    named && (path == "specs" || path.starts_with("specs/"))
 }
 
 /// The refusal of a replay over a file that changed since: "Could not undo: “Color themes” changed
