@@ -3,7 +3,8 @@
 // give, or it would never run, and a sequence goes through groups `groups.ts` names, or the menu
 // would draw nothing for them: all three throw in every build but production, so any page's test
 // catches them. A selection's keys, a held stop's own, run before the page's and the shell's, and
-// clash only among themselves: a key may mean something else while a selection holds, shown on it.
+// may reuse their keys: a key may mean something else while a selection holds, shown on it. Across
+// layers, still, a key never starts another's sequence, and a selection has no fallback.
 // The single-key switch drops the bindings whose first key is one printable character, and the hints
 // the status line draws come from the page's and the shell's bindings that name one. A plain
 // store, read through `useSyncExternalStore`: a handler is never published, so a re-render with a
@@ -72,8 +73,12 @@ type Entry = { bindings: ReadonlyArray<Binding>; place: Place };
 
 const tokens = (keys: string) => keys.split(" ");
 
-/** What two bindings of the registry say about each other, `null` if they agree. */
-function clash(a: Binding, b: Binding) {
+/**
+ * What two bindings of the registry say about each other, `null` if they agree. Bindings of
+ * different layers may share a key, the selection's winning, but never a key and a sequence it
+ * starts, whose pending would swallow the key.
+ */
+function clash(a: Binding, b: Binding, sameLayer: boolean) {
   const ta = tokens(a.keys);
   const tb = tokens(b.keys);
   const length = Math.min(ta.length, tb.length);
@@ -81,7 +86,11 @@ function clash(a: Binding, b: Binding) {
     return null;
   }
   if (ta.length !== tb.length) {
-    return `"${a.keys}" (${a.label}) is a key and the start of the sequence "${b.keys}" (${b.label})`;
+    const [key, sequence] = ta.length < tb.length ? [a, b] : [b, a];
+    return `"${key.keys}" (${key.label}) is a key and the start of the sequence "${sequence.keys}" (${sequence.label})`;
+  }
+  if (!sameLayer) {
+    return null;
   }
   if (a.fallback === true && b.fallback === true) {
     return `"${a.keys}" has two fallbacks, ${a.label} and ${b.label}`;
@@ -91,16 +100,40 @@ function clash(a: Binding, b: Binding) {
     : `"${a.keys}" is bound twice, to ${a.label} and to ${b.label}`;
 }
 
-/** Throws where `mine`, declared beside `others`, makes a key mean two things. */
-function assertNoClash(others: ReadonlyArray<Binding>, mine: ReadonlyArray<Binding>) {
+/**
+ * Throws where `mine`, declared beside `others`, makes a key mean two things: `ours` are the
+ * bindings of `mine`'s layer, `theirs` the other layer's.
+ */
+function assertNoClash(
+  ours: ReadonlyArray<Binding>,
+  theirs: ReadonlyArray<Binding>,
+  mine: ReadonlyArray<Binding>,
+) {
   mine.forEach((binding, index) => {
-    for (const other of [...others, ...mine.slice(0, index)]) {
-      const problem = clash(other, binding);
-      if (problem !== null) {
-        throw new Error(`A key means two things on this page: ${problem}`);
-      }
+    const pairs = [
+      ...[...ours, ...mine.slice(0, index)].map((other) => clash(other, binding, true)),
+      ...theirs.map((other) => clash(other, binding, false)),
+    ];
+    const problem = pairs.find((pair) => pair !== null);
+    if (problem !== undefined && problem !== null) {
+      throw new Error(`A key means two things on this page: ${problem}`);
     }
   });
+}
+
+/**
+ * Throws where a selection's binding is a fallback: the bindings run selection first, so it would
+ * run after the page's ordinary binding of its key, never before. A selection's key that did
+ * nothing returns `false`, and the page's runs.
+ */
+function assertNoSelectionFallback(bindings: ReadonlyArray<Binding>) {
+  const fallback = bindings.find((binding) => binding.fallback === true);
+  if (fallback !== undefined) {
+    throw new Error(
+      `"${fallback.keys}" (${fallback.label}) is a selection's fallback, which would run after ` +
+        `the page's binding of its key: return false from its run instead`,
+    );
+  }
 }
 
 /** Throws where a binding's keys are not tokens `tokenOf` gives: such a binding never runs. */
@@ -229,16 +262,18 @@ export function createKeyStore(initialSingleKeys: boolean) {
       if (process.env.NODE_ENV !== "production") {
         assertCanonical(bindings);
         assertGroupsNamed(bindings);
-        // A selection's keys clash with another selection's only; the page's and the shell's with
-        // each other's only.
         const isSelection = place === "selection";
-        const others = [...entries].filter(
-          ([other, entry]) => other !== id && (entry.place === "selection") === isSelection,
-        );
-        assertNoClash(
-          others.flatMap(([, entry]) => entry.bindings),
-          bindings,
-        );
+        if (isSelection) {
+          assertNoSelectionFallback(bindings);
+        }
+        // A selection's keys may mean something else than the page's and the shell's, but a key
+        // never starts a sequence of any layer.
+        const others = [...entries].filter(([other]) => other !== id).map(([, entry]) => entry);
+        const ofLayer = (same: boolean) =>
+          others
+            .filter((entry) => (entry.place === "selection") === (isSelection === same))
+            .flatMap((entry) => entry.bindings);
+        assertNoClash(ofLayer(true), ofLayer(false), bindings);
       }
       entries.set(id, { bindings, place });
       publish();
