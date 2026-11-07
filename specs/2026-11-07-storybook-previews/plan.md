@@ -389,19 +389,19 @@ A structural step only: the runner is at 447 of 500 lines, and tasks 4 and 5 gro
   lines, recording its group, and killing it (SIGTERM, then SIGKILL after `KILL_MS`). The runner
   keeps its states, its entries, and its timers. Names are the implementer's; no behaviour changes.
 
-- [ ] **Step 1: Move the process's start, watch, and kill to `run.ts`**
+- [x] **Step 1: Move the process's start, watch, and kill to `run.ts`**
 
-- [ ] **Step 2: Run the runner's tests, unchanged**
+- [x] **Step 2: Run the runner's tests, unchanged**
 
 - Run: `nix develop -c vp test packages/server/src/preview`
 - Expected: PASS, as before the move.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/server/src/preview/run.ts packages/server/src/preview/runner.ts
