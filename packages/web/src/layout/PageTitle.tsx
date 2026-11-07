@@ -9,6 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { fileStatusBadge } from "../labels.ts";
+import { headingStyle } from "./headings.ts";
 import { pageText } from "./Page.tsx";
 import { Paragraph } from "./Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
@@ -33,8 +34,10 @@ export type TitleMeta = { marks?: ReactNode; text: ReactNode };
  * sits at the row's end on wider screens, shrinking first, its own items wrapping, and under the
  * title's lines on the phone, as a search or a page's main tool, and at every width with
  * `isAsideBelow`, for a title in a narrow column. `above` is the line over it, a file's path;
- * `status` a workflow file's status, as a badge over it; `meta` the supporting line under it, the subject's state; `description` the
- * secondary text under them, what the page is for.
+ * `status` a workflow file's status, as a badge over it; `meta` the supporting line under it, the
+ * subject's state; `description` the secondary text under them, what the page is for.
+ * `isDocumentHeading` marks a title that is a document's `#` heading, as a spec's or a plan's: it
+ * takes the colour of its level, `heading-1` (US4 of Color themes); other titles keep the text's.
  */
 export function PageTitle({
   above,
@@ -46,6 +49,7 @@ export function PageTitle({
   description,
   id,
   isAsideBelow = false,
+  isDocumentHeading = false,
   meta,
   status,
 }: {
@@ -58,13 +62,14 @@ export function PageTitle({
   description?: ReactNode;
   id?: string;
   isAsideBelow?: boolean;
+  isDocumentHeading?: boolean;
   meta?: TitleMeta;
   status?: ReturnType<typeof fileStatusBadge>;
 }) {
   const narrow = isNarrow(useWidthClass());
   const below = isAsideBelow || narrow;
   const heading = around(
-    <Heading id={id} level={1}>
+    <Heading id={id} level={1} xstyle={isDocumentHeading && headingStyle(1)}>
       {children}
     </Heading>,
   );

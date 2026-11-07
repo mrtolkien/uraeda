@@ -156,7 +156,7 @@ function SpecTitle({
   const title = document.blocks.find((b) => b.id < first && b.kind === "heading" && b.level === 1);
   const status = fileStatusBadge(file.status);
   return (
-    <PageTitle status={status}>
+    <PageTitle isDocumentHeading status={status}>
       <Spans spans={title?.spans ?? []} />
     </PageTitle>
   );

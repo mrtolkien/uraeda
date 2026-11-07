@@ -61,6 +61,7 @@ export function DocumentPage({ file }: { file: File }) {
               </Selectable>
             )}
             id={title.anchor}
+            isDocumentHeading
           >
             <Spans spans={title.spans} />
           </PageTitle>

@@ -14,8 +14,8 @@ export type Drawing = { document: Document; folds?: Folds; selection?: Selection
 /**
  * A section in a pane titled by its heading, its anchor as id, snug on the phone as the spec's parts
  * are; a task's titled "Task N · <title>", with its steps checked out of its total, so a link to
- * the heading lands on its pane. The heading is the title alone, never written again above the
- * section's text ("Remove stuttering").
+ * the heading lands on its pane. Its title is the document's `##`, in that level's colour. The
+ * heading is the title alone, never written again above the section's text ("Remove stuttering").
  */
 export function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
   const { heading, ids, task } = section;
@@ -26,7 +26,7 @@ export function SectionPane({ drawing, section }: { drawing: Drawing; section: P
   );
   if (!task) {
     return (
-      <Pane id={sectionId(heading)} isSnugOnPhone title={heading.heading ?? ""}>
+      <Pane id={sectionId(heading)} isSnugOnPhone tint="heading" title={heading.heading ?? ""}>
         {blocks}
       </Pane>
     );
@@ -41,6 +41,7 @@ export function SectionPane({ drawing, section }: { drawing: Drawing; section: P
     <Pane
       id={sectionId(heading)}
       isSnugOnPhone
+      tint="heading"
       title={`Task ${task.number} · ${task.title}`}
       titleSuffix={badge}
     >

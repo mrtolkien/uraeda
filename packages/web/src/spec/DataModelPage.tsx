@@ -28,7 +28,7 @@ export function DataModelPage({ file }: { file: File }) {
       {model ? (
         <VStack gap={3}>
           {title && (
-            <PageTitle>
+            <PageTitle isDocumentHeading>
               <Spans spans={title.spans} />
             </PageTitle>
           )}

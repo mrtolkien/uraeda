@@ -953,8 +953,11 @@ and a pane's `PaneTint` name meanings, not hues (R16). Semantic tokens (`--color
 `layout/headings.ts` gives `heading-1`, `-2`, `-3` by level, deeper levels `-3`. Blocks' heading,
 the spec page's section headings, and a round's title take it; the theme's `markdown` component rule
 colours a message's headings by the level written (with `headingLevelStart={4}`, `h4` is `#`); the
-editor's markdown takes `heading1` → `heading-1`, `heading2` → `-2`, the rest `-3`. Page titles,
-pane titles, and group titles keep theirs.
+editor's markdown takes `heading1` → `heading-1`, `heading2` → `-2`, the rest `-3`. A page title or
+a pane title that is a document's heading takes its level's role too, by `PageTitle`'s
+`isDocumentHeading` and `Pane`'s `tint="heading"` (R17): the `#` titles of the spec, document, plan,
+and data model pages, a user story's pane (`###`), and a document's `##` section pane, a plan's
+task's included. Page, pane, and group titles that are not a document's headings keep theirs.
 
 - [x] **Step 5: Run the task's validation, and look**
 
