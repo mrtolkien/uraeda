@@ -478,6 +478,22 @@ test("J then Enter writes one comment on both scenarios' lines", async () => {
 });
 
 /**
+ * US1 3: a comment opened by Enter from a held block, added with Ctrl+Enter, gives the cursor back
+ * to the block, so `j` goes on from there. Break: the focus fell to the page's body as the form
+ * closed, and the cursor was gone.
+ */
+test("Ctrl+Enter on a comment opened from a held block gives the block the cursor back", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  hold(await scenario(FIRST));
+  await press("Enter");
+  await typeComment("Back to the block.");
+  await act(async () => void fireEvent.keyDown(await field(), { ctrlKey: true, key: "Enter" }));
+  await saved(/^C1/, "Back to the block.");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(FIRST)));
+});
+
+/**
  * Escape drops a range the keys stretched while a form is open, the form's own range back. Break:
  * the stretched range kept, as when the drop did nothing with a form open.
  */

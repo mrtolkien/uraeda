@@ -203,3 +203,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   ring outside fell off them, and the sticky header and the option rows painted over it.
 - **Where**: final review, `cursor/PaneStop.tsx`, `layout/picked.ts`, `QuestionCard.tsx`,
   `RoundNotes.tsx`, `RoundSubmit.tsx`
+
+## R16: A comment form a held block's Enter opened gives the block the cursor back
+
+- **Decision**: Enter on a held block remembers it; once the form closes, by Ctrl+Enter, Add
+  comment, or Cancel, the block takes the focus back, held, when the last input is a key and the
+  focus fell to the page's body. A form a tap opened gives nothing back, and neither does one closed
+  by a click.
+- **Rationale**: after Ctrl+Enter the form unmounted with the focus, which fell to the body, and the
+  cursor was gone: the human had to find their place again with `j` from the top of the screen.
+  Cancel by a key returns the same way, as the human is still reading from that block.
+- **Where**: final review, `review/useKeyRange.ts` (`useHandBack`, `blockKeys`)
