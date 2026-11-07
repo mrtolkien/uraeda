@@ -11,9 +11,19 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
-import { releaseModules } from "../preview/__tests__/helpers.ts";
+import { keptBases, startWaiting } from "../fate/preview-waiting.ts";
+import { releaseModules, servedPaths } from "../preview/__tests__/helpers.ts";
 import { IDLE_MS } from "../preview/runner.ts";
-import { byId, type Data, fixtureRepo, mutate, running, testApp, testServer } from "./helpers.ts";
+import {
+  byId,
+  type Data,
+  fixtureRepo,
+  mutate,
+  repoContext,
+  running,
+  testApp,
+  testServer,
+} from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
 const STORY = `${STORY_FEATURE}:packages/web/src/SidebarHandle.stories.tsx#Dragging`;
@@ -335,7 +345,7 @@ test("a ready Storybook whose index cannot be read fails its stories (R23)", asy
 test("a feature's turn that ends done starts its Storybook, once its preview folder is installed", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
-  const { adapter, sessions } = await testServer(repo);
+  const { adapter, frames, name, previews, sessions } = await testServer(repo);
   const session = await sessions.featureSession(repo, STORY_FEATURE);
   const turn = async (ok = true) => {
     adapter.script([
@@ -362,7 +372,48 @@ test("a feature's turn that ends done starts its Storybook, once its preview fol
   await expect.poll(() => previewStarts(log!).length, WAIT).toBe(1);
   expect(previewStarts(log!)[0]!.cwd).toMatch(
     /\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/,
-  );
+  ); // Its round's linked stories compile ahead.
+  const base = `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`;
+  await expect
+    .poll(async () => previews.state(base)?.state === "ready" && servedPaths(previews, base), WAIT)
+    .toContain("/src/SidebarHandle.stories.tsx");
+});
+
+test.each([
+  ["waiting with a story link", {}, "ready"],
+  ["answered, with nothing waiting", { round: "answered", specStatus: "approved" }, undefined],
+] as const)(
+  "a folder %s keeps its Storybook past 30 minutes, or not (US1.1, SC-003)",
+  async (_, options, state) => {
+    const repo = fixtureRepo();
+    addStoryFeature(repo, options);
+    const clock = { now: Date.now() };
+    const opened = await testApp(repo, { previewOptions: { now: () => clock.now } });
+    const base = `/r/${opened.name}/preview/${opened.frames.current()}/${STORY_FEATURE}/`;
+    await expect
+      .poll(async () => (await settled(opened.app, "Preview", STORY_FEATURE)).state, WAIT)
+      .toBe("ready");
+
+    clock.now += IDLE_MS + 1;
+    opened.previews.sweep(await keptBases([repoContext(opened)]));
+
+    expect(opened.previews.state(base)?.state).toBe(state);
+  },
+);
+
+test("the server's start begins a waiting folder's Storybook, and compiles its linked stories (US1)", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  mkdirSync(join(repo, ".worktrees", STORY_FEATURE, "packages/web/node_modules"), {
+    recursive: true,
+  });
+  const opened = await testApp(repo);
+  const base = `/r/${opened.name}/preview/${opened.frames.current()}/${STORY_FEATURE}/`;
+
+  await startWaiting([repoContext(opened)]);
+
+  expect(previewStarts(log!)).toHaveLength(1);
+  expect(await servedPaths(opened.previews, base)).toContain("/src/SidebarHandle.stories.tsx");
 });
 
 test("a Storybook a page started before the install, which failed, starts again as the turn ends", async () => {

@@ -609,8 +609,8 @@ git commit -m "feat(storybook-previews): show a story once it compiled"
 **Files:**
 
 - Create: `packages/server/src/fate/preview-waiting.ts`
-- Modify: `packages/server/src/fate/preview.ts` (export `runnable`; `warmPreview` warms the waiting
-  file's stories and returns the warm's promise)
+- Modify: `packages/server/src/fate/preview.ts` (export `runnable`; `warmPreview` moves to
+  `preview-waiting.ts`, see R4), `packages/server/src/app.ts` (its import)
 - Modify: `packages/server/src/server.ts` (the sweep tick and the start at boot)
 - Test: `packages/server/src/__tests__/preview.test.ts`
 
@@ -633,7 +633,7 @@ git commit -m "feat(storybook-previews): show a story once it compiled"
   skipping a tick while the last one reads, and sweeping with no keep when the read fails. Once the
   repositories are open, the server calls `startWaiting` without awaiting it.
 
-- [ ] **Step 1: Write the failing tests, and extend the turn's test**
+- [x] **Step 1: Write the failing tests, and extend the turn's test**
 
 ```ts
 test.each([
@@ -662,19 +662,19 @@ from `testApp`'s or `testServer`'s parts, in `__tests__/helpers.ts`. The breaks:
 the step (the answered row stays); one that keeps nothing (the waiting row stops); a boot that
 starts nothing, or starts without compiling.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/preview.test.ts`
 - Expected: FAIL, the import of `../fate/preview-waiting.ts` cannot be resolved.
 
-- [ ] **Step 3: Implement the review watch, the ahead warm, the keep, and the start at boot**
+- [x] **Step 3: Implement the review watch, the ahead warm, the keep, and the start at boot**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src
