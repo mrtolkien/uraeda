@@ -247,3 +247,41 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the form's upload answering its change, joined to the comment's entry once sent.
 - **Where**: `packages/web/src/QuestionComment.tsx`, `RoundNotes.tsx`, `useReviewImages.ts`,
   `MockupPage.tsx`
+
+## R21: An undo writes the working tree, and leaves the index as it is
+
+- **Decision**: an undo or a redo writes the files of its change in the working tree alone; the
+  index stays as it is, so an earlier version of a file the human staged stays staged, and the Git
+  page shows the file staged and changed again.
+- **Rationale**: an undo MUST NOT commit, revert, or rewrite git's history, and writes the reverse
+  as a change, which waits on the Git page like any other; the staged version is the human's own
+  choice, which an undo of a later write is not asked to take back. The test that refused an undo
+  over a staged change went with the per-kind reverses it checked (R1).
+- **If wrong**: the replay refusing a file whose index differs from its `HEAD`, or restaging the
+  files it wrote, each a check or a `git add` in `api::undo::apply_change`.
+- **Where**: `crates/core/src/api/undo.rs`, `apply_change`
+
+## R22: A proposal file's discovery effort is a setting, outside the stack
+
+- **Decision**: `text.discovery`, which writes the discovery effort into a proposal file's
+  frontmatter, records no entry: it is a setting of the proposal, which the editor's own control
+  sets back, like the settings the spec runs at once without an undo.
+- **Rationale**: the spec lets settings actions run at once, their control naming what they do; the
+  effort is a choice among a few levels shown in the editor, set back by choosing again, and not an
+  edit of the proposal's text.
+- **If wrong**: the mutation selecting a change view and recording `changeEntry`, as the other
+  proposal-file writes do, in `useEditorActions.ts`.
+- **Where**: `packages/web/src/useEditorActions.ts`, `setDiscovery`
+
+## R23: Another process's writes during a recorded write can land in its change
+
+- **Decision**: a write made by another process, the CLI, an agent, or an editor, to a file of a
+  recorded write's scope while that write runs, between its two snapshots, lands in its change, and
+  its undo takes it back with the rest.
+- **Rationale**: the write lock is the process's own: the core holds it across both snapshots and
+  the write, so no other write of the server lands between them, but no lock binds another process,
+  and a lock across processes would make every tool wait on the web UI. The window is the write's
+  own duration, milliseconds for a list's edit.
+- **If wrong**: a lock file in the repository, taken by every tool's writes, or a check of each
+  file's modification time against the write's own.
+- **Where**: `crates/core/src/api/undo.rs`, `recorded`
