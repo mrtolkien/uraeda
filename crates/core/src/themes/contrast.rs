@@ -108,3 +108,16 @@ fn contrast(a: [f64; 4], b: [f64; 4]) -> f64 {
     let (a, b) = (luminance(a), luminance(b));
     (a.max(b) + 0.05) / (a.min(b) + 0.05)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{MARKS, TEXT};
+    use crate::themes::ROLES;
+
+    #[test]
+    fn every_measured_role_is_a_role() {
+        for role in TEXT.iter().chain(MARKS) {
+            assert!(ROLES.contains(role), "{role} is not in ROLES");
+        }
+    }
+}
