@@ -1,9 +1,10 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, each
 // through `run.ts`, one per checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view
 // starts the checkout's Storybook, which is ready once its index answers; a view after its
-// checkout's commit moved starts it again; it stops after 30 minutes without a view, when its
-// checkout or its repository is removed, and with the server. Its state lives in memory, and its
-// process groups in a record the next start reads, should the server be killed.
+// checkout's code version moved, a commit outside `specs/`, starts it again; it stops after 30
+// minutes without a view or a keep, when its checkout or its repository is removed, and with the
+// server. Its state lives in memory, and its process groups in a record the next start reads,
+// should the server be killed.
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { freePort } from "../free-port.ts";
@@ -22,16 +23,17 @@ export type PreviewState =
 /**
  * A checkout to run a Storybook in: its folder, `dir`, its preview decision's `preview-folder` and
  * `preview-command`, the path it is served under, `/r/<name>/preview/<secret>/<folder>/`, and the
- * commit it has checked out, when it was read, with the `read` stamp `Previews.read` gave before
- * the read began. Without a stamp, the commit counts as read now.
+ * code version it has checked out, its last commit outside `specs/`, when it was read, with the
+ * `read` stamp `Previews.read` gave before the read began. Without a stamp, the version counts as
+ * read now.
  */
 export type Checkout = {
   base: string;
   command: string;
-  commit?: string;
   dir: string;
   folder: string;
   read?: number;
+  version?: string;
 };
 
 /** How often a starting Storybook's index is read. */
@@ -55,7 +57,7 @@ type Entry = {
   reading?: AbortController;
   retried: boolean;
   run?: Run;
-  /** The `read` stamp it started at: only a commit read after it can move it. */
+  /** The `read` stamp it started at: only a version read after it can move it. */
   stamp: number;
   /** When the first process started: the 2 minutes count from it, across the port's retry. */
   started: number;
@@ -65,14 +67,14 @@ type Entry = {
 };
 
 /**
- * Whether the entry's Storybook is at another commit than `now`'s: one whose first commit read
- * failed is at an unknown commit, which any known one is another than. A commit read before the
- * Storybook started cannot say it moved: it may be the older of two views racing a move.
+ * Whether the entry's Storybook is at another code version than `now`'s: one whose first version
+ * read failed is at an unknown version, which any known one is another than. A version read before
+ * the Storybook started cannot say it moved: it may be the older of two views racing a move.
  */
 function moved(entry: Entry, now: Checkout): boolean {
   return (
-    now.commit !== undefined &&
-    now.commit !== entry.checkout.commit &&
+    now.version !== undefined &&
+    now.version !== entry.checkout.version &&
     (now.read === undefined || now.read > entry.stamp)
   );
 }
@@ -119,9 +121,9 @@ export class Previews {
   /**
    * The checkout's state, its Storybook started when none runs, and the view recorded. A Storybook
    * under the same base in another folder, a removed repository's whose folder name another one
-   * took, is stopped, and one started in the checkout. One started at another commit of the checkout,
-   * which may have changed what Storybook only reads as it starts, such as its configuration or its
-   * dependencies, is started again, its records kept. Once the runner is stopped, failed with
+   * took, is stopped, and one started in the checkout. One started at another code version of the
+   * checkout, which may have changed what Storybook only reads as it starts, such as its
+   * configuration or its dependencies, is started again, its records kept. Once the runner is stopped, failed with
    * `NOT_RUNNING`, and nothing starts.
    */
   view(checkout: Checkout): PreviewState {
@@ -140,8 +142,8 @@ export class Previews {
   }
 
   /**
-   * A stamp for a commit read, taken before the read begins: the Storybooks started since have a
-   * greater one, and a commit read earlier does not move them.
+   * A stamp for a code version read, taken before the read begins: the Storybooks started since
+   * have a greater one, and a version read earlier does not move them.
    */
   read(): number {
     return ++this.#reads;
@@ -177,10 +179,19 @@ export class Previews {
     }
   }
 
-  /** Stops each Storybook without a view for 30 minutes, or whose checkout was removed. */
-  sweep(): void {
+  /**
+   * Stops each Storybook whose checkout was removed, kept or not, and each without a view for 30
+   * minutes. One whose base is in `kept`, a folder whose file waits for the human, counts as viewed
+   * now: it stops 30 minutes after it is no longer kept.
+   */
+  sweep(kept: ReadonlySet<string> = new Set()): void {
+    const now = this.#now();
     for (const entry of this.#entries.values()) {
-      if (this.#now() - entry.lastView > IDLE_MS || !existsSync(entry.checkout.dir)) {
+      if (!existsSync(entry.checkout.dir)) {
+        void this.#stop(entry);
+      } else if (kept.has(entry.checkout.base)) {
+        entry.lastView = now;
+      } else if (now - entry.lastView > IDLE_MS) {
         void this.#stop(entry);
       }
     }

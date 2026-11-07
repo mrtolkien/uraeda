@@ -128,6 +128,25 @@ test("30 minutes without a view stops its process group (SC-005)", async () => {
   await expect.poll(() => alive(previewStarts(log)[0]!.pid), WAIT).toBe(false);
 });
 
+test("a kept Storybook counts as viewed at each sweep, and stops 30 minutes after it is no longer kept (US1.3)", async () => {
+  const { checkout } = await storyCheckout();
+  const clock = fakeClock();
+  const runner = previews({ now: clock.now });
+  runner.view(checkout);
+  await ready(runner, checkout);
+
+  clock.advance(5 * 60 * 60_000);
+  runner.sweep(new Set([checkout.base]));
+  expect(runner.state(checkout.base)?.state).toBe("ready");
+  clock.advance(29 * 60_000);
+  runner.sweep();
+  expect(runner.state(checkout.base)?.state).toBe("ready");
+  clock.advance(60_001);
+  runner.sweep();
+
+  expect(runner.state(checkout.base)).toBeUndefined();
+});
+
 test("a process that exits after it was ready is failed, with its last line (review focus 7)", async () => {
   const { checkout, log } = await storyCheckout();
   const runner = previews();
@@ -176,7 +195,8 @@ test("a removed worktree stops its Storybook (ura clean)", async () => {
   await ready(runner, checkout);
 
   git(repo, "worktree", "remove", "--force", checkout.dir);
-  runner.sweep();
+  // Kept, as a folder whose file still waits for the human: the removal wins.
+  runner.sweep(new Set([checkout.base]));
 
   expect(runner.state(checkout.base)).toBeUndefined();
   await expect.poll(() => alive(previewStarts(log)[0]!.pid), WAIT).toBe(false);
@@ -260,43 +280,43 @@ test("a view keeps a failed Storybook failed until it is restarted", async () =>
   expect(previewStarts(log)).toHaveLength(1);
 });
 
-test("a view at a new commit starts a failed Storybook again; one at an unknown commit does not", async () => {
+test("a view at a new version starts a failed Storybook again; one at an unknown version does not", async () => {
   const { checkout, log } = await storyCheckout({ mode: "fail" });
   const runner = previews();
-  runner.view({ ...checkout, commit: "a" });
+  runner.view({ ...checkout, version: "a" });
   await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
 
   expect(runner.view(checkout).state).toBe("failed");
-  expect(runner.view({ ...checkout, commit: "b" }).state).toBe("starting");
+  expect(runner.view({ ...checkout, version: "b" }).state).toBe("starting");
   await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
 });
 
-test("a view at a known commit starts a Storybook whose first commit read failed, once", async () => {
+test("a view at a known version starts a Storybook whose first version read failed, once", async () => {
   const { checkout, log } = await storyCheckout({ mode: "fail" });
   const runner = previews();
   runner.view(checkout);
   await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
 
-  expect(runner.view({ ...checkout, commit: "a" }).state).toBe("starting");
+  expect(runner.view({ ...checkout, version: "a" }).state).toBe("starting");
   await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
-  expect(runner.view({ ...checkout, commit: "a" }).state).toBe("failed");
+  expect(runner.view({ ...checkout, version: "a" }).state).toBe("failed");
   expect(runner.view(checkout).state).toBe("failed");
   expect(previewStarts(log)).toHaveLength(2);
 });
 
-test("a view whose commit was read before the Storybook started does not restart it", async () => {
+test("a view whose version was read before the Storybook started does not restart it", async () => {
   const { checkout, log } = await storyCheckout({ mode: "fail" });
   const runner = previews();
   const older = runner.read();
-  runner.view({ ...checkout, commit: "a", read: older });
+  runner.view({ ...checkout, read: older, version: "a" });
   await expect.poll(() => previewStarts(log).length, WAIT).toBe(1);
-  runner.view({ ...checkout, commit: "b", read: runner.read() });
+  runner.view({ ...checkout, read: runner.read(), version: "b" });
   await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
   await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
 
-  // The older read arrives last, as two views racing the commit's move can: it is not a move back.
-  expect(runner.view({ ...checkout, commit: "a", read: older }).state).toBe("failed");
-  expect(runner.view({ ...checkout, commit: "b", read: runner.read() }).state).toBe("failed");
+  // The older read arrives last, as two views racing the version's move can: it is not a move back.
+  expect(runner.view({ ...checkout, read: older, version: "a" }).state).toBe("failed");
+  expect(runner.view({ ...checkout, read: runner.read(), version: "b" }).state).toBe("failed");
   expect(previewStarts(log)).toHaveLength(2);
 });
 
@@ -304,10 +324,10 @@ test("a read begun before the Storybook started, even the latest, does not resta
   const { checkout, log } = await storyCheckout({ mode: "fail" });
   const runner = previews();
   const [first, second] = [runner.read(), runner.read()];
-  runner.view({ ...checkout, commit: "a", read: first });
+  runner.view({ ...checkout, read: first, version: "a" });
   await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
 
-  expect(runner.view({ ...checkout, commit: "b", read: second }).state).toBe("failed");
+  expect(runner.view({ ...checkout, read: second, version: "b" }).state).toBe("failed");
   expect(previewStarts(log)).toHaveLength(1);
 });
 
