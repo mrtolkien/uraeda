@@ -104,6 +104,18 @@ test("a fallback is listed only with the keys no other binding listed holds", ()
   ]);
 });
 
+// Break: a page's or the shell's key listed while a selection holds it gives `b` two meanings.
+test("a key a held selection takes is listed as the selection's only", () => {
+  const listed: Array<Placed> = [
+    { binding: { keys: "b", label: "pick b", run }, place: "selection" },
+    shell("b", "Back"),
+    page("j", "next row"),
+  ];
+  expect(shown(keyMapSections(listed, document.body, true))).toEqual([
+    ["This page", ["b Pick b", "j Next row"]],
+  ]);
+});
+
 // Break: Space on a checkbox ticks it, so the leader's keys start from the chord there.
 test("on a control that keeps Space, the leader's keys are written from the chord", () => {
   const box = document.createElement("input");
