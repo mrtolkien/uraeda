@@ -29,7 +29,7 @@ const isOutside = (box: Box, view: View) => box.bottom <= view.top || box.top >=
  * The scroll that brings a stop inside the margins, whichever edge it crosses; a stop taller than
  * the room shows its top.
  */
-function placed(box: Box, view: View) {
+export function placed(box: Box, view: View): number {
   const top = view.top + MARGIN;
   const bottom = view.bottom - MARGIN;
   if (box.top < top) {

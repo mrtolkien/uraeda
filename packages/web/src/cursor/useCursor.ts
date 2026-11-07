@@ -7,7 +7,7 @@ import { areaOf, type Area, glideBy, pendingOf } from "../keys/scroll.ts";
 import { useKeys } from "../keys/registry.tsx";
 import type { Binding } from "../keys/store.ts";
 import { heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
-import { type Box, cursorStep, scrollFor, type View } from "./move.ts";
+import { type Box, cursorStep, placed, scrollFor, type View } from "./move.ts";
 import { stopsOf } from "./stops.ts";
 
 /** An element's box in the window, `undefined` where it is not drawn, as a hidden status line. */
@@ -91,10 +91,13 @@ function move(direction: 1 | -1) {
   take(stop, step.scrollBy, area);
 }
 
-/** Clears the cursor: its stop lets the focus go. `false` with none, for the page's own Escape. */
+/**
+ * Clears the cursor: its stop lets the focus go. `false` with none, for the page's own Escape, and
+ * where the focus is on a control inside the stop, as a pane's button, whose Escape is the page's.
+ */
 function clear() {
   const held = heldStop();
-  if (held === null) {
+  if (held === null || held !== document.activeElement) {
     return false;
   }
   held.blur();
@@ -109,8 +112,18 @@ const BINDINGS: ReadonlyArray<Binding> = [
 ];
 
 /**
+ * Gives a stop that took a removed one's place the focus, held, scrolled only into the margins: a
+ * pane is not shown whole, as the cursor did not move into it.
+ */
+function refocus(stop: HTMLElement) {
+  const area = areaOf(stop);
+  take(stop, placed(boxOf(stop, pendingOf(area)), viewOf(area)), area);
+}
+
+/**
  * A held stop removed from the page, as an agent's commit redraws it, passes the focus to the stop
- * now at its place, or the last.
+ * now at its place, or the last. The stop is remembered while it holds the focus: once it lets the
+ * focus go and stays on the page, by Escape or a mouse move, a redraw brings no cursor back.
  */
 function useKeepHeld() {
   useEffect(() => {
@@ -118,6 +131,12 @@ function useKeepHeld() {
     const onFocus = () => {
       const stop = heldStop();
       last = stop === null ? last : { index: stopsOf().indexOf(stop), stop };
+    };
+    const onBlur = (event: FocusEvent) => {
+      const target = event.target as Node | null;
+      if (last !== null && target?.isConnected === true && last.stop.contains(target)) {
+        last = null;
+      }
     };
     const observer = new MutationObserver(() => {
       if (last === null || last.stop.isConnected) {
@@ -131,13 +150,15 @@ function useKeepHeld() {
       const stops = stopsOf();
       const stop = stops[Math.min(Math.max(index, 0), stops.length - 1)];
       if (stop !== undefined) {
-        focusStop(stop);
+        refocus(stop);
       }
     });
     document.addEventListener("focusin", onFocus);
+    document.addEventListener("focusout", onBlur);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       document.removeEventListener("focusin", onFocus);
+      document.removeEventListener("focusout", onBlur);
       observer.disconnect();
     };
   }, []);
