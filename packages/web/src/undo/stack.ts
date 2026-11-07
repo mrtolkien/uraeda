@@ -47,18 +47,15 @@ const RUN_MS = 1000;
 export function createUndoStack(now: () => number = Date.now): UndoStack {
   const done: Array<UndoEntry> = [];
   const undone: Array<UndoEntry> = [];
-  const listeners = new Set<() => void>();
+  const { notify, subscribe } = listened();
   // The run of moves on top: its entry, its list, and when its last move came. Any other entry recorded, an
-  // undo, a redo, or a clear ends it.
+  // undo or a redo pressed, or a clear ends it.
   let run: { at: number; entry: UndoEntry; list: string } | undefined;
+  // Moves on at each entry recorded and each clear: an undo that lands after one leaves its entry off
+  // both sides, as a redo would come after the new action.
+  let epoch = 0;
   // The replays in the order pressed: each starts once the one before it settled.
   let queue: Promise<unknown> = Promise.resolve();
-
-  const notify = () => {
-    for (const listener of listeners) {
-      listener();
-    }
-  };
 
   const keep = (entry: UndoEntry) => {
     done.push(entry);
@@ -71,6 +68,7 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
     const time = now();
     const top = done.at(-1);
     undone.length = 0;
+    epoch += 1;
     if (!entry.move) {
       keep(entry);
       run = undefined;
@@ -97,16 +95,16 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
     if (!entry) {
       return { kind: "empty" };
     }
+    const started = epoch;
     if (entry.committed && (await entry.committed()) && !(await ask(entry, redo))) {
       return { entry, kind: "kept" };
     }
     const reason = await (redo ? entry.redo() : entry.undo());
     remove(from, entry);
-    run = undefined;
     if (reason === undefined) {
       if (redo) {
         keep(entry);
-      } else {
+      } else if (epoch === started) {
         undone.push(entry);
       }
     }
@@ -115,6 +113,8 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
   };
 
   const enqueue = (redo: boolean, ask: Ask) => {
+    // The press ends the run at once: a move recorded while the replay is on its way is its own entry.
+    run = undefined;
     const outcome = queue.then(() => replay(redo, ask));
     queue = outcome.catch(() => undefined);
     return outcome;
@@ -126,18 +126,32 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
       done.length = 0;
       undone.length = 0;
       run = undefined;
+      epoch += 1;
       notify();
     },
     record,
     redo: (ask) => enqueue(true, ask),
-    subscribe: (listener) => {
+    subscribe,
+    top: () => done.at(-1),
+    undo: (ask) => enqueue(false, ask),
+  };
+}
+
+/** The stack's listeners, each called at every change. */
+function listened() {
+  const listeners = new Set<() => void>();
+  return {
+    notify: () => {
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
-    top: () => done.at(-1),
-    undo: (ask) => enqueue(false, ask),
   };
 }
 
