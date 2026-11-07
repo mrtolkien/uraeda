@@ -18,13 +18,14 @@ export function imageName(path: string) {
 /**
  * Takes the image at `path`, from the repository's top level, out of the note file of `note`, over
  * the version of the file read. Gives the change it recorded, which the undo stack takes, or the
- * refusal to show.
+ * refusal to show: a removal that landed with no change, as one whose file held no such link, gives
+ * nothing, with nothing to record.
  */
 export async function removeNoteImage(
   fate: Fate,
   note: InboxNote,
   path: string,
-): Promise<ChangeView | string> {
+): Promise<ChangeView | string | undefined> {
   if (note.file === undefined) {
     return "The note has no file.";
   }
@@ -46,5 +47,5 @@ export async function removeNoteImage(
     return refusal(result.error).message;
   }
   await rereadProposalFile(fate, file);
-  return result.result?.change ?? `Could not remove ${imageName(path)}.`;
+  return result.result?.change ?? undefined;
 }
