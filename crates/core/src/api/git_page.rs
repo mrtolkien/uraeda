@@ -1,6 +1,7 @@
 //! The Git page's views: the main checkout's sync, changes, conflicts, the first page of its
-//! history, and the repository's worktrees, in one read; the sidebar's count; and a file's diff, a
-//! commit, a page of the history, and a conflicted file, each read when the page asks.
+//! history, and the repository's worktrees, in one read; the sidebar's count, the main checkout's
+//! alone; and a file's diff, a commit, a page of the history, and a conflicted file, each read when
+//! the page asks.
 //!
 //! A page's group is the main checkout, or a feature's worktree by the feature's folder: the web
 //! never names a path to act on, [`group_root`] maps the group to its checkout.
@@ -134,21 +135,12 @@ fn joined<T>(handle: std::thread::ScopedJoinHandle<'_, T>) -> T {
         .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
 }
 
-/// The sidebar's count, without counting any file's lines.
+/// The sidebar's count, without counting any file's lines: the main checkout's alone, as a
+/// feature's worktree keeps its changes on its own branch.
 pub fn git_summary(repo: &Path) -> Result<GitSummaryView> {
-    let (git, workspace) = open_any(repo)?;
+    let git = Git::discover(repo)?;
     let main = Git::open(&git.main_root())?;
-    let mut changes = main.changed_count()?;
-    if let Some(workspace) = workspace.as_deref() {
-        for record in main.worktree_records()? {
-            if record.missing || feature_on(workspace, &record).is_none() {
-                continue;
-            }
-            // A worktree that cannot be read is left out of the count, never failing it.
-            let count = Git::open(&record.path).and_then(|worktree| worktree.changed_count());
-            changes += count.unwrap_or(0);
-        }
-    }
+    let changes = main.changed_count()?;
     let branch = main.current_branch().or_else(|| main.rebasing());
     let behind = branch
         .and_then(|branch| Some((main.tip(&branch)?, main.remote_tip(&branch)?)))

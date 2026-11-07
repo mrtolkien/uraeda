@@ -19,7 +19,7 @@ pub fn git_page(repo: String) -> AsyncTask<Job<GitPageView>> {
     job(move || api::git_page(Path::new(&repo)))
 }
 
-/// The sidebar's count: the files to commit in every group, and the commits to pull.
+/// The sidebar's count: the files to commit in the main checkout, and the commits to pull.
 #[napi(ts_return_type = "Promise<GitSummaryView>")]
 pub fn git_summary(repo: String) -> AsyncTask<Job<GitSummaryView>> {
     job(move || api::git_summary(Path::new(&repo)))

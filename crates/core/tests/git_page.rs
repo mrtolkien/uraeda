@@ -174,13 +174,27 @@ fn the_page_groups_changes_and_lists_worktrees() {
     let outside = api::git_diff(repo.path(), &main, "../outside.md", false);
     assert_eq!(refused(outside), "../outside.md is not in this checkout.");
     assert!(api::conflict_file(repo.path(), "docs/notes.md").is_err());
-
-    let summary = api::git_summary(repo.path()).unwrap();
-    assert_eq!((summary.changes, summary.behind), (2, 0));
 }
 
-/// A worktree that cannot be read fails neither the page nor the count: its row reads `changes`,
-/// so nothing offers to remove it, and it has no group. A commit the history does not hold, as on
+/// The sidebar's count is the main checkout's changes alone: a feature's worktree, with a buffer's
+/// save, keeps its own changes on its branch, and they wait on the Git page without counting.
+/// Break caught: adding each feature worktree's changed files to the count.
+#[test]
+fn the_count_is_the_main_checkouts_changes_alone() {
+    let repo = repo();
+    let read = api::read_buffer(repo.path(), PROPOSAL).unwrap();
+    let saved = format!("{}\nA line more.\n", read.text);
+    api::save_buffer(repo.path(), PROPOSAL, &saved, &read.hash).unwrap();
+    assert_eq!(api::git_page(repo.path()).unwrap().groups.len(), 2);
+    assert_eq!(api::git_summary(repo.path()).unwrap().changes, 0);
+
+    repo.write("docs/notes.md", "# Notes\n");
+    let summary = api::git_summary(repo.path()).unwrap();
+    assert_eq!((summary.changes, summary.behind), (1, 0));
+}
+
+/// A worktree that cannot be read does not fail the page: its row reads `changes`, so nothing
+/// offers to remove it, and it has no group. A commit the history does not hold, as on
 /// another branch, is refused, so the web reloads the first page. Breaks: a worktree's read error
 /// returned; the history's walk ending with no page.
 #[test]
@@ -209,8 +223,6 @@ fn an_unreadable_worktree_or_an_unknown_commit_fails_no_read() {
     let page = api::git_page(repo.path()).unwrap();
     assert_eq!(page.groups.len(), 1);
     assert_eq!(page.worktrees[0].state, "changes");
-    let summary = api::git_summary(repo.path()).unwrap();
-    assert_eq!(summary.changes, 1);
 }
 
 fn refused<T: std::fmt::Debug>(result: Result<T, api::ApiError>) -> String {

@@ -285,7 +285,7 @@ export declare function gitResolve(repo: string, path: string, resolution: "ours
 /** Stages `paths`, files or folders, in the group `folder`'s checkout. */
 export declare function gitStage(repo: string, folder: string | null, paths: Array<string>): Promise<void>
 
-/** The sidebar's count: the files to commit in every group, and the commits to pull. */
+/** The sidebar's count: the files to commit in the main checkout, and the commits to pull. */
 export declare function gitSummary(repo: string): Promise<GitSummaryView>
 
 /** Unstages `paths`, files or folders, in the group `folder`'s checkout. */
@@ -1392,7 +1392,7 @@ export interface GitPageView {
 export interface GitSummaryView {
   /** Always `git`. */
   id: string
-  /** The changed and conflicted files of every group. */
+  /** The main checkout's changed and conflicted files: a feature worktree's are not counted. */
   changes: number
   /** The commits to pull into the main checkout's branch. */
   behind: number

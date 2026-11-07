@@ -176,7 +176,8 @@ Saving never commits. The inbox, the priorities, proposal and note files, and bu
 their files, and you commit them on the Git page. Actions that say they commit, like submitting a
 round's answers or a review's verdict, still commit at once. Git, in the sidebar, `Space g`, or
 `g G` opens it; `/commit`, the Commit page's old address, leads there. The sidebar's Git shows how
-many files changed, and how many commits wait on `origin`, as "↓3".
+many files changed in the main checkout, and how many commits wait on `origin`, as "↓3". A feature's
+worktree keeps its changes on its own branch: they wait on the Git page without counting.
 
 The page works on the main checkout. Its title's line reads the branch against `origin`, as "main ·
 3 to pull · 6 to push · fetched just now". It fetches as it opens, and again every 5 minutes while

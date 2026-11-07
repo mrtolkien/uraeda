@@ -33,12 +33,12 @@ not a desktop squeezed down, and not a lesser version.
   tab. Nothing is filled: the current page's tab is in the accent, its icon and its count, with a
   thin line in the accent under it on the bar's bottom edge; New is a ＋ framed in the accent. A
   count is a small number after its icon, in the muted text, Home's needs-you count bold in the
-  Needs you pane's colour; Git counts what waits on it, the changes and the commits to pull, only
-  while any do. Eight 44 px controls are what a 375 px phone holds, so from 375 px the bar never
-  scrolls sideways; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as there is no
-  room for Apple's or Android's spacing, and take the bar's height. The sidebar opens over the page,
-  up to 400 px, animated, and holds no copy of the tabs' places, Git and New included: its heading,
-  then the panes.
+  Needs you pane's colour; Git counts what waits on it, the main checkout's changes and the commits
+  to pull, only while any do. Eight 44 px controls are what a 375 px phone holds, so from 375 px the
+  bar never scrolls sideways; a narrower one, 360 px, scrolls it 3 px. The tabs' targets touch, as
+  there is no room for Apple's or Android's spacing, and take the bar's height. The sidebar opens
+  over the page, up to 400 px, animated, and holds no copy of the tabs' places, Git and New
+  included: its heading, then the panes.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 - **The home-screen app** is the phone's main way in: the page names its icon, its name, and

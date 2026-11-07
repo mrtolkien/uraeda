@@ -148,7 +148,7 @@ pub struct WorktreeView {
 pub struct GitSummaryView {
     /// Always `git`.
     pub id: String,
-    /// The changed and conflicted files of every group.
+    /// The main checkout's changed and conflicted files: a feature worktree's are not counted.
     pub changes: u32,
     /// The commits to pull into the main checkout's branch.
     pub behind: u32,
