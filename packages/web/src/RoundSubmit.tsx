@@ -249,6 +249,14 @@ export function RoundEnd({
   );
 }
 
+const styles = stylex.create({
+  // The row's ring is the held pane's alone: the focus draws none of its own, which would ring it
+  // twice, or once under a click.
+  stop: {
+    outlineStyle: "none",
+  },
+});
+
 /**
  * Submit's buttons, in `row`: Commit, and its other ways on, or a default-branch round's Submit. A
  * stop of the keyboard's cursor, ringed while it holds them, whose Enter focuses the first button
@@ -284,7 +292,13 @@ function SubmitRow({
   ];
   useStopKeys(keys, held);
   return (
-    <div ref={row} {...stopProps("pane")} {...stylex.props(held && pickedStyles.pane)}>
+    <div
+      // A pane to the keyboard's cursor, as the cards and the notes: shown whole as it moves onto it.
+      data-pane=""
+      ref={row}
+      {...stopProps("pane")}
+      {...stylex.props(styles.stop, held && pickedStyles.pane)}
+    >
       {isDefaultRound(target) ? (
         // A default-branch round hands nothing over: its page offers to apply it.
         <WriteButton
