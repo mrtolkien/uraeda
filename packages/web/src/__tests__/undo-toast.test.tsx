@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { expect, test, vi } from "vite-plus/test";
 import { KeysProvider, useHints } from "../keys/registry.tsx";
 import { RESUME_MS, useTimedToast } from "../layout/useTimedToast.tsx";
-import { localPath } from "../routes.tsx";
+import { localPath, parseLocation } from "../routes.tsx";
 import { undoStack } from "../undo/stack.ts";
 import { UndoKeys } from "../undo/UndoKeys.tsx";
 import { useUndo } from "../undo/useUndo.ts";
@@ -23,7 +23,10 @@ function Acting({ redo, undo }: { redo: () => void; undo: () => void }) {
     record({
       label: "Deleted “Color themes”",
       // The page open: the undo selects in place, opening no page.
-      place: { path: localPath(window.location.pathname) },
+      place: {
+        path: localPath(window.location.pathname),
+        repo: parseLocation(window.location.pathname).repo ?? "",
+      },
       redo: async () => {
         redo();
         return undefined;

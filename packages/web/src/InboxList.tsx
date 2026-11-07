@@ -14,7 +14,7 @@ import { CategoryTitle, DeleteCategoryButton } from "./lists/CategoryPane.tsx";
 import { useOutline } from "./lists/useOutline.tsx";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { plural } from "./labels.ts";
-import { navigate, useRepoPath } from "./routes.tsx";
+import { navigate, useRepoPath, useRepository } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
 import {
@@ -97,12 +97,13 @@ function addRow(section: { id: string; items: ReadonlyArray<unknown> }, name?: s
 function useRun(): Run {
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
   return async (call, write) => {
     const result = await call();
     if (!result.error) {
       const change = result.result?.change;
       if (change && write) {
-        record(inboxEntry(fate, change, write));
+        record(inboxEntry(fate, change, write, repo));
       }
       return undefined;
     }

@@ -10,8 +10,11 @@ export type UndoEntry = {
   label: string;
   /** A move of a list's row, which joins the run on top: `join(earlier)` makes the run's entry. */
   move?: { join: (earlier: UndoEntry) => UndoEntry; list: string };
-  /** Where it happened: the page's path from the repository, and the key of what to select. */
-  place: { path: string; select?: string };
+  /**
+   * Where it happened: the repository, by its name in the location, the page's path from it, and
+   * the key of what to select. The stack is the tab's, across its repositories.
+   */
+  place: { path: string; repo: string; select?: string };
   /** Redoes the action: resolves with nothing once done, or with the refusal to show. */
   redo: () => Promise<string | undefined>;
   /** Undoes the action: resolves with nothing once done, or with the refusal to show. */

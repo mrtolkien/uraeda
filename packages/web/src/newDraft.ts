@@ -13,7 +13,7 @@ import {
 } from "./fields/unsaved.ts";
 import { type Entry, insertion, type Source, withAdded } from "./NewEntries.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
-import { useRepositoryPath } from "./routes.tsx";
+import { useRepository, useRepositoryPath } from "./routes.tsx";
 import { useUndo } from "./undo/useUndo.ts";
 import { keptImages, useDraft } from "./useDraft.ts";
 
@@ -125,6 +125,7 @@ export function useNewDraft() {
   const entry = useUnsaved(key);
   const kept = useDraft(`new:${repo}`);
   const record = useUndo();
+  const name = useRepository();
   const setText = useCallback(
     (update: SetStateAction<string>) => {
       const now = held(key);
@@ -164,7 +165,7 @@ export function useNewDraft() {
       record(
         {
           label: "Draft replaced",
-          place: { path: "/new" },
+          place: { path: "/new", repo: name },
           redo: swap("redo", replacing, replaced),
           undo: swap("undo", replaced, replacing),
         },

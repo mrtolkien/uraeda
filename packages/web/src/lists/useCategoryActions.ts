@@ -9,6 +9,7 @@ import { rereadChanges } from "../data.ts";
 import { guarded, refusal } from "../errors.ts";
 import { inboxEntry, type InboxWrite } from "../inboxUndo.ts";
 import { categoryAdded, categoryRemoved, categoryRenamed } from "../optimisticLists.ts";
+import { useRepository } from "../routes.tsx";
 import { InboxChangeView } from "../undo/changeViews.ts";
 import { useUndo } from "../undo/useUndo.ts";
 
@@ -25,6 +26,7 @@ export function useCategoryActions(inbox: Pick<Inbox, "categories" | "hash" | "n
   const { hash } = inbox;
   const fate = useFateClient();
   const record = useUndo();
+  const repo = useRepository();
 
   /** A write's answer: a refusal as its message, a conflict read again; one that landed recorded. */
   const landed = (result: Answer, write: InboxWrite) => {
@@ -37,7 +39,7 @@ export function useCategoryActions(inbox: Pick<Inbox, "categories" | "hash" | "n
     }
     const change = result.result?.change;
     if (change) {
-      record(inboxEntry(fate, change, write));
+      record(inboxEntry(fate, change, write, repo));
     }
     return undefined;
   };

@@ -449,8 +449,8 @@ git commit -m "feat(global-undo): let a key binding hold mod and shift"
 export type UndoEntry = {
   /** What the action did, as its toast says it: "Deleted “Color themes”". */
   label: string;
-  /** Where it happened: the page's path from the repository, and the key of what to select. */
-  place: { path: string; select?: string };
+  /** Where it happened: the repository, the page's path from it, and the key of what to select. */
+  place: { path: string; repo: string; select?: string };
   /** Resolves with nothing once done, or with the refusal to show. */
   undo: () => Promise<string | undefined>;
   redo: () => Promise<string | undefined>;
@@ -598,10 +598,11 @@ git commit -m "feat(global-undo): answer each undoable write with its change"
     `before` and the later's `after`, for a run of moves.
   - `UndoKeys`, mounted in the shell: `u` and `mod+z` undo; `U` (hint `U`, label `redo`) and
     `mod+shift+z` redo, declared only while `canRedo()`. After an undo: the toast "Undone: …" with
-    Redo and `U`; after a redo: "Redone: …" with Undo and `u`; then, when the entry's page is not
-    the one open, `navigateHere(place.path, { select })`, else the row selected in place. A
-    committed entry asks the committed question first (`committedQuestion(entry, redo)`). A refusal,
-    or an undo that rejects (`Could not undo: <message>`), goes to `showPageError`.
+    Redo and `U`; after a redo: "Redone: …" with Undo and `u`; then, when the entry's repository and
+    page are not the ones open, `navigate(repoPath(place.repo, place.path), { select })`, else the
+    row selected in place. A committed entry asks the committed question first
+    (`committedQuestion(entry, redo)`). A refusal, or an undo that rejects
+    (`Could not undo: <message>`), goes to `showPageError`.
   - `showPageError`, `useUndoErrors`, `forgetUndoErrors` in `undo/pageErrors.ts`, as they were.
   - The existing callers become entries: each keeps its label and its current undo, with a redo that
     re-runs its write over the files as they are, until tasks 6 to 8 give them their changes: a

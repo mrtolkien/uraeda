@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
+import { useRepository } from "./routes.tsx";
 import { useUndo } from "./undo/useUndo.ts";
 
 /** A line of Now, as its Start fills the composer: the line, then its nested lines. */
@@ -22,12 +23,13 @@ function FeatureStart({ replaced = false, text }: { replaced?: boolean; text: st
   const [value, setValue] = useState(text);
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
   const record = useUndo();
+  const repo = useRepository();
   useEffect(() => {
     if (replaced) {
       record(
         {
           label: "Draft replaced",
-          place: { path: "/new" },
+          place: { path: "/new", repo },
           redo: async () => {
             setValue(LINE);
             return undefined;
