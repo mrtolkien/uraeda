@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Keyboard nav in questions and specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions, about 15 minutes.
+> Answered on 2026-11-07.
 >
 > - Verdict: worth building, with changes: the option letters clash with keys every page shares. The
 >   Keyboard decision forbids that, so either the decision or the letters change.
@@ -112,7 +112,8 @@ or B; with C, the letters act on the question at the top of the screen.
   - [pro] the smallest change.
   - [con] no ranges, no comment actions, and the target is wherever the scroll stopped.
 
-**Answer:**
+**Answer:** A: Cursor should not be visible when using the mouse, and should start by selecting the
+topmost visible element if the cursor is used in the middle of the page
 
 ## Q2: What is the round's current question, the one the option keys act on?
 
@@ -135,7 +136,7 @@ Why it matters: it decides what the letters pick, and whether `j` `k` still scro
   - [pro] nothing to move: reading is choosing.
   - [con] reading a long question's options can scroll its title away, and the target with it.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which key picks an option of the current question?
 
@@ -172,7 +173,7 @@ should be the key that picks it.
   - [pro] nothing to build.
   - [con] the proposal's request is dropped.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How does a comment cover several blocks by keyboard?
 
@@ -199,7 +200,7 @@ Why it matters: it adds a mode or a key every review page keeps.
   - [pro] nothing to build.
   - [con] a scenario's comment lands on one bullet, or needs the mouse.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
@@ -233,4 +234,16 @@ Why it matters: it adds a mode or a key every review page keeps.
 - **Three functions at the size limit are split first**: `useCommentDraft`, `SpecLayout`, and
   `QuestionCard`. See [discovery](discovery-01.md#likely-changes).
 
-**Notes:**
+**Notes:** The important thing for questions is being able to see all the question text + navigate
+all answers. It might be hard on a MacBook Air screen for example.
+
+I think the cursor needs to:
+
+- Work on full panes (big ones). Only scroll on full panes moves or if the cursor would go outside
+  of the screen with maybe a 100px limit (to make sure the cursor is always comfortable to read and
+  never at the very bottom or top)
+- Not appear with the mouse. I think it’s distracting. It’s ok in lists because it’s much smaller
+  and focus matters much more.
+
+- **A pending comment is a row the cursor stops on**: d should delete at once because it can be
+  undone
