@@ -18,6 +18,7 @@ import {
   ProposalFileChangeView,
 } from "./undo/changeViews.ts";
 import { showPageError } from "./undo/pageErrors.ts";
+import { quoted } from "./undo/quoted.ts";
 import { useUndo } from "./undo/useUndo.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
@@ -74,11 +75,6 @@ async function movedInto(fate: Fate) {
  * `isAway`, for a change that left the inbox before it answered, the refusal shows in the page.
  */
 type Run = <R extends { error?: unknown }>(call: () => Promise<R>, isAway?: boolean) => Promise<R>;
-
-/** A proposal's first words: a toast is no place for a whole line. */
-function shortened(text: string) {
-  return text.length > 40 ? `${text.slice(0, 39).trimEnd()}…` : text;
-}
 
 /** A proposal a note goes under: its id as written now, `now-2`, its key, and its text. */
 export type UnderLine = { id: string; key: string; text: string };
@@ -159,7 +155,7 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    recordMove(result.result?.change, `Moved under "${shortened(line.text)}"`);
+    recordMove(result.result?.change, `Moved under ${quoted(line.text)}`);
     navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
@@ -198,7 +194,7 @@ function useAddsIn(
       return;
     }
     const path = result.result?.path ?? file;
-    recordMove(result.result?.change, `Added to ${shortened(title)}`, path);
+    recordMove(result.result?.change, `Added to ${quoted(title)}`, path);
     left();
     navigate(here(`/edit/${path}`));
   };
