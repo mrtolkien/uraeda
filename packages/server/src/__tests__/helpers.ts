@@ -453,7 +453,8 @@ export function repoContext(parts: {
   repo: string;
   sessions: Sessions;
   settings: ServerSettings;
+  themes: ServerThemes;
 }): RepoContext {
-  const { dataDir, frames, hosts, previews, repo, sessions, settings } = parts;
-  return { binding, dataDir, frames, hosts, previews, repo, sessions, settings };
+  const { dataDir, frames, hosts, previews, repo, sessions, settings, themes } = parts;
+  return { binding, dataDir, frames, hosts, previews, repo, sessions, settings, themes };
 }

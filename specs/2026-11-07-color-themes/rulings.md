@@ -202,7 +202,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   list section's `Tone` and a pane's `PaneTint` name meanings (`ongoing`, `now`, `later`; `added`,
   `working`, `quiet`), no longer hues. The rule also refuses a hue picked by a condition,
   `variant={active ? "green" : "yellow"}`, as a decision's badge was written, and its test counts
-  one report per break of its fixture.
+  one report per break of its fixture. Main's later pane tone `worktree`, a feature's worktree, its
+  border dashed and blue in Catppuccin, takes `working` (`layout/Pane.tsx`), the nearest meaning: no
+  role names a worktree.
 - **Rationale**: the task follows the meaning where the two disagree; the data model's roles name no
   priorities section, strength, callout kind, or row mark, and a role named for them is a change of
   the data model the human approves.
