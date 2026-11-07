@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,28 +8,33 @@ plan-review: false
 
 # Spec: Global undo
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-07: 1 comment in spec-review.md.
+> Spec to review again, about 5 minutes: what changed for moves in your lists, and your review.
 >
 > - You approve one undo stack per tab, which takes back every edit to your lists and texts with `u`
 >   or `Ctrl+Z`, redone with `U` or `Ctrl+Shift+Z`, and the new Undo decision behind it.
-> - The new Undo decision: what every future write must make undoable, and that only what loses work
->   for good asks first.
-> - `d` deletes at once, everywhere, as you agreed: no more `d d`. A category holding notes still
->   asks what to do with them.
-> - An undo of a change committed since asks first, as your note asked, and writes the reverse as a
->   new change on the Git page.
-> - On the phone, the toast's 5 seconds stay the only way to undo, as you chose: there is no status
->   line or key there.
-> - Risk tier medium: about 15 writes gain a reverse, some new in the core, and every list's delete
->   changes.
+> - Changed: moving rows in the inbox or the priorities shows no toast, and moves less than a second
+>   apart undo as one step.
+> - I read your timer as restarting at each move: a run of moves, each within a second of the last,
+>   is one step, however long the run.
+> - "Moving things around" covers reordering, dragging, indenting, and changing a row's section or
+>   category. A promotion and a delete keep their toast.
+> - Cost on the phone: a move there has no toast and no key, so it cannot be undone, only moved
+>   back.
+> - The Undo decision is unchanged. Risk tier stays medium.
 
 Uraeda's pages each decide today whether an action has an Undo, for 5 seconds, or a question, or
 neither. This feature gives the web UI one stack of the human's edits per tab, as the
 [proposal](proposal.md) asks: `u` takes back the latest, `U` redoes it, and the line between what
 can and cannot be undone becomes one rule. The research is in [discovery](discovery-01.md), and the
 answers in [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (no toast for moves, and moves grouped within 1 s): done. Moves in the inbox and the
+  priorities show no toast, and a run of moves each less than a second apart is one step of the
+  stack: see [US5](#us5-a-run-of-moves-undoes-as-one-step-p1).
 
 ## Decisions
 
@@ -61,9 +66,9 @@ Key scenarios:
 1. **Given** "Color themes" in Next on the priorities, **When** the human presses `d` on it,
    **Then** the line goes without a question, and a toast reads "Deleted “Color themes” · waits on
    the Git page", with Undo and its key `u`.
-2. **Given** the human moved "Spec comments" from Next to Now, then indented it under "Global undo",
-   **When** they press `u` twice, ten minutes later, **Then** the first `u` outdents it, and the
-   second puts it back in Next.
+2. **Given** the human moved "Spec comments" from Next to Now, then a minute later indented it under
+   "Global undo", **When** they press `u` twice, ten minutes later, **Then** the first `u` outdents
+   it, and the second puts it back in Next.
 3. **Given** a note promoted to Now from the inbox, then a spec opened, **When** the human presses
    `u`, **Then** the inbox opens with the note back in its place and selected, and Back returns to
    the spec.
@@ -137,6 +142,30 @@ Key scenarios:
 2. **Given** that refusal, **When** the human presses `u` again, **Then** the action before it is
    taken back: the refused one left the stack.
 
+### US5: A run of moves undoes as one step (P1)
+
+Moving a row often takes several presses, or several drags, in a row. The run is one step: `u` takes
+the whole movement back. Moves show no toast, which would distract while moving.
+
+Key scenarios:
+
+1. **Given** "Color themes" fourth in Next, **When** the human presses `m`, then `k` three times,
+   each press less than a second after the last, then `Enter`, **Then** it is first in Next, and no
+   toast shows.
+2. **Given** that run, **When** the human presses `u`, **Then** "Color themes" is fourth in Next
+   again, in one step.
+3. **Given** "Color themes" moved up once, **When** the human moves it up again 2 seconds later,
+   then presses `u`, **Then** only the second move is taken back: the pause ended the first step.
+
+More scenarios:
+
+1. **Given** a row indented with `Tab`, then dragged under another section 0.5 seconds later,
+   **When** the human presses `u`, **Then** both moves are taken back together.
+2. **Given** a run of moves, **When** the human deletes a row within the second, **Then** the delete
+   is a step of its own, with its toast: any other action ends the run.
+3. **Given** a run of moves undone, **When** the human presses `U`, **Then** the whole run is
+   redone, and the toast after the undo reads "Undone: moved “Color themes”", with Redo.
+
 ## Replaced behaviour
 
 - **`d` asks "Delete this line?" or "Delete this note and its note file?" before deleting.** Guarded
@@ -163,6 +192,10 @@ hash-checked writes, which refuse once the file changed, never git's revert. See
 - **An entry** holds the action's label ("Deleted “Color themes”"), its place (the page and the key
   of what to select), its files, and the commit the default branch was at. It owns how to undo and
   redo its one action.
+- **The run of moves** joins the moves of one list into the entry on top while each comes less than
+  a second after the last: reordering, dragging, indenting, and changing a row's section or
+  category. Its undo writes the list back as it was before the run's first move, only while the file
+  is still as its last move left it, and its redo the reverse. A move shows no toast.
 - **The committed check**, in the core, says whether a commit since the entry's commit touched the
   entry's files. The stack asks "Undo a committed change?" when it did.
 - **The reverses**, in the core, one per kind of edit that lacks one: an outline row's edit, indent,
@@ -192,7 +225,9 @@ Tradeoffs:
 | Normal     | Single-key shortcuts are off                                 | `u` and `U` do nothing; `Ctrl+Z` and `Ctrl+Shift+Z` still undo and redo             |
 | Normal     | The stack is empty, or nothing is left to redo               | The key does nothing, and nothing shows                                             |
 | Normal     | An undo's write is still on its way and `u` is pressed again | The second `u` waits for the first to land, in order                                |
+| Normal     | A move in a list follows another within a second             | It joins the same step; the second without a move ends the step                     |
 | Niche      | The phone                                                    | The toast's Undo and Redo, by tap, for 5 seconds; no status line hint               |
+| Niche      | A move on the phone                                          | No toast and no key: it can only be moved back                                      |
 | Niche      | The thing the action concerned was deleted on another page   | The undo refuses, as any changed file                                               |
 
 ## Success criteria
@@ -236,3 +271,22 @@ undo writes plain files, and nothing durable depends on it.
 
 **Medium**: no stored format changes, but about 15 writes gain a reverse, and every list's delete
 changes its behaviour.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-07: 1 comment in spec-review.md.
+>
+> - You approve one undo stack per tab, which takes back every edit to your lists and texts with `u`
+>   or `Ctrl+Z`, redone with `U` or `Ctrl+Shift+Z`, and the new Undo decision behind it.
+> - The new Undo decision: what every future write must make undoable, and that only what loses work
+>   for good asks first.
+> - `d` deletes at once, everywhere, as you agreed: no more `d d`. A category holding notes still
+>   asks what to do with them.
+> - An undo of a change committed since asks first, as your note asked, and writes the reverse as a
+>   new change on the Git page.
+> - On the phone, the toast's 5 seconds stay the only way to undo, as you chose: there is no status
+>   line or key there.
+> - Risk tier medium: about 15 writes gain a reverse, some new in the core, and every list's delete
+>   changes.
