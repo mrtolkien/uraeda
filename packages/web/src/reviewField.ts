@@ -1,5 +1,6 @@
 import type { CommentItem, Document } from "uraeda-binding";
 import { readUnsaved, type Unsaved, unsavedKey, writeUnsaved } from "./fields/unsaved.ts";
+import { decisionOf } from "./commentRange.ts";
 import { selectable } from "./Selection.tsx";
 import type { CommentDraft, Last, Range } from "./useCommentDraft.ts";
 
@@ -40,10 +41,7 @@ export const placeOf = (comment: CommentItem) =>
   comment.general
     ? "general"
     : placeOfLines({
-        decision:
-          comment.decision === undefined
-            ? undefined
-            : { name: comment.decision, removed: comment.removed },
+        decision: decisionOf(comment),
         end: comment.endLine,
         start: comment.startLine,
       });
