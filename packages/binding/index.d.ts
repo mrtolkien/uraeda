@@ -115,7 +115,7 @@ export declare function checkedPort(typed: string): number
 
 /**
  * The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
- * commit. Its preview starts again once it moves.
+ * commit. Its preview runs at its code version instead: see `codeVersion`.
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 

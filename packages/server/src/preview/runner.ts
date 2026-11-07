@@ -1,11 +1,11 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, each
 // through `run.ts`, one per checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view
 // starts the checkout's Storybook, which is ready once its index answers, and its stories once
-// they compiled, through `compiles.ts`; a view after its
-// checkout's code version moved, a commit outside `specs/`, starts it again; it stops after 30
-// minutes without a view or a keep, when its checkout or its repository is removed, and with the
-// server. Its state lives in memory, and its process groups in a record the next start reads,
-// should the server be killed.
+// they compiled, through `compiles.ts`; a view after its checkout's code version moved, a commit
+// outside `specs/`, or its preview command changed, starts it again; it stops after 30 minutes
+// without a view or a keep, when its checkout or its repository is removed, and with the server.
+// Its state lives in memory, and its process groups in a record the next start reads, should the
+// server be killed.
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { freePort } from "../free-port.ts";
@@ -77,16 +77,19 @@ type Entry = {
 };
 
 /**
- * Whether the entry's Storybook is at another code version than `now`'s: one whose first version
- * read failed is at an unknown version, which any known one is another than. A version read before
- * the Storybook started cannot say it moved: it may be the older of two views racing a move.
+ * Whether the entry's Storybook is at another code version than `now`'s, or runs another preview
+ * command or folder, which its decision under `specs/` sets without moving the version: one whose
+ * first version read failed is at an unknown version, which any known one is another than. A read
+ * begun before the Storybook started cannot say it moved: it may be the older of two views racing
+ * a move.
  */
 function moved(entry: Entry, now: Checkout): boolean {
-  return (
-    now.version !== undefined &&
-    now.version !== entry.checkout.version &&
-    (now.read === undefined || now.read > entry.stamp)
-  );
+  const { command, folder, version } = entry.checkout;
+  const other =
+    (now.version !== undefined && now.version !== version) ||
+    now.command !== command ||
+    now.folder !== folder;
+  return other && (now.read === undefined || now.read > entry.stamp);
 }
 
 /** Whether `path` is a folder. */
