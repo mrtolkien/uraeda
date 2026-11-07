@@ -150,7 +150,7 @@ export function takeWatched(previews: Previews): Array<Watched> {
 
 /**
  * A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
- * current frame secret, at its current commit, or null without one or without a decision.
+ * current frame secret, at its current code version, or null without one or without a decision.
  */
 async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
   const checkout = await checkoutOf(ctx, folder);
@@ -159,9 +159,9 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
     return null;
   }
   const read = ctx.previews.read();
-  const [found, commit] = await Promise.all([
+  const [found, version] = await Promise.all([
     ctx.binding.preview(checkout.dir).catch(() => null),
-    ctx.binding.checkoutCommit(checkout.dir).catch(() => null),
+    ctx.binding.codeVersion(checkout.dir).catch(() => null),
   ]);
   if (found === null) {
     return null;
@@ -171,10 +171,10 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
   return {
     base,
     command: found.command,
-    commit: commit ?? undefined,
     dir: checkout.dir,
     folder: found.folder,
     read,
+    version: version ?? undefined,
   };
 }
 

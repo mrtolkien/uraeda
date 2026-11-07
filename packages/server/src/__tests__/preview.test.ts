@@ -243,13 +243,21 @@ test("a restart still updates the stories read before it", async () => {
   await updates.close();
 });
 
-test("a view after a new commit in the checkout restarts its Storybook, and updates its stories", async () => {
+test("a commit under specs/ keeps the Storybook; one outside restarts it, once (US2)", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
   const { app, name } = await testApp(repo);
   const updates = await liveUpdates(app, name, "Story", STORY);
   await byId(app, "Story", [STORY], FIELDS);
   expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
+  commitOnBranch(repo, STORY_FEATURE, {
+    [`specs/${STORY_FEATURE}/clarifications-01.md`]: "answered\n",
+  });
+  const [kept] = await byId(app, "Story", [STORY], FIELDS);
+  expect(kept.state, "a commit under specs/ restarted it").toBe("ready");
+  expect(previewStarts(log!), "a commit under specs/ restarted it").toHaveLength(1);
+
+  commitOnBranch(repo, STORY_FEATURE, { [`specs/${STORY_FEATURE}/spec.md`]: "x\n" });
   commitOnBranch(repo, STORY_FEATURE, { "packages/web/.storybook/fixture.ts": "// changed\n" });
   const before = updates.mark();
 
@@ -261,7 +269,7 @@ test("a view after a new commit in the checkout restarts its Storybook, and upda
   expect(second).toBeDefined();
   await expect.poll(() => running(first!.pid), WAIT).toBe(false);
   await byId(app, "Story", [STORY], FIELDS);
-  expect(previewStarts(log!), "a view at the same commit restarted it").toHaveLength(2);
+  expect(previewStarts(log!), "a view at the same version restarted it").toHaveLength(2);
   await updates.close();
 });
 
