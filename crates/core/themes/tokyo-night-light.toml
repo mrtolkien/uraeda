@@ -1,0 +1,108 @@
+#:schema https://raw.githubusercontent.com/mrtolkien/uraeda/main/schemas/theme.json
+# Tokyo Night Light, from the Tokyo Night VS Code theme v1.1.2 at 7c0f11e, MIT:
+# https://github.com/tokyo-night/tokyo-night-vscode-theme/blob/7c0f11eaef322f293621ca7befe462214b7ea468/themes/tokyo-night-light-color-theme.json
+# The theme names no palette: each colour is named for the key or the scope that draws it there, the
+# accents for the terminal colour they are. Roles follow the theme's own keys and scopes.
+name = "Tokyo Night Light"
+mode = "light"
+
+[palette]
+# editor.background
+background = "#e6e7ed"
+# sideBar.background, and the panels' and widgets'
+sidebar = "#d6d8df"
+# editor.lineHighlightBackground
+line-highlight = "#dcdee3"
+# foreground, and the first heading
+foreground = "#363c4d"
+# descriptionForeground and disabledForeground
+description = "#707280"
+comment = "#888b94"
+# the markdown quote's mark
+quote = "#4e5579"
+# block punctuation
+punctuation = "#484c61"
+variable = "#343b58"
+red = "#8c4351"
+# numbers and constants
+orange = "#965027"
+yellow = "#8f5e15"
+green = "#33635c"
+string = "#385f0d"
+cyan = "#006c86"
+# object properties, and the second heading
+property = "#0f4b6e"
+blue = "#2959aa"
+magenta = "#7b43ba"
+# keywords and storage types, and inline code
+keyword = "#65359d"
+# gitDecoration.addedResourceForeground
+git-added = "#166775"
+# gitDecoration.deletedResourceForeground and markup.deleted
+git-deleted = "#914c54"
+# button.foreground
+white = "#ffffff"
+# Not the theme's: editor.selectionBackground, #acb0bf40, laid over background.
+selection = "#d7d9e1"
+# Not Tokyo Night Light's: its colours darkened, a whole percent of HSL lightness at a time, to the
+# first step at which every pair they are in reaches the contrast floor (4.5:1 for text, 3:1 for a
+# rule).
+description-floor = "#5a5c67"
+comment-floor = "#5c5e66"
+orange-floor = "#8a4924"
+yellow-floor = "#7d5212"
+cyan-floor = "#00637a"
+magenta-floor = "#7741b4"
+git-added-floor = "#166674"
+git-deleted-floor = "#89484f"
+
+[roles]
+page = "background"
+raised = "sidebar"
+sunken = "sidebar"
+chip = "line-highlight"
+cursor-row = "selection"
+marked = "yellow-floor"
+rule = "description"
+pane-title = "blue"
+ink = "foreground"
+ink-quiet = "description-floor"
+ink-faint = "comment-floor"
+action = "blue"
+on-action = "white"
+needs-you = "orange-floor"
+changed = "magenta-floor"
+added = "git-added-floor"
+removed = "git-deleted-floor"
+caution = "yellow-floor"
+context = "blue"
+yours = "blue"
+link = "blue"
+working = "blue"
+live = "cyan-floor"
+example = "green"
+sub-agent = "green"
+heading-1 = "foreground"
+heading-2 = "property"
+heading-3 = "blue"
+code-inline = "keyword"
+quote = "quote"
+mode-normal = "blue"
+mode-insert = "green"
+mode-visual = "magenta-floor"
+mode-replace = "red"
+mode-command = "yellow-floor"
+code-ground = "sidebar"
+syntax-keyword = "keyword"
+syntax-string = "string"
+syntax-comment = "comment-floor"
+syntax-number = "orange-floor"
+syntax-constant = "orange-floor"
+syntax-function = "blue"
+syntax-type = "cyan-floor"
+syntax-operator = "cyan-floor"
+syntax-property = "property"
+syntax-punctuation = "punctuation"
+syntax-tag = "red"
+syntax-attribute = "keyword"
+syntax-variable = "variable"
