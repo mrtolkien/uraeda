@@ -14,7 +14,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Theme } from "uraeda-binding";
-import { applyPalette } from "./theme/palette.ts";
+import { applyPalette, isColour } from "./theme/palette.ts";
 import { tokensOf, type Tokens } from "./theme/roles.ts";
 import { useThemes } from "./useThemes.ts";
 
@@ -183,7 +183,10 @@ function paintBar(drawn: Drawn, mode: "system" | "light" | "dark") {
   for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
     const own = meta.media.includes("dark") ? "dark" : "light";
     const shown = mode === "system" ? own : mode;
-    meta.content = drawn[shown]?.["--color-background-body"] ?? BAR[shown];
+    // A cache edited by hand may hold anything: the bar takes a hex colour, as the first paint
+    // does.
+    const page = drawn[shown]?.["--color-background-body"];
+    meta.content = isColour(page) ? page : BAR[shown];
   }
 }
 
