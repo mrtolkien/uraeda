@@ -459,7 +459,7 @@ export type UndoEntry = {
 };
 export function createUndoStack(now: () => number = Date.now): UndoStack;
 export type UndoStack = {
-  push(entry: UndoEntry): void;
+  record(entry: UndoEntry): void;
   /** Undoes the top entry, in turn after any undo or redo still on its way. */
   undo(ask: (entry: UndoEntry, redo: boolean) => Promise<boolean>): Promise<UndoOutcome>;
   redo(ask: (entry: UndoEntry, redo: boolean) => Promise<boolean>): Promise<UndoOutcome>;
@@ -476,17 +476,17 @@ export type UndoOutcome =
 export const undoStack: UndoStack; // the tab's one stack
 ```
 
-- Rules it owns: at most 50 entries, the oldest dropped; a push clears the redo side; a move joins
-  the top entry when it is a move of the same `list` pushed less than 1,000 ms before, the time
-  restarting at each move; `ask` runs only when `committed()` resolves `true`, and a `false` answer
-  is `kept`, the entry staying where it was; a refused entry leaves its side; one undo or redo at a
-  time, in the order pressed.
+- Rules it owns: at most 50 entries, the oldest dropped; a new entry recorded clears the redo side;
+  a move joins the top entry when it is a move of the same `list` pushed less than 1,000 ms before,
+  the time restarting at each move; `ask` runs only when `committed()` resolves `true`, and a
+  `false` answer is `kept`, the entry staying where it was; a refused entry leaves its side; one
+  undo or redo at a time, in the order pressed.
 
 - [x] **Step 1: Write the failing tests**, with a clock the test moves:
   - "undo takes back the latest entry first, minutes later": two entries, the clock 10 minutes on;
     two undos call the second's then the first's `undo`.
   - "the stack keeps the latest 50 entries": 51 pushes; 50 undos succeed, the 51st is `empty`.
-  - "a new entry clears what could be redone": undo, then push; `canRedo()` is `false`.
+  - "a new entry clears what could be redone": undo, then record; `canRedo()` is `false`.
   - "moves of one list less than a second apart join one entry", rows: three moves 400 ms apart are
     one entry, whose undo is the run's and whose redo redoes it all; a move 2,000 ms later is a
     second entry; a delete pushed within the second is its own entry, and a move after it starts a
@@ -574,8 +574,8 @@ git commit -m "feat(global-undo): answer each undoable write with its change"
 - Consumes: `undoStack` and `UndoEntry` (task 3); the `mod+shift+z` chord (task 2); `undo.apply`,
   `undo.committed`, and `ChangeView` (task 4).
 - Produces:
-  - `useUndo(): (entry: UndoEntry, options?: { toast?: boolean }) => void`: pushes the entry, and
-    shows its toast unless `toast` is `false` or the entry is a move: the label through
+  - `useUndo(): (entry: UndoEntry, options?: { toast?: boolean }) => void`: records the entry on the
+    stack, and shows its toast unless `toast` is `false` or the entry is a move: the label through
     `waitsOnGit`, with Undo and its key `u` while single keys are on and the screen is not narrow. A
     toast closes once its entry is no longer on top.
   - `changeEntry(fate, change: ChangeView, label: string, place: UndoEntry["place"], subject: string): UndoEntry`:

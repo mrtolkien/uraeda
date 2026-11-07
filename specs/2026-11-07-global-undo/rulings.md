@@ -73,3 +73,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a large `specs/` makes the first image of a single file slower to record; the scope
   narrows to the lists and the file's folder at the cost of links elsewhere left moved.
 - **Where**: task 1
+
+## R7: The stack's method is `record`, not `push`
+
+- **Decision**: entries go on the stack with `undoStack.record(entry)`.
+- **Rationale**: the linter's fix, run by the commit hook, merges two calls to a method named `push`
+  into one `push(a, b)`, taking it for an array's: the stack takes one entry, so the second would be
+  lost silently.
+- **Where**: task 3, `packages/web/src/undo/stack.ts`

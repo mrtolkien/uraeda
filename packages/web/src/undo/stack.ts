@@ -30,7 +30,7 @@ type Ask = (entry: UndoEntry, redo: boolean) => Promise<boolean>;
 export type UndoStack = {
   canRedo(): boolean;
   clear(): void;
-  push(entry: UndoEntry): void;
+  record(entry: UndoEntry): void;
   /** Redoes the entry undone last, in turn after any undo or redo still on its way. */
   redo(ask: Ask): Promise<UndoOutcome>;
   subscribe(listener: () => void): () => void;
@@ -48,7 +48,7 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
   const done: Array<UndoEntry> = [];
   const undone: Array<UndoEntry> = [];
   const listeners = new Set<() => void>();
-  // The run of moves on top: its entry, its list, and when its last move came. Any other push, an
+  // The run of moves on top: its entry, its list, and when its last move came. Any other entry recorded, an
   // undo, a redo, or a clear ends it.
   let run: { at: number; entry: UndoEntry; list: string } | undefined;
   // The replays in the order pressed: each starts once the one before it settled.
@@ -67,7 +67,7 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
     }
   };
 
-  const push = (entry: UndoEntry) => {
+  const record = (entry: UndoEntry) => {
     const time = now();
     const top = done.at(-1);
     undone.length = 0;
@@ -128,7 +128,7 @@ export function createUndoStack(now: () => number = Date.now): UndoStack {
       run = undefined;
       notify();
     },
-    push,
+    record,
     redo: (ask) => enqueue(true, ask),
     subscribe: (listener) => {
       listeners.add(listener);
