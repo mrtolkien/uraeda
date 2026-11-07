@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-12
 pull-request: https://github.com/mrtolkien/uraeda/pull/6
-superseded-by: [2026-10-26-testing-communication]
+superseded-by: [2026-10-26-testing-communication, 2026-11-07-global-undo]
 ---
 
 # Record: UI improvements
@@ -14,6 +14,8 @@ superseded-by: [2026-10-26-testing-communication]
 > in git: `git log -- specs/2026-10-12-ui-improvements/`.
 >
 > Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).
+>
+> Superseded in part by [2026-11-07-global-undo](2026-11-07-global-undo.md).
 
 ## What and why
 
@@ -131,8 +133,8 @@ features' mockup lists, and placeholder-free drafts.
     and Back;
   - [`TopBarSlot.tsx`](/packages/web/src/layout/TopBarSlot.tsx), a page's controls in the shell's
     header;
-  - [`useUndoToast.ts`](/packages/web/src/layout/useUndoToast.ts), the 5-second toast with Undo and
-    the banner of a refused Undo;
+  - `useUndoToast.ts` (`packages/web/src/layout/useUndoToast.ts`, deleted), the 5-second toast with
+    Undo and the banner of a refused Undo;
   - [`Page.tsx`](/packages/web/src/layout/Page.tsx) and
     [`Paragraph.tsx`](/packages/web/src/layout/Paragraph.tsx), the page's column and its reading
     text.

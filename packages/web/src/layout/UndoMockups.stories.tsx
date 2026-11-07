@@ -1,4 +1,4 @@
-// The states of the global undo (specs/2026-11-07-global-undo), drawn by the undo stack itself over
+// The states of the global undo (specs/done/2026-11-07-global-undo.md), drawn by the undo stack itself over
 // the home: a delete's toast, with Undo; the toast an undo shows, with its Redo, and `U` in the
 // status line while there is something to redo; the question an undo asks once its action was
 // committed; and an undo refused because what it would restore changed since. Each records an
