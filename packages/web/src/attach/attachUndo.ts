@@ -60,7 +60,9 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
   const subject = fileName(attached.start.path);
   const count = attached.changes.length;
   const label = `Added ${count === 1 ? "an image" : `${count} images`} to “${subject}”`;
-  const place = { path: `/edit/${attached.start.path}` };
+  // The file's page where the last replay left it: back at its start after an undo, at the path the
+  // run left it, in its folder, after a redo.
+  let place = { path: `/edit/${attached.path}` };
   const base = changeEntry(fate, images, label, place, subject);
   // The entry over the images and the text's save, made by the first undo, which reads the save.
   let whole: UndoEntry | undefined;
@@ -88,15 +90,23 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
     }
     const refused = await whole.undo();
     await reread();
+    if (refused === undefined) {
+      place = { path: `/edit/${attached.start.path}` };
+    }
     return refused;
   };
   return {
     committed: () => (whole ?? base).committed?.() ?? Promise.resolve(false),
     label,
-    place,
+    get place() {
+      return place;
+    },
     redo: async () => {
       const refused = await (whole ?? base).redo();
       await reread();
+      if (refused === undefined) {
+        place = { path: `/edit/${attached.path}` };
+      }
       return refused;
     },
     undo,

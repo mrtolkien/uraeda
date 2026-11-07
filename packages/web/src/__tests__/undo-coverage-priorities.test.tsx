@@ -372,18 +372,23 @@ async function dropImage(repo: string) {
   return linked!;
 }
 
-// Break: an image whose undo leaves the image, or the file moved into its folder.
+// Break: an image whose undo leaves the image, or the file moved into its folder; a redo that
+// opens the file's page at the path the folder replaced.
 test("an image dropped on a proposal file's page undoes and redoes, its link with it", async () => {
   const repo = fixtureRepo();
   const before = tree(repo, "specs/proposals");
-  await dropImage(repo);
+  const moved = await dropImage(repo);
   const after = tree(repo, "specs/proposals");
 
   await press("u");
   await waitFor(() => expect(tree(repo, "specs/proposals")).toEqual(before));
   await waitFor(() => expect(screen.getAllByText(/^Undone: /).length).toBeGreaterThan(0));
+  // Each replay takes the human to the file where it now is: back out of its folder on the undo,
+  // in it again on the redo.
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${PROPOSAL}`)));
   await press("U");
   await waitFor(() => expect(tree(repo, "specs/proposals")).toEqual(after));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${moved}`)));
 });
 
 // Break: the undo checking only the text after the frontmatter, so it takes back a frontmatter
