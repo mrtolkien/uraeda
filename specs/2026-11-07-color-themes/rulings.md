@@ -74,3 +74,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's picker previews in the page; a sheet covering the page would hide the
   preview it exists for.
 - **Where**: task 8
+
+## R7: The palette rule's selector holds in every surface, as the probe read it
+
+- **Decision**: `applyPalette` keeps the selector
+  `[data-astryx-theme="uraeda"][data-theme="<mode>"]`, unlayered. In Chromium, Astryx's root `Theme`
+  puts both attributes on `<html>` and on its own wrapper, the sandbox bar's wrapper carries both,
+  and a story's preview carries both once its embedding page sends the mode: the rule set every
+  token it names on the page, a pane, a portalled dialog, a `Selector`'s popover, the sandbox bar,
+  and a story's document. The page beside the panes paints `--color-background-surface`, the panes
+  `--color-background-body`; no element paints a story's background, so the frame's canvas shows
+  there, with the built theme as with the rule.
+- **Rationale**: the built theme declares its tokens in `@layer astryx-theme`, under
+  `@scope ([data-astryx-theme="uraeda"])`, so any unlayered rule matching the same element wins. The
+  probe put the same rule in `@layer reset` and saw every surface miss, so its `ok` is earned.
+- **If wrong**: a page of Storybook loaded on its own, in the system's mode, has no `data-theme` and
+  keeps the built Catppuccin, as task 9 intends; a surface that needs it would need a per-mode
+  `@media (prefers-color-scheme)` block.
+- **Where**: tasks 1, 4, and 9
