@@ -985,21 +985,22 @@ git commit -m "feat(color-themes): views ask for roles, and headings take their 
 **Files:**
 
 - Start from: `ThemeMockups.stories.tsx#ThemePicker` and `#ThemePickerFaded`
-- Create: `packages/web/src/keys/ThemePicker.tsx`
+- Create: `packages/web/src/keys/ThemePicker.tsx`, `keys/InPage.tsx` (the in-page layer and its
+  fade, R20)
 - Modify: `packages/web/src/keys/KeyPicker.tsx` (its in-page mode), `keys/pickerSources.ts`
   (`PickerItem.aside`), `keys/LeaderKeys.tsx` (`space u t`), `ThemeMockups.stories.tsx` (the two
-  picker stories draw `ThemePicker`)
+  picker stories draw `ThemePicker`), `pointerMoved.ts` (no hover selection under a layer, R21)
 - Test: `packages/web/src/__tests__/theme-picker.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `usePicks`, `useThemeList`, `useThemePreview` (task 6).
 - Produces: `KeyPicker` gains
-  `inPage?: { footer: ReactNode; onCursor: (item: PickerItem | undefined) => void }`; `PickerItem`
-  gains `aside?: string`, drawn at the row's end in the supporting style;
-  `ThemePicker({ isOpen, onClose })`.
+  `inPage?: { footer: ReactNode; onCursor: (item: PickerItem | undefined) => void; start?: string }`,
+  `start` the item the cursor starts on (R20); `PickerItem` gains `aside?: string`, drawn at the
+  row's end in the supporting style; `ThemePicker({ isOpen, onClose })`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `theme-picker.test.tsx`, rendering the shell with the helpers, on a fake theme list:
 
@@ -1010,12 +1011,12 @@ git commit -m "feat(color-themes): views ask for roles, and headings take their 
   Pine Dawn with Enter: `uraeda.theme.light` is `rose-pine-dawn` and `uraeda.theme` is `light`.
   Breaks: the dark pick overwritten.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/theme-picker.test.tsx`
 - Expected: FAIL, the leader's `space u t` not found.
 
-- [ ] **Step 3: Implement the in-page mode and the picker**
+- [x] **Step 3: Implement the in-page mode and the picker**
 
 In page mode `KeyPicker` draws its list alone, `--size-palette-list` wide (the window's width less
 its margins on a phone), at `--spacing-10` from the top, centred, in frosted glass
@@ -1030,7 +1031,7 @@ without a pick calls it with `undefined`. Enter sets that mode's theme, and the 
 is not the one drawn. The footer reads `Enter keeps <name> · Esc puts <name in use> back`.
 `space u t`, label "Theme…", opens it.
 
-- [ ] **Step 4: Run the task's validation, and look**
+- [x] **Step 4: Run the task's validation, and look**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/theme-picker.test.tsx packages/web/src/__tests__/keys-leader-tree.test.tsx`,
@@ -1038,7 +1039,7 @@ is not the one drawn. The footer reads `Enter keeps <name> · Esc puts <name in 
 - Expected: PASS. Then `vp run sandbox`: the picker at a phone's and a desktop's width, the fade, a
   pick of each mode. Deferred to `ready`: the other UI tests, Storybook's build.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-11-07-color-themes/plan.md

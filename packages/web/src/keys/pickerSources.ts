@@ -25,6 +25,8 @@ import type { IconName } from "./store.ts";
 export type PickerKind = "features" | "changes" | "sessions" | "decisions" | "notes" | "priorities";
 
 export type PickerItem = {
+  /** Small text at the row's end, in the supporting style, as a theme's mode and "in use". */
+  aside?: string;
   /**
    * A feature's, a change's, or a session's card, as the sidebar draws it: the row shows its icon,
    * its step's for a feature, and its status's mark, the agent's at work on it, as the card does.

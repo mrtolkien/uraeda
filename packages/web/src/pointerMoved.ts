@@ -1,8 +1,10 @@
 // Whether a mouse's `pointermove` is the human moving it: what moves the selection, or the focus,
 // to what the pointer is over. The page scrolling, by the keys or by content arriving, under a
 // still pointer moves nothing: a browser may still send a move then, or fill its `movementX` in,
-// but the pointer is where it was in the window.
+// but the pointer is where it was in the window. Nor does a move over the page under a layer that
+// leaves the page in reach, as the theme picker's list: the layer keeps the focus.
 import type { PointerEvent } from "react";
+import { isLayerOpen } from "./keys/layers.ts";
 
 /** Where the last move left the pointer in the window, none before the first. */
 let last: { x: number; y: number } | undefined;
@@ -21,11 +23,11 @@ if (typeof document !== "undefined") {
 }
 
 /**
- * A mouse's move that took the pointer elsewhere in the window since the last one. The first move
- * seen only marks where the pointer is: a real move sends many.
+ * A mouse's move that took the pointer elsewhere in the window since the last one, with no layer
+ * open over the page. The first move seen only marks where the pointer is: a real move sends many.
  */
 export function isPointerMoved(event: PointerEvent) {
-  return isNativePointerMoved(event.nativeEvent);
+  return isNativePointerMoved(event.nativeEvent) && !isLayerOpen();
 }
 
 /**

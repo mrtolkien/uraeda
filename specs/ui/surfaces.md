@@ -79,6 +79,10 @@ something, the picker shows where it lands, by level first ("Show the priority l
 note's place highlighted as a picked row is. Raw markdown in the preview, rulings R1 and R28 of the
 layout look, was overruled on 2026-11-05.
 
+The theme picker (`Space u t`) is the same picker in its page mode: the page itself is the preview,
+so its list floats alone, narrow, at the top of the page at every width, on glass and with no scrim,
+and fades to 10% after a second left alone, coming back on a key or a pointer move.
+
 ## Dialogs
 
 Two jobs only:

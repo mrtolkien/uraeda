@@ -132,6 +132,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason: "notes that the human scrolled or typed, to keep the page's place: it acts on no key",
   },
+  "keys/InPage.tsx": {
+    hits: 1,
+    reason:
+      "a key in the theme picker's list wakes it from its fade, and goes on to the picker's " +
+      "field, which acts on it: it acts on no key itself",
+  },
   "keys/registry.tsx": {
     hits: 9,
     reason: "the registry: the one window listener, and `watchKeys`, which hands its keys on",

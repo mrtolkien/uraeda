@@ -10,7 +10,9 @@
 // alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the focus returns
 // to where it was: the dialog's own (Astryx's `Dialog` and `BottomSheet` keep the element that had
 // the focus as they open, whatever it is, and give it back as they close), so a pick is left to the
-// page it opens (R33).
+// page it opens (R33). In page mode (`inPage`), the theme picker's, the page itself is the preview:
+// the list floats alone at the top of the page at every width, on glass, with no scrim, and fades
+// while it is left alone (`InPage`).
 import {
   CommandPalette,
   CommandPaletteFooter,
@@ -19,6 +21,7 @@ import {
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Text } from "@astryxdesign/core/Text";
 import {
   borderVars,
   colorVars,
@@ -45,12 +48,20 @@ import { useBackCloses } from "../layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
 import type { PickerItem } from "./pickerSources.ts";
+import { InPage } from "./InPage.tsx";
 import { PickerPreview } from "./PickerPreview.tsx";
 import { scrimStyles } from "../layout/scrim.ts";
 
 export { useKeyPicker } from "./pickerState.ts";
 
 const styles = stylex.create({
+  // The in-page list's footer, under its rows.
+  inPageFooter: {
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-3"],
+  },
+  // On the glass, the palette draws no surface of its own.
+  bare: { backgroundColor: "transparent" },
   body: {
     display: "grid",
     gridTemplateColumns: "var(--size-palette-list) minmax(0, 1fr)",
@@ -122,20 +133,24 @@ function Mark({ item }: { item: PickerItem }) {
 }
 
 /**
- * The palette's footer, its keys, which also follows the cursor: it puts it on the first result
- * when a search left none, and tells `onCursor` the item under it. When the items change while it
- * is open, as a decision is committed, it runs the search again, for the palette searches only as
- * it opens and as a letter is typed.
+ * The palette's footer, its keys, or `footer` when given, which also follows the cursor: it puts it
+ * on the first result when a search left none, on `start` as the picker opens, and tells
+ * `onCursor` the item under it. When the items change while it is open, as a decision is committed,
+ * it runs the search again, for the palette searches only as it opens and as a letter is typed.
  */
 function CursorFooter({
   field,
+  footer,
   onCursor,
   source,
+  start,
 }: {
   /** The search field: its text is what the human sees, whatever the palette has committed. */
   field: RefObject<EditorHandle | null>;
+  footer?: ReactNode;
   onCursor: (id: string | undefined) => void;
   source: SearchSource<PickerEntry>;
+  start?: string;
 }) {
   const palette = useCommandPaletteContext();
   const searched = useRef(source);
@@ -155,16 +170,29 @@ function CursorFooter({
   const setHighlighted = palette?.setHighlightedIndex;
   const count = entries.length;
   const id = entries[index]?.value;
+  // Only the first cursor starts on `start`: after a letter, it goes to the first result.
+  const started = useRef(false);
+  const first = useEffectEvent(() => {
+    const at = started.current
+      ? -1
+      : entries.findIndex((entry: { value: string }) => entry.value === start);
+    started.current = true;
+    return Math.max(at, 0);
+  });
   useEffect(() => {
     if (index === -1 && count > 0) {
-      setHighlighted?.(0);
+      setHighlighted?.(first());
     }
   }, [count, index, setHighlighted]);
+  const report = useEffectEvent(onCursor);
   useEffect(() => {
-    onCursor(id);
-  }, [onCursor, id]);
+    report(id);
+  }, [id]);
   // The keys that move and pick, on a keyboard: the phone shows none, and its list gets the row.
-  return isNarrow(useWidthClass()) ? null : <CommandPaletteFooter />;
+  if (isNarrow(useWidthClass())) {
+    return null;
+  }
+  return footer ?? <CommandPaletteFooter />;
 }
 
 /** The item under the cursor, drawn as the app draws it. */
@@ -177,21 +205,31 @@ function Preview({ item }: { item: PickerItem | undefined }) {
 }
 
 /**
- * A row of the list: the mark, the title, and a card's status, as the sidebar's card draws it, the
- * agent at work on it. The kind is the mark's icon, among several kinds too.
+ * A row of the list: the mark, the title, a card's status, as the sidebar's card draws it, the
+ * agent at work on it, and its aside. The kind is the mark's icon, among several kinds too. In page
+ * mode the rows are all of one kind, and draw no mark.
  */
-function Row({ item }: { item: PickerItem }) {
+function Row({ hasMark, item }: { hasMark: boolean; item: PickerItem }) {
   return (
     <HStack align="center" gap={2} xstyle={styles.rowFill}>
-      <Mark item={item} />
+      {hasMark && <Mark item={item} />}
       <span {...stylex.props(styles.row)}>{item.title}</span>
       {item.card && <CardStatus item={item.card} />}
+      {item.aside && (
+        <Text color="secondary" type="supporting">
+          {item.aside}
+        </Text>
+      )}
     </HStack>
   );
 }
 
-/** The palette's search and list, inline, its cursor told to `onCursor`. */
+/**
+ * The palette's search and list, inline, its cursor told to `onCursor`. In page mode, its rows on
+ * the glass, with no mark, its cursor starting on `start`, and `footer` under them.
+ */
 function Search({
+  inPage,
   isLoading,
   items,
   label,
@@ -201,6 +239,7 @@ function Search({
   onPick,
   placeholder,
 }: {
+  inPage?: { footer: ReactNode; start?: string };
   isLoading: boolean;
   items: ReadonlyArray<PickerItem>;
   label: string;
@@ -241,7 +280,15 @@ function Search({
     <CommandPalette<PickerEntry>
       emptyBootstrapText={isLoading ? "Loading…" : "Nothing to find."}
       emptySearchText={isLoading ? "Loading…" : "Nothing matches."}
-      footer={<CursorFooter field={field} onCursor={onCursor} source={source} />}
+      footer={
+        <CursorFooter
+          field={field}
+          footer={inPage && <div {...stylex.props(styles.inPageFooter)}>{inPage.footer}</div>}
+          onCursor={onCursor}
+          source={source}
+          start={inPage?.start}
+        />
+      }
       input={<PickerEditor label={label} placeholder={placeholder} ref={field} />}
       isInline
       isOpen
@@ -250,12 +297,12 @@ function Search({
       onOpenChange={onOpenChange}
       onValueChange={onPick}
       renderItem={(entry: PickerEntry) =>
-        entry.auxiliaryData && <Row item={entry.auxiliaryData.item} />
+        entry.auxiliaryData && <Row hasMark={!inPage} item={entry.auxiliaryData.item} />
       }
       role="group"
       searchSource={source}
       width="100%"
-      xstyle={styles.list}
+      xstyle={[styles.list, inPage && styles.bare]}
     />
   );
 }
@@ -298,8 +345,12 @@ function Body({
  * The picker over `items` while `isOpen`: Enter or a tap on an item calls `onPick` once the
  * picker's history entry is gone, Escape, Back, or a tap outside closes it, `onClose`. `title`
  * names the dialog and its history entry; `label` names its search field, `title` unless given.
+ * `inPage` draws it in page mode: its list alone, floating over the page, `footer` under it, its
+ * cursor starting on the item `start` names, and told to `onCursor` as it moves, so the caller
+ * previews it in the page itself.
  */
 export function KeyPicker({
+  inPage,
   isLoading = false,
   isOpen,
   items,
@@ -309,6 +360,11 @@ export function KeyPicker({
   placeholder = "Find…",
   title,
 }: {
+  inPage?: {
+    footer: ReactNode;
+    onCursor: (item: PickerItem | undefined) => void;
+    start?: string;
+  };
   /** Its items are still being read: the list says "Loading…" and the search is kept. */
   isLoading?: boolean;
   isOpen: boolean;
@@ -340,17 +396,29 @@ export function KeyPicker({
       afterOverlayCloses(title, () => onPick(item));
     }
   };
-  const body = isOpen && (
-    <Body
-      isLoading={isLoading}
-      isNarrow={narrow}
-      items={items}
-      label={label ?? title}
-      onOpenChange={onOpenChange}
-      onPick={pick}
-      placeholder={placeholder}
-    />
-  );
+  const search = {
+    isLoading,
+    items,
+    label: label ?? title,
+    onOpenChange,
+    onPick: pick,
+    placeholder,
+  };
+  if (inPage) {
+    return (
+      isOpen && (
+        <InPage label={title} onOutside={() => onOpenChange(false)}>
+          <Search
+            inPage={inPage}
+            maxHeight="var(--size-palette-height)"
+            onCursor={(id) => inPage.onCursor(items.find((item) => item.id === id))}
+            {...search}
+          />
+        </InPage>
+      )
+    );
+  }
+  const body = isOpen && <Body isNarrow={narrow} {...search} />;
   if (narrow) {
     return (
       <Sheet

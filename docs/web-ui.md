@@ -77,6 +77,12 @@ lists, such as a file of yours deleted, draws its mode's default, Catppuccin Moc
 reload draws the picked theme from its first frame, the sign-in page included, from the colours the
 browser drew last. A private window that refuses storage keeps the picks until the page reloads.
 
+`Space u t` tries the themes from the keyboard: a narrow list of every theme at the top of the page,
+dark ones first, the two in use marked, and the app itself drawn in the theme under the cursor. Left
+alone a second, the list fades so the whole page shows; a key or a pointer move brings it back.
+Enter keeps the theme, and a theme of the other mode switches the mode to it, so you see it. Escape,
+Back, or a tap outside the list put back the theme in use.
+
 The section also lists your theme files, each with its mode, the theme it extends, how many colours
 it has under the contrast floor and how many other problems, and the problems themselves, or says
 where to put one. A role with a problem keeps its colour from the theme the file extends; a colour
