@@ -197,9 +197,10 @@ export async function runningPreview(mode: FakeMode = "ok", repo = fixtureRepo()
   const name = basename(repo);
   const base = `/r/${name}/preview/${server.frames.current()}/${STORY_FEATURE}/`;
   const dir = join(repo, ".worktrees", STORY_FEATURE);
-  // At its commit, as a view through the server reads it: one at an unknown commit is started again.
-  const commit = (await binding.checkoutCommit(dir)) ?? undefined;
-  const checkout = { ...(await checkoutOf(dir, base)), commit };
+  // At its code version, as a view through the server reads it: one at an unknown version is
+  // started again.
+  const version = (await binding.codeVersion(dir)) ?? undefined;
+  const checkout = { ...(await checkoutOf(dir, base)), version };
   server.previews.view(checkout);
   await ready(server.previews, checkout);
   return {

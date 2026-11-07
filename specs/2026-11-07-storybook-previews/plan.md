@@ -430,7 +430,7 @@ git commit -m "refactor(storybook-previews): the preview runner's process in its
   in `kept` counts as viewed now, and is not stopped for idleness; one whose checkout folder is gone
   stops, kept or not; any other stops after `IDLE_MS` without a view.
 
-- [ ] **Step 1: Write the failing tests, and rename `commit` to `version` in the existing ones**
+- [x] **Step 1: Write the failing tests, and rename `commit` to `version` in the existing ones**
 
 ```ts
 // runner.test.ts
@@ -477,23 +477,23 @@ The breaks: a sweep that ignores `kept` (stops at 5 hours); one that keeps witho
 view (stops at once after the keep ends, at 5 hours 29 minutes); a keep that outlives a removed
 worktree; a version still the commit (the `specs/` commit restarts).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/preview/__tests__/runner.test.ts packages/server/src/__tests__/preview.test.ts`
 - Expected: FAIL, "a kept Storybook…" `expected undefined to be 'ready'`; the `specs/` test,
   `a commit under specs/ restarted it`.
 
-- [ ] **Step 3: Implement versions and the kept sweep**
+- [x] **Step 3: Implement versions and the kept sweep**
 
 `runnable` reads `ctx.binding.codeVersion(dir)`, `null` on failure, in place of `checkoutCommit`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/preview packages/server/src/fate/preview.ts packages/server/src/__tests__
