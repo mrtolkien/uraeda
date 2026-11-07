@@ -164,6 +164,52 @@ function useTypingIn(inside: RefObject<HTMLElement | null>) {
 }
 
 /**
+ * How a question's card is laid out: on a wide screen, of two columns, `split`, once `roomy`, none
+ * of its options holding stories and none of its parts a table, a mockup, or a story; around a live
+ * window, `windowed`, the page's column, its text a single card's width.
+ */
+function useCardLayout(document: Document, question: QuestionItem, roomy: boolean) {
+  const wide = !isNarrow(useWidthClass());
+  const stories = useContext(StoryContext);
+  const split =
+    wide &&
+    roomy &&
+    !holdsVariants(stories, document, question) &&
+    !holdsWide(stories, document, question);
+  const windowed = wide && holdsWindow(stories, document, question);
+  return {
+    split,
+    text: windowed && styles.text,
+    wide,
+    width: wide && (split ? styles.splitCard : styles.single),
+    windowed,
+  };
+}
+
+/**
+ * The stories' context inside a question's card: a comment on one of its stories joins its answer,
+ * on a line of its own, while it can be answered. Its unsaved text is the question's own: another
+ * question of the round may embed the same story.
+ */
+function useStoryComments(
+  answer: ReturnType<typeof useAnswer>,
+  path: string,
+  question: QuestionItem,
+  readOnly: boolean,
+) {
+  const stories = useContext(StoryContext);
+  return stories && !readOnly
+    ? {
+        ...stories,
+        comment: {
+          path: `${path}#${question.id}`,
+          save: (_: unknown, text: string) => answer.appendLine(text),
+        },
+      }
+    : stories;
+}
+
+/**
  * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of
  * its options holding stories and none of its parts a table, a mockup, or a story: its title and context on the left, its options and comment on the
  * right. On the phone, no card. At every width, its header sticks at the top while its card is on
@@ -195,30 +241,9 @@ export function QuestionCard({
   target: RoundTarget;
 }) {
   const answer = useAnswer(question, target, path);
-  const wide = !isNarrow(useWidthClass());
+  const { split, text, wide, width, windowed } = useCardLayout(document, question, roomy);
+  const comments = useStoryComments(answer, path, question, readOnly);
   const margin = useScrollMargin();
-  // A comment on one of its stories joins its answer, on a line of its own, while it can be
-  // answered. Its unsaved text is the question's own: another question of the round may embed the
-  // same story.
-  const stories = useContext(StoryContext);
-  const split =
-    wide &&
-    roomy &&
-    !holdsVariants(stories, document, question) &&
-    !holdsWide(stories, document, question);
-  const windowed = wide && holdsWindow(stories, document, question);
-  const width = wide && (split ? styles.splitCard : styles.single);
-  const text = windowed && styles.text;
-  const comments =
-    stories && !readOnly
-      ? {
-          ...stories,
-          comment: {
-            path: `${path}#${question.id}`,
-            save: (_: unknown, text: string) => answer.appendLine(text),
-          },
-        }
-      : stories;
   const head = <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />;
   const context = <QuestionContext document={document} question={question} />;
   const answering = (

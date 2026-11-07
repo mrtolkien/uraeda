@@ -573,7 +573,7 @@ The breaks: `J` moving without stretching; Enter commenting on the head alone.
   Enter comments, `s` asks. The notes are a `"pane"` stop whose Enter opens them as "Edit notes"
   does; the commit's row a `"pane"` stop whose Enter focuses its first button, as `n` does.
 
-- [ ] **Step 1: Split `QuestionCard`**, which is at the limit, as the tests pass before and after.
+- [x] **Step 1: Split `QuestionCard`**, which is at the limit, as the tests pass before and after.
       Commit: `refactor(keyboard-nav): split the question card`.
 
 - [ ] **Step 2: Write the failing test**
