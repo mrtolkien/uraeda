@@ -260,6 +260,22 @@ impl Git {
         Some(entry.object_id())
     }
 
+    /// The id a commit's root tree would have without its top-level entry `name`, hashed but not
+    /// written: the tree's own id when it has no such entry.
+    pub fn tree_id_without(&self, commit: ObjectId, name: &str) -> Result<ObjectId, GitError> {
+        use gix::objs::WriteTo;
+        let what = commit.to_hex_with_len(7).to_string();
+        let tree = self.tree(commit)?;
+        let mut owned: gix::objs::Tree = tree.decode().map_err(read_error(what.as_str()))?.into();
+        owned.entries.retain(|entry| entry.filename != name);
+        let mut data = Vec::new();
+        owned
+            .write_to(&mut data)
+            .map_err(read_error(what.as_str()))?;
+        gix::objs::compute_hash(self.repo.object_hash(), gix::objs::Kind::Tree, &data)
+            .map_err(read_error(what.as_str()))
+    }
+
     /// The mode of the entry at `path` in a commit's tree, `None` when it has none.
     fn entry_mode(&self, commit: ObjectId, path: &str) -> Option<gix::object::tree::EntryMode> {
         let tree = self.tree(commit).ok()?;
