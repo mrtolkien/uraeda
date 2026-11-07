@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Faster Storybook previews
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-11-07.
 >
 > - You approve story previews that are ready when you arrive. A branch's Storybook stays up while
 >   one of its files waits for you with a story link, and survives commits that change only
