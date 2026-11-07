@@ -349,7 +349,7 @@ two files.
   `useSettledWrites(...).remove(comment)` does the same, "Removed your comment on “<subject>”",
   through `settled.comment`. A refused removal shows no toast, its error as today.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 test("a removed comment comes back with its text on Undo", async () => {
@@ -366,16 +366,16 @@ test("a removed comment comes back with its text on Undo", async () => {
 
 The breaks: a removal with no toast; an Undo that adds an empty comment or a general one.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/review.test.tsx`
 - Expected: FAIL, `Unable to find an element with the text: Removed your comment on line 52`
 
-- [ ] **Step 3: Implement the toasts and their Undo** in both removals, with `useUndoToast`.
+- [x] **Step 3: Implement the toasts and their Undo** in both removals, with `useUndoToast`.
 
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 5: Commit**: `feat(keyboard-nav): undo a removed comment`
+- [x] **Step 5: Commit**: `feat(keyboard-nav): undo a removed comment`
 
 ## Task 4: The cursor
 
