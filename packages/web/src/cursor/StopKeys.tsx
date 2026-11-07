@@ -55,7 +55,7 @@ export function StopBar({ held, keys }: { held: boolean; keys: ReadonlyArray<Sto
 
 function ShownBar({ keys }: { keys: ReadonlyArray<StopKey> }) {
   const actions = useBarActions(keys);
-  return actions.length === 0 ? null : <RowBar actions={actions} />;
+  return actions.length === 0 ? null : <RowBar actions={actions} isCursor />;
 }
 
 /**
@@ -72,5 +72,5 @@ export function HeldKeys({
 }) {
   useStopKeys(keys, true);
   const actions = useBarActions(keys);
-  return children(actions.length === 0 ? null : <RowBar actions={actions} />);
+  return children(actions.length === 0 ? null : <RowBar actions={actions} isCursor />);
 }
