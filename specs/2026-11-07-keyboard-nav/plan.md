@@ -21,8 +21,8 @@ stop to stop, with keys of its own on what it holds, so no action there needs th
   tested without a browser.
 - **The stops** are marked by what draws them: the shared parts (a block, a pending comment, a fold,
   an embed's buttons) in one task, then each page's own (its keys for a block, a question card, the
-  notes, the commit). A stop declares its keys through `useStopKeys` while held, and draws them in
-  its `StopBar`.
+  notes, the commit). A stop mounts `HeldKeys` while held, which declares its keys and draws them in
+  its bar; a whole pane gets its marks, look, and `HeldKeys` from `usePaneStop`.
 - **The comment's range** (`commentRange.ts`) owns how a range grows and shrinks, for taps and for
   `J` `K` alike; the review page's `useKeyRange` holds the keys' anchor and head.
 
@@ -214,7 +214,7 @@ decision asks at the `early` stage: they say "none" and why.
 | Edge: single keys off                               | 1    | `keys-registry.test.tsx` "with single-key shortcuts off…"                                              |
 | Edge: Enter on a range with text in the field       | 2    | none: a tap's existing merge, which `J` reuses                                                         |
 | Edge: cursor scrolled off with `Ctrl+D`             | 4    | a row of "with no cursor, a key takes the topmost stop on screen"                                      |
-| Edge: a phone with a keyboard                       | 4    | none: `StopBar` draws nothing when narrow, checked in the sandbox                                      |
+| Edge: a phone with a keyboard                       | 4    | none: `HeldKeys` draws no bar when narrow, checked in the sandbox                                      |
 | SC-001: no mouse                                    | 8    | none: the walkthrough in the sandbox, at the final review                                              |
 | SC-002: one key picks                               | 7    | the round test above                                                                                   |
 | SC-003: the scroll margin                           | 4    | the `cursor-move.test.ts` tests                                                                        |
@@ -422,12 +422,17 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   rule, for a stop's own keys such as `J`.
 - Produces, `cursor/StopKeys.tsx`:
   `type StopKey = { keys: string; label: string; run: () => void | false; bar?: string }`;
-  `useStopKeys(keys: ReadonlyArray<StopKey>, held: boolean): void`, declared in the selection's
-  place while held; `StopBar({ held, keys })`, the `RowBar` of the keys with a `bar` text, without
-  the single keys when they are off, and nothing when narrow or not held; the bar is `RowBar`'s
-  `isCursor`, its buttons out of Tab's way and marked `data-stop-bar`. `bar` is the keys as the bar
-  writes them, "J K", and `label` the word after them, "range"
+  `HeldKeys({ keys, shown?, children? })`, mounted only while held, which declares the keys in the
+  selection's place and draws the `RowBar` of `shown`'s keys with a `bar` text, without the single
+  keys when they are off, and nothing when narrow; the bar is `RowBar`'s `isCursor`, its buttons out
+  of Tab's way and marked `data-stop-bar`. `bar` is the keys as the bar writes them, "J K", and
+  `label` the word after them, "range"
   ([R7](rulings.md#r7-a-stops-bar-writes-its-keys-from-bar-and-its-word-from-label)).
+- Produces, `cursor/PaneStop.tsx`: `usePaneStop(keys, shown?, ref?)`, a whole pane as a stop: its
+  `props` (`data-pane`, the stop's mark, `tabIndex` -1, its ref), its `style` (no focus ring of its
+  own), its held `look` (`pickedStyles.pane`, or `paneNarrow`'s overlay on a narrow screen), and its
+  `bar`, a `HeldKeys` while held
+  ([R15](rulings.md#r15-one-helper-makes-a-pane-a-stop-ringed-over-it-on-a-narrow-screen)).
 - Produces, `helpers.tsx`: `hold(element: HTMLElement)`, which presses a key no binding has, then
   focuses the element, as the cursor would.
 
@@ -489,8 +494,7 @@ its end; scrolling a fitting pane only to its stop.
 
 **Interfaces:**
 
-- Consumes: task 4's `stopProps`, `useHeld`, `useStopKeys`, `StopBar`, `focusStop`, `stopsOf`;
-  `pickedStyles`.
+- Consumes: task 4's `stopProps`, `useHeld`, `HeldKeys`, `focusStop`, `stopsOf`; `pickedStyles`.
 - Produces: `Selection.keys?: (block: Block, toggle: HTMLElement) => ReadonlyArray<StopKey>` and
   `PartSelection.keys?: (range: DecisionRange, toggle: HTMLElement) => ReadonlyArray<StopKey>`: the
   keys a held block or part has, its bar under it. A block's toggle is a `"block"` stop; held, its
@@ -577,8 +581,8 @@ The breaks: `J` moving without stretching; Enter commenting on the head alone.
 
 **Interfaces:**
 
-- Consumes: task 4's `useCursor`, `stopProps`, `useHeld`, `useStopKeys`, `StopBar`, `hold`; task 5's
-  `Selection.keys`; `pickedStyles.pane`.
+- Consumes: task 4's `useCursor`, `stopProps`, `useHeld`, `HeldKeys`, `usePaneStop`, `hold`; task
+  5's `Selection.keys`; `pickedStyles.pane`.
 - Produces: a question card is a `"pane"` stop, ringed while held. Its keys: the lowercase letters
   of its options from `a` to `f`, each toggling its option ("a b pick", the letters written out),
   none when read-only; `i`, or Enter as the spec's US4 says, focuses its comment field ("i
