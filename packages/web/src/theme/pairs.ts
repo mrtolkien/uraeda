@@ -37,9 +37,9 @@ const TEXTS = ["accent", "primary", "secondary", "disabled", "lavender", "sapphi
 );
 
 /**
- * The text roles no Astryx token carries, which views read as `--role-*` (R1): headings, inline code,
- * quotes, your messages, a running session's mark, context notes, and the Vim modes, drawn as text
- * and as the status line's block under `on-action`.
+ * The text roles no Astryx token carries, which views read as `--role-*` (R1): headings, inline
+ * code, quotes, your messages, a running session's mark, context notes, and the Vim modes, drawn as
+ * text and as the status line's block under `on-action`.
  */
 const MODES = ["normal", "insert", "visual", "replace", "command"].map(
   (mode) => `--role-mode-${mode}`,

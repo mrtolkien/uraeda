@@ -285,8 +285,8 @@ export const uraedaTheme = defineTheme({
         },
         ":is(*) ul, :is(*) ol": { marginInline: "0 !important", rowGap: "0 !important" },
         // Headings take their level's role (`layout/headings.ts`), by the level written: prose sets
-        // `#` as an h4 (`Prose.tsx`), and deeper levels take the third's. Important, as Astryx's own
-        // colour for them is an atomic class, which may be emitted outside any layer.
+        // `#` as an h4 (`Prose.tsx`), and deeper levels take the third's. Important, as Astryx's
+        // own colour for them is an atomic class, which may be emitted outside any layer.
         ":is(*) h4": { color: "var(--role-heading-1) !important" },
         ":is(*) h5": { color: "var(--role-heading-2) !important" },
         ":is(*) h6": { color: "var(--role-heading-3) !important" },

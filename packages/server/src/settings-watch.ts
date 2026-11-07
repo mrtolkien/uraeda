@@ -65,7 +65,9 @@ function entries(path: string): Watched | null {
   }
 }
 
-/** The folders of the files the symlinked entries of the folder `path` point to, as GNU Stow makes. */
+/**
+ * The folders of the files the symlinked entries of the folder `path` point to, as GNU Stow makes.
+ */
 function linkedEntries(path: string): Array<Watched | null> {
   try {
     return readdirSync(path, { withFileTypes: true })
