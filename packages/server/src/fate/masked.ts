@@ -1,5 +1,5 @@
 /** The records the repository's mutations answer with, masked to the fields the client selected. */
-import type { ChangeView, Inbox, Priorities, RemovedImage } from "uraeda-binding";
+import type { ChangeView, Inbox, Priorities } from "uraeda-binding";
 import type { Context, RepoContext } from "./context.ts";
 import { refusable } from "./errors.ts";
 import { sentInbox, sentPriorities } from "./sent-lists.ts";
@@ -42,16 +42,12 @@ export const proposalFile = (
     select,
   );
 
-/**
- * The inbox, with what the answer's mutation adds to it: `removed`, the file as it was, for a
- * category's delete; `imageRemoved`, what Undo takes back, for an image taken out of a note; and
- * `change`, the change an undoable write recorded.
- */
+/** The inbox, with the change an undoable write recorded, for its answer. */
 export const inbox = (
   ctx: Context,
   record: Inbox,
   select: Array<string>,
-  extra: { change?: ChangeView | null; imageRemoved?: RemovedImage; removed?: string } = {},
+  extra: { change?: ChangeView | null } = {},
 ) =>
   sources.masked(
     inboxDataView,
@@ -59,8 +55,6 @@ export const inbox = (
     {
       ...sentInbox(record),
       change: extra.change ?? null,
-      imageRemoved: extra.imageRemoved ?? null,
-      removed: extra.removed ?? null,
     },
     select,
   );

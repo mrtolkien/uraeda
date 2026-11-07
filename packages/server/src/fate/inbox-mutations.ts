@@ -5,7 +5,6 @@
  * none is refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
-import type { RemovedImage } from "uraeda-binding";
 import { refusable } from "./errors.ts";
 import { inbox, priorities, proposalFile, undoableInbox } from "./masked.ts";
 import { undoable } from "./undo-mutations.ts";
@@ -18,12 +17,6 @@ type NoteInput = { hash: string; note: string };
 
 /** A note to add: its text, its category, none when left out, and the feature or change it is about. */
 type AddInput = { about?: string; category?: string; hash: string; text: string };
-
-/**
- * The Undo of a move: the note's lines as written, and its place, its category, none when left
- * out, and its index in it, which it goes back to.
- */
-type UndoInput = { category?: string; index: number; lines: Array<string> };
 
 /** A move into the priorities: both files' hashes as read, and the section's id, `next`. */
 type ToProposalInput = NoteInput & { prioritiesHash: string; section: string };
@@ -132,21 +125,6 @@ export const inboxMutations = {
       inbox(
         ctx,
         await refusable(() => ctx.binding.editNote(ctx.repo, input.note, input.text, input.hash)),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.insert": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ category?: string; hash: string; index: number; lines: Array<string> }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.insertNote(ctx.repo, input.index, input.lines, input.hash, input.category),
-        ),
         select,
       ),
     type: "Inbox",
@@ -265,13 +243,12 @@ export const inboxMutations = {
           ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash, undo),
         ),
       );
-      return inbox(ctx, answer.inbox, select, { change, removed: answer.before });
+      return inbox(ctx, answer, select, { change });
     },
     type: "Inbox",
   },
   // An image taken out of a note: the note file's lines linking it go, over the file read at
-  // `hash`; the image's file stays. The answer's `imageRemoved` is what `inbox.restoreImage` takes
-  // back.
+  // `hash`; the image's file stays.
   "inbox.removeImage": {
     resolve: async ({
       ctx,
@@ -283,7 +260,7 @@ export const inboxMutations = {
           ctx.binding.removeNoteImage(ctx.repo, input.file, input.image, input.hash, undo),
         ),
       );
-      return inbox(ctx, answer.inbox, select, { change, imageRemoved: answer.removed });
+      return inbox(ctx, answer, select, { change });
     },
     type: "Inbox",
   },
@@ -291,24 +268,6 @@ export const inboxMutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ from: string; hash: string; to: string }>) =>
       undoableInbox(ctx, select, (undo) =>
         ctx.binding.renameCategory(ctx.repo, input.from, input.to, input.hash, undo),
-      ),
-    type: "Inbox",
-  },
-  "inbox.restoreCategory": {
-    resolve: async ({ ctx, input, select }: Resolver<{ before: string; hash: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() => ctx.binding.restoreCategory(ctx.repo, input.before, input.hash)),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.restoreImage": {
-    resolve: async ({ ctx, input, select }: Resolver<{ removed: RemovedImage }>) =>
-      inbox(
-        ctx,
-        await refusable(() => ctx.binding.restoreNoteImage(ctx.repo, input.removed)),
-        select,
       ),
     type: "Inbox",
   },
@@ -366,98 +325,6 @@ export const inboxMutations = {
       );
       return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select, { change });
     },
-    type: "Inbox",
-  },
-  "inbox.undoAdd": {
-    resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
-      inbox(ctx, await refusable(() => ctx.binding.undoNoteAdd(ctx.repo, input.lines)), select),
-    type: "Inbox",
-  },
-  "inbox.undoAsFile": {
-    resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
-      inbox(ctx, await refusable(() => ctx.binding.undoNoteAsFile(ctx.repo, input.lines)), select),
-    type: "Inbox",
-  },
-  "inbox.undoCategory": {
-    resolve: async ({ ctx, input, select }: Resolver<UndoInput>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.undoNoteCategory(ctx.repo, input.lines, input.index, input.category),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.undoCommitted": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<Queued<{ hash: string; lines: Array<string> }>>) =>
-      inbox(
-        ctx,
-        await listCommit(ctx, input.write, () =>
-          ctx.binding.undoCommittedNote(ctx.repo, input.lines, input.hash),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.undoIntoProposal": {
-    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { file: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.undoNoteIntoProposal(
-            ctx.repo,
-            input.file,
-            input.lines,
-            input.index,
-            input.category,
-          ),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.undoToProposal": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<UndoInput & { proposalKey?: string; section: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.undoNoteToProposal(
-            ctx.repo,
-            input.lines,
-            input.index,
-            input.section,
-            input.category,
-            input.proposalKey,
-          ),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
-  "inbox.undoUnderProposal": {
-    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { proposalKey: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.undoNoteUnderProposal(
-            ctx.repo,
-            input.lines,
-            input.index,
-            input.proposalKey,
-            input.category,
-          ),
-        ),
-        select,
-      ),
     type: "Inbox",
   },
 };

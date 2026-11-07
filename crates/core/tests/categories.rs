@@ -104,54 +104,6 @@ fn renaming_keeps_the_notes_and_the_other_headings() {
     );
 }
 
-/// Deletes `name` over `text` through the API and restores it: the file is the input again, and
-/// the delete's answer is the file as it was.
-fn assert_round_trip(text: &str, name: &str, keep_notes: bool) {
-    let repo = repo_with(text);
-    let hash = api::read_inbox(repo.path()).unwrap().hash;
-    let (inbox, before) = api::remove_category(repo.path(), name, keep_notes, &hash).unwrap();
-    assert_eq!(before, text);
-    assert_ne!(repo.read(INBOX), text, "{name} {keep_notes}");
-    api::restore_category(repo.path(), &before, &inbox.hash).unwrap();
-    assert_eq!(repo.read(INBOX), text, "{name} {keep_notes}");
-}
-
-#[test]
-fn delete_then_restore_gives_the_file_back_byte_for_byte() {
-    let two = "# Inbox\n\n- loose\n\n## UI\n\n- a\n\n## Prompts\n\n- p\n\n## UI\n\n- z\n";
-    let no_newline = TEXT.trim_end_matches('\n');
-    let crlf = TEXT.replace('\n', "\r\n");
-    let before_title = "- first\n\n# Inbox\n\n## UI\n\n- a\n";
-    let cases = [
-        (TEXT, "UI"),
-        (TEXT, "Prompts"),
-        (two, "UI"),
-        (no_newline, "Prompts"),
-        (no_newline, "UI"),
-        (crlf.as_str(), "UI"),
-        (crlf.as_str(), "Prompts"),
-        (before_title, "UI"),
-        ("# Inbox\n\n## UI\n\n- a\n\n## Prompts\n\n- p\n", "UI"),
-    ];
-    for (text, name) in cases {
-        for keep_notes in [true, false] {
-            assert_round_trip(text, name, keep_notes);
-        }
-    }
-}
-
-#[test]
-fn a_restore_over_a_changed_file_is_refused_and_writes_nothing() {
-    let repo = repo_with(TEXT);
-    let hash = api::read_inbox(repo.path()).unwrap().hash;
-    let (inbox, before) = api::remove_category(repo.path(), "UI", true, &hash).unwrap();
-    let later = format!("{}- typed\n", repo.read(INBOX));
-    repo.write(INBOX, &later);
-
-    assert!(api::restore_category(repo.path(), &before, &inbox.hash).is_err());
-    assert_eq!(repo.read(INBOX), later);
-}
-
 fn refusal(result: Result<impl Sized, uraeda_core::api::ApiError>) -> String {
     result.err().expect("a refusal").to_string()
 }

@@ -235,32 +235,6 @@ test("adds a proposal", async () => {
   expect(next.proposals.at(-1).text).toBe("Show the agent's last commit");
 });
 
-test("puts a removed proposal back", async () => {
-  const { app } = await testApp();
-  const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
-  const removed = await mutate(app, "proposals.remove", { hash: read.hash, proposal: "later-1" }, [
-    "id",
-    "hash",
-  ]);
-
-  const result = await mutate(
-    app,
-    "proposals.insert",
-    {
-      hash: removed.data.hash,
-      index: 0,
-      lines: ["- Nix + Docker based execution environments", "  - with a cache"],
-      section: "later",
-    },
-    ["id", "sections", "changes"],
-  );
-
-  expect(result.data.changes).toBe(0);
-  const later = result.data.sections.find((s: { section: string }) => s.section === "later");
-  expect(later.proposals[0].key).toBe("nix-docker-based-execution-environments");
-  expect(later.proposals[0].nested).toEqual(["  - with a cache"]);
-});
-
 test("a file without a review is sent with none, so a removed review leaves the page", async () => {
   const { app } = await testApp();
   const file = { file: "spec.md", folder: "2026-10-06-recurring-tasks" };

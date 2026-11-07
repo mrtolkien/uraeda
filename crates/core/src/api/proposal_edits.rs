@@ -78,39 +78,6 @@ pub fn add_proposal_and_commit(
     Ok((workspace.join_priorities(priorities), added))
 }
 
-/// Takes back a committed add: the proposal, `lines` as written, leaves the end of its section, and
-/// the removal is committed alone with `chore: remove "<short>"`. Refused as a conflict when the
-/// file changed since it was read at `previous`.
-pub fn undo_committed_proposal(
-    repo: &Path,
-    lines: &[String],
-    previous: &str,
-) -> Result<Priorities> {
-    let _lock = write_lock(repo);
-    let (place, workspace) = reach_default_from(repo)?;
-    Ok(workspace.join_priorities(edits::undo_committed(&place, lines, previous)?))
-}
-
-/// Inserts a line with its nested lines, as written, before the line at `index` of a section, or
-/// at its end: Undo of a removal.
-pub fn insert_proposal(
-    repo: &Path,
-    section_id: &str,
-    index: u32,
-    lines: &[String],
-    previous: &str,
-) -> Result<Priorities> {
-    let _lock = write_lock(repo);
-    let (place, workspace) = reach_default_from(repo)?;
-    Ok(workspace.join_priorities(edits::insert(
-        &place,
-        section(section_id)?,
-        index as usize,
-        lines,
-        previous,
-    )?))
-}
-
 /// Moves a line before the line at `index` of a section, or to its end.
 pub fn move_proposal(
     repo: &Path,

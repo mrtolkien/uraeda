@@ -4,7 +4,6 @@ import { expect, test } from "vite-plus/test";
 import { byId, type Data, fixture, fixtureRepo, git, mutate, port, testApp } from "./helpers.ts";
 
 const INBOX = ["id", "hash", "categories", "names", "count", "changes", "triage"];
-const WITH_REMOVED = [...INBOX, "removed"];
 const FILE = ["id", "folder", "name", "path", "kind", "status", "current", "missing"];
 
 type App = Awaited<ReturnType<typeof testApp>>["app"];
@@ -16,9 +15,6 @@ const noteOf = (inbox: Data, text: string) =>
   inbox.categories
     .flatMap((category: { notes: Array<{ text: string }> }) => category.notes)
     .find((note: { text: string }) => note.text === text);
-
-/** A note's lines as written, which an Undo puts back. */
-const lines = (note: unknown) => (note as { lines: Array<string> }).lines;
 
 const read = (repo: string, path: string) => readFileSync(join(repo, path), "utf8");
 
@@ -93,10 +89,9 @@ test("an add over a stale hash is refused as a conflict", async () => {
   );
 });
 
-test("edits, recategorizes, removes, and puts back a note", async () => {
+test("edits, recategorizes, and removes a note", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
-  const before = read(repo, "specs/INBOX.md");
   const inbox = await readInbox(app);
   const note = noteOf(inbox, "We need a home icon");
 
@@ -114,16 +109,10 @@ test("edits, recategorizes, removes, and puts back a note", async () => {
   );
   const id = noteOf(moved.data, "We need a home icon, in the sidebar").id;
   const removed = await mutate(app, "inbox.remove", { hash: moved.data.hash, note: id }, INBOX);
-  const restored = await mutate(
-    app,
-    "inbox.insert",
-    { hash: removed.data.hash, index: 2, lines: ["- We need a home icon"] },
-    INBOX,
-  );
 
   expect(edited.data.changes).toBe(1);
-  expect(read(repo, "specs/INBOX.md")).toBe(before);
-  expect(restored.data.changes).toBe(0);
+  expect(removed.ok).toBe(true);
+  expect(read(repo, "specs/INBOX.md")).not.toContain("We need a home icon");
 });
 
 test("US5 1: places a note in its category and answers the moved inbox", async () => {
@@ -285,31 +274,7 @@ test("a note with a note file goes into a proposal line without a file, which ge
       "(proposals/claude-code-runner-triggered-manually/proposal.md)\n",
   );
   expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
-
-  const undone = await mutate(
-    served.app,
-    "inbox.undoIntoProposal",
-    { category: "UI", file: path, index: noteIndex(inbox, note), lines: lines(note) },
-    INBOX,
-  );
-
-  expect(undone.ok).toBe(true);
-  expect(existsSync(join(repo, "specs/proposals/claude-code-runner-triggered-manually"))).toBe(
-    false,
-  );
-  expect(read(repo, "specs/PRIORITIES.md")).toContain(
-    "- Claude Code runner (triggered manually)\n",
-  );
-  expect(read(repo, "specs/notes/headings-are-flat/note.md")).toBe(
-    "# Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
-  );
 });
-
-/** The index of `note` in its category of `inbox`. */
-const noteIndex = (inbox: Data, note: unknown) =>
-  inbox.categories
-    .find((category: { notes: Array<unknown> }) => category.notes.includes(note))
-    .notes.indexOf(note);
 
 /**
  * Posts a note with images to the repository's `/inbox/note-image`, as the add form does, or the
@@ -514,95 +479,25 @@ test("a triage changed since the page read it is not submitted", async () => {
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: propose an inbox triage");
 });
 
-test("an Undo of each move puts both files back in one call", async () => {
+test("a category is added, renamed, and deleted", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
-  const before = ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/proposals/git-listener.md"].map(
-    (path) => read(repo, path),
-  );
-  const inbox = await readInbox(app);
-  const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
-  const moved = noteOf(inbox, "Draft to proposal on mobile went 404") as { id: string };
-  const added = noteOf(inbox, "Make sure agents are resumable");
-  const homed = noteOf(inbox, "We need a home icon");
-
-  await mutate(
-    app,
-    "inbox.toProposal",
-    { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
-    ["id"],
-  );
-  const toNext = await readInbox(app);
-  await mutate(
-    app,
-    "inbox.intoProposal",
-    {
-      file: "specs/proposals/git-listener.md",
-      hash: toNext.hash,
-      note: noteOf(toNext, "Make sure agents are resumable").id,
-    },
-    ["id", "path"],
-  );
-  const intoFile = await readInbox(app);
-  await mutate(
-    app,
-    "inbox.category",
-    {
-      category: "CLI",
-      hash: intoFile.hash,
-      note: noteOf(intoFile, "We need a home icon").id,
-    },
-    INBOX,
-  );
-  await mutate(app, "inbox.undoCategory", { index: 2, lines: lines(homed) }, INBOX);
-  await mutate(
-    app,
-    "inbox.undoIntoProposal",
-    { category: "CLI", file: "specs/proposals/git-listener.md", index: 1, lines: lines(added) },
-    INBOX,
-  );
-  const undone = await mutate(
-    app,
-    "inbox.undoToProposal",
-    { category: "UI", index: 1, lines: lines(moved), section: "next" },
-    INBOX,
-  );
-
-  expect(undone.data.changes).toBe(0);
-  expect(
-    ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/proposals/git-listener.md"].map((path) =>
-      read(repo, path),
-    ),
-  ).toEqual(before);
-});
-
-test("a category is added, renamed, and deleted, and a delete's removed text restores the file", async () => {
-  const repo = fixtureRepo();
-  const { app } = await testApp(repo);
-  const before = read(repo, "specs/INBOX.md");
   const first = await readInbox(app);
 
-  const added = await mutate(
-    app,
-    "inbox.addCategory",
-    { hash: first.hash, name: "Docs" },
-    WITH_REMOVED,
-  );
+  const added = await mutate(app, "inbox.addCategory", { hash: first.hash, name: "Docs" }, INBOX);
   expect(added.data.names).toEqual(["UI", "CLI", "Docs"]);
-  expect(added.data.removed).toBeNull();
   const renamed = await mutate(
     app,
     "inbox.renameCategory",
     { from: "Docs", hash: added.data.hash, to: "Guides" },
-    WITH_REMOVED,
+    INBOX,
   );
   expect(renamed.data.names).toEqual(["UI", "CLI", "Guides"]);
-  expect(renamed.data.removed).toBeNull();
   const gone = await mutate(
     app,
     "inbox.removeCategory",
     { hash: renamed.data.hash, keepNotes: false, name: "Guides" },
-    WITH_REMOVED,
+    INBOX,
   );
   expect(gone.data.names).toEqual(["UI", "CLI"]);
 
@@ -610,21 +505,10 @@ test("a category is added, renamed, and deleted, and a delete's removed text res
     app,
     "inbox.removeCategory",
     { hash: gone.data.hash, keepNotes: false, name: "UI" },
-    WITH_REMOVED,
+    INBOX,
   );
-  const removedText = deleted.data.removed;
-  expect(removedText).toContain("## UI");
+  expect(deleted.data.names).toEqual(["CLI"]);
   expect(read(repo, "specs/INBOX.md")).not.toContain("## UI");
-  const restored = await mutate(
-    app,
-    "inbox.restoreCategory",
-    { before: removedText, hash: deleted.data.hash },
-    WITH_REMOVED,
-  );
-  expect(restored.data.removed).toBeNull();
-  expect(restored.data.names).toEqual(["UI", "CLI"]);
-  expect(read(repo, "specs/INBOX.md")).toBe(removedText);
-  expect(removedText).toBe(before);
 });
 
 test("a category named like another is refused with its message", async () => {

@@ -21,13 +21,8 @@ pub fn rename_category(repo: &Path, from: &str, to: &str, previous: &str) -> Res
 }
 
 /// Deletes a category: its notes stay without a category with `keep_notes`, and go with it
-/// otherwise. Gives the inbox and the file as it was, for [`restore_category`].
-pub fn remove_category(
-    repo: &Path,
-    name: &str,
-    keep_notes: bool,
-    previous: &str,
-) -> Result<(Inbox, String)> {
+/// otherwise.
+pub fn remove_category(repo: &Path, name: &str, keep_notes: bool, previous: &str) -> Result<Inbox> {
     let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::remove_category(
@@ -36,11 +31,4 @@ pub fn remove_category(
         keep_notes,
         Some(previous),
     )?)
-}
-
-/// Takes back a delete: writes `before` back, only when the inbox still hashes to `previous`.
-pub fn restore_category(repo: &Path, before: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    Ok(edits::restore_category(&place, before, previous)?)
 }

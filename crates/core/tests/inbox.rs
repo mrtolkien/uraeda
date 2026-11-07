@@ -336,8 +336,7 @@ fn edits_keep_every_other_line() {
 fn a_removed_note_is_inserted_back_byte_for_byte() {
     let text = "# Inbox\n\n- a\n\n## UI\n\n- b\n- c\n  - sub\n- d\n";
 
-    let lines = inbox::note_lines(text, "note-3").unwrap();
-    assert_eq!(lines, ["- c", "  - sub"]);
+    let lines: Vec<String> = vec!["- c".into(), "  - sub".into()];
     let removed = inbox::remove(text, "note-3").unwrap();
     assert_eq!(
         inbox::insert(&removed, Some("UI"), 1, &lines).unwrap(),
@@ -354,7 +353,6 @@ fn a_removed_note_is_inserted_back_byte_for_byte() {
         text
     );
     assert_eq!(inbox::insert(text, None, 0, &[]), None);
-    assert_eq!(inbox::note_lines(text, "note-9"), None);
 }
 
 #[test]

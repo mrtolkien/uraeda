@@ -825,23 +825,28 @@ git commit -m "docs(global-undo): what can be undone, and its keys"
 
 **Files:**
 
-- Modify: `packages/server/src/fate/inbox-mutations.ts`, `list-mutations.ts`, their tests;
-  `crates/binding/src/*.rs`; `crates/core/src/actions/inbox/undo.rs`, `categories.rs`, `unlink.rs`,
-  and the API functions only they served; their tests in `crates/core/tests/`
+- Modify: `packages/server/src/fate/inbox-mutations.ts`, `mutations.ts`, `masked.ts`,
+  `sent-lists.ts`, `views.ts`, their tests; `crates/binding/src/*.rs`;
+  `crates/core/src/actions/inbox/undo.rs` (deleted), `categories.rs`, `unlink.rs`, `merge.rs`,
+  `note_file.rs`, `agent.rs`, and the API and file functions only they served; their tests in
+  `crates/core/tests/`
 
 **Interfaces:**
 
 - Consumes: no web caller left of `inbox.undo*`, `inbox.restoreCategory`, `inbox.restoreImage`,
   `inbox.insert`, `proposals.insert`, `proposals.undoCommitted`.
 - Produces: those mutations, their binding functions, and the core functions no other code calls,
-  removed with their tests. Code a forward write still uses, like the note files a removal holds,
-  stays.
+  removed with their tests: the inbox's `removed` and `imageRemoved` fields, which only the restores
+  read, go too, `removeCategory` and `removeNoteImage` answering the inbox alone. The forward writes
+  `inbox.category`, `inbox.edit`, and `inbox.toProposalFile` stay. Code a forward write still uses
+  stays: the note files a removal holds (`HELD`) and the adds of note files to proposal files
+  (`MERGED`, now their relinked files alone), both of which Discard reads.
 
-- [ ] **Step 1: Find what has no caller left**, by search and by the compiler's dead-code warnings
+- [x] **Step 1: Find what has no caller left**, by search and by the compiler's dead-code warnings
       once the mutations go
-- [ ] **Step 2: Remove it, and the tests of it alone**, listing each removed test in the commit body
-- [ ] **Step 3: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 4: Commit**
+- [x] **Step 2: Remove it, and the tests of it alone**, listing each removed test in the commit body
+- [x] **Step 3: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates packages

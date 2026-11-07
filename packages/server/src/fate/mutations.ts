@@ -121,21 +121,6 @@ const repositoryMutations = {
     },
     type: "ProposalFile",
   },
-  "proposals.insert": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ hash: string; index: number; lines: Array<string>; section: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.insertProposal(ctx.repo, input.section, input.index, input.lines, input.hash),
-        ),
-        select,
-      ),
-    type: "Priorities",
-  },
   "proposals.move": {
     resolve: async ({
       ctx,
@@ -210,21 +195,6 @@ const repositoryMutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) =>
       undoablePriorities(ctx, select, (undo) =>
         ctx.binding.removeProposal(ctx.repo, input.proposal, input.hash, undo),
-      ),
-    type: "Priorities",
-  },
-  "proposals.undoCommitted": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<Queued<{ hash: string; lines: Array<string> }>>) =>
-      priorities(
-        ctx,
-        await listCommit(ctx, input.write, () =>
-          ctx.binding.undoCommittedProposal(ctx.repo, input.lines, input.hash),
-        ),
-        select,
       ),
     type: "Priorities",
   },

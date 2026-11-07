@@ -177,13 +177,11 @@ test("proposals.drop refuses a drop naming both, and nesting a proposal with a f
   expect(read(repo, "specs/PRIORITIES.md")).toBe(before);
 });
 
-test("inbox.underProposal puts a note under a proposal, and inbox.undoUnderProposal takes it back", async () => {
+test("inbox.underProposal puts a note under a proposal", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
-  const inbox = read(repo, "specs/INBOX.md");
-  const priorities = read(repo, "specs/PRIORITIES.md");
   const [before] = await byId(app, "Inbox", ["inbox"], ["id", "hash", "categories"]);
-  const note = before.categories[0].notes[0] as { id: string; lines: Array<string> };
+  const note = before.categories[0].notes[0] as { id: string };
 
   const moved = await mutate(
     app,
@@ -200,14 +198,4 @@ test("inbox.underProposal puts a note under a proposal, and inbox.undoUnderPropo
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
     "  - with a cache\n  - Specs are still way too long and hard to read\n- Benchmarks",
   );
-  const undone = await mutate(
-    app,
-    "inbox.undoUnderProposal",
-    { index: 0, lines: note.lines, proposalKey: "nix-docker-based-execution-environments" },
-    INBOX,
-  );
-
-  expect(undone.ok).toBe(true);
-  expect(read(repo, "specs/INBOX.md")).toBe(inbox);
-  expect(read(repo, "specs/PRIORITIES.md")).toBe(priorities);
 });

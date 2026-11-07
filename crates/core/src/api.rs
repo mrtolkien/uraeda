@@ -78,7 +78,7 @@ pub use git_writes::{
     save_conflict_file,
 };
 pub use history::read_history;
-pub use image_edits::{remove_note_image, restore_note_image};
+pub use image_edits::remove_note_image;
 pub(crate) use inbox_edits::note_texts_on_default;
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
@@ -88,7 +88,7 @@ pub use preview::{checkout_commit, preview};
 pub(crate) use proposal_edits::joined_priorities;
 pub use proposal_edits::{
     add_proposal, add_proposal_and_commit, commit_priorities, discard_priorities, edit_proposal,
-    insert_proposal, move_proposal, read_priorities, remove_proposal, undo_committed_proposal,
+    move_proposal, read_priorities, remove_proposal,
 };
 pub use proposal_files::{
     commit_text, expand_proposal, proposal_hints, read_proposal_file, read_text, save_text,

@@ -101,16 +101,6 @@ pub fn add_note_and_commit(
     )?)
 }
 
-/// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
-/// committed alone with `chore: remove "<note>" from the inbox`. Refused as a conflict when the
-/// inbox changed since it was read at `previous`.
-pub fn undo_committed_note(repo: &Path, lines: &[String], previous: &str) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_committed(&place, lines, previous)?;
-    Ok(edits::read(&place))
-}
-
 /// Adds a note as [`add_note`] does, over the inbox as it is now, without a hash, as `ura note`
 /// does, and gives the note's line, from 1: what the editor opens at.
 pub fn add_note_at(
@@ -132,7 +122,7 @@ pub fn edit_note(repo: &Path, id: &str, text: &str, previous: &str) -> Result<In
     Ok(edits::edit(&place, id, text, Some(previous))?)
 }
 
-/// Removes a note, sub-items included, and its note file, which [`insert_note`] brings back.
+/// Removes a note, sub-items included, and its note file.
 pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
     let _lock = write_lock(repo);
     let place = reach_default(repo)?;
@@ -180,26 +170,6 @@ pub fn place_note(
         id,
         category.as_deref(),
         index as usize,
-        Some(previous),
-    )?)
-}
-
-/// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal, with the note file the removal took away, as it was.
-pub fn insert_note(
-    repo: &Path,
-    category: Option<String>,
-    index: u32,
-    lines: &[String],
-    previous: &str,
-) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    Ok(edits::insert(
-        &place,
-        category.as_deref(),
-        index as usize,
-        lines,
         Some(previous),
     )?)
 }
@@ -367,102 +337,6 @@ pub fn discard_changes(repo: &Path) -> Result<()> {
     let place = reach_default(repo)?;
     changes::discard(&place)?;
     Ok(())
-}
-
-/// Takes back a note's move to a section of the priorities, in one write of both files or none:
-/// the line the move wrote leaves the section, found by the note's lines and, among several of
-/// them, by `proposal_key`, the key it had once moved; the note, `lines` as written, goes back
-/// before the note at `index` of its category, over the inbox as it is now, and its note file,
-/// moved among the proposals, back among the notes.
-pub fn undo_note_to_proposal(
-    repo: &Path,
-    lines: &[String],
-    category: Option<String>,
-    index: u32,
-    section_id: &str,
-    proposal_key: Option<String>,
-) -> Result<Inbox> {
-    let section = section(section_id)?;
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_to_proposal(
-        &place,
-        lines,
-        category.as_deref(),
-        index as usize,
-        section,
-        proposal_key.as_deref(),
-    )?;
-    Ok(edits::read(&place))
-}
-
-/// Takes back a note's move under a proposal of the priorities, in one write of both files or none:
-/// the item the move wrote leaves the proposal whose key is `proposal_key`, and the note, `lines`
-/// as written, goes back before the note at `index` of its category, over the inbox as it is now.
-pub fn undo_note_under_proposal(
-    repo: &Path,
-    lines: &[String],
-    category: Option<String>,
-    index: u32,
-    proposal_key: &str,
-) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_under_proposal(
-        &place,
-        lines,
-        category.as_deref(),
-        index as usize,
-        proposal_key,
-    )?;
-    Ok(edits::read(&place))
-}
-
-/// Takes back a note's add to the proposal file at `proposal`, in one write of both files or none:
-/// the note's lines leave the file, every other edit kept, and the note goes back to its place.
-pub fn undo_note_into_proposal(
-    repo: &Path,
-    proposal: &str,
-    lines: &[String],
-    category: Option<String>,
-    index: u32,
-) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_into_proposal(&place, proposal, lines, category.as_deref(), index as usize)?;
-    Ok(edits::read(&place))
-}
-
-/// Takes back a note's move to another category, in one write: the note, found by its lines as
-/// written, goes back before the note at `index` of `category`, or none.
-pub fn undo_note_category(
-    repo: &Path,
-    lines: &[String],
-    category: Option<String>,
-    index: u32,
-) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_category(&place, lines, category.as_deref(), index as usize)?;
-    Ok(edits::read(&place))
-}
-
-/// Takes back a note added as a file: the note, found by its lines as written, leaves the inbox,
-/// and its note file goes with it, image included, unless a commit has it or the human typed in it.
-pub fn undo_note_as_file(repo: &Path, lines: &[String]) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_as_file(&place, lines)?;
-    Ok(edits::read(&place))
-}
-
-/// Takes back a note's add: the note, found by its lines as written, leaves the inbox wherever it
-/// is now. Refused once it changed or left, or when two notes hold its lines.
-pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
-    let _lock = write_lock(repo);
-    let place = reach_default(repo)?;
-    edits::undo_add(&place, lines)?;
-    Ok(edits::read(&place))
 }
 
 /// The images of proposal files and of note files that no markdown file of their folder links, from

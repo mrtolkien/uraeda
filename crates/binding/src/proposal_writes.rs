@@ -26,30 +26,6 @@ pub fn add_proposal(
     })
 }
 
-/// Takes back a committed add: the proposal, `lines` as written, leaves the priorities, and the
-/// removal is committed alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn undo_committed_proposal(
-    repo: String,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::undo_committed_proposal(Path::new(&repo), &lines, &previous))
-}
-
-/// Inserts a proposal with its nested lines, as written, before the line at `index` of a
-/// section, or at its end: Undo of a removal.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn insert_proposal(
-    repo: String,
-    section: String,
-    index: u32,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::insert_proposal(Path::new(&repo), &section, index, &lines, &previous))
-}
-
 /// Moves a proposal before the line at `index` of a section, or to its end.
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn move_proposal(
