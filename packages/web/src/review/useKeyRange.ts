@@ -2,9 +2,10 @@
 // next or previous block of the same file and stretch the review's yellow from the block they
 // started on, the anchor, to the one they reached, the head. A tap has no anchor, so the keys keep
 // their own here; how a range grows and shrinks is `commentRange.ts`'s.
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { DecisionChange, Document } from "uraeda-binding";
 import { type Range, sameFile, spanned } from "../commentRange.ts";
+import { isFocusLost, isKeyInput, markByKey } from "../cursor/held.ts";
 import type { StopKey } from "../cursor/StopKeys.tsx";
 import { focusStop } from "../cursor/useCursor.ts";
 import { stopsOf } from "../cursor/stops.ts";
@@ -65,11 +66,12 @@ type Stretched = { anchor: Range; before: Range | undefined; head: HTMLElement; 
  * the selection holding the toggle's lines, `own`, as a tap's.
  */
 export function useKeyRange(
-  draft: Pick<ReturnType<typeof useCommentDraft>, "selection" | "stretch">,
+  draft: Pick<ReturnType<typeof useCommentDraft>, "draft" | "selection" | "stretch">,
   tree: Document,
   changes: ReadonlyArray<DecisionChange>,
 ) {
   const stretched = useRef<Stretched | null>(null);
+  const opener = useHandBack(draft.draft !== undefined);
   // A range is the keys' while the yellow they set stays: a tap, a close, or a sent comment may
   // have changed it since.
   const current = () =>
@@ -117,7 +119,35 @@ export function useKeyRange(
       : undefined;
   };
 
-  return { drop, rangeOf: rangeOfToggle, stretch };
+  return { drop, opened: opener, rangeOf: rangeOfToggle, stretch };
+}
+
+/**
+ * The block whose Enter opened the comment form, held, given the focus back, held, once the form
+ * closes, by Ctrl+Enter, Add comment, or Cancel, so `j` goes on from it. Only while the last input
+ * is a key and the focus fell to the page's body as the form went: a click elsewhere keeps its
+ * focus, and a form a tap opened gives none back. `isOpen` says whether a form is open; the
+ * returned function names the block as its Enter opens one.
+ */
+function useHandBack(isOpen: boolean) {
+  const opener = useRef<HTMLElement | null>(null);
+  const wasOpen = useRef(isOpen);
+  useEffect(() => {
+    const closed = wasOpen.current && !isOpen;
+    wasOpen.current = isOpen;
+    const block = opener.current;
+    if (!closed || block === null) {
+      return;
+    }
+    opener.current = null;
+    if (block.isConnected && isKeyInput() && isFocusLost()) {
+      markByKey();
+      block.focus({ preventScroll: true });
+    }
+  }, [isOpen]);
+  return (block: HTMLElement) => {
+    opener.current = block;
+  };
 }
 
 /**
@@ -141,7 +171,15 @@ export function blockKeys(
   };
   return [
     // The toggle's own click: a tap, merged into the range already selected.
-    { bar: "⏎", keys: "Enter", label: "comment", run: () => toggle.click() },
+    {
+      bar: "⏎",
+      keys: "Enter",
+      label: "comment",
+      run: () => {
+        keyRange.opened(toggle);
+        toggle.click();
+      },
+    },
     { bar: "J K", keys: "J", label: "range", run: down },
     { keys: "shift+ArrowDown", label: "range", run: down },
     { keys: "K", label: "range", run: up },
