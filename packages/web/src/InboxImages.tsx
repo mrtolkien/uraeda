@@ -15,7 +15,8 @@ import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ImageView } from "./ImageView.tsx";
-import { imageName, removeNoteImage, restoreNoteImage } from "./inboxImages.ts";
+import { imageName, removeNoteImage } from "./inboxImages.ts";
+import { inboxEntry, quoted, rereadingFile, rowOfNote } from "./inboxUndo.ts";
 import type { Inbox } from "./inboxPanes.ts";
 import { OutlineImages } from "./lists/OutlineEditor.tsx";
 import { useAttachToNote } from "./NoteImage.tsx";
@@ -121,34 +122,56 @@ function noteOfRow(outline: Outline, key: string) {
 }
 
 /**
- * The removal of an image from a note's file, recorded on the undo stack: its undo puts the lines
- * linking it back, and its redo removes it again. A refusal goes to `onRefused`.
+ * The removal of an image from a note's file, recorded on the undo stack with the change it
+ * answered: its undo puts the lines linking it back, and its redo removes it again. A refusal goes
+ * to `onRefused`.
  */
 function useImageRemoval(onRefused: (message: string | undefined) => void) {
   const fate = useFateClient();
   const record = useUndo();
   return async (note: InboxNote, path: string) => {
-    const removed = await removeNoteImage(fate, note, path);
-    if (typeof removed === "string") {
-      onRefused(removed);
+    const change = await removeNoteImage(fate, note, path);
+    if (typeof change === "string") {
+      onRefused(change);
       return;
     }
-    // The last removal, which the undo puts back: a redo removes the image again.
-    let last = removed;
-    record({
+    const write = {
       label: `Removed ${imageName(path)} from the note's file`,
-      place: { path: "/inbox", select: note.key },
-      redo: async () => {
-        const again = await removeNoteImage(fate, note, path);
-        if (typeof again === "string") {
-          return again;
-        }
-        last = again;
-        return undefined;
-      },
-      undo: () => restoreNoteImage(fate, last),
-    });
+      select: note.key,
+      subject: imageName(path),
+    };
+    record(rereadingFile(fate, inboxEntry(fate, change, write), note.file ?? ""));
   };
+}
+
+/**
+ * Adds images to a note, as `useAttachToNote` does, over the inbox `now`, and records the add on
+ * the undo stack with the change it answered: "Added an image to “Idea one”".
+ */
+function useAttachRecorded() {
+  const fate = useFateClient();
+  const record = useUndo();
+  const { attach, status } = useAttachToNote();
+  const attachTo = async (
+    now: Pick<Inbox, "categories" | "hash">,
+    note: InboxNote,
+    files: Array<File>,
+  ) => {
+    const sent = await attach({ hash: now.hash, id: note.id }, files);
+    if (typeof sent === "string") {
+      return sent;
+    }
+    // The note as written now: its text saved just before, when its field was open.
+    const row = rowOfNote(now, note.id) ?? { key: note.key, text: note.text };
+    const images = files.length === 1 ? "an image" : `${files.length} images`;
+    const label = `Added ${images} to ${quoted(row.text)}`;
+    if (sent.change) {
+      const entry = inboxEntry(fate, sent.change, { label, select: row.key, subject: row.text });
+      record(rereadingFile(fate, entry, sent.file));
+    }
+    return undefined;
+  };
+  return { attach: attachTo, status };
 }
 
 /**
@@ -169,17 +192,17 @@ export function useInboxImages({
   outline: Outline;
 }) {
   const openForm = useOpenAddForm();
-  const { attach, status } = useAttachToNote();
+  const { attach: attachTo, status } = useAttachRecorded();
   const box = useRef<HTMLDivElement>(null);
   const selected = useRef<string | undefined>(undefined);
 
   /**
    * Adds `files` to `note`: after the writes asked before, as the text its field just saved, when
    * `isAfterWrites`, or when its line will link the note file written for it; at once into the
-   * note file it links, which leaves `INBOX.md` as it is.
+   * note file it links, which leaves `INBOX.md` as it is. Once added, it goes on the undo stack.
    */
   const toNote = (note: InboxNote, files: Array<File>, isAfterWrites: boolean) => {
-    const call = (now: Pick<Inbox, "hash">) => attach({ hash: now.hash, id: note.id }, files);
+    const call = (now: Pick<Inbox, "categories" | "hash">) => attachTo(now, note, files);
     if (isAfterWrites || note.file === undefined) {
       void outline.write(call);
     } else {
