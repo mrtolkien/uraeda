@@ -279,3 +279,46 @@ test("listeners hear each push, undo, redo, and clear", async () => {
   stack.record(entry("Two"));
   expect(listener).toHaveBeenCalledTimes(4);
 });
+
+describe("an entry recorded while an undo is on its way", () => {
+  test("a new action landing before the undo resolves leaves nothing to redo", async () => {
+    const stack = createUndoStack(clock().now);
+    const held = Promise.withResolvers<undefined>();
+    const first = entry("First", { undo: vi.fn(() => held.promise) });
+    stack.record(first);
+    const undone = stack.undo(never);
+    await vi.waitFor(() => expect(first.undo).toHaveBeenCalledOnce());
+    const second = entry("Second");
+    stack.record(second);
+    held.resolve(undefined);
+    expect(await undone).toEqual({ entry: first, kind: "done" });
+    expect(stack.canRedo()).toBe(false);
+    expect(stack.top()).toBe(second);
+    expect(await stack.undo(never)).toEqual({ entry: second, kind: "done" });
+    expect(await stack.undo(never)).toEqual({ kind: "empty" });
+  });
+
+  test("a move within the second of a run being undone is its own entry", async () => {
+    const time = clock();
+    const stack = createUndoStack(time.now);
+    const log: Array<string> = [];
+    const held = Promise.withResolvers<undefined>();
+    const first = move("1", "priorities", log);
+    first.undo = vi.fn(async () => {
+      await held.promise;
+      log.push("undo 1");
+      return undefined;
+    });
+    stack.record(first);
+    const undone = stack.undo(never);
+    await vi.waitFor(() => expect(first.undo).toHaveBeenCalledOnce());
+    time.advance(100);
+    stack.record(move("2", "priorities", log));
+    held.resolve(undefined);
+    await undone;
+    await stack.undo(never);
+    // Move 1 is undone once, and move 2 alone after it: it did not join the run being undone.
+    expect(log).toEqual(["undo 1", "undo 2"]);
+    expect(await stack.undo(never)).toEqual({ kind: "empty" });
+  });
+});
