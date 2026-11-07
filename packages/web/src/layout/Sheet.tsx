@@ -1,6 +1,6 @@
 // The phone's one sheet, for what rises from the bottom: a dialog's form, or a picker. Each has its
-// title on top and a Close, over the frosted glass of what floats over the page, and a drag up on
-// its top takes it to the whole screen.
+// title on top and a Close, over the frosted glass of what floats over the page. A swipe down on
+// its top closes it, and a swipe up takes it to the whole screen.
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -106,45 +106,109 @@ function useKeyboardLift(panel: RefObject<HTMLDivElement | null>, isShort: boole
   return isLifted && [styles.lifted, styles.liftedBy(fit.lift, fit.most)];
 }
 
-/** The sheet's top, its handle and its title row, where a drag up takes it to the whole screen. */
+/** The sheet's top, its handle and its title row, where a swipe closes it or takes it up. */
 const GRIP_PX = 64;
 /** How far up a drag goes before the sheet takes the whole screen. */
 const PULL_PX = 32;
+/** How far down a swipe goes before the sheet closes as the finger lets go. */
+const SWIPE_PX = 48;
+
+/** Whether `target`, or a box around it inside `panel`, is scrolled down from its top. */
+function isScrolledDown(target: EventTarget | null, panel: HTMLElement) {
+  for (let box = target as HTMLElement | null; box && box !== panel; box = box.parentElement) {
+    if (box.scrollTop > 0) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
- * Takes the sheet `panel` to the whole screen, `onFull`, on a drag up from its top: Astryx's sheet
- * opens at its tallest height, and has no stop above it.
+ * Follows a swipe on the top of the sheet `panel`: up takes it to the whole screen, `onFull`, as
+ * soon as it passes `PULL_PX`, since Astryx's sheet opens at its tallest height, and has no stop
+ * above it; down past `SWIPE_PX` closes it as the finger lets go, `onClose`, when given, since
+ * Astryx's sheet closes on a swipe only when its purpose is `info`. A swipe that starts on content
+ * scrolled down scrolls it back up, and does neither. A finger is read from its touch events,
+ * which iOS WebKit keeps sending on the handle where it cancels the pointer's; a mouse or a pen
+ * from its pointer events.
  */
-function usePullUp(panel: RefObject<HTMLDivElement | null>, isOpen: boolean, onFull: () => void) {
+function useTopSwipe(
+  panel: RefObject<HTMLDivElement | null>,
+  isOpen: boolean,
+  onFull: () => void,
+  onClose: (() => void) | undefined,
+) {
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  }, [onClose]);
   useEffect(() => {
     const element = panel.current;
     if (!isOpen || !element) {
       return;
     }
     let start: number | undefined;
-    const down = (event: PointerEvent) => {
+    const down = (y: number, target: EventTarget | null) => {
       const top = element.getBoundingClientRect().top;
-      start = event.clientY - top < GRIP_PX ? event.clientY : undefined;
+      start = y - top < GRIP_PX && !isScrolledDown(target, element) ? y : undefined;
     };
-    const move = (event: PointerEvent) => {
-      if (start !== undefined && start - event.clientY > PULL_PX) {
+    const move = (y: number) => {
+      if (start !== undefined && start - y > PULL_PX) {
         start = undefined;
         onFull();
       }
     };
-    const up = () => {
+    const up = (y: number | undefined) => {
+      const swiped = start !== undefined && y !== undefined && y - start > SWIPE_PX;
       start = undefined;
+      if (swiped) {
+        close.current?.();
+      }
     };
-    element.addEventListener("pointerdown", down, { capture: true });
-    element.addEventListener("pointermove", move, { capture: true });
-    element.addEventListener("pointerup", up, { capture: true });
-    element.addEventListener("pointercancel", up, { capture: true });
-    return () => {
-      element.removeEventListener("pointerdown", down, { capture: true });
-      element.removeEventListener("pointermove", move, { capture: true });
-      element.removeEventListener("pointerup", up, { capture: true });
-      element.removeEventListener("pointercancel", up, { capture: true });
+    const isMouse = (event: PointerEvent) => event.pointerType !== "touch";
+    const pointerDown = (event: PointerEvent) => {
+      if (isMouse(event)) {
+        down(event.clientY, event.target);
+      }
     };
+    const pointerMove = (event: PointerEvent) => {
+      if (isMouse(event)) {
+        move(event.clientY);
+      }
+    };
+    const pointerUp = (event: PointerEvent) => {
+      if (isMouse(event)) {
+        up(event.type === "pointerup" ? event.clientY : undefined);
+      }
+    };
+    const touchStart = (event: TouchEvent) => {
+      const touch = event.touches.length === 1 ? event.touches[0] : undefined;
+      if (touch) {
+        down(touch.clientY, event.target);
+      } else {
+        start = undefined;
+      }
+    };
+    const touchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touch) {
+        move(touch.clientY);
+      }
+    };
+    const touchEnd = (event: TouchEvent) => {
+      up(event.type === "touchend" ? event.changedTouches[0]?.clientY : undefined);
+    };
+    const listening = new AbortController();
+    const options = { capture: true, passive: true, signal: listening.signal };
+    element.addEventListener("pointerdown", pointerDown, options);
+    element.addEventListener("pointermove", pointerMove, options);
+    element.addEventListener("pointerup", pointerUp, options);
+    element.addEventListener("pointercancel", pointerUp, options);
+    element.addEventListener("touchstart", touchStart, options);
+    element.addEventListener("touchmove", touchMove, options);
+    element.addEventListener("touchend", touchEnd, options);
+    element.addEventListener("touchcancel", touchEnd, options);
+    return () => listening.abort();
   }, [isOpen, onFull, panel]);
 }
 
@@ -194,7 +258,8 @@ export function Sheet({
     setFull(false);
   }
   const [onFull] = useState(() => () => setFull(true));
-  usePullUp(panel, isOpen, onFull);
+  // Astryx closes an `info` sheet on a swipe itself: closing it again would go Back twice.
+  useTopSwipe(panel, isOpen, onFull, purpose === "form" ? onClose : undefined);
   useFieldFocus(panel, isOpen);
   const lift = useKeyboardLift(panel, height !== "tall" && !full);
   const close = (

@@ -117,9 +117,10 @@ never wraps.
   (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make them
   all 3 the same component"). A side column's sheet, the session's Activity or Changes, draws its
   title in its content, which scrolls it away, and its Close alone stays. It opens with the focus in
-  its field, and a drag up on its top takes it to the whole screen. Over the keyboard, a sheet
-  shorter than the screen lifts by the whole keyboard and shrinks to the room left under the tabs,
-  its form scrolled to its end, so the field and its last button show together.
+  its field. A swipe on its top, its handle and title row, moves it: down closes it, up takes it to
+  the whole screen. Over the keyboard, a sheet shorter than the screen lifts by the whole keyboard
+  and shrinks to the room left under the tabs, its form scrolled to its end, so the field and its
+  last button show together.
 - **Menus and selectors are popovers**, as on wide screens, not sheets: a `…`'s actions, a sort, a
   category to choose ("Decision sort should just open a selector… It shouldn't be a sheet").
 - **Pages for anything read**: a proposal file, a session, a spec.
