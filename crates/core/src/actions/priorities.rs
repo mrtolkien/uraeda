@@ -6,9 +6,9 @@ use std::fs;
 use crate::files::document::hash;
 use crate::files::priorities::{self, Priorities, ProposalChange, Section};
 
-use super::commit::{Added, add_alone, commit_only, is_clean};
+use super::commit::{Added, add_alone, is_clean};
 use super::place::Place;
-use super::{ActionError, Change, Committed, STALE, changes};
+use super::{ActionError, Committed, STALE, changes};
 
 pub const PATH: &str = "specs/PRIORITIES.md";
 
@@ -92,56 +92,6 @@ pub fn add_and_commit(
         add(place, section, line, previous)
     })?;
     Ok((read(place), added))
-}
-
-/// Removes the proposal a committed add wrote, `lines` as written, and commits the removal alone:
-/// Undo of "Add and commit". Refused as stale when the file changed since it was read at
-/// `previous`, or since its commit.
-pub fn undo_committed(
-    place: &Place,
-    lines: &[String],
-    previous: &str,
-) -> Result<Priorities, ActionError> {
-    let current = text(place);
-    if hash(&current) != previous || !is_clean(place, PATH) {
-        return Err(ActionError::Refused(format!("PRIORITIES.md {STALE}")));
-    }
-    let (without, proposal) = priorities::remove_added(&current, lines).ok_or_else(|| {
-        ActionError::Refused(
-            "Could not undo: the proposal is no longer in PRIORITIES.md.".to_string(),
-        )
-    })?;
-    fs::write(place.root.join(PATH), &without)?;
-    let removed = ProposalChange::Removed {
-        section: proposal.section,
-        text: proposal.text,
-    };
-    commit_only(
-        place,
-        &Change {
-            paths: vec![PATH.to_string()],
-            subject: format!("chore: {}", describe(&removed)),
-            body: None,
-        },
-    )?;
-    Ok(read(place))
-}
-
-/// Inserts a proposal's lines, nested lines included, before the proposal at `index` of `section`,
-/// or at its end when `index` is past it: Undo of a removal.
-pub fn insert(
-    place: &Place,
-    section: Section,
-    index: usize,
-    lines: &[String],
-    previous: &str,
-) -> Result<Priorities, ActionError> {
-    apply(
-        place,
-        previous,
-        |text| priorities::insert_proposal(text, section, index, lines),
-        "a proposal needs some text",
-    )
 }
 
 /// Moves a proposal before the proposal at `index` of `section`, or to its end.

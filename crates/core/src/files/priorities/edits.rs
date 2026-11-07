@@ -3,7 +3,7 @@
 
 use super::super::lines::{self, Item, Marker};
 use super::super::markdown::link_text as escaped;
-use super::{Proposal, Section, keys, parse, proposal_id};
+use super::{Proposal, Section, parse, proposal_id};
 
 fn proposal_at(text: &str, line: usize) -> Option<Proposal> {
     parse(text)
@@ -203,76 +203,6 @@ pub fn edit(text: &str, id: &str, line: &str) -> Option<String> {
     .ok()
 }
 
-/// Removes the proposal of `section` whose lines, nested ones included, are exactly `lines`: the
-/// one there is, or among several, the one whose key is `key`. `None` when there is none, or
-/// several and none has that key: a proposal of the same text the human wrote is never taken for
-/// it.
-pub fn remove_written(
-    text: &str,
-    section: Section,
-    lines: &[String],
-    key: Option<&str>,
-) -> Option<String> {
-    super::super::with_unix_newlines(text, |text| {
-        let all: Vec<&str> = text.split('\n').collect();
-        let proposals = parse(text);
-        let keys = keys(&proposals);
-        let same: Vec<(&Proposal, &String)> = proposals
-            .iter()
-            .zip(&keys)
-            .filter(|(proposal, _)| {
-                proposal.section == section
-                    && all[proposal.item.line - 1..proposal.item.end]
-                        .iter()
-                        .copied()
-                        .eq(lines.iter().map(String::as_str))
-            })
-            .collect();
-        let found = match same.as_slice() {
-            [(one, _)] => *one,
-            _ => same
-                .iter()
-                .find(|(_, found)| key == Some(found.as_str()))
-                .map(|(proposal, _)| *proposal)
-                .ok_or(())?,
-        };
-        Ok::<_, ()>(lines::remove(text, &found.item))
-    })
-    .ok()
-}
-
-/// Removes the proposal an add wrote: the last of its section whose lines, nested ones included,
-/// are exactly `lines`, returned with the text without it. `None` unless exactly one section ends
-/// with it.
-pub fn remove_added(text: &str, lines: &[String]) -> Option<(String, Proposal)> {
-    let mut removed = None;
-    let without = super::super::with_unix_newlines(text, |text| {
-        let all: Vec<&str> = text.split('\n').collect();
-        let proposals = parse(text);
-        let last: Vec<&Proposal> = proposals
-            .iter()
-            .enumerate()
-            .filter(|(at, proposal)| {
-                proposals
-                    .get(at + 1)
-                    .is_none_or(|next| next.section != proposal.section)
-                    && all[proposal.item.line - 1..proposal.item.end]
-                        .iter()
-                        .copied()
-                        .eq(lines.iter().map(String::as_str))
-            })
-            .map(|(_, proposal)| proposal)
-            .collect();
-        let [one] = last.as_slice() else {
-            return Err(());
-        };
-        removed = Some((*one).clone());
-        Ok::<_, ()>(lines::remove(text, &one.item))
-    })
-    .ok()?;
-    Some((without, removed?))
-}
-
 /// Removes a proposal, with its nested lines.
 pub fn remove(text: &str, id: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
@@ -301,22 +231,4 @@ pub fn remove_linked(text: &str, folder: &str) -> Option<(String, String)> {
     })
     .ok()?;
     Some((without, name?))
-}
-
-/// Puts `lines`, a proposal's lines as written, back in place of the first proposal whose link
-/// leads to `path`, from the top level: the Undo of [`link`]. `None` when no proposal links it, or
-/// when the proposal has nested lines since, which would go with it.
-pub fn unlink(text: &str, path: &str, lines: &[String]) -> Option<String> {
-    super::super::with_unix_newlines(text, |text| {
-        let proposal = parse(text)
-            .into_iter()
-            .find(|proposal| {
-                (proposal.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
-                    == Some(path.to_string())
-            })
-            .filter(|proposal| proposal.item.text_end == proposal.item.end)
-            .ok_or(())?;
-        Ok::<_, ()>(lines::replace(text, &proposal.item, lines))
-    })
-    .ok()
 }

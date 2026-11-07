@@ -1,6 +1,6 @@
 //! A note's file, in `specs/notes/`: moved among the proposals as its note becomes a proposal, and
-//! back by the move's Undo; and taken away with its note, its bytes held for the removal's Undo,
-//! which writes them back as they were.
+//! back by Discard; and taken away with its note, its bytes held for Discard, which writes them
+//! back as they were.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -131,7 +131,7 @@ pub(super) fn to_proposals(place: &Place, path: &str, title: &str) -> Result<Str
 }
 
 /// Moves the proposal file at `proposal` back to the note file it was, `note`, both from the top
-/// level: the Undo of [`to_proposals`], freeform again while it holds what the move made of it,
+/// level: Discard of [`to_proposals`], freeform again while it holds what the move made of it,
 /// as `HEAD` has the note file when the move made the proposal of that.
 /// The links of every file of `specs/` but the lists whose change since `HEAD` is links alone go
 /// back with it (see [`relink::relink_back`]). Refused when the proposal file is gone, or a file
@@ -174,15 +174,14 @@ pub(crate) fn back_to_notes(place: &Place, proposal: &str, note: &str) -> Result
 type Bytes = (String, Vec<u8>);
 
 /// A note file a removal took away: its repository's root, its path from the top level, and its
-/// files with their bytes, what the removal's Undo writes back.
+/// files with their bytes, what Discard writes back.
 struct Held {
     root: PathBuf,
     path: String,
     files: Vec<Bytes>,
 }
 
-/// The note files removals took away, newest last. Only the latest few are kept: an Undo comes
-/// right after its removal.
+/// The note files removals took away, newest last. Only the latest few are kept.
 static HELD: Mutex<Vec<Held>> = Mutex::new(Vec::new());
 
 /// How many removed note files [`HELD`] keeps.
@@ -342,24 +341,6 @@ pub(super) fn remove_left(place: &Place, before: &str, after: &str) -> Result<bo
         }
     }
     Ok(removed)
-}
-
-/// Writes back the note files the notes of the inbox text `text` link that a removal took away, as
-/// [`restore`] does. Returns whether it wrote any.
-pub(super) fn restore_all(place: &Place, text: &str) -> Result<bool, ActionError> {
-    let mut restored = false;
-    for file in inbox::parse(text).iter().filter_map(inbox::Note::file) {
-        restored |= restore(place, &file)?;
-    }
-    Ok(restored)
-}
-
-/// Whether a removal holds the note file at `path`, for [`restore`] to write back.
-pub(super) fn is_held(place: &Place, path: &str) -> bool {
-    let root = root_of(place);
-    held()
-        .iter()
-        .any(|kept| kept.root == root && kept.path == path)
 }
 
 /// Writes back the note file at `path` a removal took away, byte for byte, images included, while

@@ -8,7 +8,6 @@ import type {
   FileView,
   Inbox,
   Priorities,
-  RemovedImage,
   RunningFeature,
   SectionItems,
   StepView,
@@ -150,10 +149,6 @@ export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
   change?: ChangeRecord | null;
   id: string;
-  /** What `inbox.restoreImage` takes back, only in `inbox.removeImage`'s answer: else null. */
-  imageRemoved?: Record_<RemovedImage> | null;
-  /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
-  removed?: string | null;
   triage: string | null;
 };
 
@@ -381,9 +376,7 @@ export const inboxDataView = dataView<InboxRecord>("Inbox")({
   count: true,
   hash: true,
   id: true,
-  imageRemoved: true,
   names: true,
-  removed: true,
   triage: true,
 });
 

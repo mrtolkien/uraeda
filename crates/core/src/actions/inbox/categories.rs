@@ -91,15 +91,14 @@ pub fn rename_category(
 }
 
 /// Deletes a category, its notes kept as notes without a category, or deleted with it, the lines
-/// of its agents' notes written first. Gives the inbox and the file as it was with those lines,
-/// which [`restore_category`] writes back. Deleting its notes is refused, writing nothing, when an
+/// of its agents' notes written first. Deleting its notes is refused, writing nothing, when an
 /// agent's note's file is not as `HEAD` has it: it holds the human's work.
 pub fn remove_category(
     place: &Place,
     name: &str,
     keep_notes: bool,
     previous: Option<&str>,
-) -> Result<(Inbox, String), ActionError> {
+) -> Result<Inbox, ActionError> {
     let mut before = String::new();
     let inbox = checked(place, previous, |current| {
         let name = existing(&agent::shown_names(place, current), name)?;
@@ -116,22 +115,9 @@ pub fn remove_category(
         written.clone_into(&mut before);
         Ok(categories::remove_category(&written, name, keep_notes))
     })?;
-    // The notes removed with the category take their note files, which a restore brings back.
+    // The notes removed with the category take their note files.
     let after = std::fs::read_to_string(place.root.join(super::PATH)).unwrap_or_default();
     if note_file::remove_left(place, &before, &after)? {
-        return Ok((read(place), before));
-    }
-    Ok((inbox, before))
-}
-
-/// Writes `before`, the file as a delete found it, back, only when the file still is what the
-/// delete wrote: `previous` is its hash. The note files the delete took come back, and `INBOX.md`
-/// as `HEAD` has it when it shows the same inbox, the lines of agents' notes the delete wrote
-/// dropped again.
-pub fn restore_category(place: &Place, before: &str, previous: &str) -> Result<Inbox, ActionError> {
-    let inbox = apply(place, Some(previous), |_| Some(before.to_string()), NO_NAME)?;
-    let restored = note_file::restore_all(place, before)?;
-    if agent::as_committed_when_shown(place)? || restored {
         return Ok(read(place));
     }
     Ok(inbox)

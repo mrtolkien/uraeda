@@ -8,14 +8,12 @@ use super::lines::{self, Item, item_marker};
 mod agent;
 pub mod categories;
 mod diff;
-mod found;
 mod outline;
 mod read;
 
 pub(crate) use agent::{AgentNote, agent_notes};
 pub use agent::{NoteFile, is_note_file_path, joined, note_files, note_paths_on_disk};
 pub use diff::{NoteChange, diff};
-pub use found::{file_of_lines, ids_of_lines, of_lines};
 pub use outline::{Drop, drop_item, outline};
 pub use read::{Inbox, InboxCategory, InboxNote, read};
 
@@ -301,8 +299,8 @@ pub fn add(text: &str, category: Option<&str>, line: &str) -> (String, u32) {
     (edited, u32::try_from(at + 1).unwrap_or(u32::MAX))
 }
 
-/// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// what an Undo of a removal writes back. `None` when there is no line.
+/// Inserts a note's lines, as written, before the note at `index` of a category, or at its end.
+/// `None` when there is no line.
 pub fn insert(
     text: &str,
     category: Option<&str>,
@@ -316,19 +314,6 @@ pub fn insert(
         Ok::<_, ()>(insert_at(text, category, index, lines).0)
     })
     .ok()
-}
-
-/// A note's lines as written, sub-items included.
-pub fn note_lines(text: &str, id: &str) -> Option<Vec<String>> {
-    let unix = text.replace("\r\n", "\n");
-    let item = find(&unix, id)?;
-    let lines: Vec<&str> = unix.split('\n').collect();
-    Some(
-        lines[item.line - 1..item.end]
-            .iter()
-            .map(|l| l.to_string())
-            .collect(),
-    )
 }
 
 /// The note with the id `id`.

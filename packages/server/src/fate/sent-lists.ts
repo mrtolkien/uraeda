@@ -8,8 +8,6 @@ export function sentInbox(inbox: Inbox): InboxRecord {
     ...inbox,
     change: null,
     id: INBOX_ID,
-    imageRemoved: null,
-    removed: null,
     triage: inbox.triage ?? null,
   };
 }

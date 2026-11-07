@@ -1,6 +1,5 @@
 //! Attach and the inbox's moves relink every file of `specs/`: a single proposal file made a
-//! folder, a note file merged into a proposal file, and a note file moved among the proposals; and
-//! their Undo relinks back, keeping a file edited since.
+//! folder, a note file merged into a proposal file, and a note file moved among the proposals.
 
 mod common;
 
@@ -64,12 +63,11 @@ fn placed(inbox: &Inbox, title: &str) -> (InboxNote, Option<String>, u32) {
 }
 
 /// An attached image relinks every file to the proposal file made a folder; a note merged into a
-/// proposal file relinks to its subsection, and its Undo links the note file again; a note file
-/// moved among the proposals relinks, and its Undo links it back but in a file edited since. A
-/// file edited before a merge is put back by the merge's failure, its Undo, and Discard, and a link
-/// to the note's folder follows the note.
+/// proposal file relinks to its subsection; a note file moved among the proposals relinks. A file
+/// edited before a merge is put back by the merge's failure and by Discard, and a link to the
+/// note's folder follows the note.
 #[test]
-fn inbox_moves_relink_and_undo_puts_back() {
+fn inbox_moves_relink() {
     let repo = repo();
     let image = std::fs::read(fixture("images/phone.png")).unwrap();
 
@@ -80,7 +78,7 @@ fn inbox_moves_relink_and_undo_puts_back() {
     assert!(repo.read(RECORD).contains(&format!("[why]({folder})")));
 
     let inbox = api::read_inbox(repo.path()).unwrap();
-    let (dark, category, index) = placed(&inbox, "Dark");
+    let (dark, ..) = placed(&inbox, "Dark");
     api::note_into_proposal(repo.path(), &dark.id, LOOK, &inbox.hash).unwrap();
 
     assert!(
@@ -90,16 +88,9 @@ fn inbox_moves_relink_and_undo_puts_back() {
         repo.read(RECORD)
     );
 
-    api::undo_note_into_proposal(repo.path(), LOOK, &dark.lines, category, index).unwrap();
-
-    assert!(
-        repo.read(RECORD)
-            .contains("[dark](/specs/notes/dark/note.md)")
-    );
-
     let inbox = api::read_inbox(repo.path()).unwrap();
     let priorities = api::read_priorities(repo.path()).unwrap();
-    let (contrast, category, index) = placed(&inbox, "High contrast");
+    let (contrast, ..) = placed(&inbox, "High contrast");
     api::note_to_proposal(
         repo.path(),
         &contrast.id,
@@ -112,20 +103,6 @@ fn inbox_moves_relink_and_undo_puts_back() {
     let moved = "[contrast](../proposals/high-contrast.md)";
     assert!(repo.read(FLOWS).contains(moved), "{}", repo.read(FLOWS));
     assert!(repo.read(RECORD).contains(moved));
-    let edited = repo
-        .read(RECORD)
-        .replace("# CLI core", "# CLI core, read again");
-    repo.write(RECORD, &edited);
-
-    api::undo_note_to_proposal(repo.path(), &contrast.lines, category, index, "next", None)
-        .unwrap();
-
-    assert!(repo.exists(CONTRAST));
-    assert!(
-        repo.read(FLOWS)
-            .contains("[contrast](../notes/high-contrast.md)")
-    );
-    assert_eq!(repo.read(RECORD), edited);
 
     // A merge that makes the proposal file a folder, then fails, puts back a file edited before.
     let failing = self::repo();
@@ -141,7 +118,7 @@ fn inbox_moves_relink_and_undo_puts_back() {
     )
     .unwrap();
     let inbox = api::read_inbox(failing.path()).unwrap();
-    let (dark, category, index) = placed(&inbox, "Dark");
+    let (dark, ..) = placed(&inbox, "Dark");
     let inbox_file = failing.path().join("specs/INBOX.md");
     let writable = std::fs::metadata(&inbox_file).unwrap().permissions();
     let mut read_only = writable.clone();
@@ -152,12 +129,6 @@ fn inbox_moves_relink_and_undo_puts_back() {
 
     std::fs::set_permissions(&inbox_file, writable).unwrap();
     assert!(failed.is_err());
-    assert!(failing.exists(LOOK));
-    assert_eq!(failing.read(RECORD), edited);
-
-    api::note_into_proposal(failing.path(), &dark.id, LOOK, &inbox.hash).unwrap();
-    api::undo_note_into_proposal(failing.path(), LOOK, &dark.lines, category, index).unwrap();
-
     assert!(failing.exists(LOOK));
     assert_eq!(failing.read(RECORD), edited);
 

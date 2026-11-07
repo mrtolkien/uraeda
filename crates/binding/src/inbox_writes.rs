@@ -38,17 +38,6 @@ pub fn add_note(
     })
 }
 
-/// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
-/// committed alone.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_committed_note(
-    repo: String,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_committed_note(Path::new(&repo), &lines, &previous))
-}
-
 /// Replaces a note's text, its marks kept.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn edit_note(
@@ -101,7 +90,7 @@ pub fn drop_note(
     })
 }
 
-/// Removes a note, sub-items included, and its note file, which `insertNote` brings back.
+/// Removes a note, sub-items included, and its note file.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn remove_note(
     repo: String,
@@ -156,19 +145,6 @@ pub fn place_note(
     recording(repo, undo, scope(undo::INBOX), move |repo: &Path| {
         api::place_note(repo, &id, category, index, &previous)
     })
-}
-
-/// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal, with the note file the removal took away, as it was.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn insert_note(
-    repo: String,
-    index: u32,
-    lines: Vec<String>,
-    previous: String,
-    category: Option<String>,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || api::insert_note(Path::new(&repo), category, index, &lines, &previous))
 }
 
 /// Moves a note to the end of a section of the priorities, over both files as read.
@@ -396,85 +372,4 @@ pub fn retry_round(repo: String, id: String) -> AsyncTask<Job<FileView>> {
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn submit_round(repo: String, id: String, previous: String) -> AsyncTask<Job<FileView>> {
     job(move || api::submit_round(Path::new(&repo), api::default_round(&id)?, &previous))
-}
-
-/// Takes back a note's move to a section of the priorities, in one write of both files or none: the
-/// line the move wrote leaves the section, found by the note's lines and, among several, by
-/// `proposalKey`, its key once moved; the note goes back before the note at `index` of its
-/// category, and its note file, moved among the proposals, back among the notes.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_to_proposal(
-    repo: String,
-    lines: Vec<String>,
-    index: u32,
-    section: String,
-    category: Option<String>,
-    proposal_key: Option<String>,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || {
-        api::undo_note_to_proposal(
-            Path::new(&repo),
-            &lines,
-            category,
-            index,
-            &section,
-            proposal_key,
-        )
-    })
-}
-
-/// Takes back a note's move under a proposal of the priorities, in one write of both files or none:
-/// the item the move wrote leaves the proposal whose key is `proposalKey`, and the note goes back
-/// before the note at `index` of its category.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_under_proposal(
-    repo: String,
-    lines: Vec<String>,
-    index: u32,
-    proposal_key: String,
-    category: Option<String>,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || {
-        api::undo_note_under_proposal(Path::new(&repo), &lines, category, index, &proposal_key)
-    })
-}
-
-/// Takes back a note's add to a proposal file, in one write of both files or none: the note's lines
-/// leave the proposal file, every other edit kept, and the note goes back to its place.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_into_proposal(
-    repo: String,
-    proposal: String,
-    lines: Vec<String>,
-    index: u32,
-    category: Option<String>,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_into_proposal(Path::new(&repo), &proposal, &lines, category, index))
-}
-
-/// Takes back a note's move to another category, in one write: the note, found by its lines,
-/// goes back before the note at `index` of `category`, or of the notes without one.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_category(
-    repo: String,
-    lines: Vec<String>,
-    index: u32,
-    category: Option<String>,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_category(Path::new(&repo), &lines, category, index))
-}
-
-/// Takes back a note added as a proposal file: the note, found by its lines, leaves the inbox, and
-/// its proposal file goes with it, images included, unless a commit has it or the human typed in
-/// it.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_as_file(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_as_file(Path::new(&repo), &lines))
-}
-
-/// Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
-/// Refused once it changed or left, or when two notes hold its lines.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_add(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_add(Path::new(&repo), &lines))
 }

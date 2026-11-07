@@ -246,16 +246,6 @@ fn tree_of(written: &[String]) -> Option<Node> {
     tree(&all, &item)
 }
 
-/// Whether two items say the same, their markers aside.
-fn is_same(a: &Node, b: &Node) -> bool {
-    a.text == b.text
-        && a.children.len() == b.children.len()
-        && a.children
-            .iter()
-            .zip(&b.children)
-            .all(|(a, b)| is_same(a, b))
-}
-
 /// An item of another list, `written` as its lines, with its nested items, as the last item nested
 /// under the list's item `item`, at its depth. `None` when `written` is no item, or nested lines
 /// cannot be written again.
@@ -268,22 +258,6 @@ pub(crate) fn append_item(text: &str, item: &Item, written: &[String]) -> Option
         .last()
         .map_or(Marker::Bullet('-'), |last| marker_beside(&last.marker));
     root.children.push(node);
-    let mut rendered = Vec::new();
-    render(&root, 0, &mut rendered);
-    Some(lines::replace(text, &whole(item), &rendered))
-}
-
-/// The list's item `item` without the last of its own items that says what `written` says, as
-/// [`append_item`] wrote it: what its Undo takes back. `None` when there is none.
-pub(crate) fn remove_item(text: &str, item: &Item, written: &[String]) -> Option<String> {
-    let lines: Vec<&str> = text.split('\n').collect();
-    let mut root = tree(&lines, item)?;
-    let node = tree_of(written)?;
-    let at = root
-        .children
-        .iter()
-        .rposition(|child| is_same(child, &node))?;
-    root.children.remove(at);
     let mut rendered = Vec::new();
     render(&root, 0, &mut rendered);
     Some(lines::replace(text, &whole(item), &rendered))

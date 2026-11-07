@@ -265,23 +265,6 @@ pub(super) fn category_written(place: &Place, text: &str, name: &str) -> (String
     (written, notes)
 }
 
-/// Writes `INBOX.md` as `HEAD` has it over the checkout's when the two show the same inbox, the
-/// lines of the checkout's being those of agents' notes shown where they are: the Undo of a
-/// category's removal then leaves the checkout as before it.
-pub(super) fn as_committed_when_shown(place: &Place) -> Result<bool, ActionError> {
-    let Some(committed) = super::super::place::committed(place, PATH) else {
-        return Ok(false);
-    };
-    let current = text(place)?;
-    let files = files_on_disk(place);
-    if current == committed || inbox::joined(&current, &files) != inbox::joined(&committed, &files)
-    {
-        return Ok(false);
-    }
-    fs::write(place.root.join(PATH), committed)?;
-    Ok(true)
-}
-
 /// The note files of `specs/notes/` in the checkout, with their texts.
 fn files_on_disk(place: &Place) -> Vec<NoteFile> {
     inbox::note_files(&inbox::note_paths_on_disk(&place.root), |path| {
@@ -289,39 +272,8 @@ fn files_on_disk(place: &Place) -> Vec<NoteFile> {
     })
 }
 
-/// The Undo of an agent's note's removal, `lines` put back before the note at `index` of
-/// `category`: the file the removal took away comes back, and, when its line would go exactly where
-/// the inbox shows the file as an agent's note, `HEAD`'s `INBOX.md` linking it not, `INBOX.md` stays
-/// as it is, so the checkout is as before the removal. `None`, writing nothing, when `lines` link no
-/// note file a removal holds.
-pub(super) fn restored(
-    place: &Place,
-    category: Option<&str>,
-    index: usize,
-    lines: &[String],
-    previous: Option<&str>,
-) -> Result<Option<Inbox>, ActionError> {
-    let Some(path) = inbox::file_of_lines(lines).filter(|path| inbox::is_note_file_path(path))
-    else {
-        return Ok(None);
-    };
-    let current = unchanged(place, previous)?;
-    let inserted = inbox::insert(&current, category, index, lines)
-        .ok_or_else(|| ActionError::Refused("Nothing to put back.".to_string()))?;
-    if !note_file::restore(place, &path)? {
-        return Ok(None);
-    }
-    let committed = super::super::place::committed(place, PATH).unwrap_or_default();
-    let shown = as_line(place, &committed, &path).is_some()
-        && as_line(place, &current, &path).is_some_and(|(edited, _)| edited == inserted);
-    if !shown {
-        fs::write(place.root.join(PATH), &inserted)?;
-    }
-    Ok(Some(read(place)))
-}
-
-/// Removes the agent's note `id` over `INBOX.md` as read at `previous`: its file goes, held for the
-/// removal's Undo, and `INBOX.md` stays as it was. Refused, writing nothing, when the file is not
+/// Removes the agent's note `id` over `INBOX.md` as read at `previous`: its file goes, held for
+/// Discard, and `INBOX.md` stays as it was. Refused, writing nothing, when the file is not
 /// as `HEAD` has it: edited since its commit, or never committed, it holds the human's work. `None`
 /// for an id that is no note file's path.
 pub(super) fn remove(

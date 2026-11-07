@@ -231,42 +231,31 @@ fn a_rename_onto_a_category_of_agents_notes_is_refused() {
 }
 
 /// US2 more 2, for a category's removal: a category of agents' notes removed with its notes deletes
-/// their files, and its Undo brings the checkout back as it was.
+/// their files.
 #[test]
-fn a_category_of_agents_notes_removed_and_restored() {
+fn a_category_of_agents_notes_removed_with_them() {
     let repo = repo_with_agents_notes("Deferred fixes");
     let read = api::read_inbox(repo.path()).unwrap();
 
-    let (removed, before) =
-        api::remove_category(repo.path(), "Deferred fixes", false, &read.hash).unwrap();
+    let removed = api::remove_category(repo.path(), "Deferred fixes", false, &read.hash).unwrap();
 
     assert!(!names(&removed).contains(&"Deferred fixes".to_string()));
     assert_eq!(removed.count, read.count - 3);
     assert!(!repo.exists("specs/notes/a.md"));
-
-    let restored = api::restore_category(repo.path(), &before, &removed.hash).unwrap();
-
-    assert_eq!(restored.hash, read.hash);
-    assert_eq!(restored.changes, 0);
-    assert_eq!(repo.porcelain(), "");
 }
 
 /// US2 more 2, for a category's removal keeping its notes: its agents' notes stay, without a
-/// category, and its Undo brings the checkout back as it was.
+/// category.
 #[test]
 fn a_category_of_agents_notes_removed_keeping_them() {
     let repo = repo_with_agents_notes("CLI");
     let read = api::read_inbox(repo.path()).unwrap();
 
-    let (removed, before) = api::remove_category(repo.path(), "CLI", true, &read.hash).unwrap();
+    let removed = api::remove_category(repo.path(), "CLI", true, &read.hash).unwrap();
 
     assert!(!names(&removed).contains(&"CLI".to_string()));
     assert_eq!(removed.count, read.count);
     assert!(repo.exists("specs/notes/a.md"));
-
-    api::restore_category(repo.path(), &before, &removed.hash).unwrap();
-
-    assert_eq!(repo.porcelain(), "");
 }
 
 /// Edge case "a note file with uncommitted changes stays": a category removed with its notes is
