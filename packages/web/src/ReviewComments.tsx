@@ -3,16 +3,17 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useMemo, useRef } from "react";
+import { type Ref, type RefObject, useMemo, useRef } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
-import { useHeld } from "./cursor/held.ts";
-import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { useHeldElement } from "./cursor/held.ts";
+import { HeldKeys, type StopKey } from "./cursor/StopKeys.tsx";
 import { stopProps, stopsOf } from "./cursor/stops.ts";
 import { focusStop } from "./cursor/useCursor.ts";
 import { pickedStyles } from "./layout/picked.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 import { holderOf, placeOf } from "./reviewField.ts";
+import { useHolder } from "./Selection.tsx";
 import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
@@ -76,62 +77,60 @@ export function PendingComment({
   );
 }
 
+/** Whether an element shows in the window, wholly or in part. */
+function isOnScreen(element: HTMLElement) {
+  const { bottom, top } = element.getBoundingClientRect();
+  return bottom > 0 && top < window.innerHeight;
+}
+
 /**
- * The stop of the block a comment is under: the nearest block's stop before it in the page's order.
+ * Where the cursor goes when the comment `note` holds is deleted: the stop of what it is under,
+ * `holder`, else, for a comment under nothing, as a general one, the stop just before it or just
+ * after it, if on screen. `undefined` when none is: the cursor is cleared rather than jump away.
  */
-function blockStopBefore(note: HTMLElement) {
-  return stopsOf()
-    .filter(
-      (stop) =>
-        stop.dataset["stop"] === "block" &&
-        (stop.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
-    )
-    .at(-1);
+function stopAfterRemoval(note: HTMLElement, holder: HTMLElement | null | undefined) {
+  if (holder?.isConnected) {
+    return holder;
+  }
+  const stops = stopsOf();
+  const index = stops.indexOf(note);
+  return [stops[index - 1], stops[index + 1]].find(
+    (stop) => stop !== undefined && isOnScreen(stop),
+  );
 }
 
 /**
  * A comment's keys while the keyboard's cursor holds it: Enter edits it, and `d` removes it, the
- * cursor going first to its block, so it stays where the comment was rather than leave the page.
+ * cursor going first to the stop of what it is under, so it stays where the comment was rather than
+ * leave the page.
  */
-function useNoteKeys(
-  note: RefObject<HTMLElement | null>,
+function noteKeys(
+  note: HTMLElement,
+  holder: RefObject<HTMLElement | null> | null,
   onEdit: (() => void) | undefined,
   onRemove: (() => void) | undefined,
-) {
-  const held = useHeld(note);
+): ReadonlyArray<StopKey> {
   const keys: Array<StopKey> = [];
   if (onEdit) {
     keys.push({ bar: "⏎", keys: "Enter", label: "edit", run: onEdit });
   }
   if (onRemove) {
     const remove = () => {
-      const block = note.current && blockStopBefore(note.current);
-      if (note.current && block) {
-        focusStop(block, note.current);
+      const next = stopAfterRemoval(note, holder?.current);
+      if (next) {
+        focusStop(next, note);
+      } else {
+        note.blur();
       }
       onRemove();
     };
     keys.push({ bar: "d", keys: "d", label: "delete", run: remove });
   }
-  useStopKeys(keys, held);
-  return { held, keys };
+  return keys;
 }
 
-/**
- * A comment under what it is on, a bar down its side: `label` above its text, the group named
- * `name`, and Edit and Remove when given, as a pending review comment or a comment on a settled
- * point has. `error` is what refused its removal. With either, it is a stop of the keyboard's
- * cursor, which edits it with Enter and deletes it with `d`, their bar under it.
- */
-export function CommentNote({
-  error,
-  id,
-  label,
-  name,
-  onEdit,
-  onRemove,
-  text,
-}: {
+/** What a comment note says and does, but where it sits. */
+type NoteProps = {
   error?: string;
   id?: string;
   label: string;
@@ -139,52 +138,83 @@ export function CommentNote({
   onEdit?: () => void;
   onRemove?: () => void;
   text: string;
-}) {
+};
+
+/**
+ * A comment under what it is on, a bar down its side: `label` above its text, the group named
+ * `name`, and Edit and Remove when given, as a pending review comment or a comment on a settled
+ * point has. `error` is what refused its removal. With either, it is a stop of the keyboard's
+ * cursor, which edits it with Enter and deletes it with `d`, their bar under it; without, as the
+ * comment being added, it is drawn alone.
+ */
+export function CommentNote(props: NoteProps) {
+  return props.onEdit || props.onRemove ? <StopNote {...props} /> : <NoteBody {...props} />;
+}
+
+/** A comment note the keyboard's cursor stops on, its keys and their bar only while it holds it. */
+function StopNote(props: NoteProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const { held, keys } = useNoteKeys(ref, onEdit, onRemove);
+  const held = useHeldElement(ref);
+  const holder = useHolder();
   return (
     <>
-      <div
-        aria-label={name}
-        id={id}
-        ref={ref}
-        role="group"
-        {...(onEdit || onRemove ? stopProps("comment") : {})}
-        {...stylex.props(ruleStyles.bar, styles.pending, held && pickedStyles.picked)}
-      >
-        <HStack align="center" gap={2} justify="between" wrap="wrap">
-          <Text color="secondary" type="supporting">
-            {label}
-          </Text>
-          <HStack gap={1}>
-            {onEdit && (
-              <Button
-                label="Edit"
-                onClick={(event: React.MouseEvent) => {
-                  event.stopPropagation();
-                  onEdit();
-                }}
-                size="sm"
-                variant="ghost"
-              />
-            )}
-            {onRemove && (
-              <Button
-                label="Remove"
-                onClick={(event: React.MouseEvent) => {
-                  event.stopPropagation();
-                  onRemove();
-                }}
-                size="sm"
-                variant="ghost"
-              />
-            )}
-          </HStack>
-        </HStack>
-        <Paragraph>{text}</Paragraph>
-        {error && <StatusText tone="error">{error}</StatusText>}
-      </div>
-      <StopBar held={held} keys={keys} />
+      <NoteBody {...props} isHeld={held !== null} noteRef={ref} />
+      {held && <HeldKeys keys={noteKeys(held, holder, props.onEdit, props.onRemove)} />}
     </>
+  );
+}
+
+function NoteBody({
+  error,
+  id,
+  isHeld = false,
+  label,
+  name,
+  noteRef,
+  onEdit,
+  onRemove,
+  text,
+}: NoteProps & { isHeld?: boolean; noteRef?: Ref<HTMLDivElement> }) {
+  return (
+    <div
+      aria-label={name}
+      id={id}
+      ref={noteRef}
+      role="group"
+      {...(onEdit || onRemove ? stopProps("comment") : {})}
+      {...stylex.props(ruleStyles.bar, styles.pending, isHeld && pickedStyles.picked)}
+    >
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <Text color="secondary" type="supporting">
+          {label}
+        </Text>
+        <HStack gap={1}>
+          {onEdit && (
+            <Button
+              label="Edit"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                onEdit();
+              }}
+              size="sm"
+              variant="ghost"
+            />
+          )}
+          {onRemove && (
+            <Button
+              label="Remove"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+              size="sm"
+              variant="ghost"
+            />
+          )}
+        </HStack>
+      </HStack>
+      <Paragraph>{text}</Paragraph>
+      {error && <StatusText tone="error">{error}</StatusText>}
+    </div>
   );
 }
