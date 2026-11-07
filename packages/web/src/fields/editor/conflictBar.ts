@@ -119,7 +119,7 @@ const barTheme = EditorView.baseTheme({
     outline: "2px solid var(--color-accent)",
     outlineOffset: "1px",
   },
-  ".cm-conflict-bar button:hover:enabled": { backgroundColor: "var(--color-background-gray)" },
+  ".cm-conflict-bar button:hover:enabled": { backgroundColor: "var(--role-chip)" },
 });
 
 /** The conflict bar, its sides named `labels`. */

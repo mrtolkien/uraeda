@@ -9,7 +9,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useContext, useEffect, useState } from "react";
 import type { StoryTarget } from "uraeda-binding";
@@ -27,7 +27,7 @@ const styles = stylex.create({
     padding: spacingVars["--spacing-3"],
   },
   hint: {
-    backgroundColor: colorVars["--color-background-blue"],
+    backgroundColor: "var(--role-context-tint)",
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },

@@ -48,11 +48,11 @@ const styles = stylex.create({
       default: spacingVars["--spacing-1"],
     },
   },
-  // The section's note, as the file writes it, `> [!NOTE]`: drawn as a callout, a blue bar at its
-  // start on a surface of its own.
+  // The section's note, as the file writes it, `> [!NOTE]`: drawn as a callout, a `context` bar at
+  // its start on a surface of its own.
   context: {
     backgroundColor: colorVars["--color-background-surface"],
-    borderInlineStartColor: colorVars["--color-text-blue"],
+    borderInlineStartColor: "var(--role-context)",
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: markVars["--mark-note-bar"],
     color: colorVars["--color-text-secondary"],
@@ -67,12 +67,15 @@ const styles = stylex.create({
   },
 });
 
-/** Each tone's title colour. */
+/**
+ * Each tone's title colour, by role: the ongoing entries `added`, as the repository's mark, Now
+ * `working`, what is worked on now, Later the secondary text's.
+ */
 const TINTS: Record<Tone, PaneTint | undefined> = {
-  blue: "blue",
-  gray: "gray",
-  green: "green",
+  later: "quiet",
   neutral: undefined,
+  now: "working",
+  ongoing: "added",
 };
 
 /** A section as a pane: its title and count, its context, its cards, and its footer. */

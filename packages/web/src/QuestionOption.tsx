@@ -42,7 +42,7 @@ const styles = stylex.create({
   },
   boxSign: { fontWeight: fontWeightVars["--font-weight-bold"] },
   con: { color: colorVars["--color-error"] },
-  conBox: { borderColor: colorVars["--color-border-red"] },
+  conBox: { borderColor: colorVars["--color-error"] },
   legend: {
     // The letter, "★ Recommended", and "picked", centred on the option's top border, over it, at
     // the text's edge whatever the border's width.
@@ -96,7 +96,7 @@ const styles = stylex.create({
     // the keyboard's accent ring around a focused option.
     "--_card-ring": "0 0 transparent",
     backgroundColor: colorVars["--color-success-muted"],
-    borderColor: colorVars["--color-border-green"],
+    borderColor: colorVars["--color-success"],
   },
   pickedTag: { color: colorVars["--color-success"] },
   point: {
@@ -109,7 +109,7 @@ const styles = stylex.create({
     padding: 0,
   },
   pro: { color: colorVars["--color-success"] },
-  proBox: { borderColor: colorVars["--color-border-green"] },
+  proBox: { borderColor: colorVars["--color-success"] },
   sign: {
     fontWeight: fontWeightVars["--font-weight-bold"],
     insetInlineStart: 0,
@@ -125,7 +125,7 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
   why: { color: colorVars["--color-warning"] },
-  whyBox: { borderColor: colorVars["--color-border-yellow"] },
+  whyBox: { borderColor: colorVars["--color-warning"] },
 });
 
 /** A point's sign, its colour, and its box's border's colour. */

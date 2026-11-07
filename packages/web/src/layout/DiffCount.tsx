@@ -1,15 +1,14 @@
-// Lines a change added and removed, "+120 −4", in green and red, the theme's text colours that read
-// at 4.5:1, with tabular figures: the same on a sidebar's card, a feature's column, and a session's
+// Lines a change added and removed, "+120 −4", in the roles `added` and `removed`, which read at
+// 4.5:1, with tabular figures: the same on a sidebar's card, a feature's column, and a session's
 // changed files (UI components).
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 
 const styles = stylex.create({
-  added: { color: colorVars["--color-text-green"] },
+  added: { color: "var(--role-added)" },
   // In a row, it keeps its width: the two counts never part.
   counts: { flexShrink: 0 },
-  removed: { color: colorVars["--color-text-red"] },
+  removed: { color: "var(--role-removed)" },
 });
 
 /** "1,204": a count with its thousands grouped. */

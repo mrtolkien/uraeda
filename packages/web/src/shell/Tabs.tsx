@@ -54,7 +54,7 @@ const styles = stylex.create({
   },
   // What needs the human, Home's count: in the Needs you pane's colour, bold.
   countNeeds: {
-    color: colorVars["--color-text-orange"],
+    color: "var(--role-needs-you)",
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
   // The current tab's count, in the accent with its icon.

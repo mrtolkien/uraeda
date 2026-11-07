@@ -16,8 +16,8 @@ import { isStrength, type Strength, strengthIcon } from "../theme/icons.ts";
 const styles = stylex.create({
   added: {
     // Added words: a green tint and a wavy underline, so the change does not rest on colour alone.
-    backgroundColor: colorVars["--color-background-green"],
-    textDecorationColor: colorVars["--color-icon-green"],
+    backgroundColor: "var(--role-added-tint)",
+    textDecorationColor: "var(--role-added)",
     textDecorationLine: "underline",
     textDecorationStyle: "wavy",
     textUnderlineOffset: "0.2em",
@@ -32,8 +32,8 @@ const styles = stylex.create({
   intent: { fontWeight: fontWeightVars["--font-weight-medium"] },
   removed: {
     // Removed words: a red tint and a strike, so the change does not rest on colour alone.
-    backgroundColor: colorVars["--color-background-red"],
-    textDecorationColor: colorVars["--color-icon-red"],
+    backgroundColor: "var(--role-removed-tint)",
+    textDecorationColor: "var(--role-removed)",
     textDecorationLine: "line-through",
   },
   text: {
@@ -43,27 +43,27 @@ const styles = stylex.create({
   },
   whole: {
     // A part removed whole: struck, its sign saying the rest, without a tint of its own.
-    textDecorationColor: colorVars["--color-icon-red"],
+    textDecorationColor: "var(--role-removed)",
     textDecorationLine: "line-through",
   },
 });
 
 /**
- * Each strength's colour (review comment C1 of the spec): MUST hard green, SHOULD soft green,
- * SHOULD NOT soft red, MUST NOT hard red, MAY neutral. A soft colour is the hard one four fifths
+ * Each strength's colour (review comment C1 of the spec): MUST hard `added`, SHOULD soft
+ * `added`, SHOULD NOT soft `removed`, MUST NOT hard `removed`, MAY neutral. A soft colour is the hard one four fifths
  * over the surface the rule sits on, its pane's (`--pane-surface`, the page's on the phone, where
  * the pane has no background) else the body's: so it keeps 3:1 over it in both schemes, a row's
  * tint included (`ledger/Rows.tsx`), where three quarters fell under it.
  */
 const colours = stylex.create({
   may: { color: colorVars["--color-icon-secondary"] },
-  must: { color: colorVars["--color-icon-green"] },
-  "must-not": { color: colorVars["--color-icon-red"] },
+  must: { color: "var(--role-added)" },
+  "must-not": { color: "var(--role-removed)" },
   should: {
-    color: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
+    color: `color-mix(in srgb, var(--role-added) 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
   },
   "should-not": {
-    color: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
+    color: `color-mix(in srgb, var(--role-removed) 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
   },
 });
 

@@ -188,3 +188,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   decision's "pure logic with many cases" asks.
 - **If wrong**: a test rendering the provider over a fake themes record.
 - **Where**: task 6
+
+## R16: Where a view's hue and its meaning name different roles
+
+- **Decision**: each view takes the role of what it means, which draws today's Catppuccin colour,
+  except the sandbox's badge, orange, which takes `caution`, yellow: it warns, and asks nothing of
+  the human. Where no role names the meaning, the view keeps its colour through the nearest role: a
+  ledger's changed part, yellow, takes `caution`, as the ledger's "Changed" badge draws the
+  warning's colour (`changed` means changed since you read it); an `[!IMPORTANT]` callout's bar,
+  purple, takes the accent of the other callouts, the same mauve; a list section's Ongoing title,
+  green, takes `added`, and Now's, blue, `working`; a rule's strength takes `added` for MUST and
+  SHOULD, `removed` for SHOULD NOT and MUST NOT; a list row's marks, lavender, take `pane-title`. A
+  list section's `Tone` and a pane's `PaneTint` name meanings (`ongoing`, `now`, `later`; `added`,
+  `working`, `quiet`), no longer hues. The rule also refuses a hue picked by a condition,
+  `variant={active ? "green" : "yellow"}`, as a decision's badge was written, and its test counts
+  one report per break of its fixture.
+- **Rationale**: the task follows the meaning where the two disagree; the data model's roles name no
+  priorities section, strength, callout kind, or row mark, and a role named for them is a change of
+  the data model the human approves.
+- **If wrong**: one line of each view; or a role added to `ROLES`, every shipped file, and the
+  mapping.
+- **Where**: task 7

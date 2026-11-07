@@ -156,7 +156,7 @@ test("a reads a row's section from its place: a nested row's is its line's, an A
         },
       ],
       title: "Ongoing",
-      tone: "green",
+      tone: "ongoing",
     },
     {
       id: "later",
@@ -170,7 +170,7 @@ test("a reads a row's section from its place: a nested row's is its line's, an A
         },
       ],
       title: "Later",
-      tone: "gray",
+      tone: "later",
     },
   ];
 

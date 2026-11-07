@@ -160,14 +160,14 @@ repeating some of it is expected.
 
 ## The status line
 
-The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in
-Catppuccin's colours, set apart by triangles. In order: the Vim mode while Vim mode is on, the
+The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in the
+theme's `mode-*` roles, set apart by triangles. In order: the Vim mode while Vim mode is on, the
 branch a page names, like a buffer's, the page's key hints, the counts of what needs the human and
 what runs. No cursor's place: its line, column, and "All" were "distracting". The mode reads NAV,
-grey, while keys act on the page, and in a field NORMAL in blue, INSERT in green, VISUAL in mauve,
-REPLACE in red, or COMMAND in peach. With Vim mode off, the line keeps its sections without the
-mode. It holds no content. It has a slot for a page's own controls, which only the phone's bar uses
-today.
+grey, while keys act on the page, and in a field NORMAL, INSERT, VISUAL, REPLACE, or COMMAND, each
+in its role: in Catppuccin blue, green, mauve, red, and peach. With Vim mode off, the line keeps its
+sections without the mode. It holds no content. It has a slot for a page's own controls, which only
+the phone's bar uses today.
 
 ## A session
 
@@ -176,8 +176,8 @@ today.
   width. The texts between its calls are context, in the secondary colour: "The in-turn responses
   are interesting context but not actual info."
 - **The agent's text is at the reading measure**, about 80 characters a line, not the page's width.
-- **The human's sent messages** are on a faint blue, in the markdown prose font (Neon by default),
-  their code and headings in their own fonts, as the editor drew them.
+- **The human's sent messages** are on the `yours` role's faint tint, in the markdown prose font
+  (Neon by default), their code and headings in their own fonts, as the editor drew them.
 - **The agent's text is in the reading font**, as documents are, not in the markdown prose font of
   the human's messages: "agents love sending long messages".
 - **Jump to the latest** goes to the start of the agent's last message, where its reply reads from;

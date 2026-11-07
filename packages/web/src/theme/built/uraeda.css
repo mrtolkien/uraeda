@@ -762,6 +762,18 @@
     row-gap: 0 !important;
   }
 
+  .astryx-markdown:is(*) h4 {
+    color: var(--role-heading-1) !important;
+  }
+
+  .astryx-markdown:is(*) h5 {
+    color: var(--role-heading-2) !important;
+  }
+
+  .astryx-markdown:is(*) h6 {
+    color: var(--role-heading-3) !important;
+  }
+
   .astryx-popover {
     border-color: var(--color-border);
     border-style: solid;

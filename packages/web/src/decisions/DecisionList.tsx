@@ -1,4 +1,3 @@
-import { Badge } from "@astryxdesign/core/Badge";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -14,6 +13,7 @@ import { statusLabel } from "./DecisionDetail.tsx";
 import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { GroupTitle } from "../layout/GroupTitle.tsx";
+import { RoleBadge } from "../layout/RoleBadge.tsx";
 
 const styles = stylex.create({
   icon: {
@@ -57,7 +57,7 @@ function DecisionFacts({ decision }: { decision: LedgerDecision }) {
   return (
     <HStack align="center" gap={1} xstyle={styles.facts}>
       {decision.status !== null && decision.status !== "active" && (
-        <Badge label={statusLabel(decision.status)} variant="yellow" />
+        <RoleBadge label={statusLabel(decision.status)} role="caution" />
       )}
       {decision.rules.length > 0 && (
         <Text color="secondary" hasTabularNumbers type="supporting">

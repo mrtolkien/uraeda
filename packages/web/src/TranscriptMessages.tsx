@@ -68,8 +68,8 @@ const styles = stylex.create({
   replyMost: (most: string) => ({ maxWidth: most }),
   replyPhone: { borderInlineWidth: 0, paddingInline: 0 },
   user: {
-    // A faint blue over the page's surface: the human's color, dark enough for its text.
-    backgroundColor: `color-mix(in oklab, ${colorVars["--color-text-blue"]} 14%, ${colorVars["--color-background-surface"]})`,
+    // A faint `yours` over the page's surface: the human's colour, dark enough for its text.
+    backgroundColor: `color-mix(in oklab, var(--role-yours) 14%, ${colorVars["--color-background-surface"]})`,
     // On the page's inset, as the agent's text: the list's 12 px at the side is given back.
     marginInlineEnd: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
   },

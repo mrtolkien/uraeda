@@ -60,6 +60,13 @@ test.each([
   expect(lintOutput(`src/__lint__/${file}`)).toContain(rule);
 });
 
+test("lint refuses a hue in a string, a member key, and a prop (SC-004)", () => {
+  // The Colour themes decision: a view asks for a colour by its role, never a hue. One report per
+  // break, so none of the four slips by while another is caught.
+  const output = lintOutput("src/__lint__/hue-token.tsx");
+  expect(output.match(/roles-not-hues/g)?.length, output).toBe(4);
+});
+
 test("a suppression with its reason passes", () => {
   // Its summary reads "0 errors" on some runs: the exit status says it passed.
   const result = lint("src/__lint__/suppressed.tsx");

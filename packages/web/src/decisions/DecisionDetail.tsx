@@ -1,8 +1,8 @@
 // What the decisions page's reader draws for a decision, read-only: the changes the features'
 // branches make to it, then its document, as the core's tree of the file, with `Blocks`.
-import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
+import { RoleBadge } from "../layout/RoleBadge.tsx";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -99,9 +99,9 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
           {(decision.status !== null || decision.approvedBy !== null) && (
             <HStack align="center" gap={2} wrap="wrap">
               {decision.status !== null && (
-                <Badge
+                <RoleBadge
                   label={statusLabel(decision.status)}
-                  variant={decision.status === "active" ? "green" : "yellow"}
+                  role={decision.status === "active" ? "added" : "caution"}
                 />
               )}
               {decision.approvedBy !== null && (

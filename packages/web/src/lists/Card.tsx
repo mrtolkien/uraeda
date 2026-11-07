@@ -162,7 +162,7 @@ const styles = stylex.create({
   }),
   // The marks, after the text: small, and apart from it.
   marks: {
-    color: "var(--color-text-lavender)",
+    color: "var(--role-pane-title)",
     fontSize: listVars["--list-marks-size"],
     marginInlineStart: spacingVars["--spacing-2"],
   },

@@ -81,7 +81,7 @@ function Bar() {
             {...stylex.props(
               styles.fill(
                 `${remaining}%`,
-                remaining <= LOW ? colorVars["--color-text-red"] : colorVars["--color-accent"],
+                remaining <= LOW ? colorVars["--color-error"] : colorVars["--color-accent"],
               ),
             )}
           />

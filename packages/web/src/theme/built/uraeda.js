@@ -776,6 +776,15 @@ export const uraedaTheme = {
         ":is(*) ul, :is(*) ol": {
           "marginInline": "0 !important",
           "rowGap": "0 !important"
+        },
+        ":is(*) h4": {
+          "color": "var(--role-heading-1) !important"
+        },
+        ":is(*) h5": {
+          "color": "var(--role-heading-2) !important"
+        },
+        ":is(*) h6": {
+          "color": "var(--role-heading-3) !important"
         }
       }
     },

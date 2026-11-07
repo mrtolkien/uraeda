@@ -2,7 +2,7 @@
 // change (`spec/SinceReview.tsx`), and every selectable block, wherever it is drawn, reads its own
 // here. A marked block reads "Δ Changed since your review" above it, with a bar down its side; a
 // changed one's words are drawn by the ledger's runs, added ones underlined, removed ones struck.
-import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { createContext, type ReactNode, use, useId } from "react";
@@ -33,9 +33,9 @@ export const NO_SINCE: SinceScope = { document: undefined, marks: new Map(), tit
 export const SinceMarks = createContext<SinceScope>(NO_SINCE);
 
 const styles = stylex.create({
-  // In the theme's orange, as the "Since your review" pane, apart from the selection's yellow edge.
+  // In `needs-you`, as the "Since your review" pane, apart from the selection's `marked` edge.
   label: {
-    color: colorVars["--color-text-orange"],
+    color: "var(--role-needs-you)",
     display: "block",
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
@@ -43,13 +43,13 @@ const styles = stylex.create({
   // jump shows where it went.
   focus: { outlineStyle: { ":focus:not(:focus-visible)": "none", default: null } },
   marked: {
-    borderInlineStartColor: colorVars["--color-border-orange"],
+    borderInlineStartColor: "var(--role-needs-you)",
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: spacingVars["--spacing-0-5"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
   sign: {
-    color: colorVars["--color-text-orange"],
+    color: "var(--role-needs-you)",
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
   words: { margin: 0 },

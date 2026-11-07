@@ -56,7 +56,7 @@ function levelPreview(
 type PrioritiesPane = { proposals: ReadonlyArray<Proposal>; title: string; tone: Tone };
 
 /**
- * The pane `proposal` is drawn in, among `sections`: Ongoing, green, with every running proposal,
+ * The pane `proposal` is drawn in, among `sections`: Ongoing, with every running proposal,
  * for a running one; else its level's, with the proposals not running.
  */
 function paneOf(
@@ -66,7 +66,7 @@ function paneOf(
 ): PrioritiesPane {
   if (proposal.running) {
     const running = sections.flatMap((one) => one.proposals.filter((each) => each.running));
-    return { proposals: running, title: "Ongoing", tone: "green" };
+    return { proposals: running, title: "Ongoing", tone: "ongoing" };
   }
   const own = sections.find((one) => one.section === section)?.proposals ?? [];
   return { proposals: listed(own), title: titleOf(section), tone: sectionTone(section) };

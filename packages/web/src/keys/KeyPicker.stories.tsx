@@ -87,7 +87,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
         { depth: 1, text: "with a cache" },
       ],
       title: "Later",
-      tone: "gray",
+      tone: "later",
     },
     title: "Nix + Docker based execution environments",
   },

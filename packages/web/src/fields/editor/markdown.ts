@@ -1,5 +1,5 @@
 // Markdown highlighting in every field, Vim on or off (Text editing decision): the structure in the
-// theme's Catppuccin colours, its marks (`#`, `**`, `[`, `` ` ``) dimmed, after `mockups/editor.css`.
+// theme's roles, its marks (`#`, `**`, `[`, `` ` ``) dimmed, after `mockups/editor.css`.
 // Its fonts follow the ones picked (`theme/fonts.ts`): code, its marks too, in the code font,
 // headings in the heading font, and the rest in markdown prose's, which the field's theme sets. A
 // message sent in a session draws its text in the same fonts, through `fontRuns`.
@@ -30,19 +30,22 @@ const fontTags = styleTags({
   "InlineCode/...": [tags.monospace, codeFont],
 });
 
-/** Each Markdown part's look, through the theme's tokens: they follow the light and dark themes. */
+/** Each Markdown part's look, through the theme's roles: they follow the theme picked. */
 const style = HighlightStyle.define([
+  // A heading in its level's role, as a document draws it (`layout/headings.ts`).
+  { color: "var(--role-heading-1)", fontWeight: "700", tag: tags.heading1 },
+  { color: "var(--role-heading-2)", fontWeight: "700", tag: tags.heading2 },
   {
-    color: "var(--color-text-purple)",
+    color: "var(--role-heading-3)",
     fontWeight: "700",
-    tag: [tags.heading1, tags.heading2, tags.heading3, tags.heading4, tags.heading5, tags.heading6],
+    tag: [tags.heading3, tags.heading4, tags.heading5, tags.heading6],
   },
   { fontStyle: "italic", tag: tags.emphasis },
   { fontWeight: "700", tag: tags.strong },
-  { color: "var(--color-text-orange)", tag: tags.monospace },
-  { color: "var(--color-text-blue)", tag: tags.link, textDecoration: "underline" },
+  { color: "var(--role-code-inline)", tag: tags.monospace },
+  { color: "var(--role-link)", tag: tags.link, textDecoration: "underline" },
   { color: "var(--color-syntax-comment)", tag: tags.url },
-  { color: "var(--color-text-secondary)", fontStyle: "italic", tag: tags.quote },
+  { color: "var(--role-quote)", fontStyle: "italic", tag: tags.quote },
   { color: "var(--color-text-secondary)", tag: [tags.comment, tags.contentSeparator] },
   // The marks: a heading's `#`, emphasis's `*`, a link's brackets, code's backticks, a quote's `>`,
   // a list's bullet. Last: a rule after wins, so a heading's or a link's mark is dimmed too.

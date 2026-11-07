@@ -48,10 +48,10 @@ test("a component keeps the compiler's and StyleX's output, and gains its source
 
   // The bar's badge, at its line and column in the file as written, both counted from 1.
   const lines = (await readFile(join(web, "src/sandbox/SandboxBar.tsx"), "utf8")).split("\n");
-  const line = lines.findIndex((text) => text.includes("<Badge"));
-  const column = lines[line].indexOf("<Badge") + 1;
+  const line = lines.findIndex((text) => text.includes("<RoleBadge"));
+  const column = lines[line].indexOf("<RoleBadge") + 1;
   expect(code).toContain(
-    `"data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:${line + 1}:${column}:Badge"`,
+    `"data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:${line + 1}:${column}:RoleBadge"`,
   );
   expect(code).toMatch(/react[/_]compiler-runtime/);
   expect(code).not.toContain("stylex.create(");

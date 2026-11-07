@@ -8,8 +8,8 @@ import type { Move } from "./destination.ts";
 import type { OnDrop, OnMove } from "./useDragOrder.ts";
 import type { RowAction, SectionPicker } from "./useRowKeys.ts";
 
-/** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
-export type Tone = "green" | "blue" | "neutral" | "gray";
+/** What a section's colour tells: the ongoing entries, Now, Later, or none of them. */
+export type Tone = "ongoing" | "now" | "later" | "neutral";
 
 /** A section of the list: a heading of the file, the ongoing entries, or a category of the inbox. */
 export interface WorkSection {
