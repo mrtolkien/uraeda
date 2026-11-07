@@ -20,6 +20,7 @@ import { type Picked, storyAnchor, storyComment } from "./storyComment.ts";
 import { RepositoryPathContext } from "./routes.tsx";
 import type { PickMode } from "./StoryFrames.tsx";
 import { ruleStyles } from "./layout/rules.ts";
+import { stopProps } from "./cursor/stops.ts";
 
 const styles = stylex.create({
   form: {
@@ -113,13 +114,14 @@ export function PickControls({ pick, wide }: { pick: StoryPick; wide: boolean })
         />
       )}
       {wide ? (
-        <Button label="Comment" onClick={pick.comment} size="sm" />
+        <Button label="Comment" onClick={pick.comment} size="sm" {...stopProps("control", true)} />
       ) : (
         <IconButton
           icon={<Icon icon="uraeda:comment" />}
           label="Comment"
           onClick={pick.comment}
           size="sm"
+          {...stopProps("control", true)}
         />
       )}
     </>

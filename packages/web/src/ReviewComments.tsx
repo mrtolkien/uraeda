@@ -3,8 +3,13 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useMemo } from "react";
+import { type RefObject, useMemo, useRef } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
+import { useHeld } from "./cursor/held.ts";
+import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { stopProps, stopsOf } from "./cursor/stops.ts";
+import { focusStop } from "./cursor/useCursor.ts";
+import { pickedStyles } from "./layout/picked.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 import { holderOf, placeOf } from "./reviewField.ts";
@@ -72,9 +77,51 @@ export function PendingComment({
 }
 
 /**
+ * The stop of the block a comment is under: the nearest block's stop before it in the page's order.
+ */
+function blockStopBefore(note: HTMLElement) {
+  return stopsOf()
+    .filter(
+      (stop) =>
+        stop.dataset["stop"] === "block" &&
+        (stop.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    )
+    .at(-1);
+}
+
+/**
+ * A comment's keys while the keyboard's cursor holds it: Enter edits it, and `d` removes it, the
+ * cursor going first to its block, so it stays where the comment was rather than leave the page.
+ */
+function useNoteKeys(
+  note: RefObject<HTMLElement | null>,
+  onEdit: (() => void) | undefined,
+  onRemove: (() => void) | undefined,
+) {
+  const held = useHeld(note);
+  const keys: Array<StopKey> = [];
+  if (onEdit) {
+    keys.push({ bar: "⏎", keys: "Enter", label: "edit", run: onEdit });
+  }
+  if (onRemove) {
+    const remove = () => {
+      const block = note.current && blockStopBefore(note.current);
+      if (note.current && block) {
+        focusStop(block, note.current);
+      }
+      onRemove();
+    };
+    keys.push({ bar: "d", keys: "d", label: "delete", run: remove });
+  }
+  useStopKeys(keys, held);
+  return { held, keys };
+}
+
+/**
  * A comment under what it is on, a bar down its side: `label` above its text, the group named
  * `name`, and Edit and Remove when given, as a pending review comment or a comment on a settled
- * point has. `error` is what refused its removal.
+ * point has. `error` is what refused its removal. With either, it is a stop of the keyboard's
+ * cursor, which edits it with Enter and deletes it with `d`, their bar under it.
  */
 export function CommentNote({
   error,
@@ -93,39 +140,51 @@ export function CommentNote({
   onRemove?: () => void;
   text: string;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { held, keys } = useNoteKeys(ref, onEdit, onRemove);
   return (
-    <div aria-label={name} id={id} role="group" {...stylex.props(ruleStyles.bar, styles.pending)}>
-      <HStack align="center" gap={2} justify="between" wrap="wrap">
-        <Text color="secondary" type="supporting">
-          {label}
-        </Text>
-        <HStack gap={1}>
-          {onEdit && (
-            <Button
-              label="Edit"
-              onClick={(event: React.MouseEvent) => {
-                event.stopPropagation();
-                onEdit();
-              }}
-              size="sm"
-              variant="ghost"
-            />
-          )}
-          {onRemove && (
-            <Button
-              label="Remove"
-              onClick={(event: React.MouseEvent) => {
-                event.stopPropagation();
-                onRemove();
-              }}
-              size="sm"
-              variant="ghost"
-            />
-          )}
+    <>
+      <div
+        aria-label={name}
+        id={id}
+        ref={ref}
+        role="group"
+        {...(onEdit || onRemove ? stopProps("comment") : {})}
+        {...stylex.props(ruleStyles.bar, styles.pending, held && pickedStyles.picked)}
+      >
+        <HStack align="center" gap={2} justify="between" wrap="wrap">
+          <Text color="secondary" type="supporting">
+            {label}
+          </Text>
+          <HStack gap={1}>
+            {onEdit && (
+              <Button
+                label="Edit"
+                onClick={(event: React.MouseEvent) => {
+                  event.stopPropagation();
+                  onEdit();
+                }}
+                size="sm"
+                variant="ghost"
+              />
+            )}
+            {onRemove && (
+              <Button
+                label="Remove"
+                onClick={(event: React.MouseEvent) => {
+                  event.stopPropagation();
+                  onRemove();
+                }}
+                size="sm"
+                variant="ghost"
+              />
+            )}
+          </HStack>
         </HStack>
-      </HStack>
-      <Paragraph>{text}</Paragraph>
-      {error && <StatusText tone="error">{error}</StatusText>}
-    </div>
+        <Paragraph>{text}</Paragraph>
+        {error && <StatusText tone="error">{error}</StatusText>}
+      </div>
+      <StopBar held={held} keys={keys} />
+    </>
   );
 }

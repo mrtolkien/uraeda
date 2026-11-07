@@ -85,6 +85,11 @@ function RowNode({
           </Cell>
         ))}
       </TableRow>
+      {select?.held && (
+        <TableRow>
+          <TableCell colSpan={cells.length}>{select.bar}</TableCell>
+        </TableRow>
+      )}
       {after && (
         <TableRow>
           <TableCell colSpan={cells.length}>

@@ -7,6 +7,7 @@ import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { proseStyles } from "../Prose.tsx";
+import { stopProps } from "../cursor/stops.ts";
 
 const styles = stylex.create({
   // The toggle's label, its row a control's height for a finger.
@@ -16,6 +17,17 @@ const styles = stylex.create({
     minHeight: sizeVars["--size-element-md"],
   },
 });
+
+/**
+ * Marks the fold's toggle a stop of the keyboard's cursor, whose own Enter opens and closes it:
+ * Astryx's `Collapsible` hands its props to its root, not to the button it draws first inside it.
+ */
+function markToggle(root: HTMLDivElement | null) {
+  const toggle = root?.querySelector(":scope > button");
+  for (const [name, value] of Object.entries(stopProps("control", true))) {
+    toggle?.setAttribute(name, String(value));
+  }
+}
 
 /**
  * A toggle named `label`, its chevron first, at the reading size, and what it holds under it while
@@ -45,6 +57,7 @@ export function Foldable({
         }
         onOpenChange?.(next);
       }}
+      ref={markToggle}
       trigger={<span {...stylex.props(styles.label, proseStyles.size)}>{label}</span>}
     >
       {open ? children : null}
