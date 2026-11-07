@@ -5,6 +5,9 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
+import { useHeld } from "./cursor/held.ts";
+import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { stopProps } from "./cursor/stops.ts";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
@@ -17,6 +20,7 @@ import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
@@ -26,6 +30,10 @@ import { Pane } from "./layout/Pane.tsx";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
+  // The stop around the notes' pane, which the pane's own ring shows held: none of its own.
+  stop: {
+    outlineStyle: "none",
+  },
   text: {
     // The notes as typed, their lines kept.
     whiteSpace: "pre-wrap",
@@ -174,7 +182,8 @@ export const NOTES_FIELD = "round-notes";
  * The round's notes at its end, as typed, read-only: marked while unsaved, with "Edit notes", or
  * "Write a note" while there are none, which `onEdit` opens their field for, in the column's Notes
  * tab on wide screens and in a sheet on the phone. While their field is not drawn, `fieldShown`
- * false, the notice of their restored text shows here, with Discard.
+ * false, the notice of their restored text shows here, with Discard. They are a stop of the
+ * keyboard's cursor, ringed while it holds them, whose Enter opens them as "Edit notes" does.
  */
 export function NotesRead({
   fieldShown,
@@ -188,30 +197,43 @@ export function NotesRead({
   const narrow = isNarrow(useWidthClass());
   const { field, save } = notes;
   const written = field.text.trim() !== "";
+  const stop = useRef<HTMLDivElement>(null);
+  const held = useHeld(stop);
+  const keys: ReadonlyArray<StopKey> = [{ bar: "⏎", keys: "Enter", label: "notes", run: onEdit }];
+  useStopKeys(keys, held);
   return (
-    // A pane of the round, as its other parts: on the phone, little room inside its border.
-    <Pane icon="uraeda:pencil" isSnugOnPhone title="Notes">
-      <VStack gap={2}>
-        {!fieldShown && <NotesRestored notes={notes} />}
-        {written ? (
-          <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
-        ) : (
-          <Empty>
-            No notes yet. Write one from anywhere: the Notes{" "}
-            {narrow ? "button below" : "tab of the column"}.
-          </Empty>
-        )}
-        <HStack align="center" gap={2} wrap="wrap">
-          <Button
-            icon={<Icon icon="uraeda:pencil" />}
-            label={written ? "Edit notes" : "Write a note"}
-            onClick={onEdit}
-            size="sm"
-          />
-          <SaveStatus dirty={field.dirty} state={save.state} />
-        </HStack>
-      </VStack>
-    </Pane>
+    <div
+      // A pane to the keyboard's cursor, around the notes' own: shown whole as it moves onto it.
+      data-pane=""
+      ref={stop}
+      {...stopProps("pane")}
+      {...stylex.props(styles.stop)}
+    >
+      {/* A pane of the round, as its other parts: on the phone, little room inside its border. */}
+      <Pane icon="uraeda:pencil" isSnugOnPhone title="Notes" xstyle={[held && pickedStyles.pane]}>
+        <VStack gap={2}>
+          {!fieldShown && <NotesRestored notes={notes} />}
+          {written ? (
+            <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
+          ) : (
+            <Empty>
+              No notes yet. Write one from anywhere: the Notes{" "}
+              {narrow ? "button below" : "tab of the column"}.
+            </Empty>
+          )}
+          <HStack align="center" gap={2} wrap="wrap">
+            <Button
+              icon={<Icon icon="uraeda:pencil" />}
+              label={written ? "Edit notes" : "Write a note"}
+              onClick={onEdit}
+              size="sm"
+            />
+            <SaveStatus dirty={field.dirty} state={save.state} />
+          </HStack>
+          <StopBar held={held} keys={keys} />
+        </VStack>
+      </Pane>
+    </div>
   );
 }
 

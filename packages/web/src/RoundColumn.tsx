@@ -37,7 +37,8 @@ function columnKeys(asks: boolean) {
  * a point, with a comment's text; and opening the notes' field. Asking about a question writes the
  * quote into the composer, in place of the one it held, and opens the Session tab, its composer
  * focused; on the phone, it opens the session's page. Asking about a point sends its quote and the
- * text to the feature's session at once, then opens the Session tab on wide screens. "Edit notes" opens the Notes tab, or the phone's sheet, its field
+ * text to the feature's session at once, then opens the Session tab on wide screens; with no text,
+ * as the keyboard's `s` on a point asks, its quote goes into the composer, as a question's does. "Edit notes" opens the Notes tab, or the phone's sheet, its field
  * focused. Both unfold the column the human folded (R23): `column` is its width and fold, which
  * the page holds. `notesShown` says whether the notes' field is drawn, and `sessionShown` the
  * session's composer.
@@ -62,6 +63,8 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
     focusOnceDrawn(() => document.getElementById(NOTES_FIELD));
   };
   const asks = draft && {
+    // A point asked about from the keys, with no text yet: its quote in the composer, as a question's.
+    about: (subject: string) => ask(quoted(`About the settled point of ${file.path}:`, [subject])),
     point: async (subject: string, text: string) => {
       const header = quoted(`About the settled point of ${file.path}:`, [subject]);
       const sent = await sendMessage(fate, { folder: file.folder, text: `${header}\n\n${text}` });

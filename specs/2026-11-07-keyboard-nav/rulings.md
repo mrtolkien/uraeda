@@ -115,3 +115,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a `data-heading` mark beside `data-lines`, which every selectable
   element would draw for the keys alone.
 - **Where**: task 6, `review/useKeyRange.ts`
+
+## R10: A settled point's `s` quotes it in the composer
+
+- **Decision**: `s` on a settled point the cursor holds writes "About the settled point of
+  `<file>`:" and the point quoted into the feature's session composer, and opens the Session tab, as
+  a question's Ask does; it sends nothing. `useRoundActions` gains `about(subject)` beside
+  `point(subject, text)`.
+- **Rationale**: the point's existing ask, the comment form's "Ask AI", sends a typed comment at
+  once; `s` has no text yet, and a message with the quote alone would ask the agent nothing.
+- **Alternatives considered**: `s` opening the comment form, as Enter does, for its "Ask AI": two
+  keys doing one thing, and the ask still a Tab away.
+- **Where**: task 7, `RoundColumn.tsx` (`useRoundActions`), `SettledPoints.tsx` (`pointKeys`)
