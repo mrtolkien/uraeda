@@ -66,8 +66,8 @@ export async function keptBases(contexts: Array<RepoContext>): Promise<Set<strin
  */
 export async function startWaiting(contexts: Array<RepoContext>): Promise<void> {
   for (const ctx of contexts) {
-    for (const { folder } of await waitingStories(ctx)) {
-      await warmPreview(ctx, folder).catch(() => {});
+    for (const { folder, stories } of await waitingStories(ctx)) {
+      await warmPreview(ctx, folder, stories).catch(() => {});
     }
   }
 }
@@ -75,11 +75,17 @@ export async function startWaiting(contexts: Array<RepoContext>): Promise<void> 
 /**
  * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
  * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
- * One that failed, as one a page started during the install, starts again. It compiles the stories
- * the folder's waiting file embeds, and resolves once they compiled. Nothing reads its record yet:
- * a page that does finds it starting or ready.
+ * One that failed, as one a page started during the install, starts again. It compiles `stories`,
+ * by default those the folder's waiting file embeds, and resolves once they compiled. Nothing reads
+ * its record yet: a page that does finds it starting or ready. The stories are read before its
+ * checkout, so no read comes between its base, under the frame secret, and its start.
  */
-export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
+export async function warmPreview(
+  ctx: RepoContext,
+  folder: string,
+  stories?: Array<LinkedStory>,
+): Promise<void> {
+  const linked = stories ?? (await linkedStories(ctx, folder));
   const checkout = await runnable(ctx, folder);
   if (checkout === null || !existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
     return;
@@ -87,7 +93,11 @@ export async function warmPreview(ctx: RepoContext, folder: string): Promise<voi
   if (ctx.previews.state(checkout.base)?.state === "failed") {
     await restartPreview(ctx, folder);
   }
+  await ctx.previews.warm(checkout, linked);
+}
+
+/** The stories the folder's waiting file embeds: none for `main`, or a folder the core cannot read. */
+async function linkedStories(ctx: RepoContext, folder: string): Promise<Array<LinkedStory>> {
   const feature = await ctx.binding.readFeature(ctx.repo, folder).catch(() => undefined);
-  const stories = feature === undefined ? [] : await storiesOf(ctx, feature);
-  await ctx.previews.warm(checkout, stories);
+  return feature === undefined ? [] : await storiesOf(ctx, feature);
 }

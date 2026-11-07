@@ -20,7 +20,7 @@ pub fn preview(checkout: &Path) -> Result<Option<Preview>> {
 }
 
 /// The commit the checkout at `checkout` has checked out, as a full hash: `None` before its first
-/// commit. A preview runs at it, and starts again once it moves.
+/// commit. A preview runs at its code version instead: see `code_version`.
 pub fn checkout_commit(checkout: &Path) -> Result<Option<String>> {
     let git = Git::open(checkout).map_err(|error| refused(error.to_string()))?;
     Ok(git.head().map(|id| id.to_string()))

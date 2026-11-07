@@ -1,8 +1,8 @@
 // A fake Storybook, for the tests of the preview runner, its proxy, and the embeds:
 // `node serve.mjs --port <port> [--mode <mode>] [--delay <ms>] [--log <file>]`.
 //
-// It appends its start to the log file, its folder created if missing, as one JSON line `{ base, cwd, pid, port }`, then serves,
-// from its working folder:
+// It appends its start to the log file, its folder created if missing, as one JSON line
+// `{ base, cwd, pid, port }`, then serves, from its working folder:
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
 // - `/`: Storybook's own interface, as its manager draws it: the stories' list, and the story of
 //   its `?path=/story/<id>`, or its first, in a frame titled "storybook-preview-iframe", as

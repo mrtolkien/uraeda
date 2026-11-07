@@ -372,7 +372,8 @@ test("a feature's turn that ends done starts its Storybook, once its preview fol
   await expect.poll(() => previewStarts(log!).length, WAIT).toBe(1);
   expect(previewStarts(log!)[0]!.cwd).toMatch(
     /\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/,
-  ); // Its round's linked stories compile ahead.
+  );
+  // Its round's linked stories compile ahead.
   const base = `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`;
   await expect
     .poll(async () => previews.state(base)?.state === "ready" && servedPaths(previews, base), WAIT)
