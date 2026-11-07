@@ -139,6 +139,30 @@ const rank = (keys: string) => {
   return at === -1 ? FIRST_HINTS.length : at;
 };
 
+/** The status line's hints of `bindings`, each once, the first hints first. */
+function hintsOf(bindings: ReadonlyArray<Binding>): Array<Hint> {
+  const seen = new Set<string>();
+  const next = bindings.flatMap((binding) => {
+    const hint = {
+      inLayer: binding.hintInLayer === true,
+      keys: binding.hint,
+      label: binding.hintLabel ?? binding.label,
+      press: binding.hintPress ?? binding.keys,
+    };
+    const id = `${hint.keys} ${hint.label}`;
+    if (hint.keys === undefined || seen.has(id)) {
+      return [];
+    }
+    seen.add(id);
+    return [{ ...hint, keys: hint.keys }];
+  });
+  // The leader's hint, "space menu", is always the first, the way into every other key, the key
+  // map's, "? keys", the second, and the sidebars' folds the third; the others keep their order
+  // after them.
+  next.sort((a, b) => rank(a.keys) - rank(b.keys));
+  return next;
+}
+
 export function createKeyStore(initialSingleKeys: boolean) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
@@ -164,25 +188,7 @@ export function createKeyStore(initialSingleKeys: boolean) {
 
   /** Publishes the hints, to the readers only when their text changed. */
   const publish = () => {
-    const seen = new Set<string>();
-    const next = active().flatMap((binding) => {
-      const hint = {
-        inLayer: binding.hintInLayer === true,
-        keys: binding.hint,
-        label: binding.hintLabel ?? binding.label,
-        press: binding.hintPress ?? binding.keys,
-      };
-      const id = `${hint.keys} ${hint.label}`;
-      if (hint.keys === undefined || seen.has(id)) {
-        return [];
-      }
-      seen.add(id);
-      return [{ ...hint, keys: hint.keys }];
-    });
-    // The leader's hint, "space menu", is always the first, the way into every other key, the key
-    // map's, "? keys", the second, and the sidebars' folds the third; the others keep their order
-    // after them.
-    next.sort((a, b) => rank(a.keys) - rank(b.keys));
+    const next = hintsOf(active());
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
       for (const listener of listeners) {
