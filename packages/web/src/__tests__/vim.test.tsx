@@ -210,12 +210,13 @@ test("visual block mode selects a block, one range a line", async () => {
   await focus(field);
   await type(field, "first line\nsecond line");
 
-  await keys(field, "<Esc>k0");
+  // `gg` and `+`, as `j` and `0` move along the lines shown, which happy-dom does not lay out.
+  await keys(field, "<Esc>gg");
   const view = EditorView.findFromDOM(field)!;
   await act(async () => {
     Vim.handleKey(getCM(view)!, "<C-v>", "user");
   });
-  await keys(field, "jl");
+  await keys(field, "+l");
 
   await waitFor(() => expect(mode()).toBe("visual-block"));
   // Breaks if the editor keeps only the main range, as CodeMirror does unless told otherwise.
