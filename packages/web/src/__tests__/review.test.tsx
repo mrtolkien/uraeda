@@ -463,6 +463,7 @@ test("J then Enter writes one comment on both scenarios' lines", async () => {
   const r = repo();
   await renderPage(PAGE, r);
   await openUS2();
+  expect((await fold("US2")).dataset["stop"], "the fold's toggle is a stop").toBe("control");
   hold(await scenario(FIRST));
   await press("J");
   await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
