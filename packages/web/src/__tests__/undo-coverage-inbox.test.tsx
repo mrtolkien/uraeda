@@ -5,7 +5,7 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { undoStack } from "../undo/stack.ts";
 import { atWidth, click, fixture, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
@@ -220,20 +220,30 @@ test("a move to a category", async () => {
 test("moves within a second undo as one step", async () => {
   const { link, repo } = await onNote("Idea two");
   const before = tree(repo);
-  await press("K", link);
-  await waitFor(() => expect(undoStack.top()?.label).toBe("Moved “Idea two”"));
-  const first = undoStack.top();
-  await press("L", controlOf("Idea two"));
-  // The second move joined the first: one entry, made anew.
-  await waitFor(() => expect(undoStack.top()).not.toBe(first));
-  expect(undoStack.top()?.label).toBe("Moved “Idea two”");
-  expect(read(repo, PATH)).toContain("- Later one\n- Idea two\n");
-  expect(screen.queryByText(/Moved “Idea two” · waits/)).toBeNull();
+  // The second move 100 ms after the first, whatever the machine's speed: the run is pinned by
+  // `Date`.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    const at = Date.now();
+    await press("K", link);
+    await waitFor(() => expect(undoStack.top()?.label).toBe("Moved “Idea two”"));
+    const first = undoStack.top();
+    vi.setSystemTime(at + 100);
+    await press("L", controlOf("Idea two"));
+    // The second move joined the first: one entry, made anew.
+    await waitFor(() => expect(undoStack.top()).not.toBe(first));
+    expect(undoStack.top()?.label).toBe("Moved “Idea two”");
+    expect(read(repo, PATH)).toContain("- Later one\n- Idea two\n");
+    await act(async () => {});
+    expect(screen.queryByText(/Moved “Idea two” · waits/)).toBeNull();
 
-  await press("u");
-  await screen.findAllByText("Undone: moved “Idea two”");
-  await waitFor(() => expect(tree(repo)).toEqual(before));
-  expect(undoStack.top()).toBeUndefined();
+    await press("u");
+    await screen.findAllByText("Undone: moved “Idea two”");
+    await waitFor(() => expect(tree(repo)).toEqual(before));
+    expect(undoStack.top()).toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("a category added", async () => {
