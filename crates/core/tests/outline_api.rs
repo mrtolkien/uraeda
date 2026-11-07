@@ -406,10 +406,9 @@ fn a_line_with_a_proposal_file_does_not_nest() {
     ));
 }
 
-/// A note goes under a line of the priorities with its own items, and its Undo takes it back to
-/// its place, both files as they were.
+/// A note goes under a line of the priorities with its own items.
 #[test]
-fn a_note_goes_under_a_line_with_its_items_and_comes_back() {
+fn a_note_goes_under_a_line_with_its_items() {
     let repo = fixture_repo();
     let indented = api::outline_note(
         repo.path(),
@@ -420,8 +419,6 @@ fn a_note_goes_under_a_line_with_its_items_and_comes_back() {
         &inbox_hash(&repo),
     )
     .unwrap();
-    let inbox = repo.read(INBOX);
-    let priorities = repo.read(PRIORITIES);
     let note = indented.categories[0].notes[0].clone();
 
     api::note_under_proposal(
@@ -436,15 +433,6 @@ fn a_note_goes_under_a_line_with_its_items_and_comes_back() {
         "- Nix + Docker based execution environments\n  - with a cache\n  - Specs are still way too long and hard to read\n    - We'll need a model selector for each step\n- Benchmarks"
     ));
     assert!(!repo.read(INBOX).contains("Specs are still"));
-
-    let key = "nix-docker-based-execution-environments";
-    api::undo_note_under_proposal(repo.path(), &note.lines, None, 0, key).unwrap();
-    assert_eq!(
-        (repo.read(INBOX), repo.read(PRIORITIES)),
-        (inbox, priorities)
-    );
-    let again = api::undo_note_under_proposal(repo.path(), &note.lines, None, 0, key).unwrap_err();
-    assert_eq!(again.code, "refused");
 }
 
 #[test]

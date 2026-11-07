@@ -19,22 +19,17 @@ mod image;
 mod merge;
 mod moves;
 mod note_file;
-mod undo;
 mod unlink;
 
 pub use agent_file::agent_note;
-pub use categories::{add_category, remove_category, rename_category, restore_category};
+pub use categories::{add_category, remove_category, rename_category};
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
 pub(crate) use merge::put_back_links;
 pub use moves::{into_proposal, into_proposal_line, to_proposal, to_proposal_file, under_proposal};
 pub(crate) use note_file::{
     back_to_notes, committed as committed_note_file, restore as restore_note_file,
 };
-pub use undo::{
-    undo_add, undo_as_file, undo_category, undo_committed, undo_into_proposal, undo_to_proposal,
-    undo_under_proposal,
-};
-pub use unlink::{RemovedImage, remove_image, restore_image};
+pub use unlink::remove_image;
 
 pub const PATH: &str = "specs/INBOX.md";
 
@@ -278,7 +273,7 @@ pub fn edit(
 
 /// Edits the outline of a note: the note, or with `at`, the item at `at` of its nested items in the
 /// order of the file (see [`inbox::outline`]). The note itself removed is a [`remove`]: its note
-/// file goes with it, held for the removal's Undo.
+/// file goes with it, held for Discard.
 pub fn outline(
     place: &Place,
     id: &str,
@@ -325,7 +320,7 @@ pub fn drop_item(
     }
 }
 
-/// Removes a note, sub-items included, and its note file, held for the removal's Undo, when
+/// Removes a note, sub-items included, and its note file, held for Discard, when
 /// nothing is lost: the file holds only what the note wrote, or is as the default branch committed
 /// it. A file typed in since, or one another note links too, stays.
 pub fn remove(place: &Place, id: &str, previous: Option<&str>) -> Result<Inbox, ActionError> {
@@ -387,31 +382,6 @@ pub fn place(
             &format!("no note {id}"),
         )
     })
-}
-
-/// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal, which writes back the note file the removal took away, as it was. An agent's
-/// note put back where the inbox shows its file gets its file alone back, `INBOX.md` unchanged.
-pub fn insert(
-    place: &Place,
-    category: Option<&str>,
-    index: usize,
-    lines: &[String],
-    previous: Option<&str>,
-) -> Result<Inbox, ActionError> {
-    if let Some(inbox) = agent::restored(place, category, index, lines, previous)? {
-        return Ok(inbox);
-    }
-    let inbox = apply(
-        place,
-        previous,
-        |current| inbox::insert(current, category, index, lines),
-        "Nothing to put back.",
-    )?;
-    match inbox::file_of_lines(lines) {
-        Some(file) if note_file::restore(place, &file)? => Ok(read(place)),
-        _ => Ok(inbox),
-    }
 }
 
 /// A file's text, refused when it changed since it was read at `previous`.

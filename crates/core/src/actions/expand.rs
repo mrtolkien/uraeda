@@ -212,7 +212,7 @@ pub(crate) fn note_as_proposal(note: &str, title: &str) -> Option<String> {
 }
 
 /// The note file a proposal file [`note_as_proposal`] made was, while it is still exactly that,
-/// as the Undo of a note's promotion takes it back. `None` once the human changed it: it stays a
+/// as Discard of a note's promotion takes it back. `None` once the human changed it: it stays a
 /// proposal's text, which a note file may hold too.
 pub(crate) fn proposal_as_note(text: &str) -> Option<String> {
     const MARK: &str = "\u{1}note";

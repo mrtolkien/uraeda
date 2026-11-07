@@ -865,8 +865,7 @@ fn a_notes_relative_links_are_rebased_into_a_new_proposal_file() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// A note added to a proposal file's folder gets its links rebased two folders down, and its Undo
-/// takes it back out.
+/// A note added to a proposal file's folder gets its links rebased two folders down.
 #[test]
 fn a_notes_relative_links_are_rebased_into_a_folder_proposal_file() {
     let repo = fixture_repo();
@@ -877,7 +876,6 @@ fn a_notes_relative_links_are_rebased_into_a_folder_proposal_file() {
     actions::add(&place, None, &Marks::default(), LINKED, None).unwrap();
     let inbox = api::read_inbox(repo.path()).unwrap();
     let note = inbox.categories[0].notes.last().unwrap().clone();
-    let index = u32::try_from(inbox.categories[0].notes.len() - 1).unwrap();
 
     actions::into_proposal(&place, &note.id, folder, &inbox.hash).unwrap();
 
@@ -887,8 +885,6 @@ fn a_notes_relative_links_are_rebased_into_a_folder_proposal_file() {
         "{}",
         repo.read(folder)
     );
-    api::undo_note_into_proposal(repo.path(), folder, &note.lines, None, index).unwrap();
-    assert_eq!(repo.read(folder), LOOK_TEXT);
 }
 
 /// A note with links added with an image: its note file folder's title links the same

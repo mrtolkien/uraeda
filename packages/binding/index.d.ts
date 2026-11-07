@@ -99,15 +99,6 @@ export declare function bufferFolder(repo: string, path: string): Promise<string
  */
 export declare function cacheStats(repo: string): CacheStats
 
-/**
- * A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
- * back.
- */
-export interface CategoryRemoved {
-  inbox: Inbox
-  before: string
-}
-
 /** A file of a change, by its path from the top level. */
 export interface ChangedFileView {
   path: string
@@ -330,18 +321,6 @@ export interface ImageFile {
 }
 
 /**
- * Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
- * Undo of a removal, with the note file the removal took away, as it was.
- */
-export declare function insertNote(repo: string, index: number, lines: Array<string>, previous: string, category?: string | undefined | null): Promise<Inbox>
-
-/**
- * Inserts a proposal with its nested lines, as written, before the line at `index` of a
- * section, or at its end: Undo of a removal.
- */
-export declare function insertProposal(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
-
-/**
  * Lands the deferred commit `id` with the hooks, calling `onOutput` with each line git and its
  * hooks print. A hook's refusal puts back what the write left, and rejects with `hook: `.
  */
@@ -367,12 +346,6 @@ export interface NewNote {
 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
-
-/** An image's removal's answer: the inbox, and what `restoreNoteImage` takes back. */
-export interface NoteImageRemoved {
-  inbox: Inbox
-  removed: RemovedImage
-}
 
 /**
  * Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
@@ -539,12 +512,12 @@ export declare function removeAllowedHost(dir: string, name: string): Promise<Se
  * Deletes a category: its notes stay without a category with `keepNotes`, and go with it
  * otherwise.
  */
-export declare function removeCategory(repo: string, name: string, keepNotes: boolean, previous: string, undo?: string | undefined | null): Promise<CategoryRemoved>
+export declare function removeCategory(repo: string, name: string, keepNotes: boolean, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number, undo?: string | undefined | null): Promise<FileView>
 
-/** Removes a note, sub-items included, and its note file, which `insertNote` brings back. */
+/** Removes a note, sub-items included, and its note file. */
 export declare function removeNote(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /**
@@ -558,7 +531,7 @@ export declare function removeNoteAndCommit(repo: string, id: string, previous: 
  * level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
  * since it was read at `previous`.
  */
-export declare function removeNoteImage(repo: string, file: string, image: string, previous: string, undo?: string | undefined | null): Promise<NoteImageRemoved>
+export declare function removeNoteImage(repo: string, file: string, image: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 
 /** Removes a proposal and its nested lines. */
 export declare function removeProposal(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<Priorities>
@@ -574,15 +547,6 @@ export declare function renameCategory(repo: string, from: string, to: string, p
 
 /** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
-
-/** Takes back a delete: writes `before` back over the inbox read at `previous`. */
-export declare function restoreCategory(repo: string, before: string, previous: string): Promise<Inbox>
-
-/**
- * Takes back an image's removal: its lines go back where they were, over the proposal file as it
- * is now. Refused once the lines there changed, or the proposal file links the image again.
- */
-export declare function restoreNoteImage(repo: string, removed: RemovedImage): Promise<Inbox>
 
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
@@ -732,58 +696,6 @@ export interface TextStartOptions {
   line?: string
   slug?: string
 }
-
-/**
- * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
- * committed alone.
- */
-export declare function undoCommittedNote(repo: string, lines: Array<string>, previous: string): Promise<Inbox>
-
-/**
- * Takes back a committed add: the proposal, `lines` as written, leaves the priorities, and the
- * removal is committed alone.
- */
-export declare function undoCommittedProposal(repo: string, lines: Array<string>, previous: string): Promise<Priorities>
-
-/**
- * Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
- * Refused once it changed or left, or when two notes hold its lines.
- */
-export declare function undoNoteAdd(repo: string, lines: Array<string>): Promise<Inbox>
-
-/**
- * Takes back a note added as a proposal file: the note, found by its lines, leaves the inbox, and
- * its proposal file goes with it, images included, unless a commit has it or the human typed in
- * it.
- */
-export declare function undoNoteAsFile(repo: string, lines: Array<string>): Promise<Inbox>
-
-/**
- * Takes back a note's move to another category, in one write: the note, found by its lines,
- * goes back before the note at `index` of `category`, or of the notes without one.
- */
-export declare function undoNoteCategory(repo: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
-
-/**
- * Takes back a note's add to a proposal file, in one write of both files or none: the note's lines
- * leave the proposal file, every other edit kept, and the note goes back to its place.
- */
-export declare function undoNoteIntoProposal(repo: string, proposal: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
-
-/**
- * Takes back a note's move to a section of the priorities, in one write of both files or none: the
- * line the move wrote leaves the section, found by the note's lines and, among several, by
- * `proposalKey`, its key once moved; the note goes back before the note at `index` of its
- * category, and its note file, moved among the proposals, back among the notes.
- */
-export declare function undoNoteToProposal(repo: string, lines: Array<string>, index: number, section: string, category?: string | undefined | null, proposalKey?: string | undefined | null): Promise<Inbox>
-
-/**
- * Takes back a note's move under a proposal of the priorities, in one write of both files or none:
- * the item the move wrote leaves the proposal whose key is `proposalKey`, and the note goes back
- * before the note at `index` of its category.
- */
-export declare function undoNoteUnderProposal(repo: string, lines: Array<string>, index: number, proposalKey: string, category?: string | undefined | null): Promise<Inbox>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string
@@ -1528,7 +1440,7 @@ export interface InboxNote {
   images: Array<string>
   startLine: number
   endLine: number
-  /** Its lines as written, sub-items included: what an Undo of its removal writes back. */
+  /** Its lines as written, sub-items included. */
   lines: Array<string>
   /** Its nested lines, as written. */
   nested: Array<string>
@@ -1880,10 +1792,7 @@ export interface ProposalItem {
   spans: Array<Span>
   startLine: number
   endLine: number
-  /**
-   * Its lines as written, its marker, wrapped text, and nested lines included: what an Undo of
-   * its removal writes back.
-   */
+  /** Its lines as written, its marker, wrapped text, and nested lines included. */
   lines: Array<string>
   /** Its nested lines, as written. */
   nested: Array<string>
@@ -1971,21 +1880,6 @@ export interface QuestionItem {
   asked: boolean
   /** The line of its `**Answer:**` marker, or 0. */
   answerLine: number
-}
-
-/**
- * What taking an image out of a file wrote, which its Undo takes back: the file's `before`
- * lines from its line `at`, and the `after` lines written in their place. Both hold a line of
- * the file around the change where it has one, which the Undo finds unchanged.
- */
-export interface RemovedImage {
-  /** The note file or proposal file, from the top level. */
-  file: string
-  /** The image, from the top level. */
-  image: string
-  at: number
-  before: Array<string>
-  after: Array<string>
 }
 
 /** A repository of the list. */

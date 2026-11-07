@@ -39,7 +39,7 @@ impl fmt::Display for Went {
 pub struct Move {
     /// The file or folder from the top level. A folder matches every path under it, the rest of
     /// the path kept after a `Moved`'s path. Ending in `#anchor`, it matches only the links with
-    /// that anchor, compared case-insensitively: the Undo of a merged note.
+    /// that anchor, compared case-insensitively: Discard of a merged note.
     pub from: String,
     pub went: Went,
 }

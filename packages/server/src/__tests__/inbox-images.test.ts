@@ -1,5 +1,5 @@
 // A note's image taken out of its note file by the core, over the file's version, the image's file
-// left, and its Undo, which puts the line back where it was.
+// left.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
@@ -41,7 +41,7 @@ const fileHash = async (served: Served) =>
 const imagesOf = (inbox: { categories: Array<{ notes: Array<Record<string, unknown>> }> }) =>
   inbox.categories.flatMap((category) => category.notes).find((note) => note.file === FILE)?.images;
 
-test("an image leaves its note's file, its own file kept, and its Undo puts it back", async () => {
+test("an image leaves its note's file, its own file kept", async () => {
   const repo = fixtureRepo();
   const served = await testApp(repo);
   await withTwoImages(served);
@@ -51,25 +51,13 @@ test("an image leaves its note's file, its own file kept, and its Undo puts it b
     served.app,
     "inbox.removeImage",
     { file: FILE, hash: await fileHash(served), image: FIRST },
-    [...INBOX, "imageRemoved"],
+    INBOX,
   );
 
   expect(removed.ok).toBe(true);
   expect(read(repo, FILE)).toBe(before.replace("\n\n![first](images/first.webp)", ""));
   expect(existsSync(join(repo, FIRST))).toBe(true);
   expect(imagesOf(removed.data)).toEqual(["specs/notes/headings-are-flat/images/second.webp"]);
-  expect(removed.data.imageRemoved).toMatchObject({ file: FILE, image: FIRST });
-
-  const restored = await mutate(
-    served.app,
-    "inbox.restoreImage",
-    { removed: removed.data.imageRemoved },
-    INBOX,
-  );
-
-  expect(restored.ok).toBe(true);
-  expect(read(repo, FILE)).toBe(before);
-  expect(imagesOf(restored.data)).toHaveLength(2);
 });
 
 test("an image's removal over a stale note file is refused as a conflict", async () => {

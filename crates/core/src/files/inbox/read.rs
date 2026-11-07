@@ -30,7 +30,7 @@ pub struct InboxNote {
     pub images: Vec<String>,
     pub start_line: u32,
     pub end_line: u32,
-    /// Its lines as written, sub-items included: what an Undo of its removal writes back.
+    /// Its lines as written, sub-items included.
     pub lines: Vec<String>,
     /// Its nested lines, as written.
     pub nested: Vec<String>,
