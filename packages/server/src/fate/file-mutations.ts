@@ -150,8 +150,9 @@ export const fileMutations = {
             ctx.repo,
             input.folder,
             input.file,
-            input.startLine,
-            input.endLine,
+            input.startLine === undefined
+              ? undefined
+              : { end: input.endLine, start: input.startLine },
             input.text,
             input.decision,
           ),

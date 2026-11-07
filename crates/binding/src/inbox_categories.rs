@@ -6,8 +6,10 @@ use std::path::Path;
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
 use uraeda_core::api;
+use uraeda_core::api::undo;
 use uraeda_core::files::inbox::Inbox;
 
+use super::undo::{recording, scope};
 use super::{Job, job};
 
 /// A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
@@ -20,8 +22,15 @@ pub struct CategoryRemoved {
 
 /// Adds a category at the end of the inbox.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn add_category(repo: String, name: String, previous: String) -> AsyncTask<Job<Inbox>> {
-    job(move || api::add_category(Path::new(&repo), &name, &previous))
+pub fn add_category(
+    repo: String,
+    name: String,
+    previous: String,
+    undo: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        api::add_category(repo, &name, &previous)
+    })
 }
 
 /// Renames a category, every heading of its name.
@@ -31,8 +40,11 @@ pub fn rename_category(
     from: String,
     to: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::rename_category(Path::new(&repo), &from, &to, &previous))
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        api::rename_category(repo, &from, &to, &previous)
+    })
 }
 
 /// Deletes a category: its notes stay without a category with `keepNotes`, and go with it
@@ -43,9 +55,10 @@ pub fn remove_category(
     name: String,
     keep_notes: bool,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<CategoryRemoved>> {
-    job(move || {
-        let (inbox, before) = api::remove_category(Path::new(&repo), &name, keep_notes, &previous)?;
+    recording(repo, undo, scope(undo::NOTES), move |repo: &Path| {
+        let (inbox, before) = api::remove_category(repo, &name, keep_notes, &previous)?;
         Ok(CategoryRemoved { inbox, before })
     })
 }

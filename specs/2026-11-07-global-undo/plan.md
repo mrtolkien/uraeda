@@ -273,22 +273,26 @@ puts files back.
 
 **Files:**
 
-- Create: `crates/core/src/actions/change.rs` (from `actions/deferred/undo.rs`'s `held`, `written`,
-  and `undo`)
-- Modify: `crates/core/src/actions/deferred/undo.rs` and its callers, to use `change.rs`
+- Create: `crates/core/src/actions/change.rs` (the change's types, its snapshot, diff, check, and
+  replay, with the walk of `specs/` and the cleanup of empty folders moved from
+  `actions/deferred/undo.rs`)
+- Modify: `crates/core/src/actions/deferred/undo.rs`, to walk and clean through `change.rs`; its
+  `held`, `written`, and `undo` keep their Markdown-only behaviour
 - Modify: `crates/core/src/cache.rs` (`lock`, `WriteGuard`)
 - Create: `crates/core/src/api/undo.rs`, and its line in `api/mod.rs`
-- Create: `crates/binding/src/undo.rs`; modify the binding's write functions listed below
+- Create: `crates/binding/src/undo.rs`; modify the binding's write functions listed below, and their
+  two callers in the server whose arguments ruling R5 folds
 - Test: `crates/core/tests/undo_changes.rs`
 
 **Interfaces:**
 
 - Produces, in the core:
-  - `pub struct Change { pub commit: Option<String>, pub files: Vec<ChangedFile> }` and
+  - Declared in `actions::change` and re-exported by `api::undo`:
+    `pub struct Change { pub commit: Option<String>, pub files: Vec<ChangedFile> }` and
     `pub struct ChangedFile { pub path: String, pub before: Option<Vec<u8>>, pub after: Option<Vec<u8>> }`,
     paths from the repository's top level, `None` for a file absent on that side; only files whose
     bytes differ are kept; `commit` is the checkout's `HEAD` when the write ran.
-  - `pub fn api::undo::recorded<T>(repo: &Path, scope: &[String], write: impl FnOnce() -> Result<T>) -> Result<(T, Change)>`:
+  - `pub fn api::undo::recorded<T, S: AsRef<str>>(repo: &Path, scope: &[S], write: impl FnOnce() -> Result<T>) -> Result<(T, Change)>`:
     finds the checkout from `scope[0]` as `save_buffer` does, takes the write lock, reads every
     file's bytes under each scope path (a file or a folder), runs `write`, and diffs. A failing
     `write` returns its error and no change.
@@ -298,17 +302,25 @@ puts files back.
     for a redo, absent for `None`); if one does not, writes nothing and refuses as a conflict:
     "Could not undo: “{subject}” changed since in {file name}." (`redo` for a redo). Otherwise
     writes the other side, deletes a file whose side is `None` with the folders it leaves empty, and
-    answers the checkout's `HEAD` now. It runs no git command.
+    answers the checkout's `HEAD` now. It runs no git command, so it reaches no checkout: without
+    one holding the files' branch it refuses as changed since. A path outside `specs/`, or a change
+    whose files lie on two branches, is refused (`refused`): the change comes back from the web UI.
   - `pub fn api::undo::committed_since(repo: &Path, change: &Change) -> Result<bool>`: whether the
-    checkout's `HEAD` holds any of the change's files differently from `change.commit`, by
-    `Git::entry_id`.
-  - The scopes, as constants or functions of `api::undo`: `INBOX` (`specs/INBOX.md`), `NOTES`
-    (`specs/INBOX.md`, `specs/notes/`), `PRIORITIES` (`specs/PRIORITIES.md`), `PROMOTION`
-    (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes/`, `specs/proposals/`), `EXPAND`
-    (`specs/PRIORITIES.md`, `specs/proposals/`), and `review(folder, file)`, the review file's path.
+    checkout's `HEAD`, or its branch's tip without a checkout, holds any of the change's files
+    differently from `change.commit`, by `Git::entry_id`.
+  - The scopes of `api::undo`, constants `&[&str]`: `INBOX` (`specs/INBOX.md`), `NOTES`
+    (`specs/INBOX.md`, `specs/notes`), `PRIORITIES` (`specs/PRIORITIES.md`), `PROMOTION`
+    (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes`, `specs/proposals`), `EXPAND`
+    (`specs/PRIORITIES.md`, `specs/proposals`); and functions:
+    `review(repo, folder, file) -> Result<Vec<String>>`, the review file's path, read from the
+    feature's folder; `note_image(file) -> Vec<String>`, the inbox and the folder of the note file
+    or proposal file an image leaves; `attached(path) -> Vec<String>`, the file and its folder, or
+    all of `specs` for a single proposal file or note file, which becomes a folder and has its links
+    followed everywhere.
 - Produces, in the binding (`crates/binding/src/undo.rs`):
-  - `ChangeView { commit: string | null, files: Array<{ path: string, before: string | null, after: string | null }> }`,
-    bytes base64-encoded.
+  - `ChangeView { commit: string | null, files: Array<ChangedFileView> }`, with
+    `ChangedFileView { path: string, before: string | null, after: string | null }`, bytes
+    base64-encoded (the `base64` crate, already in `Cargo.lock`).
   - Each undoable write function takes a last optional `undo?: string`, a token: when given, it runs
     through `recorded` with its scope and keeps the change under the token.
     `takeChange(token: string): ChangeView | null` hands it over once; the binding keeps at most the
@@ -317,14 +329,19 @@ puts files back.
     and `committedSince(repo, change: ChangeView): Promise<boolean>`.
   - The functions given a token, with their scope: `addNote`, `outlineNote`, `dropNote`,
     `placeNote`, `moveNoteToCategory` (`INBOX`); `removeNote` and the outline's `remove` kind,
-    `removeCategory`, `addCategory`, `renameCategory`, `removeNoteImage`, `addNoteWithImages`,
-    `attachNoteImages` (`NOTES`); `noteToProposal`, `noteUnderProposal`, `noteIntoProposal`,
-    `noteIntoProposalLine` (`PROMOTION`); `addProposal`, `outlineProposal`, `dropProposal`,
-    `moveProposal`, `editProposal`, `removeProposal` (`PRIORITIES`); `expandProposal` (`EXPAND`);
-    `addComment`, `editComment`, `removeComment`, `startOver` (`review(folder, file)`). An image
-    attached to a proposal file (`attachImage`) takes the proposal's folder as its scope.
+    `removeCategory`, `addCategory`, `renameCategory`, `addNoteWithImages`, `attachNoteImages`
+    (`NOTES`); `removeNoteImage` (`note_image(file)`); `noteToProposal`, `noteToProposalFile`,
+    `noteUnderProposal`, `noteIntoProposal`, `noteIntoProposalLine` (`PROMOTION`); `addProposal`,
+    `outlineProposal`, `dropProposal`, `moveProposal`, `editProposal`, `removeProposal`
+    (`PRIORITIES`); `expandProposal` (`EXPAND`); `addComment`, `editComment`, `removeComment`,
+    `startOver` (`review(repo, folder, file)`); `attachImage` (`attached(path)`).
+  - Two functions keep within clippy's 7 arguments by folding two of theirs (ruling R5):
+    `addComment(repo, folder, file, lines?: CommentLines, text, decision?, undo?)`, with
+    `CommentLines { start: number, end?: number }`, and
+    `addNoteWithImages(repo, text, previous, images, names, note?: NewNote, undo?)`, with
+    `NewNote { category?: string, about?: string }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/undo_changes.rs`, on `TestRepo` and the fixture's inbox and priorities:
 
@@ -348,40 +365,40 @@ only the first file (the second); a snapshot of Markdown only (the third); a rev
 `git restore` or `revert` (the fourth); a check on `HEAD` moving rather than on the file (the
 fifth).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test undo_changes`
 - Expected: FAIL to compile, `cannot find function recorded in module api::undo`
 
-- [ ] **Step 3: Make the write lock re-entrant on its thread**
+- [x] **Step 3: Make the write lock re-entrant on its thread**
 
 `cache::lock` remembers, per thread, the keys it holds: a thread taking a key it already holds gets
 a guard that releases nothing. Every existing caller is unchanged.
 
-- [ ] **Step 4: Move the snapshot into `actions/change.rs`, and implement `api::undo`**
+- [x] **Step 4: Move the snapshot into `actions/change.rs`, and implement `api::undo`**
 
 Deferred commits keep their behaviour through the moved functions: their tests in
 `crates/core/tests/deferred.rs` pass unchanged. The change keeps every file's bytes under its scope,
 whatever its kind, unlike the deferred commit's `Held::Other`.
 
-- [ ] **Step 5: The binding: tokens, `takeChange`, `applyChange`, `committedSince`**
+- [x] **Step 5: The binding: tokens, `takeChange`, `applyChange`, `committedSince`**
 
 Then build the binding: `nix develop -c vp run --filter uraeda-binding build`; its generated
 `packages/binding/index.d.ts` shows the new optional `undo` parameters.
 
-- [ ] **Step 6: Make the risky breaks**
+- [x] **Step 6: Make the risky breaks**
 
 Make the lock not re-entrant again, and see every test of `undo_changes.rs` hang until nextest's
 timeout: `recorded` holds the lock its write takes. Then make `apply_change` check only the first
 file, and see "undo refuses once a file changed since …" fail. Revert both, and report the failures
 in the commit body.
 
-- [ ] **Step 7: Run the task's validation**
+- [x] **Step 7: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding

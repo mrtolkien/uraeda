@@ -1,9 +1,12 @@
-//! What a deferred commit wrote, file by file, and how a hook's refusal puts it back.
+//! What a deferred commit wrote, file by file, and how a hook's refusal puts it back. It walks and
+//! cleans `specs/` as a recorded change does, from `actions/change.rs`, but keeps only Markdown
+//! files' bytes: an image it did not delete is left as the write left it.
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::Path;
 
+use crate::actions::change::{files_under, remove_empty_folders};
 use crate::git::Git;
 
 /// The folder whose files a deferred commit can put back.
@@ -105,18 +108,6 @@ fn committed(git: Option<&Git>, path: &str) -> Result<Option<Vec<u8>>, ()> {
     }
 }
 
-/// Removes the folders holding `path` that its removal left empty, up to `specs/`.
-fn remove_empty_folders(root: &Path, path: &Path) {
-    let specs = root.join(SPECS);
-    let mut folder = path.parent();
-    while let Some(dir) = folder.filter(|dir| dir.starts_with(&specs) && *dir != specs) {
-        if fs::remove_dir(dir).is_err() {
-            return;
-        }
-        folder = dir.parent();
-    }
-}
-
 /// The files under `specs/` a change of `paths`, files or folders, holds: those of `before` and
 /// those on disk now, with what each held before the write and holds after it. A file that was
 /// not Markdown before is left out, undo leaving it alone, unless the write deleted it: it then
@@ -150,29 +141,6 @@ pub(super) fn written(root: &Path, before: &Before, paths: &[String]) -> Vec<Wri
                 before,
                 after,
             })
-        })
-        .collect()
-}
-
-/// The files at `path` from `root`: itself, or every file under the folder, symbolic links not
-/// followed; none when it does not exist.
-fn files_under(root: &Path, path: &str) -> Vec<String> {
-    let Ok(metadata) = fs::symlink_metadata(root.join(path)) else {
-        return Vec::new();
-    };
-    if !metadata.is_dir() {
-        return vec![path.to_string()];
-    }
-    let Ok(entries) = fs::read_dir(root.join(path)) else {
-        return Vec::new();
-    };
-    entries
-        .flatten()
-        .flat_map(|entry| {
-            files_under(
-                root,
-                &format!("{path}/{}", entry.file_name().to_string_lossy()),
-            )
         })
         .collect()
 }
