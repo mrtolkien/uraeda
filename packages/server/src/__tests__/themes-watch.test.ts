@@ -1,6 +1,6 @@
 import { mkdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, onTestFinished, test } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { ServerThemes } from "../themes.ts";
 
@@ -94,4 +94,24 @@ test("a symlinked theme file is seen changing at its target", async () => {
 
   writeFileSync(join(dotfiles, "my-ember.toml"), ember("#ee5522"));
   await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ee5522");
+});
+
+test("a first read that fails is tried again, so the shipped themes are served", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  let reads = 0;
+  const failing = {
+    readThemes(folder: string) {
+      reads += 1;
+      return reads === 1
+        ? Promise.reject(new Error("io: the read failed."))
+        : binding.readThemes(folder);
+    },
+    themesFolder: binding.themesFolder,
+  };
+  const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+  onTestFinished(() => stderr.mockRestore());
+  const themes = await ServerThemes.open({ binding: failing, dir });
+  onTestFinished(() => themes.close());
+
+  await expect.poll(() => needsYou(themes, "catppuccin-mocha"), POLL).toBeDefined();
 });
