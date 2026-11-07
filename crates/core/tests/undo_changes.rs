@@ -204,3 +204,37 @@ fn a_change_naming_a_path_outside_specs_is_refused() {
     assert_eq!(error.code, "refused");
     assert!(!repo.path().join("outside.md").exists());
 }
+
+/// A hidden file in the scope, as a note folder's `.DS_Store`, is undone and redone with the rest.
+#[test]
+fn a_note_folder_holding_a_hidden_file_is_undone_and_redone() {
+    let repo = fixture_repo();
+    let note = "A note with a hidden file";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    let folder = file.trim_end_matches("/note.md").to_string();
+    let hidden = format!("{folder}/.DS_Store");
+    repo.write(&hidden, "finder");
+    // Committed, the folder is as git keeps it: its removal deletes it, hidden file and all.
+    repo.commit("docs: a note");
+    let inbox = repo.read(INBOX);
+
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&read, note);
+    let (_, change) = undo::recorded(repo.path(), undo::NOTES, || {
+        api::remove_note(repo.path(), &id, &read.hash)
+    })
+    .unwrap();
+    assert!(change.files.iter().any(|file| file.path == hidden));
+    assert!(!repo.exists(&folder));
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+    assert_eq!(repo.read(INBOX), inbox);
+    assert_eq!(repo.read(&hidden), "finder");
+
+    undo::apply_change(repo.path(), &change, Direction::Redo, note).unwrap();
+    assert!(!repo.exists(&folder));
+}
