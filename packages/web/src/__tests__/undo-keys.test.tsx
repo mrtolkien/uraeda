@@ -115,13 +115,13 @@ test("u on a note added to a proposal file reads the file again", async () => {
   );
 
   await press("u");
-  await screen.findByText("Undone: added to Git listener process");
+  await screen.findByText("Undone: added to “Git listener process”");
   await waitFor(() => expect(read(repo, file)).not.toContain("Loose note"));
   const field = await openFile();
   await waitFor(() => expect(fieldText(field)).not.toContain("Loose note"));
 
   await press("U");
-  await screen.findByText("Redone: added to Git listener process");
+  await screen.findByText("Redone: added to “Git listener process”");
   await waitFor(() => expect(read(repo, file)).toContain("Loose note"));
   const again = await openFile();
   await waitFor(() => expect(fieldText(again)).toContain("Loose note"));
