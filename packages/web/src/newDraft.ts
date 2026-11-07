@@ -15,7 +15,7 @@ import { type Entry, insertion, type Source, withAdded } from "./NewEntries.tsx"
 import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { useUndo } from "./undo/useUndo.ts";
-import { useDraft } from "./useDraft.ts";
+import { keptImages, useDraft } from "./useDraft.ts";
 
 /** The draft's field in the unsaved store. */
 const FIELD = "new-draft";
@@ -30,6 +30,21 @@ type Held = { sources: ReadonlyArray<Source>; text: string };
 function held(key: string): Held {
   const entry = readUnsaved(key);
   return { sources: entry?.sources ?? [], text: entry?.text ?? "" };
+}
+
+/** A whole draft: what the store holds, and its images. */
+type Draft = { held: Held; images: ReadonlyArray<DraftImage> };
+
+/** Whether the draft stored under `key`, its images kept under `imagesKey`, is still `draft`. */
+function holds(key: string, imagesKey: string, draft: Draft): boolean {
+  const now = held(key);
+  const images = keptImages(imagesKey);
+  return (
+    now.text === draft.held.text &&
+    JSON.stringify(now.sources) === JSON.stringify(draft.held.sources) &&
+    images.length === draft.images.length &&
+    images.every((image, index) => image === draft.images[index])
+  );
 }
 
 /**
@@ -132,19 +147,26 @@ export function useNewDraft() {
     store(key, { sources: [sourceOf(entry, added)], text: added });
     kept.setImages([]);
     if (before.text.trim() !== "" || images.length > 0) {
-      // The one action the browser holds: its undo and its redo swap the drafts.
+      // The one action the browser holds: its undo and its redo swap the drafts, while the draft
+      // still holds the side each left; one typed in since is kept, the swap refused.
       const after = held(key);
-      const swap = (to: Held, toImages: ReadonlyArray<DraftImage>) => async () => {
-        store(key, to);
-        kept.setImages(toImages);
-        return undefined;
-      };
+      const swap =
+        (verb: string, from: Draft, to: Draft) => async (): Promise<string | undefined> => {
+          if (!holds(key, `new:${repo}`, from)) {
+            return `Could not ${verb}: “Draft” changed since on the New page.`;
+          }
+          store(key, to.held);
+          kept.setImages(to.images);
+          return undefined;
+        };
+      const replaced = { held: after, images: [] };
+      const replacing = { held: before, images };
       record(
         {
           label: "Draft replaced",
           place: { path: "/new" },
-          redo: swap(after, []),
-          undo: swap(before, images),
+          redo: swap("redo", replacing, replaced),
+          undo: swap("undo", replaced, replacing),
         },
         { waitsOnGit: false },
       );
