@@ -64,7 +64,10 @@ export function cursorOn(): () => void {
 /** Whether the last input was a key: a stop given the focus now is held. */
 export const isKeyInput = () => isByKey;
 
-/** Whether the focus is the cursor's: it arrived by a key, the last input, on a page with the cursor. */
+/**
+ * Whether the focus is the cursor's: it arrived by a key, the last input, on a page with the
+ * cursor.
+ */
 function isFocusByKey() {
   return pages > 0 && isByKey && keyFocus !== null && keyFocus === document.activeElement;
 }
@@ -74,7 +77,9 @@ export function heldStop(): HTMLElement | null {
   return isFocusByKey() ? stopOf(document.activeElement) : null;
 }
 
-/** Whether nothing holds the focus: the page's body, where a blurred or removed element leaves it. */
+/**
+ * Whether nothing holds the focus: the page's body, where a blurred or removed element leaves it.
+ */
 export const isFocusLost = () =>
   document.activeElement === null || document.activeElement === document.body;
 
@@ -82,8 +87,9 @@ export const isFocusLost = () =>
 const MODIFIERS = new Set(["Alt", "Control", "Meta", "Shift"]);
 
 /**
- * A key: the last input is one, but for a modifier alone. Escape in a text field inside a stop, which leaves the field, gives
- * the stop the focus once the field let it go, as the field's own Escape runs before this watch.
+ * A key: the last input is one, but for a modifier alone. Escape in a text field inside a stop,
+ * which leaves the field, gives the stop the focus once the field let it go, as the field's own
+ * Escape runs before this watch.
  */
 function onKey(event: KeyboardEvent) {
   if (MODIFIERS.has(event.key)) {

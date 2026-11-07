@@ -22,8 +22,8 @@ export const pickedStyles = stylex.create({
   },
   // The same on a narrow screen, where a pane reaches the screen's edges and its ring, outside it,
   // would fall off them: an overlay over its content, its sticky header too, so the ring stays
-  // unbroken, passing every press through to what is under it. It reaches into the page's inset, out
-  // to the screen's edges, so the ring and the bar lie beside the text, not over it.
+  // unbroken, passing every press through to what is under it. It reaches into the page's inset,
+  // out to the screen's edges, so the ring and the bar lie beside the text, not over it.
   paneNarrow: {
     "::after": {
       borderColor: colorVars["--color-accent"],

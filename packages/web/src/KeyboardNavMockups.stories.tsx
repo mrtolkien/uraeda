@@ -1,7 +1,8 @@
-// Mockups of the keyboard cursor (specs/2026-11-07-keyboard-nav): the real spec and round pages,
-// with the cursor drawn where the keys would put it, a list's picked look and the keys of what it
-// holds under it, since no cursor exists yet. The block's range and the picked option are the
-// pages' own states.
+// Mockups of the keyboard cursor (specs/2026-11-07-keyboard-nav), as the spec approved them, kept
+// frozen: the real spec and round pages, with the cursor drawn where the keys would put it, a
+// list's picked look and the keys of what it holds under it. They were drawn before the cursor
+// existed, and paint its look by hand; the real cursor is in `cursor/`. The block's range and the
+// picked option are the pages' own states.
 import * as stylex from "@stylexjs/stylex";
 import { Button } from "@astryxdesign/core/Button";
 import type { Meta, StoryObj } from "@storybook/react-vite";

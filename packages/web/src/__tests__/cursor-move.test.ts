@@ -1,8 +1,8 @@
 // Where the cursor's keys take it, and how far the page scrolls: it starts from the topmost stop on
 // screen, scrolls only when a stop comes within 100 px of the top bar or the status line, reads a
 // stop taller than the screen to its end before leaving it, shows a pane it enters whole inside the
-// margins when it fits, and passes the stops nested in a stop it leaves forward. The geometry alone,
-// in window pixels: a page lays nothing out in the tests.
+// margins when it fits, and passes the stops nested in a stop it leaves forward. The geometry
+// alone, in window pixels: a page lays nothing out in the tests.
 import { expect, test } from "vite-plus/test";
 import { type Box, cursorStep } from "../cursor/move.ts";
 

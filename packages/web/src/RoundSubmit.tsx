@@ -282,7 +282,7 @@ function SubmitRow({
   const stop = usePaneStop(keys, keys, row);
   return (
     <div
-      // A pane to the keyboard's cursor, as the cards and the notes: shown whole as it moves onto it.
+      // A pane to the keyboard's cursor, as the cards and the notes: shown whole as it enters.
       {...stop.props}
       {...stylex.props(stop.style, stop.look)}
     >
