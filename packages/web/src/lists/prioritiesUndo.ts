@@ -8,6 +8,7 @@ import { rereadingFile } from "../inboxUndo.ts";
 import { plain } from "../Spans.tsx";
 import { changeEntry, joinChanges } from "../undo/changeEntry.ts";
 import { PrioritiesChangeView } from "../undo/changeViews.ts";
+import { quoted } from "../undo/quoted.ts";
 import { fileIndex } from "./cardMoves.ts";
 import type { Priorities } from "./PrioritiesList.tsx";
 import type { UndoEntry } from "../undo/stack.ts";
@@ -21,23 +22,21 @@ const LIST = "priorities";
 /** The page of the priorities, from the repository. */
 const PAGE = "/priorities";
 
-/** A row's text in a label: its first words, as a toast is no place for a whole line. */
-export function quoted(text: string) {
-  const short = text.length > 40 ? `${text.slice(0, 39).trimEnd()}…` : text;
-  return `“${short}”`;
-}
-
 /** The place of a row of the priorities, `select` its key, to select once it is back. */
 export function prioritiesPlace(select?: string): UndoEntry["place"] {
   return select === undefined ? { path: PAGE } : { path: PAGE, select };
 }
 
-/** The change each move entry was made from, for the run it joins. */
-const moveChanges = new WeakMap<UndoEntry, ChangeView>();
+/** Each move entry's change, label, place, and subject, which the run it starts keeps. */
+const moves = new WeakMap<
+  UndoEntry,
+  { change: ChangeView; label: string; place: UndoEntry["place"]; subject: string }
+>();
 
 /**
  * The entry of a move of the priorities that answered `change`, labelled `label`: it joins the run
- * of moves on top, whose change goes from before its first move to after its last.
+ * of moves on top, whose change goes from before its first move to after its last. The run is
+ * named and placed as its first move, as the inbox's are.
  */
 export function moveEntry(
   fate: Fate,
@@ -50,14 +49,21 @@ export function moveEntry(
     ...changeEntry(fate, change, label, place, subject),
     move: {
       join: (earlier) => {
-        const first = moveChanges.get(earlier);
-        const joined = first ? joinChanges(first, change) : change;
-        return moveEntry(fate, joined, label, place, subject);
+        const first = moves.get(earlier);
+        return first
+          ? moveEntry(
+              fate,
+              joinChanges(first.change, change),
+              first.label,
+              first.place,
+              first.subject,
+            )
+          : entry;
       },
       list: LIST,
     },
   };
-  moveChanges.set(entry, change);
+  moves.set(entry, { change, label, place, subject });
   return entry;
 }
 
@@ -122,8 +128,11 @@ export function outlineRecorded(
   }
   const subject = plain(row.spans);
   switch (kind) {
-    case "edit":
-      return { label: `Edited ${quoted(text ?? subject)}`, select: row.key, subject };
+    case "edit": {
+      // Named by its new text, which the file holds once the edit landed, as the inbox's are.
+      const edited = text ?? subject;
+      return { label: `Edited ${quoted(edited)}`, select: row.key, subject: edited };
+    }
     case "remove":
       return { label: `Deleted ${quoted(subject)}`, select: row.key, subject };
     case "append-child":
