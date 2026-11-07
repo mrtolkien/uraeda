@@ -1,6 +1,5 @@
 //! An image taken out of a note: the line linking it leaves the note's note file, checked against
-//! the note file's version, the image's file left for `ura inbox clean` or a commit; and its Undo,
-//! which puts the line back where it was.
+//! the note file's version, the image's file left for `ura inbox clean` or a commit.
 
 mod common;
 
@@ -52,16 +51,14 @@ fn images(inbox: &Inbox) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// The image's line leaves the note file with the blank line before it, the file stays, and Undo
-/// puts the note file back as it was, byte for byte.
+/// The image's line leaves the note file with the blank line before it, and the file stays.
 #[test]
-fn an_image_leaves_its_note_and_comes_back_on_undo() {
+fn an_image_leaves_its_note() {
     let repo = repo();
     with_two_images(&repo);
     let before = repo.read(NOTE_FILE);
 
-    let (inbox, removed) =
-        api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&before)).unwrap();
+    let inbox = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&before)).unwrap();
 
     let after = repo.read(NOTE_FILE);
     assert_eq!(
@@ -72,11 +69,6 @@ fn an_image_leaves_its_note_and_comes_back_on_undo() {
     assert!(after.contains("![second](images/second.webp)"), "{after}");
     assert!(repo.exists(FIRST), "the image's file stays");
     assert_eq!(images(&inbox), [SECOND]);
-
-    let inbox = api::restore_note_image(repo.path(), &removed).unwrap();
-
-    assert_eq!(repo.read(NOTE_FILE), before);
-    assert_eq!(images(&inbox), [FIRST, SECOND]);
 }
 
 /// The last image leaves no blank line where it was.
@@ -85,10 +77,10 @@ fn the_last_image_leaves_the_note_file_as_it_was_written() {
     let repo = repo();
     with_two_images(&repo);
     let text = repo.read(NOTE_FILE);
-    let (_, _) = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
+    api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
     let text = repo.read(NOTE_FILE);
 
-    let (inbox, _) = api::remove_note_image(repo.path(), NOTE_FILE, SECOND, &hash(&text)).unwrap();
+    let inbox = api::remove_note_image(repo.path(), NOTE_FILE, SECOND, &hash(&text)).unwrap();
 
     let text = repo.read(NOTE_FILE);
     assert_eq!(text, format!("# {NOTE}\n"));
@@ -125,39 +117,6 @@ fn an_image_not_linked_or_a_file_not_a_note_file_is_refused() {
         api::remove_note_image(repo.path(), "specs/INBOX.md", FIRST, &hash(&inbox)).unwrap_err();
     assert_eq!(error.code, "refused");
     assert_eq!(repo.read(NOTE_FILE), text);
-}
-
-/// Undo goes over the note file as it is now, an edit elsewhere kept; it refuses once the place it
-/// goes back to changed, or the image is linked again.
-#[test]
-fn undo_keeps_other_edits_and_refuses_a_changed_place() {
-    let repo = repo();
-    with_two_images(&repo);
-    let text = repo.read(NOTE_FILE);
-    let (_, removed) = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
-    // Typed after the images, at the end of the freeform note file.
-    let edited = format!("{}\nTyped meanwhile.\n", repo.read(NOTE_FILE));
-    repo.write(NOTE_FILE, &edited);
-
-    api::restore_note_image(repo.path(), &removed).unwrap();
-
-    assert_eq!(repo.read(NOTE_FILE), format!("{text}\nTyped meanwhile.\n"));
-
-    let error = api::restore_note_image(repo.path(), &removed).unwrap_err();
-    assert_eq!(error.code, "refused");
-
-    let (_, removed) =
-        api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&repo.read(NOTE_FILE)))
-            .unwrap();
-    let moved = repo.read(NOTE_FILE).replace(
-        &format!("# {NOTE}\n"),
-        &format!("# {NOTE}\n\nA paragraph above.\n"),
-    );
-    repo.write(NOTE_FILE, &moved);
-
-    let error = api::restore_note_image(repo.path(), &removed).unwrap_err();
-    assert_eq!(error.code, "refused");
-    assert_eq!(repo.read(NOTE_FILE), moved);
 }
 
 /// Only the links to that image go: a line they leave empty with them, and the blank line before

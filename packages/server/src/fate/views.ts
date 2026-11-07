@@ -8,7 +8,6 @@ import type {
   FileView,
   Inbox,
   Priorities,
-  RemovedImage,
   RunningFeature,
   SectionItems,
   StepView,
@@ -44,6 +43,7 @@ import {
   slugProposalDataView,
 } from "./views-proposal-file.ts";
 import { droppedDataView } from "./views-dropped.ts";
+import type { ChangeRecord } from "./views-undo.ts";
 import { bufferDataView } from "./views-buffer.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
@@ -103,7 +103,7 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorkt
     tokens: FeatureTokens | null;
   };
 /** A workflow file, or `missing` alone when its feature has no such file. */
-export type FileRecord = Record_<FileView> & { missing?: boolean };
+export type FileRecord = Record_<FileView> & { change?: ChangeRecord | null; missing?: boolean };
 
 /**
  * A file as it is sent: its optional fields, when absent, sent as null. The client's cache keeps a
@@ -112,6 +112,7 @@ export type FileRecord = Record_<FileView> & { missing?: boolean };
 export function sentFile(record: FileRecord): FileRecord {
   const cleared = {
     answered: null,
+    change: null,
     committed: null,
     missing: null,
     review: null,
@@ -139,17 +140,15 @@ type ProposalRecord = Omit<ProposalItem, "running"> & {
   running?: Omit<RunningFeature, "step"> & { step: StepRecord };
 };
 export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
+  change?: ChangeRecord | null;
   id: string;
   sections: Array<Omit<SectionItems, "proposals"> & { proposals: Array<ProposalRecord> }>;
 };
 
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
+  change?: ChangeRecord | null;
   id: string;
-  /** What `inbox.restoreImage` takes back, only in `inbox.removeImage`'s answer: else null. */
-  imageRemoved?: Record_<RemovedImage> | null;
-  /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
-  removed?: string | null;
   triage: string | null;
 };
 
@@ -333,6 +332,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   answered: true,
   candidates: true,
+  change: true,
   committed: true,
   current: true,
   decisionChanges: true,
@@ -361,6 +361,7 @@ export const branchDecisionDataView = dataView<BranchDecisionRecord>("BranchDeci
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
+  change: true,
   changeLines: true,
   changes: true,
   hash: true,
@@ -370,13 +371,12 @@ export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
 
 export const inboxDataView = dataView<InboxRecord>("Inbox")({
   categories: true,
+  change: true,
   changes: true,
   count: true,
   hash: true,
   id: true,
-  imageRemoved: true,
   names: true,
-  removed: true,
   triage: true,
 });
 

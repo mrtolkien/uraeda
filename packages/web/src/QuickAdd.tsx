@@ -8,12 +8,13 @@ import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
-import { showPageError } from "./layout/useUndoToast.ts";
+import { showPageError } from "./undo/pageErrors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { proposalAdded } from "./optimisticLists.ts";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { PrioritiesAddedView } from "./views.ts";
+import type { ChangeView } from "uraeda-binding";
+import { PrioritiesChangeView } from "./undo/changeViews.ts";
 
 /**
  * The sections a line goes to, with their titles, in the order the page shows them: a map, which
@@ -61,6 +62,8 @@ export function AddButtons({
 
 /** The line ＋ added, as the core wrote it: its key, its text after its marker, and its lines. */
 export type Added = {
+  /** The change the add recorded, which the undo stack replays. */
+  change?: ChangeView | null;
   key: string;
   lines: ReadonlyArray<string>;
   text: string;
@@ -120,7 +123,7 @@ export function AddForm({
     const result = await fate.mutations.proposals.add({
       input: { hash: priorities?.hash ?? "", section, text },
       ...(priorities ? { optimistic: proposalAdded(priorities.sections, section, text) } : {}),
-      view: PrioritiesAddedView,
+      view: PrioritiesChangeView,
     });
     if (result.error) {
       showPageError(refusal(result.error).message);
@@ -133,7 +136,10 @@ export function AddForm({
     if (field.unsavedNow()?.text === text) {
       field.discard();
     }
-    onAdded(section, added && { key: added.key, lines: added.lines, text: added.text });
+    onAdded(
+      section,
+      added && { change: answer?.change, key: added.key, lines: added.lines, text: added.text },
+    );
   };
 
   const cancel = async () => {

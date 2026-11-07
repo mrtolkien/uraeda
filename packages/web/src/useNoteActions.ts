@@ -1,50 +1,63 @@
 // What the promote picker does to a note: move it into the priorities, under one of their
-// proposals, or into a proposal file, each written at once over the inbox as read, with a toast
-// and Undo.
-// Each Undo of a move is one call to the core, which changes both files or neither.
+// proposals, or into a proposal file, each written at once over the inbox as read, and recorded on
+// the undo stack with the change it answered: its undo writes both files back, or neither.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { withFreshBase } from "./freshBase.ts";
-import { showPageError, useUndoToast } from "./layout/useUndoToast.ts";
-import { notePutBack, notesRemoved, proposalAdded } from "./optimisticLists.ts";
+import { rereadingFile } from "./inboxUndo.ts";
+import { notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
-import { InboxView, PrioritiesView, ProposalFileView } from "./views.ts";
-import { waitsOnGit } from "./writes/labels.ts";
+import { currentEntry, navigate, selectOnArrival, useRepoPath, useRepository } from "./routes.tsx";
+import { changeEntry } from "./undo/changeEntry.ts";
+import {
+  InboxChangeView,
+  PrioritiesChangeView,
+  ProposalFileChangeView,
+} from "./undo/changeViews.ts";
+import { showPageError } from "./undo/pageErrors.ts";
+import { quoted } from "./undo/quoted.ts";
+import { useUndo } from "./undo/useUndo.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
 
 type Fate = ReturnType<typeof useFateClient>;
 
-/** A note's lines as written, and its place, which an Undo puts it back to. */
-function at({ category, index, note }: Placed) {
-  return { index, lines: note.lines, ...(category === undefined ? {} : { category }) };
-}
-
 /**
- * The inbox as a move of `placed` leaves it, `gone`, or as its Undo does, its note back: fate's
- * optimistic result, from the inbox the browser holds, if it holds it.
+ * The inbox as a move of `placed` leaves it: fate's optimistic result, from the inbox the browser
+ * holds, if it holds it.
  */
-async function shownAs(fate: Fate, placed: Placed, gone: boolean) {
+async function shownGone(fate: Fate, placed: Placed) {
   const now = await readInbox(fate, "cache-first").catch(() => undefined);
   const shown = now
-    ? gone
-      ? notesRemoved(now.categories, (note) => note.id === placed.note.id)
-      : notePutBack(now, placed)
+    ? notesRemoved(now.categories, (note) => note.id === placed.note.id)
     : undefined;
   return shown ? { optimistic: shown } : {};
 }
 
-/** An Undo's write: its refusal, if any, once both files are read again for the commit tab. */
-async function undone(fate: Fate, call: Promise<{ error?: unknown }>) {
-  const result = await call;
-  rereadChanges(fate);
-  return result.error ? refusal(result.error).message : undefined;
+/**
+ * Records the move of `placed` that answered `change` on the undo stack, as `label`: its undo puts
+ * the note back in the inbox, selected there. With `file`, the proposal file it wrote, its undo
+ * and redo read that file again too, for its editor: the stack's replay reads only the lists.
+ */
+function useRecordMove(placed: Placed) {
+  const fate = useFateClient();
+  const record = useUndo();
+  const repo = useRepository();
+  return (change: UndoChange | null | undefined, label: string, file?: string) => {
+    if (change) {
+      const place = { path: "/inbox", repo, select: placed.note.key };
+      const entry = changeEntry(fate, change, label, place, placed.note.text);
+      record(file === undefined ? entry : rereadingFile(fate, entry, file));
+    }
+  };
 }
+
+/** The change a write answered, as `changeEntry` takes it. */
+type UndoChange = Parameters<typeof changeEntry>[1];
 
 /**
  * The priorities just after a note moved into them. The move is written by then: a read that fails
@@ -64,11 +77,6 @@ async function movedInto(fate: Fate) {
  */
 type Run = <R extends { error?: unknown }>(call: () => Promise<R>, isAway?: boolean) => Promise<R>;
 
-/** A proposal's first words: a toast is no place for a whole line. */
-function shortened(text: string) {
-  return text.length > 40 ? `${text.slice(0, 39).trimEnd()}…` : text;
-}
-
 /** A proposal a note goes under: its id as written now, `now-2`, its key, and its text. */
 export type UnderLine = { id: string; key: string; text: string };
 
@@ -86,7 +94,7 @@ function useMovesOut(
   left: () => void,
 ) {
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const recordMove = useRecordMove(placed);
   const here = useRepoPath();
 
   // The priorities open at once, the note ending its section there as the core writes it, from the
@@ -104,7 +112,7 @@ function useMovesOut(
               ...(now
                 ? { optimistic: proposalAdded(now.sections, section, placed.note.text) }
                 : {}),
-              view: PrioritiesView,
+              view: PrioritiesChangeView,
             }),
         ),
       true,
@@ -119,23 +127,14 @@ function useMovesOut(
     const proposalKey = result.result?.sections
       .find((s) => s.section === section)
       ?.proposals.at(-1)?.key;
-    toast(waitsOnGit(`Moved to ${TITLES.get(section)}`), async () =>
-      undone(
-        fate,
-        fate.mutations.inbox.undoToProposal({
-          input: { ...at(placed), section, ...(proposalKey === undefined ? {} : { proposalKey }) },
-          ...(await shownAs(fate, placed, false)),
-          view: InboxView,
-        }),
-      ),
-    );
+    recordMove(result.result?.change, `Moved to ${TITLES.get(section)}`);
     if (proposalKey !== undefined) {
       selectOnArrival(opened, proposalKey);
     }
   };
 
   const underProposal = async (line: UnderLine) => {
-    const shown = await shownAs(fate, placed, true);
+    const shown = await shownGone(fate, placed);
     const result = await run(() =>
       withFreshBase(
         (mode) => readPrioritiesHash(fate, mode),
@@ -143,7 +142,7 @@ function useMovesOut(
           fate.mutations.inbox.underProposal({
             input: { ...input, prioritiesHash, proposal: line.id },
             ...shown,
-            view: InboxView,
+            view: InboxChangeView,
           }),
       ),
     );
@@ -157,16 +156,7 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    toast(waitsOnGit(`Moved under "${shortened(line.text)}"`), async () =>
-      undone(
-        fate,
-        fate.mutations.inbox.undoUnderProposal({
-          input: { ...at(placed), proposalKey: line.key },
-          ...(await shownAs(fate, placed, false)),
-          view: InboxView,
-        }),
-      ),
-    );
+    recordMove(result.result?.change, `Moved under ${quoted(line.text)}`);
     navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
@@ -185,15 +175,18 @@ function useAddsIn(
   left: () => void,
 ) {
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const recordMove = useRecordMove(placed);
   const here = useRepoPath();
 
   /**
-   * Runs `call`, an add into the proposal file `file`, titled `title`, then shows its toast, whose
-   * Undo takes the add back from the file at its path now, and opens the file.
+   * Runs `call`, an add into the proposal file `file`, titled `title`, then records it on the undo
+   * stack, whose undo takes the add back, and opens the file.
    */
   const landIn = async (
-    call: () => Promise<{ error?: unknown; result?: unknown }>,
+    call: () => Promise<{
+      error?: unknown;
+      result?: { change?: UndoChange | null; path?: string } | null;
+    }>,
     file: string,
     title: string,
   ) => {
@@ -201,17 +194,8 @@ function useAddsIn(
     if (result.error) {
       return;
     }
-    const path = (result.result as { path?: string } | undefined)?.path ?? file;
-    toast(waitsOnGit(`Added to ${shortened(title)}`), async () =>
-      undone(
-        fate,
-        fate.mutations.inbox.undoIntoProposal({
-          input: { ...at(placed), file: path },
-          ...(await shownAs(fate, placed, false)),
-          view: InboxView,
-        }),
-      ),
-    );
+    const path = result.result?.path ?? file;
+    recordMove(result.result?.change, `Added to ${quoted(title)}`, path);
     left();
     navigate(here(`/edit/${path}`));
   };
@@ -222,7 +206,10 @@ function useAddsIn(
   const intoProposal = (file: string, title: string) =>
     landIn(
       () =>
-        fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: ProposalFileView }),
+        fate.mutations.inbox.intoProposal({
+          input: { ...input, file },
+          view: ProposalFileChangeView,
+        }),
       file,
       title,
     );
@@ -237,7 +224,7 @@ function useAddsIn(
           (prioritiesHash) =>
             fate.mutations.inbox.intoProposalLine({
               input: { ...input, prioritiesHash, proposal: line.id },
-              view: ProposalFileView,
+              view: ProposalFileChangeView,
             }),
         ),
       "",

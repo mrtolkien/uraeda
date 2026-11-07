@@ -1,12 +1,11 @@
-// `d` on a note of the inbox with a note file: the question names the file, yes deletes the note
-// and its note file, and the toast's Undo brings both back; no keeps both. A note without a note
-// file is asked about as any line is.
+// `d` on a note of the inbox with a note file deletes the note and its note file at once, asking
+// nothing, and `u` brings both back.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, click, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
+import { atWidth, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 const FILE = "specs/notes/sort-tasks/note.md";
@@ -58,45 +57,23 @@ async function deleting(note: string) {
   return repo;
 }
 
-test("d on a note with a note file asks, naming the file, and yes deletes both, which Undo brings back", async () => {
+// Break: a question still asked, or a delete that leaves the note file or cannot be undone.
+test("d on a note with a note file deletes both at once, which u brings back", async () => {
   const repo = await deleting("Sort tasks");
-  const dialog = await screen.findByRole("dialog", { name: "Delete this note and its note file?" });
-  expect(within(dialog).getByText(/specs\/notes\/sort-tasks\/note\.md/)).toBeTruthy();
-
-  await press("y");
 
   await waitFor(() => {
     expect(read(repo, PATH)).not.toContain("Sort tasks");
     expect(existsSync(join(repo, "specs/notes/sort-tasks"))).toBe(false);
   });
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(read(repo, PATH)).toContain("- Idea one\n");
+  await screen.findByText("Deleted “Sort tasks” · waits on the Git page");
 
-  await click(await screen.findByRole("button", { name: /Undo/ }));
+  await press("u");
 
   // Undo's one write puts back the inbox and the note file, one after the other.
   await waitFor(() => {
     expect(read(repo, PATH)).toBe(INBOX);
     expect(existsSync(join(repo, FILE)) && readFileSync(join(repo, FILE), "utf8")).toBe(NOTE_FILE);
   });
-});
-
-test("d on a note with a note file, answered no, keeps the note and its note file", async () => {
-  const repo = await deleting("Sort tasks");
-  await screen.findByRole("dialog", { name: "Delete this note and its note file?" });
-
-  await press("n");
-
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(read(repo, PATH)).toBe(INBOX);
-  expect(readFileSync(join(repo, FILE), "utf8")).toBe(NOTE_FILE);
-});
-
-test("d on a note without a note file asks as on any line", async () => {
-  const repo = await deleting("Idea one");
-  await screen.findByRole("dialog", { name: "Delete this line?" });
-
-  await press("d");
-
-  await waitFor(() => expect(read(repo, PATH)).not.toContain("Idea one"));
-  expect(readFileSync(join(repo, FILE), "utf8")).toBe(NOTE_FILE);
 });

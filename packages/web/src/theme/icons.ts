@@ -65,6 +65,7 @@ import {
   wrench,
   outline,
 } from "./lucide.ts";
+import { undo2 } from "./undoIcons.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import {
   badgeCheck,
@@ -179,6 +180,7 @@ const DECISION_ICONS = {
   terminal,
   "text-cursor-input": textCursorInput,
   "triangle-alert": triangleAlert,
+  "undo-2": undo2,
   workflow,
   wrench,
 };

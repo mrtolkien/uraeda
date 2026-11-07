@@ -6,8 +6,10 @@ use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
 use uraeda_core::actions::review::DecisionTarget;
 use uraeda_core::api;
+use uraeda_core::api::undo;
 use uraeda_core::view::{CommitView, FileView};
 
+use super::undo::recording;
 use super::{Job, job};
 
 /// Saves an answer from the letters picked and a comment, over the answer last read.
@@ -113,6 +115,13 @@ pub fn retry_commit(repo: String, folder: String, name: String) -> AsyncTask<Job
     job(move || api::retry_commit(Path::new(&repo), &folder, &name))
 }
 
+/// The lines a comment is on, from `start` to `end`, the line `start` alone without `end`.
+#[napi(object)]
+pub struct CommentLines {
+    pub start: u32,
+    pub end: Option<u32>,
+}
+
 /// Comments on lines of a file as committed, on lines of the decision `decision` names for a
 /// spec, or on the whole file without lines.
 #[napi(ts_return_type = "Promise<FileView>")]
@@ -120,13 +129,21 @@ pub fn add_comment(
     repo: String,
     folder: String,
     file: String,
-    start_line: Option<u32>,
-    end_line: Option<u32>,
+    lines: Option<CommentLines>,
     text: String,
     decision: Option<DecisionTarget>,
+    undo: Option<String>,
 ) -> AsyncTask<Job<FileView>> {
-    let lines = start_line.map(|start| (start, end_line.unwrap_or(start)));
-    job(move || api::add_comment(Path::new(&repo), &folder, &file, lines, &text, decision))
+    let lines = lines.map(|lines| (lines.start, lines.end.unwrap_or(lines.start)));
+    recording(
+        repo,
+        undo,
+        {
+            let (folder, file) = (folder.clone(), file.clone());
+            move |repo: &Path| undo::review(repo, &folder, &file)
+        },
+        move |repo: &Path| api::add_comment(repo, &folder, &file, lines, &text, decision),
+    )
 }
 
 /// Replaces the text of a pending comment.
@@ -137,8 +154,17 @@ pub fn edit_comment(
     file: String,
     number: u32,
     text: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::edit_comment(Path::new(&repo), &folder, &file, number, &text))
+    recording(
+        repo,
+        undo,
+        {
+            let (folder, file) = (folder.clone(), file.clone());
+            move |repo: &Path| undo::review(repo, &folder, &file)
+        },
+        move |repo: &Path| api::edit_comment(repo, &folder, &file, number, &text),
+    )
 }
 
 /// Removes a pending comment.
@@ -148,14 +174,36 @@ pub fn remove_comment(
     folder: String,
     file: String,
     number: u32,
+    undo: Option<String>,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::remove_comment(Path::new(&repo), &folder, &file, number))
+    recording(
+        repo,
+        undo,
+        {
+            let (folder, file) = (folder.clone(), file.clone());
+            move |repo: &Path| undo::review(repo, &folder, &file)
+        },
+        move |repo: &Path| api::remove_comment(repo, &folder, &file, number),
+    )
 }
 
 /// Deletes the pending review of a file.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn start_over(repo: String, folder: String, file: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::start_over(Path::new(&repo), &folder, &file))
+pub fn start_over(
+    repo: String,
+    folder: String,
+    file: String,
+    undo: Option<String>,
+) -> AsyncTask<Job<FileView>> {
+    recording(
+        repo,
+        undo,
+        {
+            let (folder, file) = (folder.clone(), file.clone());
+            move |repo: &Path| undo::review(repo, &folder, &file)
+        },
+        move |repo: &Path| api::start_over(repo, &folder, &file),
+    )
 }
 
 /// Approves a spec or a plan, and commits it.

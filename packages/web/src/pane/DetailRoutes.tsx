@@ -6,6 +6,7 @@ import { useInbox, useProposal } from "../data.ts";
 import { Home } from "../Home.tsx";
 import { InboxPage } from "../InboxPage.tsx";
 import { WithSpecs } from "../layout/Missing.tsx";
+import { useNamedRow } from "../lists/useArrival.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { redirect, useRepoPath } from "../routes.tsx";
 import { DetailHost, PROPOSAL } from "./DetailOverlay.tsx";
@@ -99,9 +100,20 @@ function NoteAddress({ noteKey, onSelect }: { noteKey: string; onSelect: (key: s
   return null;
 }
 
-/** The inbox; a note's address selects the note in it (see `NoteAddress`). */
+/**
+ * The inbox; a note's address selects the note in it (see `NoteAddress`), as does the row its
+ * history entry names, as an undo's trip names what came back.
+ */
 export function InboxRoute({ noteKey }: { noteKey?: string }) {
-  const [select, setSelect] = useState<{ key: string }>();
+  const named = useNamedRow();
+  const [select, setSelect] = useState(named);
+  const [seen, setSeen] = useState(named);
+  if (seen !== named) {
+    setSeen(named);
+    if (named) {
+      setSelect(named);
+    }
+  }
   return (
     <WithSpecs>
       <InboxPage select={select} />

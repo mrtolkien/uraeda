@@ -4,6 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import type { FateVariables } from "./fate.ts";
 import { inRepository } from "./fate/context.ts";
 import { writable } from "./fate/sessions.ts";
+import { undoable } from "./fate/undo-mutations.ts";
 import { IMAGE_LIMIT, overLimit } from "./limits.ts";
 import { ChatImages } from "./runner/images.ts";
 
@@ -44,7 +45,8 @@ const limited = () =>
  * body holds `text`, with `category` and `about` when given, or those of the note `id`, which gets
  * a note file when it has none. The body also holds `hash`, the inbox's as read, and one `file` per
  * image; the images' names are the query string's `name`s, in the same order, as for `/attach`.
- * Answers `{ file }`, the note file's path, or `400` with `{ error }`.
+ * Answers `{ change, file }`, the change the write recorded, which `undo.apply` takes, and the note
+ * file's path; or `400` with `{ error }`.
  */
 async function noteImage(context: Context<{ Variables: FateVariables }>) {
   // Mounted under `/r/<name>/` only: the repository is the route's.
@@ -70,19 +72,13 @@ async function noteImage(context: Context<{ Variables: FateVariables }>) {
     // An empty name stands for a pasted image.
     const queried = context.req.queries("name") ?? [];
     const names = images.map((_, index) => queried[index] ?? "");
-    const path =
+    const note = { about: field("about"), category: field("category") };
+    const { answer: path, change } = await undoable(ctx, (undo) =>
       id === undefined
-        ? await ctx.binding.addNoteWithImages(
-            ctx.repo,
-            text ?? "",
-            hash,
-            images,
-            names,
-            field("category"),
-            field("about"),
-          )
-        : await ctx.binding.attachNoteImages(ctx.repo, id, hash, images, names);
-    return context.json({ file: path });
+        ? ctx.binding.addNoteWithImages(ctx.repo, text ?? "", hash, images, names, note, undo)
+        : ctx.binding.attachNoteImages(ctx.repo, id, hash, images, names, undo),
+    );
+    return context.json({ change, file: path });
   } catch (error) {
     return context.json(refusal(error), 400);
   }
@@ -92,7 +88,8 @@ async function noteImage(context: Context<{ Variables: FateVariables }>) {
  * `POST /attach`: an image, the multipart body's `file`, attached to the markdown file at `path`,
  * or with `chat=1` saved in the data folder for a chat message, both named in the query string so
  * that a refusal of a body over the limit names the file without reading it. Answers the core's
- * result as JSON, or `400` with `{ error }`, the refusal with its code.
+ * result as JSON, with a file's `change`, which `undo.apply` takes, or `400` with `{ error }`, the
+ * refusal with its code.
  */
 export function attach() {
   const app = new Hono<{ Variables: FateVariables }>();
@@ -122,7 +119,10 @@ export function attach() {
     try {
       const bytes = Buffer.from(await file.arrayBuffer());
       if (path !== undefined) {
-        return context.json(await ctx.binding.attachImage(ctx.repo, path, bytes, name));
+        const { answer, change } = await undoable(ctx, (undo) =>
+          ctx.binding.attachImage(ctx.repo, path, bytes, name, undo),
+        );
+        return context.json({ ...answer, change });
       }
       const encoded = await ctx.binding.encodeImage(bytes, name ?? PASTED);
       return context.json(await chatImages(ctx.dataDir).save(encoded));

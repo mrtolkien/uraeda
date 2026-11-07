@@ -486,58 +486,6 @@ fn fixture_repo() -> TestRepo {
     repo
 }
 
-/// Undo of a deletion: the proposal comes back, nested lines included, byte for byte.
-#[test]
-fn insert_puts_a_removed_line_back_with_its_nested_lines() {
-    let repo = fixture_repo();
-    let before = repo.read("specs/PRIORITIES.md");
-    let read = api::read_priorities(repo.path()).unwrap();
-    let removed = api::remove_proposal(repo.path(), "later-1", &read.hash).unwrap();
-
-    api::insert_proposal(
-        repo.path(),
-        "later",
-        0,
-        &[
-            "- Nix + Docker based execution environments".into(),
-            "  - with a cache".into(),
-        ],
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
-}
-
-/// The edge case of an Undo after the file changed: past the end, the proposal lands last.
-#[test]
-fn insert_past_the_end_appends_and_a_stale_hash_is_refused() {
-    let repo = fixture_repo();
-    let read = api::read_priorities(repo.path()).unwrap();
-
-    let inserted =
-        api::insert_proposal(repo.path(), "next", 99, &["- Slack".into()], &read.hash).unwrap();
-
-    let next: Vec<&str> = inserted.sections[1]
-        .proposals
-        .iter()
-        .map(|e| e.text.as_str())
-        .collect();
-    assert_eq!(
-        next,
-        [
-            "Claude Code runner (triggered manually)",
-            "[Git listener process](proposals/git-listener.md)",
-            "Slack"
-        ]
-    );
-    let error = api::insert_proposal(repo.path(), "next", 0, &["- Slack".into()], "x").unwrap_err();
-    assert_eq!(
-        error.to_string(),
-        "PRIORITIES.md changed on disk. Your change was not applied."
-    );
-}
-
 /// The proposal of `priorities` whose markdown is `text`.
 fn item<'p>(priorities: &'p priorities::Priorities, text: &str) -> &'p priorities::ProposalItem {
     priorities
@@ -914,57 +862,6 @@ fn a_hook_failure_leaves_the_proposal_written() {
     assert_eq!(priorities.changes, 1);
 }
 
-/// US3 6: Undo of a committed add removes the proposal, and commits the removal alone.
-#[test]
-fn undo_of_a_committed_add_commits_the_removal() {
-    let repo = repo();
-    let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
-    repo.write("README.md", "# Test, staged\n");
-    repo.git(&["add", "README.md"]);
-
-    let undone =
-        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap();
-
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: remove \"Sort done features\""
-    );
-    assert_eq!(repo.changed_in("HEAD"), ["specs/PRIORITIES.md"]);
-    assert_eq!(repo.read("specs/PRIORITIES.md"), TEXT);
-    assert_eq!(
-        repo.git(&["diff", "--cached", "--name-only"]),
-        "README.md\n"
-    );
-    assert_eq!(undone.hash, hash(TEXT));
-    assert_eq!(undone.changes, 0);
-}
-
-/// Review focus 6: Undo over a file changed since the add is refused, as a conflict, and nothing
-/// is written or committed.
-#[test]
-fn undo_after_the_file_changed_is_refused() {
-    let repo = repo();
-    let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
-    let changed = repo.read("specs/PRIORITIES.md").replace("- Slack\n", "");
-    repo.write("specs/PRIORITIES.md", &changed);
-
-    let error =
-        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
-
-    assert_eq!(error.code, "conflict");
-    assert_eq!(
-        error.message,
-        "PRIORITIES.md changed on disk. Your change was not applied."
-    );
-    assert_eq!(repo.read("specs/PRIORITIES.md"), changed);
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: add \"Sort done features\" to Next"
-    );
-}
-
 /// A file staged by the human, its working copy then put back as committed, still has changes:
 /// "Add and commit" writes the proposal without committing, and the staged version stays staged.
 #[test]
@@ -985,31 +882,6 @@ fn an_add_over_a_staged_change_is_not_committed() {
     assert_eq!(
         section_texts(&repo.read("specs/PRIORITIES.md"), "next")[2],
         SORT
-    );
-}
-
-/// Undo of a committed add over a change staged since, the working copy put back as committed,
-/// is refused, and the staged version stays staged.
-#[test]
-fn undo_over_a_staged_change_is_refused() {
-    let repo = repo();
-    let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
-    let committed = repo.read("specs/PRIORITIES.md");
-    let staged = committed.replace("- Slack\n", "");
-    repo.write("specs/PRIORITIES.md", &staged);
-    repo.git(&["add", "specs/PRIORITIES.md"]);
-    repo.write("specs/PRIORITIES.md", &committed);
-
-    let error =
-        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
-
-    assert_eq!(error.code, "conflict");
-    assert_eq!(repo.git(&["show", ":specs/PRIORITIES.md"]), staged);
-    assert_eq!(repo.read("specs/PRIORITIES.md"), committed);
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: add \"Sort done features\" to Next"
     );
 }
 

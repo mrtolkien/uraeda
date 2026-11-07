@@ -6,8 +6,10 @@ use std::path::Path;
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
 use uraeda_core::api;
+use uraeda_core::api::undo;
 use uraeda_core::files::priorities::Priorities;
 
+use super::undo::{recording, scope};
 use super::{Job, job};
 
 /// Adds a line at the end of a section of the priorities.
@@ -17,32 +19,11 @@ pub fn add_proposal(
     section: String,
     text: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || api::add_proposal(Path::new(&repo), &section, &text, &previous))
-}
-
-/// Takes back a committed add: the proposal, `lines` as written, leaves the priorities, and the
-/// removal is committed alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn undo_committed_proposal(
-    repo: String,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::undo_committed_proposal(Path::new(&repo), &lines, &previous))
-}
-
-/// Inserts a proposal with its nested lines, as written, before the line at `index` of a
-/// section, or at its end: Undo of a removal.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn insert_proposal(
-    repo: String,
-    section: String,
-    index: u32,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::insert_proposal(Path::new(&repo), &section, index, &lines, &previous))
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::add_proposal(repo, &section, &text, &previous)
+    })
 }
 
 /// Moves a proposal before the line at `index` of a section, or to its end.
@@ -53,8 +34,11 @@ pub fn move_proposal(
     section: String,
     index: u32,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || api::move_proposal(Path::new(&repo), &id, &section, index, &previous))
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::move_proposal(repo, &id, &section, index, &previous)
+    })
 }
 
 /// Replaces a proposal's text.
@@ -64,8 +48,11 @@ pub fn edit_proposal(
     id: String,
     text: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || api::edit_proposal(Path::new(&repo), &id, &text, &previous))
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::edit_proposal(repo, &id, &text, &previous)
+    })
 }
 
 /// Edits a proposal's outline: the line, or with `at`, its nested item at `at` in the order
@@ -79,8 +66,11 @@ pub fn outline_proposal(
     kind: String,
     text: Option<String>,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || api::outline_proposal(Path::new(&repo), &id, at, &kind, text.as_deref(), &previous))
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::outline_proposal(repo, &id, at, &kind, text.as_deref(), &previous)
+    })
 }
 
 /// Moves a proposal, or with `at` its nested item at `at`, its own items with it, to `to`:
@@ -92,14 +82,24 @@ pub fn drop_proposal(
     at: Option<u32>,
     to: api::DropAt,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || api::drop_proposal(Path::new(&repo), &id, at, &to, &previous))
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::drop_proposal(repo, &id, at, &to, &previous)
+    })
 }
 
 /// Removes a proposal and its nested lines.
 #[napi(ts_return_type = "Promise<Priorities>")]
-pub fn remove_proposal(repo: String, id: String, previous: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::remove_proposal(Path::new(&repo), &id, &previous))
+pub fn remove_proposal(
+    repo: String,
+    id: String,
+    previous: String,
+    undo: Option<String>,
+) -> AsyncTask<Job<Priorities>> {
+    recording(repo, undo, scope(undo::PRIORITIES), move |repo: &Path| {
+        api::remove_proposal(repo, &id, &previous)
+    })
 }
 
 /// Commits the priorities alone.

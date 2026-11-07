@@ -5,7 +5,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
 import { type FocusEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { InboxNote } from "uraeda-binding";
+import type { ChangeView, InboxNote } from "uraeda-binding";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
@@ -30,6 +30,7 @@ import {
 } from "./NoteImage.tsx";
 import { AddButtons } from "./QuickAdd.tsx";
 import { noteAdded } from "./optimisticLists.ts";
+import { InboxChangeView } from "./undo/changeViews.ts";
 import { InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
@@ -132,6 +133,8 @@ function useTypedNote(start?: string | null) {
  * commits come from the Git page.
  */
 export type NoteAdded = {
+  /** The change the add recorded, which the undo stack replays. */
+  change?: ChangeView | null;
   file?: string;
   note: InboxNote | undefined;
 };
@@ -162,7 +165,9 @@ function useAdd({
   const refused = (failed: Refusal) => {
     setMessage(failed.message);
     if (failed.kind === "conflict") {
-      void fate.request({ inbox: { id: "inbox", view: InboxView } }, { mode: "network-only" });
+      void fate
+        .request({ inbox: { id: "inbox", view: InboxView } }, { mode: "network-only" })
+        .catch(() => {});
     }
   };
 
@@ -175,7 +180,7 @@ function useAdd({
       return;
     }
     typed.added(text, typed.name.text);
-    onAdded({ file: result.file, note: result.note });
+    onAdded({ change: result.change, file: result.file, note: result.note });
   };
 
   const add = async () => {
@@ -201,14 +206,15 @@ function useAdd({
     const result = await fate.mutations.inbox.add({
       input,
       ...(shown ? { optimistic: shown } : {}),
-      view: InboxView,
+      view: InboxChangeView,
     });
     if (result.error) {
       refused(refusal(result.error));
       return;
     }
     typed.added(text, typed.name.text);
-    onAdded({ note: addedNote(before, result.result?.categories ?? []) });
+    const note = addedNote(before, result.result?.categories ?? []);
+    onAdded({ change: result.result?.change, note });
   };
 
   return {

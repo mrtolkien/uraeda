@@ -1,0 +1,423 @@
+//! A write recorded as a change: undo writes back what each file held before it, and redo what it
+//! left, never through git, and each refuses once a file of the change holds something else.
+
+mod common;
+
+use common::repo::TestRepo;
+use uraeda_core::api;
+use uraeda_core::api::undo::{self, Direction};
+use uraeda_core::files::inbox::Inbox;
+
+const INBOX: &str = "specs/INBOX.md";
+const PRIORITIES: &str = "specs/PRIORITIES.md";
+const NOTE: &str = "Draft to proposal on mobile went 404";
+
+fn fixture_text(path: &str) -> String {
+    std::fs::read_to_string(common::fixture(path)).unwrap()
+}
+
+/// A repository on `main` with the fixture's `INBOX.md` and `PRIORITIES.md`, committed.
+fn fixture_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    for name in ["INBOX.md", "PRIORITIES.md", "proposals/git-listener.md"] {
+        repo.write(
+            &format!("specs/{name}"),
+            &fixture_text(&format!("repo/main/specs/{name}")),
+        );
+    }
+    repo.commit("chore: specs");
+    repo
+}
+
+fn note_id(inbox: &Inbox, text: &str) -> String {
+    inbox
+        .categories
+        .iter()
+        .flat_map(|category| &category.notes)
+        .find(|note| note.text.contains(text))
+        .unwrap_or_else(|| panic!("no note {text}"))
+        .id
+        .clone()
+}
+
+fn commit_count(repo: &TestRepo) -> String {
+    repo.git(&["rev-list", "--count", "HEAD"])
+}
+
+/// Records the move of "Claude Code runner" from Next to the top of Now.
+fn recorded_move(repo: &TestRepo) -> undo::Change {
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let (_, change) = undo::recorded(repo.path(), undo::PRIORITIES, || {
+        api::move_proposal(repo.path(), "next-1", "now", 0, &priorities.hash)
+    })
+    .unwrap();
+    change
+}
+
+#[test]
+fn undo_and_redo_of_a_move_put_the_file_back_then_forward() {
+    let repo = fixture_repo();
+    let before = repo.read(PRIORITIES);
+    let change = recorded_move(&repo);
+    let after = repo.read(PRIORITIES);
+    assert_ne!(before, after);
+    assert_eq!(change.files.len(), 1);
+    assert_eq!(change.files[0].path, PRIORITIES);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "Claude Code runner").unwrap();
+    assert_eq!(repo.read(PRIORITIES), before);
+
+    undo::apply_change(repo.path(), &change, Direction::Redo, "Claude Code runner").unwrap();
+    assert_eq!(repo.read(PRIORITIES), after);
+}
+
+/// Review focus 1: a change across two files, one changed since, writes nothing back.
+#[test]
+fn undo_refuses_once_a_file_changed_since_writing_nothing() {
+    let repo = fixture_repo();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let id = note_id(&inbox, NOTE);
+    let (_, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
+        api::note_to_proposal(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
+    })
+    .unwrap();
+    assert_eq!(change.files.len(), 2);
+    let promoted_inbox = repo.read(INBOX);
+    let edited = repo
+        .read(PRIORITIES)
+        .replace("Claude Code runner", "A runner");
+    repo.write(PRIORITIES, &edited);
+
+    let error = undo::apply_change(repo.path(), &change, Direction::Undo, NOTE).unwrap_err();
+
+    assert_eq!(error.code, "conflict");
+    assert_eq!(
+        error.message,
+        format!("Could not undo: “{NOTE}” changed since in PRIORITIES.md.")
+    );
+    assert_eq!(repo.read(INBOX), promoted_inbox);
+    assert_eq!(repo.read(PRIORITIES), edited);
+    let redo = undo::apply_change(repo.path(), &change, Direction::Redo, NOTE).unwrap_err();
+    assert_eq!(
+        redo.message,
+        format!("Could not redo: “{NOTE}” changed since in INBOX.md.")
+    );
+}
+
+/// Review focus 2: a note file's image, never committed, comes back with its bytes.
+#[test]
+fn a_note_deleted_with_its_folder_comes_back_with_its_image() {
+    let repo = fixture_repo();
+    let note = "A note with a shot";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    let folder = file.trim_end_matches("/note.md").to_string();
+    let files = |repo: &TestRepo| -> Vec<(String, Vec<u8>)> {
+        let mut files: Vec<_> = walk(&repo.path().join(&folder))
+            .into_iter()
+            .map(|path| {
+                let bytes = std::fs::read(&path).unwrap();
+                (path.display().to_string(), bytes)
+            })
+            .collect();
+        files.sort();
+        files
+    };
+    let (inbox, written) = (repo.read(INBOX), files(&repo));
+    assert!(written.iter().any(|(path, _)| path.contains("/images/")));
+
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&read, note);
+    let (_, change) = undo::recorded(repo.path(), undo::NOTES, || {
+        api::remove_note(repo.path(), &id, &read.hash)
+    })
+    .unwrap();
+    assert!(!repo.read(INBOX).contains(note));
+    assert!(!repo.exists(&folder));
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+
+    assert_eq!(repo.read(INBOX), inbox);
+    assert_eq!(files(&repo), written);
+}
+
+/// The files under `dir`, at any depth.
+fn walk(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    std::fs::read_dir(dir)
+        .unwrap()
+        .flatten()
+        .flat_map(|entry| match entry.path() {
+            path if path.is_dir() => walk(&path),
+            path => vec![path],
+        })
+        .collect()
+}
+
+/// SC-004: no git command commits, resets, or reverts.
+#[test]
+fn undo_and_redo_write_files_and_never_commit() {
+    let repo = fixture_repo();
+    let (count, head) = (commit_count(&repo), repo.git(&["rev-parse", "HEAD"]));
+    let change = recorded_move(&repo);
+
+    let undone = undo::apply_change(repo.path(), &change, Direction::Undo, "runner").unwrap();
+    assert_eq!(repo.porcelain(), "");
+    let redone = undo::apply_change(repo.path(), &change, Direction::Redo, "runner").unwrap();
+
+    assert_eq!(commit_count(&repo), count);
+    assert_eq!(repo.git(&["rev-parse", "HEAD"]), head);
+    assert_eq!(undone.as_deref(), Some(head.trim()));
+    assert_eq!(redone.as_deref(), Some(head.trim()));
+    assert_eq!(change.commit.as_deref(), Some(head.trim()));
+    assert_eq!(repo.porcelain(), " M specs/PRIORITIES.md\n");
+}
+
+#[test]
+fn committed_since_false_until_a_commit_touches_the_files() {
+    let repo = fixture_repo();
+    let change = recorded_move(&repo);
+    assert!(!undo::committed_since(repo.path(), &change).unwrap());
+
+    repo.write("specs/README.md", "# Specs, again\n");
+    repo.git(&["add", "specs/README.md"]);
+    repo.git(&["commit", "-q", "--no-verify", "-m", "docs: readme"]);
+    assert!(!undo::committed_since(repo.path(), &change).unwrap());
+
+    repo.commit("chore: priorities");
+    assert!(undo::committed_since(repo.path(), &change).unwrap());
+}
+
+/// A change handed back by the web UI may name any path: one outside `specs/` is refused.
+#[test]
+fn a_change_naming_a_path_outside_specs_is_refused() {
+    let repo = fixture_repo();
+    let mut change = recorded_move(&repo);
+    change.files[0].path = "specs/../outside.md".to_string();
+
+    let error = undo::apply_change(repo.path(), &change, Direction::Undo, "x").unwrap_err();
+
+    assert_eq!(error.code, "refused");
+    assert!(!repo.path().join("outside.md").exists());
+}
+
+/// A hidden file in the scope, as a note folder's `.DS_Store`, is undone and redone with the rest.
+#[test]
+fn a_note_folder_holding_a_hidden_file_is_undone_and_redone() {
+    let repo = fixture_repo();
+    let note = "A note with a hidden file";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    let folder = file.trim_end_matches("/note.md").to_string();
+    let hidden = format!("{folder}/.DS_Store");
+    repo.write(&hidden, "finder");
+    // Committed, the folder is as git keeps it: its removal deletes it, hidden file and all.
+    repo.commit("docs: a note");
+    let inbox = repo.read(INBOX);
+
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&read, note);
+    let (_, change) = undo::recorded(repo.path(), undo::NOTES, || {
+        api::remove_note(repo.path(), &id, &read.hash)
+    })
+    .unwrap();
+    assert!(change.files.iter().any(|file| file.path == hidden));
+    assert!(!repo.exists(&folder));
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+    assert_eq!(repo.read(INBOX), inbox);
+    assert_eq!(repo.read(&hidden), "finder");
+
+    undo::apply_change(repo.path(), &change, Direction::Redo, note).unwrap();
+    assert!(!repo.exists(&folder));
+}
+
+/// A promotion that moves a note file relinks every Markdown file of `specs/`: its undo puts their
+/// links back too.
+#[test]
+fn a_promotions_relinks_outside_the_lists_are_undone() {
+    let repo = fixture_repo();
+    let note = "A note with a file";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    let linking = "specs/decisions/look.md";
+    let text = format!(
+        "# Look\n\nSee [the note](../{}).\n",
+        &file["specs/".len()..]
+    );
+    repo.write(linking, &text);
+    repo.commit("docs: a note and a decision");
+
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let id = note_id(&inbox, note);
+    let (path, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
+        api::note_to_proposal_file(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
+    })
+    .unwrap();
+    assert!(path.starts_with("specs/proposals/"));
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists(&file));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A repository whose inbox holds "Dark mode", with its single note file, linked from a decision.
+fn linked_note_file() -> (TestRepo, &'static str, String) {
+    let repo = fixture_repo();
+    repo.write(INBOX, "# Inbox\n\n- [Dark mode](notes/dark-mode.md)\n");
+    repo.write(
+        "specs/notes/dark-mode.md",
+        "# Dark mode\n\nThe night theme.\n",
+    );
+    let linking = "specs/decisions/look.md";
+    let text = "# Look\n\nSee [the note](../notes/dark-mode.md).\n".to_string();
+    repo.write(linking, &text);
+    repo.commit("docs: a note file and a decision");
+    (repo, linking, text)
+}
+
+/// A note moved to a level takes its note file into the proposals, relinking every Markdown file
+/// of `specs/`: its undo puts their links back too.
+#[test]
+fn a_notes_move_to_a_level_has_its_relinks_undone() {
+    let (repo, linking, text) = linked_note_file();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let id = note_id(&inbox, "Dark mode");
+    let (_, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
+        api::note_to_proposal(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
+    })
+    .unwrap();
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "Dark mode").unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists("specs/notes/dark-mode.md"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// An image attached to a single note file makes it a folder, relinking every Markdown file of
+/// `specs/`: its undo puts their links back too.
+#[test]
+fn an_image_attached_to_a_single_note_file_has_its_relinks_undone() {
+    let (repo, linking, text) = linked_note_file();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&inbox, "Dark mode");
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, change) = undo::recorded(repo.path(), undo::NOTE_IMAGES, || {
+        api::attach_note_images(repo.path(), &id, &images, &inbox.hash)
+    })
+    .unwrap();
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "Dark mode").unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists("specs/notes/dark-mode.md"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A symbolic link in a note's folder stays out of its change: its target's bytes are never read
+/// into it, and an undo writes nothing through it.
+#[cfg(unix)]
+#[test]
+fn a_symbolic_link_in_a_note_folder_stays_out_of_its_change() {
+    let repo = fixture_repo();
+    let note = "A note with a link";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    repo.commit("docs: a note");
+    let secret = repo.path().join("secret.txt");
+    std::fs::write(&secret, "the secret").unwrap();
+    let folder = file.trim_end_matches("/note.md").to_string();
+    let link = format!("{folder}/secret.txt");
+    std::os::unix::fs::symlink(&secret, repo.path().join(&link)).unwrap();
+
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&read, note);
+    let (_, change) = undo::recorded(repo.path(), undo::NOTES, || {
+        api::remove_note(repo.path(), &id, &read.hash)
+    })
+    .unwrap();
+
+    assert!(change.files.iter().all(|changed| changed.path != link));
+    let secret_bytes = b"the secret".as_slice();
+    assert!(change.files.iter().all(|changed| {
+        changed.before.as_deref() != Some(secret_bytes)
+            && changed.after.as_deref() != Some(secret_bytes)
+    }));
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+    assert!(repo.exists(&file));
+    assert_eq!(std::fs::read_to_string(&secret).unwrap(), "the secret");
+}
+
+/// An image unlinked from its note, then deleted by the commit that cleans unlinked images: the
+/// removal's undo brings back the link and the image's bytes, and its redo leaves the image to the
+/// next commit.
+#[test]
+fn an_image_removed_then_cleaned_by_a_commit_comes_back_on_undo() {
+    let repo = fixture_repo();
+    let note = "A note with two shots";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [
+        (shot.clone(), Some("first.png".to_string())),
+        (shot, Some("second.png".to_string())),
+    ];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    api::commit_changes(repo.path()).unwrap();
+    let folder = file.trim_end_matches("/note.md");
+    let first = format!("{folder}/images/first.webp");
+    let (linked, bytes) = (
+        repo.read(&file),
+        std::fs::read(repo.path().join(&first)).unwrap(),
+    );
+
+    let previous = uraeda_core::files::document::hash(&linked);
+    let (_, change) = undo::recorded_keeping(
+        repo.path(),
+        &undo::note_image(&file),
+        std::slice::from_ref(&first),
+        || api::remove_note_image(repo.path(), &file, &first, &previous),
+    )
+    .unwrap();
+    let unlinked = repo.read(&file);
+    assert!(!unlinked.contains("first.webp"), "{unlinked}");
+    // The commit deletes the image no file links any more.
+    api::commit_changes(repo.path()).unwrap();
+    assert!(!repo.exists(&first), "the commit cleans the unlinked image");
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), linked);
+    assert_eq!(std::fs::read(repo.path().join(&first)).unwrap(), bytes);
+
+    undo::apply_change(repo.path(), &change, Direction::Redo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), unlinked);
+    assert!(
+        repo.exists(&first),
+        "the redo leaves the image to the next commit"
+    );
+    // Present and the same, the image does not stop a second undo.
+    undo::apply_change(repo.path(), &change, Direction::Undo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), linked);
+}

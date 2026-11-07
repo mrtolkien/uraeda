@@ -21,7 +21,8 @@ import { fateClients } from "../clients.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetNotes } from "../offers.ts";
 import { loadPages } from "../pages.ts";
-import { forgetUndoToasts } from "../layout/useUndoToast.ts";
+import { forgetUndoErrors } from "../undo/pageErrors.ts";
+import { undoStack } from "../undo/stack.ts";
 import { forgetSignedOut } from "../sign-in/signedOut.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -72,9 +73,11 @@ class SilentEventSource {
 
 beforeEach(() => {
   (globalThis as { EventSource?: unknown }).EventSource = SilentEventSource;
-  // A test that failed leaves nothing for the next: its requests, or an Undo's error on screen.
+  // A test that failed leaves nothing for the next: its requests, its undo stack, or an undo's
+  // error on screen.
   answers.length = 0;
-  forgetUndoToasts();
+  undoStack.clear();
+  forgetUndoErrors();
   try {
     window.localStorage.clear();
   } catch {

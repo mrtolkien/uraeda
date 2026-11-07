@@ -352,8 +352,18 @@ impl Drop for Kept {
 }
 
 /// A repository's write lock, held until dropped: dropping it moves the repository's generation.
+/// A guard taken by a thread that already held the lock re-enters it: the lock is released once
+/// the thread's last guard of it goes, in whatever order. It stays on its thread.
 pub(crate) struct WriteGuard {
     key: PathBuf,
+    /// Not `Send`: the thread that took the lock releases it.
+    _thread: std::marker::PhantomData<*const ()>,
+}
+
+thread_local! {
+    /// How many guards of each lock this thread holds, by key: taking one held is re-entering it.
+    static HELD: std::cell::RefCell<HashMap<PathBuf, usize>> =
+        std::cell::RefCell::new(HashMap::new());
 }
 
 /// One write at a time in the repository holding `repo`: reaching a branch creates its worktree,
@@ -369,7 +379,23 @@ pub(crate) fn folder_lock(dir: &Path) -> WriteGuard {
     lock(std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf()))
 }
 
+/// Takes the lock `key`, or re-enters it when this thread holds it: a write that calls another
+/// write, as a recorded change runs its write, waits for no one.
 fn lock(key: PathBuf) -> WriteGuard {
+    let guard = |key| WriteGuard {
+        key,
+        _thread: std::marker::PhantomData,
+    };
+    let reentered = HELD.with(|held| match held.borrow_mut().get_mut(&key) {
+        Some(depth) => {
+            *depth += 1;
+            true
+        }
+        None => false,
+    });
+    if reentered {
+        return guard(key);
+    }
     let mut repositories = locked(&REPOSITORIES);
     loop {
         let repository = repositories
@@ -378,7 +404,8 @@ fn lock(key: PathBuf) -> WriteGuard {
             .or_default();
         if !repository.writing {
             repository.writing = true;
-            return WriteGuard { key };
+            HELD.with(|held| held.borrow_mut().insert(key.clone(), 1));
+            return guard(key);
         }
         repositories = RELEASED
             .wait(repositories)
@@ -388,6 +415,20 @@ fn lock(key: PathBuf) -> WriteGuard {
 
 impl Drop for WriteGuard {
     fn drop(&mut self) {
+        let last = HELD.with(|held| {
+            let mut held = held.borrow_mut();
+            let depth = held.get_mut(&self.key).map_or(0, |depth| {
+                *depth -= 1;
+                *depth
+            });
+            if depth == 0 {
+                held.remove(&self.key);
+            }
+            depth == 0
+        });
+        if !last {
+            return;
+        }
         repositories(|repositories| {
             if let Some(repository) = repositories.get_mut(&self.key) {
                 repository.writing = false;
@@ -398,5 +439,31 @@ impl Drop for WriteGuard {
             }
         });
         RELEASED.notify_all();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Whether the lock `key` is taken.
+    fn writing(key: &Path) -> bool {
+        repositories(|repositories| repositories.get(key).is_some_and(|it| it.writing))
+    }
+
+    /// A nested guard dropped after the outer one still holds the lock until it goes.
+    #[test]
+    fn a_nested_guard_outliving_the_outer_one_keeps_the_lock() {
+        let key = PathBuf::from("/a-repository-for-the-nested-lock");
+        let outer = lock(key.clone());
+        let nested = lock(key.clone());
+        drop(outer);
+        assert!(writing(&key));
+        drop(nested);
+        assert!(!writing(&key));
+        let again = lock(key.clone());
+        assert!(writing(&key));
+        drop(again);
+        assert!(!writing(&key));
     }
 }

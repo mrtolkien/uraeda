@@ -4,6 +4,7 @@
 pub mod amend;
 pub mod answer;
 pub mod attach;
+pub mod change;
 pub mod changes;
 pub mod clean;
 pub mod commit;

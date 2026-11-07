@@ -16,9 +16,10 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `Enter`                   | The selection's obvious action: open it, or the page's next step                                                          | Every page with a selection or a step |
 | `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                       | Every editable selection              |
 | `a`, `o`                  | Add: `a` in the selected row's section on the priorities, else at the page's default place; `o` beside the selection      | A list of rows: priorities, inbox     |
-| `d`, `dd`                 | Delete the selection, after a yes/no                                                                                      | A list of rows                        |
+| `d`                       | Delete the selection at once, undone with `u`                                                                             | A list of rows                        |
 | `m`                       | Move mode: the row moves with the move keys, across sections, until `Enter` or `Escape`                                   | A list of rows                        |
-| `u`                       | Undo the last write that offers one (see [Surfaces](surfaces.md#undo))                                                    | Every page                            |
+| `u`, `Ctrl+Z`             | Undo the tab's latest action, outside text fields (see [Surfaces](surfaces.md#undo))                                      | Every page                            |
+| `U`, `Ctrl+Shift+Z`       | Redo the latest undone action. On a Mac, `Cmd` replaces `Ctrl` in both chords                                             | Every page                            |
 | `/`                       | Search or filter the page's list                                                                                          | A page with a list to filter          |
 | `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`                                                         | Every page                            |
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` commit, `r` a repository | Every page                            |

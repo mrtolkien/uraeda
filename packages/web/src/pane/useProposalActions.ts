@@ -1,21 +1,18 @@
 // What a proposal's pane does to it: rename it, move it to a section, expand it into a file, or
-// delete it with Undo, each written at once over the priorities as read.
+// delete it, each written at once over the priorities as read, and recorded on the undo stack.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readPriorities, useProposal } from "../data.ts";
-import { withFreshBase } from "../freshBase.ts";
 import { guarded, refusal } from "../errors.ts";
-import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
-import {
-  proposalEdited,
-  proposalMoved,
-  proposalPutBack,
-  proposalRemoved,
-} from "../optimisticLists.ts";
+import { proposalEdited, proposalMoved, proposalRemoved } from "../optimisticLists.ts";
+import { usePrioritiesUndo } from "../lists/prioritiesUndo.ts";
+import { titleOf } from "../QuickAdd.tsx";
 import { plain } from "../Spans.tsx";
 import { useExpand } from "./useExpand.ts";
+import { PrioritiesChangeView } from "../undo/changeViews.ts";
+import { quoted } from "../undo/quoted.ts";
 import { PrioritiesView } from "../views.ts";
 
 /** A proposal found in the priorities, with its section and its place in it. */
@@ -55,16 +52,24 @@ function useRename(
   onRenaming: (id: string | undefined) => void,
 ) {
   const fate = useFateClient();
+  const recorded = usePrioritiesUndo();
   const here = useRepoPath();
   return async (text: string) => {
     onRenaming(proposal.id);
     const shown = await shownAs(fate, (sections) => proposalEdited(sections, proposal.id, text));
-    const result = await guarded(() =>
-      fate.mutations.proposals.edit({
-        input: { hash, proposal: proposal.id, text },
-        ...shown,
-        view: PrioritiesView,
-      }),
+    // Named by its old text, and its refusal by its new one, which the file holds once renamed.
+    const label = `Renamed ${quoted(plain(proposal.spans))}`;
+    const subject = text;
+    const result = await guarded(
+      recorded(
+        () =>
+          fate.mutations.proposals.edit({
+            input: { hash, proposal: proposal.id, text },
+            ...shown,
+            view: PrioritiesChangeView,
+          }),
+        { label, select: proposal.key, subject },
+      ),
     );
     if (result.error) {
       onRenaming(undefined);
@@ -91,9 +96,9 @@ export function useProposalActions(
   hash: string,
   onRenaming: (id: string | undefined) => void,
 ) {
-  const { index, proposal, section } = found;
+  const { proposal } = found;
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const recorded = usePrioritiesUndo();
   const here = useRepoPath();
   const rename = useRename(found, hash, onRenaming);
   const [message, setMessage] = useState<string>();
@@ -108,63 +113,56 @@ export function useProposalActions(
       const failed = refusal(result.error);
       setMessage(failed.message);
       if (failed.kind === "conflict") {
-        void fate.request(
-          { priorities: { id: "priorities", view: PrioritiesView } },
-          { mode: "network-only" },
-        );
+        void fate
+          .request(
+            { priorities: { id: "priorities", view: PrioritiesView } },
+            { mode: "network-only" },
+          )
+          .catch(() => {});
       }
     }
     return result;
   };
 
+  const subject = plain(proposal.spans);
+
+  /** Its section changed: a move of the priorities, which joins a run of their moves. */
   const move = async (to: string) => {
     const index = Number.MAX_SAFE_INTEGER;
     const shown = await shownAs(fate, (sections) =>
       proposalMoved(sections, proposal.id, to, index),
     );
-    return run(() =>
-      fate.mutations.proposals.move({
-        input: { hash, index, proposal: proposal.id, section: to },
-        ...shown,
-        view: PrioritiesView,
-      }),
+    const label = `Moved ${quoted(subject)} to ${titleOf(to)}`;
+    return run(
+      recorded(
+        () =>
+          fate.mutations.proposals.move({
+            input: { hash, index, proposal: proposal.id, section: to },
+            ...shown,
+            view: PrioritiesChangeView,
+          }),
+        { isMove: true, label, select: proposal.key, subject },
+      ),
     );
   };
 
   const remove = async () => {
-    const text = plain(proposal.spans);
-    // What Undo writes back: the proposal's lines, nested ones included, exactly as they were.
-    const { lines } = proposal;
-    const at = { index, section: section.section };
     const shown = await shownAs(fate, (sections) => proposalRemoved(sections, proposal.id));
-    const result = await run(() =>
-      fate.mutations.proposals.remove({
-        input: { hash, proposal: proposal.id },
-        ...shown,
-        view: PrioritiesView,
-      }),
+    const label = `Deleted ${quoted(subject)}`;
+    const result = await run(
+      recorded(
+        () =>
+          fate.mutations.proposals.remove({
+            input: { hash, proposal: proposal.id },
+            ...shown,
+            view: PrioritiesChangeView,
+          }),
+        { label, select: proposal.key, subject },
+      ),
     );
     if (result.error) {
       return;
     }
-    const failed = `Could not restore "${text}": PRIORITIES.md changed on disk.`;
-    toast(`Deleted "${text}"`, async () => {
-      try {
-        // Over the file as it is now: the proposal goes back to its place, or its section's end.
-        const restored = await withFreshBase(
-          (mode) => readPriorities(fate, mode),
-          (now) =>
-            fate.mutations.proposals.insert({
-              input: { ...at, hash: now.hash, lines },
-              optimistic: proposalPutBack(now.sections, { ...at, proposal }),
-              view: PrioritiesView,
-            }),
-        );
-        return restored.error ? failed : undefined;
-      } catch {
-        return failed;
-      }
-    });
     // Only while the proposal's own overlay shows: a delete from a menu leaves the page as it is.
     if (parseLocation(window.location.pathname).route.page === "proposal") {
       closeDetail(here(origin()));
@@ -172,7 +170,7 @@ export function useProposalActions(
   };
 
   return {
-    expand: useExpand(proposal.id, hash, run),
+    expand: useExpand(proposal, hash, subject, run),
     message,
     move,
     remove,

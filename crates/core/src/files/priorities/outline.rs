@@ -95,21 +95,6 @@ pub fn append_under(text: &str, id: &str, written: &[String]) -> Option<String> 
     .ok()
 }
 
-/// Takes back [`append_under`]: the proposal whose key is `key`, found by it as other edits may
-/// have moved it, without the last of its own items that says what `written` says. `None` when
-/// there is none.
-pub fn remove_under(text: &str, key: &str, written: &[String]) -> Option<String> {
-    super::super::with_unix_newlines(text, |text| {
-        let proposals = parse(text);
-        let at = super::keys(&proposals)
-            .iter()
-            .position(|one| one == key)
-            .ok_or(())?;
-        nested::remove_item(text, &proposals[at].item, written).ok_or(())
-    })
-    .ok()
-}
-
 /// An edit of a proposal itself.
 fn on_proposal(
     text: &str,

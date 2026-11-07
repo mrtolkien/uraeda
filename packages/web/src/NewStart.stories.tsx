@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
-import { useUndoToast } from "./layout/useUndoToast.ts";
+import { useRepository } from "./routes.tsx";
+import { useUndo } from "./undo/useUndo.ts";
 
 /** A line of Now, as its Start fills the composer: the line, then its nested lines. */
 const LINE = `Proposal start flow
@@ -21,13 +22,25 @@ const DRAFT = "Widen the sidebar";
 function FeatureStart({ replaced = false, text }: { replaced?: boolean; text: string }) {
   const [value, setValue] = useState(text);
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
-  const toast = useUndoToast();
+  const record = useUndo();
+  const repo = useRepository();
   useEffect(() => {
     if (replaced) {
-      toast("Draft replaced", async () => {
-        setValue(DRAFT);
-        return undefined;
-      });
+      record(
+        {
+          label: "Draft replaced",
+          place: { path: "/new", repo },
+          redo: async () => {
+            setValue(LINE);
+            return undefined;
+          },
+          undo: async () => {
+            setValue(DRAFT);
+            return undefined;
+          },
+        },
+        { waitsOnGit: false },
+      );
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the Start shows it
   }, []);

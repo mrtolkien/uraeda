@@ -183,29 +183,6 @@ fn an_edit_over_a_change_made_elsewhere_is_refused() {
     assert!(!repo.read(INBOX).contains("An idea"));
 }
 
-/// US1 7: Undo of a removal puts the note back, byte for byte.
-#[test]
-fn remove_then_insert_restores_the_bytes() {
-    let repo = fixture_repo();
-    let before = repo.read(INBOX);
-    let read = api::read_inbox(repo.path()).unwrap();
-    let note = &read.categories[1].notes[2];
-    assert_eq!(note.text, "Icons are blurry on retina screens");
-
-    let removed = api::remove_note(repo.path(), &note.id, &read.hash).unwrap();
-    assert_eq!(removed.count, 9);
-    api::insert_note(
-        repo.path(),
-        Some("UI".into()),
-        2,
-        &note.lines,
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read(INBOX), before);
-}
-
 /// A note's text edited, and moved to another category, with its marks kept.
 #[test]
 fn a_note_is_edited_and_moved() {
@@ -286,17 +263,6 @@ fn an_unreadable_inbox_is_not_overwritten() {
 
     assert!(matches!(error, ActionError::Io(_)), "{error:?}");
     assert_eq!(std::fs::read(&path).unwrap(), b"# Inbox\n\n- \xff\n");
-}
-
-/// An Undo with no line to put back has a refusal of its own.
-#[test]
-fn inserting_no_line_is_refused() {
-    let repo = fixture_repo();
-    let read = api::read_inbox(repo.path()).unwrap();
-
-    let error = api::insert_note(repo.path(), None, 0, &[], &read.hash).unwrap_err();
-
-    assert_eq!(error.message, "Nothing to put back.");
 }
 
 /// Reading from a feature's checkout, with the default branch checked out nowhere, reads its tip
@@ -440,30 +406,6 @@ fn a_note_on_a_changed_inbox_is_not_committed() {
     assert_eq!(added.reason.as_deref(), Some("other-changes"));
     assert_eq!(repo.subjects("main")[0], "chore: specs");
     assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
-}
-
-/// US3 6, for a note: Undo of a committed add commits the note's removal alone; over an inbox
-/// changed since, it is refused as a conflict.
-#[test]
-fn undo_of_a_committed_note_commits_the_removal() {
-    let repo = fixture_repo();
-    let before = repo.read(INBOX);
-    let read = api::read_inbox(repo.path()).unwrap();
-    let (added, _) =
-        api::add_note_and_commit(repo.path(), None, None, "Icons are blurry", &read.hash).unwrap();
-    let lines = ["- Icons are blurry".to_string()];
-
-    let stale = api::undo_committed_note(repo.path(), &lines, &read.hash).unwrap_err();
-    assert_eq!(stale.code, "conflict");
-    let undone = api::undo_committed_note(repo.path(), &lines, &added.hash).unwrap();
-
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: remove \"Icons are blurry\" from the inbox"
-    );
-    assert_eq!(repo.changed_in("HEAD"), [INBOX]);
-    assert_eq!(repo.read(INBOX), before);
-    assert_eq!(undone.changes, 0);
 }
 
 /// An inbox staged by the human, its working copy then put back as committed, still has changes:
@@ -641,71 +583,6 @@ fn the_commit_bar_holds_an_agents_note_removed() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// US2 more 2: Undo of an agent's note's removal restores its file alone, where the inbox showed
-/// it: the checkout is as `HEAD` has it, and the commit bar holds nothing.
-#[test]
-fn undo_of_an_agents_note_removal_restores_its_file() {
-    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
-    let file = repo.read(&path);
-    let read = api::read_inbox(repo.path()).unwrap();
-    let note = read
-        .categories
-        .iter()
-        .flat_map(|category| &category.notes)
-        .find(|note| note.id == path)
-        .unwrap()
-        .clone();
-
-    let removed = api::remove_note(repo.path(), &path, &read.hash).unwrap();
-    let back = api::insert_note(
-        repo.path(),
-        Some("Deferred fixes".into()),
-        0,
-        &note.lines,
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read(&path), file);
-    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
-    assert_eq!(back.count, read.count);
-    assert_eq!(back.changes, 0);
-    assert_eq!(repo.porcelain(), "");
-}
-
-/// US2 more 2: Undo of an agent's note's removal put back elsewhere than the inbox showed it writes
-/// its line there, linking the file it restores.
-#[test]
-fn undo_of_an_agents_note_removal_elsewhere_links_its_file() {
-    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
-    let file = repo.read(&path);
-    let read = api::read_inbox(repo.path()).unwrap();
-    let note = read
-        .categories
-        .iter()
-        .flat_map(|category| &category.notes)
-        .find(|note| note.id == path)
-        .unwrap()
-        .clone();
-
-    let removed = api::remove_note(repo.path(), &path, &read.hash).unwrap();
-    let back = api::insert_note(
-        repo.path(),
-        Some("UI".into()),
-        0,
-        &note.lines,
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read(&path), file);
-    assert!(
-        repo.read(INBOX)
-            .contains(&format!("## UI\n\n{}\n", note.lines[0]))
-    );
-    assert_eq!(back.count, read.count);
-}
-
 /// US2 more 3: an agent's note dropped where the inbox shows it, or moved to its own category, is
 /// not moved: the checkout is as `HEAD` has it, and the commit bar holds nothing.
 #[test]
@@ -866,15 +743,7 @@ fn removing_an_agents_note_without_an_inbox_commits_its_deletion() {
 #[test]
 fn an_agents_note_made_a_proposal_leaves_its_frontmatter() {
     let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
-    let file = repo.read(&path);
     let read = api::read_inbox(repo.path()).unwrap();
-    let note = read
-        .categories
-        .iter()
-        .flat_map(|category| &category.notes)
-        .find(|note| note.id == path)
-        .unwrap()
-        .clone();
     let priorities = api::read_priorities(repo.path()).unwrap();
 
     let proposal =
@@ -895,18 +764,6 @@ fn an_agents_note_made_a_proposal_leaves_its_frontmatter() {
         ),
         "{text}"
     );
-
-    api::undo_note_to_proposal(
-        repo.path(),
-        &note.lines,
-        Some("Deferred fixes".into()),
-        0,
-        "later",
-        None,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read(&path), file);
 }
 
 /// US2 more 3, in the commit bar: the move of an agent's note is one change, its file's dropped

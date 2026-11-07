@@ -1,6 +1,6 @@
 //! A note with a note file added to a proposal file: the note file's text goes into the proposal
 //! file's `## Notes`, under the note's title, its images beside the proposal file, and the note
-//! file and its row leave the inbox; Undo puts every one back.
+//! file and its row leave the inbox.
 
 mod common;
 
@@ -88,7 +88,7 @@ fn add_to(repo: &TestRepo, text: &str, proposal: &str) -> (InboxNote, Option<Str
     (note, category, index, path)
 }
 
-/// The files the add and its Undo touch, as they are, an image's bytes as text.
+/// The files an add touches, as they are, an image's bytes as text.
 fn snapshot(repo: &TestRepo, paths: &[&str]) -> Vec<Option<String>> {
     paths
         .iter()
@@ -101,16 +101,14 @@ fn snapshot(repo: &TestRepo, paths: &[&str]) -> Vec<Option<String>> {
 
 /// A folder note with an image goes into a folder proposal file without `## Notes`: the section is
 /// added, the note file's text is under the note's title, its headings nested, its image copied
-/// beside the proposal file and linked there, and the note file and its row leave. Undo puts all of
-/// it back as it was.
+/// beside the proposal file and linked there, and the note file and its row leave.
 #[test]
-fn a_folder_note_with_an_image_goes_into_a_new_notes_section_and_undo_puts_it_back() {
+fn a_folder_note_with_an_image_goes_into_a_new_notes_section() {
     let repo = fixture_repo();
     add_dark_mode(&repo);
-    let paths = [INBOX, LOOK, DARK, IMAGE];
-    let before = snapshot(&repo, &paths);
+    let before = snapshot(&repo, &[IMAGE]);
 
-    let (note, category, index, path) = add_to(&repo, "Dark mode", LOOK);
+    let (_, _, _, path) = add_to(&repo, "Dark mode", LOOK);
 
     assert_eq!(path, LOOK);
     assert_eq!(
@@ -122,23 +120,15 @@ fn a_folder_note_with_an_image_goes_into_a_new_notes_section_and_undo_puts_it_ba
     );
     assert_eq!(
         snapshot(&repo, &["specs/proposals/look/images/phone.webp"])[0],
-        before[3]
+        before[0]
     );
     assert!(!repo.exists("specs/notes/dark-mode"));
     assert!(!repo.read(INBOX).contains("Dark mode"));
-
-    let inbox =
-        api::undo_note_into_proposal(repo.path(), LOOK, &note.lines, category, index).unwrap();
-
-    assert_eq!(snapshot(&repo, &paths), before);
-    assert!(!repo.exists("specs/proposals/look/images"));
-    assert_eq!(inbox.changes, 1);
 }
 
-/// A single-file note goes into a proposal file that has `## Notes`, after what it holds, and Undo
-/// takes it back out, keeping what the human typed meanwhile.
+/// A single-file note goes into a proposal file that has `## Notes`, after what it holds.
 #[test]
-fn a_single_file_note_goes_at_the_end_of_notes_and_undo_keeps_the_typing() {
+fn a_single_file_note_goes_at_the_end_of_notes() {
     let repo = fixture_repo();
     let with_notes = format!("{LOOK_TEXT}\n## Notes\n\n- Keep it calm.\n\n## Later\n\nMaybe.\n");
     repo.write(LOOK, &with_notes);
@@ -152,9 +142,8 @@ fn a_single_file_note_goes_at_the_end_of_notes_and_undo_keeps_the_typing() {
     );
     repo.write(INBOX, &inbox);
     repo.commit("chore: a note file");
-    let before = snapshot(&repo, &[INBOX, LOOK, "specs/notes/high-contrast.md"]);
 
-    let (note, category, index, path) = add_to(&repo, "High contrast", LOOK);
+    let (_, _, _, path) = add_to(&repo, "High contrast", LOOK);
 
     assert_eq!(path, LOOK);
     assert_eq!(
@@ -166,34 +155,20 @@ fn a_single_file_note_goes_at_the_end_of_notes_and_undo_keeps_the_typing() {
     );
     assert!(!repo.exists("specs/notes/high-contrast.md"));
     assert!(!repo.read(INBOX).contains("High contrast"));
-    let typed = repo.read(LOOK).replace("Maybe.", "Maybe, later.");
-    repo.write(LOOK, &typed);
-
-    api::undo_note_into_proposal(repo.path(), LOOK, &note.lines, category, index).unwrap();
-
-    let after = snapshot(&repo, &[INBOX, LOOK, "specs/notes/high-contrast.md"]);
-    assert_eq!(after[0], before[0]);
-    assert_eq!(
-        repo.read(LOOK),
-        with_notes.replace("Maybe.", "Maybe, later.")
-    );
-    assert_eq!(after[2], before[2]);
 }
 
 /// A note with an image goes into a single proposal file, which becomes a folder for the image, as
-/// an attached image makes it, the priorities linking its new path. Undo makes it a single file
-/// again. Committed, the add holds the folder, its image, and the note file's removal.
+/// an attached image makes it, the priorities linking its new path. Committed, the add holds the
+/// folder, its image, and the note file's removal.
 #[test]
-fn a_note_with_an_image_makes_a_single_proposal_file_a_folder_and_undo_takes_it_back() {
+fn a_note_with_an_image_makes_a_single_proposal_file_a_folder() {
     let repo = fixture_repo();
     add_dark_mode(&repo);
     api::commit_changes(repo.path()).unwrap();
     repo.keep();
-    let paths = [INBOX, PRIORITIES, LISTENER, DARK, IMAGE];
-    let before = snapshot(&repo, &paths);
     let folder = "specs/proposals/git-listener/proposal.md";
 
-    let (note, category, index, path) = add_to(&repo, "Dark mode", LISTENER);
+    let (_, _, _, path) = add_to(&repo, "Dark mode", LISTENER);
 
     assert_eq!(path, folder);
     assert!(!repo.exists(LISTENER));
@@ -211,14 +186,6 @@ fn a_note_with_an_image_makes_a_single_proposal_file_a_folder_and_undo_takes_it_
             .contains("- [Git listener process](proposals/git-listener/proposal.md)\n")
     );
 
-    api::undo_note_into_proposal(repo.path(), LISTENER, &note.lines, category, index).unwrap();
-
-    for (at, (now, then)) in snapshot(&repo, &paths).iter().zip(&before).enumerate() {
-        assert_eq!(now, then, "{}", paths[at]);
-    }
-    assert!(!repo.exists("specs/proposals/git-listener"));
-
-    let (_, _, _, path) = add_to(&repo, "Dark mode", LISTENER);
     api::commit_changes(repo.path()).unwrap();
 
     let changed = repo.changed_in("main");
@@ -312,17 +279,14 @@ fn add_to_line(repo: &TestRepo, text: &str, id: &str) -> (InboxNote, Option<Stri
 /// A note with images added to a proposal line without a file: the line gets its proposal file
 /// first, from the template, a folder for the images, the line's nested lines in its What, and
 /// links it; the note file's text goes into its `## Notes`, its image beside it, and the note and
-/// its note file leave the inbox. Undo puts all of it back: the line as it was, no proposal file,
-/// and the note with its note file.
+/// its note file leave the inbox.
 #[test]
-fn a_note_goes_into_a_new_proposal_file_for_a_line_and_undo_takes_it_all_back() {
+fn a_note_goes_into_a_new_proposal_file_for_a_line() {
     let repo = fixture_repo();
     add_dark_mode(&repo);
     api::commit_changes(repo.path()).unwrap();
-    let paths = [INBOX, PRIORITIES, DARK, IMAGE];
-    let before = snapshot(&repo, &paths);
 
-    let (note, category, index, path) = add_to_line(&repo, "Dark mode", "later-1");
+    let (_, _, _, path) = add_to_line(&repo, "Dark mode", "later-1");
 
     assert_eq!(path, NIX_FILE);
     let text = repo.read(NIX_FILE);
@@ -342,14 +306,6 @@ fn a_note_goes_into_a_new_proposal_file_for_a_line_and_undo_takes_it_all_back() 
     )));
     assert!(!repo.exists("specs/notes/dark-mode"));
     assert!(!repo.read(INBOX).contains("Dark mode"));
-
-    let inbox =
-        api::undo_note_into_proposal(repo.path(), &path, &note.lines, category, index).unwrap();
-
-    assert_eq!(snapshot(&repo, &paths), before);
-    assert!(!repo.exists("specs/proposals/nix-docker-based-execution-environments"));
-    assert_eq!(inbox.changes, 0);
-    assert_eq!(repo.porcelain(), "");
 }
 
 /// A note file without images makes a single proposal file. The commit bar counts the add as one
@@ -459,32 +415,6 @@ fn a_refused_add_to_a_line_writes_nothing() {
     assert_eq!(snapshot(&repo, &paths), before);
     assert!(!repo.exists(RUNNER_FILE));
     assert!(!repo.exists("specs/proposals/nix-docker-based-execution-environments"));
-}
-
-/// Undo keeps a new proposal file the human typed in since, linked from its line, and still puts
-/// the note back.
-#[test]
-fn undo_keeps_a_new_proposal_file_typed_in() {
-    let repo = fixture_repo();
-    add_slow_lists(&repo);
-    let (note, category, index, path) = add_to_line(&repo, "Slow lists", "next-1");
-    let typed = repo
-        .read(&path)
-        .replace("## Why\n", "## Why\n\nSo I can sleep.\n");
-    repo.write(&path, &typed);
-
-    api::undo_note_into_proposal(repo.path(), &path, &note.lines, category, index).unwrap();
-
-    assert_eq!(repo.read(SLOW), SLOW_TEXT);
-    assert!(
-        repo.read(INBOX)
-            .contains("- [Slow lists](notes/slow-lists.md)")
-    );
-    assert!(!repo.read(&path).contains("### Slow lists"));
-    assert!(repo.read(&path).contains("So I can sleep."));
-    assert!(repo.read(PRIORITIES).contains(&format!(
-        "- [{RUNNER}](proposals/claude-code-runner-triggered-manually.md)"
-    )));
 }
 
 /// The commit bar counts a committed note added to a proposal file as one move, which Discard takes

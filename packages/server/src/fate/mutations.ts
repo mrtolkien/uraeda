@@ -7,6 +7,7 @@ import { continueAllMutations } from "./continue-all.ts";
 import { startMutations } from "./starts.ts";
 import { sendMutations } from "./send-mutations.ts";
 import { writesMutations } from "./writes-mutations.ts";
+import { undoable, undoMutations } from "./undo-mutations.ts";
 import { bufferMutations } from "./buffer.ts";
 import { gitMutations } from "./git-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
@@ -16,7 +17,7 @@ import { featureRecord, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
-import { priorities, proposalFile } from "./masked.ts";
+import { priorities, proposalFile, undoablePriorities } from "./masked.ts";
 import { featureDataView } from "./views.ts";
 import { LISTS, listCommit, type Queued, queued } from "./write-queue.ts";
 
@@ -34,6 +35,7 @@ const repositoryMutations = {
   ...writesMutations,
   ...bufferMutations,
   ...gitMutations,
+  ...undoMutations,
   "item.settings": {
     resolve: async ({
       ctx,
@@ -92,12 +94,8 @@ const repositoryMutations = {
       input,
       select,
     }: Resolver<{ hash: string; section: string; text: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addProposal(ctx.repo, input.section, input.text, input.hash),
-        ),
-        select,
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.addProposal(ctx.repo, input.section, input.text, input.hash, undo),
       ),
     type: "Priorities",
   },
@@ -107,38 +105,21 @@ const repositoryMutations = {
       input,
       select,
     }: Resolver<{ hash: string; proposal: string; text: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.editProposal(ctx.repo, input.proposal, input.text, input.hash),
-        ),
-        select,
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.editProposal(ctx.repo, input.proposal, input.text, input.hash, undo),
       ),
     type: "Priorities",
   },
   "proposals.expand": {
-    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) =>
-      proposalFile(
-        ctx,
-        await refusable(() => ctx.binding.expandProposal(ctx.repo, input.proposal, input.hash)),
-        select,
-      ),
-    type: "ProposalFile",
-  },
-  "proposals.insert": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ hash: string; index: number; lines: Array<string>; section: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.insertProposal(ctx.repo, input.section, input.index, input.lines, input.hash),
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) => {
+      const { answer, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.expandProposal(ctx.repo, input.proposal, input.hash, undo),
         ),
-        select,
-      ),
-    type: "Priorities",
+      );
+      return proposalFile(ctx, answer, select, change);
+    },
+    type: "ProposalFile",
   },
   "proposals.move": {
     resolve: async ({
@@ -146,18 +127,15 @@ const repositoryMutations = {
       input,
       select,
     }: Resolver<{ hash: string; index: number; proposal: string; section: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.moveProposal(
-            ctx.repo,
-            input.proposal,
-            input.section,
-            input.index,
-            input.hash,
-          ),
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.moveProposal(
+          ctx.repo,
+          input.proposal,
+          input.section,
+          input.index,
+          input.hash,
+          undo,
         ),
-        select,
       ),
     type: "Priorities",
   },
@@ -167,19 +145,16 @@ const repositoryMutations = {
       input,
       select,
     }: Resolver<{ at?: number; hash: string; kind: string; proposal: string; text?: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.outlineProposal(
-            ctx.repo,
-            input.proposal,
-            input.at ?? null,
-            input.kind,
-            input.text ?? null,
-            input.hash,
-          ),
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.outlineProposal(
+          ctx.repo,
+          input.proposal,
+          input.at ?? null,
+          input.kind,
+          input.text ?? null,
+          input.hash,
+          undo,
         ),
-        select,
       ),
     type: "Priorities",
   },
@@ -199,47 +174,27 @@ const repositoryMutations = {
       under?: string;
       underAt?: number;
     }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.dropProposal(
-            ctx.repo,
-            input.proposal,
-            input.at ?? null,
-            {
-              index: input.index,
-              list: input.section,
-              under: input.under,
-              underAt: input.underAt,
-            },
-            input.hash,
-          ),
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.dropProposal(
+          ctx.repo,
+          input.proposal,
+          input.at ?? null,
+          {
+            index: input.index,
+            list: input.section,
+            under: input.under,
+            underAt: input.underAt,
+          },
+          input.hash,
+          undo,
         ),
-        select,
       ),
     type: "Priorities",
   },
   "proposals.remove": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() => ctx.binding.removeProposal(ctx.repo, input.proposal, input.hash)),
-        select,
-      ),
-    type: "Priorities",
-  },
-  "proposals.undoCommitted": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<Queued<{ hash: string; lines: Array<string> }>>) =>
-      priorities(
-        ctx,
-        await listCommit(ctx, input.write, () =>
-          ctx.binding.undoCommittedProposal(ctx.repo, input.lines, input.hash),
-        ),
-        select,
+      undoablePriorities(ctx, select, (undo) =>
+        ctx.binding.removeProposal(ctx.repo, input.proposal, input.hash, undo),
       ),
     type: "Priorities",
   },

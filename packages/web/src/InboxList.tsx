@@ -4,10 +4,9 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
+import type { ChangeView } from "uraeda-binding";
 import { readInbox, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { withFreshBase } from "./freshBase.ts";
-import { deleteNote } from "./fields/Confirm.tsx";
 import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
 import { type Actions, useCategoryKeys, useMovePicker, usePromote } from "./InboxPickers.tsx";
@@ -15,16 +14,29 @@ import { CategoryTitle, DeleteCategoryButton } from "./lists/CategoryPane.tsx";
 import { useOutline } from "./lists/useOutline.tsx";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { plural } from "./labels.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
-import { navigate, useRepoPath } from "./routes.tsx";
+import { navigate, useRepoPath, useRepository } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
-import { notePutBack } from "./optimisticLists.ts";
-import { InboxView } from "./views.ts";
+import {
+  inboxEntry,
+  type InboxWrite,
+  movedWrite,
+  outlineWrite,
+  quoted,
+  rowOfNote,
+} from "./inboxUndo.ts";
+import { InboxChangeView } from "./undo/changeViews.ts";
+import { useUndo } from "./undo/useUndo.ts";
 import { proposalFilePage } from "./readAhead.ts";
 
-/** How the list writes a change: it resolves with its refusal, if any. */
-type Run = (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
+/** A write's answer: its refusal, or the inbox with the change the write recorded. */
+type Answer = { error?: unknown; result?: { change?: ChangeView | null } | null };
+
+/**
+ * How the list writes a change, recording `write` on the undo stack once it lands: it resolves with
+ * its refusal, if any, which records nothing.
+ */
+type Run = (call: () => Promise<Answer>, write?: InboxWrite) => Promise<string | undefined>;
 
 /**
  * A note's tags as text after it: `agent`, then its feature's, then its images' count, each apart.
@@ -78,12 +90,21 @@ function addRow(section: { id: string; items: ReadonlyArray<unknown> }, name?: s
   };
 }
 
-/** Writes a change: a refusal is its message, and a conflict reads the inbox again. */
+/**
+ * Writes a change, and records it on the undo stack once it lands: a refusal is its message, and a
+ * conflict reads the inbox again.
+ */
 function useRun(): Run {
   const fate = useFateClient();
-  return async (call) => {
+  const record = useUndo();
+  const repo = useRepository();
+  return async (call, write) => {
     const result = await call();
     if (!result.error) {
+      const change = result.result?.change;
+      if (change && write) {
+        record(inboxEntry(fate, change, write, repo));
+      }
       return undefined;
     }
     const failed = refusal(result.error);
@@ -92,6 +113,37 @@ function useRun(): Run {
     }
     return failed.message;
   };
+}
+
+/**
+ * The write of a note dropped, or moved by a key, `key`, in the category of `section` at `index`,
+ * over the inbox `now`: a move.
+ */
+function placeWrite(
+  fate: ReturnType<typeof useFateClient>,
+  run: Run,
+  now: Inbox,
+  { index, key, section }: { index: number; key: string; section: string },
+) {
+  const panes = panesOf(now);
+  const note = panes.flatMap((pane) => pane.notes).find((one) => one.key === key);
+  const target = panes.find((pane) => sectionId(pane.name) === section);
+  if (!note || !target) {
+    return Promise.resolve("The note or its category is no longer in INBOX.md.");
+  }
+  return run(
+    () =>
+      fate.mutations.inbox.place({
+        input: {
+          hash: now.hash,
+          index: Math.min(index, target.notes.length),
+          note: note.id,
+          ...(target.name === undefined ? {} : { category: target.name }),
+        },
+        view: InboxChangeView,
+      }),
+    movedWrite({ key: note.key, text: plain(note.spans) }),
+  );
 }
 
 /**
@@ -111,47 +163,54 @@ function useInboxOutline(
     {
       add: (now, section, text) => {
         const category = categoryOf(section);
-        return run(() =>
-          fate.mutations.inbox.add({
-            input: { hash: now.hash, text, ...(category === undefined ? {} : { category }) },
-            view: InboxView,
-          }),
+        return run(
+          () =>
+            fate.mutations.inbox.add({
+              input: { hash: now.hash, text, ...(category === undefined ? {} : { category }) },
+              view: InboxChangeView,
+            }),
+          { label: `Added ${quoted(text)}`, subject: text },
         );
       },
       drop: (now, from, to) => {
         const category = "under" in to ? undefined : categoryOf(to.section);
-        return run(() =>
-          fate.mutations.inbox.drop({
-            input: {
-              ...(from.at === undefined ? {} : { at: from.at }),
-              hash: now.hash,
-              index: to.index,
-              note: from.id,
-              ...("under" in to
-                ? {
-                    under: to.under.id,
-                    ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
-                  }
-                : category === undefined
-                  ? {}
-                  : { category }),
-            },
-            view: InboxView,
-          }),
+        const row = rowOfNote(now, from.id, from.at);
+        return run(
+          () =>
+            fate.mutations.inbox.drop({
+              input: {
+                ...(from.at === undefined ? {} : { at: from.at }),
+                hash: now.hash,
+                index: to.index,
+                note: from.id,
+                ...("under" in to
+                  ? {
+                      under: to.under.id,
+                      ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
+                    }
+                  : category === undefined
+                    ? {}
+                    : { category }),
+              },
+              view: InboxChangeView,
+            }),
+          row && movedWrite(row),
         );
       },
       edit: (now, id, at, kind, text) =>
-        run(() =>
-          fate.mutations.inbox.outline({
-            input: {
-              ...(at === undefined ? {} : { at }),
-              hash: now.hash,
-              kind,
-              note: id,
-              ...(text === undefined ? {} : { text }),
-            },
-            view: InboxView,
-          }),
+        run(
+          () =>
+            fate.mutations.inbox.outline({
+              input: {
+                ...(at === undefined ? {} : { at }),
+                hash: now.hash,
+                kind,
+                note: id,
+                ...(text === undefined ? {} : { text }),
+              },
+              view: InboxChangeView,
+            }),
+          outlineWrite(now, id, at, kind, text),
         ),
       held: async () => (await readInbox(fate, "cache-first")).hash,
       read: (now) => ({
@@ -177,77 +236,12 @@ function useInboxOutline(
 
   /** A note dropped, or moved by a key, in its category at an index, in turn with the others. */
   const onMove = (key: string, section: string, index: number) =>
-    outline.write((now) => {
-      const panes = panesOf(now);
-      const note = panes.flatMap((pane) => pane.notes).find((one) => one.key === key);
-      const target = panes.find((pane) => sectionId(pane.name) === section);
-      if (!note || !target) {
-        return Promise.resolve("The note or its category is no longer in INBOX.md.");
-      }
-      return run(() =>
-        fate.mutations.inbox.place({
-          input: {
-            hash: now.hash,
-            index: Math.min(index, target.notes.length),
-            note: note.id,
-            ...(target.name === undefined ? {} : { category: target.name }),
-          },
-          view: InboxView,
-        }),
-      );
-    });
+    outline.write((now) => placeWrite(fate, run, now, { index, key, section }));
   return { onMove, outline };
 }
 
 /** The inbox's outline, as `useOutline` gives it. */
 type InboxOutline = ReturnType<typeof useInboxOutline>["outline"];
-
-/**
- * The Undo of a note's delete: its lines go back to its place, over the inbox as it is now, and the
- * core writes back the note file the delete took away.
- */
-async function putBack(
-  fate: ReturnType<typeof useFateClient>,
-  { category, index, note }: Placed,
-): Promise<string | undefined> {
-  const result = await withFreshBase(
-    (mode) => readInbox(fate, mode),
-    (now) => {
-      const shown = notePutBack(now, { category, index, note });
-      return fate.mutations.inbox.insert({
-        input: {
-          hash: now.hash,
-          index,
-          lines: note.lines,
-          ...(category === undefined ? {} : { category }),
-        },
-        ...(shown ? { optimistic: shown } : {}),
-        view: InboxView,
-      });
-    },
-  );
-  rereadChanges(fate);
-  return result.error ? refusal(result.error).message : undefined;
-}
-
-/**
- * `d`, confirmed: the outline deletes the row, and a note's note file goes with it. A note, not a
- * nested row, gets a toast with Undo, which puts back both. `placedOf` is each note's place, by its
- * row's key.
- */
-function useNoteDelete(outline: InboxOutline) {
-  const fate = useFateClient();
-  const toast = useUndoToast();
-  return (placedOf: ReadonlyMap<string, Placed>) => async (row: WorkRow) => {
-    const placed = placedOf.get(row.key);
-    const isDeleted = await outline.onDelete(row);
-    if (isDeleted && placed) {
-      // The note file may have stayed, edited and not committed: the toast names the note alone.
-      toast("Deleted the note", () => putBack(fate, placed));
-    }
-    return isDeleted;
-  };
-}
 
 /**
  * The sections the list draws, from the `outline`: each category's notes, then its Add row. A
@@ -314,9 +308,6 @@ function sectionsOf({
           placedOf.set(item.key, { category: name, index, note });
           const row: WorkRow = {
             ...drawn,
-            ...(note.file === undefined
-              ? {}
-              : { deleting: deleteNote(item.text, note.file, note.images.length > 0) }),
             // A note with a note file opens its file's page, as a proposal with a file does.
             editsInPlace: isWritten && note.file === undefined,
             href,
@@ -389,7 +380,6 @@ export function InboxList({
   const categoryOf = (section: string) =>
     categories.find((category) => sectionId(category.name) === section)?.name;
   const { onMove, outline } = useInboxOutline(inbox, run, onRefused, categoryOf);
-  const deleteOf = useNoteDelete(outline);
   const images = useInboxImages({ categoryOf, inbox, onRefused, outline });
   const follow = useFollow(outline.follow, select);
   const moving = useMovePicker(categories);
@@ -426,7 +416,7 @@ export function InboxList({
         <WorkList
           follow={follow}
           onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
-          onDelete={deleteOf(placedOf)}
+          onDelete={outline.onDelete}
           onMove={onMove}
           onNest={outline.onNest}
           onOpen={open}

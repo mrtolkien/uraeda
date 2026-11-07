@@ -225,45 +225,6 @@ fn discard_keeps_a_note_file_with_an_image_typed_in() {
     assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
 }
 
-/// The toast's Undo takes the note out, with the note file it wrote and its image.
-#[test]
-fn undo_takes_back_the_note_and_its_untouched_note_file() {
-    let repo = fixture_repo();
-    add_with_image(&repo);
-    repo.write(&format!("specs/notes/{SLUG}/images/stray.webp"), "x");
-    let lines = vec![format!("- [{NOTE}](notes/{SLUG}/note.md)")];
-
-    let inbox = api::undo_note_as_file(repo.path(), &lines).unwrap();
-
-    assert_eq!(inbox.changes, 0);
-    assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
-    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
-}
-
-/// Undo never loses the human's text: once typed in, the note file stays, and only the note goes.
-/// Once the note is gone, Undo is refused.
-#[test]
-fn undo_keeps_a_note_file_typed_in_and_is_refused_once_the_note_is_gone() {
-    let repo = fixture_repo();
-    let path = add_with_image(&repo);
-    let typed = repo.read(&path).replace(
-        &format!("# {NOTE}\n"),
-        &format!("# {NOTE}\n\nIt reads flat.\n"),
-    );
-    repo.write(&path, &typed);
-    let lines = vec![format!("- [{NOTE}](notes/{SLUG}/note.md)")];
-
-    api::undo_note_as_file(repo.path(), &lines).unwrap();
-
-    assert_eq!(repo.read(&path), typed);
-    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
-    let error = api::undo_note_as_file(repo.path(), &lines).unwrap_err();
-    assert_eq!(
-        error.message,
-        format!("Could not undo: \"{NOTE}\" is no longer in INBOX.md.")
-    );
-}
-
 /// Moves the note with an image to Next, over the files as read. Returns its lines as written and
 /// its place in UI, what its Undo takes.
 fn move_to_next(repo: &TestRepo) -> (Vec<String>, u32) {
@@ -286,15 +247,13 @@ fn move_to_next(repo: &TestRepo) -> (Vec<String>, u32) {
 
 /// US6 3: the note, moved to Next, links its file there, moved among the proposals, `note.md`
 /// becoming `proposal.md`, its image with it, and the freeform note file takes the proposal
-/// template's shape, the note's text as its What; the move's Undo moves the file back, freeform
-/// again.
+/// template's shape, the note's text as its What.
 #[test]
-fn a_note_file_moves_to_the_proposals_with_its_note_and_back_on_undo() {
+fn a_note_file_moves_to_the_proposals_with_its_note() {
     let repo = fixture_repo();
     add_with_image(&repo);
-    let written = repo.read(&note_file());
 
-    let (lines, index) = move_to_next(&repo);
+    move_to_next(&repo);
 
     let moved = format!("specs/proposals/{SLUG}/proposal.md");
     let priorities = repo.read("specs/PRIORITIES.md");
@@ -312,18 +271,6 @@ fn a_note_file_moves_to_the_proposals_with_its_note_and_back_on_undo() {
     );
     assert!(repo.exists(&format!("specs/proposals/{SLUG}/images/spec-headings.webp")));
     assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
-
-    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
-        .unwrap();
-
-    assert_eq!(repo.read(&note_file()), written);
-    assert!(repo.exists(&format!("specs/notes/{SLUG}/images/spec-headings.webp")));
-    assert!(!repo.exists(&format!("specs/proposals/{SLUG}")));
-    assert!(!repo.read("specs/PRIORITIES.md").contains(NOTE));
-    assert!(
-        repo.read(INBOX)
-            .contains(&format!("- [{NOTE}](notes/{SLUG}/note.md)\n"))
-    );
 }
 
 /// A note with a note file made a new proposal file moves its file there, rather than writing one:
@@ -349,23 +296,19 @@ fn a_note_with_a_file_made_a_proposal_file_moves_its_file() {
     assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
 }
 
-/// A note whose link names a note file the disk lacks moves to the priorities as text, and its
-/// Undo takes that line back.
+/// A note whose link names a note file the disk lacks moves to the priorities as text.
 #[test]
 fn a_note_linking_a_missing_note_file_moves_as_text() {
     let repo = fixture_repo();
     add_with_image(&repo);
     std::fs::remove_dir_all(repo.path().join(format!("specs/notes/{SLUG}"))).unwrap();
 
-    let (lines, index) = move_to_next(&repo);
+    move_to_next(&repo);
 
     assert!(
         repo.read("specs/PRIORITIES.md")
             .contains(&format!("- [{NOTE}](notes/{SLUG}/note.md)\n"))
     );
-    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
-        .unwrap();
-    assert!(!repo.read("specs/PRIORITIES.md").contains(NOTE));
 }
 
 /// A committed note's file its move put among the proposals: Discard moves it back, and Commit
@@ -419,49 +362,26 @@ fn noted(repo: &TestRepo) -> (uraeda_core::files::inbox::InboxNote, u32) {
 }
 
 /// A removed note takes its note file with it, image included, while it holds only what the note
-/// wrote; Undo, which inserts the note's lines back, writes the file back byte for byte.
+/// wrote.
 #[test]
-fn a_removed_notes_file_comes_back_byte_for_byte_on_undo() {
+fn a_removed_note_takes_its_file() {
     let repo = fixture_repo();
     add_with_image(&repo);
-    let written = repo.read(&note_file());
-    let image = repo
-        .path()
-        .join(format!("specs/notes/{SLUG}/images/spec-headings.webp"));
-    let bytes = std::fs::read(&image).unwrap();
-    let (note, index) = noted(&repo);
+    let (note, _) = noted(&repo);
     let hash = api::read_inbox(repo.path()).unwrap().hash;
 
-    let removed = api::remove_note(repo.path(), &note.id, &hash).unwrap();
+    api::remove_note(repo.path(), &note.id, &hash).unwrap();
 
     assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
-
-    api::insert_note(
-        repo.path(),
-        Some("UI".into()),
-        index,
-        &note.lines,
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert_eq!(repo.read(&note_file()), written);
-    assert_eq!(std::fs::read(&image).unwrap(), bytes);
 }
 
 /// A note deleted as the outline deletes a row, the web UI's `d`, takes its note file with it,
-/// image included, as a removal does; Undo, which inserts the note's lines back, writes the file
-/// back byte for byte.
+/// image included, as a removal does.
 #[test]
-fn a_note_deleted_by_the_outline_takes_its_file_and_undo_brings_it_back() {
+fn a_note_deleted_by_the_outline_takes_its_file() {
     let repo = fixture_repo();
     add_with_image(&repo);
-    let written = repo.read(&note_file());
-    let image = repo
-        .path()
-        .join(format!("specs/notes/{SLUG}/images/spec-headings.webp"));
-    let bytes = std::fs::read(&image).unwrap();
-    let (note, index) = noted(&repo);
+    let (note, _) = noted(&repo);
     let hash = api::read_inbox(repo.path()).unwrap().hash;
 
     let removed = api::outline_note(repo.path(), &note.id, None, "remove", None, &hash).unwrap();
@@ -474,19 +394,6 @@ fn a_note_deleted_by_the_outline_takes_its_file_and_undo_brings_it_back() {
             .iter()
             .all(|other| other.file != Some(note_file()))
     }));
-
-    api::insert_note(
-        repo.path(),
-        Some("UI".into()),
-        index,
-        &note.lines,
-        &removed.hash,
-    )
-    .unwrap();
-
-    assert!(repo.read(INBOX).contains(NOTE));
-    assert_eq!(repo.read(&note_file()), written);
-    assert_eq!(std::fs::read(&image).unwrap(), bytes);
 }
 
 /// A note file typed in since its note wrote it, and not committed so, survives the note's
@@ -508,21 +415,16 @@ fn a_typed_in_uncommitted_note_file_survives_its_notes_removal() {
     assert_eq!(repo.read(&note_file()), typed);
 }
 
-/// A category removed with its notes takes their note files, and its restore brings them back.
+/// A category removed with its notes takes their note files.
 #[test]
-fn a_category_removed_with_its_notes_takes_their_files_until_restored() {
+fn a_category_removed_with_its_notes_takes_their_files() {
     let repo = fixture_repo();
     add_with_image(&repo);
-    let written = repo.read(&note_file());
     let hash = api::read_inbox(repo.path()).unwrap().hash;
 
-    let (removed, before) = api::remove_category(repo.path(), "UI", false, &hash).unwrap();
+    api::remove_category(repo.path(), "UI", false, &hash).unwrap();
 
     assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
-
-    api::restore_category(repo.path(), &before, &removed.hash).unwrap();
-
-    assert_eq!(repo.read(&note_file()), written);
 }
 
 /// A committed note's file its note's removal took away: Discard brings it back, and Commit holds
@@ -875,9 +777,8 @@ fn a_committed_note_file_edited_since_survives_its_notes_removal_and_commit() {
 const LISTENER: &str = "specs/proposals/git-listener.md";
 
 /// A note with a note file added to a proposal file goes into its `## Notes`, its image beside it,
-/// the single proposal file made a folder for it, and its note file leaves; Undo puts the note file
-/// back, and the proposal file as it was. Committed or not before, the commit holds the proposal
-/// file's folder and its image.
+/// the single proposal file made a folder for it, and its note file leaves. Committed or not
+/// before, the commit holds the proposal file's folder and its image.
 #[test]
 fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
     for committed in [false, true] {
@@ -893,8 +794,7 @@ fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
             api::commit_changes(repo.path()).unwrap();
             repo.keep();
         }
-        let written = repo.read(&note_file());
-        let (note, index) = noted(&repo);
+        let (note, _) = noted(&repo);
         let hash = api::read_inbox(repo.path()).unwrap().hash;
 
         let moved = api::note_into_proposal(repo.path(), &note.id, LISTENER, &hash).unwrap();
@@ -909,23 +809,6 @@ fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
             repo.read(&moved)
         );
 
-        let inbox = api::undo_note_into_proposal(
-            repo.path(),
-            LISTENER,
-            &note.lines,
-            Some("UI".into()),
-            index,
-        )
-        .unwrap();
-
-        assert_eq!(repo.read(&note_file()), written);
-        assert_eq!(
-            repo.read(LISTENER),
-            fixture_text("repo/main/specs/proposals/git-listener.md")
-        );
-        assert!(!repo.exists("specs/proposals/git-listener"));
-
-        api::note_into_proposal(repo.path(), &note.id, LISTENER, &inbox.hash).unwrap();
         api::commit_changes(repo.path()).unwrap();
 
         let changed = repo.changed_in("main");
@@ -1010,16 +893,9 @@ fn template_shaped(repo: &TestRepo) {
 }
 
 /// A note file older tools wrote from the proposal template still counts as what its note wrote:
-/// Undo, Discard, and the note's removal each take it away with its image.
+/// Discard and the note's removal each take it away with its image.
 #[test]
 fn a_template_shaped_note_file_still_leaves_with_its_note() {
-    let undone = fixture_repo();
-    add_with_image(&undone);
-    template_shaped(&undone);
-    let lines = vec![format!("- [{NOTE}](notes/{SLUG}/note.md)")];
-    api::undo_note_as_file(undone.path(), &lines).unwrap();
-    assert!(!undone.exists(&format!("specs/notes/{SLUG}")));
-
     let discarded = fixture_repo();
     add_with_image(&discarded);
     template_shaped(&discarded);
@@ -1037,7 +913,7 @@ fn a_template_shaped_note_file_still_leaves_with_its_note() {
 }
 
 /// A note file older tools wrote from the proposal template is a proposal's shape already: moved to
-/// the priorities with its note, it is moved as it is, and back as it was on Undo.
+/// the priorities with its note, it is moved as it is.
 #[test]
 fn a_template_shaped_note_file_moves_to_the_proposals_as_it_is() {
     let repo = fixture_repo();
@@ -1045,36 +921,12 @@ fn a_template_shaped_note_file_moves_to_the_proposals_as_it_is() {
     template_shaped(&repo);
     let written = repo.read(&note_file());
 
-    let (lines, index) = move_to_next(&repo);
+    move_to_next(&repo);
 
     assert_eq!(
         repo.read(&format!("specs/proposals/{SLUG}/proposal.md")),
         written
     );
-
-    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
-        .unwrap();
-
-    assert!(repo.exists(&note_file()));
-}
-
-/// A note file promoted to a proposal and edited there stays as the human left it when the move is
-/// undone: only a proposal file still as the move made it becomes freeform again.
-#[test]
-fn a_promoted_note_file_edited_since_goes_back_as_it_is() {
-    let repo = fixture_repo();
-    add_with_image(&repo);
-    let (lines, index) = move_to_next(&repo);
-    let moved = format!("specs/proposals/{SLUG}/proposal.md");
-    let edited = repo
-        .read(&moved)
-        .replace("## Why\n", "## Why\n\nMy eyes.\n");
-    repo.write(&moved, &edited);
-
-    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
-        .unwrap();
-
-    assert_eq!(repo.read(&note_file()), edited);
 }
 
 /// Discard takes back a committed note file's promotion: the note file goes back among the notes,

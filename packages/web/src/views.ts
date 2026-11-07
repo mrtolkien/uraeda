@@ -225,14 +225,6 @@ export const PrioritiesView = view<Priorities>()({
   sections: true,
 });
 
-/** The priorities as an add answers them: its sections, the line added ending its own. */
-export const PrioritiesAddedView = view<Priorities>()({
-  changes: true,
-  hash: true,
-  id: true,
-  sections: true,
-});
-
 /** The inbox: its notes by category, every category's name, and the changes to commit. */
 export const InboxView = view<Inbox>()({
   categories: true,
@@ -241,18 +233,6 @@ export const InboxView = view<Inbox>()({
   hash: true,
   id: true,
   names: true,
-  triage: true,
-});
-
-/** The inbox as a category's delete answers it: with `removed`, the file as it was. */
-export const InboxRemovedView = view<Inbox>()({
-  categories: true,
-  changes: true,
-  count: true,
-  hash: true,
-  id: true,
-  names: true,
-  removed: true,
   triage: true,
 });
 

@@ -44,7 +44,7 @@ fn markdown_of_specs(path: &str) -> Result<()> {
 /// Refuses a path of the checkout at `root` that a symlink takes outside its `specs/`: the nearest
 /// part of it on disk, a link to a missing file included, resolves inside `specs/`, and the rest is
 /// plain names.
-fn inside(root: &Path, path: &str) -> Result<()> {
+pub(super) fn inside(root: &Path, path: &str) -> Result<()> {
     let refuse = || not_a_buffer(path);
     let specs = std::fs::canonicalize(root)
         .map_err(|_| refuse())?
@@ -96,7 +96,7 @@ pub fn buffer_folder(repo: &Path, path: &str) -> Result<Option<String>> {
 
 /// The branch a buffer's file is written on: its feature's or its change's, when it has one, else
 /// the default branch.
-fn branch_of(workspace: &Workspace, path: &str) -> Result<String> {
+pub(super) fn branch_of(workspace: &Workspace, path: &str) -> Result<String> {
     if let Some(branch) = owner(workspace, path).and_then(|feature| feature.branch.clone()) {
         return Ok(branch);
     }

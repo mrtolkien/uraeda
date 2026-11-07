@@ -15,14 +15,16 @@ import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ImageView } from "./ImageView.tsx";
-import { imageName, removeNoteImage, restoreNoteImage } from "./inboxImages.ts";
+import { imageName, removeNoteImage } from "./inboxImages.ts";
+import { inboxEntry, rereadingFile, rowOfNote } from "./inboxUndo.ts";
+import { quoted } from "./undo/quoted.ts";
 import type { Inbox } from "./inboxPanes.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
 import { OutlineImages } from "./lists/OutlineEditor.tsx";
 import { useAttachToNote } from "./NoteImage.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
 import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { imagePath } from "./Spans.tsx";
+import { useUndo } from "./undo/useUndo.ts";
 
 const styles = stylex.create({
   // Under the row, from its text's edge, over the rows after it: it pushes none of them. On a
@@ -121,6 +123,68 @@ function noteOfRow(outline: Outline, key: string) {
 }
 
 /**
+ * The removal of an image from a note's file, recorded on the undo stack with the change it
+ * answered: its undo puts the lines linking it back, and its redo removes it again. A refusal goes
+ * to `onRefused`.
+ */
+function useImageRemoval(onRefused: (message: string | undefined) => void) {
+  const fate = useFateClient();
+  const record = useUndo();
+  const repo = useRepository();
+  return async (note: InboxNote, path: string) => {
+    // A read that failed, the connection lost, shows as a refusal does, never as a rejection.
+    const change = await removeNoteImage(fate, note, path).catch((error: unknown) =>
+      error instanceof Error ? error.message : String(error),
+    );
+    if (typeof change === "string") {
+      onRefused(change);
+      return;
+    }
+    if (change === undefined) {
+      return;
+    }
+    const write = {
+      label: `Removed ${imageName(path)} from the note's file`,
+      select: note.key,
+      subject: imageName(path),
+    };
+    record(rereadingFile(fate, inboxEntry(fate, change, write, repo), note.file ?? ""));
+  };
+}
+
+/**
+ * Adds images to a note, as `useAttachToNote` does, over the inbox `now`, and records the add on
+ * the undo stack with the change it answered: "Added an image to “Idea one”".
+ */
+function useAttachRecorded() {
+  const fate = useFateClient();
+  const record = useUndo();
+  const repo = useRepository();
+  const { attach, status } = useAttachToNote();
+  const attachTo = async (
+    now: Pick<Inbox, "categories" | "hash">,
+    note: InboxNote,
+    files: Array<File>,
+  ) => {
+    const sent = await attach({ hash: now.hash, id: note.id }, files);
+    if (typeof sent === "string") {
+      return sent;
+    }
+    // The note as written now: its text saved just before, when its field was open.
+    const row = rowOfNote(now, note.id) ?? { key: note.key, text: note.text };
+    const images = files.length === 1 ? "an image" : `${files.length} images`;
+    const label = `Added ${images} to ${quoted(row.text)}`;
+    if (sent.change) {
+      const write = { label, select: row.key, subject: row.text };
+      const entry = inboxEntry(fate, sent.change, write, repo);
+      record(rereadingFile(fate, entry, sent.file));
+    }
+    return undefined;
+  };
+  return { attach: attachTo, status };
+}
+
+/**
  * The images of the inbox's notes: `imagesOf` draws a note's under its row, `withPaste` gives a
  * row's field the paste of images into its note, and `dropZone` takes the files dropped on the page
  * for the selected note (`onSelected` hears it), or, with none, for a new note: the add form opens
@@ -137,20 +201,18 @@ export function useInboxImages({
   onRefused: (message: string | undefined) => void;
   outline: Outline;
 }) {
-  const fate = useFateClient();
-  const toast = useUndoToast();
   const openForm = useOpenAddForm();
-  const { attach, status } = useAttachToNote();
+  const { attach: attachTo, status } = useAttachRecorded();
   const box = useRef<HTMLDivElement>(null);
   const selected = useRef<string | undefined>(undefined);
 
   /**
    * Adds `files` to `note`: after the writes asked before, as the text its field just saved, when
    * `isAfterWrites`, or when its line will link the note file written for it; at once into the
-   * note file it links, which leaves `INBOX.md` as it is.
+   * note file it links, which leaves `INBOX.md` as it is. Once added, it goes on the undo stack.
    */
   const toNote = (note: InboxNote, files: Array<File>, isAfterWrites: boolean) => {
-    const call = (now: Pick<Inbox, "hash">) => attach({ hash: now.hash, id: note.id }, files);
+    const call = (now: Pick<Inbox, "categories" | "hash">) => attachTo(now, note, files);
     if (isAfterWrites || note.file === undefined) {
       void outline.write(call);
     } else {
@@ -185,14 +247,7 @@ export function useInboxImages({
     ref: box,
   });
 
-  const remove = async (note: InboxNote, path: string) => {
-    const removed = await removeNoteImage(fate, note, path);
-    if (typeof removed === "string") {
-      onRefused(removed);
-      return;
-    }
-    toast(`Removed ${imageName(path)} from the note's file`, () => restoreNoteImage(fate, removed));
-  };
+  const remove = useImageRemoval(onRefused);
 
   return {
     /** Wraps the list: the drop's zone, outlined while it is the drop's target. */

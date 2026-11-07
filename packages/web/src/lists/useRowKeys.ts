@@ -3,7 +3,6 @@
 // do it, and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`).
 // The state they set is what `Card` reads: which card is edited.
 import { useState } from "react";
-import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
 import { isPending } from "./outline.ts";
 import type { RowState, WorkRow } from "./Card.tsx";
 import type { BarAction } from "./RowBar.tsx";
@@ -51,7 +50,7 @@ const isLine = (row: WorkRow) => row.parent === undefined;
 
 /** What the row keys call, each given only where the list can do it (see `useRowKeys`). */
 type RowHandlers = {
-  /** What `d` calls once the human confirmed: it deletes the line. */
+  /** What `d` calls: it deletes the line at once, which its undo brings back. */
   onDelete?: ((row: WorkRow) => void) | undefined;
   /** What `m` calls where the list moves its rows: it puts the row in the move mode. */
   onMoveMode?: ((row: WorkRow) => void) | undefined;
@@ -168,14 +167,13 @@ function promoteKey(
 }
 
 /**
- * `d`: the line selected, and deleted by `onDelete` once the human confirmed it, asked the row's own
- * question when it has one.
+ * `d`: the line selected and deleted by `onDelete` at once, as its undo brings it back: a second
+ * `d` deletes the next line.
  */
 function deleteKey(
   rows: ReadonlyArray<WorkRow>,
   select: (key: string) => void,
   onDelete: (row: WorkRow) => void,
-  confirm: ReturnType<typeof useConfirm>,
 ): BarKey {
   return {
     bar: { icon: "uraeda:trash", keys: "d" },
@@ -187,12 +185,7 @@ function deleteKey(
         return false;
       }
       select(row.key);
-      // The question takes `d` again for yes: `d d` deletes, as `y` does.
-      void confirm(row.deleting ?? deleteLine(row.text)).then((isConfirmed) => {
-        if (isConfirmed) {
-          onDelete(row);
-        }
-      });
+      onDelete(row);
     },
   };
 }
@@ -345,7 +338,6 @@ export function useRowKeys(
     rowActions = [],
   }: RowHandlers = {},
 ) {
-  const confirm = useConfirm();
   const rows = sections.flatMap((section) => section.rows);
   const { editing, setEditing, state } = useRowState(rows);
 
@@ -370,7 +362,7 @@ export function useRowKeys(
   }
   keys.push(
     ...(onPromote === undefined ? [] : [promoteKey(rows, select, onPromote)]),
-    ...(onDelete === undefined ? [] : [deleteKey(rows, select, onDelete, confirm)]),
+    ...(onDelete === undefined ? [] : [deleteKey(rows, select, onDelete)]),
     ...actionKeys(rows, select, rowActions),
     ...(onPickSection === undefined ? [] : [pickerKey(rows, select, onPickSection)]),
   );
