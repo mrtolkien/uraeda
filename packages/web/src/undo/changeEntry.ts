@@ -4,7 +4,7 @@ import { type useFateClient, view } from "react-fate";
 import type { ChangeView } from "uraeda-binding";
 import type { Undo } from "uraeda-server/fate";
 import { rereadChanges } from "../data.ts";
-import { guarded, refusal } from "../errors.ts";
+import { refusal } from "../errors.ts";
 import type { UndoEntry } from "./stack.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -18,7 +18,8 @@ const CommittedView = view<Undo>()({ committed: true, id: true });
 /**
  * The entry of a write that answered `change`, labelled `label`, which happened at `place`. Its undo
  * and redo write the change back and forward, each resolving with the refusal the server answered,
- * "Could not undo: “Color themes” changed since in PRIORITIES.md.", `subject` the name it gives.
+ * "Could not undo: “Color themes” changed since in PRIORITIES.md.", `subject` the name it gives,
+ * and rejecting when the request failed: the stack keeps the entry for another try.
  * After each, the change's commit is the one the checkout was at then: a commit since that undo
  * makes its redo ask too. The answers are read from the mutations, as the record's id is fixed.
  */
@@ -31,13 +32,24 @@ export function changeEntry(
 ): UndoEntry {
   let now = change;
   const apply = async (direction: "redo" | "undo") => {
-    const result = await guarded(() =>
-      fate.mutations.undo.apply({ input: { change: now, direction, subject }, view: AppliedView }),
-    );
-    // The lists, which show the change's count, are read again with what came back.
-    rereadChanges(fate);
+    let result;
+    try {
+      result = await fate.mutations.undo.apply({
+        input: { change: now, direction, subject },
+        view: AppliedView,
+      });
+    } finally {
+      // The lists, which show the change's count, are read again with what came back.
+      rereadChanges(fate);
+    }
     if (result.error) {
-      return refusal(result.error).message;
+      // Only the core's refusal drops the entry: a lost connection or a server's failure rejects,
+      // leaving it on its side for another try.
+      const text = result.error instanceof Error ? result.error.message : String(result.error);
+      if (!/^(refused|conflict): /.test(text)) {
+        throw result.error instanceof Error ? result.error : new Error(text);
+      }
+      return refusal(text).message;
     }
     now = { ...now, commit: result.result?.commit ?? now.commit };
     return undefined;
