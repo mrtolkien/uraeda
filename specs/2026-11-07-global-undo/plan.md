@@ -409,7 +409,8 @@ git commit -m "feat(global-undo): record each write as a change the core can und
 
 **Files:**
 
-- Modify: `packages/web/src/keys/match.ts` (`isCanonical`)
+- Modify: `packages/web/src/keys/match.ts` (`isCanonical`), `packages/web/src/keys/store.ts` (the
+  error naming the canonical forms)
 - Test: `packages/web/src/__tests__/keys-match.test.ts` (`:160`)
 
 **Interfaces:**
@@ -417,14 +418,14 @@ git commit -m "feat(global-undo): record each write as a change the core can und
 - Produces: `isCanonical("mod+shift+z") === true`: `mod+shift+` followed by a lowercase character,
   as `tokenOf` writes Ctrl+Shift+Z. `mod+shift+<capital>` stays rejected.
 
-- [ ] **Step 1: Rewrite the test at `:160`**: `mod+shift+k` is canonical, `mod+shift+K` is not. The
+- [x] **Step 1: Rewrite the test at `:160`**: `mod+shift+k` is canonical, `mod+shift+K` is not. The
       break it catches: a chord `tokenOf` produces that no binding could declare.
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c vp test packages/web/src/__tests__/keys-match.test.ts`
   - Expected: FAIL, `expected false to be true`
-- [ ] **Step 3: Accept the form in `isCanonical`**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Accept the form in `isCanonical`**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/keys/match.ts packages/web/src/__tests__/keys-match.test.ts

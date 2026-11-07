@@ -93,7 +93,8 @@ const NAMED = /^[A-Z][A-Za-z0-9]+$/;
 /**
  * Whether a token of a binding is one `tokenOf` can give, so it can ever run: Space is `space`; a
  * printable character is itself, in the case Shift gives it; `mod+` goes before a printable
- * character, lowercase, or a named key (`mod+Enter`); a named key is spelt as the browser spells it,
+ * character, lowercase, or a named key (`mod+Enter`), and `mod+shift+` before a printable
+ * character, lowercase (`mod+shift+z`); a named key is spelt as the browser spells it,
  * with `shift+` before it or not. A modifier is lowercase, and Alt is no binding's.
  */
 export function isCanonical(token: string) {
@@ -105,6 +106,11 @@ export function isCanonical(token: string) {
   }
   const modded = token.startsWith("mod+") ? token.slice(4) : null;
   if (modded !== null) {
+    // With Shift too, only a character: Ctrl+Shift+Z is `mod+shift+z`, as for redo.
+    const shifted = modded.startsWith("shift+") ? modded.slice(6) : null;
+    if (shifted !== null) {
+      return isPrintable(shifted) && shifted !== " " && shifted === shifted.toLowerCase();
+    }
     return isPrintable(modded)
       ? modded !== " " && modded === modded.toLowerCase()
       : isNamed(modded);
