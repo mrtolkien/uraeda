@@ -46,9 +46,10 @@ test("Escape leaves a comment keeping its text, and the page's keys work again",
   // Breaks if Escape clears the text, or keeps the focus in the field.
   expect(document.activeElement).not.toBe(field);
   expect(fieldText(field)).toBe("draft");
-  // The page's `n` jumps to the first unanswered question again: its title has the focus.
+  // The page's `n` jumps to the first unanswered question again: a key's jump gives its card the
+  // focus, the cursor's, so its letters pick.
   await press("n");
-  await waitFor(() => expect(document.activeElement?.id).toBe("Q1-title"));
+  await waitFor(() => expect(document.activeElement?.id).toBe("Q1"));
 });
 
 test("a field's text survives a Compartment swap", async () => {
