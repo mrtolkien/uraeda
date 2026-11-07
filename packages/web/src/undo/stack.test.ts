@@ -298,6 +298,25 @@ describe("an entry recorded while an undo is on its way", () => {
     expect(await stack.undo(never)).toEqual({ kind: "empty" });
   });
 
+  test("a new action landing before a redo resolves keeps the redone entry off the stack", async () => {
+    const stack = createUndoStack(clock().now);
+    const held = Promise.withResolvers<undefined>();
+    const first = entry("First", { redo: vi.fn(() => held.promise) });
+    stack.record(first);
+    await stack.undo(never);
+    const redone = stack.redo(never);
+    await vi.waitFor(() => expect(first.redo).toHaveBeenCalledOnce());
+    const second = entry("Second");
+    stack.record(second);
+    held.resolve(undefined);
+    expect(await redone).toEqual({ entry: first, kind: "done" });
+    // The new action stays on top, and the redo, landing after it, is on neither side.
+    expect(stack.top()).toBe(second);
+    expect(stack.canRedo()).toBe(false);
+    expect(await stack.undo(never)).toEqual({ entry: second, kind: "done" });
+    expect(await stack.undo(never)).toEqual({ kind: "empty" });
+  });
+
   test("a move within the second of a run being undone is its own entry", async () => {
     const time = clock();
     const stack = createUndoStack(time.now);
