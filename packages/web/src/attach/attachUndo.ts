@@ -77,7 +77,8 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
       // The whole file, its frontmatter too, as the links' save wrote it: an edit of either since
       // is not the action's to take back.
       if (!now || now.text !== `${attached.start.head}${attached.text}`) {
-        return `Could not undo: “${subject}” changed since in ${attached.path}.`;
+        const name = attached.path.split("/").at(-1);
+        return `Could not undo: “${subject}” changed since in ${name}.`;
       }
       const saved = images.files.find((file) => file.path === attached.path);
       const files = saved
