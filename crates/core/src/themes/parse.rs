@@ -89,13 +89,12 @@ pub fn parse(text: &str) -> Parsed {
 
 /// A top-level key of the file, at line `at`.
 fn top_level(parsed: &mut Parsed, text: &str, key: &str, item: &Item, at: Option<u32>) {
-    let line_of = |at: Option<u32>| at.map_or_else(String::new, |at| format!("Line {at}: "));
     match key {
         "name" => match item.as_str() {
             Some(name) => parsed.name = Some(name.to_owned()),
             None => parsed.warning(
                 at,
-                format!("{}name is not text in quotes, and is ignored.", line_of(at)),
+                format!("{}name is not text in quotes, and is ignored.", at_line(at)),
             ),
         },
         "mode" => match item.as_str() {
@@ -105,7 +104,7 @@ fn top_level(parsed: &mut Parsed, text: &str, key: &str, item: &Item, at: Option
                 at,
                 format!(
                     "{}mode is {}: write \"dark\" or \"light\".",
-                    line_of(at),
+                    at_line(at),
                     shown(item)
                 ),
                 true,
@@ -118,20 +117,20 @@ fn top_level(parsed: &mut Parsed, text: &str, key: &str, item: &Item, at: Option
             }
             None => parsed.error(
                 at,
-                format!("{}extends is a theme's id in quotes.", line_of(at)),
+                format!("{}extends is a theme's id in quotes.", at_line(at)),
                 true,
             ),
         },
         "palette" | "roles" => match item.as_table_like() {
             Some(table) if key == "palette" => palette(parsed, text, table),
             Some(table) => roles(parsed, text, table),
-            None => parsed.error(at, format!("{}{key} is a table.", line_of(at)), true),
+            None => parsed.error(at, format!("{}{key} is a table.", at_line(at)), true),
         },
         _ => parsed.warning(
             at,
             format!(
                 "{}{key} is not a key of a theme, and is ignored.",
-                line_of(at)
+                at_line(at)
             ),
         ),
     }
@@ -150,7 +149,7 @@ fn palette(parsed: &mut Parsed, text: &str, table: &dyn TableLike) {
 /// The `[roles]` table's entries, each a known role naming a palette entry or giving a colour.
 fn roles(parsed: &mut Parsed, text: &str, table: &dyn TableLike) {
     for (role, item, at) in entries(text, table) {
-        let prefix = at.map_or_else(String::new, |at| format!("Line {at}: "));
+        let prefix = at_line(at);
         if !ROLES.contains(&role.as_str()) {
             parsed.warning(at, format!("{prefix}{role} is not a role, and is ignored."));
             continue;
@@ -190,7 +189,7 @@ fn entries<'a>(text: &str, table: &'a dyn TableLike) -> Vec<(String, &'a Item, O
 }
 
 fn not_a_colour(at: Option<u32>, name: &str, item: &Item) -> String {
-    let prefix = at.map_or_else(String::new, |at| format!("Line {at}: "));
+    let prefix = at_line(at);
     format!(
         "{prefix}{name} is {}, which is not a colour: write #rrggbb or #rrggbbaa.",
         shown(item)
@@ -214,6 +213,10 @@ fn shown(item: &Item) -> String {
 
 /// The line of the byte `offset` in `text`, from 1.
 fn line(text: &str, offset: usize) -> u32 {
-    let count = text[..offset.min(text.len())].matches('\n').count() + 1;
-    u32::try_from(count).unwrap_or(u32::MAX)
+    u32::try_from(crate::settings::line(text, offset)).unwrap_or(u32::MAX)
+}
+
+/// The start of a problem's message at line `at`, `Line 3: `; empty for a whole-file problem.
+pub fn at_line(at: Option<u32>) -> String {
+    at.map_or_else(String::new, |at| format!("Line {at}: "))
 }

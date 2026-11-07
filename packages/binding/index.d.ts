@@ -2388,7 +2388,12 @@ export interface ThemeFile {
 
 /** A problem of a theme file: an error, or a warning, which never leaves the lists. */
 export interface ThemeProblem {
+  /** The line it is on, from 1, to sort and to point at; absent for the whole file. */
   line?: number
+  /**
+   * The full text as shown, some already beginning `Line 4: `: a UI must never prefix the line
+   * itself.
+   */
   message: string
   isWarning: boolean
 }

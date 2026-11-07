@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::parse::Expr;
+use super::parse::{Expr, at_line};
 use super::{DEFAULT_DARK, DEFAULT_LIGHT, Source, Theme, ThemeFile, contrast};
 
 /// A theme resolved: its mode, its merged palette, and each role's value, inherited ones included.
@@ -200,9 +200,10 @@ impl Walk {
         for (role, expr, at) in parsed.roles.clone() {
             match &expr {
                 Expr::Name(name) if !palette.contains_key(name) => {
-                    let prefix = at.map_or_else(String::new, |at| format!("Line {at}: "));
-                    let message =
-                        format!("{prefix}{role} names \"{name}\", which is not in the palette.");
+                    let message = format!(
+                        "{}{role} names \"{name}\", which is not in the palette.",
+                        at_line(at)
+                    );
                     parsed.error(at, message, false);
                 }
                 _ => {
