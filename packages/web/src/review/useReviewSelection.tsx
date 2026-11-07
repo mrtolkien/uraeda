@@ -4,7 +4,8 @@ import { AddingNote, FormSlot } from "../ReviewCommentForm.tsx";
 import { PendingComment, type usePlacedComments } from "../ReviewComments.tsx";
 import { holderOf } from "../reviewField.ts";
 import type { DecisionRange, PartSelection, Selection } from "../Selection.tsx";
-import type { Last, Range, useCommentDraft } from "../useCommentDraft.ts";
+import type { Range } from "../commentRange.ts";
+import type { Last, useCommentDraft } from "../useCommentDraft.ts";
 import type { Adding, useReviewActions } from "../useReviewActions.ts";
 
 /**

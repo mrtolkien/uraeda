@@ -8,7 +8,7 @@ import type { Block } from "uraeda-binding";
 import type { useFile } from "../data.ts";
 import { quoteOfRange } from "../reviewQuote.ts";
 import type { Selection } from "../Selection.tsx";
-import type { Range } from "../useCommentDraft.ts";
+import type { Range } from "../commentRange.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 

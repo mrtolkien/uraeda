@@ -2,8 +2,7 @@
 // between their anchor and head in either order, under the upper block's heading, and never across
 // two files; a tap adds its lines under the first block's heading.
 import { expect, test } from "vite-plus/test";
-import { merged, spanned } from "../commentRange.ts";
-import type { Range } from "../useCommentDraft.ts";
+import { merged, spanned, type Range } from "../commentRange.ts";
 
 const KEY = { end: 92, heading: "US2", start: 92 };
 const NEXT = { end: 95, heading: "US3", start: 93 };
