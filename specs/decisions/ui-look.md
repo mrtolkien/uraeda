@@ -1,15 +1,15 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: palette
 ---
 
 # UI look
 
-Uraeda looks like a terminal tool: a monospace font, Catppuccin colours, square corners, and
-bordered panes with their title in their border, as in Neovim, with frosted glass for what floats
-over the page. The look lives in one theme, so the whole UI changes together. Only the fonts step
-outside it: the human picks one for each role.
+Uraeda looks like a terminal tool: a monospace font, square corners, and bordered panes with their
+title in their border, as in Neovim, with frosted glass for what floats over the page. The look
+lives in one theme, so the whole UI changes together. Only the fonts and the colours step outside
+it: the human picks a font for each role, and a [colour theme](colour-themes.md) for each mode.
 
 ## Rules
 
@@ -20,9 +20,8 @@ outside it: the human picks one for each role.
 - Text MUST be set for readability first, in the font picked for its role: a monospace font by
   default, and a proportional one where it reads better, such as long prose.
 - Text MUST be set at the reading size the human chose, once, in the theme.
-- A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
 - Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, the
-  contrast WCAG AA asks for, in every scheme. Checked by a test of the theme's tokens.
+  contrast WCAG AA asks for, in every shipped colour theme. Checked by a test of the shipped themes.
 - Fonts MUST be bundled with the app under an open licence, with no file loaded from another host.
   Checked by a test of the built app.
 - A harness, the tool that runs an agent such as Claude Code, MUST be marked by Codicons' drawing of
@@ -35,8 +34,8 @@ outside it: the human picks one for each role.
 ## Why
 
 The UI looked vanilla and unfinished, and of five directions mocked up over the same views, the
-terminal one read best. Catppuccin's Mocha and Latte give a dark and a light mode, with more schemes
-to come. On a phone, a pane's whole border sets its text apart, and a few pixels of room keep the
+terminal one read best. Its colours come from colour themes, Catppuccin's Mocha and Latte by
+default. On a phone, a pane's whole border sets its text apart, and a few pixels of room keep the
 narrow lines wide
 ([the question](../done/2026-10-30-reading-pass.md#q2-should-a-pane-keep-its-whole-border-on-the-phone)).
 Fonts are bundled because the server listens on its own machine and often runs offline. History:
