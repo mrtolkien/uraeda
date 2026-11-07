@@ -13,8 +13,18 @@ import {
   previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
-import { freePort } from "../runner.ts";
-import { alive, checkoutOf, fakeClock, previews, ready, storyCheckout, WAIT } from "./helpers.ts";
+import type { IndexEntry } from "../index.ts";
+import { type Checkout, freePort, type Previews } from "../runner.ts";
+import {
+  alive,
+  checkoutOf,
+  fakeClock,
+  previews,
+  ready,
+  servedPaths,
+  storyCheckout,
+  WAIT,
+} from "./helpers.ts";
 
 /** A port of 127.0.0.1 the test holds until it ends. */
 async function heldPort(): Promise<number> {
@@ -426,4 +436,40 @@ test("once stopped, a runner starts nothing", async () => {
   });
   expect(runner.state(checkout.base)).toBeUndefined();
   expect(previewStarts(log)).toEqual([]);
+});
+
+/** The index entry `id` of the ready Storybook of `checkout`. */
+async function entryOf(runner: Previews, checkout: Checkout, id: string): Promise<IndexEntry> {
+  const entry = (await runner.index(checkout.base))?.entries[id];
+  if (entry === undefined) {
+    throw new Error(`no story ${id}`);
+  }
+  return entry;
+}
+
+test("a story's compile runs once per Storybook, shared by its asks", async () => {
+  const { checkout } = await storyCheckout();
+  const runner = previews();
+  runner.view(checkout);
+  await ready(runner, checkout);
+  const story = await entryOf(runner, checkout, "sidebarhandle--dragging");
+
+  expect(runner.compiled(checkout.base, story)).toBe(false);
+  runner.compiled(checkout.base, story);
+  await expect.poll(() => runner.compiled(checkout.base, story), WAIT).toBe(true);
+
+  const served = await servedPaths(runner, checkout.base);
+  expect(served.filter((path) => path === "/src/SidebarHandle.stories.tsx")).toHaveLength(1);
+});
+
+test("a compile past its time counts as ended (US3.2)", async () => {
+  const { checkout } = await storyCheckout({ mode: "hold-modules" });
+  const runner = previews({ warmMs: 100 });
+  runner.view(checkout);
+  await ready(runner, checkout);
+  const story = await entryOf(runner, checkout, "sidebarhandle--dragging");
+
+  expect(runner.compiled(checkout.base, story)).toBe(false);
+
+  await expect.poll(() => runner.compiled(checkout.base, story), WAIT).toBe(true);
 });

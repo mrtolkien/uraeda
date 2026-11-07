@@ -249,7 +249,8 @@ function storyParts(ctx: RepoContext, id: string) {
 
 /**
  * A story link of a checkout, by its id, `<folder>:<path>#<export>`: reading it is a view. Once its
- * Storybook is ready, the story is found in its index, or missing.
+ * Storybook is ready, the story is found in its index, or missing; a found story is starting until
+ * its compile ended.
  */
 export async function readStory(ctx: RepoContext, id: string): Promise<StoryRecord> {
   const none: StoryRecord = { error: null, frame: null, id, state: "none", storybook: null };
@@ -271,6 +272,10 @@ export async function readStory(ctx: RepoContext, id: string): Promise<StoryReco
   const story = matchStory(index, checkout.folder, parts);
   if (story === undefined) {
     return { ...none, state: "missing" };
+  }
+  // Its frame shows once its code compiled, or its compile ended: never a blank frame.
+  if (!ctx.previews.compiled(checkout.base, index.entries[story]!)) {
+    return { ...none, state: "starting" };
   }
   const page =
     parts.folder === MAIN ? "/storybook" : `/f/${encodeURIComponent(parts.folder)}/storybook`;
