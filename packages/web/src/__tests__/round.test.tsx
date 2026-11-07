@@ -269,3 +269,16 @@ test("on the phone, a question's header lets go while its comment is typed in", 
     atWidth(1440);
   }
 });
+
+// Break: `n` focused the next blank question's title, which no card holds: `b` then went back
+// instead of picking B.
+test("n from a held question hands the cursor to the next blank one, whose letter picks", async () => {
+  const repo = answered({ Q1: "A", Q2: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q1"));
+  await press("n");
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** B"));
+});

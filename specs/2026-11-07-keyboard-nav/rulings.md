@@ -214,3 +214,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cursor was gone: the human had to find their place again with `j` from the top of the screen.
   Cancel by a key returns the same way, as the human is still reading from that block.
 - **Where**: final review, `review/useKeyRange.ts` (`useHandBack`, `blockKeys`)
+
+## R17: The cursor's bar is not clicked
+
+- **Decision**: a press on a button of the cursor's bar lets the cursor go, and the bar with it,
+  before the click runs: the bar's buttons do nothing for a mouse.
+- **Rationale**: the spec has the pointer hide the cursor, and a mouse moving to the bar has already
+  hidden it. Every action the bar names keeps its own button or tap on the page (Edit, Remove, an
+  option's card, Ask the agent), so no action needs the bar's: it shows a keyboard user their keys.
+- **Alternatives considered**: keeping the bar through a press on it, which would show the cursor
+  under the mouse, against SC-004.
+- **Where**: `cursor/held.ts`, `cursor/StopKeys.tsx`
+
+## R18: A key's jump hands the cursor to the question's card
+
+- **Decision**: a jump to a question by a key, on a page with the cursor (`n`, `p`), focuses the
+  question's card, held, rather than its title, so its letters pick at once; a jump by a click, or
+  the round reopening at its question, still focuses the title.
+- **Rationale**: after `n`, a `b` meant for option B went back, since no card held the focus.
+- **Where**: `roundJump.ts` (`jumpTo`)
