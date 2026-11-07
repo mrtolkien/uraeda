@@ -295,7 +295,9 @@ puts files back.
   - `pub fn api::undo::recorded<T, S: AsRef<str>>(repo: &Path, scope: &[S], write: impl FnOnce() -> Result<T>) -> Result<(T, Change)>`:
     finds the checkout from `scope[0]` as `save_buffer` does, takes the write lock, reads every
     file's bytes under each scope path (a file or a folder), runs `write`, and diffs. A failing
-    `write` returns its error and no change.
+    `write` returns its error and no change. `recorded_keeping(repo, scope, kept, write)` also keeps
+    each file of `kept` the write left as it was, both sides the same bytes, as a commit may delete
+    it since (ruling R24).
   - `pub enum Direction { Undo, Redo }` and
     `pub fn api::undo::apply_change(repo: &Path, change: &Change, direction: Direction, subject: &str) -> Result<Option<String>>`:
     under the write lock, checks every file holds the side it expects (`after` for an undo, `before`
@@ -331,8 +333,8 @@ puts files back.
   - The functions given a token, with their scope: `addNote`, `outlineNote`, `dropNote`,
     `placeNote`, `moveNoteToCategory`, `addCategory`, `renameCategory` (`INBOX`); `removeNote` and
     the outline's `remove` kind, `removeCategory`, `addNoteWithImages` (`NOTES`); `attachNoteImages`
-    (`NOTE_IMAGES`, ruling R6); `removeNoteImage` (`note_image(file)`); `noteUnderProposal`
-    (`PROMOTION`); `noteToProposal`, `noteToProposalFile`, `noteIntoProposal`,
+    (`NOTE_IMAGES`, ruling R6); `removeNoteImage` (`note_image(file)`, the image kept, ruling R24);
+    `noteUnderProposal` (`PROMOTION`); `noteToProposal`, `noteToProposalFile`, `noteIntoProposal`,
     `noteIntoProposalLine` (`RELINKING_PROMOTION`); `addProposal`, `outlineProposal`,
     `dropProposal`, `moveProposal`, `editProposal`, `removeProposal` (`PRIORITIES`);
     `expandProposal` (`EXPAND`); `addComment`, `editComment`, `removeComment`, `startOver`

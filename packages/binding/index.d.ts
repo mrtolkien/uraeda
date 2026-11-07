@@ -108,7 +108,8 @@ export interface ChangedFileView {
 
 /**
  * A change as the server hands it over and back: the commit its checkout was at, and each file's
- * bytes before and after, base64-encoded, `null` on the side where it did not exist.
+ * bytes before and after, base64-encoded, `null` on the side where it did not exist. A file with
+ * the same bytes on both sides is one the write left as it was, kept with the change.
  */
 export interface ChangeView {
   commit: string | null
@@ -529,7 +530,8 @@ export declare function removeNoteAndCommit(repo: string, id: string, previous: 
 /**
  * Takes the image at `image` out of the note file or proposal file at `file`, both from the top
  * level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
- * since it was read at `previous`.
+ * since it was read at `previous`. The image is kept with the change: the next commit deletes it
+ * unlinked, and the undo writes it back.
  */
 export declare function removeNoteImage(repo: string, file: string, image: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
 

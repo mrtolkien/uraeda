@@ -1,6 +1,8 @@
 //! A write recorded as a change: the bytes each regular file under its scope held before and after
 //! it, whatever their kind, and the replay that writes one side back while every file holds the
-//! other. A deferred commit's undo puts its files back the same way, from what it kept.
+//! other. A file the write left as it was may be kept with it, for a later commit to delete: its
+//! undo writes it back once gone. A deferred commit's undo puts its files back the same way, from
+//! what it kept.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -18,13 +20,20 @@ pub struct Change {
 }
 
 /// A file a write changed, by its path from the checkout's top level: its bytes before and after
-/// the write, `None` on the side where it did not exist.
+/// the write, `None` on the side where it did not exist. A file whose two sides are the same bytes
+/// is one the write left as it was, kept with the change because a commit may delete it since, as
+/// an image the write unlinked: either side expects it absent or holding those bytes, an undo
+/// writes it back when absent, and a redo leaves it as it is.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ChangedFile {
     pub path: String,
     pub before: Option<Vec<u8>>,
     pub after: Option<Vec<u8>>,
 }
+
+/// What a replay writes to a file, and what puts it back should a later file fail: its bytes, or
+/// `None` for no file.
+type Step<'a> = (Option<&'a [u8]>, Option<&'a [u8]>);
 
 /// Which way a change is replayed: an undo writes its `before` side back, a redo its `after` side.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,6 +43,28 @@ pub enum Direction {
 }
 
 impl ChangedFile {
+    /// Whether the write left the file as it was, kept with the change: see [`ChangedFile`].
+    fn is_kept(&self) -> bool {
+        self.before.is_some() && self.before == self.after
+    }
+
+    /// Whether the file holds what the replay in `direction` expects, `now` what stands there:
+    /// a kept file may be absent.
+    fn holds_expected(&self, now: Option<Option<&[u8]>>, direction: Direction) -> bool {
+        let expected = Some(self.expected(direction));
+        now == expected || (self.is_kept() && now == Some(None))
+    }
+
+    /// What the replay writes over `now`, and what puts it back: `None` for a file it leaves, a
+    /// kept file present, or any kept file on a redo.
+    fn step(&self, now: Option<Option<&[u8]>>, direction: Direction) -> Option<Step<'_>> {
+        if !self.is_kept() {
+            return Some((self.written(direction), self.expected(direction)));
+        }
+        (direction == Direction::Undo && now == Some(None))
+            .then_some((self.written(direction), None))
+    }
+
     /// What the file must hold for the replay to run.
     fn expected(&self, direction: Direction) -> Option<&[u8]> {
         match direction {
@@ -100,12 +131,27 @@ fn scoped(root: &Path, entry: &str) -> Vec<String> {
         .collect()
 }
 
-/// The files whose bytes differ between two snapshots of one scope.
+/// The files whose bytes differ between two snapshots of one scope, and each of `kept` the write
+/// left as it was, kept with them: see [`ChangedFile`].
 pub(crate) fn diff(
     mut before: BTreeMap<String, Vec<u8>>,
     mut after: BTreeMap<String, Vec<u8>>,
     commit: Option<String>,
+    kept: &[&str],
 ) -> Change {
+    let left: Vec<ChangedFile> = kept
+        .iter()
+        .filter_map(|path| {
+            let bytes = before
+                .get(*path)
+                .filter(|bytes| after.get(*path) == Some(*bytes))?;
+            Some(ChangedFile {
+                path: (*path).to_string(),
+                before: Some(bytes.clone()),
+                after: Some(bytes.clone()),
+            })
+        })
+        .collect();
     let paths: BTreeSet<String> = before.keys().chain(after.keys()).cloned().collect();
     let files = paths
         .into_iter()
@@ -117,6 +163,7 @@ pub(crate) fn diff(
                 after,
             })
         })
+        .chain(left)
         .collect();
     Change { commit, files }
 }
@@ -129,7 +176,8 @@ pub(crate) fn changed_since<'a>(
     direction: Direction,
 ) -> Option<&'a ChangedFile> {
     files.iter().find(|file| {
-        regular(root, &file.path).as_ref().map(Option::as_deref) != Some(file.expected(direction))
+        let now = regular(root, &file.path);
+        !file.holds_expected(now.as_ref().map(Option::as_deref), direction)
     })
 }
 
@@ -152,10 +200,19 @@ fn replay_with(
     direction: Direction,
     write: &Write,
 ) -> io::Result<()> {
-    for (done, file) in files.iter().enumerate() {
-        if let Err(error) = put(root, &file.path, file.written(direction), write) {
-            for file in &files[..=done] {
-                let _ = put(root, &file.path, file.expected(direction), write);
+    let held: Vec<_> = files.iter().map(|file| regular(root, &file.path)).collect();
+    let steps: Vec<_> = files
+        .iter()
+        .zip(&held)
+        .filter_map(|(file, now)| {
+            let (written, back) = file.step(now.as_ref().map(Option::as_deref), direction)?;
+            Some((file.path.as_str(), written, back))
+        })
+        .collect();
+    for (done, (path, written, _)) in steps.iter().enumerate() {
+        if let Err(error) = put(root, path, *written, write) {
+            for (path, _, back) in &steps[..=done] {
+                let _ = put(root, path, *back, write);
             }
             return Err(error);
         }
@@ -246,6 +303,44 @@ mod tests {
 
         assert!(replay(root, &files, Direction::Undo).is_err());
         assert_eq!(fs::read(root.join("specs/a.md")).unwrap(), b"after");
+    }
+
+    /// A file kept with a change may be gone, or hold its bytes, but not other bytes: then the
+    /// undo is refused, as for any file changed since. A failing undo deletes the kept file it
+    /// wrote back.
+    #[test]
+    fn a_kept_file_is_absent_or_the_same_and_its_failed_undo_removes_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("specs/blocked")).unwrap();
+        let kept = ChangedFile {
+            path: "specs/images/shot.png".to_string(),
+            before: Some(b"shot".to_vec()),
+            after: Some(b"shot".to_vec()),
+        };
+        let files = [
+            kept.clone(),
+            ChangedFile {
+                path: "specs/blocked".to_string(),
+                before: Some(b"file".to_vec()),
+                after: None,
+            },
+        ];
+        assert!(changed_since(root, &files[..1], Direction::Undo).is_none());
+
+        assert!(replay(root, &files, Direction::Undo).is_err());
+        assert!(!root.join(&kept.path).exists());
+
+        fs::create_dir_all(root.join("specs/images")).unwrap();
+        fs::write(root.join(&kept.path), b"other").unwrap();
+        assert_eq!(
+            changed_since(root, &files[..1], Direction::Undo),
+            Some(&kept)
+        );
+        assert_eq!(
+            changed_since(root, &files[..1], Direction::Redo),
+            Some(&kept)
+        );
     }
 
     /// A write that fails halfway, leaving its file cut short, puts that file back too.
