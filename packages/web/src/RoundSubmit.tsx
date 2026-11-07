@@ -4,7 +4,10 @@ import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
+import * as stylex from "@stylexjs/stylex";
 import { CommitActions } from "./CommitActions.tsx";
+import { usePaneStop } from "./cursor/PaneStop.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
 import { WriteButton } from "./writes/WriteButton.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
@@ -233,33 +236,82 @@ export function RoundEnd({
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {undone}
       {refused || (error && <StatusText tone="error">{error.message}</StatusText>)}
-      <div ref={submitRow}>
-        {isDefaultRound(target) ? (
-          // A default-branch round hands nothing over: its page offers to apply it.
-          <WriteButton
-            isDisabled={blank.length > 0}
-            label="Submit answers"
-            onClick={() => submit(false)}
-            variant="primary"
-          />
-        ) : (
-          <CommitActions
-            isDisabled={blank.length > 0}
-            label="Commit answers"
-            onCommit={submit}
-            // A round asked during the implementation may continue it, the spec as approved.
-            {...(file.resumable
-              ? {
-                  continueLabel: "Answer and revise the spec",
-                  resume: {
-                    label: "Answer and continue implementing",
-                    onCommit: () => submit(true, true),
-                  },
-                }
-              : {})}
-          />
-        )}
-      </div>
+      <SubmitRow
+        file={file}
+        isDisabled={blank.length > 0}
+        row={submitRow}
+        submit={submit}
+        target={target}
+      />
     </VStack>
+  );
+}
+
+/**
+ * Submit's buttons, in `row`: Commit, and its other ways on, or a default-branch round's Submit. A
+ * stop of the keyboard's cursor, ringed while it holds them, whose Enter focuses the first button
+ * that can be pressed, as `n` does once no question is blank.
+ */
+function SubmitRow({
+  file,
+  isDisabled,
+  row,
+  submit,
+  target,
+}: {
+  file: File;
+  isDisabled: boolean;
+  row: RefObject<HTMLDivElement | null>;
+  submit: ReturnType<typeof useRoundSubmit>["submit"];
+  target: RoundTarget;
+}) {
+  const keys: ReadonlyArray<StopKey> = [
+    {
+      bar: "⏎",
+      keys: "Enter",
+      label: isDefaultRound(target) ? "submit" : "commit",
+      run: () => {
+        const first = row.current?.querySelector<HTMLButtonElement>("button:not([disabled])");
+        if (!first) {
+          return false;
+        }
+        first.focus();
+      },
+    },
+  ];
+  const stop = usePaneStop(keys, keys, row);
+  return (
+    <div
+      // A pane to the keyboard's cursor, as the cards and the notes: shown whole as it enters.
+      {...stop.props}
+      {...stylex.props(stop.style, stop.look)}
+    >
+      {isDefaultRound(target) ? (
+        // A default-branch round hands nothing over: its page offers to apply it.
+        <WriteButton
+          isDisabled={isDisabled}
+          label="Submit answers"
+          onClick={() => submit(false)}
+          variant="primary"
+        />
+      ) : (
+        <CommitActions
+          isDisabled={isDisabled}
+          label="Commit answers"
+          onCommit={submit}
+          // A round asked during the implementation may continue it, the spec as approved.
+          {...(file.resumable
+            ? {
+                continueLabel: "Answer and revise the spec",
+                resume: {
+                  label: "Answer and continue implementing",
+                  onCommit: () => submit(true, true),
+                },
+              }
+            : {})}
+        />
+      )}
+      {stop.bar}
+    </div>
   );
 }

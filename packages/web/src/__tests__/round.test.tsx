@@ -9,6 +9,7 @@ import {
   fieldText,
   fixtureRepo,
   git,
+  hold,
   renderPage,
   today,
   type,
@@ -128,6 +129,48 @@ test("Commit stops when an answer could not be saved", async () => {
   );
 });
 
+/** A question's answer line in the round's file, as written. */
+function answerLine(repo: string, id: string) {
+  const lines = text(repo).split("\n");
+  const heading = lines.findIndex((line) => line.startsWith(`## ${id}:`));
+  return lines.find((line, index) => index > heading && line.startsWith("**Answer:**"));
+}
+
+/** A key pressed where the focus is, as the keyboard sends it. */
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key });
+  });
+}
+
+// Breaks: a letter that does nothing on a held card; a pick shown but not saved.
+test("a held question's letter picks and saves its option, and unpicks it", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q3"));
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** B"));
+
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:**"));
+});
+
+// Break: each card declared its keys from a hook always mounted: held from the next card, the one
+// before declared its letters while the next still had them, and the registry threw "a key means
+// two things".
+test("the cursor moves back from a card to the one before, each declaring its keys alone", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q3"));
+  hold(question("Q2"));
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B"));
+});
+
 /** The subject of the round's answers' commit. */
 const ROUND_COMMIT = "discovery(web-ui): answer round 01";
 
@@ -225,4 +268,17 @@ test("on the phone, a question's header lets go while its comment is typed in", 
   } finally {
     atWidth(1440);
   }
+});
+
+// Break: `n` focused the next blank question's title, which no card holds: `b` then went back
+// instead of picking B.
+test("n from a held question hands the cursor to the next blank one, whose letter picks", async () => {
+  const repo = answered({ Q1: "A", Q2: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q1"));
+  await press("n");
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** B"));
 });

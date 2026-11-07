@@ -34,7 +34,8 @@ function sectionOf({ binding, place }: Placed): string {
   if (path[0] === "g" && path.length === 2) {
     return GO;
   }
-  return place === "page" ? PAGE : SHELL;
+  // A held selection's keys are this page's too, for as long as it holds.
+  return place === "shell" ? SHELL : PAGE;
 }
 
 /** The sections' order: the page's, the shell's, the menu's, each group's as named, then `g`'s. */
@@ -68,12 +69,17 @@ export function written(token: string): string {
 /** A label as a row says it, its first letter a capital, as the leader menu's are. */
 const capital = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 
+/** The keys of `entries`. */
+const keysOf = (entries: ReadonlyArray<Placed>) =>
+  new Set(entries.map(({ binding }) => binding.keys));
+
 /**
  * The bindings that work for `target`, each with its tokens as the human types them: those whose
  * guard lets them, and with `singleKeys` off only those that still work. The leader's are written
  * from its chord where Space is not its key: with the switch off, or on a control that keeps Space.
  * A fallback keeps only its keys that no other binding listed holds, and goes with none left: it
- * runs only when the other did nothing, which the map cannot tell.
+ * runs only when the other did nothing, which the map cannot tell. So does a page's or the
+ * shell's binding of a key a held selection takes, which runs first.
  */
 function working(listed: ReadonlyArray<Placed>, target: EventTarget | null, singleKeys: boolean) {
   const byChord = !singleKeys || keepsSpace(target);
@@ -82,11 +88,11 @@ function working(listed: ReadonlyArray<Placed>, target: EventTarget | null, sing
       (singleKeys || !isSingleKey(binding.keys) || isLeader(binding.keys.split(" "))) &&
       (binding.when?.(target) ?? true),
   );
-  const held = new Set(
-    kept.filter(({ binding }) => binding.fallback !== true).map(({ binding }) => binding.keys),
-  );
+  const held = keysOf(kept.filter(({ binding }) => binding.fallback !== true));
+  const selected = keysOf(kept.filter(({ place }) => place === "selection"));
   return kept.flatMap((entry) => {
-    if (entry.binding.fallback === true && held.has(entry.binding.keys)) {
+    const shadowed = entry.place !== "selection" && selected.has(entry.binding.keys);
+    if (shadowed || (entry.binding.fallback === true && held.has(entry.binding.keys))) {
       return [];
     }
     const path = entry.binding.keys.split(" ");

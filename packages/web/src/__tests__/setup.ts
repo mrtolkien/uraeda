@@ -1,6 +1,7 @@
 // Runs before each test file of the UI's happy-dom tests.
 import nodeConsole from "node:console";
 import { afterEach } from "vite-plus/test";
+import { resetHeld } from "../cursor/held.ts";
 import { endJump } from "../roundJump.ts";
 
 /**
@@ -48,7 +49,11 @@ if (typeof document !== "undefined") {
 /**
  * A jump ends a second after its scroll's last move: one a test started would end after the test
  * file's page is gone, its timer then reaching for a `window` that is no more. Each test ends its.
+ * The keyboard's cursor remembers whether the last input was a key: each test starts with none.
  */
 if (typeof window !== "undefined") {
-  afterEach(() => endJump());
+  afterEach(() => {
+    endJump();
+    resetHeld();
+  });
 }

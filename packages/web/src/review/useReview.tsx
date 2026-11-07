@@ -15,7 +15,8 @@ import { AddingNote, CommentHost, type ReviewField } from "../ReviewCommentForm.
 import { usePlacedComments } from "../ReviewComments.tsx";
 import { placeOf, reviewEditKey, reviewKey } from "../reviewField.ts";
 import type { VerdictState } from "../ReviewVerdict.tsx";
-import type { Range, useCommentDraft } from "../useCommentDraft.ts";
+import type { Range } from "../commentRange.ts";
+import type { useCommentDraft } from "../useCommentDraft.ts";
 import { useSpecFolds } from "../useOpenKeys.ts";
 import { useReviewActions } from "../useReviewActions.ts";
 import { StaleBanner, YourReview } from "../YourReview.tsx";
@@ -91,6 +92,7 @@ export function useReview(
   const storyComments = useStoryComments(file);
   const blocks = useReviewSelection({
     actions,
+    changes: file.decisionChanges,
     commentDraft,
     comments,
     container,

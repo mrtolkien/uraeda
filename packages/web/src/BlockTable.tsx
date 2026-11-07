@@ -13,6 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useMemo } from "react";
 import type { Block } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
+import { HeldKeys } from "./cursor/StopKeys.tsx";
 import { After, useSelect } from "./Selection.tsx";
 import { cellRuns, keepsSpans, SinceRowSign, useSinceMark } from "./sinceMarks.tsx";
 import { plain, Spans } from "./Spans.tsx";
@@ -85,10 +86,22 @@ function RowNode({
           </Cell>
         ))}
       </TableRow>
+      {select?.held && (
+        // A row for the bar only when it has keys to show: none on a narrow screen.
+        <HeldKeys keys={select.keys}>
+          {(bar) =>
+            bar && (
+              <TableRow>
+                <TableCell colSpan={cells.length}>{bar}</TableCell>
+              </TableRow>
+            )
+          }
+        </HeldKeys>
+      )}
       {after && (
         <TableRow>
           <TableCell colSpan={cells.length}>
-            <After>{after}</After>
+            <After holder={select?.holder}>{after}</After>
           </TableCell>
         </TableRow>
       )}

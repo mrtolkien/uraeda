@@ -1,5 +1,6 @@
 // What the keys or the pointer picked, drawn the same on every page: a list's selected row, home's
-// picked card, the repository picker's cursor; and the keyboard's ring around a whole card.
+// picked card, the repository picker's cursor; the keyboard's cursor on a whole pane, outside it or,
+// on a narrow screen, over it; and the keyboard's ring around a whole card.
 import { colorVars, focusVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { createContext } from "react";
@@ -9,6 +10,35 @@ export const pickedStyles = stylex.create({
   picked: {
     backgroundColor: colorVars["--color-accent-muted"],
     boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
+  },
+  // The keyboard's cursor on a whole pane, as a question card: the focus ring around it and the bar
+  // at its start, without the row's tint, which would sit behind a whole question's text.
+  pane: {
+    boxShadow: `inset ${focusVars["--focus-outline-width"]} 0 0 0 ${colorVars["--color-accent"]}`,
+    outlineColor: colorVars["--color-accent"],
+    outlineOffset: focusVars["--focus-outline-width"],
+    outlineStyle: "solid",
+    outlineWidth: focusVars["--focus-outline-width"],
+  },
+  // The same on a narrow screen, where a pane reaches the screen's edges and its ring, outside it,
+  // would fall off them: an overlay over its content, its sticky header too, so the ring stays
+  // unbroken, passing every press through to what is under it. It reaches into the page's inset,
+  // out to the screen's edges, so the ring and the bar lie beside the text, not over it.
+  paneNarrow: {
+    "::after": {
+      borderColor: colorVars["--color-accent"],
+      borderStyle: "solid",
+      borderWidth: focusVars["--focus-outline-width"],
+      boxShadow: `inset ${focusVars["--focus-outline-width"]} 0 0 0 ${colorVars["--color-accent"]}`,
+      content: '""',
+      insetBlock: 0,
+      insetInline: "var(--page-bleed, 0px)",
+      pointerEvents: "none",
+      position: "absolute",
+      // As the sticky header's, and drawn after it: over it, under the shell's bars.
+      zIndex: 2,
+    },
+    position: "relative",
   },
   // The keyboard's focus ring around the whole card, drawn just inside it, from the pseudo-class
   // alone: a default of the app's own, unlayered, would override Astryx's layered rule on any

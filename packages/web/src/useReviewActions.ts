@@ -1,13 +1,16 @@
 import { startTransition, useOptimistic } from "react";
 import { useFateClient } from "react-fate";
+import type { CommentItem } from "uraeda-binding";
+import { decisionOf, type Range } from "./commentRange.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { renumberUnsaved, unsavedKey } from "./fields/unsaved.ts";
-import { reviewEditKey } from "./reviewField.ts";
+import { useUndoToast } from "./layout/useUndoToast.ts";
+import { placeOf, reviewEditKey } from "./reviewField.ts";
 import { quoteOfRange } from "./reviewQuote.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import type { useRefusals } from "./ReviewVerdict.tsx";
-import type { Range, useCommentDraft } from "./useCommentDraft.ts";
+import type { useCommentDraft } from "./useCommentDraft.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -31,7 +34,6 @@ export function useReviewActions(
   onAsk?: (quote: string) => void,
 ) {
   const fate = useFateClient();
-  const repo = useRepositoryPath();
   // Shown from "Add comment" until the comment is written, in a transition of its own.
   const [adding, setAdding] = useOptimistic<Adding | undefined>(undefined);
   const input = { file: file.name, folder: file.folder };
@@ -72,16 +74,7 @@ export function useReviewActions(
   const ask =
     onAsk &&
     ((range: Range) => onAsk(quoteOfRange(file, (file.committed ?? file.current).text, range)));
-  /** Removes comment `number`: the edits kept for the comments after it follow their numbers. */
-  const remove = async (number: number) => {
-    const count = file.review?.review?.comments.length ?? 0;
-    if (
-      await run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }))
-    ) {
-      renumberUnsaved((n) => unsavedKey(repo, reviewEditKey(file.path, n)), number, count);
-      removed(number);
-    }
-  };
+  const remove = useRemoveComment(file, removed, run);
   /** Adds a general comment, from the end's own field: the error to show, or nothing once written. */
   const general = async (text: string) => {
     const result = await fate.mutations.review.comment({
@@ -94,4 +87,53 @@ export function useReviewActions(
     await run(() => fate.mutations.review.startOver({ input, view: FileView }));
   };
   return { adding, ask, general, remove, send, startOver };
+}
+
+/**
+ * Removes comment `number`: the edits kept for the comments after it follow their numbers. Once
+ * written, a toast confirms it, whose Undo adds the comment again, with its text, on its lines,
+ * last of the review (R3). A refused removal shows its error, and no toast.
+ */
+function useRemoveComment(file: File, removed: Draft["removed"], run: Refusals["run"]) {
+  const fate = useFateClient();
+  const repo = useRepositoryPath();
+  const undoToast = useUndoToast();
+  const input = { file: file.name, folder: file.folder };
+  /** Adds a removed comment again: the error to show, or nothing once written. */
+  const restore = async (comment: CommentItem) => {
+    const extent = comment.general
+      ? {}
+      : {
+          decision: decisionOf(comment),
+          endLine: comment.endLine,
+          startLine: comment.startLine,
+        };
+    const result = await fate.mutations.review.comment({
+      input: { ...input, text: comment.text, ...extent },
+      view: FileView,
+    });
+    return result.error ? refusal(result.error).message : undefined;
+  };
+  return async (number: number) => {
+    const comments = file.review?.review?.comments ?? [];
+    const comment = comments.find((each) => each.number === number);
+    if (
+      await run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }))
+    ) {
+      renumberUnsaved(
+        (n) => unsavedKey(repo, reviewEditKey(file.path, n)),
+        number,
+        comments.length,
+      );
+      removed(number);
+      if (comment) {
+        undoToast(
+          comment.general
+            ? "Removed your general comment"
+            : `Removed your comment on ${placeOf(comment)}`,
+          () => restore(comment),
+        );
+      }
+    }
+  };
 }

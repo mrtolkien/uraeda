@@ -105,6 +105,9 @@ function afterRemoval(settled: RefObject<() => Promise<void>>, flush: () => Prom
   };
 }
 
+/** The id of a question's comment field, which the keyboard's `i` focuses on its card. */
+export const commentFieldId = (question: string) => `${question}-comment`;
+
 /**
  * A question's comment as it is written: it takes images pasted, dropped while it has the focus,
  * or picked with "Add image". `onImages` takes the text once they are added, to save at once.
@@ -149,6 +152,7 @@ export function CommentField({
     <>
       <DropHint hint={images.hint} isLabelled>
         <TextField
+          id={commentFieldId(id)}
           kind="comment"
           label="Comment, or your own answer instead of a letter"
           onChange={onChange}

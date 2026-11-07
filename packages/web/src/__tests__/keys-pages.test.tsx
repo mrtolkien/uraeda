@@ -317,3 +317,20 @@ test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed 
   await press("s");
   await waitFor(() => expect(document.activeElement).toBe(slug));
 });
+
+/** The status line's text, its hints. */
+const hints = () => screen.getByRole("contentinfo", { name: "Status line" }).textContent ?? "";
+
+// Break: the cursor mounted on every spec, plan, and document page: on an approved spec, whose
+// blocks are no stops, `j` jumped between the folds' toggles over the text instead of scrolling.
+test("the cursor's `j k move` is a reviewed spec's, not an approved one's, whose `j` scrolls", async () => {
+  atWidth(1400);
+  const { unmount } = await renderPage("/f/2026-10-13-plan-review/spec.md", fixtureRepo());
+  await waitFor(() => expect(document.querySelector("[data-stop]")).not.toBeNull(), {
+    timeout: 5000,
+  });
+  expect(hints(), "an approved spec").not.toMatch(/move/);
+  unmount();
+  await renderPage("/f/2026-10-06-recurring-tasks/spec.md", fixtureRepo());
+  await waitFor(() => expect(hints(), "a spec under review").toMatch(/move/), { timeout: 5000 });
+});

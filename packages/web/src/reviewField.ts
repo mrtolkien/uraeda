@@ -1,7 +1,8 @@
 import type { CommentItem, Document } from "uraeda-binding";
 import { readUnsaved, type Unsaved, unsavedKey, writeUnsaved } from "./fields/unsaved.ts";
+import { decisionOf, type Range } from "./commentRange.ts";
 import { selectable } from "./Selection.tsx";
-import type { CommentDraft, Last, Range } from "./useCommentDraft.ts";
+import type { CommentDraft, Last } from "./useCommentDraft.ts";
 
 /**
  * The field keys of a review's comment: a new one, on lines or the whole file, whose lines are in
@@ -40,10 +41,7 @@ export const placeOf = (comment: CommentItem) =>
   comment.general
     ? "general"
     : placeOfLines({
-        decision:
-          comment.decision === undefined
-            ? undefined
-            : { name: comment.decision, removed: comment.removed },
+        decision: decisionOf(comment),
         end: comment.endLine,
         start: comment.startLine,
       });

@@ -2,8 +2,11 @@
 // were declared, with the rules over them. A key never means two things, a key is one `tokenOf` can
 // give, or it would never run, and a sequence goes through groups `groups.ts` names, or the menu
 // would draw nothing for them: all three throw in every build but production, so any page's test
-// catches them. The single-key switch drops the bindings whose first key is one printable
-// character, and the hints the status line draws come from the bindings that name one. A plain
+// catches them. A selection's keys, a held stop's own, run before the page's and the shell's, and
+// may reuse their keys: a key may mean something else while a selection holds, shown on it. Across
+// layers, still, a key never starts another's sequence, and a selection has no fallback.
+// The single-key switch drops the bindings whose first key is one printable character, and the hints
+// the status line draws come from the page's and the shell's bindings that name one. A plain
 // store, read through `useSyncExternalStore`: a handler is never published, so a re-render with a
 // new closure tells no reader.
 import type { Icon } from "@astryxdesign/core/Icon";
@@ -46,8 +49,11 @@ export type Binding = {
   when?: (target: EventTarget | null) => boolean;
 };
 
-/** Who declares: a page or a list, whose hints show first, or the shell, whose hints follow. */
-export type Place = "page" | "shell";
+/**
+ * Who declares: a page or a list, whose hints show first, the shell, whose hints follow, or a held
+ * selection, whose keys run before both and whose hints its stop draws, never the status line.
+ */
+export type Place = "page" | "shell" | "selection";
 
 /** A binding and who declared it, as the key map lists it. */
 export type Placed = { binding: Binding; place: Place };
@@ -67,8 +73,12 @@ type Entry = { bindings: ReadonlyArray<Binding>; place: Place };
 
 const tokens = (keys: string) => keys.split(" ");
 
-/** What two bindings of the registry say about each other, `null` if they agree. */
-function clash(a: Binding, b: Binding) {
+/**
+ * What two bindings of the registry say about each other, `null` if they agree. Bindings of
+ * different layers may share a key, the selection's winning, but never a key and a sequence it
+ * starts, whose pending would swallow the key.
+ */
+function clash(a: Binding, b: Binding, sameLayer: boolean) {
   const ta = tokens(a.keys);
   const tb = tokens(b.keys);
   const length = Math.min(ta.length, tb.length);
@@ -76,7 +86,11 @@ function clash(a: Binding, b: Binding) {
     return null;
   }
   if (ta.length !== tb.length) {
-    return `"${a.keys}" (${a.label}) is a key and the start of the sequence "${b.keys}" (${b.label})`;
+    const [key, sequence] = ta.length < tb.length ? [a, b] : [b, a];
+    return `"${key.keys}" (${key.label}) is a key and the start of the sequence "${sequence.keys}" (${sequence.label})`;
+  }
+  if (!sameLayer) {
+    return null;
   }
   if (a.fallback === true && b.fallback === true) {
     return `"${a.keys}" has two fallbacks, ${a.label} and ${b.label}`;
@@ -86,16 +100,40 @@ function clash(a: Binding, b: Binding) {
     : `"${a.keys}" is bound twice, to ${a.label} and to ${b.label}`;
 }
 
-/** Throws where `mine`, declared beside `others`, makes a key mean two things. */
-function assertNoClash(others: ReadonlyArray<Binding>, mine: ReadonlyArray<Binding>) {
+/**
+ * Throws where `mine`, declared beside `others`, makes a key mean two things: `ours` are the
+ * bindings of `mine`'s layer, `theirs` the other layer's.
+ */
+function assertNoClash(
+  ours: ReadonlyArray<Binding>,
+  theirs: ReadonlyArray<Binding>,
+  mine: ReadonlyArray<Binding>,
+) {
   mine.forEach((binding, index) => {
-    for (const other of [...others, ...mine.slice(0, index)]) {
-      const problem = clash(other, binding);
-      if (problem !== null) {
-        throw new Error(`A key means two things on this page: ${problem}`);
-      }
+    const pairs = [
+      ...[...ours, ...mine.slice(0, index)].map((other) => clash(other, binding, true)),
+      ...theirs.map((other) => clash(other, binding, false)),
+    ];
+    const problem = pairs.find((pair) => pair !== null);
+    if (problem !== undefined && problem !== null) {
+      throw new Error(`A key means two things on this page: ${problem}`);
     }
   });
+}
+
+/**
+ * Throws where a selection's binding is a fallback: the bindings run selection first, so it would
+ * run after the page's ordinary binding of its key, never before. A selection's key that did
+ * nothing returns `false`, and the page's runs.
+ */
+function assertNoSelectionFallback(bindings: ReadonlyArray<Binding>) {
+  const fallback = bindings.find((binding) => binding.fallback === true);
+  if (fallback !== undefined) {
+    throw new Error(
+      `"${fallback.keys}" (${fallback.label}) is a selection's fallback, which would run after ` +
+        `the page's binding of its key: return false from its run instead`,
+    );
+  }
 }
 
 /** Throws where a binding's keys are not tokens `tokenOf` gives: such a binding never runs. */
@@ -139,21 +177,48 @@ const rank = (keys: string) => {
   return at === -1 ? FIRST_HINTS.length : at;
 };
 
+/** The status line's hints of `bindings`, each once, the first hints first. */
+function hintsOf(bindings: ReadonlyArray<Binding>): Array<Hint> {
+  const seen = new Set<string>();
+  const next = bindings.flatMap((binding) => {
+    const hint = {
+      inLayer: binding.hintInLayer === true,
+      keys: binding.hint,
+      label: binding.hintLabel ?? binding.label,
+      press: binding.hintPress ?? binding.keys,
+    };
+    const id = `${hint.keys} ${hint.label}`;
+    if (hint.keys === undefined || seen.has(id)) {
+      return [];
+    }
+    seen.add(id);
+    return [{ ...hint, keys: hint.keys }];
+  });
+  // The leader's hint, "space menu", is always the first, the way into every other key, the key
+  // map's, "? keys", the second, and the sidebars' folds the third; the others keep their order
+  // after them.
+  next.sort((a, b) => rank(a.keys) - rank(b.keys));
+  return next;
+}
+
 export function createKeyStore(initialSingleKeys: boolean) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
   let singleKeys = initialSingleKeys;
   let hints: ReadonlyArray<Hint> = [];
 
-  /** Every declared binding with its place, the page's first, each in the order declared. */
+  /**
+   * Every declared binding with its place, the selection's first, then the page's, then the
+   * shell's, each in the order declared: the first that runs wins.
+   */
   const placed = (): Array<Placed> =>
-    (["page", "shell"] as const).flatMap((place) =>
+    (["selection", "page", "shell"] as const).flatMap((place) =>
       [...entries.values()]
         .filter((entry) => entry.place === place)
         .flatMap((entry) => entry.bindings.map((binding) => ({ binding, place }))),
     );
 
-  /** Every declared binding, the page's first, each place in the order they were declared. */
+  /** Every declared binding, in `placed`'s order. */
   const declared = () => placed().map(({ binding }) => binding);
 
   /** Whether a binding is on: with the switch off, not a single-key one. */
@@ -164,25 +229,12 @@ export function createKeyStore(initialSingleKeys: boolean) {
 
   /** Publishes the hints, to the readers only when their text changed. */
   const publish = () => {
-    const seen = new Set<string>();
-    const next = active().flatMap((binding) => {
-      const hint = {
-        inLayer: binding.hintInLayer === true,
-        keys: binding.hint,
-        label: binding.hintLabel ?? binding.label,
-        press: binding.hintPress ?? binding.keys,
-      };
-      const id = `${hint.keys} ${hint.label}`;
-      if (hint.keys === undefined || seen.has(id)) {
-        return [];
-      }
-      seen.add(id);
-      return [{ ...hint, keys: hint.keys }];
-    });
-    // The leader's hint, "space menu", is always the first, the way into every other key, the key
-    // map's, "? keys", the second, and the sidebars' folds the third; the others keep their order
-    // after them.
-    next.sort((a, b) => rank(a.keys) - rank(b.keys));
+    // A selection's hints are drawn on its stop, beside what they act on.
+    const next = hintsOf(
+      placed().flatMap(({ binding, place }) =>
+        place !== "selection" && isOn(binding) ? [binding] : [],
+      ),
+    );
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
       for (const listener of listeners) {
@@ -210,11 +262,18 @@ export function createKeyStore(initialSingleKeys: boolean) {
       if (process.env.NODE_ENV !== "production") {
         assertCanonical(bindings);
         assertGroupsNamed(bindings);
-        const others = [...entries].filter(([other]) => other !== id);
-        assertNoClash(
-          others.flatMap(([, entry]) => entry.bindings),
-          bindings,
-        );
+        const isSelection = place === "selection";
+        if (isSelection) {
+          assertNoSelectionFallback(bindings);
+        }
+        // A selection's keys may mean something else than the page's and the shell's, but a key
+        // never starts a sequence of any layer.
+        const others = [...entries].filter(([other]) => other !== id).map(([, entry]) => entry);
+        const ofLayer = (same: boolean) =>
+          others
+            .filter((entry) => (entry.place === "selection") === (isSelection === same))
+            .flatMap((entry) => entry.bindings);
+        assertNoClash(ofLayer(true), ofLayer(false), bindings);
       }
       entries.set(id, { bindings, place });
       publish();

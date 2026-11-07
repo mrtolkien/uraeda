@@ -16,7 +16,7 @@ const NORMAL_LINE = 1.5;
 const FALLBACK_LINE = 24;
 
 /** The area a key scrolls: the focus's nearest ancestor that scrolls, else the page's window. */
-type Area = Element | null;
+export type Area = Element | null;
 
 /** Whether an element holds more than it shows, and lets its reader scroll to the rest. */
 function scrolls(element: Element) {
@@ -28,7 +28,7 @@ function scrolls(element: Element) {
 }
 
 /** The nearest ancestor of `target`, itself included, that scrolls: `null` for the page. */
-function areaOf(target: EventTarget | null): Area {
+export function areaOf(target: EventTarget | null): Area {
   // An element, as the registry reads its target: a node of type 1.
   let element = (target as Node | null)?.nodeType === 1 ? (target as Element) : null;
   while (element !== null && element !== document.body && element !== document.documentElement) {
@@ -38,6 +38,27 @@ function areaOf(target: EventTarget | null): Area {
     element = element.parentElement;
   }
   return null;
+}
+
+/**
+ * `areaOf` for each of `elements` at once, in their order: the walk up is shared, as elements of one
+ * page share their ancestors, so a long page's elements cost one style read per ancestor.
+ */
+export function areasOf(elements: ReadonlyArray<Element>): Array<Area> {
+  const seen = new Map<Element, Area>();
+  const of = (element: Element | null): Area => {
+    if (element === null || element === document.body || element === document.documentElement) {
+      return null;
+    }
+    const known = seen.get(element);
+    if (known !== undefined) {
+      return known;
+    }
+    const area = scrolls(element) ? element : of(element.parentElement);
+    seen.set(element, area);
+    return area;
+  };
+  return elements.map(of);
 }
 
 /** A line of the page's text, in px. */
@@ -67,7 +88,7 @@ const wantsLess = () => window.matchMedia("(prefers-reduced-motion: reduce)").ma
  * area is heading, so quick presses and a held key run on in one smooth motion rather than each
  * starting over. A scroll by anything else, a wheel or a drag, ends the glide.
  */
-function glideBy(area: Area, distance: number) {
+export function glideBy(area: Area, distance: number) {
   const element = area ?? document.scrollingElement ?? document.documentElement;
   const farthest = element.scrollHeight - element.clientHeight;
   const clamp = (top: number) => Math.min(Math.max(top, 0), Math.max(farthest, 0));
@@ -105,6 +126,16 @@ function glideBy(area: Area, distance: number) {
     glide.frame = requestAnimationFrame(tick);
   };
   glide.frame = requestAnimationFrame(tick);
+}
+
+/**
+ * How far the area's glide has still to go, in px, 0 with none running: what a key that scrolls by
+ * where things are drawn subtracts, as the next glide adds to where the area heads.
+ */
+export function pendingOf(area: Area) {
+  const element = area ?? document.scrollingElement ?? document.documentElement;
+  const glide = glides.get(element);
+  return glide === undefined || glide.frame === 0 ? 0 : glide.target - element.scrollTop;
 }
 
 /** Scrolls the area a few lines, `direction` 1 for down and -1 for up, gliding. */

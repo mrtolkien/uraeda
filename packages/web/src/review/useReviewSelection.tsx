@@ -1,20 +1,25 @@
 import type { ReactNode } from "react";
-import type { CommentItem, Document } from "uraeda-binding";
+import type { CommentItem, DecisionChange, Document } from "uraeda-binding";
 import { AddingNote, FormSlot } from "../ReviewCommentForm.tsx";
 import { PendingComment, type usePlacedComments } from "../ReviewComments.tsx";
 import { holderOf } from "../reviewField.ts";
 import type { DecisionRange, PartSelection, Selection } from "../Selection.tsx";
-import type { Last, Range, useCommentDraft } from "../useCommentDraft.ts";
+import { holds, type Range } from "../commentRange.ts";
+import type { Last, useCommentDraft } from "../useCommentDraft.ts";
 import type { Adding, useReviewActions } from "../useReviewActions.ts";
+import { blockKeys, useKeyRange } from "./useKeyRange.ts";
 
 /**
  * What a review's blocks show and do: tapping one selects its lines, and under it come its pending
  * comments, the comment being added, and the comment field on wide screens. Also gives the field in
- * the page, and a pending comment's note, which the general comments use too.
+ * the page, and a pending comment's note, which the general comments use too. Held by the
+ * keyboard's cursor, a block or a decision's part has the keys of `blockKeys`, its range stretched
+ * among the blocks of its file, the reviewed one's or its decision's side.
  */
 export function useReviewSelection({
   actions,
-  commentDraft: { draft, last, selection, start, tap, tapPart },
+  changes,
+  commentDraft,
   comments,
   container,
   placed,
@@ -22,6 +27,7 @@ export function useReviewSelection({
   wide,
 }: {
   actions: ReturnType<typeof useReviewActions>;
+  changes: ReadonlyArray<DecisionChange>;
   commentDraft: ReturnType<typeof useCommentDraft>;
   comments: ReadonlyArray<CommentItem>;
   container: HTMLElement;
@@ -29,7 +35,9 @@ export function useReviewSelection({
   tree: Document;
   wide: boolean;
 }) {
+  const { draft, last, selection, start, tap, tapPart } = commentDraft;
   const { adding } = actions;
+  const keyRange = useKeyRange(commentDraft, tree, changes);
   const addingUnder =
     adding?.range && !adding.range.decision && holderOf(tree, adding.range.end)?.id;
 
@@ -66,23 +74,28 @@ export function useReviewSelection({
         </>
       );
     },
-    isSelected: (block) =>
-      selection !== undefined &&
-      selection.decision === undefined &&
-      block.startLine >= selection.start &&
-      block.endLine <= selection.end,
+    isSelected: (block) => holds(selection, { end: block.endLine, start: block.startLine }),
+    keys: (block, toggle) =>
+      blockKeys(
+        keyRange,
+        toggle,
+        { end: block.endLine, heading: block.heading ?? "", start: block.startLine },
+        actions.ask,
+      ),
     onTap: tap,
     parts: partSelection({
       adding,
       comments,
       draft,
       inPage,
+      keys: (part, toggle) => blockKeys(keyRange, toggle, part, actions.ask),
       last,
       pendingNote,
       selection,
       tapPart,
     }),
   };
+
   return { inPage, pendingNote, selection: blocks };
 }
 
@@ -99,13 +112,14 @@ function inPart(part: DecisionRange, decision: Range["decision"], line: number) 
 /**
  * How a review selects a decision's parts: tapping one selects its lines, and under it come the
  * pending comments whose last line it holds, the comment being added, and the comment field on wide
- * screens, as under a block of the file.
+ * screens, as under a block of the file; held by the keyboard's cursor, it has `keys`.
  */
 function partSelection({
   adding,
   comments,
   draft,
   inPage,
+  keys,
   last,
   pendingNote,
   selection,
@@ -115,6 +129,7 @@ function partSelection({
   comments: ReadonlyArray<CommentItem>;
   draft: ReturnType<typeof useCommentDraft>["draft"];
   inPage: (shown: boolean) => ReactNode;
+  keys: PartSelection["keys"];
   last: Last | undefined;
   pendingNote: (comment: CommentItem) => ReactNode;
   selection: Range | undefined;
@@ -140,11 +155,8 @@ function partSelection({
         </>
       );
     },
-    isSelected: (part) =>
-      !!selection &&
-      ofPart(part, selection.decision) &&
-      part.start >= selection.start &&
-      part.end <= selection.end,
+    isSelected: (part) => holds(selection, part),
+    keys,
     onTap: tapPart,
   };
 }

@@ -4,7 +4,7 @@ import type { DecisionChange, Run } from "uraeda-binding";
 import { linesOf } from "./reviewField.ts";
 import { quoted } from "./sessions.ts";
 import { rangeOf } from "./spec/ledger/context.ts";
-import type { Range } from "./useCommentDraft.ts";
+import type { Range } from "./commentRange.ts";
 
 /** The words of a part on one side: the branch's, or, for a removed part, the removed words. */
 function wordsOf(runs: ReadonlyArray<Run>, removed: boolean) {

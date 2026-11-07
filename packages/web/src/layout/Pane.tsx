@@ -410,6 +410,8 @@ export function Pane({
   return (
     <section
       aria-labelledby={titleId}
+      // The keyboard's cursor shows a pane it enters whole, where it fits (`cursor/move.ts`).
+      data-pane=""
       id={id}
       ref={paneRef}
       role={isGroup ? "group" : undefined}

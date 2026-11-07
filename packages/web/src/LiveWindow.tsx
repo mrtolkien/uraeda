@@ -9,6 +9,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef } from "react";
 import { useFullScreen, useOutgrow } from "./embedLayout.ts";
 import { Pane } from "./layout/Pane.tsx";
+import { stopProps } from "./cursor/stops.ts";
 import { type Fit, PHONE_BELOW } from "./LiveFrame.tsx";
 
 const styles = stylex.create({
@@ -68,6 +69,7 @@ export function FullScreenButton({ screen }: { screen: FullScreen }) {
       onClick={() => void toggle()}
       size="sm"
       variant="ghost"
+      {...stopProps("control", true)}
     />
   );
 }

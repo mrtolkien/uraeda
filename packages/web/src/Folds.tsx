@@ -4,6 +4,7 @@ import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document, SpecItems } from "uraeda-binding";
 import { currentEntry, useEntryId, useHash } from "./routes.tsx";
 import { Foldable } from "./layout/Foldable.tsx";
+import { topBarBottom } from "./layout/topBar.ts";
 
 const styles = stylex.create({
   fold: {
@@ -133,8 +134,7 @@ export function scrollBelowBar(element: HTMLElement) {
   if (Number.parseFloat(getComputedStyle(element).scrollMarginTop) > 0) {
     return;
   }
-  const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
-  window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
+  window.scrollBy(0, -topBarBottom() - 16);
 }
 
 /** How long a revealed element is kept in place while what is above it settles, as embeds load. */

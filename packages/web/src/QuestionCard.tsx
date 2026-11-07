@@ -3,6 +3,9 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useContext, useEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
+import { usePaneStop } from "./cursor/PaneStop.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
+import { useHints, usePress } from "./keys/registry.tsx";
 import { glassStyles } from "./layout/glass.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
@@ -15,7 +18,7 @@ import {
   QuestionContext,
   QuestionHead,
 } from "./Question.tsx";
-import { AnswerComment } from "./QuestionComment.tsx";
+import { AnswerComment, commentFieldId } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 import { StoryContext } from "./stories.tsx";
 import { useAnswer } from "./useAnswer.ts";
@@ -164,12 +167,107 @@ function useTypingIn(inside: RefObject<HTMLElement | null>) {
 }
 
 /**
- * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of
- * its options holding stories and none of its parts a table, a mockup, or a story: its title and context on the left, its options and comment on the
- * right. On the phone, no card. At every width, its header sticks at the top while its card is on
- * screen, below the top bar on the phone, and a question taller than the screen scrolls under it.
- * A tap on an option toggles its letter and saves the answer, with the comment as saved; the
- * comment saves with its button, or with Submit. With `onAsk`, it offers "Ask the agent".
+ * How a question's card is laid out: on a wide screen, of two columns, `split`, once `roomy`, none
+ * of its options holding stories and none of its parts a table, a mockup, or a story; around a live
+ * window, `windowed`, the page's column, its text a single card's width.
+ */
+function useCardLayout(document: Document, question: QuestionItem, roomy: boolean) {
+  const wide = !isNarrow(useWidthClass());
+  const stories = useContext(StoryContext);
+  const split =
+    wide &&
+    roomy &&
+    !holdsVariants(stories, document, question) &&
+    !holdsWide(stories, document, question);
+  const windowed = wide && holdsWindow(stories, document, question);
+  return {
+    split,
+    text: windowed && styles.text,
+    wide,
+    width: wide && (split ? styles.splitCard : styles.single),
+    windowed,
+  };
+}
+
+/**
+ * The stories' context inside a question's card: a comment on one of its stories joins its answer,
+ * on a line of its own, while it can be answered. Its unsaved text is the question's own: another
+ * question of the round may embed the same story.
+ */
+function useStoryComments(
+  answer: ReturnType<typeof useAnswer>,
+  path: string,
+  question: QuestionItem,
+  readOnly: boolean,
+) {
+  const stories = useContext(StoryContext);
+  return stories && !readOnly
+    ? {
+        ...stories,
+        comment: {
+          path: `${path}#${question.id}`,
+          save: (_: unknown, text: string) => answer.appendLine(text),
+        },
+      }
+    : stories;
+}
+
+/** The letters a held card's keys pick, `g` and later left out: `g` starts a go. */
+const KEY_LETTERS = new Set(["A", "B", "C", "D", "E", "F"]);
+
+/**
+ * A question's card as a stop of the keyboard's cursor: held, its options' letters from `a` to `f`
+ * toggle them and save, but on a read-only round, which leaves the letters to the page; `i` or
+ * Enter focuses its comment field, and `s` asks the agent, with `onAsk`. Its bar also names the
+ * page's `n`, where the page has it and the round is not read-only, which goes on to the next blank
+ * question, pressed as the key is: the card does not take it.
+ */
+function useQuestionStop(
+  answer: ReturnType<typeof useAnswer>,
+  question: QuestionItem,
+  readOnly: boolean,
+  onAsk?: (question: QuestionItem) => void,
+) {
+  const press = usePress();
+  const keys: Array<StopKey> = [];
+  if (!readOnly) {
+    const letters = question.options.map((o) => o.letter).filter((l) => KEY_LETTERS.has(l));
+    for (const [index, letter] of letters.entries()) {
+      const lower = letter.toLowerCase();
+      keys.push({
+        ...(index === 0 ? { bar: letters.join(" ").toLowerCase() } : {}),
+        keys: lower,
+        label: "pick",
+        run: () => answer.toggle(letter),
+      });
+    }
+    const comment = () => void document.getElementById(commentFieldId(question.id))?.focus();
+    keys.push(
+      { bar: "i", keys: "i", label: "comment", run: comment },
+      { keys: "Enter", label: "comment", run: comment },
+    );
+  }
+  if (onAsk) {
+    keys.push({ bar: "s", keys: "s", label: "ask", run: () => onAsk(question) });
+  }
+  // The page's `n`, named only where the page has it: the round's column declares it, which a
+  // read-only round does not mount.
+  const hasNext = useHints().some((hint) => hint.press === "n");
+  const shown =
+    !readOnly && hasNext
+      ? [...keys, { bar: "n", keys: "n", label: "unanswered", run: () => press("n") }]
+      : keys;
+  return usePaneStop(keys, shown);
+}
+
+/**
+ * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of its
+ * options holding stories and none of its parts a table, a mockup, or a story: its title and
+ * context on the left, its options and comment on the right. On the phone, no card. At every width,
+ * its header sticks at the top while its card is on screen, below the top bar on the phone, and a
+ * question taller than the screen scrolls under it. A tap on an option toggles its letter and saves
+ * the answer, with the comment as saved; the comment saves with its button, or with Submit. With
+ * `onAsk`, it offers "Ask the agent".
  */
 export function QuestionCard({
   document,
@@ -195,30 +293,10 @@ export function QuestionCard({
   target: RoundTarget;
 }) {
   const answer = useAnswer(question, target, path);
-  const wide = !isNarrow(useWidthClass());
+  const { split, text, wide, width, windowed } = useCardLayout(document, question, roomy);
+  const comments = useStoryComments(answer, path, question, readOnly);
   const margin = useScrollMargin();
-  // A comment on one of its stories joins its answer, on a line of its own, while it can be
-  // answered. Its unsaved text is the question's own: another question of the round may embed the
-  // same story.
-  const stories = useContext(StoryContext);
-  const split =
-    wide &&
-    roomy &&
-    !holdsVariants(stories, document, question) &&
-    !holdsWide(stories, document, question);
-  const windowed = wide && holdsWindow(stories, document, question);
-  const width = wide && (split ? styles.splitCard : styles.single);
-  const text = windowed && styles.text;
-  const comments =
-    stories && !readOnly
-      ? {
-          ...stories,
-          comment: {
-            path: `${path}#${question.id}`,
-            save: (_: unknown, text: string) => answer.appendLine(text),
-          },
-        }
-      : stories;
+  const stop = useQuestionStop(answer, question, readOnly, onAsk);
   const head = <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />;
   const context = <QuestionContext document={document} question={question} />;
   const answering = (
@@ -241,11 +319,16 @@ export function QuestionCard({
   // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
-      <section id={question.id} {...stylex.props(margin, width, windowed && styles.windowed)}>
+      <section
+        // A pane to the keyboard's cursor, shown whole as it moves onto it, where it fits.
+        id={question.id}
+        {...stop.props}
+        {...stylex.props(stop.style, margin, width, windowed && styles.windowed)}
+      >
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
-          xstyle={!wide && styles.flat}
+          xstyle={[!wide && styles.flat, stop.look]}
         >
           <div
             {...stylex.props(
@@ -262,6 +345,7 @@ export function QuestionCard({
             </div>
             {answering}
           </div>
+          {stop.bar}
         </Card>
       </section>
     </StoryContext>

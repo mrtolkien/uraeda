@@ -9,6 +9,7 @@ import {
   fieldText,
   fixture,
   fixtureRepo,
+  hold,
   git,
   renderPage,
   serverFetch,
@@ -407,6 +408,28 @@ test("an edit of a review comment follows it when a comment before it is removed
   expect(read(r, REVIEW)).toContain("Third.");
 });
 
+/** A removal confirms itself in a toast, whose Undo adds the comment again, on its lines. */
+test("a removed comment comes back with its text on Undo", async () => {
+  const r = longSpec();
+  pendingComments(r, [
+    [40, "First."],
+    [52, "Second."],
+  ]);
+  await renderPage(PAGE, r);
+  await click(
+    within(await screen.findByRole("group", { name: "C2 · line 52" })).getByRole("button", {
+      name: "Remove",
+    }),
+  );
+  expect(await screen.findByText("Removed your comment on line 52")).toBeTruthy();
+  expect(read(r, REVIEW)).not.toContain("Second.");
+
+  await click(await screen.findByRole("button", { name: /^Undo/ }));
+
+  await waitFor(() => expect(read(r, REVIEW)).toMatch(/## C2: Line 52\b[^#]*Second\./));
+  await saved("C2 · line 52", "Second.");
+});
+
 /**
  * A block selected from the keyboard, Enter on its toggle as a click, opens its comment with the
  * focus in its field on a wide screen: the letters typed next are the comment's, never the page's
@@ -420,6 +443,95 @@ test("a block selected from its toggle gives its comment field the focus", async
   await click(toggle);
   const text = await field();
   await waitFor(() => expect(document.activeElement).toBe(text));
+});
+
+/** Presses a key where the focus is, as a user's reaches the window; a capital typed with Shift. */
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key,
+      shiftKey: /^[A-Z]$/.test(key),
+    });
+  });
+}
+
+/**
+ * US2 1–2: `J` on a held block stretches the comment's range to the next, and Enter opens one
+ * comment on both blocks' lines. Breaks: `J` moving without stretching, Enter on the head alone.
+ */
+test("J then Enter writes one comment on both scenarios' lines", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await openUS2();
+  expect((await fold("US2")).dataset["stop"], "the fold's toggle is a stop").toBe("control");
+  hold(await scenario(FIRST));
+  await press("J");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
+  // Past the second and back: the range shrinks to the anchor's side, its anchor kept.
+  await press("J");
+  await press("K");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
+  await press("Enter");
+  await comment("Both.");
+  await saved(/^C1/, "Both.");
+  expect(read(r, REVIEW)).toMatch(/## C1: Lines 92–95\b[^#]*Both\./);
+});
+
+/**
+ * US1 3: a comment opened by Enter from a held block, added with Ctrl+Enter, gives the cursor back
+ * to the block, so `j` goes on from there. Break: the focus fell to the page's body as the form
+ * closed, and the cursor was gone.
+ */
+test("Ctrl+Enter on a comment opened from a held block gives the block the cursor back", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  hold(await scenario(FIRST));
+  await press("Enter");
+  await typeComment("Back to the block.");
+  await act(async () => void fireEvent.keyDown(await field(), { ctrlKey: true, key: "Enter" }));
+  await saved(/^C1/, "Back to the block.");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(FIRST)));
+});
+
+/**
+ * Escape drops a range the keys stretched while a form is open, the form's own range back. Break:
+ * the stretched range kept, as when the drop did nothing with a form open.
+ */
+test("Escape drops the keys' range, a form's tapped range back", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  await click(await scenario(FIRST));
+  await form();
+  hold(await scenario(FIRST));
+  await press("J");
+  await waitFor(async () =>
+    expect((await scenario(SECOND)).getAttribute("aria-pressed")).toBe("true"),
+  );
+  await press("Escape");
+  await waitFor(async () =>
+    expect((await scenario(SECOND)).getAttribute("aria-pressed")).toBe("false"),
+  );
+  expect((await scenario(FIRST)).getAttribute("aria-pressed")).toBe("true");
+  expect(writing()).toHaveLength(1);
+});
+
+/**
+ * `d` on a held comment hands the cursor back to the block it is under, here a list item whose
+ * nested item is drawn between the item and its comment. Break: the cursor going to the nearest
+ * block before the comment, the nested item.
+ */
+test("d on a comment under a list item gives the cursor back to the item", async () => {
+  const r = repo();
+  commitSpec(r, (text) =>
+    text.replace("## User stories\n", "- Parent item\n  - Nested child\n\n## User stories\n"),
+  );
+  const line = lineOf(r, "Parent item");
+  pendingComments(r, [[line, "On the parent."]]);
+  await renderPage(PAGE, r);
+  hold(await screen.findByRole("group", { name: `C1 · line ${line}` }));
+  await press("d");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario("Parent item")));
+  await waitFor(() => expect(screen.queryByRole("group", { name: /^C1/ })).toBeNull());
 });
 
 /**

@@ -1,44 +1,14 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
+import { merged, type Range } from "./commentRange.ts";
 import { frame, keepPlace, scrollInstantly, scrollMark, topOf } from "./keepPlace.ts";
-
-/**
- * Lines of the reviewed file, and the heading above them; or, with `decision`, lines of a decision
- * the reviewed spec changes, `removed` for lines of a part the branch removed, at the merge base.
- */
-export type Range = {
-  decision?: { name: string; removed: boolean };
-  end: number;
-  heading: string;
-  start: number;
-};
+import { topBarBottom } from "./layout/topBar.ts";
 
 /**
  * The last tapped element, under which the form opens: a block of the reviewed file, by its id, or
  * a part of a decision, by the decision and the part's last line.
  */
 export type Last = number | { decision: string; line: number; removed: boolean };
-
-/** Whether two ranges are of the same file: the reviewed file, or the same side of a decision. */
-function sameFile(a: Range, b: Range) {
-  return a.decision?.name === b.decision?.name && a.decision?.removed === b.decision?.removed;
-}
-
-/**
- * The selection once lines are tapped: the lines added to it, under the heading of the first, or a
- * new one with them when they are of another file than its.
- */
-function selected(selection: Range | undefined, range: Range): Range {
-  if (!selection || !sameFile(selection, range)) {
-    return range;
-  }
-  return {
-    ...selection,
-    end: Math.max(selection.end, range.end),
-    heading: range.start < selection.start ? range.heading : selection.heading,
-    start: Math.min(selection.start, range.start),
-  };
-}
 
 /** Where the form opens once a part of a decision is tapped: under that part. */
 const partLast = ({ decision, end }: Range & { decision: NonNullable<Range["decision"]> }) => ({
@@ -104,7 +74,7 @@ async function placeAboveSheet(
   if (Math.abs(moved) >= 0.5) {
     scrollInstantly(moved);
   }
-  const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  const bar = topBarBottom();
   const box = element.getBoundingClientRect();
   if (box.top >= bar && box.bottom <= sheetTop) {
     return;
@@ -143,6 +113,55 @@ function useFieldAfterTap(
 }
 
 /**
+ * The last tapped block, under which the form opens: kept in place on screen as the form opens under
+ * it, moves, or closes, and on the phone brought above the comment sheet when the sheet would hide
+ * it; and on a wide screen, the field under it focused. `mark` notes a tap on `element`, and `leave`
+ * keeps the block in place as the form leaves it, then forgets it.
+ */
+function useTappedBlock(
+  wide: boolean,
+  lines: boolean,
+  selection: Range | undefined,
+  last: Last | undefined,
+) {
+  const lastElement = useRef<HTMLElement>(null);
+  // Where the last tapped block was on screen as it was tapped, px from the window's top.
+  const tappedTop = useRef(0);
+  // The reader's scroll since that tap: theirs, never put back.
+  const tappedScroll = useRef<() => number>(() => 0);
+  const sheet = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = lastElement.current;
+    if (wide || !lines || !element) {
+      return;
+    }
+    void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
+  }, [wide, lines, selection]);
+  useFieldAfterTap(wide, lastElement, last);
+
+  const mark = (element: HTMLElement) => {
+    // On a wide screen, the form opens under the block, or moves to it from a block above it.
+    if (wide) {
+      void keepPlace(topOf(element));
+    }
+    tappedTop.current = element.getBoundingClientRect().top;
+    tappedScroll.current = scrollMark();
+    lastElement.current = element;
+  };
+
+  const leave = () => {
+    const element = lastElement.current;
+    if (element) {
+      void keepPlace(topOf(element));
+    }
+    lastElement.current = null;
+  };
+
+  return { leave, mark, sheet };
+}
+
+/**
  * The comment being written on a review: the lines selected by tapping blocks, and the last block
  * tapped, under which the field opens on wide screens. Its text is the field's, in the unsaved
  * store: `onSelect` says where it goes as the lines change, for the store to keep them with it.
@@ -161,43 +180,14 @@ export function useCommentDraft(
   const [last, setLast] = useState<Last | undefined>(restored?.last);
   // Which comment is written: a new one with each close and each edit started (R71).
   const [writing, setWriting] = useState(0);
-  const lastElement = useRef<HTMLElement>(null);
-  // Where the last tapped block was on screen as it was tapped, px from the window's top.
-  const tappedTop = useRef(0);
-  // The reader's scroll since that tap: theirs, never put back.
-  const tappedScroll = useRef<() => number>(() => 0);
-  const sheet = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const element = lastElement.current;
-    if (wide || draft?.kind !== "lines" || !element) {
-      return;
-    }
-    void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
-  }, [wide, draft?.kind, selection]);
-  useFieldAfterTap(wide, lastElement, last);
-
-  /** Keeps the last tapped block in place as the form leaves it, then forgets it. */
-  const leave = () => {
-    const element = lastElement.current;
-    if (element) {
-      void keepPlace(topOf(element));
-    }
-    lastElement.current = null;
-  };
+  const { leave, mark, sheet } = useTappedBlock(wide, draft?.kind === "lines", selection, last);
 
   /** Adds tapped lines to the selection, or starts one with them. */
   const select = (range: Range, tapped: Last, element: HTMLElement) => {
-    const next = selected(selection, range);
-    // On a wide screen, the form opens under the block, or moves to it from a block above it.
-    if (wide) {
-      void keepPlace(topOf(element));
-    }
-    tappedTop.current = element.getBoundingClientRect().top;
-    tappedScroll.current = scrollMark();
+    const next = merged(selection, range);
+    mark(element);
     setSelection(next);
     setLast(tapped);
-    lastElement.current = element;
     if (draft?.kind !== "lines") {
       setDraft({ kind: "lines" });
     }
@@ -215,6 +205,15 @@ export function useCommentDraft(
   /** Adds a tapped part of a decision to the selection, or starts one with it. */
   const tapPart = (range: Parameters<typeof partLast>[0], element: HTMLElement) =>
     select(range, partLast(range), element);
+
+  /**
+   * Sets the selection the keys stretch, the review's yellow, without opening or closing the form;
+   * `undefined` drops it, and the selection before the keys stretched it comes back so, a form's.
+   */
+  const stretch = (range: Range | undefined) => {
+    setSelection(range);
+    onSelect(range);
+  };
 
   /** Starts a comment on the whole file, or an edit of a pending comment. */
   const start = (next: Exclude<CommentDraft, { kind: "lines" }>) => {
@@ -249,5 +248,17 @@ export function useCommentDraft(
     }
   };
 
-  return { close, draft, last, removed, selection, sheet, start, tap, tapPart, writing };
+  return {
+    close,
+    draft,
+    last,
+    removed,
+    selection,
+    sheet,
+    start,
+    stretch,
+    tap,
+    tapPart,
+    writing,
+  };
 }

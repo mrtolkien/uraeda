@@ -1,6 +1,8 @@
 // How a read-only document selects blocks to ask the agent about: tapping selects a block's lines,
 // tapping more extends the selection, and under the last block tapped sit "Ask the agent" and
-// "Clear". No review writes comments here, so there is no comment field, only the quote.
+// "Clear". No review writes comments here, so there is no comment field, only the quote. Held by
+// the keyboard's cursor, a block has one key, `s`, which asks about the selection holding it, else
+// the block alone.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useState } from "react";
@@ -8,7 +10,7 @@ import type { Block } from "uraeda-binding";
 import type { useFile } from "../data.ts";
 import { quoteOfRange } from "../reviewQuote.ts";
 import type { Selection } from "../Selection.tsx";
-import type { Range } from "../useCommentDraft.ts";
+import type { Range } from "../commentRange.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -45,24 +47,36 @@ export function useAskSelection(
     return undefined;
   }
   const clear = () => setSelected(undefined);
+  const isSelected = (block: Block) =>
+    selected !== undefined &&
+    block.startLine >= selected.range.start &&
+    block.endLine <= selected.range.end;
+  const askAbout = (range: Range) => {
+    ask(quoteOfRange(file, file.current.text, range));
+    clear();
+  };
   return {
     after: (block) =>
       selected?.last === block.id && (
         <HStack gap={2}>
-          <Button
-            label="Ask the agent"
-            onClick={() => {
-              ask(quoteOfRange(file, file.current.text, selected.range));
-              clear();
-            }}
-          />
+          <Button label="Ask the agent" onClick={() => askAbout(selected.range)} />
           <Button label="Clear" onClick={clear} variant="ghost" />
         </HStack>
       ),
-    isSelected: (block) =>
-      selected !== undefined &&
-      block.startLine >= selected.range.start &&
-      block.endLine <= selected.range.end,
+    isSelected,
+    keys: (block) => [
+      {
+        bar: "s",
+        keys: "s",
+        label: "ask",
+        run: () =>
+          askAbout(
+            selected && isSelected(block)
+              ? selected.range
+              : { end: block.endLine, heading: block.heading ?? "", start: block.startLine },
+          ),
+      },
+    ],
     onTap: (block) => setSelected((was) => extended(was, block)),
   };
 }
