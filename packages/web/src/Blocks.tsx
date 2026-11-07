@@ -30,6 +30,7 @@ import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
 import { ruleStyles } from "./layout/rules.ts";
 import { tableVars } from "./layout/table.stylex.ts";
+import { headingStyle } from "./layout/headings.ts";
 
 /** A callout's title when it has none of its own, by its kind. */
 const CALLOUT_TITLES: Record<string, string> = {
@@ -54,7 +55,6 @@ const styles = stylex.create({
     borderInlineStartColor: colorVars["--color-accent"],
     marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] },
   },
-  calloutImportant: { borderInlineStartColor: colorVars["--color-border-purple"] },
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
   calloutTitle: {
     display: "block",
@@ -116,10 +116,9 @@ const styles = stylex.create({
   }),
 });
 
-/** A callout's bar's colour, by its kind: the accent's for the others. */
+/** A callout's bar's colour, by its kind: the accent's for the others, an important one's too. */
 const CALLOUT_STYLES: Record<string, stylex.StyleXStyles> = {
   caution: styles.calloutWarning,
-  important: styles.calloutImportant,
   tip: styles.calloutTip,
   warning: styles.calloutWarning,
 };
@@ -258,7 +257,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
         <Heading
           id={block.anchor}
           level={Math.min(Math.max(block.level ?? 2, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6}
-          xstyle={[styles.heading, context.scrollMargin]}
+          xstyle={[styles.heading, headingStyle(block.level ?? 2), context.scrollMargin]}
         >
           {spans}
         </Heading>

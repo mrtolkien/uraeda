@@ -18,6 +18,7 @@ import { useFile, usePreviewOn } from "../data.ts";
 import { readAlong, storyRead } from "../readAhead.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
 import { MountedSteps } from "../layout/MountedSteps.tsx";
+import { headingStyle } from "../layout/headings.ts";
 import { Page, pageText } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -109,7 +110,12 @@ function Group({
           wide ? scrollMarginStyles.belowNothing : scrollMarginStyles.belowBar,
         )}
       >
-        <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={[styles.title, styles.heading]}>
+        <Heading
+          id={`${id}-title`}
+          level={2}
+          tabIndex={-1}
+          xstyle={[styles.title, styles.heading, headingStyle(2)]}
+        >
           {icon && <Icon icon={icon} />}
           <span>
             {title}

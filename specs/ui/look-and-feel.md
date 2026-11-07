@@ -44,9 +44,10 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
   px box, brighter under the pointer, so a mouse sees what it can press before any hover, as a
   terminal's button, never a rounded pill. A fill alone read as a tint of the row, and a fill with
   the frame as a generic button.
-- **A diff reads its changes at a glance**: added lines on a green tint, removed ones on a red one,
-  their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat" otherwise. Git's
-  header of the file, `--- a/` and `+++ b/`, is left out: the pane's title names the file.
+- **A diff reads its changes at a glance**: added lines on an `added` tint, removed ones on a
+  `removed` one, their `+` and `-` in the same hue, and the lines it keeps greyed: "too flat"
+  otherwise. Git's header of the file, `--- a/` and `+++ b/`, is left out: the pane's title names
+  the file.
 - **A field looks writable**: the composer has a border.
 - **A target is 24 px high at least** on a desktop, padding included: a status line's hint, a row
   bar's action, any text that is pressed. Where the look is denser, the hit area grows, not the
@@ -71,11 +72,20 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 
 ## Colours
 
-- **The accent** (mauve) is what can be pressed: the primary button, the next-step mark, the
-  selection.
-- **Orange** is what needs the human: the Needs-you border, a pane asking for attention.
-- **Teal** marks sub-agents, apart from red, which reads as wrong.
-- **Green** is the repository's mark and what was added; **red** what was removed or is wrong.
+A view asks for a colour by its role, never by a hue (the
+[Colour themes](../decisions/colour-themes.md) decision): the theme picked maps its own palette onto
+the roles, which [`theme/roles.ts`](/packages/web/src/theme/roles.ts) turns into the views'
+`--role-*` variables. In Catppuccin, the default:
+
+- **The accent**, `action` (mauve), is what can be pressed: the primary button, the next-step mark,
+  the selection.
+- **`needs-you`** (orange) is what needs the human: the Needs-you border, a pane asking for
+  attention.
+- **`sub-agent`** (teal) marks sub-agents, apart from `removed`, which reads as wrong.
+- **`added`** (green) is the repository's mark and what was added; **`removed`** (red) what was
+  removed or is wrong.
+- **Headings** take their level's role, `heading-1` to `heading-3` (mauve, blue, green); page, pane,
+  and group titles keep their own colours.
 - **Text stays the text's colour.** The secondary colour is for what reads second, never for the
   row's own text.
 

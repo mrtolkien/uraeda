@@ -49,11 +49,11 @@ const styles = stylex.create({
   row: { paddingInline: spacingVars["--spacing-1"] },
   // A row's head and what it acted on, one under the other, across the row.
   stack: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-1"], minWidth: 0 },
-  // A sub-agent's row icon, in the teal of its marks elsewhere (`StatusMark`).
-  subagentIcon: { color: "var(--color-fill-teal)" },
+  // A sub-agent's row icon, in the role of its marks elsewhere (`StatusMark`).
+  subagentIcon: { color: "var(--role-sub-agent)" },
   // A finished call's check, and a failed one's cross.
-  done: { color: colorVars["--color-text-green"] },
-  failed: { color: colorVars["--color-text-red"] },
+  done: { color: "var(--role-added)" },
+  failed: { color: "var(--role-removed)" },
   // A row of the stretch the address names, on the muted background, a step darker than the
   // column's: the selection's tint was too bright under the text.
   marked: { backgroundColor: colorVars["--color-background-muted"] },

@@ -1,11 +1,6 @@
 import { Icon } from "@astryxdesign/core/Icon";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
-import {
-  colorVars,
-  fontWeightVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { fontWeightVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 
@@ -28,13 +23,14 @@ const styles = stylex.create({
     width: spacingVars["--spacing-3"],
   },
   working: {
-    // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
-    backgroundColor: colorVars["--color-icon-blue"],
+    // The `working` role while working, as the mockup draws it: the accent is its ink, near the
+    // idle grey.
+    backgroundColor: "var(--role-working)",
   },
-  // A sub-agent at work: Catppuccin's teal (a local token of the theme), set apart from the
-  // session's blue and the buttons' mauve.
+  // A sub-agent at work: the `sub-agent` role, set apart from the session's `working` and the
+  // buttons' accent.
   subagent: {
-    backgroundColor: "var(--color-fill-teal)",
+    backgroundColor: "var(--role-sub-agent)",
   },
 });
 
@@ -48,8 +44,8 @@ const DOTS = {
 } as const;
 
 /**
- * A session's status as a square, named by its label for screen readers: the activity icon on blue
- * while it works (the small one, a plain blue square), a warning "!" when it needs the human, an
+ * A session's status as a square, named by its label for screen readers: the activity icon on the
+ * `working` role while it works (the small one, a plain square of it), a warning "!" when it needs the human, an
  * error "!" when it needs their attention, a success "✓" for a reply not seen yet, and nothing
  * when idle.
  */
@@ -59,7 +55,7 @@ export function StatusMark({
   small = false,
   status,
 }: {
-  /** A sub-agent's mark, in teal where a session's own is blue. */
+  /** A sub-agent's mark, in its own role where a session's own is `working`. */
   isSubagent?: boolean;
   label: string;
   small?: boolean;

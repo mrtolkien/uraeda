@@ -95,7 +95,7 @@ const styles = stylex.create({
     marginInlineEnd: `calc(-1 * (${spacingVars["--spacing-2"]} + ${spacingVars["--spacing-4"]}))`,
   },
   // In the closed rail: a bar the rail's row wide, framing the card's icon and its mark, which no
-  // longer clips them. The frame's colour is its pane's, orange where it needs the human.
+  // longer clips them. The frame's colour is its pane's, `needs-you` where it needs the human.
   rail: {
     "::after": {
       borderColor: colorVars["--color-border"],
@@ -112,7 +112,7 @@ const styles = stylex.create({
     isolation: "isolate",
     overflow: "visible",
   },
-  railAttention: { "::after": { borderColor: colorVars["--color-border-orange"] } },
+  railAttention: { "::after": { borderColor: "var(--role-needs-you)" } },
   // The selected card's grey fills its frame, behind its icons: its row's, as wide as the open
   // card, would run past the frame.
   railSelected: { "::after": { backgroundColor: colorVars["--color-neutral"], zIndex: -1 } },

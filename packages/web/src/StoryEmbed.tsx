@@ -9,7 +9,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -35,7 +35,7 @@ import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
   error: {
-    backgroundColor: colorVars["--color-background-red"],
+    backgroundColor: "var(--role-removed-tint)",
   },
   // The states' controls, drawn into the window's top border, laid out as its own.
   slot: {

@@ -60,7 +60,7 @@ const styles = stylex.create({
     display: "flex",
     flexWrap: "wrap",
   },
-  waiting: { color: colorVars["--color-text-orange"] },
+  waiting: { color: "var(--role-needs-you)" },
 });
 
 /** The stage's mark: passed, current, or ahead; the list says which is current. */

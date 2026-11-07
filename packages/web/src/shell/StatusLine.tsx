@@ -85,7 +85,7 @@ const styles = stylex.create({
     zIndex: 2,
   },
   needs: {
-    color: colorVars["--color-text-orange"],
+    color: "var(--role-needs-you)",
   },
   // The phone's bar slid out of the way as the page scrolls down, its shadow too.
   phoneHidden: {

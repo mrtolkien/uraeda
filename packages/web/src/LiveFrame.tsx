@@ -33,7 +33,7 @@ const styles = stylex.create({
   // The stage: hatched in the theme's surface and gray, the frame centred on it, and its start kept
   // in view where the frame is wider than the stage.
   stage: {
-    backgroundImage: `repeating-linear-gradient(-45deg, ${colorVars["--color-background-surface"]} 0 6px, ${colorVars["--color-background-gray"]} 6px 12px)`,
+    backgroundImage: `repeating-linear-gradient(-45deg, ${colorVars["--color-background-surface"]} 0 6px, var(--role-chip) 6px 12px)`,
     display: "flex",
     justifyContent: "safe center",
     padding: spacingVars["--spacing-2"],

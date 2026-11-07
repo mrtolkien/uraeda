@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { Crumbs } from "./Crumbs.tsx";
 import { pageText } from "./layout/Page.tsx";
+import { headingStyle } from "./layout/headings.ts";
 import { RoundBlock, RoundContext } from "./RoundParts.tsx";
 import { plain } from "./Spans.tsx";
 
@@ -36,7 +37,7 @@ export function RoundOpening({
     <>
       {crumbs && <Crumbs current={crumbs.name} folder={crumbs.folder} />}
       {title && (
-        <Heading level={1} xstyle={[pageText, styles.title]}>
+        <Heading level={1} xstyle={[pageText, styles.title, headingStyle(1)]}>
           {plain(title.spans)}
         </Heading>
       )}

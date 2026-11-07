@@ -44,7 +44,7 @@ export const editorTheme: Extension = EditorView.theme({
     caretColor: "var(--color-text-primary)",
     padding: `${PAD_BLOCK} 0`,
   },
-  ".cm-content ::selection": { backgroundColor: "var(--color-background-gray)" },
+  ".cm-content ::selection": { backgroundColor: "var(--role-chip)" },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--color-text-primary)",
     borderLeftWidth: "2px",

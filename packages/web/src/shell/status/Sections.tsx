@@ -1,8 +1,8 @@
 // lualine's sections, as LazyVim sets them, for the status line: `a` the mode, in its colour; `b`
 // on a raised ground, in the mode's colour; `c` on the line's own ground. Between them, lualine's
 // separators: triangles drawn here, as the bundled fonts have no Powerline glyphs. The colours are
-// Catppuccin's, through the theme's tokens: NAV grey, NORMAL blue, INSERT green, the visual modes
-// mauve, REPLACE red, COMMAND peach.
+// the theme's `mode-*` roles, NAV the secondary text's: in Catppuccin, NORMAL blue, INSERT green,
+// the visual modes mauve, REPLACE red, COMMAND peach.
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
@@ -21,7 +21,7 @@ export function toneOf(mode: Mode | "nav", isVimOn: boolean): Tone {
 
 const styles = stylex.create({
   a: { fontWeight: fontWeightVars["--font-weight-bold"] },
-  b: { backgroundColor: colorVars["--color-background-gray"] },
+  b: { backgroundColor: "var(--role-chip)" },
   line: { backgroundColor: colorVars["--color-background-muted"] },
   pointing: { clipPath: "polygon(0 0, 100% 50%, 0 100%)" },
   section: {
@@ -38,11 +38,11 @@ const styles = stylex.create({
 /** The mode's block: its colour, the text on it in the colour that reads on it. */
 const fills = stylex.create({
   command: {
-    backgroundColor: colorVars["--color-border-orange"],
+    backgroundColor: "var(--role-mode-command)",
     color: colorVars["--color-on-accent"],
   },
   insert: {
-    backgroundColor: colorVars["--color-border-green"],
+    backgroundColor: "var(--role-mode-insert)",
     color: colorVars["--color-on-accent"],
   },
   nav: {
@@ -50,7 +50,7 @@ const fills = stylex.create({
     color: colorVars["--color-on-accent"],
   },
   normal: {
-    backgroundColor: colorVars["--color-border-blue"],
+    backgroundColor: "var(--role-mode-normal)",
     color: colorVars["--color-on-accent"],
   },
   off: {
@@ -58,24 +58,24 @@ const fills = stylex.create({
     color: colorVars["--color-on-accent"],
   },
   replace: {
-    backgroundColor: colorVars["--color-border-red"],
+    backgroundColor: "var(--role-mode-replace)",
     color: colorVars["--color-on-accent"],
   },
   visual: {
-    backgroundColor: colorVars["--color-border-purple"],
+    backgroundColor: "var(--role-mode-visual)",
     color: colorVars["--color-on-accent"],
   },
 });
 
 /** Section b's text, in the mode's colour, on its raised ground. */
 const inks = stylex.create({
-  command: { color: colorVars["--color-text-orange"] },
-  insert: { color: colorVars["--color-text-green"] },
+  command: { color: "var(--role-mode-command)" },
+  insert: { color: "var(--role-mode-insert)" },
   nav: { color: colorVars["--color-text-secondary"] },
-  normal: { color: colorVars["--color-text-blue"] },
+  normal: { color: "var(--role-mode-normal)" },
   off: { color: colorVars["--color-text-secondary"] },
-  replace: { color: colorVars["--color-text-red"] },
-  visual: { color: colorVars["--color-text-purple"] },
+  replace: { color: "var(--role-mode-replace)" },
+  visual: { color: "var(--role-mode-visual)" },
 });
 
 /** A section's kind, as lualine names them. */

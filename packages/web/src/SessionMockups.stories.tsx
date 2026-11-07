@@ -64,7 +64,7 @@ const styles = stylex.create({
     minHeight: "var(--size-viewport-height)",
   },
   user: {
-    backgroundColor: colorVars["--color-background-blue"],
+    backgroundColor: "var(--role-yours-tint)",
   },
 });
 

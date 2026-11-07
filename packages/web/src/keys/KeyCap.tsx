@@ -1,13 +1,13 @@
 // A key as the UI writes it, as typed, in the code's font and the key's colour: the status line's,
 // the leader menu's, a row bar's, and a confirmation's. An Astryx gap (plan, Complexity tracking): `Kbd` writes keys in capitals, "J K".
-import { colorVars, fontWeightVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { fontWeightVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { ArrowGlyph, isArrow, SpaceGlyph } from "./Glyphs.tsx";
 
 const styles = stylex.create({
   key: {
-    color: colorVars["--color-text-orange"],
+    color: "var(--role-needs-you)",
     // The code's font, where a browser sets a `kbd` in its own monospace one (`theme/fonts.ts`).
     fontFamily: typographyVars["--font-family-code"],
     fontWeight: fontWeightVars["--font-weight-bold"],

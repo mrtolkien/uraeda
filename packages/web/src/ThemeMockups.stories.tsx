@@ -2,12 +2,11 @@
 // section, with the mode, a theme for each mode, and your theme files, their problems included; the
 // theme picker of `Space u t`, a list over the app, which is the preview, fading after a second; and a document's headings, a colour per level. Built from the real
 // components over fixed text, with no server: the stories show the look, and the data is the real
-// page's once built. TEMPORARY: the headings' colours stand in for the heading roles until they
-// exist.
+// page's once built.
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
@@ -16,6 +15,7 @@ import type { ThemeFile } from "uraeda-binding";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { Home } from "./Home.tsx";
 import { glassStyles } from "./layout/glass.ts";
+import { headingStyle } from "./layout/headings.ts";
 import { pickedStyles } from "./layout/picked.ts";
 import { TextLine } from "./fields/TextLine.tsx";
 import { Pane } from "./layout/Pane.tsx";
@@ -30,10 +30,6 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-3"],
     paddingInline: spacingVars["--spacing-3"],
   },
-  // The heading roles of Catppuccin, standing in: mauve, blue, and green, one per level.
-  heading1: { color: colorVars["--color-text-accent"] },
-  heading2: { color: colorVars["--color-text-blue"] },
-  heading3: { color: colorVars["--color-text-green"] },
   // The theme picker: a narrow list at the top of the page, over the app with no scrim.
   picker: {
     insetInlineStart: "50%",
@@ -172,24 +168,24 @@ function Picker({ isFaded = false }: { isFaded?: boolean }) {
 function Headings() {
   return (
     <VStack gap={3} xstyle={styles.page}>
-      <Heading level={1} xstyle={styles.heading1}>
+      <Heading level={1} xstyle={headingStyle(1)}>
         Spec: Color themes
       </Heading>
       <Text>
         The web UI&rsquo;s colours come from a colour theme, one for light mode and one for dark
         mode.
       </Text>
-      <Heading level={2} xstyle={styles.heading2}>
+      <Heading level={2} xstyle={headingStyle(2)}>
         User stories
       </Heading>
-      <Heading level={3} xstyle={styles.heading3}>
+      <Heading level={3} xstyle={headingStyle(3)}>
         US1: Pick a theme for each mode (P1)
       </Heading>
       <Text>
         In the settings&rsquo; Appearance, the mode follows the system, and a list per mode picks
         its theme.
       </Text>
-      <Heading level={3} xstyle={styles.heading3}>
+      <Heading level={3} xstyle={headingStyle(3)}>
         US2: Write a theme of your own (P2)
       </Heading>
       <Text>

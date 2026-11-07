@@ -2,7 +2,6 @@
 // "Sandbox" marker, the pick toggle, and what the last pick did. The marker hides the rest, and
 // shows it again, so the bar uncovers the page's last controls (R21). Only the sandbox's page
 // loads it. The pick script leaves the bar to the page, so its toggles work in pick mode.
-import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -17,6 +16,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type PointerEvent, useRef, useState } from "react";
+import { RoleBadge } from "../layout/RoleBadge.tsx";
 
 /** How far the pointer moves before a press on the marker is a drag, in pixels. */
 const DRAG_THRESHOLD = 4;
@@ -193,7 +193,7 @@ export function SandboxBar({
         size="sm"
         variant="ghost"
       >
-        <Badge label="Sandbox" variant="orange" />
+        <RoleBadge label="Sandbox" role="caution" />
       </Button>
       {shown && (
         <ToggleButton

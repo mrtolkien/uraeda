@@ -158,7 +158,7 @@ function Lists({
         text: plain(proposal.spans),
       })),
       title: "Priorities now",
-      tone: "blue",
+      tone: "now",
     },
   ];
   const selecting = useFollowed(follow, sections);

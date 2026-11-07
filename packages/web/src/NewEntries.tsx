@@ -189,7 +189,7 @@ function useEntries(search: string) {
       isFixed: true,
       rows: lines,
       title: "Priorities",
-      tone: "blue",
+      tone: "now",
     },
   ];
   return { byHref, sections };

@@ -23,14 +23,10 @@ import { PartText } from "../RuleLine.tsx";
 import { type Context, holds, rangeOf } from "./context.ts";
 
 const styles = stylex.create({
-  // A row's faint tint, its hue's icon colour over the pane, light enough that muted words keep
-  // 4.5:1 on it over the page's darker surface on the phone: its sign and its marks say the rest.
-  added: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 6%, transparent)`,
-  },
-  changed: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-yellow"]} 6%, transparent)`,
-  },
+  // A row's faint tint, its role's (`marks.stylex.ts`): its sign and its marks say the rest. A
+  // changed part takes `caution`, as the ledger's "Changed" badge (`KindBadge.tsx`) does.
+  added: { backgroundColor: markVars["--mark-row-added"] },
+  changed: { backgroundColor: markVars["--mark-row-changed"] },
   // A fold's button, drawn as a muted line of the ledger, a control's height for a finger, its
   // label wrapping on a narrow screen rather than cut.
   fold: {
@@ -49,9 +45,7 @@ const styles = stylex.create({
   },
   // A kept part reads muted on a summary card: the ledger's news is what changed.
   kept: { color: colorVars["--color-text-secondary"] },
-  removed: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 6%, transparent)`,
-  },
+  removed: { backgroundColor: markVars["--mark-row-removed"] },
   row: {
     paddingBlock: spacingVars["--spacing-1"],
     paddingInlineEnd: spacingVars["--spacing-1"],
@@ -65,9 +59,9 @@ const styles = stylex.create({
     textAlign: "center",
     width: markVars["--mark-sign"],
   },
-  signAdded: { color: colorVars["--color-text-green"] },
-  signChanged: { color: colorVars["--color-text-yellow"] },
-  signRemoved: { color: colorVars["--color-text-red"] },
+  signAdded: { color: "var(--role-added)" },
+  signChanged: { color: "var(--role-caution)" },
+  signRemoved: { color: "var(--role-removed)" },
   // A row's words take what the sign leaves.
   words: {
     flexGrow: 1,

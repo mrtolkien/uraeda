@@ -186,6 +186,7 @@ export default {
     jsPlugins: [
       { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
       { name: "stylex", specifier: "./packages/web/lint/stylex.js" },
+      { name: "colour", specifier: "./packages/web/lint/colour.js" },
     ],
     overrides: [
       {
@@ -233,6 +234,8 @@ export default {
               ],
             },
           ],
+          // The Colour themes decision: a view asks for a colour by its role, never a hue.
+          "colour/roles-not-hues": "error",
           "stylex/custom-property-tokens": ["error", tokenLimit],
           "stylex/valid-styles": [
             "error",
@@ -250,6 +253,22 @@ export default {
         // The theme and the token files, where the tokens get their raw values.
         files: ["packages/web/src/theme/**", "packages/web/src/**/*.stylex.ts"],
         rules: { "stylex/custom-property-tokens": "off" },
+      },
+      {
+        // Where the hues get their colours from roles, and the tests and the lint fixtures, which
+        // name hues to check them; the rule's own fixture is linted, below.
+        files: [
+          "packages/web/src/theme/**",
+          "packages/web/src/**/__tests__/**",
+          "packages/web/src/**/*.test.ts",
+          "packages/web/src/**/*.test.tsx",
+          "packages/web/src/__lint__/**",
+        ],
+        rules: { "colour/roles-not-hues": "off" },
+      },
+      {
+        files: ["packages/web/src/__lint__/hue-token.tsx"],
+        rules: { "colour/roles-not-hues": "error" },
       },
       {
         // The one place Astryx's Markdown is drawn, bar a story's mockup, which also draws Astryx's

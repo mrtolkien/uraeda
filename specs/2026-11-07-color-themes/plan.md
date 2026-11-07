@@ -284,7 +284,7 @@ with `roles.ts`; no DOM. The UI tests that change render the app with happy-dom 
 | SC-001 Catppuccin unchanged                                       | 4    | `theme-roles.test.ts`, "Catppuccin draws today's %s"                                                |
 | SC-002 the floor in every shipped theme                           | 4, 5 | `theme-tokens.test.ts`, every pair, every shipped theme                                             |
 | SC-003 no flash                                                   | 6    | `palette-probe.ts --first-paint`                                                                    |
-| SC-004 no hue in views                                            | 7    | `lint.test.ts`, "lint refuses hue-token.tsx"; and `vp check` on the views                           |
+| SC-004 no hue in views                                            | 7    | `lint.test.ts`, "lint refuses a hue in a string, a member key, and a prop"; and `vp check`          |
 | Review focus 1, 2, 7                                              | 2    | `themes.rs`, problems table rows                                                                    |
 | Review focus 3, alpha in a text role                              | 2    | `themes.rs`, problems table, row "alpha measured over the page"                                     |
 | Review focus 4, a corrupt cache                                   | 6    | `theme.test.ts`, a row of the drawn cache's table                                                   |
@@ -901,12 +901,13 @@ git commit -m "feat(color-themes): a mode and a theme per mode, kept per browser
 **Files:**
 
 - Create: `packages/web/lint/colour.js`, `packages/web/src/__lint__/hue-token.tsx`,
-  `packages/web/src/layout/headings.ts` (the heading colours by level, one home)
+  `packages/web/src/layout/headings.ts` (the heading colours by level, one home),
+  `packages/web/src/layout/RoleBadge.tsx` (a badge in a role's colour, for the hue variants)
 - Modify: every view the code read lists with a hue, `fields/editor/markdown.ts`, `Blocks.tsx`,
   `spec/SpecPage.tsx`, `RoundOpening.tsx`, `theme/theme.ts` (the markdown component's headings),
   `ThemeMockups.stories.tsx` (`HeadingsByLevel` draws the real headings; the TEMPORARY note goes),
-  `vite.config.ts` (the plugin and its rule), `specs/ui/look-and-feel.md` and `specs/ui/surfaces.md`
-  where they name a hue for a meaning
+  `marks.stylex.ts` (a ledger row's tints), `vite.config.ts` (the plugin and its rule),
+  `specs/ui/look-and-feel.md` and `specs/ui/surfaces.md` where they name a hue for a meaning
 - Test: `packages/web/src/__tests__/lint.test.ts` (a row)
 
 **Interfaces:**
@@ -914,36 +915,40 @@ git commit -m "feat(color-themes): a mode and a theme per mode, kept per browser
 - Consumes: the `--role-*` and `--role-*-tint` variables (task 4).
 - Produces: `colour/roles-not-hues`, an Oxlint JS rule for `packages/web/src/**` outside
   `src/theme/**`, tests, and `__lint__`, with the message "Ask for a colour by its role,
-  var(--role-…), never a hue (Colour themes decision)."; `headingStyles` from `layout/headings.ts`,
-  by level.
+  var(--role-…), never a hue (Colour themes decision)."; `headingStyle(level)` from
+  `layout/headings.ts`; `RoleBadge` from `layout/RoleBadge.tsx`, Astryx's neutral `Badge` in the
+  role `added` or `caution`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
-`lint.test.ts`, a row `["hue-token.tsx", "roles-not-hues"]`, the fixture holding
-`"var(--color-text-orange)"` in a `stylex.create`, `colorVars["--color-border-red"]`, and a
-`<Badge variant="yellow" />`. Breaks: a hue in a string, in a member key, or in a prop slipping by.
+`lint.test.ts`, a test "lint refuses a hue in a string, a member key, and a prop (SC-004)", which
+counts four `roles-not-hues` reports on `hue-token.tsx` (R16), the fixture holding
+`"var(--color-text-orange)"` in a `stylex.create`, `colorVars["--color-border-red"]`, a
+`<Badge variant="yellow" />`, and a hue picked by a condition, `variant={active ? "green" : …}`.
+Breaks: a hue in a string, in a member key, or in a prop slipping by.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/lint.test.ts`
-- Expected: FAIL, the row's output lacking `roles-not-hues`.
+- Expected: FAIL, no `roles-not-hues` report in the output.
 
-- [ ] **Step 3: Implement the rule, then move every view**
+- [x] **Step 3: Implement the rule, then move every view**
 
 The rule reports a string or template piece matching
 `--color-(text|border|background|icon|fill)-(red|orange|yellow|green|teal|cyan|blue|purple|pink|gray|lavender|sapphire)\b`,
-and a JSX `variant` or `color` attribute whose literal value is one of those hues. Then each view
-takes the role of what it means, from the discovery's
+and a JSX `variant` or `color` attribute whose literal value, or a condition's, is one of those
+hues. Then each view takes the role of what it means, from the discovery's
 [table](discovery-01.md#what-each-colour-means-today) and the data model: `-orange` → `needs-you`,
 `-purple` → `changed` (a pane's "changed") or `action` where it is what can be pressed, `-green` →
 `added`, `-red` → `removed`, `-yellow` → `caution`, `-blue` → `context`, `yours`, `link`, or
 `working` by what it marks, `-teal` → `example`, `--color-fill-teal` → `sub-agent`, `-sapphire` →
 `live`, `-lavender` → `pane-title`, `-background-gray` → `chip`, a hue's background → its role's
 `-tint`, the status line's modes → `mode-*`. A hue variant of an Astryx component becomes its
-neutral variant styled with the role through `xstyle`. Semantic tokens (`--color-accent`,
+neutral variant styled with the role through `xstyle`, drawn by `RoleBadge`. A list section's `Tone`
+and a pane's `PaneTint` name meanings, not hues (R16). Semantic tokens (`--color-accent`,
 `--color-success`, `--color-text-secondary`, …) stay.
 
-- [ ] **Step 4: Colour headings by level**
+- [x] **Step 4: Colour headings by level**
 
 `layout/headings.ts` gives `heading-1`, `-2`, `-3` by level, deeper levels `-3`. Blocks' heading,
 the spec page's section headings, and a round's title take it; the theme's `markdown` component rule
@@ -951,7 +956,7 @@ colours a message's headings by the level written (with `headingLevelStart={4}`,
 editor's markdown takes `heading1` → `heading-1`, `heading2` → `-2`, the rest `-3`. Page titles,
 pane titles, and group titles keep theirs.
 
-- [ ] **Step 5: Run the task's validation, and look**
+- [x] **Step 5: Run the task's validation, and look**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/lint.test.ts`, then
   `nix develop -c vp check`
@@ -959,10 +964,11 @@ pane titles, and group titles keep theirs.
   round, a session, the Git page, at both widths, in Mocha and Latte: the same colours as before,
   headings excepted. Deferred to `ready`: the UI tests, Storybook's build.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web vite.config.ts specs/ui specs/2026-11-07-color-themes/plan.md
+git add packages/web vite.config.ts specs/ui specs/2026-11-07-color-themes/plan.md \
+  specs/2026-11-07-color-themes/rulings.md
 git commit -m "feat(color-themes): views ask for roles, and headings take their level's colour"
 ```
 

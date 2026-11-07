@@ -38,8 +38,11 @@ export type PaneTone =
   | "removed"
   | "worktree";
 
-/** A colour for a pane's title alone, as a list's section tells its kind; its border stays. */
-export type PaneTint = "blue" | "gray" | "green";
+/**
+ * A role for a pane's title alone, as a list's section tells its kind; its border stays: `quiet` is
+ * the secondary text's.
+ */
+export type PaneTint = "added" | "quiet" | "working";
 
 /**
  * A pane that folds to its title: whether it is open, and what opens or closes it. `folded`, when
@@ -67,19 +70,19 @@ const styles = stylex.create({
   },
   active: { borderColor: colorVars["--color-accent"] },
   activeTitle: { color: colorVars["--color-text-accent"] },
-  attention: { borderColor: colorVars["--color-border-orange"] },
-  attentionTitle: { color: colorVars["--color-text-orange"] },
-  changed: { borderColor: colorVars["--color-border-purple"] },
-  changedTitle: { color: colorVars["--color-text-purple"] },
-  tintBlue: { color: colorVars["--color-text-blue"] },
-  tintGray: { color: colorVars["--color-text-secondary"] },
-  tintGreen: { color: colorVars["--color-text-green"] },
+  attention: { borderColor: "var(--role-needs-you)" },
+  attentionTitle: { color: "var(--role-needs-you)" },
+  changed: { borderColor: "var(--role-changed)" },
+  changedTitle: { color: "var(--role-changed)" },
+  tintAdded: { color: "var(--role-added)" },
+  tintQuiet: { color: colorVars["--color-text-secondary"] },
+  tintWorking: { color: "var(--role-working)" },
   // The count stays on the title's first line, whole.
   count: {
     flexShrink: 0,
   },
-  example: { borderColor: colorVars["--color-border-teal"] },
-  exampleTitle: { color: colorVars["--color-text-teal"] },
+  example: { borderColor: "var(--role-example)" },
+  exampleTitle: { color: "var(--role-example)" },
   // A folding pane's title, a button drawn as the title it stands for, wrapping as the title does:
   // a target as tall as a control, the theme's 44 px on a touch screen, around its first line, its
   // padding taking no room from the title, and its background, on a hover, kept to its lines.
@@ -108,19 +111,19 @@ const styles = stylex.create({
     flexShrink: 0,
     height: "var(--pane-line)",
   },
-  // A live window: the theme's own sapphire, a local token (`theme.ts`), and a double border,
+  // A live window: the `live` role, and a double border,
   // three times the border's width so its two lines and the gap between them show.
   live: {
     "--pane-border": `calc(3 * ${borderVars["--border-width"]})`,
-    borderColor: "var(--color-border-sapphire)",
+    borderColor: "var(--role-live)",
     borderStyle: "double",
   },
-  liveTitle: { color: "var(--color-text-sapphire)" },
-  // A feature's worktree, apart from the main checkout: blue, and a dashed border of the same
+  liveTitle: { color: "var(--role-live)" },
+  // A feature's worktree, apart from the main checkout: in the working role (R16), and a dashed border of the same
   // width, which keeps its dashes in the accent while the pane is active.
-  worktree: { borderColor: colorVars["--color-border-blue"], borderStyle: "dashed" },
+  worktree: { borderColor: "var(--role-working)", borderStyle: "dashed" },
   worktreeDashes: { borderStyle: "dashed" },
-  worktreeTitle: { color: colorVars["--color-text-blue"] },
+  worktreeTitle: { color: "var(--role-working)" },
   // The title's words, its icons, and its count, on lines of the title's width.
   head: {
     alignItems: "start",
@@ -142,8 +145,8 @@ const styles = stylex.create({
   words: { minWidth: 0 },
   // A pane in a pane: its room's width, which that pane keeps, or more, as a live window grows.
   nested: { maxWidth: "none" },
-  new: { borderColor: colorVars["--color-border-green"] },
-  newTitle: { color: colorVars["--color-text-green"] },
+  new: { borderColor: "var(--role-added)" },
+  newTitle: { color: "var(--role-added)" },
   pane: {
     // The border's width, which a live window triples: the title and the actions centre on it.
     "--pane-border": borderVars["--border-width"],
@@ -184,8 +187,8 @@ const styles = stylex.create({
     "--table-reach": "0px",
     position: "relative",
   },
-  problem: { borderColor: colorVars["--color-border-red"] },
-  problemTitle: { color: colorVars["--color-text-red"] },
+  problem: { borderColor: "var(--role-removed)" },
+  problemTitle: { color: "var(--role-removed)" },
   // On the phone, a reading page's pane keeps its whole border, past the page's inset to a little
   // room from the screen's edges (`--pane-phone-margin`), with little room inside it
   // (`--pane-phone-inset`), so its text has nearly the screen's width, about where the page's own
@@ -215,8 +218,7 @@ const styles = stylex.create({
   // centred on the top border, its further lines below it, inside the pane, as wide as it at most.
   title: {
     backgroundColor: colorVars["--color-background-body"],
-    // Catppuccin's lavender, a local token of the theme (`theme.ts`).
-    color: "var(--color-text-lavender)",
+    color: "var(--role-pane-title)",
     display: "flex",
     fontSize: "var(--text-title-size)",
     fontWeight: fontWeightVars["--font-weight-bold"],
@@ -235,7 +237,7 @@ const styles = stylex.create({
   },
 });
 
-/** Each tone's border and title. A removed decision is red, as a problem is. */
+/** Each tone's border and title. A removed decision is `removed`, as a problem is. */
 const TONES = {
   attention: [styles.attention, styles.attentionTitle],
   changed: [styles.changed, styles.changedTitle],
@@ -248,7 +250,11 @@ const TONES = {
 } as const;
 
 /** Each tint's title style. */
-const TINTS = { blue: styles.tintBlue, gray: styles.tintGray, green: styles.tintGreen } as const;
+const TINTS = {
+  added: styles.tintAdded,
+  quiet: styles.tintQuiet,
+  working: styles.tintWorking,
+} as const;
 
 /**
  * The border's and the title's styles, by the pane's state: active, then its tone. An active live
