@@ -6,7 +6,7 @@ import { neutralTheme } from "@astryxdesign/theme-neutral";
 // A package import, `package.json`'s `imports`: the theme's build copies the specifier into
 // `built/uraeda.js` as it is written, where a relative path would not resolve.
 import { uraedaIcons } from "#theme-icons";
-import { mix } from "#theme-colour";
+import { MEDIA, type Roles, tokensOf } from "#theme-roles";
 import { MEASURE, measureOf, WIDTHS } from "#theme-scale";
 
 /** Text, controls, and spacing at 120% of Astryx's sizes at every width, the UI look decision's. */
@@ -64,98 +64,134 @@ const typeScale = { base: BASE * SCALE, ratio: 1.2 };
 const grown = { ...scaled("--spacing-", SPACING), ...scaled("--size-element-", ELEMENTS) };
 
 /**
- * Catppuccin, from the terminal-2 prototype's palette (see `specs/done/2026-10-20-layout-look.md`):
- * Latte in the light slot of each pair, Mocha in the dark one. Latte's accents, used as text, are
- * darker steps than Catppuccin's own, which read at about 3:1 on its base; the dim text is a step
- * past the mockup's in both, for 4.5:1 on a selected row. `theme-tokens.test.ts` measures every pair.
+ * Catppuccin's roles, Latte's and Mocha's, as `crates/core/themes/` ships them, every role resolved
+ * to its colour: the theme's build runs before the core's binding loads, so they are written here
+ * too, and `theme-roles.test.ts` holds the two equal. The colours of every token come from them
+ * through the mapping (`roles.ts`), the one the palette rule draws a picked theme with, so a
+ * browser that never picked a theme draws Catppuccin as the shipped files do.
  */
-const LATTE = {
-  base: "#eff1f5",
-  blue: "#1957d5",
-  crust: "#dce0e8",
-  cyan: "#0a688e",
-  dim: "#5f6276",
-  green: "#2c6f1f",
-  lavender: "#4254c8",
-  mantle: "#e6e9ef",
-  mauve: "#7b2fe0",
-  overlay: "#7c7f93",
-  peach: "#a63f00",
-  pink: "#a72592",
-  red: "#bc0d33",
-  sapphire: "#04699a",
-  subtext0: "#6c6f85",
-  subtext1: "#5c5f77",
-  surface0: "#ccd0da",
-  surface1: "#bcc0cc",
-  surface2: "#acb0be",
-  teal: "#0f6c72",
-  text: "#4c4f69",
-  yellow: "#875800",
+const LATTE_ROLES: Roles = {
+  action: "#7d26ed",
+  added: "#2d711e",
+  caution: "#875612",
+  changed: "#7d26ed",
+  chip: "#dce0e8",
+  "code-ground": "#e6e9ef",
+  "code-inline": "#a83e01",
+  context: "#0a54e5",
+  "cursor-row": "#e4ddf4",
+  example: "#116a6f",
+  "heading-1": "#7d26ed",
+  "heading-2": "#0a54e5",
+  "heading-3": "#2d711e",
+  ink: "#4c4f69",
+  "ink-faint": "#5e6173",
+  "ink-quiet": "#5c5f77",
+  link: "#0a54e5",
+  live: "#177282",
+  marked: "#875612",
+  "mode-command": "#a83e01",
+  "mode-insert": "#2d711e",
+  "mode-normal": "#0a54e5",
+  "mode-replace": "#be0e34",
+  "mode-visual": "#7d26ed",
+  "needs-you": "#a83e01",
+  "on-action": "#ffffff",
+  page: "#eff1f5",
+  "pane-title": "#3654fc",
+  quote: "#5c5f77",
+  raised: "#e6e9ef",
+  removed: "#be0e34",
+  rule: "#7c7f93",
+  "sub-agent": "#179299",
+  sunken: "#e6e9ef",
+  "syntax-attribute": "#875612",
+  "syntax-comment": "#5e6173",
+  "syntax-constant": "#a83e01",
+  "syntax-function": "#0a54e5",
+  "syntax-keyword": "#7d26ed",
+  "syntax-number": "#a83e01",
+  "syntax-operator": "#036991",
+  "syntax-property": "#3654fc",
+  "syntax-punctuation": "#5e6173",
+  "syntax-string": "#2d711e",
+  "syntax-tag": "#be0e34",
+  "syntax-type": "#875612",
+  "syntax-variable": "#4c4f69",
+  working: "#0a54e5",
+  yours: "#0a54e5",
 };
-const MOCHA = {
-  base: "#1e1e2e",
-  blue: "#89b4fa",
-  crust: "#11111b",
-  cyan: "#89dceb",
-  dim: "#969db8",
-  green: "#a6e3a1",
-  lavender: "#b4befe",
-  mantle: "#181825",
-  mauve: "#cba6f7",
-  overlay: "#6c7086",
-  peach: "#fab387",
-  pink: "#f5c2e7",
-  red: "#f38ba8",
-  sapphire: "#74c7ec",
-  subtext0: "#a6adc8",
-  subtext1: "#bac2de",
-  surface0: "#313244",
-  surface1: "#45475a",
-  surface2: "#585b70",
-  teal: "#94e2d5",
-  text: "#cdd6f4",
-  yellow: "#f9e2af",
+const MOCHA_ROLES: Roles = {
+  action: "#cba6f7",
+  added: "#a6e3a1",
+  caution: "#f9e2af",
+  changed: "#cba6f7",
+  chip: "#313244",
+  "code-ground": "#181825",
+  "code-inline": "#fab387",
+  context: "#89b4fa",
+  "cursor-row": "#36314a",
+  example: "#94e2d5",
+  "heading-1": "#cba6f7",
+  "heading-2": "#89b4fa",
+  "heading-3": "#a6e3a1",
+  ink: "#cdd6f4",
+  "ink-faint": "#979db5",
+  "ink-quiet": "#a6adc8",
+  link: "#89b4fa",
+  live: "#74c7ec",
+  marked: "#f9e2af",
+  "mode-command": "#fab387",
+  "mode-insert": "#a6e3a1",
+  "mode-normal": "#89b4fa",
+  "mode-replace": "#f38ba8",
+  "mode-visual": "#cba6f7",
+  "needs-you": "#fab387",
+  "on-action": "#11111b",
+  page: "#1e1e2e",
+  "pane-title": "#b4befe",
+  quote: "#a6adc8",
+  raised: "#181825",
+  removed: "#f38ba8",
+  rule: "#6c7086",
+  "sub-agent": "#94e2d5",
+  sunken: "#11111b",
+  "syntax-attribute": "#f9e2af",
+  "syntax-comment": "#979db5",
+  "syntax-constant": "#fab387",
+  "syntax-function": "#89b4fa",
+  "syntax-keyword": "#cba6f7",
+  "syntax-number": "#fab387",
+  "syntax-operator": "#89dceb",
+  "syntax-property": "#b4befe",
+  "syntax-punctuation": "#979db5",
+  "syntax-string": "#a6e3a1",
+  "syntax-tag": "#f38ba8",
+  "syntax-type": "#f9e2af",
+  "syntax-variable": "#cdd6f4",
+  working: "#89b4fa",
+  yours: "#89b4fa",
 };
-type Role = keyof typeof LATTE;
 
-/** A role's `[latte, mocha]` pair. */
-const pair = (role: Role): [string, string] => [LATTE[role], MOCHA[role]];
+const LIGHT = tokensOf(LATTE_ROLES, "light");
+const DARK = tokensOf(MOCHA_ROLES, "dark");
 
-/** A hue's tint over the base, light enough that its own text and secondary text keep 4.5:1 on it. */
-const tint = (role: Role): [string, string] => [
-  mix(LATTE[role], 0.12, LATTE.base),
-  mix(MOCHA[role], 0.12, MOCHA.base),
-];
+/** The tokens the theme declares as its own, which Astryx's token names do not include. */
+const LOCAL =
+  /^--(role-|astryx-theme-neutral-color-status-|color-(text-lavender|fill-teal|border-sapphire|text-sapphire|selection))/;
+/** The syntax theme's tokens; a diff's lines and markers are Astryx's tokens. */
+const SYNTAX = /^--color-syntax-(?!added|removed)/;
 
-/** Astryx's hue names, and the Catppuccin colour each takes. */
-const HUES: Record<string, Role> = {
-  blue: "blue",
-  cyan: "cyan",
-  green: "green",
-  orange: "peach",
-  pink: "pink",
-  purple: "mauve",
-  red: "red",
-  teal: "teal",
-  yellow: "yellow",
-};
-
-/** Each hue's background, border, icon, and text. */
-const hues = Object.fromEntries(
-  Object.entries(HUES).flatMap(([hue, role]) => [
-    [`--color-background-${hue}`, tint(role)],
-    [`--color-border-${hue}`, pair(role)],
-    [`--color-icon-${hue}`, pair(role)],
-    [`--color-text-${hue}`, pair(role)],
-  ]),
-);
+/** The mapped tokens `which` picks, each a `[latte, mocha]` pair. */
+const colours = (which: (name: string) => boolean) =>
+  Object.fromEntries(
+    Object.keys(LIGHT)
+      .filter(which)
+      .map((name): [string, [string, string]] => [name, [LIGHT[name]!, DARK[name]!]]),
+  );
 
 /** The monospace fonts a machine has, while JetBrains Mono loads. */
 const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
-
-/** Text on a filled colour: white on Latte's dark steps, crust on Mocha's light ones. */
-const ON: [string, string] = ["#ffffff", MOCHA.crust];
 
 export const uraedaTheme = defineTheme({
   adaptations: {
@@ -309,22 +345,9 @@ export const uraedaTheme = defineTheme({
     // Prose's font, a proportional one where long text reads better than in the monospace font.
     "--font-family-reading":
       '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    // Catppuccin's lavender, a hue Astryx has no name for.
-    "--color-text-lavender": pair("lavender"),
-    // Catppuccin's teal, the fill of a sub-agent's mark, apart from its session's blue and from the
-    // red of what is wrong. Latte's own teal, not the darker step its text takes: a mark stands
-    // 3:1 from the page, as a control does.
-    "--color-fill-teal": ["#179299", MOCHA.teal],
-    // Catppuccin's sapphire, a live window's border and title, apart from the panes' lavender.
-    "--color-border-sapphire": pair("sapphire"),
-    "--color-text-sapphire": pair("sapphire"),
-    // The fills of the neutral theme's badges, status dots, and progress bars, and an info banner's
-    // background.
-    "--astryx-theme-neutral-color-status-fill-accent": pair("mauve"),
-    "--astryx-theme-neutral-color-status-fill-error": pair("red"),
-    "--astryx-theme-neutral-color-status-fill-success": pair("green"),
-    "--astryx-theme-neutral-color-status-fill-warning": pair("yellow"),
-    "--astryx-theme-neutral-color-status-muted-accent": tint("blue"),
+    // The colours the theme names itself: lavender, teal, and sapphire, the status fills, the
+    // selection, and the views' roles (R1).
+    ...colours((name) => LOCAL.test(name)),
     // About 80 characters of prose a line: 60 of Inter's "0", at the reading size. Inter's "0" is
     // 0.631 em, and its average character in English prose, spaces included, 0.471 em, three
     // quarters of it, so 60 of them hold about 80 characters (59.7 for 80, measured on the
@@ -393,92 +416,23 @@ export const uraedaTheme = defineTheme({
     "--size-story-height": "560px",
     "--size-story-max-height": "900px",
     "--size-story-phone": "402px",
-    // The selected block of a review: a yellow tint, and a bar that stands 3:1 from the card
-    // (WCAG 1.4.11).
-    "--color-selection": "var(--color-background-yellow)",
-    "--color-selection-edge": "var(--color-border-yellow)",
   },
   name: "uraeda",
   syntax: defineSyntaxTheme({
     name: "catppuccin",
-    tokens: {
-      attribute: pair("yellow"),
-      background: pair("mantle"),
-      comment: pair("dim"),
-      constant: pair("peach"),
-      function: pair("blue"),
-      keyword: pair("mauve"),
-      number: pair("peach"),
-      operator: pair("cyan"),
-      property: pair("lavender"),
-      punctuation: pair("dim"),
-      string: pair("green"),
-      tag: pair("red"),
-      type: pair("yellow"),
-      variable: pair("text"),
-    },
+    tokens: Object.fromEntries(
+      Object.entries(colours((name) => SYNTAX.test(name))).map(([name, pair]) => [
+        name.slice("--color-syntax-".length),
+        pair,
+      ]),
+    ),
   }),
   tokens: {
     ...fontSizes,
     ...grown,
-    ...hues,
-    "--color-accent": pair("mauve"),
-    // A selected row's background: a mauve tint, apart from the muted background.
-    "--color-accent-muted": [mix(LATTE.mauve, 0.1, LATTE.base), mix(MOCHA.mauve, 0.14, MOCHA.base)],
-    "--color-background-body": pair("base"),
-    "--color-background-card": pair("base"),
-    "--color-background-gray": [LATTE.crust, MOCHA.surface0],
-    "--color-background-muted": [LATTE.mantle, MOCHA.crust],
-    "--color-background-popover": pair("mantle"),
-    "--color-background-surface": pair("mantle"),
-    // Panes' and dividers' lines, and the border of a control, each 3:1 from the backgrounds (the UI
-    // look decision): Mocha's overlay0 and Latte's overlay2, Catppuccin's lightest steps that reach it.
-    "--color-border": pair("overlay"),
-    "--color-border-emphasized": pair("overlay"),
-    // The "Later" edge of a list too: 3:1 like every border, so as strong as "Next"'s; its heading's
-    // secondary text is what makes it the dimmer one.
-    "--color-border-gray": pair("overlay"),
-    "--color-error": pair("red"),
-    "--color-error-muted": tint("red"),
-    "--color-icon-accent": pair("mauve"),
-    "--color-icon-disabled": pair("overlay"),
-    "--color-icon-gray": [LATTE.overlay, MOCHA.dim],
-    "--color-icon-primary": pair("text"),
-    "--color-icon-secondary": [LATTE.subtext0, MOCHA.subtext0],
-    "--color-neutral": [`${LATTE.text}0f`, `${MOCHA.text}1a`],
-    "--color-on-accent": ON,
-    "--color-on-dark": LATTE.base,
-    "--color-on-error": ON,
-    "--color-on-light": MOCHA.crust,
-    "--color-on-success": ON,
-    "--color-on-warning": ON,
-    // A scrim: dialogs' backdrop, and under the on-dark icon over media, 3:1 over a white image.
-    "--color-overlay": [`${LATTE.text}b3`, `${MOCHA.crust}cc`],
-    "--color-overlay-hover": [`${LATTE.text}0d`, `${MOCHA.text}0d`],
-    "--color-overlay-pressed": [`${LATTE.text}1a`, `${MOCHA.text}1a`],
-    "--color-shadow": [`${LATTE.text}1a`, `${MOCHA.crust}4d`],
-    "--color-skeleton": [LATTE.surface0, MOCHA.surface1],
-    "--color-success": pair("green"),
-    "--color-success-muted": tint("green"),
-    // A diff's added and removed lines: a green and a red tint over the code's background, strong
-    // enough to read the change at a glance, and their `+` and `-` in the same hue.
-    "--color-syntax-added": [
-      mix(LATTE.green, 0.18, LATTE.mantle),
-      mix(MOCHA.green, 0.16, MOCHA.mantle),
-    ],
-    "--color-syntax-added-marker": pair("green"),
-    "--color-syntax-removed": [
-      mix(LATTE.red, 0.16, LATTE.mantle),
-      mix(MOCHA.red, 0.16, MOCHA.mantle),
-    ],
-    "--color-syntax-removed-marker": pair("red"),
-    "--color-text-accent": pair("mauve"),
-    "--color-text-disabled": pair("dim"),
-    "--color-text-gray": [LATTE.text, MOCHA.subtext1],
-    "--color-text-primary": pair("text"),
-    "--color-text-secondary": [LATTE.subtext1, MOCHA.subtext0],
-    "--color-warning": pair("yellow"),
-    "--color-warning-muted": tint("yellow"),
+    ...colours((name) => !LOCAL.test(name) && !SYNTAX.test(name)),
+    // Text and icons over media, constants (R5).
+    ...MEDIA,
     // Square corners; `--radius-full` stays round for avatars, as the components that square theirs
     // set it apart (`components` above).
     "--radius-chat": "0px",

@@ -31,8 +31,9 @@ surface0 = "#313244"
 base = "#1e1e2e"
 mantle = "#181825"
 crust = "#11111b"
-# Not Catppuccin's: overlay2 lightened to 4.5:1 on a selected row.
-overlay2-floor = "#969db8"
+# Not Catppuccin's: overlay2 lightened, a whole percent of HSL lightness at a time, to the first
+# step at which it reads at 4.5:1 on a selected row.
+overlay2-floor = "#979db5"
 # Not Catppuccin's: mauve at 14% over base.
 mauve-tint = "#36314a"
 
