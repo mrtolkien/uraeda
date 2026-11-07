@@ -91,6 +91,20 @@ function dispatch({ leader, store }: Registry, event: KeyboardEvent) {
   runFirst(store.matching(token).filter(allowed), event);
 }
 
+/** What hears each key before the registry runs its bindings: see `watchKeys`. */
+const watchers = new Set<(event: KeyboardEvent) => void>();
+
+/**
+ * Hears each key the registry's listener hears, a text field's too, before any binding runs, until
+ * the returned function is called: for what needs to know that the last input was a key, like the
+ * cursor, which shows only after one (R2), and gives its stop back the focus a field's Escape let
+ * go. A watcher binds no shortcut: a key that acts on the page is declared with `useKeys`.
+ */
+export function watchKeys(watch: (event: KeyboardEvent) => void): () => void {
+  watchers.add(watch);
+  return () => void watchers.delete(watch);
+}
+
 /**
  * Holds what the page declares and listens for the keys. `singleKeys` is the setting: `false` drops
  * every binding whose first key is one printable character. Unmounted, `useKeys` below declares
@@ -120,6 +134,9 @@ export function KeysProvider({
     let tookSpace = false;
     const onKeyDown = (event: KeyboardEvent) => {
       const wasPrevented = event.defaultPrevented;
+      for (const watch of watchers) {
+        watch(event);
+      }
       dispatch(registry, event);
       tookSpace = event.key === " " && !wasPrevented && event.defaultPrevented;
     };

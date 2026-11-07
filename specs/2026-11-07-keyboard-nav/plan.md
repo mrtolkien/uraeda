@@ -383,7 +383,10 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
 
 - Create: `packages/web/src/cursor/stops.ts`, `cursor/held.ts`, `cursor/move.ts`,
   `cursor/useCursor.ts`, `cursor/StopKeys.tsx`
-- Modify: `packages/web/src/keys/scroll.ts` (export `areaOf`)
+- Modify: `packages/web/src/keys/scroll.ts` (export `areaOf`, `glideBy`, and `pendingOf`)
+- Modify: `packages/web/src/keys/registry.tsx` (`watchKeys`, see
+  [R6](rulings.md#r6-the-cursor-hears-the-last-key-through-the-registrys-watch))
+- Modify: `packages/web/src/layout/Pane.tsx` (the mark `data-pane`)
 - Modify: `packages/web/src/pointerMoved.ts` (a variant for a native event)
 - Modify: `packages/web/src/layout/picked.ts` (`pickedStyles.pane`, from the mockups' `styles.pane`)
 - Modify: `packages/web/src/__tests__/helpers.tsx` (`hold`)
@@ -400,11 +403,15 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   element holds the focus and the last input was a key
   ([R2](rulings.md#r2-the-cursor-is-the-focus-and-shows-only-after-a-key)). A mouse move that moves
   the pointer blurs a held stop. Escape out of a text field inside a stop gives the stop the focus.
+  The last key is heard through the registry's `watchKeys`
+  ([R6](rulings.md#r6-the-cursor-hears-the-last-key-through-the-registrys-watch)).
 - Produces, `cursor/move.ts`, pure: `MARGIN = 100`;
   `cursorStep(stops: ReadonlyArray<Box>, current: number | null, direction: 1 | -1, view: View): { focus: number; scrollBy: number } | null`,
   with `Box = { top, bottom, pane?: { id, top, bottom } }` and `View = { top, bottom }`, the room
-  between the top bar and the status line, in window pixels. `null` at either end: the key goes on
-  to the scroll fallback.
+  between the top bar and the status line, in window pixels; a pane is the nearest `data-pane`
+  around a stop, its element as its `id`. `null` at either end: the key goes on to the scroll
+  fallback. `scrollFor(next: Box, held: Box | undefined, view: View): number`, the scroll of a move
+  to a given stop, which `focusStop` uses.
 - Produces, `cursor/useCursor.ts`: `useCursor(): void`, the page's `j` `↓` (hint "j k", "move"), `k`
   `↑`, and Escape (clears the cursor; `false` when no stop is focused); and
   `focusStop(stop: HTMLElement, from?: HTMLElement): void`, which focuses a stop and scrolls by the
@@ -413,7 +420,9 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
   `type StopKey = { keys: string; label: string; run: () => void | false; bar?: string }`;
   `useStopKeys(keys: ReadonlyArray<StopKey>, held: boolean): void`, declared in the selection's
   place while held; `StopBar({ held, keys })`, the `RowBar` of the keys with a `bar` text, without
-  the single keys when they are off, and nothing when narrow or not held.
+  the single keys when they are off, and nothing when narrow or not held. `bar` is the keys as the
+  bar writes them, "J K", and `label` the word after them, "range"
+  ([R7](rulings.md#r7-a-stops-bar-writes-its-keys-from-bar-and-its-word-from-label)).
 - Produces, `helpers.tsx`: `hold(element: HTMLElement)`, which presses a key no binding has, then
   focuses the element, as the cursor would.
 
@@ -430,7 +439,7 @@ The breaks: a removal with no toast; an Undo that adds an empty comment or a gen
    bottom `MARGIN` above the view's bottom, whichever it crosses; a stop taller than the room shows
    its top.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // View 60–860: a top bar of 60 px, the status line at 860.
@@ -443,18 +452,18 @@ test("a move into another pane that fits shows it whole", ...);
 The breaks: starting from the page's first stop; scrolling at every move; leaving a tall card before
 its end; scrolling a fitting pane only to its stop.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/cursor-move.test.ts`
 - Expected: FAIL, `Failed to resolve import "../cursor/move.ts"`
 
-- [ ] **Step 3: Implement `cursor/`**, and the small changes to `scroll.ts`, `pointerMoved.ts`,
+- [x] **Step 3: Implement `cursor/`**, and the small changes to `scroll.ts`, `pointerMoved.ts`,
       `picked.ts`, and `helpers.tsx`. The scroll glides unless the system asks for less motion. A
       held stop removed from the page passes the focus to the stop now at its place, or the last.
 
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 5: Commit**: `feat(keyboard-nav): a cursor over a page's stops`
+- [x] **Step 5: Commit**: `feat(keyboard-nav): a cursor over a page's stops`
 
 ## Task 5: The shared stops
 
