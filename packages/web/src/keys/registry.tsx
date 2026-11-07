@@ -97,8 +97,10 @@ const watchers = new Set<(event: KeyboardEvent) => void>();
 /**
  * Hears each key the registry's listener hears, a text field's too, before any binding runs, until
  * the returned function is called: for what needs to know that the last input was a key, like the
- * cursor, which shows only after one (R2), and gives its stop back the focus a field's Escape let
- * go. A watcher binds no shortcut: a key that acts on the page is declared with `useKeys`.
+ * cursor, which shows only after one (R2). A watcher binds no shortcut and never stops a key: a key
+ * that acts on the page is declared with `useKeys`. It may still act where no binding hears the
+ * key, as the cursor's does on Escape out of a text field inside a stop, giving the stop back the
+ * focus the field let go (R6). Each watcher is on the structural test's list.
  */
 export function watchKeys(watch: (event: KeyboardEvent) => void): () => void {
   watchers.add(watch);
