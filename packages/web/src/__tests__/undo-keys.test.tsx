@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
+import { undoStack } from "../undo/stack.ts";
 import { atRepo, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
 
 const INBOX = `# Inbox
@@ -91,12 +92,23 @@ test("Ctrl+Z in a text field undoes the typing, not the stack", async () => {
   const repo = await promoted();
   const field = await openFile();
 
-  await press("z", field, true);
-  await press("u", field);
+  const undo = vi.spyOn(undoStack, "undo");
+  try {
+    await press("z", field, true);
+    await press("u", field);
+    // The stack's undo is called at the press, before it writes: a call would show here.
+    expect(undo).not.toHaveBeenCalled();
+    expect(undoStack.top()?.label).toBe("Moved to Now");
 
-  expect(read(repo, "specs/INBOX.md")).not.toContain("Loose note");
-  expect(read(repo).split("## Next")[0]).toContain("- Loose note\n");
-  expect(screen.queryByText(/^Undone/)).toBeNull();
+    // Outside the field, `u` undoes the promotion, the stack's one step.
+    await press("u");
+    expect(undo).toHaveBeenCalledTimes(1);
+    await screen.findByText("Undone: moved to Now");
+    await waitFor(() => expect(read(repo, "specs/INBOX.md")).toContain("- Loose note\n"));
+    expect(undoStack.top()).toBeUndefined();
+  } finally {
+    undo.mockRestore();
+  }
 });
 
 // Break: an undo that skips its question, or one that commits.
