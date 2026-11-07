@@ -43,7 +43,7 @@ export const GitPageView = view<GitPage>()({
   worktrees: true,
 });
 
-/** The sidebar's count: the changes to commit, and the commits to pull. */
+/** The sidebar's count: the main checkout's changes to commit, and the commits to pull. */
 export const GitSummaryView = view<GitSummary>()({ behind: true, changes: true, id: true });
 
 export const GitDiffView = view<GitDiff>()({

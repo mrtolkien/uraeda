@@ -177,8 +177,9 @@ fn the_page_groups_changes_and_lists_worktrees() {
 }
 
 /// The sidebar's count is the main checkout's changes alone: a feature's worktree, with a buffer's
-/// save, keeps its own changes on its branch, and they wait on the Git page without counting.
-/// Break caught: adding each feature worktree's changed files to the count.
+/// save, keeps its own changes on its branch, and they wait on the Git page without counting, read
+/// from the main checkout or from the worktree. Breaks caught: adding each feature worktree's
+/// changed files to the count; counting the checkout read from instead of the main one.
 #[test]
 fn the_count_is_the_main_checkouts_changes_alone() {
     let repo = repo();
@@ -189,8 +190,11 @@ fn the_count_is_the_main_checkouts_changes_alone() {
     assert_eq!(api::git_summary(repo.path()).unwrap().changes, 0);
 
     repo.write("docs/notes.md", "# Notes\n");
+    repo.write("docs/more.md", "# More\n");
     let summary = api::git_summary(repo.path()).unwrap();
-    assert_eq!((summary.changes, summary.behind), (1, 0));
+    assert_eq!((summary.changes, summary.behind), (2, 0));
+    let from_worktree = repo.path().join(".worktrees").join(FOLDER);
+    assert_eq!(api::git_summary(&from_worktree).unwrap().changes, 2);
 }
 
 /// A worktree that cannot be read does not fail the page: its row reads `changes`, so nothing

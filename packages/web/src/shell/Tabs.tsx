@@ -180,8 +180,8 @@ function Tab({
 }
 
 /**
- * The Git tab, always there, the phone's way to the Git page: the changes to commit and the commits
- * to pull, counted together after its icon while any wait, and each named after the page.
+ * The Git tab, always there, the phone's way to the Git page: the main checkout's changes to commit
+ * and the commits to pull, counted together after its icon while any wait, and each named after the page.
  */
 function GitTab({ isCurrent }: { isCurrent: boolean }) {
   const summary = useGitSummary();
