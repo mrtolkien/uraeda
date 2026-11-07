@@ -2,8 +2,10 @@
 // were declared, with the rules over them. A key never means two things, a key is one `tokenOf` can
 // give, or it would never run, and a sequence goes through groups `groups.ts` names, or the menu
 // would draw nothing for them: all three throw in every build but production, so any page's test
-// catches them. The single-key switch drops the bindings whose first key is one printable
-// character, and the hints the status line draws come from the bindings that name one. A plain
+// catches them. A selection's keys, a held stop's own, run before the page's and the shell's, and
+// clash only among themselves: a key may mean something else while a selection holds, shown on it.
+// The single-key switch drops the bindings whose first key is one printable character, and the hints
+// the status line draws come from the page's and the shell's bindings that name one. A plain
 // store, read through `useSyncExternalStore`: a handler is never published, so a re-render with a
 // new closure tells no reader.
 import type { Icon } from "@astryxdesign/core/Icon";
@@ -46,8 +48,11 @@ export type Binding = {
   when?: (target: EventTarget | null) => boolean;
 };
 
-/** Who declares: a page or a list, whose hints show first, or the shell, whose hints follow. */
-export type Place = "page" | "shell";
+/**
+ * Who declares: a page or a list, whose hints show first, the shell, whose hints follow, or a held
+ * selection, whose keys run before both and whose hints its stop draws, never the status line.
+ */
+export type Place = "page" | "shell" | "selection";
 
 /** A binding and who declared it, as the key map lists it. */
 export type Placed = { binding: Binding; place: Place };
@@ -169,15 +174,18 @@ export function createKeyStore(initialSingleKeys: boolean) {
   let singleKeys = initialSingleKeys;
   let hints: ReadonlyArray<Hint> = [];
 
-  /** Every declared binding with its place, the page's first, each in the order declared. */
+  /**
+   * Every declared binding with its place, the selection's first, then the page's, then the
+   * shell's, each in the order declared: the first that runs wins.
+   */
   const placed = (): Array<Placed> =>
-    (["page", "shell"] as const).flatMap((place) =>
+    (["selection", "page", "shell"] as const).flatMap((place) =>
       [...entries.values()]
         .filter((entry) => entry.place === place)
         .flatMap((entry) => entry.bindings.map((binding) => ({ binding, place }))),
     );
 
-  /** Every declared binding, the page's first, each place in the order they were declared. */
+  /** Every declared binding, in `placed`'s order. */
   const declared = () => placed().map(({ binding }) => binding);
 
   /** Whether a binding is on: with the switch off, not a single-key one. */
@@ -188,7 +196,12 @@ export function createKeyStore(initialSingleKeys: boolean) {
 
   /** Publishes the hints, to the readers only when their text changed. */
   const publish = () => {
-    const next = hintsOf(active());
+    // A selection's hints are drawn on its stop, beside what they act on.
+    const next = hintsOf(
+      placed().flatMap(({ binding, place }) =>
+        place !== "selection" && isOn(binding) ? [binding] : [],
+      ),
+    );
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
       for (const listener of listeners) {
@@ -216,7 +229,12 @@ export function createKeyStore(initialSingleKeys: boolean) {
       if (process.env.NODE_ENV !== "production") {
         assertCanonical(bindings);
         assertGroupsNamed(bindings);
-        const others = [...entries].filter(([other]) => other !== id);
+        // A selection's keys clash with another selection's only; the page's and the shell's with
+        // each other's only.
+        const isSelection = place === "selection";
+        const others = [...entries].filter(
+          ([other, entry]) => other !== id && (entry.place === "selection") === isSelection,
+        );
         assertNoClash(
           others.flatMap(([, entry]) => entry.bindings),
           bindings,
