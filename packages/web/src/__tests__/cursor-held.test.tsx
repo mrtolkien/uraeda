@@ -1,10 +1,11 @@
-// When a stop is the cursor's (R2): it holds the focus after a key, never after a click, and a real
-// mouse move lets it go. A modifier alone is no key: Shift held for a Shift+click is the mouse's.
+// When a stop is the cursor's (R2, R11): it took the focus after a key, never after a click, even
+// once a key follows the click, and a real mouse move lets it go; on a page without the cursor,
+// nothing is held, and a mouse move leaves the focus where it is. A modifier alone is no key: Shift held for a Shift+click is the mouse's.
 // Escape clears the cursor only where its stop holds the focus itself, and a stop redrawn after
 // Escape stays free.
 import { Button } from "@astryxdesign/core/Button";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { useRef } from "react";
+import { type ReactNode, useRef } from "react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { useHeld } from "../cursor/held.ts";
 import { stopProps } from "../cursor/stops.ts";
@@ -28,10 +29,23 @@ function Stop() {
   );
 }
 
-function renderStop() {
+/** The cursor's page around a stop. */
+function WithCursor({ children }: { children: ReactNode }) {
+  useCursor();
+  return children;
+}
+
+/** A stop, on a page with the cursor unless `cursor` is false. */
+function renderStop(cursor = true) {
   render(
     <KeysProvider>
-      <Stop />
+      {cursor ? (
+        <WithCursor>
+          <Stop />
+        </WithCursor>
+      ) : (
+        <Stop />
+      )}
     </KeysProvider>,
   );
   return screen.getByTestId("stop");
@@ -57,6 +71,22 @@ test("a stop focused after a key is held, after a click or a modifier is not", a
     stop.focus();
   });
   expect(stop.textContent, "Shift alone, then the focus").toBe("free");
+});
+
+test("a stop a click focused stays free under the key that follows", async () => {
+  const stop = renderStop();
+  await click(stop);
+  act(() => stop.focus());
+  fireEvent.keyDown(document.body, { key: "F24" });
+  expect(stop.textContent).toBe("free");
+});
+
+test("without a page's cursor, a stop focused after a key is free, and a mouse move keeps it", () => {
+  const stop = renderStop(false);
+  hold(stop);
+  expect(stop.textContent).toBe("free");
+  moveMouse();
+  expect(document.activeElement).toBe(stop);
 });
 
 test("a real mouse move lets the held stop go", () => {

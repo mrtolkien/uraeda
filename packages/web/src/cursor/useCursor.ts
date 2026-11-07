@@ -7,7 +7,7 @@ import { areaOf, areasOf, type Area, glideBy, pendingOf } from "../keys/scroll.t
 import { useKeys } from "../keys/registry.tsx";
 import type { Binding } from "../keys/store.ts";
 import { topBarBottom } from "../layout/topBar.ts";
-import { heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
+import { cursorOn, heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
 import { type Box, cursorStep, placed, scrollFor, type View } from "./move.ts";
 import { stopsOf } from "./stops.ts";
 
@@ -200,9 +200,10 @@ function useKeepHeld() {
 
 /**
  * The cursor's keys, for as long as the page is mounted: `j` `↓` and `k` `↑` move it, "j k move" in
- * the status line, and Escape clears it.
+ * the status line, and Escape clears it. Only while a page mounts it does a stop show as held.
  */
 export function useCursor(): void {
   useKeys(BINDINGS);
   useKeepHeld();
+  useEffect(cursorOn, []);
 }
