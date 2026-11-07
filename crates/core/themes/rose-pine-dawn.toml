@@ -37,7 +37,8 @@ page = "base"
 raised = "surface"
 sunken = "overlay"
 chip = "overlay"
-cursor-row = "overlay"
+# The Neovim port's CursorLine, highlightLow, apart from the chip's overlay.
+cursor-row = "highlightLow"
 marked = "gold-floor"
 # Dawn's muted is under the floor both as a rule and as faint text, and one step of it cannot
 # serve both without a heavy rule: the rule takes muted's step, and faint text quiet text's, a

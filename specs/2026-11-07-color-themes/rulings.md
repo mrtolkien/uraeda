@@ -223,3 +223,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rule in `layout/headings.ts`, not page by page.
 - **If wrong**: drop the prop at a caller; the title takes back its colour.
 - **Where**: task 7, its review's fix
+
+## R18: A cursor row apart from what it sits on, and text levels in their order
+
+- **Decision**: every shipped theme's `cursor-row` differs from `page`, `raised`, and `chip`, and on
+  `page` `ink` reads at least as strongly as `ink-quiet`, and `ink-quiet` as `ink-faint`, checked by
+  `theme-roles.test.ts`. Where a family draws its cursor line in the chip's or a raised pane's tone,
+  the row takes Uraeda's own mix, its accent over its page as Catppuccin's: Solarized Dark and
+  Light, `blue` at 14% over `base03` and at 10% over `base3`; Gruvbox Dark and Light, `bright_blue`
+  at 14% over `dark0` and `faded_blue` at 10% over `light0`. Rosé Pine's family takes its Neovim
+  port's CursorLine, `highlightLow`, published. Solarized Dark's text takes Solarized's own three
+  tones, `base1` for `ink`, `base0` for `ink-quiet`, and `base01` for `ink-faint`, at their floor
+  steps; Kanagawa Lotus keeps `lotusInk1` for `ink`, and its quiet and faint text take its
+  `nontext`, `lotusViolet1`, at its floor step: its `fg_dim`, `lotusInk2`, is darker than its `fg`.
+- **Rationale**: a cursor row in the chip's tone cannot be told from a chip or a raised pane, and
+  quiet text reading over the text inverts what reads first. A mix is a colour the family does not
+  publish, so the file comments it as Uraeda's, as Catppuccin's `mauve-tint`, and a test holds it
+  equal to its mix. The darker cursor rows moved some floor steps back toward their published
+  colours: Rosé Pine's `muted-floor`, Gruvbox Light's `gray_244-floor`, Kanagawa Lotus'
+  `lotusGray3-floor`, and Solarized Dark's `base01-floor`.
+- **If wrong**: one line of a theme file, with `scripts/theme-floor.ts` run again.
+- **Where**: task 5, its review's fix

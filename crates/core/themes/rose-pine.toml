@@ -24,7 +24,7 @@ highlightHigh = "#524f67"
 # Not Rosé Pine's: its colours lightened, a whole percent of HSL lightness at a time, to the
 # first step at which every pair they are in reaches the contrast floor (4.5:1 for text, 3:1 for a
 # rule).
-muted-floor = "#8e8aa3"
+muted-floor = "#8b87a0"
 subtle-floor = "#9692af"
 pine-floor = "#4097ba"
 
@@ -33,7 +33,8 @@ page = "base"
 raised = "surface"
 sunken = "surface"
 chip = "overlay"
-cursor-row = "overlay"
+# The Neovim port's CursorLine, highlightLow, apart from the chip's overlay.
+cursor-row = "highlightLow"
 marked = "gold"
 rule = "muted"
 pane-title = "foam"
