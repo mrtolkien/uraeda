@@ -159,6 +159,58 @@ fn a_role_under_the_floor_is_applied_and_named() {
         .find(|problem| problem.message == "ink-faint is 3.1:1 on page, under 4.5.")
         .unwrap_or_else(|| panic!("{:?}", row.problems));
     assert!(warning.is_warning);
+    assert!(
+        warning.is_under_floor,
+        "counted apart, as a colour under the floor"
+    );
+    assert_eq!(
+        warning.role.as_deref(),
+        Some("ink-faint"),
+        "counted once per role"
+    );
+}
+
+#[test]
+fn an_ignored_key_is_a_warning_not_a_colour_under_the_floor() {
+    let dir = tempdir();
+    let text = "mode = \"dark\"\ncolour = \"red\"\n";
+    write(dir.path(), &[("odd.toml", text.as_bytes())]);
+    let read = themes::read(dir.path());
+    let row = file(&read, "odd.toml");
+    let warning = row
+        .problems
+        .iter()
+        .find(|problem| {
+            problem.message == "Line 2: colour is not a key of a theme, and is ignored."
+        })
+        .unwrap_or_else(|| panic!("{:?}", row.problems));
+    assert!(warning.is_warning);
+    assert!(!warning.is_under_floor);
+}
+
+/// The role each problem of `name`, the one file of `text`, leaves to the theme it extends.
+fn roles_left(name: &str, text: &[u8]) -> Vec<Option<String>> {
+    let dir = tempdir();
+    write(dir.path(), &[(name, text)]);
+    let read = themes::read(dir.path());
+    file(&read, name)
+        .problems
+        .iter()
+        .map(|problem| problem.role.clone())
+        .collect()
+}
+
+#[test]
+fn a_role_error_names_the_role_left_to_the_theme_it_extends() {
+    // The settings say "That role keeps its colour from <the theme it extends>." after it.
+    let needs_you = Some("needs-you".to_owned());
+    assert_eq!(roles_left("broken.toml", MISSING), [needs_you]);
+    let colour = b"mode = \"dark\"\n[roles]\nink = \"#12345\"\n";
+    assert_eq!(roles_left("bad.toml", colour), [Some("ink".to_owned())]);
+    let table = b"mode = \"dark\"\n[roles]\nink = 3\n";
+    assert_eq!(roles_left("bad.toml", table), [Some("ink".to_owned())]);
+    let unknown = b"mode = \"dark\"\nextends = \"x\"\n";
+    assert_eq!(roles_left("lost.toml", unknown), [None], "not a role's");
 }
 
 /// A row of the problems table: its files, the file whose row is checked, whether it is listed,

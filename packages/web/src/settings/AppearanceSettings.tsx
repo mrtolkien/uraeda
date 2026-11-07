@@ -19,26 +19,32 @@ export type AppearanceThemes = {
   themes: ReadonlyArray<Theme>;
 };
 
-/** A count and its noun, `1 problem`, `2 warnings`. */
-const counted = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+/** A count and its noun, `1 problem`, `2 colours`, then what follows the noun. */
+const counted = (count: number, noun: string, then = "") =>
+  `${count} ${noun}${count === 1 ? "" : "s"}${then}`;
+
+/** The name of a theme of the lists, by its id, compared without case. */
+const nameOf = (themes: ReadonlyArray<Theme>, id: string | undefined) =>
+  themes.find((theme) => theme.id.toLowerCase() === id?.toLowerCase())?.name;
 
 /**
  * A file's line: its name, mode, and the theme it extends, by name when the lists hold it, then
- * how many problems and warnings it has.
+ * how many colours it has under the contrast floor, and how many other problems.
  */
 export function fileSummary(file: ThemeFile, themes: ReadonlyArray<Theme>): string {
-  const base = file.extends?.toLowerCase();
-  const extended = themes.find((theme) => theme.id.toLowerCase() === base)?.name;
+  const extended = nameOf(themes, file.extends);
   const parts = [
     file.name,
     file.mode,
     file.extends && `extends ${extended ?? `"${file.extends}"`}`,
   ].filter(Boolean);
-  const errors = file.problems.filter((problem) => !problem.isWarning).length;
-  const warnings = file.problems.length - errors;
+  // A colour under the floor counts once, though it is named on each ground it is under.
+  const under = file.problems.filter((problem) => problem.isUnderFloor);
+  const floor = new Set(under.map((problem) => problem.role ?? problem.message)).size;
+  const others = file.problems.length - under.length;
   const counts = [
-    errors > 0 && counted(errors, "problem"),
-    warnings > 0 && counted(warnings, "warning"),
+    others > 0 && counted(others, "problem"),
+    floor > 0 && counted(floor, "colour", " under the contrast floor"),
   ].filter(Boolean);
   return [`${parts.join(", ")}.`, counts.length > 0 && `${counts.join(", ")}.`]
     .filter(Boolean)
@@ -50,10 +56,28 @@ const text = (problems: ReadonlyArray<{ message: string }>, then?: string) =>
   [...problems.map(({ message }) => message), then].filter(Boolean).join(" ");
 
 /**
+ * What becomes of a listed theme after its errors: a role's error leaves that role to the theme it
+ * extends, its mode's default when it names none the lists hold; any other, the rest applies.
+ */
+function afterErrors(file: ThemeFile, errors: ThemeFile["problems"], themes: ReadonlyArray<Theme>) {
+  const roles = errors.filter((problem) => problem.role !== undefined).length;
+  // Each a sentence of its own: one role's, several roles', or the rest's.
+  const mode = file.mode === "light" ? "light" : "dark";
+  const extended = nameOf(themes, file.extends) ?? nameOf(themes, DEFAULTS[mode]);
+  const kept =
+    roles === 1
+      ? `That role keeps its colour from ${extended}.`
+      : `Those roles keep their colours from ${extended}.`;
+  return [roles > 0 && kept, roles < errors.length && "The rest of the theme applies."]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
  * A file's banners: its errors, then its warnings, each kind in one banner, the core's messages as
  * they are, then what becomes of the theme.
  */
-function FileProblems({ file }: { file: ThemeFile }) {
+function FileProblems({ file, themes }: { file: ThemeFile; themes: ReadonlyArray<Theme> }) {
   const errors = file.problems.filter((problem) => !problem.isWarning);
   const warnings = file.problems.filter((problem) => problem.isWarning);
   return (
@@ -64,7 +88,7 @@ function FileProblems({ file }: { file: ThemeFile }) {
           status="error"
           title={text(
             errors,
-            file.isListed ? "The rest of the theme applies." : "The theme is not in the lists.",
+            file.isListed ? afterErrors(file, errors, themes) : "The theme is not in the lists.",
           )}
         />
       )}
@@ -91,7 +115,7 @@ function Files({ themes }: { themes: AppearanceThemes }) {
           <Text>
             <Text type="code">{file.file}</Text> {fileSummary(file, themes.themes)}
           </Text>
-          <FileProblems file={file} />
+          <FileProblems file={file} themes={themes.themes} />
         </VStack>
       ))}
     </VStack>

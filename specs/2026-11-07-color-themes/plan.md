@@ -387,7 +387,7 @@ uses.
     `-type`, `-operator`, `-property`, `-punctuation`, `-tag`, `-attribute`, `-variable`.
   - napi objects (camelCase in TypeScript):
     - `Theme { id: String, name: String, mode: String /* "dark" | "light" */, is_shipped: bool, roles: HashMap<String, String> /* every role, "#rrggbb" or "#rrggbbaa", lower case */, palette: HashMap<String, String> /* merged with the extended themes' */, sources: HashMap<String, String> /* role → the palette name it took, for roles that name one */ }`
-    - `ThemeProblem { line: Option<u32>, message: String, is_warning: bool }`
+    - `ThemeProblem { line: Option<u32>, message: String, is_warning: bool, is_under_floor: bool /* a colour under the contrast floor (R19) */, role: Option<String> /* the role it is about, an error's or a colour's under the floor (R19) */ }`
     - `ThemeFile { file: String /* "ember.toml" */, id: String, name: String, mode: Option<String>, extends: Option<String>, is_listed: bool, problems: Vec<ThemeProblem> }`
     - `Themes { folder: String /* "~/.config/uraeda/themes/", as settings show their file */, themes: Vec<Theme>, files: Vec<ThemeFile> }`
   - `pub fn read(config_dir: &Path) -> Themes`: never fails. `themes` holds the shipped themes and

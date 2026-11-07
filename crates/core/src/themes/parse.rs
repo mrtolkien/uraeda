@@ -43,6 +43,8 @@ impl Parsed {
             line,
             message,
             is_warning: false,
+            is_under_floor: false,
+            role: None,
         });
     }
 
@@ -52,6 +54,30 @@ impl Parsed {
             line,
             message,
             is_warning: true,
+            is_under_floor: false,
+            role: None,
+        });
+    }
+
+    /// A warning naming `role`'s colour under the contrast floor, which applies as written.
+    pub fn under_floor(&mut self, line: Option<u32>, message: String, role: &str) {
+        self.problems.push(ThemeProblem {
+            line,
+            message,
+            is_warning: true,
+            is_under_floor: true,
+            role: Some(role.to_owned()),
+        });
+    }
+
+    /// An error of `role`, which keeps the colour of the theme the file extends.
+    pub fn role_error(&mut self, line: Option<u32>, message: String, role: &str) {
+        self.problems.push(ThemeProblem {
+            line,
+            message,
+            is_warning: false,
+            is_under_floor: false,
+            role: Some(role.to_owned()),
         });
     }
 }
@@ -162,13 +188,13 @@ fn roles(parsed: &mut Parsed, text: &str, table: &dyn TableLike) {
                     "{prefix}{role} is {}, which is not a palette name or a colour.",
                     shown(item)
                 );
-                parsed.error(at, message, false);
+                parsed.role_error(at, message, &role);
                 continue;
             }
         };
         match expr {
             Some(expr) => parsed.roles.push((role, expr, at)),
-            None => parsed.error(at, not_a_colour(at, &role, item), false),
+            None => parsed.role_error(at, not_a_colour(at, &role, item), &role),
         }
     }
 }

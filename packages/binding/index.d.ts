@@ -2396,6 +2396,16 @@ export interface ThemeProblem {
    */
   message: string
   isWarning: boolean
+  /**
+   * A warning naming a colour under the contrast floor, which the settings count apart from the
+   * file's other problems.
+   */
+  isUnderFloor: boolean
+  /**
+   * The role it is about: an error's keeps the colour of the theme the file extends, and a
+   * colour under the floor applies as written; absent for a problem of no one role.
+   */
+  role?: string
 }
 
 /** The themes the lists show, and the user's files. */
