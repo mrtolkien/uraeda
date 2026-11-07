@@ -48,18 +48,24 @@ function rangeAt(
     );
 }
 
-/** The keys' range: where it started, the toggle it reached, and the lines between. */
-type Stretched = { anchor: Range; head: HTMLElement; range: Range };
+/**
+ * The keys' range: where it started, the toggle it reached, the lines between, and the selection
+ * before the keys stretched it, as a tap's with a form open on it, which dropping the range brings
+ * back.
+ */
+type Stretched = { anchor: Range; before: Range | undefined; head: HTMLElement; range: Range };
 
 /**
  * The keys' anchor and head over the comment being written, `draft`, among the blocks of `tree` and
  * the parts of the decisions it changes, `changes`. `stretch` moves the cursor to the next block
  * stop, 1, or the previous, -1, and sets the draft's range from the anchor to it, doing nothing past
  * the last or first block of the file: a range never spans two files. `drop` forgets the range and
- * drops the yellow, saying whether there was one. `rangeOf` is the range a held toggle heads.
+ * gives the selection back what it was before the keys stretched it, none or a form's, saying
+ * whether there was one. `rangeOf` is the range a held toggle asks about: the keys' it heads, else
+ * the selection holding the toggle's lines, `own`, as a tap's.
  */
 export function useKeyRange(
-  draft: Pick<ReturnType<typeof useCommentDraft>, "drop" | "selection" | "stretch">,
+  draft: Pick<ReturnType<typeof useCommentDraft>, "selection" | "stretch">,
   tree: Document,
   changes: ReadonlyArray<DecisionChange>,
 ) {
@@ -81,7 +87,8 @@ export function useKeyRange(
       return;
     }
     const range = spanned(anchor, head);
-    stretched.current = { anchor, head: next, range };
+    const before = held === null ? draft.selection : held.before;
+    stretched.current = { anchor, before, head: next, range };
     draft.stretch(range);
     focusStop(next, toggle);
   };
@@ -92,13 +99,22 @@ export function useKeyRange(
     if (held === null) {
       return false;
     }
-    draft.drop();
+    draft.stretch(held.before);
     return true;
   };
 
-  const rangeOfToggle = (toggle: HTMLElement) => {
+  const rangeOfToggle = (toggle: HTMLElement, own: Range) => {
     const held = current();
-    return held?.head === toggle ? held.range : undefined;
+    if (held?.head === toggle) {
+      return held.range;
+    }
+    const { selection } = draft;
+    return selection !== undefined &&
+      sameFile(selection, own) &&
+      selection.start <= own.start &&
+      own.end <= selection.end
+      ? selection
+      : undefined;
   };
 
   return { drop, rangeOf: rangeOfToggle, stretch };
@@ -107,7 +123,8 @@ export function useKeyRange(
 /**
  * The keys of a held block or decision part, `toggle`, whose own lines are `own`: Enter taps it, so
  * the form opens under it on the range; `J` `K` and Shift with the arrows stretch the range; `s`
- * asks the agent about the range, else the block, where the page has `ask`; Escape drops a range,
+ * asks the agent about the range, or the selection holding the block, else the block, where the
+ * page has `ask`; Escape drops a range,
  * and is the cursor's with none; `j` `k` and the arrows drop it and go on to move the cursor.
  */
 export function blockKeys(
@@ -130,7 +147,14 @@ export function blockKeys(
     { keys: "K", label: "range", run: up },
     { keys: "shift+ArrowUp", label: "range", run: up },
     ...(ask
-      ? [{ bar: "s", keys: "s", label: "ask", run: () => ask(keyRange.rangeOf(toggle) ?? own) }]
+      ? [
+          {
+            bar: "s",
+            keys: "s",
+            label: "ask",
+            run: () => ask(keyRange.rangeOf(toggle, own) ?? own),
+          },
+        ]
       : []),
     { keys: "Escape", label: "drop the range", run: () => (keyRange.drop() ? undefined : false) },
     { keys: "j", label: "next stop", run: moveOn },

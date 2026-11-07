@@ -467,10 +467,36 @@ test("J then Enter writes one comment on both scenarios' lines", async () => {
   hold(await scenario(FIRST));
   await press("J");
   await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
+  // Past the second and back: the range shrinks to the anchor's side, its anchor kept.
+  await press("J");
+  await press("K");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario(SECOND)));
   await press("Enter");
   await comment("Both.");
   await saved(/^C1/, "Both.");
   expect(read(r, REVIEW)).toMatch(/## C1: Lines 92–95\b[^#]*Both\./);
+});
+
+/**
+ * Escape drops a range the keys stretched while a form is open, the form's own range back. Break:
+ * the stretched range kept, as when the drop did nothing with a form open.
+ */
+test("Escape drops the keys' range, a form's tapped range back", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  await click(await scenario(FIRST));
+  await form();
+  hold(await scenario(FIRST));
+  await press("J");
+  await waitFor(async () =>
+    expect((await scenario(SECOND)).getAttribute("aria-pressed")).toBe("true"),
+  );
+  await press("Escape");
+  await waitFor(async () =>
+    expect((await scenario(SECOND)).getAttribute("aria-pressed")).toBe("false"),
+  );
+  expect((await scenario(FIRST)).getAttribute("aria-pressed")).toBe("true");
+  expect(writing()).toHaveLength(1);
 });
 
 /**
