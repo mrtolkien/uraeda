@@ -206,19 +206,13 @@ export function useCommentDraft(
   const tapPart = (range: Parameters<typeof partLast>[0], element: HTMLElement) =>
     select(range, partLast(range), element);
 
-  /** Sets the selection the keys stretch, the review's yellow, without opening the form. */
-  const stretch = (range: Range) => {
+  /**
+   * Sets the selection the keys stretch, the review's yellow, without opening or closing the form;
+   * `undefined` drops it, and the selection before the keys stretched it comes back so, a form's.
+   */
+  const stretch = (range: Range | undefined) => {
     setSelection(range);
     onSelect(range);
-  };
-
-  /** Drops the selection the keys stretched, but not one a form is open on. */
-  const drop = () => {
-    if (draft?.kind === "lines") {
-      return;
-    }
-    setSelection(undefined);
-    onSelect(undefined);
   };
 
   /** Starts a comment on the whole file, or an edit of a pending comment. */
@@ -257,7 +251,6 @@ export function useCommentDraft(
   return {
     close,
     draft,
-    drop,
     last,
     removed,
     selection,
