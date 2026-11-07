@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Color themes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-07: 2 comments in spec-review.md.
 >
 > - You approve 28 shipped colour themes, picked per device as one for light mode and one for dark
 >   mode, and your own themes as TOML files. Each theme maps its own palette onto about 50 roles
