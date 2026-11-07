@@ -11,7 +11,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 
 | Key                       | Does                                                                                                                      | Where                                 |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `j` `k`, `↑` `↓`          | Move the selection, or scroll a page with none, gliding as a browser's arrows do                                          | Every page                            |
+| `j` `k`, `↑` `↓`          | Move the selection or the cursor, or scroll a page with neither, gliding as a browser's arrows do                         | Every page                            |
 | `h` `l`, `←` `→`          | Move between columns or panes                                                                                             | A page of columns: home, priorities   |
 | `Enter`                   | The selection's obvious action: open it, or the page's next step                                                          | Every page with a selection or a step |
 | `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                       | Every editable selection              |
@@ -80,13 +80,37 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   my keyboard-driven cursor on 'add to now/next/...' and press enter").
 - **It moves in two dimensions** where the page has columns: `h` `l` cross them, keeping the row's
   height where it can.
-- **The mouse moves it too.** Moving the pointer onto a row in a list moves the selection there; a
+- **On a list, the mouse moves it too.** Moving the pointer onto a row moves the selection there; a
   click selects; a click on the selected row, or a double click, edits it. A row that slides under a
   resting pointer, as the page scrolls or a list grows, takes nothing: only a pointer that moves
   does, so the keys' selection is never taken from under them.
 - **A widget with keys of its own**, like home's grid of cards or a radio group, takes its arrows
   before the registry does, and leaves a letter typed while a sequence or the leader's menu waits to
   them.
+
+## The cursor
+
+The pages read most, a spec's or a plan's review, a document, and a round of questions, have a
+cursor instead of a list's selection: `j` `k` move it from stop to stop, in reading order, and what
+it holds has a few keys of its own.
+
+- **Its stops** are the blocks a review comments on, the pending comments under them, the folds, and
+  an embedded story's or mockup's buttons; on a round, each question's whole card, the settled
+  points, the notes, and the commit. What is inside a story or a mockup stays the pointer's.
+- **It starts where the human reads**: a page opens with no cursor, and the first `j` or `k` takes
+  the topmost stop on screen, as it does again after `Escape` cleared it, or once `Ctrl+D` scrolled
+  it away.
+- **It scrolls little**: only when the stop comes within 100 px of the top bar or the status line,
+  or moves into another pane, which then shows whole when it fits. A stop taller than the screen, a
+  long question, scrolls through before `j` leaves it, so every option is read.
+- **A selection's keys win while it holds** ([Keyboard](../decisions/keyboard.md)): a held
+  question's `a` to `f` pick its options, so `b` is Back again only after `Escape`. `g` never picks:
+  an option G is picked by `Tab` and `Space`. A block's `Enter` comments, `J` `K` (or `Shift` with
+  the arrows) stretch the comment over more blocks, and `s` asks the agent; a pending comment's
+  `Enter` edits it and `d` removes it at once, with an Undo.
+- **The pointer hides it**: a mouse that moves clears the cursor, and a click never shows it. It is
+  the keyboard's alone, where a list's selection is both's.
+- **It is the browser's focus**, on the stop's own element, so a screen reader follows it.
 
 ## Focus
 
@@ -119,7 +143,8 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   movement keys usually stay unhinted, and work.
 - **A row's or a pane's keys show close to it**: "Shortcuts applying to a row or pane should be
   close to that pane". A row's show under the selected row, in its bar, each written out ("⏎ edit",
-  "m move", "d delete"), not in the status line.
+  "m move", "d delete"), not in the status line; so do the keys of what the cursor holds, under a
+  block or at the end of a question's card ("a b pick", "i comment").
 - **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui), and the
   `g` keys. It is a menu of its own, not an index of every key: a page's single keys are not in it,
   they show in the status line. Its rows are buttons, and a click on `Space menu` opens it at once.

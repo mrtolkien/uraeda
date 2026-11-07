@@ -190,7 +190,7 @@ decision asks at the `early` stage: they say "none" and why.
 | US1 more 7: a read-only proposal's `s`              | 6    | none: as US1 more 3                                                                                    |
 | US2 1: `J` stretches the range                      | 2, 6 | `comment-range.test.ts`; the yellow: none, UI look                                                     |
 | US2 2: Enter comments on the range                  | 6    | `review.test.tsx` "J then Enter writes one comment on both scenarios' lines"                           |
-| US2 3: `j` or Escape drops the range                | 6    | none: UI state, checked in the sandbox                                                                 |
+| US2 3: `j` or Escape drops the range                | 6    | `review.test.tsx` "Escape drops the keys' range, a form's tapped range back", from the review's fixes  |
 | US2 more 1: Shift with `↓`, single keys off         | 1, 6 | the switch: `keys-registry.test.tsx` "with single-key shortcuts off…"; none else                       |
 | US2 more 2: `K` shrinks                             | 2    | a row of `comment-range.test.ts`                                                                       |
 | US3 1: the cursor stops on a comment                | 5    | none: UI behaviour, checked in the sandbox                                                             |
@@ -300,9 +300,10 @@ by place. Back stays as it is (see [R1](rulings.md#r1-back-stays-a-plain-binding
   `merged(selection: Range | undefined, range: Range): Range`, the tap's rule moved as it is;
   `spanned(anchor: Range, head: Range): Range`, the lines from the first's start to the last's end,
   in either order, under the upper one's heading, and `head` alone when they are of different files.
-- Produces, on `useCommentDraft`'s result: `stretch(range: Range): void` sets the selection, the
-  review's yellow, without opening the form or moving `last`, and tells `onSelect`; `drop(): void`
-  clears a selection while no form is open (`draft?.kind !== "lines"`).
+- Produces, on `useCommentDraft`'s result: `stretch(range: Range | undefined): void` sets the
+  selection, the review's yellow, without opening the form or moving `last`, and tells `onSelect`. A
+  first `drop()` was removed once task 6's range kept the selection from before its first key and
+  gave it back through `stretch`, form open or not.
 
 - [x] **Step 1: Split `useCommentDraft`**, which is at the limit: move the sheet's placement and the
       field's focus effects, or the tap's `select`, out of its body. The tests pass before and
@@ -508,13 +509,13 @@ its end; scrolling a fitting pane only to its stop.
 
 **Interfaces:**
 
-- Consumes: task 2's `spanned`, `stretch`, `drop`; task 4's `useCursor`, `focusStop`, `stopsOf`,
-  `hold`; task 5's `Selection.keys`.
+- Consumes: task 2's `spanned`, `stretch`; task 4's `useCursor`, `focusStop`, `stopsOf`, `hold`;
+  task 5's `Selection.keys`.
 - Produces: `useKeyRange(draft, tree, changes)`: the keys' anchor and head;
   `stretch(direction, toggle)` focuses the next or previous `"block"` stop of the same file and sets
-  the draft's range to `spanned(anchor, head)`; `drop()`; and
-  `blockKeys(keyRange, toggle, own, ask)`, a held block's or part's keys (see
-  [R9](rulings.md#r9-the-keys-read-a-blocks-range-from-its-mark)). `stretch` checks
+  the draft's range to `spanned(anchor, head)`; `drop()`, which gives back the selection from before
+  the first `J` or `K`; and `blockKeys(keyRange, toggle, own, ask)`, a held block's or part's keys
+  (see [R9](rulings.md#r9-the-keys-read-a-blocks-range-from-its-mark)). `stretch` checks
   `sameFile(anchor, next)` first and does nothing across files, neither moving nor touching the
   range: `spanned` returns the head alone across files, which would drop the range (review focus 2).
 
@@ -607,10 +608,10 @@ The breaks: a letter that does nothing on a held card; a pick shown but not save
 
 - Modify: `specs/ui/keyboard.md`
 
-- [ ] **Step 1: Add the cursor to the guide**: a `## The cursor` section on its stops, its keys, its
+- [x] **Step 1: Add the cursor to the guide**: a `## The cursor` section on its stops, its keys, its
       scroll margin, the tall stop, and the pointer hiding it; in Selection, "The mouse moves it
       too" holds for lists; in What shows the keys, a stop's keys show in its bar.
 
-- [ ] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 3: Commit**: `docs(keyboard-nav): the cursor in the keyboard guide`
+- [x] **Step 3: Commit**: `docs(keyboard-nav): the cursor in the keyboard guide`
