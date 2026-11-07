@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/23
+superseded-by: [2026-11-07-storybook-previews]
 ---
 
 # Record: Faster story embeds
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/23
 > The record of a merged change, not instructions to follow. Started on 2026-10-16, finished on
 > 2026-10-16, in [its pull request](https://github.com/mrtolkien/uraeda/pull/23). Its full files are
 > in git: `git log -- specs/changes/2026-10-16-storybook-warmup/`.
+>
+> Superseded in part by [2026-11-07-storybook-previews](2026-11-07-storybook-previews.md).
 
 ## What and why
 

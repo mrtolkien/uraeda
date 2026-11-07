@@ -1,6 +1,7 @@
 ---
 kind: change
 finished: 2026-10-17
+superseded-by: [2026-11-07-storybook-previews]
 ---
 
 # Record: Restart a Storybook when its checkout's commit changes
@@ -10,6 +11,8 @@ finished: 2026-10-17
 > The record of a merged change, not instructions to follow. Started on 2026-10-17, finished on
 > 2026-10-17, merged without a pull request. Its full files are in git:
 > `git log -- specs/changes/2026-10-17-storybook-restart/`.
+>
+> Superseded in part by [2026-11-07-storybook-previews](2026-11-07-storybook-previews.md).
 
 ## What and why
 
