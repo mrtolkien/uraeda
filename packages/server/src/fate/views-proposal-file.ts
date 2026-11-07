@@ -3,8 +3,12 @@
 import { dataView } from "@nkzw/fate/server";
 import type { ProposalFileView, ProposalHint } from "uraeda-binding";
 import type { Record_ } from "./views.ts";
+import type { ChangeRecord } from "./views-undo.ts";
 
-export type ProposalFileRecord = Record_<ProposalFileView> & { id: string };
+export type ProposalFileRecord = Record_<ProposalFileView> & {
+  change?: ChangeRecord | null;
+  id: string;
+};
 
 /**
  * A proposal file as sent: the fields the core leaves out when it has none are sent as null, as
@@ -13,7 +17,7 @@ export type ProposalFileRecord = Record_<ProposalFileView> & { id: string };
  */
 export function sentProposalFile(record: ProposalFileRecord): ProposalFileRecord {
   const proposal = record.proposal && { feature: null, file: null, link: null, ...record.proposal };
-  const cleared = { discovery: null, folder: null, proposal: null, slug: null };
+  const cleared = { change: null, discovery: null, folder: null, proposal: null, slug: null };
   return {
     ...cleared,
     ...record,
@@ -30,6 +34,7 @@ export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: str
 export type SlugProposalRecord = { discoveryLevels: Array<string>; id: string; slug: string };
 
 export const proposalFileDataView = dataView<ProposalFileRecord>("ProposalFile")({
+  change: true,
   committed: true,
   discovery: true,
   discoveryLevels: true,

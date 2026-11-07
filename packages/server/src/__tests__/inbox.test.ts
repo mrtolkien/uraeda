@@ -346,7 +346,10 @@ test("US6 2: adds a note with an image as a note file's folder, linked from the 
   ]);
 
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ file: "specs/notes/headings-are-flat/note.md" });
+  expect(await response.json()).toEqual({
+    change: { commit: expect.any(String), files: expect.any(Array) },
+    file: "specs/notes/headings-are-flat/note.md",
+  });
   // Freeform: the note as its title, then its image, and no template.
   expect(read(repo, "specs/notes/headings-are-flat/note.md")).toBe(
     "# Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
@@ -389,6 +392,7 @@ test("images sent with a note's id go to that note, which gets a note file", asy
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({
+    change: { commit: expect.any(String), files: expect.any(Array) },
     file: "specs/notes/make-sure-agents-are-resumable/note.md",
   });
   expect(read(repo, "specs/INBOX.md")).toContain(
