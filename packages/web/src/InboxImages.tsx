@@ -136,6 +136,9 @@ function useImageRemoval(onRefused: (message: string | undefined) => void) {
       onRefused(change);
       return;
     }
+    if (change === undefined) {
+      return;
+    }
     const write = {
       label: `Removed ${imageName(path)} from the note's file`,
       select: note.key,
