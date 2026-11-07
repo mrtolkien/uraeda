@@ -103,8 +103,8 @@ export function gitLabel(changes: number, behind: number): string {
 }
 
 /**
- * Git, always there, with the count of what waits on the Git page: the changes to commit, then the
- * commits to pull. First, as the thing to do before the rest; an icon alone in the closed rail.
+ * Git, always there, with the count of what waits on the Git page: the main checkout's changes to
+ * commit, then the commits to pull. First, as the thing to do before the rest; an icon alone in the closed rail.
  */
 function GitAction({ look }: { look: ActionLook }) {
   const summary = useGitSummary();
