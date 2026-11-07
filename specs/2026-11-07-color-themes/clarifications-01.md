@@ -59,9 +59,9 @@ is for your own comfort, in a tool you read for hours.
   pi, and seven other classics.
 - The full investigation is in [discovery](discovery-01.md).
 
-The [prototype](mockups/themes.html) draws one small Uraeda view in 27 candidate themes, in their
-official colours. Under each, it lists the colours under 4.5:1 on the page. Several questions link
-it.
+The prototype (`mockups/themes.html`, deleted) draws one small Uraeda view in 27 candidate themes,
+in their official colours. Under each, it lists the colours under 4.5:1 on the page. Several
+questions link it.
 
 ## Check these
 
@@ -88,7 +88,7 @@ it.
 The proposal names five families and pi, "…" leaving room for more. Several families have three or
 four variants. Monokai has no free light variant. GitHub also has high-contrast themes for low
 vision, at 7:1. Each theme is about 25 colours of data, plus the adjustment of those under the floor
-(Q2). Compare them in the [prototype](mockups/themes.html). More in
+(Q2). Compare them in the prototype (`mockups/themes.html`, deleted). More in
 [discovery](discovery-01.md#which-themes-ship).
 
 Why it matters: each shipped theme is kept readable with every later view, and checked by the
@@ -294,7 +294,7 @@ Why it matters: it changes the UI look decision, and decides who has the last wo
 ## Q7: Should headings take a colour per level?
 
 Example: a spec's `# Title` in purple, its `## Stories` in blue, and `### US1` in green, as in the
-[prototype](mockups/themes.html). Its checkbox turns heading colours off.
+prototype (`mockups/themes.html`, deleted). Its checkbox turns heading colours off.
 
 The proposal names "heading levels/hierarchy" among the theme's colours. Headings are drawn in the
 text's colour today, set apart by size and weight. Terminal editors' markdown views often colour
