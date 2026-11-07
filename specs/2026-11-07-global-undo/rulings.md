@@ -179,3 +179,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a cap on the bytes an entry keeps, past which the action records no undo, or asks
   before running as one that loses work for good.
 - **Where**: tasks 3 and 4, `crates/binding/src/undo.rs` and `packages/web/src/undo/changeEntry.ts`
+
+## R16: A run of moves is named and placed after its first move, in both lists
+
+- **Decision**: a run of moves of the inbox or of the priorities keeps the label, the place, and the
+  refusal's subject of its first move, "Moved “Third”" for `K` on Third then `J` on First within the
+  second; its change goes from before the first move to after the last. Both lists' labels quote a
+  row through one `quoted` in `undo/quoted.ts`, cut to its first words past 40 characters. An edit's
+  and a rename's refusal names the row's new text, which the file holds once it landed: the label of
+  a rename still names the old one, "Renamed “Second”".
+- **Rationale**: the inbox named a run after its first move and the priorities after its last, and
+  quoted a row whole where the priorities cut it: one rule reads the same on both pages. The first
+  move is where the run started, and what its undo puts back, the row selected where it was.
+- **If wrong**: naming a run after its last move is the join keeping the later entry's label and
+  place, in `inboxEntry` and `moveEntry`.
+- **Where**: `packages/web/src/undo/quoted.ts`, `inboxUndo.ts`, `lists/prioritiesUndo.ts`,
+  `pane/useProposalActions.ts`

@@ -8,6 +8,7 @@ import { rereadProposalFile } from "./attach/useEditorImages.ts";
 import type { Inbox } from "./inboxPanes.ts";
 import { plain } from "./Spans.tsx";
 import { changeEntry, joinChanges } from "./undo/changeEntry.ts";
+import { quoted } from "./undo/quoted.ts";
 import type { UndoEntry } from "./undo/stack.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -18,8 +19,7 @@ type Fate = ReturnType<typeof useFateClient>;
  */
 export type InboxWrite = { label: string; move?: boolean; select?: string; subject: string };
 
-/** A text in quotes, as a label names it. */
-export const quoted = (text: string) => `“${text}”`;
+export { quoted } from "./undo/quoted.ts";
 
 /** What a move of the row `row` records: "Moved “Idea two”", the row selected where it was. */
 export function movedWrite(row: { key: string; text: string }): InboxWrite {
