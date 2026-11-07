@@ -427,21 +427,25 @@ export async function refreshUntil(check: () => void, options?: { timeout?: numb
   }, options);
 }
 
-/** Taps an element, and lets React draw what follows. */
+/**
+ * Taps an element with the mouse, its press first, as a browser sends it, and lets React draw what
+ * follows: the press tells the keyboard's cursor that the last input was no key.
+ */
 export async function click(element: HTMLElement) {
   await act(async () => {
+    fireEvent.pointerDown(element, { pointerType: "mouse" });
     fireEvent.click(element);
   });
 }
 
 /**
- * Holds a stop as the keyboard's cursor would: a key no binding has, Shift alone, makes the last
- * input a key, then the stop takes the focus. A `j` from the top cannot: happy-dom lays nothing
- * out, so no stop is on screen.
+ * Holds a stop as the keyboard's cursor would: a key no binding has, F24, makes the last input a
+ * key, then the stop takes the focus. A `j` from the top cannot: happy-dom lays nothing out, so no
+ * stop is on screen.
  */
 export function hold(element: HTMLElement) {
   act(() => {
-    fireEvent.keyDown(element.ownerDocument.body, { key: "Shift" });
+    fireEvent.keyDown(element.ownerDocument.body, { key: "F24" });
     element.focus();
   });
 }
