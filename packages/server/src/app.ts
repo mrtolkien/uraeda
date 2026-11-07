@@ -5,7 +5,7 @@ import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { rewritten } from "./fate/select.ts";
 import { files } from "./files.ts";
-import { warmPreview } from "./fate/preview.ts";
+import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
 import { announceSettings, onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";

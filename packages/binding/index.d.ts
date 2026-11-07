@@ -115,12 +115,18 @@ export declare function checkedPort(typed: string): number
 
 /**
  * The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
- * commit. Its preview starts again once it moves.
+ * commit. Its preview runs at its code version instead: see `codeVersion`.
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
+
+/**
+ * The version of the code the checkout at `checkout` has checked out, which a commit changing only
+ * `specs/` keeps: `null` before its first commit. Its preview starts again once it moves.
+ */
+export declare function codeVersion(checkout: string): Promise<string | null>
 
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>

@@ -6,7 +6,8 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
-import type { Binding } from "./fate/context.ts";
+import type { Binding, RepoContext } from "./fate/context.ts";
+import { keptBases, startWaiting } from "./fate/preview-waiting.ts";
 import {
   continueSettings,
   createSessions,
@@ -202,6 +203,31 @@ export async function startServer(options: StartOptions): Promise<Server> {
   }
 }
 
+/**
+ * Starts the Storybooks of the folders waiting for the human, one after the other, and returns the
+ * runner's sweep, which keeps them: a tick while the last one still reads them is skipped, and one
+ * whose read fails keeps none. Each listed repository's context is the one a turn's end gives
+ * `warmPreview`.
+ */
+function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
+  const { hosts, previews } = shared;
+  const contexts = () => hosts.all().map((host) => ({ ...shared, repo: host.path }));
+  startWaiting(contexts()).catch(() => {});
+  let sweeping = false;
+  return () => {
+    if (sweeping) {
+      return;
+    }
+    sweeping = true;
+    void keptBases(contexts())
+      .catch(() => new Set<string>())
+      .then((kept) => previews.sweep(kept))
+      .finally(() => {
+        sweeping = false;
+      });
+  };
+}
+
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
   adapter: Adapter;
@@ -271,8 +297,10 @@ async function startOpened(
   // Once the repositories are open: a run of one no longer listed does not go on after a restart.
   await sessions.sessions.startContinues();
   const opened = hosts;
+  const shared = { ...options, frames, hosts: opened, previews, sessions: sessions.sessions };
+  const sweepPreviews = waitingPreviews(shared);
   const sweeping = setInterval(() => {
-    previews.sweep();
+    sweepPreviews();
     sweepSessions(signIn?.store);
     signIn?.links.sweep();
   }, SWEEP_EVERY_MS);

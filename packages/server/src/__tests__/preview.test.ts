@@ -11,8 +11,19 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
+import { keptBases, startWaiting } from "../fate/preview-waiting.ts";
+import { releaseModules, servedPaths } from "../preview/__tests__/helpers.ts";
 import { IDLE_MS } from "../preview/runner.ts";
-import { byId, type Data, fixtureRepo, mutate, running, testApp, testServer } from "./helpers.ts";
+import {
+  byId,
+  type Data,
+  fixtureRepo,
+  mutate,
+  repoContext,
+  running,
+  testApp,
+  testServer,
+} from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
 const STORY = `${STORY_FEATURE}:packages/web/src/SidebarHandle.stories.tsx#Dragging`;
@@ -62,6 +73,24 @@ test("a story's first read starts its Storybook, and turns ready live (US1.1)", 
     state: "ready",
     storybook: `/f/${STORY_FEATURE}/storybook?path=/story/sidebarhandle--dragging`,
   });
+});
+
+test("a story stays starting until its compile ends, then turns ready live (US3.1, SC-004)", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo, { preview: { mode: "hold-modules" } });
+  const { app, frames, name, previews } = await testApp(repo);
+  const updates = await liveUpdates(app, name, "Story", STORY);
+  await expect
+    .poll(async () => (await byId(app, "Preview", [STORY_FEATURE], ["state"]))[0]?.state, WAIT)
+    .toBe("ready");
+
+  const [held] = await byId(app, "Story", [STORY], FIELDS);
+
+  expect(held).toMatchObject({ frame: null, state: "starting" });
+  const before = updates.mark();
+  await releaseModules(previews, `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`);
+  expect(await updates.arrival('"state":"ready"', before), "no live update to ready").toBeDefined();
+  await updates.close();
 });
 
 test("an export not in the index is missing", async () => {
@@ -243,13 +272,21 @@ test("a restart still updates the stories read before it", async () => {
   await updates.close();
 });
 
-test("a view after a new commit in the checkout restarts its Storybook, and updates its stories", async () => {
+test("a commit under specs/ keeps the Storybook; one outside restarts it, once (US2)", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
   const { app, name } = await testApp(repo);
   const updates = await liveUpdates(app, name, "Story", STORY);
   await byId(app, "Story", [STORY], FIELDS);
   expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
+  commitOnBranch(repo, STORY_FEATURE, {
+    [`specs/${STORY_FEATURE}/clarifications-01.md`]: "answered\n",
+  });
+  const [kept] = await byId(app, "Story", [STORY], FIELDS);
+  expect(kept.state, "a commit under specs/ restarted it").toBe("ready");
+  expect(previewStarts(log!), "a commit under specs/ restarted it").toHaveLength(1);
+
+  commitOnBranch(repo, STORY_FEATURE, { [`specs/${STORY_FEATURE}/spec.md`]: "x\n" });
   commitOnBranch(repo, STORY_FEATURE, { "packages/web/.storybook/fixture.ts": "// changed\n" });
   const before = updates.mark();
 
@@ -261,7 +298,7 @@ test("a view after a new commit in the checkout restarts its Storybook, and upda
   expect(second).toBeDefined();
   await expect.poll(() => running(first!.pid), WAIT).toBe(false);
   await byId(app, "Story", [STORY], FIELDS);
-  expect(previewStarts(log!), "a view at the same commit restarted it").toHaveLength(2);
+  expect(previewStarts(log!), "a view at the same version restarted it").toHaveLength(2);
   await updates.close();
 });
 
@@ -308,7 +345,7 @@ test("a ready Storybook whose index cannot be read fails its stories (R23)", asy
 test("a feature's turn that ends done starts its Storybook, once its preview folder is installed", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
-  const { adapter, sessions } = await testServer(repo);
+  const { adapter, frames, name, previews, sessions } = await testServer(repo);
   const session = await sessions.featureSession(repo, STORY_FEATURE);
   const turn = async (ok = true) => {
     adapter.script([
@@ -336,6 +373,48 @@ test("a feature's turn that ends done starts its Storybook, once its preview fol
   expect(previewStarts(log!)[0]!.cwd).toMatch(
     /\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/,
   );
+  // Its round's linked stories compile ahead.
+  const base = `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`;
+  await expect
+    .poll(async () => previews.state(base)?.state === "ready" && servedPaths(previews, base), WAIT)
+    .toContain("/src/SidebarHandle.stories.tsx");
+});
+
+test.each([
+  ["waiting with a story link", {}, "ready"],
+  ["answered, with nothing waiting", { round: "answered", specStatus: "approved" }, undefined],
+] as const)(
+  "a folder %s keeps its Storybook past 30 minutes, or not (US1.1, SC-003)",
+  async (_, options, state) => {
+    const repo = fixtureRepo();
+    addStoryFeature(repo, options);
+    const clock = { now: Date.now() };
+    const opened = await testApp(repo, { previewOptions: { now: () => clock.now } });
+    const base = `/r/${opened.name}/preview/${opened.frames.current()}/${STORY_FEATURE}/`;
+    await expect
+      .poll(async () => (await settled(opened.app, "Preview", STORY_FEATURE)).state, WAIT)
+      .toBe("ready");
+
+    clock.now += IDLE_MS + 1;
+    opened.previews.sweep(await keptBases([repoContext(opened)]));
+
+    expect(opened.previews.state(base)?.state).toBe(state);
+  },
+);
+
+test("the server's start begins a waiting folder's Storybook, and compiles its linked stories (US1)", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  mkdirSync(join(repo, ".worktrees", STORY_FEATURE, "packages/web/node_modules"), {
+    recursive: true,
+  });
+  const opened = await testApp(repo);
+  const base = `/r/${opened.name}/preview/${opened.frames.current()}/${STORY_FEATURE}/`;
+
+  await startWaiting([repoContext(opened)]);
+
+  expect(previewStarts(log!)).toHaveLength(1);
+  expect(await servedPaths(opened.previews, base)).toContain("/src/SidebarHandle.stories.tsx");
 });
 
 test("a Storybook a page started before the install, which failed, starts again as the turn ends", async () => {

@@ -96,10 +96,17 @@ pub fn preview(checkout: String) -> AsyncTask<Job<Option<Preview>>> {
 }
 
 /// The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
-/// commit. Its preview starts again once it moves.
+/// commit. Its preview runs at its code version instead: see `codeVersion`.
 #[napi(ts_return_type = "Promise<string | null>")]
 pub fn checkout_commit(checkout: String) -> AsyncTask<Job<Option<String>>> {
     job(move || api::checkout_commit(Path::new(&checkout)))
+}
+
+/// The version of the code the checkout at `checkout` has checked out, which a commit changing only
+/// `specs/` keeps: `null` before its first commit. Its preview starts again once it moves.
+#[napi(ts_return_type = "Promise<string | null>")]
+pub fn code_version(checkout: String) -> AsyncTask<Job<Option<String>>> {
+    job(move || api::code_version(Path::new(&checkout)))
 }
 
 /// Every feature, change, and proposal of the repository at `repo`.

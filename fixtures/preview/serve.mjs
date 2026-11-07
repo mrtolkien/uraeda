@@ -1,8 +1,8 @@
 // A fake Storybook, for the tests of the preview runner, its proxy, and the embeds:
 // `node serve.mjs --port <port> [--mode <mode>] [--delay <ms>] [--log <file>]`.
 //
-// It appends its start to the log file, as one JSON line `{ base, cwd, pid, port }`, then serves,
-// from its working folder:
+// It appends its start to the log file, its folder created if missing, as one JSON line
+// `{ base, cwd, pid, port }`, then serves, from its working folder:
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
 // - `/`: Storybook's own interface, as its manager draws it: the stories' list, and the story of
 //   its `?path=/story/<id>`, or its first, in a frame titled "storybook-preview-iframe", as
@@ -20,20 +20,24 @@
 // - `/__headers`: an answer with a cookie, `Clear-Site-Data`, and `x-custom`, which its
 //   `Connection` names;
 // - `/__index-reads`: how many requests for the index it got;
-// - `/__events`: a first chunk, then held open.
+// - `/__events`: a first chunk, then held open;
+// - any other file under its working folder, by its path (`/src/A.tsx`), as `text/javascript`;
+// - `/__requests`: the paths it served, in order, as a JSON array;
+// - `/__release`: answers the source files held by `hold-modules`, and every later one at once.
 //
 // Its modes: `ok`; `fail`, which prints `Error: Cannot find module 'storybook'` framed as Storybook
 // frames its output, then Storybook's last line, and exits 1; `hang`,
 // which never answers `/index.json`; `hang-later`, which answers it once, then never again;
 // `bad-index`, which serves `not json` as the index; `no-pick`, without the pick script; `child`,
-// which starts a child that keeps its output open, and outlives it. `--delay` waits before
+// which starts a child that keeps its output open, and outlives it; `hold-modules`, which holds every
+// source file's answer until `/__release` is requested. `--delay` waits before
 // listening. A taken port prints `Port <port> is not available` and exits 1.
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, readdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { basename, join, relative } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 const { values } = parseArgs({
@@ -50,6 +54,8 @@ const base = process.env.URAEDA_PREVIEW_BASE ?? "/";
 const PICK = join(import.meta.dirname, "../../skills/uraeda/assets/storybook/uraeda-pick.js");
 
 if (values.log) {
+  // A copy of Storybook's cached fixture names the log of the start that built it, long removed.
+  mkdirSync(dirname(values.log), { recursive: true });
   const start = { base, cwd: process.cwd(), pid: process.pid, port };
   appendFileSync(values.log, `${JSON.stringify(start)}\n`);
 }
@@ -183,9 +189,41 @@ function send(response, status, type, body, headers = {}) {
 /** How many requests for the index it got. */
 let indexReads = 0;
 
+/** The paths it served, in order. */
+const served = [];
+
+/** The source files' answers `hold-modules` holds until `/__release`; null once released. */
+let held = mode === "hold-modules" ? [] : null;
+
+/** The file under the working folder at `path`, or undefined when there is none. */
+function sourceFile(path) {
+  const file = resolve(process.cwd(), `.${decodeURIComponent(path)}`);
+  if (!file.startsWith(process.cwd() + sep)) {
+    return undefined;
+  }
+  try {
+    return statSync(file).isFile() ? file : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Answers the source file `file`, or holds the answer while `hold-modules` holds them. */
+function sendSource(response, file) {
+  const answer = () => send(response, 200, "text/javascript", readFileSync(file));
+  if (held) {
+    held.push(answer);
+  } else {
+    answer();
+  }
+}
+
 const server = createServer((request, response) => {
   const url = new URL(request.url, "http://localhost");
   const path = url.pathname;
+  if (path !== "/__requests") {
+    served.push(path);
+  }
   if (path === "/index.json") {
     indexReads += 1;
     if (mode === "hang" || (mode === "hang-later" && indexReads > 1)) {
@@ -229,6 +267,19 @@ const server = createServer((request, response) => {
     response.writeHead(200, { "Content-Type": "text/event-stream" });
     response.write("data: first\n\n");
     return;
+  }
+  if (path === "/__requests") {
+    return send(response, 200, "application/json", JSON.stringify(served));
+  }
+  if (path === "/__release") {
+    const answers = held ?? [];
+    held = null;
+    answers.forEach((answer) => answer());
+    return send(response, 200, "text/plain", "released");
+  }
+  const file = sourceFile(path);
+  if (file) {
+    return sendSource(response, file);
   }
   send(response, 404, "text/plain", "Not found");
 });

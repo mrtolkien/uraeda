@@ -1,25 +1,26 @@
-// The preview runner: the only code that starts, watches, and stops Storybook processes, one per
-// checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view starts the checkout's Storybook, which
-// is ready once its index answers; a view after its checkout's commit moved starts it again; it
-// stops after 30 minutes without a view, when its checkout or its repository is removed, and with
-// the server. Its state lives in memory, and its process groups
-// in a record the next start reads, should the server be killed.
-import { type ChildProcess, spawn } from "node:child_process";
+// The preview runner: the only code that starts, watches, and stops Storybook processes, each
+// through `run.ts`, one per checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view
+// starts the checkout's Storybook, which is ready once its index answers, and its stories once
+// they compiled, through `compiles.ts`; a view after its checkout's code version moved, a commit
+// outside `specs/`, or its preview command changed, starts it again; it stops after 30 minutes
+// without a view or a keep, when its checkout or its repository is removed, and with the server.
+// Its state lives in memory, and its process groups in a record the next start reads, should the
+// server be killed.
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { freePort } from "../free-port.ts";
-import { readIndex, type StoryIndex, UNREADABLE_INDEX } from "./index.ts";
+import { Compiles, WARM_MS } from "./compiles.ts";
 import {
-  endWithServer,
-  type GroupRecorder,
-  groups,
-  keepLines,
-  lastReason,
-  portTaken,
-  signalGroup,
-} from "./process.ts";
+  type IndexEntry,
+  matchStory,
+  readIndex,
+  type StoryIndex,
+  UNREADABLE_INDEX,
+} from "./index.ts";
+import { type GroupRecorder, lastReason, portTaken } from "./process.ts";
+import { KILL_MS, killRun, type Run, startRun } from "./run.ts";
 
-export { freePort, type GroupRecorder };
+export { freePort, type GroupRecorder, KILL_MS, WARM_MS };
 
 /** A checkout's Storybook: starting, ready on its port, or failed, with the sentence to show. */
 export type PreviewState =
@@ -30,16 +31,17 @@ export type PreviewState =
 /**
  * A checkout to run a Storybook in: its folder, `dir`, its preview decision's `preview-folder` and
  * `preview-command`, the path it is served under, `/r/<name>/preview/<secret>/<folder>/`, and the
- * commit it has checked out, when it was read, with the `read` stamp `Previews.read` gave before
- * the read began. Without a stamp, the commit counts as read now.
+ * code version it has checked out, its last commit outside `specs/`, when it was read, with the
+ * `read` stamp `Previews.read` gave before the read began. Without a stamp, the version counts as
+ * read now.
  */
 export type Checkout = {
   base: string;
   command: string;
-  commit?: string;
   dir: string;
   folder: string;
   read?: number;
+  version?: string;
 };
 
 /** How often a starting Storybook's index is read. */
@@ -48,8 +50,6 @@ export const POLL_MS = 500;
 export const START_MS = 120_000;
 /** How long a Storybook runs without a view. */
 export const IDLE_MS = 30 * 60_000;
-/** How long a stopped Storybook has to exit before it is killed. */
-export const KILL_MS = 5000;
 /** How long a ready Storybook's index may take to answer. */
 export const INDEX_MS = 5000;
 
@@ -58,23 +58,16 @@ export const NO_PORT = "No free port for Storybook.";
 /** The state a stopped runner gives every view: it starts nothing (R19). */
 export const NOT_RUNNING = "Storybook is not running for this branch.";
 
-/** One started process: its port, its last lines of output, and a promise of its end. */
-type Run = {
-  child: ChildProcess;
-  closed: Promise<void>;
-  lines: Array<string>;
-  port: number;
-  running: boolean;
-};
-
 /** One checkout's Storybook, from its first view until it is stopped. */
 type Entry = {
   checkout: Checkout;
+  /** Its stories' compiles, once it is ready. */
+  compiles?: Compiles;
   lastView: number;
   reading?: AbortController;
   retried: boolean;
   run?: Run;
-  /** The `read` stamp it started at: only a commit read after it can move it. */
+  /** The `read` stamp it started at: only a version read after it can move it. */
   stamp: number;
   /** When the first process started: the 2 minutes count from it, across the port's retry. */
   started: number;
@@ -84,16 +77,19 @@ type Entry = {
 };
 
 /**
- * Whether the entry's Storybook is at another commit than `now`'s: one whose first commit read
- * failed is at an unknown commit, which any known one is another than. A commit read before the
- * Storybook started cannot say it moved: it may be the older of two views racing a move.
+ * Whether the entry's Storybook is at another code version than `now`'s, or runs another preview
+ * command or folder, which its decision under `specs/` sets without moving the version: one whose
+ * first version read failed is at an unknown version, which any known one is another than. A read
+ * begun before the Storybook started cannot say it moved: it may be the older of two views racing
+ * a move.
  */
 function moved(entry: Entry, now: Checkout): boolean {
-  return (
-    now.commit !== undefined &&
-    now.commit !== entry.checkout.commit &&
-    (now.read === undefined || now.read > entry.stamp)
-  );
+  const { command, folder, version } = entry.checkout;
+  const other =
+    (now.version !== undefined && now.version !== version) ||
+    now.command !== command ||
+    now.folder !== folder;
+  return other && (now.read === undefined || now.read > entry.stamp);
 }
 
 /** Whether `path` is a folder. */
@@ -112,6 +108,7 @@ export class Previews {
   readonly #freePort: () => Promise<number>;
   readonly #onChange: (base: string) => void;
   readonly #indexMs: number;
+  readonly #warmMs: number;
   readonly #record: GroupRecorder | undefined;
   #reads = 0;
   /** Set by `stopAll`: the server stops, and nothing starts again. */
@@ -126,22 +123,25 @@ export class Previews {
       onChange?: (base: string) => void;
       /** Where each running process group is recorded, for the next start to kill (R52). */
       record?: GroupRecorder;
+      /** How long a story's compile may take before it counts as ended: `WARM_MS`. */
+      warmMs?: number;
     } = {},
   ) {
     this.#now = options.now ?? Date.now;
     this.#freePort = options.freePort ?? freePort;
     this.#onChange = options.onChange ?? (() => {});
     this.#indexMs = options.indexMs ?? INDEX_MS;
+    this.#warmMs = options.warmMs ?? WARM_MS;
     this.#record = options.record;
   }
 
   /**
    * The checkout's state, its Storybook started when none runs, and the view recorded. A Storybook
    * under the same base in another folder, a removed repository's whose folder name another one
-   * took, is stopped, and one started in the checkout. One started at another commit of the checkout,
-   * which may have changed what Storybook only reads as it starts, such as its configuration or its
-   * dependencies, is started again, its records kept. Once the runner is stopped, failed with
-   * `NOT_RUNNING`, and nothing starts.
+   * took, is stopped, and one started in the checkout. One started at another code version of the
+   * checkout, which may have changed what Storybook only reads as it starts, such as its
+   * configuration or its dependencies, is started again, its records kept. Once the runner is
+   * stopped, failed with `NOT_RUNNING`, and nothing starts.
    */
   view(checkout: Checkout): PreviewState {
     if (this.#closed) {
@@ -159,8 +159,8 @@ export class Previews {
   }
 
   /**
-   * A stamp for a commit read, taken before the read begins: the Storybooks started since have a
-   * greater one, and a commit read earlier does not move them.
+   * A stamp for a code version read, taken before the read begins: the Storybooks started since
+   * have a greater one, and a version read earlier does not move them.
    */
   read(): number {
     return ++this.#reads;
@@ -196,10 +196,50 @@ export class Previews {
     }
   }
 
-  /** Stops each Storybook without a view for 30 minutes, or whose checkout was removed. */
-  sweep(): void {
+  /**
+   * Whether the story's compile, in the ready Storybook under `base`, ended or passed its time: the
+   * first ask starts it, and the later ones share it. False while it runs, and when no Storybook is
+   * ready under `base`. Its end is a change of `base`.
+   */
+  compiled(base: string, story: IndexEntry): boolean {
+    return this.#entries.get(base)?.compiles?.ended(story) ?? false;
+  }
+
+  /**
+   * A view of the checkout that, once its Storybook is ready, compiles each of `stories` its index
+   * holds, one after another. Resolves once they all ended, or the Storybook failed or stopped;
+   * never rejects.
+   */
+  async warm(checkout: Checkout, stories: Array<{ export: string; path: string }>): Promise<void> {
+    this.view(checkout);
+    const { base } = checkout;
+    while (this.state(base)?.state === "starting") {
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+    }
+    const index = await this.index(base);
+    for (const story of stories) {
+      const id = index && matchStory(index, checkout.folder, story);
+      const entry = id === undefined ? undefined : index?.entries[id];
+      const compiles = this.#entries.get(base)?.compiles;
+      if (entry !== undefined && compiles !== undefined) {
+        await compiles.compile(entry).promise;
+      }
+    }
+  }
+
+  /**
+   * Stops each Storybook whose checkout was removed, kept or not, and each without a view for 30
+   * minutes. One whose base is in `kept`, a folder whose file waits for the human, counts as viewed
+   * now: it stops 30 minutes after it is no longer kept.
+   */
+  sweep(kept: ReadonlySet<string> = new Set()): void {
+    const now = this.#now();
     for (const entry of this.#entries.values()) {
-      if (this.#now() - entry.lastView > IDLE_MS || !existsSync(entry.checkout.dir)) {
+      if (!existsSync(entry.checkout.dir)) {
+        void this.#stop(entry);
+      } else if (kept.has(entry.checkout.base)) {
+        entry.lastView = now;
+      } else if (now - entry.lastView > IDLE_MS) {
         void this.#stop(entry);
       }
     }
@@ -286,66 +326,16 @@ export class Previews {
     if (entry.stopped) {
       return;
     }
-    // A process group of its own, which its signals reach whole: Storybook's own children end
-    // with it.
-    const child = spawn("sh", ["-c", command.replaceAll("{port}", String(port))], {
+    const run = startRun({
+      base,
+      command,
       cwd,
-      detached: true,
-      env: { ...process.env, URAEDA_PREVIEW_BASE: base },
-      stdio: ["ignore", "pipe", "pipe"],
+      ended: (ended, why) => void this.#exited(entry, ended, why),
+      port,
+      record: this.#record,
     });
-    const run = this.#watch(entry, child, port);
     entry.run = run;
     entry.timer = setInterval(() => this.#poll(entry, run), POLL_MS);
-  }
-
-  /** Watches a started process: its output, and its end. */
-  #watch(entry: Entry, child: ChildProcess, port: number): Run {
-    let close!: () => void;
-    const run: Run = {
-      child,
-      closed: new Promise((resolve) => (close = resolve)),
-      lines: [],
-      port,
-      running: child.pid !== undefined,
-    };
-    if (child.pid !== undefined) {
-      groups.add(child.pid);
-      endWithServer();
-      this.#record?.add(child.pid);
-    }
-    keepLines(child.stdout, run.lines);
-    keepLines(child.stderr, run.lines);
-    // What the command started may outlive it, and keep its output open: its whole group goes
-    // as soon as it exits, so its output closes, and its end follows at once.
-    const stopGroup = () => {
-      run.running = false;
-      if (child.pid !== undefined && groups.delete(child.pid)) {
-        signalGroup(child.pid, "SIGKILL");
-        this.#record?.remove(child.pid);
-      }
-    };
-    child.once("exit", stopGroup);
-    let done = false;
-    const ended = (why: string) => {
-      if (done) {
-        return;
-      }
-      done = true;
-      stopGroup();
-      close();
-      void this.#exited(entry, run, why);
-    };
-    child.once("error", (error) => {
-      run.lines.push(error.message);
-      ended(error.message);
-    });
-    child.once("close", (code, signal) => {
-      ended(
-        signal ? `The command was stopped by ${signal}.` : `The command exited with code ${code}.`,
-      );
-    });
-    return run;
   }
 
   /** Reads a starting Storybook's index: ready on its first answer, failed after 2 minutes. */
@@ -367,6 +357,12 @@ export class Previews {
         if (entry.run === run && entry.state.state === "starting" && !entry.stopped) {
           this.#idle(entry);
           entry.state = { port: run.port, state: "ready" };
+          entry.compiles = new Compiles({
+            base: entry.checkout.base,
+            ms: this.#warmMs,
+            onEnd: () => this.#onChange(entry.checkout.base),
+            port: run.port,
+          });
           this.#onChange(entry.checkout.base);
         }
       },
@@ -405,8 +401,9 @@ export class Previews {
     this.#fail(entry, `Storybook did not start: ${lastReason(run.lines) ?? why}`);
   }
 
-  /** Stops polling the entry's index. */
+  /** Stops polling the entry's index, and its stories' compiles. */
   #idle(entry: Entry) {
+    entry.compiles?.abort();
     clearInterval(entry.timer);
     entry.timer = undefined;
     entry.reading?.abort();
@@ -418,7 +415,7 @@ export class Previews {
     this.#idle(entry);
     entry.state = { error, state: "failed" };
     if (entry.run !== undefined) {
-      void this.#kill(entry.run);
+      void killRun(entry.run);
     }
     this.#onChange(entry.checkout.base);
   }
@@ -431,17 +428,6 @@ export class Previews {
       this.#entries.delete(entry.checkout.base);
       this.#onChange(entry.checkout.base);
     }
-    return entry.run === undefined ? Promise.resolve() : this.#kill(entry.run);
-  }
-
-  /** Sends SIGTERM to the process's group, then SIGKILL after 5 seconds; resolves once it ended. */
-  #kill(run: Run): Promise<void> {
-    const pid = run.child.pid;
-    if (!run.running || pid === undefined) {
-      return run.closed;
-    }
-    signalGroup(pid, "SIGTERM");
-    const timer = setTimeout(() => signalGroup(pid, "SIGKILL"), KILL_MS);
-    return run.closed.then(() => clearTimeout(timer));
+    return entry.run === undefined ? Promise.resolve() : killRun(entry.run);
   }
 }

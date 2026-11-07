@@ -197,9 +197,10 @@ export async function runningPreview(mode: FakeMode = "ok", repo = fixtureRepo()
   const name = basename(repo);
   const base = `/r/${name}/preview/${server.frames.current()}/${STORY_FEATURE}/`;
   const dir = join(repo, ".worktrees", STORY_FEATURE);
-  // At its commit, as a view through the server reads it: one at an unknown commit is started again.
-  const commit = (await binding.checkoutCommit(dir)) ?? undefined;
-  const checkout = { ...(await checkoutOf(dir, base)), commit };
+  // At its code version, as a view through the server reads it: one at an unknown version is
+  // started again.
+  const version = (await binding.codeVersion(dir)) ?? undefined;
+  const checkout = { ...(await checkoutOf(dir, base)), version };
   server.previews.view(checkout);
   await ready(server.previews, checkout);
   return {
@@ -255,4 +256,24 @@ export function upgradeEcho(url: string, headers: Record<string, string> = {}): 
     request.on("error", reject);
     request.end();
   });
+}
+
+/** The port of the ready Storybook under `base` of `runner`. */
+export function portOf(runner: Previews, base: string): number {
+  const state = runner.state(base);
+  if (state?.state !== "ready") {
+    throw new Error(`no Storybook is ready under ${base}`);
+  }
+  return state.port;
+}
+
+/** The paths the fake preview under `base` of `runner` served, in order. */
+export async function servedPaths(runner: Previews, base: string): Promise<Array<string>> {
+  const response = await fetch(`http://127.0.0.1:${portOf(runner, base)}/__requests`);
+  return (await response.json()) as Array<string>;
+}
+
+/** Answers the source files the fake preview under `base` of `runner` holds in `hold-modules`. */
+export async function releaseModules(runner: Previews, base: string): Promise<void> {
+  await (await fetch(`http://127.0.0.1:${portOf(runner, base)}/__release`)).body?.cancel();
 }

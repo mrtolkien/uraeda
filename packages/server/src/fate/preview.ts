@@ -1,8 +1,7 @@
 // Stories and previews in fate: the records of a story link of a checkout, `Story`, and of a
 // checkout's Storybook, `Preview`, each read a view of the runner; and of an agent's link,
 // `StoryHref`, checked by the core. The runner's changes reach the records read for each base.
-import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { dataView } from "@nkzw/fate/server";
 import { matchStory, UNREADABLE_INDEX } from "../preview/index.ts";
 import type { Checkout, PreviewState, Previews } from "../preview/runner.ts";
@@ -150,18 +149,18 @@ export function takeWatched(previews: Previews): Array<Watched> {
 
 /**
  * A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
- * current frame secret, at its current commit, or null without one or without a decision.
+ * current frame secret, at its current code version, or null without one or without a decision.
  */
-async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
+export async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
   const checkout = await checkoutOf(ctx, folder);
   const name = ctx.hosts.byPath(ctx.repo)?.name;
   if (checkout === null || name === undefined) {
     return null;
   }
   const read = ctx.previews.read();
-  const [found, commit] = await Promise.all([
+  const [found, version] = await Promise.all([
     ctx.binding.preview(checkout.dir).catch(() => null),
-    ctx.binding.checkoutCommit(checkout.dir).catch(() => null),
+    ctx.binding.codeVersion(checkout.dir).catch(() => null),
   ]);
   if (found === null) {
     return null;
@@ -171,10 +170,10 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
   return {
     base,
     command: found.command,
-    commit: commit ?? undefined,
     dir: checkout.dir,
     folder: found.folder,
     read,
+    version: version ?? undefined,
   };
 }
 
@@ -216,24 +215,6 @@ export async function restartPreview(ctx: RepoContext, folder: string): Promise<
 }
 
 /**
- * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
- * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
- * One that failed, as one a page started during the install, starts again. Nothing reads its record
- * yet: a page that does finds it starting or ready.
- */
-export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
-  const checkout = await runnable(ctx, folder);
-  if (checkout === null || !existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
-    return;
-  }
-  if (ctx.previews.state(checkout.base)?.state === "failed") {
-    await restartPreview(ctx, folder);
-  } else {
-    ctx.previews.view(checkout);
-  }
-}
-
-/**
  * The parts of a story's id, `<folder>:<path>#<export>`, its link checked by the core's rule, as
  * written from the repository's top level: undefined when it names no story.
  */
@@ -249,7 +230,8 @@ function storyParts(ctx: RepoContext, id: string) {
 
 /**
  * A story link of a checkout, by its id, `<folder>:<path>#<export>`: reading it is a view. Once its
- * Storybook is ready, the story is found in its index, or missing.
+ * Storybook is ready, the story is found in its index, or missing; a found story is starting until
+ * its compile ended.
  */
 export async function readStory(ctx: RepoContext, id: string): Promise<StoryRecord> {
   const none: StoryRecord = { error: null, frame: null, id, state: "none", storybook: null };
@@ -271,6 +253,10 @@ export async function readStory(ctx: RepoContext, id: string): Promise<StoryReco
   const story = matchStory(index, checkout.folder, parts);
   if (story === undefined) {
     return { ...none, state: "missing" };
+  }
+  // Its frame shows once its code compiled, or its compile ended: never a blank frame.
+  if (!ctx.previews.compiled(checkout.base, index.entries[story]!)) {
+    return { ...none, state: "starting" };
   }
   const page =
     parts.folder === MAIN ? "/storybook" : `/f/${encodeURIComponent(parts.folder)}/storybook`;
