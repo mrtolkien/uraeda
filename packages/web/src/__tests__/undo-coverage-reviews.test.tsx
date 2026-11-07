@@ -99,6 +99,27 @@ test("a first comment's undo deletes the review file it created, and its redo wr
   await comment("C1 · general");
 });
 
+// Break: the mockup page's comment written with no entry, so `u` leaves it in the review.
+test("a mockup's comment undoes and redoes, as the review page's do", async () => {
+  const r = repo();
+  await renderPage(`/f/${FOLDER}/mockups/repeat.html`, r);
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  const form = within(await screen.findByRole("form", { name: "Comment" }));
+  await type(form.getByLabelText("Comment text"), "The mockup's buttons are too small.");
+  await click(form.getByRole("button", { name: "Add comment" }));
+  await screen.findByText("Added a comment · waits on the Git page");
+  const written = review(r);
+  expect(written).toContain("The mockup's buttons are too small.");
+
+  await press("u");
+  await screen.findByText("Undone: added a comment");
+  expect(review(r)).toBeUndefined();
+
+  await press("U");
+  await screen.findByText("Redone: added a comment");
+  expect(review(r)).toBe(written);
+});
+
 // Break: the edit left on undo, or the page showing the edited text.
 test("an edited comment's undo puts its text back", async () => {
   const r = repo();

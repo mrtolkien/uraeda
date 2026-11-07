@@ -14,7 +14,7 @@ import { useTextField } from "./fields/useTextField.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { anchor, textOf } from "./ReviewCommentForm.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
-import { FileView } from "./views.ts";
+import { ReviewChangeView, useRecordComment } from "./useReviewActions.ts";
 import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
@@ -64,6 +64,7 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   const fate = useFateClient();
   const spec = useFile(folder, "spec.md");
   const [open, setOpen] = useState(false);
+  const recordComment = useRecordComment({ folder, name: "spec.md" });
   const here = useRepoPath();
   useRestoreScroll(true);
   const source = here(`/mockups/specs/${folder}/mockups/${name}`);
@@ -75,16 +76,17 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   const line = link && document?.blocks[link.block];
 
   const send = async (text: string) => {
+    const written = line ? text : `Mockup ${name}: ${text}`;
     const result = await fate.mutations.review.comment({
       input: {
         file: "spec.md",
         folder,
-        ...(line
-          ? { endLine: line.endLine, startLine: line.startLine, text }
-          : { text: `Mockup ${name}: ${text}` }),
+        text: written,
+        ...(line ? { endLine: line.endLine, startLine: line.startLine } : {}),
       },
-      view: FileView,
+      view: ReviewChangeView,
     });
+    recordComment(result, written);
     if (result.error) {
       return refusal(result.error).message;
     }
