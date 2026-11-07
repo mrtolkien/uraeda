@@ -59,9 +59,9 @@ describe("undo takes back the latest entry first, minutes later", () => {
     const stack = createUndoStack(time.now);
     const moved = entry("Moved");
     const indented = entry("Indented");
-    stack.push(moved);
+    stack.record(moved);
     time.advance(60_000);
-    stack.push(indented);
+    stack.record(indented);
     time.advance(10 * 60_000);
     expect(await stack.undo(never)).toEqual({ entry: indented, kind: "done" });
     expect(indented.undo).toHaveBeenCalledOnce();
@@ -75,7 +75,7 @@ describe("undo takes back the latest entry first, minutes later", () => {
     const plain = entry("Plain", { committed: vi.fn(async () => false) });
     const committed = entry("Committed", { committed: async () => true });
     for (const each of [plain, committed]) {
-      stack.push(each);
+      stack.record(each);
     }
     const ask = vi.fn(async () => false);
     expect(await stack.undo(ask)).toEqual({ entry: committed, kind: "kept" });
@@ -99,7 +99,7 @@ test("the stack keeps the latest 50 entries", async () => {
   const stack = createUndoStack(clock().now);
   const entries = Array.from({ length: 51 }, (_, index) => entry(`Entry ${index}`));
   for (const each of entries) {
-    stack.push(each);
+    stack.record(each);
   }
   for (let index = 50; index >= 1; index -= 1) {
     expect(await stack.undo(never)).toEqual({ entry: entries[index], kind: "done" });
@@ -111,14 +111,14 @@ test("the stack keeps the latest 50 entries", async () => {
 test("a new entry clears what could be redone", async () => {
   const stack = createUndoStack(clock().now);
   const first = entry("First");
-  stack.push(first);
+  stack.record(first);
   await stack.undo(never);
   expect(stack.canRedo()).toBe(true);
   expect(await stack.redo(never)).toEqual({ entry: first, kind: "done" });
   expect(first.redo).toHaveBeenCalledOnce();
   expect(stack.top()).toBe(first);
   await stack.undo(never);
-  stack.push(entry("Second"));
+  stack.record(entry("Second"));
   expect(stack.canRedo()).toBe(false);
   expect(await stack.redo(never)).toEqual({ kind: "empty" });
 });
@@ -128,11 +128,11 @@ describe("moves of one list less than a second apart join one entry", () => {
     const time = clock();
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
-    stack.push(move("1", "priorities", log));
+    stack.record(move("1", "priorities", log));
     time.advance(400);
-    stack.push(move("2", "priorities", log));
+    stack.record(move("2", "priorities", log));
     time.advance(400);
-    stack.push(move("3", "priorities", log));
+    stack.record(move("3", "priorities", log));
     const outcome = await stack.undo(never);
     expect(outcome.kind).toBe("done");
     expect(log).toEqual(["undo 3", "undo 2", "undo 1"]);
@@ -147,7 +147,7 @@ describe("moves of one list less than a second apart join one entry", () => {
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
     for (let index = 0; index < 5; index += 1) {
-      stack.push(move(`${index}`, "inbox", log));
+      stack.record(move(`${index}`, "inbox", log));
       time.advance(900);
     }
     await stack.undo(never);
@@ -159,9 +159,9 @@ describe("moves of one list less than a second apart join one entry", () => {
     const time = clock();
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
-    stack.push(move("1", "priorities", log));
+    stack.record(move("1", "priorities", log));
     time.advance(2000);
-    stack.push(move("2", "priorities", log));
+    stack.record(move("2", "priorities", log));
     await stack.undo(never);
     expect(log).toEqual(["undo 2"]);
   });
@@ -171,11 +171,11 @@ describe("moves of one list less than a second apart join one entry", () => {
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
     const deleted = entry("Deleted");
-    stack.push(move("1", "priorities", log));
+    stack.record(move("1", "priorities", log));
     time.advance(300);
-    stack.push(deleted);
+    stack.record(deleted);
     time.advance(300);
-    stack.push(move("2", "priorities", log));
+    stack.record(move("2", "priorities", log));
     await stack.undo(never);
     expect(log).toEqual(["undo 2"]);
     expect(await stack.undo(never)).toEqual({ entry: deleted, kind: "done" });
@@ -187,9 +187,9 @@ describe("moves of one list less than a second apart join one entry", () => {
     const time = clock();
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
-    stack.push(move("inbox", "inbox", log));
+    stack.record(move("inbox", "inbox", log));
     time.advance(300);
-    stack.push(move("priorities", "priorities", log));
+    stack.record(move("priorities", "priorities", log));
     await stack.undo(never);
     expect(log).toEqual(["undo priorities"]);
     await stack.undo(never);
@@ -200,13 +200,13 @@ describe("moves of one list less than a second apart join one entry", () => {
     const time = clock();
     const stack = createUndoStack(time.now);
     const log: Array<string> = [];
-    stack.push(move("1", "priorities", log));
+    stack.record(move("1", "priorities", log));
     time.advance(300);
-    stack.push(move("2", "priorities", log));
+    stack.record(move("2", "priorities", log));
     await stack.undo(never);
     // The run of 1 and 2 is undone; a move pushed right after starts its own entry.
     time.advance(100);
-    stack.push(move("3", "priorities", log));
+    stack.record(move("3", "priorities", log));
     await stack.undo(never);
     expect(log).toEqual(["undo 2", "undo 1", "undo 3"]);
     expect(stack.canRedo()).toBe(true);
@@ -219,7 +219,7 @@ test("a refused undo leaves the stack, and shows its reason", async () => {
   const reason = "Could not undo: “Color themes” changed since in PRIORITIES.md.";
   const refused = entry("Refused", { undo: vi.fn(async () => reason) });
   for (const each of [below, refused]) {
-    stack.push(each);
+    stack.record(each);
   }
   expect(await stack.undo(never)).toEqual({ entry: refused, kind: "refused", reason });
   expect(stack.canRedo()).toBe(false);
@@ -239,7 +239,7 @@ test("undo and redo on an empty side do nothing", async () => {
   expect(await stack.undo(ask)).toEqual({ kind: "empty" });
   expect(await stack.redo(ask)).toEqual({ kind: "empty" });
   const only = entry("Only");
-  stack.push(only);
+  stack.record(only);
   expect(await stack.redo(ask)).toEqual({ kind: "empty" });
   expect(only.redo).not.toHaveBeenCalled();
   expect(ask).not.toHaveBeenCalled();
@@ -251,7 +251,7 @@ test("an undo pressed during another waits for it", async () => {
   const first = entry("First");
   const second = entry("Second", { undo: vi.fn(() => held.promise) });
   for (const each of [first, second]) {
-    stack.push(each);
+    stack.record(each);
   }
   const one = stack.undo(never);
   const two = stack.undo(never);
@@ -269,13 +269,13 @@ test("listeners hear each push, undo, redo, and clear", async () => {
   const stack = createUndoStack(clock().now);
   const listener = vi.fn();
   const stop = stack.subscribe(listener);
-  stack.push(entry("One"));
+  stack.record(entry("One"));
   await stack.undo(never);
   await stack.redo(never);
   stack.clear();
   expect(listener).toHaveBeenCalledTimes(4);
   expect(stack.top()).toBeUndefined();
   stop();
-  stack.push(entry("Two"));
+  stack.record(entry("Two"));
   expect(listener).toHaveBeenCalledTimes(4);
 });
