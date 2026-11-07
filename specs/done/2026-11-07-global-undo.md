@@ -3,6 +3,8 @@ kind: feature
 finished: 2026-11-08
 pull-request: https://github.com/mrtolkien/uraeda/pull/108
 supersedes: [2026-10-12-ui-improvements]
+superseded-by:
+  - 2026-11-07-keyboard-nav
 ---
 
 # Record: Global undo
@@ -12,6 +14,8 @@ supersedes: [2026-10-12-ui-improvements]
 > The record of a merged feature, not instructions to follow. Started on 2026-11-07, finished on
 > 2026-11-08, in [its pull request](https://github.com/mrtolkien/uraeda/pull/108). Its full files
 > are in git: `git log -- specs/2026-11-07-global-undo/`.
+>
+> Superseded in part by [2026-11-07-keyboard-nav](2026-11-07-keyboard-nav.md).
 
 ## What and why
 
