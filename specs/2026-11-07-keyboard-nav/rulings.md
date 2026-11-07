@@ -82,3 +82,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's bars name a pair of keys once, "J K range", "a b pick", as the status
   line's hints do (`hint` "j k", `hintLabel` "move").
 - **Where**: task 4, `cursor/StopKeys.tsx`, `cursor/move.ts`, `layout/Pane.tsx`
+
+## R8: The cursor moves in one scroll area at a time
+
+- **Decision**: a key measures and scrolls the stops of one scroll area: the held stop's, else the
+  page's own, else, on a page whose stops all sit in scrolling columns, the first stop's. Past the
+  last or first stop of its area, the cursor takes the next stop in document order, scrolled in the
+  area holding that stop, as a move onto it from nowhere, so a pane that fits shows whole.
+- **Rationale**: a stop's place on screen means something only against its own area's view and
+  scroll: the decisions check's `Panes` layout and a `SplitPanel`'s detail scroll on their own,
+  beside the page, and a column's stops measured against the page would scroll the wrong area. With
+  no cursor, the page's own stops are where the reader is, not a column that happens to hold the
+  first stop.
+- **If wrong**: a column a key moves into could start from its topmost stop on screen instead of the
+  next in document order.
+- **Where**: task 4, `cursor/useCursor.ts`, `keys/scroll.ts` (`areasOf`)

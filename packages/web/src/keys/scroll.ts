@@ -40,6 +40,27 @@ export function areaOf(target: EventTarget | null): Area {
   return null;
 }
 
+/**
+ * `areaOf` for each of `elements` at once, in their order: the walk up is shared, as elements of one
+ * page share their ancestors, so a long page's elements cost one style read per ancestor.
+ */
+export function areasOf(elements: ReadonlyArray<Element>): Array<Area> {
+  const seen = new Map<Element, Area>();
+  const of = (element: Element | null): Area => {
+    if (element === null || element === document.body || element === document.documentElement) {
+      return null;
+    }
+    const known = seen.get(element);
+    if (known !== undefined) {
+      return known;
+    }
+    const area = scrolls(element) ? element : of(element.parentElement);
+    seen.set(element, area);
+    return area;
+  };
+  return elements.map(of);
+}
+
 /** A line of the page's text, in px. */
 function lineOf(area: Area) {
   const style = getComputedStyle(area ?? document.body);

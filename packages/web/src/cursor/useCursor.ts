@@ -3,7 +3,7 @@
 // the stops are found by their mark, whatever drew them. Where no stop is, or past either end, the
 // key goes on to the shell's scroll.
 import { useEffect } from "react";
-import { areaOf, type Area, glideBy, pendingOf } from "../keys/scroll.ts";
+import { areaOf, areasOf, type Area, glideBy, pendingOf } from "../keys/scroll.ts";
 import { useKeys } from "../keys/registry.tsx";
 import type { Binding } from "../keys/store.ts";
 import { heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
@@ -66,22 +66,46 @@ function take(stop: HTMLElement, by: number, area: Area) {
  * `from`, the stop held before, would: for a stop's own keys that move the cursor, as `J`.
  */
 export function focusStop(stop: HTMLElement, from?: HTMLElement): void {
-  const area = areaOf(stop);
-  const pending = pendingOf(area);
-  const box = boxOf(stop, pending);
-  const held = from && boxOf(from, pending);
   // From below, as `K`, the move is up: a tall stop shows its end.
-  const direction = held !== undefined && held.top > box.top ? -1 : 1;
-  take(stop, scrollFor(box, held, viewOf(area), direction), area);
+  const up =
+    from !== undefined && from.getBoundingClientRect().top > stop.getBoundingClientRect().top;
+  land(stop, from, up ? -1 : 1);
 }
 
-/** Moves the cursor a stop down, 1, or up, -1: `false` where it cannot, so the page scrolls. */
-function move(direction: 1 | -1) {
-  const stops = stopsOf();
-  const held = heldStop();
-  const index = held === null ? -1 : stops.indexOf(held);
-  const area = areaOf(held ?? stops[0] ?? null);
+/** Gives `stop` the focus, held, scrolled as a move in `direction` from `from` would scroll. */
+function land(stop: HTMLElement, from: HTMLElement | undefined, direction: 1 | -1) {
+  const area = areaOf(stop);
   const pending = pendingOf(area);
+  const held = from && boxOf(from, pending);
+  take(stop, scrollFor(boxOf(stop, pending), held, viewOf(area), direction), area);
+}
+
+/**
+ * The scroll area the cursor moves in, and its stops, in document order: the held stop's, else the
+ * page's own, else, on a page whose stops all sit in scrolling columns, the first stop's (R8).
+ */
+function areaToMove(stops: ReadonlyArray<HTMLElement>, held: HTMLElement | null) {
+  const areas = areasOf(stops);
+  let area = areas[0] ?? null;
+  if (held !== null) {
+    area = areas[stops.indexOf(held)] ?? null;
+  } else if (areas.includes(null)) {
+    area = null;
+  }
+  return { area, stops: stops.filter((_, index) => areas[index] === area) };
+}
+
+/**
+ * Moves the cursor a stop down, 1, or up, -1, among the stops of its scroll area, measured in that
+ * area's view; past its area's last or first stop, onto the next in document order, in the area
+ * holding it (R8). `false` where it cannot, so the page scrolls.
+ */
+function move(direction: 1 | -1) {
+  const all = stopsOf();
+  const held = heldStop();
+  const { area, stops } = areaToMove(all, held);
+  const pending = pendingOf(area);
+  const index = held === null ? -1 : stops.indexOf(held);
   const step = cursorStep(
     stops.map((stop) => boxOf(stop, pending)),
     index === -1 ? null : index,
@@ -89,10 +113,15 @@ function move(direction: 1 | -1) {
     viewOf(area),
   );
   const stop = step === null ? undefined : stops[step.focus];
-  if (step === null || stop === undefined) {
+  if (step !== null && stop !== undefined) {
+    take(stop, step.scrollBy, area);
+    return;
+  }
+  const next = held === null ? undefined : all[all.indexOf(held) + direction];
+  if (next === undefined) {
     return false;
   }
-  take(stop, step.scrollBy, area);
+  land(next, undefined, direction);
 }
 
 /**
