@@ -1,7 +1,8 @@
 // Where the cursor's keys take it, and how far the page scrolls: it starts from the topmost stop on
 // screen, scrolls only when a stop comes within 100 px of the top bar or the status line, reads a
-// stop taller than the screen to its end before leaving it, and shows a pane it enters whole when
-// it fits. The geometry alone, in window pixels: a page lays nothing out in the tests.
+// stop taller than the screen to its end before leaving it, shows a pane it enters whole inside the
+// margins when it fits, and passes the stops nested in a stop it leaves forward. The geometry alone,
+// in window pixels: a page lays nothing out in the tests.
 import { expect, test } from "vite-plus/test";
 import { type Box, cursorStep } from "../cursor/move.ts";
 
@@ -40,11 +41,12 @@ test("with no cursor, a key takes the topmost stop on screen", () => {
     focus: 0,
     scrollBy: -500 - (60 + 100),
   });
-  // A pane that fits, its stop inside the margins: the pane shows whole, as a move into it.
-  const pane = { bottom: 1270, id: 1, top: 690 };
+  // A pane that fits inside the margins, its stop inside them: the pane shows whole, its end 100 px
+  // above the status line, as a move into it.
+  const pane = { bottom: 1170, id: 1, top: 690 };
   expect(cursorStep([{ bottom: 740, pane, top: 700 }], null, 1, VIEW), "into a pane").toEqual({
     focus: 0,
-    scrollBy: 1270 - 860,
+    scrollBy: 1170 - (860 - 100),
   });
   expect(cursorStep([], null, 1, VIEW), "no stop").toBeNull();
   expect(cursorStep(column(900, 3), null, 1, VIEW), "no stop on screen or under it").toEqual({
@@ -108,25 +110,32 @@ const card = (top: number) => [
 
 test("a stop taller than the room scrolls through before the next", () => {
   // The card's top 100 px under the top bar. The room is 800 - 200 = 600 px: a screen less the
-  // margins.
-  expect(cursorStep(card(160), 0, 1, VIEW), "the first j").toEqual({ focus: 0, scrollBy: 600 });
-  // 600 px on, its end is 200 px past the bottom margin.
-  expect(cursorStep(card(-440), 0, 1, VIEW), "the second j").toEqual({ focus: 0, scrollBy: 200 });
+  // margins. Its end is 800 px past the bottom margin, no more than the screen's 800: the first j
+  // shows it, as what was at the screen's bottom edge comes to its top, nothing passed by.
+  expect(cursorStep(card(160), 0, 1, VIEW), "the first j").toEqual({ focus: 0, scrollBy: 800 });
   // Its end at the margin: the next j leaves it, for the stop under it, which ends 100 px above
   // the status line.
-  expect(cursorStep(card(-640), 0, 1, VIEW), "the third j").toEqual({ focus: 1, scrollBy: 60 });
-  // Back up, `k` reads it to its top before leaving it.
+  expect(cursorStep(card(-640), 0, 1, VIEW), "the second j").toEqual({ focus: 1, scrollBy: 60 });
+  // A card of 2,000 px is read a room at a time, then its rest in one step.
+  const long = [{ bottom: 2160, top: 160 }];
+  expect(cursorStep(long, 0, 1, VIEW), "a longer card's first j").toEqual({
+    focus: 0,
+    scrollBy: 600,
+  });
+  const rest = [{ bottom: 1560, top: -440 }];
+  expect(cursorStep(rest, 0, 1, VIEW), "its second j").toEqual({ focus: 0, scrollBy: 800 });
+  // Back up, `k` reads it to its top before leaving it, in one step as `j` did.
   const above = [{ bottom: 100, top: 40 }, ...card(-640).slice(0, 1)];
-  expect(cursorStep(above, 1, -1, VIEW), "k at its end").toEqual({ focus: 1, scrollBy: -600 });
+  expect(cursorStep(above, 1, -1, VIEW), "k at its end").toEqual({ focus: 1, scrollBy: -800 });
   // Moved onto from below, a tall stop shows its end, 100 px above the status line, as `j` shows
   // its top: the next `k` reads up through its body.
   const onto = [...card(-1000).slice(0, 1), { bottom: 600, top: 560 }];
   expect(cursorStep(onto, 1, -1, VIEW), "k onto it").toEqual({ focus: 0, scrollBy: -360 });
   const read = [...card(-640).slice(0, 1), { bottom: 960, top: 920 }];
-  expect(cursorStep(read, 0, -1, VIEW), "the k after").toEqual({ focus: 0, scrollBy: -600 });
+  expect(cursorStep(read, 0, -1, VIEW), "the k after").toEqual({ focus: 0, scrollBy: -800 });
 });
 
-test("a move into another pane that fits shows it whole", () => {
+test("a move into another pane that fits inside the margins shows it whole, inside them", () => {
   const first = { bottom: 680, id: 1, top: 100 };
   const second = { bottom: 1270, id: 2, top: 690 };
   const stops: Array<Box> = [
@@ -134,13 +143,49 @@ test("a move into another pane that fits shows it whole", () => {
     { bottom: 740, pane: second, top: 700 },
     { bottom: 1260, pane: second, top: 1220 },
   ];
-  // Its stop is inside the margins, yet the pane's end is 410 px under the status line.
-  expect(cursorStep(stops, 0, 1, VIEW), "into the next pane").toEqual({ focus: 1, scrollBy: 410 });
+  // Its stop is inside the margins, yet the pane's end is 410 px under the status line: it ends
+  // 100 px above it.
+  expect(cursorStep(stops, 0, 1, VIEW), "into the next pane").toEqual({ focus: 1, scrollBy: 510 });
+  // Up into a pane whose top is under the top bar: its top 100 px under it.
+  const above = [
+    { bottom: 200, pane: { bottom: 300, id: 4, top: 0 }, top: 150 },
+    { bottom: 400, pane: first, top: 360 },
+  ];
+  expect(cursorStep(above, 1, -1, VIEW), "up into a pane").toEqual({ focus: 0, scrollBy: -160 });
   // Within one pane, the margins alone.
   const inside = stops.map((stop) => ({ ...stop, pane: second }));
   expect(cursorStep(inside, 0, 1, VIEW), "within a pane").toEqual({ focus: 1, scrollBy: 0 });
-  // A pane taller than the screen: the margins alone.
-  const tall = { bottom: 2000, id: 3, top: 690 };
+  // A pane of 700 px, which fits the screen but not inside the margins: the margins alone.
+  const tall = { bottom: 1390, id: 3, top: 690 };
   const intoTall = [stops[0]!, { ...stops[1]!, pane: tall }];
   expect(cursorStep(intoTall, 0, 1, VIEW), "into a tall pane").toEqual({ focus: 1, scrollBy: 0 });
+});
+
+test("the stops nested in a stop are passed by forward, and lead to it backward", () => {
+  // A question card from 100 to 700, an embed's two buttons inside it near its top, then the next
+  // card. Each nested stop names the index of the stop holding it.
+  const stops: Array<Box> = [
+    { bottom: 700, top: 100 },
+    { bottom: 180, parent: 0, top: 150 },
+    { bottom: 240, parent: 0, top: 210 },
+    { bottom: 800, top: 720 },
+  ];
+  expect(cursorStep(stops, 0, 1, VIEW)?.focus, "j from the card").toBe(3);
+  expect(cursorStep(stops, 3, -1, VIEW)?.focus, "k onto the card from below").toBe(0);
+  // Reached by Tab, a nested stop moves among its siblings, then out.
+  expect(cursorStep(stops, 1, 1, VIEW)?.focus, "j from an embed's button").toBe(2);
+  expect(cursorStep(stops, 2, 1, VIEW)?.focus, "j from the last button").toBe(3);
+  expect(cursorStep(stops, 2, -1, VIEW)?.focus, "k from the second button").toBe(1);
+  expect(cursorStep(stops, 1, -1, VIEW)?.focus, "k from the first button").toBe(0);
+  // Nothing past the card but what it holds: the key goes on.
+  expect(cursorStep(stops.slice(0, 3), 0, 1, VIEW), "j from the last card").toBeNull();
+  // Nested two deep, as a fold inside an embed inside a card: k lands on the card.
+  const deep: Array<Box> = [
+    { bottom: 700, top: 100 },
+    { bottom: 400, parent: 0, top: 150 },
+    { bottom: 240, parent: 1, top: 210 },
+    { bottom: 800, top: 720 },
+  ];
+  expect(cursorStep(deep, 3, -1, VIEW)?.focus, "k onto a card two deep").toBe(0);
+  expect(cursorStep(deep, 0, 1, VIEW)?.focus, "j past two deep").toBe(3);
 });
