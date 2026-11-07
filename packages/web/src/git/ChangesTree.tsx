@@ -1,5 +1,6 @@
 // A group's changes on the Git page: the main checkout's, or a feature's worktree's with a buffer's
-// save, each a tree of its changed files with its own commit. A row's box is the checkbox Space
+// save, each a tree of its changed files with its own commit. A worktree's pane is set apart from
+// the main checkout's: a dashed blue border, a branch's icon, and "worktree" after its title. A row's box is the checkbox Space
 // ticks, staging or unstaging the file, or every file under a folder; a staged file keeps its row.
 // A folder's chevron and name fold it, as Enter does; a file's name opens its diff.
 import { Button } from "@astryxdesign/core/Button";
@@ -11,7 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode, Ref } from "react";
+import type { ComponentProps, ReactNode, Ref } from "react";
 import type { EditorHandle } from "../fields/editor/Editor.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -38,6 +39,13 @@ const styles = stylex.create({
   leaf: { flexShrink: 0, width: spacingVars["--spacing-6"] },
   name: { minWidth: 0 },
 });
+
+/** What sets a worktree's pane apart from the main checkout's. */
+const WORKTREE = {
+  icon: "uraeda:git-branch",
+  titleSuffix: "· worktree",
+  tone: "worktree",
+} as const satisfies Partial<ComponentProps<typeof Pane>>;
 
 /** The key of a tree's row among the list's rows. */
 export const treeKey = (folder: string | null, path: string, isFolder: boolean) =>
@@ -163,6 +171,7 @@ export function ChangesGroup({
       <Pane
         count={group.files.length}
         id={isMain ? "changes" : `changes-${group.folder}`}
+        {...(isMain ? {} : WORKTREE)}
         title={isMain ? "Changes" : group.name}
       >
         <VStack gap={3}>

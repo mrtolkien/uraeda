@@ -25,9 +25,18 @@ import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /**
  * What a pane's colour tells: it needs the human, it shows an example, or it holds a problem; a
- * decision new, changed, or removed; or a live window, whose border is double.
+ * decision new, changed, or removed; a live window, whose border is double; or a feature's
+ * worktree, apart from the main checkout, whose border is dashed.
  */
-export type PaneTone = "attention" | "changed" | "example" | "live" | "new" | "problem" | "removed";
+export type PaneTone =
+  | "attention"
+  | "changed"
+  | "example"
+  | "live"
+  | "new"
+  | "problem"
+  | "removed"
+  | "worktree";
 
 /** A colour for a pane's title alone, as a list's section tells its kind; its border stays. */
 export type PaneTint = "blue" | "gray" | "green";
@@ -107,6 +116,11 @@ const styles = stylex.create({
     borderStyle: "double",
   },
   liveTitle: { color: "var(--color-text-sapphire)" },
+  // A feature's worktree, apart from the main checkout: blue, and a dashed border of the same
+  // width, which keeps its dashes in the accent while the pane is active.
+  worktree: { borderColor: colorVars["--color-border-blue"], borderStyle: "dashed" },
+  worktreeDashes: { borderStyle: "dashed" },
+  worktreeTitle: { color: colorVars["--color-text-blue"] },
   // The title's words, its icons, and its count, on lines of the title's width.
   head: {
     alignItems: "start",
@@ -230,6 +244,7 @@ const TONES = {
   new: [styles.new, styles.newTitle],
   problem: [styles.problem, styles.problemTitle],
   removed: [styles.problem, styles.problemTitle],
+  worktree: [styles.worktree, styles.worktreeTitle],
 } as const;
 
 /** Each tint's title style. */
@@ -237,11 +252,13 @@ const TINTS = { blue: styles.tintBlue, gray: styles.tintGray, green: styles.tint
 
 /**
  * The border's and the title's styles, by the pane's state: active, then its tone. An active live
- * window keeps its double border, in the accent.
+ * window keeps its double border, and a worktree its dashed one, in the accent.
  */
 function colours(isActive: boolean, tone: PaneTone | undefined) {
   if (isActive) {
-    return [[tone === "live" && styles.live, styles.active], styles.activeTitle] as const;
+    const frame =
+      (tone === "live" && styles.live) || (tone === "worktree" && styles.worktreeDashes);
+    return [[frame, styles.active], styles.activeTitle] as const;
   }
   return tone === undefined ? ([null, null] as const) : TONES[tone];
 }

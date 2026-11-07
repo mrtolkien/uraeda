@@ -188,15 +188,16 @@ configuration: a pull rebases or merges as `pull.rebase` says, and stashes your 
 that asks for a password needs a credential helper or an ssh-agent.
 
 Changes lists every changed file as a tree of folders, in the main checkout's group, then in one
-group per feature's worktree a buffer saved into. `j` and `k`, or the arrows, move over the rows,
-Enter folds or unfolds a folder, and Space ticks a row's box, staging its file, or every file under
-a folder. `a` stages every file of the group, or unstages them all when all are staged. A staged
-file keeps its row. Each group has its commit message, one line, filled with a default from what is
-staged: `chore: add <the line>` for a single line added to a file, `chore: update <the file>` for
-any other change to one file, and `chore: update <count> files` for several. `c` goes to the
-message, where you can change it, and Enter, or the Commit under it, which names how many files it
-commits, commits what is staged, through your hooks. A hook's refusal shows above Changes, and the
-files stay staged. `d` asks before discarding a file's changes.
+group per feature's worktree a buffer saved into, set apart by a dashed blue border and marked
+"worktree" after the feature's name. `j` and `k`, or the arrows, move over the rows, Enter folds or
+unfolds a folder, and Space ticks a row's box, staging its file, or every file under a folder. `a`
+stages every file of the group, or unstages them all when all are staged. A staged file keeps its
+row. Each group has its commit message, one line, filled with a default from what is staged:
+`chore: add <the line>` for a single line added to a file, `chore: update <the file>` for any other
+change to one file, and `chore: update <count> files` for several. `c` goes to the message, where
+you can change it, and Enter, or the Commit under it, which names how many files it commits, commits
+what is staged, through your hooks. A hook's refusal shows above Changes, and the files stay staged.
+`d` asks before discarding a file's changes.
 
 Picking a file shows its diff, from its first change, beside the sections, or as a page of its own
 on the phone, with Back to the sections. Past 1,000 lines, it shows its counts and "Show the whole

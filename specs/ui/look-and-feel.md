@@ -60,7 +60,8 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **Square, everywhere.** "NO ROUNDED CORNERS": cards, buttons, bars, sheets, and the composer's
   buttons are rectangles. A rounded corner is a bug.
 - **1 px borders.** Thicker borders were tried and reverted: "1px everywhere." A double border marks
-  a live window.
+  a live window, and a dashed one, in blue, a feature's worktree on the Git page, apart from the
+  main checkout: "clearly marked as worktrees".
 - **Icons on one axis**: the rail's icons are 20 px, aligned on one vertical axis whatever their row
   holds; a card's and a row's icons are the small and medium sizes, aligned within their column.
 - **Separators only between sections**, at the same place every time; inside a section, room or a
