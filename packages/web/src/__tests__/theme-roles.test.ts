@@ -7,7 +7,9 @@ import { readFileSync } from "node:fs";
 import { readThemes, type Theme } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
-import { entryPasses, fromHsl, hslOf } from "../theme/floor.ts";
+import { mix } from "../theme/colour.ts";
+import { entryPasses, floorStep, fromHsl, hslOf } from "../theme/floor.ts";
+import { paletteCss } from "../theme/palette.ts";
 import { tokensOf } from "../theme/roles.ts";
 import today from "./fixtures/catppuccin-today.json" with { type: "json" };
 
@@ -269,4 +271,34 @@ test.each(FLOORS)("every floor step of %s is the smallest: %s", (_, floor, theme
   expect(passes(steps[at]!), `every pair passes with ${floor}`).toBe(true);
   const back = mode === "dark" ? at - 1 : at + 1;
   expect(passes(steps[back]!), `a step back toward ${published} fails`).toBe(false);
+  // Passing is not monotonic in lightness: the first passing step from the published colour.
+  const away = mode === "dark" ? "lighter" : "darker";
+  expect(theme.palette[floor], `${floor} is the floor step`).toBe(
+    floorStep(published!, passes, away),
+  );
+});
+
+/** Catppuccin's cursor-row tint: the entry it is mixed from, and its share over `base` (R11). */
+const TINTS = [
+  ["catppuccin-mocha", "mauve", 0.14],
+  ["catppuccin-latte", "mauve-floor", 0.1],
+] as const;
+
+// The tint is written by hand in the TOML file: a recomputed floor must not leave it stale.
+test.each(TINTS)("the mauve-tint of %s is %s mixed over base", (id, from, share) => {
+  const { palette } = shipped(id);
+  expect(palette["mauve-tint"]).toBe(mix(palette[from]!, share, palette.base!));
+});
+
+test("the palette rule drops a name or a colour that is not one", () => {
+  const css = paletteCss({
+    dark: {
+      "--color-accent": "#cba6f7",
+      "--color-text": "#fff;} body{color:red",
+      "--x;} body{color:red;} .y{--z": "#ffffff",
+    },
+  });
+  expect(css).toBe(
+    '[data-astryx-theme="uraeda"][data-theme="dark"] {\n  --color-accent: #cba6f7;\n}\n',
+  );
 });
