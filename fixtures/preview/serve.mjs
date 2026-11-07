@@ -1,7 +1,7 @@
 // A fake Storybook, for the tests of the preview runner, its proxy, and the embeds:
 // `node serve.mjs --port <port> [--mode <mode>] [--delay <ms>] [--log <file>]`.
 //
-// It appends its start to the log file, as one JSON line `{ base, cwd, pid, port }`, then serves,
+// It appends its start to the log file, its folder created if missing, as one JSON line `{ base, cwd, pid, port }`, then serves,
 // from its working folder:
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
 // - `/`: Storybook's own interface, as its manager draws it: the stories' list, and the story of
@@ -35,9 +35,9 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 const { values } = parseArgs({
@@ -54,6 +54,8 @@ const base = process.env.URAEDA_PREVIEW_BASE ?? "/";
 const PICK = join(import.meta.dirname, "../../skills/uraeda/assets/storybook/uraeda-pick.js");
 
 if (values.log) {
+  // A copy of Storybook's cached fixture names the log of the start that built it, long removed.
+  mkdirSync(dirname(values.log), { recursive: true });
   const start = { base, cwd: process.cwd(), pid: process.pid, port };
   appendFileSync(values.log, `${JSON.stringify(start)}\n`);
 }
