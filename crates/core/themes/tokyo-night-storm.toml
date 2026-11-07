@@ -1,0 +1,32 @@
+#:schema https://raw.githubusercontent.com/mrtolkien/uraeda/main/schemas/theme.json
+# Tokyo Night Storm, from folke's tokyonight.nvim v4.14.1, its Storm style, Apache 2.0:
+# https://github.com/folke/tokyonight.nvim/blob/v4.14.1/lua/tokyonight/colors/storm.lua
+# Storm is Night with its own backgrounds, as night.lua builds Night from it.
+name = "Tokyo Night Storm"
+mode = "dark"
+extends = "tokyo-night"
+
+[palette]
+bg = "#24283b"
+bg_dark = "#1f2335"
+bg_dark1 = "#1b1e2d"
+# tokyonight.nvim's own bg_visual, which colors/init.lua computes: blue0 at 40% over bg.
+bg_visual = "#2e3c64"
+# Not Tokyo Night's: its colours lightened, a whole percent of HSL lightness at a time, to the
+# first step at which every pair they are in reaches the contrast floor (4.5:1 for text, 3:1 for a
+# rule).
+comment-floor = "#a1a7c4"
+dark3-floor = "#667099"
+blue-floor = "#82a8f7"
+
+[roles]
+# Storm's blue is under the floor on its lighter backgrounds, where Night's is not.
+action = "blue-floor"
+syntax-function = "blue-floor"
+context = "blue-floor"
+code-inline = "blue-floor"
+yours = "blue-floor"
+heading-1 = "blue-floor"
+mode-normal = "blue-floor"
+link = "blue-floor"
+working = "blue-floor"
