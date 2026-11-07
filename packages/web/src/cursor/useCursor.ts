@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { areaOf, areasOf, type Area, glideBy, pendingOf } from "../keys/scroll.ts";
 import { useKeys } from "../keys/registry.tsx";
 import type { Binding } from "../keys/store.ts";
+import { topBarBottom } from "../layout/topBar.ts";
 import { heldStop, isFocusLost, isKeyInput, markByKey } from "./held.ts";
 import { type Box, cursorStep, placed, scrollFor, type View } from "./move.ts";
 import { stopsOf } from "./stops.ts";
@@ -30,7 +31,7 @@ function viewOf(area: Area): View {
       window.innerHeight,
       own?.bottom ?? Infinity,
     ),
-    top: Math.max(drawn('[role="banner"]')?.bottom ?? 0, 0, own?.top ?? 0),
+    top: Math.max(topBarBottom(), own?.top ?? 0),
   };
 }
 

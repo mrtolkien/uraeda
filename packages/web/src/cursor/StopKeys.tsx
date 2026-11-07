@@ -27,8 +27,10 @@ export function useStopKeys(keys: ReadonlyArray<StopKey>, held: boolean): void {
 
 /**
  * The bar of a held stop's keys, under it: each key with a `bar` text, but the single keys while
- * they are switched off. Nothing when the stop is not held, or on a narrow screen, where keys are
- * little help and the phone's floating bar would cover the page.
+ * they are switched off. It is for the keyboard user's eyes, to show the keys: its buttons are
+ * seldom clicked, as a mouse moving hides the cursor, and the bar with it. Nothing when the stop is
+ * not held, or on a narrow screen, where keys are little help and the phone's floating bar would
+ * cover the page.
  */
 export function StopBar({ held, keys }: { held: boolean; keys: ReadonlyArray<StopKey> }) {
   const singleKeys = useSingleKeys();

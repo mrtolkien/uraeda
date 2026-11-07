@@ -2,6 +2,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
 import { merged, type Range } from "./commentRange.ts";
 import { frame, keepPlace, scrollInstantly, scrollMark, topOf } from "./keepPlace.ts";
+import { topBarBottom } from "./layout/topBar.ts";
 
 /**
  * The last tapped element, under which the form opens: a block of the reviewed file, by its id, or
@@ -73,7 +74,7 @@ async function placeAboveSheet(
   if (Math.abs(moved) >= 0.5) {
     scrollInstantly(moved);
   }
-  const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  const bar = topBarBottom();
   const box = element.getBoundingClientRect();
   if (box.top >= bar && box.bottom <= sheetTop) {
     return;
