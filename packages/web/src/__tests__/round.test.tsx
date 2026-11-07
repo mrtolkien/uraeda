@@ -157,6 +157,20 @@ test("a held question's letter picks and saves its option, and unpicks it", asyn
   await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:**"));
 });
 
+// Break: each card declared its keys from a hook always mounted: held from the next card, the one
+// before declared its letters while the next still had them, and the registry threw "a key means
+// two things".
+test("the cursor moves back from a card to the one before, each declaring its keys alone", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q3"));
+  hold(question("Q2"));
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B"));
+});
+
 /** The subject of the round's answers' commit. */
 const ROUND_COMMIT = "discovery(web-ui): answer round 01";
 

@@ -3,12 +3,10 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useContext, useEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
-import { useHeld } from "./cursor/held.ts";
-import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
-import { stopProps } from "./cursor/stops.ts";
+import { usePaneStop } from "./cursor/PaneStop.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
 import { useHints, usePress } from "./keys/registry.tsx";
 import { glassStyles } from "./layout/glass.ts";
-import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { useStuck } from "./layout/useStuck.ts";
@@ -26,11 +24,6 @@ import { StoryContext } from "./stories.tsx";
 import { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
-  // The card's ring shows the keyboard's cursor on it: the section, which holds the focus, draws
-  // none of its own, which would ring the card twice.
-  card: {
-    outlineStyle: "none",
-  },
   // A box left out of the layout: its children are laid out by its parent.
   contents: {
     display: "contents",
@@ -227,7 +220,7 @@ const KEY_LETTERS = new Set(["A", "B", "C", "D", "E", "F"]);
  * toggle them and save, but on a read-only round, which leaves the letters to the page; `i` or
  * Enter focuses its comment field, and `s` asks the agent, with `onAsk`. Its bar also names the
  * page's `n`, where the page has it and the round is not read-only, which goes on to the next blank
- * question, pressed as the key is: the card does not take it. The section is kept in a state, as its keys' bar is drawn from what it holds.
+ * question, pressed as the key is: the card does not take it.
  */
 function useQuestionStop(
   answer: ReturnType<typeof useAnswer>,
@@ -235,8 +228,6 @@ function useQuestionStop(
   readOnly: boolean,
   onAsk?: (question: QuestionItem) => void,
 ) {
-  const [section, setSection] = useState<HTMLElement | null>(null);
-  const held = useHeld({ current: section });
   const press = usePress();
   const keys: Array<StopKey> = [];
   if (!readOnly) {
@@ -259,7 +250,6 @@ function useQuestionStop(
   if (onAsk) {
     keys.push({ bar: "s", keys: "s", label: "ask", run: () => onAsk(question) });
   }
-  useStopKeys(keys, held);
   // The page's `n`, named only where the page has it: the round's column declares it, which a
   // read-only round does not mount.
   const hasNext = useHints().some((hint) => hint.press === "n");
@@ -267,7 +257,7 @@ function useQuestionStop(
     !readOnly && hasNext
       ? [...keys, { bar: "n", keys: "n", label: "unanswered", run: () => press("n") }]
       : keys;
-  return { bar: <StopBar held={held} keys={shown} />, held, setSection };
+  return usePaneStop(keys, shown);
 }
 
 /**
@@ -305,7 +295,7 @@ export function QuestionCard({
   const { split, text, wide, width, windowed } = useCardLayout(document, question, roomy);
   const comments = useStoryComments(answer, path, question, readOnly);
   const margin = useScrollMargin();
-  const { bar, held, setSection } = useQuestionStop(answer, question, readOnly, onAsk);
+  const stop = useQuestionStop(answer, question, readOnly, onAsk);
   const head = <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />;
   const context = <QuestionContext document={document} question={question} />;
   const answering = (
@@ -330,16 +320,14 @@ export function QuestionCard({
     <StoryContext value={comments}>
       <section
         // A pane to the keyboard's cursor, shown whole as it moves onto it, where it fits.
-        data-pane=""
         id={question.id}
-        ref={setSection}
-        {...stopProps("pane")}
-        {...stylex.props(styles.card, margin, width, windowed && styles.windowed)}
+        {...stop.props}
+        {...stylex.props(stop.style, margin, width, windowed && styles.windowed)}
       >
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
-          xstyle={[!wide && styles.flat, held && pickedStyles.pane]}
+          xstyle={[!wide && styles.flat, stop.look]}
         >
           <div
             {...stylex.props(
@@ -356,7 +344,7 @@ export function QuestionCard({
             </div>
             {answering}
           </div>
-          {bar}
+          {stop.bar}
         </Card>
       </section>
     </StoryContext>

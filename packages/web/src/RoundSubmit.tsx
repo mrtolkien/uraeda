@@ -6,10 +6,8 @@ import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import * as stylex from "@stylexjs/stylex";
 import { CommitActions } from "./CommitActions.tsx";
-import { useHeld } from "./cursor/held.ts";
-import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
-import { stopProps } from "./cursor/stops.ts";
-import { pickedStyles } from "./layout/picked.ts";
+import { usePaneStop } from "./cursor/PaneStop.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
 import { WriteButton } from "./writes/WriteButton.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
@@ -249,14 +247,6 @@ export function RoundEnd({
   );
 }
 
-const styles = stylex.create({
-  // The row's ring is the held pane's alone: the focus draws none of its own, which would ring it
-  // twice, or once under a click.
-  stop: {
-    outlineStyle: "none",
-  },
-});
-
 /**
  * Submit's buttons, in `row`: Commit, and its other ways on, or a default-branch round's Submit. A
  * stop of the keyboard's cursor, ringed while it holds them, whose Enter focuses the first button
@@ -275,7 +265,6 @@ function SubmitRow({
   submit: ReturnType<typeof useRoundSubmit>["submit"];
   target: RoundTarget;
 }) {
-  const held = useHeld(row);
   const keys: ReadonlyArray<StopKey> = [
     {
       bar: "⏎",
@@ -290,14 +279,12 @@ function SubmitRow({
       },
     },
   ];
-  useStopKeys(keys, held);
+  const stop = usePaneStop(keys, keys, row);
   return (
     <div
       // A pane to the keyboard's cursor, as the cards and the notes: shown whole as it moves onto it.
-      data-pane=""
-      ref={row}
-      {...stopProps("pane")}
-      {...stylex.props(styles.stop, held && pickedStyles.pane)}
+      {...stop.props}
+      {...stylex.props(stop.style, stop.look)}
     >
       {isDefaultRound(target) ? (
         // A default-branch round hands nothing over: its page offers to apply it.
@@ -324,7 +311,7 @@ function SubmitRow({
             : {})}
         />
       )}
-      <StopBar held={held} keys={keys} />
+      {stop.bar}
     </div>
   );
 }

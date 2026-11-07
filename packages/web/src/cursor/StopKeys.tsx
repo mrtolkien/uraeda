@@ -4,7 +4,6 @@
 import type { ReactNode } from "react";
 import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { isSingleKey } from "../keys/match.ts";
-import type { Binding } from "../keys/store.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { type BarAction, RowBar } from "../lists/RowBar.tsx";
 
@@ -16,12 +15,10 @@ import { type BarAction, RowBar } from "../lists/RowBar.tsx";
  */
 export type StopKey = { bar?: string; keys: string; label: string; run: () => void | false };
 
-const NONE: ReadonlyArray<Binding> = [];
-
-/** Declares a stop's keys while it is `held`, in the selection's place, and none otherwise. */
-export function useStopKeys(keys: ReadonlyArray<StopKey>, held: boolean): void {
+/** Declares a held stop's keys, in the selection's place. */
+function useStopKeys(keys: ReadonlyArray<StopKey>): void {
   useKeys(
-    held ? keys.map(({ keys: key, label, run }) => ({ keys: key, label, run })) : NONE,
+    keys.map(({ keys: key, label, run }) => ({ keys: key, label, run })),
     "selection",
   );
 }
@@ -45,32 +42,21 @@ export function useBarActions(keys: ReadonlyArray<StopKey>): Array<BarAction> {
 }
 
 /**
- * The bar of a held stop's keys, under it. It is for the keyboard user's eyes, to show the keys: its
- * buttons are seldom clicked, as a mouse moving hides the cursor, and the bar with it. Nothing when
- * the stop is not held, or when the bar has no action (`useBarActions`).
- */
-export function StopBar({ held, keys }: { held: boolean; keys: ReadonlyArray<StopKey> }) {
-  return held && <ShownBar keys={keys} />;
-}
-
-function ShownBar({ keys }: { keys: ReadonlyArray<StopKey> }) {
-  const actions = useBarActions(keys);
-  return actions.length === 0 ? null : <RowBar actions={actions} isCursor />;
-}
-
-/**
  * A held stop's keys and their bar, mounted only while the cursor holds it: a page of many stops,
  * as a long spec's blocks, declares nothing and listens to nothing for the others. `children` draws
- * the bar where it goes, given `null` when it has no action.
+ * the bar where it goes, given `null` when it has no action. The bar draws `shown`, `keys` unless
+ * it names keys the page declares too, as the round's `n`.
  */
 export function HeldKeys({
   children = (bar) => bar,
   keys,
+  shown = keys,
 }: {
   children?: (bar: ReactNode) => ReactNode;
   keys: ReadonlyArray<StopKey>;
+  shown?: ReadonlyArray<StopKey>;
 }) {
-  useStopKeys(keys, true);
-  const actions = useBarActions(keys);
+  useStopKeys(keys);
+  const actions = useBarActions(shown);
   return children(actions.length === 0 ? null : <RowBar actions={actions} isCursor />);
 }
