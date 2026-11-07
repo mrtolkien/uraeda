@@ -29,3 +29,40 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   does not, the warmer still shortens the wait and the frame shows Storybook's loader, as for a slow
   compile. Removing it is task 1's step 6.
 - **Where**: task 1 of the plan.
+
+## R2: The Storybook fixture's cache gains: a start copies it in under a second
+
+- **Decision**: keep the cache of [`fixture.ts`](/packages/web/.storybook/fixture.ts). It lives in
+  `packages/web/node_modules/.cache/uraeda-storybook-fixture/<key>/`, beside Storybook's own cache,
+  one key at a time: saving a new key removes the others. The key hashes the checkout's path, git's
+  version, and every file the build reads: `fixtures/`, `packages/web/samples/`,
+  `packages/binding/test-utils.ts` and `test-repos.ts`, which it imports, and
+  `.storybook/fixture.ts` and `checkouts.ts`. A cached copy's worktrees, all in `.worktrees/`, are
+  repaired with `git worktree repair <path>...`, then checked with `git worktree list --porcelain`;
+  a failure removes the copy and builds as before. The repository is saved aside, then renamed into
+  the cache, so a start never copies half of one. Measured with `storybookFixture()` timed in a
+  fresh Node process each run, in seconds; load is the 1-minute load average after the run:
+
+  | Run | Before: build | After: cached copy | Load (before / after) |
+  | --- | ------------- | ------------------ | --------------------- |
+  | 1   | 5.24          | 0.61               | 37 / 91               |
+  | 2   | 4.76          | 0.65               | 36 / 86               |
+  | 3   | 4.49          | 0.70               | 36 / 86               |
+
+  A first run before, a cold start, took 6.5 seconds; the first start after a change of the sources
+  builds and saves the cache, 16.9 seconds at a load of 91. Each cached copy has the same branches,
+  worktrees, and clean status as a fresh build; its commits' hashes differ, as a fresh build's do
+  from another's, by the temporary log paths their preview decisions hold. In
+  `pnpm exec storybook dev` over a cached copy, `storyembed--ready` draws the fake's live frame,
+  `spec-page--waiting` and `mockups-round-page--waiting` draw their pages.
+
+- **Rationale**: the bar was saving at least half the build; the cached copy saves about 87% of it,
+  on a machine at more than twice the load. The preview decisions committed in the fixture name the
+  log of the start that built it, a temporary folder long removed: the fake Storybook,
+  `fixtures/preview/serve.mjs`, now creates its log's folder, so the cached decisions' commands
+  still run. The data folder is built at each start, as its runs are keyed by the repository's path.
+- **Alternatives considered**: committing the decisions without a log, which `addStoryFeature` does
+  not offer, and every test's `addPreview` relies on; a cache at the workspace's root
+  `node_modules/`, farther from the only package that reads it.
+- **If wrong**: removing the cache folder, or any change of a source, builds the fixture as before.
+- **Where**: task 7 of the plan.

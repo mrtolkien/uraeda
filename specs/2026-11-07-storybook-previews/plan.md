@@ -692,32 +692,32 @@ git commit -m "feat(storybook-previews): keep and start the Storybooks waiting f
 
 - Produces: `storybookFixture()` keeps its signature and its result: a fresh repository each start,
   with the same branches, worktrees, and files. It builds the repository once into
-  `node_modules/.cache/uraeda-storybook-fixture/<key>/`, the key a hash of the checkout's absolute
-  path and of every file its build reads (`fixtures/`, `packages/web/samples/`,
-  `packages/binding/test-utils.ts`, `.storybook/fixture.ts`, `.storybook/checkouts.ts`). Each start
-  copies the cached repository to its temporary folder, repairs its worktrees with
-  `git worktree repair`, and builds the data folder afresh. A failed copy or repair builds it as
-  today.
+  `packages/web/node_modules/.cache/uraeda-storybook-fixture/<key>/`, the key a hash of the
+  checkout's absolute path, of git's version, and of every file its build reads (`fixtures/`,
+  `packages/web/samples/`, `packages/binding/test-utils.ts` and `test-repos.ts`,
+  `.storybook/fixture.ts`, `.storybook/checkouts.ts`): see R2. Each start copies the cached
+  repository to its temporary folder, repairs its worktrees with `git worktree repair`, and builds
+  the data folder afresh. A failed copy or repair builds it as today.
 
-- [ ] **Step 1: Measure the fixture's build today**
+- [x] **Step 1: Measure the fixture's build today**
 
 - Run: `storybookFixture()` timed, three times, in a script outside the repository.
 
-- [ ] **Step 2: Implement the cache**
+- [x] **Step 2: Implement the cache**
 
-- [ ] **Step 3: Measure again, and check the stories**
+- [x] **Step 3: Measure again, and check the stories**
 
 Time a cached start three times. Then run `pnpm exec storybook dev` in `packages/web`, and load
 `storyembed--ready`, `spec-page--waiting`, and a round page's story in the browser: each draws as
 before. Write both measurements as R2 of `rulings.md`. When the cache saves under half the build,
 drop it, and say so in R2.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/.storybook/fixture.ts fixtures/preview/serve.mjs specs/2026-11-07-storybook-previews/rulings.md
