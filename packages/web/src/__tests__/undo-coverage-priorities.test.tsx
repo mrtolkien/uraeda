@@ -444,7 +444,10 @@ test("an image's undo is refused once the file's frontmatter changed since", asy
   const changed = tree(repo, "specs/proposals");
 
   await press("u");
-  await screen.findByText(/^Could not undo: “git-listener” changed since in /);
+  // Named by the file's name, as every other refusal.
+  await screen.findByText(
+    `Could not undo: “git-listener” changed since in ${path.split("/").at(-1)}.`,
+  );
   expect(tree(repo, "specs/proposals")).toEqual(changed);
 });
 
