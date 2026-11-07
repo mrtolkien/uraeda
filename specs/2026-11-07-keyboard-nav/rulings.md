@@ -141,3 +141,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   by shared components, drawn on pages that mount no cursor, where the held look, the blur on a
   mouse move, and the refocus on Escape acted for a cursor that was not there.
 - **Where**: review of task 5, `cursor/held.ts`, `cursor/useCursor.ts`
+
+## R14: The cursor is on only where blocks are stops
+
+- **Decision**: `useCursor(on)` binds the cursor's keys only while `on`: a spec or a plan under
+  review, a document with Ask. An approved spec or plan, and a document without Ask, mount it off:
+  `j` and `k` scroll the text, as on any page.
+- **Rationale**: their blocks are no stops, so the folds' toggles were the only ones, and `j` jumped
+  between them over the text it used to scroll.
+- **Where**: final review, `cursor/useCursor.ts`, `spec/SpecPage.tsx`, `PlanPage.tsx`,
+  `DocumentPage.tsx`
