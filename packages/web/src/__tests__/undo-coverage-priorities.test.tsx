@@ -337,11 +337,8 @@ test("the sidebar's add of a note with an image undoes and redoes, its note file
   await waitFor(() => expect(tree(repo, "specs")).toEqual(after));
 });
 
-/**
- * Drops an image on the page of `PROPOSAL`, open over `repo`, and waits for the file to have
- * become a folder holding it, its text linking it: the path of its text then.
- */
-async function dropImage(repo: string) {
+/** Drops an image on the page of `PROPOSAL`, open over `repo`. */
+async function drop(repo: string) {
   await renderPage(`/edit/${PROPOSAL}`, repo);
   await screen.findByRole("textbox", { name: "Text" });
   const dataTransfer = { dropEffect: "none", files: [png("listener.png")], types: ["Files"] };
@@ -349,6 +346,14 @@ async function dropImage(repo: string) {
     fireEvent.dragEnter(document.body, { dataTransfer });
     fireEvent.drop(document.body, { dataTransfer });
   });
+}
+
+/**
+ * Drops an image on the page of `PROPOSAL`, open over `repo`, and waits for the file to have
+ * become a folder holding it, its text linking it: the path of its text then.
+ */
+async function dropImage(repo: string) {
+  await drop(repo);
   // The file becomes a folder holding the image, and its text links it.
   let linked: string | undefined;
   await waitFor(
@@ -392,4 +397,19 @@ test("an image's undo is refused once the file's frontmatter changed since", asy
   await press("u");
   await screen.findByText(/^Could not undo: “git-listener” changed since in /);
   expect(tree(repo, "specs/proposals")).toEqual(changed);
+});
+
+// Break: the entry recorded before the links' save lands, so a `u` pressed at once is refused and
+// loses the entry.
+test("an image's u pressed as soon as its toast shows takes it back", async () => {
+  const repo = fixtureRepo();
+  const before = tree(repo, "specs/proposals");
+  await drop(repo);
+  await screen.findByText(/^Added an image to “git-listener” · waits on the Git page/, undefined, {
+    timeout: 10_000,
+  });
+
+  await press("u");
+  await waitFor(() => expect(tree(repo, "specs/proposals")).toEqual(before));
+  expect(screen.queryByText(/^Could not undo/)).toBeNull();
 });

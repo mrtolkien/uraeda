@@ -1,6 +1,6 @@
 // The images attached to a proposal or note file, from its editor, as an entry of the undo stack:
 // the images' writes, and the save of the text that links them, taken back and redone together.
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useFateClient } from "react-fate";
 import type { ChangeView } from "uraeda-binding";
 import { splitProposal } from "../pane/proposalText.ts";
@@ -105,22 +105,35 @@ export function attachedEntry(fate: Fate, attached: Attached): UndoEntry | undef
 
 /**
  * Records the runs of images an editor attaches: `started(path)` reads the file as a run starts,
- * its typing saved, and `attached` records the run once it ended with images.
+ * its typing saved; `ended(run)` holds the recording of a run that ended with images, and `take()`
+ * hands it over, to call once the save of the text that links them landed: an undo before it would
+ * find the file without its links, and be refused.
  */
 export function useRecordAttached() {
   const fate = useFateClient();
   const record = useUndo();
   const start = useRef<Attached["start"]>(undefined);
+  const pending = useRef<() => void>(undefined);
+  const take = useCallback(() => {
+    const recording = pending.current;
+    pending.current = undefined;
+    return recording;
+  }, []);
   return {
-    attached: (run: Omit<Attached, "start">) => {
-      const entry = start.current && attachedEntry(fate, { ...run, start: start.current });
-      if (entry) {
-        record(entry);
-      }
+    ended: (run: Omit<Attached, "start">) => {
+      // The run's start, as the next run's own replaces it.
+      const started = start.current;
+      pending.current = () => {
+        const entry = started && attachedEntry(fate, { ...run, start: started });
+        if (entry) {
+          record(entry);
+        }
+      };
     },
     started: async (path: string) => {
       const read = await readProposalFile(fate, path).catch(() => undefined);
       start.current = read && { head: splitProposal(read).head, path, text: read.text };
     },
+    take,
   };
 }
