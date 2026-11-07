@@ -142,25 +142,13 @@ test("a row edited", async () => {
 
 test("a row deleted, and a note with its note file", async () => {
   const { link, repo } = await onNote("Idea two");
-  /** `d` on `target`, answering yes while it still asks. */
-  const deletes = async (target: HTMLElement) => {
-    const before = JSON.stringify(tree(repo));
-    await press("d", target);
-    await waitFor(() =>
-      expect(
-        screen.queryAllByRole("dialog").length > 0 || JSON.stringify(tree(repo)) !== before,
-      ).toBe(true),
-    );
-    const asked = screen.queryAllByRole("dialog").at(-1);
-    if (asked) {
-      await press("y", asked);
-    }
-  };
-  await undoesAndRedoes(repo, "Deleted “Idea two”", () => deletes(link));
+  await undoesAndRedoes(repo, "Deleted “Idea two”", () => press("d", link));
+  // The redo's reread shown, so that the next delete is based on the inbox as it is.
+  await screen.findByRole("heading", { name: "Ideas · 1" });
   await undoesAndRedoes(repo, "Deleted “Night mode”", async () => {
     const night = controlOf("Night mode");
     act(() => night.focus());
-    await deletes(night);
+    await press("d", night);
   });
 });
 

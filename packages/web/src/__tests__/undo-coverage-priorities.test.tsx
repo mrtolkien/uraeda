@@ -169,16 +169,6 @@ test("a line added in place, edited, and deleted each undo and redo", async () =
 
   before = contents(repo, ["specs/PRIORITIES.md"]);
   await press("d", focus("Later line"));
-  // `d` asks first until it deletes at once: either way, the line goes.
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("dialog", { name: "Delete this line?" }) ??
-        (read(repo).includes("Later line") ? null : true),
-    ).not.toBeNull(),
-  );
-  if (screen.queryByRole("dialog", { name: "Delete this line?" })) {
-    await press("y");
-  }
   await waitFor(() => expect(read(repo)).not.toContain("Later line"));
   await screen.findByText("Deleted “Later line” · waits on the Git page");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);

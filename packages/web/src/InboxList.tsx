@@ -7,7 +7,6 @@ import type { InboxNote } from "uraeda-binding";
 import type { ChangeView } from "uraeda-binding";
 import { readInbox, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { deleteNote } from "./fields/Confirm.tsx";
 import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
 import { type Actions, useCategoryKeys, useMovePicker, usePromote } from "./InboxPickers.tsx";
@@ -308,9 +307,6 @@ function sectionsOf({
           placedOf.set(item.key, { category: name, index, note });
           const row: WorkRow = {
             ...drawn,
-            ...(note.file === undefined
-              ? {}
-              : { deleting: deleteNote(item.text, note.file, note.images.length > 0) }),
             // A note with a note file opens its file's page, as a proposal with a file does.
             editsInPlace: isWritten && note.file === undefined,
             href,

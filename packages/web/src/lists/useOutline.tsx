@@ -119,7 +119,7 @@ function outlineEdits<Data extends { hash: string }, Source>({
       (now) => droppedKey(now, key, to),
     );
 
-  /** `d`, once confirmed: the row leaves the file, its nested rows with it. */
+  /** `d`: the row leaves the file, its nested rows with it. */
   const onDelete = (row: WorkRow) => {
     const spot = spotOfRow(row);
     if (!spot || row.isFresh || isPending(row.key)) {
