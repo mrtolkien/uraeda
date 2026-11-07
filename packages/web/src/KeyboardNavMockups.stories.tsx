@@ -2,7 +2,6 @@
 // with the cursor drawn where the keys would put it, a list's picked look and the keys of what it
 // holds under it, since no cursor exists yet. The block's range and the picked option are the
 // pages' own states.
-import { colorVars, focusVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Button } from "@astryxdesign/core/Button";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -22,18 +21,6 @@ import { CommentNote } from "./ReviewComments.tsx";
 const REVIEW_MS = 600_000;
 
 const nothing = () => undefined;
-
-const styles = stylex.create({
-  // The cursor on a whole pane: the keyboard's ring and the bar at its start, without the row's
-  // tint, which would sit behind a whole question's text.
-  pane: {
-    boxShadow: `inset ${focusVars["--focus-outline-width"]} 0 0 0 ${colorVars["--color-accent"]}`,
-    outlineColor: colorVars["--color-accent"],
-    outlineOffset: focusVars["--focus-outline-width"],
-    outlineStyle: "solid",
-    outlineWidth: focusVars["--focus-outline-width"],
-  },
-});
 
 /** The classes of a stylex style, to put on an element the page drew. */
 const classesOf = (style: stylex.StyleXStyles) =>
@@ -95,7 +82,7 @@ function Cursor({
       return;
     }
     const { target } = found;
-    const classes = classesOf(isPane ? styles.pane : pickedStyles.picked);
+    const classes = classesOf(isPane ? pickedStyles.pane : pickedStyles.picked);
     target.classList.add(...classes);
     target.scrollIntoView({ block: isPane ? "start" : "center" });
     return () => target.classList.remove(...classes);

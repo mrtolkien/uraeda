@@ -51,3 +51,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's 1,400 px card on a 900 px screen shows its end at the first `j`; a
   taller one is read a screen at a time, each step keeping 200 px of the last in view.
 - **Where**: task 4, `cursor/move.ts`
+
+## R6: The cursor hears the last key through the registry's watch
+
+- **Decision**: `cursor/held.ts` learns that the last input was a key from `watchKeys` in
+  [`keys/registry.tsx`](/packages/web/src/keys/registry.tsx): the registry's one window listener
+  hands every key to its watchers before it runs a binding. A watcher acts on no key. A pointer's
+  press, and a mouse's move that moves the pointer, are heard on the document, as
+  [`pointerMoved.ts`](/packages/web/src/pointerMoved.ts) hears its moves.
+- **Rationale**: the structural test forbids a key listener outside the registry, and the allowlist
+  is for keys a field, a dialog, or an overlay owns, which this is not. A guess from the focus
+  alone, a focus with no pointer press before it, would take a field's focus after a save, or a
+  page's after it loads, for a key. Escape out of a text field inside a stop reads the same watch:
+  the field's own Escape runs first, and lets the focus go.
+- **Alternatives considered**: a `keydown` listener of its own in `held.ts`, on the allowlist.
+- **Where**: task 4, `cursor/held.ts`, `keys/registry.tsx`
+
+## R7: A stop's bar writes its keys from `bar`, and its word from `label`
+
+- **Decision**: `StopKey.bar` is the keys as the bar writes them, "J K" or "⏎", and `label` the word
+  after them, "range" or "comment", which the key map lists too. One key of a pair carries the
+  `bar`: `J` with "J K", `K` with none. A pane is found by a mark `data-pane` on
+  [`Pane`](/packages/web/src/layout/Pane.tsx)'s `section`, the nearest around a stop, itself
+  included; `move.ts` also exports `scrollFor`, the scroll of a move to a given stop, which
+  `focusStop` uses.
+- **Rationale**: the spec's bars name a pair of keys once, "J K range", "a b pick", as the status
+  line's hints do (`hint` "j k", `hintLabel` "move").
+- **Where**: task 4, `cursor/StopKeys.tsx`, `cursor/move.ts`, `layout/Pane.tsx`

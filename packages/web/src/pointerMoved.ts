@@ -25,5 +25,13 @@ if (typeof document !== "undefined") {
  * seen only marks where the pointer is: a real move sends many.
  */
 export function isPointerMoved(event: PointerEvent) {
-  return event.pointerType === "mouse" && moved.has(event.nativeEvent);
+  return isNativePointerMoved(event.nativeEvent);
+}
+
+/**
+ * `isPointerMoved` for the browser's own event, as a listener on the document hears it after this
+ * module's: what hides the keyboard's cursor (`cursor/held.ts`).
+ */
+export function isNativePointerMoved(event: globalThis.PointerEvent) {
+  return event.pointerType === "mouse" && moved.has(event);
 }
