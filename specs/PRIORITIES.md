@@ -9,7 +9,6 @@
 - [Keyboard nav in questions and specs](/specs/2026-11-07-keyboard-nav/proposal.md)
 - [Global undo](/specs/2026-11-07-global-undo/proposal.md)
 - [Color themes](/specs/2026-11-07-color-themes/proposal.md)
-- [The git "changes" counter should only count changes on main](/specs/changes/2026-11-07-git-changes/proposal.md)
 - [Storybook previews take way too long to appear. I know in the past we also had…](/specs/2026-11-07-storybook-previews/proposal.md)
 
 - Spec comments: suggestion vs change needed
