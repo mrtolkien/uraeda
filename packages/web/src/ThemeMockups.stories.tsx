@@ -6,22 +6,24 @@
 // exist.
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
+import { useState } from "react";
+import type { ThemeFile } from "uraeda-binding";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { Home } from "./Home.tsx";
 import { glassStyles } from "./layout/glass.ts";
 import { pickedStyles } from "./layout/picked.ts";
 import { TextLine } from "./fields/TextLine.tsx";
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { SettingRow, SettingRows } from "./settings/SettingRow.tsx";
+import { AppearanceRows } from "./settings/AppearanceSettings.tsx";
+import { categoryOf } from "./settings/categories.ts";
+import { SAMPLE_FILES, sampleThemes } from "./settings/sampleThemes.ts";
 import { Shell } from "./Shell.tsx";
+import type { Picks } from "./theme.tsx";
 
 const styles = stylex.create({
   page: {
@@ -57,7 +59,7 @@ const styles = stylex.create({
   },
 });
 
-/** The shipped themes, by mode, as the lists show them; yours after them. */
+/** The shipped dark themes, as the picker lists them. */
 const DARK = [
   "Catppuccin Mocha",
   "Catppuccin Macchiato",
@@ -78,130 +80,31 @@ const DARK = [
   "Tokyo Night Moon",
   "Tokyo Night Storm",
 ];
-const LIGHT = [
-  "Catppuccin Latte",
-  "Alucard",
-  "GitHub Light",
-  "GitHub Light High Contrast",
-  "Gruvbox Light",
-  "Kanagawa Lotus",
-  "One Light",
-  "Rosé Pine Dawn",
-  "Solarized Light",
-  "Tokyo Night Light",
-];
-
-const options = (names: ReadonlyArray<string>, yours: ReadonlyArray<string>) => [
-  ...names.map((label) => ({ label, value: label })),
-  ...yours.map((label) => ({ label: `${label} · yours`, value: label })),
-];
-
-/** A theme file of yours, and what its row says. */
-type File = { name: string; problem?: string; status?: "error" | "warning"; text: string };
-
-const FILES: ReadonlyArray<File> = [
-  { name: "ember.toml", text: "Ember, dark, extends Catppuccin Mocha." },
-  {
-    name: "dusk.toml",
-    problem:
-      "ink-faint is 3.1:1 on page, under 4.5. rule is 2.4:1 on page, under 3. The theme applies as written.",
-    status: "warning",
-    text: "Dusk, light, extends Catppuccin Latte. 2 colours under the contrast floor.",
-  },
-  {
-    name: "broken.toml",
-    problem:
-      'Line 9: needs-you names "embr", which is not in the palette. That role keeps its colour from Catppuccin Mocha.',
-    status: "error",
-    text: "Broken, dark. 1 problem.",
-  },
-];
-
-/** The settings' Appearance section: the mode, a theme for each, and your theme files. */
+/**
+ * The settings' Appearance section, its real rows over fixed themes: the mode, a theme for each,
+ * and your theme files, or none.
+ */
 function Appearance({
   files,
   mode,
 }: {
-  files: ReadonlyArray<File>;
+  files: ReadonlyArray<ThemeFile>;
   mode: "system" | "light" | "dark";
 }) {
+  const [picks, setPicks] = useState<Picks>({
+    dark: "catppuccin-mocha",
+    light: "catppuccin-latte",
+    mode,
+  });
   return (
     <VStack xstyle={styles.page}>
       <Pane title="Appearance">
-        <SettingRows>
-          <SettingRow
-            setting={{
-              help: "System follows this device: the light theme by day, the dark theme by night. Kept on this browser only: each device picks its own.",
-              icon: "uraeda:palette",
-              label: "Mode",
-            }}
-          >
-            <SegmentedControl label="Mode" onChange={() => {}} value={mode}>
-              <SegmentedControlItem label="System" value="system" />
-              <SegmentedControlItem label="Light" value="light" />
-              <SegmentedControlItem label="Dark" value="dark" />
-            </SegmentedControl>
-          </SettingRow>
-          <SettingRow
-            setting={{
-              help: "The theme of dark mode. Space u t previews each theme as you move through the list.",
-              icon: "uraeda:palette",
-              label: "Dark theme",
-            }}
-          >
-            <Selector
-              isLabelHidden
-              label="Dark theme"
-              onChange={() => {}}
-              options={options(DARK, ["Broken", "Ember"])}
-              presentation="popover"
-              value="Catppuccin Mocha"
-              width="32ch"
-            />
-          </SettingRow>
-          <SettingRow
-            setting={{
-              help: "The theme of light mode.",
-              icon: "uraeda:palette",
-              label: "Light theme",
-            }}
-          >
-            <Selector
-              isLabelHidden
-              label="Light theme"
-              onChange={() => {}}
-              options={options(LIGHT, ["Dusk"])}
-              presentation="popover"
-              value="Catppuccin Latte"
-              width="32ch"
-            />
-          </SettingRow>
-          <SettingRow
-            notes={
-              <VStack gap={2}>
-                {files.map((file) => (
-                  <VStack gap={1} key={file.name}>
-                    <Text>
-                      <Text type="code">{file.name}</Text> {file.text}
-                    </Text>
-                    {file.problem && file.status && (
-                      <AnnouncedBanner
-                        collapsible={false}
-                        status={file.status}
-                        title={file.problem}
-                      />
-                    )}
-                  </VStack>
-                ))}
-              </VStack>
-            }
-            setting={{
-              help: "One TOML file per theme in ~/.config/uraeda/themes/. A file saved there shows in its mode's list at once. Copy a shipped theme from the documentation to start.",
-              icon: "uraeda:palette",
-              label: "Your themes",
-            }}
-          />
-        </SettingRows>
+        <AppearanceRows
+          category={categoryOf("appearance")!}
+          onPick={(next) => setPicks((before) => ({ ...before, ...next }))}
+          picks={picks}
+          themes={{ ...sampleThemes(files.length > 0), files }}
+        />
       </Pane>
     </VStack>
   );
@@ -307,7 +210,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** The Appearance section: System mode, the default themes, and three theme files of yours. */
-export const AppearanceSection: Story = { args: { files: FILES, mode: "system" } };
+export const AppearanceSection: Story = { args: { files: SAMPLE_FILES, mode: "system" } };
 
 /** No theme of yours yet: the row says where to put one. */
 export const NoThemesYet: Story = { args: { files: [], mode: "dark" } };

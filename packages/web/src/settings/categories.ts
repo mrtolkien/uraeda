@@ -55,10 +55,29 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     label: "Appearance",
     settings: [
       {
-        help: "Catppuccin Mocha is dark, Latte is light, and System follows this device. Kept on this browser only: each device picks its own.",
+        help: "System follows this device: the light theme by day, the dark theme by night. Kept on this browser only: each device picks its own.",
         icon: "uraeda:palette",
-        label: "Colour scheme",
-        terms: ["theme"],
+        label: "Mode",
+        terms: ["colour scheme", "color scheme", "theme"],
+      },
+      {
+        help: "The theme of dark mode. Space u t previews each theme as you move through the list.",
+        icon: "uraeda:palette",
+        label: "Dark theme",
+        terms: ["colour scheme", "color scheme", "Catppuccin Mocha"],
+      },
+      {
+        help: "The theme of light mode.",
+        icon: "uraeda:palette",
+        label: "Light theme",
+        terms: ["colour scheme", "color scheme", "Catppuccin Latte"],
+      },
+      {
+        // The settings page names the folder as the server gives it, in place of its description.
+        help: "One TOML file per theme in the themes folder, beside config.toml. A file saved there shows in its mode's list at once. Copy a shipped theme from the documentation to start.",
+        icon: "uraeda:palette",
+        label: "Your themes",
+        terms: ["colour", "color", "custom"],
       },
     ],
   },

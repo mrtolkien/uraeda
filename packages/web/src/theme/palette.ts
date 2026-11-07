@@ -11,7 +11,12 @@ const ID = "uraeda-palette";
 const NAME = /^--[\w-]+$/;
 const COLOUR = /^#[\da-f]{6}(?:[\da-f]{2})?$/i;
 
-/** The rule's text: a block per given mode, each setting its tokens. */
+/**
+ * The rule's text: a block per given mode, each setting its tokens, then painting the root element
+ * in the page's colour, which shows before the app mounts and where it does not reach, such as a
+ * phone's overscroll: nothing else paints `<html>`, so the first frame would show the browser's
+ * canvas (R14). The first paint's script in `index.html` writes the same text.
+ */
 export function paletteCss(tokens: { dark?: Tokens; light?: Tokens }): string {
   return (["dark", "light"] as const satisfies Array<Mode>)
     .flatMap((mode) => {
@@ -20,7 +25,10 @@ export function paletteCss(tokens: { dark?: Tokens; light?: Tokens }): string {
         .map(([name, colour]) => `  ${name}: ${colour};\n`);
       return declarations.length === 0
         ? []
-        : [`[data-astryx-theme="uraeda"][data-theme="${mode}"] {\n${declarations.join("")}}\n`];
+        : [
+            `[data-astryx-theme="uraeda"][data-theme="${mode}"] {\n${declarations.join("")}}\n`,
+            `html[data-astryx-theme="uraeda"][data-theme="${mode}"] {\n  background-color: var(--color-background-body);\n}\n`,
+          ];
     })
     .join("");
 }

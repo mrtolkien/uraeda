@@ -302,6 +302,7 @@ test("the palette rule drops a name or a colour that is not one", () => {
     },
   });
   expect(css).toBe(
-    '[data-astryx-theme="uraeda"][data-theme="dark"] {\n  --color-accent: #cba6f7;\n}\n',
+    '[data-astryx-theme="uraeda"][data-theme="dark"] {\n  --color-accent: #cba6f7;\n}\n' +
+      'html[data-astryx-theme="uraeda"][data-theme="dark"] {\n  background-color: var(--color-background-body);\n}\n',
   );
 });

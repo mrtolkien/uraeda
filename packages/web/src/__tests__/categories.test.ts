@@ -16,14 +16,50 @@ test.each([
       ["Automatic continues in a row", "Runs"],
     ],
   ],
-  // The colour scheme is found by its name, its choices, and "theme".
-  ["COLOUR", [["Colour scheme", "Appearance"]]],
-  ["scheme", [["Colour scheme", "Appearance"]]],
-  ["mocha", [["Colour scheme", "Appearance"]]],
-  ["Latte", [["Colour scheme", "Appearance"]]],
-  ["THEME", [["Colour scheme", "Appearance"]]],
-  ["dark", [["Colour scheme", "Appearance"]]],
-  ["light", [["Colour scheme", "Appearance"]]],
+  // The mode and the themes are found by the colour scheme's old names, their own, and "theme".
+  [
+    "COLOUR",
+    [
+      ["Mode", "Appearance"],
+      ["Dark theme", "Appearance"],
+      ["Light theme", "Appearance"],
+      ["Your themes", "Appearance"],
+    ],
+  ],
+  [
+    "scheme",
+    [
+      ["Mode", "Appearance"],
+      ["Dark theme", "Appearance"],
+      ["Light theme", "Appearance"],
+    ],
+  ],
+  ["mocha", [["Dark theme", "Appearance"]]],
+  ["Latte", [["Light theme", "Appearance"]]],
+  [
+    "THEME",
+    [
+      ["Mode", "Appearance"],
+      ["Dark theme", "Appearance"],
+      ["Light theme", "Appearance"],
+      ["Your themes", "Appearance"],
+    ],
+  ],
+  [
+    "dark",
+    [
+      ["Mode", "Appearance"],
+      ["Dark theme", "Appearance"],
+    ],
+  ],
+  [
+    "light",
+    [
+      ["Mode", "Appearance"],
+      ["Light theme", "Appearance"],
+    ],
+  ],
+  ["toml", [["Your themes", "Appearance"]]],
   // A setting's help finds it too.
   ["tailnet", [["Allowed host names", "Server"]]],
   // The search is trimmed, in any case.

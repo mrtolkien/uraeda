@@ -1,6 +1,7 @@
 // The settings page's route: the server's settings record, read on the global client as the list
-// of repositories is, and its changes, passed to `SettingsView`. Removing the host name this
-// browser reached the server through asks first, while the file's names are in force.
+// of repositories is, and its changes, and the colour themes, passed to `SettingsView`. Removing
+// the host name this browser reached the server through asks first, while the file's names are in
+// force.
 import { useFateClient } from "react-fate";
 import { useSettings } from "../data.ts";
 import { refusal } from "../errors.ts";
@@ -13,8 +14,13 @@ import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";
 import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
+import { useThemes } from "../useThemes.ts";
+import type { AppearanceThemes } from "./AppearanceSettings.tsx";
 
 const UNREACHABLE = "Could not reach the Uraeda server.";
+
+/** The themes until their record is read: none listed, no file. */
+const NO_THEMES: AppearanceThemes = { files: [], folder: "", themes: [] };
 
 /** What removing the host name of this browser asks. */
 function removeOwn(name: string): ConfirmOptions {
@@ -41,6 +47,7 @@ async function run(call: () => Promise<{ error?: unknown }>): Promise<string | u
 function OnSettings({ category }: { category?: string }) {
   const fate = useFateClient();
   const settings = useSettings();
+  const themes = useThemes() ?? NO_THEMES;
   const confirm = useConfirm();
   useRestoreScroll(true);
   const view = SettingsRecordView;
@@ -105,6 +112,7 @@ function OnSettings({ category }: { category?: string }) {
       category={category === undefined ? undefined : categoryOf(category)?.id}
       server={settings}
       serverActions={actions}
+      themes={themes}
     />
   );
 }

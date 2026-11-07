@@ -19,7 +19,7 @@ import { fateClients } from "../src/clients.ts";
 import { ListClientContext } from "../src/ListClient.tsx";
 import { RepositoryContext } from "../src/routes.tsx";
 import { PreviewBase } from "../src/stories.tsx";
-import type { ThemeMode } from "../src/theme.tsx";
+import type { Mode } from "../src/theme.tsx";
 import { uraedaTheme } from "../src/theme/built/uraeda.js";
 import { PickedFonts } from "../src/theme/PickedFonts.tsx";
 import { fetchOverGet, liveWithoutCredentials } from "./fateOverGet.ts";
@@ -42,7 +42,7 @@ const clientFor = fateClients({ fetch: fetchOverGet, origin: BASE });
  * loads, and kept.
  */
 const embeddingMode = (() => {
-  let mode: ThemeMode = "system";
+  let mode: Mode = "system";
   const listeners = new Set<() => void>();
   window.addEventListener("message", (event: MessageEvent) => {
     const data: unknown = event.data;
@@ -71,7 +71,7 @@ const embeddingMode = (() => {
 })();
 
 /** The embedding page's colour mode, its last message's. */
-function useEmbeddingMode(): ThemeMode {
+function useEmbeddingMode(): Mode {
   return useSyncExternalStore(embeddingMode.subscribe, embeddingMode.get);
 }
 

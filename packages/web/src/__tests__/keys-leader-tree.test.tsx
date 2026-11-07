@@ -145,14 +145,14 @@ test("Space h goes home from another page", async () => {
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/")));
 });
 
-test("Space u t cycles the theme: Mocha, Latte, then System (ruling R61)", async () => {
+test("Space u m cycles the mode: System, Light, then Dark", async () => {
   await atHome();
   expect(stored()).toBeNull();
-  keys(" ", "u", "t");
-  expect(stored()).toBe("mocha");
-  keys(" ", "u", "t");
-  expect(stored()).toBe("latte");
-  keys(" ", "u", "t");
+  keys(" ", "u", "m");
+  expect(stored()).toBe("light");
+  keys(" ", "u", "m");
+  expect(stored()).toBe("dark");
+  keys(" ", "u", "m");
   expect(stored()).toBeNull();
 });
 
