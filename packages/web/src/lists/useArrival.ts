@@ -1,8 +1,8 @@
 // The row a page opens on, as a note just moved to the priorities: named by the history entry the
 // page opened on, at once, or once the move that placed it answers, the page already open.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { subscribeArrival } from "../routeHistory.ts";
-import { currentEntry } from "../routes.tsx";
+import { namedCount, subscribeArrival } from "../routeHistory.ts";
+import { currentEntry, subscribeLocation } from "../routes.tsx";
 
 /**
  * The page opens on the row its arrival names, with the keyboard's focus on it, once: `arrival` is
@@ -60,4 +60,35 @@ function useLatest(written: { key: string } | undefined, late: string | undefine
     return latest;
   }
   return seen.latest;
+}
+
+/** The row last named by `useNamedRow`, with what named it, so a snapshot stays the same object. */
+let named: { count: number; id?: string; key?: string; row?: { key: string } } | undefined;
+
+/** The row the current history entry names, a new object for each naming. */
+function namedRow() {
+  const { id, select } = currentEntry();
+  const count = namedCount();
+  if (named === undefined || named.id !== id || named.key !== select || named.count !== count) {
+    named = { count, id, key: select, row: select === undefined ? undefined : { key: select } };
+  }
+  return named.row;
+}
+
+function subscribeNamed(onChange: () => void) {
+  const arrivals = subscribeArrival(onChange);
+  const location = subscribeLocation(onChange);
+  return () => {
+    arrivals();
+    location();
+  };
+}
+
+/**
+ * The row the history entry names to select, for a list that selects a new object each time, as
+ * the inbox's: as the page opens on the entry, or once `selectOnArrival` names one, the same row
+ * again too, as an undo on the page already open does.
+ */
+export function useNamedRow(): { key: string } | undefined {
+  return useSyncExternalStore(subscribeNamed, namedRow);
 }

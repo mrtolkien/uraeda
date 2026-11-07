@@ -568,11 +568,13 @@ git commit -m "feat(global-undo): answer each undoable write with its change"
 - Start from: `packages/web/src/layout/UndoMockups.stories.tsx`: its toasts, its question, and its
   refusal are what this task makes real; the file becomes the stories of the real states.
 - Create: `packages/web/src/undo/UndoKeys.tsx`, `undo/useUndo.ts`, `undo/changeEntry.ts`,
-  `undo/pageErrors.ts`
+  `undo/pageErrors.ts`, `undo/changeViews.ts` (the lists' and the proposal file's views with their
+  `change`)
 - Delete: `packages/web/src/layout/useUndoToast.ts`
 - Modify: `Shell.tsx` (`UndoKey` becomes `UndoKeys`), every caller of `useUndoToast` and
   `showPageError` listed in the code read, `__tests__/helpers.tsx` (`beforeEach` clears the stack),
-  `lists/useArrival.ts` if needed for the inbox's selection
+  `lists/useArrival.ts` (`useNamedRow`, which `pane/DetailRoutes.tsx`'s `InboxRoute` reads, so the
+  inbox selects the row its history entry names), `routeHistory.ts` (`namedCount`)
 - Test: `packages/web/src/__tests__/undo-keys.test.tsx`, `__tests__/undo-toast.test.tsx`
   (rewritten), `__tests__/phone-t3.test.tsx` (its toast test moves out)
 
@@ -581,28 +583,35 @@ git commit -m "feat(global-undo): answer each undoable write with its change"
 - Consumes: `undoStack` and `UndoEntry` (task 3); the `mod+shift+z` chord (task 2); `undo.apply`,
   `undo.committed`, and `ChangeView` (task 4).
 - Produces:
-  - `useUndo(): (entry: UndoEntry, options?: { toast?: boolean }) => void`: records the entry on the
-    stack, and shows its toast unless `toast` is `false` or the entry is a move: the label through
-    `waitsOnGit`, with Undo and its key `u` while single keys are on and the screen is not narrow. A
-    toast closes once its entry is no longer on top.
+  - `useUndo(): (entry: UndoEntry, options?: { toast?: boolean; waitsOnGit?: boolean }) => void`:
+    records the entry on the stack, and shows its toast unless `toast` is `false` or the entry is a
+    move: the label through `waitsOnGit`, unless `waitsOnGit` is `false` (the New page's draft),
+    with Undo and its key `u` while single keys are on and the screen is not narrow. A toast closes
+    once its entry is no longer on top; a Redo's toast, once the stack changes. `useStackToast`
+    draws both, and `setReplay` lets a toast's button run what `u` and `U` run.
   - `changeEntry(fate, change: ChangeView, label: string, place: UndoEntry["place"], subject: string): UndoEntry`:
     its undo and redo call `undo.apply`, updating the change's commit with the answer; its
-    `committed` calls `undo.committed`; a refusal resolves as the text the server answered.
+    `committed` calls `undo.committed`; a refusal resolves as the text the server answered. After
+    each, the lists are read again (`rereadChanges`). The writes select their change with the views
+    of `undo/changeViews.ts`: `PrioritiesChangeView`, `InboxChangeView`, `ProposalFileChangeView`.
   - `joinChanges(earlier: ChangeView, later: ChangeView): ChangeView`: per path, the earlier's
     `before` and the later's `after`, for a run of moves.
   - `UndoKeys`, mounted in the shell: `u` and `mod+z` undo; `U` (hint `U`, label `redo`) and
     `mod+shift+z` redo, declared only while `canRedo()`. After an undo: the toast "Undone: …" with
     Redo and `U`; after a redo: "Redone: …" with Undo and `u`; then, when the entry's page is not
     the one open, `navigateHere(place.path, { select })`, else the row selected in place. A
-    committed entry asks the committed question first. A refusal goes to `showPageError`.
+    committed entry asks the committed question first (`committedQuestion(entry, redo)`). A refusal,
+    or an undo that rejects (`Could not undo: <message>`), goes to `showPageError`.
   - `showPageError`, `useUndoErrors`, `forgetUndoErrors` in `undo/pageErrors.ts`, as they were.
   - The existing callers become entries: each keeps its label and its current undo, with a redo that
-    re-runs its write over the files as they are, until tasks 6 to 8 give them their changes. The
-    New page's "Draft replaced" is an entry whose undo and redo swap the draft, its place the New
-    page.
+    re-runs its write over the files as they are, until tasks 6 to 8 give them their changes: a
+    category's delete, an image's removal, the pane's delete, and the sidebar's add of a proposal.
+    The note's delete and the sidebar's adds of a note get `cannotRedo(label)`, a redo refused,
+    marked `TEMPORARY:`. The four promotions record `changeEntry` already (ruling R9). The New
+    page's "Draft replaced" is an entry whose undo and redo swap the draft, its place the New page.
   - `deleteLine` and `deleteNote` stay until task 9.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `undo-keys.test.tsx`: "u from another page opens the action's page with what came back
     selected": a note promoted to Now from the inbox, then a spec opened; `u` opens the inbox, the
     note back and selected, and Back returns to the spec; a second `u` on the open page selects
@@ -617,14 +626,14 @@ git commit -m "feat(global-undo): answer each undoable write with its change"
     Undo that rejects shows its failure in the page" goes, as the spec lists.
   - The breaks: an undo in place without the trip; the stack hearing a field's keys; an undo that
     skips its question; a redo toast with the wrong text or key.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/web/src/__tests__/undo-keys.test.tsx packages/web/src/__tests__/undo-toast.test.tsx`
   - Expected: FAIL, `Unable to find an element with the text: Undo a committed change?`
-- [ ] **Step 3: Implement the undo layer, and move every caller onto it**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS; the existing undo
+- [x] **Step 3: Implement the undo layer, and move every caller onto it**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS; the existing undo
       tests (`keys-promote`, `inbox-images`, `inbox-note-delete`, `new-page`) still pass.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

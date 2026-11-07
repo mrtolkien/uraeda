@@ -15,11 +15,11 @@ import { CategoryTitle, DeleteCategoryButton } from "./lists/CategoryPane.tsx";
 import { useOutline } from "./lists/useOutline.tsx";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { plural } from "./labels.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
 import { notePutBack } from "./optimisticLists.ts";
+import { cannotRedo, useUndo } from "./undo/useUndo.ts";
 import { InboxView } from "./views.ts";
 import { proposalFilePage } from "./readAhead.ts";
 
@@ -232,18 +232,20 @@ async function putBack(
 
 /**
  * `d`, confirmed: the outline deletes the row, and a note's note file goes with it. A note, not a
- * nested row, gets a toast with Undo, which puts back both. `placedOf` is each note's place, by its
+ * nested row, goes on the undo stack, whose undo puts back both. `placedOf` is each note's place, by its
  * row's key.
  */
 function useNoteDelete(outline: InboxOutline) {
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const record = useUndo();
   return (placedOf: ReadonlyMap<string, Placed>) => async (row: WorkRow) => {
     const placed = placedOf.get(row.key);
     const isDeleted = await outline.onDelete(row);
     if (isDeleted && placed) {
       // The note file may have stayed, edited and not committed: the toast names the note alone.
-      toast("Deleted the note", () => putBack(fate, placed));
+      const label = "Deleted the note";
+      const place = { path: "/inbox", select: row.key };
+      record({ label, place, redo: cannotRedo(label), undo: () => putBack(fate, placed) });
     }
     return isDeleted;
   };

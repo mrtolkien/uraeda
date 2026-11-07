@@ -1,11 +1,10 @@
 // What a proposal's pane does to it: rename it, move it to a section, expand it into a file, or
-// delete it with Undo, each written at once over the priorities as read.
+// delete it, undoable, each written at once over the priorities as read.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readPriorities, useProposal } from "../data.ts";
 import { withFreshBase } from "../freshBase.ts";
 import { guarded, refusal } from "../errors.ts";
-import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
 import {
@@ -16,7 +15,26 @@ import {
 } from "../optimisticLists.ts";
 import { plain } from "../Spans.tsx";
 import { useExpand } from "./useExpand.ts";
+import { useUndo } from "../undo/useUndo.ts";
 import { PrioritiesView } from "../views.ts";
+
+/**
+ * The redo of a proposal's delete: the proposal of `key`, found again over the file as it is now,
+ * is deleted again.
+ */
+async function removeAgain(fate: ReturnType<typeof useFateClient>, key: string, text: string) {
+  const now = await readPriorities(fate);
+  const again = now.sections.flatMap((s) => s.proposals).find((p) => p.key === key);
+  if (!again) {
+    return `Could not redo: "${text}" is no longer in PRIORITIES.md.`;
+  }
+  const removed = await fate.mutations.proposals.remove({
+    input: { hash: now.hash, proposal: again.id },
+    optimistic: proposalRemoved(now.sections, again.id),
+    view: PrioritiesView,
+  });
+  return removed.error ? refusal(removed.error).message : undefined;
+}
 
 /** A proposal found in the priorities, with its section and its place in it. */
 export type Found = NonNullable<ReturnType<typeof useProposal>["found"]>;
@@ -93,7 +111,7 @@ export function useProposalActions(
 ) {
   const { index, proposal, section } = found;
   const fate = useFateClient();
-  const toast = useUndoToast();
+  const record = useUndo();
   const here = useRepoPath();
   const rename = useRename(found, hash, onRenaming);
   const [message, setMessage] = useState<string>();
@@ -148,7 +166,7 @@ export function useProposalActions(
       return;
     }
     const failed = `Could not restore "${text}": PRIORITIES.md changed on disk.`;
-    toast(`Deleted "${text}"`, async () => {
+    const undo = async () => {
       try {
         // Over the file as it is now: the proposal goes back to its place, or its section's end.
         const restored = await withFreshBase(
@@ -164,6 +182,12 @@ export function useProposalActions(
       } catch {
         return failed;
       }
+    };
+    record({
+      label: `Deleted "${text}"`,
+      place: { path: "/priorities", select: proposal.key },
+      redo: () => removeAgain(fate, proposal.key, text),
+      undo,
     });
     // Only while the proposal's own overlay shows: a delete from a menu leaves the page as it is.
     if (parseLocation(window.location.pathname).route.page === "proposal") {

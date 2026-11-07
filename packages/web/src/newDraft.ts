@@ -1,7 +1,7 @@
 // The New page's draft, one per repository, which its three cards share: the composer's text and
 // the entries it was filled from, its sources, kept together in the unsaved store, so a reload
 // keeps both; its images, and a session's run, kept for the document's life. A line's Start
-// replaces it, with an Undo; a card under the composer adds to it. The Change and Feature cards
+// replaces it, undoable; a card under the composer adds to it. The Change and Feature cards
 // each kept a text of their own before: the first read joins them into it, once.
 import { type SetStateAction, useCallback, useLayoutEffect } from "react";
 import {
@@ -11,10 +11,10 @@ import {
   useUnsaved,
   writeUnsaved,
 } from "./fields/unsaved.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Entry, insertion, type Source, withAdded } from "./NewEntries.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepositoryPath } from "./routes.tsx";
+import { useUndo } from "./undo/useUndo.ts";
 import { useDraft } from "./useDraft.ts";
 
 /** The draft's field in the unsaved store. */
@@ -98,7 +98,7 @@ function sourceOf(entry: Entry, inserted: string): Source {
  * - `insert`: adds an entry under the text, with a link to its file, as a card under the composer.
  * - `start`: replaces the draft with the entry alone, without its link or images, as a line's
  *   Start; a draft that held more than spaces, or images, comes back with the "Draft replaced"
- *   toast's Undo, its sources and images with it.
+ *   toast's Undo or `u`, its sources and images with it, and `U` replaces it again.
  * - `sent(text, images)`: empties the draft, and takes out the images sent, while it still holds
  *   `text`: a newer draft stays whole, and an image added since stays. Whether it went.
  * - `unsavedNow()`: the text as the store holds it when called.
@@ -109,7 +109,7 @@ export function useNewDraft() {
   useLayoutEffect(() => joinOld(repo, key), [repo, key]);
   const entry = useUnsaved(key);
   const kept = useDraft(`new:${repo}`);
-  const toast = useUndoToast();
+  const record = useUndo();
   const setText = useCallback(
     (update: SetStateAction<string>) => {
       const now = held(key);
@@ -132,11 +132,22 @@ export function useNewDraft() {
     store(key, { sources: [sourceOf(entry, added)], text: added });
     kept.setImages([]);
     if (before.text.trim() !== "" || images.length > 0) {
-      toast("Draft replaced", async () => {
-        store(key, before);
-        kept.setImages(images);
+      // The one action the browser holds: its undo and its redo swap the drafts.
+      const after = held(key);
+      const swap = (to: Held, toImages: ReadonlyArray<DraftImage>) => async () => {
+        store(key, to);
+        kept.setImages(toImages);
         return undefined;
-      });
+      };
+      record(
+        {
+          label: "Draft replaced",
+          place: { path: "/new" },
+          redo: swap(after, []),
+          undo: swap(before, images),
+        },
+        { waitsOnGit: false },
+      );
     }
   };
   // Whether the draft still held `text`, and went with the images sent: a newer draft stays whole.

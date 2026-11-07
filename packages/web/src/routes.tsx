@@ -58,7 +58,7 @@ export function useRepoPath(): (path: string) => string {
  * Opens a page of the repository the location is in, from its path within it: for a call made
  * outside a component, after the human acted on the page.
  */
-export function navigateHere(path: string, state?: { from?: string }) {
+export function navigateHere(path: string, state?: { from?: string; select?: string }) {
   const { repo } = parseLocation(window.location.pathname);
   navigate(repo === null ? path : repoPath(repo, path), state);
 }
