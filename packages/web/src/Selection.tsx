@@ -1,12 +1,11 @@
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type Ref, useId, useState } from "react";
+import { createContext, type ReactNode, type Ref, type RefObject, use, useId, useRef } from "react";
 import type { Block } from "uraeda-binding";
-import { useHeld } from "./cursor/held.ts";
-import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { useHeldElement } from "./cursor/held.ts";
+import { HeldKeys, type StopKey } from "./cursor/StopKeys.tsx";
 import { stopProps } from "./cursor/stops.ts";
-import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { SinceBlock } from "./sinceMarks.tsx";
 import type { Range } from "./commentRange.ts";
@@ -97,6 +96,18 @@ const styles = stylex.create({
   },
   selectedRow: {
     backgroundColor: "var(--color-selection)",
+  },
+  // The keyboard's cursor on a block, as on a list's row: the mauve tint, but under a selected
+  // range's yellow, which stays, and the block's edge in the accent, where a selected block's
+  // yellow edge is, so the two never draw over each other.
+  heldEdge: {
+    borderInlineStartColor: colorVars["--color-accent"],
+  },
+  heldNarrow: {
+    boxShadow: `calc(-1 * ${spacingVars["--spacing-1"]}) 0 0 0 ${colorVars["--color-accent"]}`,
+  },
+  heldTint: {
+    backgroundColor: colorVars["--color-accent-muted"],
   },
   toggle: {
     // The block's toggle, for the keyboard and screen readers: under the block's text, as large as
@@ -194,16 +205,14 @@ function Toggle({
 const NO_KEYS: ReadonlyArray<StopKey> = [];
 
 /**
- * A selectable element's toggle as the keyboard's cursor holds it: whether it is held, its keys
- * declared while it is, `keysOf` given the toggle, and their bar, drawn under the element.
+ * A selectable element's toggle as the keyboard's cursor holds it: its ref, whether it is held, and
+ * its keys while it is, `keysOf` given the toggle, which `HeldKeys` declares and draws in a bar.
  */
 function useToggleStop(keysOf: ((toggle: HTMLElement) => ReadonlyArray<StopKey>) | undefined) {
-  // The toggle in a state rather than a ref, as its keys are made from it while drawing.
-  const [toggle, setToggle] = useState<HTMLButtonElement | null>(null);
-  const held = useHeld({ current: toggle });
-  const keys = held && toggle !== null && keysOf !== undefined ? keysOf(toggle) : NO_KEYS;
-  useStopKeys(keys, held);
-  return { bar: <StopBar held={held} keys={keys} />, held, setToggle };
+  const toggle = useRef<HTMLButtonElement>(null);
+  const held = useHeldElement(toggle);
+  const keys = held !== null && keysOf !== undefined ? keysOf(held) : NO_KEYS;
+  return { held: held !== null, keys, toggle };
 }
 
 /**
@@ -217,40 +226,72 @@ export function useSelect(block: Block, selection: Selection | undefined) {
   const textId = useId();
   const isOn = !!selection && selectable(block) && selection.canSelect?.(block) !== false;
   const keys = isOn ? selection.keys : undefined;
-  const { bar, held, setToggle } = useToggleStop(keys && ((toggle) => keys(block, toggle)));
+  const {
+    held,
+    keys: heldKeys,
+    toggle,
+  } = useToggleStop(keys && ((element) => keys(block, element)));
   if (!isOn) {
     return undefined;
   }
   const pressed = selection.isSelected(block);
   return {
     above: stylex.props(styles.above),
-    bar,
     block: tapProps(linesMark(block.startLine, block.endLine), (element) =>
       selection.onTap(block, element),
     ),
     cell: styles.cell,
     held,
+    /** The ref of the toggle, the stop a comment under the block hands the cursor back to. */
+    holder: toggle,
+    keys: heldKeys,
     pressed,
-    row: [styles.selectable, pressed && styles.selectedRow, held && pickedStyles.picked],
+    row: [
+      styles.selectable,
+      held && !pressed && styles.heldTint,
+      pressed && styles.selectedRow,
+      held && styles.heldEdge,
+    ],
     textId,
     // A rule has no text: its lines name it.
     toggle: (
       <Toggle
         label={block.kind === "rule" ? `Line ${block.startLine}` : undefined}
         pressed={pressed}
-        ref={setToggle}
+        ref={toggle}
         textId={textId}
       />
     ),
   };
 }
 
-/** What follows a block, marked so a tap on it does not select the block it sits in. */
-export function After({ children }: { children: ReactNode }) {
+/**
+ * The stop of the element a comment follows, its toggle, `null` where it has none, as a general
+ * comment or a fold's title: the cursor goes back to it when the comment is deleted.
+ */
+const Holder = createContext<RefObject<HTMLElement | null> | null>(null);
+
+/** The stop of the element what is drawn follows, as `After` gives it, `null` for none. */
+export const useHolder = () => use(Holder);
+
+/**
+ * What follows a block, marked so a tap on it does not select the block it sits in. `holder` is the
+ * block's toggle, given to what follows as `useHolder`; none passed, what follows has none, rather
+ * than the toggle of a block around it.
+ */
+export function After({
+  children,
+  holder = null,
+}: {
+  children: ReactNode;
+  holder?: RefObject<HTMLElement | null> | null;
+}) {
   return (
-    <div data-after="" {...stylex.props(styles.after)}>
-      {children}
-    </div>
+    <Holder value={holder}>
+      <div data-after="" {...stylex.props(styles.after)}>
+        {children}
+      </div>
+    </Holder>
   );
 }
 
@@ -295,11 +336,14 @@ export function Selectable({
           styles.selectable,
           isNarrowScreen && styles.selectableNarrow,
           isInList && !isNarrowScreen && styles.inList,
-          !isInList && styles.spaced,
+          // Held, the block's room under it goes under its bar.
+          !isInList && !select.held && styles.spaced,
+          select.held && !select.pressed && styles.heldTint,
           select.pressed && styles.selected,
           select.pressed && isNarrowScreen && styles.selectedNarrow,
-          // The keyboard's cursor, over the review's yellow.
-          select.held && pickedStyles.picked,
+          // The keyboard's cursor: its edge over the review's yellow one, the yellow tint kept.
+          select.held && styles.heldEdge,
+          select.held && isNarrowScreen && styles.heldNarrow,
         )}
       >
         {select.toggle}
@@ -307,8 +351,12 @@ export function Selectable({
           {children}
         </div>
       </div>
-      {select.bar}
-      <After>{selection?.after?.(block)}</After>
+      {select.held && (
+        <HeldKeys keys={select.keys}>
+          {(bar) => <div {...stylex.props(!isInList && styles.spaced)}>{bar}</div>}
+        </HeldKeys>
+      )}
+      <After holder={select.holder}>{selection?.after?.(block)}</After>
     </>
   );
 }
@@ -354,24 +402,25 @@ export function Tappable({
   pressed: boolean;
 }) {
   const textId = useId();
-  const { bar, held, setToggle } = useToggleStop(keys);
+  const { held, keys: heldKeys, toggle } = useToggleStop(keys);
   return (
     <>
       <div
         {...tapProps(lines, onTap)}
         {...stylex.props(
           styles.selectable,
+          held && !pressed && styles.heldTint,
           pressed && styles.selected,
-          held && pickedStyles.picked,
+          held && styles.heldEdge,
         )}
       >
-        <Toggle pressed={pressed} ref={setToggle} textId={textId} />
+        <Toggle pressed={pressed} ref={toggle} textId={textId} />
         <div id={textId} {...stylex.props(styles.above)}>
           {children}
         </div>
       </div>
-      {bar}
-      <After>{after}</After>
+      {held && <HeldKeys keys={heldKeys} />}
+      <After holder={toggle}>{after}</After>
     </>
   );
 }

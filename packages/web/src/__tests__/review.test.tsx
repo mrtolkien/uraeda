@@ -474,6 +474,25 @@ test("J then Enter writes one comment on both scenarios' lines", async () => {
 });
 
 /**
+ * `d` on a held comment hands the cursor back to the block it is under, here a list item whose
+ * nested item is drawn between the item and its comment. Break: the cursor going to the nearest
+ * block before the comment, the nested item.
+ */
+test("d on a comment under a list item gives the cursor back to the item", async () => {
+  const r = repo();
+  commitSpec(r, (text) =>
+    text.replace("## User stories\n", "- Parent item\n  - Nested child\n\n## User stories\n"),
+  );
+  const line = lineOf(r, "Parent item");
+  pendingComments(r, [[line, "On the parent."]]);
+  await renderPage(PAGE, r);
+  hold(await screen.findByRole("group", { name: `C1 · line ${line}` }));
+  await press("d");
+  await waitFor(async () => expect(document.activeElement).toBe(await scenario("Parent item")));
+  await waitFor(() => expect(screen.queryByRole("group", { name: /^C1/ })).toBeNull());
+});
+
+/**
  * On a wide screen, the comment quotes the start of its block; on the phone, the block shows, marked,
  * right above the comment's sheet, and a copy of it in the sheet pushed Add comment out of sight.
  * Break: the quote back in the phone's sheet (T3).
