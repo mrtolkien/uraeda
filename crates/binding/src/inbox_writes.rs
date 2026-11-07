@@ -213,9 +213,14 @@ pub fn note_to_proposal_file(
     priorities_previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
-        api::note_to_proposal_file(repo, &id, &section, &previous, &priorities_previous)
-    })
+    recording(
+        repo,
+        undo,
+        scope(undo::RELINKING_PROMOTION),
+        move |repo: &Path| {
+            api::note_to_proposal_file(repo, &id, &section, &previous, &priorities_previous)
+        },
+    )
 }
 
 /// Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
@@ -230,9 +235,12 @@ pub fn note_into_proposal(
     previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
-        api::note_into_proposal(repo, &id, &proposal, &previous)
-    })
+    recording(
+        repo,
+        undo,
+        scope(undo::RELINKING_PROMOTION),
+        move |repo: &Path| api::note_into_proposal(repo, &id, &proposal, &previous),
+    )
 }
 
 /// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
@@ -248,9 +256,14 @@ pub fn note_into_proposal_line(
     priorities_previous: String,
     undo: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    recording(repo, undo, scope(undo::PROMOTION), move |repo: &Path| {
-        api::note_into_proposal_line(repo, &id, &proposal, &previous, &priorities_previous)
-    })
+    recording(
+        repo,
+        undo,
+        scope(undo::RELINKING_PROMOTION),
+        move |repo: &Path| {
+            api::note_into_proposal_line(repo, &id, &proposal, &previous, &priorities_previous)
+        },
+    )
 }
 
 /// The images of a call, as the core takes them: each one's bytes, and its file name, `names` holding

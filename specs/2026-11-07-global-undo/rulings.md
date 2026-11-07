@@ -61,18 +61,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an exemption marker, approved, would give back the separate arguments.
 - **Where**: task 1, and the server's `attach.ts` and `fate/file-mutations.ts`
 
-## R6: The scope of an image's removal and an image's attachment
+## R6: The scope of an image's removal, an image's attachment, and a relinking promotion
 
 - **Decision**: an image's removal records the inbox and the folder of the file it leaves, a note
   file's or a proposal file's, rather than `NOTES`; an image attached to a single proposal file or
-  note file records all of `specs/`, the file becoming a folder and its links followed in every
-  file, and one attached to any other file, its folder.
+  note file records the file, the folders named after it, and every Markdown file of `specs/`, the
+  file becoming a folder and its links followed in every file; one attached to any other file, the
+  file and its folder. A promotion that moves a note file or takes it into a proposal,
+  `noteToProposalFile`, `noteIntoProposal`, and `noteIntoProposalLine`, records
+  `RELINKING_PROMOTION`: `PROMOTION` and every Markdown file of `specs/`, as its relink may write
+  any of them.
 - **Rationale**: `removeNoteImage` also takes images out of proposal files, outside `specs/notes`,
-  and the relink of a single file that becomes a folder may write any file of `specs/`: a narrower
-  scope would leave part of the write out of its undo.
-- **If wrong**: a large `specs/` makes the first image of a single file slower to record; the scope
-  narrows to the lists and the file's folder at the cost of links elsewhere left moved.
-- **Where**: task 1
+  and a relink may write any Markdown file of `specs/`: a narrower scope would leave part of the
+  write out of its undo. A relink writes Markdown only, so the images and other files of `specs/`
+  stay out of the snapshot, which keeps its cost to the Markdown's bytes.
+- **If wrong**: a large `specs/` makes these writes slower to record; the scope narrows to the lists
+  and the file's folder at the cost of links elsewhere left moved.
+- **Where**: task 1, `api::undo::{MARKDOWN, RELINKING_PROMOTION, attached}`
 
 ## R7: The stack's method is `record`, not `push`
 

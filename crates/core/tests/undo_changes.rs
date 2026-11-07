@@ -238,3 +238,39 @@ fn a_note_folder_holding_a_hidden_file_is_undone_and_redone() {
     undo::apply_change(repo.path(), &change, Direction::Redo, note).unwrap();
     assert!(!repo.exists(&folder));
 }
+
+/// A promotion that moves a note file relinks every Markdown file of `specs/`: its undo puts their
+/// links back too.
+#[test]
+fn a_promotions_relinks_outside_the_lists_are_undone() {
+    let repo = fixture_repo();
+    let note = "A note with a file";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    let linking = "specs/decisions/look.md";
+    let text = format!(
+        "# Look\n\nSee [the note](../{}).\n",
+        &file["specs/".len()..]
+    );
+    repo.write(linking, &text);
+    repo.commit("docs: a note and a decision");
+
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let id = note_id(&inbox, note);
+    let (path, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
+        api::note_to_proposal_file(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
+    })
+    .unwrap();
+    assert!(path.starts_with("specs/proposals/"));
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, note).unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists(&file));
+    assert_eq!(repo.porcelain(), "");
+}

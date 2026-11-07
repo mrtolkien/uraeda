@@ -310,13 +310,14 @@ puts files back.
     differently from `change.commit`, by `Git::entry_id`.
   - The scopes of `api::undo`, constants `&[&str]`: `INBOX` (`specs/INBOX.md`), `NOTES`
     (`specs/INBOX.md`, `specs/notes`), `PRIORITIES` (`specs/PRIORITIES.md`), `PROMOTION`
-    (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes`, `specs/proposals`), `EXPAND`
+    (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes`, `specs/proposals`),
+    `RELINKING_PROMOTION` (`PROMOTION` and `MARKDOWN`, every Markdown file of `specs/`), `EXPAND`
     (`specs/PRIORITIES.md`, `specs/proposals`); and functions:
     `review(repo, folder, file) -> Result<Vec<String>>`, the review file's path, read from the
     feature's folder; `note_image(file) -> Vec<String>`, the inbox and the folder of the note file
-    or proposal file an image leaves; `attached(path) -> Vec<String>`, the file and its folder, or
-    all of `specs` for a single proposal file or note file, which becomes a folder and has its links
-    followed everywhere.
+    or proposal file an image leaves; `attached(path) -> Vec<String>`, the file and its folder, or,
+    for a single proposal file or note file, which becomes a folder and has its links followed
+    everywhere, the file, the folders named after it, and `MARKDOWN` (ruling R6).
 - Produces, in the binding (`crates/binding/src/undo.rs`):
   - `ChangeView { commit: string | null, files: Array<ChangedFileView> }`, with
     `ChangedFileView { path: string, before: string | null, after: string | null }`, bytes
@@ -330,11 +331,12 @@ puts files back.
   - The functions given a token, with their scope: `addNote`, `outlineNote`, `dropNote`,
     `placeNote`, `moveNoteToCategory` (`INBOX`); `removeNote` and the outline's `remove` kind,
     `removeCategory`, `addCategory`, `renameCategory`, `addNoteWithImages`, `attachNoteImages`
-    (`NOTES`); `removeNoteImage` (`note_image(file)`); `noteToProposal`, `noteToProposalFile`,
-    `noteUnderProposal`, `noteIntoProposal`, `noteIntoProposalLine` (`PROMOTION`); `addProposal`,
-    `outlineProposal`, `dropProposal`, `moveProposal`, `editProposal`, `removeProposal`
-    (`PRIORITIES`); `expandProposal` (`EXPAND`); `addComment`, `editComment`, `removeComment`,
-    `startOver` (`review(repo, folder, file)`); `attachImage` (`attached(path)`).
+    (`NOTES`); `removeNoteImage` (`note_image(file)`); `noteToProposal`, `noteUnderProposal`
+    (`PROMOTION`); `noteToProposalFile`, `noteIntoProposal`, `noteIntoProposalLine`
+    (`RELINKING_PROMOTION`); `addProposal`, `outlineProposal`, `dropProposal`, `moveProposal`,
+    `editProposal`, `removeProposal` (`PRIORITIES`); `expandProposal` (`EXPAND`); `addComment`,
+    `editComment`, `removeComment`, `startOver` (`review(repo, folder, file)`); `attachImage`
+    (`attached(path)`).
   - Two functions keep within clippy's 7 arguments by folding two of theirs (ruling R5):
     `addComment(repo, folder, file, lines?: CommentLines, text, decision?, undo?)`, with
     `CommentLines { start: number, end?: number }`, and
