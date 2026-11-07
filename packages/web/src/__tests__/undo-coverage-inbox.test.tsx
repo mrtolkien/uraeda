@@ -103,11 +103,21 @@ async function undoesAndRedoes(
   { move = false } = {},
 ) {
   const before = tree(repo);
+  const earlier = undoStack.top();
   await write();
-  await waitFor(() => expect(undoStack.top()?.label).toBe(label), { timeout: 10_000 });
+  // The write's own entry, not one before it, landed on the stack.
+  await waitFor(
+    () => {
+      expect(undoStack.top()).not.toBe(earlier);
+      expect(undoStack.top()?.label).toBe(label);
+    },
+    { timeout: 10_000 },
+  );
   const after = tree(repo);
   expect(after).not.toEqual(before);
   if (move) {
+    // A tick for a toast the record would have drawn, before checking there is none.
+    await act(async () => {});
     expect(screen.queryByText(new RegExp(`${label} · waits`))).toBeNull();
   } else {
     expect(await screen.findByText(`${label} · waits on the Git page`)).toBeTruthy();
