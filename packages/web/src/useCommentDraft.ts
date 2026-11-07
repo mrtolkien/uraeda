@@ -143,6 +143,55 @@ function useFieldAfterTap(
 }
 
 /**
+ * The last tapped block, under which the form opens: kept in place on screen as the form opens under
+ * it, moves, or closes, and on the phone brought above the comment sheet when the sheet would hide
+ * it; and on a wide screen, the field under it focused. `mark` notes a tap on `element`, and `leave`
+ * keeps the block in place as the form leaves it, then forgets it.
+ */
+function useTappedBlock(
+  wide: boolean,
+  lines: boolean,
+  selection: Range | undefined,
+  last: Last | undefined,
+) {
+  const lastElement = useRef<HTMLElement>(null);
+  // Where the last tapped block was on screen as it was tapped, px from the window's top.
+  const tappedTop = useRef(0);
+  // The reader's scroll since that tap: theirs, never put back.
+  const tappedScroll = useRef<() => number>(() => 0);
+  const sheet = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = lastElement.current;
+    if (wide || !lines || !element) {
+      return;
+    }
+    void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
+  }, [wide, lines, selection]);
+  useFieldAfterTap(wide, lastElement, last);
+
+  const mark = (element: HTMLElement) => {
+    // On a wide screen, the form opens under the block, or moves to it from a block above it.
+    if (wide) {
+      void keepPlace(topOf(element));
+    }
+    tappedTop.current = element.getBoundingClientRect().top;
+    tappedScroll.current = scrollMark();
+    lastElement.current = element;
+  };
+
+  const leave = () => {
+    const element = lastElement.current;
+    if (element) {
+      void keepPlace(topOf(element));
+    }
+    lastElement.current = null;
+  };
+
+  return { leave, mark, sheet };
+}
+
+/**
  * The comment being written on a review: the lines selected by tapping blocks, and the last block
  * tapped, under which the field opens on wide screens. Its text is the field's, in the unsaved
  * store: `onSelect` says where it goes as the lines change, for the store to keep them with it.
@@ -161,43 +210,14 @@ export function useCommentDraft(
   const [last, setLast] = useState<Last | undefined>(restored?.last);
   // Which comment is written: a new one with each close and each edit started (R71).
   const [writing, setWriting] = useState(0);
-  const lastElement = useRef<HTMLElement>(null);
-  // Where the last tapped block was on screen as it was tapped, px from the window's top.
-  const tappedTop = useRef(0);
-  // The reader's scroll since that tap: theirs, never put back.
-  const tappedScroll = useRef<() => number>(() => 0);
-  const sheet = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const element = lastElement.current;
-    if (wide || draft?.kind !== "lines" || !element) {
-      return;
-    }
-    void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
-  }, [wide, draft?.kind, selection]);
-  useFieldAfterTap(wide, lastElement, last);
-
-  /** Keeps the last tapped block in place as the form leaves it, then forgets it. */
-  const leave = () => {
-    const element = lastElement.current;
-    if (element) {
-      void keepPlace(topOf(element));
-    }
-    lastElement.current = null;
-  };
+  const { leave, mark, sheet } = useTappedBlock(wide, draft?.kind === "lines", selection, last);
 
   /** Adds tapped lines to the selection, or starts one with them. */
   const select = (range: Range, tapped: Last, element: HTMLElement) => {
     const next = selected(selection, range);
-    // On a wide screen, the form opens under the block, or moves to it from a block above it.
-    if (wide) {
-      void keepPlace(topOf(element));
-    }
-    tappedTop.current = element.getBoundingClientRect().top;
-    tappedScroll.current = scrollMark();
+    mark(element);
     setSelection(next);
     setLast(tapped);
-    lastElement.current = element;
     if (draft?.kind !== "lines") {
       setDraft({ kind: "lines" });
     }
