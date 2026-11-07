@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import { atRepo, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
 
@@ -47,6 +47,12 @@ async function promoted() {
   expect(read(repo, "specs/INBOX.md")).not.toContain("Loose note");
   return repo;
 }
+
+/** The control of the row "Color themes", not the buttons of the row's bar under it. */
+const control = () =>
+  screen
+    .getAllByRole("button", { name: /Color themes/ })
+    .find((one) => one.closest("[data-row-link]") !== null) as HTMLElement;
 
 /** The page of a proposal's file, opened from the page on screen. */
 async function openFile() {
@@ -112,4 +118,48 @@ test("u on a committed change asks; Keep it keeps it, Undo writes it uncommitted
   await waitFor(() => expect(read(repo, "specs/INBOX.md")).toContain("- Loose note\n"));
   expect(read(repo).split("## Next")[0]).not.toContain("Loose note");
   expect(git(repo, "rev-list", "--count", "HEAD")).toBe(commits);
+});
+
+const COLORS = `# Priorities
+
+## Now
+
+- Now line
+
+## Next
+
+- First
+- Second
+- Third
+- Color themes
+`;
+
+// Break: a run that undoes one move, or a toast on a move.
+test("m, k three times, Enter: no toast, and u puts the row back in one step", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), COLORS);
+  await renderPage("/priorities", repo);
+  await screen.findByRole("heading", { name: "Next · 4" });
+  act(() => control().focus());
+  // Each press 100 ms after the last, whatever the machine's speed: the run is pinned by `Date`.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    let at = Date.now();
+    await press("m", control());
+    for (const above of ["Third", "Second", "First"]) {
+      at += 100;
+      vi.setSystemTime(at);
+      await press("k", control());
+      await waitFor(() => expect(read(repo)).toMatch(new RegExp(`- Color themes\\n- ${above}\\n`)));
+    }
+    await press("Enter", control());
+    expect(read(repo)).toContain("## Next\n\n- Color themes\n- First\n");
+    expect(screen.queryByText(/Moved/)).toBeNull();
+
+    await press("u");
+    await waitFor(() => expect(read(repo)).toBe(COLORS));
+    await screen.findByText("Undone: moved “Color themes”");
+  } finally {
+    vi.useRealTimers();
+  }
 });

@@ -44,7 +44,11 @@ const LIMIT = 50;
 /** A move joins the run on top while it comes less than this after the run's last move. */
 const RUN_MS = 1000;
 
-export function createUndoStack(now: () => number = Date.now): UndoStack {
+/**
+ * A stack whose clock is `now`: the global `Date`'s, read at each record, so that a test faking
+ * `Date` after this module loaded still sets the time of a run.
+ */
+export function createUndoStack(now: () => number = () => Date.now()): UndoStack {
   const done: Array<UndoEntry> = [];
   const undone: Array<UndoEntry> = [];
   const { notify, subscribe } = listened();

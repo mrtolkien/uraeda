@@ -1,7 +1,7 @@
 import type { EditorView } from "@codemirror/view";
 import type { RefObject } from "react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { AttachedView } from "uraeda-binding";
+import type { AttachedView, ChangeView } from "uraeda-binding";
 import { type EditorHandle, useEditorElement } from "../fields/editor/Editor.tsx";
 import { dropStyles } from "./DropHint.tsx";
 import { type Edit, editBetween, followEdit, insertLinks } from "./insertLink.ts";
@@ -11,8 +11,16 @@ import { useImageDrop } from "./useImageDrop.ts";
 /** A text with links inserted, and its first link's alt text, to select. */
 export type Linked = { selection: [number, number]; text: string };
 
-/** The run of uploads under way: the path they go to, and what they inserted so far. */
-type Run = { added: boolean; path: string; selection?: [number, number] };
+/**
+ * The run of uploads under way: the path they go to, what they inserted so far, and the changes
+ * the images' writes answered.
+ */
+type Run = {
+  added: boolean;
+  changes: Array<ChangeView>;
+  path: string;
+  selection?: [number, number];
+};
 
 /** Moves places by an edit, as `followEdit` says. */
 function shift(places: Iterable<{ at: number }>, edit: Edit, after = false) {
@@ -83,6 +91,11 @@ type ImageTextOptions = {
   initialStatus?: AttachStatus;
   /** The drop hint's name for the field, "Drop to add to <label>". */
   label: string;
+  /**
+   * Takes a run that added images, as it ends: the changes their writes answered, the file's path
+   * then, and the text with their links, which `onText` or `onMoved` saves.
+   */
+  onAttached?: (run: { changes: ReadonlyArray<ChangeView>; path: string; text: string }) => void;
   /** Takes the text with links while more files wait: shown, not saved yet. */
   onLinks?: (text: string) => void;
   /** Takes the text with the links once a run ended with the file moved, and the last status. */
@@ -107,7 +120,7 @@ type ImageTextOptions = {
 /** What a field's runs read and move: its element, its text, and where links go. */
 type Field = {
   callbacks: RefObject<
-    Pick<ImageTextOptions, "onLinks" | "onMoved" | "onStart" | "onText" | "path">
+    Pick<ImageTextOptions, "onAttached" | "onLinks" | "onMoved" | "onStart" | "onText" | "path">
   >;
   /** The editor last focused, whose cursor places the links. */
   focused: RefObject<EditorView | null>;
@@ -142,7 +155,10 @@ function insertBatch(field: Field, place: { at: number }, links: Array<string>, 
  */
 function handOver(field: Field, ended: Run, status: AttachStatus | undefined) {
   const now = field.latest.current;
-  const { onMoved, onText, path } = field.callbacks.current;
+  const { onAttached, onMoved, onText, path } = field.callbacks.current;
+  if (ended.added && ended.changes.length > 0) {
+    onAttached?.({ changes: ended.changes, path: ended.path, text: now });
+  }
   if (ended.path !== path && onMoved) {
     onMoved(
       ended.path,
@@ -178,11 +194,14 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
         show(NOT_SAVED, true);
         return;
       }
-      run.current = { added: false, path };
+      run.current = { added: false, changes: [], path };
     }
     const current = run.current;
     const results = await attach(files, current.path);
-    const images = results.flatMap((result) => (result.ok ? [result.value as AttachedView] : []));
+    const images = results.flatMap((result) =>
+      result.ok ? [result.value as AttachedView & { change?: ChangeView | null }] : [],
+    );
+    current.changes.push(...images.flatMap((image) => (image.change ? [image.change] : [])));
     current.path = images.find((image) => image.moved)?.moved ?? current.path;
     if (images.length > 0) {
       const text = insertBatch(

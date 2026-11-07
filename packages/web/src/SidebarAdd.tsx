@@ -6,20 +6,17 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { createContext, type ReactNode, Suspense, useContext, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
-import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
-import { readInbox, readPriorities, useWorkspace } from "./data.ts";
-import { refusal } from "./errors.ts";
+import { usePickedImages } from "./NoteImage.tsx";
+import { useWorkspace } from "./data.ts";
 import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
-import { addUndone, proposalRemoved } from "./optimisticLists.ts";
 import { useRoute } from "./routes.tsx";
-import { cannotRedo, useUndo } from "./undo/useUndo.ts";
-import { InboxView, PrioritiesView } from "./views.ts";
+import { changeEntry } from "./undo/changeEntry.ts";
+import { useUndo } from "./undo/useUndo.ts";
 
 /** The form a ＋ opened, if any. */
 type Form = "note" | "proposal" | undefined;
@@ -161,35 +158,10 @@ function ProposalOverlay({
 
   // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
-    const title = titleOf(section);
-    const undo = async () => {
-      // Found again in the file as it is now, by its text: the proposal it added, wherever it is.
-      const now = await readPriorities(fate);
-      const same = now.sections.flatMap((s) => s.proposals).filter((p) => p.text === line?.text);
-      const found = same.find((p) => p.key === line?.key) ?? (same.length === 1 ? same[0] : null);
-      if (!line || !found) {
-        return `Could not undo: "${line?.text ?? ""}" is no longer in PRIORITIES.md.`;
-      }
-      const result = await fate.mutations.proposals.remove({
-        input: { hash: now.hash, proposal: found.id },
-        optimistic: proposalRemoved(now.sections, found.id),
-        view: PrioritiesView,
-      });
-      return result.error ? refusal(result.error).message : undefined;
-    };
-    // The line written again at its section's end, over the priorities as they are now.
-    const redo = async () => {
-      if (!line) {
-        return cannotRedo(`Added to ${title}`)();
-      }
-      const now = await readPriorities(fate);
-      const result = await fate.mutations.proposals.add({
-        input: { hash: now.hash, section, text: line.text },
-        view: PrioritiesView,
-      });
-      return result.error ? refusal(result.error).message : undefined;
-    };
-    record({ label: `Added to ${title}`, place: { path: "/priorities" }, redo, undo });
+    if (line?.change) {
+      const place = { path: "/priorities", select: line.key };
+      record(changeEntry(fate, line.change, `Added to ${titleOf(section)}`, place, line.text));
+    }
   };
 
   return (
@@ -205,26 +177,9 @@ function ProposalOverlay({
 }
 
 /**
- * Undo of the note just added: the core takes it out, found by its lines wherever it is now, and
- * refuses once it changed or left, or when two notes hold its lines.
- */
-async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote | undefined) {
-  if (!note) {
-    return "Could not undo: the note is no longer in INBOX.md.";
-  }
-  const now = await readInbox(fate, "cache-first").catch(() => undefined);
-  const result = await fate.mutations.inbox.undoAdd({
-    input: { lines: [...note.lines] },
-    ...(now ? { optimistic: addUndone(now.categories, note.lines) } : {}),
-    view: InboxView,
-  });
-  return result.error ? refusal(result.error).message : undefined;
-}
-
-/**
- * The inbox's form, "Add a note": a toast says the note was added, with Undo, which removes the
- * note it added, found by its lines wherever it is now; a note added as a file goes with its note
- * file, unless the human typed in it. On a feature's or a change's pages, the note is about it. The
+ * The inbox's form, "Add a note": a toast says the note was added, with Undo, which takes back the
+ * change the add answered, a note added as a file with its note file's folder, and Redo, which
+ * writes it again. On a feature's or a change's pages, the note is about it. The
  * images picked for a note, `images`, are held by the forms' host, so that the form gets them back
  * as it opens again, until they are added, removed, or cancelled (ruling R21).
  */
@@ -247,26 +202,16 @@ function NoteOverlay({
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
-  const added = ({ file, note }: NoteAdded) => {
+  const added = ({ change, file, note }: NoteAdded) => {
     onClose();
-    const place = { path: "/inbox" };
-    if (file === undefined) {
-      const label = "Added to the inbox";
-      record({ label, place, redo: cannotRedo(label), undo: () => undoAdd(fate, note) });
-      return;
+    if (file !== undefined) {
+      picked.clear();
     }
-    picked.clear();
-    // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
-    const label = "Added to the inbox as a file";
-    record({
-      label,
-      place,
-      redo: cannotRedo(label),
-      undo: async () =>
-        note
-          ? undoAsFile(fate, note)
-          : `Could not undo: the note linking ${file} is no longer in INBOX.md.`,
-    });
+    if (change) {
+      const label = file === undefined ? "Added to the inbox" : "Added to the inbox as a file";
+      const place = note ? { path: "/inbox", select: note.key } : { path: "/inbox" };
+      record(changeEntry(fate, change, label, place, note?.text ?? file ?? ""));
+    }
   };
 
   // Asked before Close, Escape, or a click outside closes the form: it asks while it holds text.

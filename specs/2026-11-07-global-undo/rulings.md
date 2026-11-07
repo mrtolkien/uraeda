@@ -139,3 +139,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   same `run` with `movedWrite` as `inbox.place`'s, which the rows check.
 - **If wrong**: a drop that records nothing would go unnoticed until a drag test exists.
 - **Where**: task 6, `packages/web/src/InboxList.tsx`
+
+## R13: An image attached from an editor is undone with the save that links it
+
+- **Decision**: the entry of images attached to a proposal or note file from its editor joins the
+  changes `POST /attach` answered with the save of the text that links them: its first undo reads
+  the file, and when its text is still the one the run saved, takes the file's bytes then as the
+  `after` side of that file, then writes the whole change back. Once the text changed since, the
+  undo is refused, as any other. The entry is recorded when the run of uploads ends.
+- **Rationale**: the editor saves the links right after the images are written, through `text.save`,
+  which records no change: the image's change alone would be refused at once, its file moved into
+  its folder and then saved, or would leave the links pointing at images it deleted.
+- **If wrong**: `text.save` answering its change, as the other writes do, makes the editor's own
+  saves undoable too, and this entry the join of two answered changes.
+- **Where**: task 7, `packages/web/src/attach/attachUndo.ts`
