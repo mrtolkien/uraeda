@@ -407,6 +407,28 @@ test("an edit of a review comment follows it when a comment before it is removed
   expect(read(r, REVIEW)).toContain("Third.");
 });
 
+/** A removal confirms itself in a toast, whose Undo adds the comment again, on its lines. */
+test("a removed comment comes back with its text on Undo", async () => {
+  const r = longSpec();
+  pendingComments(r, [
+    [40, "First."],
+    [52, "Second."],
+  ]);
+  await renderPage(PAGE, r);
+  await click(
+    within(await screen.findByRole("group", { name: "C2 · line 52" })).getByRole("button", {
+      name: "Remove",
+    }),
+  );
+  expect(await screen.findByText("Removed your comment on line 52")).toBeTruthy();
+  expect(read(r, REVIEW)).not.toContain("Second.");
+
+  await click(await screen.findByRole("button", { name: /^Undo/ }));
+
+  await waitFor(() => expect(read(r, REVIEW)).toMatch(/## C2: Line 52\b[^#]*Second\./));
+  await saved("C2 · line 52", "Second.");
+});
+
 /**
  * A block selected from the keyboard, Enter on its toggle as a click, opens its comment with the
  * focus in its field on a wide screen: the letters typed next are the comment's, never the page's
