@@ -34,11 +34,13 @@ whose answers either continue the implementation or revise the spec.
 - **Saving never commits**: a buffer, a form, and a list only save their file, and the edit waits on
   the Git page, unless the action says it commits.
 - **Changes are a tree, staged as in lazygit**: one tree per checkout with changes, the main
-  checkout's first. Space stages a file or a folder, `a` stages or unstages them all, and a staged
-  file keeps its row. Each tree has its own message, empty until typed, and under it its own Commit,
-  where the eye ends after typing, which commits what is staged and says how many files, "Commit 2
-  files"; Enter in the message does the same, the key shown on the button on wide screens. No line
-  under the field explains it, and no second Commit sits in the pane's border.
+  checkout's first. A worktree's tree is set apart from it, its pane's border dashed and blue, a
+  branch's icon and "· worktree" after its feature's name; only the main checkout's changes count on
+  Git. Space stages a file or a folder, `a` stages or unstages them all, and a staged file keeps its
+  row. Each tree has its own message, empty until typed, and under it its own Commit, where the eye
+  ends after typing, which commits what is staged and says how many files, "Commit 2 files"; Enter
+  in the message does the same, the key shown on the button on wide screens. No line under the field
+  explains it, and no second Commit sits in the pane's border.
 - **Plain words where it waits**: a write that saves without committing says so in a toast, "Moved
   to Now · waits on the Git page", not in git's words.
 - **Discard asks first**, through the shared confirmation, and restores one file, as git does.
