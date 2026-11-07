@@ -121,7 +121,8 @@ async function ran<T extends { error?: unknown }>(run: Refusals["run"], call: ()
 
 /**
  * Removes a comment, by its number: the edits kept for the comments after it, and the one open,
- * follow their numbers, back again on its undo, and on again on its redo.
+ * follow their numbers, back again on its undo, and on again on its redo; the comment's own edit
+ * kept, typed but not sent, goes with it, and comes back with it on its undo.
  */
 function useRemove(file: File, commentDraft: Draft, run: Refusals["run"]) {
   const fate = useFateClient();
@@ -137,7 +138,10 @@ function useRemove(file: File, commentDraft: Draft, run: Refusals["run"]) {
     const count = comments.length;
     const text = comments.find((c) => c.number === number)?.text ?? "";
     const keyOf = (n: number) => unsavedKey(repo, reviewEditKey(file.path, n));
+    // The removed comment's own edit, typed but not sent, which its undo puts back.
+    let own: ReturnType<typeof readUnsaved>;
     const removing = () => {
+      own = readUnsaved(keyOf(number));
       renumberUnsaved(keyOf, number, count);
       latest.current.removed(number);
     };
@@ -153,6 +157,9 @@ function useRemove(file: File, commentDraft: Draft, run: Refusals["run"]) {
         redo: removing,
         undo: () => {
           followRestored(keyOf, number, count - 1);
+          if (own) {
+            writeUnsaved(keyOf(number), own);
+          }
           const { draft, start } = latest.current;
           if (draft?.kind === "edit" && draft.number >= number) {
             start({ kind: "edit", number: draft.number + 1 });

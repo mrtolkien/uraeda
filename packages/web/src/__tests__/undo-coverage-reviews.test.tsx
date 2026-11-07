@@ -164,6 +164,26 @@ test("a removed comment's undo brings it back, and an edit typed after it follow
   );
 });
 
+// Break: the removed comment's own edit, typed but not sent, dropped with it for good.
+test("a removed comment's own edit not sent comes back with it on undo", async () => {
+  const r = repo();
+  pending(r, ["First.", "Second."]);
+  await renderPage(PAGE, r);
+  await click(within(await comment("C1 · general")).getByRole("button", { name: "Edit" }));
+  await type(within(await editForm()).getByLabelText("Comment text"), "First, edited.");
+  // The edit of the second comment opens: the first's text stays kept, unsent.
+  await click(within(await comment("C2 · general")).getByRole("button", { name: "Edit" }));
+  await waitFor(async () => expect(within(await editForm()).getByText("Editing C2")).toBeTruthy());
+  await click(within(await comment("C1 · general")).getByRole("button", { name: "Remove" }));
+  await screen.findByText("Removed a comment · waits on the Git page");
+
+  await press("u");
+  await screen.findByText("Undone: removed a comment");
+  await click(within(await comment("C1 · general")).getByRole("button", { name: "Edit" }));
+  await waitFor(async () => expect(within(await editForm()).getByText("Editing C1")).toBeTruthy());
+  expect(fieldText(within(await editForm()).getByLabelText("Comment text"))).toBe("First, edited.");
+});
+
 // Break: Start over's undo leaving the review deleted, or bringing back only part of it.
 test("Start over's undo brings back every comment it dropped", async () => {
   const r = repo();
