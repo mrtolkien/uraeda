@@ -141,7 +141,7 @@ export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
 /** The Git page, read at once, with whether an agent works in each checkout. */
 export type GitPage = Entity<typeof gitPageDataView, "GitPage">;
-/** The sidebar's count: the changes to commit, and the commits to pull. */
+/** The sidebar's count: the main checkout's changes to commit, and the commits to pull. */
 export type GitSummary = Entity<typeof gitSummaryDataView, "GitSummary">;
 /** A file's diff, by `gitDiffId`. */
 export type GitDiff = Entity<typeof gitDiffDataView, "GitDiff">;

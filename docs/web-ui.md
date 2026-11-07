@@ -189,7 +189,7 @@ that asks for a password needs a credential helper or an ssh-agent.
 
 Changes lists every changed file as a tree of folders, in the main checkout's group, then in one
 group per feature's worktree a buffer saved into, set apart by a dashed blue border and marked
-"worktree" after the feature's name. `j` and `k`, or the arrows, move over the rows, Enter folds or
+"worktree" after its name and count. `j` and `k`, or the arrows, move over the rows, Enter folds or
 unfolds a folder, and Space ticks a row's box, staging its file, or every file under a folder. `a`
 stages every file of the group, or unstages them all when all are staged. A staged file keeps its
 row. Each group has its commit message, one line, filled with a default from what is staged:
