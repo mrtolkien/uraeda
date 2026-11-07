@@ -237,7 +237,7 @@ Storybook. If it gains nothing, the build stops here for the compile: see step 6
   as `text/javascript`; `/__requests`, the paths it served, in order, as JSON; mode `hold-modules`,
   which holds every source file's answer until `/__release` is requested.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/server/src/preview/__tests__/warmer.test.ts
@@ -273,19 +273,19 @@ The break each assertion catches: a warmer that fetches only the page; one that 
 base; one that loops on the `Dep`/`Leaf` cycle or fetches twice; one that compiles every story by
 following dynamic imports. The missing import resolving is the test finishing at all.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/server/src/preview/__tests__/warmer.test.ts`
 - Expected: FAIL, the import of `../warmer.ts` cannot be resolved.
 
-- [ ] **Step 3: Implement the fake's serving, and `warmStory`**
+- [x] **Step 3: Implement the fake's serving, and `warmStory`**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Measure on the real Storybook**
+- [x] **Step 5: Measure on the real Storybook**
 
 A throwaway script, outside the repository (in a scratch folder), drives `pnpm exec storybook dev`
 in `packages/web` without `URAEDA_PREVIEW_BASE`, and headless Chromium (`playwright-core` from the
@@ -301,13 +301,13 @@ Note the machine's load average with each run. Write the results as R1 of `rulin
 [the template](/skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md). The warmer
 gains when B's browser time is under 2 seconds and B's total is no longer than A's.
 
-- [ ] **Step 6: Act on the measurement**
+- [x] **Step 6: Act on the measurement**
 
 When the warmer gains: go on. When it does not: delete `warmer.ts` and its test, keep the fake's
 changes, and in tasks 5 and 6 build only what does not compile stories: task 5 is skipped, and task
 6's `warm` is a view. Record it in R1, and say it in the pull request.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/server/src/preview/warmer.ts packages/server/src/preview/__tests__/warmer.test.ts fixtures/preview/serve.mjs packages/binding/test-utils.ts specs/2026-11-07-storybook-previews/rulings.md
