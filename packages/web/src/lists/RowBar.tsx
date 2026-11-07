@@ -271,14 +271,18 @@ function FloatingBar({
 /**
  * The row's actions, in the order given, under the row or its field. On the phone they float at the
  * screen's bottom instead (see `FloatingBar`): `isField` says they are a field's, which stay while
- * the page scrolls; a row's go, then call `onAway`.
+ * the page scrolls; a row's go, then call `onAway`. `isCursor` says it is the keyboard cursor's bar,
+ * whose buttons Tab passes by, as the focus leaving the stop would unmount the bar and drop it on
+ * the page's body, and which is marked `data-stop-bar` for the cursor to keep it inside the margins.
  */
 export function RowBar({
   actions,
+  isCursor = false,
   isField = false,
   onAway,
 }: {
   actions: ReadonlyArray<BarAction>;
+  isCursor?: boolean;
   isField?: boolean;
   onAway?: () => void;
 }) {
@@ -295,12 +299,17 @@ export function RowBar({
   }
   return (
     // A press between its buttons keeps the focus too.
-    <div onMouseDown={keepFocus} {...stylex.props(styles.bar)}>
+    <div
+      {...(isCursor ? { "data-stop-bar": "" } : {})}
+      onMouseDown={keepFocus}
+      {...stylex.props(styles.bar)}
+    >
       {actions.map((action) => (
         <Text color="secondary" key={action.label} type="supporting">
           {/* oxlint-disable-next-line react/forbid-elements -- an action pressed as its key is, drawn as the row's supporting text in a 1px square frame, with no surface, which Astryx's Button, with its own height and surface, does not draw (an Astryx gap) */}
           <button
             onClick={pressed(action)}
+            {...(isCursor ? { tabIndex: -1 } : {})}
             type="button"
             {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit, styles.action)}
           >
