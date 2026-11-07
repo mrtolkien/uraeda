@@ -121,12 +121,28 @@ pub(crate) fn changed_since<'a>(
 }
 
 /// Writes each file's side for `direction`, deleting a file absent on it with the folders it
-/// leaves empty. A failing write puts back the files already written, and fails.
+/// leaves empty. A failing write puts back the files already written, and the one it failed on,
+/// which it may have cut short, and fails.
 pub(crate) fn replay(root: &Path, files: &[ChangedFile], direction: Direction) -> io::Result<()> {
+    replay_with(root, files, direction, &|path, bytes| {
+        fs::write(path, bytes)
+    })
+}
+
+/// Writes a file's bytes: `fs::write`, or a test's write that fails halfway.
+type Write<'a> = dyn Fn(&Path, &[u8]) -> io::Result<()> + 'a;
+
+/// [`replay`], writing each file through `write`.
+fn replay_with(
+    root: &Path,
+    files: &[ChangedFile],
+    direction: Direction,
+    write: &Write,
+) -> io::Result<()> {
     for (done, file) in files.iter().enumerate() {
-        if let Err(error) = put(root, &file.path, file.written(direction)) {
-            for file in &files[..done] {
-                let _ = put(root, &file.path, file.expected(direction));
+        if let Err(error) = put(root, &file.path, file.written(direction), write) {
+            for file in &files[..=done] {
+                let _ = put(root, &file.path, file.expected(direction), write);
             }
             return Err(error);
         }
@@ -135,14 +151,14 @@ pub(crate) fn replay(root: &Path, files: &[ChangedFile], direction: Direction) -
 }
 
 /// Makes the file at `path` hold `bytes`, or not exist.
-fn put(root: &Path, path: &str, bytes: Option<&[u8]>) -> io::Result<()> {
+fn put(root: &Path, path: &str, bytes: Option<&[u8]>, write: &Write) -> io::Result<()> {
     let full = root.join(path);
     match bytes {
         Some(bytes) => {
             if let Some(parent) = full.parent() {
                 fs::create_dir_all(parent)?;
             }
-            fs::write(&full, bytes)
+            write(&full, bytes)
         }
         None => match fs::remove_file(&full) {
             Ok(()) => {
@@ -217,5 +233,33 @@ mod tests {
 
         assert!(replay(root, &files, Direction::Undo).is_err());
         assert_eq!(fs::read(root.join("specs/a.md")).unwrap(), b"after");
+    }
+
+    /// A write that fails halfway, leaving its file cut short, puts that file back too.
+    #[test]
+    fn a_write_failing_halfway_puts_its_own_file_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        fs::write(root.join("specs/a.md"), b"after a").unwrap();
+        fs::write(root.join("specs/b.md"), b"after b").unwrap();
+        let file = |name: &str| ChangedFile {
+            path: format!("specs/{name}.md"),
+            before: Some(format!("before {name}").into_bytes()),
+            after: Some(format!("after {name}").into_bytes()),
+        };
+        let failed = std::cell::Cell::new(false);
+        // The first write of `b.md` truncates it, then fails, as a full disk does.
+        let write = |path: &Path, bytes: &[u8]| {
+            if path.ends_with("b.md") && !failed.replace(true) {
+                fs::write(path, &bytes[..2])?;
+                return Err(io::Error::other("no space left"));
+            }
+            fs::write(path, bytes)
+        };
+
+        assert!(replay_with(root, &[file("a"), file("b")], Direction::Undo, &write).is_err());
+        assert_eq!(fs::read(root.join("specs/a.md")).unwrap(), b"after a");
+        assert_eq!(fs::read(root.join("specs/b.md")).unwrap(), b"after b");
     }
 }
