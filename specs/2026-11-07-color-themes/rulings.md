@@ -139,3 +139,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a role for them is a row of the mapping in `roles.ts`; a hand-picked `mauve-tint` is
   one line of the Latte file, with `scripts/theme-floor.ts` run again.
 - **Where**: task 4
+
+## R12: A shipped theme's floor test reads the floors its roles name
+
+- **Decision**: `theme-roles.test.ts` checks each `-floor` entry a shipped theme's roles name, not
+  every `-floor` entry of its merged palette; the core test of the lists' order leaves out the
+  shipped themes other than the two defaults.
+- **Rationale**: a family's first file without `extends`, such as Dracula or GitHub Dark, extends
+  its mode's default, so its merged palette holds Catppuccin's floors, which no role of its own
+  names; GitHub Light High Contrast's roles name its own published tokens, which reach the floor,
+  not GitHub Light's floors it inherits. The order test listed every shipped theme, and each new
+  file would have broken it.
+- **If wrong**: a stale `-floor` entry left in a shipped file, which no role names, is no longer
+  caught by the test; the floor script still prints only what the roles use.
+- **Where**: task 5
