@@ -1,4 +1,4 @@
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
@@ -9,6 +9,9 @@ const binding = await import("uraeda-binding");
 
 /** SC-005: a saved theme file redraws the page within 1 second. */
 const SC_005_MS = 1000;
+
+/** How long a change through a symlink may take: only SC-005's test is held to its second. */
+const POLL = { timeout: 5000 };
 
 /** A dark theme of the user's, extending Mocha, its `needs-you` the colour `colour`. */
 const ember = (colour: string) =>
@@ -61,15 +64,34 @@ test("a theme file written is served again", async () => {
 });
 
 /** Edge case: a symlinked config folder, as from a dotfiles manager. */
-test("a symlinked themes folder is followed", async () => {
+test("a symlinked themes folder is followed, and pointed elsewhere", async () => {
   const dir = temporaryFolder("uraeda-config");
   const dotfiles = temporaryFolder("uraeda-dotfiles");
   symlinkSync(dotfiles, join(dir, "themes"));
   const themes = await opened(dir);
 
-  const changed = nextChange(themes);
   writeFileSync(join(dotfiles, "ember.toml"), ember("#ff7a45"));
-  await changed;
+  await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ff7a45");
 
+  const other = temporaryFolder("uraeda-dotfiles");
+  writeFileSync(join(other, "ember.toml"), ember("#ee5522"));
+  unlinkSync(join(dir, "themes"));
+  symlinkSync(other, join(dir, "themes"));
+  await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ee5522");
+  writeFileSync(join(other, "ember.toml"), ember("#dd4411"));
+  await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#dd4411");
+});
+
+/** Edge case: a theme file symlinked elsewhere, as by GNU Stow. */
+test("a symlinked theme file is seen changing at its target", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  const dotfiles = temporaryFolder("uraeda-dotfiles");
+  mkdirSync(join(dir, "themes"));
+  writeFileSync(join(dotfiles, "my-ember.toml"), ember("#ff7a45"));
+  symlinkSync(join(dotfiles, "my-ember.toml"), join(dir, "themes", "ember.toml"));
+  const themes = await opened(dir);
   expect(needsYou(themes, "ember")).toBe("#ff7a45");
+
+  writeFileSync(join(dotfiles, "my-ember.toml"), ember("#ee5522"));
+  await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ee5522");
 });

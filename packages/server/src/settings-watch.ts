@@ -1,7 +1,8 @@
 // The watch of the settings file: its folder, or the nearest folder above it that exists until it
 // does, and the folder of the file a symlinked `config.toml` points to, as dotfiles managers make.
-// The themes folder is watched the same way, and its own entries too, through any symlink.
-import { type FSWatcher, realpathSync, statSync, watch } from "node:fs";
+// The themes folder is watched the same way, and its own entries too, through any symlink, and
+// each of its entries that is a symlink at its target.
+import { type FSWatcher, readdirSync, realpathSync, statSync, watch } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 /**
@@ -64,6 +65,18 @@ function entries(path: string): Watched | null {
   }
 }
 
+/** The folders of the files the symlinked entries of the folder `path` point to, as GNU Stow makes. */
+function linkedEntries(path: string): Array<Watched | null> {
+  try {
+    return readdirSync(path, { withFileTypes: true })
+      .filter((entry) => entry.isSymbolicLink())
+      .map((entry) => target(path, join(path, entry.name)));
+  } catch {
+    // Not made yet, or not a folder: no entry to follow.
+    return [];
+  }
+}
+
 /**
  * Watches the file `file` of the folder `dir`, and calls `changed` on each event that may change
  * it, unfiltered by time: the caller waits for a quiet moment. With `folder`, `file` is a folder,
@@ -99,7 +112,9 @@ export class FileWatch {
     for (const watched of [
       nearest(this.#dir, this.#file),
       target(this.#dir, join(this.#dir, this.#file)),
-      this.#folder ? entries(join(this.#dir, this.#file)) : null,
+      ...(this.#folder
+        ? [entries(join(this.#dir, this.#file)), ...linkedEntries(join(this.#dir, this.#file))]
+        : []),
     ]) {
       const identity = watched && folder(watched.path);
       if (watched && identity) {
