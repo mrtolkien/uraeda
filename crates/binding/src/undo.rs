@@ -22,7 +22,8 @@ static CHANGES: Mutex<VecDeque<(String, Change)>> = Mutex::new(VecDeque::new());
 const KEPT: usize = 64;
 
 /// A change as the server hands it over and back: the commit its checkout was at, and each file's
-/// bytes before and after, base64-encoded, `null` on the side where it did not exist.
+/// bytes before and after, base64-encoded, `null` on the side where it did not exist. A file with
+/// the same bytes on both sides is one the write left as it was, kept with the change.
 #[napi(object, use_nullable = true)]
 #[derive(Clone)]
 pub struct ChangeView {
@@ -101,13 +102,25 @@ pub(crate) fn recording<T: ToNapiValue + TypeName + Send + 'static>(
     scope: impl FnOnce(&Path) -> Result<Vec<String>, ApiError> + Send + 'static,
     write: impl FnOnce(&Path) -> Result<T, ApiError> + Send + 'static,
 ) -> AsyncTask<Job<T>> {
+    recording_keeping(repo, token, scope, Vec::new(), write)
+}
+
+/// [`recording`], keeping with the change each file of `kept` the write left as it was, as a
+/// commit may delete it since: see the core's `recorded_keeping`.
+pub(crate) fn recording_keeping<T: ToNapiValue + TypeName + Send + 'static>(
+    repo: String,
+    token: Option<String>,
+    scope: impl FnOnce(&Path) -> Result<Vec<String>, ApiError> + Send + 'static,
+    kept: Vec<String>,
+    write: impl FnOnce(&Path) -> Result<T, ApiError> + Send + 'static,
+) -> AsyncTask<Job<T>> {
     job(move || {
         let repo = Path::new(&repo);
         let Some(token) = token else {
             return write(repo);
         };
         let scope = scope(repo)?;
-        let (value, change) = undo::recorded(repo, &scope, || write(repo))?;
+        let (value, change) = undo::recorded_keeping(repo, &scope, &kept, || write(repo))?;
         keep(token, change);
         Ok(value)
     })

@@ -369,3 +369,55 @@ fn a_symbolic_link_in_a_note_folder_stays_out_of_its_change() {
     assert!(repo.exists(&file));
     assert_eq!(std::fs::read_to_string(&secret).unwrap(), "the secret");
 }
+
+/// An image unlinked from its note, then deleted by the commit that cleans unlinked images: the
+/// removal's undo brings back the link and the image's bytes, and its redo leaves the image to the
+/// next commit.
+#[test]
+fn an_image_removed_then_cleaned_by_a_commit_comes_back_on_undo() {
+    let repo = fixture_repo();
+    let note = "A note with two shots";
+    let read = api::read_inbox(repo.path()).unwrap();
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [
+        (shot.clone(), Some("first.png".to_string())),
+        (shot, Some("second.png".to_string())),
+    ];
+    let (_, file) =
+        api::add_note_with_images(repo.path(), None, None, note, &images, &read.hash).unwrap();
+    api::commit_changes(repo.path()).unwrap();
+    let folder = file.trim_end_matches("/note.md");
+    let first = format!("{folder}/images/first.webp");
+    let (linked, bytes) = (
+        repo.read(&file),
+        std::fs::read(repo.path().join(&first)).unwrap(),
+    );
+
+    let previous = uraeda_core::files::document::hash(&linked);
+    let (_, change) = undo::recorded_keeping(
+        repo.path(),
+        &undo::note_image(&file),
+        std::slice::from_ref(&first),
+        || api::remove_note_image(repo.path(), &file, &first, &previous),
+    )
+    .unwrap();
+    let unlinked = repo.read(&file);
+    assert!(!unlinked.contains("first.webp"), "{unlinked}");
+    // The commit deletes the image no file links any more.
+    api::commit_changes(repo.path()).unwrap();
+    assert!(!repo.exists(&first), "the commit cleans the unlinked image");
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), linked);
+    assert_eq!(std::fs::read(repo.path().join(&first)).unwrap(), bytes);
+
+    undo::apply_change(repo.path(), &change, Direction::Redo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), unlinked);
+    assert!(
+        repo.exists(&first),
+        "the redo leaves the image to the next commit"
+    );
+    // Present and the same, the image does not stop a second undo.
+    undo::apply_change(repo.path(), &change, Direction::Undo, "first.webp").unwrap();
+    assert_eq!(repo.read(&file), linked);
+}
