@@ -25,6 +25,11 @@ const styles = stylex.create({
     marginInlineStart: spacingVars["--spacing-6"],
     overflowWrap: "anywhere",
   },
+  // A comment the cursor stops on shows it held by its tint and its edge alone, as a pane by its
+  // ring: the focus draws no outline of its own over them.
+  stop: {
+    outlineStyle: "none",
+  },
 });
 
 /**
@@ -182,7 +187,12 @@ function NoteBody({
       ref={noteRef}
       role="group"
       {...(onEdit || onRemove ? stopProps("comment") : {})}
-      {...stylex.props(ruleStyles.bar, styles.pending, isHeld && pickedStyles.picked)}
+      {...stylex.props(
+        ruleStyles.bar,
+        styles.pending,
+        (onEdit || onRemove) && styles.stop,
+        isHeld && pickedStyles.picked,
+      )}
     >
       <HStack align="center" gap={2} justify="between" wrap="wrap">
         <Text color="secondary" type="supporting">
