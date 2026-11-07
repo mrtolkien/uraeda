@@ -81,3 +81,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   into one `push(a, b)`, taking it for an array's: the stack takes one entry, so the second would be
   lost silently.
 - **Where**: task 3, `packages/web/src/undo/stack.ts`
+
+## R8: `undo.apply` and `undo.committed` answer one record type
+
+- **Decision**: both mutations answer an `Undo` record, `{ id, commit, committed }`, each setting
+  its own field and the other null, and `undoable` takes the context, whose binding hands over the
+  change.
+- **Rationale**: a fate mutation answers a record type with a data view, a source, and an export for
+  the generated client: one type for two answers read once is half of that. The binding is the
+  context's in the server, as the tests replace it.
+- **If wrong**: splitting it into two types is a second data view and its registrations.
+- **Where**: task 4, `packages/server/src/fate/views-undo.ts`

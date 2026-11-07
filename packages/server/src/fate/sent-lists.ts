@@ -6,6 +6,7 @@ import { INBOX_ID, type InboxRecord, type PrioritiesRecord, sentStep } from "./v
 export function sentInbox(inbox: Inbox): InboxRecord {
   return {
     ...inbox,
+    change: null,
     id: INBOX_ID,
     imageRemoved: null,
     removed: null,
@@ -16,6 +17,7 @@ export function sentInbox(inbox: Inbox): InboxRecord {
 /** The priorities as they are sent: each running feature's step as `sentStep` sends it. */
 export const sentPriorities = (read: Priorities): Omit<PrioritiesRecord, "id"> => ({
   ...read,
+  change: null,
   sections: read.sections.map((section) => ({
     ...section,
     proposals: section.proposals.map(({ running, ...proposal }) => ({

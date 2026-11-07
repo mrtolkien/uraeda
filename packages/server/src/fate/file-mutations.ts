@@ -1,14 +1,26 @@
 /** The mutations that change a workflow file of a feature, each returning the file. */
+import type { FileView } from "uraeda-binding";
 import { refusable } from "./errors.ts";
 import type { Context, RepoContext, Resolver } from "./context.ts";
 import { writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { fileDataView, sentFile, type FileRecord } from "./views.ts";
+import { undoable } from "./undo-mutations.ts";
 import { featureKeys, type Queued, queued } from "./write-queue.ts";
 
 /** The file a mutation changed, masked to the fields the client selected. */
 const file = (ctx: Context, record: FileRecord, select: Array<string>) =>
   sources.masked(fileDataView, ctx, sentFile(record), select);
+
+/** The file an undoable write answers, through `refusable`, with the change it recorded. */
+async function undoableFile(
+  ctx: RepoContext,
+  select: Array<string>,
+  call: (undo: string) => Promise<FileView>,
+) {
+  const { answer, change } = await refusable(() => undoable(ctx, call));
+  return file(ctx, { ...answer, change }, select);
+}
 
 type FileInput = { file: string; folder: string };
 
@@ -143,21 +155,18 @@ export const fileMutations = {
       }
     >) => {
       await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addComment(
-            ctx.repo,
-            input.folder,
-            input.file,
-            input.startLine === undefined
-              ? undefined
-              : { end: input.endLine, start: input.startLine },
-            input.text,
-            input.decision,
-          ),
+      return undoableFile(ctx, select, (undo) =>
+        ctx.binding.addComment(
+          ctx.repo,
+          input.folder,
+          input.file,
+          input.startLine === undefined
+            ? undefined
+            : { end: input.endLine, start: input.startLine },
+          input.text,
+          input.decision,
+          undo,
         ),
-        select,
       );
     },
     type: "WorkflowFile",
@@ -169,12 +178,8 @@ export const fileMutations = {
       select,
     }: Resolver<FileInput & { number: number; text: string }>) => {
       await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.editComment(ctx.repo, input.folder, input.file, input.number, input.text),
-        ),
-        select,
+      return undoableFile(ctx, select, (undo) =>
+        ctx.binding.editComment(ctx.repo, input.folder, input.file, input.number, input.text, undo),
       );
     },
     type: "WorkflowFile",
@@ -182,12 +187,8 @@ export const fileMutations = {
   "review.remove": {
     resolve: async ({ ctx, input, select }: Resolver<FileInput & { number: number }>) => {
       await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.removeComment(ctx.repo, input.folder, input.file, input.number),
-        ),
-        select,
+      return undoableFile(ctx, select, (undo) =>
+        ctx.binding.removeComment(ctx.repo, input.folder, input.file, input.number, undo),
       );
     },
     type: "WorkflowFile",
@@ -208,10 +209,8 @@ export const fileMutations = {
   "review.startOver": {
     resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
       await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() => ctx.binding.startOver(ctx.repo, input.folder, input.file)),
-        select,
+      return undoableFile(ctx, select, (undo) =>
+        ctx.binding.startOver(ctx.repo, input.folder, input.file, undo),
       );
     },
     type: "WorkflowFile",

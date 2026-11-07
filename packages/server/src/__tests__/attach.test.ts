@@ -37,6 +37,7 @@ test("US1.1: an uploaded image is saved next to the proposal", async () => {
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({
+    change: { commit: expect.any(String), files: expect.any(Array) },
     link: "![desktop](images/desktop.webp)",
     path: "specs/2026-10-12-cli-tuis/images/desktop.webp",
   });
