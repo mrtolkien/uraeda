@@ -7,6 +7,7 @@ import type { InboxNote } from "uraeda-binding";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { withFreshBase } from "./freshBase.ts";
+import { rereadingFile } from "./inboxUndo.ts";
 import { notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
@@ -38,15 +39,17 @@ async function shownGone(fate: Fate, placed: Placed) {
 
 /**
  * Records the move of `placed` that answered `change` on the undo stack, as `label`: its undo puts
- * the note back in the inbox, selected there.
+ * the note back in the inbox, selected there. With `file`, the proposal file it wrote, its undo
+ * and redo read that file again too, for its editor: the stack's replay reads only the lists.
  */
 function useRecordMove(placed: Placed) {
   const fate = useFateClient();
   const record = useUndo();
-  return (change: UndoChange | null | undefined, label: string) => {
+  return (change: UndoChange | null | undefined, label: string, file?: string) => {
     if (change) {
       const place = { path: "/inbox", select: placed.note.key };
-      record(changeEntry(fate, change, label, place, placed.note.text));
+      const entry = changeEntry(fate, change, label, place, placed.note.text);
+      record(file === undefined ? entry : rereadingFile(fate, entry, file));
     }
   };
 }
@@ -195,7 +198,7 @@ function useAddsIn(
       return;
     }
     const path = result.result?.path ?? file;
-    recordMove(result.result?.change, `Added to ${shortened(title)}`);
+    recordMove(result.result?.change, `Added to ${shortened(title)}`, path);
     left();
     navigate(here(`/edit/${path}`));
   };
