@@ -28,10 +28,18 @@ export const editOf = (entry: Unsaved | undefined, comment: SettledComment) =>
   entry !== undefined && (entry.subject === undefined || entry.subject === comment.subject);
 
 /**
- * The settled comments being written, by a form or by Submit: Submit waits for them before it
+ * The settled comments being written, by a form, an Undo, or Submit: Submit waits for them before it
  * reads what is still unsaved, which a write in progress has not dropped yet.
  */
 const writing = new Set<Promise<unknown>>();
+
+/** Keeps `run` in `writing` until it settles, and returns it. */
+function tracked<T>(run: Promise<T>): Promise<T> {
+  const done = () => writing.delete(run);
+  writing.add(run);
+  run.then(done, done);
+  return run;
+}
 
 /**
  * The writes of a round's settled comments: `add` and `edit` resolve with nothing once written,
@@ -50,20 +58,17 @@ export function useSettledWrites(
   const undoToast = useUndoToast();
   const [removal, setRemoval] = useState<{ message: string; number: number }>();
   /** Writes `text` from a field, `write` the mutation, known to Submit while it runs. */
-  const written = (field: string, text: string, write: () => Promise<{ error?: unknown }>) => {
-    const run = write().then((result) => {
-      if (result.error) {
-        return refusal(result.error).message;
-      }
-      savedUnsaved(unsavedKey(repo, field), text);
-      onWritten();
-      return undefined;
-    });
-    const done = () => writing.delete(run);
-    writing.add(run);
-    run.then(done, done);
-    return run;
-  };
+  const written = (field: string, text: string, write: () => Promise<{ error?: unknown }>) =>
+    tracked(
+      write().then((result) => {
+        if (result.error) {
+          return refusal(result.error).message;
+        }
+        savedUnsaved(unsavedKey(repo, field), text);
+        onWritten();
+        return undefined;
+      }),
+    );
   const add = (subject: string, text: string) =>
     written(newKey(file.path, subject), text, () =>
       fate.mutations.settled.comment({
@@ -107,12 +112,15 @@ export function useSettledWrites(
       count,
     );
     onRemoved(comment.number);
-    // Its Undo adds it again, with its text, last of the point's comments (R3).
+    // Its Undo adds it again, with its text, last of the point's comments (R3), known to Submit
+    // while it is written, as any other: no field typed it, so no unsaved entry goes.
     undoToast(`Removed your comment on “${comment.subject}”`, async () => {
-      const added = await fate.mutations.settled.comment({
-        input: { folder: file.folder, subject: comment.subject, text: comment.text },
-        view: FileView,
-      });
+      const added = await tracked(
+        fate.mutations.settled.comment({
+          input: { folder: file.folder, subject: comment.subject, text: comment.text },
+          view: FileView,
+        }),
+      );
       return added.error ? refusal(added.error).message : undefined;
     });
   };
