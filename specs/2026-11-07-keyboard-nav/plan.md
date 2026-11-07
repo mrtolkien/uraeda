@@ -304,7 +304,7 @@ by place. Back stays as it is (see [R1](rulings.md#r1-back-stays-a-plain-binding
   review's yellow, without opening the form or moving `last`, and tells `onSelect`; `drop(): void`
   clears a selection while no form is open (`draft?.kind !== "lines"`).
 
-- [ ] **Step 1: Split `useCommentDraft`**, which is at the limit: move the sheet's placement and the
+- [x] **Step 1: Split `useCommentDraft`**, which is at the limit: move the sheet's placement and the
       field's focus effects, or the tap's `select`, out of its body. The tests pass before and
       after. Commit: `refactor(keyboard-nav): split the comment draft`.
 
