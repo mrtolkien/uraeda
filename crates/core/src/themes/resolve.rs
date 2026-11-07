@@ -66,14 +66,23 @@ impl Walk {
         }
     }
 
-    /// The file a theme's id names: a shipped one first, then the user's.
+    /// The file a theme's id names, in any case, an exact match first: a shipped one first, then
+    /// the user's.
     fn lookup(&self, id: &str) -> Option<usize> {
-        let found = |shipped: bool| {
-            self.sources
-                .iter()
-                .position(|source| source.is_shipped == shipped && source.id == id)
+        let found = |shipped: bool, exact: bool| {
+            self.sources.iter().position(|source| {
+                let same = if exact {
+                    source.id == id
+                } else {
+                    source.id.eq_ignore_ascii_case(id)
+                };
+                source.is_shipped == shipped && same
+            })
         };
-        found(true).or_else(|| found(false))
+        found(true, true)
+            .or_else(|| found(false, true))
+            .or_else(|| found(true, false))
+            .or_else(|| found(false, false))
     }
 
     /// Resolves the file at `index`, after the file it extends.
