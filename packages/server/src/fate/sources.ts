@@ -30,6 +30,7 @@ import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import { continuedAllDataView } from "./views-continued-all.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { startPlanDataView } from "./views-start-plan.ts";
+import { undoDataView } from "./views-undo.ts";
 import {
   AGENT_ID,
   agentDataView,
@@ -469,6 +470,8 @@ export const sources = createSources<Context>([
   fileSource(droppedDataView, { byIds: async () => [] }),
   // A start's plan, read once, from `feature.start`: nothing to read again.
   fileSource(startPlanDataView, { byIds: async () => [] }),
+  // An undo's answer, read once, from its mutation: nothing to read again.
+  fileSource(undoDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
       ids.map((text) => ({

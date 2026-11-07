@@ -32,6 +32,7 @@ import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-br
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
 import { startPlanDataView } from "./fate/views-start-plan.ts";
+import { undoDataView } from "./fate/views-undo.ts";
 import { bufferDataView } from "./fate/views-buffer.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
@@ -83,6 +84,7 @@ export {
   storyHrefDataView,
   turnDataView,
   turnLogDataView,
+  undoDataView,
   workflowMessageDataView,
   workspaceDataView,
   writeQueueDataView,
@@ -120,6 +122,8 @@ export type ProposalFile = Entity<typeof proposalFileDataView, "ProposalFile">;
 export type Dropped = Entity<typeof droppedDataView, "Dropped">;
 export type ContinuedAll = Entity<typeof continuedAllDataView, "ContinuedAll">;
 export type StartPlan = Entity<typeof startPlanDataView, "StartPlan">;
+/** An undo's or a redo's answer: see `undo-mutations.ts`. */
+export type Undo = Entity<typeof undoDataView, "Undo">;
 export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
 export type Agent = Entity<typeof agentDataView, "Agent">;

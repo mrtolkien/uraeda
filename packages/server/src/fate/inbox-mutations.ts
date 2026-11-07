@@ -7,7 +7,8 @@
 import type { Resolver } from "./context.ts";
 import type { RemovedImage } from "uraeda-binding";
 import { refusable } from "./errors.ts";
-import { inbox, priorities, proposalFile } from "./masked.ts";
+import { inbox, priorities, proposalFile, undoableInbox } from "./masked.ts";
+import { undoable } from "./undo-mutations.ts";
 import { sources } from "./sources.ts";
 import { fileDataView, type FileRecord, sentFile } from "./views.ts";
 import { listCommit, type Queued } from "./write-queue.ts";
@@ -106,31 +107,23 @@ export const inboxMutations = {
   "inbox.add": {
     resolve: async ({ ctx, input, select }: Resolver<AddInput>) => {
       const { about, category, hash, text } = input;
-      return inbox(
-        ctx,
-        await refusable(() => ctx.binding.addNote(ctx.repo, text, hash, category, about)),
-        select,
+      return undoableInbox(ctx, select, (undo) =>
+        ctx.binding.addNote(ctx.repo, text, hash, category, about, undo),
       );
     },
     type: "Inbox",
   },
   "inbox.addCategory": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; name: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() => ctx.binding.addCategory(ctx.repo, input.name, input.hash)),
-        select,
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.addCategory(ctx.repo, input.name, input.hash, undo),
       ),
     type: "Inbox",
   },
   "inbox.category": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput & { category?: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.moveNoteToCategory(ctx.repo, input.note, input.hash, input.category),
-        ),
-        select,
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.moveNoteToCategory(ctx.repo, input.note, input.hash, input.category, undo),
       ),
     type: "Inbox",
   },
@@ -162,10 +155,12 @@ export const inboxMutations = {
   // images moves.
   "inbox.intoProposal": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput & { file: string }>) => {
-      const path = await refusable(() =>
-        ctx.binding.noteIntoProposal(ctx.repo, input.note, input.file, input.hash),
+      const { answer: path, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.noteIntoProposal(ctx.repo, input.note, input.file, input.hash, undo),
+        ),
       );
-      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select, change);
     },
     type: "ProposalFile",
   },
@@ -173,16 +168,19 @@ export const inboxMutations = {
   // proposal file first. Answers with the new file as written.
   "inbox.intoProposalLine": {
     resolve: async ({ ctx, input, select }: Resolver<UnderProposalInput>) => {
-      const path = await refusable(() =>
-        ctx.binding.noteIntoProposalLine(
-          ctx.repo,
-          input.note,
-          input.proposal,
-          input.hash,
-          input.prioritiesHash,
+      const { answer: path, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.noteIntoProposalLine(
+            ctx.repo,
+            input.note,
+            input.proposal,
+            input.hash,
+            input.prioritiesHash,
+            undo,
+          ),
         ),
       );
-      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select, change);
     },
     type: "ProposalFile",
   },
@@ -192,19 +190,16 @@ export const inboxMutations = {
       input,
       select,
     }: Resolver<{ at?: number; hash: string; kind: string; note: string; text?: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.outlineNote(
-            ctx.repo,
-            input.note,
-            input.at ?? null,
-            input.kind,
-            input.text ?? null,
-            input.hash,
-          ),
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.outlineNote(
+          ctx.repo,
+          input.note,
+          input.at ?? null,
+          input.kind,
+          input.text ?? null,
+          input.hash,
+          undo,
         ),
-        select,
       ),
     type: "Inbox",
   },
@@ -214,12 +209,8 @@ export const inboxMutations = {
       input,
       select,
     }: Resolver<NoteInput & { category?: string; index: number }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.placeNote(ctx.repo, input.note, input.index, input.hash, input.category),
-        ),
-        select,
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.placeNote(ctx.repo, input.note, input.index, input.hash, input.category, undo),
       ),
     type: "Inbox",
   },
@@ -239,32 +230,27 @@ export const inboxMutations = {
       under?: string;
       underAt?: number;
     }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.dropNote(
-            ctx.repo,
-            input.note,
-            input.at ?? null,
-            {
-              index: input.index,
-              list: input.category,
-              under: input.under,
-              underAt: input.underAt,
-            },
-            input.hash,
-          ),
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.dropNote(
+          ctx.repo,
+          input.note,
+          input.at ?? null,
+          {
+            index: input.index,
+            list: input.category,
+            under: input.under,
+            underAt: input.underAt,
+          },
+          input.hash,
+          undo,
         ),
-        select,
       ),
     type: "Inbox",
   },
   "inbox.remove": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput>) =>
-      inbox(
-        ctx,
-        await refusable(() => ctx.binding.removeNote(ctx.repo, input.note, input.hash)),
-        select,
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.removeNote(ctx.repo, input.note, input.hash, undo),
       ),
     type: "Inbox",
   },
@@ -274,10 +260,12 @@ export const inboxMutations = {
       input,
       select,
     }: Resolver<{ hash: string; keepNotes: boolean; name: string }>) => {
-      const result = await refusable(() =>
-        ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash),
+      const { answer, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash, undo),
+        ),
       );
-      return inbox(ctx, result.inbox, select, { removed: result.before });
+      return inbox(ctx, answer.inbox, select, { change, removed: answer.before });
     },
     type: "Inbox",
   },
@@ -290,21 +278,19 @@ export const inboxMutations = {
       input,
       select,
     }: Resolver<{ file: string; hash: string; image: string }>) => {
-      const result = await refusable(() =>
-        ctx.binding.removeNoteImage(ctx.repo, input.file, input.image, input.hash),
+      const { answer, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.removeNoteImage(ctx.repo, input.file, input.image, input.hash, undo),
+        ),
       );
-      return inbox(ctx, result.inbox, select, { imageRemoved: result.removed });
+      return inbox(ctx, answer.inbox, select, { change, imageRemoved: answer.removed });
     },
     type: "Inbox",
   },
   "inbox.renameCategory": {
     resolve: async ({ ctx, input, select }: Resolver<{ from: string; hash: string; to: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.renameCategory(ctx.repo, input.from, input.to, input.hash),
-        ),
-        select,
+      undoableInbox(ctx, select, (undo) =>
+        ctx.binding.renameCategory(ctx.repo, input.from, input.to, input.hash, undo),
       ),
     type: "Inbox",
   },
@@ -330,46 +316,55 @@ export const inboxMutations = {
   // shows it from the move's own optimistic result, and the inbox follows by its live update.
   "inbox.toProposal": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {
-      await refusable(() =>
-        ctx.binding.noteToProposal(
-          ctx.repo,
-          input.note,
-          input.section,
-          input.hash,
-          input.prioritiesHash,
+      const { change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.noteToProposal(
+            ctx.repo,
+            input.note,
+            input.section,
+            input.hash,
+            input.prioritiesHash,
+            undo,
+          ),
         ),
       );
-      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
+      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select, change);
     },
     type: "Priorities",
   },
   "inbox.toProposalFile": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {
-      const path = await refusable(() =>
-        ctx.binding.noteToProposalFile(
-          ctx.repo,
-          input.note,
-          input.section,
-          input.hash,
-          input.prioritiesHash,
+      const { answer: path, change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.noteToProposalFile(
+            ctx.repo,
+            input.note,
+            input.section,
+            input.hash,
+            input.prioritiesHash,
+            undo,
+          ),
         ),
       );
-      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select, change);
     },
     type: "ProposalFile",
   },
   "inbox.underProposal": {
     resolve: async ({ ctx, input, select }: Resolver<UnderProposalInput>) => {
-      await refusable(() =>
-        ctx.binding.noteUnderProposal(
-          ctx.repo,
-          input.note,
-          input.proposal,
-          input.hash,
-          input.prioritiesHash,
+      const { change } = await refusable(() =>
+        undoable(ctx, (undo) =>
+          ctx.binding.noteUnderProposal(
+            ctx.repo,
+            input.note,
+            input.proposal,
+            input.hash,
+            input.prioritiesHash,
+            undo,
+          ),
         ),
       );
-      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select, { change });
     },
     type: "Inbox",
   },
