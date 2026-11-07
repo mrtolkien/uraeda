@@ -309,10 +309,10 @@ puts files back.
     checkout's `HEAD`, or its branch's tip without a checkout, holds any of the change's files
     differently from `change.commit`, by `Git::entry_id`.
   - The scopes of `api::undo`, constants `&[&str]`: `INBOX` (`specs/INBOX.md`), `NOTES`
-    (`specs/INBOX.md`, `specs/notes`), `PRIORITIES` (`specs/PRIORITIES.md`), `PROMOTION`
-    (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes`, `specs/proposals`),
-    `RELINKING_PROMOTION` (`PROMOTION` and `MARKDOWN`, every Markdown file of `specs/`), `EXPAND`
-    (`specs/PRIORITIES.md`, `specs/proposals`); and functions:
+    (`specs/INBOX.md`, `specs/notes`), `NOTE_IMAGES` (`NOTES` and `MARKDOWN`), `PRIORITIES`
+    (`specs/PRIORITIES.md`), `PROMOTION` (`specs/INBOX.md`, `specs/PRIORITIES.md`, `specs/notes`,
+    `specs/proposals`), `RELINKING_PROMOTION` (`PROMOTION` and `MARKDOWN`, every Markdown file of
+    `specs/`), `EXPAND` (`specs/PRIORITIES.md`, `specs/proposals`); and functions:
     `review(repo, folder, file) -> Result<Vec<String>>`, the review file's path, read from the
     feature's folder; `note_image(file) -> Vec<String>`, the inbox and the folder of the note file
     or proposal file an image leaves; `attached(path) -> Vec<String>`, the file and its folder, or,
@@ -330,13 +330,13 @@ puts files back.
     and `committedSince(repo, change: ChangeView): Promise<boolean>`.
   - The functions given a token, with their scope: `addNote`, `outlineNote`, `dropNote`,
     `placeNote`, `moveNoteToCategory`, `addCategory`, `renameCategory` (`INBOX`); `removeNote` and
-    the outline's `remove` kind, `removeCategory`, `addNoteWithImages`, `attachNoteImages`
-    (`NOTES`); `removeNoteImage` (`note_image(file)`); `noteToProposal`, `noteUnderProposal`
-    (`PROMOTION`); `noteToProposalFile`, `noteIntoProposal`, `noteIntoProposalLine`
-    (`RELINKING_PROMOTION`); `addProposal`, `outlineProposal`, `dropProposal`, `moveProposal`,
-    `editProposal`, `removeProposal` (`PRIORITIES`); `expandProposal` (`EXPAND`); `addComment`,
-    `editComment`, `removeComment`, `startOver` (`review(repo, folder, file)`); `attachImage`
-    (`attached(path)`).
+    the outline's `remove` kind, `removeCategory`, `addNoteWithImages` (`NOTES`); `attachNoteImages`
+    (`NOTE_IMAGES`, ruling R6); `removeNoteImage` (`note_image(file)`); `noteUnderProposal`
+    (`PROMOTION`); `noteToProposal`, `noteToProposalFile`, `noteIntoProposal`,
+    `noteIntoProposalLine` (`RELINKING_PROMOTION`); `addProposal`, `outlineProposal`,
+    `dropProposal`, `moveProposal`, `editProposal`, `removeProposal` (`PRIORITIES`);
+    `expandProposal` (`EXPAND`); `addComment`, `editComment`, `removeComment`, `startOver`
+    (`review(repo, folder, file)`); `attachImage` (`attached(path)`).
   - Two functions keep within clippy's 7 arguments by folding two of theirs (ruling R5):
     `addComment(repo, folder, file, lines?: CommentLines, text, decision?, undo?)`, with
     `CommentLines { start: number, end?: number }`, and

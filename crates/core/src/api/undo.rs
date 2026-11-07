@@ -18,8 +18,11 @@ use crate::workspace::Workspace;
 
 /// The inbox alone: a note's add, edit, and move, and a category's add and rename.
 pub const INBOX: &[&str] = &["specs/INBOX.md"];
-/// The inbox and the note files: a note's removal, a category's, and a note's images.
+/// The inbox and the note files: a note's removal, a category's, and a note's added with images.
 pub const NOTES: &[&str] = &["specs/INBOX.md", "specs/notes"];
+/// The inbox, the note files, and every Markdown file of `specs/`: a note's images, which make a
+/// single note file a folder and point the links of every file at where it went.
+pub const NOTE_IMAGES: &[&str] = &["specs/INBOX.md", "specs/notes", MARKDOWN];
 /// The priorities alone: a proposal's add, edit, move, and removal.
 pub const PRIORITIES: &[&str] = &["specs/PRIORITIES.md"];
 /// Both lists and the files they link: a note's promotion.
@@ -30,7 +33,7 @@ pub const PROMOTION: &[&str] = &[
     "specs/proposals",
 ];
 /// Both lists, the files they link, and every Markdown file of `specs/`: a promotion that moves a
-/// note file, or takes it into a proposal, and points the links of every file at where it went.
+/// note file, to a level or into a proposal file, or takes it into a proposal, and points the links of every file at where it went.
 pub const RELINKING_PROMOTION: &[&str] = &[
     "specs/INBOX.md",
     "specs/PRIORITIES.md",
