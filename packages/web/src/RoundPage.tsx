@@ -1,5 +1,6 @@
 import { type ReactNode, type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
+import { useCursor } from "./cursor/useCursor.ts";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
@@ -30,6 +31,8 @@ type File = NonNullable<ReturnType<typeof useFile>>;
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
   const agent = useAgent();
+  // The keyboard's cursor, from question to question and on through the round's end.
+  useCursor();
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
@@ -129,6 +132,7 @@ function RoundBody({
   children: ReactNode;
   file: File;
   onAsk?: {
+    about: (subject: string) => void;
     point: (subject: string, text: string) => Promise<string | undefined>;
     question: (question: { id: string; title: string }) => void;
   };
@@ -145,7 +149,7 @@ function RoundBody({
   if (!round) {
     return null;
   }
-  const asks = onAsk ? { onAsk: onAsk.point } : {};
+  const asks = onAsk ? { onAsk: onAsk.point, onAskAbout: onAsk.about } : {};
   // On the phone, a band before the settled points of the end, which a wide screen draws in panes.
   const ends = round.settledGroups.some((group) => group.kind !== "check" && group.points > 0);
   return (

@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 import type { Block, Document, SettledGroup, SettledPoint } from "uraeda-binding";
 import { topBlock } from "./Folds.tsx";
 import { Blocks } from "./Blocks.tsx";
+import type { StopKey } from "./cursor/StopKeys.tsx";
 import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -75,22 +76,42 @@ function partOf(file: File, part: SettledPart | undefined) {
 }
 
 /**
+ * A settled point's keys while the keyboard's cursor holds its block: Enter comments on it, as a tap
+ * does, and `s` asks the agent about it, with `onAskAbout`.
+ */
+function pointKeys(
+  block: Block,
+  onTap: (block: Block) => void,
+  point: SettledPoint | undefined,
+  onAskAbout: ((subject: string) => void) | undefined,
+): ReadonlyArray<StopKey> {
+  const comment: StopKey = { bar: "⏎", keys: "Enter", label: "comment", run: () => onTap(block) };
+  return point && onAskAbout
+    ? [comment, { bar: "s", keys: "s", label: "ask", run: () => onAskAbout(point.subject) }]
+    : [comment];
+}
+
+/**
  * The points a round settled without the human, in their groups, with their comments under them.
  * While the round awaits the human, a point that starts in bold is tapped to comment on it, in a
  * form under it on wide screens and in a sheet on the phone, and its comments have Edit and
  * Remove. Each form's text is kept in the unsaved store; the one holding text when the page is
  * drawn opens again, "Under the hood" opened for it. With `part`, only that part's points, with
  * a comment form of their own: "Check these", or the groups of the round's end. With `onAsk`, a new
- * comment's form has "Ask AI", which sends its text to the feature's session instead.
+ * comment's form has "Ask AI", which sends its text to the feature's session instead. A point's
+ * block held by the keyboard's cursor comments on it with Enter, as a tap does, and with
+ * `onAskAbout`, asks the agent about it with `s`.
  */
 export function SettledPoints({
   file,
   onAsk,
+  onAskAbout,
   part,
   readOnly,
 }: {
   file: File;
   onAsk?: (subject: string, text: string) => Promise<string | undefined>;
+  onAskAbout?: (subject: string) => void;
   part?: SettledPart;
   readOnly: boolean;
 }) {
@@ -139,16 +160,18 @@ export function SettledPoints({
       </>
     );
   };
+  const onTap = (block: Block) => {
+    const point = pointOf(block);
+    if (point && !newOn(block)) {
+      setOpen({ kind: "new", point });
+    }
+  };
   const selection = {
     after,
     canSelect: (block: Block) => !readOnly && pointOf(block) !== undefined,
     isSelected: newOn,
-    onTap: (block: Block) => {
-      const point = pointOf(block);
-      if (point && !newOn(block)) {
-        setOpen({ kind: "new", point });
-      }
-    },
+    keys: (block: Block) => pointKeys(block, onTap, pointOf(block), onAskAbout),
+    onTap,
   };
 
   return (

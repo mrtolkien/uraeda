@@ -3,7 +3,12 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useContext, useEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
+import { useHeld } from "./cursor/held.ts";
+import { StopBar, type StopKey, useStopKeys } from "./cursor/StopKeys.tsx";
+import { stopProps } from "./cursor/stops.ts";
+import { usePress } from "./keys/registry.tsx";
 import { glassStyles } from "./layout/glass.ts";
+import { pickedStyles } from "./layout/picked.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { useStuck } from "./layout/useStuck.ts";
@@ -15,12 +20,17 @@ import {
   QuestionContext,
   QuestionHead,
 } from "./Question.tsx";
-import { AnswerComment } from "./QuestionComment.tsx";
+import { AnswerComment, commentFieldId } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 import { StoryContext } from "./stories.tsx";
 import { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
+  // The card's ring shows the keyboard's cursor on it: the section, which holds the focus, draws
+  // none of its own, which would ring the card twice.
+  card: {
+    outlineStyle: "none",
+  },
   // A box left out of the layout: its children are laid out by its parent.
   contents: {
     display: "contents",
@@ -209,6 +219,51 @@ function useStoryComments(
     : stories;
 }
 
+/** The letters a held card's keys pick, `g` and later left out: `g` starts a go. */
+const KEY_LETTERS = new Set(["A", "B", "C", "D", "E", "F"]);
+
+/**
+ * A question's card as a stop of the keyboard's cursor: held, its options' letters from `a` to `f`
+ * toggle them and save, but on a read-only round, which leaves the letters to the page; `i` or
+ * Enter focuses its comment field, and `s` asks the agent, with `onAsk`. Its bar also names the
+ * page's `n`, which goes on to the next blank question, pressed as the key is: the card does not
+ * take it. The section is kept in a state, as its keys' bar is drawn from what it holds.
+ */
+function useQuestionStop(
+  answer: ReturnType<typeof useAnswer>,
+  question: QuestionItem,
+  readOnly: boolean,
+  onAsk?: (question: QuestionItem) => void,
+) {
+  const [section, setSection] = useState<HTMLElement | null>(null);
+  const held = useHeld({ current: section });
+  const press = usePress();
+  const keys: Array<StopKey> = [];
+  if (!readOnly) {
+    const letters = question.options.map((o) => o.letter).filter((l) => KEY_LETTERS.has(l));
+    for (const [index, letter] of letters.entries()) {
+      const lower = letter.toLowerCase();
+      keys.push({
+        ...(index === 0 ? { bar: letters.join(" ").toLowerCase() } : {}),
+        keys: lower,
+        label: "pick",
+        run: () => answer.toggle(letter),
+      });
+    }
+    const comment = () => void document.getElementById(commentFieldId(question.id))?.focus();
+    keys.push(
+      { bar: "i", keys: "i", label: "comment", run: comment },
+      { keys: "Enter", label: "comment", run: comment },
+    );
+  }
+  if (onAsk) {
+    keys.push({ bar: "s", keys: "s", label: "ask", run: () => onAsk(question) });
+  }
+  useStopKeys(keys, held);
+  const shown = [...keys, { bar: "n", keys: "n", label: "unanswered", run: () => press("n") }];
+  return { bar: <StopBar held={held} keys={shown} />, held, setSection };
+}
+
 /**
  * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of
  * its options holding stories and none of its parts a table, a mockup, or a story: its title and context on the left, its options and comment on the
@@ -244,6 +299,7 @@ export function QuestionCard({
   const { split, text, wide, width, windowed } = useCardLayout(document, question, roomy);
   const comments = useStoryComments(answer, path, question, readOnly);
   const margin = useScrollMargin();
+  const { bar, held, setSection } = useQuestionStop(answer, question, readOnly, onAsk);
   const head = <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />;
   const context = <QuestionContext document={document} question={question} />;
   const answering = (
@@ -266,11 +322,18 @@ export function QuestionCard({
   // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
-      <section id={question.id} {...stylex.props(margin, width, windowed && styles.windowed)}>
+      <section
+        // A pane to the keyboard's cursor, shown whole as it moves onto it, where it fits.
+        data-pane=""
+        id={question.id}
+        ref={setSection}
+        {...stopProps("pane")}
+        {...stylex.props(styles.card, margin, width, windowed && styles.windowed)}
+      >
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
-          xstyle={!wide && styles.flat}
+          xstyle={[!wide && styles.flat, held && pickedStyles.pane]}
         >
           <div
             {...stylex.props(
@@ -287,6 +350,7 @@ export function QuestionCard({
             </div>
             {answering}
           </div>
+          {bar}
         </Card>
       </section>
     </StoryContext>
