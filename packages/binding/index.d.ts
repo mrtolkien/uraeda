@@ -137,6 +137,12 @@ export declare function checkoutCommit(checkout: string): Promise<string | null>
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
 
+/**
+ * The version of the code the checkout at `checkout` has checked out, which a commit changing only
+ * `specs/` keeps: `null` before its first commit. Its preview starts again once it moves.
+ */
+export declare function codeVersion(checkout: string): Promise<string | null>
+
 /** The lines a comment is on, from `start` to `end`, the line `start` alone without `end`. */
 export interface CommentLines {
   start: number

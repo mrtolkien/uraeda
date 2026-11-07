@@ -84,7 +84,7 @@ pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
 pub use outlines::{drop_note, drop_proposal, outline_note, outline_proposal};
-pub use preview::{checkout_commit, preview};
+pub use preview::{checkout_commit, code_version, preview};
 pub(crate) use proposal_edits::joined_priorities;
 pub use proposal_edits::{
     add_proposal, add_proposal_and_commit, commit_priorities, discard_priorities, edit_proposal,
