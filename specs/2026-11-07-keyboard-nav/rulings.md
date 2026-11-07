@@ -127,3 +127,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `s` opening the comment form, as Enter does, for its "Ask AI": two
   keys doing one thing, and the ask still a Tab away.
 - **Where**: task 7, `RoundColumn.tsx` (`useRoundActions`), `SettledPoints.tsx` (`pointKeys`)
+
+## R11: The cursor holds a focus a key brought, on a page that has it
+
+- **Decision**: R2 narrowed. A stop is held when the focus arrived on it while the last input was a
+  key, the last input is still a key, and a mounted page has the cursor (`useCursor` turns it on in
+  `held.ts`). A stop a click focused stays free under the keys that follow, until a key moves the
+  focus. On a page without the cursor, nothing is held: Tab onto a fold's or a block's toggle draws
+  Astryx's ring alone, a mouse move leaves the focus where it is, and Escape out of a field inside a
+  stop gives the focus back to nothing.
+- **Rationale**: the focus and the last input alone held a pending comment a click had focused,
+  `tabIndex` -1, once any key followed, so a click, a key, then `d` deleted it. The stops are marked
+  by shared components, drawn on pages that mount no cursor, where the held look, the blur on a
+  mouse move, and the refocus on Escape acted for a cursor that was not there.
+- **Where**: review of task 5, `cursor/held.ts`, `cursor/useCursor.ts`
