@@ -329,8 +329,8 @@ puts files back.
   - `applyChange(repo, change: ChangeView, direction: "undo" | "redo", subject: string): Promise<string | null>`
     and `committedSince(repo, change: ChangeView): Promise<boolean>`.
   - The functions given a token, with their scope: `addNote`, `outlineNote`, `dropNote`,
-    `placeNote`, `moveNoteToCategory` (`INBOX`); `removeNote` and the outline's `remove` kind,
-    `removeCategory`, `addCategory`, `renameCategory`, `addNoteWithImages`, `attachNoteImages`
+    `placeNote`, `moveNoteToCategory`, `addCategory`, `renameCategory` (`INBOX`); `removeNote` and
+    the outline's `remove` kind, `removeCategory`, `addNoteWithImages`, `attachNoteImages`
     (`NOTES`); `removeNoteImage` (`note_image(file)`); `noteToProposal`, `noteUnderProposal`
     (`PROMOTION`); `noteToProposalFile`, `noteIntoProposal`, `noteIntoProposalLine`
     (`RELINKING_PROMOTION`); `addProposal`, `outlineProposal`, `dropProposal`, `moveProposal`,
