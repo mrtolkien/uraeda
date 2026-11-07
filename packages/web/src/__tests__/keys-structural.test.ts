@@ -41,6 +41,8 @@ const LISTENERS = new RegExp(
     // and its keys in Vim's normal mode, `normalKeys={...}`.
     String.raw`\beventHandlers:`,
     String.raw`<(Editor|TextLine|TextField)\b[^<]*?\b(keys|normalKeys)=\{`,
+    // The registry's watch, which hears every key before the bindings run (R6).
+    String.raw`\bwatchKeys\(`,
   ].join("|"),
   "g",
 );
@@ -74,6 +76,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
       "a one-line field's own keys, the editor's: Down and Up move along the folders it suggests",
   },
   "attach/useImageDrop.ts": { hits: 1, reason: "drag and drop events, named in a loop: no key" },
+  "cursor/held.ts": {
+    hits: 1,
+    reason:
+      "the cursor's watch of the registry's keys (R6): a key makes the last input one, and Escape " +
+      "out of a text field inside a stop gives the stop back the focus the field let go",
+  },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
   "fields/Confirm.tsx": {
     hits: 4,
@@ -124,7 +132,10 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason: "notes that the human scrolled or typed, to keep the page's place: it acts on no key",
   },
-  "keys/registry.tsx": { hits: 8, reason: "the registry: the one window listener" },
+  "keys/registry.tsx": {
+    hits: 9,
+    reason: "the registry: the one window listener, and `watchKeys`, which hands its keys on",
+  },
   "KindCards.tsx": {
     hits: 1,
     reason: "a radio group's own keys: the arrows move between its cards",
@@ -230,6 +241,7 @@ test("the scan sees each form of key listener and each copy of the layer rule", 
     "keymap.of([...defaultKeymap])",
     "ViewPlugin.fromClass(Plugin, { eventHandlers: { keydown() {} } })",
     '<Editor keys={[{ key: "Tab", run }]} />',
+    "watchKeys(onKey)",
   ];
   for (const sample of listeners) {
     expect(sample.match(LISTENERS), sample).not.toBeNull();

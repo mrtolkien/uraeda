@@ -60,9 +60,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: `cursor/held.ts` learns that the last input was a key from `watchKeys` in
   [`keys/registry.tsx`](/packages/web/src/keys/registry.tsx): the registry's one window listener
-  hands every key to its watchers before it runs a binding. A watcher acts on no key. A pointer's
+  hands every key to its watchers before it runs a binding. A watcher binds no shortcut and stops no
+  key; the cursor's acts only on Escape out of a text field, which no binding hears. A pointer's
   press, and a mouse's move that moves the pointer, are heard on the document, as
-  [`pointerMoved.ts`](/packages/web/src/pointerMoved.ts) hears its moves.
+  [`pointerMoved.ts`](/packages/web/src/pointerMoved.ts) hears its moves. The structural test scans
+  for `watchKeys(` too, with `cursor/held.ts` on its list, so a new watcher is seen.
 - **Rationale**: the structural test forbids a key listener outside the registry, and the allowlist
   is for keys a field, a dialog, or an overlay owns, which this is not. A guess from the focus
   alone, a focus with no pointer press before it, would take a field's focus after a save, or a

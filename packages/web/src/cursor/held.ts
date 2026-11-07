@@ -1,9 +1,9 @@
 // Whether the keyboard's cursor holds a stop: the stop has the browser's focus, and the last input
 // was a key (R2). A click focuses a button in Chrome, so the focus alone would show the cursor under
 // the mouse; `:focus-visible` says the same in a browser, but not in happy-dom, where the tests run.
-// The keys are heard through the registry's watch, which acts on none; a mouse moving the pointer
-// hides the cursor, as a press of any pointer does, and Escape out of a text field inside a stop
-// gives the stop back the focus, held.
+// The keys are heard through the registry's watch, which binds none; a mouse moving the pointer
+// hides the cursor, as a press of any pointer does, and Escape out of a text field inside a stop,
+// which no binding hears, gives the stop back the focus, held (R6).
 import { type RefObject, useSyncExternalStore } from "react";
 import { inTextField } from "../keys/fields.ts";
 import { watchKeys } from "../keys/registry.tsx";
