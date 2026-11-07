@@ -521,7 +521,7 @@ stretch ("J K range"); `s` asks about the range, else the block ("s ask"), when 
 Escape drops a range, and returns `false` with none; `j` `k` and the arrows drop a range and return
 `false`, so the cursor moves on. A read-only document's held block has `s` alone.
 
-- [ ] **Step 1: Split `SpecLayout`**, which is at the limit, as the tests pass before and after.
+- [x] **Step 1: Split `SpecLayout`**, which is at the limit, as the tests pass before and after.
       Commit: `refactor(keyboard-nav): split the spec's layout`.
 
 - [ ] **Step 2: Write the failing test**

@@ -261,6 +261,22 @@ function groups({
 }
 
 /**
+ * The feature's data model, drawn in the spec's Data part, if it has one: as the spec, the version
+ * committed while it waits for a review, `isReviewed`, else the disk's.
+ */
+function useDataModel(file: File, isReviewed: boolean) {
+  const dataFile = useFile(file.folder, "data-model.md");
+  const dataVersion =
+    dataFile && !dataFile.missing
+      ? isReviewed
+        ? (dataFile.committed ?? dataFile.current)
+        : dataFile.current
+      : undefined;
+  const dataModel = dataVersion?.items.dataModel;
+  return dataVersion && dataModel && { model: dataModel, version: dataVersion };
+}
+
+/**
  * The page of a spec, `version` of `file`, drawn from its items, with `review` while it waits: its
  * comments, its selection, and its verdict, at the page's end.
  */
@@ -277,16 +293,7 @@ function SpecLayout({
   session: PageSession | undefined;
   wide: boolean;
 }) {
-  const dataFile = useFile(file.folder, "data-model.md");
-  // As the spec, the data model waiting for a review is the committed one, not the disk's.
-  const dataVersion =
-    dataFile && !dataFile.missing
-      ? review
-        ? (dataFile.committed ?? dataFile.current)
-        : dataFile.current
-      : undefined;
-  const dataModel = dataVersion?.items.dataModel;
-  const data = dataVersion && dataModel && { model: dataModel, version: dataVersion };
+  const data = useDataModel(file, review !== undefined);
   const version = review?.version ?? file.current;
   const items = version.items.spec;
   // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its
