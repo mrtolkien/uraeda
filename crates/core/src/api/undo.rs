@@ -10,7 +10,7 @@ use std::sync::Arc;
 use super::buffer::{branch_of, inside};
 use super::{ApiError, Result, default_checkout, open, refused, write_lock};
 use crate::actions::change;
-pub use crate::actions::change::{Change, ChangedFile, Direction};
+pub use crate::actions::change::{Change, ChangedFile, Direction, MARKDOWN};
 use crate::actions::{attach, place, review};
 use crate::cache;
 use crate::git::Git;
@@ -28,6 +28,15 @@ pub const PROMOTION: &[&str] = &[
     "specs/PRIORITIES.md",
     "specs/notes",
     "specs/proposals",
+];
+/// Both lists, the files they link, and every Markdown file of `specs/`: a promotion that moves a
+/// note file, or takes it into a proposal, and points the links of every file at where it went.
+pub const RELINKING_PROMOTION: &[&str] = &[
+    "specs/INBOX.md",
+    "specs/PRIORITIES.md",
+    "specs/notes",
+    "specs/proposals",
+    MARKDOWN,
 ];
 /// The priorities and the proposal files: a proposal's expansion into a file.
 pub const EXPAND: &[&str] = &["specs/PRIORITIES.md", "specs/proposals"];
@@ -51,15 +60,22 @@ pub fn note_image(file: &str) -> Vec<String> {
     vec![INBOX[0].to_string(), folder.to_string()]
 }
 
-/// What attaching an image to the Markdown file `path` writes: its folder, or, for a single
-/// proposal file or note file, which becomes a folder and has its links followed, all of `specs/`.
+/// What attaching an image to the Markdown file `path` writes: the file and its folder, or, for a
+/// single proposal file or note file, which becomes a folder named after it and has its links
+/// followed, the file, the folders named after it, and every Markdown file of `specs/`.
 pub fn attached(path: &str) -> Vec<String> {
-    let folder = match path.rsplit_once('/') {
-        Some(_) if attach::is_single(path) => "specs",
-        Some((folder, _)) => folder,
-        None => path,
-    };
-    vec![path.to_string(), folder.to_string()]
+    match path.rsplit_once('/') {
+        Some((folder, name)) if attach::is_single(path) => {
+            let slug = name.strip_suffix(".md").unwrap_or(name);
+            vec![
+                path.to_string(),
+                format!("{folder}/{slug}*"),
+                MARKDOWN.to_string(),
+            ]
+        }
+        Some((folder, _)) => vec![path.to_string(), folder.to_string()],
+        None => vec![path.to_string()],
+    }
 }
 
 /// Runs `write` under the repository's write lock, and returns what it answers with the change it

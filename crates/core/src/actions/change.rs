@@ -52,12 +52,39 @@ impl ChangedFile {
     }
 }
 
-/// The bytes of every file under each of `scope`'s paths, files or folders, from `root`.
+/// A scope's entry for every Markdown file of `specs/`, at any depth: the files a relink may
+/// write, without the images and other files beside them.
+pub const MARKDOWN: &str = "specs/**/*.md";
+
+/// The bytes of every file under each of `scope`'s entries, from `root`: a file or a folder,
+/// [`MARKDOWN`], or a folder's path and the start of a name followed by `*`, every file or folder
+/// of that folder whose name starts so, as `specs/proposals/look*`.
 pub(crate) fn snapshot(root: &Path, scope: &[&str]) -> BTreeMap<String, Vec<u8>> {
     scope
         .iter()
-        .flat_map(|path| files_under(root, path.trim_end_matches('/')))
+        .flat_map(|entry| scoped(root, entry.trim_end_matches('/')))
         .filter_map(|file| Some((file.clone(), fs::read(root.join(&file)).ok()?)))
+        .collect()
+}
+
+/// The files of one scope's `entry`, as [`snapshot`] reads them.
+fn scoped(root: &Path, entry: &str) -> Vec<String> {
+    if entry == MARKDOWN {
+        let mut files = files_under(root, SPECS);
+        files.retain(|file| file.ends_with(".md"));
+        return files;
+    }
+    let Some((folder, start)) = entry.strip_suffix('*').and_then(|it| it.rsplit_once('/')) else {
+        return files_under(root, entry);
+    };
+    let Ok(entries) = fs::read_dir(root.join(folder)) else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.starts_with(start))
+        .flat_map(|name| files_under(root, &format!("{folder}/{name}")))
         .collect()
 }
 
