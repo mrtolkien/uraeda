@@ -17,18 +17,35 @@ function column(top: number, count: number, height = 40, gap = 20): Array<Box> {
 }
 
 test("with no cursor, a key takes the topmost stop on screen", () => {
-  // Stops from -200: those at -200, -140, -80 and -20 end above the top bar; the one at 40 ends
-  // under it, at 80, the topmost on screen, as after a scroll by Ctrl+D.
+  // Stops from -200: those at -200, -140, -80 and -20 end above the top bar; the one at 40 only
+  // peeks under it, to 80, and the one at 100 is the topmost whose top is on screen, as after a
+  // scroll by Ctrl+D.
   const stops = column(-200, 20);
   const rows: Array<[string, number | null, 1 | -1, number]> = [
-    ["j with no cursor", null, 1, 4],
-    ["k with no cursor", null, -1, 4],
-    ["j with the cursor scrolled off above", 1, 1, 4],
-    ["k with the cursor scrolled off below", 19, -1, 4],
+    ["j with no cursor", null, 1, 5],
+    ["k with no cursor", null, -1, 5],
+    ["j with the cursor scrolled off above", 1, 1, 5],
+    ["k with the cursor scrolled off below", 19, -1, 5],
   ];
   for (const [row, current, direction, focus] of rows) {
     expect(cursorStep(stops, current, direction, VIEW)?.focus, row).toBe(focus);
   }
+  expect(cursorStep(stops, null, 1, VIEW), "it scrolls into the margins").toEqual({
+    focus: 5,
+    scrollBy: 100 - (60 + 100),
+  });
+  // A stop whose top is above the view but which reaches into it, with none under it on screen.
+  const tall = [{ bottom: 2000, top: -500 }];
+  expect(cursorStep(tall, null, 1, VIEW), "none whose top is on screen").toEqual({
+    focus: 0,
+    scrollBy: -500 - (60 + 100),
+  });
+  // A pane that fits, its stop inside the margins: the pane shows whole, as a move into it.
+  const pane = { bottom: 1270, id: 1, top: 690 };
+  expect(cursorStep([{ bottom: 740, pane, top: 700 }], null, 1, VIEW), "into a pane").toEqual({
+    focus: 0,
+    scrollBy: 1270 - 860,
+  });
   expect(cursorStep([], null, 1, VIEW), "no stop").toBeNull();
   expect(cursorStep(column(900, 3), null, 1, VIEW), "no stop on screen or under it").toEqual({
     focus: 0,
@@ -101,9 +118,12 @@ test("a stop taller than the room scrolls through before the next", () => {
   // Back up, `k` reads it to its top before leaving it.
   const above = [{ bottom: 100, top: 40 }, ...card(-640).slice(0, 1)];
   expect(cursorStep(above, 1, -1, VIEW), "k at its end").toEqual({ focus: 1, scrollBy: -600 });
-  // Moved onto from below, a tall stop shows its top, 100 px under the top bar.
+  // Moved onto from below, a tall stop shows its end, 100 px above the status line, as `j` shows
+  // its top: the next `k` reads up through its body.
   const onto = [...card(-1000).slice(0, 1), { bottom: 600, top: 560 }];
-  expect(cursorStep(onto, 1, -1, VIEW), "k onto it").toEqual({ focus: 0, scrollBy: -1160 });
+  expect(cursorStep(onto, 1, -1, VIEW), "k onto it").toEqual({ focus: 0, scrollBy: -360 });
+  const read = [...card(-640).slice(0, 1), { bottom: 960, top: 920 }];
+  expect(cursorStep(read, 0, -1, VIEW), "the k after").toEqual({ focus: 0, scrollBy: -600 });
 });
 
 test("a move into another pane that fits shows it whole", () => {
