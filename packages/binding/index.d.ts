@@ -542,7 +542,7 @@ export declare function removeProposal(repo: string, id: string, previous: strin
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
 
 /** Removes comment `number` on the settled point `subject`, over its text last read. */
-export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
+export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string, undo?: string | undefined | null): Promise<FileView>
 
 /** Renames a category, every heading of its name. */
 export declare function renameCategory(repo: string, from: string, to: string, previous: string, undo?: string | undefined | null): Promise<Inbox>

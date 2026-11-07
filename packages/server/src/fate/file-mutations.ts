@@ -269,18 +269,15 @@ export const fileMutations = {
       select,
     }: Resolver<{ folder: string; number: number; previous: string; subject: string }>) => {
       await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.removeSettledComment(
-            ctx.repo,
-            input.folder,
-            input.number,
-            input.subject,
-            input.previous,
-          ),
+      return undoableFile(ctx, select, (undo) =>
+        ctx.binding.removeSettledComment(
+          ctx.repo,
+          input.folder,
+          input.number,
+          input.subject,
+          input.previous,
+          undo,
         ),
-        select,
       );
     },
     type: "WorkflowFile",

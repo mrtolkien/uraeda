@@ -17,7 +17,8 @@ import { useRepository, useRepositoryPath } from "./routes.tsx";
 import type { useRefusals } from "./ReviewVerdict.tsx";
 import { changeEntry } from "./undo/changeEntry.ts";
 import { useUndo } from "./undo/useUndo.ts";
-import type { Range, useCommentDraft } from "./useCommentDraft.ts";
+import type { Range } from "./commentRange.ts";
+import type { useCommentDraft } from "./useCommentDraft.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -46,7 +47,7 @@ const subjectOf = (text: string) => text.trim().split("\n")[0] ?? "";
 const REVIEW_SUBJECT = "Your review";
 
 /** Moves the edits kept for comments `number` to `count` one number on, as comment `number` is back. */
-function followRestored(keyOf: (number: number) => string, number: number, count: number) {
+export function followRestored(keyOf: (number: number) => string, number: number, count: number) {
   for (let at = count; at >= number; at -= 1) {
     const entry = readUnsaved(keyOf(at));
     if (entry) {
@@ -60,8 +61,9 @@ function followRestored(keyOf: (number: number) => string, number: number, count
  * Records a review's write that answered its change on the tab's undo stack, as `label`, at the
  * reviewed file's page: each undo and redo reads the file again, so the page shows its comments as
  * they now are, then runs `after`'s side, which keeps the comments typed but not sent with theirs.
+ * A round's settled comments are recorded the same way, at the round's page.
  */
-function useRecord(file: Reviewed) {
+export function useRecord(file: Reviewed) {
   const fate = useFateClient();
   const record = useUndo();
   const repo = useRepository();
