@@ -31,6 +31,7 @@ import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
+import { themesDataView } from "./themes.ts";
 import type { FeatureAgent } from "./agentTime.ts";
 import type { FeatureTokens } from "./tokens.ts";
 import { allBranchChangesDataView, branchChangesDataView } from "./views-branch.ts";
@@ -481,6 +482,7 @@ export const Root = {
   slugProposals: list(slugProposalDataView),
   stories: list(storyDataView),
   storyHrefs: list(storyHrefDataView),
+  themesList: list(themesDataView),
   turnLogs: list(turnLogDataView),
   turns: list(turnDataView),
   workflowFiles: list(fileDataView),

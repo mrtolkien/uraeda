@@ -3,6 +3,7 @@ import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
 import { SETTINGS_ID } from "./fate/settings.ts";
+import { THEMES_ID } from "./fate/themes.ts";
 import { AGENT_ID, INBOX_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/views.ts";
 import { DEFAULT_ROUND_IDS } from "./runner/round-messages.ts";
 import { type LiveBus, live as globalLive } from "./fate.ts";
@@ -17,6 +18,7 @@ import type { Adapter } from "./runner/adapter.ts";
 import type { SessionCache } from "./runner/cache.ts";
 import { type ContinueSettings, type SessionChange, Sessions } from "./runner/sessions.ts";
 import type { ServerSettings } from "./settings.ts";
+import type { ServerThemes } from "./themes.ts";
 
 /** A session's live updates are sent at most this often while its items change. */
 export const SESSION_UPDATE_MS = 250;
@@ -349,6 +351,19 @@ export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "a
   return settings.onChange(() => {
     for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
       sender(bus)("Settings", SETTINGS_ID);
+    }
+  });
+}
+
+/**
+ * Sends the `Themes` record's live update on the global bus and every host's, each time a read of
+ * the themes changes them: returns its removal, which `themes.close()`, as the server stops, makes
+ * too.
+ */
+export function announceThemes(themes: ServerThemes, hosts: Pick<Hosts, "all">): () => void {
+  return themes.onChange(() => {
+    for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
+      sender(bus)("Themes", THEMES_ID);
     }
   });
 }

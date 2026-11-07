@@ -1,5 +1,5 @@
 // What the server's and the UI's tests use: the session manager on the fake adapter, with a cache in
-// memory, sign-in on a test's data folder, and settings on a test's config folder.
+// memory, sign-in on a test's data folder, and settings and themes on a test's config folder.
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
@@ -12,6 +12,7 @@ import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import type { Sessions } from "./runner/sessions.ts";
 import { ServerSettings } from "./settings.ts";
+import { ServerThemes } from "./themes.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { OneTimeLinks } from "./sign-in/links.ts";
 import { SignInStore } from "./sign-in/store.ts";
@@ -89,6 +90,15 @@ export function testSettings({
       noOpen: false,
     },
   });
+}
+
+/**
+ * The colour themes of a test's server, on the config folder `dir`: the shipped ones, and the
+ * files the test writes in its `themes` folder. The caller closes them, as `startServer`'s `stop`
+ * does.
+ */
+export function testThemes(dir: string): Promise<ServerThemes> {
+  return ServerThemes.open({ binding, dir });
 }
 
 /**

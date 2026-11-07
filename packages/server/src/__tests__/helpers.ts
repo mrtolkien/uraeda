@@ -22,9 +22,10 @@ import type { QueuedWrite } from "../writes/queue.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
 import type { ServerSettings } from "../settings.ts";
+import type { ServerThemes } from "../themes.ts";
 import { OneTimeLinks } from "../sign-in/links.ts";
 import { SignInStore } from "../sign-in/store.ts";
-import { fakeSessions, testSettings } from "../testing.ts";
+import { fakeSessions, testSettings, testThemes } from "../testing.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -39,8 +40,8 @@ const managers: Array<Sessions> = [];
 const opened: Array<Hosts> = [];
 /** The Storybook runners of a test, stopped after it. */
 const runners: Array<Previews> = [];
-/** The settings of a test's apps, whose watches are closed after it. */
-const settled: Array<ServerSettings> = [];
+/** The settings and themes of a test's apps, whose watches are closed after it. */
+const settled: Array<{ close: () => void }> = [];
 
 afterEach(async () => {
   for (const sessions of managers.splice(0)) {
@@ -49,8 +50,8 @@ afterEach(async () => {
   for (const hosts of opened.splice(0)) {
     hosts.close();
   }
-  for (const settings of settled.splice(0)) {
-    settings.close();
+  for (const watched of settled.splice(0)) {
+    watched.close();
   }
   await Promise.all(runners.splice(0).map((runner) => runner.stopAll()));
 });
@@ -141,18 +142,20 @@ export async function queueWhen(
 type Extra = { signIn?: SignInOptions; webRoot?: string };
 
 /**
- * The settings of a test's app on a new config folder, its own, closed after the test: the host
- * names of `--allowed-hosts` given when `allowedHosts` is.
+ * The settings and the themes of a test's app on a new config folder, its own, closed after the
+ * test: the host names of `--allowed-hosts` given when `allowedHosts` is.
  */
 export async function appSettings(allowedHosts?: Array<string>) {
   const configDir = temporaryFolder("uraeda-config");
   const settings = await testSettings({ allowedHosts, dir: configDir });
   settled.push(settings);
-  return { configDir, settings };
+  const themes = await testThemes(configDir);
+  settled.push(themes);
+  return { configDir, settings, themes };
 }
 
 function app(
-  settings: ServerSettings,
+  { settings, themes }: { settings: ServerSettings; themes: ServerThemes },
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
@@ -172,6 +175,7 @@ function app(
     previews,
     sessions,
     settings,
+    themes,
     ...extra,
   });
   names.set(created, name);
@@ -265,7 +269,7 @@ export async function testApp<SignedIn extends boolean = false>(
   const opened = await testHosts([repo], { binding: using, installed: false });
   const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
   const configured = await appSettings(allowedHosts);
-  const created = app(configured.settings, opened, using, previewOptions, lockedList, {
+  const created = app(configured, opened, using, previewOptions, lockedList, {
     signIn: signedIn?.options,
     webRoot,
   });
@@ -299,14 +303,13 @@ export async function testServer(
     installed,
   });
   await opened.sessions.check();
-  const { configDir, settings } = await appSettings();
+  const configured = await appSettings();
   return {
     ...opened,
-    ...app(settings, opened, using),
-    configDir,
+    ...app(configured, opened, using),
+    ...configured,
     name: opened.names[0],
     repo,
-    settings,
   };
 }
 

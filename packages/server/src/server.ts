@@ -30,6 +30,7 @@ import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
 import type { ServerSettings } from "./settings.ts";
+import { ServerThemes } from "./themes.ts";
 import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
 
 /** How often the server checks that the agent still works. */
@@ -101,7 +102,7 @@ export type Server = {
    */
   signInPage: (to: string) => string;
   /**
-   * Closes the hosts' and the settings' watches, stops the sessions' turns, closes their
+   * Closes the hosts', the settings', and the themes' watches, stops the sessions' turns, closes their
    * processes, stops every Storybook, and removes the one-time links' pages.
    */
   stop: () => Promise<void>;
@@ -185,19 +186,23 @@ async function openStart(binding: Binding, dataDir: string, request: OpenRequest
  * `sign-in.json` in the data folder first, so a file that cannot be read, or a folder that cannot
  * be written, stops the start before anything else; `/open` and `/session/key` take `hostToken`.
  * A start that fails after making the key removes the file it wrote, so the next start shows a key.
+ * The colour themes are read from the settings' config folder, and watched until the server stops.
  * A start that fails closes `settings` too.
  */
 export async function startServer(options: StartOptions): Promise<Server> {
   let key: string | undefined;
+  let themes: ServerThemes | undefined;
   try {
     const opened = openSignIn(options);
     key = opened.key;
-    return await startOpened(options, opened.signIn, key);
+    themes = await ServerThemes.open({ binding: options.binding, dir: options.settings.dir });
+    return await startOpened({ ...options, themes }, opened.signIn, key);
   } catch (error) {
     // A key this start made was never shown: the next start makes and shows another.
     if (key !== undefined) {
       rmSync(join(options.dataDir, SIGN_IN_FILE), { force: true });
     }
+    themes?.close();
     options.settings.close();
     throw error;
   }
@@ -256,9 +261,12 @@ type StartOptions = {
   webRoot?: string;
 };
 
-/** Starts the server once its sign-in is open, `key` the access key when this start made it. */
+/**
+ * Starts the server once its sign-in and its themes are open, `key` the access key when this start
+ * made it.
+ */
 async function startOpened(
-  options: StartOptions,
+  options: StartOptions & { themes: ServerThemes },
   signIn: SignInOptions | undefined,
   key: string | undefined,
 ): Promise<Server> {
@@ -340,6 +348,7 @@ async function startOpened(
         signIn?.links.close();
         opened.close();
         options.settings.close();
+        options.themes.close();
         await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
       return stopping;

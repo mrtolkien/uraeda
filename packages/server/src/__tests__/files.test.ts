@@ -95,7 +95,7 @@ test("a file that cannot be read for another reason than its absence is a server
     port,
     previews: testPreviews(),
     sessions,
-    settings: (await appSettings()).settings,
+    ...(await appSettings()),
   });
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 

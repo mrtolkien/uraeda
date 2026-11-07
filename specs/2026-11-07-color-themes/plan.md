@@ -519,7 +519,10 @@ The body names each break the tests caught, as made and reverted.
   `packages/server/src/fate/views.ts`, `fate/sources.ts`, `fate/context.ts` if the context needs it,
   `packages/server/src/live.ts` (`announceThemes`), `app.ts`, `server.ts` (open and close it beside
   the settings), `packages/server/src/testing.ts` if tests build the context there
-- Modify: `packages/web/src/data.ts` (`useThemes`)
+- Create: `packages/web/src/useThemes.ts` (`useThemes`, `ThemesRecord`): `data.ts` is at the
+  500-line limit (ruling R10)
+- Modify: `packages/server/src/__tests__/helpers.ts` and `packages/web/src/__tests__/helpers.tsx`,
+  whose apps take the themes beside the settings (`testThemes` in `testing.ts`)
 - Test: `packages/server/src/__tests__/themes-watch.test.ts`
 
 **Interfaces:**
@@ -532,10 +535,12 @@ The body names each break the tests caught, as made and reverted.
     `{ id: string; folder: string; themes: Array<Theme>; files: Array<ThemeFile> }`, readable on
     every endpoint as `Settings` is, and sent live on each change by
     `announceThemes(themes, hosts)`.
-  - In the web, `useThemes(): ThemesRecord | null` from `data.ts`, null until signed in or loaded,
-    as `useSettings()` is.
+  - `startServer` opens the themes on the settings' config folder and closes them as it stops;
+    `createApp` and fate's `Context` take them as `themes: ServerThemes`.
+  - In the web, `useThemes(): ThemesRecord | null` from `useThemes.ts`, null until signed in or
+    loaded, as `useSettings()` is.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `themes-watch.test.ts`, on a temporary config folder, with the real binding and real file events,
 waiting on `onChange` (no sleeps):
@@ -550,12 +555,12 @@ waiting on `onChange` (no sleeps):
 The break each catches: a watch on the config folder only, which misses edits inside `themes/`; a
 watch on the link's own folder, which misses the target's edits.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/themes-watch.test.ts`
 - Expected: FAIL, `Failed to resolve import "../themes.ts"`.
 
-- [ ] **Step 3: Implement the watch, the record, and `useThemes`**
+- [x] **Step 3: Implement the watch, the record, and `useThemes`**
 
 `FileWatch` takes an option to report every entry of a folder, so the themes folder's entries, its
 creation from the nearest folder above, and a symlinked folder's target are watched with the code
@@ -563,17 +568,17 @@ that already follows the settings file. The record, its registration, and its li
 `Settings`' at each place the code read lists. A failed read keeps the last value and prints once,
 as the settings do.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run:
   `nix develop -c vp test packages/server/src/__tests__/themes-watch.test.ts packages/server/src/__tests__/settings-watch.test.ts packages/server/src/__tests__/settings-fate.test.ts`,
   then `nix develop -c vp check`
 - Expected: PASS. Deferred to `ready`: the other server tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server packages/web/src/data.ts specs/2026-11-07-color-themes/plan.md
+git add packages/server packages/web/src/useThemes.ts packages/web/src/__tests__/helpers.tsx specs/2026-11-07-color-themes/plan.md specs/2026-11-07-color-themes/rulings.md
 git commit -m "feat(color-themes): the themes folder watched and served live"
 ```
 
@@ -777,8 +782,8 @@ The body lists each theme's colours moved to the floor, published and shipped.
 
 **Interfaces:**
 
-- Consumes: `useThemes()` (task 3); `tokensOf`, `applyPalette`, `Tokens` (task 4); `DEFAULT_DARK`,
-  `DEFAULT_LIGHT` values (task 2, repeated as constants in `theme.tsx`).
+- Consumes: `useThemes()` from `useThemes.ts` (task 3); `tokensOf`, `applyPalette`, `Tokens` (task
+  4); `DEFAULT_DARK`, `DEFAULT_LIGHT` values (task 2, repeated as constants in `theme.tsx`).
 - Produces, from `theme.tsx`:
   - `export type Mode = "system" | "light" | "dark"`,
     `export type Picks = { dark: string; light: string; mode: Mode }`.

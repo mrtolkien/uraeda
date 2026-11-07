@@ -28,6 +28,7 @@ import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
+import { themesDataView } from "./fate/themes.ts";
 import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
@@ -82,6 +83,7 @@ export {
   startPlanDataView,
   storyDataView,
   storyHrefDataView,
+  themesDataView,
   turnDataView,
   turnLogDataView,
   undoDataView,
@@ -98,6 +100,7 @@ export {
   WORKSPACE_ID,
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
+export { THEMES_ID } from "./fate/themes.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
@@ -141,6 +144,7 @@ export type Story = Entity<typeof storyDataView, "Story">;
 export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
+export type Themes = Entity<typeof themesDataView, "Themes">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
 /** The Git page, read at once, with whether an agent works in each checkout. */
