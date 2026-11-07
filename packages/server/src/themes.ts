@@ -6,6 +6,9 @@ import type { Binding } from "./fate/context.ts";
 import { LIST_QUIET_MS } from "./repositories.ts";
 import { FileWatch } from "./settings-watch.ts";
 
+/** How long a failed first read waits before it is tried again. */
+const RETRY_MS = 1000;
+
 /** What `ServerThemes.open` takes: the binding, and the config folder. */
 type ThemesOptions = {
   binding: Pick<Binding, "readThemes" | "themesFolder">;
@@ -15,12 +18,14 @@ type ThemesOptions = {
 /**
  * The themes of the config folder, the only reader of its themes folder for the running server:
  * read at start and again on each change of the folder or of a file in it, after a quiet moment.
- * A read that fails keeps the last themes, and its problem is printed once, until it changes.
+ * A read that fails keeps the last themes, and its problem is printed once, until it changes; a
+ * first read that fails is tried again each second until one succeeds, as there is no last one.
  */
 export class ServerThemes {
   readonly #options: ThemesOptions;
   #themes: Themes;
   #problem: string | null = null;
+  #read = false;
   #listeners = new Set<() => void>();
   #reloading: Promise<void> = Promise.resolve();
   #watch?: FileWatch;
@@ -91,6 +96,11 @@ export class ServerThemes {
       process.stderr.write(`uraeda: ${problem} The themes stay as last read.\n`);
     }
     this.#problem = problem;
+    if (read === null && !this.#read) {
+      clearTimeout(this.#timer);
+      this.#timer = setTimeout(() => void this.reload(), RETRY_MS);
+    }
+    this.#read ||= read !== null;
     if (read !== null && JSON.stringify(read) !== JSON.stringify(this.#themes)) {
       this.#themes = read;
       this.#tell();
