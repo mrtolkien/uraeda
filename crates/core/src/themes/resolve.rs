@@ -204,7 +204,7 @@ impl Walk {
                         "{}{role} names \"{name}\", which is not in the palette.",
                         at_line(at)
                     );
-                    parsed.error(at, message, false);
+                    parsed.role_error(at, message, &role);
                 }
                 _ => {
                     exprs.insert(role, expr);
@@ -243,7 +243,7 @@ impl Walk {
                         .iter()
                         .find(|set| set.0 == role)
                         .and_then(|set| set.2);
-                    parsed.warning(at, warning);
+                    parsed.under_floor(at, warning, &role);
                 }
             }
             // Whole-file problems first, then by line.

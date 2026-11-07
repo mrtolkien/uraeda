@@ -110,6 +110,12 @@ pub struct ThemeProblem {
     /// itself.
     pub message: String,
     pub is_warning: bool,
+    /// A warning naming a colour under the contrast floor, which the settings count apart from the
+    /// file's other problems.
+    pub is_under_floor: bool,
+    /// The role it is about: an error's keeps the colour of the theme the file extends, and a
+    /// colour under the floor applies as written; absent for a problem of no one role.
+    pub role: Option<String>,
 }
 
 /// A theme file of the user's, listed or not, and its problems.

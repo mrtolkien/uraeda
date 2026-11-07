@@ -59,9 +59,11 @@ export const SAMPLE_FILES: ReadonlyArray<ThemeFile> = [
     name: "Broken",
     problems: [
       {
+        isUnderFloor: false,
         isWarning: false,
         line: 9,
         message: 'Line 9: needs-you names "embr", which is not in the palette.',
+        role: "needs-you",
       },
     ],
   },
@@ -73,8 +75,18 @@ export const SAMPLE_FILES: ReadonlyArray<ThemeFile> = [
     mode: "light",
     name: "Dusk",
     problems: [
-      { isWarning: true, message: "ink-faint is 3.1:1 on page, under 4.5." },
-      { isWarning: true, message: "rule is 2.4:1 on page, under 3." },
+      {
+        isUnderFloor: true,
+        isWarning: true,
+        message: "ink-faint is 3.1:1 on page, under 4.5.",
+        role: "ink-faint",
+      },
+      {
+        isUnderFloor: true,
+        isWarning: true,
+        message: "rule is 2.4:1 on page, under 3.",
+        role: "rule",
+      },
     ],
   },
   {

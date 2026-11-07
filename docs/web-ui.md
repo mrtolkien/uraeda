@@ -77,8 +77,10 @@ lists, such as a file of yours deleted, draws its mode's default, Catppuccin Moc
 reload draws the picked theme from its first frame, the sign-in page included, from the colours the
 browser drew last. A private window that refuses storage keeps the picks until the page reloads.
 
-The section also lists your theme files, each with its mode, the theme it extends, and its problems,
-or says where to put one.
+The section also lists your theme files, each with its mode, the theme it extends, how many colours
+it has under the contrast floor and how many other problems, and the problems themselves, or says
+where to put one. A role with a problem keeps its colour from the theme the file extends; a colour
+under the floor applies as written.
 
 The server's settings are kept in `~/.config/uraeda/config.toml`, a file you can also edit by hand
 and keep in your dotfiles. It is in `$XDG_CONFIG_HOME/uraeda/` when `XDG_CONFIG_HOME` is set, or in

@@ -244,3 +244,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `lotusGray3-floor`, and Solarized Dark's `base01-floor`.
 - **If wrong**: one line of a theme file, with `scripts/theme-floor.ts` run again.
 - **Where**: task 5, its review's fix
+
+## R19: A theme problem says whether it is a colour under the floor, and which role it leaves
+
+- **Decision**: `ThemeProblem` carries `is_under_floor`, true for the contrast warnings, and `role`,
+  the role it is about: an error's, which keeps the colour of the theme the file extends, or a
+  colour's under the floor. Appearance counts "N colours under the contrast floor", once per role
+  though a role is named on each ground it is under, apart from "N problems", the others, ignored
+  keys included; a banner of a role's errors ends "That role keeps its colour from <the extended
+  theme's name>." ("Those roles keep their colours from …" for several), the mode's default when the
+  file names no theme the lists hold; a listed file's other errors end "The rest of the theme
+  applies.", as before.
+- **Rationale**: the approved mockup counts the floor's colours apart and names where a broken role
+  takes its colour from; telling them apart by their wording in TypeScript would reimplement the
+  core, which the stack decision forbids.
+- **If wrong**: two fields of `ThemeProblem` and the summary's and banner's sentences in
+  `settings/AppearanceSettings.tsx`.
+- **Where**: tasks 2 and 6, their review's fix
