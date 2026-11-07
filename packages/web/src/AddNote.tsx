@@ -165,7 +165,9 @@ function useAdd({
   const refused = (failed: Refusal) => {
     setMessage(failed.message);
     if (failed.kind === "conflict") {
-      void fate.request({ inbox: { id: "inbox", view: InboxView } }, { mode: "network-only" });
+      void fate
+        .request({ inbox: { id: "inbox", view: InboxView } }, { mode: "network-only" })
+        .catch(() => {});
     }
   };
 

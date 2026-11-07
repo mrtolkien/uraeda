@@ -118,10 +118,12 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
     }
     const failed = refusal(result.error);
     if (failed.kind === "conflict") {
-      void fate.request(
-        { priorities: { id: "priorities", view: PrioritiesView } },
-        { mode: "network-only" },
-      );
+      void fate
+        .request(
+          { priorities: { id: "priorities", view: PrioritiesView } },
+          { mode: "network-only" },
+        )
+        .catch(() => {});
     }
     return failed.message;
   };
