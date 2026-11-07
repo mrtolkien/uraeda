@@ -11,6 +11,7 @@ import {
   unsavedKey,
 } from "./fields/unsaved.ts";
 import { useRepositoryPath } from "./routes.tsx";
+import { followRestored, ReviewChangeView, useRecord } from "./useReviewActions.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -37,7 +38,8 @@ const writing = new Set<Promise<unknown>>();
  * their field's entry gone unless typed in since, after `onWritten`, or with the error to show; a
  * removal's error shows under its comment. An edit and a removal name the comment's subject,
  * refused when its number is now another's; a removal done, the edits kept for the comments after
- * it follow their new numbers, then `onRemoved`.
+ * it follow their new numbers, then `onRemoved`. A removal lands on the tab's undo stack, as a
+ * review comment's does: its undo puts the comment back, and the edits back on their numbers.
  */
 export function useSettledWrites(
   file: File,
@@ -83,6 +85,7 @@ export function useSettledWrites(
         view: FileView,
       }),
     );
+  const recorded = useRecord(file);
   const remove = async (comment: SettledComment) => {
     setRemoval(undefined);
     const count = file.current.items.clarifications?.settledComments.length ?? 0;
@@ -93,18 +96,22 @@ export function useSettledWrites(
         previous: comment.text,
         subject: comment.subject,
       },
-      view: FileView,
+      view: ReviewChangeView,
     });
     if (result.error) {
       setRemoval({ message: refusal(result.error).message, number: comment.number });
       return;
     }
-    renumberUnsaved(
-      (number) => unsavedKey(repo, editKey(file.path, number)),
-      comment.number,
-      count,
-    );
-    onRemoved(comment.number);
+    const keyOf = (number: number) => unsavedKey(repo, editKey(file.path, number));
+    const removing = () => {
+      renumberUnsaved(keyOf, comment.number, count);
+      onRemoved(comment.number);
+    };
+    removing();
+    recorded(result, "Removed a comment", comment.text.trim().split("\n")[0] ?? "", {
+      redo: removing,
+      undo: () => followRestored(keyOf, comment.number, count - 1),
+    });
   };
   const removeError = (comment: SettledComment) =>
     removal?.number === comment.number ? removal.message : undefined;

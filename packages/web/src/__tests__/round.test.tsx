@@ -282,3 +282,32 @@ test("n from a held question hands the cursor to the next blank one, whose lette
   await press("b");
   await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** B"));
 });
+
+// Break: a settled point's comment removed for good, as the stack took none of it (solution A of
+// the question on Global undo: a settled point's comment is undone as a review's).
+test("a removed settled point's comment comes back on u, and goes again on U", async () => {
+  const { path, repo } = withTwoComments();
+  const before = readFileSync(path, "utf8");
+  await renderPage(PAGE, repo);
+  await openHood();
+
+  await tap(
+    within(await waitFor(() => settledComment(COMMITS))).getByRole("button", { name: "Remove" }),
+  );
+  // The file, not the toast: the test before this one removed a settled comment too, and its toast
+  // may still be on screen.
+  await waitFor(() => expect(readFileSync(path, "utf8")).not.toContain("Undo comment."));
+  const removed = readFileSync(path, "utf8");
+
+  await act(async () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.keyDown(document.body, { key: "u" });
+  });
+  await waitFor(() => expect(readFileSync(path, "utf8")).toBe(before));
+  await waitFor(() => expect(settledComment(COMMITS).textContent).toContain("Undo comment."));
+
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "U", shiftKey: true });
+  });
+  await waitFor(() => expect(readFileSync(path, "utf8")).toBe(removed));
+});

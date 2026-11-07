@@ -86,8 +86,17 @@ pub fn remove_settled_comment(
     number: u32,
     subject: String,
     previous: String,
+    undo: Option<String>,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::remove_settled_comment(Path::new(&repo), &folder, number, &subject, &previous))
+    recording(
+        repo,
+        undo,
+        {
+            let folder = folder.clone();
+            move |repo: &Path| undo::round(repo, &folder)
+        },
+        move |repo: &Path| api::remove_settled_comment(repo, &folder, number, &subject, &previous),
+    )
 }
 
 /// Submits the latest round of questions, and commits it; refused when `name`, the round

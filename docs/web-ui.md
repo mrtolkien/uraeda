@@ -238,7 +238,8 @@ These can be undone:
 - the inbox's notes and categories, their moves, and their images;
 - the priorities' lines and their moves;
 - proposal files' lines and sections;
-- a review's comments, and its Start over.
+- a review's comments, and its Start over;
+- the removal of a comment on a round's settled point.
 
 Committing, starting a feature or a change, the Git page's actions, and settings cannot: their
 buttons name what they do. Text saved from an editor, like a buffer, is not on the list either. The

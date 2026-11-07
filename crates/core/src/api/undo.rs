@@ -56,6 +56,14 @@ pub fn review(repo: &Path, folder: &str, file: &str) -> Result<Vec<String>> {
     )])
 }
 
+/// The latest round of questions of a feature or a change: what a comment on one of its settled
+/// points, and that comment's removal, write.
+pub fn round(repo: &Path, folder: &str) -> Result<Vec<String>> {
+    let (_, workspace) = open(repo)?;
+    let feature = super::find(&workspace, folder)?;
+    Ok(vec![crate::actions::answer::round_path(feature)?])
+}
+
 /// What an image's removal from the note file or proposal file `file` writes: the inbox, and the
 /// file's folder.
 pub fn note_image(file: &str) -> Vec<String> {
