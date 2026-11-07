@@ -432,6 +432,18 @@ export async function click(element: HTMLElement) {
 }
 
 /**
+ * Holds a stop as the keyboard's cursor would: a key no binding has, Shift alone, makes the last
+ * input a key, then the stop takes the focus. A `j` from the top cannot: happy-dom lays nothing
+ * out, so no stop is on screen.
+ */
+export function hold(element: HTMLElement) {
+  act(() => {
+    fireEvent.keyDown(element.ownerDocument.body, { key: "Shift" });
+    element.focus();
+  });
+}
+
+/**
  * The page's features, loaded: a link to a fixture feature that waits on the human, which home
  * lists whatever its heading says. What the tests wait on is the repository's data, not a title.
  * In the page, not the sidebar, which lists the same feature and can draw before Home's chunk.
