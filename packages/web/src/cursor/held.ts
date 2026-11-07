@@ -29,6 +29,11 @@ export function markByKey() {
   setByKey(true);
 }
 
+/** Forgets the last input, as on a page just loaded: for the tests, which share the module. */
+export function resetHeld() {
+  setByKey(false);
+}
+
 /** Whether the last input was a key: a stop given the focus now is held. */
 export const isKeyInput = () => isByKey;
 
@@ -41,11 +46,17 @@ export function heldStop(): HTMLElement | null {
 export const isFocusLost = () =>
   document.activeElement === null || document.activeElement === document.body;
 
+/** The keys held for a pointer's press, as Shift for a Shift+click: alone, they are no key input. */
+const MODIFIERS = new Set(["Alt", "Control", "Meta", "Shift"]);
+
 /**
- * A key: the last input is one. Escape in a text field inside a stop, which leaves the field, gives
+ * A key: the last input is one, but for a modifier alone. Escape in a text field inside a stop, which leaves the field, gives
  * the stop the focus once the field let it go, as the field's own Escape runs before this watch.
  */
 function onKey(event: KeyboardEvent) {
+  if (MODIFIERS.has(event.key)) {
+    return;
+  }
   setByKey(true);
   if (event.key !== "Escape" || !inTextField(event.target)) {
     return;
