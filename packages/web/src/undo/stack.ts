@@ -55,8 +55,8 @@ export function createUndoStack(now: () => number = () => Date.now()): UndoStack
   // The run of moves on top: its entry, its list, and when its last move came. Any other entry recorded, an
   // undo or a redo pressed, or a clear ends it.
   let run: { at: number; entry: UndoEntry; list: string } | undefined;
-  // Moves on at each entry recorded and each clear: an undo that lands after one leaves its entry off
-  // both sides, as a redo would come after the new action.
+  // Moves on at each entry recorded and each clear: an undo or a redo that lands after one leaves its
+  // entry off both sides, as its reverse would come after the new action.
   let epoch = 0;
   // The replays in the order pressed: each starts once the one before it settled.
   let queue: Promise<unknown> = Promise.resolve();
@@ -105,10 +105,12 @@ export function createUndoStack(now: () => number = () => Date.now()): UndoStack
     }
     const reason = await (redo ? entry.redo() : entry.undo());
     remove(from, entry);
-    if (reason === undefined) {
+    // An entry recorded or a clear while it was on its way leaves it off both sides: kept above the
+    // new action, its undo would come after it.
+    if (reason === undefined && epoch === started) {
       if (redo) {
         keep(entry);
-      } else if (epoch === started) {
+      } else {
         undone.push(entry);
       }
     }
