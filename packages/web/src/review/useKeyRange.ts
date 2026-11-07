@@ -4,17 +4,14 @@
 // their own here; how a range grows and shrinks is `commentRange.ts`'s.
 import { useEffect, useRef } from "react";
 import type { DecisionChange, Document } from "uraeda-binding";
-import { type Range, sameFile, spanned } from "../commentRange.ts";
+import { holds, type Range, sameFile, spanned } from "../commentRange.ts";
 import { isFocusLost, isKeyInput, markByKey } from "../cursor/held.ts";
 import type { StopKey } from "../cursor/StopKeys.tsx";
 import { focusStop } from "../cursor/useCursor.ts";
 import { stopsOf } from "../cursor/stops.ts";
-import { selectable } from "../Selection.tsx";
+import { linesOfMark, selectable } from "../Selection.tsx";
 import { rangeOf } from "../spec/ledger/context.ts";
 import type { useCommentDraft } from "../useCommentDraft.ts";
-
-/** A selectable element's mark, `linesMark`'s: a decision's side, if any, then its lines. */
-const MARK = /^(?:(.+?)( removed)?:)?(\d+)-(\d+)$/;
 
 /**
  * The lines a block's toggle stands for, read from its element's mark: a block of the reviewed
@@ -25,27 +22,24 @@ function rangeAt(
   tree: Document,
   changes: ReadonlyArray<DecisionChange>,
 ): Range | undefined {
-  const match = MARK.exec(toggle.closest("[data-lines]")?.getAttribute("data-lines") ?? "");
-  if (!match) {
+  const lines = linesOfMark(toggle.closest("[data-lines]")?.getAttribute("data-lines") ?? "");
+  if (!lines) {
     return undefined;
   }
-  const [, name, removed, first, last] = match;
-  const start = Number(first);
-  const end = Number(last);
-  if (name === undefined) {
+  const { decision, end, start } = lines;
+  if (decision === undefined) {
     const block = tree.blocks.find(
       (b) => selectable(b) && b.startLine === start && b.endLine === end,
     );
     return block && { end, heading: block.heading ?? "", start };
   }
-  const isRemoved = removed !== undefined;
   return changes
-    .filter((change) => change.name === name)
+    .filter((change) => change.name === decision.name)
     .flatMap((change) => change.sections)
-    .flatMap((section) => section.parts.map((part) => rangeOf(name, section.title, part)))
+    .flatMap((section) => section.parts.map((part) => rangeOf(decision.name, section.title, part)))
     .find(
       (range) =>
-        range?.decision.removed === isRemoved && range.start === start && range.end === end,
+        range?.decision.removed === decision.removed && range.start === start && range.end === end,
     );
 }
 
@@ -110,13 +104,7 @@ export function useKeyRange(
     if (held?.head === toggle) {
       return held.range;
     }
-    const { selection } = draft;
-    return selection !== undefined &&
-      sameFile(selection, own) &&
-      selection.start <= own.start &&
-      own.end <= selection.end
-      ? selection
-      : undefined;
+    return holds(draft.selection, own) ? draft.selection : undefined;
   };
 
   return { drop, opened: opener, rangeOf: rangeOfToggle, stretch };

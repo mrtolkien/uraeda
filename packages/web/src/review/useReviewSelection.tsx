@@ -4,7 +4,7 @@ import { AddingNote, FormSlot } from "../ReviewCommentForm.tsx";
 import { PendingComment, type usePlacedComments } from "../ReviewComments.tsx";
 import { holderOf } from "../reviewField.ts";
 import type { DecisionRange, PartSelection, Selection } from "../Selection.tsx";
-import type { Range } from "../commentRange.ts";
+import { holds, type Range } from "../commentRange.ts";
 import type { Last, useCommentDraft } from "../useCommentDraft.ts";
 import type { Adding, useReviewActions } from "../useReviewActions.ts";
 import { blockKeys, useKeyRange } from "./useKeyRange.ts";
@@ -74,11 +74,7 @@ export function useReviewSelection({
         </>
       );
     },
-    isSelected: (block) =>
-      selection !== undefined &&
-      selection.decision === undefined &&
-      block.startLine >= selection.start &&
-      block.endLine <= selection.end,
+    isSelected: (block) => holds(selection, { end: block.endLine, start: block.startLine }),
     keys: (block, toggle) =>
       blockKeys(
         keyRange,
@@ -159,11 +155,7 @@ function partSelection({
         </>
       );
     },
-    isSelected: (part) =>
-      !!selection &&
-      ofPart(part, selection.decision) &&
-      part.start >= selection.start &&
-      part.end <= selection.end,
+    isSelected: (part) => holds(selection, part),
     keys,
     onTap: tapPart,
   };

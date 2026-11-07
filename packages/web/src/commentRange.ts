@@ -19,8 +19,24 @@ export const decisionOf = ({
   decision === undefined ? undefined : { name: decision, removed };
 
 /** Whether two ranges are of the same file: the reviewed file, or the same side of a decision. */
-export function sameFile(a: Range, b: Range) {
+export function sameFile(a: Pick<Range, "decision">, b: Pick<Range, "decision">) {
   return a.decision?.name === b.decision?.name && a.decision?.removed === b.decision?.removed;
+}
+
+/**
+ * Whether the selection holds lines, as a block's or a decision part's: of the same file, and
+ * within its own. A block shows selected then, and a held block's `s` asks about the selection.
+ */
+export function holds(
+  selection: Range | undefined,
+  lines: Pick<Range, "decision" | "end" | "start">,
+) {
+  return (
+    selection !== undefined &&
+    sameFile(selection, lines) &&
+    selection.start <= lines.start &&
+    lines.end <= selection.end
+  );
 }
 
 /** The lines of two ranges of one file and all between, under the heading of the upper one. */
