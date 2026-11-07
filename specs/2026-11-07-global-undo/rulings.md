@@ -146,7 +146,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changes `POST /attach` answered with the save of the text that links them: its first undo reads
   the file, and when its text is still the one the run saved, takes the file's bytes then as the
   `after` side of that file, then writes the whole change back. Once the text changed since, the
-  undo is refused, as any other. The entry is recorded when the run of uploads ends.
+  undo is refused, as any other. The entry is recorded once the save of the links landed (R18).
 - **Rationale**: the editor saves the links right after the images are written, through `text.save`,
   which records no change: the image's change alone would be refused at once, its file moved into
   its folder and then saved, or would leave the links pointing at images it deleted.
@@ -195,3 +195,53 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   place, in `inboxEntry` and `moveEntry`.
 - **Where**: `packages/web/src/undo/quoted.ts`, `inboxUndo.ts`, `lists/prioritiesUndo.ts`,
   `pane/useProposalActions.ts`
+
+## R17: An expand's place is the priorities, the proposal selected
+
+- **Decision**: the entry of `e` and of the pane's Expand is placed at `/priorities` with the
+  proposal's key selected, not at the file's page the expand opened, and each undo and redo reads
+  the file again, for a page open on it.
+- **Rationale**: the undo deletes the file: a trip to its page would open a file that is gone, while
+  the proposal's line is what comes back. The plan's place, "the proposal's file", is changed with
+  it.
+- **If wrong**: a redo could open the file again, its place following the last replay, as R18's
+  does.
+- **Where**: `packages/web/src/lists/prioritiesUndo.ts` (`useRecordExpand`), `pane/useExpand.ts`
+
+## R18: An image attached from an editor is recorded once its links are saved, and placed where the file is
+
+- **Decision**: the entry of a run of images attached from an editor is recorded once the save of
+  the text that links them landed, on the page open, or on the folder's page the file moved to, not
+  as the run of uploads ends. Its undo compares the whole file, frontmatter included, with what that
+  save wrote. Its place follows the last replay: the file's path as the run started after an undo,
+  and the path the run left, in its folder, after a redo.
+- **Rationale**: recorded before the save, a `u` pressed at once found the file without its links,
+  was refused, and lost the entry. One place could not serve both: a single file that became a
+  folder is absent at its first path after a redo, and the folder absent after an undo.
+- **If wrong**: the toast shows a moment later than the images, once the text is saved; an undo
+  awaiting the pending save instead would show it as the run ends.
+- **Where**: `packages/web/src/attach/attachUndo.ts`, `attach/useEditorImages.ts`
+
+## R19: A round's settled comments stay out of the stack
+
+- **Decision**: the comments written on a round's settled questions, their add, edit, and removal
+  (`settled.comment`, `settled.edit`, `settled.remove` in `settledWrites.ts`), record no entry.
+- **Rationale**: they are part of answering a round, which the clarifications' Q1 answer A left out
+  of the stack, like the round's answers and notes: Submit sends them with the answers, and until
+  then they are text being written, which a form edits and removes in place.
+- **If wrong**: each write selecting a change view and recording `changeEntry`, as the review's
+  comments do in `useReviewActions.ts`.
+- **Where**: `packages/web/src/settledWrites.ts`
+
+## R20: Images attached in a comment's or an answer's form are not entries of their own
+
+- **Decision**: an image attached in a form whose text is not yet sent, a question's comment
+  (`QuestionComment.tsx`), a round's notes (`RoundNotes.tsx`), a review's comment
+  (`useReviewImages.ts`), or the mockup page's comment (`MockupPage.tsx`), records no entry; the
+  comment that sends its link does, where its write is undoable.
+- **Rationale**: the image belongs to text not yet sent, like the typed saves of a field, which the
+  field's own history takes back: an entry for the image alone would delete a file the form's text
+  still links.
+- **If wrong**: the form's upload answering its change, joined to the comment's entry once sent.
+- **Where**: `packages/web/src/QuestionComment.tsx`, `RoundNotes.tsx`, `useReviewImages.ts`,
+  `MockupPage.tsx`
