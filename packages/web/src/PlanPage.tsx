@@ -226,10 +226,11 @@ function ReviewedPlan({
  * A plan, in panes in its file's order, its column of Contents, and Session where the agent can be
  * asked, beside it: waiting for review, with the review's selection, comments, and verdict;
  * otherwise read as it is now. Its session's draft is kept whatever its status, and so are its
- * review's refusals, for an approval taken back. The keyboard's cursor moves along it.
+ * review's refusals, for an approval taken back. The keyboard's cursor moves along it while it waits,
+ * its blocks stops.
  */
 export function PlanPage({ file }: { file: File }) {
-  useCursor();
+  useCursor(file.status === "awaiting-human");
   const session = usePageSession(file);
   const kept = useVerdictState(file);
   return file.status === "awaiting-human" ? (
