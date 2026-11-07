@@ -10,6 +10,7 @@ import {
   type Unsaved,
   unsavedKey,
 } from "./fields/unsaved.ts";
+import { useUndoToast } from "./layout/useUndoToast.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { FileView } from "./views.ts";
 
@@ -37,7 +38,7 @@ const writing = new Set<Promise<unknown>>();
  * their field's entry gone unless typed in since, after `onWritten`, or with the error to show; a
  * removal's error shows under its comment. An edit and a removal name the comment's subject,
  * refused when its number is now another's; a removal done, the edits kept for the comments after
- * it follow their new numbers, then `onRemoved`.
+ * it follow their new numbers, then `onRemoved`, and a toast whose Undo adds it again.
  */
 export function useSettledWrites(
   file: File,
@@ -46,6 +47,7 @@ export function useSettledWrites(
 ) {
   const fate = useFateClient();
   const repo = useRepositoryPath();
+  const undoToast = useUndoToast();
   const [removal, setRemoval] = useState<{ message: string; number: number }>();
   /** Writes `text` from a field, `write` the mutation, known to Submit while it runs. */
   const written = (field: string, text: string, write: () => Promise<{ error?: unknown }>) => {
@@ -105,6 +107,14 @@ export function useSettledWrites(
       count,
     );
     onRemoved(comment.number);
+    // Its Undo adds it again, with its text, last of the point's comments (R3).
+    undoToast(`Removed your comment on “${comment.subject}”`, async () => {
+      const added = await fate.mutations.settled.comment({
+        input: { folder: file.folder, subject: comment.subject, text: comment.text },
+        view: FileView,
+      });
+      return added.error ? refusal(added.error).message : undefined;
+    });
   };
   const removeError = (comment: SettledComment) =>
     removal?.number === comment.number ? removal.message : undefined;
