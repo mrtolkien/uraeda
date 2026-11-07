@@ -7,12 +7,13 @@ import { rewritten } from "./fate/select.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
-import { announceSettings, onTurnDone } from "./live.ts";
+import { announceSettings, announceThemes, onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
 import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
 import type { ServerSettings } from "./settings.ts";
+import type { ServerThemes } from "./themes.ts";
 import { sessionCheck, type SignInOptions, withDevice } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { signInRoutes } from "./sign-in/routes.ts";
@@ -44,6 +45,8 @@ type AppOptions = {
   settings: ServerSettings;
   /** Sign-in: without it, as in tests and Uraeda's own Storybook, no session is checked. */
   signIn?: SignInOptions;
+  /** The colour themes, served on every endpoint and sent live as they change. */
+  themes: ServerThemes;
   /** The built UI, served as static files when set. */
   webRoot?: string;
 };
@@ -56,7 +59,7 @@ type App = Hono<{ Variables: FateVariables }>;
  */
 function hostedRoutes(
   app: App,
-  { binding, dataDir, hosts, lockedList, previews, sessions, settings }: AppOptions,
+  { binding, dataDir, hosts, lockedList, previews, sessions, settings, themes }: AppOptions,
   frames: FrameSecret,
 ) {
   const hosted = async (context: Context, next: Next) => {
@@ -78,6 +81,7 @@ function hostedRoutes(
       repo: host.path,
       sessions,
       settings,
+      themes,
     });
     await next();
   };
@@ -138,12 +142,13 @@ const timed = async (context: Context, next: Next) => {
  */
 export function createApp(options: AppOptions) {
   const { allowOrigins, binding, dataDir, hosts, lockedList, port, previews, sessions } = options;
-  const { settings, signIn } = options;
+  const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
-  // The settings' changes reach every endpoint's views until the settings close, as the server
-  // stops.
+  // The settings' and the themes' changes reach every endpoint's views until they close, as the
+  // server stops.
   announceSettings(settings, hosts);
+  announceThemes(themes, hosts);
   const app: App = new Hono<{ Variables: FateVariables }>();
   for (const path of ["/fate", "/r/:name/fate"]) {
     app.use(path, timed);
@@ -171,6 +176,7 @@ export function createApp(options: AppOptions) {
       repo: null,
       sessions,
       settings,
+      themes,
     });
     await next();
   });
@@ -178,7 +184,18 @@ export function createApp(options: AppOptions) {
   fateRoutes(app, hosts);
   // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
   onTurnDone(sessions, (repo, folder) => {
-    const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions, settings };
+    const ctx = {
+      binding,
+      dataDir,
+      frames,
+      hosts,
+      lockedList,
+      previews,
+      repo,
+      sessions,
+      settings,
+      themes,
+    };
     warmPreview(ctx, folder).catch(() => {});
   });
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */

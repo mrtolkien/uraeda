@@ -1,14 +1,18 @@
 // The watch of the settings file: its folder, or the nearest folder above it that exists until it
 // does, and the folder of the file a symlinked `config.toml` points to, as dotfiles managers make.
+// The themes folder is watched the same way, and its own entries too, through any symlink.
 import { type FSWatcher, realpathSync, statSync, watch } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-/** One folder watched, for the entries of `names`, as made: its inode tells a folder made again. */
-type Watched = { names: ReadonlySet<string>; path: string };
+/**
+ * One folder watched, for the entries of `names`, or every entry for `"all"`, as made: its inode
+ * tells a folder made again.
+ */
+type Watched = { names: ReadonlySet<string> | "all"; path: string };
 
 /** A watch's key: its folder, that folder's device and inode, and the names it reports. */
 function key({ names, path }: Watched, { dev, ino }: { dev: number; ino: number }): string {
-  return JSON.stringify([path, dev, ino, [...names]]);
+  return JSON.stringify([path, dev, ino, names === "all" ? names : [...names]]);
 }
 
 /** The folder's identity, or null when it is not a folder, or is gone. */
@@ -50,21 +54,42 @@ function target(dir: string, path: string): Watched | null {
   }
 }
 
+/** The folder `path`, its symlinks followed, watched for every entry, when it is a folder. */
+function entries(path: string): Watched | null {
+  try {
+    return { names: "all", path: realpathSync(path) };
+  } catch {
+    // Not made yet: the watch of the folder above it sees it made.
+    return null;
+  }
+}
+
 /**
  * Watches the file `file` of the folder `dir`, and calls `changed` on each event that may change
- * it, unfiltered by time: the caller waits for a quiet moment. `refresh` follows the folders
- * made, deleted, and the symlink's target; `close` stops every watch.
+ * it, unfiltered by time: the caller waits for a quiet moment. With `folder`, `file` is a folder,
+ * and an event on any of its entries is one too; `what` names what it holds in the messages of a
+ * failed watch, `the settings` by default. `refresh` follows the folders made, deleted, and
+ * the symlink's target; `close` stops every watch.
  */
 export class FileWatch {
   readonly #dir: string;
   readonly #file: string;
   readonly #changed: () => void;
+  readonly #folder: boolean;
+  readonly #what: string;
   readonly #watches = new Map<string, FSWatcher>();
 
-  constructor(dir: string, file: string, changed: () => void) {
+  constructor(
+    dir: string,
+    file: string,
+    changed: () => void,
+    { folder = false, what = "the settings" } = {},
+  ) {
     this.#dir = dir;
     this.#file = file;
     this.#changed = changed;
+    this.#folder = folder;
+    this.#what = what;
     this.refresh();
   }
 
@@ -74,6 +99,7 @@ export class FileWatch {
     for (const watched of [
       nearest(this.#dir, this.#file),
       target(this.#dir, join(this.#dir, this.#file)),
+      this.#folder ? entries(join(this.#dir, this.#file)) : null,
     ]) {
       const identity = watched && folder(watched.path);
       if (watched && identity) {
@@ -96,19 +122,19 @@ export class FileWatch {
   #open(name: string, { names, path }: Watched): void {
     try {
       const watcher = watch(path, (_, entry) => {
-        if (entry === null || names.has(String(entry))) {
+        if (entry === null || names === "all" || names.has(String(entry))) {
           this.#changed();
         }
       });
       watcher.on("error", (error) => {
         process.stderr.write(
-          `uraeda: ${error.message}; the settings are read again on their next change\n`,
+          `uraeda: ${error.message}; ${this.#what} are read again on their next change\n`,
         );
       });
       this.#watches.set(name, watcher);
     } catch (error) {
       process.stderr.write(
-        `uraeda: ${(error as Error).message}; changes to the settings show after a restart\n`,
+        `uraeda: ${(error as Error).message}; changes to ${this.#what} show after a restart\n`,
       );
     }
   }

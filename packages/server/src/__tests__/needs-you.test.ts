@@ -33,7 +33,7 @@ async function twoRepositories({ installed = false } = {}) {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    settings: (await appSettings()).settings,
+    ...(await appSettings()),
   });
   const rows = async () =>
     (await byIdAt(app, null, "NeedsYouList", [NEEDS_YOU_ID], ["rows"]))[0]!.rows as Array<

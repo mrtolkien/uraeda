@@ -115,3 +115,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cases quote the messages inside a sentence, where the period falls away.
 - **If wrong**: the wording of one message in `themes/resolve.rs`.
 - **Where**: task 2
+
+## R10: `useThemes` lives in its own module, `useThemes.ts`
+
+- **Decision**: `useThemes`, its view, and `ThemesRecord` are in `packages/web/src/useThemes.ts`,
+  not in `data.ts`, as `writes/useWriteQueue.ts` holds its own record's view and hook.
+- **Rationale**: `data.ts` is at the 500-line limit of the code quality decision, and so is
+  `views.ts`; the hook is the same as `useSettings`, reading the one `Themes` record.
+- **If wrong**: a move of one function and its view into `data.ts`, once it has room.
+- **Where**: tasks 3 and 6

@@ -61,7 +61,7 @@ async function twoRepositories() {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    settings: (await appSettings()).settings,
+    ...(await appSettings()),
   });
   return { app, ...opened };
 }
@@ -427,7 +427,7 @@ test("opening a repository moves it first", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    settings: (await appSettings()).settings,
+    ...(await appSettings()),
   });
   const last = opened.hosts.rows().at(-1)!.name;
 
@@ -606,7 +606,7 @@ test("an old raw link without any repository is not found", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    settings: (await appSettings()).settings,
+    ...(await appSettings()),
   });
 
   const response = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md`);

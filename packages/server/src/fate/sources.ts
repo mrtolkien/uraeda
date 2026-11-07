@@ -26,6 +26,7 @@ import {
 } from "./sessions.ts";
 import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
+import { readThemesRecord, themesDataView } from "./themes.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import { continuedAllDataView } from "./views-continued-all.ts";
 import { droppedDataView } from "./views-dropped.ts";
@@ -449,6 +450,7 @@ export const sources = createSources<Context>([
     },
   }),
   fileSource(settingsDataView, { byIds: readSettingsRecord }),
+  fileSource(themesDataView, { byIds: readThemesRecord }),
   fileSource(folderSuggestionsDataView, {
     byIds: async (ctx, ids) => {
       unlockedList(ctx);

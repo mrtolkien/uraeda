@@ -14,7 +14,7 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
-import { fakeSessions, testSettings, testSignIn } from "uraeda-server/testing";
+import { fakeSessions, testSettings, testSignIn, testThemes } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
@@ -207,8 +207,8 @@ export async function renderPage(
 const opened: Array<Promise<Hosts>> = [];
 /** The Storybook runners of the tests' apps, stopped after each test. */
 const runners: Array<Previews> = [];
-/** The settings of the tests' apps, whose watches are closed after each test. */
-const settled: Array<ReturnType<typeof testSettings>> = [];
+/** The settings and themes of the tests' apps, whose watches are closed after each test. */
+const settled: Array<Promise<{ close: () => void }>> = [];
 
 /**
  * After each test, in order: the page goes, which may send its last saves; the server answers every
@@ -222,8 +222,8 @@ afterEach(async () => {
   for (const hosts of opened.splice(0)) {
     (await hosts).close();
   }
-  for (const settings of settled.splice(0)) {
-    (await settings).close();
+  for (const watched of settled.splice(0)) {
+    (await watched).close();
   }
   // Turns left going keep their watchdog's timer.
   for (const sessions of managers.splice(0)) {
@@ -312,7 +312,9 @@ function serverApp(
   // On a config folder of its own, empty by default: no host name besides the server's own.
   const settings = testSettings({ dir: config });
   settled.push(settings);
-  const created = Promise.all([hosts, settings]).then(([hosts, settings]) =>
+  const themes = settings.then(({ dir }) => testThemes(dir));
+  settled.push(themes);
+  const created = Promise.all([hosts, settings, themes]).then(([hosts, settings, themes]) =>
     createApp({
       allowOrigins: [],
       binding,
@@ -323,6 +325,7 @@ function serverApp(
       sessions,
       settings,
       signIn,
+      themes,
     }),
   );
   return { added, created };
