@@ -510,11 +510,13 @@ its end; scrolling a fitting pane only to its stop.
 
 - Consumes: task 2's `spanned`, `stretch`, `drop`; task 4's `useCursor`, `focusStop`, `stopsOf`,
   `hold`; task 5's `Selection.keys`.
-- Produces: `useKeyRange(draft, tree)`: the keys' anchor and head; `stretch(direction, toggle)`
-  focuses the next or previous `"block"` stop of the same file and sets the draft's range to
-  `spanned(anchor, head)`; `drop()`. `stretch` checks `sameFile(anchor, next)` first and does
-  nothing across files, neither moving nor touching the range: `spanned` returns the head alone
-  across files, which would drop the range (review focus 2).
+- Produces: `useKeyRange(draft, tree, changes)`: the keys' anchor and head;
+  `stretch(direction, toggle)` focuses the next or previous `"block"` stop of the same file and sets
+  the draft's range to `spanned(anchor, head)`; `drop()`; and
+  `blockKeys(keyRange, toggle, own, ask)`, a held block's or part's keys (see
+  [R9](rulings.md#r9-the-keys-read-a-blocks-range-from-its-mark)). `stretch` checks
+  `sameFile(anchor, next)` first and does nothing across files, neither moving nor touching the
+  range: `spanned` returns the head alone across files, which would drop the range (review focus 2).
 
 A held block's keys: Enter taps it ("⏎ comment"); `J` `shift+ArrowDown` and `K` `shift+ArrowUp`
 stretch ("J K range"); `s` asks about the range, else the block ("s ask"), when the page has Ask;
@@ -524,30 +526,31 @@ Escape drops a range, and returns `false` with none; `j` `k` and the arrows drop
 - [x] **Step 1: Split `SpecLayout`**, which is at the limit, as the tests pass before and after.
       Commit: `refactor(keyboard-nav): split the spec's layout`.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 test("J then Enter writes one comment on both scenarios' lines", async () => {
   await renderPage(PAGE, repo());
   await openUS2();
   hold(await scenario(FIRST));
-  // J, Enter, type "Both.", Ctrl+Enter: the review file holds one comment on lines 92–93.
+  // J, Enter, type "Both.", Add comment: the review file holds one comment on lines 92–95, the
+  // first scenario's 92–93 and the second's 94–95.
 });
 ```
 
 The breaks: `J` moving without stretching; Enter commenting on the head alone.
 
-- [ ] **Step 3: Run it to check it fails**
+- [x] **Step 3: Run it to check it fails**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/review.test.tsx`
-- Expected: FAIL, the review file has no comment on lines 92–93
+- Expected: FAIL, `J` leaves the cursor on the first scenario
 
-- [ ] **Step 4: Implement `useKeyRange`, the blocks' keys, and mount `useCursor`** on the spec,
+- [x] **Step 4: Implement `useKeyRange`, the blocks' keys, and mount `useCursor`** on the spec,
       plan, and document pages.
 
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 6: Commit**: `feat(keyboard-nav): comment on a review's blocks from the keys`
+- [x] **Step 6: Commit**: `feat(keyboard-nav): comment on a review's blocks from the keys`
 
 ## Task 7: The round's keys
 
