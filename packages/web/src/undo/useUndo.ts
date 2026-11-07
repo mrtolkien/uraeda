@@ -90,13 +90,3 @@ export function useUndo(): (entry: UndoEntry, options?: RecordOptions) => void {
     [toast],
   );
 }
-
-/**
- * TEMPORARY: the redo of an action recorded with its own undo, before its write answers the change
- * that `changeEntry` replays; the global undo's tasks 6 and 7 replace it with the change's redo.
- * It is refused, as an action that can no longer be redone is: run the action again instead.
- */
-export function cannotRedo(label: string): () => Promise<string> {
-  return async () =>
-    `Could not redo: ${label.charAt(0).toLowerCase()}${label.slice(1)}. Do it again instead.`;
-}
