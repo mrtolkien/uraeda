@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { glassStyles } from "./glass.ts";
 import { safeAreaVars } from "./safeArea.stylex.ts";
+import { topBarBottom } from "./topBar.ts";
 import { useFieldFocus } from "./useFieldFocus.ts";
 import { useKeyboardInset } from "./useKeyboardInset.ts";
 
@@ -86,7 +87,7 @@ export function keyboardFit(keyboard: number, screen: number, top = 0) {
 function useKeyboardLift(panel: RefObject<HTMLDivElement | null>, isShort: boolean) {
   const keyboard = useKeyboardInset();
   // The tabs stay over a sheet that leaves the page usable: it keeps its top below them.
-  const top = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  const top = topBarBottom();
   const fit = isShort ? keyboardFit(keyboard, window.innerHeight, top) : undefined;
   const isLifted = fit !== undefined;
   useEffect(() => {
