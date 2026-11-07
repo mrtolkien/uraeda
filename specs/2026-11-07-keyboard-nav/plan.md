@@ -558,7 +558,9 @@ The breaks: `J` moving without stretching; Enter commenting on the head alone.
 
 - Modify: `packages/web/src/QuestionCard.tsx`, `packages/web/src/RoundPage.tsx`,
   `packages/web/src/SettledPoints.tsx`, `packages/web/src/RoundNotes.tsx`,
-  `packages/web/src/RoundSubmit.tsx`
+  `packages/web/src/RoundSubmit.tsx`, `packages/web/src/QuestionComment.tsx` (the comment field's
+  id, which `i` focuses), `packages/web/src/RoundColumn.tsx` (a point's ask with no text, see
+  [R10](rulings.md#r10-a-settled-points-s-quotes-it-in-the-composer))
 - Start from: `KeyboardNavMockups.stories.tsx`'s `RoundCursor`, `SettledCursor`
 - Test: `packages/web/src/__tests__/round.test.tsx`
 
@@ -568,15 +570,17 @@ The breaks: `J` moving without stretching; Enter commenting on the head alone.
   `Selection.keys`; `pickedStyles.pane`.
 - Produces: a question card is a `"pane"` stop, ringed while held. Its keys: the lowercase letters
   of its options from `a` to `f`, each toggling its option ("a b pick", the letters written out),
-  none when read-only; `i` focuses its comment field ("i comment"); `s` asks the agent when the page
-  has Ask ("s ask"); the bar also names "n unanswered", pressing `n`. A settled point's held block:
-  Enter comments, `s` asks. The notes are a `"pane"` stop whose Enter opens them as "Edit notes"
-  does; the commit's row a `"pane"` stop whose Enter focuses its first button, as `n` does.
+  none when read-only; `i`, or Enter as the spec's US4 says, focuses its comment field ("i
+  comment"); `s` asks the agent when the page has Ask ("s ask"); the bar also names "n unanswered",
+  pressing `n`. A settled point's held block: Enter comments, `s` asks, its quote put in the
+  session's composer ([R10](rulings.md#r10-a-settled-points-s-quotes-it-in-the-composer)). The notes
+  are a `"pane"` stop whose Enter opens them as "Edit notes" does; the commit's row a `"pane"` stop
+  whose Enter focuses its first button, as `n` does.
 
 - [x] **Step 1: Split `QuestionCard`**, which is at the limit, as the tests pass before and after.
       Commit: `refactor(keyboard-nav): split the question card`.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 test("a held question's letter picks and saves its option, and unpicks it", async () => {
@@ -586,16 +590,16 @@ test("a held question's letter picks and saves its option, and unpicks it", asyn
 
 The breaks: a letter that does nothing on a held card; a pick shown but not saved.
 
-- [ ] **Step 3: Run it to check it fails**
+- [x] **Step 3: Run it to check it fails**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/round.test.tsx`
 - Expected: FAIL, the round's file still has Q2 blank
 
-- [ ] **Step 4: Implement the stops and their keys, and mount `useCursor`** on the round page.
+- [x] **Step 4: Implement the stops and their keys, and mount `useCursor`** on the round page.
 
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, PASS
 
-- [ ] **Step 6: Commit**: `feat(keyboard-nav): answer a round from the keys`
+- [x] **Step 6: Commit**: `feat(keyboard-nav): answer a round from the keys`
 
 ## Task 8: The keyboard guide
 

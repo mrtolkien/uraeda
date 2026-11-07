@@ -9,6 +9,7 @@ import {
   fieldText,
   fixtureRepo,
   git,
+  hold,
   renderPage,
   today,
   type,
@@ -126,6 +127,34 @@ test("Commit stops when an answer could not be saved", async () => {
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
     "discovery(web-ui): answer round 01",
   );
+});
+
+/** A question's answer line in the round's file, as written. */
+function answerLine(repo: string, id: string) {
+  const lines = text(repo).split("\n");
+  const heading = lines.findIndex((line) => line.startsWith(`## ${id}:`));
+  return lines.find((line, index) => index > heading && line.startsWith("**Answer:**"));
+}
+
+/** A key pressed where the focus is, as the keyboard sends it. */
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key });
+  });
+}
+
+// Breaks: a letter that does nothing on a held card; a pick shown but not saved.
+test("a held question's letter picks and saves its option, and unpicks it", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  hold(question("Q3"));
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** B"));
+
+  await press("b");
+  await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:**"));
 });
 
 /** The subject of the round's answers' commit. */
