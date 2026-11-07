@@ -6,23 +6,23 @@ asking the human for something it should not.
 
 ## At a glance
 
-| The human wants to…                                | Surface                                     | Not                                    |
-| -------------------------------------------------- | ------------------------------------------- | -------------------------------------- |
-| Change a word, a line, a row                       | In place                                    | A dialog with a text field             |
-| Act on one row: edit, move, delete, open, promote  | The row's bar                               | A `…` menu, icons over the text, hover |
-| Read a row's whole text, longer than the row holds | The detail dialog, on the row's address     | A side pane, a hover card              |
-| Read an item of a list for a while                 | The list beside its reader (the decisions)  | A dialog                               |
-| Go anywhere, find anything, start anything         | The leader menu, the `g` keys, a picker     | A page's own menu                      |
-| Choose one of many: a place, a target, a thing     | A picker                                    | A dropdown of the page                 |
-| Find which key does what, here                     | The key map, `?`                            | A help page, a list in the leader menu |
-| Confirm what cannot be undone                      | The shared confirmation                     | A second, page-made dialog             |
-| Take back what was just done                       | The undo toast, or `u`                      | A confirmation before each write       |
-| See a commit still landing                         | The commit toast                            | A spinner on its button, a top bar     |
-| Answer one short question at a decision point      | A dialog with one field                     | A page                                 |
-| Read or work in something for a while              | A page                                      | An overlay                             |
-| Keep a document's companions at hand               | The side column (wide), sheets (the phone)  | A popover                              |
-| Know what needs them, and go there                 | The sidebar, home, the status line's counts | A toast                                |
-| On the phone, reach the page's companions          | The bottom bar                              | The top tabs                           |
+| The human wants to…                                | Surface                                             | Not                                    |
+| -------------------------------------------------- | --------------------------------------------------- | -------------------------------------- |
+| Change a word, a line, a row                       | In place                                            | A dialog with a text field             |
+| Act on one row: edit, move, delete, open, promote  | The row's bar                                       | A `…` menu, icons over the text, hover |
+| Read a row's whole text, longer than the row holds | The detail dialog, on the row's address             | A side pane, a hover card              |
+| Read an item of a list for a while                 | The list beside its reader (the decisions)          | A dialog                               |
+| Go anywhere, find anything, start anything         | The leader menu, the `g` keys, a picker             | A page's own menu                      |
+| Choose one of many: a place, a target, a thing     | A picker                                            | A dropdown of the page                 |
+| Find which key does what, here                     | The key map, `?`                                    | A help page, a list in the leader menu |
+| Confirm what cannot be undone                      | The shared confirmation                             | A second, page-made dialog             |
+| Take back what was done                            | `u`, over the tab's undo stack, or the toast's Undo | A confirmation before each write       |
+| See a commit still landing                         | The commit toast                                    | A spinner on its button, a top bar     |
+| Answer one short question at a decision point      | A dialog with one field                             | A page                                 |
+| Read or work in something for a while              | A page                                              | An overlay                             |
+| Keep a document's companions at hand               | The side column (wide), sheets (the phone)          | A popover                              |
+| Know what needs them, and go there                 | The sidebar, home, the status line's counts         | A toast                                |
+| On the phone, reach the page's companions          | The bottom bar                                      | The top tabs                           |
 
 ## In place
 
@@ -84,11 +84,11 @@ layout look, was overruled on 2026-11-05.
 Two jobs only:
 
 - **Confirming what cannot be undone**, through the one shared confirmation (`fields/Confirm.tsx`),
-  answered by `y` or `n`, its focus on Cancel: deleting, discarding uncommitted changes, dropping
-  typed text. "Make sure every cancel modal uses the same window." A question with more than two
-  answers, like deleting a category that holds notes, is the same confirmation with one more answer
-  and its key. A delete that takes a file with it says so: `d` on a note with a note file asks
-  "Delete this note and its note file?", naming the file.
+  answered by `y` or `n`, its focus on Cancel: what loses work for good, like discarding uncommitted
+  changes or dropping typed text. "Make sure every cancel modal uses the same window." A question
+  with more than two answers, like deleting a category that holds notes, is the same confirmation
+  with one more answer and its key. What the stack can undo never asks: `d` deletes a row at once, a
+  note with its note file.
 - **One short question at a decision point**: a single field, with a suggestion at most, like a new
   feature's slug after `Ctrl+Enter`, or a quick note.
 
@@ -98,13 +98,21 @@ exist?" A proposal file opens its page, not an overlay. On the phone a dialog is
 
 ## Undo
 
-A write the human may regret, but that needs no question first, like a note promoted out of the
-inbox or an empty category deleted, shows a toast with Undo for 5 seconds
-(`layout/useUndoToast.ts`), its time paused while the pointer is over it or the focus in it, so a
-slow reader or a screen reader keeps it; `u` presses the newest one's Undo. A note of the inbox
-deleted with `d` gets one too, after its question: Undo puts back the note and the note file that
-went with it. Committing clears them. A toast is for this, for a confirmation from another page, and
-for the git writes still landing, never for an error alone, which stays next to what it concerns.
+Every edit to the human's lists and texts goes on the tab's undo stack (`undo/stack.ts`), as the
+[Undo](../decisions/undo.md) decision sets: the last 50 actions, until the tab reloads or closes.
+`u` or `Ctrl+Z` undoes the latest, minutes later if the human likes, and `U` or `Ctrl+Shift+Z`
+redoes it (`undo/UndoKeys.tsx`). An undo writes the reverse, which waits on the Git page, and takes
+the human to where the action happened, with what came back selected. It asks first once the action
+was committed since, and is refused, under the top bar, once its file changed since.
+
+Each action but a move shows a toast with Undo for 5 seconds (`undo/useUndo.ts`, over
+`layout/useTimedToast.tsx`), its time paused while the pointer is over it or the focus in it, so a
+slow reader or a screen reader keeps it. The toast is a reminder of what happened, ending in "·
+waits on the Git page"; the stack is the way back, and the status line shows `U redo` while there is
+one. Moves show no toast, and the moves of one list each less than a second after the last are one
+step. On the phone, with no keys, the toast's Undo and Redo are the only way. A toast is for this,
+for a confirmation from another page, and for the git writes still landing, never for an error
+alone, which stays next to what it concerns.
 
 ## The commit toast
 
