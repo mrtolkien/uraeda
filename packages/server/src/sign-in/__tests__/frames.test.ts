@@ -83,6 +83,10 @@ test("another site's frame gets 404 for the old address", async () => {
 test("a story's frame and socket load under the secret, without a cookie", async () => {
   const { base, log, name, origin, server } = await runningPreview();
 
+  // Its first reads are starting, until its code compiled.
+  await expect
+    .poll(async () => (await byIdAt(origin, name, "Story", [STORY], ["state"]))[0]?.state, WAIT)
+    .toBe("ready");
   const [story] = await byIdAt(origin, name, "Story", [STORY], ["state", "frame"]);
 
   expect(story).toMatchObject({

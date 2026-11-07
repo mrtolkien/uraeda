@@ -1,6 +1,7 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, each
 // through `run.ts`, one per checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view
-// starts the checkout's Storybook, which is ready once its index answers; a view after its
+// starts the checkout's Storybook, which is ready once its index answers, and its stories once
+// they compiled, through `compiles.ts`; a view after its
 // checkout's code version moved, a commit outside `specs/`, starts it again; it stops after 30
 // minutes without a view or a keep, when its checkout or its repository is removed, and with the
 // server. Its state lives in memory, and its process groups in a record the next start reads,
@@ -8,11 +9,18 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { freePort } from "../free-port.ts";
-import { readIndex, type StoryIndex, UNREADABLE_INDEX } from "./index.ts";
+import { Compiles, WARM_MS } from "./compiles.ts";
+import {
+  type IndexEntry,
+  matchStory,
+  readIndex,
+  type StoryIndex,
+  UNREADABLE_INDEX,
+} from "./index.ts";
 import { type GroupRecorder, lastReason, portTaken } from "./process.ts";
 import { KILL_MS, killRun, type Run, startRun } from "./run.ts";
 
-export { freePort, type GroupRecorder, KILL_MS };
+export { freePort, type GroupRecorder, KILL_MS, WARM_MS };
 
 /** A checkout's Storybook: starting, ready on its port, or failed, with the sentence to show. */
 export type PreviewState =
@@ -53,6 +61,8 @@ export const NOT_RUNNING = "Storybook is not running for this branch.";
 /** One checkout's Storybook, from its first view until it is stopped. */
 type Entry = {
   checkout: Checkout;
+  /** Its stories' compiles, once it is ready. */
+  compiles?: Compiles;
   lastView: number;
   reading?: AbortController;
   retried: boolean;
@@ -95,6 +105,7 @@ export class Previews {
   readonly #freePort: () => Promise<number>;
   readonly #onChange: (base: string) => void;
   readonly #indexMs: number;
+  readonly #warmMs: number;
   readonly #record: GroupRecorder | undefined;
   #reads = 0;
   /** Set by `stopAll`: the server stops, and nothing starts again. */
@@ -109,12 +120,15 @@ export class Previews {
       onChange?: (base: string) => void;
       /** Where each running process group is recorded, for the next start to kill (R52). */
       record?: GroupRecorder;
+      /** How long a story's compile may take before it counts as ended: `WARM_MS`. */
+      warmMs?: number;
     } = {},
   ) {
     this.#now = options.now ?? Date.now;
     this.#freePort = options.freePort ?? freePort;
     this.#onChange = options.onChange ?? (() => {});
     this.#indexMs = options.indexMs ?? INDEX_MS;
+    this.#warmMs = options.warmMs ?? WARM_MS;
     this.#record = options.record;
   }
 
@@ -123,8 +137,8 @@ export class Previews {
    * under the same base in another folder, a removed repository's whose folder name another one
    * took, is stopped, and one started in the checkout. One started at another code version of the
    * checkout, which may have changed what Storybook only reads as it starts, such as its
-   * configuration or its dependencies, is started again, its records kept. Once the runner is stopped, failed with
-   * `NOT_RUNNING`, and nothing starts.
+   * configuration or its dependencies, is started again, its records kept. Once the runner is
+   * stopped, failed with `NOT_RUNNING`, and nothing starts.
    */
   view(checkout: Checkout): PreviewState {
     if (this.#closed) {
@@ -176,6 +190,37 @@ export class Previews {
       return await readIndex(state.port, AbortSignal.timeout(this.#indexMs));
     } catch {
       return undefined;
+    }
+  }
+
+  /**
+   * Whether the story's compile, in the ready Storybook under `base`, ended or passed its time: the
+   * first ask starts it, and the later ones share it. False while it runs, and when no Storybook is
+   * ready under `base`. Its end is a change of `base`.
+   */
+  compiled(base: string, story: IndexEntry): boolean {
+    return this.#entries.get(base)?.compiles?.ended(story) ?? false;
+  }
+
+  /**
+   * A view of the checkout that, once its Storybook is ready, compiles each of `stories` its index
+   * holds, one after another. Resolves once they all ended, or the Storybook failed or stopped;
+   * never rejects.
+   */
+  async warm(checkout: Checkout, stories: Array<{ export: string; path: string }>): Promise<void> {
+    this.view(checkout);
+    const { base } = checkout;
+    while (this.state(base)?.state === "starting") {
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+    }
+    const index = await this.index(base);
+    for (const story of stories) {
+      const id = index && matchStory(index, checkout.folder, story);
+      const entry = id === undefined ? undefined : index?.entries[id];
+      const compiles = this.#entries.get(base)?.compiles;
+      if (entry !== undefined && compiles !== undefined) {
+        await compiles.compile(entry).promise;
+      }
     }
   }
 
@@ -309,6 +354,12 @@ export class Previews {
         if (entry.run === run && entry.state.state === "starting" && !entry.stopped) {
           this.#idle(entry);
           entry.state = { port: run.port, state: "ready" };
+          entry.compiles = new Compiles({
+            base: entry.checkout.base,
+            ms: this.#warmMs,
+            onEnd: () => this.#onChange(entry.checkout.base),
+            port: run.port,
+          });
           this.#onChange(entry.checkout.base);
         }
       },
@@ -347,8 +398,9 @@ export class Previews {
     this.#fail(entry, `Storybook did not start: ${lastReason(run.lines) ?? why}`);
   }
 
-  /** Stops polling the entry's index. */
+  /** Stops polling the entry's index, and its stories' compiles. */
   #idle(entry: Entry) {
+    entry.compiles?.abort();
     clearInterval(entry.timer);
     entry.timer = undefined;
     entry.reading?.abort();

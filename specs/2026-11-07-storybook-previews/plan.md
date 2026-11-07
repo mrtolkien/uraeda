@@ -506,6 +506,7 @@ git commit -m "feat(storybook-previews): restart only on code commits, keep what
 
 **Files:**
 
+- Create: `packages/server/src/preview/compiles.ts` (a ready Storybook's compiles: see R3)
 - Modify: `packages/server/src/preview/runner.ts` (the entry's compiles, `compiled`, `warm`)
 - Modify: `packages/server/src/fate/preview.ts` (`readStory`)
 - Test: `packages/server/src/preview/__tests__/runner.test.ts`,
@@ -527,7 +528,7 @@ git commit -m "feat(storybook-previews): restart only on code commits, keep what
 - Changes `readStory`: a ready Storybook's story found in its index is `starting`, `frame: null`,
   until `compiled` is true.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // runner.test.ts
@@ -582,21 +583,21 @@ through the port of the base's state; `release` requests the fake's `/__release`
 story ready at the index's answer (SC-004); a compile run per ask; a held compile never ending; an
 end that sends no update.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/preview/__tests__/runner.test.ts packages/server/src/__tests__/preview.test.ts`
 - Expected: FAIL, `runner.compiled is not a function`, and the story `ready` where `starting` is
   expected.
 
-- [ ] **Step 3: Implement the compiles, `compiled`, `warm`, and `readStory`'s wait**
+- [x] **Step 3: Implement the compiles, `compiled`, `warm`, and `readStory`'s wait**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/preview packages/server/src/fate/preview.ts packages/server/src/__tests__/preview.test.ts
