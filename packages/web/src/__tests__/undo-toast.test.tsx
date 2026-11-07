@@ -4,7 +4,7 @@
 // stays while the human is at it.
 import { Button } from "@astryxdesign/core/Button";
 import { LayerProvider } from "@astryxdesign/core/Layer";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useEffect } from "react";
 import { expect, test, vi } from "vite-plus/test";
 import { KeysProvider, useHints } from "../keys/registry.tsx";
@@ -65,28 +65,39 @@ async function press(key: string) {
 /** The toast's button, by its label, once shown. */
 const buttonOf = (label: RegExp) => screen.findByRole("button", { name: label });
 
-// Break: a redo toast with the wrong text or key, or `U redo` left in the status line.
+/**
+ * The button of the toast saying `body`, by its label: the toasts closed stay in the test's DOM,
+ * which runs no exit transition, so a button is taken from its own toast.
+ */
+async function buttonIn(body: string, label: RegExp) {
+  const toast = (await screen.findByText(body)).closest<HTMLElement>('[role="status"]')!;
+  return within(toast).getByRole("button", { name: label });
+}
+
+/** The status line's hints. */
+const hints = () =>
+  within(screen.getByRole("list", { name: "Status line" })).queryAllByRole("listitem");
+
+// Break: a redo toast with the wrong text or key, `U redo` left in the status line, or `u` hinted.
 test("an entry's toast says what was undone and redone", async () => {
   const undo = vi.fn();
   const redo = vi.fn();
   stack({ redo, undo });
-  await screen.findByText("Deleted “Color themes” · waits on the Git page");
-  expect((await buttonOf(/^Undo/)).textContent).toMatch(/Undo\s*u$/);
-  expect(screen.queryByText("U redo")).toBeNull();
+  const action = "Deleted “Color themes” · waits on the Git page";
+  expect((await buttonIn(action, /^Undo/)).textContent).toMatch(/Undo\s*u$/);
+  expect(hints().map((hint) => hint.textContent)).toEqual([]);
 
   await press("u");
   await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
-  await screen.findByText("Undone: deleted “Color themes”");
-  expect((await buttonOf(/^Redo/)).textContent).toMatch(/Redo\s*U$/);
-  await screen.findByText("U redo");
+  const undone = "Undone: deleted “Color themes”";
+  expect((await buttonIn(undone, /^Redo/)).textContent).toMatch(/Redo\s*U$/);
+  await waitFor(() => expect(hints().map((hint) => hint.textContent)).toEqual(["U redo"]));
 
   await press("U");
   await waitFor(() => expect(redo).toHaveBeenCalledTimes(1));
-  await screen.findByText("Redone: deleted “Color themes”");
-  // The toasts closed stay in the test's DOM, which runs no exit transition: the newest is last.
-  const undos = await screen.findAllByRole("button", { name: /^Undo/ });
-  expect(undos.at(-1)?.textContent).toMatch(/Undo\s*u$/);
-  await waitFor(() => expect(screen.queryByText("U redo")).toBeNull());
+  const redone = "Redone: deleted “Color themes”";
+  expect((await buttonIn(redone, /^Undo/)).textContent).toMatch(/Undo\s*u$/);
+  await waitFor(() => expect(hints()).toEqual([]));
 });
 
 // Break: "Undo u" on a touch screen, where no key is hinted.
