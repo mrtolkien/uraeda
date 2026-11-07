@@ -17,7 +17,7 @@ import { useRepository } from "../routes.tsx";
 
 type Fate = ReturnType<typeof useFateClient>;
 
-/** The list the priorities' moves join a run of. */
+/** The list the priorities' moves join a run of, after their repository's name. */
 const LIST = "priorities";
 
 /** The page of the priorities, from the repository. */
@@ -64,7 +64,8 @@ export function moveEntry(
             )
           : entry;
       },
-      list: LIST,
+      // The stack is the tab's: a run joins the moves of one repository's priorities only.
+      list: `${place.repo}:${LIST}`,
     },
   };
   moves.set(entry, { change, label, place, subject });

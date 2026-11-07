@@ -8,7 +8,10 @@ export type UndoEntry = {
   committed?: () => Promise<boolean>;
   /** What the action did, as its toast says it: "Deleted “Color themes”". */
   label: string;
-  /** A move of a list's row, which joins the run on top: `join(earlier)` makes the run's entry. */
+  /**
+   * A move of a list's row, which joins the run on top: `join(earlier)` makes the run's entry.
+   * `list` names the list with its repository, `uraeda:inbox`: the stack is the tab's.
+   */
   move?: { join: (earlier: UndoEntry) => UndoEntry; list: string };
   /**
    * Where it happened: the repository, by its name in the location, the page's path from it, and

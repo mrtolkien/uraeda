@@ -3,6 +3,8 @@
 import type { useFateClient } from "react-fate";
 import type { ChangeView } from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
+import { inboxEntry, movedWrite } from "../inboxUndo.ts";
+import { moveEntry, prioritiesPlace } from "../lists/prioritiesUndo.ts";
 import { changeEntry } from "./changeEntry.ts";
 import { createUndoStack } from "./stack.ts";
 
@@ -81,4 +83,39 @@ test("a failed redo rejects and leaves the entry on the redo side; a refusal dro
   });
   expect(stack.canRedo()).toBe(false);
   expect(stack.top()).toBeUndefined();
+});
+
+/** A change of `path`, from `before` to `after`, in base64 as a change holds them. */
+function changeOf(path: string, before: string, after: string): ChangeView {
+  return { commit: "abc", files: [{ after: btoa(after), before: btoa(before), path }] };
+}
+
+// Break: a run of moves keyed by its list alone, joining one repository's change with another's.
+test("moves of the same list in two repositories, within the second, are two steps", async () => {
+  const fate = fakeFate(async () => ({ result: { commit: "abc", id: "undo" } }));
+  const stack = createUndoStack(() => 0);
+  const row = { key: "row", text: "Idea" };
+  const inbox = (repo: string) =>
+    inboxEntry(fate, changeOf("specs/INBOX.md", `${repo} 1`, `${repo} 2`), movedWrite(row), repo);
+  const first = inbox("a");
+  stack.record(first);
+  stack.record(inbox("b"));
+  expect(stack.top()?.place.repo).toBe("b");
+  await stack.undo(never);
+  expect(stack.top()).toBe(first);
+
+  const priorities = (repo: string) =>
+    moveEntry(
+      fate,
+      changeOf("specs/PRIORITIES.md", `${repo} 1`, `${repo} 2`),
+      "Moved “Idea”",
+      prioritiesPlace(repo, "row"),
+      "Idea",
+    );
+  stack.clear();
+  const earlier = priorities("a");
+  stack.record(earlier);
+  stack.record(priorities("b"));
+  await stack.undo(never);
+  expect(stack.top()).toBe(earlier);
 });
