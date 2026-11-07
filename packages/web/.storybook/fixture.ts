@@ -119,7 +119,10 @@ const ROOT = join(import.meta.dirname, "../../..");
 /** The cache of built repositories, one folder per key, in the web package's `node_modules`. */
 const CACHE = join(import.meta.dirname, "../node_modules/.cache/uraeda-storybook-fixture");
 
-/** What the repository's build reads, from the checkout's top level: files, and every file under folders. */
+/**
+ * What the repository's build reads, from the checkout's top level: files, and every file under
+ * folders.
+ */
 const SOURCES = [
   "fixtures",
   "packages/web/samples",
@@ -149,7 +152,10 @@ function cacheKey(): string {
   return hash.digest("hex").slice(0, 16);
 }
 
-/** Copies a folder, a copy-on-write clone where the file system has one, an ordinary copy elsewhere. */
+/**
+ * Copies a folder, a copy-on-write clone where the file system has one, an ordinary copy
+ * elsewhere.
+ */
 function copyFolder(from: string, to: string) {
   cpSync(from, to, { mode: constants.COPYFILE_FICLONE, recursive: true, verbatimSymlinks: true });
 }
@@ -181,15 +187,21 @@ function copyCached(cached: string, repo: string): boolean {
 }
 
 /**
- * Saves the repository built at `repo` as the cache's `cached`, in place of every other key's:
- * written aside, then renamed, so a start never copies half of one. A failure leaves no cache.
+ * Saves the repository built at `repo` as the cache's `cached`, then removes every other key's:
+ * written aside, then renamed, so a start never copies half of one, nor one being removed. A
+ * failure leaves no cache of this key.
  */
 function saveCache(repo: string, cached: string) {
   const aside = `${cached}.${process.pid}`;
   try {
-    rmSync(CACHE, { force: true, recursive: true });
+    rmSync(cached, { force: true, recursive: true });
     copyFolder(repo, aside);
     renameSync(aside, cached);
+    for (const other of readdirSync(CACHE)) {
+      if (join(CACHE, other) !== cached && !other.includes(".")) {
+        rmSync(join(CACHE, other), { force: true, recursive: true });
+      }
+    }
   } catch {
     rmSync(aside, { force: true, recursive: true });
   }

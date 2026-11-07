@@ -212,7 +212,7 @@ export async function startServer(options: StartOptions): Promise<Server> {
 function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
   const { hosts, previews } = shared;
   const contexts = () => hosts.all().map((host) => ({ ...shared, repo: host.path }));
-  void startWaiting(contexts());
+  startWaiting(contexts()).catch(() => {});
   let sweeping = false;
   return () => {
     if (sweeping) {

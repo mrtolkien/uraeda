@@ -87,3 +87,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: it reads the waiting file's stories, which the review watch owns, and the watch's
   start at boot calls it: kept in `preview.ts`, the two modules would import each other.
 - **Where**: task 6 of the plan.
+
+## R5: A changed preview command or folder restarts the Storybook
+
+- **Decision**: the runner starts a Storybook again when a view's preview command or folder differs
+  from the one it runs, whatever the code version, under the same read-stamp rule as a version.
+- **Rationale**: the preview decision, `specs/decisions/preview.md`, sets both, and sits under
+  `specs/`: a commit that only fixes a broken `preview-command`, or moves `preview-folder`, moves no
+  code version. Without this, a failed Storybook stayed failed at every view, and a ready one kept
+  the old folder while its stories were matched against the new one, all reading `missing`. The
+  spec's "only a commit outside `specs/` restarts" is about commits at the same configuration; a new
+  command is another checkout to run. Found by the final review.
+- **Alternatives considered**: keeping `specs/decisions/preview.md` in the code version's tree, so
+  any edit of the decision, even its prose, restarts.
+- **Where**: `moved` in [`runner.ts`](/packages/server/src/preview/runner.ts).
+
+## R6: A compile's deadline is real time
+
+- **Decision**: a story's compile ends after `WARM_MS` of real time, an `AbortSignal.timeout`, and
+  its test sets `warmMs: 100`, as the index's tests set `indexMs`.
+- **Rationale**: the deadline aborts the warmer's fetches, which only a signal reaches; the runner's
+  injectable clock moves no timer. The test's first assertion is synchronous and its modules are
+  held, so it waits, never races.
+- **If wrong**: inject a factory of deadline signals in place of `warmMs`.
+- **Where**: [`compiles.ts`](/packages/server/src/preview/compiles.ts).

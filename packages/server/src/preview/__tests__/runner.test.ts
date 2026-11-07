@@ -301,6 +301,20 @@ test("a view at a new version starts a failed Storybook again; one at an unknown
   await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
 });
 
+test("a view whose preview command or folder changed restarts it, at the same version", async () => {
+  // The preview decision is under specs/: a commit of it alone does not move the version.
+  const { checkout, log } = await storyCheckout({ mode: "fail" });
+  const runner = previews();
+  runner.view({ ...checkout, version: "a" });
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+  const fixed = { ...checkout, command: checkout.command.replace("--mode fail", "--mode ok") };
+
+  expect(runner.view({ ...fixed, version: "a" }).state).toBe("starting");
+
+  await ready(runner, checkout);
+  expect(previewStarts(log)).toHaveLength(2);
+});
+
 test("a view at a known version starts a Storybook whose first version read failed, once", async () => {
   const { checkout, log } = await storyCheckout({ mode: "fail" });
   const runner = previews();
