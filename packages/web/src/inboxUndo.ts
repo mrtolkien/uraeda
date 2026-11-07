@@ -1,7 +1,7 @@
 // The inbox's entries on the undo stack: what each of its writes is called, and where it happened,
 // from the inbox as the write found it, made into an entry from the change the write answered. A
-// row's moves, an indent, a drag, or a move to a category, are moves of the list "inbox", which a
-// run of them joins into one step.
+// row's moves, an indent, a drag, or a move to a category, are moves of the repository's list
+// "inbox", which a run of them joins into one step.
 import type { useFateClient } from "react-fate";
 import type { ChangeView } from "uraeda-binding";
 import { rereadProposalFile } from "./attach/useEditorImages.ts";
@@ -94,7 +94,8 @@ export function inboxEntry(
           ? inboxEntry(fate, joinChanges(first.change, change), first.write, repo)
           : moved;
       },
-      list: "inbox",
+      // The stack is the tab's: a run joins the moves of one repository's inbox only.
+      list: `${repo}:inbox`,
     },
   };
   moves.set(moved, { change, write });

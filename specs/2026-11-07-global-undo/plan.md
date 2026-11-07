@@ -20,8 +20,8 @@ mutation with its change, plus two mutations of its own: `undo.apply` and `undo.
 In the web UI, `undo/` owns the stack, its keys, its toasts, the committed question, the refusals,
 and the trip to the action's page. A page records an entry once its write lands: a label, its place,
 and its undo and redo, built from the change by `changeEntry`, or written by hand for the New page's
-draft, the one action held by the browser. A move, tagged with its list, joins the entry on top
-while it comes less than a second after the last move of the same list.
+draft, the one action held by the browser. A move, tagged with its repository's list, joins the
+entry on top while it comes less than a second after the last move of the same list.
 
 Owners: the core owns the change's capture, its replay, and the committed check; the stack owns the
 order, the limit of 50, the redo side, the run of moves, and the one-at-a-time replay; each page
@@ -457,6 +457,7 @@ export type UndoEntry = {
   /** Whether a commit since touched what it wrote: asks before undoing or redoing. */
   committed?: () => Promise<boolean>;
   /** A move of a list's row, which joins the run on top: `join(earlier)` makes the run's entry. */
+  /** `list` names the list with its repository, `uraeda:inbox`: the stack is the tab's. */
   move?: { list: string; join: (earlier: UndoEntry) => UndoEntry };
 };
 export function createUndoStack(now: () => number = Date.now): UndoStack;
