@@ -7,7 +7,7 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import { undoStack } from "../undo/stack.ts";
-import { atRepo, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
+import { atRepo, fieldText, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
 
 const INBOX = `# Inbox
 
@@ -89,6 +89,42 @@ test("u from another page opens the action's page with what came back selected",
   await waitFor(() => expect(rowOf("Loose note")?.getAttribute("aria-current")).toBe("true"));
   expect(window.location.pathname).toBe(atRepo("/inbox"));
   expect(window.history.length).toBe(entries);
+});
+
+// Break: a promotion's undo that leaves the proposal file's page showing the note it took back.
+test("u on a note added to a proposal file reads the file again", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/INBOX.md"), INBOX);
+  await renderPage("/inbox", repo);
+  const link = (await screen.findAllByRole("button", { name: /Loose note/ })).find(
+    (one) => one.closest("[data-row-link]") !== null,
+  ) as HTMLElement;
+  act(() => link.focus());
+  await press("p", link);
+  await screen.findByRole("combobox", { name: "Promote the note" });
+  const option = screen
+    .getAllByRole("option")
+    .find((one) => one.textContent?.includes("Git listener"));
+  await act(async () => {
+    fireEvent.click(option!);
+  });
+  const file = "specs/proposals/git-listener.md";
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${file}`)));
+  await waitFor(() =>
+    expect(fieldText(screen.getByRole("textbox", { name: "Text" }))).toContain("Loose note"),
+  );
+
+  await press("u");
+  await screen.findByText("Undone: added to Git listener process");
+  await waitFor(() => expect(read(repo, file)).not.toContain("Loose note"));
+  const field = await openFile();
+  await waitFor(() => expect(fieldText(field)).not.toContain("Loose note"));
+
+  await press("U");
+  await screen.findByText("Redone: added to Git listener process");
+  await waitFor(() => expect(read(repo, file)).toContain("Loose note"));
+  const again = await openFile();
+  await waitFor(() => expect(fieldText(again)).toContain("Loose note"));
 });
 
 // Break: the stack hearing a field's keys.
