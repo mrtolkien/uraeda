@@ -282,6 +282,52 @@ test("a line's Start replaces the draft, and `u` brings it back", async () => {
   );
 });
 
+/** Typing since a Start, or since its undo, is kept: the swap is refused, the typed text stays. */
+test("a draft typed in since a Start refuses its undo and its redo", async () => {
+  const repo = withNowLine("Proposal start flow");
+  const fake = await fakeAgent({ installed: false });
+  await renderPage("/new?kind=change", repo, {
+    agent: fake,
+    fetch: serverFetch(repo, fake.sessions),
+  });
+  const change = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await type(change, "Widen the sidebar");
+  await act(async () => navigate(atRepo("/priorities")));
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+  await startLine();
+  await quiet();
+  await screen.findByText("Draft replaced");
+
+  const typed = "Proposal start flow\n- one nested line, and more";
+  await type(await waitForComposer(), typed);
+  await press("u");
+  await screen.findByText("Could not undo: “Draft” changed since on the New page.");
+  expect(await composerText()).toBe(typed);
+
+  // Undone untouched, then typed over: its redo is refused the same way.
+  await type(await waitForComposer(), "Another draft");
+  await act(async () => navigate(atRepo("/priorities")));
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+  await startLine();
+  await quiet();
+  await press("u");
+  await waitFor(async () => expect(await composerText()).toBe("Another draft"));
+  await type(await waitForComposer(), "Another draft, typed on");
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "U", shiftKey: true });
+  });
+  await screen.findByText("Could not redo: “Draft” changed since on the New page.");
+  expect(await composerText()).toBe("Another draft, typed on");
+}, 60_000);
+
+/** The composer's field, whichever card is picked, once the New page draws it. */
+const waitForComposer = () =>
+  waitFor(
+    () =>
+      screen.queryByRole("textbox", { name: "Message Claude Code" }) ??
+      screen.getByRole("textbox", { name: "Write Proposal" }),
+  );
+
 /** What the composer was filled from is stored with its text: a reload keeps the line a source. */
 test("a line filled into the composer is still its source after a reload", async () => {
   const repo = withNowLine("Alpha");

@@ -139,6 +139,11 @@ function keptStore(key: string): Store {
   return found;
 }
 
+/** The images the draft kept under `key` holds now, outside any render: none without one. */
+export function keptImages(key: string): ReadonlyArray<DraftImage> {
+  return kept.get(key)?.get().images ?? [];
+}
+
 function apply<T>(update: SetStateAction<T>, now: T): T {
   return typeof update === "function" ? (update as (now: T) => T)(now) : update;
 }
