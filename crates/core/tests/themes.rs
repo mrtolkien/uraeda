@@ -464,3 +464,27 @@ fn files_sort_by_name_and_themes_by_mode_then_name() {
     let ids: Vec<_> = read.themes.iter().map(|theme| theme.id.as_str()).collect();
     assert_eq!(ids, [DEFAULT_DARK, "zeta", "alpha", DEFAULT_LIGHT, "light"]);
 }
+
+#[test]
+fn extends_finds_a_theme_in_any_case_an_exact_match_first() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        &[
+            ("upper.toml", b"extends = \"Catppuccin-Mocha\"\n"),
+            ("Night.toml", b"mode = \"light\"\n"),
+            ("night.toml", b"mode = \"dark\"\n"),
+            ("exact.toml", b"extends = \"Night\"\n"),
+        ],
+    );
+    let read = themes::read(dir.path());
+    let upper = file(&read, "upper.toml");
+    assert!(upper.problems.is_empty(), "{:?}", upper.problems);
+    let mocha = theme(&read, DEFAULT_DARK).unwrap();
+    assert_eq!(theme(&read, "upper").unwrap().roles, mocha.roles);
+    // `Night` and `night` differ only in case: `exact` extends the one it names exactly.
+    assert_eq!(
+        theme(&read, "exact").map(|t| t.mode.as_str()),
+        Some("light")
+    );
+}
