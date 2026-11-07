@@ -209,3 +209,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one line of each view; or a role added to `ROLES`, every shipped file, and the
   mapping.
 - **Where**: task 7
+
+## R17: A page or pane title that is a document's heading takes its level's colour
+
+- **Decision**: `PageTitle` takes `isDocumentHeading`, and `Pane` a `tint`, `heading`, which colour
+  the title with `headingStyle` at its level: the `#` page titles of the spec, document, plan, and
+  data model pages take `heading-1`, a user story's pane title `heading-3`, and a document's `##`
+  section pane, a plan's task's included, `heading-2`. Titles that are not a document's headings,
+  "Behaviours", "Notes", a file's name, keep `pane-title` or the text's colour.
+- **Rationale**: the approved spec's US4 says `# Spec` is mauve and `### US1` green in Mocha, which
+  are a page title and a pane title; the plan's "page titles and pane titles keep theirs" left them
+  in the text's and the pane title's colours. One opt-in prop on each shared component keeps the
+  rule in `layout/headings.ts`, not page by page.
+- **If wrong**: drop the prop at a caller; the title takes back its colour.
+- **Where**: task 7, its review's fix

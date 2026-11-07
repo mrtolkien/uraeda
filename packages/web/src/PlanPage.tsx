@@ -101,6 +101,7 @@ function PlanParts({
             </Selectable>
           )}
           id={title.anchor}
+          isDocumentHeading
           status={status}
         >
           <Spans spans={title.spans} />

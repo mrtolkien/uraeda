@@ -191,6 +191,8 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
       // On the phone, little room inside its border, so its live window keeps the screen's width.
       isSnugOnPhone
       level={3}
+      // A story is a `###` of the spec: its title takes that level's colour.
+      tint="heading"
       title={`${story.id} · ${story.title}`}
       titleSuffix={
         <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />

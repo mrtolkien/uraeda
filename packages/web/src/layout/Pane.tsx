@@ -16,6 +16,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, use, useId } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { railPaneStyles, useClosedRail } from "./closedRail.ts";
+import { headingStyle } from "./headings.ts";
 import { InPane, PaneContent } from "./paneContext.tsx";
 import { paneVars } from "./pane.stylex.ts";
 import { PaneSuffix } from "./PaneSuffix.tsx";
@@ -40,9 +41,10 @@ export type PaneTone =
 
 /**
  * A role for a pane's title alone, as a list's section tells its kind; its border stays: `quiet` is
- * the secondary text's.
+ * the secondary text's. `heading` is for a title that is a document's heading at the pane's level,
+ * as a story's `###`: it takes its level's role, `heading-1` to `-3` (US4 of Color themes).
  */
-export type PaneTint = "added" | "quiet" | "working";
+export type PaneTint = "added" | "heading" | "quiet" | "working";
 
 /**
  * A pane that folds to its title: whether it is open, and what opens or closes it. `folded`, when
@@ -395,6 +397,7 @@ export function Pane({
   const titleId = useId();
   const { actionsRef, headingRef, paneRef, title: place } = useActionsRoom(actions !== undefined);
   const [border, ink] = looks(isActive, tone, isTinted, useClosedRail());
+  const named = tint === "heading" ? headingStyle(level) : tint && TINTS[tint];
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isSnug = isSnugOnPhone && isNarrow(width) && !use(InPane);
@@ -436,7 +439,7 @@ export function Pane({
         level={level}
         ref={headingRef}
         tabIndex={id === undefined ? undefined : -1}
-        xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, tint && TINTS[tint], ink, place]}
+        xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, named, ink, place]}
       >
         <TitleWords fold={fold} label={label}>
           {name}

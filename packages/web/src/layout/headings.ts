@@ -2,7 +2,10 @@
 // role `heading-1`, `##` `heading-2`, and `###` and deeper `heading-3`. A document's headings, a
 // spec's sections, and a round's title take it; a message's markdown takes the same roles through
 // the theme's `markdown` rule (`theme/theme.ts`), and the editor's through its highlighting
-// (`fields/editor/markdown.ts`). Page, pane, and group titles keep their own colours.
+// (`fields/editor/markdown.ts`). A page's or a pane's title that is a document's heading takes it
+// too (`PageTitle`'s `isDocumentHeading`, `Pane`'s `tint="heading"`), as the spec's `# Spec` and
+// its stories' `###` panes; page, pane, and group titles that are not a document's headings keep
+// their colours.
 import * as stylex from "@stylexjs/stylex";
 
 const styles = stylex.create({
