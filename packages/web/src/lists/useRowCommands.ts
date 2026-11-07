@@ -10,7 +10,7 @@ import type { WorkListProps } from "./workSection.ts";
 
 /** What the row's commands are made with: the list as it shows, and what selects a row. */
 type Shown = {
-  /** `d`, once confirmed, ahead of its write (see `deleteAheadOf`). */
+  /** `d`, ahead of its write (see `deleteAheadOf`). */
   deleteAhead: ((row: WorkRow) => void) | undefined;
   live: ShownList["live"];
   pick: (key: string) => void;

@@ -66,7 +66,7 @@ export type WorkListProps = {
   /** What `o` calls for the selected row, and `O` with `isAbove`. */
   onAddBeside?: (section: string, row: WorkRow, isAbove?: boolean) => void;
   /**
-   * What `d` calls for the selected row, once the human confirmed: it deletes the line, and may
+   * What `d` calls for the selected row, at once: it deletes the line, and may
    * resolve with `false` when the write is refused, for the row to come back.
    */
   onDelete?: (row: WorkRow) => Promise<boolean | void> | void;

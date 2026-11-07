@@ -41,7 +41,7 @@ export function useGone(sections: ReadonlyArray<WorkSection>) {
 }
 
 /**
- * `d`, confirmed: the row goes at once, and the selection to the row after it, or before it; it
+ * `d`: the row goes at once, and the selection to the row after it, or before it; it
  * comes back if the write is refused. `placed` is each section's rows as they show.
  */
 export function deleteAheadOf(
@@ -60,7 +60,7 @@ export function deleteAheadOf(
     setGone((before) => new Set([...before, row.key]));
     if (next) {
       pick(next.key);
-      // With the focus, once drawn: the question gave it back to the row that went.
+      // With the focus, once drawn, which was on the row that went.
       requestAnimationFrame(() => controlOf(next.key)?.focus({ preventScroll: true }));
     }
     // Written, the file no longer has it; refused, it comes back. Either way it is hidden no more:
