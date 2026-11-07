@@ -120,8 +120,8 @@ test("a mockup's comment undoes and redoes, as the review page's do", async () =
   expect(review(r)).toBe(written);
 });
 
-// Break: the edit left on undo, or the page showing the edited text.
-test("an edited comment's undo puts its text back", async () => {
+// Break: the edit left on undo, or the page showing the edited text; a redo that is refused.
+test("an edited comment's undo puts its text back, and its redo the edit", async () => {
   const r = repo();
   const before = pending(r, ["First."]);
   await renderPage(PAGE, r);
@@ -129,7 +129,8 @@ test("an edited comment's undo puts its text back", async () => {
   await type(within(await editForm()).getByLabelText("Comment text"), "First, edited.");
   await click(within(await editForm()).getByRole("button", { name: "Save comment" }));
   await screen.findByText("Edited a comment · waits on the Git page");
-  expect(review(r)).toContain("First, edited.");
+  const edited = review(r);
+  expect(edited).toContain("First, edited.");
 
   await press("u");
   await screen.findByText("Undone: edited a comment");
@@ -138,6 +139,13 @@ test("an edited comment's undo puts its text back", async () => {
     expect((await comment("C1 · general")).textContent).toContain("First."),
   );
   expect((await comment("C1 · general")).textContent).not.toContain("edited");
+
+  await press("U");
+  await screen.findByText("Redone: edited a comment");
+  expect(review(r)).toBe(edited);
+  await waitFor(async () =>
+    expect((await comment("C1 · general")).textContent).toContain("First, edited."),
+  );
 });
 
 // Break: the comment not back, or the edit typed for the one after it left on the wrong comment.
@@ -149,6 +157,7 @@ test("a removed comment's undo brings it back, and an edit typed after it follow
   await type(within(await editForm()).getByLabelText("Comment text"), "Second, edited.");
   await click(within(await comment("C1 · general")).getByRole("button", { name: "Remove" }));
   await screen.findByText("Removed a comment · waits on the Git page");
+  const removed = review(r);
   expect(within(await editForm()).getByText("Editing C1")).toBeTruthy();
 
   await press("u");
@@ -159,6 +168,16 @@ test("a removed comment's undo brings it back, and an edit typed after it follow
   );
   // The edit kept for the second comment is its again, with its text.
   await waitFor(async () => expect(within(await editForm()).getByText("Editing C2")).toBeTruthy());
+  expect(fieldText(within(await editForm()).getByLabelText("Comment text"))).toBe(
+    "Second, edited.",
+  );
+
+  // The redo removes it again: the edit follows the second comment back to C1.
+  await press("U");
+  await screen.findByText("Redone: removed a comment");
+  expect(review(r)).toBe(removed);
+  await waitFor(() => expect(screen.queryByRole("group", { name: "C2 · general" })).toBeNull());
+  await waitFor(async () => expect(within(await editForm()).getByText("Editing C1")).toBeTruthy());
   expect(fieldText(within(await editForm()).getByLabelText("Comment text"))).toBe(
     "Second, edited.",
   );
@@ -200,4 +219,9 @@ test("Start over's undo brings back every comment it dropped", async () => {
   expect(review(r)).toBe(before);
   await comment("C1 · general");
   await comment("C2 · general");
+
+  await press("U");
+  await screen.findByText("Redone: started the review over");
+  expect(review(r)).toBeUndefined();
+  await waitFor(() => expect(screen.queryByRole("group", { name: "C1 · general" })).toBeNull());
 });
