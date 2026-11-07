@@ -153,3 +153,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a stale `-floor` entry left in a shipped file, which no role names, is no longer
   caught by the test; the floor script still prints only what the roles use.
 - **Where**: task 5
+
+## R13: The shipped themes were built in three parts, one commit each
+
+- **Decision**: task 5 was built by three implementers at the same time, each on a group of
+  families: Catppuccin's other flavours, Dracula, Alucard, and GitHub's themes; Gruvbox, Kanagawa,
+  Nord, and One; Rosé Pine, Solarized, and Tokyo Night. Each is its own commit; this commit checks
+  the task's boxes once all three were merged and the floor script printed no pair under the floor
+  for the 28 themes.
+- **Rationale**: 26 files, each read from its published source, touch no file in common; one
+  implementer would have held the wave for hours.
+- **Where**: task 5

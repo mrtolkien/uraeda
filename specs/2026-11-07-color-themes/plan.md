@@ -736,7 +736,7 @@ The body lists each Catppuccin token that changed, old and new, and the break ea
 - Consumes: the format (task 2), `scripts/theme-floor.ts` and the tests (task 4).
 - Produces: the 26 files, each read by every test that iterates the shipped themes.
 
-- [ ] **Step 1: Write each theme from its published source**
+- [x] **Step 1: Write each theme from its published source**
 
 Each file: the `#:schema` line, a comment naming the source, its version or commit, its licence, and
 its URL, then the published palette under the source's own names, then `[roles]`. The source of each
@@ -753,20 +753,20 @@ comment colour onto `ink-faint` and `syntax-comment`; its accent onto `action`; 
 `needs-you`; its diff colours onto `added` and `removed`. Every role the file leaves out comes from
 what it extends; a family's first file sets every role.
 
-- [ ] **Step 2: Run the floor script, and adjust**
+- [x] **Step 2: Run the floor script, and adjust**
 
 - Run: `nix develop -c node packages/web/scripts/theme-floor.ts`
 - Expected: a list of failing roles per theme. Add each printed `-floor` entry to its file and point
   the roles at it; run again until it prints nothing.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run binding:build`, then
   `nix develop -c vp test packages/web/src/__tests__/theme-tokens.test.ts packages/web/src/__tests__/theme-roles.test.ts`,
   then `nix develop -c cargo nextest run -p uraeda-core --test themes`
 - Expected: PASS, 28 shipped themes measured. Deferred to `ready`: the rest.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/core/themes crates/core/tests/themes.rs specs/2026-11-07-color-themes/plan.md
