@@ -746,7 +746,7 @@ git commit -m "feat(global-undo): every edit of the priorities and proposals can
   Each undo and redo reads the reviewed file again, so the page's comments come back from the file
   once it lands; an edit typed but not sent, kept or open, follows its comment's number back and
   forth, and a new comment typed stays. A refusal names the comment's first line, or "Your review"
-  for Start over (ruling R11).
+  for Start over (ruling R14).
 
 - [x] **Step 1: Write the failing test**: the rows "a first comment", "an edited comment", "a
       comment removed", and "Start over", on a spec of the fixture: after `u`, the review file is as
