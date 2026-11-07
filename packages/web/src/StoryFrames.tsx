@@ -2,8 +2,8 @@
 // at the phone's width or the desktop's: a change of width resizes and rescales it, and never
 // reloads it. It is drawn by the live window's frame (`LiveFrame`): at its real width, scaled to
 // fit, at 100% in full screen. The frame is as tall as its story says, up to the theme's maximum,
-// the phone's frame 50% taller. Its colour mode is sent when it says it is ready and when it
-// changes, with pick mode, and its pick script reports the elements picked. It loads its story only
+// the phone's frame 50% taller. Its colour mode and the tokens the page draws, so it draws in the
+// picked theme, are sent when it says it is ready and when they change, with pick mode, and its pick script reports the elements picked. It loads its story only
 // once its box is on screen, then stays loaded.
 import { useTheme } from "@astryxdesign/core/theme";
 import { type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
@@ -11,6 +11,7 @@ import { bottomOf, keepPlace } from "./keepPlace.ts";
 import { type Fit, LiveFrame } from "./LiveFrame.tsx";
 import { frameMessage, heightOf, pickedOf } from "./frameMessages.ts";
 import type { Picked } from "./storyComment.ts";
+import { useDrawnTokens } from "./theme.tsx";
 
 /** The widths a story is shown at: the phone's, 402 px, or the desktop's, 1440 px. */
 export type Width = "phone" | "desktop";
@@ -46,13 +47,14 @@ export type PickMode = {
 
 /**
  * The frame's window, and the height its story reports, kept until it reports another. A frame that
- * says `ready`, again after a reload, is sent the colour mode, which it is sent again when it
- * changes, and pick mode when on; it is sent pick mode as it turns on or off.
+ * says `ready`, again after a reload, is sent the colour mode with the tokens the page draws, sent
+ * again when either changes, and pick mode when on; it is sent pick mode as it turns on or off.
  */
 function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [reported, setReported] = useState<number>();
   const { mode } = useTheme();
+  const palette = useDrawnTokens();
   const onMessage = useEffectEvent((event: MessageEvent) => {
     const message = frameMessage(event.source, frame.current?.contentWindow, event.data);
     if (message === undefined) {
@@ -60,7 +62,7 @@ function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
     }
     const source = event.source as Window;
     if (message.uraeda === "ready") {
-      source.postMessage({ mode, uraeda: "mode" }, "*");
+      source.postMessage({ mode, palette, uraeda: "mode" }, "*");
       if (pick.picking) {
         source.postMessage({ on: true, uraeda: "pick" }, "*");
       }
@@ -84,7 +86,10 @@ function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
   }, []);
-  useEffect(() => frame.current?.contentWindow?.postMessage({ mode, uraeda: "mode" }, "*"), [mode]);
+  useEffect(
+    () => frame.current?.contentWindow?.postMessage({ mode, palette, uraeda: "mode" }, "*"),
+    [mode, palette],
+  );
   useEffect(
     () => frame.current?.contentWindow?.postMessage({ on: pick.picking, uraeda: "pick" }, "*"),
     [pick.picking],
