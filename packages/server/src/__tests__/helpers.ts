@@ -12,7 +12,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
 import { WRITE_QUEUE_ID } from "../fate/write-queue.ts";
-import type { Binding } from "../fate/context.ts";
+import type { Binding, RepoContext } from "../fate/context.ts";
 import { livePreviews } from "../live.ts";
 import type { Previews } from "../preview/runner.ts";
 import { type Host, Hosts } from "../repositories.ts";
@@ -436,4 +436,21 @@ export function groupLeader(): number {
     }
   });
   return child.pid!;
+}
+
+/**
+ * The fate context of a test app's repository, as the server builds it for its Storybooks' keep
+ * and start: from `testApp`'s or `testServer`'s parts, on the core's binding.
+ */
+export function repoContext(parts: {
+  dataDir: string;
+  frames: FrameSecret;
+  hosts: Hosts;
+  previews: Previews;
+  repo: string;
+  sessions: Sessions;
+  settings: ServerSettings;
+}): RepoContext {
+  const { dataDir, frames, hosts, previews, repo, sessions, settings } = parts;
+  return { binding, dataDir, frames, hosts, previews, repo, sessions, settings };
 }

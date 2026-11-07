@@ -78,3 +78,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a map of compiles on the runner's entry, as the plan's task 5
   sketched: the same behaviour, with the runner growing past 450 lines.
 - **Where**: task 5 of the plan.
+
+## R4: `warmPreview` lives with the review watch
+
+- **Decision**: `warmPreview` moves from [`fate/preview.ts`](/packages/server/src/fate/preview.ts)
+  to [`fate/preview-waiting.ts`](/packages/server/src/fate/preview-waiting.ts), beside the waiting
+  file's stories it now compiles, and `app.ts` imports it from there.
+- **Rationale**: it reads the waiting file's stories, which the review watch owns, and the watch's
+  start at boot calls it: kept in `preview.ts`, the two modules would import each other.
+- **Where**: task 6 of the plan.

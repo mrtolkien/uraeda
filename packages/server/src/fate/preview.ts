@@ -1,8 +1,7 @@
 // Stories and previews in fate: the records of a story link of a checkout, `Story`, and of a
 // checkout's Storybook, `Preview`, each read a view of the runner; and of an agent's link,
 // `StoryHref`, checked by the core. The runner's changes reach the records read for each base.
-import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { dataView } from "@nkzw/fate/server";
 import { matchStory, UNREADABLE_INDEX } from "../preview/index.ts";
 import type { Checkout, PreviewState, Previews } from "../preview/runner.ts";
@@ -152,7 +151,7 @@ export function takeWatched(previews: Previews): Array<Watched> {
  * A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
  * current frame secret, at its current code version, or null without one or without a decision.
  */
-async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
+export async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
   const checkout = await checkoutOf(ctx, folder);
   const name = ctx.hosts.byPath(ctx.repo)?.name;
   if (checkout === null || name === undefined) {
@@ -212,24 +211,6 @@ export async function restartPreview(ctx: RepoContext, folder: string): Promise<
     return previewRecord(folder, checkout, ctx.previews.restart(checkout));
   } finally {
     restarting.delete(checkout.base);
-  }
-}
-
-/**
- * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
- * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
- * One that failed, as one a page started during the install, starts again. Nothing reads its record
- * yet: a page that does finds it starting or ready.
- */
-export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
-  const checkout = await runnable(ctx, folder);
-  if (checkout === null || !existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
-    return;
-  }
-  if (ctx.previews.state(checkout.base)?.state === "failed") {
-    await restartPreview(ctx, folder);
-  } else {
-    ctx.previews.view(checkout);
   }
 }
 
