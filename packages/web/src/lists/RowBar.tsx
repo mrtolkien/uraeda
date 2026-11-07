@@ -271,9 +271,10 @@ function FloatingBar({
 /**
  * The row's actions, in the order given, under the row or its field. On the phone they float at the
  * screen's bottom instead (see `FloatingBar`): `isField` says they are a field's, which stay while
- * the page scrolls; a row's go, then call `onAway`. `isCursor` says it is the keyboard cursor's bar,
- * whose buttons Tab passes by, as the focus leaving the stop would unmount the bar and drop it on
- * the page's body, and which is marked `data-stop-bar` for the cursor to keep it inside the margins.
+ * the page scrolls; a row's go, then call `onAway`. `isCursor` says it is the keyboard cursor's
+ * bar, whose buttons Tab passes by, as the focus leaving the stop would unmount the bar and drop it
+ * on the page's body, and which is marked `data-stop-bar` for the cursor to keep it inside the
+ * margins.
  */
 export function RowBar({
   actions,

@@ -172,8 +172,8 @@ function move(direction: 1 | -1) {
 }
 
 /**
- * The stop past `held` in document order, out of its scroll area (R8): forward, the next it does not
- * hold; backward, the previous, or the outermost stop holding it, as `cursorStep` moves (R12).
+ * The stop past `held` in document order, out of its scroll area (R8): forward, the next it does
+ * not hold; backward, the previous, or the outermost stop holding it, as `cursorStep` moves (R12).
  */
 function beyond(all: ReadonlyArray<HTMLElement>, held: HTMLElement, direction: 1 | -1) {
   let at = all.indexOf(held) + direction;
@@ -271,9 +271,10 @@ const NONE: ReadonlyArray<Binding> = [];
 
 /**
  * The cursor's keys, for as long as the page is mounted and `on`: `j` `↓` and `k` `↑` move it, "j k
- * move" in the status line, and Escape clears it. Only while a page has it does a stop show as held.
- * A page is `on` where its blocks are stops, a spec under review, a document with Ask: elsewhere its
- * folds alone would be stops, and `j` `k` scroll the text as they do on any page (R14).
+ * move" in the status line, and Escape clears it. Only while a page has it does a stop show as
+ * held. A page is `on` where its blocks are stops, a spec under review, a document with Ask:
+ * elsewhere its folds alone would be stops, and `j` `k` scroll the text as they do on any page
+ * (R14).
  */
 export function useCursor(on = true): void {
   useKeys(on ? BINDINGS : NONE);

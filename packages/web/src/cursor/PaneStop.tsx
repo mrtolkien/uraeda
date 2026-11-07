@@ -1,6 +1,6 @@
 // A whole pane as a stop of the keyboard's cursor, as a question card, the round's notes, or its
-// Submit: marked a pane and a stop, its own focus ring off, ringed while held, and its keys declared
-// and drawn in its bar only while held. One helper, so the three panes look and behave alike.
+// Submit: marked a pane and a stop, its own focus ring off, ringed while held, and its keys
+// declared and drawn in its bar only while held, so the three look and behave alike.
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef } from "react";
 import { pickedStyles } from "../layout/picked.ts";
