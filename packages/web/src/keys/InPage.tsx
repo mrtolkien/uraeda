@@ -1,6 +1,7 @@
 // The key picker's page mode (`KeyPicker`'s `inPage`), the theme picker's: its list alone, floating
 // at the top of the page at every width (R6), on frosted glass, with no scrim, so the page itself
-// is the preview. Left alone a second, it fades to 10%, and comes back on a key or a pointer move.
+// is the preview. Left alone a second, it fades to 10%, and comes back on a key, a pointer move, or
+// a press in it.
 import { easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
@@ -45,7 +46,8 @@ const styles = stylex.create({
 
 /**
  * Whether the in-page list is faded, and what wakes it: after `FADE_AFTER_MS` with no key and no
- * pointer move it fades; a pointer move anywhere, or a key in the list, brings it back (C1).
+ * pointer move it fades; a pointer move anywhere, or a key or a press in the list, brings it back
+ * (C1): a phone's tap may send no move before it.
  */
 function useFade(): [boolean, () => void] {
   const [isFaded, setFaded] = useState(false);
@@ -72,9 +74,11 @@ function useFade(): [boolean, () => void] {
 /**
  * The in-page list's layer, drawn while it is open: a raw dialog, for Astryx's `Dialog` is always
  * modal, which would block the page that is the preview, and draw a scrim over it (an Astryx gap,
- * plan, Complexity tracking). A press outside it calls `onOutside`, as a dialog's tap outside does;
- * Escape is the palette's, Back the picker's history entry. As it closes, the focus goes back to
- * where it was, unless a press outside put it elsewhere.
+ * plan, Complexity tracking). A press outside it calls `onOutside`, as a dialog's tap outside does,
+ * and so does the focus leaving it for the page, as Tab does: a layer left open without the focus
+ * would hold every page key, its own Escape out of reach. Escape is the palette's, Back the
+ * picker's history entry. As it closes, the focus goes back to where it was, unless a press or Tab
+ * put it elsewhere.
  */
 export function InPage({
   children,
@@ -86,6 +90,8 @@ export function InPage({
   onOutside: () => void;
 }) {
   const layer = useRef<HTMLDivElement>(null);
+  // Set as it closes, when its own focus return is no focus leaving it.
+  const isClosing = useRef(false);
   const [isFaded, wake] = useFade();
   const outside = useEffectEvent((event: PointerEvent) => {
     if (!layer.current?.contains(event.target as Node)) {
@@ -101,6 +107,7 @@ export function InPage({
     const before = document.activeElement as HTMLElement | null;
     const box = layer.current;
     return () => {
+      isClosing.current = true;
       const now = document.activeElement;
       const lost = now === null || now === document.body || box?.contains(now);
       if (lost && before?.isConnected) {
@@ -111,8 +118,17 @@ export function InPage({
   return (
     <div
       aria-label={label}
-      // Any key wakes the faded list, and acts at once: the palette's field still gets it.
+      onBlur={(event) => {
+        // Where the focus went: none for a press on no control, which `onDown` already heard.
+        const to = event.relatedTarget as Node | null;
+        if (!isClosing.current && to !== null && !layer.current?.contains(to)) {
+          onOutside();
+        }
+      }}
+      // Any key wakes the faded list, a letter as an arrow, and acts at once: the palette's field
+      // still gets it.
       onKeyDownCapture={wake}
+      onPointerDownCapture={wake}
       ref={layer}
       role="dialog"
       {...stylex.props(
