@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: settings
 ---
 
@@ -15,7 +15,10 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 - Settings MUST live in one TOML file in the config folder, on macOS too, apart from Uraeda's data
   and secrets. Checked by the core's tests.
 - The settings file MUST NOT hold a secret, or be read from a repository.
-- Finding, reading, validating, and writing the settings MUST live in the Rust core.
+- Colour themes MUST live one per file in a folder beside the settings file, never read from a
+  repository. Checked by the core's tests.
+- Finding, reading, validating, and writing the settings and the theme files MUST live in the Rust
+  core.
 - A write MUST keep a human's comments, unknown keys, and order. Checked by the core's tests.
 - A write MUST NOT overwrite a file that is unreadable or invalid. Checked by the core's tests.
 - A setting MUST resolve from its flag, then its environment variable, then the file, then its
@@ -29,15 +32,16 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 
 A file is simple to back up and keep in one's dotfiles. TOML is the one format both usual in the
 config folder and safe to annotate by hand. Settings stay apart from data and secrets, so dotfiles
-never hold a secret. A flag overrides for one run, as in every product compared. History:
+never hold a secret. A theme is long, so it is a file of its own in the same dotfiles, and no
+repository restyles the UI. A flag overrides for one run. History:
 [Settings page](../done/2026-10-16-settings-page.md).
 
 ## Alternatives considered
 
 - JSON, in the data or the config folder: no dependency, but no comments.
-- A flag given at start written into the file: a test start would change the settings for good.
 - Splitting the data, state, and cache folders as XDG does: a migration, while macOS merges the
   folders anyway.
+- Themes as tables of the settings file: a theme maps about 50 roles, too long to share the file.
 
 ## Consequences
 
