@@ -163,3 +163,17 @@ test("Tab passes the held stop's bar by, so the focus does not fall from the sto
   const button = screen.getByRole("button", { name: /act/ });
   expect(button.tabIndex, "the bar's button").toBe(-1);
 });
+
+/**
+ * A stop a click focused, then `j`: the cursor takes it, held, though the browser's focus does not
+ * move. Break: the cursor waits for a focus that never comes, and each `j` takes the same stop again.
+ */
+test("j on a stop a click focused holds it", async () => {
+  const stop = renderStop();
+  await click(stop);
+  act(() => stop.focus());
+  act(() => {
+    fireEvent.keyDown(stop, { key: "j" });
+  });
+  expect(stateOf(stop)).toBe("held");
+});
