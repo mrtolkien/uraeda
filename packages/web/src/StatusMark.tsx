@@ -45,9 +45,9 @@ const DOTS = {
 
 /**
  * A session's status as a square, named by its label for screen readers: the activity icon on the
- * `working` role while it works (the small one, a plain square of it), a warning "!" when it needs the human, an
- * error "!" when it needs their attention, a success "✓" for a reply not seen yet, and nothing
- * when idle.
+ * `working` role while it works (the small one, a plain square of it), a warning "!" when it needs
+ * the human, an error "!" when it needs their attention, a success "✓" for a reply not seen yet,
+ * and nothing when idle.
  */
 export function StatusMark({
   isSubagent = false,
