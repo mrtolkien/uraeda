@@ -9,6 +9,7 @@
 - [Keyboard nav in questions and specs](/specs/2026-11-07-keyboard-nav/proposal.md)
 - [Global undo](/specs/2026-11-07-global-undo/proposal.md)
 - [Color themes](/specs/2026-11-07-color-themes/proposal.md)
+- [The “drag handles” on mobile on bottom panes (for example the session in…](/specs/changes/2026-11-07-drag-handles/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
