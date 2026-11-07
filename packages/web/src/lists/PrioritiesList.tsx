@@ -15,9 +15,9 @@ import { refusal } from "../errors.ts";
 import { navigate, useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesChangeView, ProposalFileChangeView } from "../undo/changeViews.ts";
+import { quoted } from "../undo/quoted.ts";
 import {
   outlineRecorded,
-  quoted,
   useMoveWrite,
   usePrioritiesUndo,
   useRecordExpand,

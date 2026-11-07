@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { isLayerOpen } from "../keys/layers.ts";
 import { navigate } from "../routes.tsx";
@@ -208,6 +208,44 @@ test("a line indented, outdented, moved, and moved to a section each undo and re
   });
   await waitFor(() => expect(undoStack.top()?.label).toBe("Moved “First's child”"));
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
+});
+
+// Break: a refusal naming the line's old text, which the file no longer holds since the edit.
+test("an edit's refused undo names the line's new text, as the inbox's does", async () => {
+  const repo = await onPriorities();
+  await press("i", focus("Third"));
+  await save(await screen.findByRole("textbox", { name: "Edit the proposal" }), "Third edited");
+  await screen.findByText("Edited “Third edited” · waits on the Git page");
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), read(repo).replace("- Third edited", "- Mine"));
+
+  await press("Escape");
+  await press("u");
+  await screen.findByText("Could not undo: “Third edited” changed since in PRIORITIES.md.");
+});
+
+// Break: a run named and placed after its last move, as the inbox names and places it after its
+// first.
+test("a run of moves of two lines is named after its first move", async () => {
+  const repo = await onPriorities();
+  const before = contents(repo, ["specs/PRIORITIES.md"]);
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    const at = Date.now();
+    await press("K", focus("Third"));
+    await waitFor(() => expect(undoStack.top()?.label).toBe("Moved “Third”"));
+    const first = undoStack.top();
+    vi.setSystemTime(at + 100);
+    await press("J", focus("First"));
+    await waitFor(() => expect(undoStack.top()).not.toBe(first));
+    expect(undoStack.top()?.label).toBe("Moved “Third”");
+    expect(undoStack.top()?.place).toEqual(first?.place);
+
+    await press("u");
+    await waitFor(() => expect(contents(repo, ["specs/PRIORITIES.md"])).toEqual(before));
+    await screen.findByText("Undone: moved “Third”");
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 // Break: the pane's writes keeping their own reverses, with no redo, or none at all.

@@ -7,11 +7,12 @@ import { guarded, refusal } from "../errors.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
 import { proposalEdited, proposalMoved, proposalRemoved } from "../optimisticLists.ts";
-import { quoted, usePrioritiesUndo } from "../lists/prioritiesUndo.ts";
+import { usePrioritiesUndo } from "../lists/prioritiesUndo.ts";
 import { titleOf } from "../QuickAdd.tsx";
 import { plain } from "../Spans.tsx";
 import { useExpand } from "./useExpand.ts";
 import { PrioritiesChangeView } from "../undo/changeViews.ts";
+import { quoted } from "../undo/quoted.ts";
 import { PrioritiesView } from "../views.ts";
 
 /** A proposal found in the priorities, with its section and its place in it. */
@@ -56,8 +57,9 @@ function useRename(
   return async (text: string) => {
     onRenaming(proposal.id);
     const shown = await shownAs(fate, (sections) => proposalEdited(sections, proposal.id, text));
-    const subject = plain(proposal.spans);
-    const label = `Renamed ${quoted(subject)}`;
+    // Named by its old text, and its refusal by its new one, which the file holds once renamed.
+    const label = `Renamed ${quoted(plain(proposal.spans))}`;
+    const subject = text;
     const result = await guarded(
       recorded(
         () =>
