@@ -107,7 +107,10 @@ function useOnMoved(release: () => void, base: string, ended: () => (() => void)
           });
         }
         landed?.();
-      })();
+      })().catch(() => {
+        // A read or a save that failed, the repository gone or the connection lost, leaves the
+        // links unsaved: the run records no entry, and nothing else waits on it.
+      });
     },
     [base, ended, fate, release, repo, repoFolder],
   );
