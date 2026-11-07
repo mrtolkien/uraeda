@@ -35,3 +35,27 @@ test("a refused command gives its line and the engine's message", async () => {
     'Line 2: Not an editor command ":nmpa Q dd"',
   ]);
 });
+
+test("the line motions follow the lines shown", async () => {
+  const { runCommands } = await import("../fields/editor/vim/vim.ts");
+  const { EditorView } = await import("@codemirror/view");
+  const { getCM, Vim, vim } = await import("@replit/codemirror-vim");
+  runCommands([]);
+  const view = new EditorView({ doc: "one\ntwo\nthree", extensions: vim() });
+  const cm = getCM(view)!;
+  // The motion the engine ran last, by its name.
+  const motion = (typed: ReadonlyArray<string>) => {
+    for (const key of typed) {
+      Vim.handleKey(cm, key, "user");
+    }
+    return (cm.state.vim as { lastMotion?: { name: string } }).lastMotion?.name;
+  };
+
+  // Breaks if `j`, `k`, `0`, or `$` moves by Vim's lines, which skips a wrapped line's rest.
+  expect(motion(["j"])).toBe("moveByDisplayLines");
+  expect(motion(["k"])).toBe("moveByDisplayLines");
+  expect(motion(["$"])).toBe("moveToEndOfDisplayLine");
+  expect(motion(["0"])).toBe("moveToStartOfDisplayLine");
+  expect(motion(["v", "j"])).toBe("moveByDisplayLines");
+  view.destroy();
+});

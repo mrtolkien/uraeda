@@ -4,7 +4,8 @@
 // mode at focus, but in a field read first, Escape in normal mode and Shift+Escape in any mode run
 // the field's Escape, Enter in normal mode its Enter, `:w` its Ctrl+Enter, `:q` its quit, which is
 // its Escape but where it leaves its page, `:wq` both, a one-line field it saved left without its
-// Escape; a field's own normal-mode keys, as a picker's `j` and `k`, run before the engine's; a yank
+// Escape; `j`, `k`, `0`, `^`, and `$` move along the lines shown, as text wraps; a field's own
+// normal-mode keys, as a picker's `j` and `k`, run before the engine's; a yank
 // also reaches the clipboard; and the human's commands run when it starts, each refusal with its
 // line.
 import { EditorState, type Extension, Prec } from "@codemirror/state";
@@ -81,11 +82,28 @@ registers.pushText = (name, operator, text, linewise, blockwise) => {
 };
 
 /**
+ * The line motions mapped to their display-line twins, in normal and visual mode: text wraps in
+ * every field, so `j` moves to the line shown below, as `gj` does. An operator keeps Vim's lines:
+ * `dj` deletes two lines. The human's commands run after, so `nunmap j` brings Vim's back.
+ */
+const DISPLAY_LINE_MOTIONS = [
+  ["j", "gj"],
+  ["k", "gk"],
+  ["0", "g0"],
+  ["^", "g^"],
+  ["$", "g$"],
+] as const;
+
+/**
  * Runs the human's commands, like `imap jj <Esc>`, in order, over the mappings of the commands run
  * before, which go: the errors, each `Line N: <the engine's message>`.
  */
 export function runCommands(lines: ReadonlyArray<string>): Array<string> {
   Vim.mapclear();
+  for (const [lhs, rhs] of DISPLAY_LINE_MOTIONS) {
+    Vim.noremap(lhs, rhs, "normal");
+    Vim.noremap(lhs, rhs, "visual");
+  }
   // An editor of its own, never drawn, whose engine shows its messages here.
   const view = new EditorView({ extensions: vim() });
   const cm = getCM(view)!;

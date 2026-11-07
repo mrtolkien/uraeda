@@ -132,8 +132,10 @@ changes?" first.
 "Vim mode", in the settings' Keyboard section, gives every field Vim's keys, from CodeMirror's Vim
 engine. A field opens in insert mode, so typing works as without Vim. Escape goes to normal mode,
 and Escape in normal mode leaves the field. Shift+Escape leaves it from any mode. `:w` saves, as
-Ctrl+Enter does, `:q` leaves the field, and `:wq` does both. A yank also copies to the system
-clipboard; a delete never replaces what you copied.
+Ctrl+Enter does, `:q` leaves the field, and `:wq` does both. As text wraps, `j`, `k`, `0`, `^`, and
+`$` move along the lines shown, as `gj`, `gk`, `g0`, `g^`, and `g$` do; after an operator, as in
+`dj`, they keep Vim's lines. A yank also copies to the system clipboard; a delete never replaces
+what you copied.
 
 A picker's filter, like `Space Space`'s, takes Vim's keys too, as LazyVim's picker does: Escape goes
 to normal mode with the picker open, where `j` and `k` move along the list and Enter opens the
