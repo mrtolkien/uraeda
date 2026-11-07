@@ -35,7 +35,7 @@ anything, and a change made to one is made once.
 | A picker's preview of its item             | `keys/PickerPreview.tsx`: markdown rendered, a list's pane and rows, or plain lines                |
 | A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers                          |
 | A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys     |
-| An undo                                    | `layout/useUndoToast.ts`                                                                           |
+| An undo                                    | `undo/useUndo.ts`'s `useUndo` records an action on `undo/stack.ts`, with its toast                 |
 | A button that writes to git                | `writes/WriteButton.tsx`: it shows its result at once, never blocks, and names its write           |
 | A git write still landing, or refused      | `writes/CommitToast.tsx`, fed by `writes/useWriteQueue.ts`; its refusal on the page, `RefusedHere` |
 | Any text field, Vim mode included          | `fields/editor/Editor.tsx`, under the fields below; never Astryx's text fields, which lint refuses |

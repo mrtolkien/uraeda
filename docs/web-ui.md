@@ -226,6 +226,51 @@ While an agent works in the main checkout, the page reads "An agent works in thi
 its writes are disabled until the turn ends. Every write shows in the toast, and a refusal shows
 next to what it concerns.
 
+## Undo
+
+Every edit you make to your lists and texts can be taken back, in the order you made it, with no
+question first. So `d` deletes a row at once. Each tab keeps its last 50 actions, minutes or hours
+old. A reload, or another tab, starts with none: what they held stays in the files and on the Git
+page.
+
+These can be undone:
+
+- the inbox's notes and categories, their moves, and their images;
+- the priorities' lines and their moves;
+- proposal files' lines and sections;
+- a review's comments, and its Start over.
+
+Committing, starting a feature or a change, the Git page's actions, and settings cannot: their
+buttons name what they do. Text saved from an editor, like a buffer, is not on the list either. The
+editor's own history takes back your typing, and the Git page's Discard drops a saved file's
+changes.
+
+`u` or `Ctrl+Z` undoes the latest action, and `U` or `Ctrl+Shift+Z` redoes it, with Cmd for Ctrl on
+a Mac. They work outside text fields: in a field, `Ctrl+Z` undoes your typing. With single-key
+shortcuts off, `u` and `U` do nothing, and the chords still work.
+
+Each action shows a toast for 5 seconds, such as "Deleted “Color themes” · waits on the Git page",
+with Undo. After an undo, it reads "Undone: deleted “Color themes”", with Redo. The status line
+shows `U redo` while there is something to redo, and a new action clears it. Moves show no toast:
+reordering, dragging, indenting, and changing a row's section or category. Moves of one list, each
+less than a second after the last, are one step, which one `u` takes back.
+
+An undo takes you to where the action happened, with what came back selected; Back returns. It
+writes the reverse as a change, which waits on the Git page: it never commits or rewrites git's
+history. Two cases stop it:
+
+- An undo of a change committed since asks "Undo a committed change?" first. Undo writes the reverse
+  as a new change, and Keep it leaves the action on the stack.
+- An undo is refused once the file changed since, from another tab, an agent, or a hand edit.
+  Nothing is written, and "Could not undo: “Color themes” changed since in PRIORITIES.md." shows
+  under the top bar. The action leaves the stack.
+
+Only what loses work for good asks first, like discarding a file's changes on the Git page. A
+category that holds notes asks what to do with them, then its delete can be undone too.
+
+On the phone, there is no key and no status line: the toast's Undo and Redo work for its 5 seconds.
+A move there has no toast, so it can only be moved back.
+
 ## Reaching it from another device
 
 The server listens on 127.0.0.1 only. To reach Uraeda from a public address, put a proxy that ends
@@ -251,8 +296,8 @@ line is the title, and the research effort goes in the proposal's `discovery` fi
 from a typed request, an inbox note, or a priorities line. A line of **Now** it was filled from is
 replaced by the new link in the start commit. "Drop the change…" and "Drop the feature…", in a
 session's actions, drop it. A line's Start, on the priorities, puts the line in that text, in place
-of what it held, with an Undo. A change or a feature holds one or more sessions, in its worktree,
-where the workflow's runs and your messages follow each other.
+of what it held, which `u` brings back. A change or a feature holds one or more sessions, in its
+worktree, where the workflow's runs and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open its session with the workflow's message in the composer. Nothing goes

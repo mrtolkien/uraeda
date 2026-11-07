@@ -811,10 +811,10 @@ git commit -m "feat(global-undo): d deletes at once"
   cannot (committing, starting, git, settings), what asks first, the keys, the 50 entries, a reload,
   and the phone's toast.
 
-- [ ] **Step 1: Write the pages**, following the [documentation](../decisions/documentation.md)
+- [x] **Step 1: Write the pages**, following the [documentation](../decisions/documentation.md)
       decision
-- [ ] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 3: Commit**
+- [x] **Step 2: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs specs/ui

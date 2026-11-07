@@ -163,8 +163,8 @@ thing, the cause in plain words, and a next step, and sits by the field or row i
 error messages][nn-g-error-messages]
 
 **Prefer undo to a question.** A confirmation asked every time is clicked through without reading.
-Check: only what cannot be undone asks first; the rest offers undo. [NN/g, confirmation
-dialogs][nn-g-confirmation-dialogs]
+Check: only what loses work for good asks first; the rest goes at once, onto the undo stack. [NN/g,
+confirmation dialogs][nn-g-confirmation-dialogs]
 
 **An empty state says what would be here, and how to add it.** A blank space reads as broken. Check:
 every list and pane has a drawn state with no items. [NN/g, empty states][nn-g-empty-states]
@@ -375,8 +375,8 @@ The human ruled on each, on 2026-11-05; the guides now say so.
    the priorities, is always there
    ([Look and feel](look-and-feel.md#every-element-earns-its-place)).
 6. **Hover moves the selection.** Only a moving pointer does ([Keyboard](keyboard.md#selection)).
-7. **The undo toast lasts 5 seconds.** It pauses while hovered or focused
-   ([Surfaces](surfaces.md#undo)).
+7. **The undo toast lasts 5 seconds.** It pauses while hovered or focused, and it is now a reminder:
+   the tab's undo stack, `u`, is the way back ([Surfaces](surfaces.md#undo)).
 8. **Tabs with no room between them.** Left to a tap test on a 375 px phone, as long as the result
    is convenient and keeps the glassy terminal look ([the phone](phone.md#the-frame)).
 9. **Desktop targets smaller than 24 px.** 24 px high at least, padding included, the hit area
