@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Global undo
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 5 minutes: what changed for moves in your lists, and your review.
+> Approved on 2026-11-07.
 >
 > - You approve one undo stack per tab, which takes back every edit to your lists and texts with `u`
 >   or `Ctrl+Z`, redone with `U` or `Ctrl+Shift+Z`, and the new Undo decision behind it.
