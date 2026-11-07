@@ -115,7 +115,8 @@ function nextOf(stops: ReadonlyArray<Box>, current: number, direction: 1 | -1) {
 function readOn(held: Box, view: View, direction: 1 | -1) {
   const past =
     direction === 1 ? held.bottom - (view.bottom - MARGIN) : view.top + MARGIN - held.top;
-  if (past <= 0) {
+  // Less than a pixel is read: a scroll cannot move by it, and the cursor would stay.
+  if (past < 1) {
     return 0;
   }
   return direction * (past <= view.bottom - view.top ? past : roomOf(view));
