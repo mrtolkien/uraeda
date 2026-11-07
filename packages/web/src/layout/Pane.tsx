@@ -8,18 +8,16 @@ import {
   borderVars,
   colorVars,
   fontWeightVars,
-  sizeVars,
   spacingVars,
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, use, useId } from "react";
-import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { railPaneStyles, useClosedRail } from "./closedRail.ts";
 import { headingStyle } from "./headings.ts";
 import { InPane, PaneContent } from "./paneContext.tsx";
 import { paneVars } from "./pane.stylex.ts";
-import { PaneSuffix } from "./PaneSuffix.tsx";
+import { type PaneFold, PaneTitle } from "./PaneTitle.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
@@ -46,16 +44,6 @@ export type PaneTone =
  */
 export type PaneTint = "added" | "heading" | "quiet" | "working";
 
-/**
- * A pane that folds to its title: whether it is open, and what opens or closes it. `folded`, when
- * given, is a line in the folded pane's body that opens it too, such as "3 choices in the code only".
- */
-export type PaneFold = {
-  folded?: string;
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-};
-
 const styles = stylex.create({
   // The actions, in the top border at its end, centred on it, hiding the border behind them as the
   // title does.
@@ -76,43 +64,11 @@ const styles = stylex.create({
   attentionTitle: { color: "var(--role-needs-you)" },
   changed: { borderColor: "var(--role-changed)" },
   changedTitle: { color: "var(--role-changed)" },
+  example: { borderColor: "var(--role-example)" },
+  exampleTitle: { color: "var(--role-example)" },
   tintAdded: { color: "var(--role-added)" },
   tintQuiet: { color: colorVars["--color-text-secondary"] },
   tintWorking: { color: "var(--role-working)" },
-  // The count stays on the title's first line, whole.
-  count: {
-    flexShrink: 0,
-  },
-  example: { borderColor: "var(--role-example)" },
-  exampleTitle: { color: "var(--role-example)" },
-  // A folding pane's title, a button drawn as the title it stands for, wrapping as the title does:
-  // a target as tall as a control, the theme's 44 px on a touch screen, around its first line, its
-  // padding taking no room from the title, and its background, on a hover, kept to its lines.
-  foldTitle: {
-    backgroundClip: "content-box",
-    color: "inherit",
-    fontSize: "inherit",
-    fontWeight: "inherit",
-    height: "auto",
-    justifyContent: "start",
-    lineHeight: "inherit",
-    // A pixel over the control's height (`--pane-title-slack`).
-    marginBlock: `calc((1lh - ${paneVars["--pane-title-slack"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${paneVars["--pane-title-slack"]} - 1lh) / 2)`,
-    paddingInline: 0,
-    textAlign: "start",
-    whiteSpace: "normal",
-  },
-  // An icon in the title, centred on its first line.
-  glyph: {
-    // One line's height, a unit of the layout, not a token: the token lint takes it in a custom
-    // property.
-    "--pane-line": "1lh",
-    alignItems: "center",
-    display: "inline-flex",
-    flexShrink: 0,
-    height: "var(--pane-line)",
-  },
   // A live window: the `live` role, and a double border,
   // three times the border's width so its two lines and the gap between them show.
   live: {
@@ -121,30 +77,11 @@ const styles = stylex.create({
     borderStyle: "double",
   },
   liveTitle: { color: "var(--role-live)" },
-  // A feature's worktree, apart from the main checkout: in the working role (R16), and a dashed border of the same
-  // width, which keeps its dashes in the accent while the pane is active.
+  // A feature's worktree, apart from the main checkout: in the working role (R16), and a dashed
+  // border of the same width, which keeps its dashes in the accent while the pane is active.
   worktree: { borderColor: "var(--role-working)", borderStyle: "dashed" },
   worktreeDashes: { borderStyle: "dashed" },
   worktreeTitle: { color: "var(--role-working)" },
-  // The title's words, its icons, and its count, on lines of the title's width.
-  head: {
-    alignItems: "start",
-    display: "flex",
-    gap: spacingVars["--spacing-1"],
-    minWidth: 0,
-  },
-  // The head, then what follows the title, which goes under it where both leave the title too
-  // little room, never squeezing its words.
-  name: {
-    alignItems: "start",
-    columnGap: spacingVars["--spacing-1"],
-    display: "flex",
-    flexWrap: "wrap",
-    minWidth: 0,
-  },
-  // The title's words, which give up their room to the title's width: a title of one line, as the
-  // Git page's detail draws, cuts itself there rather than run past the pane.
-  words: { minWidth: 0 },
   // A pane in a pane: its room's width, which that pane keeps, or more, as a live window grows.
   nested: { maxWidth: "none" },
   new: { borderColor: "var(--role-added)" },
@@ -291,54 +228,6 @@ function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean,
       ] as const);
 }
 
-/** The title's words, its icons, its count, what follows it, and its Δ, if it changed. */
-function PaneName({
-  count,
-  fold,
-  icon,
-  paneId,
-  title,
-  titleId,
-  titleNode,
-  titleSuffix,
-}: {
-  count?: number;
-  fold?: PaneFold;
-  icon?: ComponentProps<typeof Icon>["icon"];
-  paneId: string | undefined;
-  title: string;
-  titleId: string;
-  titleNode?: ReactNode;
-  titleSuffix?: ReactNode;
-}) {
-  // A title changed since your review, like a story renamed, carries the mark.
-  const renamed = useSinceTitle(paneId);
-  return (
-    <span {...stylex.props(styles.name)}>
-      <span {...stylex.props(styles.head)}>
-        {fold && (
-          <span {...stylex.props(styles.glyph)}>
-            <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
-          </span>
-        )}
-        {icon && (
-          <span {...stylex.props(styles.glyph)}>
-            <Icon icon={icon} size="sm" />
-          </span>
-        )}
-        <span id={titleId} {...stylex.props(styles.words)}>
-          {titleNode ?? title}
-        </span>
-        {/* The space is for the text's reading: flex items show no space between them. */}
-        {count !== undefined && " "}
-        {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
-        {renamed && <SinceSign />}
-      </span>
-      {titleSuffix !== undefined && <PaneSuffix>{titleSuffix}</PaneSuffix>}
-    </span>
-  );
-}
-
 /**
  * A pane: a `section` named by its title, the title a heading at the caller's level, set in the
  * top border with its icon and its count. The accent colours its border and title while it is
@@ -401,21 +290,6 @@ export function Pane({
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isSnug = isSnugOnPhone && isNarrow(width) && !use(InPane);
-  // The fold button's name, as it reads: the title, its count, and a suffix of text.
-  const counted = count === undefined ? title : `${title} · ${count}`;
-  const label = typeof titleSuffix === "string" ? `${counted} ${titleSuffix}` : counted;
-  const name = (
-    <PaneName
-      count={count}
-      fold={fold}
-      icon={icon}
-      paneId={id}
-      title={title}
-      titleId={titleId}
-      titleNode={titleNode}
-      titleSuffix={titleSuffix}
-    />
-  );
   return (
     <section
       aria-labelledby={titleId}
@@ -441,9 +315,16 @@ export function Pane({
         tabIndex={id === undefined ? undefined : -1}
         xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, named, ink, place]}
       >
-        <TitleWords fold={fold} label={label}>
-          {name}
-        </TitleWords>
+        <PaneTitle
+          count={count}
+          fold={fold}
+          icon={icon}
+          paneId={id}
+          title={title}
+          titleId={titleId}
+          titleNode={titleNode}
+          titleSuffix={titleSuffix}
+        />
       </Heading>
       {actions !== undefined && (
         <div
@@ -455,33 +336,6 @@ export function Pane({
       )}
       <PaneBody content={children} fold={fold} tone={tone} />
     </section>
-  );
-}
-
-/** The title's words, or, in a pane that folds, the button that opens and closes it. */
-function TitleWords({
-  children,
-  fold,
-  label,
-}: {
-  children: ReactNode;
-  fold?: PaneFold;
-  label: string | undefined;
-}) {
-  if (!fold) {
-    return children;
-  }
-  return (
-    <Button
-      aria-expanded={fold.isOpen}
-      label={label}
-      onClick={() => fold.onOpenChange(!fold.isOpen)}
-      size="sm"
-      variant="ghost"
-      xstyle={styles.foldTitle}
-    >
-      {children}
-    </Button>
   );
 }
 
