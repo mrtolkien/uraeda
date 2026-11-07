@@ -708,10 +708,11 @@ git commit -m "feat(global-undo): every edit of the inbox can be undone and redo
 - Consumes: as task 6.
 - Produces: a line's add, edit, and delete; its indent, outdent, drag, and move, J, K, and the move
   mode, as moves of the list `priorities`, with no toast; the pane's delete, rename ("Renamed “…”"),
-  and section ("Moved “…” to Now", a move); `e` ("Expanded “…” into a file"), its place the
-  proposal's file; the sidebar's adds of a proposal and of a note; an image attached to a proposal
-  file ("Added an image to “…”"), its undo taking back the save of the text that links it too, read
-  as the file holds it when the undo runs, and refused once that text changed since.
+  and section ("Moved “…” to Now", a move); `e` and the pane's Expand ("Expanded “…” into a file"),
+  its place the priorities with the proposal selected, as its undo deletes the file (R17); the
+  sidebar's adds of a proposal and of a note; an image attached to a proposal file ("Added an image
+  to “…”"), its undo taking back the save of the text that links it too, read as the file holds it
+  when the undo runs, and refused once that text changed since.
 
 - [x] **Step 1: Write the failing tests**: `undo-coverage-priorities.test.tsx`, one test per group
       of writes above, and in `undo-keys.test.tsx`: "m, k three times, Enter: no toast, and u puts
