@@ -102,8 +102,8 @@ export type Server = {
    */
   signInPage: (to: string) => string;
   /**
-   * Closes the hosts', the settings', and the themes' watches, stops the sessions' turns, closes their
-   * processes, stops every Storybook, and removes the one-time links' pages.
+   * Closes the hosts', the settings', and the themes' watches, stops the sessions' turns, closes
+   * their processes, stops every Storybook, and removes the one-time links' pages.
    */
   stop: () => Promise<void>;
   /**
@@ -262,6 +262,23 @@ type StartOptions = {
 };
 
 /**
+ * The server's Storybook runner and its frame secret. The Storybooks a killed server left run no
+ * more: their record's groups are killed first, an earlier version's in the data folder's root too,
+ * before its running files there are removed.
+ */
+function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previews } {
+  const record = groupsFolder(dataDir);
+  killLeftGroups(record);
+  killLeftGroups(oldGroupsFolder(dataDir));
+  removeOldRunFiles(dataDir);
+  const previews = livePreviews({ record: new GroupRecord(record) });
+  // One frame secret for the server: each replacement restarts its Storybooks under the new base.
+  const frames = new FrameSecret();
+  frames.onReplace(() => renewPreviews(previews));
+  return { frames, previews };
+}
+
+/**
  * Starts the server once its sign-in and its themes are open, `key` the access key when this start
  * made it.
  */
@@ -272,16 +289,7 @@ async function startOpened(
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
-  // The Storybooks a killed server left run no more: their record's groups are killed first, an
-  // earlier version's in the data folder's root too, before its running files there are removed.
-  const record = groupsFolder(dataDir);
-  killLeftGroups(record);
-  killLeftGroups(oldGroupsFolder(dataDir));
-  removeOldRunFiles(dataDir);
-  const previews = livePreviews({ record: new GroupRecord(record) });
-  // One frame secret for the server: each replacement restarts its Storybooks under the new base.
-  const frames = new FrameSecret();
-  frames.onReplace(() => renewPreviews(previews));
+  const { frames, previews } = startPreviews(dataDir);
   let hosts: Hosts | undefined;
   const sessions = await startSessions({
     adapter,
