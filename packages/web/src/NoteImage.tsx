@@ -11,9 +11,7 @@ import { rereadProposalFile } from "./attach/useEditorImages.ts";
 import type { AttachStatus } from "./attach/useAttach.ts";
 import { readInbox, rereadChanges } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { addUndone } from "./optimisticLists.ts";
 import { repoPath, useRepository } from "./routes.tsx";
-import { InboxView } from "./views.ts";
 import { RemovableThumbnail } from "./attach/RemovableThumbnail.tsx";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -100,27 +98,11 @@ export function addedNote(before: Notes, after: Notes): InboxNote | undefined {
 }
 
 /**
- * Takes back a note added as a file, by its lines as the add wrote them, with its note file unless
- * the human typed in it: refused by the core once the note changed or left.
- */
-export async function undoAsFile(fate: Fate, note: InboxNote) {
-  const now = await readInbox(fate, "cache-first").catch(() => undefined);
-  const result = await fate.mutations.inbox.undoAsFile({
-    input: { lines: [...note.lines] },
-    ...(now ? { optimistic: addUndone(now.categories, note.lines) } : {}),
-    view: InboxView,
-  });
-  rereadChanges(fate);
-  return result.error ? refusal(result.error).message : undefined;
-}
-
-/**
- * What an add with an image gave: the note and its note file's path, with the change it recorded
- * when its answer came, or the refusal to show, `byImage` when the image's status under it shows it
- * already.
+ * What an add with an image gave: the note and its note file's path, or the refusal to show,
+ * `byImage` when the image's status under it shows it already.
  */
 export type AddedAsFile =
-  | { change?: ChangeView; file: string; note?: InboxNote; ok: true }
+  | { change?: ChangeView | null; file: string; note?: InboxNote; ok: true }
   | (Refusal & { byImage?: boolean; ok: false });
 
 /** The add's input to the core: the note's text, its category, and its feature or change. */
@@ -155,13 +137,14 @@ async function addedAfterAll(fate: Fate, before: Notes, text: string) {
   return now && lostAnswerNote(before, now.categories, text);
 }
 
+/** What `POST /inbox/note-image` wrote: the note file's path, and the change it recorded. */
+type Posted = { change?: ChangeView | null; file: string };
+
 /**
  * Posts images to the repository's `POST /r/<name>/inbox/note-image`, with the form's `fields`: the
  * core encodes them and writes the note file's folder, all or nothing. Gives the note file's path
- * and the change the write recorded, which the undo stack takes, or the refusal.
+ * with the change, which the undo stack replays, or the refusal.
  */
-type Sent = { change?: ChangeView; file: string };
-
 function useNoteImagesPost() {
   const fetch = useServerFetch();
   const repo = useRepository();
@@ -182,11 +165,12 @@ function useNoteImagesPost() {
       method: "POST",
       signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
     });
-    const answer = (await response.json().catch(() => ({}))) as Partial<Sent> & { error?: string };
-    const { change, file } = answer;
-    return file === undefined
+    const answer = (await response.json().catch(() => ({}))) as Partial<Posted> & {
+      error?: string;
+    };
+    return answer.file === undefined
       ? refusal(answer.error ?? `HTTP ${response.status}`)
-      : { file, ...(change ? { change } : {}) };
+      : ({ change: answer.change, file: answer.file } satisfies Posted);
   };
 }
 
@@ -239,7 +223,7 @@ export function useAddWithImage() {
       return refused(images, big);
     }
     show(images, `Adding ${images.map((image) => image.name || "pasted image").join(", ")}…`);
-    let sent: Sent | Refusal;
+    let sent: Posted | Refusal;
     try {
       sent = await post(input, images);
     } catch (error) {
@@ -251,7 +235,7 @@ export function useAddWithImage() {
       const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
       return refused(images, timedOut ? TIMED_OUT : "Could not reach the Uraeda server.");
     }
-    if (!("file" in sent)) {
+    if ("kind" in sent) {
       if (sent.kind === "conflict") {
         setShown(undefined);
         return { ...sent, ok: false };
@@ -283,7 +267,7 @@ export function useAttachToNote() {
   const attach = async (
     note: { hash: string; id: string },
     files: ReadonlyArray<File>,
-  ): Promise<Sent | string> => {
+  ): Promise<Posted | string> => {
     const big = tooBig(files);
     if (big) {
       return big;
@@ -291,7 +275,7 @@ export function useAttachToNote() {
     const adding = `Adding ${files.map((file) => file.name || "pasted image").join(", ")}…`;
     setStatus({ error: false, text: adding });
     announce(adding, "polite");
-    let sent: Sent | Refusal;
+    let sent: Posted | Refusal;
     try {
       sent = await post({ hash: note.hash, id: note.id }, files);
     } catch (error) {
@@ -303,7 +287,7 @@ export function useAttachToNote() {
       setStatus(undefined);
     }
     rereadChanges(fate);
-    if (!("file" in sent)) {
+    if ("kind" in sent) {
       return sent.message;
     }
     await rereadProposalFile(fate, sent.file);

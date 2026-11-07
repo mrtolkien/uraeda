@@ -225,14 +225,6 @@ export const PrioritiesView = view<Priorities>()({
   sections: true,
 });
 
-/** The priorities as an add answers them: its sections, the line added ending its own. */
-export const PrioritiesAddedView = view<Priorities>()({
-  changes: true,
-  hash: true,
-  id: true,
-  sections: true,
-});
-
 /** The inbox: its notes by category, every category's name, and the changes to commit. */
 export const InboxView = view<Inbox>()({
   categories: true,

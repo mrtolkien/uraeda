@@ -7,6 +7,7 @@ import { redirect, repoPath, useRepository, useRepositoryPath } from "../routes.
 import type { useTextField } from "../fields/useTextField.ts";
 import type { useSave } from "../useSave.ts";
 import { ProposalFileView } from "../views.ts";
+import { useRecordAttached } from "./attachUndo.ts";
 import type { AttachStatus } from "./useAttach.ts";
 import { type Linked, useImageText } from "./useImageText.ts";
 
@@ -127,6 +128,7 @@ export function useEditorImages({
   setDrawn: (drawn: boolean) => void;
 }) {
   const { idle, settle } = save;
+  const recorded = useRecordAttached();
   const holding = useRef(false);
   // The file read, for the callbacks to read.
   const latestFile = useRef(file);
@@ -158,6 +160,7 @@ export function useEditorImages({
     initialSelection: moved?.selection,
     initialStatus: moved?.status,
     label: path.split("/").at(-1) ?? path,
+    onAttached: recorded.attached,
     onLinks: field.change,
     onMoved: useOnMoved(() => {
       holding.current = false;
@@ -169,6 +172,7 @@ export function useEditorImages({
       setDrawn(false);
       const unsaved = field.unsavedNow();
       if (await (unsaved ? save.save(unsaved.text) : save.flush())) {
+        await recorded.started(path);
         return true;
       }
       holding.current = false;

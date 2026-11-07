@@ -14,7 +14,14 @@ import { titleOf, TITLES } from "../QuickAdd.tsx";
 import { refusal } from "../errors.ts";
 import { navigate, useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
-import { ProposalFileView, PrioritiesView } from "../views.ts";
+import { PrioritiesChangeView, ProposalFileChangeView } from "../undo/changeViews.ts";
+import {
+  outlineRecorded,
+  quoted,
+  useMoveWrite,
+  usePrioritiesUndo,
+  useRecordExpand,
+} from "./prioritiesUndo.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { useArrival } from "./useArrival.ts";
 import { type Outline, type OutlineItem, useOutline } from "./useOutline.tsx";
@@ -103,7 +110,7 @@ type Run = (call: () => Promise<{ error?: unknown }>) => Promise<string | undefi
 
 /**
  * The priorities as an outliner (see `useOutline`): each write goes through `run`, and a refused
- * one to `onMoveRefused`.
+ * one to `onMoveRefused`. Each write that lands is recorded on the undo stack, its moves as moves.
  */
 function usePrioritiesOutline(
   priorities: Priorities,
@@ -111,52 +118,66 @@ function usePrioritiesOutline(
   onMoveRefused: ((message: string | undefined) => void) | undefined,
 ) {
   const fate = useFateClient();
+  const recorded = usePrioritiesUndo();
   return useOutline(
     priorities,
     {
       add: (now, section, text) =>
-        run(() =>
-          fate.mutations.proposals.add({
-            input: { hash: now.hash, section, text },
-            view: PrioritiesView,
-          }),
+        run(
+          recorded(
+            () =>
+              fate.mutations.proposals.add({
+                input: { hash: now.hash, section, text },
+                view: PrioritiesChangeView,
+              }),
+            { label: `Added ${quoted(text)}`, subject: text },
+          ),
         ),
       drop: (now, from, to) => {
         // A proposal among a section's proposals counts them as they show, the running ones apart.
         const target = now.sections.find((s) => "section" in to && s.section === to.section);
-        return run(() =>
-          fate.mutations.proposals.drop({
-            input: {
-              ...(from.at === undefined ? {} : { at: from.at }),
-              hash: now.hash,
-              proposal: from.id,
-              ...("under" in to
-                ? {
-                    index: to.index,
-                    under: to.under.id,
-                    ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
-                  }
-                : {
-                    index: fileIndex(target?.proposals ?? [], "", to.index),
-                    section: to.section,
-                  }),
-            },
-            view: PrioritiesView,
-          }),
+        const made = outlineRecorded(now.sections, from.id, from.at, "drop", undefined);
+        return run(
+          recorded(
+            () =>
+              fate.mutations.proposals.drop({
+                input: {
+                  ...(from.at === undefined ? {} : { at: from.at }),
+                  hash: now.hash,
+                  proposal: from.id,
+                  ...("under" in to
+                    ? {
+                        index: to.index,
+                        under: to.under.id,
+                        ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
+                      }
+                    : {
+                        index: fileIndex(target?.proposals ?? [], "", to.index),
+                        section: to.section,
+                      }),
+                },
+                view: PrioritiesChangeView,
+              }),
+            made,
+          ),
         );
       },
       edit: (now, id, at, kind, text) =>
-        run(() =>
-          fate.mutations.proposals.outline({
-            input: {
-              ...(at === undefined ? {} : { at }),
-              hash: now.hash,
-              kind,
-              proposal: id,
-              ...(text === undefined ? {} : { text }),
-            },
-            view: PrioritiesView,
-          }),
+        run(
+          recorded(
+            () =>
+              fate.mutations.proposals.outline({
+                input: {
+                  ...(at === undefined ? {} : { at }),
+                  hash: now.hash,
+                  kind,
+                  proposal: id,
+                  ...(text === undefined ? {} : { text }),
+                },
+                view: PrioritiesChangeView,
+              }),
+            outlineRecorded(now.sections, id, at, kind, text),
+          ),
         ),
       held: () => readPrioritiesHash(fate, "cache-first"),
       read: outlineOf,
@@ -278,6 +299,7 @@ function useProposalKeys(
 ) {
   const fate = useFateClient();
   const here = useRepoPath();
+  const recordExpand = useRecordExpand();
 
   /** The proposal of a row: itself, or the proposal a nested row is in. */
   const proposalOf = (row: WorkRow) =>
@@ -327,13 +349,14 @@ function useProposalKeys(
     void (async () => {
       const made = await fate.mutations.proposals.expand({
         input: { hash: priorities.hash, proposal: proposal.id },
-        view: ProposalFileView,
+        view: ProposalFileChangeView,
       });
       const path = made.result?.path;
       if (made.error || typeof path !== "string") {
         onMoveRefused?.(made.error ? refusal(made.error).message : "Nothing was made.");
         return;
       }
+      recordExpand(made.result, plain(proposal.spans));
       navigate(here(`/edit/${path}`), { focus: "text" });
     })();
     return undefined;
@@ -381,7 +404,6 @@ export function PrioritiesList({
   run: Run;
   select?: string;
 }) {
-  const fate = useFateClient();
   const here = useRepoPath();
   const pathname = useLocalPath();
   const outline = usePrioritiesOutline(priorities, run, onMoveRefused);
@@ -397,26 +419,7 @@ export function PrioritiesList({
           .find((proposal) => proposal.key === row.key)?.merged
       : undefined;
 
-  /** A proposal moved by a drop or its keys, in turn with the outline's writes. */
-  const onMove = (key: string, section: string, index: number) =>
-    outline.write((now) => {
-      const proposal = now.sections.flatMap((s) => s.proposals).find((one) => one.key === key);
-      const target = now.sections.find((s) => s.section === section);
-      if (!proposal || !target) {
-        return Promise.resolve("The proposal or its section is no longer in PRIORITIES.md.");
-      }
-      return run(() =>
-        fate.mutations.proposals.move({
-          input: {
-            hash: now.hash,
-            index: fileIndex(target.proposals, key, index),
-            proposal: proposal.id,
-            section,
-          },
-          view: PrioritiesView,
-        }),
-      );
-    });
+  const onMove = useMoveWrite(outline.write, run);
 
   const { arrival, follow, isArriving } = useArrival(outline.follow);
   // Else on the highest row of Now.

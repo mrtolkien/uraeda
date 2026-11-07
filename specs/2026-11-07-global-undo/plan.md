@@ -693,11 +693,15 @@ git commit -m "feat(global-undo): every edit of the inbox can be undone and redo
 
 **Files:**
 
-- Create: `packages/web/src/lists/prioritiesUndo.ts`
+- Create: `packages/web/src/lists/prioritiesUndo.ts` (the labels, `usePrioritiesUndo`, the move
+  entries, `useMoveWrite`), `attach/attachUndo.ts` (the entry of images attached from an editor)
 - Modify: `lists/PrioritiesList.tsx` (`usePrioritiesOutline`, `onMove`, `e`),
-  `pane/useProposalActions.ts`, `pane/useExpand.ts`, `SidebarAdd.tsx`, `QuickAdd.tsx`, the proposal
-  file's image attach
-- Test: rows of `undo-coverage.test.tsx`; `undo-keys.test.tsx`
+  `pane/useProposalActions.ts`, `pane/useExpand.ts`, `SidebarAdd.tsx`, `QuickAdd.tsx`,
+  `AddNote.tsx`, `NoteImage.tsx` (`POST /inbox/note-image` answers its change), the proposal file's
+  image attach (`attach/useImageText.ts`, `attach/useEditorImages.ts`), `undo/stack.ts` (its clock
+  reads the global `Date` at each record, for a test to fake it)
+- Test: `undo-coverage-priorities.test.tsx`; `undo-keys.test.tsx`; `keys-row-editing.test.tsx` waits
+  for the selection a saved line's toast draws in a render of its own
 
 **Interfaces:**
 
@@ -706,19 +710,20 @@ git commit -m "feat(global-undo): every edit of the inbox can be undone and redo
   mode, as moves of the list `priorities`, with no toast; the pane's delete, rename ("Renamed “…”"),
   and section ("Moved “…” to Now", a move); `e` ("Expanded “…” into a file"), its place the
   proposal's file; the sidebar's adds of a proposal and of a note; an image attached to a proposal
-  file.
+  file ("Added an image to “…”"), its undo taking back the save of the text that links it too, read
+  as the file holds it when the undo runs, and refused once that text changed since.
 
-- [ ] **Step 1: Write the failing tests**: its rows in "every kind of write …", and in
-      `undo-keys.test.tsx`: "m, k three times, Enter: no toast, and u puts the row back in one
-      step", on "Color themes" fourth in Next, `Date` faked so the presses are 100 ms apart. The
-      break: a run that undoes one move, or a toast on a move.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 1: Write the failing tests**: `undo-coverage-priorities.test.tsx`, one test per group
+      of writes above, and in `undo-keys.test.tsx`: "m, k three times, Enter: no toast, and u puts
+      the row back in one step", on "Color themes" fourth in Next, `Date` faked so the presses are
+      100 ms apart. The break: a run that undoes one move, or a toast on a move.
+- [x] **Step 2: Run them to check they fail**
   - Run:
-    `nix develop -c vp test packages/web/src/__tests__/undo-coverage.test.tsx packages/web/src/__tests__/undo-keys.test.tsx`
+    `nix develop -c vp test packages/web/src/__tests__/undo-coverage-priorities.test.tsx packages/web/src/__tests__/undo-keys.test.tsx`
   - Expected: FAIL, "Color themes" still first after `u`
-- [ ] **Step 3: Record each write**, `PrioritiesList.tsx` staying under 500 lines
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Record each write**, `PrioritiesList.tsx` staying under 500 lines
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

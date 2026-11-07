@@ -227,7 +227,8 @@ test("a saved in-place line is selected and has the focus, though its key change
 
   await waitFor(() => expect(read(repo)).toContain("- Nbeta renamed\n"));
   await waitFor(() => expect(hasFocus("Nbeta renamed")).toBe(true));
-  expect(cardOf("Nbeta renamed").getAttribute("aria-current")).toBe("true");
+  // The edit's toast draws the page again: the selection follows the focus in a render of its own.
+  await waitFor(() => expect(cardOf("Nbeta renamed").getAttribute("aria-current")).toBe("true"));
   expect(window.location.pathname).toBe(atRepo("/priorities"));
 });
 
