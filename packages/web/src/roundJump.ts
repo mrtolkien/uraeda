@@ -1,4 +1,6 @@
 // How the round's navigation brings a part of the page to the top, and finds the one there.
+import { claimFocus, isCursorKey } from "./cursor/held.ts";
+import { stopOf } from "./cursor/stops.ts";
 import { useEffect, useState } from "react";
 
 /** An applicable question of a round, in the page's order: follow-ups at level 2. */
@@ -65,7 +67,14 @@ export function jumpTo(id: string, instant = false, isQuiet = false) {
     preventScroll: true,
     ...(isQuiet ? { focusVisible: false } : {}),
   };
-  document.getElementById(`${id}-title`)?.focus(options);
+  // A key's jump on a page with the cursor hands the cursor to the question's card, whose letters
+  // then pick, as `n` from a held question asks; any other jump focuses its title.
+  const target =
+    isCursorKey() && stopOf(section) === section ? section : document.getElementById(`${id}-title`);
+  target?.focus(options);
+  if (target === section) {
+    claimFocus(section);
+  }
 }
 
 /** The question at the top, or the one a jump is bringing there. */
