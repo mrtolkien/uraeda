@@ -512,7 +512,9 @@ its end; scrolling a fitting pane only to its stop.
   `hold`; task 5's `Selection.keys`.
 - Produces: `useKeyRange(draft, tree)`: the keys' anchor and head; `stretch(direction, toggle)`
   focuses the next or previous `"block"` stop of the same file and sets the draft's range to
-  `spanned(anchor, head)`; `drop()`.
+  `spanned(anchor, head)`; `drop()`. `stretch` checks `sameFile(anchor, next)` first and does
+  nothing across files, neither moving nor touching the range: `spanned` returns the head alone
+  across files, which would drop the range (review focus 2).
 
 A held block's keys: Enter taps it ("⏎ comment"); `J` `shift+ArrowDown` and `K` `shift+ArrowUp`
 stretch ("J K range"); `s` asks about the range, else the block ("s ask"), when the page has Ask;
