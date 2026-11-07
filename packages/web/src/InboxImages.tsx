@@ -131,7 +131,10 @@ function useImageRemoval(onRefused: (message: string | undefined) => void) {
   const fate = useFateClient();
   const record = useUndo();
   return async (note: InboxNote, path: string) => {
-    const change = await removeNoteImage(fate, note, path);
+    // A read that failed, the connection lost, shows as a refusal does, never as a rejection.
+    const change = await removeNoteImage(fate, note, path).catch((error: unknown) =>
+      error instanceof Error ? error.message : String(error),
+    );
     if (typeof change === "string") {
       onRefused(change);
       return;

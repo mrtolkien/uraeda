@@ -113,10 +113,12 @@ export function useProposalActions(
       const failed = refusal(result.error);
       setMessage(failed.message);
       if (failed.kind === "conflict") {
-        void fate.request(
-          { priorities: { id: "priorities", view: PrioritiesView } },
-          { mode: "network-only" },
-        );
+        void fate
+          .request(
+            { priorities: { id: "priorities", view: PrioritiesView } },
+            { mode: "network-only" },
+          )
+          .catch(() => {});
       }
     }
     return result;
