@@ -117,6 +117,109 @@ vim_mode = true                                # Vim's keys in every text field,
 vim_commands = ["imap jj <Esc>", "nmap Y y$"]  # run in order when Vim starts, empty by default
 ```
 
+## Colour themes
+
+Your own colour themes go in `~/.config/uraeda/themes/`, beside `config.toml`, one TOML file per
+theme. They are read from that folder only, never from a repository. The file's name, without
+`.toml`, is the theme's id: `ember.toml` is `ember`. Files whose name does not end in `.toml`, and
+hidden files such as an editor's swap files, are not themes.
+
+A theme names its mode, the theme it extends, its own palette, and the roles it changes:
+
+```toml
+#:schema https://raw.githubusercontent.com/mrtolkien/uraeda/main/schemas/theme.json
+name = "Ember"
+mode = "dark"
+extends = "catppuccin-mocha"
+
+[palette]
+coal = "#1a1210"
+ash = "#c9b8a8"
+ember = "#ff7a45"
+
+[roles]
+page = "coal"
+ink = "ash"
+needs-you = "ember"
+pane-title = "#e0a070"
+```
+
+- `name`: the name in the lists; the id when absent.
+- `mode`: `"dark"` or `"light"`, the list the theme shows in; taken from `extends` when absent.
+- `extends`: the id of a theme of the same mode, shipped or yours, which every role the file leaves
+  out comes from. Without it, a theme extends its mode's default, Catppuccin Mocha or Catppuccin
+  Latte.
+- `[palette]`: your own colours, named freely, each `#rrggbb` or `#rrggbbaa`. It is merged over the
+  palette of the theme it extends: redefining one of its names changes every role you left out that
+  names it.
+- `[roles]`: each role, a palette name or a colour. Every role is optional.
+
+To start, copy a shipped theme from [`crates/core/themes/`](/crates/core/themes/) and give the file
+another name: a theme of yours cannot take a shipped theme's name, in any case. Its first line names
+the format's [JSON Schema](/schemas/theme.json), which an editor using Taplo, such as VS Code with
+Even Better TOML, reads to complete and describe the keys and the roles.
+
+The roles, each named for where it draws or what it means, with Catppuccin Mocha's colour:
+
+| Role                                    | What it draws                                                        | Mocha                  |
+| --------------------------------------- | -------------------------------------------------------------------- | ---------------------- |
+| `page`                                  | the ground behind everything                                         | base                   |
+| `raised`                                | popovers, code blocks, a pane's surface                              | mantle                 |
+| `sunken`                                | a well below the page                                                | crust                  |
+| `chip`                                  | a neutral filled mark: a grey badge, a skeleton                      | surface0               |
+| `cursor-row`                            | the row under the cursor, or picked                                  | mauve at 14% over base |
+| `marked`                                | the block selected in a review, and its edge                         | yellow                 |
+| `rule`                                  | panes' borders, dividers, fields                                     | overlay0               |
+| `pane-title`                            | a pane's title in its border                                         | lavender               |
+| `ink`                                   | body text                                                            | text                   |
+| `ink-quiet`                             | what reads second: counts, help, labels                              | subtext0               |
+| `ink-faint`                             | disabled and faint text                                              | overlay2, lightened    |
+| `action`                                | what can be pressed: a button, focus, the active pane, the next step | mauve                  |
+| `on-action`                             | text on a filled action or status                                    | crust                  |
+| `needs-you`                             | the Needs-you pane, Home's count, since-marks, key caps              | peach                  |
+| `changed`                               | changed since you read it                                            | mauve                  |
+| `added`                                 | new, added, done, success, the repository's mark                     | green                  |
+| `removed`                               | wrong, removed, failed                                               | red                    |
+| `caution`                               | warning, waiting                                                     | yellow                 |
+| `context`                               | context notes                                                        | blue                   |
+| `yours`                                 | your own messages in a session                                       | blue                   |
+| `link`                                  | links                                                                | blue                   |
+| `working`                               | a running session's mark                                             | blue                   |
+| `live`                                  | a live window's double border and title                              | sapphire               |
+| `example`                               | an example pane                                                      | teal                   |
+| `sub-agent`                             | a sub-agent's mark                                                   | teal                   |
+| `heading-1`, `heading-2`, `heading-3`   | headings by level; deeper levels take `heading-3`                    | mauve, blue, green     |
+| `code-inline`                           | inline code in markdown                                              | peach                  |
+| `quote`                                 | a markdown quote                                                     | subtext0               |
+| `mode-normal`, `-insert`, `-visual`     | the status line's Vim mode                                           | blue, green, mauve     |
+| `mode-replace`, `mode-command`          | the status line's Vim mode                                           | red, peach             |
+| `code-ground`                           | code's background                                                    | mantle                 |
+| `syntax-keyword`, `-string`, `-comment` | code's tokens                                                        | mauve, green, overlay2 |
+| `syntax-number`, `-constant`            | code's tokens                                                        | peach, peach           |
+| `syntax-function`, `-type`, `-operator` | code's tokens                                                        | blue, yellow, sky      |
+| `syntax-property`, `-punctuation`       | code's tokens                                                        | lavender, overlay2     |
+| `syntax-tag`, `-attribute`, `-variable` | code's tokens                                                        | red, yellow, text      |
+
+Everything else the page draws comes from these: tints over the page, hover and pressed overlays,
+icons in their text's colour, diff lines, and text on filled marks.
+
+A theme of yours applies as written, as soon as it is saved. A problem never stops another theme or
+setting from applying, and Settings' Appearance section lists your files, each with its problems and
+their lines:
+
+- A file that is not valid TOML, or cannot be read, leaves the lists: "Could not read: line 4: …".
+- A role naming a palette entry that does not exist, or giving something that is not a colour, keeps
+  the colour of the theme it extends.
+- An unknown `extends` extends the mode's default instead.
+- A loop of `extends`, a theme extending one of the other mode, a file with neither `mode` nor
+  `extends`, a `mode` other than `"dark"` or `"light"`, and a file named like a shipped theme leave
+  the lists.
+- An unknown key or role is ignored, and named.
+- A colour under the contrast floor is named, and applies as written: "ink-faint is 3.1:1 on page,
+  under 4.5." Text roles are measured at 4.5:1 on `page` and on `raised`, the `syntax-` roles at
+  4.5:1 on `code-ground`, and `rule`, `sub-agent`, and `marked` at 3:1 on `page` and on `raised`. A
+  colour with alpha is measured laid over its background.
+
 ## Editing text
 
 Every text field is the same editor, in the look of a terminal's text. Markdown is highlighted as

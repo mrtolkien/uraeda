@@ -38,6 +38,7 @@ pub mod note_images;
 pub mod proposal_writes;
 pub mod settings;
 pub mod start;
+pub mod themes;
 pub mod undo;
 
 /// A core operation, run off the main thread.

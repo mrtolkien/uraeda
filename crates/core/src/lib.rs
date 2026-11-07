@@ -20,6 +20,7 @@ pub mod settings;
 pub mod slug;
 pub mod steps;
 pub mod target;
+pub mod themes;
 pub mod today;
 pub mod view;
 pub mod watch;
