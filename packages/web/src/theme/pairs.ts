@@ -36,6 +36,28 @@ const TEXTS = ["accent", "primary", "secondary", "disabled", "lavender", "sapphi
   (name) => `--color-text-${name}`,
 );
 
+/**
+ * The text roles no Astryx token carries, which views read as `--role-*` (R1): headings, inline code,
+ * quotes, your messages, a running session's mark, context notes, and the Vim modes, drawn as text
+ * and as the status line's block under `on-action`.
+ */
+const MODES = ["normal", "insert", "visual", "replace", "command"].map(
+  (mode) => `--role-mode-${mode}`,
+);
+const ROLE_TEXTS = [
+  ...[
+    "heading-1",
+    "heading-2",
+    "heading-3",
+    "code-inline",
+    "quote",
+    "yours",
+    "working",
+    "context",
+  ].map((role) => `--role-${role}`),
+  ...MODES,
+];
+
 /** The pairs `fronts` × `backs`. */
 const across = (fronts: Array<string>, backs: Array<string>): Array<Pair> =>
   fronts.flatMap((front) => backs.map((back): Pair => [front, back]));
@@ -43,6 +65,8 @@ const across = (fronts: Array<string>, backs: Array<string>): Array<Pair> =>
 /** Every text colour against the backgrounds it is read on, beside the pairs components draw. */
 export const TEXT_PAIRS: ReadonlyArray<Pair> = [
   ...across(TEXTS, BACKGROUNDS),
+  ...across(ROLE_TEXTS, BACKGROUNDS),
+  ...across(["--role-on-action"], MODES),
   ...across(
     ["--color-text-primary", "--color-text-secondary"],
     [

@@ -11,20 +11,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readThemes, type Theme } from "uraeda-binding";
-import { entryPasses, floorStep } from "../src/theme/floor.ts";
+import { entryPasses, floorStep, GROUNDS } from "../src/theme/floor.ts";
 import { failures } from "../src/theme/pairs.ts";
 import { tokensOf } from "../src/theme/roles.ts";
-
-/** Roles drawn behind others, or on a fill: the colour in front is the one to move. */
-const GROUNDS = new Set([
-  "page",
-  "raised",
-  "sunken",
-  "chip",
-  "cursor-row",
-  "code-ground",
-  "on-action",
-]);
 
 /** The TOML lines of a theme's floor entries, each with the roles that should name it. */
 function floorLines(theme: Theme): Array<string> {

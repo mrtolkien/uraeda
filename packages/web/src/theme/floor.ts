@@ -58,6 +58,20 @@ export function floorStep(
   throw new Error(`No step of ${colour} reaches the floor`);
 }
 
+/**
+ * Roles drawn behind others, or on a fill: an entry they share with a text role keeps its published
+ * colour for them, and only the text roles move to its floor step.
+ */
+export const GROUNDS: ReadonlySet<string> = new Set([
+  "page",
+  "raised",
+  "sunken",
+  "chip",
+  "cursor-row",
+  "code-ground",
+  "on-action",
+]);
+
 /** A theme as the core gives it: its mode, its roles, and the palette entry each role names. */
 type Shipped = {
   mode: string;
@@ -65,12 +79,12 @@ type Shipped = {
   sources: Readonly<Record<string, string>>;
 };
 
-/** The theme's roles, every one naming `entry` drawn in `colour`. */
+/** The theme's roles, every one naming `entry` drawn in `colour`, its grounds kept. */
 function withEntry(theme: Shipped, entry: string, colour: string): Roles {
   return Object.fromEntries(
     Object.entries(theme.roles).map(([role, value]) => [
       role,
-      theme.sources[role] === entry ? colour : value,
+      theme.sources[role] === entry && !GROUNDS.has(role) ? colour : value,
     ]),
   );
 }
