@@ -38,7 +38,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R4: `k` with no cursor starts from the topmost stop too
 
 - **Decision**: with no cursor, or a cursor scrolled off screen, both `j` and `k` take the topmost
-  stop on screen, without moving past it.
+  stop on screen, without moving past it: the first whose top is inside the view, so a stop that
+  only peeks under the top bar is passed by, else the first that reaches into the view or lies under
+  it. It scrolls as a move does, a pane that fits showing whole.
 - **Rationale**: the spec names `j` only; one start for both keys is the simplest rule to learn, and
   the human's answer to Q1 asks for "the topmost visible element".
 - **Where**: task 4, `cursor/move.ts`
@@ -47,7 +49,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: `j` on a stop whose end is below the screen's bottom edge less 100 px scrolls down
   by the smaller of what is left and the screen's height less 200 px, and keeps the cursor; `k`
-  mirrors it at the top.
+  mirrors it at the top. Moved onto, a tall stop shows its top 100 px under the top bar after `j`,
+  and its end 100 px above the status line after `k`, so the next key in the same direction reads
+  through its body.
 - **Rationale**: the spec's 1,400 px card on a 900 px screen shows its end at the first `j`; a
   taller one is read a screen at a time, each step keeping 200 px of the last in view.
 - **Where**: task 4, `cursor/move.ts`

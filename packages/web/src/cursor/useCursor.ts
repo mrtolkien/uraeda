@@ -68,7 +68,11 @@ function take(stop: HTMLElement, by: number, area: Area) {
 export function focusStop(stop: HTMLElement, from?: HTMLElement): void {
   const area = areaOf(stop);
   const pending = pendingOf(area);
-  take(stop, scrollFor(boxOf(stop, pending), from && boxOf(from, pending), viewOf(area)), area);
+  const box = boxOf(stop, pending);
+  const held = from && boxOf(from, pending);
+  // From below, as `K`, the move is up: a tall stop shows its end.
+  const direction = held !== undefined && held.top > box.top ? -1 : 1;
+  take(stop, scrollFor(box, held, viewOf(area), direction), area);
 }
 
 /** Moves the cursor a stop down, 1, or up, -1: `false` where it cannot, so the page scrolls. */
