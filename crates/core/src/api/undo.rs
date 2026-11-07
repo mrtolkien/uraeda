@@ -90,7 +90,20 @@ pub fn recorded<T, S: AsRef<str>>(
     scope: &[S],
     write: impl FnOnce() -> Result<T>,
 ) -> Result<(T, Change)> {
+    recorded_keeping(repo, scope, &[], write)
+}
+
+/// [`recorded`], keeping with the change each file of `kept`, under `scope`, that the write left as
+/// it was: a later commit may delete it, as the image an image's removal unlinked, and the undo
+/// writes it back once gone.
+pub fn recorded_keeping<T, S: AsRef<str>>(
+    repo: &Path,
+    scope: &[S],
+    kept: &[S],
+    write: impl FnOnce() -> Result<T>,
+) -> Result<(T, Change)> {
     let scope: Vec<&str> = scope.iter().map(AsRef::as_ref).collect();
+    let kept: Vec<&str> = kept.iter().map(AsRef::as_ref).collect();
     let first = *scope
         .first()
         .ok_or_else(|| refused("an undoable write needs a scope"))?;
@@ -105,7 +118,7 @@ pub fn recorded<T, S: AsRef<str>>(
     let before = change::snapshot(&root, &scope);
     let value = write()?;
     let after = change::snapshot(&root, &scope);
-    Ok((value, change::diff(before, after, commit)))
+    Ok((value, change::diff(before, after, commit, &kept)))
 }
 
 /// Replays `change` in `direction` once every file holds the side it expects: `after` for an undo,

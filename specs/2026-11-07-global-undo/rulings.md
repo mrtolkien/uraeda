@@ -285,3 +285,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a lock file in the repository, taken by every tool's writes, or a check of each
   file's modification time against the write's own.
 - **Where**: `crates/core/src/api/undo.rs`, `recorded`
+
+## R24: An image's removal keeps the image with its change
+
+- **Decision**: the change of an image's removal from a note file or a proposal file keeps the
+  image's bytes, both sides the same, though the write left the image as it was: a commit deletes an
+  image no file links, so its undo writes the image back when it is gone, accepts it when it holds
+  those bytes, and is refused, with nothing written, when it holds others. Its redo leaves the image
+  as it is, for the next commit to delete. A file kept so is told by its two sides being the same
+  bytes, which a diff never gives, so the change's shape is unchanged.
+- **Rationale**: the removal unlinks the image, and the Git page's commit then deletes it: an undo
+  that wrote back only the Markdown would link a missing image. The image changes only at the
+  commit, which belongs to no recorded write.
+- **If wrong**: a `kept` field on each file of a change, in the core, the binding's `ChangeView`,
+  and the web UI, in place of the equal sides; or the commit keeping unlinked images until their
+  removal can no longer be undone.
+- **Where**: `crates/core/src/actions/change.rs`, `ChangedFile`; `crates/core/src/api/undo.rs`,
+  `recorded_keeping`; `crates/binding/src/note_images.rs`
