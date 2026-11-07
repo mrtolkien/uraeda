@@ -79,7 +79,7 @@ fn undo_refuses_once_a_file_changed_since_writing_nothing() {
     let inbox = api::read_inbox(repo.path()).unwrap();
     let priorities = api::read_priorities(repo.path()).unwrap();
     let id = note_id(&inbox, NOTE);
-    let (_, change) = undo::recorded(repo.path(), undo::PROMOTION, || {
+    let (_, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
         api::note_to_proposal(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
     })
     .unwrap();
@@ -272,5 +272,63 @@ fn a_promotions_relinks_outside_the_lists_are_undone() {
 
     assert_eq!(repo.read(linking), text);
     assert!(repo.exists(&file));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A repository whose inbox holds "Dark mode", with its single note file, linked from a decision.
+fn linked_note_file() -> (TestRepo, &'static str, String) {
+    let repo = fixture_repo();
+    repo.write(INBOX, "# Inbox\n\n- [Dark mode](notes/dark-mode.md)\n");
+    repo.write(
+        "specs/notes/dark-mode.md",
+        "# Dark mode\n\nThe night theme.\n",
+    );
+    let linking = "specs/decisions/look.md";
+    let text = "# Look\n\nSee [the note](../notes/dark-mode.md).\n".to_string();
+    repo.write(linking, &text);
+    repo.commit("docs: a note file and a decision");
+    (repo, linking, text)
+}
+
+/// A note moved to a level takes its note file into the proposals, relinking every Markdown file
+/// of `specs/`: its undo puts their links back too.
+#[test]
+fn a_notes_move_to_a_level_has_its_relinks_undone() {
+    let (repo, linking, text) = linked_note_file();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+    let id = note_id(&inbox, "Dark mode");
+    let (_, change) = undo::recorded(repo.path(), undo::RELINKING_PROMOTION, || {
+        api::note_to_proposal(repo.path(), &id, "next", &inbox.hash, &priorities.hash)
+    })
+    .unwrap();
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "Dark mode").unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists("specs/notes/dark-mode.md"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// An image attached to a single note file makes it a folder, relinking every Markdown file of
+/// `specs/`: its undo puts their links back too.
+#[test]
+fn an_image_attached_to_a_single_note_file_has_its_relinks_undone() {
+    let (repo, linking, text) = linked_note_file();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let id = note_id(&inbox, "Dark mode");
+    let shot = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let images = [(shot, Some("shot.png".to_string()))];
+    let (_, change) = undo::recorded(repo.path(), undo::NOTE_IMAGES, || {
+        api::attach_note_images(repo.path(), &id, &images, &inbox.hash)
+    })
+    .unwrap();
+    assert_ne!(repo.read(linking), text);
+
+    undo::apply_change(repo.path(), &change, Direction::Undo, "Dark mode").unwrap();
+
+    assert_eq!(repo.read(linking), text);
+    assert!(repo.exists("specs/notes/dark-mode.md"));
     assert_eq!(repo.porcelain(), "");
 }
