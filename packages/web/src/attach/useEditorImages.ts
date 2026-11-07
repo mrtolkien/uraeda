@@ -19,7 +19,13 @@ type File = ReturnType<typeof useProposalFile>;
  * link, for its editor at the new path, and the last upload's status: what was typed there is saved
  * at the new path.
  */
-const movedTexts = new Map<string, Linked & { status?: AttachStatus }>();
+const movedTexts = new Map<string, Moved>();
+
+/**
+ * What a run that moved the file hands its new page: its text with the links, the last status,
+ * and the run's recording on the undo stack, made once the page saved the text.
+ */
+type Moved = Linked & { landed?: () => void; status?: AttachStatus };
 
 /** Reads a proposal or note file's text and hash from the server, past what the page holds. */
 export async function readProposalFile(fate: Fate, path: string) {
@@ -61,7 +67,7 @@ export function useMovedText(path: string) {
  * which that page saves at once; or, once the human left, its text saved at the new path, over its
  * version now.
  */
-function useOnMoved(release: () => void, base: string) {
+function useOnMoved(release: () => void, base: string, ended: () => (() => void) | undefined) {
   const fate = useFateClient();
   const repo = useRepository();
   const repoFolder = useRepositoryPath();
@@ -76,8 +82,9 @@ function useOnMoved(release: () => void, base: string) {
   return useCallback(
     (next: string, linked: Linked, status?: AttachStatus) => {
       release();
+      const landed = ended();
       if (mounted.current) {
-        movedTexts.set(next, { ...linked, status });
+        movedTexts.set(next, { ...linked, landed, status });
         writeUnsaved(unsavedKey(repoFolder, `${next}#editor`), {
           at: new Date().toISOString(),
           base,
@@ -99,10 +106,31 @@ function useOnMoved(release: () => void, base: string) {
             view: ProposalFileView,
           });
         }
+        landed?.();
       })();
     },
-    [base, fate, release, repo, repoFolder],
+    [base, ended, fate, release, repo, repoFolder],
   );
+}
+
+/**
+ * Saves at once the text a file that moved into a folder brought to the page at its new path, with
+ * its images' links, kept as the field's unsaved text; then records the run that moved it.
+ */
+function useSaveMoved(
+  moved: ReturnType<typeof useMovedText>,
+  path: string,
+  save: ReturnType<typeof useSave<string>>,
+) {
+  const saveMoved = useEffectEvent(
+    (text: string, landed?: () => void) => void save.save(text).then(() => landed?.()),
+  );
+  useEffect(() => {
+    if (moved) {
+      movedTexts.delete(path);
+      saveMoved(moved.text, moved.landed);
+    }
+  }, [moved, path]);
 }
 
 /**
@@ -135,15 +163,7 @@ export function useEditorImages({
   useLayoutEffect(() => {
     latestFile.current = file;
   });
-  // The text a file that moved into a folder brought, with its images' links, kept as this
-  // field's unsaved text: saved here at once, as the page opens.
-  const saveMoved = useEffectEvent((text: string) => void save.save(text));
-  useEffect(() => {
-    if (moved) {
-      movedTexts.delete(path);
-      saveMoved(moved.text);
-    }
-  }, [moved, path]);
+  useSaveMoved(moved, path, save);
   /**
    * Takes the file's version as the one the next save is made over, when nothing is unsaved or
    * being saved. Not while an upload holds it: the save after it is made over the version the
@@ -160,13 +180,17 @@ export function useEditorImages({
     initialSelection: moved?.selection,
     initialStatus: moved?.status,
     label: path.split("/").at(-1) ?? path,
-    onAttached: recorded.attached,
+    onAttached: recorded.ended,
     onLinks: field.change,
-    onMoved: useOnMoved(() => {
-      holding.current = false;
-      // The text, typed during the run included, goes to the new path.
-      field.discard();
-    }, splitProposal(file).body),
+    onMoved: useOnMoved(
+      () => {
+        holding.current = false;
+        // The text, typed during the run included, goes to the new path.
+        field.discard();
+      },
+      splitProposal(file).body,
+      recorded.take,
+    ),
     onStart: async () => {
       holding.current = true;
       setDrawn(false);
@@ -183,8 +207,9 @@ export function useEditorImages({
       if (value !== field.text) {
         field.change(value);
       }
+      const landed = recorded.take();
       if (added) {
-        void save.save(value);
+        void save.save(value).then(() => landed?.());
       } else {
         adopt();
       }
