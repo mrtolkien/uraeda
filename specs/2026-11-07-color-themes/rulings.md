@@ -92,3 +92,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   keeps the built Catppuccin, as task 9 intends; a surface that needs it would need a per-mode
   `@media (prefers-color-scheme)` block.
 - **Where**: tasks 1, 4, and 9
+
+## R8: In each list, the shipped themes come before the user's
+
+- **Decision**: a mode's list is its default, then its other shipped themes by name, then the user's
+  themes by name, so a theme of yours never sits between two shipped ones.
+- **Rationale**: the spec's lists say "The user's follow, marked yours"; R3's sort by name holds
+  within each group.
+- **If wrong**: one sort key in `themes::read`.
+- **Where**: task 2
+
+## R9: Two theme problems the spec does not word
+
+- **Decision**: a theme extending a file of the user's that left the lists says
+  `extends "a", which has problems of its own: see its row.`, and extends its mode's default, as an
+  unknown `extends` does. Every message ends with a period, the loop's included:
+  `extends forms a loop: a → b → a.`
+- **Rationale**: the spec words the unknown `extends` and the loop, not a parent with its own
+  problems; calling that parent unknown would send the user looking for a missing file. The edge
+  cases quote the messages inside a sentence, where the period falls away.
+- **If wrong**: the wording of one message in `themes/resolve.rs`.
+- **Where**: task 2

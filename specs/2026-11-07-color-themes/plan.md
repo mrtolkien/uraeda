@@ -367,8 +367,10 @@ uses.
 - Create: `crates/core/themes/catppuccin-mocha.toml`, `crates/core/themes/catppuccin-latte.toml`
 - Create: `schemas/theme.json`
 - Create: `crates/binding/src/themes.rs`
-- Modify: `crates/core/src/lib.rs`, `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`,
-  `index.js` (generated)
+- Modify: `crates/core/src/lib.rs`, `crates/core/build.rs` (rebuilds when a shipped theme changes),
+  `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`, `index.js` (generated),
+  `packages/server/src/binding.ts` (`SOURCES` gains `crates/core/themes`, so a changed theme makes
+  the built binding stale)
 - Modify: `docs/web-ui.md` (a "Colour themes" section), `vite.config.ts` and `vite.tasks.ts` only if
   the schema needs a format or a `ready` input
 - Test: `crates/core/tests/themes.rs`
@@ -389,14 +391,16 @@ uses.
     - `ThemeFile { file: String /* "ember.toml" */, id: String, name: String, mode: Option<String>, extends: Option<String>, is_listed: bool, problems: Vec<ThemeProblem> }`
     - `Themes { folder: String /* "~/.config/uraeda/themes/", as settings show their file */, themes: Vec<Theme>, files: Vec<ThemeFile> }`
   - `pub fn read(config_dir: &Path) -> Themes`: never fails. `themes` holds the shipped themes and
-    the listed user themes, dark ones first, each mode sorted by name with its default first (R3);
-    `files` holds every user file, sorted by file name.
+    the listed user themes, dark ones first, each mode's default first, then its shipped themes by
+    name, then the user's by name (R3, R8); `files` holds every user file, sorted by file name.
+  - `pub fn shipped_files() -> Vec<ThemeFile>`: the shipped files' rows, which a test holds free of
+    problems.
   - `pub fn themes_dir(config_dir: &Path) -> PathBuf`: `config_dir.join("themes")`.
   - `pub const DEFAULT_DARK: &str = "catppuccin-mocha"`, `DEFAULT_LIGHT: &str = "catppuccin-latte"`.
 - Produces, in the binding: `readThemes(dir: string): Promise<Themes>`, and
   `themesFolder(dir: string): string` (the folder's path, for the server's watch).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/themes.rs`, on a `TempDir` with a `themes/` folder the test fills:
 
@@ -424,7 +428,7 @@ In `crates/core/tests/themes.rs`, on a `TempDir` with a `themes/` folder the tes
   | missing palette entry        | line 9 `needs-you = "embr"`                              | yes    | `Line 9: needs-you names "embr", which is not in the palette.`                   |
   | bad colour                   | `ink = "#12345"`                                         | yes    | `Line N: ink is "#12345", which is not a colour: write #rrggbb or #rrggbbaa.`    |
   | unknown extends              | `extends = "x"`, `mode = "dark"`                         | yes    | `extends "x", which no theme is called.`                                         |
-  | loop                         | `a.toml` extends `b`, `b.toml` extends `a`               | no     | `extends forms a loop: a → b → a` (in `a`'s row)                                 |
+  | loop                         | `a.toml` extends `b`, `b.toml` extends `a`               | no     | `extends forms a loop: a → b → a.` (in `a`'s row)                                |
   | other mode                   | `mode = "light"`, `extends = "catppuccin-mocha"`         | no     | `extends "catppuccin-mocha", a dark theme, while this one is light.`             |
   | no mode                      | only `[roles]`                                           | no     | `Give it mode = "dark" or "light".`                                              |
   | shipped name                 | `dracula.toml`, and `Catppuccin-Mocha.toml`              | no     | `A shipped theme is called catppuccin-mocha: rename the file.`                   |
@@ -432,18 +436,18 @@ In `crates/core/tests/themes.rs`, on a `TempDir` with a `themes/` folder the tes
   | bad mode                     | `mode = "dim"`                                           | no     | `Line N: mode is "dim": write "dark" or "light".`                                |
   | not a theme file             | `.ember.toml.swp`, `ember.toml~`, a folder `x.toml`      | -      | no row at all (review focus 1)                                                   |
   | not UTF-8                    | bytes `0xff 0xfe`                                        | no     | starts with `Could not read: `                                                   |
-  | alpha measured over the page | light theme, `ink-faint = "#00000040"` on a white `page` | yes    | `ink-faint is 1.9:1 on page, under 4.5.`, the ratio of the colour laid over page |
+  | alpha measured over the page | light theme, `ink-faint = "#00000040"` on a white `page` | yes    | `ink-faint is 1.8:1 on page, under 4.5.`, the ratio of the colour laid over page |
 
   Use the spec's `dracula.toml` example once the Dracula file ships; until then, the row uses
   `catppuccin-mocha` as above. Breaks: a problem that drops every theme (each row also asserts the
   shipped themes still listed); a case-sensitive name check (review focus 2).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test themes`
 - Expected: FAIL to compile, `unresolved import uraeda_core::themes`.
 
-- [ ] **Step 3: Write the two Catppuccin files and the schema**
+- [x] **Step 3: Write the two Catppuccin files and the schema**
 
 `catppuccin-mocha.toml` and `catppuccin-latte.toml` start with the `#:schema` line, a comment naming
 the source (Catppuccin's `palette.json` v1.8.0, MIT, its URL), and hold Catppuccin's published
@@ -462,7 +466,7 @@ the top, `mode` an enum, `[palette]` values matching `^#([0-9a-fA-F]{6}|[0-9a-fA
 with one property per role, each a string, and a `description` on each, from the data model's "Where
 it draws" column, so an editor shows it.
 
-- [ ] **Step 4: Implement `uraeda_core::themes` and the binding**
+- [x] **Step 4: Implement `uraeda_core::themes` and the binding**
 
 - Shipped themes: every file of `crates/core/themes/`, embedded with `include_dir!`, as
   `embedded.rs` does; their parse problems panic in a test, never at run time (a test reads them
@@ -484,23 +488,23 @@ it draws" column, so an editor shows it.
   to one decimal, so 4.46 prints 4.4, never "4.5:1, under 4.5".
 - The binding's `readThemes` runs `read` in a `job`, as `readSettings` does.
 
-- [ ] **Step 5: Document the format**
+- [x] **Step 5: Document the format**
 
 `docs/web-ui.md`, a "Colour themes" section after "Settings": where the files go, the format with
 the data model's example, the roles table (role, what it draws, Mocha's value), `extends` and the
 palette, what a problem does, and "copy a shipped theme from `crates/core/themes/` to start". It
 links `schemas/theme.json` for completion in editors through Taplo.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test themes`, then
   `nix develop -c vp run binding:build`, then `nix develop -c vp check`
 - Expected: PASS. Deferred to `ready`: the full Rust suite, clippy, and the TypeScript tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
-git add crates/core crates/binding packages/binding/index.d.ts packages/binding/index.js schemas docs/web-ui.md specs/2026-11-07-color-themes/plan.md
+git add crates/core crates/binding packages/binding/index.d.ts packages/binding/index.js packages/server/src/binding.ts schemas docs/web-ui.md specs/2026-11-07-color-themes/plan.md specs/2026-11-07-color-themes/rulings.md
 git commit -m "feat(color-themes): theme files in the core, with their problems"
 ```
 

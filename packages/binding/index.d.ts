@@ -503,6 +503,9 @@ export declare function readSettings(dir: string): Promise<Settings>
 /** A proposal file or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<ProposalFileView>
 
+/** The shipped themes and the themes of the config folder `dir`, with every file's problems. */
+export declare function readThemes(dir: string): Promise<Themes>
+
 /** Every feature, change, and proposal of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 
@@ -704,6 +707,9 @@ export interface TextStartOptions {
   line?: string
   slug?: string
 }
+
+/** The themes folder of the config folder `dir`, the path the server watches. */
+export declare function themesFolder(dir: string): string
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string
@@ -2347,6 +2353,57 @@ export interface TaskProgress {
    * after `## Task N:`.
    */
   title: string
+}
+
+/** A theme in the lists, every role resolved to a colour. */
+export interface Theme {
+  /** The file's name without `.toml`. */
+  id: string
+  name: string
+  /** `"dark"` or `"light"`. */
+  mode: string
+  isShipped: boolean
+  /** Every role, `#rrggbb` or `#rrggbbaa`, in lower case. */
+  roles: Record<string, string>
+  /** The palette, merged over the palettes of the themes it extends. */
+  palette: Record<string, string>
+  /** For each role that names a palette entry, the entry's name. */
+  sources: Record<string, string>
+}
+
+/** A theme file of the user's, listed or not, and its problems. */
+export interface ThemeFile {
+  /** The file's name, `ember.toml`. */
+  file: string
+  id: string
+  /** Its `name`, else its id. */
+  name: string
+  /** Its mode, `"dark"` or `"light"`, written or taken from the theme it extends, when known. */
+  mode?: string
+  extends?: string
+  /** Whether it is in the lists: false after a problem that leaves them. */
+  isListed: boolean
+  problems: Array<ThemeProblem>
+}
+
+/** A problem of a theme file: an error, or a warning, which never leaves the lists. */
+export interface ThemeProblem {
+  line?: number
+  message: string
+  isWarning: boolean
+}
+
+/** The themes the lists show, and the user's files. */
+export interface Themes {
+  /** The user's themes folder, as messages show it, the home folder written `~`, and a `/` last. */
+  folder: string
+  /**
+   * The shipped themes and the user's listed ones: dark first, then light, each mode's default
+   * first, then the shipped ones by name, then the user's by name.
+   */
+  themes: Array<Theme>
+  /** Every theme file of the user's, by file name. */
+  files: Array<ThemeFile>
 }
 
 /**
