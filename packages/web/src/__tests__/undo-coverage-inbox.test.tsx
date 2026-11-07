@@ -297,21 +297,21 @@ test("a note moved to a level", async () => {
 
 test("a note moved under a proposal", async () => {
   const { repo } = await onNote("Idea two");
-  await undoesAndRedoes(repo, 'Moved under "Claude Code runner (triggered manually)"', () =>
+  await undoesAndRedoes(repo, "Moved under “Claude Code runner (triggered manually)”", () =>
     promote("Loose note", "Claude Code runner"),
   );
 });
 
 test("a promotion of a note file into a proposal's file", async () => {
   const { repo } = await onNote("Idea two");
-  await undoesAndRedoes(repo, "Added to Git listener process", () =>
+  await undoesAndRedoes(repo, "Added to “Git listener process”", () =>
     promote("Dark mode", "Git listener"),
   );
 });
 
 test("a promotion of a note file into a proposal without a file", async () => {
   const { repo } = await onNote("Idea two");
-  await undoesAndRedoes(repo, "Added to Claude Code runner (triggered manually)", () =>
+  await undoesAndRedoes(repo, "Added to “Claude Code runner (triggered manually)”", () =>
     promote("Night mode", "Claude Code runner"),
   );
 });
