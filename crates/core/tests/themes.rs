@@ -312,12 +312,10 @@ fn name_rows() -> Vec<(&'static str, Row)> {
         (
             "shipped name",
             Row {
-                files: &[("catppuccin-mocha.toml", b"mode = \"dark\"\n")],
-                file: "catppuccin-mocha.toml",
+                files: &[("dracula.toml", b"mode = \"dark\"\n")],
+                file: "dracula.toml",
                 listed: false,
-                message: Message::Exactly(
-                    "A shipped theme is called catppuccin-mocha: rename the file.",
-                ),
+                message: Message::Exactly("A shipped theme is called dracula: rename the file."),
                 line: None,
             },
         ),
@@ -498,7 +496,15 @@ fn files_sort_by_name_and_themes_by_mode_then_name() {
     let read = themes::read(dir.path());
     let files: Vec<_> = read.files.iter().map(|file| file.file.as_str()).collect();
     assert_eq!(files, ["alpha.toml", "light.toml", "zeta.toml"]);
-    let ids: Vec<_> = read.themes.iter().map(|theme| theme.id.as_str()).collect();
+    // The other shipped themes left out: they sit between each default and the user's (R8).
+    let ids: Vec<_> = read
+        .themes
+        .iter()
+        .filter(|theme| {
+            !theme.is_shipped || [DEFAULT_DARK, DEFAULT_LIGHT].contains(&theme.id.as_str())
+        })
+        .map(|theme| theme.id.as_str())
+        .collect();
     assert_eq!(ids, [DEFAULT_DARK, "zeta", "alpha", DEFAULT_LIGHT, "light"]);
 }
 

@@ -248,11 +248,14 @@ test.each(["dark", "light"] as const)(
   },
 );
 
-/** A shipped theme's `-floor` entries, each with the entry it steps from. */
+/**
+ * The `-floor` entries a shipped theme's roles name, each with its theme. Its merged palette also
+ * holds the floors of the theme it extends, which its own palette may make unused (R12).
+ */
 const FLOORS = themes
   .filter((theme) => theme.isShipped)
   .flatMap((theme) =>
-    Object.keys(theme.palette)
+    [...new Set(Object.values(theme.sources))]
       .filter((entry) => entry.endsWith("-floor"))
       .map((floor) => [theme.id, floor, theme] as const),
   );
@@ -262,7 +265,7 @@ test.each(FLOORS)("every floor step of %s is the smallest: %s", (_, floor, theme
   expect(published, `${floor} steps from an entry of the palette`).toBeDefined();
   const mode = theme.mode as Mode;
   const passes = (colour: string) => entryPasses(theme, floor, colour);
-  expect(passes("#000000") && passes("#ffffff"), `a role names ${floor}`).toBe(false);
+  expect(passes("#000000") && passes("#ffffff"), `${floor} is in a measured pair`).toBe(false);
 
   const [hue, saturation] = hslOf(published!);
   const steps = Array.from({ length: 101 }, (_, lightness) => fromHsl(hue, saturation, lightness));

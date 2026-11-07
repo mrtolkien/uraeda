@@ -727,7 +727,9 @@ The body lists each Catppuccin token that changed, old and new, and the break ea
   `kanagawa-lotus.toml`, `nord.toml`, `one-dark.toml`, `one-light.toml`, `rose-pine.toml`,
   `rose-pine-moon.toml`, `rose-pine-dawn.toml`, `solarized-dark.toml`, `solarized-light.toml`,
   `tokyo-night.toml`, `tokyo-night-storm.toml`, `tokyo-night-moon.toml`, `tokyo-night-light.toml`
-- Modify: `crates/core/tests/themes.rs` (the shipped-name row uses `dracula.toml`, as the spec's)
+- Modify: `crates/core/tests/themes.rs` (the shipped-name row uses `dracula.toml`, as the spec's;
+  the order test leaves out the other shipped themes, R12), `__tests__/theme-roles.test.ts` (the
+  floors a theme's roles name, R12)
 
 **Interfaces:**
 
