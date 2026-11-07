@@ -31,7 +31,6 @@ export function useReviewActions(
   onAsk?: (quote: string) => void,
 ) {
   const fate = useFateClient();
-  const repo = useRepositoryPath();
   // Shown from "Add comment" until the comment is written, in a transition of its own.
   const [adding, setAdding] = useOptimistic<Adding | undefined>(undefined);
   const input = { file: file.name, folder: file.folder };
@@ -72,16 +71,7 @@ export function useReviewActions(
   const ask =
     onAsk &&
     ((range: Range) => onAsk(quoteOfRange(file, (file.committed ?? file.current).text, range)));
-  /** Removes comment `number`: the edits kept for the comments after it follow their numbers. */
-  const remove = async (number: number) => {
-    const count = file.review?.review?.comments.length ?? 0;
-    if (
-      await run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }))
-    ) {
-      renumberUnsaved((n) => unsavedKey(repo, reviewEditKey(file.path, n)), number, count);
-      removed(number);
-    }
-  };
+  const remove = useRemoveComment(file, removed, run);
   /** Adds a general comment, from the end's own field: the error to show, or nothing once written. */
   const general = async (text: string) => {
     const result = await fate.mutations.review.comment({
@@ -94,4 +84,20 @@ export function useReviewActions(
     await run(() => fate.mutations.review.startOver({ input, view: FileView }));
   };
   return { adding, ask, general, remove, send, startOver };
+}
+
+/** Removes comment `number`: the edits kept for the comments after it follow their numbers. */
+function useRemoveComment(file: File, removed: Draft["removed"], run: Refusals["run"]) {
+  const fate = useFateClient();
+  const repo = useRepositoryPath();
+  const input = { file: file.name, folder: file.folder };
+  return async (number: number) => {
+    const count = file.review?.review?.comments.length ?? 0;
+    if (
+      await run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }))
+    ) {
+      renumberUnsaved((n) => unsavedKey(repo, reviewEditKey(file.path, n)), number, count);
+      removed(number);
+    }
+  };
 }
