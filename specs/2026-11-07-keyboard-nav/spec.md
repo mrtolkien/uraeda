@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Keyboard nav in questions and specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-11-07.
 >
 > - You approve a keyboard cursor on the spec, plan, and round pages, which `j` `k` move and whose
 >   keys comment, pick an option by its letter, and ask the agent, so no action there needs the
