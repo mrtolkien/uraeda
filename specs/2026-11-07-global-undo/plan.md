@@ -775,7 +775,7 @@ git commit -m "feat(global-undo): review comments can be undone and redone"
 - Produces: `d` deletes the row the focus is on at once; a second `d` deletes the next row. A
   category holding notes keeps its question.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `undo-keys.test.tsx`: "d deletes at once; u brings it back and offers Redo; U deletes it again":
     `d` on "Color themes" in Next; no dialog; the toast "Deleted “Color themes” · waits on the Git
     page"; `u` puts it back, the toast "Undone: deleted “Color themes”", the status line `U redo`;
@@ -785,12 +785,12 @@ git commit -m "feat(global-undo): review comments can be undone and redone"
     `keys-row-editing.test.tsx`'s "d deletes the line the focus is on, not the one edited before it"
     and "d on a note deletes it, not the note edited before it" drop `confirmDelete()`.
   - The break: a question still asked, or a delete without its entry.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c vp test packages/web/src/__tests__/undo-keys.test.tsx`
   - Expected: FAIL, the dialog "Delete this line?" shows
-- [ ] **Step 3: Delete at once**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Delete at once**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

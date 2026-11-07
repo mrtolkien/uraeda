@@ -120,12 +120,6 @@ async function save(field: HTMLElement, text: string) {
   });
 }
 
-/** Answers yes to the delete's question with `d` again, as `d d` deletes. */
-async function confirmDelete() {
-  await screen.findByRole("dialog", { name: "Delete this line?" });
-  await press("d");
-}
-
 test("d deletes the line the focus is on, not the one edited before it", async () => {
   const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
   focus("Nalpha");
@@ -135,7 +129,6 @@ test("d deletes the line the focus is on, not the one edited before it", async (
   // The focus leaves the field, unchanged, which closes.
   focus("Ngamma");
   await press("d", controlOf("Ngamma"));
-  await confirmDelete();
 
   await waitFor(() => {
     const text = read(repo);
@@ -181,7 +174,6 @@ test("d on a note deletes it, not the note edited before it", async () => {
 
   focus("Ngamma");
   await press("d", controlOf("Ngamma"));
-  await confirmDelete();
 
   // Read together: the file is read while the core may still be writing it, and a read between
   // the two writes sees no text at all.

@@ -3,7 +3,7 @@
 // the field's. An action committed since asks first, and its undo commits nothing.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import { undoStack } from "../undo/stack.ts";
@@ -214,4 +214,40 @@ test("m, k three times, Enter: no toast, and u puts the row back in one step", a
   } finally {
     vi.useRealTimers();
   }
+});
+
+/** The button `label` of the toast showing `body`: closed toasts stay in the DOM. */
+async function buttonIn(body: string, label: RegExp) {
+  const toast = (await screen.findByText(body)).closest<HTMLElement>('[role="status"]')!;
+  return within(toast).getByRole("button", { name: label });
+}
+
+/** The status line's hints, by their text. */
+const hints = () =>
+  [...document.querySelectorAll('footer[aria-label="Status line"] button')].map((hint) =>
+    hint.textContent?.replaceAll(/\s+/g, " ").trim(),
+  );
+
+// Break: a question still asked, or a delete without its entry.
+test("d deletes at once; u brings it back and offers Redo; U deletes it again", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), COLORS);
+  await renderPage("/priorities", repo);
+  await screen.findByRole("heading", { name: "Next · 4" });
+  act(() => control().focus());
+
+  await press("d", control());
+  await waitFor(() => expect(read(repo)).not.toContain("Color themes"));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(await buttonIn("Deleted “Color themes” · waits on the Git page", /^Undo/)).toBeTruthy();
+
+  await press("u");
+  await waitFor(() => expect(read(repo)).toBe(COLORS));
+  expect(await buttonIn("Undone: deleted “Color themes”", /^Redo/)).toBeTruthy();
+  await waitFor(() => expect(hints()).toContain("U redo"));
+
+  await press("Z", document.body, true);
+  await waitFor(() => expect(read(repo)).not.toContain("Color themes"));
+  await screen.findByText("Redone: deleted “Color themes”");
+  await waitFor(() => expect(hints()).not.toContain("U redo"));
 });
