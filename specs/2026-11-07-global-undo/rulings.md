@@ -153,3 +153,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `text.save` answering its change, as the other writes do, makes the editor's own
   saves undoable too, and this entry the join of two answered changes.
 - **Where**: task 7, `packages/web/src/attach/attachUndo.ts`
+
+## R14: A review's refusal names the comment, or the review
+
+- **Decision**: the undo or redo of a comment's add, edit, or removal, refused, names the comment by
+  its first line: "Could not undo: “Say it stays.” changed since in spec-review.md."; Start over's
+  names the whole review: "Could not undo: “Your review” changed since in spec-review.md.". The
+  entry's place is the reviewed file's page alone, as the review page selects no block on arrival.
+- **Rationale**: a comment's number moves as others are removed, and its text is what the human
+  wrote; Start over drops every comment at once, the page's "Your review".
+- **If wrong**: the subject is one argument of `useRecord` in `useReviewActions.ts`.
+- **Where**: task 8, `packages/web/src/useReviewActions.ts`
