@@ -1,4 +1,4 @@
-// Mockups of the keyboard cursor (specs/2026-11-07-keyboard-nav), as the spec approved them, kept
+// Mockups of the keyboard cursor (specs/done/2026-11-07-keyboard-nav.md), as the spec approved them, kept
 // frozen: the real spec and round pages, with the cursor drawn where the keys would put it, a
 // list's picked look and the keys of what it holds under it. They were drawn before the cursor
 // existed, and paint its look by hand; the real cursor is in `cursor/`. The block's range and the
