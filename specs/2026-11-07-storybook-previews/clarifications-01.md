@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Faster Storybook previews
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 3 questions, about 10 minutes.
+> Answered on 2026-11-07.
 >
 > - Verdict: worth building as proposed, since most of the wait comes from restarts and stops the
 >   server controls, and changing them is cheap.
@@ -102,7 +102,7 @@ D can come on top of A.
   - [pro] something to look at at once, as Chromatic shows a snapshot first.
   - [con] a headless browser in the server to take pictures, and a picture that can be stale.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Which commits should restart a running Storybook?
 
@@ -132,7 +132,7 @@ Why it matters: each restart costs a cold start, 10 seconds or more, on the next
   - [pro] no restart ever costs you a wait.
   - [con] the blank mockups the restart fixed come back after a config or sample-data change.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: How long should a Storybook keep running without a view?
 
@@ -159,7 +159,7 @@ Why it matters: it trades memory kept busy for previews ready when you arrive.
   - [pro] the least memory.
   - [con] the wait the proposal complains about stays for most reviews.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
