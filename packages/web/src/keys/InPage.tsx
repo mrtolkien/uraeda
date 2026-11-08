@@ -71,11 +71,17 @@ function useFade(): [boolean, () => void] {
   return [isFaded, wake];
 }
 
+/** Whether `event` happened outside the layer `box`. */
+function isOutside(box: HTMLElement | null, event: Event) {
+  return !box?.contains(event.target as Node);
+}
+
 /**
  * The in-page list's layer, drawn while it is open: a raw dialog, for Astryx's `Dialog` is always
  * modal, which would block the page that is the preview, and draw a scrim over it (an Astryx gap,
- * plan, Complexity tracking). A press outside it calls `onOutside`, as a dialog's tap outside does,
- * and so does the focus leaving it for the page, as Tab does: a layer left open without the focus
+ * plan, Complexity tracking). A click outside it calls `onOutside`, as a dialog's tap outside does,
+ * and the page does not act on that click; a press that sends none, as a phone's scroll starts,
+ * leaves it open. The focus leaving it for the page, as Tab does, calls `onOutside` too: a layer left open without the focus
  * would hold every page key, its own Escape out of reach. Escape is the palette's, Back the
  * picker's history entry. As it closes, the focus goes back to where it was, unless a press or Tab
  * put it elsewhere.
@@ -93,15 +99,29 @@ export function InPage({
   // Set as it closes, when its own focus return is no focus leaving it.
   const isClosing = useRef(false);
   const [isFaded, wake] = useFade();
-  const outside = useEffectEvent((event: PointerEvent) => {
-    if (!layer.current?.contains(event.target as Node)) {
+  const clicked = useEffectEvent((event: MouseEvent) => {
+    if (isOutside(layer.current, event)) {
+      // The click closes the list alone: the page under it does not act on it.
+      event.preventDefault();
+      event.stopPropagation();
       onOutside();
     }
   });
   useEffect(() => {
-    const onDown = (event: PointerEvent) => outside(event);
-    document.addEventListener("pointerdown", onDown, true);
-    return () => document.removeEventListener("pointerdown", onDown, true);
+    // A press outside keeps the focus in the list, so that only its click closes it: a phone's
+    // scroll starts with a press and sends no mouse press nor click, and keeps the list open.
+    const pressed = (event: MouseEvent) => {
+      if (isOutside(layer.current, event)) {
+        event.preventDefault();
+      }
+    };
+    const onClick = (event: MouseEvent) => clicked(event);
+    document.addEventListener("mousedown", pressed, true);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("mousedown", pressed, true);
+      document.removeEventListener("click", onClick, true);
+    };
   }, []);
   useLayoutEffect(() => {
     const before = document.activeElement as HTMLElement | null;
@@ -119,7 +139,7 @@ export function InPage({
     <div
       aria-label={label}
       onBlur={(event) => {
-        // Where the focus went: none for a press on no control, which `onDown` already heard.
+        // Where the focus went: none for a click on no control, which `onClick` hears.
         const to = event.relatedTarget as Node | null;
         if (!isClosing.current && to !== null && !layer.current?.contains(to)) {
           onOutside();

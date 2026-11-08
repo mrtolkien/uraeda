@@ -81,7 +81,10 @@ layout look, was overruled on 2026-11-05.
 
 The theme picker (`Space u t`) is the same picker in its page mode: the page itself is the preview,
 so its list floats alone, narrow, at the top of the page at every width, on glass and with no scrim,
-and fades to 10% after a second left alone, coming back on a key or a pointer move.
+and fades to 10% after a second left alone, coming back on a key or a pointer move. It closes,
+putting back the theme in use, by Escape, Back, the focus leaving it, or a click outside it, which
+does nothing else: a tap on a card closes the picker without opening the card, and scrolling the
+page, which sends no click, keeps it open.
 
 ## Dialogs
 
