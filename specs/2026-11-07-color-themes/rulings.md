@@ -47,8 +47,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `dim`, which were picked by hand before this feature, are recomputed by the same rule.
 - **Rationale**: the Colour themes decision asks for "the smallest change in lightness", checked by
   a test; HSL keeps every step in gamut, so the test can check it exactly. The decision wins over
-  SC-001 where the two differ: those few Catppuccin colours move by a step or two, listed in task
-  4's commit and in the pull request.
+  SC-001 where the two differ, and some of Latte's colours move visibly from the hand-picked ones on
+  `main` (`packages/web/src/theme/theme.ts`), in HSL:
+  - lavender `#4254c8` → `#3654fc`, saturation 55% → 97%, lightness 52% → 60%, the largest;
+  - sapphire `#04699a` → `#177282`, hue 200° → 189°, saturation 95% → 70%;
+  - noticeably: blue `#1957d5` → `#0a54e5` (saturation 79% → 92%), mauve `#7b2fe0` → `#7d26ed` (74%
+    → 85%), sky `#0a688e` → `#036991` (87% → 96%), yellow `#875800` → `#875612` (hue 39° → 35°,
+    saturation 100% → 76%, lightness 26% → 30%);
+  - by about a step: peach `#a63f00` → `#a83e01`, red `#bc0d33` → `#be0e34`, green `#2c6f1f` →
+    `#2d711e`, teal `#0f6c72` → `#116a6f`, overlay2 `#5f6276` → `#5e6173`.
+
+  Mocha moves only in `overlay2-floor`, `#969db8` → `#979db5`. The human accepts these on the pull
+  request, where they are listed.
+
 - **Alternatives considered**: OKLCH lightness, closer to perception, but a step may leave the sRGB
   gamut and need a clamp the test must repeat; keeping Latte's hand-picked values, which the
   decision's test would refuse.
