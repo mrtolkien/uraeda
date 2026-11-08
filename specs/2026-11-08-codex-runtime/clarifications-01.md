@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Codex runtime + model settings
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions, about 20 minutes.
+> Answered on 2026-11-08.
 >
 > - Verdict: worth building, with changes: Codex's default sandbox cannot commit in a feature's
 >   worktree. Codex needs explicit permissions, and the proposal leaves effort and defaults open.
@@ -116,7 +116,7 @@ could make Codex do.
   - [con] a hostile text could make Codex delete any file on the machine or read your credentials;
     it breaks the Agents decision, which would need changing.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should Uraeda talk to Codex?
 
@@ -141,7 +141,7 @@ protocol. A protocol change in Codex can break the runtime.
   - [pro] a standard protocol, reusable for other ACP agents later.
   - [con] a new dependency between Uraeda and Codex, and no limits or skill listing.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which agents get a model picker?
 
@@ -161,7 +161,7 @@ Codex gets a control of its own.
   - [pro] Claude Code's runtime stays as it is.
   - [con] the picker behaves differently from one agent to the other.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Should you also pick the reasoning effort?
 
@@ -186,7 +186,7 @@ it per step.
   - [pro] a simpler picker.
   - [con] a model whose levels differ from your setting runs on its nearest level, unseen.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What is picked before you choose?
 
@@ -216,7 +216,7 @@ that Run options would then reshape.
   - [pro] the same default on every device, in your dotfiles.
   - [con] settings that Run options will reshape soon.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Can the model change during a session?
 
@@ -243,7 +243,7 @@ where a session starts.
   - [pro] a session's model never changes under you.
   - [con] another model means another session, which forgets the conversation.
 
-**Answer:**
+**Answer:** B: If a user wants to change model, they should create a new session
 
 ## Q7: What should the picker look like?
 
@@ -264,7 +264,7 @@ Why it matters: the picker sits in every composer that starts a session, and on 
   - [pro] each value changes in one step.
   - [con] three controls in the composer, which wrap on a phone.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -303,3 +303,6 @@ Why it matters: the picker sits in every composer that starts a session, and on 
   line. See [discovery](discovery-01.md#codex-app-server).
 
 **Notes:**
+
+- **Codex's usage windows and limits**: If both Codex and Claude are running on two different
+  features, both should show
