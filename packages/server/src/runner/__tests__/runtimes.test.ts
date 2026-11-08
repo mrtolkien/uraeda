@@ -429,3 +429,15 @@ test.each<[string, Record<string, unknown>, string]>([
   expect(head()).toBe(before);
   expect(server.adapter.opens).toEqual([]);
 });
+
+test("session.setEffort refuses an effort that is not a name, nor null", async () => {
+  const server = await testServer();
+  await server.sessions.runtimes.refreshModels();
+  const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
+  const id = (chat.data as { id: string }).id;
+
+  const set = await mutate(server.app, "session.setEffort", { effort: 5, id }, ["id"]);
+
+  expect(JSON.stringify(set.error)).toContain("The effort is not a name: pick another");
+  expect(server.sessions.cache.session(id)?.effort).toBeNull();
+});
