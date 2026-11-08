@@ -173,10 +173,13 @@ leaves out, is always a question.
   for it.
 - **Outside behaviour it relies on**: a feature may depend on how a library, a browser, a protocol,
   or another tool behaves. When its documentation does not settle it (embedding a page in a
-  sandboxed frame, a protocol's undocumented messages), check it now. Use a small throwaway
-  experiment when one is cheap, run outside the repository and never committed. When it cannot be
-  checked, the discovery says so: it becomes an unverified assumption, which the spec names and the
-  plan's first task checks.
+  sandboxed frame, a protocol's undocumented messages), check it now: read the dependency's source,
+  run its tests, or write a small throwaway experiment, run outside the repository and never
+  committed. Do the work in full: an experiment that takes an hour is cheaper than a human answering
+  a question built on a guess, and than a plan that changes when its first task fails. Unverified is
+  a last resort, only for what no experiment in reach can settle, such as a paid service without an
+  account, a device you do not have, or a production system. Say then why it could not be checked:
+  it becomes an unverified assumption, which the spec names and the plan's first task checks.
 - **Guards it relaxes**: an option that loosens a security rule, an origin check, a permission, a
   sandbox, says what an attacker could then do. Say it in one sentence a non-specialist understands,
   not as a mechanism. Write "any website open in your browser could read the project's code", not
@@ -496,8 +499,9 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 6. **What is asked**: no question you could have settled. No settled point is one that only the
    human can decide, like a scope boundary or a new dependency.
 7. **Worth it and feasible**: the cost of the feature is weighed against its gain. The outside
-   behaviour it relies on is checked or named as unverified, and each relaxed guard says what an
-   attacker could do.
+   behaviour it relies on is checked, with how. Each one left unverified says why no experiment in
+   reach could settle it: if one could, run it now. Each relaxed guard says what an attacker could
+   do.
 8. **The block**: its verdict follows the discovery's **Worth it and feasibility**.
 
 ## Red flags
@@ -512,6 +516,7 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 | "The proposal says X, so X it is"                         | A proposal is a first take. Check it against what you found, and turn each gap into a question.   |
 | "The proposal asks for it, so I'll recommend it"          | Weigh its cost against its gain. Recommending a drop is a valid answer when the evidence says so. |
 | "The library surely supports this"                        | Check it with a small experiment, or name it as unverified so the plan checks it first.           |
+| "I'll mark it unverified, the plan will check it"         | Unverified is for what you cannot check, not for what takes time. Read the source, run the test.  |
 | "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.              |
 | "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                   |
 | "Three sentences of context will do"                      | Context has no length limit: give the card what deciding needs, and cut what weighs no option.    |

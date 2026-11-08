@@ -59,8 +59,9 @@ in the way.]
 ## Worth it and feasibility
 
 [Optional: what the feature gives against what it costs. The outside behaviour it relies on: each
-checked, with how, or unverified, with what the plan must check first. Each guard an option relaxes,
-as what an attacker could then do. Left out when the feature is small and relies on nothing new.]
+checked, with how, or, when no experiment in reach can settle it, unverified, with why and what the
+plan must check first. Each guard an option relaxes, as what an attacker could then do. Left out
+when the feature is small and relies on nothing new.]
 
 ## Approaches
 
