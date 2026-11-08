@@ -1,0 +1,13 @@
+# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
+name = "claude"
+title = "Claude Code"
+description = "Runs your installed claude command in sessions."
+api = 1
+icon = "uraeda:harness-claude"
+scope = "global"
+
+[settings.command]
+type = "string"
+default = "claude"
+label = "Command"
+help = "The command sessions run."

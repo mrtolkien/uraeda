@@ -1,0 +1,7 @@
+# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
+name = "notifications"
+title = "Notifications"
+description = "Browser notifications when work needs you."
+api = 1
+icon = "uraeda:flag"
+scope = "global"

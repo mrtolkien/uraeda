@@ -8,6 +8,7 @@ pub mod check;
 mod compare;
 pub mod decisions;
 pub mod embedded;
+pub mod extensions;
 pub mod files;
 pub mod gates;
 pub mod git;

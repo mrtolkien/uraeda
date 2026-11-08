@@ -27,6 +27,7 @@ pub mod buffer;
 pub mod cache;
 pub mod deferred;
 pub mod drafts;
+pub mod extensions;
 pub mod file_writes;
 pub mod git_reads;
 pub mod git_writes;

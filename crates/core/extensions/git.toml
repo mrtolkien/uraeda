@@ -1,0 +1,7 @@
+# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
+name = "git"
+title = "Git"
+description = "The Git place."
+api = 1
+icon = "uraeda:git-branch"
+scope = "global"

@@ -251,6 +251,18 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  */
 export declare function expandProposal(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<ProposalFileView>
 
+/** The extension API this Uraeda runs. It reads nothing, so it returns at once. */
+export declare function extensionApi(): number
+
+/**
+ * The settings of the extension `name` for `repository`, or for every repository, as a JSON
+ * object: `{}` for an extension that does not exist.
+ */
+export declare function extensionSettings(configDir: string, name: string, repository?: string | undefined | null): Promise<string>
+
+/** The extensions folder in the config folder `configDir`. It reads nothing, so it returns at once. */
+export declare function extensionsFolder(configDir: string): string
+
 /**
  * Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
  * in the default branch's checkout, without committing: the Git page lists the repair. Returns
@@ -464,6 +476,9 @@ export declare function readBuffer(repo: string, path: string): Promise<BufferVi
  */
 export declare function readDecision(repo: string, folder: string, name: string): Promise<BranchDecision>
 
+/** The built-in extensions and the config folder's, each with its problems. */
+export declare function readExtensions(configDir: string): Promise<Extensions>
+
 /** One feature, by its folder. */
 export declare function readFeature(repo: string, folder: string): Promise<FeatureView>
 
@@ -621,6 +636,18 @@ export declare function setContinue(dir: string, key: "restart" | "limit" | "gat
 
 /** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
+
+/**
+ * Writes the repositories the extension `name` is on in: `"all"`, or their names, none turning it
+ * off.
+ */
+export declare function setExtensionOn(configDir: string, dataDir: string, name: string, on: "all" | string[]): Promise<void>
+
+/**
+ * Writes the setting `key` of the extension `name` to `valueJson`, a JSON value, for
+ * `repository`, or for every repository when it is `null`.
+ */
+export declare function setExtensionSetting(configDir: string, dataDir: string, name: string, repository: string | null, key: string, valueJson: string): Promise<void>
 
 /**
  * Sets the name a feature or a change of a repository shows in the sidebar, by its folder: an
@@ -1151,6 +1178,64 @@ export interface EdgeCase {
   importance: string
   /** Its row's block. */
   row: number
+}
+
+/** An extension, as its manifest and the settings file describe it. */
+export interface Extension {
+  /** Its folder's name, which its manifest's `name` must equal. */
+  name: string
+  title: string
+  description: string
+  version: string
+  /** The extension API it is built for: the loader turns off one built for another. */
+  api: number
+  icon: string
+  /** `"global"` or `"repository"`: where `ura extension add` suggests turning it on first. */
+  scope: string
+  /** Its server entry, absolute. */
+  server?: string
+  /** Its page entry, absolute. */
+  page?: string
+  /** Its folder, absolute, a symbolic link resolved; empty for a built-in extension. */
+  folder: string
+  isBuiltIn: boolean
+  /** Whether it reloads on save: a folder without `.ura-source`, linked or written in place. */
+  isLinked: boolean
+  /** Where `ura` installed it from. */
+  source?: Source
+  /** Whether it is on in every repository. */
+  onAll: boolean
+  /** The repositories it is on in, by name, when not `on_all`: empty when it is off. */
+  on: Array<string>
+  /** Its settings, as its manifest declares them, the valid ones only. */
+  settings: Array<SettingSpec>
+  problems: Array<ExtensionProblem>
+}
+
+/**
+ * A problem of an extension. A fatal one keeps it from loading; any other leaves it running, a
+ * setting at fault on its default.
+ */
+export interface ExtensionProblem {
+  /**
+   * The file it is in, in the extension's folder, like `extension.toml`, or `config.toml` for
+   * the settings file; empty for the folder itself.
+   */
+  file: string
+  /** The line it is on, from 1; absent for the whole file. */
+  line?: number
+  message: string
+  /** The setting it is about. */
+  setting?: string
+  isFatal: boolean
+}
+
+/** The extensions: the built-in ones, then yours. */
+export interface Extensions {
+  /** Your extensions folder, as messages show it, the home folder written `~`, and a `/` last. */
+  folder: string
+  /** The built-in extensions first, in their order, then yours by folder name. */
+  extensions: Array<Extension>
 }
 
 /** A feature's branch changes, by its folder: what the sidebar's cards show, for every feature. */
@@ -2069,6 +2154,17 @@ export interface Settings {
   keyboard: KeyboardSettings
 }
 
+/** A setting an extension's manifest declares. */
+export interface SettingSpec {
+  key: string
+  /** `"bool"`, `"integer"`, `"string"`, or `"list"`, a list of strings. */
+  kind: string
+  /** Its default, as JSON. */
+  defaultJson: string
+  label: string
+  help: string
+}
+
 /** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */
 export interface SettledComment {
   /** 1-based, in the notes' order. */
@@ -2152,6 +2248,16 @@ export interface SinceReview {
    * at the place it held. Kept parts are left out.
    */
   parts: Array<SinceChange>
+}
+
+/** Where `ura` installed an extension from, its `.ura-source`. */
+export interface Source {
+  /** The git URL it was cloned from. */
+  url: string
+  /** The commit it is pinned to. */
+  commit: string
+  /** The branch or tag `ura extension update` follows, the file's `ref`. */
+  gitRef: string
 }
 
 /** A run of text with the same marks. An image's span holds its alt text. */
