@@ -1,5 +1,5 @@
 // The built-in extensions' server parts, registered through the same server API as yours: Claude
-// Code's runtime, the fake agent's for tests and the sandbox, and the Storybook warmer of previews.
+// Code's and Codex's runtimes, the fake agent's for tests and the sandbox, and the Storybook warmer of previews.
 // The inbox, priorities, decisions, git, and notifications have no server part: their data stays
 // in Uraeda's static fate views (R5).
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import type { ServerApi } from "../extension-api.ts";
 import { layout } from "../paths.ts";
 import type { Adapter } from "../runner/adapter.ts";
 import { ClaudeAdapter } from "../runner/claude.ts";
+import { CodexAdapter } from "../runner/codex.ts";
 import { type Registry, serverApi } from "./api.ts";
 import { reportFor } from "./events.ts";
 import type { Problem } from "./loader.ts";
@@ -29,12 +30,12 @@ export type BuiltInDeps = {
 };
 
 /** The built-ins that register a runtime: their reload waits for their sessions' turns. */
-export const BUILT_IN_RUNTIMES = new Set(["claude", "fake"]);
+export const BUILT_IN_RUNTIMES = new Set(["claude", "codex", "fake"]);
 
-/** The command Claude Code's sessions run, from its `command` setting. */
-function claudeCommand(api: ServerApi): string {
+/** The command a runtime's sessions run, from its `command` setting, else `fallback`. */
+function commandSetting(api: ServerApi, fallback: string): string {
   const command = api.settings(null).command;
-  return typeof command === "string" && command !== "" ? command : "claude";
+  return typeof command === "string" && command !== "" ? command : fallback;
 }
 
 /** Each built-in's server part, by its name. */
@@ -43,13 +44,25 @@ export const BUILT_IN_SERVER: Record<string, (api: ServerApi, deps: BuiltInDeps)
     const adapter = agents
       ? agents.claude
       : new ClaudeAdapter({
-          command: claudeCommand(api),
+          command: commandSetting(api, "claude"),
           extensions: {
             docs: layout().docs,
             folder: extensionsDir,
             plugins: join(dataDir, "extension-plugins"),
           },
           imagesDir: chatImages(dataDir).dir,
+          pluginDir: layout().plugin,
+        });
+    if (adapter) {
+      api.runtime(adapter);
+    }
+  },
+  codex: (api, { agents, extensionsDir }) => {
+    const adapter = agents
+      ? agents.codex
+      : new CodexAdapter({
+          command: commandSetting(api, "codex"),
+          extensions: { docs: layout().docs, folder: extensionsDir },
           pluginDir: layout().plugin,
         });
     if (adapter) {
@@ -111,7 +124,7 @@ export class BuiltIns {
    */
   registerAll(names: ReadonlyArray<string>): void {
     const { agents } = this.#options;
-    for (const name of agents ? Object.keys(agents) : ["claude"]) {
+    for (const name of agents ? Object.keys(agents) : ["claude", "codex"]) {
       if (BUILT_IN_RUNTIMES.has(name)) {
         this.register(name);
       } else if (agents?.[name]) {

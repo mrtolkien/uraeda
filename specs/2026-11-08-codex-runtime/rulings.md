@@ -130,3 +130,60 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: only the generated types back the sub-agent shapes; `validate:codex` at Ultra can
   check them.
 - **Where**: task 4, `codex-events.ts`.
+
+## R15: Codex's JSON-RPC channel and its turns live beside its adapter
+
+- **Decision**: the requests by ID and the refusal of Codex's own requests go in
+  `runner/codex-rpc.ts` (`CodexRpc`), and the turns, steering, the adapter's queue, and taking back
+  in `runner/codex-turns.ts` (`CodexTurns`); `codex.ts` keeps the adapter, the pure parameters, and
+  the model list.
+- **Rationale**: in `codex.ts` alone they would take it past the 500 lines the code quality decision
+  allows; they are two concerns, as `claude-control.ts` is Claude Code's channel (R11).
+- **Where**: task 7.
+
+## R16: Codex's options take no images folder, and no plugins folder
+
+- **Decision**: `CodexAdapterOptions` is
+  `{ codexHome?, command?, extensions?: ExtensionPaths, pluginDir }`: no `imagesDir`, and the
+  extensions without Claude Code's `plugins` folder.
+- **Rationale**: images reach Codex as `localImage` inputs, which the app-server reads by their
+  paths, and `workspace-write` reads the whole disk; Codex takes the extensions' skill folders as
+  extra skill roots (R7), so it needs no plugin folders.
+- **Where**: task 7, `codex.ts`.
+
+## R17: An effort set back to the default sends the default effort
+
+- **Decision**: a process reads `model/list`, every page, and `config/read` once, before its thread
+  starts: the model names for `runsOn`, and the default effort, the configured one, else the
+  session's model's own. A turn after one given an effort, its effort now the agent's default, is
+  given that default effort; a failed read leaves the names as IDs and sends no effort.
+- **Rationale**: Codex keeps a turn's effort "for this turn and subsequent turns", so leaving the
+  effort out would keep the last one picked, not go back to the default.
+- **Alternatives considered**: sending `effort: null`, whose meaning the protocol's types leave
+  open; reopening the process, which `setEffort` exists to avoid.
+- **Where**: task 7, `CodexTurns` and `CodexAdapter.#begin`.
+
+## R18: The sandbox's instructions name the escalation and its retry
+
+- **Decision**: the sandbox section says git's folder is read-only and the network off, and to run
+  every git command that writes and every network command with escalated permissions from its first
+  try, naming Codex's `sandbox_permissions: "require_escalated"`, and to run a refused one again
+  escalated, never to work around the sandbox.
+- **Rationale**: on the real Codex 0.163.0 (GPT-6-Luna, Low), the plan's shorter wording ended four
+  turns out of four with "git add failed" and no escalation; with this one, a plain "commit it"
+  escalated, the reviewer approved, and the commit landed.
+- **If wrong**: a model that still does not escalate ends its step before the gate, and the run
+  lifecycle asks it once to continue, as the spec's edge case says.
+- **Where**: task 7, `codexInstructions`.
+
+## R19: What a Codex process does when a start fails
+
+- **Decision**: a thread that fails to start or resume gives an `init` with its `problem` and no ID,
+  which fails the turn and closes the process; a refused `turn/start` gives a failed `result` with
+  Codex's words. Messages left in the adapter's queue after a failed or stopped turn are not
+  started: the runner takes them back, which gives `cancelled`. The defaults of `codexModels` are
+  the configured model and effort, else the list's row marked default and its default effort.
+- **Rationale**: the runner already fails a turn on an `init` problem and on a failed result, and
+  takes back the messages a turn did not read; a model list without a configured model would
+  otherwise show no default.
+- **Where**: task 7, `codex.ts` and `codex-turns.ts`.

@@ -6,8 +6,9 @@ use uraeda_core::api::ApiError;
 use uraeda_core::extensions::{self, Extension, ExtensionProblem, Extensions, On};
 
 /// The built-in extensions, in the order `read` lists them.
-const BUILT_INS: [&str; 8] = [
+const BUILT_INS: [&str; 9] = [
     "claude",
+    "codex",
     "fake",
     "inbox",
     "priorities",

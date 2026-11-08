@@ -764,7 +764,8 @@ git commit -m "feat(codex-runtime): every start path carries the model and effor
 
 **Files:**
 
-- Create: `packages/server/src/runner/codex.ts`
+- Create: `packages/server/src/runner/codex.ts`, `codex-rpc.ts` (the JSON-RPC channel), and
+  `codex-turns.ts` (the turns, steering, queue, and taking back), split as R15 says
 - Create: `crates/core/extensions/codex.toml`
 - Modify: `crates/core/src/extensions.rs` (`BUILT_INS`),
   `packages/server/src/extensions/builtins.ts` (`BUILT_IN_SERVER.codex`, `BUILT_IN_RUNTIMES`)
@@ -777,12 +778,15 @@ git commit -m "feat(codex-runtime): every start path carries the model and effor
   `instructions.ts`.
 - Produces: `class CodexAdapter implements Adapter` (`kind` `codex`, `name` "Codex", `icon`
   `uraeda:harness-openai`, capabilities: approvals false, images true, queue true, steer true,
-  subagents false, takeBack true), its options as `ClaudeAdapterOptions` with `codexHome` in place
-  of `configDir`;
+  subagents false, takeBack true), its options `CodexAdapterOptions`
+  `{ codexHome?, command?, extensions?: ExtensionPaths, pluginDir }` (R16);
   `codexThreadParams(options: OpenOptions, instructions: string): ThreadStartParams-shaped object`
-  and `codexTurnParams(...)`, pure, for the test; `codexModels(modelList, configRead): ModelList`,
-  hidden models left out, `displayName` as the name, `supportedReasoningEfforts` by `effortName`,
-  defaults `config.model` and `config.model_reasoning_effort`.
+  (with `threadId` and `excludeTurns` when resuming), `codexTurnParams(turn: CodexTurn)`,
+  `codexInput`, and `codexInstructions(extensions?)`, pure, for the test;
+  `codexModels(rows, configRead): ModelList`, every page's rows, hidden models left out, `model` as
+  the ID, `displayName` as the name, `supportedReasoningEfforts` by `effortName`, defaults
+  `config.model` and `config.model_reasoning_effort`, else the row marked default and its default
+  effort (R19).
 
 What the process does:
 
@@ -792,7 +796,11 @@ What the process does:
   `thread/start`, both with the model, `cwd`, `approvalPolicy: "on-request"`,
   `approvalsReviewer: "auto_review"`, `sandbox: "workspace-write"`, and `developerInstructions`: the
   web UI's instructions, then a sandbox section saying that `.git` is read-only and the network is
-  off, so git writes and network commands run with escalated permissions, which a reviewer approves.
+  off, so git writes and network commands run with escalated permissions, which a reviewer approves
+  (worded as R18 says). Before the thread, one `model/list` (every page) and `config/read` give the
+  model names for `runsOn` and the default effort (R17). The thread's ID reaches the transcript as
+  an `init` from the start or resume answer, once, whether or not Codex sends `thread/started`; a
+  thread that fails to start gives an `init` with its `problem` (R19).
 - Each turn: `turn/start` with the input, `effort` when set, and `sandboxPolicy`
   `{ type: "workspaceWrite", writableRoots: [extensions folder], networkAccess: false }`. A message
   sent as `steer` during a turn is `turn/steer` with `expectedTurnId`; a `queue` message waits in
@@ -800,14 +808,15 @@ What the process does:
   removes it with a `cancelled` event; an accepted message gives `accepted`. Images are `localImage`
   inputs.
 - `interrupt` is `turn/interrupt`; `close` ends stdin once no turn runs, and the app-server exits;
-  `setEffort` keeps the effort for the next `turn/start`.
+  `setEffort` keeps the effort for the next `turn/start`, the default effort sent when it goes back
+  to the default after another (R17).
 - A request from the server (a message with an `id` and a `method`) is answered with a JSON-RPC
   error, "Uraeda does not answer <method>", at once.
 - `hasSession(id)` looks for `<codexHome>/sessions/**/rollout-*-<id>.jsonl`; `version()` runs
   `codex --version`; `models()` runs a short app-server, `model/list` (every page) and
   `config/read`, 10 seconds at most.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("a thread's permissions", () => {
@@ -834,16 +843,16 @@ The break each test catches: a widened sandbox or a skipped review; images sent 
 on an unanswered request; hidden models offered; a lost thread resumed; a missing command read as
 available.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c vp test packages/server/src/runner/__tests__/codex.test.ts`
   - Expected: FAIL, `Cannot find module '../codex.ts'`.
-- [ ] **Step 3: Implement the runtime, its manifest, and its registration.** The manifest copies
+- [x] **Step 3: Implement the runtime, its manifest, and its registration.** The manifest copies
       `claude.toml`'s shape: `name = "codex"`, `title = "Codex"`, `icon = "uraeda:harness-openai"`,
       a `command` setting defaulting to `codex`.
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS, the core's built-ins test listing `codex`.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src crates/core
