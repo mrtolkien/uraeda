@@ -9,6 +9,7 @@
 - [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
 - [Pressing enter on a keyboard-focused row in the "clarifications" step opened…](/specs/changes/2026-11-08-pressing-enter/proposal.md)
 - [We should be able to dismiss an inbox triage and recreate a new one.](/specs/changes/2026-11-08-triage/proposal.md)
+- [Postponing a feature makes a proposal](/specs/changes/2026-11-08-postpone-proposal/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
@@ -29,6 +30,7 @@
   - Make sure docs stay up-to-date with agents instructions
   - Needs multiple agents and full features
 - Video intro: show core features, look and feel, ...
+- Agents fix merge conflicts on open pull requests on their own, after Worker lifecycle
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
   - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
@@ -44,8 +46,6 @@
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
   - Model settings -> allow for local models and Synthetic, at least
-
-- Agents fix merge conflicts on open pull requests on their own, after Worker lifecycle
 
 - [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
 
@@ -65,6 +65,8 @@
   - Generally more user-level customization, with good presets
 
 - ?Slack integration?
+- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
+  effort per step, review options, global defaults with per-feature overrides
 - Add a repository from the web UI by running `git init` in a folder outside git, or by cloning a
   URL
 - Multi-users management
@@ -76,7 +78,5 @@
 
 ## Blocked
 
-- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
-  effort per step, review options, global defaults with per-feature overrides
 - [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
   dependencies upgrade and performance pass
