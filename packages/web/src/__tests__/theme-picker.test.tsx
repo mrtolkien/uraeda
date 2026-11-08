@@ -129,3 +129,27 @@ test("a letter wakes the faded list, and so does a press in it", async () => {
   await act(async () => void fireEvent.pointerDown(screen.getAllByRole("option")[0]));
   expect(opacity()).not.toBe(0.1);
 });
+
+/** The page colour of `mode` in the drawn cache the first paint draws. */
+function cachedPage(mode: "dark" | "light") {
+  const drawn = JSON.parse(window.localStorage.getItem("uraeda.theme.drawn") ?? "{}");
+  return drawn[mode]?.["--color-background-body"];
+}
+
+// Breaks: a stale tab rewriting the cache from the picks it read at load, so another tab's reload
+// flashes the old theme.
+test("a theme picked in another tab is drawn here, and the cache follows", async () => {
+  await openPicker();
+  await act(async () => void fireEvent.keyDown(document.activeElement!, { key: "Escape" }));
+  await waitFor(() => expect(cachedPage("dark")).toBe(MOCHA_PAGE));
+
+  // Another tab picks Nord: this one hears of it through the storage event.
+  window.localStorage.setItem("uraeda.theme.dark", "nord");
+  await act(async () => {
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "uraeda.theme.dark", newValue: "nord" }),
+    );
+  });
+  await waitFor(() => expect(darkPage()).toBe(NORD_PAGE));
+  expect(cachedPage("dark")).toBe(NORD_PAGE);
+});

@@ -203,6 +203,25 @@ function useDrawnCache(drawn: Drawn | undefined) {
   }, [drawn]);
 }
 
+/** The keys of the picks, whose change in another tab this one reads. */
+const PICK_KEYS: ReadonlySet<string | null> = new Set([KEYS.dark, KEYS.light, KEYS.mode]);
+
+/**
+ * Reads the picks again when another tab of this browser changes them, or clears the storage
+ * (`key` null), so this tab draws them too and its cache never puts back the picks it read at load.
+ */
+function usePicksOfOtherTabs(setPicks: (picks: Picks) => void) {
+  useEffect(() => {
+    const changed = (event: StorageEvent) => {
+      if (PICK_KEYS.has(event.key)) {
+        setPicks(storedPicks(read));
+      }
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, [setPicks]);
+}
+
 /** The mode a page shows: a previewed theme's, else the mode picked, the system's under System. */
 function shownMode(picks: Picks, systemDark: boolean, previewMode: string | undefined) {
   if (previewMode === "dark" || previewMode === "light") {
@@ -233,6 +252,7 @@ export function ThemeProvider({ children }: { children: (mode: "light" | "dark")
   const previewMode = themes?.find((theme) => theme.id === previewed)?.mode;
   const mode = shownMode(picks, systemDark, previewMode);
   useDrawnCache(picked);
+  usePicksOfOtherTabs(setPicks);
   useLayoutEffect(() => {
     applyPalette(drawn);
     paintBar(drawn, previewMode === undefined ? picks.mode : mode);
