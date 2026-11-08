@@ -13,6 +13,7 @@ const shared: SharedModules = (specifier) => (specifier === "uraeda/page" ? page
 const bundleOf = (version: number, title: string, css = ""): PageBundle => ({
   css,
   entry: "page.tsx",
+  imports: {},
   modules: {
     "page.tsx": `__exports.default = (api) => api.place({ component: () => null, icon: "uraeda:list", id: "p", title: ${JSON.stringify(title)} });`,
   },
@@ -140,9 +141,11 @@ test("a failed fetch is reported, and tried again at the next sync", async () =>
   expect(titles()).toEqual(["Flaky"]);
 });
 
-/** The activation of a bundle of `modules`, its entry `page.tsx`. */
-const activation = (modules: Record<string, string>) =>
-  pageActivation({ css: "", entry: "page.tsx", modules, version: 1 }, shared);
+/** The activation of a bundle of `modules`, its entry `page.tsx`, its imports as `imports`. */
+const activation = (
+  modules: Record<string, string>,
+  imports: Record<string, Record<string, string>> = {},
+) => pageActivation({ css: "", entry: "page.tsx", imports, modules, version: 1 }, shared);
 
 const exporting = (value: string) => `__exports.default = ${value};`;
 
@@ -157,14 +160,23 @@ test("a bare import other than the shared modules is refused, and says which it 
   expect(got).toBe(page);
 });
 
-test("a relative import resolves among the bundle's files, never out of it", () => {
+// Break: a relative import joined against the importing file's path, as before, which missed a
+// link inside the folder the server had resolved to the file it links to.
+test("a relative import is the file the server resolved it to, never one out of the bundle", () => {
   let got: unknown;
-  activation({
-    "lib/index.tsx": `__exports.title = "Lib";`,
-    "page.tsx": `const lib = __import("./lib"); ${exporting("(api) => api.got(lib.title)")}`,
-  })({ got: (value: unknown) => (got = value) });
-  expect(got).toBe("Lib");
+  activation(
+    {
+      "lib/index.tsx": `__exports.title = "Lib";`,
+      "lib/title.ts": `__exports.title = "Linked";`,
+      "page.tsx": `const lib = __import("./lib"), alias = __import("./alias"); ${exporting("(api) => api.got([lib.title, alias.title])")}`,
+    },
+    { "page.tsx": { "./alias": "lib/title.ts", "./lib": "lib/index.tsx" } },
+  )({ got: (value: unknown) => (got = value) });
+  expect(got).toEqual(["Lib", "Linked"]);
   expect(() => activation({ "page.tsx": `__import("../outside");` })).toThrow(
     `page.tsx: "../outside" is not a file of the page`,
   );
+  expect(() =>
+    activation({ "page.tsx": `__import("./gone");` }, { "page.tsx": { "./gone": "gone.ts" } }),
+  ).toThrow(`page.tsx: "./gone" is not a file of the page`);
 });

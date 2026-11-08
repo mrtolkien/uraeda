@@ -40,10 +40,14 @@ export type LoadedExtension = {
   waitingFor?: string;
 };
 
-/** An extension's page files, compiled, by their path in its folder; their CSS joined. */
+/**
+ * An extension's page files, compiled, by their path in its folder; their CSS joined; and the file
+ * each relative import of each file names.
+ */
 export type PageBundle = {
   css: string;
   entry: string;
+  imports: Record<string, Record<string, string>>;
   modules: Record<string, string>;
   version: number;
 };

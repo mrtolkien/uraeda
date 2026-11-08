@@ -1,6 +1,6 @@
 // The page's module runner: each compiled file of an extension's page bundle becomes a fresh
-// function, its relative imports resolved against the bundle's files by the loader's rule, its
-// bare imports only the shared modules. The same compiled form the server runs: one module runner,
+// function, its relative imports the files the server's loader resolved them to, its bare imports
+// only the shared modules. The same compiled form the server runs: one module runner,
 // and no module cache that keeps an old version.
 import type { SharedModules } from "./shared.ts";
 
@@ -8,38 +8,18 @@ import type { SharedModules } from "./shared.ts";
 export type PageBundle = {
   css: string;
   entry: string;
+  /** The file each relative import of each file names, by the loader's rule. */
+  imports: Record<string, Record<string, string>>;
   modules: Record<string, string>;
   version: number;
 };
 
 type ModuleFunction = (load: (specifier: string) => unknown, exports: object) => void;
 
-/** The endings a relative import without one is tried with, in order, as the loader's. */
-const ENDINGS = [".ts", ".tsx", "/index.ts", "/index.tsx"];
-
-/** The path `specifier` names from the file `from`, `/` between its parts, or null outside. */
-function joined(from: string, specifier: string): string | null {
-  const parts = from.split("/").slice(0, -1);
-  for (const part of specifier.split("/")) {
-    if (part === "..") {
-      if (parts.length === 0) {
-        return null;
-      }
-      parts.pop();
-    } else if (part !== "." && part !== "") {
-      parts.push(part);
-    }
-  }
-  return parts.join("/");
-}
-
-/** The file of the bundle the relative import `specifier` of `from` names. */
-function resolveFile(files: ReadonlySet<string>, from: string, specifier: string): string {
-  const base = joined(from, specifier);
-  const candidates =
-    base === null ? [] : /\.tsx?$/.test(specifier) ? [base] : ENDINGS.map((end) => base + end);
-  const found = candidates.find((candidate) => files.has(candidate));
-  if (found === undefined) {
+/** The file of the bundle the relative import `specifier` of `from` names, as the server resolved it. */
+function resolveFile(bundle: PageBundle, from: string, specifier: string): string {
+  const found = bundle.imports[from]?.[specifier];
+  if (found === undefined || !Object.hasOwn(bundle.modules, found)) {
     throw new Error(`${from}: "${specifier}" is not a file of the page`);
   }
   return found;
@@ -54,7 +34,6 @@ export function pageActivation(
   bundle: PageBundle,
   sharedModule: SharedModules,
 ): (api: object) => void {
-  const files = new Set(Object.keys(bundle.modules));
   const loaded = new Map<string, object>();
   const load = (file: string): object => {
     const done = loaded.get(file);
@@ -67,7 +46,7 @@ export function pageActivation(
     const run = new Function("__import", "__exports", bundle.modules[file]) as ModuleFunction;
     run((specifier) => {
       if (specifier.startsWith("./") || specifier.startsWith("../")) {
-        return load(resolveFile(files, file, specifier));
+        return load(resolveFile(bundle, file, specifier));
       }
       const shared = sharedModule(specifier);
       if (shared === undefined) {
