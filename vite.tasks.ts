@@ -69,6 +69,7 @@ const bindingInputs = SOURCES.map((source) =>
 const tsTestInputs = [
   "packages/**",
   "fixtures/**",
+  "examples/**",
   "skills/uraeda/**",
   ...bindingInputs,
   ...rootConfig,
@@ -78,7 +79,7 @@ const tsTestInputs = [
   "!**/.vitest/**",
   "!packages/web/storybook-static/**",
   // Built by `ui:build`, from what the tests read already.
-  "!packages/uraeda/{plugin,web}/**",
+  "!packages/uraeda/{docs,plugin,web}/**",
 ];
 
 /**
@@ -247,7 +248,7 @@ export const tasks = {
         "!coverage/**",
         "!**/.vitest/**",
         "!**/dist/**",
-        "!packages/uraeda/{plugin,web}/**",
+        "!packages/uraeda/{docs,plugin,web}/**",
         "!packages/web/storybook-static/**",
       ],
       output: [],
@@ -300,7 +301,7 @@ export const tasks = {
         "!packages/web/storybook-static/**",
         "!coverage/**",
         "!**/.vitest/**",
-        "!packages/uraeda/{plugin,web}/**",
+        "!packages/uraeda/{docs,plugin,web}/**",
       ],
       output: [],
     },
@@ -343,9 +344,10 @@ export const tasks = {
         ...rootConfig,
         "pnpm-lock.yaml",
         "!**/node_modules/**",
-        "!packages/uraeda/{dist,plugin,web}/**",
+        "!packages/uraeda/{dist,docs,plugin,web}/**",
+        "docs/extensions.md",
       ],
-      output: ["packages/uraeda/{dist,plugin,web}/**"],
+      output: ["packages/uraeda/{dist,docs,plugin,web}/**"],
     },
     command: "node scripts/build.ts",
     cwd: "packages/uraeda",
@@ -358,6 +360,9 @@ export const tasks = {
         "packages/uraeda/**",
         "packages/binding/*.node",
         "packages/server/src/free-port.ts",
+        "packages/server/src/extensions/page-compiler.ts",
+        "packages/server/src/paths.ts",
+        "examples/extensions/**",
         "packages/binding/index.js",
         "Cargo.toml",
         ...rootConfig,

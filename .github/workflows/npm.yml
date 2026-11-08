@@ -138,6 +138,7 @@ jobs:
           name: uraeda
           path: |
             packages/uraeda/dist
+            packages/uraeda/docs
             packages/uraeda/web
             packages/uraeda/plugin
           # The plugin's manifest is `plugin/.claude-plugin/plugin.json`.

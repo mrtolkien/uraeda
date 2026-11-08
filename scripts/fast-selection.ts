@@ -57,7 +57,12 @@ export const families = {
     tests: ["contracts.test.ts"],
   },
   package: {
-    inputs: ["packages/uraeda/**", "packages/server/src/{free-port,paths}.ts"],
+    inputs: [
+      "packages/uraeda/**",
+      "packages/server/src/{free-port,paths,extensions/page-compiler}.ts",
+      // The smoke test installs the documentation's example extension.
+      "examples/extensions/**",
+    ],
     native: false,
     root: "packages/uraeda",
     tests: ["scripts/**/*.test.ts"],
@@ -78,6 +83,8 @@ export const families = {
     inputs: [
       "packages/server/**",
       "fixtures/**",
+      // The example's test loads the documentation's example extension.
+      "examples/**",
       loaders,
       "scripts/{coverage-summary,test-policy,test-run,test-shard}.ts",
       "scripts/test-weights.json",

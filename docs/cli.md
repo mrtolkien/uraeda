@@ -49,7 +49,8 @@ points at its record, keeping a question's anchor. A link to a deleted file beco
 for the same repair.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
-code: the server does. `add` takes a folder or a git URL:
+code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder or a
+git URL:
 
 - A folder is linked as `extensions/<name>`, the name its `extension.toml` gives, and reloads on
   each save. A folder already in `extensions/` is only turned on.

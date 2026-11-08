@@ -1574,43 +1574,53 @@ git commit -m "feat(extensions-system): pick a runtime, and show each runtime's 
 
 - Create: `docs/extensions.md` (the extension API's documentation: the folder, the manifest, the
   server API, the page API and `uraeda/page` hooks, shared modules, styling with StyleX and the
-  theme, events, runtimes, skills, reload, `ura extension`, and what an extension can do as you),
-  `examples/extensions/wiki/` (`extension.toml`, `server.ts` reading the repository's `docs/` as a
-  record, `page.tsx` drawing it with Astryx, setting `folder`, `scope = "repository"`)
+  theme, events, runtimes, skills, reload, `ura extension`, and what an extension can do as you; its
+  links lead to GitHub, as the package ships it, R51), `examples/extensions/wiki/`
+  (`extension.toml`, `server.ts` reading the repository's `docs/` as a record, `page.tsx` drawing it
+  with Astryx, setting `folder`, `scope = "repository"`), `examples/tsconfig.json` (the example's
+  type check against the API's types, R52), `packages/uraeda/scripts/smoke-extension.ts` (the smoke
+  test's extension page check, R53)
 - Modify: `README.md` (one line and a link), `INSTALL.md` (Claude Code is the default runtime, now a
-  built-in extension), `docs/web-ui.md`, `docs/cli.md` (task 5 wrote the commands; links),
-  `packages/uraeda/scripts/build.ts` (copies `docs/extensions.md` to `docs/`, Astryx's token file to
-  `dist/stylex/tokens.stylex.js`), `packages/server/src/paths.ts` (`Layout.docs`),
-  `packages/uraeda/scripts/smoke.ts` (`contents` checks both files)
-- Test: `packages/server/src/extensions/__tests__/example.test.ts` (the example loads through the
-  loader with no problem and its record lists a temporary repository's `docs/` files)
+  built-in extension), `docs/web-ui.md` (the Extensions category, places, sessions' runtimes and
+  skills), `docs/cli.md` (task 5 wrote the commands; links), `packages/uraeda/scripts/build.ts`
+  (copies `docs/extensions.md` to `docs/`, Astryx's token file to `dist/stylex/tokens.stylex.js`),
+  `packages/uraeda/package.json` and its `.gitignore` (`docs/`), `packages/uraeda/scripts/smoke.ts`
+  (`contents` checks both files; a start compiles the example's page), `vite.tasks.ts` and
+  `vite.config.ts` (inputs, outputs, ignores, and the examples' lint), `scripts/fast-selection.ts`
+  and its test (the families' inputs: the example, the page compiler, the package's `docs/`),
+  `.github/workflows/npm.yml` (the package's `docs/` artifact),
+  `packages/web/src/extensions/hooks.ts` (exports the `PageApi` type).
+  `packages/server/src/paths.ts` already had `Layout.docs`.
+- Test: `packages/server/src/extensions/__tests__/example.test.ts` (the example loads through a
+  started server with no problem, its page compiled, and its record lists a temporary repository's
+  `docs/` files)
 
 **Interfaces:**
 
 - Consumes: everything above.
 - Produces: the docs path task 11's instructions name; the measured sizes.
 
-- [ ] **Step 1: Write the example's test, run it to check it fails**
+- [x] **Step 1: Write the example's test, run it to check it fails**
 
 - Run: `vp test packages/server/src/extensions/__tests__/example.test.ts`
-- Expected: FAIL, `examples/extensions/wiki/extension.toml` not found.
+- Expected: FAIL, `ENOENT`: the folder `examples/extensions/wiki/` is not there.
 
-- [ ] **Step 2: Write the example, the documentation, and the package changes**
+- [x] **Step 2: Write the example, the documentation, and the package changes**
 
-- [ ] **Step 3: Measure**
+- [x] **Step 3: Measure**
 
 The web UI package's packed and unpacked size, and the release binding's, before (main) and after,
 with `packages/uraeda/scripts/release.ts`'s printout: write them in `rulings.md` for the record's
 release note (SC-004).
 
-- [ ] **Step 4: Run the complete validation**
+- [x] **Step 4: Run the complete validation**
 
 - Run: `vp run ready`
 - Expected: PASS, the package's smoke test included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add docs examples README.md INSTALL.md packages specs/2026-11-08-extensions-system/rulings.md
+git add docs examples README.md INSTALL.md packages scripts specs .github vite.config.ts vite.tasks.ts
 git commit -m "docs(extensions-system): document the extension API, with a wiki example"
 ```

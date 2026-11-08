@@ -129,6 +129,8 @@ answered.
 - [The web UI](docs/web-ui.md): sign-in, settings, proxies, and sessions
 - [The `ura` CLI](docs/cli.md) and its language server
 - [The `specs/` folder](docs/specs-folder.md), changes, and the inbox
+- [Extensions](docs/extensions.md): your own places, records, events, and agent runtimes, in
+  TypeScript
 - [CONTRIBUTING.md](CONTRIBUTING.md): building Uraeda
 
 ## Inspirations

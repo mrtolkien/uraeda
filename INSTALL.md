@@ -58,15 +58,18 @@ echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 
 ## Claude Code
 
-The web UI's sessions run Claude Code, installed and signed in on the machine that runs Uraeda. It
-needs a paid plan: Pro, Max, Team, Enterprise, or Console. Install it as its
+The web UI's sessions run Claude Code by default, installed and signed in on the machine that runs
+Uraeda. It needs a paid plan: Pro, Max, Team, Enterprise, or Console. Install it as its
 [setup page](https://code.claude.com/docs/en/setup) says, for example:
 
 ```sh
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-Without Claude Code, the web UI still shows and edits every file, and its pages only commit.
+Claude Code is a built-in extension, `claude`: Settings, Extensions turns it off, in every
+repository or some, and sets the command it runs, `claude` by default. Another agent runs through a
+runtime [extension](docs/extensions.md#runtimes) of yours. Without any agent, the web UI still shows
+and edits every file, and its pages only commit.
 
 ## The web UI
 
