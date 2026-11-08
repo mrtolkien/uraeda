@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: high
 plan-review: false
@@ -8,22 +8,21 @@ plan-review: false
 
 # Spec: Codex runtime + model settings
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-08: 3 comments in spec-review.md.
+> Spec to review, about 15 minutes.
 >
 > - You approve Codex as a second agent, sandboxed with each action outside its worktree reviewed,
->   and a model and effort picked when any session starts, kept for its whole life.
-> - Changed decision, Agents: each agent is reached through its own protocol, and the network counts
->   as outside the worktree.
-> - New decision, Models: a session keeps its agent, model, and effort; the agent's defaults apply
->   until you pick.
-> - Your note on usage, read as: the sidebar shows every agent's windows once it reported, as Home
->   does, so Claude Code's and Codex's both show while each runs a feature.
+>   and a model picked when any session starts, kept for its whole life, with an effort you can
+>   change between turns.
+> - Changed since your review: the picker is now the app's key picker, the model then the effort,
+>   searchable and opened by `Space a`; no menu, no round radio buttons.
+> - Changed since your review: a running session's effort changes from its composer, from the next
+>   turn on; the Models decision says so.
+> - Checked since your review, on Codex: a model outside your plan fails at its first turn, and an
+>   effort the model does not take is accepted silently, so Uraeda refuses it before sending.
 > - The guard is a model: a hostile page that fooled both Codex and its reviewer could get one
 >   command outside the worktree run, such as sending code to a website.
-> - Unverified: a model outside your plan is assumed to fail at its first turn, with the agent's own
->   error; the plan's first task checks it on Codex.
 > - Risk tier high, for a new agent running commands on your machine; the plan does not wait for
 >   your review.
 
@@ -35,13 +34,26 @@ own defaults until you pick. The [proposal](proposal.md) asked for both; the
 and the [clarifications](clarifications-01.md) settled the protocol, the permissions, and the
 picker.
 
+## Your review
+
+- **C1** (effort can change mid-session): done. The effort changes between turns from a running
+  session's composer, or `Space a`, from its next turn on; the agent and the model stay. The Models
+  decision allows it.
+- **C2** (big round radio buttons, keyboard): done. The menu is gone: the button opens the app's key
+  picker, `keys/KeyPicker.tsx`, which the UI guide names for choosing one of many. It filters as you
+  type, moves with the arrows, `Ctrl+J` and `Ctrl+K`, picks with Enter, and starts on the current
+  pick. `Space a` opens it.
+- **C3** (real Codex allowed): done. The model and effort checks above ran on Codex; the plan
+  validates the runtime against real Codex too, while the tests stay on the fake runtime.
+
 ## Decisions
 
 - **Changed: [Agents](../decisions/agents.md)**. A runtime reaches its agent through the agent's own
   protocol, never a wrapper package, and each action outside the worktree, the network included, is
   reviewed before it runs; revisited when Codex's protocol leaves its experimental label.
-- **New: [Models](../decisions/models.md)**. A session keeps the agent, model, and effort it started
-  with; until you pick, the agent's own defaults apply; an effort is picked among the model's.
+- **New: [Models](../decisions/models.md)**. A session keeps the agent and model it started with;
+  until you pick, the agent's own defaults apply; an effort is picked among the model's, and may
+  change between turns.
 
 Relied on:
 
@@ -51,8 +63,9 @@ Relied on:
 | [Run lifecycle](../decisions/run-lifecycle.md) | Codex reports restarts, limits, and their reset, so its runs continue by themselves. |
 | [Settings](../decisions/settings.md)           | Codex's one setting, its command, lives in `config.toml` like Claude Code's.         |
 | [Compatibility](../decisions/compatibility.md) | The runtime contract grows without a new API version: its additions are optional.    |
-| [UI components](../decisions/ui-components.md) | The picker is Astryx's menu; the header and the usage pane keep their components.    |
+| [UI components](../decisions/ui-components.md) | The picker is the app's key picker; the header and the usage pane keep theirs.       |
 | [Testing](../decisions/testing.md)             | Tests reach Codex through the fake runtime, never the real agent.                    |
+| [Keyboard](../decisions/keyboard.md)           | `Space a` opens the picker, in the one registry; the picker keeps its keys.          |
 
 ## User stories
 
@@ -85,42 +98,52 @@ More scenarios:
 
 ### US2: Pick the model and effort a session runs on (P1)
 
-Where a session starts, one button names the agent, model, and effort it will run on. It opens a
-menu of the agents on here, then the agent's models, then the picked model's efforts, "Default"
-first in each.
+Where a session starts, one button names the agent, model, and effort it will run on. It, or
+`Space a`, opens the key picker: first every agent's models, each agent's "Default" first, then the
+picked model's efforts. In a running session, the button names the effort alone, and opens the
+effort step.
 
 [Defaults](/packages/web/src/SessionPicker.stories.tsx#Defaults)
 
-[Open](/packages/web/src/SessionPicker.stories.tsx#Open)
+[Model step](/packages/web/src/SessionPicker.stories.tsx#ModelStep)
 
-[One agent](/packages/web/src/SessionPicker.stories.tsx#OneAgent)
+[Model search](/packages/web/src/SessionPicker.stories.tsx#ModelSearch)
 
-[No effort](/packages/web/src/SessionPicker.stories.tsx#NoEffort)
+[Effort step](/packages/web/src/SessionPicker.stories.tsx#EffortStep)
+
+[Started](/packages/web/src/SessionPicker.stories.tsx#Started)
 
 [Header](/packages/web/src/SessionPicker.stories.tsx#Header)
 
 Key scenarios:
 
-1. **Given** Codex configured on GPT-6.1-Sol at Medium, **When** you open a new chat, **Then** the
-   button reads "Codex · GPT-6.1-Sol · Medium", and the menu marks "Default" for both, naming
-   GPT-6.1-Sol and Medium under them.
-2. **Given** GPT-6-Astra at High picked, **When** you send, **Then** the session runs on GPT-6-Astra
-   at High, and every later run of it does too, the automatic ones and a fresh session for the build
-   included.
-3. **Given** a feature's session on Opus, and you want the build on Sonnet, **When** you open its
-   composer, **Then** it has no picker: as you put it, "if a user wants to change model, they should
-   create a new session", which starts from the feature's "New session" with the picker.
+1. **Given** Codex configured on GPT-6.1-Sol at Medium, **When** you open a new chat and press
+   `Space a`, **Then** the picker lists "Codex · Default · GPT-6.1-Sol", marked "picked", under the
+   cursor, and the button reads "Codex · GPT-6.1-Sol · Medium".
+2. **Given** the model step open, **When** you type "astra" and press Enter, then pick "High",
+   **Then** the session you send runs on GPT-6-Astra at High, and so do its automatic runs and a
+   fresh session for the build.
+3. **Given** a feature's session on Sonnet at High, mid-build, **When** you pick "Max" from its
+   composer's "Effort · High", **Then** the turn at work stays at High, and the next turn and the
+   automatic runs after it run at Max.
+4. **Given** a feature's session on Opus, and you want the build on Sonnet, **When** you open its
+   composer, **Then** it offers the effort only: as you put it, "if a user wants to change model,
+   they should create a new session", which starts from the feature's "New session" with the picker.
 
 More scenarios:
 
-1. **Given** Sonnet at Max picked, **When** you pick Haiku 4.5, which takes no effort, **Then** the
-   Effort group goes, and the button reads "Claude Code · Haiku 4.5".
+1. **Given** Sonnet at Max picked, **When** you pick Haiku 4.5, which takes no effort, **Then** no
+   effort step follows, and the button reads "Claude Code · Haiku 4.5".
 2. **Given** Codex at Ultra picked, **When** you pick GPT-6-Luna, which stops at Max, **Then** the
    effort goes back to Default.
-3. **Given** Codex picked with GPT-6-Astra, **When** you pick Claude Code, **Then** the model and
-   the effort go back to Claude Code's defaults.
-4. **Given** only Claude Code on, **When** a composer starts a session, **Then** the button still
-   shows, without the Agent group.
+3. **Given** Codex picked with GPT-6-Astra, **When** you pick "Claude Code · Sonnet", **Then** the
+   effort goes back to Claude Code's default.
+4. **Given** only Claude Code on, **When** you open the model step, **Then** it lists Claude Code's
+   models alone.
+5. **Given** the effort step open, **When** you press Escape, **Then** the model just picked stays,
+   on its default effort.
+6. **Given** a phone, **When** you tap the button, **Then** the picker rises as a sheet, its list
+   alone.
 
 ### US3: See every agent's usage (P2)
 
@@ -153,9 +176,9 @@ More scenarios:
 
 Codex joins as a built-in extension, `codex`, beside `claude`, on the same runtime contract, through
 `codex app-server`, Codex's own protocol, over your installed `codex`, as the
-[Agents](../decisions/agents.md) decision asks. The contract gains a model list and a model and
-effort to open with, so the picker serves any runtime that lists models, an extension's included.
-See [reaching Codex](discovery-01.md#reaching-codex) and
+[Agents](../decisions/agents.md) decision asks. The contract gains a model list, a model and an
+effort to open with, and an effort change between turns, so the picker serves any runtime that lists
+models, an extension's included. See [reaching Codex](discovery-01.md#reaching-codex) and
 [Codex's permissions](discovery-01.md#codexs-permissions).
 
 - **The Codex runtime** runs one `codex app-server` per open session, in its own process group, and
@@ -168,24 +191,33 @@ See [reaching Codex](discovery-01.md#reaching-codex) and
 - **Codex's limits** turn Codex's rate limits into the 5-hour and weekly usage windows, and a
   limit's refusal into the limit event the run lifecycle continues from.
 - **The runtime contract** gains an optional model list, `{ models, defaults }`, a `model` and an
-  `effort` to open with, and the model and effort the agent reports at its start. Optional additions
-  keep the extension API at version 1, and `docs/extensions.md` documents them.
-- **The Claude Code runtime** opens with `--model` and `--effort` when picked, and lists its models
-  through a short `claude` process asking `list_models` and `get_settings`, which spends no usage.
-  It leaves out models that would drop auto mode. It reports the model from Claude Code's start.
+  `effort` to open with, an optional effort change for an open process, and the model and effort the
+  agent reports at its start. A runtime without the change is reopened at its next turn with the new
+  effort. Optional additions keep the extension API at version 1, and `docs/extensions.md` documents
+  them.
+- **The Claude Code runtime** opens with `--model` and `--effort` when picked, and changes the
+  effort of an open process with Claude Code's `apply_flag_settings`, from its next turn. It lists
+  its models through a short `claude` process asking `list_models` and `get_settings`, which spends
+  no usage, and leaves out models that would drop auto mode. It reports the model from Claude Code's
+  start.
+- **The Codex runtime's effort** goes with each turn it starts, Codex taking it "for this turn and
+  subsequent turns", so a change applies from the next turn.
 - **The model lists** keep each runtime's last list in the server's memory, refreshed at start, when
   a runtime registers, and when a picker opens, at most once a minute. A failed refresh keeps the
   last list. They feed the runtime records the web UI reads.
 - **What a new session runs on** is one rule, on the server: the agent picked, else the first on;
   the model and effort picked, else none, the agent's defaults. It refuses a model its agent's list
-  does not hold, or an effort the model does not take. A fresh session of a feature copies its
-  latest session's agent, model, and effort.
+  does not hold, or an effort the model does not take, which Codex itself would accept silently. A
+  fresh session of a feature copies its latest session's agent, model, and effort. A session's
+  effort changes by the same rule, between turns.
 - **The session cache** stores each session's picked model and effort and the ones last reported,
   and takes Codex's thread ID from its first start rather than reading it as a cleared session. See
   the [data model](data-model.md).
 - **The session picker** replaces the runtime picker in every place a session starts: a new chat's
   composer, a feature's new session, a change's start dialog, "Apply the answers", and the chats the
-  inbox and decisions pages start.
+  inbox and decisions pages start. In a running session's composer it is the effort alone. It is the
+  app's key picker, `keys/KeyPicker.tsx`, in two steps, the model then the effort, which gains a
+  cursor starting on the item in use outside page mode. `Space a` opens it, in the key registry.
 - **The session header** names the model and effort that ran after the agent's name.
 - **The usage pane** lists every runtime that reported windows, as Home's does, in the runtimes'
   order.
@@ -202,25 +234,27 @@ Tradeoffs:
 
 ## Edge cases
 
-| Importance | Situation                                                                    | What happens                                                                                          |
-| ---------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| High       | Codex runs `git commit` without escalating, and the read-only `.git` refuses | The step's run ends before its gate, and the run lifecycle asks it once to continue to the gate       |
-| High       | A picked model outside your plan                                             | The first turn fails with the agent's own error as its reason; a new session on another model goes on |
-| High       | Codex's sandbox cannot start, as on a system without user namespaces         | Commands fail with Codex's error in the transcript; the runtime never falls back to full access       |
-| Normal     | The picked model left the agent's list between opening the picker and Send   | The send is refused with "Codex has no model gpt-6-astra: pick another", and the text stays           |
-| Normal     | A model was retired after a session started on it                            | The session's next turn fails with the agent's error; its transcript stays                            |
-| Normal     | Codex installed but signed out                                               | The turn fails with Codex's own sign-in error                                                         |
-| Normal     | Codex's thread file was deleted                                              | The session starts a new thread, with the line a replaced Claude Code session shows                   |
-| Normal     | The model list cannot be read, the agent being down or too slow              | The picker keeps the last list; with none yet, it offers only "Default"                               |
-| Niche      | Ultra effort, which runs Codex's sub-agents                                  | Their work shows as tool calls of the session                                                         |
-| Niche      | Your own `~/.agents/skills/uraeda` beside Uraeda's copy                      | Codex lists both; the run goes on whichever Codex reads                                               |
+| Importance | Situation                                                                    | What happens                                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| High       | Codex runs `git commit` without escalating, and the read-only `.git` refuses | The step's run ends before its gate, and the run lifecycle asks it once to continue to the gate                                                 |
+| High       | A picked model outside your plan                                             | The first turn fails with the agent's own words, as Codex's "The 'gpt-bogus-9' model is not supported when using Codex with a ChatGPT account." |
+| High       | Codex's sandbox cannot start, as on a system without user namespaces         | Commands fail with Codex's error in the transcript; the runtime never falls back to full access                                                 |
+| Normal     | The picked model left the agent's list between opening the picker and Send   | The send is refused with "Codex has no model gpt-6-astra: pick another", and the text stays                                                     |
+| Normal     | A model was retired after a session started on it                            | The session's next turn fails with the agent's error; its transcript stays                                                                      |
+| Normal     | Codex installed but signed out                                               | The turn fails with Codex's own sign-in error                                                                                                   |
+| Normal     | Codex's thread file was deleted                                              | The session starts a new thread, with the line a replaced Claude Code session shows                                                             |
+| Normal     | The model list cannot be read, the agent being down or too slow              | The picker keeps the last list; with none yet, it offers only "Default"                                                                         |
+| Normal     | An effort changed while a turn runs                                          | The turn at work keeps its effort; the next one, and the automatic runs, take the new one                                                       |
+| Normal     | An effort the model does not take, sent by an extension or an old page       | Refused with "GPT-6-Luna takes no Ultra effort: pick another", before anything reaches the agent                                                |
+| Niche      | Ultra effort, which runs Codex's sub-agents                                  | Their work shows as tool calls of the session                                                                                                   |
+| Niche      | Your own `~/.agents/skills/uraeda` beside Uraeda's copy                      | Codex lists both; the run goes on whichever Codex reads                                                                                         |
 
 ## Success criteria
 
 - **SC-001** (step to commit): A feature step on Codex runs from its message to its commit with no
   action from you, in the sandbox with the network off.
-- **SC-002** (choice kept): A session's model and effort hold on every later run, automatic ones and
-  a fresh build session included.
+- **SC-002** (choice kept): A session's model holds on every later run, and its effort until you
+  change it, automatic runs and a fresh build session included.
 - **SC-003** (agent's list): The picker offers exactly the models the agent listed, hidden ones left
   out, and only the picked model's efforts.
 - **SC-004** (no wait): The picker opens with the last list at once; a refresh never delays the
@@ -229,6 +263,8 @@ Tradeoffs:
   latest start.
 - **SC-006** (both windows): Once Claude Code and Codex both reported, the sidebar shows both
   agents' windows on every page.
+- **SC-007** (keyboard): From a composer, `Space a`, a few letters, Enter, and Enter again pick a
+  model and an effort, without the mouse.
 
 ## Assumptions
 
@@ -237,14 +273,17 @@ The points settled in the clarifications, [to check](clarifications-01.md#check-
 note changed one: Codex's usage windows show beside Claude Code's in the sidebar, not only on its
 own pages. Settled while writing this spec:
 
-- **The button names what will run**, defaults resolved, "Codex · GPT-6.1-Sol · Medium"; the menu
-  says "Default" and what it resolves to, so a default is never mistaken for a pick. See
-  [what they have in common](discovery-01.md#what-they-have-in-common).
-- **"Default" is the agent's configured choice**, read from Codex's configuration and Claude Code's
-  settings, not the catalogue's default: your `config.toml` says GPT-6.1-Sol at Medium, while
+- **The button names what will run**, defaults resolved, "Codex · GPT-6.1-Sol · Medium"; the picker
+  says "Default · GPT-6.1-Sol", so a default is never mistaken for a pick, and marks the pick
+  "picked". See [what they have in common](discovery-01.md#what-they-have-in-common).
+- **"Default" is the agent's configured choice**, read from Codex's `config/read` and Claude Code's
+  settings, not the catalogue's default: `config/read` gave GPT-6.1-Sol at Medium here, while
   Codex's catalogue marks Low. See [Codex app-server](discovery-01.md#codex-app-server).
-- **The picker's menu stays open while you pick**, so the agent, model, and effort are chosen in one
-  opening; Escape or a click outside closes it.
+- **Agent and model are one list**, each row "Codex · GPT-6-Astra" with the agent's mark, so one
+  step picks both, as Air and Conductor group them; the effort is the second step, as Codex's own
+  `/model` asks for it after the model.
+- **`Space a`** opens the model step where a composer starts a session, and the effort step in a
+  running session's page. The leader menu has no `a` yet: "agent".
 - **The agent's names are used**: Codex's own model names and descriptions, and Claude Code's;
   effort levels read Low, Medium, High, Extra high, Max, Ultra.
 - **The feature's start dialog keeps no picker**: its hand-over composer picks, as today.
@@ -258,3 +297,25 @@ own pages. Settled while writing this spec:
 ## Risk tier
 
 **High**: a new agent runs commands on your machine, under a permission model of its own.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-08: the effort changes mid-session, the picker follows the app's
+> keyboard and look, and real Codex may be run during development.
+>
+> - You approve Codex as a second agent, sandboxed with each action outside its worktree reviewed,
+>   and a model and effort picked when any session starts, kept for its whole life.
+> - Changed decision, Agents: each agent is reached through its own protocol, and the network counts
+>   as outside the worktree.
+> - New decision, Models: a session keeps its agent, model, and effort; the agent's defaults apply
+>   until you pick.
+> - Your note on usage, read as: the sidebar shows every agent's windows once it reported, as Home
+>   does, so Claude Code's and Codex's both show while each runs a feature.
+> - The guard is a model: a hostile page that fooled both Codex and its reviewer could get one
+>   command outside the worktree run, such as sending code to a website.
+> - Unverified: a model outside your plan is assumed to fail at its first turn, with the agent's own
+>   error; the plan's first task checks it on Codex.
+> - Risk tier high, for a new agent running commands on your machine; the plan does not wait for
+>   your review.

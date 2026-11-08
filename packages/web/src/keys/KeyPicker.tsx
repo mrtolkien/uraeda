@@ -238,6 +238,7 @@ function Search({
   onOpenChange,
   onPick,
   placeholder,
+  start,
 }: {
   inPage?: { footer: ReactNode; start?: string };
   isLoading: boolean;
@@ -249,6 +250,8 @@ function Search({
   onOpenChange: (open: boolean) => void;
   onPick: (id: string) => void;
   placeholder: string;
+  /** The item the cursor starts on, outside page mode: the one in use. */
+  start?: string | undefined;
 }) {
   const field = useRef<EditorHandle>(null);
   // The caller builds the items again at each render: they are kept until what the list shows of
@@ -286,7 +289,7 @@ function Search({
           footer={inPage && <div {...stylex.props(styles.inPageFooter)}>{inPage.footer}</div>}
           onCursor={onCursor}
           source={source}
-          start={inPage?.start}
+          start={inPage?.start ?? start}
         />
       }
       input={<PickerEditor label={label} placeholder={placeholder} ref={field} />}
@@ -320,6 +323,7 @@ function Body({
   onOpenChange: (open: boolean) => void;
   onPick: (id: string) => void;
   placeholder: string;
+  start: string | undefined;
 }) {
   // Its own state: a picker opened again starts with no cursor, and so no old item's preview.
   const [cursor, setCursor] = useState<string>();
@@ -347,7 +351,8 @@ function Body({
  * names the dialog and its history entry; `label` names its search field, `title` unless given.
  * `inPage` draws it in page mode: its list alone, floating over the page, `footer` under it, its
  * cursor starting on the item `start` names, and told to `onCursor` as it moves, so the caller
- * previews it in the page itself.
+ * previews it in the page itself. Outside page mode, `start` names the item the cursor starts on,
+ * as the one in use.
  */
 export function KeyPicker({
   inPage,
@@ -358,6 +363,7 @@ export function KeyPicker({
   onClose,
   onPick,
   placeholder = "Find…",
+  start,
   title,
 }: {
   inPage?: {
@@ -374,6 +380,7 @@ export function KeyPicker({
   /** What Enter does with an item: it opens its page, and the picker closes. */
   onPick: (item: PickerItem) => void;
   placeholder?: string;
+  start?: string;
   title: string;
 }): ReactNode {
   const narrow = isNarrow(useWidthClass());
@@ -403,6 +410,7 @@ export function KeyPicker({
     onOpenChange,
     onPick: pick,
     placeholder,
+    start,
   };
   if (inPage) {
     return (

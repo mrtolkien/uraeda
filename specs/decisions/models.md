@@ -6,24 +6,29 @@ icon: cpu
 
 # Models
 
-A session runs on one agent, one model, and one effort, the model's depth of reasoning, picked when
-the session starts among what the agent lists. Until the human picks, the agent's own defaults
-apply, so its configuration stays the one source of defaults. Another model means another session.
+A session runs on one agent and one model, picked when it starts among what the agent lists, and an
+effort, the model's depth of reasoning, which the human may change between turns. Until the human
+picks, the agent's own defaults apply, so its configuration stays the one source of defaults.
+Another model means another session.
 
 ## Rules
 
-- A session MUST keep the agent, the model, and the effort it started with, its automatic runs
-  included. Checked by the runner's tests.
+- A session MUST keep the agent and the model it started with, its automatic runs included. Checked
+  by the runner's tests.
 - A new session MUST start on the agent's own default model and effort until the human picks others.
   Checked by the runner's tests.
 - Every runtime that lists its models MUST offer them where a session starts, beside its agent.
-- An effort MUST be picked among the levels the model takes, separately from the model.
+- An effort MUST be picked among the levels the model takes, separately from the model. Checked by
+  the runner's tests.
+- A session's effort MAY change between its turns, from its next turn on, its automatic runs
+  following it.
 
 ## Why
 
 A model that changes during a session would surprise the human, and a feature's runs would land on a
-model nobody picked for them. The agent's defaults already express the human's preference, in their
-own configuration. Effort changes cost and depth as much as the model does. History:
+model nobody picked for them. Effort changes cost and depth as much as the model, but keeps the
+conversation and the model, so the human tunes it as the work goes. The agent's defaults already
+express the human's preference. History:
 [Codex runtime + model settings](../2026-11-08-codex-runtime/spec.md).
 
 ## Alternatives considered
