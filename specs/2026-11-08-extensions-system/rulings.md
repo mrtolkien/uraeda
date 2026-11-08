@@ -190,3 +190,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   same agent.
 - **Where**: task 4, `runner/session-folders.ts`, `runner/send.ts`; task 13 passes the picker's
   choice from `session.send`.
+
+## R21: An unreadable `config.toml` turns your extensions off
+
+- **Decision**: when `config.toml` cannot be read or parsed, each extension in your extensions folder
+  is off, with a problem saying the file cannot be read so it is off; the built-in extensions stay on,
+  on their defaults, with a problem saying so.
+- **Rationale**: the file the owner cannot see into might turn an extension off; running it
+  everywhere would run it where they did not want it, as R10 says of a wrong `on`. The built-in ones
+  are Uraeda itself, which must keep working for the owner to fix the file.
+- **If wrong**: an owner whose file breaks loses their extensions until it parses again, each row
+  saying why.
+- **Where**: review fix, `crates/core/src/extensions/values.rs`.

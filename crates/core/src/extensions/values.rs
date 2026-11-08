@@ -40,12 +40,50 @@ impl Config {
             .as_table_like()
     }
 
-    /// Reads the repositories `extension` is on in, and checks its settings, into it.
+    /// The problem of `[extensions]`, or of its `name` entry, that is not a table, when it is not.
+    fn shape(&self, name: &str) -> Option<ExtensionProblem> {
+        let document = self.document.as_ref().ok()?.as_ref()?;
+        let text = document.raw();
+        let root = document.as_table();
+        let at = |table: &dyn TableLike, key: &str| {
+            let (key, item) = table.get_key_value(key)?;
+            let span = key.span().or_else(|| item.span())?;
+            Some(manifest::line(text, span.start))
+        };
+        let extensions = root.get("extensions")?;
+        let Some(tables) = extensions.as_table_like() else {
+            let message =
+                "extensions is a table, with a table for each extension, so it is ignored";
+            return Some(problem(at(root, "extensions"), None, message.to_owned()));
+        };
+        let entry = tables.get(name)?;
+        if entry.is_table_like() {
+            return None;
+        }
+        let message = format!("extensions.{name} is a table, so it is ignored");
+        Some(problem(at(tables, name), None, message))
+    }
+
+    /// Reads the repositories `extension` is on in, and checks its settings, into it. When the
+    /// file cannot be read, your extensions are off, as the file might turn them off, and the
+    /// built-in ones run on their defaults, so that Uraeda keeps working.
     pub(super) fn apply(&self, extension: &mut Extension) {
         if let Err(reason) = &self.document {
-            let message =
-                format!("{FILE} cannot be read, so this extension runs on its defaults: {reason}");
+            let message = if extension.is_built_in {
+                format!("{FILE} cannot be read, so this extension runs on its defaults: {reason}")
+            } else {
+                extension.on_all = false;
+                extension.on = Vec::new();
+                format!(
+                    "{FILE} cannot be read, so {} is off: {reason}",
+                    extension.name
+                )
+            };
             extension.problems.push(problem(None, None, message));
+            return;
+        }
+        if let Some(problem) = self.shape(&extension.name) {
+            extension.problems.push(problem);
             return;
         }
         let Some(table) = self.table(&extension.name) else {
