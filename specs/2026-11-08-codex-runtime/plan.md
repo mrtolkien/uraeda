@@ -662,7 +662,7 @@ git commit -m "feat(codex-runtime): read Codex's notifications and limits"
 **Files:**
 
 - Create: `packages/server/src/runner/claude-control.ts` (control requests and their answers,
-  `claudeModels`, `claudeRunsOn`), as `claude.ts` would pass 500 lines (R10)
+  `claudeModels`, `claudeRunsOn`), as `claude.ts` would pass 500 lines (R11)
 - Modify: `packages/server/src/runner/claude.ts` (`claudeArgs`, `open`, `models`),
   `claude-events.ts` (control responses left to `claude-control.ts`)
 - Test: `packages/server/src/runner/__tests__/claude.test.ts`

@@ -105,7 +105,10 @@ export class Transcript {
   #init(live: Live, proc: Proc, turn: Running | undefined, event: Init) {
     const { cache, changed, turns } = this.#context;
     const adopts = proc.adopts;
-    proc.adopts = false;
+    // Adopted from the first init that names an ID: an empty one leaves it to the next.
+    if (event.sessionId !== "") {
+      proc.adopts = false;
+    }
     if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
       cache.updateSession(live.id, { nativeId: event.sessionId });
       // An agent that picks its own IDs, as Codex, reports a new session's at its first start (R1);

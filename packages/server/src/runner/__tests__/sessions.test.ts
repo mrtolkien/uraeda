@@ -1458,6 +1458,25 @@ test("a new agent session's own ID is adopted, not read as a clear", async () =>
   expect(texts()).toContain(CLEARED);
 });
 
+test("a resumed process's new ID is a clear, never adopted", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  await sessions.send(repo, session.id, { text: "Plan it" });
+  await flush();
+  adapter.exit();
+  await flush();
+  adapter.autoInit = false;
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on" });
+  expect(adapter.opens.at(-1)?.resume).toBe(true);
+
+  adapter.emit({ sessionId: "", type: "init" });
+  adapter.emit({ sessionId: "other", type: "init" });
+  await flush();
+
+  const texts = cache.items(turn, 0, 20).map((item) => "text" in item && item.text);
+  expect(texts).toContain(CLEARED);
+});
+
 test("the model and effort the agent reports are stored, and its notices recorded", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
