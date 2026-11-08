@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
-import { pickOf, type SessionPick } from "../runner/picks.ts";
+import { newSessionPick, pickOf, type SessionPick } from "../runner/picks.ts";
 import { runtimeState } from "../runner/runtimes.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -86,6 +86,20 @@ const withFirstRun =
   });
 
 /**
+ * Refuses a pick a new session could not run on, an agent off, a model its agent does not list, an
+ * effort the model does not take, before the change starts: once committed, a first run that
+ * cannot be sent is only logged (R12). Nothing picked is the agent's defaults, never refused here.
+ */
+async function checkPick(ctx: RepoContext, pick: SessionPick): Promise<void> {
+  if (Object.values(pick).every((value) => value === undefined)) {
+    return;
+  }
+  await refusedOn(async () => {
+    newSessionPick(ctx.sessions.runtimes, await ctx.sessions.mainRoot(ctx.repo), pick);
+  });
+}
+
+/**
  * A typed change's start: its text, images, line of Now, slug, and the runtime, model, and effort
  * it runs on.
  */
@@ -97,7 +111,8 @@ type TypedChange = SessionPick & {
 };
 
 /**
- * Starts a change from a typed text and its images, then sends its first run. The core writes the
+ * Starts a change from a typed text and its images, then sends its first run, its pick checked
+ * first. The core writes the
  * images into the change's folder: the workflow's message carries none. `line`, the text of a line
  * of Now the text was filled from, is replaced by the change's link in the start commit.
  */
@@ -105,12 +120,14 @@ async function startTypedChange(
   ctx: RepoContext,
   input: TypedChange,
 ): Promise<{ folder: string; sent: boolean }> {
+  const pick = pickOf(input);
+  await checkPick(ctx, pick);
   const bytes = await changeImages(ctx, input.images);
   return landedStart(
     ctx,
     (onStep) =>
       ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, input.line, onStep),
-    withFirstRun(ctx, pickOf(input)),
+    withFirstRun(ctx, pick),
     input.slug,
   );
 }

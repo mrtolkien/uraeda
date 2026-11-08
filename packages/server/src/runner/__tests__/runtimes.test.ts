@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { mutate, testServer } from "../../__tests__/helpers.ts";
@@ -404,5 +405,27 @@ test("change.start sends the change's first run on the runtime, model, and effor
     effort: "high",
     model: "fake-big",
   });
+  expect(server.adapter.opens).toEqual([]);
+});
+
+test.each<[string, Record<string, unknown>, string]>([
+  ["a model its agent does not list", { model: "fake-huge" }, "has no model fake-huge"],
+  ["an effort its model does not take", { effort: "high", model: "fake-small" }, "takes no High"],
+])("change.start refuses %s before the change is committed", async (_, pick, refusal) => {
+  const server = await testServer();
+  await server.sessions.runtimes.refreshModels();
+  const head = () =>
+    execFileSync("git", ["-C", server.repo, "rev-parse", "HEAD"], { encoding: "utf8" });
+  const before = head();
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { ...pick, slug: "home-icon", text: "Another home icon" },
+    ["folder", "session"],
+  );
+
+  expect(JSON.stringify(started.error)).toContain(refusal);
+  expect(head()).toBe(before);
   expect(server.adapter.opens).toEqual([]);
 });
