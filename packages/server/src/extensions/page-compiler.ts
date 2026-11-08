@@ -1,6 +1,6 @@
-// Compiles an extension's page file the way the app's build compiles its own components: React
-// Compiler first, then StyleX with the app's hashing options, so an extension's styles get the same
-// classes as Astryx's and the app's. The output is still TSX: the module compiler strips its types
+// Compiles an extension's page file the way the app's build compiles its own components: StyleX
+// with the app's hashing options, then React Compiler, so an extension's styles get the same classes
+// as Astryx's and the app's. The output is still TSX: the module compiler strips its types
 // and JSX afterwards.
 import { transformSync } from "@babel/core";
 import type { Options as StylexOptions, Rule, StyleXTransformObj } from "@stylexjs/babel-plugin";
@@ -62,10 +62,11 @@ export function compilePage(
       // Plain code frames, which `pageError` reads a plugin's error position from.
       highlightCode: false,
       parserOpts: { plugins: ["typescript", "jsx"] },
-      // As the app's `reactCompilerPreset()`, which targets React 19 by default.
+      // In the app's order, StyleX's plugin before React Compiler's, which targets React 19 by
+      // default as the app's `reactCompilerPreset()`.
       plugins: [
-        [REACT_COMPILER, { target: "19" }],
         [STYLEX, stylexOptions(tokens)],
+        [REACT_COMPILER, { target: "19" }],
       ],
     });
     const rules = (result?.metadata as { stylex?: Array<Rule> } | undefined)?.stylex ?? [];
@@ -82,19 +83,29 @@ export function compilePage(
 const LEVEL = "uraeda-priority-level-";
 
 /**
+ * The StyleX priority levels (a priority divided by 1000) Astryx's `astryx.css` has rules at: 0 to
+ * 4 for properties alone (`padding` 1, `padding-block` 2, `color` 3, `padding-top` 4), 6 for a
+ * condition StyleX does not rank (an attribute, `@starting-style`), 7 to 9 for pseudo-elements, and 11
+ * for `@starting-style` in a pseudo-element. `page-compiler.test.ts` checks it against the stylesheet.
+ */
+export const ASTRYX_LEVELS = [0, 1, 2, 3, 4, 6, 7, 8, 9, 11];
+
+/**
  * The CSS of a page's rules, with the options `@stylexjs/unplugin` gives `processStylexRules` for
  * the app (no layers). Without layers, StyleX orders its rules by specificity, adding one
  * `:not(#\#)` per priority level present before a rule's: alone, a page's `padding-block` would
- * get none, and lose to Astryx's `padding`. A placeholder rule at every level up to the page's
- * highest gives each rule as many as Astryx's stylesheet gives the same level (all of them, from 0
- * to 4: `padding` one, `padding-block` two, `padding-top` four).
+ * get none, and lose to Astryx's `padding`. A placeholder rule at each level Astryx's stylesheet
+ * has, and at every level above them up to the page's highest, gives each rule as many as Astryx's
+ * stylesheet gives the same level. A placeholder at a level Astryx skips would give one more.
  */
 export function pageCss(rules: Array<Rule>): string {
   if (rules.length === 0) {
     return "";
   }
   const highest = Math.max(...rules.map(([, , priority]) => Math.floor(priority / 1000)));
-  const placeholders = Array.from({ length: highest + 1 }, (_, level): Rule => {
+  const top = Math.max(...ASTRYX_LEVELS);
+  const above = Array.from({ length: Math.max(0, highest - top) }, (_, index) => top + 1 + index);
+  const placeholders = [...ASTRYX_LEVELS, ...above].map((level): Rule => {
     const name = `${LEVEL}${level}`;
     return [name, { ltr: `.${name}{--${name}:0}`, rtl: null }, level * 1000];
   });

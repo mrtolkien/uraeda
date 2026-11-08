@@ -861,13 +861,13 @@ git commit -m "feat(extensions-system): add, update, remove, and list extensions
 - Consumes: task 1's dependencies; task 3's `compileModule` is not used here.
 - Produces:
   `compilePage(source: string, filename: string, tokens: string): { code: string; css: string } | { error: { line: number; column: number; message: string } }`:
-  Babel with `parserOpts.plugins: ["typescript", "jsx"]`, `babel-plugin-react-compiler` first, then
-  `@stylexjs/babel-plugin` with the app's options (`dev: false`, `debug: false`,
-  `runtimeInjection: false`, a custom resolver mapping `@astryxdesign/core/theme/tokens.stylex` to
-  `tokens`), output still TSX for the compiler; `css` from `processStylexRules` with the options the
-  app's unplugin uses (no layers), with placeholder rules so each rule gets Astryx's specificity for
-  its priority level (R15), and without the unplugin's Lightning CSS pass (R16). Errors are at a
-  1-based line and column (R17).
+  Babel with `parserOpts.plugins: ["typescript", "jsx"]`, `@stylexjs/babel-plugin` first, as the
+  app's build, then `babel-plugin-react-compiler`, StyleX with the app's options (`dev: false`,
+  `debug: false`, `runtimeInjection: false`, a custom resolver mapping
+  `@astryxdesign/core/theme/tokens.stylex` to `tokens`), output still TSX for the compiler; `css`
+  from `processStylexRules` with the options the app's unplugin uses (no layers), with placeholder
+  rules so each rule gets Astryx's specificity for its priority level (R15), and without the
+  unplugin's Lightning CSS pass (R16). Errors are at a 1-based line and column (R17).
 
 - [x] **Step 1: Move the StyleX check onto `compilePage`, and add a React Compiler row**
 
