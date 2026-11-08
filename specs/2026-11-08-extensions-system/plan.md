@@ -966,8 +966,9 @@ Behaviour:
   one more and resolves after it. Before evaluating a new version, unload the old one: run its undos
   in reverse order, then mark its scope dead.
 - Watches: `<config>/extensions/` (its entries and their link targets); for a linked extension, its
-  folder and the folder of each file its last version compiled or had a problem in; for an installed
-  one, its `.ura-source` only, which `ura extension update` rewrites.
+  folder and the folder of each file its last working version compiled, and on a compile problem the
+  files at fault too; a watched folder deleted and made again is followed on its next event; for an
+  installed one, its `.ura-source` only, which `ura extension update` rewrites.
 - `defer(name, until, waitingFor)`: a reload of that extension waits until the promise settles,
   state `waiting`, `waitingFor` set by the caller.
 

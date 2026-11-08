@@ -1,10 +1,18 @@
 // What the loader does when the owner's code or folder misbehaves after a version loaded: a load
 // overtaken by a removal or a close, a reload asked during a load, and a folder replaced.
 import { rmSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { Loader } from "../loader.ts";
-import { extensionFolder, gatedBinding, loaded, marking, openLoader } from "./helpers.ts";
+import {
+  extensionFolder,
+  gatedBinding,
+  loaded,
+  marking,
+  openLoader,
+  writeFiles,
+} from "./helpers.ts";
 
 /** A promise that resolves once the loader no longer lists the extension `name`. */
 function forgotten(loader: Loader, name: string): Promise<void> {
@@ -64,4 +72,32 @@ test("reload waits for the load it asked for, after the one running", async () =
   await second;
   expect(loader.get("wiki")?.version).toBe(3);
   await first;
+});
+
+/** A server entry that registers `v` from `./lib/v`. */
+const IMPORTING = `import { v } from "./lib/v";\nexport default function activate(api: { mark(value: unknown): void }) {\n  api.mark(v);\n}\n`;
+
+test("a subfolder deleted and made again is still watched", async () => {
+  const config = temporaryFolder("config");
+  const folder = extensionFolder(config, "wiki", {
+    "lib/v.ts": `export const v = "a";\n`,
+    "server.ts": IMPORTING,
+  });
+  const { loader, marks } = await openLoader({ configDir: config });
+  expect(marks.of("wiki")).toEqual(["a"]);
+
+  const lost = loaded(loader, "wiki", (extension) => extension.problems.length > 0);
+  rmSync(join(folder, "lib"), { force: true, recursive: true });
+  expect(await lost).toMatchObject({ state: "on", version: 1 });
+
+  const back = loaded(loader, "wiki", (extension) => extension.version === 2);
+  writeFiles(folder, { "lib/v.ts": `export const v = "b";\n` });
+  expect(await back).toMatchObject({ problems: [], state: "on" });
+  expect(marks.of("wiki")).toEqual(["b"]);
+
+  // A save in the folder made again reloads.
+  const saved = loaded(loader, "wiki", (extension) => extension.version === 3);
+  writeFiles(folder, { "lib/v.ts": `export const v = "c";\n` });
+  await saved;
+  expect(marks.of("wiki")).toEqual(["c"]);
 });
