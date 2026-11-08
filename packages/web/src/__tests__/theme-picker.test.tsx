@@ -152,6 +152,11 @@ test("a theme picked in another tab is drawn here, and the cache follows", async
   });
   await waitFor(() => expect(darkPage()).toBe(NORD_PAGE));
   expect(cachedPage("dark")).toBe(NORD_PAGE);
+
+  // Another tab clears the storage: the event's key is null, and the defaults are drawn again.
+  window.localStorage.clear();
+  await act(async () => void window.dispatchEvent(new StorageEvent("storage", { key: null })));
+  await waitFor(() => expect(darkPage()).toBe(MOCHA_PAGE));
 });
 
 // Breaks: the page kept in its own mode under a previewed theme of the other, or left in it.
