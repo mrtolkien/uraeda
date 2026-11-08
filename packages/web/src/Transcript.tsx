@@ -2,10 +2,10 @@ import { ChatMessageList } from "@astryxdesign/core/Chat";
 import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatImage } from "uraeda-server/fate";
-import { useAgent } from "./data.ts";
 import { openAtEnd, windowPlace } from "./following.ts";
 import { currentEntry } from "./routes.tsx";
 import { Tail } from "./tail.tsx";
+import { useRuntime } from "./runtimes.ts";
 import { useSent } from "./sentMessages.ts";
 import { type Actions, SentMessage } from "./TranscriptMessages.tsx";
 
@@ -43,6 +43,8 @@ export function Transcript({
   onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void;
   /** The session, and the sub-agents it runs now, each with the sub-agent that started it. */
   session: {
+    /** The runtime it runs on, by the name it stored: takes back only where it can. */
+    agent?: string;
     id: string;
     subagents?: ReadonlyArray<{ parent: string | null }>;
     turns: ReadonlyArray<string>;
@@ -50,7 +52,7 @@ export function Transcript({
   /** The address of its Activity at a stretch, which a recap line opens. */
   stretchHref?: (key?: string) => string;
 }) {
-  const agent = useAgent();
+  const agent = useRuntime(session.agent).runtime;
   // The messages sent and not drawn by the tail yet, at its end.
   const sent = useSent(session.id);
   const list = useRef<HTMLDivElement>(null);

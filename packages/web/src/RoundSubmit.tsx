@@ -296,6 +296,7 @@ function SubmitRow({
         />
       ) : (
         <CommitActions
+          folder={file.folder}
           isDisabled={isDisabled}
           label="Commit answers"
           onCommit={submit}

@@ -86,6 +86,7 @@ function Verdicts({
   return (
     <>
       <CommitActions
+        folder={file.folder}
         isDisabled={comments === 0 || file.committed != null}
         label="Request changes"
         onCommit={(next) => onVerdict(false, next)}
@@ -93,6 +94,7 @@ function Verdicts({
         variant="destructive"
       />
       <CommitActions
+        folder={file.folder}
         isDisabled={holdsApproval || file.committed != null}
         label="Approve"
         onCommit={(next) => onVerdict(true, next)}

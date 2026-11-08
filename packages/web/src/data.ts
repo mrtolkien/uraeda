@@ -254,7 +254,10 @@ export function useProposalFile(path: string) {
 /** The request of the agent, as `useAgent` reads it. */
 export const agentRequest = () => ({ agent: { id: AGENT_ID, view: AgentView } });
 
-/** The runtime new sessions here run on, the first one on: undefined while every one is off. */
+/**
+ * The runtime new sessions here run on, the first one on: undefined while every one is off. A
+ * session's own runtime is `useRuntime`'s, by the name it stored.
+ */
 export function useAgent() {
   const request = agentRequest();
   const { agent } = useRequest(request);

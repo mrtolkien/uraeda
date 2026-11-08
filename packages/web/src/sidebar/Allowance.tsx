@@ -1,13 +1,17 @@
-// The first usage window the runtime of new sessions reported, Claude Code's five hours, in the
-// "Usage" pane at the column's foot, and until a run reports it, nothing. In the closed rail the
-// pane is hidden and a small bar stands in for it, on the icons' axis: what is left of the window,
-// red once it is nearly gone.
+// The first usage window the runtime in view reported, Claude Code's five hours, in the "Usage"
+// pane at the column's foot, and until a run reports it, nothing: the runtime of the session shown,
+// or of the feature shown, its latest session's, else the one new sessions run on. In the closed
+// rail the pane is hidden and a small bar stands in for it, on the icons' axis: what is left of the
+// window, red once it is nearly gone.
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
 import { Suspense } from "react";
 import { useAgent } from "../data.ts";
+import { type Runtime, useFeatureRuntime, useSessionRuntime } from "../runtimes.ts";
+import { useRoute } from "../routes.tsx";
+import type { Route } from "../routeTable.ts";
 import { UsageWindow } from "../UsageWindow.tsx";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
@@ -53,8 +57,7 @@ const styles = stylex.create({
   },
 });
 
-function Bar() {
-  const agent = useAgent();
+function Bar({ agent }: { agent: Runtime | undefined }) {
   const window = agent?.usage[0];
   const isRail = useClosedRail();
   if (!agent || !window) {
@@ -92,11 +95,38 @@ function Bar() {
   );
 }
 
+function SessionBar({ id }: { id: string }) {
+  return <Bar agent={useSessionRuntime(id).runtime} />;
+}
+
+function FeatureBar({ folder }: { folder: string }) {
+  return <Bar agent={useFeatureRuntime(folder).runtime} />;
+}
+
+function DefaultBar() {
+  return <Bar agent={useAgent()} />;
+}
+
+/** The pages of a feature whose runs go to its latest session. */
+const FEATURE_PAGES = new Set<Route["page"]>(["feature", "file", "run", "session"]);
+
+/** The bar of the runtime in view, by the page shown. */
+function InView({ route }: { route: Route }) {
+  if (route.page === "session-id") {
+    return <SessionBar id={route.id} />;
+  }
+  if ("folder" in route && FEATURE_PAGES.has(route.page)) {
+    return <FeatureBar folder={route.folder} />;
+  }
+  return <DefaultBar />;
+}
+
 /** Usage loads on its own, keeping the navigation visible while its request settles. */
 export function Allowance() {
+  const { route } = useRoute();
   return (
     <Suspense fallback={null}>
-      <Bar />
+      <InView route={route} />
     </Suspense>
   );
 }

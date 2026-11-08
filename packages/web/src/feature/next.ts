@@ -20,8 +20,11 @@ export type NextAction =
 /** The workflow's recommended message, or why there is none, as the server reads it. */
 export type Recommended = { name: string; trigger: Trigger } | { reason: string } | undefined;
 
-/** The agent, as far as "Next" needs it: whether it can run, and what it is called. */
-export type NextAgent = { available: boolean; name: string } | undefined;
+/**
+ * The agent, as far as "Next" needs it: whether it can run, what it is called, and why it cannot,
+ * as when its runtime is off.
+ */
+export type NextAgent = { available: boolean; name: string; refusal?: string } | undefined;
 
 /** What "Next" shows: its heading, the line under it, and its action. */
 export type Next = { action?: NextAction; line?: string; title: string };
@@ -117,7 +120,7 @@ function agentStep(
   }: Working & { agent: NextAgent; recommended: Recommended },
 ): Pick<Next, "action" | "line"> {
   if (agent && !agent.available) {
-    return { line: `${agent.name} is not available on this machine` };
+    return { line: agent.refusal ?? `${agent.name} is not available on this machine` };
   }
   if (working) {
     return { action: openSession(feature.folder, session) };

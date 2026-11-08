@@ -14,7 +14,8 @@ export type Sent = { ok: true; session: string } | { message: string; ok: false 
  * Sends a message: to a session, to a feature's session, created with its first message, or, with
  * neither, to a new chat. `images` are the chat images `POST /attach` saved, passed as it returned
  * them. `workflow` makes it the workflow's message, which starts the feature's step: read at `step`,
- * it goes as a chat once the feature moved on.
+ * it goes as a chat once the feature moved on. A session it makes runs on `runtime`, the one
+ * picked, else on the first one on.
  */
 export async function sendMessage(
   fate: Fate,
@@ -23,6 +24,7 @@ export async function sendMessage(
     images?: ReadonlyArray<ChatImage>;
     /** With `folder`: a new session of the feature, created with this message, not its latest. */
     newSession?: boolean;
+    runtime?: string;
     session?: string;
     text: string;
     workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
@@ -30,7 +32,10 @@ export async function sendMessage(
 ): Promise<Sent> {
   let { session } = input;
   if (session === undefined && input.folder === undefined) {
-    const created = await fate.mutations.session.newChat({ input: {}, view: SessionView });
+    const created = await fate.mutations.session.newChat({
+      input: input.runtime === undefined ? {} : { runtime: input.runtime },
+      view: SessionView,
+    });
     if (created.error) {
       return { message: refusal(created.error).message, ok: false };
     }
@@ -42,7 +47,11 @@ export async function sendMessage(
   const result = await fate.mutations.session.send({
     input: {
       ...(session === undefined
-        ? { folder: input.folder, ...(input.newSession ? { newSession: true } : {}) }
+        ? {
+            folder: input.folder,
+            ...(input.newSession ? { newSession: true } : {}),
+            ...(input.runtime === undefined ? {} : { runtime: input.runtime }),
+          }
         : { session }),
       text: input.text,
       ...(input.images?.length ? { images: [...input.images] } : {}),

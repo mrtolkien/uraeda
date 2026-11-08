@@ -83,6 +83,7 @@ function agentRecord(): AgentRecord {
         isOn: true,
         kind: "fake",
         name: "Claude Code",
+        title: "Fake agent",
         usage: [],
         version: null,
       },

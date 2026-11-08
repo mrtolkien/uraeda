@@ -18,13 +18,15 @@ import { useNewKey } from "./useNewKey.ts";
  */
 function HomeSetup({ items }: { items: Array<SetupItem> }) {
   const here = useRepoPath();
-  const hasAgent = useAgent()?.available === true;
+  // The runtime new sessions run on, the first one on, which the pane names.
+  const agent = useAgent();
   return (
     <SetupPane
-      hasAgent={hasAgent}
+      hasAgent={agent?.available === true}
       items={items}
       message={SET_UP_PROJECT}
       onSetUp={() => navigate(here("/new?kind=session"), { insert: "setup" })}
+      runtime={agent ?? null}
     />
   );
 }

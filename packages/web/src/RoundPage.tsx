@@ -19,7 +19,8 @@ import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
 import { featureDraftKey, useDraft } from "./useDraft.ts";
 import { type RoundOpens, useRoundPosition } from "./useRoundPosition.ts";
-import { type useFile, useAgent } from "./data.ts";
+import { type useFile } from "./data.ts";
+import { runtimeRefusal, useFeatureRuntime } from "./runtimes.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -30,7 +31,8 @@ type File = NonNullable<ReturnType<typeof useFile>>;
  * inbox's triage or the decisions check, which has neither.
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
-  const agent = useAgent();
+  // The runtime the feature's runs go to: its latest session's, else a new session's.
+  const runs = runtimeRefusal(useFeatureRuntime(file.folder)) === undefined;
   // The keyboard's cursor, from question to question and on through the round's end.
   useCursor();
   const round = file.current.items.clarifications;
@@ -58,10 +60,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   // The feature's session draft, kept while its column comes and goes and shared with the
   // session's page, for a feature whose agent can be asked.
   const draft = useDraft(featureDraftKey(repo, file.folder));
-  const actions = useRoundActions(
-    file,
-    agent?.available && !isDefaultRound(target) ? draft : undefined,
-  );
+  const actions = useRoundActions(file, runs && !isDefaultRound(target) ? draft : undefined);
   if (!round) {
     return null;
   }

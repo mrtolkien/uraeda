@@ -29,20 +29,24 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
 /**
  * Sends a started change's first run to its session, through the queue a running turn would hold
  * it in (R3), with the agent available and its workflow message written: the session's ID, or
- * `null` when no run was sent.
+ * `null` when no run was sent. A session made for it runs on `runtime`, else on the first one on.
  */
-async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | null> {
+async function sendFirstRun(
+  ctx: RepoContext,
+  folder: string,
+  runtime?: string,
+): Promise<string | null> {
   // Without the agent, or a run to start, the change's page offers its message unsent.
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const latest = ctx.sessions.cache.latestSession(root, folder);
-  const message = runtimeState(ctx.sessions.runtimes, root, latest).available
+  const message = runtimeState(ctx.sessions.runtimes, root, latest, runtime).available
     ? await readWorkflowMessage(ctx, `${folder}:start`)
     : undefined;
   if (!message?.text) {
     return null;
   }
   // The change's latest session: its only one, made now, unless a session moved to it.
-  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder));
+  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder, runtime));
   const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );
@@ -53,9 +57,9 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
  * Sends the started change's first run: whether one was sent. Once the change exists, a run that
  * could not be sent is logged, not refused (R12): the change's page offers it unsent.
  */
-async function firstRunSent(ctx: RepoContext, folder: string): Promise<boolean> {
+async function firstRunSent(ctx: RepoContext, folder: string, runtime?: string): Promise<boolean> {
   try {
-    return (await sendFirstRun(ctx, folder)) !== null;
+    return (await sendFirstRun(ctx, folder, runtime)) !== null;
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its first run was not sent: ${reasonOf(error)}\n`,
@@ -64,13 +68,25 @@ async function firstRunSent(ctx: RepoContext, folder: string): Promise<boolean> 
   }
 }
 
-/** The started change's folder, once its first run was sent, or could not be: the start's last step. */
+/**
+ * The started change's folder, once its first run was sent, on `runtime` when one was picked, or
+ * could not be: the start's last step.
+ */
 const withFirstRun =
-  (ctx: RepoContext) =>
+  (ctx: RepoContext, runtime?: string) =>
   async ({ folder }: { folder: string }): Promise<{ folder: string; sent: boolean }> => ({
     folder,
-    sent: await firstRunSent(ctx, folder),
+    sent: await firstRunSent(ctx, folder, runtime),
   });
+
+/** A typed change's start: its text, images, line of Now, slug, and the runtime it runs on. */
+type TypedChange = {
+  images?: Array<ChatImage>;
+  line?: string;
+  runtime?: string;
+  slug?: string;
+  text: string;
+};
 
 /**
  * Starts a change from a typed text and its images, then sends its first run. The core writes the
@@ -79,14 +95,14 @@ const withFirstRun =
  */
 async function startTypedChange(
   ctx: RepoContext,
-  input: { images?: Array<ChatImage>; line?: string; slug?: string; text: string },
+  input: TypedChange,
 ): Promise<{ folder: string; sent: boolean }> {
   const bytes = await changeImages(ctx, input.images);
   return landedStart(
     ctx,
     (onStep) =>
       ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, input.line, onStep),
-    withFirstRun(ctx),
+    withFirstRun(ctx, input.runtime),
     input.slug,
   );
 }
@@ -211,11 +227,7 @@ export const changeStarts = {
     type: "Feature",
   },
   "change.start": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ images?: Array<ChatImage>; line?: string; slug?: string; text: string }>) =>
+    resolve: async ({ ctx, input, select }: Resolver<TypedChange>) =>
       started(ctx, await startTypedChange(ctx, input), select),
     type: "Feature",
   },

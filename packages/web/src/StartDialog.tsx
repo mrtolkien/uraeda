@@ -9,6 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { StatusText } from "./fields/StatusText.tsx";
+import { RuntimePicker } from "./RuntimePicker.tsx";
 import { type EditorHandle } from "./fields/editor/Editor.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -25,9 +26,16 @@ const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
 /** A level as the control shows it: `medium` is Medium. */
 const levelLabel = (level: string) => level.charAt(0).toUpperCase() + level.slice(1);
 
+/**
+ * Starts with the value, the effort picked when one is asked, and the runtime picked when the
+ * picker shows: the refusal to show under the field, or nothing once it started.
+ */
+type OnConfirm = (value: string, level?: string, runtime?: string) => Promise<string | undefined>;
+
 function Ask({
   effort,
   error: shown,
+  hasRuntime,
   initial,
   onCancel,
   onConfirm,
@@ -36,17 +44,15 @@ function Ask({
   effort?: Effort | undefined;
   /** A refusal to show from the start, as a story does. */
   error?: string | undefined;
+  hasRuntime: boolean;
   initial: string;
   onCancel: () => void;
-  /**
-   * Starts with the value, and the effort picked when one is asked: the refusal to show under the
-   * field, or nothing once it started.
-   */
-  onConfirm: (value: string, level?: string) => Promise<string | undefined>;
+  onConfirm: OnConfirm;
   question: Question;
 }) {
   const [value, setValue] = useState(initial);
   const [level, setLevel] = useState(effort?.initial);
+  const [runtime, setRuntime] = useState<string>();
   const [error, setError] = useState(shown);
   // The field takes the focus, its text selected, once the dialog has settled: the dialog's own
   // focus goes to its first control as it opens, and Enter must confirm from the first key.
@@ -68,7 +74,7 @@ function Ask({
     starting.current = true;
     setError(undefined);
     try {
-      const refused = await onConfirm(value.trim(), level);
+      const refused = await onConfirm(value.trim(), level, runtime);
       if (refused !== undefined) {
         setError(refused);
       }
@@ -102,6 +108,7 @@ function Ask({
           </SegmentedControl>
         </HStack>
       )}
+      {hasRuntime && <RuntimePicker isLabelShown onChange={setRuntime} value={runtime} />}
       {error && (
         <StatusText role="alert" tone="error" type="supporting">
           {sentence(error)}
@@ -123,11 +130,13 @@ function Ask({
 /**
  * The question, over the page while `isOpen`, its field starting as `initial`. Closing it, by Cancel,
  * Escape, or Back, cancels the start: the composer keeps what it holds. With `effort`, the research
- * effort is picked under the field.
+ * effort is picked under the field; `hasRuntime`, the runtime of the session the start makes, while
+ * two or more are on.
  */
 export function StartDialog({
   effort,
   error,
+  hasRuntime = false,
   initial,
   isOpen,
   onCancel,
@@ -136,10 +145,11 @@ export function StartDialog({
 }: {
   effort?: Effort;
   error?: string;
+  hasRuntime?: boolean;
   initial: string;
   isOpen: boolean;
   onCancel: () => void;
-  onConfirm: (value: string, level?: string) => Promise<string | undefined>;
+  onConfirm: OnConfirm;
   question: Question;
 }) {
   return (
@@ -148,6 +158,7 @@ export function StartDialog({
         <Ask
           effort={effort}
           error={error}
+          hasRuntime={hasRuntime}
           initial={initial}
           onCancel={onCancel}
           onConfirm={onConfirm}

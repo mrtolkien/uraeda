@@ -26,6 +26,8 @@ export type RuntimeRecord = {
   kind: string;
   /** Its name for people: "Claude Code". */
   name: string;
+  /** Its extension's title, which its refusals name it by: its `kind` without one. */
+  title: string;
   /** Its windows, each from the freshest report of an open process: none before one. */
   usage: Array<UsageWindow>;
   version: string | null;
@@ -165,6 +167,7 @@ export class Runtimes {
       isOn: this.isOn(kind, repo),
       kind,
       name: runtime.name,
+      title: this.title(kind),
       usage: usage(kind),
     }));
   }
@@ -238,11 +241,17 @@ export function readySession(runtimes: Runtimes, row: SessionRow): SessionRow {
 }
 
 /**
- * The runtime a message to `session` goes to, or to a new session of the main checkout `root`
- * without one: refused while it is off there, unregistered, or not available.
+ * The runtime a message to `session` goes to, or without one to a new session of the main checkout
+ * `root`, on `chosen` or the first one on there: refused while it is off there, unregistered, or
+ * not available.
  */
-export function messageRuntime(runtimes: Runtimes, root: string, session?: SessionRow): Adapter {
-  const name = session === undefined ? newSessionRuntime(runtimes, root) : session.agent;
+export function messageRuntime(
+  runtimes: Runtimes,
+  root: string,
+  session?: SessionRow,
+  chosen?: string,
+): Adapter {
+  const name = session === undefined ? newSessionRuntime(runtimes, root, chosen) : session.agent;
   if (session !== undefined) {
     sessionRuntime(runtimes, session);
   }
@@ -251,19 +260,21 @@ export function messageRuntime(runtimes: Runtimes, root: string, session?: Sessi
 }
 
 /**
- * Whether a message to `session`, or to a new session of `root`, would go, as `messageRuntime`
- * says: the runtime's name, and why not.
+ * Whether a message to `session`, or to a new session of `root`, on `chosen` when one was picked,
+ * would go, as `messageRuntime` says: the runtime's name, and why not.
  */
 export function runtimeState(
   runtimes: Runtimes,
   root: string,
   session?: SessionRow,
+  chosen?: string,
 ): { available: boolean; name: string; refusal?: string } {
   try {
-    return { available: true, name: messageRuntime(runtimes, root, session).name };
+    return { available: true, name: messageRuntime(runtimes, root, session, chosen).name };
   } catch (error) {
     const refusal = (error as Error).message.replace(/^refused: /, "");
-    const name = runtimes.get(session?.agent ?? runtimes.defaultFor(root) ?? "")?.name ?? "";
+    const name =
+      runtimes.get(session?.agent ?? chosen ?? runtimes.defaultFor(root) ?? "")?.name ?? "";
     return { available: false, name, refusal };
   }
 }

@@ -15,7 +15,7 @@ import { featureKeys } from "./write-queue.ts";
 const waiting = new WeakMap<WriteQueue, Map<string, Array<Kept>>>();
 
 /** Where a message goes: a session, or a feature, in its latest session or a new one. */
-type To = { folder?: string; newSession?: boolean; session?: string };
+type To = { folder?: string; newSession?: boolean; runtime?: string; session?: string };
 
 /** The session a message kept for `folder` goes to, and whether it was made for it. */
 async function sessionFor(
@@ -32,11 +32,14 @@ async function sessionFor(
     return { made: false, session: to.session };
   }
   if (to.newSession === true) {
-    return { made: true, session: (await ctx.sessions.newSession(ctx.repo, folder)).id };
+    return {
+      made: true,
+      session: (await ctx.sessions.newSession(ctx.repo, folder, to.runtime)).id,
+    };
   }
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const made = ctx.sessions.cache.folderSessions(root, folder).length === 0;
-  return { made, session: (await ctx.sessions.featureSession(ctx.repo, folder)).id };
+  return { made, session: (await ctx.sessions.featureSession(ctx.repo, folder, to.runtime)).id };
 }
 
 /**
@@ -67,7 +70,7 @@ export async function keptForCommits(
     throw new Error(`refused: ${REFUSALS.agentWorking}`);
   }
   const latest = to.newSession === true ? undefined : cache.latestSession(root, folder);
-  const runtime = messageRuntime(runtimes, root, row ?? latest);
+  const runtime = messageRuntime(runtimes, root, row ?? latest, to.runtime);
   checkSend(input, runtime.capabilities);
   const { made, session } = await sessionFor(ctx, folder, to);
   const kept = folders.get(folder);

@@ -12,12 +12,12 @@ import {
   historyRequest,
   recommendedRequest,
   rereadChanges,
-  useAgent,
   useFeature,
   useHistory,
   useRecommendedMessage,
 } from "../data.ts";
 import { refusal } from "../errors.ts";
+import { runtimeRefusal, useFeatureRuntime } from "../runtimes.ts";
 import { readAlong } from "../readAhead.ts";
 import { FeatureView } from "../views.ts";
 import { useKeys } from "../keys/registry.tsx";
@@ -111,11 +111,19 @@ function NextStep({
   onRun: OnNextRun;
 }) {
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
-  const agent = useAgent();
+  const runtime = useFeatureRuntime(feature.folder);
+  const stops = runtimeRefusal(runtime);
   const recommended = recommendedOf(useRecommendedMessage(feature.folder));
   const working = feature.status.status === "working";
   const next = nextOf(feature, {
-    agent: agent ? { available: agent.available, name: agent.name } : undefined,
+    agent:
+      runtime.runtime || stops
+        ? {
+            available: stops === undefined,
+            name: runtime.runtime?.name ?? "The agent",
+            ...(runtime.off === undefined ? {} : { refusal: runtime.off }),
+          }
+        : undefined,
     merged: merge ?? history.finished ?? undefined,
     recommended,
     session: feature.status.session,

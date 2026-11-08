@@ -1,8 +1,9 @@
 // On the phone, the feature page's bottom bar: its wide column's two panes as tiles, Produced and
 // Links, each opening its sheet; its latest session; then its next step, in the accent, which does
 // what "Next"'s button does.
-import { useAgent, type useFeature, type useHistory } from "../data.ts";
-import { harnessMark } from "../HarnessMark.tsx";
+import { type useFeature, type useHistory } from "../data.ts";
+import { useHarnessMark } from "../HarnessMark.tsx";
+import { useRuntime } from "../runtimes.ts";
 import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
 import { NavTile, NavTiles } from "../layout/NavBar.tsx";
 import { afterOverlayCloses } from "../layout/useBackCloses.ts";
@@ -42,7 +43,8 @@ export function FeatureBar({
   const sheet = useSheetTab(links ? SHEETS : { produced: SHEETS.produced }, true);
   const [open, setSheet] = sheet;
   const rows = useFigureRows(feature, history);
-  const agent = useAgent();
+  // The mark of the runtime the feature's runs go to, its latest session's.
+  const { icon } = useHarnessMark(useRuntime(feature.runtime).runtime?.kind ?? "");
   const here = useRepoPath();
   const sheets: Array<ColumnSheet> = [
     {
@@ -90,7 +92,7 @@ export function FeatureBar({
       )}
       {feature.session && (
         <NavTile
-          icon={harnessMark(agent?.kind ?? "").icon}
+          icon={icon}
           label="Session"
           onPress={() => navigate(here(sessionPath(feature.folder)))}
         />

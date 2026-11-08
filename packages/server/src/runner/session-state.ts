@@ -1,5 +1,5 @@
 import type { Binding } from "../fate/context.ts";
-import { IMAGE_REFUSALS } from "../limits.ts";
+import { IMAGE_REFUSALS, RUNTIME_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { Continuer } from "./continuer.ts";
@@ -53,11 +53,7 @@ export const REFUSALS = {
   ...IMAGE_REFUSALS,
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",
-  unavailable: (name: string) => `${name} is not available on this machine.`,
-  /** A new session of a repository with every runtime off there. */
-  noRuntime: "No agent runtime is on here: turn one on in Settings, Extensions",
-  /** A message to a session whose runtime is off in its repository, or not registered. */
-  runtimeOff: (title: string) => `${title} is off: turn it on to continue this session`,
+  ...RUNTIME_REFUSALS,
   /** A session moved, or a change moved or dropped, while its agent works. */
   agentWorking: "The agent is working",
   /** A message to a session of a change or a feature while another of its sessions works. */

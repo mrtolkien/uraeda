@@ -278,7 +278,7 @@ export async function landedStart<R>(
  */
 export async function keptForStart(
   ctx: RepoContext,
-  to: { folder?: string; session?: string },
+  to: { folder?: string; runtime?: string; session?: string },
   input: SendInput,
 ): Promise<string | undefined> {
   const root = await ctx.sessions.mainRoot(ctx.repo);
@@ -288,10 +288,11 @@ export async function keptForStart(
   if (!folder || !starts.waits(root, folder)) {
     return undefined;
   }
-  const runtime = messageRuntime(runtimes, root, row ?? cache.latestSession(root, folder));
+  const latest = row ?? cache.latestSession(root, folder);
+  const runtime = messageRuntime(runtimes, root, latest, to.runtime);
   checkSend(input, runtime.capabilities);
   const made = row === undefined && cache.folderSessions(root, folder).length === 0;
-  const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder)).id;
+  const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder, to.runtime)).id;
   if (starts.keep(root, folder, session, input)) {
     return session;
   }

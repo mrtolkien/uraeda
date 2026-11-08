@@ -17,7 +17,8 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
 import { useAboveKeyboard } from "./layout/useAboveKeyboard.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
-import { useAgent } from "./data.ts";
+import { RuntimePicker } from "./RuntimePicker.tsx";
+import { type Runtime, runtimeRefusal, useRuntime } from "./runtimes.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -41,6 +42,12 @@ type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigge
 export type ComposerProps = {
   /** The session's actions, its "…", beside Send. */
   actions?: ReactNode;
+  /**
+   * The runtime the session runs on, by the name it stored, as its record says: while it is off
+   * here, or gone, the composer says so and sends nothing. Without `session`, the runtime of the
+   * session the message makes is picked, when two or more are on.
+   */
+  agent?: string;
   /**
    * The session's blocked actions of the latest turn that an allow rule can match: from two,
    * "Allow all (N)" shows beside Send. The server counts them.
@@ -119,7 +126,7 @@ export type ComposerProps = {
  * holds the workflow's message (R42). An agent not read yet refuses nothing: the server checks the
  * message at Send.
  */
-function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, workflow?: object) {
+function imageRefusal(agent: Runtime | undefined, unavailable?: string, workflow?: object) {
   if (!agent) {
     return undefined;
   }
@@ -139,7 +146,7 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
  */
 function attachRefusal(
   { hasAttach, onSend, workflow }: ComposerProps,
-  agent: ReturnType<typeof useAgent>,
+  agent: Runtime | undefined,
   unavailable: string | undefined,
 ) {
   return hasAttach === false
@@ -279,7 +286,7 @@ function workflowOf({ file, step, trigger }: DraftRun): Workflow {
 /** The paperclip, unless the composer takes no image, or the agent reads none. */
 function attachOf(
   { hasAttach, onSend }: ComposerProps,
-  agent: ReturnType<typeof useAgent>,
+  agent: Runtime | undefined,
   unavailable: string | undefined,
   onFiles: (files: Array<File>) => void,
 ) {
@@ -299,6 +306,24 @@ function isBlank(
   error: string | undefined,
 ) {
   return value === "" && images.length === 0 && !workflow && !pending && !error;
+}
+
+/**
+ * The runtime the composer's message goes to: the session's, by the name it stored, or for a
+ * message that makes its session, to a feature without one or a new chat, the one picked, with its
+ * `picker`. `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off,
+ * gone, or not on this machine. A message sent elsewhere, `onSend`, needs no runtime.
+ */
+function useComposerRuntime({ agent, blocked, onSend, session }: ComposerProps) {
+  const makes = session === undefined && !onSend;
+  const [picked, setPicked] = useState<string>();
+  const choice = useRuntime(makes ? undefined : agent, picked);
+  return {
+    agent: choice.runtime,
+    picker: makes && <RuntimePicker onChange={setPicked} value={picked} />,
+    runtime: makes ? picked : undefined,
+    unavailable: onSend ? blocked : (runtimeRefusal(choice) ?? blocked),
+  };
 }
 
 /**
@@ -325,18 +350,15 @@ function isBlank(
  * repository.
  */
 export function Composer(given: ComposerProps) {
-  const { blocked, images, onSend, value, working = false } = given;
+  const { images, onSend, value, working = false } = given;
   const own = useRef<EditorHandle>(null);
   const input = given.inputRef ?? own;
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
-  const agent = useAgent();
+  const { agent, picker, runtime, unavailable } = useComposerRuntime(given);
   const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
-  const name = agent?.name ?? "the agent";
-  const unavailable =
-    onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
   const refusedWith = attachRefusal(props, agent, unavailable);
   const attaching = useChatImages({
     images,
@@ -353,11 +375,12 @@ export function Composer(given: ComposerProps) {
   // A started change needs its title: images alone are not one.
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
-  const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
+  const sending = { ...props, runtime };
+  const { error, pending, stop, submit } = useSend(sending, { canSend, sent: attaching.sent });
   const place = useRef<HTMLDivElement>(null);
   useInsertKey(input, place, Boolean(unavailable));
   useFocusOnOpen(input, given.isNewSession === true || given.takesFocus === true);
-  const placeholder = given.placeholder ?? `Message ${name}`;
+  const placeholder = given.placeholder ?? `Message ${agent?.name ?? "the agent"}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
   // On the phone, Send and the paperclip stay above the keyboard while the message is typed.
   useAboveKeyboard(box, !wide);
@@ -375,6 +398,7 @@ export function Composer(given: ComposerProps) {
     working,
   });
   const attach = attachOf(given, agent, unavailable, attaching.addFiles);
+  const footing = { insert, picker, unavailable };
   return (
     <>
       <DropHint hint={drop.hint} ref={place}>
@@ -386,9 +410,7 @@ export function Composer(given: ComposerProps) {
           }
           // A border, as a text field has, so it reads as writable: the flat look has no shadow.
           elevation="none"
-          footerActions={
-            isFolded ? undefined : footerActions(props, attach, { insert, unavailable })
-          }
+          footerActions={isFolded ? undefined : footerActions(props, attach, footing)}
           input={
             <FoldingField
               handleRef={input}

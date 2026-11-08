@@ -10,6 +10,7 @@ import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import type { SetupItem } from "uraeda-binding";
+import { RUNTIME_REFUSALS } from "uraeda-server/limits";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { MessageToCopy } from "../StartChat.tsx";
@@ -32,6 +33,26 @@ const ABOUT: Record<string, string> = {
 
 /** Where Claude Code's install is explained. */
 const CLAUDE_CODE_SETUP = "https://code.claude.com/docs/en/setup";
+
+/** A runtime, as the pane names it: the name it is registered as, and its name for people. */
+type Named = { kind: string; name: string };
+
+/**
+ * Where to get the runtime new sessions run on, `runtime`: Claude Code's install page, another's
+ * name, or, with none on, where to turn one on.
+ */
+function InstallHint({ runtime }: { runtime: Named | undefined }) {
+  if (runtime === undefined) {
+    return <Text color="secondary">{`${RUNTIME_REFUSALS.noRuntime}.`}</Text>;
+  }
+  return runtime.kind === "claude" ? (
+    <Link hasUnderline href={CLAUDE_CODE_SETUP}>
+      Install Claude Code
+    </Link>
+  ) : (
+    <Text color="secondary">{`Install ${runtime.name} on this machine.`}</Text>
+  );
+}
 
 /**
  * One file of the setup: a check once written, its name, its state, and what it is for. On the
@@ -130,18 +151,22 @@ export function SetupAnnouncer({ items }: { items: ReadonlyArray<SetupItem> }) {
 
 /**
  * The Setup pane: `items` in the skill's order, and "Set up with the agent", which fills a new
- * session's composer with `message`; without the agent, `message` to copy, and where to install it.
+ * session's composer with `message`; without the agent, `message` to copy, and where to install
+ * `runtime`, the one new sessions run on, Claude Code by default.
  */
 export function SetupPane({
   hasAgent,
   items,
   message,
   onSetUp,
+  runtime = { kind: "claude", name: "Claude Code" },
 }: {
   hasAgent: boolean;
   items: Array<SetupItem>;
   message: string;
   onSetUp: () => void;
+  /** The runtime new sessions run on: none while every one is off. */
+  runtime?: Named | null;
 }) {
   const left = items.filter((item) => item.required && item.state !== "written").length;
   return (
@@ -156,9 +181,7 @@ export function SetupPane({
         ) : (
           <VStack align="start" gap={2}>
             <MessageToCopy text={message} />
-            <Link hasUnderline href={CLAUDE_CODE_SETUP}>
-              Install Claude Code
-            </Link>
+            <InstallHint runtime={runtime ?? undefined} />
           </VStack>
         )}
       </VStack>

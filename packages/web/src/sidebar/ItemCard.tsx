@@ -250,14 +250,18 @@ function ActionMark({
   isSmall?: boolean;
   kind: "next" | "work";
 }) {
-  const work = harness === undefined ? "uraeda:activity" : harnessMark(harness).icon;
+  const size = isSmall ? "xsm" : "md";
   return (
     <span {...stylex.props(styles.next, isSmall ? styles.nextSmall : brighten)}>
-      <Icon
-        color="inherit"
-        icon={kind === "work" ? work : "chevronRight"}
-        size={isSmall ? "xsm" : "md"}
-      />
+      {kind === "work" && harness !== undefined ? (
+        <HarnessMark color="inherit" isDecorative kind={harness} size={size} />
+      ) : (
+        <Icon
+          color="inherit"
+          icon={kind === "work" ? "uraeda:activity" : "chevronRight"}
+          size={size}
+        />
+      )}
     </span>
   );
 }

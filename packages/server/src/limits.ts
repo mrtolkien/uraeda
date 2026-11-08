@@ -1,7 +1,8 @@
 // The core's size limit of an attached image, which the server and the UI also check before the
 // core sees the image: their refusal is the core's text. And the chat's own limits on a message's
 // images, which the sessions enforce and the composer checks first. And the size of a turn's log's
-// pages, which the UI reads a stretch's page by. Free of Node's modules, so the UI can import it.
+// pages, which the UI reads a stretch's page by. And the refusals of a runtime off or not available,
+// which the composer shows before sending. Free of Node's modules, so the UI can import it.
 
 /** The items in each page of a turn's log. */
 export const TURN_PAGE = 100;
@@ -31,4 +32,13 @@ export const IMAGE_REFUSALS = {
   tooManyImages: `A message takes at most ${MAX_IMAGES} images.`,
   /** The workflow's message is the workflow's own text: the human sends images in a chat. */
   workflowImages: "The workflow's message takes no images.",
+};
+
+/** The refusals of a message whose runtime cannot take it, by the sessions and by the composer. */
+export const RUNTIME_REFUSALS = {
+  unavailable: (name: string) => `${name} is not available on this machine.`,
+  /** A new session of a repository with every runtime off there. */
+  noRuntime: "No agent runtime is on here: turn one on in Settings, Extensions",
+  /** A message to a session whose runtime is off in its repository, or not registered. */
+  runtimeOff: (title: string) => `${title} is off: turn it on to continue this session`,
 };

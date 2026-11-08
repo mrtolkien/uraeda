@@ -5,7 +5,9 @@ import type { ReactNode } from "react";
 import { useFateClient } from "react-fate";
 import type { Document, RoundItems } from "uraeda-binding";
 import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
-import { type useFile, useAgent } from "./data.ts";
+import { type useFile } from "./data.ts";
+import { useHarnessMark } from "./HarnessMark.tsx";
+import { useFeatureRuntime } from "./runtimes.ts";
 import { ColumnStatusLine } from "./layout/ColumnStatusLine.tsx";
 import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { type ColumnPanel, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
@@ -117,7 +119,8 @@ export function RoundColumn({
   onSubmit: () => void;
 }) {
   const wide = !isNarrow(useWidthClass());
-  const agent = useAgent();
+  // The mark of the runtime the feature's runs go to, its latest session's.
+  const { icon } = useHarnessMark(useFeatureRuntime(file.folder).runtime?.kind ?? "");
   useBlankKeys(nav, onSubmit);
   // With Session shown, an image dropped goes to its composer, never to the notes.
   const queued = useNotesDrop({
@@ -150,7 +153,7 @@ export function RoundColumn({
     },
     { content: notesField, icon: "uraeda:pencil", key: "notes", label: "Notes" },
   ];
-  const session = draft && sessionTab(draft, file.folder, agent?.kind);
+  const session = draft && sessionTab(draft, file.folder, icon);
   if (session) {
     panels.push(session);
   }
