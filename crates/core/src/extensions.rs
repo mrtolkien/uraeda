@@ -34,6 +34,21 @@ const BUILT_INS: [&str; 8] = [
     "notifications",
 ];
 
+/// Names Uraeda keeps for itself, which no extension takes: its own, and Sessions', which the web
+/// registers like a built-in, and whose agent plugins would be named alike.
+const RESERVED: [&str; 2] = ["uraeda", "sessions"];
+
+/// Why no extension of yours can be named `name`: a built-in's name, or one Uraeda keeps.
+fn taken(name: &str) -> Option<String> {
+    if BUILT_INS.contains(&name) {
+        Some(format!("{name} is taken by a built-in extension"))
+    } else if RESERVED.contains(&name) {
+        Some(format!("{name} is reserved by Uraeda"))
+    } else {
+        None
+    }
+}
+
 /// The built-in extensions' manifests, `crates/core/extensions/`, as they were when the binary
 /// was built.
 static BUILT_IN: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/extensions");
@@ -227,11 +242,8 @@ fn one(parent: &Path, name: &str) -> Option<Extension> {
         Err(_) if path.is_symlink() => return Some(fatal(name, "folder not found".to_owned())),
         Err(_) => return None,
     }
-    if BUILT_INS.contains(&name) {
-        return Some(fatal(
-            name,
-            format!("{name} is taken by a built-in extension"),
-        ));
+    if let Some(why) = taken(name) {
+        return Some(fatal(name, why));
     }
     let folder = fs::canonicalize(&path).unwrap_or(path);
     let mut extension = match load(&folder.join(MANIFEST)) {

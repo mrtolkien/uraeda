@@ -1394,10 +1394,11 @@ git commit -m "feat(extensions-system): list, turn on, and set up extensions in 
     other text reaches runs from extensions.
   - `claudeArgs(options, pluginDir, imagesDir, extensions?: { folder, docs, plugins })`:
     `--add-dir <folder>`; for each folder in `options.skills` (`<folder>/<name>/skills`), a plugin
-    folder `<plugins>/<name>/` (`<data>/extension-plugins/<name>/`) holding
-    `.claude-plugin/plugin.json` (`{"name": "<name>"}`) and `skills` linked to the extension's
-    `skills/`, made by `extensionPlugins(skills, plugins)` as the process opens, passed as one more
-    `--plugin-dir`. Uraeda's own plugin stays first.
+    folder `<plugins>/ext-<name>/` (`<data>/extension-plugins/ext-<name>/`) holding
+    `.claude-plugin/plugin.json` (`{"name": "ext-<name>"}`) and `skills` linked to the extension's
+    `skills/` (a folder left in its place is removed first), made by
+    `extensionPlugins(skills, plugins)` as the process opens, passed as one more `--plugin-dir`.
+    Uraeda's own plugin stays first.
   - `skillsFor(repository)`: each extension of yours on there, built for this API, without a fatal
     problem, with a `skills/` folder; the built-ins ship none.
 

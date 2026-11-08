@@ -234,6 +234,24 @@ fn manifest_and_settings_problems() {
     assert_eq!(json, r#"{"folder":"docs"}"#);
 }
 
+// Break: `sessions` or `uraeda` read as yours, whose plugin or page would stand in for Uraeda's.
+#[test]
+fn names_uraeda_keeps_are_refused_like_a_built_in() {
+    let dir = tempdir();
+    let config = dir.path();
+    for name in ["sessions", "uraeda"] {
+        let manifest = WIKI.replacen("\"wiki\"", &format!("\"{name}\""), 1);
+        extension(config, name, &manifest, &[("page.tsx", "")]);
+    }
+    let read = extensions::read(config);
+    for name in ["sessions", "uraeda"] {
+        let problems = &find(&read, name).problems;
+        assert_eq!(problems.len(), 1, "{name}: {problems:?}");
+        assert_eq!(problems[0].message, format!("{name} is reserved by Uraeda"));
+        assert!(problems[0].is_fatal);
+    }
+}
+
 #[test]
 fn built_ins_come_first_without_problems() {
     let dir = tempdir();

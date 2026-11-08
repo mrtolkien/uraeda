@@ -15,3 +15,6 @@ const ORDER = {
 
 /** The page API of the built-in `name`, in its place among the built-ins, over the app's registry. */
 export const builtIn = (name: keyof typeof ORDER) => pageApi(name, registry, ORDER[name]);
+
+/** Whether `name` is a built-in's, Sessions included. */
+export const isBuiltIn = (name: string) => Object.hasOwn(ORDER, name);
