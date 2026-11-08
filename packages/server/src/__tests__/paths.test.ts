@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { layout, requireWeb } from "../paths.ts";
@@ -10,6 +10,8 @@ test.each([
       checkout: "/work/uraeda",
       kind: "checkout",
       plugin: "/work/uraeda/packages/server/plugin",
+      stylexTokens:
+        "/work/uraeda/packages/server/node_modules/@astryxdesign/core/dist/theme/tokens.stylex.js",
       web: "/work/uraeda/packages/web/dist",
     },
     kind: "checkout",
@@ -21,6 +23,7 @@ test.each([
       checkout: null,
       kind: "package",
       plugin: "/home/ana/.npm/_npx/1a/node_modules/uraeda/plugin",
+      stylexTokens: "/home/ana/.npm/_npx/1a/node_modules/uraeda/dist/stylex/tokens.stylex.js",
       web: "/home/ana/.npm/_npx/1a/node_modules/uraeda/web",
     },
     kind: "package",
@@ -35,6 +38,12 @@ test("this checkout's plugin holds the skill", () => {
   const { plugin } = layout();
 
   expect(existsSync(join(plugin, "skills", "uraeda", "SKILL.md"))).toBe(true);
+});
+
+test("this checkout's StyleX tokens are Astryx's", () => {
+  const { stylexTokens } = layout();
+
+  expect(readFileSync(stylexTokens, "utf8")).toContain("spacingVars");
 });
 
 test("a web folder without index.html is not built", () => {

@@ -127,3 +127,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `napi`.
 - **Rationale**: the plan says the task confirms it; it only checked `napi`.
 - **Where**: task 3, `vite.tasks.ts`.
+
+## R15: A page's CSS gets the specificity Astryx's stylesheet gives each priority level
+
+- **Decision**: `compilePage` adds a placeholder rule at every StyleX priority level up to the
+  page's highest before `processStylexRules`, and drops the placeholders from its output, so each
+  rule gets one `:not(#\#)` per level, as in Astryx's `astryx.css` (`padding` one, `padding-block`
+  two, `padding-top` four).
+- **Rationale**: without layers, StyleX counts only the levels present in the rules it is given: a
+  page using only `paddingBlock` got none, and lost to Astryx's `padding` on the same element. The
+  spike's single rule did not show it, as its class was checked and not its CSS.
+- **If wrong**: a StyleX release that counts levels differently fails
+  `extensions/__tests__/page-compiler.test.ts`, which compares each level's rule with Astryx's.
+- **Where**: task 6, `packages/server/src/extensions/page-compiler.ts`.
+
+## R16: A page's CSS skips the app's Lightning CSS pass
+
+- **Decision**: `compilePage` gives `processStylexRules`' output as is, without the Lightning CSS
+  transform `@stylexjs/unplugin` runs after it with the app's browser targets.
+- **Rationale**: Lightning CSS is a native module, and the package bundles the server into one file
+  with only the binding left native. With the app's targets (Chrome 123, Firefox 120, Safari 17.5)
+  it lowers nothing Astryx's tokens use; it adds vendor prefixes and minifies.
+- **If wrong**: a property Safari 17.5 needs prefixed, like `user-select`, does not apply there from
+  an extension's styles; `lightningcss-wasm` would give the same pass without a native module.
+- **Where**: task 6, `packages/server/src/extensions/page-compiler.ts`.
+
+## R17: A page's compile error is at a 1-based line and column
+
+- **Decision**: `compilePage`'s error counts lines and columns from 1, as editors show them, and its
+  message is Babel's first line without the file's path or position. A plugin's error, like
+  StyleX's, takes its position from Babel's code frame.
+- **Where**: task 6, `packages/server/src/extensions/page-compiler.ts`.
