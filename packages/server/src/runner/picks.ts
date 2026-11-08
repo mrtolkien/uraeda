@@ -11,9 +11,30 @@ import { refused } from "./session-state.ts";
 /** What the human picked where a session starts: each one left out for the default. */
 export type SessionPick = { effort?: string; model?: string; runtime?: string };
 
+/**
+ * A picked ID as an input gives it: text, or left out when undefined or null. Refused otherwise,
+ * as fate's inputs are not typed when they run.
+ */
+export function pickedName(
+  value: unknown,
+  field: "agent" | "effort" | "model",
+): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw refused(RUNTIME_REFUSALS.notName(field));
+  }
+  return value;
+}
+
 /** The pick an input carries beside its other fields, `runtime`, `model`, and `effort`. */
 export function pickOf({ effort, model, runtime }: SessionPick): SessionPick {
-  return { effort, model, runtime };
+  return {
+    effort: pickedName(effort, "effort"),
+    model: pickedName(model, "model"),
+    runtime: pickedName(runtime, "agent"),
+  };
 }
 
 /** What a new session stores: its runtime's name, and its model and effort, null for the agent's. */

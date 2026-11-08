@@ -1,6 +1,6 @@
 import type { SessionRow, TurnRow } from "./cache.ts";
 import { chatTitle } from "./message.ts";
-import { checkEffort } from "./picks.ts";
+import { checkEffort, pickedName } from "./picks.ts";
 import {
   REFUSALS,
   refused,
@@ -62,8 +62,10 @@ export function setEffort(
   row: SessionRow,
   effort: string | null,
 ): void {
-  checkEffort(context.runtimes, row.agent, row.model, effort);
-  context.cache.updateSession(row.id, { effort });
+  // Fate's inputs are not typed when they run: null is the default, and any other non-name refused.
+  const picked = pickedName(effort, "effort") ?? null;
+  checkEffort(context.runtimes, row.agent, row.model, picked);
+  context.cache.updateSession(row.id, { effort: picked });
   report(onChange, row);
 }
 

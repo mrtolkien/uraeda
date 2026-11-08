@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 import type { ModelList } from "../adapter.ts";
 import { FakeAdapter } from "../fake.ts";
-import { checkEffort, newSessionPick, type Picked, type SessionPick } from "../picks.ts";
+import { checkEffort, newSessionPick, type Picked, pickOf, type SessionPick } from "../picks.ts";
 import { Runtimes } from "../runtimes.ts";
 
 const REPO = "/repo";
@@ -127,4 +127,26 @@ test.each<[string, string, string | null, string | null, string | undefined]>([
   } else {
     expect(run).toThrow(refusal);
   }
+});
+
+test.each<[string, Record<string, unknown>]>([
+  ["a number as the model", { model: 5 }],
+  ["an object as the effort", { effort: { id: "high" } }],
+  ["a list as the runtime", { runtime: ["codex"] }],
+])("a pick of %s is refused, as fate's inputs are not typed when they run", (_, input) => {
+  expect(() => pickOf(input as SessionPick)).toThrow(/^refused: .* is not a name: pick another$/);
+});
+
+test("a pick of names, or of nothing, is the pick: null is left out", () => {
+  expect(pickOf({ effort: "high", model: "m", runtime: "codex" })).toEqual({
+    effort: "high",
+    model: "m",
+    runtime: "codex",
+  });
+  expect(pickOf({})).toEqual({ effort: undefined, model: undefined, runtime: undefined });
+  expect(pickOf({ model: null } as unknown as SessionPick)).toEqual({
+    effort: undefined,
+    model: undefined,
+    runtime: undefined,
+  });
 });
