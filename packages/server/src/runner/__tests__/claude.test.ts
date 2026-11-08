@@ -16,7 +16,14 @@ import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { lines } from "../child.ts";
 import { allowRule, type Blocks, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
-import { ClaudeAdapter, claudeArgs, extensionPlugins, prunePlugins } from "../claude.ts";
+import {
+  ClaudeAdapter,
+  claudeArgs,
+  extensionPlugins,
+  MODELS_KILL_AFTER_MS,
+  MODELS_TIMEOUT_MS,
+  prunePlugins,
+} from "../claude.ts";
 import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
@@ -1454,6 +1461,62 @@ test("models() rejects when the agent refuses, or exits before answering", async
   });
   await expect(missing.models()).rejects.toThrow();
 });
+
+/**
+ * A stand-in for `claude` that writes its pid to `<dir>/pid`, ignores SIGTERM and the end of its
+ * stdin, and answers `list_models` and `get_settings` with `answer`, else nothing.
+ */
+function stubbornAgent(dir: string, answer: boolean): string {
+  const agent = join(dir, "agent.cjs");
+  writeFileSync(
+    agent,
+    `require("node:fs").writeFileSync(${JSON.stringify(join(dir, "pid"))}, String(process.pid));
+process.on("SIGTERM", () => {});
+setInterval(() => {}, 1000);
+const settings = { applied: { effort: "medium", model: "claude-opus-5-5" }, effective: { model: "opus" } };
+require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
+  const { request, request_id } = JSON.parse(line);
+  const response = request.subtype === "list_models" ? ${JSON.stringify(LIST_MODELS)} : settings;
+  if (${answer}) process.stdout.write(JSON.stringify({ response: { request_id, subtype: "success", response }, type: "control_response" }) + "\\n");
+});
+`,
+  );
+  return script(`exec "${process.execPath}" "${agent}"`);
+}
+
+test.each([
+  ["answers", true],
+  ["times out", false],
+])(
+  "models() kills its short process when it %s, even one that ignores SIGTERM",
+  async (_, answer) => {
+    const dir = temporaryFolder("uraeda-claude");
+    const adapter = new ClaudeAdapter({
+      command: stubbornAgent(dir, answer),
+      imagesDir: images(),
+      pluginDir: "/p",
+    });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const listed = adapter.models();
+      const pid = await childPid(join(dir, "pid"));
+      if (answer) {
+        expect(await listed).toEqual(claudeModels(LIST_MODELS, GET_SETTINGS));
+      } else {
+        const rejected = expect(listed).rejects.toThrow(
+          `Claude Code did not list its models within ${MODELS_TIMEOUT_MS / 1000} seconds`,
+        );
+        vi.advanceTimersByTime(MODELS_TIMEOUT_MS);
+        await rejected;
+      }
+      expect(alive(pid)).toBe(true);
+      vi.advanceTimersByTime(MODELS_KILL_AFTER_MS);
+      await gone(pid);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
 
 test("kill sends its signal to the process", async () => {
   const dir = temporaryFolder("uraeda-claude");

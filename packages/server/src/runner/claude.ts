@@ -23,7 +23,9 @@ import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
 /** The short process that lists the models gives up after this long. */
-const MODELS_TIMEOUT_MS = 10_000;
+export const MODELS_TIMEOUT_MS = 10_000;
+/** That process, sent SIGTERM as it is done with, is killed when it still runs this long after. */
+export const MODELS_KILL_AFTER_MS = 5000;
 /**
  * The arguments of that process: print mode and stream-json, as a session's, in `auto` mode, which
  * the list says each model keeps or drops, and no transcript written, as no message is sent.
@@ -278,7 +280,7 @@ export class ClaudeAdapter implements Adapter {
   /**
    * The models listed for the account, through a short process, closed once it answered
    * `list_models` and `get_settings`, which spend no usage: rejected when it fails to answer within
-   * 10 seconds.
+   * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that.
    */
   async models(): Promise<ModelList> {
     const { child, exited, signal, write } = spawnGrouped(this.#command, MODELS_ARGS, homedir());
@@ -302,14 +304,18 @@ export class ClaudeAdapter implements Adapter {
       controls.end(
         `Claude Code did not list its models within ${MODELS_TIMEOUT_MS / 1000} seconds`,
       );
-      signal("SIGTERM");
     }, MODELS_TIMEOUT_MS);
     try {
       const list = await controls.ask({ subtype: "list_models" });
       return claudeModels(list, await controls.ask({ subtype: "get_settings" }));
     } finally {
       clearTimeout(timer);
+      // Done with, answered or not: its group ends, killed if it outlives SIGTERM.
       child.stdin.end();
+      signal("SIGTERM");
+      const kill = setTimeout(() => signal("SIGKILL"), MODELS_KILL_AFTER_MS);
+      kill.unref();
+      void exited.then(() => clearTimeout(kill));
     }
   }
 
