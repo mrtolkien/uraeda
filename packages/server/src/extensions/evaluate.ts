@@ -25,6 +25,8 @@ type Running = typeof globalThis & { [RUN]?: () => void };
 export type EvaluateOptions = {
   /** The server API this version's activation gets. */
   api: object;
+  /** The names module code sees in place of the globals', like its scoped `setTimeout`. */
+  globals?: Record<string, unknown>;
   /** The modules extensions import by name, like `react`. */
   shared: Record<string, unknown>;
 };
@@ -57,14 +59,14 @@ const ASYNC_ACTIVATION =
  * activation threw, the timeout's error, or, when the activation returned a promise, that it must
  * be synchronous.
  */
-export function evaluate(graph: Graph, { api, shared }: EvaluateOptions): void {
+export function evaluate(graph: Graph, { api, globals = {}, shared }: EvaluateOptions): void {
   const functions = new Map<string, ModuleFunction>();
   for (const [file, { code }] of graph.files) {
     const filename = join(graph.folder, file);
-    // An empty context extension, with no prototype so it resolves no name: V8 keeps every
-    // function it compiles without one in its compilation cache, freed only near the heap's
-    // limit, which grew the heap by 0.6 MB for each reload of a 200 KB file.
-    const contextExtensions = [Object.create(null) as object];
+    // A context extension, with no prototype so it resolves only `globals`' names: V8 keeps
+    // every function it compiles without one in its compilation cache, freed only near the
+    // heap's limit, which grew the heap by 0.6 MB for each reload of a 200 KB file.
+    const contextExtensions = [Object.assign(Object.create(null) as object, globals)];
     const compiled = compileFunction(code, ["__import", "__exports"], {
       contextExtensions,
       filename,

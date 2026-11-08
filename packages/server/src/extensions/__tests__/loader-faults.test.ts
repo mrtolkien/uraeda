@@ -1,8 +1,9 @@
-// What the loader does when the owner's code or folder misbehaves after a version loaded: a load
-// overtaken by a removal or a close, a reload asked during a load, and a folder replaced.
+// What the loader does when the owner's code or folder misbehaves after a version loaded: a throw
+// after activation, a load overtaken by a removal or a close, a reload asked during a load, and a
+// folder replaced.
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { Loader } from "../loader.ts";
 import {
@@ -13,6 +14,69 @@ import {
   openLoader,
   writeFiles,
 } from "./helpers.ts";
+
+afterEach(() => {
+  delete (globalThis as { ticks?: number }).ticks;
+});
+
+/**
+ * Leaves the loader's handlers alone on the process's `uncaughtException` and
+ * `unhandledRejection` until the test ends, as in the server: the test runner's own would report
+ * the error the loader handles.
+ */
+function aloneOnProcessFaults(): void {
+  for (const event of ["uncaughtException", "unhandledRejection"]) {
+    const listeners = process.listeners(event as "uncaughtException");
+    process.removeAllListeners(event);
+    onTestFinished(() => {
+      for (const listener of listeners) {
+        process.on(event, listener);
+      }
+    });
+  }
+}
+
+/** An activation that registers 1, then runs `late`, code that throws after it returns. */
+const throwingLater = (late: string) =>
+  `export default function activate(api: { mark(value: unknown): void }) {\n  api.mark(1);\n  ${late}\n}\n`;
+
+test.each([
+  ["a scoped timer", `setTimeout(() => { throw new Error("late"); }, 0);`],
+  ["a scoped microtask", `queueMicrotask(() => { throw new Error("late"); });`],
+  ["an unhandled rejection", `Promise.reject(new Error("late"));`],
+  ["an uncaught exception", `globalThis.setTimeout(() => { throw new Error("late"); }, 0);`],
+])("a throw after activation, from %s, breaks only its extension", async (_, late) => {
+  aloneOnProcessFaults();
+  const config = temporaryFolder("config");
+  extensionFolder(config, "other", { "server.ts": marking("other") });
+  extensionFolder(config, "wiki", { "server.ts": throwingLater(late) });
+  const { loader, marks } = await openLoader({ configDir: config });
+  const wiki =
+    loader.get("wiki")?.state === "broken"
+      ? loader.get("wiki")
+      : await loaded(loader, "wiki", (extension) => extension.state === "broken");
+  expect(wiki?.problems).toEqual([{ file: "server.ts", message: "late" }]);
+  expect(marks.of("wiki")).toEqual([]);
+  expect(marks.of("other")).toEqual(["other"]);
+  expect(loader.get("other")?.state).toBe("on");
+});
+
+test("an interval stops when its version unloads", async () => {
+  const config = temporaryFolder("config");
+  const folder = extensionFolder(config, "wiki", {
+    "server.ts": `export default function activate() {\n  setInterval(() => {\n    const counted = globalThis as { ticks?: number };\n    counted.ticks = (counted.ticks ?? 0) + 1;\n  }, 5);\n}\n`,
+  });
+  const { loader } = await openLoader({ configDir: config });
+  const counted = globalThis as { ticks?: number };
+  await vi.waitUntil(() => (counted.ticks ?? 0) >= 2);
+
+  const next = loaded(loader, "wiki");
+  writeFiles(folder, { "server.ts": marking(2) });
+  await next;
+  const ticks = counted.ticks;
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(counted.ticks).toBe(ticks);
+});
 
 /** A promise that resolves once the loader no longer lists the extension `name`. */
 function forgotten(loader: Loader, name: string): Promise<void> {

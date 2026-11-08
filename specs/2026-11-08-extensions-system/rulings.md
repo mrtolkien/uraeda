@@ -281,3 +281,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: async work starts from a callback the activation registers, or from a scoped timer
   ([R28](#r28-late-throws-break-only-their-extension)).
 - **Where**: task 7, `packages/server/src/extensions/evaluate.ts` and `loader.ts`.
+
+## R28: Late throws break only their extension
+
+- **Decision**: (a) each module function's context extension, still without a prototype (R24), holds
+  scoped `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask`, `clearTimeout`,
+  `clearInterval`, and `clearImmediate`: each callback runs inside a `try`, its throw makes the
+  version `broken` with the error and unloads it, a callback of an unloaded version never runs, and
+  unloading clears every timer still pending, through one undo on the scope. (b) The loader installs
+  one handler each of the process's `uncaughtException` and `unhandledRejection`, shared by every
+  open loader and removed with the last one closed. An error whose stack holds a running extension's
+  folder breaks that extension and unloads it, and the server keeps running; any other error is
+  printed, and the process exits with code 1, as Node does, unless another listener of the event is
+  there to handle it, as a test runner is.
+- **Rationale**: SC-003 says an extension that throws leaves the others running, and an extension
+  throws after its activation as easily as during it. Node exits on an uncaught error by default;
+  the scoped timers name the version for the common case, and the backstop covers the rest
+  (`globalThis.setTimeout`, a promise chain, an event listener). Exiting when no extension is named
+  keeps the server's own faults as loud as before.
+- **If wrong**: an error from extension code whose stack is lost (a rejection with a string, a stack
+  cut off) still exits; such code can be wrapped by the API that called it.
+- **Where**: task 7, `packages/server/src/extensions/faults.ts`, `evaluate.ts`, and `loader.ts`.
