@@ -109,10 +109,15 @@ test("a thread exists when its rollout is found", () => {
   const day = join(codexHome, "sessions", "2026", "11", "08");
   mkdirSync(day, { recursive: true });
   writeFileSync(join(day, "rollout-2026-11-08T10-00-00-01a1bba7-37d5.jsonl"), "");
+  // Newer days are read first, and other folders not at all.
+  mkdirSync(join(codexHome, "sessions", "2026", "11", "09"), { recursive: true });
+  mkdirSync(join(codexHome, "sessions", "archive", "11", "08"), { recursive: true });
+  writeFileSync(join(codexHome, "sessions", "archive", "11", "08", "rollout-x-other.jsonl"), "");
   const adapter = new CodexAdapter({ codexHome, pluginDir: "/p" });
   expect(adapter.hasSession("01a1bba7-37d5")).toBe(true);
   expect(adapter.hasSession("37d5")).toBe(true);
   expect(adapter.hasSession("01a1bba7")).toBe(false);
+  expect(adapter.hasSession("other")).toBe(false);
   expect(
     new CodexAdapter({ codexHome: join(codexHome, "none"), pluginDir: "/p" }).hasSession("37d5"),
   ).toBe(false);

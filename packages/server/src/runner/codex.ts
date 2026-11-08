@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdirSync, readdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type {
@@ -21,6 +21,7 @@ import {
 } from "./child.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
+import { hasRollout } from "./codex-rollouts.ts";
 import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
@@ -297,19 +298,9 @@ export class CodexAdapter implements Adapter {
     });
   }
 
-  /** Looks for the thread's file, `<codexHome>/sessions/**\/rollout-*-<id>.jsonl`, unread. */
+  /** Whether the thread's file is in Codex's home, unread. */
   hasSession(nativeId: string): boolean {
-    let files: Array<string>;
-    try {
-      files = readdirSync(join(this.#codexHome, "sessions"), { encoding: "utf8", recursive: true });
-    } catch {
-      return false;
-    }
-    const end = `-${nativeId}.jsonl`;
-    return files.some((file) => {
-      const name = file.slice(file.lastIndexOf("/") + 1);
-      return name.startsWith("rollout-") && name.endsWith(end);
-    });
+    return hasRollout(this.#codexHome, nativeId);
   }
 
   /** Codex asks its own reviewer, never the human: no rule to add. */
