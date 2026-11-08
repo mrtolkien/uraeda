@@ -18,6 +18,7 @@ const base: Omit<ExtensionRow, "description" | "icon" | "name" | "title"> = {
   source: null,
   state: "on",
   values: "{}",
+  valuesHere: "{}",
   version: "",
   waitingFor: null,
 };
@@ -123,6 +124,7 @@ const YOURS: ReadonlyArray<ExtensionRow> = [
     source: { commit: "3f9c2a1d0e7b", gitRef: "main", url: "github.com/gary/uraeda-wiki" },
     title: "Wiki",
     values: '{"folder":"wiki"}',
+    valuesHere: '{"folder":"wiki"}',
     version: "1.2.0",
   },
   {

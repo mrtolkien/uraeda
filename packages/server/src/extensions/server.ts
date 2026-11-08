@@ -22,6 +22,7 @@ import { Contributions, type RecordValue } from "./contributions.ts";
 import { EventBus, guarded, reportFor, StepWatch } from "./events.ts";
 import { type LoadedExtension, Loader, type PageBundle, type Problem } from "./loader.ts";
 import { compilePage } from "./page-compiler.ts";
+import { PageProblems } from "./page-problems.ts";
 import { RuntimeTurns } from "./turns.ts";
 
 /** What `ExtensionsHost.open` takes. */
@@ -70,6 +71,7 @@ export class ExtensionsHost implements Registry {
   readonly api: number;
   readonly #options: ExtensionsOptions;
   readonly #contributions = new Contributions();
+  readonly #pageProblems = new PageProblems();
   readonly #events: EventBus;
   readonly #steps: StepWatch;
   #folder = "";
@@ -259,10 +261,14 @@ export class ExtensionsHost implements Registry {
     // A runtime's reload waits for its sessions at work: it names the one at work now.
     const waitingFor =
       loaded?.waitingFor && (this.#turns?.busy(extension.name) ?? loaded.waitingFor);
+    const pageVersion = this.#loader?.pageBundle(extension.name)?.version ?? null;
     return {
       extension,
-      pageVersion: this.#loader?.pageBundle(extension.name)?.version ?? null,
-      problems: loaded?.problems ?? own,
+      pageVersion,
+      problems: [
+        ...(loaded?.problems ?? own),
+        ...this.#pageProblems.of(extension.name, pageVersion),
+      ],
       state: loaded?.state ?? "off",
       values,
       waitingFor: waitingFor || null,
@@ -272,6 +278,15 @@ export class ExtensionsHost implements Registry {
   /** The page files of your extension's running version. */
   pageBundle(name: string): PageBundle | undefined {
     return this.#loader?.pageBundle(name);
+  }
+
+  /** Keeps a problem the page of your extension met at `version`, and sends it, while it runs. */
+  reportPageProblem(name: string, version: number, message: string): void {
+    const bundle = this.pageBundle(name);
+    const report = { current: bundle?.version, file: bundle?.entry ?? "", message, version };
+    if (this.#pageProblems.report(name, report)) {
+      this.#announce();
+    }
   }
 
   /** Reads the record `<extension>/<name>` for the main checkout `root`, where it is on. */

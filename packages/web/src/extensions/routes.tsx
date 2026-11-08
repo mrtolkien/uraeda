@@ -35,7 +35,7 @@ export function UnlessOff({ children, route }: { children: ReactNode; route: Rou
   return children;
 }
 
-/** An extension's place, by its path: its component, or that there is none. */
+/** An extension's place, by its path: its component, in the app's column, or that there is none. */
 export function ExtensionPlace({ name, rest }: { name: string; rest: string }) {
   const path = `/e/${name}/${rest.split("/")[0]}`;
   const place = useContributions("place").find((one) => one.path === path);
@@ -47,5 +47,10 @@ export function ExtensionPlace({ name, rest }: { name: string; rest: string }) {
     );
   }
   const Component = place.component;
-  return <Component />;
+  // In the app's column, at its widths, as Uraeda's own pages.
+  return (
+    <Page kind="rows">
+      <Component />
+    </Page>
+  );
 }

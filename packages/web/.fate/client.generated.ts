@@ -71,6 +71,11 @@ const mutations = {
     FateAPI['mutations']['extensions.act']['input'],
     FateAPI['mutations']['extensions.act']['output']
   >('ExtensionAction'),
+  'extensions.reportPageProblem': mutation<
+    Extensions,
+    FateAPI['mutations']['extensions.reportPageProblem']['input'],
+    FateAPI['mutations']['extensions.reportPageProblem']['output']
+  >('Extensions'),
   'extensions.setOn': mutation<
     Extensions,
     FateAPI['mutations']['extensions.setOn']['input'],

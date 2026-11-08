@@ -3,10 +3,12 @@
 // repositories they can be on in, passed to `SettingsView`. Removing
 // the host name this browser reached the server through asks first, while the file's names are in
 // force.
-import { useFateClient } from "react-fate";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import { FateClient, useFateClient } from "react-fate";
 import { useRepositories, useSettings } from "../data.ts";
 import { useExtensionsRecord } from "./useExtensionsRecord.ts";
-import { useKeyClashes } from "../extensions/useContributions.ts";
+import { useContributionEntries, useKeyClashes } from "../extensions/useContributions.ts";
 import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { OnListClient } from "../ListClient.tsx";
@@ -21,6 +23,9 @@ import { useThemes } from "../useThemes.ts";
 import type { AppearanceThemes } from "./AppearanceSettings.tsx";
 import type { ExtensionActions, ExtensionsValues } from "./ExtensionSettings.tsx";
 import { withOn } from "./extensions.ts";
+
+/** A fate client, as the page's context gives it: the repository's, around the settings. */
+type Client = ReturnType<typeof useFateClient>;
 
 const UNREACHABLE = "Could not reach the Uraeda server.";
 
@@ -52,12 +57,16 @@ async function run(call: () => Promise<{ error?: unknown }>): Promise<string | u
  * The Extensions section's record and changes: where one is on shows at once, and a setting once
  * the core wrote it, as the port's does.
  */
-function useExtensionsSection(): { actions: ExtensionActions; values: ExtensionsValues } {
+function useExtensionsSection(repository: Client): {
+  actions: ExtensionActions;
+  values: ExtensionsValues;
+} {
   const fate = useFateClient();
   const record = useExtensionsRecord();
   const repositories = useRepositories();
   const view = ExtensionsRecordView;
   const clashes = useKeyClashes();
+  const sections = useContributionEntries("settingsSection");
   const { extensions: change } = fate.mutations;
   return {
     actions: {
@@ -76,15 +85,29 @@ function useExtensionsSection(): { actions: ExtensionActions; values: Extensions
       extensions: record.extensions,
       folder: record.folder,
       keyClashes: (name) => clashes.filter((clash) => clash.extension === name),
+      ownSection: (name) => {
+        const own = sections.filter(({ extension }) => extension.name === name);
+        // On the repository's client, as its pages are: its records are the repository's.
+        return own.length === 0 ? undefined : (
+          <FateClient client={repository}>
+            {own.map(({ value: { component: Section, id, title } }) => (
+              <VStack gap={2} key={id}>
+                <Text weight="semibold">{title}</Text>
+                <Section />
+              </VStack>
+            ))}
+          </FateClient>
+        );
+      },
       repositories: repositories.rows.map((row) => row.name),
     },
   };
 }
 
 /** The page, on the record the global client reads. */
-function OnSettings({ category }: { category?: string }) {
+function OnSettings({ category, repository }: { category?: string; repository: Client }) {
   const fate = useFateClient();
-  const extensions = useExtensionsSection();
+  const extensions = useExtensionsSection(repository);
   const settings = useSettings();
   const themes = useThemes() ?? NO_THEMES;
   const confirm = useConfirm();
@@ -163,9 +186,10 @@ function OnSettings({ category }: { category?: string }) {
  * that category's section.
  */
 export function SettingsPage({ category }: { category?: string }) {
+  const repository = useFateClient();
   return (
     <OnListClient>
-      <OnSettings category={category} />
+      <OnSettings category={category} repository={repository} />
     </OnListClient>
   );
 }

@@ -42,6 +42,13 @@ export function useContributions<K extends ContributionKind>(kind: K): Array<Con
   return useMemo(() => listOf(snapshot, kind, isOn), [snapshot, kind, isOn]);
 }
 
+/** The contributions of `kind` of the extensions on here, each with its extension. */
+export function useContributionEntries<K extends ContributionKind>(kind: K) {
+  const isOn = use(IsOnContext);
+  const snapshot = useSnapshot();
+  return useMemo(() => entriesOf(snapshot, kind, isOn), [snapshot, kind, isOn]);
+}
+
 /** A sequence through groups `groups.ts` names, of keys as the browser names them. */
 const isUsable = (keys: string) => {
   const tokens = keys.split(" ");

@@ -14,7 +14,13 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
-import { fakeSessions, testSettings, testSignIn, testThemes } from "uraeda-server/testing";
+import {
+  fakeSessions,
+  testExtensions,
+  testSettings,
+  testSignIn,
+  testThemes,
+} from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
@@ -178,13 +184,17 @@ export async function renderPage(
     agent?: Fake;
     /** The server's config folder, holding its settings file: a new empty one by default. */
     config?: string;
+    /** Whether the server loads the config folder's extensions, as a started server does. */
+    extensions?: boolean;
     fetch?: typeof globalThis.fetch;
     onSignedIn?: () => void;
     reload?: boolean;
   } = {},
 ) {
   const fake = options.agent ?? (await fakeAgent({ installed: false }));
-  const fetch = options.fetch ?? serverFetch(repo, fake.sessions, options.config);
+  const fetch =
+    options.fetch ??
+    serverFetch(repo, fake.sessions, options.config, { extensions: options.extensions });
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
@@ -273,8 +283,10 @@ export function serverFetch(
   repo: string,
   sessions?: Fake["sessions"],
   config?: string,
+  { extensions = false }: { extensions?: boolean } = {},
 ): typeof globalThis.fetch {
-  const { added, created } = serverApp(repo, sessions, temporaryFolder("uraeda-data"), { config });
+  const dataDir = temporaryFolder("uraeda-data");
+  const { added, created } = serverApp(repo, sessions, dataDir, { config, extensions });
   return fetchOn(created, added);
 }
 
@@ -298,12 +310,22 @@ function serverApp(
   repo: string,
   sessions: Fake["sessions"] | undefined,
   dataDir: string,
-  { config, signIn }: { config?: string; signIn?: ReturnType<typeof testSignIn>["options"] },
+  {
+    config,
+    extensions,
+    signIn,
+  }: {
+    config?: string;
+    /** Whether the app loads the config folder's extensions. */
+    extensions?: boolean;
+    signIn?: ReturnType<typeof testSignIn>["options"];
+  },
 ) {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
     managers.push(sessions);
   }
+  const manager = sessions;
   const added = binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
   const hosts = added.then(() => Hosts.open({ binding, dataDir, sessions }));
   opened.push(hosts);
@@ -314,19 +336,27 @@ function serverApp(
   settled.push(settings);
   const themes = settings.then(({ dir }) => testThemes(dir));
   settled.push(themes);
-  const created = Promise.all([hosts, settings, themes]).then(([hosts, settings, themes]) =>
-    createApp({
-      allowOrigins: [],
-      binding,
-      dataDir,
-      hosts,
-      port,
-      previews,
-      sessions,
-      settings,
-      signIn,
-      themes,
-    }),
+  const host = extensions
+    ? Promise.all([hosts, settings]).then(([hosts, settings]) =>
+        testExtensions({ dataDir, hosts, sessions: manager, settings }),
+      )
+    : Promise.resolve(undefined);
+  settled.push(host.then((opened) => ({ close: () => opened?.close() })));
+  const created = Promise.all([hosts, settings, themes, host]).then(
+    ([hosts, settings, themes, extensions]) =>
+      createApp({
+        allowOrigins: [],
+        binding,
+        dataDir,
+        extensions,
+        hosts,
+        port,
+        previews,
+        sessions,
+        settings,
+        signIn,
+        themes,
+      }),
   );
   return { added, created };
 }

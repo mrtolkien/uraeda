@@ -1,5 +1,5 @@
-// The extensions' mutations: turning one on, writing its settings, both on every endpoint, and
-// running an action, on a repository's endpoint, where its extension is on.
+// The extensions' mutations: turning one on, writing its settings, and reporting a page's problem,
+// on every endpoint, and running an action, on a repository's endpoint, where its extension is on.
 import { randomUUID } from "node:crypto";
 import { type Context, inRepository } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
@@ -59,6 +59,19 @@ export const extensionMutations = {
         select,
       ),
     type: "ExtensionAction",
+  },
+  // A problem an extension's page met in the browser, shown with the extension's own until its
+  // page's next version.
+  "extensions.reportPageProblem": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: ListResolver<{ message: string; name: string; version: number }>) => {
+      ctx.extensions?.reportPageProblem(input.name, input.version, String(input.message));
+      return sources.masked(extensionsDataView, ctx, await extensionsRecord(ctx), select);
+    },
+    type: "Extensions",
   },
   "extensions.setOn": {
     resolve: ({ input, ...call }: ListResolver<{ name: string; on: "all" | Array<string> }>) =>

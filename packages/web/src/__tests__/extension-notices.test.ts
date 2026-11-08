@@ -29,6 +29,7 @@ const deploy: ExtensionRow = {
   state: "on",
   title: "Deploy",
   values: "{}",
+  valuesHere: "{}",
   version: "0.1.0",
   waitingFor: null,
 };
