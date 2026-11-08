@@ -74,8 +74,8 @@ function writeIfChanged(path: string, text: string) {
 /**
  * Makes the plugin folder of each extension's skills, `<plugins>/ext-<name>/`: its
  * `.claude-plugin/plugin.json`, and `skills`, a link to the extension's `skills/` folder, replaced
- * whole when it points elsewhere or is no link. Each of `skills` is `<extensions folder>/<name>/skills`. Gives
- * the folders, in the order of `skills`.
+ * whole when it points elsewhere or is no link. Each of `skills` is
+ * `<extensions folder>/<name>/skills`. Gives the folders, in the order of `skills`.
  */
 export function extensionPlugins(skills: ReadonlyArray<string>, plugins: string): Array<string> {
   return skills.map((folder) => {
@@ -102,6 +102,25 @@ export function extensionPlugins(skills: ReadonlyArray<string>, plugins: string)
     }
     return plugin;
   });
+}
+
+/**
+ * Removes the plugin folders, `<plugins>/ext-<name>`, of the extensions no longer in `extensions`,
+ * the extensions folder. Only those: another session may run with the plugin of an extension
+ * installed but off here, or turned off since it opened.
+ */
+export function prunePlugins(plugins: string, extensions: string): void {
+  let names: Array<string>;
+  try {
+    names = readdirSync(plugins);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (name.startsWith("ext-") && !existsSync(join(extensions, name.slice("ext-".length)))) {
+      rmSync(join(plugins, name), { force: true, recursive: true });
+    }
+  }
 }
 
 /**
@@ -275,13 +294,14 @@ export class ClaudeAdapter implements Adapter {
 
   /**
    * Starts the process, its images' and extensions' folders made first, as `--add-dir` refuses a
-   * missing folder, and its extensions' plugin folders.
+   * missing folder, and its extensions' plugin folders, those of extensions removed taken away.
    */
   #spawn(options: OpenOptions, grouped: boolean) {
     mkdirSync(this.#imagesDir, { recursive: true });
     const extensions = this.#extensions;
     if (extensions) {
       mkdirSync(extensions.folder, { recursive: true });
+      prunePlugins(extensions.plugins, extensions.folder);
       extensionPlugins(options.skills, extensions.plugins);
     }
     const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);

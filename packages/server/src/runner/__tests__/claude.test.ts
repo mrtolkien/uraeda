@@ -3,8 +3,10 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,7 +15,7 @@ import { expect, test, vi } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
-import { ClaudeAdapter, claudeArgs, extensionPlugins } from "../claude.ts";
+import { ClaudeAdapter, claudeArgs, extensionPlugins, prunePlugins } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
@@ -133,6 +135,24 @@ test("an extension's plugin folder is made again as its skills move", () => {
   const [folder] = extensionPlugins([second], plugins);
 
   expect(realpathSync(join(folder, "skills"))).toBe(realpathSync(second));
+});
+
+// Break: the plugin folders of removed extensions kept, as before.
+test("the plugin folders of extensions no longer installed are removed", () => {
+  const plugins = join(temporaryFolder("uraeda-data"), "extension-plugins");
+  const extensions = join(temporaryFolder("uraeda-config"), "extensions");
+  const kept = join(extensions, "kept", "skills");
+  const gone = join(extensions, "gone", "skills");
+  mkdirSync(kept, { recursive: true });
+  mkdirSync(gone, { recursive: true });
+  extensionPlugins([kept, gone], plugins);
+  rmSync(join(extensions, "gone"), { recursive: true });
+
+  prunePlugins(plugins, extensions);
+
+  expect(readdirSync(plugins)).toEqual(["ext-kept"]);
+  // No folder of plugins yet is no problem.
+  prunePlugins(join(plugins, "missing"), extensions);
 });
 
 // Break: readlinkSync's EINVAL on a real folder thrown, or the rename over it failing.
