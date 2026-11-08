@@ -1,6 +1,8 @@
 # Inbox
 
-- Adding notes on mobile is clunky
+- Adding notes on mobile is clunky. I clicked “add a category” by mistake the first time I navigated
+  there. It’s the inbox: it should imo be accessible in one click, or one click then a clear modal
+  at most
 
 ## Bugfix
 

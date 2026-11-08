@@ -4,17 +4,19 @@
 
 > [!NOTE]
 >
-> Still wanted for my personal usage
+> Required for personal usage
 
 - [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
-- [Pressing enter on a keyboard-focused row in the "clarifications" step opened…](/specs/changes/2026-11-08-pressing-enter/proposal.md)
-- [We should be able to dismiss an inbox triage and recreate a new one.](/specs/changes/2026-11-08-triage/proposal.md)
-- [Postponing a feature makes a proposal](/specs/changes/2026-11-08-postpone-proposal/proposal.md)
 
+- Codex runtime + model settings
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
 
 - Review and improve personas: describe workflows, habits, ...
+- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
+  effort per step, review options, global defaults with per-feature overrides
+- [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
+  dependencies upgrade and performance pass
 
 ## Next
 
@@ -22,7 +24,7 @@
 >
 > Features for public release
 
-- Codex runtime + model settings
+- Default theme based on terminal colors like pi agent!
 - Cooler home view: logo, progress, gauges, ...
   - Needs more features/extensions
 - Dedicated docs website
@@ -38,19 +40,15 @@
   - This is early because it will help us develop the rest
 
 - Proper security: Passkeys to sign in, on top of the access key of basic security
-- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
-  effort per step, review options, global defaults with per-feature overrides
-- [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
-  dependencies upgrade and performance pass
 - Monorepo support: multiple `specs` folders, principles per package, ...
-- Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
-  repos and not in a monorepo
-  - Cross repo notes would be nice!
 
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
   - Model settings -> allow for local models and Synthetic, at least
 
+- Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
+  repos and not in a monorepo
+  - Cross repo notes would be nice!
 - [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
 
 ## Later
