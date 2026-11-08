@@ -120,3 +120,38 @@ export default function page(api) {
   await waitFor(() => expect(links("Mail")).toHaveLength(1));
   await refreshUntil(() => expect(within(links("Mail")[0]).getByText("7")).toBeTruthy());
 });
+
+// Break: the boundary left failed once the record's error is gone.
+test("a place failed by its record's error draws again once the record reads", async () => {
+  const config = temporaryFolder("uraeda-config");
+  writeFileSync(join(config, "config.toml"), "");
+  const box = join(config, "box.json");
+  extension(config, "post", {
+    "extension.toml": manifest("post", "Post", true),
+    "page.tsx": `import { useRecord } from "uraeda/page";
+
+function Post() {
+  return <p>{useRecord<{ text: string }>("box").text}</p>;
+}
+
+export default function page(api) {
+  api.place({ component: Post, icon: "uraeda:inbox", id: "post", key: "m", title: "Post" });
+}
+`,
+    "server.ts": `import { readFileSync } from "node:fs";
+
+export default function activate(api) {
+  api.record("box", () => JSON.parse(readFileSync(${JSON.stringify(box)}, "utf8")));
+}
+`,
+  });
+  await renderPage("/", fixtureRepo(), { config, extensions: true });
+  await waitFor(() => expect(links("Post")).toHaveLength(1));
+  await act(async () => navigate(atRepo("/e/post/post")));
+  await quiet();
+  await refreshUntil(() => expect(screen.getByText(/^Post: .*ENOENT/)).toBeTruthy());
+
+  writeFileSync(box, JSON.stringify({ text: "Every post read" }));
+  await refreshUntil(() => expect(screen.getByText("Every post read")).toBeTruthy());
+  expect(screen.queryByText(/^Post: /)).toBeNull();
+});

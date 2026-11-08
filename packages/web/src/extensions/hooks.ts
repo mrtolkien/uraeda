@@ -21,23 +21,40 @@ function useExtensionName(hook: string): string {
   return name;
 }
 
-/**
- * The value of the extension's record `name` in the current repository, as its server code reads
- * it, redrawn as it changes. Throws the record's error, which the extension's boundary shows.
- */
-export function useRecord<T = unknown>(name: string): T {
-  const id = `${useExtensionName("useRecord")}/${name}`;
+/** The error a record read with, thrown by `useRecord`: its boundary watches the record. */
+export class RecordError extends Error {
+  /** The record's id, `<extension>/<name>`. */
+  readonly id: string;
+
+  constructor(id: string, message: string) {
+    super(message);
+    this.id = id;
+  }
+}
+
+/** The record `id` read live through fate, read again as the page shows. */
+export function useRecordRow(id: string) {
   const request = useMemo(() => ({ extensionRecord: { id, view: ExtensionRecordView } }), [id]);
   const { extensionRecord } = useRequest(request);
   useRefreshOnShow(request);
-  const record = useLiveView(ExtensionRecordView, extensionRecord);
+  return useLiveView(ExtensionRecordView, extensionRecord);
+}
+
+/**
+ * The value of the extension's record `name` in the current repository, as its server code reads
+ * it, redrawn as it changes. Throws the record's error, which the extension's boundary shows until
+ * the record reads again.
+ */
+export function useRecord<T = unknown>(name: string): T {
+  const id = `${useExtensionName("useRecord")}/${name}`;
+  const record = useRecordRow(id);
   const value = record?.value;
   const parsed = useMemo(() => (value === undefined ? null : (JSON.parse(value) as T)), [value]);
   if (!record) {
     throw new Error(`No record ${id}`);
   }
   if (record.error !== null) {
-    throw new Error(record.error);
+    throw new RecordError(id, record.error);
   }
   return parsed as T;
 }
