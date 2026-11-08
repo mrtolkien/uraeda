@@ -661,8 +661,10 @@ git commit -m "feat(codex-runtime): read Codex's notifications and limits"
 
 **Files:**
 
+- Create: `packages/server/src/runner/claude-control.ts` (control requests and their answers,
+  `claudeModels`, `claudeRunsOn`), as `claude.ts` would pass 500 lines (R10)
 - Modify: `packages/server/src/runner/claude.ts` (`claudeArgs`, `open`, `models`),
-  `claude-events.ts` (the `init` line's model, control responses)
+  `claude-events.ts` (control responses left to `claude-control.ts`)
 - Test: `packages/server/src/runner/__tests__/claude.test.ts`
 
 **Interfaces:**
@@ -676,9 +678,12 @@ git commit -m "feat(codex-runtime): read Codex's notifications and limits"
   name, efforts by `effortName`; defaults `effective.model` and `applied.effort`. The open process's
   `setEffort(effort)` sends `apply_flag_settings` with `{ settings: { effortLevel: effort } }`
   (`null` for the default), then `get_settings`; each `get_settings` answer, and one at open, gives
-  `runsOn` with the model's name from one `list_models` per process.
+  `runsOn` with the model's name from one `list_models` per process, through
+  `claudeRunsOn(listModels, getSettings)`. With no `effective.model`, the default model is the row
+  of `applied.model`. The listing process adds `--no-session-persistence` and runs in the home
+  folder.
 
-- [ ] **Step 1: Rewrite the replaced test, and write the list's**
+- [x] **Step 1: Rewrite the replaced test, and write the list's**
 
 ```ts
 test("the model and effort picked are arguments; none skips permissions", () => {
@@ -702,17 +707,17 @@ test("claudeModels keeps the models that keep auto mode, without the default row
 The break each test catches: the pick never reaching Claude Code, or a model offered that drops auto
 mode, which an unattended run cannot answer.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c vp test packages/server/src/runner/__tests__/claude.test.ts`
   - Expected: FAIL, `--model` not in the arguments.
-- [ ] **Step 3: Implement the arguments, the list, `setEffort`, and `runsOn`.**
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 3: Implement the arguments, the list, `setEffort`, and `runsOn`.**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`, then `nix develop -c vp run validate:claude`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/runner/claude.ts packages/server/src/runner/claude-events.ts packages/server/src/runner/__tests__/claude.test.ts
+git add packages/server/src/runner/claude.ts packages/server/src/runner/claude-control.ts packages/server/src/runner/claude-events.ts packages/server/src/runner/__tests__/claude.test.ts specs/2026-11-08-codex-runtime
 git commit -m "feat(codex-runtime): Claude Code's models and effort"
 ```
 

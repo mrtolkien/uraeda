@@ -13,14 +13,32 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
+import type { Adapter, AgentProcess, Capabilities, ModelList, OpenOptions } from "./adapter.ts";
 import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
+import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
+/** The short process that lists the models gives up after this long. */
+const MODELS_TIMEOUT_MS = 10_000;
+/**
+ * The arguments of that process: print mode and stream-json, as a session's, in `auto` mode, which
+ * the list says each model keeps or drops, and no transcript written, as no message is sent.
+ */
+const MODELS_ARGS = [
+  "-p",
+  "--input-format",
+  "stream-json",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+];
 
 /** Where sessions write extensions, read their documentation, and get their skills. */
 export type ClaudeExtensions = ExtensionPaths & {
@@ -130,6 +148,8 @@ export function claudeArgs(
     "--include-partial-messages",
     "--permission-mode",
     "auto",
+    ...(options.model === undefined ? [] : ["--model", options.model]),
+    ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     "--plugin-dir",
     pluginDir,
     ...plugins.flatMap((plugin) => ["--plugin-dir", plugin]),
@@ -255,6 +275,44 @@ export class ClaudeAdapter implements Adapter {
     return spawnGrouped(this.#command, args, options.cwd);
   }
 
+  /**
+   * The models listed for the account, through a short process, closed once it answered
+   * `list_models` and `get_settings`, which spend no usage: rejected when it fails to answer within
+   * 10 seconds.
+   */
+  async models(): Promise<ModelList> {
+    const { child, exited, signal, write } = spawnGrouped(this.#command, MODELS_ARGS, homedir());
+    const controls = new Controls(write);
+    void (async () => {
+      try {
+        for await (const line of lines(child.stdout)) {
+          controls.answer(line);
+        }
+      } catch {
+        // A process that failed to start has no output.
+      }
+      const { missing, stderr } = await exited;
+      controls.end(
+        missing
+          ? `Claude Code is not available: ${stderr}`
+          : `Claude Code exited before listing its models${stderr === "" ? "" : `: ${stderr}`}`,
+      );
+    })();
+    const timer = setTimeout(() => {
+      controls.end(
+        `Claude Code did not list its models within ${MODELS_TIMEOUT_MS / 1000} seconds`,
+      );
+      signal("SIGTERM");
+    }, MODELS_TIMEOUT_MS);
+    try {
+      const list = await controls.ask({ subtype: "list_models" });
+      return claudeModels(list, await controls.ask({ subtype: "get_settings" }));
+    } finally {
+      clearTimeout(timer);
+      child.stdin.end();
+    }
+  }
+
   open(options: OpenOptions): AgentProcess {
     const { child, exited, signal, write } = this.#spawn(options);
 
@@ -263,9 +321,13 @@ export class ClaudeAdapter implements Adapter {
     const events = new EventQueue();
     const tasks = new Map<string, string>();
     const blocks: Blocks = new Map();
+    const controls = new Controls(write);
     void (async () => {
       try {
         for await (const line of lines(child.stdout)) {
+          if (controls.answer(line)) {
+            continue;
+          }
           for (const event of parseLine(line, options.cwd, tasks, blocks)) {
             events.push(event);
           }
@@ -273,19 +335,37 @@ export class ClaudeAdapter implements Adapter {
       } catch {
         // A process that failed to start has no output.
       }
+      controls.end("Claude Code exited");
       events.push(await exited);
       events.end();
     })();
 
-    const control = (request: Record<string, unknown>) =>
-      write({ request, request_id: randomUUID(), type: "control_request" });
+    // What it runs on, by names from its own list, asked once: at open, and after each change.
+    let listed: unknown;
+    const report = () =>
+      controls.ask({ subtype: "get_settings" }).then(
+        (settings) => {
+          const event = claudeRunsOn(listed, settings);
+          if (event !== undefined) {
+            events.push(event);
+          }
+        },
+        () => {},
+      );
+    void controls
+      .ask({ subtype: "list_models" })
+      .then(
+        (list) => (listed = list),
+        () => {},
+      )
+      .then(report);
 
     return {
       close: () => {
         child.stdin.end();
       },
       events,
-      interrupt: () => control({ subtype: "interrupt" }),
+      interrupt: () => controls.send({ subtype: "interrupt" }),
       kill: signal,
       send: ({ id, images, text, when }) => {
         write({
@@ -295,7 +375,14 @@ export class ClaudeAdapter implements Adapter {
           uuid: id,
         });
       },
-      takeBack: (id) => control({ message_uuid: id, subtype: "cancel_async_message" }),
+      // From its next turn on: the runner calls it between turns only (R3).
+      setEffort: (effort) => {
+        controls
+          .ask({ settings: { effortLevel: effort ?? null }, subtype: "apply_flag_settings" })
+          .catch(() => {});
+        void report();
+      },
+      takeBack: (id) => controls.send({ message_uuid: id, subtype: "cancel_async_message" }),
     };
   }
 }
