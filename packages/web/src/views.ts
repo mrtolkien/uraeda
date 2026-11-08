@@ -310,6 +310,8 @@ export const SessionView = view<Session>()({
   id: true,
   name: true,
   place: true,
+  ranEffort: true,
+  ranModel: true,
   startedAt: true,
   status: true,
   statusLabel: true,

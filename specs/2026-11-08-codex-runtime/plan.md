@@ -952,17 +952,19 @@ git commit -m "feat(codex-runtime): the session picker where a session starts"
 - Consumes: task 6's session record `ranModel` and `ranEffort`; `RuntimeRecord.usage`.
 
 The header's `runsOn` is `ranModel`, then `ranEffort` when there is one, joined by " · ". The usage
-pane lists every runtime on that reported windows, in the runtimes' order, as `home/Usage.tsx` does;
-the closed rail's bar keeps the runtime in view.
+pane lists every runtime on that reported windows, in the runtimes' order, as `home/Usage.tsx` does,
+each window on one line
+([R27](rulings.md#r27-the-sidebars-usage-pane-says-each-window-on-one-line-and-the-sandboxs-agent-says-what-it-runs-on));
+the closed rail's bar keeps the runtime in view. The sandbox's agent reports `runsOn` (R27).
 
-- [ ] **Step 1: Implement both.** No test: a layout read in the sandbox, as the Testing decision
+- [x] **Step 1: Implement both.** No test: a layout read in the sandbox, as the Testing decision
       asks at the `early` stage.
-- [ ] **Step 2: Run the task's validation, and review in the sandbox**
+- [x] **Step 2: Run the task's validation, and review in the sandbox**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
   - Then `vp run sandbox`: a fake Codex session's header after its start; two runtimes' windows in
     the sidebar on Home and on a feature; the closed rail; both themes, 390 px and 1440 px.
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web/src

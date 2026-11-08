@@ -101,6 +101,11 @@ export type Handing = {
 /** Why a feature's session takes no message before its proposal is committed. */
 export const NO_BRANCH = "This feature has no branch left: it is merged.";
 
+/** The model and the effort a session ran on, as its agent reported them: "GPT-6.1-Sol · Medium". */
+function ranOn({ ranEffort, ranModel }: Pick<Session, "ranEffort" | "ranModel">) {
+  return [ranModel, ranEffort].filter((part): part is string => Boolean(part)).join(" · ");
+}
+
 /**
  * A session's header, transcript, and errors, or why there is no session `id`. While the human
  * reads above its end, it gives the pane the jump back to the latest.
@@ -171,6 +176,7 @@ function SessionLog({
       <SessionHeader
         agent={session.agent}
         place={session.place}
+        runsOn={ranOn(session)}
         status={{
           label: statusLabel({ label: session.statusLabel, wait: session.wait }),
           status: session.status,

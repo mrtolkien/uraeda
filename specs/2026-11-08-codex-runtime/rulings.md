@@ -289,3 +289,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the runner marked it taken back all the same. A close that came while `#start` waited for the
   thread left the process running with nothing to end it.
 - **Where**: `codex-turns.ts`, `#steer` and `#start`.
+
+## R27: The sidebar's usage pane says each window on one line, and the sandbox's agent says what it runs on
+
+- **Decision**: the sidebar's pane lists the same windows as Home's, in the same order, each with
+  its mark, but its line reads "5h 58% · 04:33", on one line at the sidebar's width, its whole
+  sentence as its title; Home's keeps "5h 58% left - reset 04:33". Home's and the sidebar's lists
+  share `UsageWindows` and `useReportedRuntimes` in `UsageWindow.tsx`. The closed rail's one bar
+  stays the runtime in view's first window, and shows nothing while that runtime reported none,
+  though others did. The sandbox's agent reports `runsOn` as each process opens and as its effort
+  changes, by the fake model list's names, so the sandbox shows the header's model and effort.
+- **Rationale**: two agents' four windows, each on two lines at the sidebar's width, took the room
+  of the navigation's "Needs you" and "In progress" panes on a 900 px tall window; the fake runtime
+  reported no `runsOn`, so the header could not be reviewed in the sandbox.
+- **Where**: task 9, `UsageWindow.tsx`, `sidebar/Allowance.tsx`, `packages/web/sandbox/agent.ts`.
