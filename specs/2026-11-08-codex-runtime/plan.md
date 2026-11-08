@@ -305,33 +305,41 @@ pure rules.
 
 - Create: `packages/server/src/runner/child.ts`
 - Create: `packages/server/src/runner/cache-sessions.ts`
-- Modify: `packages/server/src/runner/claude.ts` (`open`, `EventQueue`, `groups`, `endWithServer`)
+- Create: `packages/server/src/runner/session-edits.ts`
+- Modify: `packages/server/src/runner/claude.ts` (`open`, `EventQueue`, `groups`, `endWithServer`),
+  `claude-events.ts` (`lines`), `scripts/validate-claude.ts` (its import of `lines`)
 - Modify: `packages/server/src/runner/cache.ts` (`createSession`, `updateSession`, `sessionColumns`)
 - Modify: `packages/server/src/runner/sessions.ts`
 - Test: the existing `packages/server/src/runner/__tests__/*.test.ts`
 
 **Interfaces:**
 
-- Produces: `runner/child.ts` exports `EventQueue` (as today), and
+- Produces: `runner/child.ts` exports `EventQueue` (as today),
+  `lines(chunks: AsyncIterable<Buffer>): AsyncIterable<string>` (moved from `claude-events.ts`), and
   `spawnGrouped(command: string, args: Array<string>, cwd: string): Child`, where
-  `Child = { child: ChildProcessWithoutNullStreams; signal(name: NodeJS.Signals): void; exited: Promise<Extract<AgentEvent, { type: "exit" }>> }`:
+  `Child = { child: ChildProcessWithoutNullStreams; exited: Promise<Extract<AgentEvent, { type: "exit" }>>; signal(name: NodeJS.Signals): void; write(value: unknown): void }`:
   the process in its own group (not on Windows), ended with the server, its stderr's last 20 lines
-  in the exit event, `missing` for an absent command, the gone-directory text kept word for word.
-  `cache-sessions.ts` holds the session row writes `cache.ts` delegates to, as `cache-tokens.ts`
-  does for tokens. `sessions.ts` keeps its public methods and signatures.
+  in the exit event, `missing` for an absent command, the gone-directory text kept word for word;
+  `write` sends one JSON line to stdin, dropped once stdin has closed (R8). `cache-sessions.ts`
+  holds the session row writes `cache.ts` delegates to, `insertSession(db, row: NewSession)` and
+  `writeSession(db, id, fields: SessionFields)` with `sessionColumns`, as `cache-tokens.ts` does for
+  tokens: a new stored field goes in `NewSession`, `SessionFields`, and `sessionColumns`.
+  `session-edits.ts` holds the human's edits of a session, `rename`, `archive`, `seen`, and
+  `dismiss`, as plain functions `(context, onChange, row, ...)`: `setEffort` joins them (R9).
+  `sessions.ts` keeps its public methods and signatures.
 
-- [ ] **Step 1: Move the process plumbing out of `claude.ts`.** `ClaudeAdapter.open` uses
+- [x] **Step 1: Move the process plumbing out of `claude.ts`.** `ClaudeAdapter.open` uses
       `spawnGrouped` and `EventQueue` from `child.ts`; remove its `max-lines-per-function` marker.
       No behaviour changes.
-- [ ] **Step 2: Move `createSession`'s and `updateSession`'s SQL into `cache-sessions.ts`,** the
+- [x] **Step 2: Move `createSession`'s and `updateSession`'s SQL into `cache-sessions.ts`,** the
       cache's methods keeping their signatures, so `cache.ts` has room for the new fields.
-- [ ] **Step 3: Move one cohesive group out of `sessions.ts`** (the moves and holds, `hold`,
-      `moving`, `held`, `attach`, are a candidate) into a module of plain functions, as
+- [x] **Step 3: Move one cohesive group out of `sessions.ts`** (the human's edits, `rename`,
+      `archive`, `seen`, `dismiss`, R9) into a module of plain functions, `session-edits.ts`, as
       `session-folders.ts` is, the facade delegating, so it has room for `setEffort`.
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS, no new lint marker, `claude.ts` under 400 lines.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/
@@ -751,8 +759,9 @@ git commit -m "feat(codex-runtime): every start path carries the model and effor
 
 **Interfaces:**
 
-- Consumes: task 1's `spawnGrouped` and `EventQueue`; task 2's contract; task 4's `CodexEvents`,
-  `codexWindows`, `codexLimit`; `webUiInstructions` from `instructions.ts`.
+- Consumes: task 1's `spawnGrouped` (its `write` for JSON-RPC), `lines`, and `EventQueue`; task 2's
+  contract; task 4's `CodexEvents`, `codexWindows`, `codexLimit`; `webUiInstructions` from
+  `instructions.ts`.
 - Produces: `class CodexAdapter implements Adapter` (`kind` `codex`, `name` "Codex", `icon`
   `uraeda:harness-openai`, capabilities: approvals false, images true, queue true, steer true,
   subagents false, takeBack true), its options as `ClaudeAdapterOptions` with `codexHome` in place

@@ -62,3 +62,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the folder already holds `skills/uraeda/`, and Codex reads a root's skill folders;
   no copy is made.
 - **Where**: task 7.
+
+## R8: The shared process plumbing writes stdin's JSON lines and reads stdout's lines
+
+- **Decision**: `Child` gains `write(value)`, one JSON line to stdin, dropped once stdin has closed,
+  and `lines`, stdout's line reader, moves from `claude-events.ts` to `child.ts`.
+- **Rationale**: Claude Code's stream-json and Codex's JSON-RPC are both JSON lines over stdio: each
+  runtime would copy the same writer, and Codex would import its reader from Claude Code's parser.
+- **Where**: task 1, `child.ts`; task 7 builds on it.
+
+## R9: The session manager's split is the human's edits, not the moves and holds
+
+- **Decision**: `rename`, `archive`, `seen`, and `dismiss` move from `sessions.ts` into
+  `session-edits.ts`; `hold`, `moving`, `held`, and `attach` stay.
+- **Rationale**: `moving` and `held` are one-line delegations and `attach` already delegates, so
+  moving them frees almost nothing; the edits are the longest bodies, one kind of call, a stored
+  field the human changes, and `setEffort` is one more of them.
+- **Where**: task 1, `session-edits.ts`; task 3 adds `setEffort` there.
