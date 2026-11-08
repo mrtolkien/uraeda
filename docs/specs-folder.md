@@ -16,9 +16,9 @@ again later.
 
 Or hand it over from the web UI: "Commit and start the agent" commits your answers or your approval.
 It then opens the feature's session with the workflow's message ready to send. You read it, add a
-note, and send it. Claude Code works on the next step until it needs you again, while you watch,
-write to it, or stop it. See [the web UI's sessions](web-ui.md#sessions-with-claude-code). A runner
-that starts the agent when you push an answer is planned.
+note, and send it. The agent works on the next step until it needs you again, while you watch, write
+to it, or stop it. See [the web UI's sessions](web-ui.md#sessions-with-claude-code-and-codex). A
+runner that starts the agent when you push an answer is planned.
 
 **A good fit** for features worth a spec. Getting the design wrong is costly there, and you would
 rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix: just ask

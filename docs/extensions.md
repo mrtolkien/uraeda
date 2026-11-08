@@ -86,10 +86,10 @@ help = "The folder of the repository the pages are read from."
 ```
 
 `name` and `api` are required, and a setting needs a `type` and a `default`. An entry must be a file
-inside the folder. The names of the built-in extensions are taken: `claude`, `fake`, `inbox`,
-`priorities`, `decisions`, `git`, `previews`, and `notifications`, and Uraeda keeps `uraeda` and
-`sessions`: an extension with one of these names is refused, as `sessions is reserved by Uraeda`.
-`on` and `repositories` are not setting names.
+inside the folder. The names of the built-in extensions are taken: `claude`, `codex`, `fake`,
+`inbox`, `priorities`, `decisions`, `git`, `previews`, and `notifications`, and Uraeda keeps
+`uraeda` and `sessions`: an extension with one of these names is refused, as
+`sessions is reserved by Uraeda`. `on` and `repositories` are not setting names.
 
 An icon is one of the app's set: `uraeda:` and a name of a [Lucide](https://lucide.dev/icons/) icon
 the app ships, like `uraeda:book-open`, `uraeda:database`, `uraeda:globe`, or `uraeda:rows-3`, each
@@ -218,22 +218,22 @@ name, and never stops the event for others.
 
 ### Runtimes
 
-An agent runtime is what sessions run on. Claude Code is the built-in `claude` extension, and a
-runtime of yours is registered with `api.runtime(runtime)`, under your extension's name. A session
-stores the name of the runtime it was started on, and keeps running on it. With one runtime on in
-the repository, new sessions take it; with two or more, a picker shows wherever a message makes a
-session: the composer of a new chat or of a feature's new session, the change's start dialog, and
-"Apply the answers" of a round. It picks the first runtime on, Claude Code before yours, until you
-pick another. Where a session's runtime is off, its transcript shows, and the composer says
-`pi-durable is off: turn it on to continue this session`. Where every runtime is off, starting a
-session says `No agent runtime is on here: turn one on in Settings, Extensions`.
+An agent runtime is what sessions run on. Claude Code and Codex are the built-in `claude` and
+`codex` extensions, and a runtime of yours is registered with `api.runtime(runtime)`, under your
+extension's name. A session stores the name of the runtime it was started on, and keeps running on
+it. A picker shows wherever a message makes a session: the composer of a new chat or of a feature's
+new session, the change's start dialog, and "Apply the answers" of a round. It offers every runtime
+on, with the models of those that list them, and picks the first runtime on, Claude Code, then
+Codex, before yours, until you pick another. Where a session's runtime is off, its transcript shows,
+and the composer says `pi-durable is off: turn it on to continue this session`. Where every runtime
+is off, starting a session says `No agent runtime is on here: turn one on in Settings, Extensions`.
 
 A runtime implements the contract every agent is reached through, the `Runtime` type of
 `uraeda/server`: its `name`, `kind`, `icon`, and `capabilities`, `open` for a session's process,
 `hasSession`, `allowRule`, and `version`. Its process sends `AgentEvent`s: the session's start,
 text, tool calls and their ends, the turn's result, limits, and usage. Usage is a list of windows,
-each `{ id, label, used, resetsAt }`, `used` from 0 to 1, which the usage window draws as it draws
-Claude Code's five hours and week.
+each `{ id, label, used, resetsAt }`, `used` from 0 to 1, which the sidebar's usage pane draws, each
+runtime's under its mark, as it draws Claude Code's five hours and week.
 
 A runtime may also offer models, all optional:
 
@@ -251,7 +251,9 @@ A runtime that picks its agent's session IDs itself, opened without `resume`, re
 own ID in its first `init`: the session takes it.
 
 [`runner/claude.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/claude.ts)
-is a whole runtime, and
+and
+[`runner/codex.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/codex.ts)
+are whole runtimes, and
 [`runner/fake.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/fake.ts)
 a scripted one.
 
@@ -460,13 +462,13 @@ more. `update` refuses a linked extension: edit its folder instead. See
 
 ## Changing a part of Uraeda
 
-Uraeda's own parts are built-in extensions: `claude`, Claude Code; `fake`, the scripted agent of the
-tests and the sandbox; `inbox`; `priorities`, the priorities and starting from a proposal;
-`decisions`; `git`, the Git page; `previews`, the Storybook previews and HTML mockups in specs and
-sessions, drawn as their links while it is off; and `notifications`. Each is turned off on the
-settings page, everywhere or in some repositories, like yours. Turning one off removes its place,
-keys, panes, and sections; its files stay, and `ura check` still checks them. A link to a place
-turned off opens a page saying "Inbox is off here", with "Turn it on here".
+Uraeda's own parts are built-in extensions: `claude`, Claude Code; `codex`, Codex; `fake`, the
+scripted agent of the tests and the sandbox; `inbox`; `priorities`, the priorities and starting from
+a proposal; `decisions`; `git`, the Git page; `previews`, the Storybook previews and HTML mockups in
+specs and sessions, drawn as their links while it is off; and `notifications`. Each is turned off on
+the settings page, everywhere or in some repositories, like yours. Turning one off removes its
+place, keys, panes, and sections; its files stay, and `ura check` still checks them. A link to a
+place turned off opens a page saying "Inbox is off here", with "Turn it on here".
 
 To change a built-in, leave Uraeda's source as it is: turn the built-in off, and write an extension
 that adds the part as you want it. Sessions, the session page, and the composer are always on.

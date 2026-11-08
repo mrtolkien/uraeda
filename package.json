@@ -10,7 +10,8 @@
     "readme:screenshots": "node packages/web/scripts/readme-screenshots.ts",
     "release": "node packages/uraeda/scripts/bump.ts",
     "sandbox": "node packages/web/sandbox/main.ts",
-    "validate:claude": "node packages/server/scripts/validate-claude.ts"
+    "validate:claude": "node packages/server/scripts/validate-claude.ts",
+    "validate:codex": "node packages/server/scripts/validate-codex.ts"
   },
   "devDependencies": {
     "@nkzw/eslint-plugin": "catalog:",

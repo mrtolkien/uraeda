@@ -976,9 +976,9 @@ git commit -m "feat(codex-runtime): what ran in the header, every agent's usage 
 **Files:**
 
 - Create: `packages/server/scripts/validate-codex.ts`
-- Modify: `packages/server/package.json` (`validate:codex`), `CONTRIBUTING.md`, `README.md` or
-  `INSTALL.md` where they name Claude Code as the only agent, `docs/web-ui.md` (the picker, the
-  header, the usage pane)
+- Modify: the root `package.json` (`validate:codex`, beside `validate:claude`, R28),
+  `CONTRIBUTING.md`, `README.md` or `INSTALL.md` where they name Claude Code as the only agent,
+  `docs/web-ui.md` (the picker, the header, the usage pane)
 
 **Interfaces:**
 
@@ -989,20 +989,21 @@ opens a `CodexAdapter` on the cheapest listed model at its lowest effort, and ch
 PASS or FAIL: the model list is not empty and has defaults; a turn that commits a file in the
 worktree lands the commit and shows a `notice` of the review (SC-001, US1 K2); a message sent
 `steer` during a turn is `accepted` (US1 K3); `interrupt` ends a turn with `interrupted` (US1 K3);
-`runsOn` names the model (SC-005); an image path reaches Codex.
+`runsOn` names the model and the effort picked (SC-005); an image path reaches Codex; and
+`~/.codex/config.toml` is byte for byte as it was (R24).
 
-- [ ] **Step 1: Write the script, and run it on this machine**
+- [x] **Step 1: Write the script, and run it on this machine**
   - Run: `nix develop -c vp run validate:codex`
   - Expected: every check PASS. A failure here stops the build: it is outside behaviour the spec
     relies on.
-- [ ] **Step 2: Update the documentation the feature makes wrong**, as the
+- [x] **Step 2: Update the documentation the feature makes wrong**, as the
       [documentation](../decisions/documentation.md) decision says.
-- [ ] **Step 3: Run the complete validation**
+- [x] **Step 3: Run the complete validation**
   - Run: `nix develop -c vp run ready`
   - Expected: PASS
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add packages/server CONTRIBUTING.md README.md INSTALL.md docs
+git add packages/server package.json CONTRIBUTING.md README.md INSTALL.md docs specs
 git commit -m "feat(codex-runtime): validate the real Codex, and document it"
 ```
