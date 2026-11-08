@@ -2,7 +2,8 @@
 // through the core, registers the built-ins' server parts, opens the loader for yours, and owns
 // what both register through the server API: runtimes, records, actions, routes, and events, each
 // only where its extension is on. It sends the `Extensions` record live as any of it changes, and
-// writes it to the data folder for `ura extension list` (`status-file.ts`).
+// writes it to the data folder for `ura extension list` (`status-file.ts`). The settings it keeps
+// between reads are in `settings-values.ts`.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Changes, Extension } from "uraeda-binding";
@@ -24,7 +25,7 @@ import { EventBus, guarded, reportFor, StepWatch } from "./events.ts";
 import { type LoadedExtension, Loader, type PageBundle, type Problem } from "./loader.ts";
 import { compilePage } from "./page-compiler.ts";
 import { PageProblems } from "./page-problems.ts";
-import { GLOBAL, printOf } from "./settings-print.ts";
+import { type Changed, reloadChanged, SettingsValues } from "./settings-values.ts";
 import { StatusFile } from "./status-file.ts";
 import { RuntimeTurns } from "./turns.ts";
 
@@ -51,9 +52,6 @@ export type ExtensionState = {
   waitingFor: string | null;
 };
 
-/** An extension whose `on`, or whose settings, changed at a read. */
-type Changed = { name: string; onChanged: boolean; valuesChanged: boolean };
-
 /** The extensions of the server's config folder, and what they registered. */
 export class ExtensionsHost implements Registry {
   readonly runtimes: Runtimes;
@@ -69,9 +67,7 @@ export class ExtensionsHost implements Registry {
   );
   #folder = "";
   #extensions = new Map<string, Extension>();
-  /** Each extension's settings: every repository's under "", then each repository's by name. */
-  #values = new Map<string, Map<string, Record<string, unknown>>>();
-  #prints = new Map<string, string>();
+  readonly #values: SettingsValues;
   readonly #builtIns: BuiltIns;
   #hosts?: Pick<Hosts, "all" | "byPath" | "get" | "rows">;
   #loader?: Loader;
@@ -85,6 +81,7 @@ export class ExtensionsHost implements Registry {
   private constructor(options: ExtensionsOptions) {
     this.#options = options;
     this.api = options.binding.extensionApi();
+    this.#values = new SettingsValues(options.binding, options.configDir);
     this.runtimes = new Runtimes({
       isOn: (name, root) => this.#runtimeOn(name, root),
       skills: (root) => {
@@ -357,8 +354,7 @@ export class ExtensionsHost implements Registry {
     if (repository !== null && !this.isOn(extension, repository)) {
       return {};
     }
-    const values = this.#values.get(extension);
-    return { ...(values?.get(repository ?? GLOBAL) ?? values?.get(GLOBAL) ?? {}) };
+    return this.#values.get(extension, repository);
   }
 
   // Reading, and what a change of the settings reloads.
@@ -379,7 +375,14 @@ export class ExtensionsHost implements Registry {
         return;
       }
       try {
-        this.#reloadChanged(await this.#read());
+        reloadChanged(await this.#read(), {
+          builtIns: this.#builtIns,
+          changed: (name, record) => this.changed(name, record),
+          contributions: this.#contributions,
+          extensions: this.#extensions,
+          loader: this.#loader,
+          runtimes: this.runtimes,
+        });
       } catch (error) {
         reportFor("extensions", error);
       }
@@ -393,58 +396,10 @@ export class ExtensionsHost implements Registry {
     const { binding, configDir } = this.#options;
     const { extensions, folder } = await binding.readExtensions(configDir);
     const repositories = (this.#hosts?.rows() ?? []).map((row) => row.name);
-    const values = new Map<string, Map<string, Record<string, unknown>>>();
-    for (const extension of extensions) {
-      const byRepository = new Map<string, Record<string, unknown>>();
-      if (extension.settings.length > 0) {
-        for (const repository of [GLOBAL, ...repositories]) {
-          const json = await binding.extensionSettings(
-            configDir,
-            extension.name,
-            repository || null,
-          );
-          byRepository.set(repository, JSON.parse(json) as Record<string, unknown>);
-        }
-      }
-      values.set(extension.name, byRepository);
-    }
-    const changed = [];
-    const before = this.#extensions;
-    for (const extension of extensions) {
-      const print = printOf(values.get(extension.name)!);
-      const old = before.get(extension.name);
-      const onChanged =
-        old !== undefined && (old.onAll !== extension.onAll || `${old.on}` !== `${extension.on}`);
-      const known = this.#prints.get(extension.name);
-      const valuesChanged = known !== undefined && known !== print;
-      if (onChanged || valuesChanged) {
-        changed.push({ name: extension.name, onChanged, valuesChanged });
-      }
-      this.#prints.set(extension.name, print);
-    }
+    const changed = await this.#values.read(extensions, this.#extensions, repositories);
     this.#folder = folder;
     this.#extensions = new Map(extensions.map((extension) => [extension.name, extension]));
-    this.#values = values;
     return changed;
-  }
-
-  #reloadChanged(changed: Array<Changed>): void {
-    let runtimes = false;
-    for (const { name, onChanged, valuesChanged } of changed) {
-      runtimes ||= onChanged && this.runtimes.get(name) !== undefined;
-      for (const record of this.#contributions.records(name)) {
-        this.changed(name, record);
-      }
-      const extension = this.#extensions.get(name)!;
-      if (!extension.isBuiltIn) {
-        void this.#loader?.reload(name).catch((error: unknown) => reportFor(name, error));
-      } else if (valuesChanged) {
-        this.#builtIns.reload(name);
-      }
-    }
-    if (runtimes) {
-      this.runtimes.changed();
-    }
   }
 
   /** A runtime of yours got a session at work: its reloads wait until the turns end. */
