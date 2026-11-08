@@ -43,21 +43,40 @@ export class Runtimes {
   readonly isOn: IsOn;
   #entries = new Map<string, { runtime: Adapter; status: RuntimeStatus }>();
   #listeners = new Set<() => void>();
+  /** Each name's status when it was unregistered, which a registration under it starts from. */
+  #last = new Map<string, RuntimeStatus>();
 
-  constructor({ isOn = () => true }: { isOn?: IsOn } = {}) {
+  readonly #title: (name: string) => string | undefined;
+
+  /** `title` names a runtime in refusals, its extension's title: the name itself by default. */
+  constructor({
+    isOn = () => true,
+    title = () => undefined,
+  }: { isOn?: IsOn; title?: (name: string) => string | undefined } = {}) {
     this.isOn = isOn;
+    this.#title = title;
   }
 
-  /** Registers `runtime` as `name`, unchecked: gives the undo, which unregisters it. */
+  /** The runtime's name for people in refusals, registered or not. */
+  title(name: string): string {
+    return this.#title(name) ?? name;
+  }
+
+  /**
+   * Registers `runtime` as `name`: gives the undo, which unregisters it. It starts from the status
+   * the last runtime of that name had, unchecked for a new name, so a runtime reloaded is not
+   * refused as unavailable until its next check.
+   */
   register(name: string, runtime: Adapter): () => void {
     if (this.#entries.has(name)) {
       throw new Error(`a runtime is registered as ${name} already`);
     }
-    const entry = { runtime, status: UNCHECKED };
+    const entry = { runtime, status: this.#last.get(name) ?? UNCHECKED };
     this.#entries.set(name, entry);
     this.changed();
     return () => {
       if (this.#entries.get(name) === entry) {
+        this.#last.set(name, entry.status);
         this.#entries.delete(name);
         this.changed();
       }
@@ -154,7 +173,7 @@ export function runtimesOf(entries: Record<string, Adapter>, isOn?: IsOn): Runti
 export function sessionRuntime(runtimes: Runtimes, row: SessionRow): Adapter {
   const runtime = runtimes.get(row.agent);
   if (!runtime || !runtimes.isOn(row.agent, row.repo)) {
-    throw refused(REFUSALS.runtimeOff(row.agent));
+    throw refused(REFUSALS.runtimeOff(runtimes.title(row.agent)));
   }
   return runtime;
 }
@@ -166,7 +185,7 @@ export function sessionRuntime(runtimes: Runtimes, row: SessionRow): Adapter {
 export function newSessionRuntime(runtimes: Runtimes, repo: string, chosen?: string): string {
   if (chosen !== undefined) {
     if (!runtimes.get(chosen) || !runtimes.isOn(chosen, repo)) {
-      throw refused(REFUSALS.runtimeOff(chosen));
+      throw refused(REFUSALS.runtimeOff(runtimes.title(chosen)));
     }
     return chosen;
   }

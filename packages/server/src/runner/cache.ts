@@ -88,6 +88,8 @@ const sessionColumns = {
 export class SessionCache {
   readonly db: DatabaseSync;
   #pid: number;
+  /** Called with each session recorded: see `onCreated`. */
+  onCreated: ((row: SessionRow) => void) | undefined;
 
   private constructor(db: DatabaseSync, pid: number) {
     this.db = db;
@@ -162,7 +164,9 @@ export class SessionCache {
         created,
         created,
       ) as Row;
-    return toSession(inserted);
+    const session = toSession(inserted);
+    this.onCreated?.(session);
+    return session;
   }
 
   /** Removes a session while it has no turn, as the one made for a start that never landed. */

@@ -9,7 +9,6 @@ import { addPreview, fixtureRepo, temporaryFolder } from "uraeda-binding/test-ut
 import { type GroupsFile, startTime } from "../preview/groups.ts";
 import { removeOldRunFiles, runFolder } from "../run-folder.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { runtimesOf } from "../runner/runtimes.ts";
 import { startServer } from "../server.ts";
 import { writeHostToken } from "../sign-in/host.ts";
 import { testSettings } from "../testing.ts";
@@ -29,13 +28,13 @@ const DATA = [
 /** A server with sign-in on the data folder, in `repo`, on port 4310, stopped after the test. */
 async function start(repo: string, dataDir: string) {
   const server = await startServer({
+    agents: { fake: new FakeAdapter() },
     allowOrigins: [],
     binding,
     dataDir,
     given: false,
     port: 4310,
     repo,
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     settings: await testSettings(),
   });
   onTestFinished(() => server.stop());

@@ -4,6 +4,8 @@ import { attach } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { rewritten } from "./fate/select.ts";
+import { extensionRoutes } from "./extensions/routes.ts";
+import type { ExtensionsHost } from "./extensions/server.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
@@ -31,6 +33,12 @@ type AppOptions = {
   allowOrigins: Array<string>;
   binding: Binding;
   dataDir: string;
+  /**
+   * The extensions, whose routes and records the app serves: without them, as in some tests, the
+   * `Extensions` record reads the core, no extension's route answers, and a feature's turn that
+   * ends done still starts its Storybook, which the `previews` built-in does otherwise.
+   */
+  extensions?: ExtensionsHost;
   /** The frame secret of preview and mockup paths: a new one by default. */
   frames?: FrameSecret;
   hosts: Hosts;
@@ -59,7 +67,17 @@ type App = Hono<{ Variables: FateVariables }>;
  */
 function hostedRoutes(
   app: App,
-  { binding, dataDir, hosts, lockedList, previews, sessions, settings, themes }: AppOptions,
+  {
+    binding,
+    dataDir,
+    extensions,
+    hosts,
+    lockedList,
+    previews,
+    sessions,
+    settings,
+    themes,
+  }: AppOptions,
   frames: FrameSecret,
 ) {
   const hosted = async (context: Context, next: Next) => {
@@ -74,6 +92,7 @@ function hostedRoutes(
     context.set("fate", {
       binding,
       dataDir,
+      extensions,
       frames,
       hosts,
       lockedList,
@@ -141,7 +160,8 @@ const timed = async (context: Context, next: Next) => {
  * Answers but mockups' and Storybooks' refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
-  const { allowOrigins, binding, dataDir, hosts, lockedList, port, previews, sessions } = options;
+  const { allowOrigins, binding, dataDir, extensions, hosts, lockedList, port } = options;
+  const { previews, sessions } = options;
   const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
@@ -169,6 +189,7 @@ export function createApp(options: AppOptions) {
     context.set("fate", {
       binding,
       dataDir,
+      extensions,
       frames,
       hosts,
       lockedList,
@@ -182,22 +203,15 @@ export function createApp(options: AppOptions) {
   });
   hostedRoutes(app, options, frames);
   fateRoutes(app, hosts);
-  // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
-  onTurnDone(sessions, (repo, folder) => {
-    const ctx = {
-      binding,
-      dataDir,
-      frames,
-      hosts,
-      lockedList,
-      previews,
-      repo,
-      sessions,
-      settings,
-      themes,
-    };
-    warmPreview(ctx, folder).catch(() => {});
-  });
+  if (extensions) {
+    extensionRoutes(app, extensions, hosts);
+  } else {
+    // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
+    onTurnDone(sessions, (repo, folder) => {
+      const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions };
+      warmPreview({ ...ctx, settings, themes }, folder).catch(() => {});
+    });
+  }
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */
   const moved = (context: Context) => {
     const host = hosts.mostRecent();

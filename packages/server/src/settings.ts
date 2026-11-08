@@ -236,6 +236,7 @@ export class ServerSettings {
   readonly #given: RunValues;
   #view: SettingsView;
   #listeners = new Set<() => void>();
+  #readers = new Set<() => void>();
   #reloading: Promise<void> = Promise.resolve();
   #watch?: FileWatch;
   #timer?: ReturnType<typeof setTimeout>;
@@ -294,6 +295,15 @@ export class ServerSettings {
   }
 
   /**
+   * Calls `listener` after each read of the file, changed or not, as the extensions' tables are
+   * read apart from the values here; returns its removal.
+   */
+  onRead(listener: () => void): () => void {
+    this.#readers.add(listener);
+    return () => this.#readers.delete(listener);
+  }
+
+  /**
    * Reads the file again, after any read in progress. A file that cannot be read gives the
    * defaults, and its problem is printed once, until it changes.
    */
@@ -332,13 +342,14 @@ export class ServerSettings {
     // its sets only on a change.
     if (JSON.stringify([view, problem]) !== before) {
       this.#view = view;
-      this.#tell();
+      this.#tell(this.#listeners);
     }
+    this.#tell(this.#readers);
   }
 
   /** Calls each listener: one that throws is printed, and the others are still called. */
-  #tell(): void {
-    for (const listener of this.#listeners) {
+  #tell(listeners: Set<() => void>): void {
+    for (const listener of listeners) {
       try {
         listener();
       } catch (error) {
@@ -353,5 +364,6 @@ export class ServerSettings {
     clearTimeout(this.#timer);
     this.#watch?.close();
     this.#listeners.clear();
+    this.#readers.clear();
   }
 }

@@ -302,3 +302,63 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an error from extension code whose stack is lost (a rejection with a string, a stack
   cut off) still exits; such code can be wrapped by the API that called it.
 - **Where**: task 7, `packages/server/src/extensions/faults.ts`, `evaluate.ts`, and `loader.ts`.
+
+## R30: A step reached is named by what waits
+
+- **Decision**: `step-reached`'s `step` is the step's name, like `plan`, except at a human gate,
+  where it is the kind of the file waiting for the human, like `spec`; the payload also gives
+  `waitsOn` (`human`, `agent`, or `nobody`), and an event goes when either changes. `turn-ended`
+  also gives the turn's `state` (`done`, `failed`, `stopped`), which the `previews` built-in needs
+  to warm only after a turn that ends done. `commit-landed` goes when the main checkout's `HEAD`
+  moves to another commit, with that `commit`, on a watcher change marked `git`.
+- **Rationale**: the spec's scenario names the step "spec" when a spec waits for the human, which
+  the core calls `human-gate`; `waitsOn` keeps that apart from the agent writing the spec.
+- **If wrong**: commits in a feature's worktree land no event until they reach the main checkout.
+- **Where**: task 8, `packages/server/src/extensions/events.ts`, `extension-api.ts`.
+
+## R31: The server takes agents, and its runtimes come from the built-ins
+
+- **Decision**: `startServer` and `devHandler` take `agents?: Record<string, Adapter>` instead of
+  `runtimes`. Without it, the built-in `claude` registers Claude Code with its `command` setting,
+  and `fake` registers nothing. With it, the built-ins `claude` and `fake` register the agent of
+  their name, or nothing, and a name no built-in has (the sandbox's `codex`) is registered as is, on
+  everywhere; runtimes are registered in `agents`' order, so new sessions take the first.
+- **Rationale**: tests, the screenshots, and the sandbox must never reach the real agent; the
+  sandbox's samples of three kinds still answer.
+- **Where**: task 8, `packages/server/src/extensions/builtins.ts`, `server.ts`.
+
+## R32: An app without an extensions host still works
+
+- **Decision**: `createApp`'s `extensions` and the fate context's are optional. Without them, as in
+  tests that build an app from hosts and sessions, the `Extensions` record is read from the core
+  (each one `on` or `off` by its `on` list), no extension's record or route answers, and the app
+  keeps warming a feature's Storybook as its turn ends done; `startServer` always gives one, and
+  there the `previews` built-in warms it.
+- **Rationale**: about a dozen test helpers build apps without starting a server; giving each a
+  loader would only slow them.
+- **Where**: task 8, `packages/server/src/app.ts`, `fate/extensions.ts`.
+
+## R33: A route without a method answers every method
+
+- **Decision**: `api.route(path, handler)` without a method answers every method; a path ending in
+  `/*` answers every path under it. A route answers globally with no repository, and under
+  `/r/<repo>/` only where its extension is on, else 404; a handler that throws answers 500.
+- **Where**: task 8, `packages/server/src/extensions/contributions.ts`, `routes.ts`.
+
+## R34: Built-ins register their server parts wherever they are on or off
+
+- **Decision**: the built-ins' server parts are registered at start, whatever their `on`; where a
+  built-in is off, its runtime reads off and its events are not delivered, through the same `on`
+  checks as yours. A change of a built-in's settings registers it again in a new scope, a runtime's
+  once its sessions' turns end, the row showing "waiting" meanwhile. A runtime's status is kept when
+  it is unregistered, and a runtime registered again under its name starts from it.
+- **Rationale**: turning Claude Code off in one repository must not unload it in the others; a
+  reloaded runtime is the same agent, and refusing sends as unavailable until the next check, up to
+  a minute, would break sessions for nothing.
+- **Where**: task 8, `packages/server/src/extensions/builtins.ts`, `runner/runtimes.ts`.
+
+## R35: Key clashes are the page's to fill in
+
+- **Decision**: the `Extensions` record's `keys` is an empty list from the server: keys are
+  registered in the page, which knows which extension took a key first (task 9).
+- **Where**: task 8, `packages/server/src/fate/extensions.ts`.

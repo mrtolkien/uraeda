@@ -13,7 +13,7 @@ import {
   atWorkOnDiscovery,
   atWorkOnRealistic,
   sandboxAgent,
-  sandboxRuntimes,
+  sandboxAgents,
 } from "./sandbox/agent.ts";
 import { sourceLocations } from "./sandbox/sourceLocations.ts";
 import { themeWatcher, uraedaServer } from "./vite.config.ts";
@@ -107,9 +107,9 @@ export function sandboxConfig({
       sandboxPage(),
       uraedaServer(
         {
+          agents: sandboxAgents(adapter),
           file: false,
           lockedList: true,
-          runtimes: sandboxRuntimes(adapter),
           signIn: false,
           started: (server) => {
             const repo = process.env.URAEDA_REPO ?? "";

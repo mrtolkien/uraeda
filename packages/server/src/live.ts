@@ -28,7 +28,7 @@ let sent = 0;
 const eventId = (topic: string) => `${topic}:${Date.now()}:${sent++}`;
 
 /** Sends a record's live update on a bus. */
-const sender = (bus: LiveBus) => (type: string, id: string) =>
+export const sender = (bus: LiveBus) => (type: string, id: string) =>
   bus.update(type, id, { eventId: eventId(`${type}:${id}`) });
 
 /**
@@ -297,6 +297,23 @@ export function onTurnDone(
   return () => listeners.delete(listener);
 }
 
+/** What each session manager calls with each of its changes: see `onSessionChange`. */
+const changeListeners = new WeakMap<Sessions, Set<(change: SessionChange) => void>>();
+
+/**
+ * Calls `listener` with each change of `sessions`, after its live updates: a listener that throws
+ * is printed, and the others are still called. Gives what stops the calls.
+ */
+export function onSessionChange(
+  sessions: Sessions,
+  listener: (change: SessionChange) => void,
+): () => void {
+  const listeners = changeListeners.get(sessions) ?? new Set();
+  changeListeners.set(sessions, listeners);
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /**
  * A session manager whose changes are sent as live updates, to the hosts of their repositories, and
  * whose features' turns that end done reach `onTurnDone`'s listeners. `runs` gives the continues'
@@ -318,6 +335,13 @@ export function createSessions(options: {
       // A session's status changes with its turn's state, which what needs the human reads.
       if (!("agent" in change) && (change.turn === undefined || change.state !== undefined)) {
         globalLive.update("NeedsYouList", NEEDS_YOU_ID, { eventId: eventId("needs-you") });
+      }
+      for (const listener of changeListeners.get(sessions) ?? []) {
+        try {
+          listener(change);
+        } catch (error) {
+          process.stderr.write(`uraeda: ${(error as Error).message}\n`);
+        }
       }
       if ("agent" in change || change.state !== "done" || change.folder === null) {
         return;
@@ -353,6 +377,16 @@ export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "a
       sender(bus)("Settings", SETTINGS_ID);
     }
   });
+}
+
+/**
+ * Sends a record's live update on the global bus and every host's: the `Extensions` record, which
+ * every endpoint serves.
+ */
+export function announceEverywhere(hosts: Pick<Hosts, "all">, type: string, id: string): void {
+  for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
+    sender(bus)(type, id);
+  }
 }
 
 /**

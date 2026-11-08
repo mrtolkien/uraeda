@@ -29,6 +29,11 @@ import { previewDataView, storyDataView, storyHrefDataView } from "./fate/previe
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
 import { themesDataView } from "./fate/themes.ts";
+import {
+  extensionActionDataView,
+  extensionRecordDataView,
+  extensionsDataView,
+} from "./fate/extensions.ts";
 import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
@@ -58,6 +63,9 @@ export {
   continuedAllDataView,
   proposalFileDataView,
   droppedDataView,
+  extensionActionDataView,
+  extensionRecordDataView,
+  extensionsDataView,
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
@@ -101,6 +109,7 @@ export {
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
 export { THEMES_ID } from "./fate/themes.ts";
+export { EXTENSIONS_ID } from "./fate/extensions.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
@@ -145,6 +154,12 @@ export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
 export type Themes = Entity<typeof themesDataView, "Themes">;
+/** Every extension, built in or yours, with its state, settings, and problems. */
+export type Extensions = Entity<typeof extensionsDataView, "Extensions">;
+/** An extension's named record, `<extension>/<name>`, its value as JSON. */
+export type ExtensionRecord = Entity<typeof extensionRecordDataView, "ExtensionRecord">;
+/** An extension's action's answer, its output as JSON. */
+export type ExtensionAction = Entity<typeof extensionActionDataView, "ExtensionAction">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
 /** The Git page, read at once, with whether an agent works in each checkout. */
@@ -189,6 +204,9 @@ export const Root = {
   ...Views,
   conflictFiles: list(conflictFileDataView),
   continuedAllList: list(continuedAllDataView),
+  extensionActions: list(extensionActionDataView),
+  extensionRecords: list(extensionRecordDataView),
+  extensionsList: list(extensionsDataView),
   gitCommits: list(gitCommitDataView),
   gitDiffs: list(gitDiffDataView),
   gitHistoryPages: list(gitHistoryPageDataView),
