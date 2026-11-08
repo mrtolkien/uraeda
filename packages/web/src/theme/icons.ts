@@ -178,6 +178,7 @@ const DECISION_ICONS = {
   package: packageIcon,
   palette,
   paperclip: attach,
+  plug,
   "refresh-cw": refreshCw,
   repeat,
   ruler,
