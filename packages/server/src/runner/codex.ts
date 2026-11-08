@@ -368,10 +368,12 @@ export class CodexAdapter implements Adapter {
     );
     let closing = false;
     const thread = this.#begin(server, options, names).then(
-      ({ defaultEffort, id }) => {
-        // The thread's ID reaches the transcript at its start, even when Codex does not report
-        // it, as on resume.
-        reader.read({ method: "thread/started", params: { thread: { id } } }).forEach(push);
+      ({ defaultEffort, id, model, reasoningEffort }) => {
+        // The thread's ID and what it runs on reach the transcript at its start, even when Codex
+        // does not report them, as on resume.
+        reader
+          .read({ method: "thread/started", params: { thread: { id, model, reasoningEffort } } })
+          .forEach(push);
         return { id, ...(defaultEffort === undefined ? {} : { defaultEffort }) };
       },
       (error) => {
@@ -421,7 +423,7 @@ export class CodexAdapter implements Adapter {
     { rpc, started }: AppServer,
     options: OpenOptions,
     names: Map<string, string>,
-  ): Promise<{ defaultEffort?: string; id: string }> {
+  ): Promise<{ defaultEffort?: string; id: string; model?: string; reasoningEffort?: string }> {
     await started;
     await rpc.request("skills/extraRoots/set", { extraRoots: this.#skillRoots(options) });
     // Without the names, what it runs on shows by IDs.
@@ -444,6 +446,15 @@ export class CodexAdapter implements Adapter {
       throw new Error(`${method} gave no thread`);
     }
     const defaultEffort = list?.defaults.effort;
-    return { id, ...(defaultEffort === undefined ? {} : { defaultEffort }) };
+    // What the thread runs on, from the answer: Codex sends no settings update on resume.
+    const ran = isJson(answer) ? answer : {};
+    const ranModel = textOf(ran.model);
+    const reasoningEffort = textOf(ran.reasoningEffort);
+    return {
+      id,
+      ...(defaultEffort === undefined ? {} : { defaultEffort }),
+      ...(ranModel === undefined ? {} : { model: ranModel }),
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    };
   }
 }

@@ -160,7 +160,10 @@ export class CodexEvents {
   readonly #names: (model: string) => string;
   #thread: string | undefined;
   #turn: string | undefined;
+  /** The effort the thread's settings name; none at the default. */
   #effort: string | undefined;
+  /** The effort Codex resolved the thread to at its start, the default's when none is named. */
+  #resolved: string | undefined;
   readonly #texts = new Map<string, string>();
   readonly #started = new Set<string>();
   /** The sub-agents' threads, by the tool call that spawned each. */
@@ -202,13 +205,17 @@ export class CodexEvents {
     return scope.parent === undefined ? this.#own(method, params) : [];
   }
 
-  /** The session's thread starting gives its ID; a sub-agent's thread gives none. */
+  /**
+   * The session's thread starting gives its ID, and what it runs on when it says: a resumed thread
+   * gets no settings update. A sub-agent's thread gives none.
+   */
   #threadStarted(thread: unknown): Array<AgentEvent> {
     if (!isObject(thread) || typeof thread.id !== "string" || thread.parentThreadId) {
       return [];
     }
     this.#thread = thread.id;
-    return [{ sessionId: thread.id, type: "init" }];
+    this.#resolved = text(thread.reasoningEffort) || this.#resolved;
+    return [{ sessionId: thread.id, type: "init" }, ...this.#runsOn(text(thread.model))];
   }
 
   /** A notification's thread: the session's own, or a sub-agent's under its call; any other, none. */
@@ -274,15 +281,17 @@ export class CodexEvents {
     }
   }
 
+  /** What the thread runs on: at the default effort, the one Codex resolved. */
   #runsOn(model: string): Array<AgentEvent> {
     if (model === "") {
       return [];
     }
+    const effort = this.#effort ?? this.#resolved;
     return [
       {
         model: this.#names(model),
         type: "runsOn",
-        ...(this.#effort === undefined ? {} : { effort: effortName(this.#effort) }),
+        ...(effort === undefined ? {} : { effort: effortName(effort) }),
       },
     ];
   }
