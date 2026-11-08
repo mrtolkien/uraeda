@@ -150,12 +150,16 @@ export class CodexTurns {
     const params = this.#deps.turnParams(message, thread.id, this.#turnEffort());
     this.#deps.rpc.request("turn/start", params).then(
       (answer) => {
-        if (started !== this.#started || !this.#running) {
+        if (started !== this.#started) {
+          return;
+        }
+        // Codex took the message, even when its turn already completed before this answer.
+        this.#deps.push({ id: message.id, type: "accepted" });
+        if (!this.#running) {
           return;
         }
         const turn = isJson(answer) && isJson(answer.turn) ? answer.turn : {};
         this.#turnId = typeof turn.id === "string" ? turn.id : undefined;
-        this.#deps.push({ id: message.id, type: "accepted" });
         if (this.#stop) {
           this.#stop = false;
           this.interrupt();

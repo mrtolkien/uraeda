@@ -233,6 +233,21 @@ test("a thread never given an effort sends none", async () => {
   expect(turnEfforts(dir)).toEqual([undefined, undefined]);
 });
 
+test("a turn that completes before its start is answered still accepts its message", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const command = appServer(dir, { completesFirst: true });
+  const agent = new CodexAdapter({ command, pluginDir: "/p" }).open({ ...open, cwd: dir });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  expect(await until(events, "accepted")).toMatchObject([
+    { type: "init" },
+    { ok: true, type: "result" },
+    { id: "m1", type: "accepted" },
+  ]);
+  agent.close();
+  await until(events, "exit");
+});
+
 test("a resumed thread reports its ID, and a stopped turn ends interrupted", async () => {
   const dir = temporaryFolder("uraeda-codex");
   const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
