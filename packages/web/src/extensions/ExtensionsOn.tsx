@@ -11,10 +11,12 @@ import { type IsOn, IsOnContext } from "./useContributions.ts";
 type Row = { name: string; on: ReadonlyArray<string>; onAll: boolean };
 
 /**
- * Whether each extension is on in `repository`, by its row: on everywhere, or there by name. One
- * without a row, as Sessions, which is no extension, is always on; a row named `sessions`, which
- * the core refuses, is never read. Until the rows are read, the built-ins are on and yours off, so
- * that none of yours flashes in a repository it is off in.
+ * Whether each extension is on in `repository`, by its row: on everywhere, or there by name. Every
+ * built-in has a row but Sessions, which is no extension and is always on; a row named `sessions`,
+ * which the core refuses, is never read. One of yours without a row, removed, is off. Until the
+ * rows are read, the built-ins are on and yours off, so that none of yours flashes in a repository
+ * it is off in. The server reads an unknown name otherwise: off for records, actions, routes, and
+ * events (`ExtensionsHost.isOn`), and on for a runtime, an agent it was given that no built-in has.
  */
 export function isOnIn(rows: ReadonlyArray<Row> | undefined, repository: string): IsOn {
   if (!rows) {
@@ -25,7 +27,7 @@ export function isOnIn(rows: ReadonlyArray<Row> | undefined, repository: string)
   );
   return (name) => {
     const row = byName.get(name);
-    return !row || row.onAll || row.on.includes(repository);
+    return row ? row.onAll || row.on.includes(repository) : name === "sessions";
   };
 }
 
