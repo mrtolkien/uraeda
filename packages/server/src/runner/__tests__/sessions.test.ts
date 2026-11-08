@@ -1504,6 +1504,21 @@ test("a new agent session's own ID is adopted, not read as a clear", async () =>
   expect(texts()).toContain(CLEARED);
 });
 
+test("a new process's empty init leaves the ID to adopt to the next one", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.autoInit = false;
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+
+  adapter.emit({ sessionId: "", type: "init" });
+  adapter.emit({ sessionId: "thread-1", type: "init" });
+  await flush();
+
+  expect(cache.session(session.id)?.nativeId).toBe("thread-1");
+  const texts = cache.items(turn, 0, 20).map((item) => "text" in item && item.text);
+  expect(texts).not.toContain(CLEARED);
+});
+
 test("a resumed process's new ID is a clear, never adopted", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
