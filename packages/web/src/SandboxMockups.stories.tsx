@@ -1,4 +1,4 @@
-// Mockups of agent sandboxes (`specs/2026-11-08-nix-docker/spec.md`): the Sandboxes section of the
+// Mockups of agent sandboxes (`specs/proposals/nix-docker/spec.md`): the Sandboxes section of the
 // settings, a feature's first start in a sandbox, a session's sandbox mark and a blocked host, a
 // session refused without its sandbox, a feature started before sandboxing, and a chat's choice.
 // Built from Astryx and the app's own rows over fixed text, with no server: the stories show the
