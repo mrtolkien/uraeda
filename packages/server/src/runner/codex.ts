@@ -13,6 +13,7 @@ import type {
 } from "./adapter.ts";
 import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
+import { appliedProblem } from "./codex-permissions.ts";
 import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
@@ -442,6 +443,11 @@ export class CodexAdapter implements Adapter {
     const id = isJson(answer) && isJson(answer.thread) ? textOf(answer.thread.id) : undefined;
     if (id === undefined) {
       throw new Error(`${method} gave no thread`);
+    }
+    // Codex's settings could still widen what it was asked for: it runs only as asked (R21).
+    const problem = appliedProblem(answer);
+    if (problem !== undefined) {
+      throw new Error(problem);
     }
     const defaultEffort = list?.defaults.effort;
     // What the thread runs on, from the answer: Codex sends no settings update on resume.
