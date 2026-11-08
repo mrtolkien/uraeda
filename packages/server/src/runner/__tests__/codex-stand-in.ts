@@ -64,8 +64,11 @@ export const APPLIED = {
   },
 };
 
-/** How a stand-in differs from Codex: the permissions its thread's answers say it applied. */
-export type StandIn = { applied?: Record<string, unknown> };
+/**
+ * How a stand-in differs from Codex: the permissions its thread's answers say it applied, and a
+ * method it never answers.
+ */
+export type StandIn = { applied?: Record<string, unknown>; hang?: string };
 
 /**
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
@@ -93,6 +96,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
   const message = JSON.parse(line);
   const ok = (result) => out({ id: message.id, result });
   const { params } = message;
+  if (message.method === ${JSON.stringify(options.hang ?? null)}) return;
   switch (message.method) {
     case undefined:
       if (message.id === "ask-1") complete(waiting, "completed");

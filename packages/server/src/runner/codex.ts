@@ -30,6 +30,8 @@ import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 const VERSION_TIMEOUT_MS = 5000;
 /** The short process that lists the models gives up after this long. */
 const MODELS_TIMEOUT_MS = 10_000;
+/** A process's start, from `initialize` to its thread started or resumed, gives up after this long. */
+export const START_TIMEOUT_MS = 60_000;
 /** `model/list` pages read at most, should Codex never stop giving a cursor. */
 const MAX_PAGES = 50;
 
@@ -239,6 +241,8 @@ export type CodexAdapterOptions = {
   extensions?: ExtensionPaths;
   /** The plugin folder that holds the Uraeda skill, `layout().plugin` in the server. */
   pluginDir: string;
+  /** How long a process's start may take, `START_TIMEOUT_MS` by default: tests shorten it. */
+  startTimeoutMs?: number;
 };
 
 /** Codex, one `codex app-server` per open session. */
@@ -258,17 +262,20 @@ export class CodexAdapter implements Adapter {
   #codexHome: string;
   #extensions: ExtensionPaths | undefined;
   #pluginDir: string;
+  #startTimeoutMs: number;
 
   constructor({
     codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex"),
     command = "codex",
     extensions,
     pluginDir,
+    startTimeoutMs = START_TIMEOUT_MS,
   }: CodexAdapterOptions) {
     this.#codexHome = codexHome;
     this.#command = command;
     this.#extensions = extensions;
     this.#pluginDir = pluginDir;
+    this.#startTimeoutMs = startTimeoutMs;
   }
 
   version(): Promise<string | undefined> {
@@ -371,7 +378,7 @@ export class CodexAdapter implements Adapter {
       },
     );
     let closing = false;
-    const thread = this.#begin(server, options, names).then(
+    const thread = this.#bounded(server, this.#begin(server, options, names)).then(
       ({ defaultEffort, id, model, reasoningEffort }) => {
         // The thread's ID and what it runs on reach the transcript at its start, even when Codex
         // does not report them, as on resume.
@@ -416,6 +423,21 @@ export class CodexAdapter implements Adapter {
       setEffort: (effort) => turns.setEffort(effort),
       takeBack: (id) => turns.takeBack(id),
     };
+  }
+
+  /**
+   * `start`, rejected once it took longer than the start may take, the process then killed: a
+   * Codex that never answers fails the turn instead of holding it.
+   */
+  #bounded<T>(server: AppServer, start: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`Codex did not answer within ${this.#startTimeoutMs / 1000} seconds`));
+        server.signal("SIGKILL");
+      }, this.#startTimeoutMs);
+    });
+    return Promise.race([start, late]).finally(() => clearTimeout(timer));
   }
 
   /**
