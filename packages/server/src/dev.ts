@@ -111,9 +111,9 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
 /**
  * A Connect middleware serving the server's routes, on the server `startServer` starts with the
  * first request to its port, in the repository of the settings read then, with its own settings
- * of the config folder, closed as it stops, on Claude Code unless
- * `agents` says otherwise (see `startServer`), from `.env` too unless `file` is false. `allowOrigins` gives the
- * origins the server of a port allows besides its own, none by default. `lockedList` locks the
+ * of the config folder, closed as it stops, on Claude Code unless `agents` says otherwise (see
+ * `startServer`), from `.env` too unless `file` is false. `allowOrigins` gives the origins the
+ * server of a port allows besides its own, none by default. `lockedList` locks the
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
  * `signIn` is false, as for the screenshot scripts and Uraeda's own Storybook; a key the start
  * makes is printed, as `uraeda` prints it. `started` is called with the server once it has
