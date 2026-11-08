@@ -38,6 +38,10 @@
   - This is early because it will help us develop the rest
 
 - Proper security: Passkeys to sign in, on top of the access key of basic security
+- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
+  effort per step, review options, global defaults with per-feature overrides
+- [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
+  dependencies upgrade and performance pass
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
   repos and not in a monorepo
@@ -65,8 +69,6 @@
   - Generally more user-level customization, with good presets
 
 - ?Slack integration?
-- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
-  effort per step, review options, global defaults with per-feature overrides
 - Add a repository from the web UI by running `git init` in a folder outside git, or by cloning a
   URL
 - Multi-users management
@@ -77,6 +79,3 @@
 - eink mode?
 
 ## Blocked
-
-- [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
-  dependencies upgrade and performance pass
