@@ -10,7 +10,7 @@ import {
   codexThreadParams,
   codexTurnParams,
 } from "../codex.ts";
-import { appServer, CONFIG, message, PAGES, until, written } from "./codex-stand-in.ts";
+import { APPLIED, appServer, CONFIG, message, PAGES, until, written } from "./codex-stand-in.ts";
 
 const open: OpenOptions = { cwd: "/w", nativeId: "id", resume: false, skills: [] };
 const turn = { images: [], text: "Hi", threadId: "t" };
@@ -208,3 +208,34 @@ test("models() lists every page through a short process, which it closes", async
   const missing = new CodexAdapter({ command: join(dir, "nothing"), pluginDir: "/p" });
   await expect(missing.models()).rejects.toThrow();
 });
+
+test.each<[string, Record<string, unknown>, boolean, string]>([
+  ["a wider sandbox", { sandbox: { type: "dangerFullAccess" } }, false, "danger-full-access"],
+  [
+    "the network on",
+    { sandbox: { ...APPLIED.sandbox, networkAccess: true } },
+    false,
+    "the network on",
+  ],
+  ["approvals never asked, on resume", { approvalPolicy: "never" }, true, "approval policy never"],
+  ["the human as reviewer", { approvalsReviewer: "user" }, false, "the reviewer user"],
+])(
+  "a thread Codex applied other permissions to does not run: %s",
+  async (_, applied, resume, named) => {
+    const dir = temporaryFolder("uraeda-codex");
+    const agent = new CodexAdapter({ command: appServer(dir, { applied }), pluginDir: "/p" }).open({
+      ...open,
+      cwd: dir,
+      resume,
+    });
+    const events = agent.events[Symbol.asyncIterator]();
+    agent.send(message("m1", "Hi"));
+    const [init] = await until(events, "init");
+    expect(init).toMatchObject({ sessionId: "", type: "init" });
+    expect(init).toHaveProperty("problem", expect.stringContaining(named));
+    expect(init).toHaveProperty("problem", expect.stringContaining("Uraeda does not run it"));
+    agent.close();
+    await until(events, "exit");
+    expect(written(dir).some((line) => line.method === "turn/start")).toBe(false);
+  },
+);

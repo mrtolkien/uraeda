@@ -51,19 +51,37 @@ export const PAGES = [
 ];
 export const CONFIG = { config: { model: "gpt-6-luna", model_reasoning_effort: "high" } };
 
+/** The permissions Codex 0.163.0 says it applied, in its `thread/start` and `thread/resume` answers. */
+export const APPLIED = {
+  approvalPolicy: "on-request",
+  approvalsReviewer: "auto_review",
+  sandbox: {
+    excludeSlashTmp: false,
+    excludeTmpdirEnvVar: false,
+    networkAccess: false,
+    type: "workspaceWrite",
+    writableRoots: [],
+  },
+};
+
+/** How a stand-in differs from Codex: the permissions its thread's answers say it applied. */
+export type StandIn = { applied?: Record<string, unknown> };
+
 /**
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
  * as Codex 0.163.0 does, from `PAGES` and `CONFIG`. A turn whose text says `ask` sends the client
  * a question and completes once answered; one that says `wait` completes when steered; any other
- * completes at once. It writes what it read to `<dir>/stdin`.
+ * completes at once. It writes what it read to `<dir>/stdin`. Its thread's answers say it applied
+ * the permissions Uraeda asks for, or what `options.applied` says.
  */
-export function appServer(dir: string): string {
+export function appServer(dir: string, options: StandIn = {}): string {
   const agent = join(dir, "agent.cjs");
   writeFileSync(
     agent,
     `const { appendFileSync } = require("node:fs");
 const pages = ${JSON.stringify(PAGES)};
 const config = ${JSON.stringify(CONFIG)};
+const applied = ${JSON.stringify({ ...APPLIED, ...options.applied })};
 const out = (message) => process.stdout.write(JSON.stringify(message) + "\\n");
 let turns = 0;
 let threadId = "t-1";
@@ -81,10 +99,10 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
       return;
     case "model/list": return ok(pages[params.cursor === "2" ? 1 : 0]);
     case "config/read": return ok(config);
-    case "thread/start": ok({ thread: { id: "t-1" } }); return note("thread/started", { thread: { id: "t-1" } });
+    case "thread/start": ok({ ...applied, thread: { id: "t-1" } }); return note("thread/started", { thread: { id: "t-1" } });
     case "thread/resume":
       threadId = params.threadId;
-      return ok({ model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
+      return ok({ ...applied, model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
     case "turn/start": {
       const id = "turn-" + ++turns;
       ok({ turn: { id } });
