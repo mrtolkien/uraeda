@@ -8,6 +8,7 @@
 
 - [Codex runtime + model settings](/specs/2026-11-08-codex-runtime/proposal.md)
 - [Run options: one session per feature or per step, model and effort per step, review options, global defaults with per-feature overrides](/specs/2026-11-08-run-options/proposal.md)
+- [Agents fix merge conflicts on open pull requests on their own, triggered by pulling main after a merge](/specs/2026-11-08-agents-fix/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
@@ -15,8 +16,6 @@
 - Review and improve personas: describe workflows, habits, ...
 - [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
   dependencies upgrade and performance pass
-- Agents fix merge conflicts on open pull requests on their own, triggered by pulling main after a
-  merge
 
 ## Next
 
