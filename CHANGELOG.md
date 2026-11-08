@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.2.0 - Themes + UI coherence pass
+
+Released on 2026-11-08.
+
+### Features
+
+- **[Color themes](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-color-themes.md)**
+  ([#109](https://github.com/mrtolkien/uraeda/pull/109)): The web UI had one colour scheme,
+  Catppuccin, Mocha or Latte. The human asked for a simple pick among the classic open source colour
+  themes, split into light and dark, "a bit of customization" in a tool read for hours. Two demands
+  came with it: a clean architecture, where every theme is typed with clear colour names (surfaces,
+  heading levels), and room to grow, a user writing a theme of their own in a config file.
+- **[Global undo](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-global-undo.md)**
+  ([#108](https://github.com/mrtolkien/uraeda/pull/108)): Each page of the web UI decided on its own
+  whether an action had an Undo for 5 seconds, a question, or neither: the same delete asked on one
+  page and not on another, and some actions lost typed text without a word. The human asked for one
+  undo stack for the whole UI, `u` to undo as in Neovim and `U` to redo, and a plain line between
+  what can and cannot be undone. The web UI now keeps one stack of the human's edits per tab, and
+  the new [Undo](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/decisions/undo.md) decision
+  sets the rule every future write follows.
+- **[Keyboard nav in questions and specs](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-keyboard-nav.md)**
+  ([#106](https://github.com/mrtolkien/uraeda/pull/106)): The spec and plan reviews and the rounds
+  of questions, the pages read most, still needed the mouse or a long run of Tab to reach a block,
+  comment on it, or pick an option. The human asked that no action there need the mouse: blocks
+  selected with keys as a list's rows, a question's option picked by its letter, in a layer kept
+  small, accepting that letters change meaning by context.
+- **[Faster Storybook previews](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-storybook-previews.md)**
+  ([#107](https://github.com/mrtolkien/uraeda/pull/107)): Story previews in rounds, specs, and
+  sessions took 10 seconds or more to appear. Most of the wait was a cold start: each branch's
+  Storybook restarted at every commit, the human's submitted answers included, and stopped 30
+  minutes after its last view, while the human read a round hours later. The feature keeps one live
+  Storybook per branch, restarts it less, keeps it up while something waits for review, and compiles
+  a story before showing it.
+
+### Changes
+
+- **[Code in the editor uses the code font, prose the UI font](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-05-code-editor.md)**
+  ([#98](https://github.com/mrtolkien/uraeda/pull/98)): The web UI's editor drew all of a field's
+  markdown in the code font, so code did not stand apart from prose. Code now takes the code font
+  and headings the heading font, the rest a font of its own, "Markdown prose", which the "Your
+  messages" font role became. It covers markdown shown as its source as the human writes it: the
+  text typed in every field, and the human's messages in a session. The agent's replies stay in the
+  reading font, the prose of long documents. The font roles are now: the interface, prose in long
+  documents, markdown prose, headings, and code.
+- **[A swipe on a sheet's handle closes it, or takes it to the whole screen](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-drag-handles.md)**
+  ([#104](https://github.com/mrtolkien/uraeda/pull/104)): On the phone, the drag handle of a bottom
+  sheet, such as the session's sheet on a round of questions, did nothing: a swipe down sprang back.
+  A swipe down on it now closes the sheet, and a swipe up takes it to the whole screen.
+- **[The git "changes" counter should only count changes on main](https://github.com/mrtolkien/uraeda/blob/v1.2.0/specs/done/2026-11-07-git-changes.md)**
+  ([#105](https://github.com/mrtolkien/uraeda/pull/105)): Git, in the sidebar and in the phone's
+  tabs, counted the changed files of every feature's worktree with the main checkout's, so it showed
+  edits that wait on each feature's own branch as if they were waiting on main. It now counts the
+  main checkout's changes alone. On the Git page, a worktree's changes are set apart from the main
+  checkout's, and clearly marked as a worktree's.
+
 ## 1.1.0 - 2026-11-05
 
 ### Features
