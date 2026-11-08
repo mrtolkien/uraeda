@@ -66,12 +66,13 @@ export const APPLIED = {
 };
 
 /**
- * How a stand-in differs from Codex: the permissions its thread's answers say it applied, and a
- * method it never answers, one it refuses, and whether it outlives SIGTERM and the end of its
- * stdin, writing its pid to `<dir>/pid`.
+ * How a stand-in differs from Codex: the permissions its thread's answers say it applied, whether
+ * a turn completes before `turn/start` is answered, a method it never answers, one it refuses, and
+ * whether it outlives SIGTERM and the end of its stdin, writing its pid to `<dir>/pid`.
  */
 export type StandIn = {
   applied?: Record<string, unknown>;
+  completesFirst?: boolean;
   hang?: string;
   refuse?: string;
   stubborn?: boolean;
@@ -123,6 +124,11 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
       return ok({ ...applied, model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
     case "turn/start": {
       const id = "turn-" + ++turns;
+      if (${options.completesFirst === true}) {
+        note("turn/started", { threadId, turn: { id } });
+        complete(id, "completed");
+        return ok({ turn: { id } });
+      }
       ok({ turn: { id } });
       note("turn/started", { threadId, turn: { id } });
       const text = params.input[0].text;
