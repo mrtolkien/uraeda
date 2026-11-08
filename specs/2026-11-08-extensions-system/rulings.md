@@ -279,7 +279,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   timeout, and would hang the server. Only a synchronous activation can be stopped, and refusing a
   promise also removes the window in which a version removed or closed during the wait was kept.
 - **If wrong**: async work starts from a callback the activation registers, or from a scoped timer
-  ([R28](#r28-late-throws-break-only-their-extension)).
+  ([R29](#r29-late-throws-break-only-their-extension)).
 - **Where**: task 7, `packages/server/src/extensions/evaluate.ts` and `loader.ts`.
 
 ## R29: Late throws break only their extension
