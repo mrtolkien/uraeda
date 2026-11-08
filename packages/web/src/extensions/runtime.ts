@@ -19,6 +19,8 @@ export type PageDeps = {
   registry: Registry;
   /** Reports a problem the page of the extension met at a version, to the settings page. */
   report: (name: string, version: number, message: string) => void;
+  /** The modules a page imports by name: the app's own by default. */
+  shared?: () => Promise<SharedModules>;
 };
 
 /** The version of each extension's page that is wanted, and the one registered. */
@@ -95,7 +97,10 @@ function unload(name: string, registry: Registry) {
   pages.delete(name);
 }
 
-/** Evaluates `bundle` and registers it, the extension's old version undone first. */
+/**
+ * Evaluates `bundle` and registers it, the extension's old version undone first. The row's version
+ * stays the one wanted: the bundle's may be newer.
+ */
 function activate(row: PageRow, bundle: PageBundle, shared: SharedModules, deps: PageDeps) {
   const { name, title } = row;
   const { version } = bundle;
@@ -106,7 +111,7 @@ function activate(row: PageRow, bundle: PageBundle, shared: SharedModules, deps:
     pageActivation(bundle, shared)(guardedApi(api, { name, report, title, version }));
   } catch (error) {
     api.remove();
-    pages.set(name, { registered: version, wanted: version });
+    pages.set(name, { registered: version, wanted: row.pageVersion! });
     report(messageOf(error));
     return;
   }
@@ -114,7 +119,17 @@ function activate(row: PageRow, bundle: PageBundle, shared: SharedModules, deps:
   style.dataset.extension = name;
   style.textContent = bundle.css;
   document.head.append(style);
-  pages.set(name, { registered: version, style, wanted: version });
+  pages.set(name, { registered: version, style, wanted: row.pageVersion! });
+}
+
+/** Gives up the fetch of the version wanted: the next sync asks for it again. */
+function forget(name: string) {
+  const page = pages.get(name);
+  if (page?.registered === undefined) {
+    pages.delete(name);
+  } else {
+    pages.set(name, { ...page, wanted: page.registered });
+  }
 }
 
 /** Fetches the extension's page and registers it, unless another version is wanted meanwhile. */
@@ -126,7 +141,7 @@ async function load(row: PageRow, deps: PageDeps, wanted: number) {
     const path = `/extensions/${encodeURIComponent(row.name)}/page`;
     const [response, modules] = await Promise.all([
       deps.fetch(path, { cache: "no-store" }),
-      sharedModules(),
+      (deps.shared ?? sharedModules)(),
     ]);
     if (!response.ok) {
       throw new Error(`its page could not be fetched: ${response.status}`);
@@ -135,6 +150,7 @@ async function load(row: PageRow, deps: PageDeps, wanted: number) {
     shared = modules;
   } catch (error) {
     if (isWanted()) {
+      forget(row.name);
       deps.report(row.name, wanted, messageOf(error));
     }
     return;
@@ -160,8 +176,14 @@ export function syncPages(rows: ReadonlyArray<PageRow>, deps: PageDeps): void {
   for (const [name, row] of withPage) {
     const page = pages.get(name);
     const version = row.pageVersion!;
-    // A bundle fetched may be newer than the record that asked for it: never older.
-    if (page !== undefined && (page.wanted >= version || (page.registered ?? 0) >= version)) {
+    // Any other version is fetched, an older one too: versions start again at 1 after the
+    // server restarts, or the extension is removed and added again.
+    if (page?.wanted === version) {
+      continue;
+    }
+    if (page?.registered === version) {
+      // Back to the version registered: a fetch on its way is dropped.
+      pages.set(name, { ...page, wanted: version });
       continue;
     }
     pages.set(name, { ...page, wanted: version });
