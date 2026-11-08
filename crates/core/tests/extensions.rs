@@ -426,3 +426,54 @@ fn a_list_default_holds_strings() {
         )
     );
 }
+
+#[test]
+fn ura_source_records_where_it_came_from() {
+    let dir = tempdir();
+    let config = dir.path();
+    let source = "url = \"https://example.com/wiki.git\"\ncommit = \"abc123\"\nref = \"main\"\n";
+    extension(
+        config,
+        "wiki",
+        WIKI,
+        &[("page.tsx", ""), (".ura-source", source)],
+    );
+    let broken = WIKI.replacen("\"wiki\"", "\"notes\"", 1);
+    let half = "url = \"https://example.com/notes.git\"\n";
+    extension(
+        config,
+        "notes",
+        &broken,
+        &[("page.tsx", ""), (".ura-source", half)],
+    );
+    let read = extensions::read(config);
+
+    let wiki = find(&read, "wiki");
+    assert!(!wiki.is_linked && wiki.problems.is_empty(), "{wiki:?}");
+    let found = wiki.source.as_ref().expect("a source");
+    assert_eq!(
+        (
+            found.url.as_str(),
+            found.commit.as_str(),
+            found.git_ref.as_str()
+        ),
+        ("https://example.com/wiki.git", "abc123", "main")
+    );
+
+    let notes = find(&read, "notes");
+    assert!(!notes.is_linked && notes.source.is_none(), "{notes:?}");
+    assert_eq!(notes.problems.len(), 1, "{:?}", notes.problems);
+    let problem = &notes.problems[0];
+    assert_eq!(
+        (
+            problem.file.as_str(),
+            problem.message.as_str(),
+            problem.is_fatal
+        ),
+        (
+            ".ura-source",
+            ".ura-source needs a url, a commit, and a ref",
+            false
+        )
+    );
+}
