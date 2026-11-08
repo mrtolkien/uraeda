@@ -5,8 +5,10 @@ import { Button } from "@astryxdesign/core/Button";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
+import { refusal } from "../errors.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { useRepository } from "../routes.tsx";
+import { withOn } from "../settings/extensions.ts";
 import { useExtensionsRecord } from "../settings/useExtensionsRecord.ts";
 import { ExtensionsRecordView } from "../views.ts";
 
@@ -14,16 +16,25 @@ import { ExtensionsRecordView } from "../views.ts";
 export function OffPage({ name }: { name: string }) {
   const fate = useFateClient();
   const repository = useRepository();
-  const row = useExtensionsRecord()?.extensions.find((one) => one.name === name);
+  const record = useExtensionsRecord();
+  const row = record?.extensions.find((one) => one.name === name);
   const [error, setError] = useState<string>();
   const [isTurning, setTurning] = useState(false);
   const turnOn = async () => {
     setTurning(true);
     try {
-      await fate.mutations.extensions.setOn({
-        input: { name, on: [...(row?.on ?? []), repository] },
+      const on = [...(row?.on ?? []), repository];
+      // Drawn at once, as the settings page draws a switch: the page comes back with the record.
+      const { error } = await fate.mutations.extensions.setOn({
+        input: { name, on },
+        ...(record && {
+          optimistic: { extensions: withOn(record.extensions, name, on), id: record.id },
+        }),
         view: ExtensionsRecordView,
       });
+      if (error) {
+        setError(refusal(error).message);
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {

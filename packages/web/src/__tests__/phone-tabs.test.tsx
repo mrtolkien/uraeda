@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
+import { phoneTabs } from "../shell/Tabs.tsx";
 import { atRepo, atWidth, fixtureRepo, quiet, renderPage } from "./helpers.tsx";
 
 beforeEach(() => atWidth(375));
@@ -71,4 +72,27 @@ test("Git is a tab with nothing to commit, without a count", async () => {
   const git = within(tabs).getByRole("link", { name: "Git" });
   expect(git.getAttribute("aria-current")).toBe("page");
   expect(git.querySelector("[data-tab-count]")).toBeNull();
+});
+
+/** A place asking for a tab on the bar or in the `…`. */
+const place = (id: string, phoneTab: "bar" | "more") => ({
+  component: () => null,
+  icon: "uraeda:list" as const,
+  id,
+  phoneTab,
+  title: id,
+});
+
+// Break: every place of yours asking for the bar drawn on it, past the phone's width.
+test("places beyond the bar's room go into the …, before those asking for it", () => {
+  const builtIns = ["inbox", "priorities", "sessions", "git"].map((id) => place(id, "bar"));
+  const { bar, more } = phoneTabs([
+    ...builtIns,
+    place("decisions", "more"),
+    place("deploy", "bar"),
+  ]);
+  expect(bar.map((one) => one.id)).toEqual(["inbox", "priorities", "sessions", "git"]);
+  expect(more.map((one) => one.id)).toEqual(["deploy", "decisions"]);
+  // The inbox off here: yours takes its tab.
+  expect(phoneTabs([...builtIns.slice(1), place("deploy", "bar")]).bar.at(-1)?.id).toBe("deploy");
 });

@@ -4,7 +4,7 @@
 // columns as well, the home panes of the extensions on here (`home/panes.tsx`): the inbox's latest
 // notes with what is done under them, and the priorities now with the usage. From semi-wide, two columns; on the phone, one, in the same order. While Continue
 // all's preview is on, the widgets are dimmed with the cards it leaves alone.
-import { type FocusEvent, Fragment, type ReactNode, useRef, useState } from "react";
+import { type FocusEvent, Fragment, type ReactNode, useMemo, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { WorkList, type WorkSection } from "../lists/WorkList.tsx";
@@ -102,12 +102,15 @@ function readPane(pane: HomePane, next: (section: WorkSection) => ReactNode): Re
 }
 
 /**
- * The panes of the extensions on here, the built-ins' first, the inbox's and the priorities' now,
- * as the same cards side by side as the columns of one list, so that `h l` moves between them as it
+ * The panes of the extensions on here, by their column, the built-ins' first in each, the inbox's
+ * and the priorities' now, as the same cards side by side as the columns of one list, so that `h l` moves between them as it
  * does on the priorities page.
  */
 function Lists(props: ListsProps) {
-  const panes = useContributions("homePane");
+  const contributed = useContributions("homePane");
+  // Drawn left to right by their column, then in their order, so that a pane's place in the row is
+  // the column `onEdge` names: a pane of column 0 registered after one of column 1 comes first.
+  const panes = useMemo(() => [...contributed].sort((a, b) => a.column - b.column), [contributed]);
   return (
     <Collect items={panes} read={readPane}>
       {(sections) => <PaneList {...props} panes={panes} sections={sections} />}
