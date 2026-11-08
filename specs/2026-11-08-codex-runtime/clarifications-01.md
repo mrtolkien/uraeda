@@ -196,8 +196,8 @@ picked GPT-6-Astra at High.
 Comparable products either start from the agent's own default or remember the last pick. Users
 complain when a hidden or stale default wins silently, or when "Default" names a model that is not
 the default. The [Settings](../decisions/settings.md) decision puts any setting in Uraeda's one
-settings file. [Run options](../2026-11-08-run-options/proposal.md) plans global defaults with per-feature
-overrides. More in [discovery](discovery-01.md#the-default-model).
+settings file. [Run options](../2026-11-08-run-options/proposal.md) plans global defaults with
+per-feature overrides. More in [discovery](discovery-01.md#the-default-model).
 
 Why it matters: it decides how often you touch the picker, and whether this feature adds settings
 that Run options would then reshape.
