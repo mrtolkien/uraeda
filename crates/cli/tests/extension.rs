@@ -476,3 +476,70 @@ fn add_refuses_a_repository_not_in_the_list_before_cloning() {
     assert_eq!(output.code, 1);
     assert!(!folders.extension("deploy").exists());
 }
+
+#[test]
+fn list_shows_the_running_servers_states_and_problems() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    fs::create_dir_all(folders.extension("deploy")).unwrap();
+    fs::write(
+        folders.extension("deploy").join("extension.toml"),
+        manifest("deploy", "Deploy"),
+    )
+    .unwrap();
+    let before = folders.ura(elsewhere.path(), &["list"]);
+    assert!(
+        !before.stdout.contains("running server"),
+        "{}",
+        before.stdout
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&folders.ura(elsewhere.path(), &["list", "--json"]).stdout).unwrap();
+    let last = json["extensions"]
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap()
+        .clone();
+    assert_eq!(last["server"], serde_json::Value::Null);
+
+    fs::write(
+        folders.data.path().join("extensions-status.json"),
+        r#"{"version":1,"at":"2026-11-08T10:00:00.000Z","extensions":[
+            {"name":"deploy","state":"broken","problems":[{"file":"server.ts","line":3,"message":"boom"}],"waitingFor":null}]}"#,
+    )
+    .unwrap();
+    let text = folders.ura(elsewhere.path(), &["list"]);
+
+    assert_eq!(text.code, 0, "{}", text.stderr);
+    let lines: Vec<&str> = text
+        .stdout
+        .lines()
+        .skip_while(|line| !line.starts_with("deploy"))
+        .skip(1)
+        .collect();
+    assert_eq!(
+        lines,
+        [
+            "  broken, as the running server last saw it at 2026-11-08T10:00:00.000Z",
+            "  server.ts:3: boom",
+        ]
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&folders.ura(elsewhere.path(), &["list", "--json"]).stdout).unwrap();
+    let deploy = json["extensions"]
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap()
+        .clone();
+    assert_eq!(
+        deploy["server"],
+        serde_json::json!({
+            "seen_at": "2026-11-08T10:00:00.000Z",
+            "state": "broken",
+            "waiting_for": null,
+            "problems": [{"file": "server.ts", "line": 3, "message": "boom"}],
+        })
+    );
+}

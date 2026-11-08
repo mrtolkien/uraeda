@@ -14,6 +14,7 @@ use napi_derive::napi;
 
 pub mod install;
 mod manifest;
+pub mod status;
 mod values;
 mod write;
 

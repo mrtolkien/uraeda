@@ -1,9 +1,11 @@
 //! `ura extension list`: every extension, built-in ones first, with where it is on and where it
-//! came from, and its problems.
+//! came from, and its problems: its manifest's, and, when the server wrote what it saw, its state
+//! and the problems of loading and compiling its code, as the running server last saw them.
 
 use std::process::ExitCode;
 
 use serde::Serialize;
+use uraeda_core::extensions::status::{self, ServerExtension, ServerStatus};
 use uraeda_core::extensions::{self, Extension, install};
 
 use super::{Folders, short};
@@ -31,6 +33,24 @@ struct Row<'a> {
     on: &'a [String],
     source: Option<Source<'a>>,
     problems: Vec<Problem<'a>>,
+    /// As the running server last saw it: `None` when it never wrote what it saw, or left it out.
+    server: Option<Seen<'a>>,
+}
+
+/// An extension as the running server last saw it, at `seen_at`.
+#[derive(Serialize)]
+struct Seen<'a> {
+    seen_at: &'a str,
+    state: &'a str,
+    waiting_for: Option<&'a str>,
+    problems: Vec<SeenProblem<'a>>,
+}
+
+#[derive(Serialize)]
+struct SeenProblem<'a> {
+    file: &'a str,
+    line: Option<u32>,
+    message: &'a str,
 }
 
 #[derive(Serialize)]
@@ -58,17 +78,33 @@ pub fn run(folders: &Folders, json: bool) -> Result<ExitCode, String> {
             extension.source = None;
         }
     }
+    let seen = status::read_status(&folders.data);
     if json {
         output::print_json(&Listing {
-            extensions: listed.extensions.iter().map(row).collect(),
+            extensions: listed
+                .extensions
+                .iter()
+                .map(|extension| row(extension, seen.as_ref()))
+                .collect(),
         });
     } else {
-        print!("{}", render(&listed.extensions));
+        print!("{}", render(&listed.extensions, seen.as_ref()));
     }
     Ok(ExitCode::SUCCESS)
 }
 
-fn row(extension: &Extension) -> Row<'_> {
+/// The server's view of `extension`, in `seen`, when it has one.
+fn seen_of<'a>(
+    extension: &Extension,
+    seen: Option<&'a ServerStatus>,
+) -> Option<&'a ServerExtension> {
+    seen?
+        .extensions
+        .iter()
+        .find(|one| one.name == extension.name)
+}
+
+fn row<'a>(extension: &'a Extension, seen: Option<&'a ServerStatus>) -> Row<'a> {
     Row {
         name: &extension.name,
         title: &extension.title,
@@ -96,12 +132,26 @@ fn row(extension: &Extension) -> Row<'_> {
                 is_fatal: problem.is_fatal,
             })
             .collect(),
+        server: seen.zip(seen_of(extension, seen)).map(|(at, one)| Seen {
+            seen_at: &at.at,
+            state: &one.state,
+            waiting_for: one.waiting_for.as_deref(),
+            problems: one
+                .problems
+                .iter()
+                .map(|problem| SeenProblem {
+                    file: &problem.file,
+                    line: problem.line,
+                    message: &problem.message,
+                })
+                .collect(),
+        }),
     }
 }
 
 /// One line per extension, its columns aligned: name, title, version, where it is on, and where
-/// it came from; then each of its problems, indented.
-fn render(extensions: &[Extension]) -> String {
+/// it came from; then each of its problems, indented, and what the running server last saw of it.
+fn render(extensions: &[Extension], seen: Option<&ServerStatus>) -> String {
     let cells: Vec<[String; 5]> = extensions
         .iter()
         .map(|extension| {
@@ -134,6 +184,27 @@ fn render(extensions: &[Extension]) -> String {
         text.push('\n');
         for problem in &extension.problems {
             text.push_str(&format!("  {}\n", problem.text()));
+        }
+        if let Some((at, one)) = seen.zip(seen_of(extension, seen)) {
+            text.push_str(&server_lines(extension, one, &at.at));
+        }
+    }
+    text
+}
+
+/// What the running server last saw of `extension`, at `at`: its state, and its problems but the
+/// manifest's, already shown.
+fn server_lines(extension: &Extension, one: &ServerExtension, at: &str) -> String {
+    let state = match &one.waiting_for {
+        Some(session) => format!("{}, for {session}", one.state),
+        None => one.state.clone(),
+    };
+    let mut text = format!("  {state}, as the running server last saw it at {at}\n");
+    let shown: Vec<String> = extension.problems.iter().map(|each| each.text()).collect();
+    for problem in &one.problems {
+        let line = problem.text();
+        if !shown.contains(&line) {
+            text.push_str(&format!("  {line}\n"));
         }
     }
     text
