@@ -802,11 +802,12 @@ What the process does:
   an `init` from the start or resume answer, once, whether or not Codex sends `thread/started`; a
   thread that fails to start gives an `init` with its `problem` (R19).
 - Each turn: `turn/start` with the input, `effort` when set, and `sandboxPolicy`
-  `{ type: "workspaceWrite", writableRoots: [extensions folder], networkAccess: false }`. A message
-  sent as `steer` during a turn is `turn/steer` with `expectedTurnId`; a `queue` message waits in
-  the adapter's own queue, starts the next turn when the current one completes, and `takeBack`
-  removes it with a `cancelled` event; an accepted message gives `accepted`. Images are `localImage`
-  inputs.
+  `{ type: "workspaceWrite", writableRoots: [], networkAccess: false }`: the extensions folder is
+  not writable, and the sandbox section says writing there needs escalated permissions (R20). A
+  message sent as `steer` during a turn is `turn/steer` with `expectedTurnId`; a `queue` message
+  waits in the adapter's own queue, starts the next turn when the current one completes, and
+  `takeBack` removes it with a `cancelled` event; an accepted message gives `accepted`. Images are
+  `localImage` inputs.
 - `interrupt` is `turn/interrupt`; `close` ends stdin once no turn runs, and the app-server exits;
   `setEffort` keeps the effort for the next `turn/start`, the default effort sent when it goes back
   to the default after another (R17).
