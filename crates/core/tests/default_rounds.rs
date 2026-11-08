@@ -232,3 +232,42 @@ fn the_decisions_check_cannot_be_dismissed() {
     assert!(error.to_string().contains("cannot be dismissed"), "{error}");
     assert_eq!(repo.read(CHECK), check_before);
 }
+
+#[test]
+fn a_triage_never_committed_is_not_dismissed() {
+    let repo = repo_with_both_files();
+    repo.git(&["rm", "--quiet", "--cached", TRIAGE]);
+    repo.git(&[
+        "commit",
+        "--quiet",
+        "--no-verify",
+        "-m",
+        "chore: forget the triage",
+    ]);
+    let text = repo.read(TRIAGE);
+
+    let error = api::dismiss_round(
+        repo.path(),
+        DefaultRound::Triage,
+        &base(&repo, DefaultRound::Triage),
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("never committed"), "{error}");
+    assert_eq!(repo.read(TRIAGE), text);
+}
+
+#[test]
+fn a_triage_already_gone_is_refused_in_words() {
+    let repo = repo_with_both_files();
+    let read = base(&repo, DefaultRound::Triage);
+    api::dismiss_round(repo.path(), DefaultRound::Triage, &read).unwrap();
+
+    let error = api::dismiss_round(repo.path(), DefaultRound::Triage, &read).unwrap_err();
+
+    assert!(
+        error.to_string().contains("No inbox triage waits"),
+        "{error}"
+    );
+    assert_eq!(repo.subjects("main")[0], "chore: dismiss the inbox triage");
+}

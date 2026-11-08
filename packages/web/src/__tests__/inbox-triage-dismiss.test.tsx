@@ -76,3 +76,16 @@ test("a triage with answers not submitted asks before Dismiss deletes them", asy
   expect(existsSync(join(repo, TRIAGE))).toBe(false);
   await waitFor(() => expect(subject(repo)).toBe("chore: dismiss the inbox triage"));
 });
+
+// Break: a triage git never had deleted, lost for good.
+test("a triage never committed is not dismissed, and the refusal says why", async () => {
+  const repo = fixtureRepo();
+  copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, TRIAGE));
+  const text = readFileSync(join(repo, TRIAGE), "utf8");
+
+  await click(await inboxWithTriage(repo));
+
+  await screen.findByText(/INBOX-TRIAGE\.md was never committed/);
+  expect(readFileSync(join(repo, TRIAGE), "utf8")).toBe(text);
+  expect(screen.getByText("An inbox triage waits for your answers")).toBeTruthy();
+});
