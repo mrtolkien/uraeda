@@ -8,14 +8,14 @@ plan's.
 A row of the `sessions` table in Uraeda's session cache, `<data folder>/sessions.db`. Rows written
 before the feature read as sessions on the agent's defaults: their new fields are null.
 
-| Field        | Type          | Meaning                                                                                                 | Change  |
-| ------------ | ------------- | ------------------------------------------------------------------------------------------------------- | ------- |
-| `agent`      | text          | The runtime the session runs on, by its registered name: `claude`, `codex`                              |         |
-| `native_id`  | text          | The agent's own session ID; for Codex, the thread ID Codex gave at the session's first start            | Changed |
-| `model`      | text, or null | The model picked when the session started, by the agent's ID for it; null for the agent's default       | New     |
-| `effort`     | text, or null | The effort picked when the session started, by the agent's ID for it; null for the agent's default      | New     |
-| `ran_model`  | text, or null | The model the agent last reported running on, by its name for people; null before the agent reports one | New     |
-| `ran_effort` | text, or null | The effort the agent last reported running on, by its name for people; null when it reports none        | New     |
+| Field        | Type          | Meaning                                                                                                       | Change  |
+| ------------ | ------------- | ------------------------------------------------------------------------------------------------------------- | ------- |
+| `agent`      | text          | The runtime the session runs on, by its registered name: `claude`, `codex`                                    |         |
+| `native_id`  | text          | The agent's own session ID; for Codex, the thread ID Codex gave at the session's first start                  | Changed |
+| `model`      | text, or null | The model picked when the session started, by the agent's ID for it; null for the agent's default             | New     |
+| `effort`     | text, or null | The effort picked when the session started, or changed since, by the agent's ID; null for the agent's default | New     |
+| `ran_model`  | text, or null | The model the agent last reported running on, by its name for people; null before the agent reports one       | New     |
+| `ran_effort` | text, or null | The effort the agent last reported running on, by its name for people; null when it reports none              | New     |
 
 ## The `codex` built-in extension
 

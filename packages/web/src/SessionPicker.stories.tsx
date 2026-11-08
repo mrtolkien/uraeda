@@ -1,21 +1,32 @@
-// Mockups of what a new session runs on, as Codex runtime + model settings plans it: the picker in
-// a composer that makes a session, closed and open, over the models Claude Code and Codex listed on
-// this machine on 2026-11-08; and a session's header once it ran, naming its model and effort.
+// Mockups of what a session runs on, as Codex runtime + model settings plans it: the button in a
+// composer, and the app's key picker it opens, the model then the effort, over the models and the
+// efforts Claude Code and Codex listed on this machine on 2026-11-08; the effort alone in a session
+// that runs already; and a session's header once it ran, naming its model and effort.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 import { SessionHeader } from "./SessionHeader.tsx";
 import { type PickerRuntime, type SessionPick, SessionPicker } from "./SessionPicker.tsx";
 
-const CLAUDE_EFFORTS = [
-  { id: "low", name: "Low" },
-  { id: "medium", name: "Medium" },
-  { id: "high", name: "High" },
-  { id: "xhigh", name: "Extra high" },
-  { id: "max", name: "Max" },
+const CODEX_EFFORTS = [
+  { description: "Fast responses with lighter reasoning", id: "low", name: "Low" },
+  {
+    description: "Balances speed and reasoning depth for everyday tasks",
+    id: "medium",
+    name: "Medium",
+  },
+  { description: "Greater reasoning depth for complex problems", id: "high", name: "High" },
+  {
+    description: "Extra high reasoning depth for complex problems",
+    id: "xhigh",
+    name: "Extra high",
+  },
+  { description: "Maximum reasoning depth for the hardest problems", id: "max", name: "Max" },
+  { description: "Maximum reasoning with automatic task delegation", id: "ultra", name: "Ultra" },
 ];
 
-const CODEX_EFFORTS = [...CLAUDE_EFFORTS, { id: "ultra", name: "Ultra" }];
+/** Claude Code names its efforts without a line. */
+const CLAUDE_EFFORTS = CODEX_EFFORTS.slice(0, 5).map(({ id, name }) => ({ id, name }));
 
 /** Claude Code, as `list_models` gave it: the aliases, then a pinned model without efforts. */
 const CLAUDE: PickerRuntime = {
@@ -32,7 +43,7 @@ const CLAUDE: PickerRuntime = {
   name: "Claude Code",
 };
 
-/** Codex, as `model/list` gave it, its hidden models left out. */
+/** Codex, as `model/list` gave it, its hidden models left out, its defaults from `config/read`. */
 const CODEX: PickerRuntime = {
   defaults: { effort: "medium", model: "gpt-6.1-sol" },
   icon: "uraeda:harness-openai",
@@ -52,7 +63,7 @@ const CODEX: PickerRuntime = {
     },
     {
       description: "Fast and affordable model for easier tasks.",
-      efforts: CLAUDE_EFFORTS,
+      efforts: CODEX_EFFORTS.slice(0, 5),
       id: "gpt-6-luna",
       name: "GPT-6-Luna",
     },
@@ -62,19 +73,32 @@ const CODEX: PickerRuntime = {
 
 /** The picker, holding its pick as a composer does. */
 function Picker({
+  isStarted,
   runtimes,
+  step,
   value,
 }: {
+  isStarted?: boolean;
   runtimes: ReadonlyArray<PickerRuntime>;
+  step?: "model" | "effort";
   value?: SessionPick;
 }) {
   const [pick, setPick] = useState(value);
-  return <SessionPicker onChange={setPick} runtimes={runtimes} value={pick} />;
+  return (
+    <SessionPicker
+      onChange={setPick}
+      runtimes={runtimes}
+      value={pick}
+      {...(isStarted ? { isStarted } : {})}
+      {...(step ? { step } : {})}
+    />
+  );
 }
 
 const meta = {
   args: { runtimes: [CLAUDE, CODEX] },
   component: Picker,
+  parameters: { layout: "fullscreen" },
   title: "Session picker",
 } satisfies Meta<typeof Picker>;
 
@@ -85,28 +109,39 @@ type Story = StoryObj<typeof meta>;
 /** Nothing picked yet: the first agent on, on its defaults, named as they resolve. */
 export const Defaults: Story = {};
 
-/** One agent on: the button still names the model and the effort, and the menu has no Agent group. */
-export const OneAgent: Story = { args: { runtimes: [CLAUDE] } };
-
 /** Codex picked, on a model and an effort of its own. */
 export const Picked: Story = {
   args: { value: { effort: "high", model: "gpt-6-astra", runtime: "codex" } },
 };
 
-/** Open: the agents, then the agent's models, Default first, then the model's efforts. */
-export const Open: Story = {
-  args: { value: { runtime: "codex" } },
+/** The first step, `Space a` or the button: every agent's models, each agent's Default first. */
+export const ModelStep: Story = { args: { step: "model", value: { runtime: "codex" } } };
+
+/** The first step, "luna" typed: the models matching, the first under the cursor. */
+export const ModelSearch: Story = {
+  args: { step: "model" },
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button"));
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.type(await body.findByRole("combobox", { name: "Find a model" }), "luna");
   },
 };
 
-/** A model that takes no effort: the menu has no Effort group, and the button names none. */
+/** The second step, after GPT-6-Astra: its efforts, Default first, each with Codex's line. */
+export const EffortStep: Story = {
+  args: { step: "effort", value: { model: "gpt-6-astra", runtime: "codex" } },
+};
+
+/** One agent on: the first step lists its models alone. */
+export const OneAgent: Story = { args: { runtimes: [CLAUDE], step: "model" } };
+
+/** A session that runs already: the button names the effort, and opens the second step alone. */
+export const Started: Story = {
+  args: { isStarted: true, value: { effort: "high", model: "sonnet", runtime: "claude" } },
+};
+
+/** A model that takes no effort: the button names none, and no second step follows its pick. */
 export const NoEffort: Story = {
   args: { value: { model: "claude-haiku-4-5-20251001", runtime: "claude" } },
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button"));
-  },
 };
 
 /** A session's header once it ran: the agent, then the model and the effort it reported. */

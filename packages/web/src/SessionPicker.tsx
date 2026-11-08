@@ -1,24 +1,18 @@
-// What a new session runs on, picked as it starts: one button naming the agent, the model, and the
-// effort, which opens a menu of the agents on here, then the agent's models, then the model's
-// efforts. "Default" leaves the choice to the agent, and says what the agent would pick. Another
-// agent starts from its defaults again, and a model that lacks the effort picked falls back to
-// Default. A model without efforts has no Effort group.
-import {
-  DropdownMenu,
-  DropdownMenuGroup,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  type DropdownMenuTriggerProps,
-} from "@astryxdesign/core/DropdownMenu";
+// What a session runs on: one button naming the agent, the model, and the effort, which opens the
+// app's key picker in two steps. First the model, among every agent on here, each agent's "Default"
+// first, then its models, searchable by name; then the picked model's effort, "Default" first. A
+// model without efforts skips the second step. In a session already started, the button names the
+// effort alone, and opens the second step: the agent and the model stay, the effort applies from the
+// next turn. "Default" leaves the choice to the agent, and says what the agent would pick.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import type { ComponentProps } from "react";
+import { useState } from "react";
+import { KeyPicker } from "./keys/KeyPicker.tsx";
+import { type PickerItem, textPreview } from "./keys/pickerSources.ts";
+import type { IconName } from "./keys/store.ts";
 
-/** An icon's name, as Astryx's `Icon` takes it. */
-type IconName = ComponentProps<typeof Icon>["icon"];
-
-/** A reasoning effort a model takes: its ID, as the agent names it, and its name for people. */
-export type PickerEffort = { id: string; name: string };
+/** A reasoning effort a model takes: its ID, as the agent names it, its name, and its line. */
+export type PickerEffort = { description?: string; id: string; name: string };
 
 /** A model an agent lists, with the efforts it takes, in the agent's order. */
 export type PickerModel = {
@@ -38,11 +32,8 @@ export type PickerRuntime = {
   name: string;
 };
 
-/** What a new session runs on: a model or an effort left out is the agent's own default. */
+/** What a session runs on: a model or an effort left out is the agent's own default. */
 export type SessionPick = { effort?: string; model?: string; runtime: string };
-
-/** The value of "Default" in a radio group, which no agent's ID takes. */
-const DEFAULT = "";
 
 function modelOf(runtime: PickerRuntime, id: string | undefined): PickerModel | undefined {
   return id === undefined ? undefined : runtime.models.find((model) => model.id === id);
@@ -61,41 +52,133 @@ function effortName(model: PickerModel | undefined, id: string | undefined): str
   return model?.efforts.find((effort) => effort.id === id)?.name ?? id;
 }
 
+/** The effort the session would run on, by its name: none for a model without efforts. */
+function effortRun(runtime: PickerRuntime, pick: SessionPick): string | undefined {
+  const model = modelRun(runtime, pick);
+  return model && model.efforts.length > 0
+    ? effortName(model, pick.effort ?? runtime.defaults.effort)
+    : undefined;
+}
+
 /**
  * The button's text: the agent, the model, and the effort the session would run on, defaults
  * resolved: "Codex · GPT-6.1-Sol · Medium". What the agent does not say is left out.
  */
 export function pickLabel(runtime: PickerRuntime, pick: SessionPick): string {
   const model = modelRun(runtime, pick);
-  const effort =
-    model && model.efforts.length > 0
-      ? effortName(model, pick.effort ?? runtime.defaults.effort)
-      : undefined;
-  return [runtime.name, model?.name ?? (pick.model === undefined ? "Default" : pick.model), effort]
+  return [runtime.name, model?.name ?? pick.model ?? "Default", effortRun(runtime, pick)]
     .filter((part): part is string => part !== undefined)
     .join(" · ");
 }
 
-/** The pick after choosing `model`: its effort kept while the new model takes it. */
-export function withModel(runtime: PickerRuntime, pick: SessionPick, model: string): SessionPick {
-  const next = { runtime: pick.runtime, ...(model === DEFAULT ? {} : { model }) };
-  const takes = modelRun(runtime, next)?.efforts.some((effort) => effort.id === pick.effort);
+/** The pick after choosing `model` of `runtime`: the effort kept while the model takes it. */
+export function withModel(
+  runtime: PickerRuntime,
+  pick: SessionPick,
+  model: string | undefined,
+): SessionPick {
+  const next: SessionPick = { runtime: runtime.kind, ...(model === undefined ? {} : { model }) };
+  const takes =
+    pick.runtime === runtime.kind &&
+    modelRun(runtime, next)?.efforts.some((effort) => effort.id === pick.effort);
   return pick.effort !== undefined && takes ? { ...next, effort: pick.effort } : next;
 }
 
+/** A model's preview: its line, then the efforts it takes, its default named. */
+function modelPreview(runtime: PickerRuntime, model: PickerModel | undefined) {
+  const efforts = model?.efforts.map((effort) => effort.name).join(", ");
+  return textPreview(
+    ...[
+      model?.description,
+      efforts ? `Efforts: ${efforts}` : "Takes no effort.",
+      model && model.efforts.length > 0 && runtime.defaults.effort !== undefined
+        ? `Default effort: ${effortName(model, runtime.defaults.effort)}`
+        : undefined,
+    ].filter((line): line is string => typeof line === "string"),
+  );
+}
+
+/** Between an agent's kind and a model's ID in a row's ID: neither holds it. */
+const SEP = "\u0000";
+
+/** A model row's ID: the agent's kind, then the model's ID, empty for "Default". */
+const modelId = (kind: string, model?: string) => `${kind}${SEP}${model ?? ""}`;
+
+/** "Default", then what it resolves to when the agent says: "Default · GPT-6.1-Sol". */
+const defaultTitle = (resolved: string | undefined) =>
+  resolved === undefined ? "Default" : `Default · ${resolved}`;
+
 /**
- * The picker over `runtimes`, those on here, in their order: `value` while its agent is one of
- * them, else the first one, on its defaults.
+ * The first step's rows: each agent's "Default", its title naming what it resolves to, then its
+ * models, the pick marked "picked". Rows carry the agent's mark, so several agents read apart.
+ */
+export function modelItems(
+  runtimes: ReadonlyArray<PickerRuntime>,
+  pick: SessionPick,
+): ReadonlyArray<PickerItem> {
+  return runtimes.flatMap((runtime) => {
+    const picked = (model?: string) =>
+      pick.runtime === runtime.kind && pick.model === model ? "picked" : undefined;
+    const fallback = modelOf(runtime, runtime.defaults.model);
+    const row = (model: PickerModel | undefined, side: string | undefined): PickerItem => ({
+      icon: runtime.icon,
+      id: modelId(runtime.kind, model?.id),
+      kind: "notes",
+      path: "",
+      preview: modelPreview(runtime, model ?? fallback),
+      title: `${runtime.name} · ${model?.name ?? defaultTitle(fallback?.name)}`,
+      ...(side === undefined ? {} : { aside: side }),
+    });
+    return [
+      row(undefined, picked()),
+      ...runtime.models.map((model) => row(model, picked(model.id))),
+    ];
+  });
+}
+
+/** The second step's rows: "Default", naming what it resolves to, then the model's efforts. */
+export function effortItems(runtime: PickerRuntime, pick: SessionPick): ReadonlyArray<PickerItem> {
+  const model = modelRun(runtime, pick);
+  const picked = (id?: string) => (pick.effort === id ? "picked" : undefined);
+  const row = (effort: PickerEffort | undefined, side: string | undefined): PickerItem => ({
+    icon: runtime.icon,
+    id: effort?.id ?? "",
+    kind: "notes",
+    path: "",
+    preview: textPreview(
+      effort
+        ? (effort.description ?? effort.name)
+        : `The effort ${runtime.name}'s own settings give ${model?.name ?? "this model"}.`,
+    ),
+    title: effort?.name ?? defaultTitle(effortName(model, runtime.defaults.effort)),
+    ...(side === undefined ? {} : { aside: side }),
+  });
+  return [
+    row(undefined, picked()),
+    ...(model?.efforts ?? []).map((effort) => row(effort, picked(effort.id))),
+  ];
+}
+
+/**
+ * The button and its picker over `runtimes`, those on here, in their order: `value` while its
+ * agent is one of them, else the first one, on its defaults. With `isStarted`, the session runs
+ * already: the button names the effort, and opens the effort step alone. `step` opens a step from
+ * outside, as `Space a` does.
  */
 export function SessionPicker({
+  isStarted = false,
   onChange,
   runtimes,
+  step: opened,
   value,
 }: {
+  isStarted?: boolean;
   onChange: (pick: SessionPick) => void;
   runtimes: ReadonlyArray<PickerRuntime>;
+  step?: "model" | "effort";
   value: SessionPick | undefined;
 }) {
+  const [step, setStep] = useState(opened);
   const first = runtimes[0];
   if (!first) {
     return null;
@@ -103,87 +186,51 @@ export function SessionPicker({
   const runtime = runtimes.find((each) => each.kind === value?.runtime) ?? first;
   const pick: SessionPick = value?.runtime === runtime.kind ? value : { runtime: runtime.kind };
   const model = modelRun(runtime, pick);
-  const defaultModel = modelOf(runtime, runtime.defaults.model);
-  const defaultEffort = effortName(model, runtime.defaults.effort);
-  const label = pickLabel(runtime, pick);
+  if (isStarted && (model?.efforts.length ?? 0) === 0) {
+    return null;
+  }
+  const label = isStarted
+    ? `Effort · ${effortRun(runtime, pick) ?? "Default"}`
+    : pickLabel(runtime, pick);
   return (
-    <DropdownMenu
-      // Room for an agent's models and a model's efforts without scrolling, the viewport allowing.
-      menuMaxHeight={560}
-      presentation="popover"
-      renderTrigger={(props: DropdownMenuTriggerProps) => (
-        <Button
-          icon={<Icon icon={runtime.icon} />}
-          label={label}
-          size="sm"
-          variant="ghost"
-          {...props}
-        />
-      )}
-    >
-      {runtimes.length > 1 && (
-        <DropdownMenuGroup title="Agent">
-          <DropdownMenuRadioGroup
-            hasCloseOnSelect={false}
-            label="Agent"
-            onChange={(kind: string) => onChange({ runtime: kind })}
-            value={runtime.kind}
-          >
-            {runtimes.map((each) => (
-              <DropdownMenuRadioItem
-                icon={each.icon}
-                key={each.kind}
-                label={each.name}
-                value={each.kind}
-              />
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-      )}
-      <DropdownMenuGroup title="Model">
-        <DropdownMenuRadioGroup
-          hasCloseOnSelect={false}
-          label="Model"
-          onChange={(id: string) => onChange(withModel(runtime, pick, id))}
-          value={pick.model ?? DEFAULT}
-        >
-          <DropdownMenuRadioItem
-            label="Default"
-            value={DEFAULT}
-            {...(defaultModel ? { description: defaultModel.name } : {})}
-          />
-          {runtime.models.map((each) => (
-            <DropdownMenuRadioItem
-              key={each.id}
-              label={each.name}
-              value={each.id}
-              {...(each.description ? { description: each.description } : {})}
-            />
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuGroup>
-      {model && model.efforts.length > 0 && (
-        <DropdownMenuGroup title="Effort">
-          <DropdownMenuRadioGroup
-            hasCloseOnSelect={false}
-            label="Effort"
-            onChange={(id: string) => {
-              const { effort: _, ...rest } = pick;
-              onChange(id === DEFAULT ? rest : { ...rest, effort: id });
-            }}
-            value={pick.effort ?? DEFAULT}
-          >
-            <DropdownMenuRadioItem
-              label="Default"
-              value={DEFAULT}
-              {...(defaultEffort ? { description: defaultEffort } : {})}
-            />
-            {model.efforts.map((each) => (
-              <DropdownMenuRadioItem key={each.id} label={each.name} value={each.id} />
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-      )}
-    </DropdownMenu>
+    <>
+      <Button
+        icon={<Icon icon={runtime.icon} />}
+        label={label}
+        onClick={() => setStep(isStarted ? "effort" : "model")}
+        size="sm"
+        variant="ghost"
+      />
+      <KeyPicker
+        isOpen={step === "model"}
+        items={modelItems(runtimes, pick)}
+        label="Find a model"
+        onClose={() => setStep(undefined)}
+        onPick={(item) => {
+          const [kind, id] = item.id.split(SEP);
+          const owner = runtimes.find((each) => each.kind === kind) ?? runtime;
+          const next = withModel(owner, pick, id === "" ? undefined : id);
+          onChange(next);
+          setStep((modelRun(owner, next)?.efforts.length ?? 0) > 0 ? "effort" : undefined);
+        }}
+        placeholder="Model…"
+        start={modelId(runtime.kind, pick.model)}
+        title="Pick the model"
+      />
+      <KeyPicker
+        isOpen={step === "effort"}
+        items={effortItems(runtime, pick)}
+        label="Find an effort"
+        onClose={() => setStep(undefined)}
+        onPick={(item) => {
+          const { effort: _, ...rest } = pick;
+          onChange(item.id === "" ? rest : { ...rest, effort: item.id });
+          setStep(undefined);
+        }}
+        placeholder="Effort…"
+        start={pick.effort ?? ""}
+        title={`Pick the effort of ${model?.name ?? runtime.name}`}
+      />
+    </>
   );
 }
