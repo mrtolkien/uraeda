@@ -1,6 +1,6 @@
 // The decisions palette's ranking: an entry is found by its numeral or whole title, the start of
-// its title or of a word in it, anywhere in it, then in its first sentence; the best match first,
-// ties in the list's order. SC-005 of the layout look: every entry of this repository's own ledger
+// its title or of a word in it, anywhere in it, then in its first sentence, then by each word of a
+// query of several anywhere; the best match first, ties in the list's order. SC-005 of the layout look: every entry of this repository's own ledger
 // opens with three letters or fewer.
 import { join } from "node:path";
 import { readLedger } from "uraeda-binding";
@@ -50,6 +50,26 @@ test("words split at spaces and hyphens, and ties keep the list's order", () => 
   const entries = [decision("A to Z"), decision("Pull-request body"), decision("The request")];
 
   expect(found(entries, "req")).toEqual(["Pull-request body", "The request"]);
+});
+
+test("a query's words each match on their own, after the whole query's matches", () => {
+  const entries = [
+    decision("Codex · Fake Big"),
+    decision("Big codex"),
+    decision("Codex · Fake Small", "Not big."),
+    decision("Claude Code · Fake Big"),
+  ];
+
+  expect(found(entries, "big codex")).toEqual([
+    "Big codex",
+    "Codex · Fake Big",
+    "Codex · Fake Small",
+  ]);
+  expect(found(entries, "codex big")).toEqual([
+    "Codex · Fake Big",
+    "Big codex",
+    "Codex · Fake Small",
+  ]);
 });
 
 test.each([

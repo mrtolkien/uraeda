@@ -69,6 +69,10 @@ const styles = stylex.create({
     minHeight: 0,
   },
   list: {
+    // No inset of Astryx's inline dialog around the palette: its layout takes the inset back with
+    // negative margins, but caps its height at 100% of the box inside it, so a list that hugs its
+    // rows, the phone's sheet's, came out shorter than them by both insets, and scrolled.
+    "--astryx-dialog-padding": "0px",
     // The palette's own surface would read as a card inside the dialog.
     boxShadow: "none",
     // As wide as the sheet or the dialog's column: Astryx's dialog also keeps a gutter from the
