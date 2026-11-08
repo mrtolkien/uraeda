@@ -98,6 +98,32 @@ test("the current turn's ID is kept for the caller", () => {
   expect(events.turnId).toBe(TURN);
 });
 
+const threadStarted = (thread: Record<string, unknown>): CodexNotification => ({
+  method: "thread/started",
+  params: { thread: { id: THREAD, parentThreadId: null, ...thread } },
+});
+const settingsUpdated = (effort: string | null): CodexNotification => ({
+  method: "thread/settings/updated",
+  params: { threadId: THREAD, threadSettings: { effort, model: "gpt-6-luna" } },
+});
+
+test("a thread at the default effort runs on the effort Codex resolved", () => {
+  const events = readAll([
+    threadStarted({ model: "gpt-6-luna", reasoningEffort: "medium" }),
+    settingsUpdated(null),
+  ]);
+  const runsOn = events.filter((event) => event.type === "runsOn");
+  expect(runsOn.at(-1)).toEqual({ effort: "Medium", model: "GPT-6-Luna", type: "runsOn" });
+  expect(runsOn.every((event) => event.effort === "Medium")).toBe(true);
+});
+
+test("a thread's start gives what it runs on, as on resume, without a settings update", () => {
+  expect(readAll([threadStarted({ model: "gpt-6-luna", reasoningEffort: "xhigh" })])).toEqual([
+    { sessionId: THREAD, type: "init" },
+    { effort: "Extra high", model: "GPT-6-Luna", type: "runsOn" },
+  ]);
+});
+
 test.each<[string, Array<CodexNotification>, unknown]>([
   [
     "a failed turn gives Codex's error",

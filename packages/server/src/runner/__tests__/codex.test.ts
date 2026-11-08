@@ -180,7 +180,9 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
     case "model/list": return ok(pages[params.cursor === "2" ? 1 : 0]);
     case "config/read": return ok(config);
     case "thread/start": ok({ thread: { id: "t-1" } }); return note("thread/started", { thread: { id: "t-1" } });
-    case "thread/resume": threadId = params.threadId; return ok({ thread: { id: threadId } });
+    case "thread/resume":
+      threadId = params.threadId;
+      return ok({ model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
     case "turn/start": {
       const id = "turn-" + ++turns;
       ok({ turn: { id } });
@@ -313,6 +315,8 @@ test("a resumed thread reports its ID, and a stopped turn ends interrupted", asy
   agent.interrupt();
   const read = await until(events, "result");
   expect(read[0]).toEqual({ sessionId: "t-old", type: "init" });
+  // Codex sends no settings update on resume: its answer says what the thread runs on.
+  expect(read).toContainEqual({ effort: "Extra high", model: "GPT-6-Luna", type: "runsOn" });
   expect(read.at(-1)).toMatchObject({ interrupted: true, ok: false, type: "result" });
   agent.close();
   await until(events, "exit");
