@@ -35,7 +35,6 @@ Running the user's own `claude` uses their binary, settings, and login: the use 
 allow with a subscription. Other agents' terms allow a bundled harness, as pi-durable's will be.
 Skipped permissions would let an agent do anything on the user's machine. One concept of a session,
 whatever workflow surrounds it, gives each conversation a page and a history of its own. History:
-[Merge chats](../done/2026-10-20-merge-chats.md),
 [Extensions system](../done/2026-11-08-extensions-system.md).
 
 ## Alternatives considered

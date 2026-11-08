@@ -38,13 +38,13 @@ messages, and its waits outlive the work. History:
   agents are run, on undocumented behaviour.
 - Letting the agent wait out a limit inside its own process: a restart during the wait loses it.
 - A hook that refuses polling commands: works for one agent only, and refuses waits that were right.
-- Asking a run that ended before its next human gate to continue to it: removed, as it misfired
-  almost every time. A run that ends there asks for the human instead.
 
 ## Consequences
 
 - A tool call or background work cut by a restart is redone by the continued run.
 - Weekly limits are not continued: they stop the run, which asks for the human.
+- A run that ends before its next human gate asks for the human: Uraeda never asks it to go on, as
+  that misfired almost every time.
 - Every later agent runtime must report restarts, limits, and their reset time for runs to continue.
 
 ## Applies to
