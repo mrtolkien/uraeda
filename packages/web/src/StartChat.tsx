@@ -11,6 +11,7 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, sessionIdPath, useRepoPath } from "./routes.tsx";
 import { RuntimePicker } from "./RuntimePicker.tsx";
+import { useRuntimePick } from "./runtimes.ts";
 import { sendMessage } from "./sessions.ts";
 
 /** A chat started from a page: `start` sends a message, `error` is the server's refusal. */
@@ -18,16 +19,19 @@ export type StartChat = ReturnType<typeof useStartChat>;
 
 /**
  * Starts a chat in the main checkout with a message, then opens it; `error` is the server's
- * refusal. The chat runs on `runtime`, once picked, else on the first one on.
+ * refusal. The chat runs on `runtime`, once picked and while it is on, else on the first one on.
  */
 export function useStartChat() {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
-  const [runtime, setRuntime] = useState<string>();
+  const { kind, picked: runtime, setPicked: setRuntime } = useRuntimePick();
   const start = async (text: string) => {
     setError(undefined);
-    const sent = await sendMessage(fate, { text, ...(runtime === undefined ? {} : { runtime }) });
+    const sent = await sendMessage(fate, {
+      text,
+      ...(kind === undefined ? {} : { runtime: kind }),
+    });
     if (sent.ok) {
       navigate(here(sessionIdPath(sent.session)), { created: true });
     } else {
