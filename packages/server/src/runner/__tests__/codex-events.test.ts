@@ -299,8 +299,44 @@ test.each<[string, Array<CodexNotification>]>([
       },
     ],
   ],
+  [
+    "a known sub-agent's message and turn ending",
+    [
+      { method: "thread/started", params: { thread: { id: THREAD, parentThreadId: null } } },
+      completed({ ...SPAWN, receiverThreadIds: ["child"], status: "completed" }),
+      {
+        method: "item/agentMessage/delta",
+        params: { delta: "Found", itemId: "msg-c", threadId: "child", turnId: "t" },
+      },
+      completed({ id: "msg-c", text: "Found it.", type: "agentMessage" }, "child"),
+      {
+        method: "turn/completed",
+        params: {
+          threadId: "child",
+          turn: { error: null, id: "t", items: [], status: "completed" },
+        },
+      },
+    ],
+  ],
 ])("%s gives no event of its own", (_name, messages) => {
   const events: Array<AgentEvent> = readAll(messages);
-  expect(events.filter((event) => event.type !== "init")).toEqual([]);
+  // The spawning call's own start and end are the session's.
+  const own = new Set(["init", "toolStart", "toolEnd"]);
+  expect(events.filter((event) => !own.has(event.type))).toEqual([]);
+  expect(events.filter((event) => "parent" in event)).toEqual([]);
   expect(events).not.toContainEqual({ sessionId: "child", type: "init" });
+});
+
+test("on resume, the first thread heard from is the session's, and any other is not", () => {
+  const events = readAll([
+    {
+      method: "turn/started",
+      params: { threadId: THREAD, turn: { id: TURN, items: [], status: "inProgress" } },
+    },
+    completed({ id: "msg-1", text: "Mine.", type: "agentMessage" }),
+    completed({ id: "msg-2", text: "Not mine.", type: "agentMessage" }, "stranger"),
+    turnCompleted("completed"),
+  ]);
+  expect(events.map((event) => event.type)).toEqual(["text", "result"]);
+  expect(events[0]).toEqual({ text: "Mine.", type: "text" });
 });
