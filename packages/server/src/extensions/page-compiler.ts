@@ -2,9 +2,10 @@
 // with the app's hashing options, then React Compiler, so an extension's styles get the same classes
 // as Astryx's and the app's. The output is still TSX: the module compiler strips its types
 // and JSX afterwards.
-import { transformSync } from "@babel/core";
+import { type PluginTarget, transformSync } from "@babel/core";
 import type { Options as StylexOptions, Rule, StyleXTransformObj } from "@stylexjs/babel-plugin";
-import { createRequire } from "node:module";
+import stylexModule from "@stylexjs/babel-plugin";
+import reactCompiler from "babel-plugin-react-compiler";
 
 /** A compile error, at a 1-based line and column of the page's source. */
 export type PageError = { column: number; line: number; message: string };
@@ -12,15 +13,14 @@ export type PageError = { column: number; line: number; message: string };
 /** A compiled page: its TSX, and the CSS its `stylex.create` calls produce. */
 export type CompiledPage = { code: string; css: string };
 
-const require = createRequire(import.meta.url);
-
-// By their paths: StyleX's types name Babel 7's plugin type, which Babel 8 does not export.
-const REACT_COMPILER = require.resolve("babel-plugin-react-compiler");
-const STYLEX = require.resolve("@stylexjs/babel-plugin");
-
-// Required: it is CommonJS, and its types declare an ES default export that Node's import does not
-// give.
-const { processStylexRules } = require(STYLEX) as StyleXTransformObj;
+// Imported, so the package's bundle carries both plugins: resolving them by path at run time finds
+// nothing in the package. StyleX is CommonJS, whose types name Babel 7's plugin type and an ES
+// default export: its object is the module's `default` when bundled or loaded by Node.
+const stylexPlugin = ((stylexModule as unknown as { default?: StyleXTransformObj }).default ??
+  stylexModule) as unknown as StyleXTransformObj;
+const { processStylexRules } = stylexPlugin;
+const STYLEX = stylexPlugin as unknown as PluginTarget;
+const REACT_COMPILER = reactCompiler as unknown as PluginTarget;
 
 /** The import extension pages use for Astryx's theme variables. */
 const TOKENS_IMPORT = "@astryxdesign/core/theme/tokens.stylex";
