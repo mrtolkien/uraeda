@@ -2,10 +2,20 @@
 import type { useFateClient } from "react-fate";
 import type { ChatImage, Trigger } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
+import type { PickSent } from "./runtimes.ts";
 import { navigateHere, repoPath } from "./routes.tsx";
 import { SessionView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
+
+/** The pick an input carries, its fields left out where nothing was picked. */
+function pickOf({ effort, model, runtime }: PickSent): PickSent {
+  return {
+    ...(runtime === undefined ? {} : { runtime }),
+    ...(model === undefined ? {} : { model }),
+    ...(effort === undefined ? {} : { effort }),
+  };
+}
 
 /** A message sent, with its session's ID, or the server's refusal. */
 export type Sent = { ok: true; session: string } | { message: string; ok: false };
@@ -14,17 +24,16 @@ export type Sent = { ok: true; session: string } | { message: string; ok: false 
  * Sends a message: to a session, to a feature's session, created with its first message, or, with
  * neither, to a new chat. `images` are the chat images `POST /attach` saved, passed as it returned
  * them. `workflow` makes it the workflow's message, which starts the feature's step: read at `step`,
- * it goes as a chat once the feature moved on. A session it makes runs on `runtime`, the one
- * picked, else on the first one on.
+ * it goes as a chat once the feature moved on. A session it makes runs on the agent, the model, and
+ * the effort picked, else on the first runtime on, on its defaults.
  */
 export async function sendMessage(
   fate: Fate,
-  input: {
+  input: PickSent & {
     folder?: string;
     images?: ReadonlyArray<ChatImage>;
     /** With `folder`: a new session of the feature, created with this message, not its latest. */
     newSession?: boolean;
-    runtime?: string;
     session?: string;
     text: string;
     workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
@@ -33,7 +42,7 @@ export async function sendMessage(
   let { session } = input;
   if (session === undefined && input.folder === undefined) {
     const created = await fate.mutations.session.newChat({
-      input: input.runtime === undefined ? {} : { runtime: input.runtime },
+      input: pickOf(input),
       view: SessionView,
     });
     if (created.error) {
@@ -50,7 +59,7 @@ export async function sendMessage(
         ? {
             folder: input.folder,
             ...(input.newSession ? { newSession: true } : {}),
-            ...(input.runtime === undefined ? {} : { runtime: input.runtime }),
+            ...pickOf(input),
           }
         : { session }),
       text: input.text,

@@ -17,8 +17,8 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
 import { useAboveKeyboard } from "./layout/useAboveKeyboard.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
-import { RuntimePicker } from "./RuntimePicker.tsx";
-import { type Runtime, runtimeRefusal, useRuntime } from "./runtimes.ts";
+import { useComposerRuntime } from "./ComposerPicker.tsx";
+import type { Runtime } from "./runtimes.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -44,8 +44,8 @@ export type ComposerProps = {
   actions?: ReactNode;
   /**
    * The runtime the session runs on, by the name it stored, as its record says: while it is off
-   * here, or gone, the composer says so and sends nothing. Without `session`, the runtime of the
-   * session the message makes is picked, when two or more are on.
+   * here, or gone, the composer says so and sends nothing. Without `session`, the agent, the model,
+   * and the effort of the session the message makes are picked; with it, its effort alone.
    */
   agent?: string;
   /**
@@ -309,25 +309,6 @@ function isBlank(
 }
 
 /**
- * The runtime the composer's message goes to: the session's, by the name it stored, or for a
- * message that makes its session, to a feature without one or a new chat, the one picked, with its
- * `picker`. `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off,
- * gone, or not on this machine. A message sent elsewhere, `onSend`, needs no runtime.
- */
-function useComposerRuntime({ agent, blocked, onSend, session }: ComposerProps) {
-  const makes = session === undefined && !onSend;
-  const [picked, setPicked] = useState<string>();
-  const choice = useRuntime(makes ? undefined : agent, picked);
-  return {
-    agent: choice.runtime,
-    picker: makes && <RuntimePicker onChange={setPicked} value={picked} />,
-    // What the picker shows: a pick turned off since is never sent.
-    runtime: makes ? choice.runtime?.kind : undefined,
-    unavailable: onSend ? blocked : (runtimeRefusal(choice) ?? blocked),
-  };
-}
-
-/**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
  * once this turn ends" while the session works on a chat. Ctrl+Enter or Cmd+Enter sends, and the button
@@ -356,7 +337,7 @@ export function Composer(given: ComposerProps) {
   const input = given.inputRef ?? own;
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
-  const { agent, picker, runtime, unavailable } = useComposerRuntime(given);
+  const { agent, picker, sent, unavailable } = useComposerRuntime(given);
   const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
@@ -376,7 +357,7 @@ export function Composer(given: ComposerProps) {
   // A started change needs its title: images alone are not one.
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
-  const sending = { ...props, runtime };
+  const sending = { ...props, pick: sent };
   const { error, pending, stop, submit } = useSend(sending, { canSend, sent: attaching.sent });
   const place = useRef<HTMLDivElement>(null);
   useInsertKey(input, place, Boolean(unavailable));

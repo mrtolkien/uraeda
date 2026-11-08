@@ -292,6 +292,14 @@ export const SessionAgentView = view<Session>()({
   id: true,
 });
 
+/** What a running session runs on, as its composer's effort picker reads it: agent IDs, null for the agent's default. */
+export const SessionPickView = view<Session>()({
+  agent: true,
+  effort: true,
+  id: true,
+  model: true,
+});
+
 export const SessionView = view<Session>()({
   agent: true,
   allowable: true,

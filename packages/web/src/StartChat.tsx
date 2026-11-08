@@ -10,41 +10,39 @@ import { useFateClient } from "react-fate";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, sessionIdPath, useRepoPath } from "./routes.tsx";
-import { RuntimePicker } from "./RuntimePicker.tsx";
-import { useRuntimePick } from "./runtimes.ts";
+import { useRuntimesOn, useSessionPick } from "./runtimes.ts";
 import { sendMessage } from "./sessions.ts";
+import { pickerRuntimes, SessionPicker } from "./SessionPicker.tsx";
 
 /** A chat started from a page: `start` sends a message, `error` is the server's refusal. */
 export type StartChat = ReturnType<typeof useStartChat>;
 
 /**
  * Starts a chat in the main checkout with a message, then opens it; `error` is the server's
- * refusal. The chat runs on `runtime`, once picked and while it is on, else on the first one on.
+ * refusal. The chat runs on the agent, the model, and the effort `pick` holds, while its agent is
+ * on, else on the first one on, on its defaults.
  */
 export function useStartChat() {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
-  const { kind, picked: runtime, setPicked: setRuntime } = useRuntimePick();
+  const { pick, sent: picked, setPick } = useSessionPick();
   const start = async (text: string) => {
     setError(undefined);
-    const sent = await sendMessage(fate, {
-      text,
-      ...(kind === undefined ? {} : { runtime: kind }),
-    });
+    const sent = await sendMessage(fate, { text, ...picked });
     if (sent.ok) {
       navigate(here(sessionIdPath(sent.session)), { created: true });
     } else {
       setError(sent.message);
     }
   };
-  return { error, runtime, setRuntime, start };
+  return { error, pick, setPick, start };
 }
 
 /**
  * The banner of a round on the default branch: one waiting for the human links to its answering
  * view, `href`, and an answered one offers to apply it, in a chat while the agent works on this
- * machine, on the runtime picked beside it when two or more are on, else with the message to give
+ * machine, on the agent, the model, and the effort picked beside it, else with the message to give
  * one, `apply`.
  */
 export function RoundBanner({
@@ -66,6 +64,7 @@ export function RoundBanner({
   titles: { answered: string; waiting: string };
 }) {
   const here = useRepoPath();
+  const on = useRuntimesOn();
   // On the phone, the actions go under the title, which keeps the banner's width.
   const narrow = isNarrow(useWidthClass());
   const placed = (action?: ReactNode) => {
@@ -86,7 +85,11 @@ export function RoundBanner({
         collapsible={false}
         {...placed(
           <HStack align="center" gap={2} wrap="wrap">
-            <RuntimePicker onChange={chat.setRuntime} value={chat.runtime} />
+            <SessionPicker
+              onChange={chat.setPick}
+              runtimes={pickerRuntimes(on)}
+              value={chat.pick}
+            />
             <Button clickAction={() => chat.start(apply)} label="Apply the answers" />
           </HStack>,
         )}

@@ -3,16 +3,24 @@
 // first, then its models, searchable by name; then the picked model's effort, "Default" first. A
 // model without efforts skips the second step. In a session already started, the button names the
 // effort alone, and opens the second step: the agent and the model stay, the effort applies from the
-// next turn. "Default" leaves the choice to the agent, and says what the agent would pick.
+// next turn. "Default" leaves the choice to the agent, and says what the agent would pick. `Space a`
+// opens the same step as the button, and opening a step asks the server for fresh model lists,
+// without waiting: the lists already read show at once, and a list that changed arrives live.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { useState } from "react";
+import { useFateClient } from "react-fate";
+import { harnessMark } from "./HarnessMark.tsx";
 import { KeyPicker } from "./keys/KeyPicker.tsx";
 import { type PickerItem, textPreview } from "./keys/pickerSources.ts";
+import { useKeys } from "./keys/registry.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import type { IconName } from "./keys/store.ts";
+import type { Runtime } from "./runtimes.ts";
+import { AgentView } from "./views.ts";
 
-/** A reasoning effort a model takes: its ID, as the agent names it, its name, and its line. */
-export type PickerEffort = { description?: string; id: string; name: string };
+/** A reasoning effort a model takes: its ID, as the agent names it, and its name (R5). */
+export type PickerEffort = { id: string; name: string };
 
 /** A model an agent lists, with the efforts it takes, in the agent's order. */
 export type PickerModel = {
@@ -34,6 +42,20 @@ export type PickerRuntime = {
 
 /** What a session runs on: a model or an effort left out is the agent's own default. */
 export type SessionPick = { effort?: string; model?: string; runtime: string };
+
+/**
+ * The runtimes `on`, as the picker offers them, in their order, each with its mark: a runtime
+ * without a list yet gives no models and no defaults, so its picker offers "Default" alone.
+ */
+export function pickerRuntimes(on: ReadonlyArray<Runtime>): Array<PickerRuntime> {
+  return on.map((runtime) => ({
+    defaults: { ...runtime.models?.defaults },
+    icon: harnessMark(runtime.kind, on).icon,
+    kind: runtime.kind,
+    models: runtime.models?.models ?? [],
+    name: runtime.name,
+  }));
+}
 
 function modelOf(runtime: PickerRuntime, id: string | undefined): PickerModel | undefined {
   return id === undefined ? undefined : runtime.models.find((model) => model.id === id);
@@ -62,11 +84,16 @@ function effortRun(runtime: PickerRuntime, pick: SessionPick): string | undefine
 
 /**
  * The button's text: the agent, the model, and the effort the session would run on, defaults
- * resolved: "Codex · GPT-6.1-Sol · Medium". What the agent does not say is left out.
+ * resolved: "Codex · GPT-6.1-Sol · Medium". What the agent does not say is left out. With
+ * `isShort`, on the phone, the agent's mark beside it names the agent, and its name goes.
  */
-export function pickLabel(runtime: PickerRuntime, pick: SessionPick): string {
+export function pickLabel(runtime: PickerRuntime, pick: SessionPick, isShort = false): string {
   const model = modelRun(runtime, pick);
-  return [runtime.name, model?.name ?? pick.model ?? "Default", effortRun(runtime, pick)]
+  return [
+    isShort ? undefined : runtime.name,
+    model?.name ?? pick.model ?? "Default",
+    effortRun(runtime, pick),
+  ]
     .filter((part): part is string => part !== undefined)
     .join(" · ");
 }
@@ -100,6 +127,12 @@ function modelPreview(runtime: PickerRuntime, model: PickerModel | undefined) {
 
 /** Between an agent's kind and a model's ID in a row's ID: neither holds it. */
 const SEP = "\u0000";
+
+/**
+ * The effort step's "Default" row's ID: no effort's ID holds it, and an empty ID would leave the
+ * row under the cursor without its preview.
+ */
+const DEFAULT_EFFORT = SEP;
 
 /** A model row's ID: the agent's kind, then the model's ID, empty for "Default". */
 const modelId = (kind: string, model?: string) => `${kind}${SEP}${model ?? ""}`;
@@ -142,12 +175,12 @@ export function effortItems(runtime: PickerRuntime, pick: SessionPick): Readonly
   const picked = (id?: string) => (pick.effort === id ? "picked" : undefined);
   const row = (effort: PickerEffort | undefined, side: string | undefined): PickerItem => ({
     icon: runtime.icon,
-    id: effort?.id ?? "",
+    id: effort?.id ?? DEFAULT_EFFORT,
     kind: "notes",
     path: "",
     preview: textPreview(
       effort
-        ? (effort.description ?? effort.name)
+        ? effort.name
         : `The effort ${runtime.name}'s own settings give ${model?.name ?? "this model"}.`,
     ),
     title: effort?.name ?? defaultTitle(effortName(model, runtime.defaults.effort)),
@@ -159,11 +192,20 @@ export function effortItems(runtime: PickerRuntime, pick: SessionPick): Readonly
   ];
 }
 
+/** Asks the server for every runtime's model list again, without waiting for it. */
+function useRefreshModels(): () => void {
+  const fate = useFateClient();
+  return () => {
+    // Fire and forget: the lists that changed reach the agent's record as a live update.
+    void fate.mutations.agent.refreshModels({ input: {}, view: AgentView }).catch(() => {});
+  };
+}
+
 /**
  * The button and its picker over `runtimes`, those on here, in their order: `value` while its
  * agent is one of them, else the first one, on its defaults. With `isStarted`, the session runs
- * already: the button names the effort, and opens the effort step alone. `step` opens a step from
- * outside, as `Space a` does.
+ * already: the button names the effort, and opens the effort step alone. `Space a` opens the same
+ * step as the button; `step` opens one from the start, as a story does.
  */
 export function SessionPicker({
   isStarted = false,
@@ -179,25 +221,41 @@ export function SessionPicker({
   value: SessionPick | undefined;
 }) {
   const [step, setStep] = useState(opened);
-  const first = runtimes[0];
-  if (!first) {
-    return null;
-  }
-  const runtime = runtimes.find((each) => each.kind === value?.runtime) ?? first;
-  const pick: SessionPick = value?.runtime === runtime.kind ? value : { runtime: runtime.kind };
-  const model = modelRun(runtime, pick);
-  if (isStarted && (model?.efforts.length ?? 0) === 0) {
+  const refresh = useRefreshModels();
+  const narrow = isNarrow(useWidthClass());
+  const runtime = runtimes.find((each) => each.kind === value?.runtime) ?? runtimes[0];
+  const pick: SessionPick | undefined =
+    runtime && (value?.runtime === runtime.kind ? value : { runtime: runtime.kind });
+  const model = runtime && pick && modelRun(runtime, pick);
+  const isShown = runtime !== undefined && (!isStarted || (model?.efforts.length ?? 0) > 0);
+  const open = (next: "model" | "effort") => {
+    refresh();
+    setStep(next);
+  };
+  useKeys(
+    isShown
+      ? [
+          {
+            icon: "uraeda:bot",
+            keys: "space a",
+            label: isStarted ? "Pick the effort" : "Pick the model",
+            run: () => open(isStarted ? "effort" : "model"),
+          },
+        ]
+      : [],
+  );
+  if (!isShown || !pick) {
     return null;
   }
   const label = isStarted
     ? `Effort · ${effortRun(runtime, pick) ?? "Default"}`
-    : pickLabel(runtime, pick);
+    : pickLabel(runtime, pick, narrow);
   return (
     <>
       <Button
         icon={<Icon icon={runtime.icon} />}
         label={label}
-        onClick={() => setStep(isStarted ? "effort" : "model")}
+        onClick={() => open(isStarted ? "effort" : "model")}
         size="sm"
         variant="ghost"
       />
@@ -211,7 +269,12 @@ export function SessionPicker({
           const owner = runtimes.find((each) => each.kind === kind) ?? runtime;
           const next = withModel(owner, pick, id === "" ? undefined : id);
           onChange(next);
-          setStep((modelRun(owner, next)?.efforts.length ?? 0) > 0 ? "effort" : undefined);
+          // The model is picked already: Escape on the effort step keeps it, on its default effort.
+          // A frame later, once the model's palette is gone: opened in the frame it closes, the
+          // effort's palette started with no row under its cursor, and no preview.
+          if ((modelRun(owner, next)?.efforts.length ?? 0) > 0) {
+            requestAnimationFrame(() => setStep("effort"));
+          }
         }}
         placeholder="Model…"
         start={modelId(runtime.kind, pick.model)}
@@ -224,11 +287,11 @@ export function SessionPicker({
         onClose={() => setStep(undefined)}
         onPick={(item) => {
           const { effort: _, ...rest } = pick;
-          onChange(item.id === "" ? rest : { ...rest, effort: item.id });
+          onChange(item.id === DEFAULT_EFFORT ? rest : { ...rest, effort: item.id });
           setStep(undefined);
         }}
         placeholder="Effort…"
-        start={pick.effort ?? ""}
+        start={pick.effort ?? DEFAULT_EFFORT}
         title={`Pick the effort of ${model?.name ?? runtime.name}`}
       />
     </>

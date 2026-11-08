@@ -187,3 +187,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   takes back the messages a turn did not read; a model list without a configured model would
   otherwise show no default.
 - **Where**: task 7, `codex.ts` and `codex-turns.ts`.
+
+## R20: The composer's picker lives in `ComposerPicker.tsx`, its samples in `sampleRuntimes.ts`
+
+- **Decision**: `useComposerRuntime` moves from `Composer.tsx` into `ComposerPicker.tsx`, with the
+  running session's effort picker, which reads the session's `model` and `effort` through a small
+  `SessionPickView`; the stories' two runtimes move into `sampleRuntimes.ts`, shared by the stories
+  and `session-picker.test.ts`; what a new session's input sends is the pure `pickSent` in
+  `runtimes.ts`, which `useSessionPick` returns as `sent`, and the inputs carry it whole
+  (`PickSent`) in place of `runtime`. The start dialog names the picker "Runs on", beside it, as it
+  names its research effort.
+- **Rationale**: `Composer.tsx` is at 446 lines, and the effort picker would take it past the 500
+  the code quality decision allows; a test importing a story file would load Storybook; the pure
+  rule is the part worth testing, as `pickedRuntime` was.
+- **Where**: task 8.
+
+## R21: On the phone, the button leaves the agent's name to its mark
+
+- **Decision**: at a phone's width, the button reads "GPT-6.1-Sol · Medium" beside the agent's mark,
+  not "Codex · GPT-6.1-Sol · Medium"; the composer's footer wraps, so the picker never cuts the
+  model it names to make room for the paperclip or "Insert: …". The effort step opens a frame after
+  the model step closes.
+- **Rationale**: at 390 px the full text pushed Send out of the composer; the mark already names the
+  agent. Opened in the frame the model step closed, the effort step had no row under its cursor and
+  no preview.
+- **Where**: task 8, `SessionPicker.tsx`, `ComposerSend.tsx`.

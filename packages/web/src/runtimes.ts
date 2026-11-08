@@ -6,6 +6,7 @@ import { useLiveView, useRequest } from "react-fate";
 import type { Agent } from "uraeda-server/fate";
 import { RUNTIME_REFUSALS } from "uraeda-server/limits";
 import { agentRequest, useFeature, useRefreshOnShow } from "./data.ts";
+import type { SessionPick } from "./SessionPicker.tsx";
 import { AgentView, SessionAgentView } from "./views.ts";
 
 /** A runtime, as the server describes it, on or off in this repository. */
@@ -23,6 +24,11 @@ export function useRuntimes(): ReadonlyArray<Runtime> {
   const { agent } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(AgentView, agent)?.runtimes ?? [];
+}
+
+/** The runtimes a new session can run on here: those on, in their order. */
+export function useRuntimesOn(): ReadonlyArray<Runtime> {
+  return useRuntimes().filter((runtime) => runtime.isOn);
 }
 
 /**
@@ -70,13 +76,43 @@ export function pickedRuntime(
   return runtimeFor(runtimes, undefined, picked).runtime?.kind;
 }
 
+/** What a new session's input sends of the pick: its runtime, its model, and its effort. */
+export type PickSent = { effort?: string; model?: string; runtime?: string };
+
 /**
- * The runtime picked for a new session: `picked`, what the human chose, for the picker's value, and
- * `kind`, what the message sends, `pickedRuntime`'s.
+ * What a new session's input sends for `pick`: the runtime as `pickedRuntime` resolves it, and the
+ * model and the effort only while that runtime is the one picked. A pick turned off since sends the
+ * first runtime on, on its own defaults, never the old agent's model.
  */
-export function useRuntimePick() {
-  const [picked, setPicked] = useState<string>();
-  return { kind: pickedRuntime(useRuntimes(), picked), picked, setPicked };
+export function pickSent(
+  runtimes: ReadonlyArray<Runtime>,
+  pick: SessionPick | undefined,
+): PickSent {
+  const runtime = pickedRuntime(runtimes, pick?.runtime);
+  if (runtime === undefined) {
+    return {};
+  }
+  if (runtime !== pick?.runtime) {
+    return { runtime };
+  }
+  return {
+    runtime,
+    ...(pick.model === undefined ? {} : { model: pick.model }),
+    ...(pick.effort === undefined ? {} : { effort: pick.effort }),
+  };
+}
+
+/**
+ * What a new session runs on: `pick`, what the human chose, for the picker's value, `setPick`, and
+ * `sent`, what its input sends, `pickSent`'s.
+ */
+export function useSessionPick(): {
+  pick: SessionPick | undefined;
+  sent: PickSent;
+  setPick: (pick: SessionPick) => void;
+} {
+  const [pick, setPick] = useState<SessionPick>();
+  return { pick, sent: pickSent(useRuntimes(), pick), setPick };
 }
 
 /** `runtimeFor` over the runtimes read: a session's by its stored `kind`, else a new session's. */

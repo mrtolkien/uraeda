@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import type { SessionStatus as Status } from "uraeda-server/fate";
 import { EditableLine } from "./EditableLine.tsx";
 import { HarnessMark, useHarnessMark } from "./HarnessMark.tsx";
-import { useRuntimesOn } from "./RuntimePicker.tsx";
+import { useRuntimesOn } from "./runtimes.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import type { RenameControls } from "./useSessionControls.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";

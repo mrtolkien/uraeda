@@ -867,7 +867,11 @@ git commit -m "feat(codex-runtime): the Codex runtime"
 - Modify: `packages/web/src/SessionPicker.tsx`, `runtimes.ts` (`useSessionPick` in place of
   `useRuntimePick`, `useRuntimesOn` moved here), `Composer.tsx` (`useComposerRuntime`),
   `StartChat.tsx`, `StartDialog.tsx`, `NewChangePage.tsx`, `SessionHeader.tsx` (the import only),
-  `SessionPicker.stories.tsx`
+  `SessionPicker.stories.tsx`; `useComposerSend.ts` and `sessions.ts` (the inputs carry the pick),
+  `views.ts` (`SessionPickView`)
+- Create: `packages/web/src/ComposerPicker.tsx` (`useComposerRuntime`, moved from `Composer.tsx`,
+  and the running session's effort), `sampleRuntimes.ts` (the stories' runtimes, shared with the
+  test), as R20 says
 - Delete: `packages/web/src/RuntimePicker.tsx`
 - Test: `packages/web/src/__tests__/session-picker.test.ts`, `runtime-choice.test.ts`
 
@@ -881,7 +885,8 @@ git commit -m "feat(codex-runtime): the Codex runtime"
   returning
   `{ pick: SessionPick | undefined; sent: { runtime?: string; model?: string; effort?: string }; setPick }`,
   `sent` being what the start inputs send: the runtime as `pickedRuntime` resolves it, and the model
-  and effort only while that runtime is the picked one.
+  and effort only while that runtime is the picked one. `sent` is the pure
+  `pickSent(runtimes, pick): PickSent` in `runtimes.ts`.
 
 What changes in the component: `PickerEffort` loses `description`, as the data model's efforts have
 none; opening a step calls `agent.refreshModels` without waiting; `Space a` is registered with
@@ -889,7 +894,7 @@ none; opening a step calls `agent.refreshModels` without waiting; `Space a` is r
 opening the same step as the button. In a running session the composer shows the picker with
 `isStarted`, its value from the session record, and its change calls `session.setEffort`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // session-picker.test.ts: the pure rules, over the stories' two runtimes
@@ -908,19 +913,19 @@ The `runtime-choice.test.ts` fixtures gain `models: null`; its `pickedRuntime` r
 The break each test catches: "Default" mistaken for a pick, an effort the model does not take kept
 across a model or agent change, and another agent's rows in a one-agent list.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c vp test packages/web/src/__tests__/session-picker.test.ts`
   - Expected: FAIL on the default row's title, until the stories' fixtures move to the test's
     helpers, or on `pickerRuntimes` missing.
-- [ ] **Step 3: Wire the picker in every place a session starts, and in a running session's
+- [x] **Step 3: Wire the picker in every place a session starts, and in a running session's
       composer.** The start dialog shows the picker only where it showed the runtime picker;
       `NewChangePage` sends the pick's `sent`.
-- [ ] **Step 4: Run the task's validation, and review in the sandbox**
+- [x] **Step 4: Run the task's validation, and review in the sandbox**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
   - Then `vp run sandbox`: a new chat, a feature's new session, a change's start, a running
     session's composer, `Space a` and Enter twice, in both themes, at 390 px and 1440 px.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
