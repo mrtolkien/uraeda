@@ -282,7 +282,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   ([R28](#r28-late-throws-break-only-their-extension)).
 - **Where**: task 7, `packages/server/src/extensions/evaluate.ts` and `loader.ts`.
 
-## R28: Late throws break only their extension
+## R29: Late throws break only their extension
 
 - **Decision**: (a) each module function's context extension, still without a prototype (R24), holds
   scoped `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask`, `clearTimeout`,
