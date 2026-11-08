@@ -24,7 +24,10 @@ export type Place = {
   /** Where the column draws it: Navigate by default, its actions, or nowhere, as Sessions. */
   column?: "actions" | "navigate" | "none";
   component: ComponentType;
-  /** Its count, read as a hook while its row or tab is drawn: none shows nothing. */
+  /**
+   * Its count, read as a hook while its row or tab is drawn, inside its extension's boundary, so
+   * it may call `uraeda/page`'s hooks: none, or a count that throws, shows nothing.
+   */
   count?: () => number | undefined;
   /** Its key after `g`, which the built-ins have beside their leader key. */
   goKey?: string;

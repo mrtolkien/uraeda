@@ -3,7 +3,8 @@
 // the built-ins. Each version's registrations are undone before the next one runs, its CSS
 // replaced, and every contribution it registers is drawn inside its extension's boundary, keyed by
 // the version. A page that throws registers nothing, and its problem goes to the settings page.
-import { type ComponentType, createElement } from "react";
+import { type ComponentType, createElement, type ReactNode } from "react";
+import { bindCount } from "./CountIn.tsx";
 import { pageActivation, type PageBundle } from "./evaluate.ts";
 import { ExtensionBoundary } from "./ExtensionBoundary.tsx";
 import { type PageApi, pageApi } from "./pageApi.ts";
@@ -43,7 +44,26 @@ function bounded(Inner: ComponentType<object>, boundary: Boundary, isInline: boo
   };
 }
 
-/** `value` with each component drawn in the boundary, its count's throw an unknown count. */
+/**
+ * What draws a place's count in the boundary: what it threw reported once in the version, the
+ * shell's `fallback` drawn instead.
+ */
+function countBoundary(boundary: Boundary) {
+  const { name, report, title, version } = boundary;
+  let isReported = false;
+  const once = (message: string) => {
+    if (!isReported) {
+      isReported = true;
+      report(message);
+    }
+  };
+  return (children: ReactNode, fallback: ReactNode) => {
+    const own = { children, fallback, name, report: once, title };
+    return createElement(ExtensionBoundary, { ...own, key: version });
+  };
+}
+
+/** `value` with each component, and a place's count, drawn in the boundary. */
 function guarded<T extends object>(value: T, boundary: Boundary, isInline = false): T {
   const out = { ...value } as Record<string, unknown>;
   for (const field of COMPONENTS) {
@@ -54,14 +74,10 @@ function guarded<T extends object>(value: T, boundary: Boundary, isInline = fals
   }
   const count = out.count;
   if (typeof count === "function") {
-    out.count = () => {
-      try {
-        return count() as unknown;
-      } catch (error) {
-        boundary.report(messageOf(error));
-        return undefined;
-      }
-    };
+    // A hook: the shell calls it while drawing, inside the boundary bound to it (`CountIn`).
+    const hook = (() => count() as unknown) as () => unknown;
+    bindCount(hook, countBoundary(boundary));
+    out.count = hook;
   }
   const run = out.run;
   if (typeof run === "function") {

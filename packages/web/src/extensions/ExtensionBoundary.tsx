@@ -9,6 +9,8 @@ import { ExtensionContext } from "./hooks.ts";
 
 type Props = {
   children: ReactNode;
+  /** What it draws in place of a failure, a count's: its failure's text when not given. */
+  fallback?: ReactNode;
   /** Whether it draws in a line, as a status item: then its failure is one line of text. */
   isInline?: boolean;
   /** The extension's name. */
@@ -31,10 +33,13 @@ export class ExtensionBoundary extends Component<Props, { failed: string | null 
   }
 
   render() {
-    const { children, isInline, name, title } = this.props;
+    const { children, fallback, isInline, name, title } = this.props;
     const { failed } = this.state;
     if (failed === null) {
       return <ExtensionContext value={name}>{children}</ExtensionContext>;
+    }
+    if (fallback !== undefined) {
+      return fallback;
     }
     const text = `${title}: ${failed}`;
     return isInline ? (

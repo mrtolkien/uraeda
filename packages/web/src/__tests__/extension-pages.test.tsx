@@ -94,3 +94,29 @@ test("an extension page registers a place and reloads", async () => {
   await refreshUntil(() => expect(screen.getByText(/the page fell over/)).toBeTruthy());
   expect(links("Wiki")).toHaveLength(1);
 });
+
+// Break: the count called as a hook outside its extension's boundary, where `useRecord` throws, its
+// throw swallowed into no count.
+test("a place's count reads its extension's record", async () => {
+  const config = temporaryFolder("uraeda-config");
+  writeFileSync(join(config, "config.toml"), "");
+  extension(config, "mail", {
+    "extension.toml": manifest("mail", "Mail", true),
+    "page.tsx": `import { useRecord } from "uraeda/page";
+
+export default function page(api) {
+  api.place({
+    component: () => null,
+    count: () => useRecord<{ unread: number }>("box").unread,
+    icon: "uraeda:inbox",
+    id: "mail",
+    title: "Mail",
+  });
+}
+`,
+    "server.ts": `export default function activate(api) {\n  api.record("box", () => ({ unread: 7 }));\n}\n`,
+  });
+  await renderPage("/", fixtureRepo(), { config, extensions: true });
+  await waitFor(() => expect(links("Mail")).toHaveLength(1));
+  await refreshUntil(() => expect(within(links("Mail")[0]).getByText("7")).toBeTruthy());
+});

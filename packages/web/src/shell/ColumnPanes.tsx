@@ -20,6 +20,7 @@ import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
+import { CountIn } from "../extensions/CountIn.tsx";
 import type { Place } from "../extensions/registry.ts";
 import { useContributions } from "../extensions/useContributions.ts";
 import { AddNoteButton, AddProposalButton } from "../SidebarAdd.tsx";
@@ -278,9 +279,9 @@ function PlaceRow({ pathname, place }: { pathname: string; place: Place }) {
       actions={Actions && <Actions />}
       endContent={
         place.count && (
-          <Suspense fallback={null}>
+          <CountIn count={place.count} fallback={null}>
             <PlaceCount useCount={place.count} />
-          </Suspense>
+          </CountIn>
         )
       }
       icon={<Icon icon={place.icon} />}

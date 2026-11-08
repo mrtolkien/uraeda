@@ -20,6 +20,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
+import { CountIn } from "../extensions/CountIn.tsx";
 import type { Place } from "../extensions/registry.ts";
 import { useContributions } from "../extensions/useContributions.ts";
 import { useInbox } from "../data.ts";
@@ -361,9 +362,9 @@ function PlaceTab({ isCurrent, place }: { isCurrent: boolean; place: Place }) {
     <Tab icon={place.icon} isCurrent={isCurrent} label={place.title} to={place.path ?? "/"} />
   );
   return place.count ? (
-    <Suspense fallback={plain}>
+    <CountIn count={place.count} fallback={plain}>
       <CountedTab isCurrent={isCurrent} place={place} useCount={place.count} />
-    </Suspense>
+    </CountIn>
   ) : (
     plain
   );
