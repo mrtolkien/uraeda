@@ -77,6 +77,17 @@ export function codexWindows(limits: unknown): Array<UsageWindow> {
   });
 }
 
+/**
+ * The window a refusal falls back to when none reads full yet, the snapshot lagging the refusal:
+ * the primary window when it is the five-hour one with its reset, so the run resumes by itself.
+ */
+function sessionWindow(windows: Array<CodexWindow & { key: string }>) {
+  const primary = windows.find((window) => window.key === "primary");
+  return primary?.minutes === SESSION_MINUTES && primary.resetsAt !== undefined
+    ? primary
+    : undefined;
+}
+
 /** Whether a turn's error is Codex's usage limit. */
 const isUsageLimit = (error: unknown): boolean =>
   isObject(error) && error.codexErrorInfo === "usageLimitExceeded";
@@ -84,8 +95,9 @@ const isUsageLimit = (error: unknown): boolean =>
 /**
  * The limit that refused a turn: a failed turn's `usageLimitExceeded` error, or a snapshot with its
  * `rateLimitReachedType` set. It is `session` when the five-hour window is the full one that
- * resets last, and resumes at that window's reset; credits run out, or a full weekly window, are
- * `other`. `text` is the error's message.
+ * resets last, or when no window reads full and the primary one is the five-hour window, and
+ * resumes at that window's reset; credits run out, or a full weekly window, are `other`. `text` is
+ * the error's message.
  */
 export function codexLimit(limits: unknown, error?: unknown): Limit | undefined {
   const reached = isObject(limits) ? limits.rateLimitReachedType : undefined;
@@ -99,9 +111,11 @@ export function codexLimit(limits: unknown, error?: unknown): Limit | undefined 
   if (typeof reached === "string" && reached !== "" && reached !== "rate_limit_reached") {
     return { kind: "other", ...text };
   }
-  const full = windowsOf(limits)
-    .filter((window) => window.used >= 100 && window.resetsAt !== undefined)
-    .toSorted((a, b) => (a.resetsAt! < b.resetsAt! ? 1 : -1))[0];
+  const windows = windowsOf(limits);
+  const full =
+    windows
+      .filter((window) => window.used >= 100 && window.resetsAt !== undefined)
+      .toSorted((a, b) => (a.resetsAt! < b.resetsAt! ? 1 : -1))[0] ?? sessionWindow(windows);
   return {
     kind: full?.minutes === SESSION_MINUTES ? "session" : "other",
     ...(full?.resetsAt === undefined ? {} : { resetsAt: full.resetsAt }),

@@ -78,6 +78,24 @@ test.each<[string, unknown, unknown, unknown]>([
   ],
   ["a refusal without windows", undefined, usageError, { kind: "other", text: usageError.message }],
   [
+    "a refusal before the 5-hour window reads full resumes at its reset",
+    rateLimits({ primary: [97, 300, 1_794_155_269], secondary: [64, 10_080, 1_794_205_264] }),
+    usageError,
+    { kind: "session", resetsAt: "2026-11-08T16:27:49.000Z", text: usageError.message },
+  ],
+  [
+    "a limit reached in a report before the 5-hour window reads full",
+    rateLimits({ primary: [99, 300, 1_794_155_269], reached: "rate_limit_reached" }),
+    undefined,
+    { kind: "session", resetsAt: "2026-11-08T16:27:49.000Z" },
+  ],
+  [
+    "a refusal whose first window is not the 5-hour one",
+    rateLimits({ primary: [97, 10_080, 1_794_205_264] }),
+    usageError,
+    { kind: "other", text: usageError.message },
+  ],
+  [
     "another error",
     rateLimits({ primary: [100, 300, 1_794_155_269] }),
     { codexErrorInfo: "badRequest", message: "Bad request" },
