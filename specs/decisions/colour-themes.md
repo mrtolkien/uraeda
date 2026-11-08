@@ -32,7 +32,7 @@ A view asking for "orange" ties every meaning that shares the hue: no theme coul
 the human apart from a key cap. Themes in Neovim and VS Code get their character from mapping their
 palette onto named places, and a shared format makes a shipped theme a file to copy. Shipped themes
 read at the floor; a user's own colours are their choice. History:
-[Color themes](../2026-11-07-color-themes/spec.md).
+[Color themes](../done/2026-11-07-color-themes.md).
 
 ## Alternatives considered
 

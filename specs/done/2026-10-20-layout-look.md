@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-24
 pull-request: https://github.com/mrtolkien/uraeda/pull/55
-superseded-by: [2026-11-03-vim-text]
+superseded-by: [2026-11-03-vim-text, 2026-11-07-color-themes]
 ---
 
 # Record: Layout and look and feel
@@ -14,6 +14,8 @@ superseded-by: [2026-11-03-vim-text]
 > in git: `git log -- specs/2026-10-20-layout-look/`.
 >
 > Superseded in part by [2026-11-03-vim-text](2026-11-03-vim-text.md).
+>
+> Superseded in part by [2026-11-07-color-themes](2026-11-07-color-themes.md).
 
 ## What and why
 
