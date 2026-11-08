@@ -223,9 +223,7 @@ test("the selected note shows its images under its row, and Remove takes one out
   await click(remove);
 
   await waitFor(() => expect(filesOf(repo, file).text).not.toContain(`images/${image}`));
-  expect(
-    await screen.findByText(`Removed ${image} from the note's file · waits on the Git page`),
-  ).toBeTruthy();
+  expect(await screen.findByText(`Removed ${image} from the note's file`)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
   // The image's file stays, for `ura inbox clean` or a commit to delete.
   expect(filesOf(repo, file).images).toEqual([image]);
@@ -264,7 +262,7 @@ test("a note file opened after one of its images is removed shows it without the
   const { file, image, shown } = await ideaOneWithImage();
 
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
-  await screen.findByText(`Removed ${image} from the note's file · waits on the Git page`);
+  await screen.findByText(`Removed ${image} from the note's file`);
 
   const text = await editorText(file);
   expect(text).toContain("Idea one");
@@ -275,7 +273,7 @@ test("a note file opened after an image's removal is undone shows the image agai
   const { file, image, repo, shown } = await ideaOneWithImage();
   const before = filesOf(repo, file).text;
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
-  await screen.findByText(`Removed ${image} from the note's file · waits on the Git page`);
+  await screen.findByText(`Removed ${image} from the note's file`);
 
   // The drop's toast, with its own Undo, came before: the removal's is the last.
   await click((await screen.findAllByRole("button", { name: /^Undo/ })).at(-1)!);

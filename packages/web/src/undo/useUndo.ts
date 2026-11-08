@@ -7,7 +7,6 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { useSingleKeys } from "../keys/registry.tsx";
 import { useTimedToast } from "../layout/useTimedToast.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { waitsOnGit } from "../writes/labels.ts";
 import { type UndoEntry, undoStack } from "./stack.ts";
 
 /** How long a toast of the stack stays, left alone, in ms. */
@@ -67,15 +66,14 @@ export function useStackToast(): (body: string, entry: UndoEntry, redo: boolean)
 }
 
 /**
- * How `useUndo` shows an entry: `toast` false shows none; `waitsOnGit` false leaves the Git page
- * out of its toast, for the one action the browser holds, the New page's draft.
+ * How `useUndo` shows an entry: `toast` false shows none.
  */
-type RecordOptions = { toast?: boolean; waitsOnGit?: boolean };
+type RecordOptions = { toast?: boolean };
 
 /**
- * Records a write that landed on the tab's undo stack, and shows its toast, its label and that it
- * waits on the Git page, with Undo: unless `toast` is false, or the entry is a move, which shows
- * none. A refused write records nothing: there is nothing to undo.
+ * Records a write that landed on the tab's undo stack, and shows its toast, its label with Undo:
+ * unless `toast` is false, or the entry is a move, which shows none. A refused write records
+ * nothing: there is nothing to undo.
  */
 export function useUndo(): (entry: UndoEntry, options?: RecordOptions) => void {
   const toast = useStackToast();
@@ -85,7 +83,7 @@ export function useUndo(): (entry: UndoEntry, options?: RecordOptions) => void {
       if (options.toast === false || entry.move) {
         return;
       }
-      toast(options.waitsOnGit === false ? entry.label : waitsOnGit(entry.label), entry, false);
+      toast(entry.label, entry, false);
     },
     [toast],
   );

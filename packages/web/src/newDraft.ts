@@ -162,15 +162,12 @@ export function useNewDraft() {
         };
       const replaced = { held: after, images: [] };
       const replacing = { held: before, images };
-      record(
-        {
-          label: "Draft replaced",
-          place: { path: "/new", repo: name },
-          redo: swap("redo", replacing, replaced),
-          undo: swap("undo", replaced, replacing),
-        },
-        { waitsOnGit: false },
-      );
+      record({
+        label: "Draft replaced",
+        place: { path: "/new", repo: name },
+        redo: swap("redo", replacing, replaced),
+        undo: swap("undo", replaced, replacing),
+      });
     }
   };
   // Whether the draft still held `text`, and went with the images sent: a newer draft stays whole.

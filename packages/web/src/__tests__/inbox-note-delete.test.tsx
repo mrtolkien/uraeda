@@ -67,7 +67,7 @@ test("d on a note with a note file deletes both at once, which u brings back", a
   });
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(read(repo, PATH)).toContain("- Idea one\n");
-  await screen.findByText("Deleted “Sort tasks” · waits on the Git page");
+  await screen.findByText("Deleted “Sort tasks”");
 
   await press("u");
 

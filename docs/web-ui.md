@@ -378,11 +378,11 @@ changes.
 a Mac. They work outside text fields: in a field, `Ctrl+Z` undoes your typing. With single-key
 shortcuts off, `u` and `U` do nothing, and the chords still work.
 
-Each action shows a toast for 5 seconds, such as "Deleted “Color themes” · waits on the Git page",
-with Undo. After an undo, it reads "Undone: deleted “Color themes”", with Redo. The status line
-shows `U redo` while there is something to redo, and a new action clears it. Moves show no toast:
-reordering, dragging, indenting, and changing a row's section or category. Moves of one list, each
-less than a second after the last, are one step, which one `u` takes back.
+Each action shows a toast for 5 seconds, such as "Deleted “Color themes”", with Undo. After an undo,
+it reads "Undone: deleted “Color themes”", with Redo. The status line shows `U redo` while there is
+something to redo, and a new action clears it. Moves show no toast: reordering, dragging, indenting,
+and changing a row's section or category. Moves of one list, each less than a second after the last,
+are one step, which one `u` takes back.
 
 An undo takes you to where the action happened, with what came back selected; Back returns. It
 writes the reverse as a change, which waits on the Git page: it never commits or rewrites git's

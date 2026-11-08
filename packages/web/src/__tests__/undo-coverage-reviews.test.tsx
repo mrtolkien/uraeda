@@ -84,7 +84,7 @@ test("a first comment's undo deletes the review file it created, and its redo wr
   await type(await generalField(), "Pointers for the plan.");
   const end = within(document.getElementById(GENERAL_ID) as HTMLElement);
   await click(end.getByRole("button", { name: "Add comment" }));
-  await screen.findByText("Added a comment · waits on the Git page");
+  await screen.findByText("Added a comment");
   const written = review(r);
   expect(written).toContain("Pointers for the plan.");
 
@@ -107,7 +107,7 @@ test("a mockup's comment undoes and redoes, as the review page's do", async () =
   const form = within(await screen.findByRole("form", { name: "Comment" }));
   await type(form.getByLabelText("Comment text"), "The mockup's buttons are too small.");
   await click(form.getByRole("button", { name: "Add comment" }));
-  await screen.findByText("Added a comment · waits on the Git page");
+  await screen.findByText("Added a comment");
   const written = review(r);
   expect(written).toContain("The mockup's buttons are too small.");
 
@@ -128,7 +128,7 @@ test("an edited comment's undo puts its text back, and its redo the edit", async
   await click(within(await comment("C1 · general")).getByRole("button", { name: "Edit" }));
   await type(within(await editForm()).getByLabelText("Comment text"), "First, edited.");
   await click(within(await editForm()).getByRole("button", { name: "Save comment" }));
-  await screen.findByText("Edited a comment · waits on the Git page");
+  await screen.findByText("Edited a comment");
   const edited = review(r);
   expect(edited).toContain("First, edited.");
 
@@ -156,7 +156,7 @@ test("a removed comment's undo brings it back, and an edit typed after it follow
   await click(within(await comment("C2 · general")).getByRole("button", { name: "Edit" }));
   await type(within(await editForm()).getByLabelText("Comment text"), "Second, edited.");
   await click(within(await comment("C1 · general")).getByRole("button", { name: "Remove" }));
-  await screen.findByText("Removed a comment · waits on the Git page");
+  await screen.findByText("Removed a comment");
   const removed = review(r);
   expect(within(await editForm()).getByText("Editing C1")).toBeTruthy();
 
@@ -194,7 +194,7 @@ test("a removed comment's own edit not sent comes back with it on undo", async (
   await click(within(await comment("C2 · general")).getByRole("button", { name: "Edit" }));
   await waitFor(async () => expect(within(await editForm()).getByText("Editing C2")).toBeTruthy());
   await click(within(await comment("C1 · general")).getByRole("button", { name: "Remove" }));
-  await screen.findByText("Removed a comment · waits on the Git page");
+  await screen.findByText("Removed a comment");
 
   await press("u");
   await screen.findByText("Undone: removed a comment");
@@ -211,7 +211,7 @@ test("Start over's undo brings back every comment it dropped", async () => {
   commitSpec(r, (text) => `${text}\nAnother line.\n`);
   await renderPage(PAGE, r);
   await click(await screen.findByRole("button", { name: "Start over" }));
-  await screen.findByText("Started the review over · waits on the Git page");
+  await screen.findByText("Started the review over");
   expect(review(r)).toBeUndefined();
 
   await press("u");

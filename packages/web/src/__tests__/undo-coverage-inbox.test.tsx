@@ -120,7 +120,7 @@ async function undoesAndRedoes(
     await act(async () => {});
     expect(screen.queryByText(new RegExp(`${label} · waits`))).toBeNull();
   } else {
-    expect(await screen.findByText(`${label} · waits on the Git page`)).toBeTruthy();
+    expect(await screen.findByText(`${label}`)).toBeTruthy();
   }
 
   await press("u");

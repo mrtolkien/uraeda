@@ -155,7 +155,7 @@ test("a line added in place, edited, and deleted each undo and redo", async () =
   await save(await screen.findByRole("textbox", { name: "New proposal" }), "Fresh line");
   await waitFor(() => expect(read(repo)).toContain("- Second\n- Fresh line\n"));
   await press("Escape", await screen.findByRole("textbox", { name: "New proposal" }));
-  await screen.findByText("Added “Fresh line” · waits on the Git page");
+  await screen.findByText("Added “Fresh line”");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
   await listShowsFile(repo);
 
@@ -163,14 +163,14 @@ test("a line added in place, edited, and deleted each undo and redo", async () =
   await press("i", focus("Third"));
   await save(await screen.findByRole("textbox", { name: "Edit the proposal" }), "Third edited");
   await waitFor(() => expect(read(repo)).toContain("- Third edited\n"));
-  await screen.findByText("Edited “Third edited” · waits on the Git page");
+  await screen.findByText("Edited “Third edited”");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
   await listShowsFile(repo);
 
   before = contents(repo, ["specs/PRIORITIES.md"]);
   await press("d", focus("Later line"));
   await waitFor(() => expect(read(repo)).not.toContain("Later line"));
-  await screen.findByText("Deleted “Later line” · waits on the Git page");
+  await screen.findByText("Deleted “Later line”");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
 });
 
@@ -215,7 +215,7 @@ test("an edit's refused undo names the line's new text, as the inbox's does", as
   const repo = await onPriorities();
   await press("i", focus("Third"));
   await save(await screen.findByRole("textbox", { name: "Edit the proposal" }), "Third edited");
-  await screen.findByText("Edited “Third edited” · waits on the Git page");
+  await screen.findByText("Edited “Third edited”");
   writeFileSync(join(repo, "specs/PRIORITIES.md"), read(repo).replace("- Third edited", "- Mine"));
 
   await press("Escape");
@@ -256,7 +256,7 @@ test("the pane's rename, section, and delete each undo and redo", async () => {
   let before = contents(repo, ["specs/PRIORITIES.md"]);
   await save(screen.getByRole("textbox", { name: "Proposal" }), "Second renamed");
   await waitFor(() => expect(read(repo)).toContain("- Second renamed\n"));
-  await screen.findByText("Renamed “Second” · waits on the Git page");
+  await screen.findByText("Renamed “Second”");
   // The pane is a layer, which the stack's keys do not reach: the list's page is open again.
   await act(async () => navigate(atRepo("/priorities")));
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
@@ -276,7 +276,7 @@ test("the pane's rename, section, and delete each undo and redo", async () => {
   before = contents(repo, ["specs/PRIORITIES.md"]);
   await click(await screen.findByRole("button", { name: "Delete" }));
   await waitFor(() => expect(read(repo)).not.toContain("- First\n"));
-  await screen.findByText("Deleted “First” · waits on the Git page");
+  await screen.findByText("Deleted “First”");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
 });
 
@@ -294,7 +294,7 @@ async function expandUndoesAndRedoes(expand: () => Promise<void>) {
   const before = contents(repo, paths);
   await expand();
   await waitFor(() => expect(existsSync(join(repo, "specs/proposals/second.md"))).toBe(true));
-  await screen.findByText("Expanded “Second” into a file · waits on the Git page");
+  await screen.findByText("Expanded “Second” into a file");
   await waitFor(() => expect(window.location.pathname).toContain("/edit/"));
   await undoesAndRedoes(repo, paths, before);
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities")));
@@ -322,7 +322,7 @@ test("the sidebar's adds of a proposal and of a note undo and redo", async () =>
   await click(screen.getByRole("button", { name: "Add a proposal" }));
   await save(await screen.findByRole("textbox", { name: "Proposal" }), "Sidebar proposal");
   await waitFor(() => expect(read(repo)).toContain("- Sidebar proposal\n"));
-  await screen.findByText("Added to Next · waits on the Git page");
+  await screen.findByText("Added to Next");
   await undoesAndRedoes(repo, ["specs/PRIORITIES.md"], before);
 
   before = contents(repo, [INBOX]);
@@ -331,7 +331,7 @@ test("the sidebar's adds of a proposal and of a note undo and redo", async () =>
   await type(form.getByRole("textbox", { name: "Note" }), "Sidebar note");
   await click(form.getByRole("button", { name: "Add" }));
   await waitFor(() => expect(read(repo, INBOX)).toContain("- Sidebar note\n"));
-  await screen.findByText("Added to the inbox · waits on the Git page");
+  await screen.findByText("Added to the inbox");
   await undoesAndRedoes(repo, [INBOX], before);
 });
 
@@ -371,7 +371,7 @@ test("the sidebar's add of a note with an image undoes and redoes, its note file
   await waitFor(() => expect(read(repo, INBOX)).toMatch(/\[Pictured note\]\(/), {
     timeout: 10_000,
   });
-  await screen.findByText("Added to the inbox as a file · waits on the Git page");
+  await screen.findByText("Added to the inbox as a file");
   const after = tree(repo, "specs");
 
   await press("u");
@@ -412,7 +412,7 @@ async function dropImage(repo: string) {
     },
     { timeout: 10_000 },
   );
-  await screen.findByText(/^Added an image to “git-listener” · waits on the Git page/);
+  await screen.findByText(/^Added an image to “git-listener”/);
   return linked!;
 }
 
@@ -457,7 +457,7 @@ test("an image's u pressed as soon as its toast shows takes it back", async () =
   const repo = fixtureRepo();
   const before = tree(repo, "specs/proposals");
   await drop(repo);
-  await screen.findByText(/^Added an image to “git-listener” · waits on the Git page/, undefined, {
+  await screen.findByText(/^Added an image to “git-listener”/, undefined, {
     timeout: 10_000,
   });
 

@@ -114,12 +114,12 @@ was committed since, and is refused, under the top bar, once its file changed si
 
 Each action but a move shows a toast with Undo for 5 seconds (`undo/useUndo.ts`, over
 `layout/useTimedToast.tsx`), its time paused while the pointer is over it or the focus in it, so a
-slow reader or a screen reader keeps it. The toast is a reminder of what happened, ending in "·
-waits on the Git page"; the stack is the way back, and the status line shows `U redo` while there is
-one. Moves show no toast, and the moves of one list each less than a second after the last are one
-step. On the phone, with no keys, the toast's Undo and Redo are the only way. A toast is for this,
-for a confirmation from another page, and for the git writes still landing, never for an error
-alone, which stays next to what it concerns.
+slow reader or a screen reader keeps it. The toast is a reminder of what happened, its label alone;
+the stack is the way back, and the status line shows `U redo` while there is one. Moves show no
+toast, and the moves of one list each less than a second after the last are one step. On the phone,
+with no keys, the toast's Undo and Redo are the only way. A toast is for this, for a confirmation
+from another page, and for the git writes still landing, never for an error alone, which stays next
+to what it concerns.
 
 ## The commit toast
 

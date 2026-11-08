@@ -26,21 +26,18 @@ function FeatureStart({ replaced = false, text }: { replaced?: boolean; text: st
   const repo = useRepository();
   useEffect(() => {
     if (replaced) {
-      record(
-        {
-          label: "Draft replaced",
-          place: { path: "/new", repo },
-          redo: async () => {
-            setValue(LINE);
-            return undefined;
-          },
-          undo: async () => {
-            setValue(DRAFT);
-            return undefined;
-          },
+      record({
+        label: "Draft replaced",
+        place: { path: "/new", repo },
+        redo: async () => {
+          setValue(LINE);
+          return undefined;
         },
-        { waitsOnGit: false },
-      );
+        undo: async () => {
+          setValue(DRAFT);
+          return undefined;
+        },
+      });
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the Start shows it
   }, []);

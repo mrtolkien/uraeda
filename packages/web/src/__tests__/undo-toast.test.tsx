@@ -86,7 +86,7 @@ test("an entry's toast says what was undone and redone", async () => {
   const undo = vi.fn();
   const redo = vi.fn();
   stack({ redo, undo });
-  const action = "Deleted “Color themes” · waits on the Git page";
+  const action = "Deleted “Color themes”";
   expect((await buttonIn(action, /^Undo/)).textContent).toMatch(/Undo\s*u$/);
   expect(hints().map((hint) => hint.textContent)).toEqual([]);
 

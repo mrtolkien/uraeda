@@ -41,8 +41,6 @@ whose answers either continue the implementation or revise the spec.
   Commit, where the eye ends after typing, which commits what is staged and says how many files,
   "Commit 2 files"; Enter in the message does the same, the key shown on the button on wide screens.
   No line under the field explains it, and no second Commit sits in the pane's border.
-- **Plain words where it waits**: a write that saves without committing says so in a toast, "Moved
-  to Now · waits on the Git page", not in git's words.
 - **Discard asks first**, through the shared confirmation, and restores one file, as git does.
 - **Pull, push, fetch, and merge are the page's**, as lazygit's keys, `p`, `P`, `f`, and `M`; a
   conflict they stop on is fixed in the page, in the shared editor, then continued or aborted.

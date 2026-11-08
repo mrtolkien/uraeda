@@ -44,7 +44,7 @@ async function promoted() {
   await act(async () => {
     fireEvent.click(now!);
   });
-  await screen.findByText("Moved to Now · waits on the Git page");
+  await screen.findByText("Moved to Now");
   expect(read(repo, "specs/INBOX.md")).not.toContain("Loose note");
   return repo;
 }
@@ -239,7 +239,7 @@ test("d deletes at once; u brings it back and offers Redo; U deletes it again", 
   await press("d", control());
   await waitFor(() => expect(read(repo)).not.toContain("Color themes"));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(await buttonIn("Deleted “Color themes” · waits on the Git page", /^Undo/)).toBeTruthy();
+  expect(await buttonIn("Deleted “Color themes”", /^Undo/)).toBeTruthy();
 
   await press("u");
   await waitFor(() => expect(read(repo)).toBe(COLORS));
