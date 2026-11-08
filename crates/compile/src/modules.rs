@@ -18,6 +18,10 @@ use oxc_span::{GetSpan, SourceType, Span};
 
 use crate::Compiled;
 
+/// The directive that runs the body in strict mode, as a module runs: a function body is
+/// sloppy without it.
+const STRICT: &str = "\"use strict\";";
+
 /// Rewrites `code`, a JavaScript module, into the body of a function `(__import, __exports)`.
 pub(crate) fn rewrite(code: &str) -> Result<Compiled, String> {
     let allocator = Allocator::default();
@@ -52,10 +56,10 @@ pub(crate) fn rewrite(code: &str) -> Result<Compiled, String> {
         cursor = span.end;
     }
     body.push_str(&code[cursor as usize..]);
-    let head = text(code, Span::new(start, after_directives));
+    let head = text(code, Span::new(start, after_directives)).trim_start();
     let separator = if head.is_empty() { "" } else { "\n" };
     Ok(Compiled {
-        code: format!("{head}{separator}{}{body}", rewriter.getters),
+        code: format!("{STRICT}\n{head}{separator}{}{body}", rewriter.getters),
         imports: rewriter.imports,
     })
 }
@@ -222,11 +226,16 @@ impl Rewriter<'_> {
         format!("__import({})", text(self.code, span))
     }
 
-    /// A new name for a module's value, `__m0`, `__m1`, and so on.
+    /// A new name for a module's value, `__m0`, `__m1`, and so on, skipping any that the code
+    /// already holds, so it never shadows nor is shadowed by a name of the file.
     fn module_name(&mut self) -> String {
-        let name = format!("__m{}", self.modules);
-        self.modules += 1;
-        name
+        loop {
+            let name = format!("__m{}", self.modules);
+            self.modules += 1;
+            if !self.code.contains(&name) {
+                return name;
+            }
+        }
     }
 
     /// The local name an `export { … }` specifier reads.
