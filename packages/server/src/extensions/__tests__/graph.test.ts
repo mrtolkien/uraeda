@@ -78,3 +78,22 @@ test("an entry that links out of the folder is refused", () => {
     problems: [{ file: "", message: `${join(folder, "server.ts")} leaves the extension's folder` }],
   });
 });
+
+// Break: the page's imports keyed by the specifier only, which the page runtime resolved against
+// the link's own path, not the file it links to.
+test("a page's import of a link inside the folder names the file it links to", () => {
+  const folder = temporaryFolder("wiki");
+  writeFiles(folder, {
+    "lib/title.ts": `export const title = "Wiki";\n`,
+    "page.tsx": `import { title } from "./alias";\nexport default function page() {\n  return title;\n}\n`,
+  });
+  symlinkSync(join(folder, "lib", "title.ts"), join(folder, "alias.ts"));
+  const compiled = compileVersion(
+    { folder, page: join(folder, "page.tsx") },
+    { compileModule, compilePage: identityPage, shared: {} },
+  );
+  expect("page" in compiled && compiled.page?.imports).toEqual({
+    "lib/title.ts": {},
+    "page.tsx": { "./alias": "lib/title.ts" },
+  });
+});

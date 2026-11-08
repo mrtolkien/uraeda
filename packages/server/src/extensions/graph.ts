@@ -33,11 +33,19 @@ type ModuleCompiler = (
   imports: Array<string>;
 };
 
-/** A version's compiled files: its server graph, and its page files by path with their CSS. */
-export type Version = {
-  page?: { css: string; entry: string; modules: Record<string, string> };
-  server?: Graph;
+/**
+ * A page's compiled files by path, with their CSS, and the file each relative import of each file
+ * resolved to, which the page runtime imports by: one rule, the loader's, on both sides.
+ */
+export type PageFiles = {
+  css: string;
+  entry: string;
+  imports: Record<string, Record<string, string>>;
+  modules: Record<string, string>;
 };
+
+/** A version's compiled files: its server graph, and its page's. */
+export type Version = { page?: PageFiles; server?: Graph };
 
 /** What compiling one file gives: its code, imports, and CSS, or why it does not compile. */
 export type Compiled =
@@ -252,7 +260,17 @@ export function compileVersion(
       const { entry, files } = result.graph;
       const modules = Object.fromEntries([...files].map(([file, { code }]) => [file, code]));
       const css = [...files.values()].map((file) => file.css).filter((text) => text !== "");
-      version.page = { css: css.join("\n"), entry, modules };
+      const imports = Object.fromEntries(
+        [...files].map(([file, { resolved }]) => [
+          file,
+          Object.fromEntries(
+            [...resolved].flatMap(([specifier, found]) =>
+              "file" in found ? [[specifier, found.file]] : [],
+            ),
+          ),
+        ]),
+      );
+      version.page = { css: css.join("\n"), entry, imports, modules };
     }
   }
   return problems.length > 0 ? { problems } : version;
