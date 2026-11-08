@@ -41,7 +41,7 @@ const UNCHECKED: RuntimeStatus = { available: false, version: null };
 export const MODELS_REFRESH_MS = 60_000;
 
 /** A model list asked for longer than this is given up on: the runtime keeps its last one. */
-export const MODELS_TIMEOUT_MS = 15_000;
+export const MODELS_REFRESH_TIMEOUT_MS = 15_000;
 
 /**
  * A registered runtime: its status, and its last model list, with when it was last asked for and
@@ -178,7 +178,7 @@ export class Runtimes {
   /**
    * Asks the runtimes of these names, every one by default, for their model lists, each at most
    * once a minute: one asked for less than a minute ago waits for that ask. A list that cannot be
-   * read, or not within `MODELS_TIMEOUT_MS`, keeps the last one. Each list that changed calls
+   * read, or not within `MODELS_REFRESH_TIMEOUT_MS`, keeps the last one. Each list that changed calls
    * `changed` as it comes, without waiting for the others.
    */
   async refreshModels(names: ReadonlyArray<string> = this.names()): Promise<void> {
@@ -205,7 +205,7 @@ export class Runtimes {
     const ask = ++entry.asks;
     let timer: NodeJS.Timeout | undefined;
     const timedOut = new Promise<undefined>((resolve) => {
-      timer = setTimeout(resolve, MODELS_TIMEOUT_MS, undefined);
+      timer = setTimeout(resolve, MODELS_REFRESH_TIMEOUT_MS, undefined);
       timer.unref();
     });
     // An extension's runtime may throw at once, as well as reject.
