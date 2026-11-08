@@ -1,4 +1,4 @@
-// Mockups of what a session runs on, as Codex runtime + model settings plans it: the button in a
+// What a session runs on, as Codex runtime + model settings built it: the button in a
 // composer, and the app's key picker it opens, the model then the effort, over the models and the
 // efforts Claude Code and Codex listed on this machine on 2026-11-08; the effort alone in a session
 // that runs already; and a session's header once it ran, naming its model and effort.
@@ -6,70 +6,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 import { SessionHeader } from "./SessionHeader.tsx";
+import { CLAUDE, CODEX } from "./sampleRuntimes.ts";
 import { type PickerRuntime, type SessionPick, SessionPicker } from "./SessionPicker.tsx";
-
-const CODEX_EFFORTS = [
-  { description: "Fast responses with lighter reasoning", id: "low", name: "Low" },
-  {
-    description: "Balances speed and reasoning depth for everyday tasks",
-    id: "medium",
-    name: "Medium",
-  },
-  { description: "Greater reasoning depth for complex problems", id: "high", name: "High" },
-  {
-    description: "Extra high reasoning depth for complex problems",
-    id: "xhigh",
-    name: "Extra high",
-  },
-  { description: "Maximum reasoning depth for the hardest problems", id: "max", name: "Max" },
-  { description: "Maximum reasoning with automatic task delegation", id: "ultra", name: "Ultra" },
-];
-
-/** Claude Code names its efforts without a line. */
-const CLAUDE_EFFORTS = CODEX_EFFORTS.slice(0, 5).map(({ id, name }) => ({ id, name }));
-
-/** Claude Code, as `list_models` gave it: the aliases, then a pinned model without efforts. */
-const CLAUDE: PickerRuntime = {
-  defaults: { effort: "medium", model: "opus" },
-  icon: "uraeda:harness-claude",
-  kind: "claude",
-  models: [
-    { description: "Opus 5.5", efforts: CLAUDE_EFFORTS, id: "opus", name: "Opus" },
-    { description: "Fable 5.1", efforts: CLAUDE_EFFORTS, id: "fable", name: "Fable" },
-    { description: "Sonnet 5.5", efforts: CLAUDE_EFFORTS, id: "sonnet", name: "Sonnet" },
-    { description: "Haiku 5.5", efforts: CLAUDE_EFFORTS, id: "haiku", name: "Haiku" },
-    { efforts: [], id: "claude-haiku-4-5-20251001", name: "Haiku 4.5" },
-  ],
-  name: "Claude Code",
-};
-
-/** Codex, as `model/list` gave it, its hidden models left out, its defaults from `config/read`. */
-const CODEX: PickerRuntime = {
-  defaults: { effort: "medium", model: "gpt-6.1-sol" },
-  icon: "uraeda:harness-openai",
-  kind: "codex",
-  models: [
-    {
-      description: "Latest workhorse model for coding and everyday work.",
-      efforts: CODEX_EFFORTS,
-      id: "gpt-6.1-sol",
-      name: "GPT-6.1-Sol",
-    },
-    {
-      description: "Frontier intelligence for the most demanding work.",
-      efforts: CODEX_EFFORTS,
-      id: "gpt-6-astra",
-      name: "GPT-6-Astra",
-    },
-    {
-      description: "Fast and affordable model for easier tasks.",
-      efforts: CODEX_EFFORTS.slice(0, 5),
-      id: "gpt-6-luna",
-      name: "GPT-6-Luna",
-    },
-  ],
-  name: "Codex",
-};
 
 /** The picker, holding its pick as a composer does. */
 function Picker({
@@ -126,7 +64,7 @@ export const ModelSearch: Story = {
   },
 };
 
-/** The second step, after GPT-6-Astra: its efforts, Default first, each with Codex's line. */
+/** The second step, after GPT-6-Astra: its efforts, Default first. */
 export const EffortStep: Story = {
   args: { step: "effort", value: { model: "gpt-6-astra", runtime: "codex" } },
 };

@@ -162,7 +162,8 @@ export function footerActions(
     </Suspense>
   );
   return attach || offer || picker ? (
-    <HStack align="center" gap={2}>
+    // Wrapping, so the picker never cuts the model it names to make room for the offer.
+    <HStack align="center" gap={2} wrap="wrap">
       {picker}
       {attach}
       {offer}

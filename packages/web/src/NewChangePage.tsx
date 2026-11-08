@@ -17,7 +17,8 @@ import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { SLUG_LABEL } from "./SlugField.tsx";
-import { pickedRuntime, useRuntimes } from "./runtimes.ts";
+import { type PickSent, pickSent, useRuntimes } from "./runtimes.ts";
+import type { SessionPick } from "./SessionPicker.tsx";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -58,14 +59,14 @@ function useStart({ sent: clear, sources }: NewDraft) {
     sent: string,
     images: ReadonlyArray<DraftImage>,
     slug: string,
-    runtime?: string,
+    pick: PickSent = {},
   ): Promise<Started> => {
     const line = nowLine(sources);
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
         ...(line ? { line: line.text } : {}),
-        ...(runtime === undefined ? {} : { runtime }),
+        ...pick,
         // Never empty: the dialog starts nothing while its field is.
         slug,
         text: sent,
@@ -107,19 +108,21 @@ function SlugQuestion({
 }: {
   asking: Asking;
   onCancel: () => void;
-  onConfirm: (slug: string, level?: string, runtime?: string) => Promise<string | undefined>;
+  onConfirm: (slug: string, level?: string, pick?: PickSent) => Promise<string | undefined>;
 }) {
   const proposed = useSlugProposal(asking.text);
   const runtimes = useRuntimes();
   return (
     <StartDialog
-      // The change's first run starts as it does: its session runs on the runtime picked, as the
+      // The change's first run starts as it does: its session runs on what was picked, as the
       // picker shows it, never a pick turned off since.
       hasRuntime
       initial={proposed}
       isOpen
       onCancel={onCancel}
-      onConfirm={(slug, level, runtime) => onConfirm(slug, level, pickedRuntime(runtimes, runtime))}
+      onConfirm={(slug, level, pick?: SessionPick) =>
+        onConfirm(slug, level, pickSent(runtimes, pick))
+      }
       question={{
         confirm: "Start the change",
         description: "Two words at most: it names the folder and the branch.",
@@ -148,11 +151,11 @@ export function ChangeComposer({
     asking?.resolve(sent);
     setAsking(undefined);
   };
-  const confirm = async (slug: string, _level?: string, runtime?: string) => {
+  const confirm = async (slug: string, _level?: string, pick?: PickSent) => {
     if (!asking) {
       return undefined;
     }
-    const result = await start(asking.text, asking.images, slug, runtime);
+    const result = await start(asking.text, asking.images, slug, pick);
     if (!result.ok) {
       return result.message;
     }
