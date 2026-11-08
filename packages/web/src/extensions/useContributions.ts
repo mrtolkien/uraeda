@@ -15,6 +15,7 @@ import {
   keysClash,
   leaderKeys,
   listOf,
+  type Snapshot,
 } from "./registry.ts";
 
 /** The app's one registry, which the built-ins and the page runtime register into. */
@@ -119,10 +120,14 @@ export function useExtensionKeys(own: ReadonlyArray<Binding>): {
 }
 
 /**
- * Every key an extension could not have: another extension's, or Uraeda's own. The settings page
- * shows each as "`y` is taken by Deploy".
+ * Every key an extension could not have: another extension's, in each of `repositories` where both
+ * are on (`isOnIn` says which are), or Uraeda's own here. The settings page shows each as "`y` is
+ * taken by Deploy", with the repositories it is taken in when not all of them.
  */
-export function useKeyClashes(): ReadonlyArray<KeyClash> {
+export function useKeyClashes(
+  repositories: ReadonlyArray<string>,
+  isOnIn: (repository: string) => IsOn,
+): ReadonlyArray<KeyClash> {
   const snapshot = useSnapshot();
   const own = useSyncExternalStore(
     (listener) => {
@@ -131,5 +136,30 @@ export function useKeyClashes(): ReadonlyArray<KeyClash> {
     },
     () => ownClashes,
   );
-  return useMemo(() => [...clashesOf(snapshot), ...own], [snapshot, own]);
+  return useMemo(
+    () => [...clashesIn(snapshot, repositories, isOnIn), ...own],
+    [snapshot, repositories, isOnIn, own],
+  );
+}
+
+/** The clashes of `snapshot` in each of `repositories`, one per key, with where it is taken. */
+export function clashesIn(
+  snapshot: Snapshot,
+  repositories: ReadonlyArray<string>,
+  isOnIn: (repository: string) => IsOn,
+): Array<KeyClash> {
+  const byKey = new Map<string, KeyClash & { repositories: Array<string> }>();
+  for (const repository of repositories) {
+    for (const clash of clashesOf(snapshot, isOnIn(repository))) {
+      const id = JSON.stringify([clash.extension, clash.keys, clash.takenBy]);
+      const seen = byKey.get(id) ?? { ...clash, repositories: [] };
+      seen.repositories.push(repository);
+      byKey.set(id, seen);
+    }
+  }
+  return [...byKey.values()].map((clash) =>
+    clash.repositories.length < repositories.length
+      ? clash
+      : { extension: clash.extension, keys: clash.keys, takenBy: clash.takenBy },
+  );
 }
