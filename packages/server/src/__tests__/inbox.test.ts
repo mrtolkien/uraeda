@@ -479,6 +479,49 @@ test("a triage changed since the page read it is not submitted", async () => {
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: propose an inbox triage");
 });
 
+test("the triage is dismissed: deleted in its own commit, so a new one can be asked for", async () => {
+  const repo = triageRepo();
+  const { app, hosts, name } = await testApp(repo);
+  const [opened] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+
+  const dismissed = await mutate(
+    app,
+    "defaultRound.dismiss",
+    { previous: opened.current.document.hash },
+    INBOX,
+  );
+
+  expect(dismissed.ok).toBe(true);
+  expect(dismissed.data.triage).toBeNull();
+  expect(existsSync(join(repo, "specs/INBOX-TRIAGE.md"))).toBe(false);
+  await hosts.get(name)!.queue.idle();
+  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: dismiss the inbox triage");
+  expect(git(repo, "show", "--name-only", "--format=", "HEAD").trim()).toBe(
+    "specs/INBOX-TRIAGE.md",
+  );
+  const [file] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+  expect(file.missing).toBe(true);
+});
+
+test("a triage changed since the page read it is not dismissed", async () => {
+  const repo = triageRepo();
+  const { app } = await testApp(repo);
+  const [opened] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+  const answered = opened.current.text.replaceAll("**Answer:**\n", "**Answer:** A\n");
+  writeFileSync(join(repo, "specs/INBOX-TRIAGE.md"), answered);
+
+  const result = await mutate(
+    app,
+    "defaultRound.dismiss",
+    { previous: opened.current.document.hash },
+    ["id"],
+  );
+
+  expect(result.ok).toBe(false);
+  expect(result.error?.message).toMatch(/^conflict: INBOX-TRIAGE\.md changed/);
+  expect(read(repo, "specs/INBOX-TRIAGE.md")).toBe(answered);
+});
+
 test("a category is added, renamed, and deleted", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);

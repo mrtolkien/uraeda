@@ -53,6 +53,14 @@ impl DefaultRound {
         }
     }
 
+    /// The subject of the commit deleting the round unanswered, for a new one: the triage's only.
+    pub const fn dismissed_subject(self) -> Option<&'static str> {
+        match self {
+            Self::Triage => Some("chore: dismiss the inbox triage"),
+            Self::DecisionsCheck => None,
+        }
+    }
+
     /// The round with this id, none for an unknown one.
     pub fn from_id(id: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|round| round.id() == id)
@@ -120,4 +128,30 @@ pub fn retry(place: &Place, round: DefaultRound) -> Result<Committed, ActionErro
         )));
     }
     commit_round(place, round)
+}
+
+/// Dismisses the round: deletes its file and commits the deletion alone, so a new one can be asked
+/// for. Refused before anything is written when it changed since it was read with the hash
+/// `previous`, and for a round that cannot be dismissed: the decisions check has its candidates.
+pub fn dismiss(
+    place: &Place,
+    round: DefaultRound,
+    previous: &str,
+) -> Result<Committed, ActionError> {
+    let Some(subject) = round.dismissed_subject() else {
+        return Err(ActionError::Refused(format!(
+            "{} cannot be dismissed",
+            answer::name_of(round.path())
+        )));
+    };
+    ensure_unchanged(place, round, previous)?;
+    fs::remove_file(place.root.join(round.path()))?;
+    commit::commit_only(
+        place,
+        &Change {
+            paths: vec![round.path().to_string()],
+            subject: subject.to_string(),
+            body: None,
+        },
+    )
 }

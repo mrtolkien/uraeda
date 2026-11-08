@@ -220,7 +220,7 @@ decisions.
 ### Proposing a triage
 
 1. **Refuse a second triage.** When `specs/INBOX-TRIAGE.md` exists, stop and say: "An inbox triage
-   already waits: answer or delete specs/INBOX-TRIAGE.md first."
+   already waits: answer or dismiss specs/INBOX-TRIAGE.md first."
 2. **Read every note against the project**, `INBOX.md`'s and the agents' note files, as `ura inbox`
    lists them: the code it is about, `PRIORITIES.md`, the proposal files, and the open feature and
    change branches. A note may be done already, a duplicate, or part of a proposal.
@@ -253,6 +253,13 @@ decisions.
 
 The human answers it like any round: each `**Answer:**` filled, `status: answered`, and the file
 committed alone with `chore: answer the inbox triage`. `ura answer` answers features' rounds only.
+
+### Dismissing a triage
+
+A triage the human no longer wants, gone stale or asked too early, is dismissed, answered or not, so
+a new one can be proposed: delete `specs/INBOX-TRIAGE.md`, and commit its deletion alone with
+`chore: dismiss the inbox triage`. The inbox does not change. The web UI's Dismiss does it, and asks
+first when the triage holds answers not committed yet, which the deletion loses.
 
 ### Applying the answers
 
