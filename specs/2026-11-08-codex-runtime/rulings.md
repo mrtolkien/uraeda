@@ -172,8 +172,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: on the real Codex 0.163.0 (GPT-6-Luna, Low), the plan's shorter wording ended four
   turns out of four with "git add failed" and no escalation; with this one, a plain "commit it"
   escalated, the reviewer approved, and the commit landed.
-- **If wrong**: a model that still does not escalate ends its step before the gate, and the run
-  lifecycle asks it once to continue, as the spec's edge case says.
+- **If wrong**: a model that still does not escalate ends its step before the gate, and the run ends
+  before its gate and asks for the human (R29).
 - **Where**: task 7, `codexInstructions`.
 
 ## R19: What a Codex process does when a start fails
