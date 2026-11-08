@@ -9,6 +9,7 @@ import type { Extension } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
 import { FileWatch } from "../settings-watch.ts";
 import { evaluate, failure } from "./evaluate.ts";
+import { backstop, scopedTimers } from "./faults.ts";
 import { compileVersion, type PageCompiler, type Problem } from "./graph.ts";
 import { Scope } from "./scope.ts";
 
@@ -51,6 +52,8 @@ export type PageBundle = {
 type Entry = {
   again: boolean;
   deferrals: Map<Promise<void>, string | undefined>;
+  /** Breaks the running version with what it threw after it loaded. */
+  fail?: (error: unknown) => void;
   /** The files of the last version that compiled, whose folders are watched. */
   files: ReadonlyArray<string>;
   loaded: LoadedExtension;
@@ -91,6 +94,7 @@ export class Loader {
   #scanTimer?: ReturnType<typeof setTimeout>;
   #scanning: Promise<void> = Promise.resolve();
   #closed = false;
+  #unbackstop?: () => void;
 
   private constructor(options: LoaderOptions) {
     this.#options = options;
@@ -99,6 +103,7 @@ export class Loader {
   /** The loader of `configDir`'s extensions, each loaded once, in the core's order. */
   static async open(options: LoaderOptions): Promise<Loader> {
     const loader = new Loader(options);
+    loader.#unbackstop = backstop((error) => loader.#claim(error));
     const folder = options.binding.extensionsFolder(options.configDir);
     loader.#watch = new FileWatch(dirname(folder), basename(folder), () => loader.#rescan(), {
       folder: true,
@@ -150,6 +155,7 @@ export class Loader {
   /** Stops every watch, and unloads every extension, as the server stops. */
   close(): void {
     this.#closed = true;
+    this.#unbackstop?.();
     clearTimeout(this.#scanTimer);
     this.#watch?.close();
     for (const entry of this.#entries.values()) {
@@ -345,13 +351,20 @@ export class Loader {
     this.#stop(entry);
     const version = entry.loaded.version + 1;
     const scope = new Scope(extension.name);
+    const graph = compiled.server ?? { entry: "", folder: extension.folder };
+    const fail = (error: unknown) => {
+      if (entry.scope === scope) {
+        this.#stop(entry);
+        this.#set(entry, extension, "broken", [...problems, failure(error, graph)]);
+      }
+    };
     try {
       if (compiled.server) {
-        evaluate(compiled.server, { api: this.#options.api(scope), shared: this.#options.shared });
+        const { api, shared } = this.#options;
+        evaluate(compiled.server, { api: api(scope), globals: scopedTimers(scope, fail), shared });
       }
     } catch (error) {
       scope.unload();
-      const graph = compiled.server ?? { entry: "", folder: extension.folder };
       this.#set(entry, extension, "broken", [...problems, failure(error, graph)], version);
       return;
     }
@@ -361,6 +374,7 @@ export class Loader {
       return;
     }
     entry.scope = scope;
+    entry.fail = fail;
     entry.page = compiled.page && { ...compiled.page, version };
     this.#set(entry, extension, "on", problems, version);
   }
@@ -409,10 +423,26 @@ export class Loader {
     entry.watched = "";
   }
 
+  /**
+   * Takes an error the process did not handle when its stack names the folder of an extension
+   * with a running version: that version breaks with it and unloads.
+   */
+  #claim(error: unknown): boolean {
+    const stack = error instanceof Error ? (error.stack ?? "") : "";
+    for (const entry of this.#entries.values()) {
+      if (entry.fail && stack.includes(`${entry.loaded.extension.folder}/`)) {
+        entry.fail(error);
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Unloads the entry's running version, every registration undone, and drops its page. */
   #stop(entry: Entry): void {
     entry.scope?.unload();
     entry.scope = undefined;
+    entry.fail = undefined;
     entry.page = undefined;
   }
 

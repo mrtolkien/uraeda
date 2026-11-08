@@ -904,8 +904,9 @@ git commit -m "feat(extensions-system): compile extension pages with StyleX and 
 - Create: `packages/server/src/extensions/loader.ts` (state, reload queue), `extensions/evaluate.ts`
   (the module runner under `vm`), `extensions/graph.ts` (compiles an entry's files, resolves
   relative imports inside the folder), `extensions/scope.ts` (registrations and their undo, the
-  stale check)
-- Test: `extensions/__tests__/loader.test.ts`, `extensions/__tests__/loader.bench.test.ts`,
+  stale check), `extensions/faults.ts` (scoped timers, the process's backstop)
+- Test: `extensions/__tests__/loader.test.ts`, `extensions/__tests__/loader-faults.test.ts`,
+  `extensions/__tests__/graph.test.ts`, `extensions/__tests__/loader.bench.test.ts`,
   `extensions/__tests__/helpers.ts` (`extensionFolder(config, name, files)`, `loaded(loader, name)`:
   a promise of the loader's next notice for that name)
 
@@ -958,8 +959,14 @@ Behaviour:
   `broken`, with the problem
   `activation must be synchronous: start async work from a callback, not while loading`, and its
   registrations undone ([R27](rulings.md#r27-activation-is-synchronous)). A version removed, or the
-  loader closed, while it loads is unloaded and never kept. Each module function is compiled with an
-  empty context extension, which keeps V8's compilation cache from holding every version
+  loader closed, while it loads is unloaded and never kept. A throw after activation breaks only its
+  extension: module code sees scoped `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask`,
+  and their `clear*`, whose callbacks' throws break the version and which unloading clears; and the
+  loader's handlers of the process's `uncaughtException` and `unhandledRejection` break the
+  extension whose folder the error's stack names, else print it and exit with code 1, as Node does
+  ([R28](rulings.md#r28-late-throws-break-only-their-extension)). Each module function is compiled
+  with a context extension without a prototype, holding only those timers, which keeps V8's
+  compilation cache from holding every version
   ([R24](rulings.md#r24-module-functions-are-compiled-with-an-empty-context-extension)).
 - Reload: debounce changes 50 ms per extension; one compile at a time per extension; a change during
   a compile queues exactly one more, of the latest files. `reload(name)` during a load queues that
