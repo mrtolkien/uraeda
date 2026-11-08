@@ -179,6 +179,7 @@ class FakeProcess implements AgentProcess {
  */
 export class FakeAdapter implements Adapter {
   kind = "fake";
+  icon = "uraeda:harness-agent";
   /** The name the refusals use, as Claude Code's. */
   name = "Claude Code";
   /** What the fake declares, which a test may change. */
@@ -248,12 +249,7 @@ export class FakeAdapter implements Adapter {
     const agent = new FakeProcess(this, options.cwd);
     this.#current = agent;
     if (this.autoInit) {
-      agent.push({
-        pluginErrors: [],
-        plugins: ["uraeda"],
-        sessionId: options.nativeId,
-        type: "init",
-      });
+      agent.push({ sessionId: options.nativeId, type: "init" });
     }
     return agent;
   }

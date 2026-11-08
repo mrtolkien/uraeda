@@ -2,6 +2,7 @@
 // sent once they land, in order, exactly once, and dropped if one is refused, their text kept in the
 // refused write for the composer, as a send's refusal returns them (`kept-sends.ts`). The agent
 // never starts on a file written but not committed yet.
+import { messageRuntime } from "../runner/runtimes.ts";
 import { ofDropped } from "../runner/session-state.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
@@ -53,7 +54,7 @@ export async function keptForCommits(
     return undefined;
   }
   const root = await ctx.sessions.mainRoot(ctx.repo);
-  const { adapter, cache } = ctx.sessions;
+  const { cache, runtimes } = ctx.sessions;
   const row = to.session === undefined ? undefined : cache.session(to.session);
   const folder = to.session === undefined ? to.folder : row?.repo === root ? row.folder : null;
   const folders = waiting.get(queue) ?? new Map<string, Array<Kept>>();
@@ -65,10 +66,9 @@ export async function keptForCommits(
   if (ctx.sessions.moving(root, folder)) {
     throw new Error(`refused: ${REFUSALS.agentWorking}`);
   }
-  if (!ctx.sessions.status().available) {
-    throw new Error(`refused: ${REFUSALS.unavailable(adapter.name)}`);
-  }
-  checkSend(input, adapter.capabilities);
+  const latest = to.newSession === true ? undefined : cache.latestSession(root, folder);
+  const runtime = messageRuntime(runtimes, root, row ?? latest);
+  checkSend(input, runtime.capabilities);
   const { made, session } = await sessionFor(ctx, folder, to);
   const kept = folders.get(folder);
   if (kept) {

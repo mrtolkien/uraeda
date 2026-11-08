@@ -5,6 +5,7 @@ import { SessionCache } from "../cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
 import type { Denial, Limit } from "../events.ts";
 import { FakeAdapter } from "../fake.ts";
+import { type Runtimes, runtimesOf } from "../runtimes.ts";
 import { type SessionChange, Sessions } from "../sessions.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -19,7 +20,8 @@ export function flush() {
  * A session manager on the fake adapter, an in-memory cache, and the real binding, checked once.
  * Its timers are fake: a test moves them with `vi.advanceTimersByTime`. `binding` replaces the real
  * one, as to hold a call. Its automatic continues are off, unless `runs` turns them on (R4);
- * `onChange` sees each change as it is published, with the cache as it is then.
+ * `onChange` sees each change as it is published, with the cache as it is then. Its fake adapter is
+ * the runtime `fake`, unless `runtimes` gives others.
  */
 export async function testSessions(
   repo = fixtureRepo(),
@@ -27,10 +29,12 @@ export async function testSessions(
     binding: through = binding,
     onChange,
     runs = () => CONTINUES_OFF,
+    runtimes,
   }: {
     binding?: Binding;
     onChange?: (change: SessionChange, cache: SessionCache) => void;
     runs?: () => ContinueSettings;
+    runtimes?: Runtimes;
   } = {},
 ) {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -38,7 +42,6 @@ export async function testSessions(
   const cache = SessionCache.open(":memory:");
   const changes: Array<SessionChange> = [];
   const sessions = new Sessions({
-    adapter,
     binding: through,
     cache,
     onChange: (change) => {
@@ -46,6 +49,7 @@ export async function testSessions(
       onChange?.(change, cache);
     },
     runs,
+    runtimes: runtimes ?? runtimesOf({ fake: adapter }),
   });
   await sessions.check();
   return { adapter, cache, changes, repo, sessions };
@@ -66,12 +70,12 @@ export async function restart(
   await sessions.closeAll();
   sessions.close();
   const next = new Sessions({
-    adapter: sessions.adapter,
     binding,
     cache: sessions.cache,
     ...(hosted === undefined ? {} : { hosted }),
     onChange: () => {},
     runs,
+    runtimes: sessions.runtimes,
   });
   await next.check();
   return next;

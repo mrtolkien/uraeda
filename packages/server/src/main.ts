@@ -14,6 +14,7 @@ import { handOff, type HandOff, newKeyOn } from "./open-client.ts";
 import { HELP, type Options, parseOptions } from "./options.ts";
 import { layout, requireWeb } from "./paths.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
+import { runtimesOf } from "./runner/runtimes.ts";
 import { keyLines, newKeyLines, startServer } from "./server.ts";
 import { ServerSettings } from "./settings.ts";
 import { readHostToken, removeHostToken, writeHostToken } from "./sign-in/host.ts";
@@ -122,7 +123,6 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
     rmSync(linkPages(dataDir, port), { force: true, recursive: true });
   });
   const server = await startServer({
-    adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
     allowOrigins: options.allowOrigins,
     binding,
     dataDir,
@@ -130,6 +130,9 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
     hostToken,
     port,
     repo: options.repo,
+    runtimes: runtimesOf({
+      claude: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
+    }),
     settings,
     webRoot: web,
   });

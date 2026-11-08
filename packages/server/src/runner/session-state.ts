@@ -6,6 +6,7 @@ import type { Continuer } from "./continuer.ts";
 import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
+import type { Runtimes } from "./runtimes.ts";
 import type { Transcript } from "./transcript.ts";
 import type { Turns } from "./turns.ts";
 
@@ -53,6 +54,10 @@ export const REFUSALS = {
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,
+  /** A new session of a repository with every runtime off there. */
+  noRuntime: "No agent runtime is on here: turn one on in Settings, Extensions",
+  /** A message to a session whose runtime is off in its repository, or not registered. */
+  runtimeOff: (title: string) => `${title} is off: turn it on to continue this session`,
   /** A session moved, or a change moved or dropped, while its agent works. */
   agentWorking: "The agent is working",
   /** A message to a session of a change or a feature while another of its sessions works. */
@@ -114,7 +119,7 @@ export type Proc = {
    * not end, nor the process close, before they report back.
    */
   background: Map<string, BackgroundTask["kind"]>;
-  /** Closed by the idle timer, a plugin error, or "Allow and retry": no message goes to it. */
+  /** Closed by the idle timer, an init's problem, or "Allow and retry": no message goes to it. */
   closing: boolean;
   cwd: string;
   /** Resolves once its events are read to its exit. */
@@ -124,8 +129,12 @@ export type Proc = {
    * a background shell or sub-agent reported back.
    */
   ended?: { first: string; id: number };
+  /** The name of the runtime it runs on: its session's stored `agent`. */
+  kind: string;
   /** The line of the new agent session it started, until a turn on it records it. */
   line?: string;
+  /** The runtime it runs on, kept for its whole life, even once the runtime is unregistered. */
+  runtime: Adapter;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
   /**
@@ -209,11 +218,10 @@ export type Live = {
 };
 
 /**
- * What the parts of the session manager share: its agent, cache, and binding, how it reports a
+ * What the parts of the session manager share: its runtimes, cache, and binding, how it reports a
  * change, and each other.
  */
 export type SessionContext = {
-  adapter: Adapter;
   /** Reports a change of the account's usage or the agent's availability. */
   agentChanged: () => void;
   binding: Binding;
@@ -226,6 +234,8 @@ export type SessionContext = {
   live: LiveSessions;
   /** Their processes: opened, closed, and read. */
   processes: Processes;
+  /** The runtimes sessions run on, each found by the session's stored `agent`. */
+  runtimes: Runtimes;
   /** Their events, recorded as items. */
   transcript: Transcript;
   /** Their turns: started, queued, halted, and ended. */
@@ -246,6 +256,14 @@ export function rowOf(cache: SessionCache, live: Live): SessionRow {
     throw new Error(`no session ${live.id}`);
   }
   return row;
+}
+
+/**
+ * The runtime the session runs on: its process's while it has one, else its stored `agent`'s, when
+ * that runtime is registered.
+ */
+export function runtimeOf(context: SessionContext, live: Live): Adapter | undefined {
+  return live.proc?.runtime ?? context.runtimes.get(rowOf(context.cache, live).agent);
 }
 
 /** How many of a process's background tasks are commands, not sub-agents. */

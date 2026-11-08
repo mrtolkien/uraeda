@@ -1,5 +1,5 @@
-import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind, UsageLimit } from "./events.ts";
-import { limitOfInfo, limitOfMessage, wakeupOf } from "./claude-limits.ts";
+import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind } from "./events.ts";
+import { limitOfInfo, limitOfMessage, usageEvents, wakeupOf } from "./claude-limits.ts";
 import { toolTarget } from "./message.ts";
 
 /**
@@ -200,43 +200,6 @@ function limitEvent(info: unknown): Array<AgentEvent> {
   return limit ? [{ limit, type: "limit" }] : [];
 }
 
-/**
- * The five-hour and seven-day windows' usage, each a fraction in Claude's output; status-only
- * notices give no percentage. A malformed window is left out, and the other one kept.
- */
-function usageEvents(info: unknown): Array<AgentEvent> {
-  if (!isObject(info)) {
-    return [];
-  }
-  const fiveHour = usageLimit(info, "five_hour");
-  const week = usageLimit(info, "seven_day");
-  return fiveHour || week
-    ? [{ ...(fiveHour ? { fiveHour } : {}), type: "usage", ...(week ? { week } : {}) }]
-    : [];
-}
-
-/** One window of a report: from its unified windows, or the report itself when it is that window. */
-function usageLimit(info: Json, name: "five_hour" | "seven_day"): UsageLimit | undefined {
-  const window = isObject(info.unifiedWindows) ? info.unifiedWindows[name] : undefined;
-  const limit = isObject(window) ? window : info.rateLimitType === name ? info : undefined;
-  if (
-    !limit ||
-    typeof limit.utilization !== "number" ||
-    !Number.isFinite(limit.utilization) ||
-    limit.utilization < 0 ||
-    typeof limit.resetsAt !== "number"
-  ) {
-    return undefined;
-  }
-  const reset = new Date(limit.resetsAt * 1000);
-  return Number.isFinite(reset.getTime())
-    ? {
-        percentUsed: Math.min(100, Math.round(limit.utilization * 1000) / 10),
-        resetsAt: reset.toISOString(),
-      }
-    : undefined;
-}
-
 function toolStart(
   id: string,
   name: string,
@@ -331,17 +294,36 @@ function lifecycleEvents(message: Json): Array<AgentEvent> {
   return [];
 }
 
+/** The plugin the skill loads as, which every process must report loaded. */
+const PLUGIN = "uraeda";
+
+/**
+ * Why the process must not run: the skill loads as the `uraeda` plugin, which an error, or its
+ * absence from the plugins loaded, leaves out.
+ */
+function pluginProblem(message: Json): { problem?: string } {
+  const plugins = objects(message.plugins).map((plugin) => text(plugin.name));
+  // Printed as `null` when every plugin loaded.
+  const errors = objects(message.plugin_errors).map(
+    (error) => text(error.message) || text(error.type) || "unknown error",
+  );
+  if (errors.length === 0 && plugins.includes(PLUGIN)) {
+    return {};
+  }
+  const why =
+    errors.length > 0
+      ? errors.join("; ")
+      : `the plugins loaded were ${plugins.join(", ") || "none"}`;
+  return { problem: `The Uraeda skill did not load: ${why}` };
+}
+
 function systemEvents(message: Json, tasks: Map<string, string>): Array<AgentEvent> {
   if (message.subtype === "init") {
     return [
       {
-        plugins: objects(message.plugins).map((plugin) => text(plugin.name)),
         sessionId: text(message.session_id),
         type: "init",
-        // Printed as `null` when every plugin loaded.
-        pluginErrors: objects(message.plugin_errors).map(
-          (error) => text(error.message) || text(error.type) || "unknown error",
-        ),
+        ...pluginProblem(message),
       },
     ];
   }

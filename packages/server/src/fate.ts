@@ -166,6 +166,9 @@ export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */
 export type { Item } from "./runner/events.ts";
 export type { Capabilities } from "./runner/adapter.ts";
+/** An agent runtime, as the `Agent` record lists it, and one window of its usage. */
+export type { RuntimeRecord } from "./runner/runtimes.ts";
+export type { UsageWindow } from "./runner/events.ts";
 export type { SessionStatus, StatusReason } from "./runner/status.ts";
 /** A feature's status, as each `Workspace` feature and `Feature` record carries it. */
 export type { FeatureStatus } from "./fate/feature-status.ts";

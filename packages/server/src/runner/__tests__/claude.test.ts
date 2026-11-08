@@ -12,11 +12,25 @@ import { WEB_UI_INSTRUCTIONS } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
+
+/** The fixtures' usage windows: the week at 12%, and the five hours used up. */
+const WEEK_12 = {
+  id: "seven_day",
+  label: "Week",
+  resetsAt: new Date(1_792_300_000 * 1000).toISOString(),
+  used: 0.12,
+};
+const FIVE_HOUR_FULL = {
+  id: "five_hour",
+  label: "5h",
+  resetsAt: "2026-11-03T23:40:00.000Z",
+  used: 1,
+};
 const SESSION_TEXT = "You've hit your session limit · resets 8:40am (Asia/Tokyo)";
 const WEEKLY_TEXT = "You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)";
 /** The clock of the recorded lines: 23:01 in Tokyo, so 8:40am is the next morning there. */
 const NOW = new Date("2026-11-03T14:01:00Z");
-const open = { cwd: "/w", nativeId: "id" };
+const open = { cwd: "/w", nativeId: "id", skills: [] };
 
 /** The lines of a recorded fixture, in `fixtures/claude/`. */
 function recorded(file: string): Array<string> {
@@ -120,23 +134,12 @@ test("no argument skips permissions or sets a model", () => {
 });
 
 test.each<[string, Array<AgentEvent>]>([
-  [
-    "init.jsonl",
-    [
-      {
-        pluginErrors: [],
-        plugins: ["uraeda", "cc-plugin-telemetry"],
-        sessionId: SESSION,
-        type: "init",
-      },
-    ],
-  ],
+  ["init.jsonl", [{ sessionId: SESSION, type: "init" }]],
   [
     "init-plugin-error.jsonl",
     [
       {
-        pluginErrors: ["Path not found: /tmp/no-such-plugin (commands)"],
-        plugins: ["cc-plugin-telemetry"],
+        problem: "The Uraeda skill did not load: Path not found: /tmp/no-such-plugin (commands)",
         sessionId: "cb94b45c-b09a-43bb-88f4-a60071539d67",
         type: "init",
       },
@@ -224,9 +227,16 @@ test.each<[string, Array<AgentEvent>]>([
     "ignored.jsonl",
     [
       {
-        fiveHour: { percentUsed: 43, resetsAt: new Date(1_791_798_000 * 1000).toISOString() },
         type: "usage",
-        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
+        windows: [
+          {
+            id: "five_hour",
+            label: "5h",
+            resetsAt: new Date(1_791_798_000 * 1000).toISOString(),
+            used: 0.43,
+          },
+          WEEK_12,
+        ],
       },
     ],
   ],
@@ -263,24 +273,11 @@ test.each<[string, Array<AgentEvent>]>([
   [
     "limit-event.jsonl",
     [
-      {
-        fiveHour: { percentUsed: 100, resetsAt: "2026-11-03T23:40:00.000Z" },
-        type: "usage",
-        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
-      },
+      { type: "usage", windows: [FIVE_HOUR_FULL, WEEK_12] },
       { limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z" }, type: "limit" },
     ],
   ],
-  [
-    "limit-event-overage.jsonl",
-    [
-      {
-        fiveHour: { percentUsed: 100, resetsAt: "2026-11-03T23:40:00.000Z" },
-        type: "usage",
-        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
-      },
-    ],
-  ],
+  ["limit-event-overage.jsonl", [{ type: "usage", windows: [FIVE_HOUR_FULL, WEEK_12] }]],
   // A wakeup in 25 minutes, and a one-shot cron read in the server's zone.
   [
     "wakeup.jsonl",
@@ -648,8 +645,8 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     "init at each turn",
     [init, init],
     [
-      { pluginErrors: [], plugins: ["uraeda"], sessionId: SESSION, type: "init" },
-      { pluginErrors: [], plugins: ["uraeda"], sessionId: SESSION, type: "init" },
+      { sessionId: SESSION, type: "init" },
+      { sessionId: SESSION, type: "init" },
     ],
   ],
   [
@@ -830,6 +827,7 @@ test("review focus 5: a missing command exits as missing", async () => {
     ...open,
     cwd: tmpdir(),
     resume: false,
+    skills: [],
   });
   const events = await collect(agent.events);
   expect(events.at(-1)).toMatchObject({ missing: true, type: "exit" });
@@ -846,6 +844,7 @@ test("a missing directory exits with why, not as a missing command", async () =>
     ...open,
     cwd,
     resume: false,
+    skills: [],
   });
   const events = await collect(agent.events);
   const exit = events.at(-1) as Extract<AgentEvent, { type: "exit" }>;
@@ -903,6 +902,7 @@ test("an open process streams its events, and exits with its stderr", async () =
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   const events = await collect(agent.events);
 
@@ -923,6 +923,7 @@ test("send writes a user message with its uuid and priority", async () => {
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   agent.send({ id: "m1", images: [], text: "hi", when: "steer" });
   agent.send({ id: "m2", images: [], text: "then this", when: "queue" });
@@ -959,6 +960,7 @@ test("US2.2: a message with images is its text, a blank line, then one line per 
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   const [a, b] = [join(imagesDir, "a.webp"), join(imagesDir, "b.webp")];
   agent.send({
@@ -998,6 +1000,7 @@ test("US2.4: a feature chat's first message is its opening line, its text, then 
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   const opening = chatOpening({
     branch: "2026-10-12-cli-tuis",
@@ -1032,6 +1035,7 @@ test("US6.2: the images folder exists before the process starts, which --add-dir
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   await collect(agent.events);
 
@@ -1070,6 +1074,7 @@ test("interrupt writes the interrupt control request, and close ends stdin", asy
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   agent.interrupt();
   agent.interrupt();
@@ -1095,6 +1100,7 @@ test("kill sends its signal to the process", async () => {
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   const events: Array<AgentEvent> = [];
   for await (const event of agent.events) {
@@ -1154,6 +1160,7 @@ test("kill signals the process's group: the processes it started end with it", a
     ...open,
     cwd: dir,
     resume: false,
+    skills: [],
   });
   const pid = await childPid(join(dir, "pid"));
 
@@ -1173,7 +1180,7 @@ test("a session's process and the processes it started end with the server", asy
 `,
     `import { ClaudeAdapter } from ${JSON.stringify(join(import.meta.dirname, "../claude.ts"))};`,
     `new ClaudeAdapter({ command: ${JSON.stringify(command)}, imagesDir: ${JSON.stringify(images())}, pluginDir: "/p" })`,
-    `  .open({ cwd: ${JSON.stringify(dir)}, nativeId: "id", resume: false });`,
+    `  .open({ cwd: ${JSON.stringify(dir)}, nativeId: "id", resume: false, skills: [] });`,
     `const wait = setInterval(() => {`,
     `  if (existsSync(${JSON.stringify(join(dir, "pid"))})) { clearInterval(wait); process.exit(0); }`,
     `}, 20);`,

@@ -3,6 +3,7 @@
 import { dataView } from "@nkzw/fate/server";
 import type { Trigger } from "../runner/events.ts";
 import { recommendedMessage } from "../runner/message.ts";
+import { runtimeState } from "../runner/runtimes.ts";
 import type { RepoContext } from "./context.ts";
 
 /**
@@ -43,9 +44,11 @@ export async function readRecommended(
     return undefined;
   }
   const [next, feature] = read;
-  const { available } = ctx.sessions.status();
+  // The runtime of the feature's latest session, which its run goes to, or of a new one.
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const latest = ctx.sessions.cache.latestSession(root, folder);
   const message = recommendedMessage({
-    agent: { available, name: ctx.sessions.adapter.name },
+    agent: runtimeState(ctx.sessions.runtimes, root, latest),
     feature,
     next,
   });

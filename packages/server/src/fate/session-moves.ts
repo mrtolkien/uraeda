@@ -1,7 +1,7 @@
 import { reasonOf } from "../reason.ts";
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
-import { REFUSALS } from "../runner/sessions.ts";
+import { messageRuntime, runtimeState } from "../runner/runtimes.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
@@ -64,7 +64,11 @@ async function sendRun(
   run: { opening?: string; session?: string; trigger: Trigger },
 ): Promise<void> {
   try {
-    const message = ctx.sessions.status().available
+    const root = await ctx.sessions.mainRoot(ctx.repo);
+    const { cache, runtimes } = ctx.sessions;
+    const to =
+      run.session === undefined ? cache.latestSession(root, folder) : cache.session(run.session);
+    const message = runtimeState(runtimes, root, to).available
       ? await readWorkflowMessage(ctx, `${folder}:${run.trigger}`)
       : undefined;
     if (!message?.text) {
@@ -128,11 +132,9 @@ async function toChange(
     if (found.folder !== null) {
       throw new Error(`refused: the session already belongs to ${found.folder}`);
     }
-    // Without the agent, the run telling it where it works now, and which files to carry over,
+    // Without its runtime, the run telling it where it works now, and which files to carry over,
     // could not be sent: the move waits for it, as a run does.
-    if (!ctx.sessions.status().available) {
-      throw new Error(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
-    }
+    messageRuntime(ctx.sessions.runtimes, root, found);
     return found;
   });
   const { branch, folder } = await moving(ctx, { session: row.id }, async () => {

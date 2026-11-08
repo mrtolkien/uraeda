@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { chatImages } from "../attach.ts";
 import { MAX_IMAGES } from "../limits.ts";
 import { type ChatImage, chatImageSize } from "../runner/images.ts";
+import type { Adapter } from "../runner/adapter.ts";
 import { checkImages } from "../runner/send-input.ts";
 import { REFUSALS, type SentImage } from "../runner/sessions.ts";
 import type { Context } from "./context.ts";
@@ -55,16 +56,18 @@ function imageFiles(dataDir: string, images: Array<ChatImage>): Array<SentImage>
  * The chat images of a message, as `POST /attach` returned them, with their files' paths in the
  * data folder, an image given twice kept once. Checked before any session work, as the session
  * manager checks them again: each an object of its ID and a size the core could have given, at
- * most 10, to an agent that reads images, and not with the workflow's message. An image whose file
- * is gone is refused.
+ * most 10, to an agent that reads images, `runtime` when it is known, and not with the workflow's
+ * message. An image whose file is gone is refused.
  */
 export async function sentImages(
   ctx: Pick<Context, "dataDir" | "sessions">,
   images: Array<ChatImage> | undefined,
   workflow: boolean,
+  runtime?: Adapter,
 ): Promise<Array<SentImage>> {
   const unique = givenImages(images);
-  await refusedOn(() => checkImages(unique, workflow, ctx.sessions.adapter.capabilities));
+  const reads = { images: runtime?.capabilities.images ?? true };
+  await refusedOn(() => checkImages(unique, workflow, reads));
   return imageFiles(ctx.dataDir, unique);
 }
 

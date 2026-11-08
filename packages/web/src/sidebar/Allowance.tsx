@@ -1,5 +1,5 @@
-// The account's latest reported five-hour allowance, in the "Usage" pane at the column's foot, and
-// until a run reports it, nothing. In the closed rail the pane is hidden and a small bar stands in
+// The first usage window the runtime of new sessions reported, Claude Code's five hours, in the
+// "Usage" pane at the column's foot, and until a run reports it, nothing. In the closed rail the pane is hidden and a small bar stands in
 // for it, on the icons' axis: what is left of the window, red once it is nearly gone.
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -54,27 +54,27 @@ const styles = stylex.create({
 
 function Bar() {
   const agent = useAgent();
-  const limit = agent?.fiveHourLimit;
+  const window = agent?.usage[0];
   const isRail = useClosedRail();
-  if (!agent || !limit) {
+  if (!agent || !window) {
     return null;
   }
-  const remaining = Math.min(100, Math.max(0, 100 - limit.percentUsed));
+  const remaining = Math.min(100, Math.max(0, 100 - window.used * 100));
   return (
     <>
       <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
         <VStack gap={1} xstyle={styles.usage}>
-          <UsageWindow kind={agent.kind} limit={limit} name="5h" />
+          <UsageWindow kind={agent.kind} window={window} />
         </VStack>
       </Pane>
       <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
         <div
-          aria-label="5h allowance remaining"
+          aria-label={`${window.label} allowance remaining`}
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={Math.round(remaining)}
           role="progressbar"
-          title={`5h: ${Math.round(remaining)}% left`}
+          title={`${window.label}: ${Math.round(remaining)}% left`}
           {...stylex.props(styles.track)}
         >
           <div

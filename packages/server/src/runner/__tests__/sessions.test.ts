@@ -737,12 +737,8 @@ test("US4.4: no agent: sends are refused", async () => {
   await sessions.check();
   const chat = await sessions.newChat(repo);
 
-  expect(sessions.status()).toEqual({
-    available: false,
-    fiveHourLimit: null,
-    version: null,
-    weekLimit: null,
-  });
+  expect(sessions.runtimes.status("fake")).toEqual({ available: false, version: null });
+  expect(sessions.usage("fake")).toEqual([]);
   await expect(sessions.send(repo, chat.id, { text: "Hello" })).rejects.toThrow(
     "refused: Claude Code is not available on this machine.",
   );
@@ -1433,7 +1429,7 @@ test("an init with a new session ID updates the native ID", async () => {
   const session = await sessions.featureSession(repo, AGENT);
   await sessions.send(repo, session.id, { text: "/clear" });
 
-  adapter.emit({ pluginErrors: [], plugins: ["uraeda"], sessionId: "cleared-1", type: "init" });
+  adapter.emit({ sessionId: "cleared-1", type: "init" });
   await flush();
 
   expect(cache.session(session.id)?.nativeId).toBe("cleared-1");
@@ -1462,9 +1458,9 @@ test("a plugin that does not load fails the turn with 'The Uraeda skill did not 
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
+  // The runtime reads its plugins, and says why the process must not run.
   adapter.emit({
-    pluginErrors: ["no manifest", "bad skill"],
-    plugins: [],
+    problem: "The Uraeda skill did not load: no manifest; bad skill",
     sessionId: session.nativeId,
     type: "init",
   });
@@ -1485,8 +1481,7 @@ test("a process whose plugins leave out uraeda, with no error, fails the turn to
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
   adapter.emit({
-    pluginErrors: [],
-    plugins: ["cc-plugin-telemetry"],
+    problem: "The Uraeda skill did not load: the plugins loaded were cc-plugin-telemetry",
     sessionId: session.nativeId,
     type: "init",
   });
@@ -1510,12 +1505,7 @@ test("review focus 1: a message sent before the process's init is sent once", as
     sessions.send(repo, session.id, { text: "Plan it" }),
     sessions.send(repo, session.id, { text: "Keep it short" }),
   ]);
-  adapter.emit({
-    pluginErrors: [],
-    plugins: ["uraeda"],
-    sessionId: session.nativeId,
-    type: "init",
-  });
+  adapter.emit({ sessionId: session.nativeId, type: "init" });
   await flush();
 
   expect(adapter.opens).toHaveLength(1);

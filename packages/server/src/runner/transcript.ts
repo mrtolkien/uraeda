@@ -14,9 +14,6 @@ import {
   WAKEUP_HORIZON_MS,
 } from "./session-state.ts";
 
-/** The plugin the skill loads as, which every process must report loaded. */
-const PLUGIN = "uraeda";
-
 type Init = Extract<AgentEvent, { type: "init" }>;
 type Result = Extract<AgentEvent, { type: "result" }>;
 /** The events recorded as the turn's items. */
@@ -110,17 +107,10 @@ export class Transcript {
       }
       changed(live, turn?.id);
     }
-    // The skill loads as the `uraeda` plugin: a process without it must not run.
-    if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
-      const why =
-        event.pluginErrors.length > 0
-          ? event.pluginErrors.join("; ")
-          : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
+    // A process its runtime says must not run, as one without the Uraeda skill, fails its turn.
+    if (event.problem !== undefined) {
       if (turn) {
-        turns.halt(live, turn, {
-          reason: `The Uraeda skill did not load: ${why}`,
-          state: "failed",
-        });
+        turns.halt(live, turn, { reason: event.problem, state: "failed" });
       }
       this.#context.processes.close(proc);
     }
@@ -169,7 +159,7 @@ export class Transcript {
         return;
       case "skipped": {
         const count = (turn.skipped?.count ?? 0) + 1;
-        const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${this.#context.adapter.name} printed that Uraeda does not read.`;
+        const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${proc.runtime.name} printed that Uraeda does not read.`;
         if (turn.skipped) {
           this.#update(live, turn, turn.skipped.seq, { kind: "system", text });
           turn.skipped.count = count;
@@ -331,7 +321,8 @@ export class Transcript {
    * background sub-agent still runs: the agent answers them before the turn settles.
    */
   #result(live: Live, proc: Proc, turn: Running, result: Result) {
-    const { adapter, turns } = this.#context;
+    const { turns } = this.#context;
+    const adapter = proc.runtime;
     for (const denial of result.denials) {
       const target = toolTarget(denial.tool, denial.input, proc.cwd);
       const rule = adapter.allowRule(denial);

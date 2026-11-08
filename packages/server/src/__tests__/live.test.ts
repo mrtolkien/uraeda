@@ -8,6 +8,7 @@ import type { Host } from "../repositories.ts";
 import { chatImages } from "../attach.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { FakeAdapter } from "../runner/fake.ts";
+import { runtimesOf } from "../runner/runtimes.ts";
 import { UNSENT_KEPT_MS } from "../runner/images.ts";
 import { startSessions } from "../server.ts";
 import { testSettings } from "../testing.ts";
@@ -606,10 +607,10 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
 
   const settings = await testSettings();
   const { stop } = await startSessions({
-    adapter: new FakeAdapter(),
     binding,
     dataDir,
     hosts: () => undefined,
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     settings,
   });
   await stop();

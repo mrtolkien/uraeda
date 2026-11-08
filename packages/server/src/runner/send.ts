@@ -11,6 +11,7 @@ import {
   REFUSALS,
   refused,
   rowOf,
+  runtimeOf,
   type SessionContext,
 } from "./session-state.ts";
 
@@ -48,7 +49,7 @@ export async function sendTo(
   if (!fresh || live.folder === null || context.cache.turns(live.id).length === 0) {
     return deliver(context, live, checked, place, false);
   }
-  const { adapter, binding, cache } = context;
+  const { binding, cache } = context;
   const behind = live.turn !== undefined || live.queue.length > 0;
   // Refused before the new session exists: a refused run leaves no empty session as the latest.
   if (context.live.moving(live)) {
@@ -58,8 +59,9 @@ export async function sendTo(
     const { kind } = await binding.readFeature(live.repo, live.folder);
     throw refused(REFUSALS.otherWorking(kind));
   }
+  // The new session runs on the runtime of the one the run was sent to.
   const row = cache.createSession({
-    agent: adapter.kind,
+    agent: rowOf(cache, live).agent,
     folder: live.folder,
     nativeId: randomUUID(),
     repo: live.repo,
@@ -81,7 +83,7 @@ async function deliver(
   { asChat, branch, step }: Place,
   behind: boolean,
 ): Promise<{ session: string; turn: number }> {
-  const { adapter, binding, cache, changed, processes, turns } = context;
+  const { binding, cache, changed, processes, turns } = context;
   const workflow = asChat === undefined ? sent : undefined;
   // A move or a drop of the session, or of its folder, holds it: checked again after each wait.
   const unmoved = () => {
@@ -112,7 +114,7 @@ async function deliver(
   const id = randomUUID();
   const origin = workflow ? "workflow" : "human";
   // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
-  if (live.turn && !live.turn.stop && !sent && adapter.capabilities.steer) {
+  if (live.turn && !live.turn.stop && !sent && runtimeOf(context, live)?.capabilities.steer) {
     const item: Message = { ...messageItem(id, origin, text), ...held };
     const seq = cache.appendItem(live.turn.id, item);
     live.messages.set(id, { item, seq, turn: live.turn.id, written: true });

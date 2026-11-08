@@ -75,7 +75,10 @@ const CHATS: Array<{ script: Array<AgentEvent>; text: string }> = [
   },
   {
     script: [
-      { fiveHour: { percentUsed: 100, resetsAt: "2026-10-16T15:00:00.000Z" }, type: "usage" },
+      {
+        type: "usage",
+        windows: [{ id: "five_hour", label: "5h", resetsAt: "2026-10-16T15:00:00.000Z", used: 1 }],
+      },
       result({ errors: [USAGE_LIMIT], ok: false }),
     ],
     text: "Add a dark theme",

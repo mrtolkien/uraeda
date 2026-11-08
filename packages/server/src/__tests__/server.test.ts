@@ -12,6 +12,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { type GroupsFile, groupsFolder, startTime } from "../preview/groups.ts";
 import { FakeAdapter } from "../runner/fake.ts";
+import { runtimesOf } from "../runner/runtimes.ts";
 import { startServer } from "../server.ts";
 import { SIGN_IN_FILE } from "../sign-in/store.ts";
 import { testSettings } from "../testing.ts";
@@ -36,13 +37,13 @@ afterEach(async () => {
  */
 async function start(repo: string, dataDir: string, given = false, signIn = false) {
   const server = await startServer({
-    adapter: new FakeAdapter(),
     allowOrigins: [],
     binding,
     dataDir,
     given,
     port: 4310,
     repo,
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     settings: await testSettings(),
     ...(!signIn && { signIn: false as const }),
   });

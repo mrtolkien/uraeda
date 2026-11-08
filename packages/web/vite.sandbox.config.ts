@@ -8,7 +8,13 @@ import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { layout } from "uraeda-server/paths";
 import { defineConfig, type Plugin, type UserConfig } from "vite-plus";
-import { atWork, atWorkOnDiscovery, atWorkOnRealistic, sandboxAgent } from "./sandbox/agent.ts";
+import {
+  atWork,
+  atWorkOnDiscovery,
+  atWorkOnRealistic,
+  sandboxAgent,
+  sandboxRuntimes,
+} from "./sandbox/agent.ts";
 import { sourceLocations } from "./sandbox/sourceLocations.ts";
 import { themeWatcher, uraedaServer } from "./vite.config.ts";
 import { uiTransforms } from "./vite.transforms.ts";
@@ -101,9 +107,9 @@ export function sandboxConfig({
       sandboxPage(),
       uraedaServer(
         {
-          adapter,
           file: false,
           lockedList: true,
+          runtimes: sandboxRuntimes(adapter),
           signIn: false,
           started: (server) => {
             const repo = process.env.URAEDA_REPO ?? "";

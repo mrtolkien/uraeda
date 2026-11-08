@@ -173,8 +173,15 @@ async function takeWorking(each: Each, first: Page, adapter: FakeAdapter) {
   const id = await send(adapter, first, "Plan the CLI.");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
-    fiveHour: { percentUsed: 43, resetsAt: new Date(Date.now() + 3_600_000).toISOString() },
     type: "usage",
+    windows: [
+      {
+        id: "five_hour",
+        label: "5h",
+        resetsAt: new Date(Date.now() + 3_600_000).toISOString(),
+        used: 0.43,
+      },
+    ],
   });
   adapter.emit({ text: `Reading **the answers** of round 01 in \`${LONG}\`.`, type: "text" });
   adapter.emit({

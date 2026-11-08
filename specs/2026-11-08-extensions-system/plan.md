@@ -629,33 +629,48 @@ git commit -m "feat(extensions-system): compile extension files with oxc"
   - `Adapter` gains `readonly icon: string` (an icon name of the app's set; Claude Code
     `uraeda:harness-claude`). `OpenOptions` gains `skills: ReadonlyArray<string>` (skill folders to
     pass, empty until task 11). `export type Runtime = Adapter` for extensions.
-  - `class Runtimes`: `register(name: string, runtime: Adapter): () => void` (the undo);
-    `get(name: string): Adapter | undefined`; `forRepository(repo: string | null): Adapter[]` (on
-    there, in registration order); `isOn: (name, repo) => boolean` given at construction;
-    `onChange(listener): () => void`. A runtime's `kind` is its extension's name.
+  - `class Runtimes`: `register(name: string, runtime: Adapter): () => void` (the undo; a name
+    registered twice throws); `get(name: string): Adapter | undefined`;
+    `forRepository(repo: string | null): Adapter[]` (on there, in registration order);
+    `new Runtimes({ isOn })`, `isOn: (name, repo) => boolean`, `repo` being the main checkout's path
+    the sessions are kept under, or null (R19); `onChange(listener): () => void`, fired by
+    `register`, the undo, and `changed()`, which task 8 calls when an `on` list changes. Also
+    `names()`, `defaultFor(repo)` (the name a new session takes), `status(name)` and `check()` (each
+    runtime's availability and version, checked every minute as the one agent was), and
+    `records(repo, usage)`. A runtime's `kind` in the UI is the name it is registered as; the
+    adapter's own `kind` stays for the benchmarks' records. `runtimesOf({ claude: adapter })` builds
+    one, for `main.ts`, `dev.ts`, the tests, and the sandbox.
   - `Sessions` takes `runtimes: Runtimes` instead of `adapter`; `sessions.runtimes`;
-    `sessions.runtimeOf(sessionId): Adapter | undefined` (by the stored `agent`).
-  - `send`: a new session is created with `agent` = the runtime chosen (`input.runtime`, else the
-    first of `forRepository`); none → refused with
-    `No agent runtime is on here: turn one on in Settings, Extensions`. A session whose runtime is
+    `sessions.runtimeOf(sessionId): Adapter | undefined` (by the stored `agent`, registered, on or
+    off); `sessions.usage(name): UsageWindow[]`. `Sessions.status()` is gone: the fate code reads
+    `runtimes.status`, and the helpers `messageRuntime` and `runtimeState` of `runtimes.ts`.
+  - A new session is created with `agent` = the runtime chosen: `featureSession`, `newSession`, and
+    `newChat` take an optional `runtime`, else the first of `forRepository` (R20); none → refused
+    with `No agent runtime is on here: turn one on in Settings, Extensions`. A run that starts fresh
+    in a new session keeps the runtime of the session it was sent to. A session whose runtime is
     missing or off refuses sends with `<title> is off: turn it on to continue this session`, the
     title being the session's stored runtime name (from the extension's title once task 8 lands; the
-    `agent` name until then).
+    `agent` name until then). A process keeps the runtime it was opened on to its exit.
   - `AgentRecord` =
     `{ id, runtimes: Array<{ kind, name, icon, available, version, capabilities, usage: UsageWindow[], isOn }> }`:
     the web's `AgentView` follows, and `Usage.tsx` and `Allowance.tsx` draw `usage` windows by
     `label`, the rail bar from the first window.
   - The plugin check: `transcript.ts` halts the turn when `init.problem` is set, with the problem as
     its text; `claude-events.ts` sets `problem` to "The Uraeda skill did not load: <why>" when
-    `pluginErrors` is non-empty or `plugins` lacks `uraeda`. `FakeAdapter` sends no problem unless a
-    script does.
+    `pluginErrors` is non-empty or `plugins` lacks `uraeda`. The `init` event no longer carries
+    `plugins` and `pluginErrors`: they are Claude Code's format. `FakeAdapter` sends no problem
+    unless a script does.
+  - The web's `useAgent()` returns the first runtime on (`AgentRecord.runtimes`), in the shape the
+    views read; `UsageWindow` takes a `window` and shows the reset's weekday when it is not today.
+    The sandbox registers its agent as `fake`, `claude`, and `codex`, so its sample sessions of each
+    kind still answer. `HarnessMark` is left to task 13.
 
 `ClaudeAdapter` and `FakeAdapter` keep their constructors; `main.ts`, `dev.ts`, and the tests
 register them in a `Runtimes` under `claude` and `fake` until task 8 moves that into built-in
 extensions. `sessions.ts` is at 495 lines: move the status and runtime lookups into `runtimes.ts`
 rather than growing it.
 
-- [ ] **Step 1: Write the failing tests, and rewrite the moved ones**
+- [x] **Step 1: Write the failing tests, and rewrite the moved ones**
 
 ```ts
 // packages/server/src/runner/__tests__/runtimes.test.ts
@@ -687,21 +702,21 @@ The break each test catches:
   pi-durable session onto Claude Code after a restart.
 - No runtime: a session created with an empty `agent`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner`
 - Expected: FAIL, `Cannot find module '../runtimes.ts'`.
 
-- [ ] **Step 3: Implement the registry, the contract changes, and their readers**
+- [x] **Step 3: Implement the registry, the contract changes, and their readers**
 
 Make the break: have `runtimeOf` return the first runtime; see the `removed` row fail; revert.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp check && vp test packages/server packages/web packages/benchmarks`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/web packages/benchmarks

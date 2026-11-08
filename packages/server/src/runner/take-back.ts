@@ -1,4 +1,11 @@
-import { type Live, REFUSALS, refused, type SessionContext, TAKEN_BACK } from "./session-state.ts";
+import {
+  type Live,
+  REFUSALS,
+  refused,
+  runtimeOf,
+  type SessionContext,
+  TAKEN_BACK,
+} from "./session-state.ts";
 
 /**
  * Takes back a message of the session the agent has not read: a queued turn's at once, which ends
@@ -6,7 +13,7 @@ import { type Live, REFUSALS, refused, type SessionContext, TAKEN_BACK } from ".
  * event. Refused once the agent read it, or once the session no longer keeps it.
  */
 export function takeBack(context: SessionContext, live: Live, message: string): void {
-  const { adapter, turns } = context;
+  const { turns } = context;
   const sent = live.messages.get(message);
   // A message no longer kept belongs to a turn that ended with nothing left to read.
   if (!sent) {
@@ -25,8 +32,9 @@ export function takeBack(context: SessionContext, live: Live, message: string): 
     turns.end(live, sent.turn, { reason: TAKEN_BACK, state: "stopped" });
     return;
   }
-  if (!adapter.capabilities.takeBack) {
-    throw new Error(`${adapter.name} cannot take a message back`);
+  const runtime = runtimeOf(context, live);
+  if (!runtime?.capabilities.takeBack) {
+    throw new Error(`${runtime?.name ?? "The agent"} cannot take a message back`);
   }
   live.proc?.agent.takeBack(message);
 }

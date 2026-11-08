@@ -278,21 +278,8 @@ export const ProposalFileTextView = view<ProposalFile>()({
 });
 
 export const AgentView = view<Agent>()({
-  available: true,
-  capabilities: {
-    approvals: true,
-    images: true,
-    queue: true,
-    steer: true,
-    subagents: true,
-    takeBack: true,
-  },
-  fiveHourLimit: { percentUsed: true, resetsAt: true },
   id: true,
-  kind: true,
-  name: true,
-  version: true,
-  weekLimit: { percentUsed: true, resetsAt: true },
+  runtimes: true,
 });
 
 export const SessionView = view<Session>()({

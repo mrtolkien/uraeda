@@ -9,10 +9,10 @@ import { type Env, loadConfigDir, loadDataDir, loadEnv, type Sources } from "./e
 import { PREVIEW_PATH } from "./guard.ts";
 import { refuse, upgradeUrl } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
-import type { Adapter } from "./runner/adapter.ts";
 import { layout } from "./paths.ts";
 import type { FrameSecret } from "./sign-in/frames.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
+import { type Runtimes, runtimesOf } from "./runner/runtimes.ts";
 import { SERVER_PATHS } from "./server-paths.ts";
 import { keyLines, type Server, startServer } from "./server.ts";
 import { DEFAULT_PORT, ServerSettings } from "./settings.ts";
@@ -115,7 +115,7 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
  * A Connect middleware serving the server's routes, on the server `startServer` starts with the
  * first request to its port, in the repository of the settings read then, with its own settings
  * of the config folder, closed as it stops, on Claude Code unless
- * `adapter` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
+ * `runtimes` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
  * origins the server of a port allows besides its own, none by default. `lockedList` locks the
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
  * `signIn` is false, as for the screenshot scripts and Uraeda's own Storybook; a key the start
@@ -126,16 +126,16 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
 export function devHandler(
   root: string | null,
   {
-    adapter,
     allowOrigins,
     lockedList = false,
+    runtimes,
     signIn = true,
     started,
     ...sources
   }: {
-    adapter?: Adapter;
     allowOrigins?: (port: number) => Array<string>;
     lockedList?: boolean;
+    runtimes?: Runtimes;
     signIn?: boolean;
     started?: (server: Server) => void;
   } & Sources = {},
@@ -155,9 +155,6 @@ export function devHandler(
       options: { ...variables, noOpen: false },
     });
     const server = await startServer({
-      adapter:
-        adapter ??
-        new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
       allowOrigins: allowOrigins?.(port) ?? [],
       binding,
       dataDir,
@@ -165,6 +162,14 @@ export function devHandler(
       lockedList,
       port,
       repo,
+      runtimes:
+        runtimes ??
+        runtimesOf({
+          claude: new ClaudeAdapter({
+            imagesDir: chatImages(dataDir).dir,
+            pluginDir: layout().plugin,
+          }),
+        }),
       settings,
       ...(!signIn && { signIn: false as const }),
     });

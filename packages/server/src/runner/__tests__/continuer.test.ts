@@ -5,6 +5,7 @@ import type { SessionCache } from "../cache.ts";
 import type { ContinueSettings } from "../continuer.ts";
 import type { Denial, Limit } from "../events.ts";
 import type { FakeAdapter } from "../fake.ts";
+import { runtimesOf } from "../runtimes.ts";
 import { Sessions } from "../sessions.ts";
 import { sessionStatus } from "../status.ts";
 import { flush, limitTurn, restart, testSessions } from "./helpers.ts";
@@ -485,7 +486,13 @@ test("two servers sharing the cache continue a wait once", async () => {
   const { adapter, cache } = setup;
   const time = clock("2026-11-03T14:01:00Z");
   const { session } = await sendLimited(setup, AGENT);
-  const other = new Sessions({ adapter, binding, cache, onChange: () => {}, runs: () => ON });
+  const other = new Sessions({
+    binding,
+    cache,
+    onChange: () => {},
+    runs: () => ON,
+    runtimes: runtimesOf({ fake: adapter }),
+  });
   await other.check();
   await other.startContinues();
 

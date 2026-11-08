@@ -100,6 +100,7 @@ export async function runSession(options: {
     cwd: options.cwd,
     nativeId,
     resume: options.resume ?? false,
+    skills: [],
   });
   agent.send({ id: randomUUID(), images: [], text: options.message, when: "queue" });
   const result: SessionResult = {
@@ -127,10 +128,8 @@ export async function runSession(options: {
       const fetches = event.kind === "fetch" || (event.kind === "execute" && FETCHING.test(text));
       result.urls.push(...(fetches ? addressesOf(text) : []));
     } else if (event.type === "usage") {
-      // A full week stops the agent as a full five-hour window does.
-      result.usageLimit ||= [event.fiveHour, event.week].some(
-        (limit) => limit !== undefined && limit.percentUsed >= 100,
-      );
+      // A full week stops the agent as a full five-hour window does: any full window.
+      result.usageLimit ||= event.windows.some((window) => window.used >= 1);
     } else if (event.type === "result") {
       // A session may answer several turns: nothing an earlier one did is overwritten.
       result.denials.push(...event.denials);

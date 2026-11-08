@@ -134,7 +134,8 @@ export function recommendedMessage({
   feature,
   next,
 }: {
-  agent: { available: boolean; name: string };
+  /** Whether its runtime takes the message, and why not: `refusal`, else it is not available. */
+  agent: { available: boolean; name: string; refusal?: string };
   feature: FeatureView;
   next: NextView;
 }): Recommended {
@@ -143,7 +144,7 @@ export function recommendedMessage({
     return { reason: REFUSALS.noBranch };
   }
   if (!agent.available) {
-    return { reason: REFUSALS.unavailable(agent.name) };
+    return { reason: agent.refusal ?? REFUSALS.unavailable(agent.name) };
   }
   const message = (reference: string, trigger?: Trigger) =>
     runMessage({

@@ -23,6 +23,7 @@
     "./runner/events": "./src/runner/events.ts",
     "./runner/fake": "./src/runner/fake.ts",
     "./runner/message": "./src/runner/message.ts",
+    "./runner/runtimes": "./src/runner/runtimes.ts",
     "./browser": "./src/browser.ts"
   },
   "scripts": {

@@ -61,7 +61,8 @@ const SWITCHES: Record<ContinueReason, Exclude<keyof ContinueSettings, "cap">> =
  */
 export class Continuer {
   #context: SessionContext;
-  #available: () => boolean;
+  /** Whether the session's runtime is registered, on in its repository, and available. */
+  #available: (session: SessionRow) => boolean;
   #hosted: (root: string) => boolean;
   #runs: () => ContinueSettings;
   /** The timer of each pending continue this server armed, by its turn. */
@@ -87,7 +88,7 @@ export class Continuer {
   constructor(
     context: SessionContext,
     options: {
-      available: () => boolean;
+      available: (session: SessionRow) => boolean;
       hosted: (root: string) => boolean;
       runs: () => ContinueSettings;
     },
@@ -240,7 +241,7 @@ export class Continuer {
    */
   #refused(claimed: TurnRow, row: SessionRow, live: Live): boolean {
     return (
-      !this.#available() ||
+      !this.#available(row) ||
       !this.#hosted(row.repo) ||
       this.#context.live.moving(live) ||
       ofDropped(row) ||
@@ -278,14 +279,18 @@ export class Continuer {
    * finds it back. Safe twice: a cut decided once has its continue's reason.
    */
   async agentBack(): Promise<void> {
-    if (!this.#started || !this.#available() || !this.#runs().afterRestart) {
+    if (!this.#started || !this.#runs().afterRestart) {
       return;
     }
-    const { adapter, cache } = this.#context;
+    const { cache, runtimes } = this.#context;
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
     for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
       const session = cache.session(turn.sessionId);
-      if (session && adapter.hasSession(session.nativeId)) {
+      if (
+        session &&
+        this.#available(session) &&
+        runtimes.get(session.agent)?.hasSession(session.nativeId)
+      ) {
         await this.#decide(turn, "restart", Date.now, this.#taken(session.id));
       }
     }

@@ -8,6 +8,7 @@ import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
 import type { Outgoing } from "uraeda-server/runner/adapter";
+import { type Runtimes, runtimesOf } from "uraeda-server/runner/runtimes";
 import { dirname, join } from "node:path";
 import { REALISTIC_FOLDERS, SAMPLE_FOLDERS } from "../samples/index.ts";
 
@@ -279,9 +280,11 @@ export class SandboxAgent extends FakeAdapter {
   atWork({ calls, subagents }: AtWork = IMPLEMENTATION): Array<FakeStep> {
     const waits = shares(AT_WORK_MS, AT_WORK_CALLS);
     const usage: FakeStep = {
-      fiveHour: { percentUsed: 42, resetsAt: inHours(3) },
       type: "usage",
-      week: { percentUsed: 18, resetsAt: inHours(72) },
+      windows: [
+        { id: "five_hour", label: "5h", resetsAt: inHours(3), used: 0.42 },
+        { id: "seven_day", label: "Week", resetsAt: inHours(72), used: 0.18 },
+      ],
     };
     const ids = subagents.map((_, index) => `at-work-agent-${index}`);
     const starts = subagents.map((description, index): FakeStep => ({
@@ -345,6 +348,17 @@ export function sandboxAgent({ wait = timerWait }: { wait?: Wait } = {}): Sandbo
   return new SandboxAgent(wait);
 }
 
+/**
+ * The runtime names the sandbox's agent is registered as: `fake` first, which new sessions run on,
+ * then the kinds its sample sessions are made of, so each shows its mark and still answers.
+ */
+export const SANDBOX_KINDS = ["fake", "claude", "codex"] as const;
+
+/** The sandbox's runtimes: `agent` as each of `SANDBOX_KINDS`. */
+export function sandboxRuntimes(agent: SandboxAgent): Runtimes {
+  return runtimesOf(Object.fromEntries(SANDBOX_KINDS.map((kind) => [kind, agent])));
+}
+
 /** The workflow's message for a feature waiting on the agent, as "Continue" sends it. */
 export async function workflowMessage(repo: string, folder: string): Promise<string> {
   const { branch, step } = await nextStep(repo, folder);
@@ -362,9 +376,8 @@ export async function workflowMessage(repo: string, folder: string): Promise<str
 
 /**
  * Starts `work` on `folder`'s session, as "Continue" does. With `kind`, the session is one of that
- * agent's, to show its mark: a session records the agent it was made by, so the fake agent is that
- * kind while the session is made and the turn sent, and a session of another kind, left by an
- * earlier start, is retagged. Callers run one after another, so the kind never mixes.
+ * runtime's, to show its mark: a session records the runtime it was made on, so it is retagged,
+ * and the sandbox's agent runs every kind (`sandboxRuntimes`).
  */
 async function startAtWork(
   sessions: Sessions,
@@ -373,28 +386,18 @@ async function startAtWork(
   work: AtWork,
   kind?: string,
 ): Promise<{ turn: number }> {
-  const agent = sessions.adapter as Partial<SandboxAgent>;
-  if (agent.playAtWorkOn === undefined) {
+  const agent = sessions.runtimes.get(SANDBOX_KINDS[0]) as Partial<SandboxAgent> | undefined;
+  if (agent?.playAtWorkOn === undefined) {
     throw new Error("The turn at work runs on the sandbox's agent.");
   }
-  // The sandbox's agent, whose kind, unlike an adapter's, can be set for a while.
-  const adapter = agent as SandboxAgent;
-  const usual = adapter.kind;
-  if (kind !== undefined) {
-    adapter.kind = kind;
+  const session = await sessions.featureSession(repo, folder);
+  if (kind !== undefined && session.agent !== kind) {
+    // The one session of the feature, retagged: a second would be the card's older, stopped one.
+    sessions.cache.db.prepare("UPDATE sessions SET agent = ? WHERE id = ?").run(kind, session.id);
   }
-  try {
-    const session = await sessions.featureSession(repo, folder);
-    if (kind !== undefined && session.agent !== kind) {
-      // The one session of the feature, retagged: a second would be the card's older, stopped one.
-      sessions.cache.db.prepare("UPDATE sessions SET agent = ? WHERE id = ?").run(kind, session.id);
-    }
-    const text = await workflowMessage(repo, folder);
-    agent.playAtWorkOn(text, work);
-    return await sessions.send(repo, session.id, { text, workflow: { trigger: "manual" } });
-  } finally {
-    adapter.kind = usual;
-  }
+  const text = await workflowMessage(repo, folder);
+  agent.playAtWorkOn(text, work);
+  return sessions.send(repo, session.id, { text, workflow: { trigger: "manual" } });
 }
 
 /**

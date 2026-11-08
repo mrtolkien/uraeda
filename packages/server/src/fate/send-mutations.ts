@@ -2,7 +2,7 @@
 // kept while the feature's start, or its commits, are still in the write queue.
 import type { Trigger } from "../runner/events.ts";
 import type { ChatImage } from "../runner/images.ts";
-import { REFUSALS } from "../runner/sessions.ts";
+import { messageRuntime } from "../runner/runtimes.ts";
 import { onSession } from "./change-starts.ts";
 import { sentImages } from "./chat-images.ts";
 import type { Resolver } from "./context.ts";
@@ -44,7 +44,12 @@ export const sendMutations = {
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
         throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
-      const images = await sentImages(ctx, input.images, workflow !== undefined);
+      // The session's runtime, or the one a new session of the repository runs on.
+      const runtime =
+        input.session === undefined
+          ? ctx.sessions.runtimes.forRepository(ctx.repo)[0]
+          : ctx.sessions.runtimeOf(input.session);
+      const images = await sentImages(ctx, input.images, workflow !== undefined, runtime);
       const message = {
         text: input.text,
         ...(images.length === 0 ? {} : { images }),
@@ -77,9 +82,12 @@ export const sendMutations = {
         if (input.folder === undefined) {
           throw new Error("a message goes to a session or a feature");
         }
-        if (!ctx.sessions.status().available) {
-          throw new Error(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
-        }
+        const root = await ctx.sessions.mainRoot(ctx.repo);
+        const latest =
+          input.newSession === true
+            ? undefined
+            : ctx.sessions.cache.latestSession(root, input.folder);
+        messageRuntime(ctx.sessions.runtimes, root, latest);
         // A folder that is no feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
         return input.newSession === true

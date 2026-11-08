@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
+import { runtimeState } from "../runner/runtimes.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
@@ -32,7 +33,9 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
  */
 async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | null> {
   // Without the agent, or a run to start, the change's page offers its message unsent.
-  const message = ctx.sessions.status().available
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const latest = ctx.sessions.cache.latestSession(root, folder);
+  const message = runtimeState(ctx.sessions.runtimes, root, latest).available
     ? await readWorkflowMessage(ctx, `${folder}:start`)
     : undefined;
   if (!message?.text) {

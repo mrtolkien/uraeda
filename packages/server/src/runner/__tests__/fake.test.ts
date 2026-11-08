@@ -4,7 +4,7 @@ import type { AgentEvent } from "../events.ts";
 import { FakeAdapter } from "../fake.ts";
 import { flush } from "./helpers.ts";
 
-const options = { cwd: "/w", nativeId: "s1", resume: false };
+const options = { cwd: "/w", nativeId: "s1", resume: false, skills: [] };
 const done = (): AgentEvent => ({
   denials: [],
   errors: [],
@@ -42,7 +42,7 @@ test("a scripted turn plays when a message is sent, then waits for the next", as
   expect(adapter.hasSession("s1")).toBe(true);
   // The process says who it is before any message.
   expect(await readUntil(agent, (event) => event.type === "init")).toEqual([
-    { pluginErrors: [], plugins: ["uraeda"], sessionId: "s1", type: "init" },
+    { sessionId: "s1", type: "init" },
   ]);
 
   agent.send({ id: "m1", images: [], text: "hi", when: "steer" });

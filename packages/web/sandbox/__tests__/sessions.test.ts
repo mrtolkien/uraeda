@@ -110,7 +110,7 @@ test("any message gets the canned reply, streamed over 3 seconds, and changes no
 test("the canned reply waits before each word it streams", async () => {
   const order: Array<string> = [];
   const agent = sandboxAgent({ wait: async () => void order.push("wait") });
-  const process = agent.open({ cwd: sample, nativeId: "s1", resume: false });
+  const process = agent.open({ cwd: sample, nativeId: "s1", resume: false, skills: [] });
 
   process.send({ id: "m1", images: [], text: "Make the title bigger", when: "queue" });
   for await (const event of process.events) {

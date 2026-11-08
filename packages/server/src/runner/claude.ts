@@ -127,6 +127,7 @@ export function messageContent(text: string, images: Array<{ path: string }>): s
  * the session's messages.
  */
 export class ClaudeAdapter implements Adapter {
+  readonly icon = "uraeda:harness-claude";
   readonly kind = "claude";
   readonly name = "Claude Code";
   /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */

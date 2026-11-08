@@ -3,10 +3,11 @@ import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
-import type { TurnActivity, UsageLimit } from "./events.ts";
+import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
 import { Processes } from "./processes.ts";
+import { checkAvailable, readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
@@ -43,17 +44,17 @@ export {
 const now = () => new Date().toISOString();
 
 /**
- * What the session manager works with: its agent, binding, and cache, where it reports a change,
+ * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
  * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
  * says whether the server lists a main checkout: the restart's continues skip the others.
  */
 type SessionsOptions = {
-  adapter: Adapter;
   binding: Binding;
   cache: SessionCache;
   hosted?: (root: string) => boolean;
   onChange: (change: SessionChange) => void;
   runs?: () => ContinueSettings;
+  runtimes: Runtimes;
 };
 
 /**
@@ -66,7 +67,7 @@ type SessionsOptions = {
  */
 export class Sessions {
   #options: SessionsOptions;
-  #status: { available: boolean; version: string | null } = { available: false, version: null };
+  #unsubscribe: () => void;
   /** Each repository's main checkout, by the path it was given as. */
   #roots = new Map<string, string>();
   #context: SessionContext;
@@ -78,7 +79,6 @@ export class Sessions {
     this.starts = new StartMessages(options.cache);
     // Each part reaches the others through the context, filled once they are all made.
     const context = {
-      adapter: options.adapter,
       agentChanged: () => options.onChange({ agent: true }),
       binding: options.binding,
       cache: options.cache,
@@ -96,16 +96,23 @@ export class Sessions {
         });
       },
       live: new LiveSessions(),
+      runtimes: options.runtimes,
     } as SessionContext;
     context.processes = new Processes(context);
     context.turns = new Turns(context);
     context.transcript = new Transcript(context);
+    const { runtimes } = options;
     context.continuer = new Continuer(context, {
-      available: () => this.#status.available,
+      available: (row) => runsOn(runtimes, row),
       hosted: options.hosted ?? (() => true),
       runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;
+    // A runtime registered, unregistered, or turned on or off is checked, and shown, at once.
+    this.#unsubscribe = runtimes.onChange(() => {
+      options.onChange({ agent: true });
+      void this.check();
+    });
   }
 
   /** The cache the sessions are written to, which the server reads them from. */
@@ -113,35 +120,29 @@ export class Sessions {
     return this.#options.cache;
   }
 
-  get adapter(): Adapter {
-    return this.#options.adapter;
+  /** The runtimes sessions run on. */
+  get runtimes(): Runtimes {
+    return this.#options.runtimes;
   }
 
-  /** Whether the agent worked at the last check, and its version. */
-  status(): {
-    available: boolean;
-    fiveHourLimit: UsageLimit | null;
-    version: string | null;
-    weekLimit: UsageLimit | null;
-  } {
-    const { processes } = this.#context;
-    return {
-      ...this.#status,
-      fiveHourLimit: processes.limit("fiveHour"),
-      weekLimit: processes.limit("week"),
-    };
+  /** The runtime the session runs on, by its stored `agent`: undefined while unregistered. */
+  runtimeOf(session: string): Adapter | undefined {
+    const row = this.cache.session(session);
+    return row && this.runtimes.get(row.agent);
   }
 
-  /** Asks the agent for its version, and reports a change of availability. */
+  /** The runtime's usage windows, from its open processes' freshest reports. */
+  usage(runtime: string): Array<UsageWindow> {
+    return this.#context.processes.usage(runtime);
+  }
+
+  /** Asks each runtime for its version, and reports a change of availability. */
   async check(): Promise<void> {
-    const version = (await this.adapter.version()) ?? null;
-    const status = { available: version !== null, version };
-    if (status.available === this.#status.available && status.version === this.#status.version) {
-      return;
+    const { back, changed } = await this.runtimes.check();
+    if (changed) {
+      this.#options.onChange({ agent: true });
     }
-    this.#status = status;
-    this.#options.onChange({ agent: true });
-    if (status.available) {
+    if (back) {
       await this.#context.continuer.agentBack();
     }
   }
@@ -192,14 +193,15 @@ export class Sessions {
     return wakeupPending(this.#context.live.get(session)?.proc);
   }
 
-  /** The latest session of a change or a feature, created when it has none: `featureSession`. */
-  async featureSession(repo: string, folder: string): Promise<SessionRow> {
-    return featureSession(this.#context, await this.mainRoot(repo), folder);
+  /** The latest session of a change or a feature, made on `runtime` with none: `featureSession`. */
+  async featureSession(repo: string, folder: string, runtime?: string): Promise<SessionRow> {
+    return featureSession(this.#context, await this.mainRoot(repo), folder, runtime);
   }
 
-  /** A new session of a change or a feature, which becomes its latest: `newSession`. */
-  async newSession(repo: string, folder: string): Promise<SessionRow> {
-    return newSession(this.#context, this.#options.onChange, await this.mainRoot(repo), folder);
+  /** A new session of a change or a feature, on `runtime`, which becomes its latest: `newSession`. */
+  async newSession(repo: string, folder: string, runtime?: string): Promise<SessionRow> {
+    const root = await this.mainRoot(repo);
+    return newSession(this.#context, this.#options.onChange, root, { folder, runtime });
   }
 
   /** Moves a session without a workflow to the change it became, between turns: `attach`. */
@@ -238,9 +240,9 @@ export class Sessions {
     archiveFolder(this.#context, this.#options.onChange, await this.mainRoot(repo), folder);
   }
 
-  /** A new chat, without a feature, titled by its first message. */
-  async newChat(repo: string): Promise<SessionRow> {
-    return newChat(this.#context, await this.mainRoot(repo));
+  /** A new chat, without a feature, on `runtime`, titled by its first message. */
+  async newChat(repo: string, runtime?: string): Promise<SessionRow> {
+    return newChat(this.#context, await this.mainRoot(repo), runtime);
   }
 
   /**
@@ -257,11 +259,13 @@ export class Sessions {
     session: string,
     input: SendInput,
   ): Promise<{ session: string; turn: number }> {
-    const message = checkSend(input, this.adapter.capabilities);
-    this.#available();
-    const live = this.#context.live.of(await this.#own(repo, session));
+    const row = await this.#own(repo, session);
+    const message = checkSend(input, sessionRuntime(this.runtimes, row).capabilities);
+    const available = () => checkAvailable(this.runtimes, row.agent);
+    available();
+    const live = this.#context.live.of(row);
     return this.#context.live.serial(live, () =>
-      this.#asHuman(live, () => sendTo(this.#context, live, message, () => this.#available())),
+      this.#asHuman(live, () => sendTo(this.#context, live, message, available)),
     );
   }
 
@@ -303,8 +307,7 @@ export class Sessions {
    * for that process only, and asks the agent to try again, in a turn of its own.
    */
   async allow(repo: string, session: string, turn: number, seq: number): Promise<{ turn: number }> {
-    this.#available();
-    const live = this.#context.live.of(await this.#own(repo, session));
+    const live = this.#context.live.of(readySession(this.runtimes, await this.#own(repo, session)));
     return this.#context.live.serial(live, () =>
       this.#asHuman(live, () => allowDenial(this.#context, live, turn, seq)),
     );
@@ -316,8 +319,7 @@ export class Sessions {
    * runs or waits, and with no covered action.
    */
   async allowAll(repo: string, session: string): Promise<{ turn: number }> {
-    this.#available();
-    const live = this.#context.live.of(await this.#own(repo, session));
+    const live = this.#context.live.of(readySession(this.runtimes, await this.#own(repo, session)));
     return this.#context.live.serial(live, () =>
       this.#asHuman(live, () => allowAll(this.#context, live)),
     );
@@ -438,8 +440,9 @@ export class Sessions {
     this.#context.continuer.runsChanged();
   }
 
-  /** Clears every timer. */
+  /** Clears every timer, and stops following the runtimes. */
   close(): void {
+    this.#unsubscribe();
     this.#context.continuer.close();
     for (const live of this.#context.live.values()) {
       clearTimeout(live.idle);
@@ -485,11 +488,5 @@ export class Sessions {
       throw new Error(`no session ${session}`);
     }
     return row;
-  }
-
-  #available() {
-    if (!this.#status.available) {
-      throw refused(REFUSALS.unavailable(this.adapter.name));
-    }
   }
 }
