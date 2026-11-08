@@ -157,6 +157,12 @@ fn add_clones_pins_and_turns_on() {
     );
     assert_eq!(built_in.code, 1);
     assert!(!folders.extension("inbox").exists());
+
+    let (_sessions, sessions_url) = upstream("sessions", "My sessions");
+    let reserved = folders.ura(elsewhere.path(), &["add", &sessions_url, "--all"]);
+    assert_eq!(reserved.stderr, "ura: sessions is reserved by Uraeda\n");
+    assert_eq!(reserved.code, 1);
+    assert!(!folders.extension("sessions").exists());
 }
 
 #[test]

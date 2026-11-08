@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use toml_edit::{DocumentMut, Item, Value};
 
-use super::{BUILT_INS, Extension, MANIFEST, SOURCE, extensions_dir, load, manifest, read};
+use super::{BUILT_INS, Extension, MANIFEST, SOURCE, extensions_dir, load, manifest, read, taken};
 use crate::api::ApiError;
 use crate::git::{Git, ObjectId, clone_pinned};
 use crate::settings::{change_path, refused, set};
@@ -182,8 +182,8 @@ fn checked(dir: &Path, folder: &Path) -> Result<String, ApiError> {
         .and_then(Item::as_str)
         .unwrap_or_default()
         .to_owned();
-    if BUILT_INS.contains(&name.as_str()) {
-        return Err(refused(format!("{name} is taken by a built-in extension")));
+    if let Some(why) = taken(&name) {
+        return Err(refused(why));
     }
     let extension = manifest::parse(&name, &text, Some(folder));
     fatal(&extension)?;

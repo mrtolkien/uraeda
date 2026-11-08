@@ -102,14 +102,15 @@ test("claudeArgs lets the agent write extensions, and passes their skills", () =
   const folders = extensionPlugins(options.skills, plugins);
   const args = claudeArgs(options, "/plugin", "/data/images", extensions);
 
-  expect(folders).toEqual([join(plugins, "docs-ext")]);
+  // Named apart from Uraeda's own plugin, whatever the extension's name.
+  expect(folders).toEqual([join(plugins, "ext-docs-ext")]);
   expect(realpathSync(join(folders[0], "skills"))).toBe(realpathSync(skills));
   expect(
     JSON.parse(readFileSync(join(folders[0], ".claude-plugin", "plugin.json"), "utf8")),
-  ).toEqual({ name: "docs-ext" });
+  ).toEqual({ name: "ext-docs-ext" });
   // Uraeda's own plugin first, then each extension's.
   const pluginDirs = args.flatMap((arg, at) => (arg === "--plugin-dir" ? [args[at + 1]] : []));
-  expect(pluginDirs).toEqual(["/plugin", join(plugins, "docs-ext")]);
+  expect(pluginDirs).toEqual(["/plugin", join(plugins, "ext-docs-ext")]);
   const addDirs = args.flatMap((arg, at) => (arg === "--add-dir" ? [args[at + 1]] : []));
   expect(addDirs).toEqual(["/data/images", join(config, "extensions")]);
   const instructions = args[args.indexOf("--append-system-prompt") + 1];
@@ -132,6 +133,18 @@ test("an extension's plugin folder is made again as its skills move", () => {
   const [folder] = extensionPlugins([second], plugins);
 
   expect(realpathSync(join(folder, "skills"))).toBe(realpathSync(second));
+});
+
+// Break: readlinkSync's EINVAL on a real folder thrown, or the rename over it failing.
+test("a real folder in place of the skills link is replaced by the link", () => {
+  const plugins = join(temporaryFolder("uraeda-data"), "extension-plugins");
+  const skills = join(temporaryFolder("uraeda-config"), "extensions", "docs", "skills");
+  mkdirSync(skills, { recursive: true });
+  mkdirSync(join(plugins, "ext-docs", "skills", "stale"), { recursive: true });
+
+  const [folder] = extensionPlugins([skills], plugins);
+
+  expect(realpathSync(join(folder, "skills"))).toBe(realpathSync(skills));
 });
 
 test("without extensions, no folder is added and no skill passed", () => {

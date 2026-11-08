@@ -7,6 +7,7 @@ import {
   readFileSync,
   readlinkSync,
   renameSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -49,9 +50,12 @@ export type ClaudeExtensions = ExtensionPaths & {
   plugins: string;
 };
 
-/** The plugin folder of the extension whose `skills/` folder is `skills`, by its name. */
+/**
+ * The plugin folder of the extension whose `skills/` folder is `skills`, `ext-<name>`: apart from
+ * Uraeda's own plugin, `uraeda`, whatever the extension's name.
+ */
 function pluginOf(skills: string, plugins: string): string {
-  return join(plugins, basename(dirname(skills)));
+  return join(plugins, `ext-${basename(dirname(skills))}`);
 }
 
 /** Writes `path` unless it holds `text` already: sessions opening together write the same. */
@@ -68,9 +72,9 @@ function writeIfChanged(path: string, text: string) {
 }
 
 /**
- * Makes the plugin folder of each extension's skills, `<plugins>/<name>/`: its
+ * Makes the plugin folder of each extension's skills, `<plugins>/ext-<name>/`: its
  * `.claude-plugin/plugin.json`, and `skills`, a link to the extension's `skills/` folder, replaced
- * whole when it points elsewhere. Each of `skills` is `<extensions folder>/<name>/skills`. Gives
+ * whole when it points elsewhere or is no link. Each of `skills` is `<extensions folder>/<name>/skills`. Gives
  * the folders, in the order of `skills`.
  */
 export function extensionPlugins(skills: ReadonlyArray<string>, plugins: string): Array<string> {
@@ -83,7 +87,11 @@ export function extensionPlugins(skills: ReadonlyArray<string>, plugins: string)
     let target: string | undefined;
     try {
       target = readlinkSync(link);
-    } catch {
+    } catch (error) {
+      // Not a link, as a folder or file left there: a link cannot be renamed over it.
+      if ((error as NodeJS.ErrnoException).code === "EINVAL") {
+        rmSync(link, { force: true, recursive: true });
+      }
       target = undefined;
     }
     if (target !== folder) {
