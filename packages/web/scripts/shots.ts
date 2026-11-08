@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { encodeImage } from "uraeda-binding";
+import { runtimesOf } from "uraeda-server/runner/runtimes";
 import type { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
@@ -40,7 +41,14 @@ export async function serveUi(adapter: FakeAdapter, port: number, started?: Star
     ...base,
     configFile: false,
     logLevel: "warn",
-    plugins: [...plugins, uraedaServer({ adapter, signIn: false, ...(started && { started }) })],
+    plugins: [
+      ...plugins,
+      uraedaServer({
+        runtimes: runtimesOf({ fake: adapter }),
+        signIn: false,
+        ...(started && { started }),
+      }),
+    ],
     root: web,
     server: { host: "127.0.0.1", port, strictPort: false },
   });

@@ -9,6 +9,7 @@ import {
   type Proc,
   type Queued,
   RESUMED,
+  runtimeOf,
   type Running,
   type Sent,
   type SessionContext,
@@ -173,7 +174,7 @@ export class Turns {
    * when it cannot.
    */
   unread(live: Live, turn: Running): Array<[string, Sent]> {
-    if (!this.#context.adapter.capabilities.takeBack) {
+    if (!runtimeOf(this.#context, live)?.capabilities.takeBack) {
       return [];
     }
     return [...live.messages].filter(

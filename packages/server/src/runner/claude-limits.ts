@@ -1,8 +1,8 @@
 import type { AgentEvent, Limit } from "./events.ts";
 
 /**
- * Why a Claude Code turn stopped or waits: the usage limit that refused it, and the one-shot
- * wakeups the agent set. Claude Code's formats stay here, in its adapter.
+ * Why a Claude Code turn stopped or waits: the usage limit that refused it, the one-shot wakeups
+ * the agent set, and its usage windows. Claude Code's formats stay here, in its adapter.
  */
 
 type Json = Record<string, unknown>;
@@ -202,4 +202,51 @@ export function limitOfMessage(message: Json, text: string, now: Date): Array<Ag
     (typed ? limitOfInfo(params.rate_limit_info, text) : undefined) ??
     (typed || message.error === "rate_limit" ? limitOfText(text, now) : undefined);
   return limit ? [{ limit, type: "limit" }] : [];
+}
+
+/** Claude's usage windows, by their names in its reports, with their labels. */
+const WINDOWS = [
+  { id: "five_hour", label: "5h" },
+  { id: "seven_day", label: "Week" },
+] as const;
+
+/**
+ * The five-hour and seven-day windows' usage, each a fraction in Claude's output; status-only
+ * notices give no percentage. A malformed window is left out, and the other one kept.
+ */
+export function usageEvents(info: unknown): Array<AgentEvent> {
+  if (!isObject(info)) {
+    return [];
+  }
+  const windows = WINDOWS.flatMap(({ id, label }) => {
+    const usage = usageOf(info, id);
+    return usage ? [{ id, label, ...usage }] : [];
+  });
+  return windows.length > 0 ? [{ type: "usage", windows }] : [];
+}
+
+/** One window of a report: from its unified windows, or the report itself when it is that window. */
+function usageOf(
+  info: Json,
+  name: (typeof WINDOWS)[number]["id"],
+): { resetsAt: string; used: number } | undefined {
+  const window = isObject(info.unifiedWindows) ? info.unifiedWindows[name] : undefined;
+  const limit = isObject(window) ? window : info.rateLimitType === name ? info : undefined;
+  if (
+    !limit ||
+    typeof limit.utilization !== "number" ||
+    !Number.isFinite(limit.utilization) ||
+    limit.utilization < 0 ||
+    typeof limit.resetsAt !== "number"
+  ) {
+    return undefined;
+  }
+  const reset = new Date(limit.resetsAt * 1000);
+  // A tenth of a percent, as Claude Code shows it.
+  return Number.isFinite(reset.getTime())
+    ? {
+        resetsAt: reset.toISOString(),
+        used: Math.min(1, Math.round(limit.utilization * 1000) / 1000),
+      }
+    : undefined;
 }

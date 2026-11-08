@@ -73,7 +73,7 @@ async function run(
   agentAdapter: ClaudeAdapter = adapter,
   images: Array<{ path: string }> = [],
 ): Promise<Array<AgentEvent>> {
-  const agent = agentAdapter.open({ cwd, nativeId: sessionId, resume });
+  const agent = agentAdapter.open({ cwd, nativeId: sessionId, resume, skills: [] });
   const timeout = setTimeout(() => agent.kill("SIGTERM"), RUN_TIMEOUT_MS);
   const events: Array<AgentEvent> = [];
   agent.send({ id: randomUUID(), images, text: message, when: "queue" });
@@ -497,8 +497,7 @@ try {
     report(
       "a first run loads the uraeda plugin, runs /uraeda, and ends with an ok result",
       init?.sessionId === sessionId &&
-        init.plugins.includes("uraeda") &&
-        init.pluginErrors.length === 0 &&
+        init.problem === undefined &&
         result?.ok === true &&
         skillLoaded(sessionId),
       { events: summary(first), skillLoaded: skillLoaded(sessionId) },

@@ -61,7 +61,7 @@ export function checkSend(input: SendInput, capabilities: Capabilities) {
 export function checkImages(
   images: Array<unknown>,
   workflow: boolean,
-  capabilities: Capabilities,
+  capabilities: Pick<Capabilities, "images">,
 ): void {
   if (images.length === 0) {
     return;

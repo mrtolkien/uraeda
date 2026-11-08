@@ -3,8 +3,12 @@ import type { ChatImage } from "./images.ts";
 /** An action `auto` mode blocked, from a result's `permission_denials`. */
 export type Denial = { input: Record<string, unknown>; tool: string };
 
-/** Usage of one of the account's allowances, five hours or a week, with its reset time in ISO 8601. */
-export type UsageLimit = { percentUsed: number; resetsAt: string };
+/**
+ * One usage window a runtime reports, like Claude Code's five hours or its week: its `id`, stable
+ * across reports, its `label` for people, the share `used` from 0 to 1, and its reset time in ISO
+ * 8601.
+ */
+export type UsageWindow = { id: string; label: string; resetsAt: string; used: number };
 
 /**
  * A usage limit that refused the agent's turn. `session` is the limit of a few hours that resets by
@@ -21,8 +25,11 @@ export type TokenCounts = { cacheRead: number; cacheWrite: number; input: number
 
 /** What an adapter reads from its agent's output, whatever the agent. */
 export type AgentEvent =
-  /** The agent's session, at the start of each turn. */
-  | { pluginErrors: Array<string>; plugins: Array<string>; sessionId: string; type: "init" }
+  /**
+   * The agent's session, at the start of each turn. `problem` says why the process must not run,
+   * as a skill that did not load: the turn fails with it as its reason.
+   */
+  | { problem?: string; sessionId: string; type: "init" }
   /** A piece of the text being written. */
   | { text: string; type: "textDelta" }
   /** A text block, whole. */
@@ -59,10 +66,10 @@ export type AgentEvent =
   | { id: string; type: "cancelled" }
   | { attempt: number; delayMs: number; error: string; type: "retry" }
   /**
-   * A usage report, shared by the account rather than added across sessions: its five-hour window,
-   * its week, or both, never neither.
+   * A usage report, shared by the account rather than added across sessions: the windows it gives,
+   * at least one. A window left out keeps its last report.
    */
-  | { fiveHour?: UsageLimit; type: "usage"; week?: UsageLimit }
+  | { type: "usage"; windows: ReadonlyArray<UsageWindow> }
   /**
    * The agent's background tasks still running, after one started or ended, by their tool calls:
    * its sub-agents and workflows, and its background commands. The agent goes on by itself when one

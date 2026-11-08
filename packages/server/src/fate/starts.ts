@@ -5,8 +5,8 @@ import type { PlannedView, StartedView, StartStepView } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { runMessage } from "../runner/message.ts";
+import { messageRuntime } from "../runner/runtimes.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
-import { REFUSALS } from "../runner/sessions.ts";
 import type { WriteInput, WriteQueue } from "../writes/queue.ts";
 import { STEP, StartProgress, startSteps } from "../writes/start-steps.ts";
 import { changeImages } from "./chat-images.ts";
@@ -282,16 +282,14 @@ export async function keptForStart(
   input: SendInput,
 ): Promise<string | undefined> {
   const root = await ctx.sessions.mainRoot(ctx.repo);
-  const { adapter, cache, starts } = ctx.sessions;
+  const { cache, runtimes, starts } = ctx.sessions;
   const row = to.session === undefined ? undefined : cache.session(to.session);
   const folder = to.session === undefined ? to.folder : row?.repo === root ? row.folder : null;
   if (!folder || !starts.waits(root, folder)) {
     return undefined;
   }
-  if (!ctx.sessions.status().available) {
-    throw new Error(`refused: ${REFUSALS.unavailable(adapter.name)}`);
-  }
-  checkSend(input, adapter.capabilities);
+  const runtime = messageRuntime(runtimes, root, row ?? cache.latestSession(root, folder));
+  checkSend(input, runtime.capabilities);
   const made = row === undefined && cache.folderSessions(root, folder).length === 0;
   const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder)).id;
   if (starts.keep(root, folder, session, input)) {

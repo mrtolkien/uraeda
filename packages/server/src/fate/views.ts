@@ -14,16 +14,9 @@ import type {
   TaskProgress,
   WorkspaceView,
 } from "uraeda-binding";
-import type { Capabilities } from "../runner/adapter.ts";
 import type { EditedFile, SubagentRow } from "../runner/cache.ts";
-import type {
-  Item,
-  Trigger,
-  TurnActivity,
-  TurnKind,
-  TurnState,
-  UsageLimit,
-} from "../runner/events.ts";
+import type { Item, Trigger, TurnActivity, TurnKind, TurnState } from "../runner/events.ts";
+import type { RuntimeRecord } from "../runner/runtimes.ts";
 import type { SessionStatus, StatusReason, Wait } from "../runner/status.ts";
 import type { FeatureStatus } from "./feature-status.ts";
 import type { ItemLook } from "./items.ts";
@@ -153,21 +146,11 @@ export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
   triage: string | null;
 };
 
-/** The agent sessions run on, and what it can do: one record, `agent`. */
-export type AgentRecord = {
-  available: boolean;
-  /** What the UI may offer, and nothing more. */
-  capabilities: Capabilities;
-  fiveHourLimit: UsageLimit | null;
-  id: string;
-  /** Its kind, stored with its sessions: `claude`. */
-  kind: string;
-  /** Its name, for people: "Claude Code". */
-  name: string;
-  version: string | null;
-  /** The week's usage, from the agent's freshest report of it: null without one. */
-  weekLimit: UsageLimit | null;
-};
+/**
+ * The agent runtimes sessions run on, in registration order, with what each can do, its usage, and
+ * whether it is on in the endpoint's repository: one record, `agent`.
+ */
+export type AgentRecord = { id: string; runtimes: Array<RuntimeRecord> };
 
 /**
  * A sub-agent working in a session's running turn: its calls, the latest of them, the sub-agent
@@ -382,14 +365,8 @@ export const inboxDataView = dataView<InboxRecord>("Inbox")({
 });
 
 export const agentDataView = dataView<AgentRecord>("Agent")({
-  available: true,
-  capabilities: true,
-  fiveHourLimit: true,
   id: true,
-  kind: true,
-  name: true,
-  version: true,
-  weekLimit: true,
+  runtimes: true,
 });
 
 export const sessionDataView = dataView<SessionRecord>("Session")({

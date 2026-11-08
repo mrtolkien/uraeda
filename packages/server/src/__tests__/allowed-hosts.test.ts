@@ -7,6 +7,7 @@ import { PassThrough } from "node:stream";
 import { afterEach, expect, test } from "vite-plus/test";
 import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../runner/fake.ts";
+import { runtimesOf } from "../runner/runtimes.ts";
 import { type Server, startServer } from "../server.ts";
 import { testSettings } from "../testing.ts";
 import { testApp } from "./helpers.ts";
@@ -36,13 +37,13 @@ async function hostServer(flag?: Array<string>) {
   const dir = temporaryFolder("uraeda-config");
   const settings = await testSettings({ allowedHosts: flag, dir });
   const server = await startServer({
-    adapter: new FakeAdapter(),
     allowOrigins: [],
     binding,
     dataDir: temporaryFolder("uraeda-data"),
     given: false,
     port,
     repo: fixtureRepo(),
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     settings,
     signIn: false,
   });

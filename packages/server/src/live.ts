@@ -14,8 +14,8 @@ import { GIT_ID } from "./fate/views-git.ts";
 import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
-import type { Adapter } from "./runner/adapter.ts";
 import type { SessionCache } from "./runner/cache.ts";
+import type { Runtimes } from "./runner/runtimes.ts";
 import { type ContinueSettings, type SessionChange, Sessions } from "./runner/sessions.ts";
 import type { ServerSettings } from "./settings.ts";
 import type { ServerThemes } from "./themes.ts";
@@ -303,11 +303,11 @@ export function onTurnDone(
  * settings in force.
  */
 export function createSessions(options: {
-  adapter: Adapter;
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
   runs?: () => ContinueSettings;
+  runtimes: Runtimes;
 }): Sessions {
   const publish = sessionPublisher(options.cache, options.binding, options.hosts);
   const sessions: Sessions = new Sessions({

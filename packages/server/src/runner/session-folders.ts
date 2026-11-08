@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SessionRow } from "./cache.ts";
 import { transaction } from "./migrations.ts";
+import { newSessionRuntime } from "./runtimes.ts";
 import {
   ofDropped,
   REFUSALS,
@@ -19,10 +20,18 @@ type OnChange = (change: SessionChange) => void;
 
 const now = () => new Date().toISOString();
 
-/** A new session of the agent's, in `root`, of `folder` or a chat. */
-function create(context: SessionContext, root: string, folder: string | null): SessionRow {
+/**
+ * A new session in `root`, of `folder` or a chat, on the runtime `runtime`, else the first one on
+ * in `root`: refused with none on.
+ */
+function create(
+  context: SessionContext,
+  root: string,
+  folder: string | null,
+  runtime?: string,
+): SessionRow {
   return context.cache.createSession({
-    agent: context.adapter.kind,
+    agent: newSessionRuntime(context.runtimes, root, runtime),
     folder,
     nativeId: randomUUID(),
     repo: root,
@@ -38,38 +47,43 @@ function refuseDropped(latest: SessionRow | undefined) {
 }
 
 /**
- * The latest session of a change or a feature, created when it has none: refused for a dropped
- * one, whose sessions are all archived, so its runs never recreate its worktree.
+ * The latest session of a change or a feature, created on `runtime` when it has none: refused for a
+ * dropped one, whose sessions are all archived, so its runs never recreate its worktree.
  */
-export function featureSession(context: SessionContext, root: string, folder: string): SessionRow {
+export function featureSession(
+  context: SessionContext,
+  root: string,
+  folder: string,
+  runtime?: string,
+): SessionRow {
   const { cache } = context;
   // One transaction: another server cannot create a first session between the read and the write.
   return transaction(cache.db, () => {
     const latest = cache.latestSession(root, folder);
     refuseDropped(latest);
-    return latest ?? create(context, root, folder);
+    return latest ?? create(context, root, folder, runtime);
   });
 }
 
 /**
- * A new session of a change or a feature, which becomes its latest: its runs go to it. Its
- * feature's open pages are sent it. Refused for a dropped one.
+ * A new session of a change or a feature, on `runtime`, which becomes its latest: its runs go to
+ * it. Its feature's open pages are sent it. Refused for a dropped one.
  */
 export function newSession(
   context: SessionContext,
   onChange: OnChange,
   root: string,
-  folder: string,
+  { folder, runtime }: { folder: string; runtime?: string },
 ): SessionRow {
   refuseDropped(context.cache.latestSession(root, folder));
-  const row = create(context, root, folder);
+  const row = create(context, root, folder, runtime);
   onChange({ folder, repo: root, session: row.id });
   return row;
 }
 
-/** A new chat, without a feature, titled by its first message. */
-export function newChat(context: SessionContext, root: string): SessionRow {
-  return create(context, root, null);
+/** A new chat, without a feature, on `runtime`, titled by its first message. */
+export function newChat(context: SessionContext, root: string, runtime?: string): SessionRow {
+  return create(context, root, null, runtime);
 }
 
 /**

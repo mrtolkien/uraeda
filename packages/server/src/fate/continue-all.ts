@@ -4,7 +4,7 @@
 import type { FeatureView } from "uraeda-binding";
 import { reasonOf, REFUSAL_CODE } from "../reason.ts";
 import { recommendedMessage } from "../runner/message.ts";
-import { REFUSALS } from "../runner/session-state.ts";
+import { runtimeState } from "../runner/runtimes.ts";
 import { continuedByAll } from "../runner/status.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError } from "./errors.ts";
@@ -16,13 +16,9 @@ import { continuedAllDataView, type RefusedRun } from "./views-continued-all.ts"
  * Sends the feature its step's message in `session`, which goes on there, as its run did: none
  * when its step has no message, as at a gate.
  */
-async function continueOne(
-  ctx: RepoContext,
-  agent: { available: boolean; name: string },
-  feature: FeatureView,
-  session: string,
-) {
+async function continueOne(ctx: RepoContext, root: string, feature: FeatureView, session: string) {
   const next = await ctx.binding.nextStep(ctx.repo, feature.folder);
+  const agent = runtimeState(ctx.sessions.runtimes, root, ctx.sessions.cache.session(session));
   const message = recommendedMessage({ agent, feature, next });
   if (!("reason" in message)) {
     const workflow = { fresh: false, step: message.step, trigger: message.trigger };
@@ -37,18 +33,19 @@ async function continueOne(
  * with why.
  */
 async function continueAll(ctx: RepoContext): Promise<Array<RefusedRun>> {
-  const { available } = ctx.sessions.status();
-  if (!available) {
-    throw callSiteError(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
+  // Refused at once when the repository's runtime is off or gone: each run is checked on its own.
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const state = runtimeState(ctx.sessions.runtimes, root);
+  if (!state.available) {
+    throw callSiteError(`refused: ${state.refusal}`);
   }
-  const agent = { available, name: ctx.sessions.adapter.name };
   const refused: Array<RefusedRun> = [];
   for (const { feature, status } of await featureStatuses(ctx)) {
     if (!continuedByAll({ status, step: feature.step }) || status.session === null) {
       continue;
     }
     try {
-      await continueOne(ctx, agent, feature, status.session);
+      await continueOne(ctx, root, feature, status.session);
     } catch (error) {
       // A refusal leaves the feature as it was, still asking: the others go on.
       if (!REFUSAL_CODE.test(error instanceof Error ? error.message : String(error))) {

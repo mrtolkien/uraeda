@@ -10,6 +10,7 @@ import { SessionCache } from "./runner/cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "./runner/continuer.ts";
 import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
+import { runtimesOf } from "./runner/runtimes.ts";
 import type { Sessions } from "./runner/sessions.ts";
 import { ServerSettings } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
@@ -23,7 +24,7 @@ const binding = await import("uraeda-binding");
 export { FakeAdapter, type Sessions };
 
 /**
- * A session manager on the fake adapter, `adapter` or a new one, publishing live updates to `hosts`,
+ * A session manager on the fake adapter, `adapter` or a new one, registered as `fake`, publishing live updates to `hosts`,
  * and not checked yet: it reads unavailable until `sessions.check()`, which finds the agent when
  * `installed`. Its cache is in memory, or in the file `cache`, which the caller closes. `binding`
  * replaces the core's, as to hold a call. Its automatic continues are off, unless `runs` turns them
@@ -49,11 +50,11 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
 } {
   adapter.installed = installed;
   const sessions = createSessions({
-    adapter,
     binding: using,
     cache: SessionCache.open(cache),
     hosts,
     runs,
+    runtimes: runtimesOf({ fake: adapter }),
   });
   return { adapter, sessions };
 }

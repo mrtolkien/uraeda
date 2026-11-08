@@ -53,9 +53,11 @@ export function pages(cache: SessionCache, turn: number): number {
   return Math.ceil(cache.itemCount(turn) / TURN_PAGE);
 }
 
-export function agentRecord({ sessions }: Context): AgentRecord {
-  const { capabilities, kind, name } = sessions.adapter;
-  return { id: AGENT_ID, kind, name, ...sessions.status(), capabilities: { ...capabilities } };
+export function agentRecord({ repo, sessions }: Context): AgentRecord {
+  return {
+    id: AGENT_ID,
+    runtimes: sessions.runtimes.records(repo, (name) => sessions.usage(name)),
+  };
 }
 
 /** The session of this ID, when it is one of the server's repository: the cache holds them all. */

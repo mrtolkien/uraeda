@@ -948,42 +948,44 @@ test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a messag
   expect(sent).toMatchObject({ archived: false, title: "Drafts" });
 });
 
-test("Agent reads the agent's name, availability, version, and capabilities", async () => {
+test("Agent reads each runtime's name, mark, availability, version, capabilities, and usage", async () => {
   const server = await testServer();
 
-  const [agent] = await byId(
-    server.app,
-    "Agent",
-    ["agent"],
-    ["id", "kind", "name", "available", "version", "capabilities"],
-  );
+  const [agent] = await byId(server.app, "Agent", ["agent"], ["id", "runtimes"]);
 
   expect(agent).toEqual({
-    available: true,
-    capabilities: {
-      approvals: false,
-      images: true,
-      queue: true,
-      steer: true,
-      subagents: true,
-      takeBack: true,
-    },
     id: "agent",
-    kind: "fake",
-    name: "Claude Code",
-    version: "0.0.0 (fake agent)",
+    runtimes: [
+      {
+        available: true,
+        capabilities: {
+          approvals: false,
+          images: true,
+          queue: true,
+          steer: true,
+          subagents: true,
+          takeBack: true,
+        },
+        icon: "uraeda:harness-agent",
+        isOn: true,
+        kind: "fake",
+        name: "Claude Code",
+        usage: [],
+        version: "0.0.0 (fake agent)",
+      },
+    ],
   });
 });
 
 test("US4.4: without the agent, Agent reads unavailable and a send is refused", async () => {
   const server = await testServer(undefined, { installed: false });
 
-  const [agent] = await byId(server.app, "Agent", ["agent"], ["id", "available", "version"]);
+  const [agent] = await byId(server.app, "Agent", ["agent"], ["id", "runtimes"]);
   const refused = await mutate(server.app, "session.send", { folder: AGENT, text: "Plan it" }, [
     "id",
   ]);
 
-  expect(agent).toEqual({ available: false, id: "agent", version: null });
+  expect(agent).toMatchObject({ id: "agent", runtimes: [{ available: false, version: null }] });
   expect(refused.error?.message).toBe("refused: Claude Code is not available on this machine.");
 });
 

@@ -170,3 +170,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   picker, or for good after a cancel.
 - **If wrong**: drop the first write, and remove the folder on a cancel instead.
 - **Where**: task 5, `crates/core/src/extensions/install.rs`.
+
+## R19: A runtime is on or off by the repository's main checkout
+
+- **Decision**: `Runtimes`' `isOn(name, repo)` takes the path of the repository's main checkout, the
+  key sessions are stored under, or null for every repository; the server API maps it to the
+  repository's name.
+- **Rationale**: the session manager knows a session's repository only by that path; a name lookup
+  in the runner would read the repositories' list at every send.
+- **Where**: task 4, `packages/server/src/runner/runtimes.ts`; task 8 gives the `isOn`.
+
+## R20: A session picks its runtime when it is made
+
+- **Decision**: `featureSession`, `newSession`, and `newChat` take the runtime a new session runs
+  on, the first one on in the repository by default; a run that starts fresh in a new session keeps
+  the runtime of the session it was sent to.
+- **Rationale**: sessions are made before their first message, by the start dialog and the feature's
+  page, so the choice belongs where the row is written; a fresh run continues the same work, on the
+  same agent.
+- **Where**: task 4, `runner/session-folders.ts`, `runner/send.ts`; task 13 passes the picker's
+  choice from `session.send`.

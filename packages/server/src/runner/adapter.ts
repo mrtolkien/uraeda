@@ -26,6 +26,8 @@ export type OpenOptions = {
   nativeId: string;
   /** Resume `nativeId`, or start a new session with it. */
   resume: boolean;
+  /** The skill folders to give the agent, beside Uraeda's own. */
+  skills: ReadonlyArray<string>;
 };
 
 /**
@@ -54,7 +56,10 @@ export interface AgentProcess {
   takeBack(id: string): void;
 }
 
-/** The one interface every agent is reached through. */
+/**
+ * The one interface every agent is reached through: a runtime, registered under a name its
+ * sessions store (see `Runtimes`).
+ */
 export interface Adapter {
   /**
    * The narrowest rule that allows a blocked action, passed to `open` as `allowed`: undefined when
@@ -64,7 +69,9 @@ export interface Adapter {
   readonly capabilities: Capabilities;
   /** Whether the session's transcript exists, so it can be resumed. */
   hasSession(nativeId: string): boolean;
-  /** The agent's kind, stored with its sessions: "claude". */
+  /** The icon of its mark, a name of the app's icon set: "uraeda:harness-claude". */
+  readonly icon: string;
+  /** The agent's own kind, which a benchmark's record names it by: "claude". */
   readonly kind: string;
   /** The agent's name, for people: "Claude Code". */
   readonly name: string;

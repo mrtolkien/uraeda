@@ -64,25 +64,29 @@ afterEach(async () => {
   }
 });
 
-/** The fake agent as the server describes it: available, and reading images. */
-function agentRecord(overrides: Partial<AgentRecord> = {}): AgentRecord {
+/** The fake agent as the server describes it: its one runtime, on, available, and reading images. */
+function agentRecord(): AgentRecord {
   return {
-    available: true,
-    capabilities: {
-      approvals: true,
-      images: true,
-      queue: true,
-      steer: true,
-      subagents: true,
-      takeBack: true,
-    },
-    fiveHourLimit: null,
     id: AGENT_ID,
-    kind: "fake",
-    name: "Claude Code",
-    version: null,
-    weekLimit: null,
-    ...overrides,
+    runtimes: [
+      {
+        available: true,
+        capabilities: {
+          approvals: true,
+          images: true,
+          queue: true,
+          steer: true,
+          subagents: true,
+          takeBack: true,
+        },
+        icon: "uraeda:harness-agent",
+        isOn: true,
+        kind: "fake",
+        name: "Claude Code",
+        usage: [],
+        version: null,
+      },
+    ],
   };
 }
 

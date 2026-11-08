@@ -5,6 +5,7 @@ import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { devFrames, devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
+import { runtimesOf } from "../runner/runtimes.ts";
 import { checkoutOf, rawUpgrade, ready, socketOpens } from "../preview/__tests__/helpers.ts";
 import { fixture, fixtureRepo } from "./helpers.ts";
 import { addStoryFeature, STORY_FEATURE, temporaryFolder } from "uraeda-binding/test-utils";
@@ -41,7 +42,10 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   writeFileSync(join(root, ".env"), `URAEDA_REPO=${repo}\nURAEDA_DATA_DIR=${data}\n`);
   vi.stubEnv("URAEDA_REPO", undefined);
   vi.stubEnv("URAEDA_DATA_DIR", undefined);
-  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
+  const handler = devHandler(root, {
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    signIn: false,
+  });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -61,18 +65,18 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   const [{ name }] = list.results[0].data[0].rows;
   const response = await fate(`/r/${name}`, [
     { id: "1", ids: ["workspace"], kind: "byId", select: ["root"], type: "Workspace" },
-    { id: "2", ids: ["agent"], kind: "byId", select: ["available"], type: "Agent" },
+    { id: "2", ids: ["agent"], kind: "byId", select: ["runtimes"], type: "Agent" },
   ]);
   const other = await fetch(`http://127.0.0.1:${port}/index.html`);
   server.close();
   await stopDevRuns();
 
   const body = (await response.json()) as {
-    results: Array<{ data: Array<{ available?: boolean; root?: string }> }>;
+    results: Array<{ data: Array<{ root?: string; runtimes?: Array<{ available: boolean }> }> }>;
   };
   expect(body.results[0].data[0].root).toBe(repo);
   // The session manager, shared by the dev server's apps, keeps its cache in the data folder.
-  expect(body.results[1].data[0].available).toBe(true);
+  expect(body.results[1].data[0].runtimes?.[0]?.available).toBe(true);
   expect(existsSync(join(data, "runner.sqlite"))).toBe(true);
   expect(await other.text()).toBe("vite");
 });
@@ -82,7 +86,10 @@ test("the dev server answers a handoff on Vite's port", async () => {
   const root = temporaryFolder("uraeda-dev");
   process.env.URAEDA_REPO = fixtureRepo();
   process.env.URAEDA_DATA_DIR = temporaryFolder("uraeda-data");
-  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
+  const handler = devHandler(root, {
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    signIn: false,
+  });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -113,7 +120,10 @@ test("the dev server serves a repository's image routes, its uploads in the data
   const data = temporaryFolder("uraeda-data");
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", data);
-  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
+  const handler = devHandler(root, {
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    signIn: false,
+  });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -146,7 +156,7 @@ test("vp dev sends preview paths and their sockets to the server", async () => {
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
   const handler = devHandler(temporaryFolder("uraeda-dev"), {
-    adapter: new FakeAdapter(),
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     signIn: false,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
@@ -195,7 +205,7 @@ async function fateStatus(options: { signIn?: boolean }) {
   vi.stubEnv("URAEDA_REPO", fixtureRepo());
   vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
   const handler = devHandler(temporaryFolder("uraeda-dev"), {
-    adapter: new FakeAdapter(),
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     ...options,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));

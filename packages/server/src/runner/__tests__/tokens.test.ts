@@ -180,12 +180,7 @@ test("a REPLACED agent session starts from zero, and its resumed process from it
 });
 
 /** An `init` with a new session ID: `/clear` started a new agent session in the same process. */
-const cleared = (sessionId: string): AgentEvent => ({
-  pluginErrors: [],
-  plugins: ["uraeda"],
-  sessionId,
-  type: "init",
-});
+const cleared = (sessionId: string): AgentEvent => ({ sessionId, type: "init" });
 
 test("/clear starts a new agent session in the process: its total is the turn's own", async () => {
   const { adapter, cache, send } = await featureSession();

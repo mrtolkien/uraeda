@@ -22,7 +22,7 @@ import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
 import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
-import type { Adapter } from "./runner/adapter.ts";
+import type { Runtimes } from "./runner/runtimes.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
 import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
@@ -50,10 +50,10 @@ export const SWEEP_EVERY_MS = 60_000;
  * those. `stop` stops its turns and closes its processes.
  */
 export async function startSessions(options: {
-  adapter: Adapter;
   binding: Binding;
   dataDir: string;
   hosts: HostsOf;
+  runtimes: Runtimes;
   settings: ServerSettings;
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
   const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
@@ -235,7 +235,6 @@ function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
 
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
-  adapter: Adapter;
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   binding: Binding;
@@ -250,6 +249,8 @@ type StartOptions = {
   port: number;
   /** The repository to open first. */
   repo: string;
+  /** The agent runtimes sessions run on. */
+  runtimes: Runtimes;
   /**
    * The settings in force, whose host names the guard and the cookie read at each request: the
    * server owns them, and closes them as it stops, or as its start fails.
@@ -287,15 +288,15 @@ async function startOpened(
   signIn: SignInOptions | undefined,
   key: string | undefined,
 ): Promise<Server> {
-  const { adapter, binding, dataDir } = options;
+  const { binding, dataDir, runtimes } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   const { frames, previews } = startPreviews(dataDir);
   let hosts: Hosts | undefined;
   const sessions = await startSessions({
-    adapter,
     binding,
     dataDir,
     hosts: () => hosts,
+    runtimes,
     settings: options.settings,
   });
   try {

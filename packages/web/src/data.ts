@@ -254,12 +254,12 @@ export function useProposalFile(path: string) {
 /** The request of the agent, as `useAgent` reads it. */
 export const agentRequest = () => ({ agent: { id: AGENT_ID, view: AgentView } });
 
-/** The agent sessions run on: whether it works on the server's machine, and what it can do. */
+/** The runtime new sessions here run on, the first one on: undefined while every one is off. */
 export function useAgent() {
   const request = agentRequest();
   const { agent } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(AgentView, agent);
+  return useLiveView(AgentView, agent)?.runtimes.find((runtime) => runtime.isOn);
 }
 
 /**

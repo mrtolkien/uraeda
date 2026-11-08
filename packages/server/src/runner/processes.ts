@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentEvent, TokenCounts, UsageLimit } from "./events.ts";
+import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
 import {
   type Live,
   type Proc,
@@ -19,10 +19,6 @@ const NO_TOKENS: TokenCounts = { cacheRead: 0, cacheWrite: 0, input: 0, output: 
 
 type Exit = Extract<AgentEvent, { type: "exit" }>;
 
-/** The usage windows a report may carry, each kept apart. */
-type UsageWindow = "fiveHour" | "week";
-const WINDOWS: ReadonlyArray<UsageWindow> = ["fiveHour", "week"];
-
 /**
  * The sessions' processes: at most one per session, across servers, opened in the session's
  * directory, read to their exit, and closed with a bounded wait.
@@ -30,10 +26,11 @@ const WINDOWS: ReadonlyArray<UsageWindow> = ["fiveHour", "week"];
 export class Processes {
   #context: SessionContext;
   /**
-   * Each window's reports, in report order: the newest open process's report wins, even when usage
-   * decreased. A report without a window keeps that window's last report.
+   * Each runtime's windows' reports, by the runtime's name and the window's ID, in report order:
+   * the newest open process's report wins, even when usage decreased. A report without a window
+   * keeps that window's last report. A runtime's windows keep the order they first came in.
    */
-  #limits: Record<UsageWindow, Map<Proc, UsageLimit>> = { fiveHour: new Map(), week: new Map() };
+  #limits = new Map<string, Map<Proc, UsageWindow>>();
   #expiry: ReturnType<typeof setTimeout> | undefined;
   /** Each process's agent session total so far, which its next report's own work is counted from. */
   #baselines = new WeakMap<Proc, TokenCounts>();
@@ -42,28 +39,33 @@ export class Processes {
     this.#context = context;
   }
 
-  /** The freshest unexpired report of the window from an open process, across repositories. */
-  limit(window: UsageWindow): UsageLimit | null {
-    return (
-      [...this.#limits[window].values()]
-        .filter((limit) => Date.parse(limit.resetsAt) > Date.now())
-        .at(-1) ?? null
-    );
+  /**
+   * The runtime's windows, each the freshest unexpired report of it from an open process, across
+   * repositories.
+   */
+  usage(runtime: string): Array<UsageWindow> {
+    const now = Date.now();
+    return [...this.#limits].flatMap(([key, reports]) => {
+      const fresh = key.startsWith(`${runtime}\0`)
+        ? [...reports.values()].filter((window) => Date.parse(window.resetsAt) > now).at(-1)
+        : undefined;
+      return fresh ? [fresh] : [];
+    });
   }
 
   /** Drops the process's reports of every window: whether it had any. */
   #dropLimits(proc: Proc): boolean {
-    return WINDOWS.map((window) => this.#limits[window].delete(proc)).includes(true);
+    return [...this.#limits.values()].map((reports) => reports.delete(proc)).includes(true);
   }
 
   /** Keeps a report's windows as the process's newest, each in report order. */
   #report(proc: Proc, event: Extract<AgentEvent, { type: "usage" }>) {
-    for (const window of WINDOWS) {
-      const limit = event[window];
-      if (limit) {
-        this.#limits[window].delete(proc);
-        this.#limits[window].set(proc, limit);
-      }
+    for (const window of event.windows) {
+      const key = `${proc.kind}\0${window.id}`;
+      const reports = this.#limits.get(key) ?? new Map<Proc, UsageWindow>();
+      this.#limits.set(key, reports);
+      reports.delete(proc);
+      reports.set(proc, window);
     }
     this.#usageChanged();
   }
@@ -71,21 +73,19 @@ export class Processes {
   /** Drops expired reports, and publishes expiry even when no process prints another event. */
   #usageChanged() {
     clearTimeout(this.#expiry);
-    const limits = WINDOWS.flatMap((window) => [...this.#limits[window]]);
-    for (const [proc, limit] of limits) {
-      if (Date.parse(limit.resetsAt) <= Date.now()) {
-        WINDOWS.forEach((window) => {
-          if (this.#limits[window].get(proc) === limit) {
-            this.#limits[window].delete(proc);
-          }
-        });
+    const now = Date.now();
+    const resets: Array<number> = [];
+    for (const reports of this.#limits.values()) {
+      for (const [proc, window] of reports) {
+        const reset = Date.parse(window.resetsAt);
+        if (reset <= now) {
+          reports.delete(proc);
+        } else {
+          resets.push(reset);
+        }
       }
     }
-    const next = Math.min(
-      ...WINDOWS.flatMap((window) =>
-        [...this.#limits[window].values()].map((limit) => Date.parse(limit.resetsAt)),
-      ),
-    );
+    const next = Math.min(...resets);
     this.#expiry = Number.isFinite(next)
       ? setTimeout(() => this.#usageChanged(), Math.min(next - Date.now(), 2_147_483_647))
       : undefined;
@@ -103,7 +103,7 @@ export class Processes {
     live: Live,
     { allowed }: { allowed?: ReadonlyArray<string> } = {},
   ): Promise<{ line?: string; proc: Proc }> {
-    const { adapter, binding, cache } = this.#context;
+    const { binding, cache, runtimes } = this.#context;
     if (live.proc && !live.proc.closing && allowed === undefined) {
       // A turn taken back while the process opened left its line to the next one.
       const { line } = live.proc;
@@ -121,6 +121,11 @@ export class Processes {
     try {
       const cwd = live.folder === null ? live.repo : await binding.workDir(live.repo, live.folder);
       const row = rowOf(cache, live);
+      // The session's own runtime, never another: one unregistered since leaves it read-only.
+      const adapter = runtimes.get(row.agent);
+      if (!adapter) {
+        throw refused(REFUSALS.runtimeOff(row.agent));
+      }
       const resume = adapter.hasSession(row.nativeId);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
       // A session that ran before has lost its transcript: Claude Code deletes old ones.
@@ -133,6 +138,7 @@ export class Processes {
         cwd,
         nativeId,
         resume,
+        skills: [],
         ...(allowed === undefined ? {} : { allowed }),
       });
       const proc: Proc = {
@@ -141,6 +147,8 @@ export class Processes {
         closing: false,
         cwd,
         done: Promise.resolve(),
+        kind: row.agent,
+        runtime: adapter,
         terminate: [],
       };
       live.proc = proc;
@@ -232,7 +240,8 @@ export class Processes {
 
   /** The process exited: its turn ends, and the queued turns start on a new one. */
   #exited(live: Live, proc: Proc, exit: Exit) {
-    const { adapter, cache, turns } = this.#context;
+    const { cache, turns } = this.#context;
+    const adapter = proc.runtime;
     if (this.#dropLimits(proc)) {
       this.#usageChanged();
     }

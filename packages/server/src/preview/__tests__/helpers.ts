@@ -14,6 +14,7 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../../runner/fake.ts";
+import { runtimesOf } from "../../runner/runtimes.ts";
 import { startServer } from "../../server.ts";
 import { testSettings } from "../../testing.ts";
 import { type Checkout, Previews } from "../runner.ts";
@@ -177,13 +178,13 @@ export async function runningPreview(mode: FakeMode = "ok", repo = fixtureRepo()
   await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
   const { port } = http.address() as { port: number };
   const server = await startServer({
-    adapter: new FakeAdapter(),
     allowOrigins: [],
     binding,
     dataDir: temporaryFolder("uraeda-data"),
     given: false,
     port,
     repo,
+    runtimes: runtimesOf({ fake: new FakeAdapter() }),
     settings: await testSettings(),
     signIn: false,
   });
