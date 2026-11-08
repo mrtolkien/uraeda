@@ -821,7 +821,9 @@ git commit -m "feat(extensions-system): add, update, remove, and list extensions
   `dist/theme/tokens.stylex.js`, in the checkout from `node_modules`, in the package from
   `dist/stylex/tokens.stylex.js`)
 - Modify: `packages/server/src/extensions/__tests__/spike.test.ts` (the StyleX test goes through
-  `compilePage`)
+  `compilePage`), `packages/server/src/__tests__/paths.test.ts` (`stylexTokens` in both layouts)
+- Test: `packages/server/src/extensions/__tests__/page-compiler.test.ts` (each priority level's rule
+  as specific as Astryx's, R15; a StyleX error's position, R17)
 
 **Interfaces:**
 
@@ -832,28 +834,33 @@ git commit -m "feat(extensions-system): add, update, remove, and list extensions
   `@stylexjs/babel-plugin` with the app's options (`dev: false`, `debug: false`,
   `runtimeInjection: false`, a custom resolver mapping `@astryxdesign/core/theme/tokens.stylex` to
   `tokens`), output still TSX for the compiler; `css` from `processStylexRules` with the options the
-  app's unplugin uses.
+  app's unplugin uses (no layers), with placeholder rules so each rule gets Astryx's specificity for
+  its priority level (R15), and without the unplugin's Lightning CSS pass (R16). Errors are at a
+  1-based line and column (R17).
 
-- [ ] **Step 1: Move the StyleX check onto `compilePage`, and add a React Compiler row**
+- [x] **Step 1: Move the StyleX check onto `compilePage`, and add a React Compiler row**
 
-The existing assertion stays; a second asserts the output imports `react/compiler-runtime`.
+The existing assertion stays, and the compiled CSS must hold the same rule; a second asserts the
+output imports `react/compiler-runtime` and is still TSX; a third gives a syntax error's line and
+column.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/server/src/extensions/__tests__/spike.test.ts`
 - Expected: FAIL, `Cannot find module '../page-compiler.ts'`.
 
-- [ ] **Step 3: Implement `compilePage`**
+- [x] **Step 3: Implement `compilePage`**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp check && vp test packages/server/src/extensions`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/extensions packages/server/src/paths.ts
+git add packages/server/src/extensions packages/server/src/paths.ts \
+  packages/server/src/__tests__/paths.test.ts specs/2026-11-08-extensions-system
 git commit -m "feat(extensions-system): compile extension pages with StyleX and React Compiler"
 ```
 

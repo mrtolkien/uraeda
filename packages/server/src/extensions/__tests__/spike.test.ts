@@ -1,7 +1,6 @@
 // The two points the extensions system relies on, checked through the real libraries: fate reads a
 // record kind whose records are added after its server is made, and StyleX compiled at run time
-// gives an extension's styles Astryx's own classes.
-import { transformSync } from "@babel/core";
+// gives an extension's styles Astryx's own classes, through the page compiler, with React Compiler.
 import { createFateServer, dataView, list } from "@nkzw/fate/server";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -9,6 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { liveBus } from "../../fate.ts";
+import { layout } from "../../paths.ts";
+import { compilePage } from "../page-compiler.ts";
 import { createSources, fileSource } from "../../fate/source.ts";
 
 type ExtensionRecord = { data: unknown; id: string };
@@ -107,54 +108,56 @@ test("a record kind registered after the fate server is made is read and updated
 
 const require = createRequire(import.meta.url);
 
-/** Astryx's token file, as the app resolves `@astryxdesign/core/theme/tokens.stylex`. */
-const TOKENS = require.resolve("@astryxdesign/core/theme/tokens.stylex");
-
-/** StyleX's Babel plugin, by its path: its types name Babel 7's, which Babel 8 does not export. */
-const STYLEX = require.resolve("@stylexjs/babel-plugin");
-
 const PAGE = `import * as stylex from "@stylexjs/stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 
 const styles = stylex.create({ row: { paddingBlock: spacingVars["--spacing-3"] } });
 
-export function Row() {
-  return <div {...stylex.props(styles.row)} />;
+type RowProps = { label: string };
+
+export function Row({ label }: RowProps) {
+  return <div {...stylex.props(styles.row)}>{label}</div>;
 }
 `;
 
-test("StyleX compiled at run time gives Astryx's own class to the same style", () => {
-  // A page in a folder outside the checkout, as an extension's is.
+/** Compiles `source` as a page in a folder outside the checkout, as an extension's is. */
+function compiled(source: string) {
   const file = join(mkdtempSync(join(tmpdir(), "uraeda-extension-")), "Row.tsx");
-  writeFileSync(file, PAGE);
+  writeFileSync(file, source);
+  return compilePage(source, file, layout().stylexTokens);
+}
 
-  const result = transformSync(PAGE, {
-    babelrc: false,
-    configFile: false,
-    filename: file,
-    parserOpts: { plugins: ["typescript", "jsx"] },
-    plugins: [
-      [
-        STYLEX,
-        {
-          debug: false,
-          dev: false,
-          importSources: ["@stylexjs/stylex"],
-          runtimeInjection: false,
-          unstable_moduleResolution: {
-            filePathResolver: (path: string) =>
-              path === "@astryxdesign/core/theme/tokens.stylex" ? TOKENS : null,
-            getCanonicalFilePath: (path: string) => path,
-            type: "custom",
-          },
-        },
-      ],
-    ],
-  });
+/** The compiled page, failing the test on a compile error. */
+function compiledPage(source: string) {
+  const result = compiled(source);
+  if ("error" in result) {
+    throw new Error(result.error.message);
+  }
+  return result;
+}
+
+test("StyleX compiled at run time gives Astryx's own class to the same style", () => {
+  const { code, css } = compiledPage(PAGE);
 
   // StyleX turns the spread of `stylex.props` into a static `className`.
-  const name = /className="([^"]+)"/.exec(result!.code!)?.[1];
+  const name = /className: "([^"]+)"|className="([^"]+)"/.exec(code)?.slice(1).find(Boolean);
   expect(name).toBeDefined();
   const astryxCss = readFileSync(require.resolve("@astryxdesign/core/astryx.css"), "utf8");
-  expect(astryxCss).toContain(`.${name}:not(#\\#):not(#\\#){padding-block:var(--spacing-3)}`);
+  const rule = `.${name}:not(#\\#):not(#\\#){padding-block:var(--spacing-3)}`;
+  expect(astryxCss).toContain(rule);
+  expect(css).toContain(rule);
+});
+
+test("React Compiler memoizes a page's components, and leaves TSX for the module compiler", () => {
+  const { code } = compiledPage(PAGE);
+
+  expect(code).toContain('from "react/compiler-runtime"');
+  expect(code).toContain("type RowProps = {");
+  expect(code).toContain("<div {...");
+});
+
+test("a page that does not parse gives the line and column of its error", () => {
+  const result = compiled("export function Row() {\n  const label = ;\n}\n");
+
+  expect(result).toEqual({ error: { column: 17, line: 2, message: "Unexpected token" } });
 });

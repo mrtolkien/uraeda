@@ -1,5 +1,5 @@
-// The one home of where the server finds its plugin, its web UI, and its checkout (the
-// distribution decision): no other module builds these paths.
+// The one home of where the server finds its plugin, its web UI, its StyleX tokens, and its
+// checkout (the distribution decision): no other module builds these paths.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,12 @@ export type Layout = {
   kind: "checkout" | "package";
   /** The folder passed to `claude --plugin-dir`: `.claude-plugin/plugin.json` and `skills/uraeda/`. */
   plugin: string;
+  /**
+   * Astryx's StyleX token file, which extension pages' `@astryxdesign/core/theme/tokens.stylex`
+   * imports compile against: from `node_modules` in a checkout, copied to `dist/stylex/` in the
+   * package.
+   */
+  stylexTokens: string;
   /** The built web UI, served as static files. */
   web: string;
 };
@@ -30,12 +36,19 @@ const PACKAGED = typeof URAEDA_PACKAGE === "boolean" && URAEDA_PACKAGE;
 export function layout(packaged: boolean = PACKAGED, moduleUrl: string = import.meta.url): Layout {
   const path = (relative: string) => fileURLToPath(new URL(relative, moduleUrl)).replace(/\/$/, "");
   if (packaged) {
-    return { checkout: null, kind: "package", plugin: path("../plugin"), web: path("../web") };
+    return {
+      checkout: null,
+      kind: "package",
+      plugin: path("../plugin"),
+      stylexTokens: path("./stylex/tokens.stylex.js"),
+      web: path("../web"),
+    };
   }
   return {
     checkout: path("../../.."),
     kind: "checkout",
     plugin: path("../plugin"),
+    stylexTokens: path("../node_modules/@astryxdesign/core/dist/theme/tokens.stylex.js"),
     web: path("../../web/dist"),
   };
 }
