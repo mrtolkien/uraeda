@@ -151,6 +151,12 @@ export const migrations: Array<Migration> = [
   ALTER TABLE sessions ADD COLUMN automatic_continues INTEGER NOT NULL DEFAULT 0;`,
   // The continue before a human gate is gone: its waits and its capped runs read halted.
   "UPDATE turns SET continue_at = NULL, continue_reason = NULL WHERE continue_reason = 'gate';",
+  // The model and effort picked, null for the agent's defaults, and the ones it last reported
+  // running on, by its names for people: null for every session made before.
+  `ALTER TABLE sessions ADD COLUMN model TEXT;
+  ALTER TABLE sessions ADD COLUMN effort TEXT;
+  ALTER TABLE sessions ADD COLUMN ran_model TEXT;
+  ALTER TABLE sessions ADD COLUMN ran_effort TEXT;`,
 ];
 
 /**

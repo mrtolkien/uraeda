@@ -234,6 +234,22 @@ A runtime implements the contract every agent is reached through, the `Runtime` 
 text, tool calls and their ends, the turn's result, limits, and usage. Usage is a list of windows,
 each `{ id, label, used, resetsAt }`, `used` from 0 to 1, which the usage window draws as it draws
 Claude Code's five hours and week.
+
+A runtime may also offer models, all optional:
+
+- `models()` gives the models the agent lists, `{ models, defaults }`: each model
+  `{ id, name, description?, efforts }`, its efforts `{ id, name }`, and `defaults` the `model` and
+  `effort` IDs the agent runs on when none is picked. Its models are offered where a session starts.
+- `open` then gets the `model` and `effort` IDs picked, none for the agent's defaults.
+- A process's `setEffort(effort)` changes its effort from its next turn on; a runtime without it is
+  reopened with the new effort.
+- Its process sends `{ type: "runsOn", model, effort? }`, the names for people of what it runs on,
+  which the session's header shows, and `{ type: "notice", text }`, a line of the agent's that the
+  transcript shows.
+
+A runtime that picks its agent's session IDs itself, opened without `resume`, reports the agent's
+own ID in its first `init`: the session takes it.
+
 [`runner/claude.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/claude.ts)
 is a whole runtime, and
 [`runner/fake.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/fake.ts)

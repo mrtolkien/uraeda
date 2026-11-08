@@ -597,6 +597,51 @@ test("migration 8 adds the continue columns, and a continue is claimed once", ()
   });
 });
 
+test("a session made before the feature reads on the agent's defaults", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  for (const migration of migrations.slice(0, 9)) {
+    if (typeof migration === "string") {
+      old.exec(migration);
+    } else {
+      migration(old);
+    }
+  }
+  old.exec("PRAGMA user_version = 9");
+  old.exec(`INSERT INTO sessions (id, repo, folder, agent, native_id, created_at, updated_at)
+    VALUES ('s', '${REPO}', '${FOLDER}', 'claude', '3f2c', '2026-11-08', '2026-11-08');`);
+  old.close();
+
+  const cache = SessionCache.open(path);
+
+  expect(cache.session("s")).toMatchObject({
+    effort: null,
+    model: null,
+    nativeId: "3f2c",
+    ranEffort: null,
+    ranModel: null,
+  });
+});
+
+test("what a session runs on is stored", () => {
+  const cache = SessionCache.open(":memory:");
+  const row = cache.createSession({ ...chat, effort: "high", model: "gpt-6-astra" });
+  expect(row).toMatchObject({ effort: "high", model: "gpt-6-astra", ranModel: null });
+  expect(cache.createSession(chat)).toMatchObject({ effort: null, model: null });
+
+  cache.updateSession(row.id, { effort: "max", ranEffort: "Max", ranModel: "GPT-6-Astra" });
+
+  expect(cache.session(row.id)).toMatchObject({
+    effort: "max",
+    model: "gpt-6-astra",
+    ranEffort: "Max",
+    ranModel: "GPT-6-Astra",
+  });
+  // A model that reports no effort clears the one that ran before.
+  cache.updateSession(row.id, { ranEffort: null, ranModel: "GPT-6-Luna" });
+  expect(cache.session(row.id)).toMatchObject({ ranEffort: null, ranModel: "GPT-6-Luna" });
+});
+
 test("a continue is scheduled only for its session's latest turn, undecided and not dismissed", () => {
   const cache = SessionCache.open(":memory:");
   const session = cache.createSession(feature).id;

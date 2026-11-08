@@ -8,14 +8,25 @@ export type SessionRow = {
   /** The automatic continues in a row, set back to 0 by a commit or the human's message. */
   automaticContinues: number;
   createdAt: string;
+  /** The effort picked, by the agent's ID, or changed since: null for the agent's default. */
+  effort: string | null;
   /** The change's or feature's folder, set once, null for a session without one. */
   folder: string | null;
   /** Uraeda's own ID, a UUID. */
   id: string;
-  /** The agent's own session ID. */
+  /** The model picked when it started, by the agent's ID: null for the agent's default. */
+  model: string | null;
+  /**
+   * The agent's own session ID: for an agent that picks its own, as Codex, the one it gave at the
+   * session's first start.
+   */
   nativeId: string;
   /** The server process that holds the session's agent process, null when closed. */
   pid: number | null;
+  /** The effort the agent last reported running on, by its name for people: null for none. */
+  ranEffort: string | null;
+  /** The model the agent last reported running on, by its name: null before it reports one. */
+  ranModel: string | null;
   /** The repository's main checkout. */
   repo: string;
   /** When the human last saw it ended. */
@@ -60,10 +71,14 @@ export const toSession = (row: Row): SessionRow => ({
   archivedAt: row.archived_at as string | null,
   automaticContinues: Number(row.automatic_continues),
   createdAt: String(row.created_at),
+  effort: row.effort as string | null,
   folder: row.folder as string | null,
   id: String(row.id),
+  model: row.model as string | null,
   nativeId: String(row.native_id),
   pid: row.pid as number | null,
+  ranEffort: row.ran_effort as string | null,
+  ranModel: row.ran_model as string | null,
   repo: String(row.repo),
   seenAt: row.seen_at as string | null,
   title: row.title as string | null,

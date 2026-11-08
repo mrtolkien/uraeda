@@ -109,6 +109,11 @@ export type TurnEnd = { reason?: string; state: TurnState };
 
 /** A session's open process. */
 export type Proc = {
+  /**
+   * Opened without resume, until its first `init`: the agent session ID that init reports is the
+   * session's own, as Codex picks a thread's, not a `/clear`.
+   */
+  adopts: boolean;
   agent: AgentProcess;
   /**
    * Its background tasks still running, by their tool calls, sub-agents and commands: a turn does

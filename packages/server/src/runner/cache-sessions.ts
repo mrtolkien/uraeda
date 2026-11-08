@@ -6,7 +6,11 @@ import { type Row, type SessionRow, toSession } from "./cache-rows.ts";
 /** A new session's fields. */
 export type NewSession = {
   agent: string;
+  /** The effort picked, by the agent's ID: none for the agent's default. */
+  effort?: string | null;
   folder: string | null;
+  /** The model picked, by the agent's ID: none for the agent's default. */
+  model?: string | null;
   nativeId: string;
   repo: string;
   title: string | null;
@@ -14,13 +18,19 @@ export type NewSession = {
 
 /** The session fields a write may change. */
 export type SessionFields = Partial<
-  Pick<SessionRow, "nativeId" | "title" | "seenAt" | "archivedAt">
+  Pick<
+    SessionRow,
+    "nativeId" | "title" | "seenAt" | "archivedAt" | "effort" | "ranModel" | "ranEffort"
+  >
 >;
 
 /** The session columns a write may change, by their field. */
 const sessionColumns = {
   archivedAt: "archived_at",
+  effort: "effort",
   nativeId: "native_id",
+  ranEffort: "ran_effort",
+  ranModel: "ran_model",
   seenAt: "seen_at",
   title: "title",
 } as const;
@@ -30,8 +40,9 @@ export function insertSession(db: DatabaseSync, row: NewSession): SessionRow {
   const created = new Date().toISOString();
   const inserted = db
     .prepare(
-      `INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+      `INSERT INTO sessions
+         (id, repo, folder, agent, native_id, title, model, effort, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
     )
     .get(
       randomUUID(),
@@ -40,6 +51,8 @@ export function insertSession(db: DatabaseSync, row: NewSession): SessionRow {
       row.agent,
       row.nativeId,
       row.title,
+      row.model ?? null,
+      row.effort ?? null,
       created,
       created,
     ) as Row;
