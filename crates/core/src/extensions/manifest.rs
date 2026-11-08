@@ -260,7 +260,7 @@ impl Reader<'_> {
 
 /// Whether `name` is kebab-case: lower-case words of letters and digits, the first starting with
 /// a letter, joined by single hyphens.
-fn kebab(name: &str) -> bool {
+pub(super) fn kebab(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_lowercase())
         && name.split('-').all(|word| {
             !word.is_empty()

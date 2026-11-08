@@ -477,3 +477,45 @@ fn ura_source_records_where_it_came_from() {
         )
     );
 }
+
+#[test]
+fn turning_on_keeps_repositories_already_on() {
+    let dir = tempdir();
+    let (config, data) = (dir.path().join("config"), dir.path().join("data"));
+    fs::create_dir_all(&data).unwrap();
+    repositories(&data, &["uraeda"]);
+    extension(&config, "wiki", WIKI, &[("page.tsx", "")]);
+    fs::write(
+        config.join("config.toml"),
+        "[extensions.wiki]\non = [\"gone\"]\n",
+    )
+    .unwrap();
+
+    let names = |names: &[&str]| On::Some(names.iter().map(|name| (*name).to_owned()).collect());
+    extensions::set_on(&config, &data, "wiki", names(&["gone", "uraeda"])).unwrap();
+    let wiki = find(&extensions::read(&config), "wiki").clone();
+    assert_eq!(wiki.on, ["gone", "uraeda"]);
+    let refused_new = extensions::set_on(&config, &data, "wiki", names(&["gone", "x"]));
+    assert_eq!(
+        refused_new,
+        Err(refused("no repository named x in Uraeda's list"))
+    );
+}
+
+#[test]
+fn names_that_are_not_kebab_case_are_refused() {
+    let dir = tempdir();
+    let (config, data) = (dir.path().join("config"), dir.path().join("data"));
+    fs::create_dir_all(&data).unwrap();
+    repositories(&data, &["uraeda"]);
+    extension(&config, "wiki", WIKI, &[("page.tsx", "")]);
+    for name in ["", "Wiki", "my_wiki", "../wiki", "-wiki"] {
+        let message = format!("{name:?} is not an extension's name, which is kebab-case");
+        let on = extensions::set_on(&config, &data, name, On::All);
+        assert_eq!(on, Err(refused(&message)), "{name}");
+        let setting = extensions::set_setting(&config, &data, name, None, "folder", "\"x\"");
+        assert_eq!(setting, Err(refused(&message)), "{name}");
+        assert_eq!(extensions::settings_json(&config, name, None), "{}");
+    }
+    assert!(!config.join("config.toml").exists());
+}
