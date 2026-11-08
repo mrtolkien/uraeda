@@ -3,7 +3,8 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
-import { useAgent, useInbox } from "./data.ts";
+import { useInbox } from "./data.ts";
+import { useRuntimesAvailable } from "./runtimes.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { InboxList } from "./InboxList.tsx";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
@@ -26,7 +27,7 @@ import { PageTitle } from "./layout/PageTitle.tsx";
  */
 export function InboxPage({ select }: { select?: { key: string } | undefined } = {}) {
   const inbox = useInbox();
-  const agent = useAgent()?.available === true;
+  const agent = useRuntimesAvailable().available;
   const chat = useStartChat();
   const [message, setMessage] = useState<string>();
   const actions = useCategoryActions(inbox ?? { categories: [], hash: "", names: [] });

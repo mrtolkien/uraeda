@@ -26,6 +26,15 @@ export function useRuntimes(): ReadonlyArray<Runtime> {
 }
 
 /**
+ * The runtimes on here, `on`, and whether one of them runs on this machine, `available`: a new
+ * session can start on any of them, picked as it starts.
+ */
+export function useRuntimesAvailable(): { available: boolean; on: ReadonlyArray<Runtime> } {
+  const on = useRuntimes().filter((runtime) => runtime.isOn);
+  return { available: on.some((runtime) => runtime.available), on };
+}
+
+/**
  * The runtime of a session, or of a feature's latest session, by the name it stored, `kind`: off
  * while it is off here or not registered. Without `kind`, the one a new session runs on: `picked`
  * while it is on, else the first one on.

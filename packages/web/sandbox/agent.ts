@@ -362,7 +362,9 @@ const KIND_MARKS: Record<(typeof SANDBOX_KINDS)[number], { icon: string; name: s
 
 /**
  * `agent` as the runtime of `kind`: its mark and name, every other field and method the agent's
- * own, called on it, so the kinds share its turns and its state.
+ * own, called on it, so the kinds share its turns and its state. Its own `kind` field stays the
+ * base agent's: the name a runtime is registered as, which `RuntimeRecord.kind` and the sessions'
+ * `agent` hold, is the key `sandboxAgents` registers it under, never this field.
  */
 function asKind(agent: SandboxAgent, kind: (typeof SANDBOX_KINDS)[number]): SandboxAgent {
   const mark = KIND_MARKS[kind];
