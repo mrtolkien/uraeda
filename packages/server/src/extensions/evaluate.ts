@@ -47,12 +47,20 @@ function imported(
   return builtIn && namespace(builtIn);
 }
 
+/** Each built-in's namespace, made once, so every import of it gets the same object, as in Node. */
+const namespaces = new WeakMap<object, object>();
+
 /**
  * A built-in module as an ES module's namespace: its names, and the module as its `default`,
  * which a default import reads; `process.getBuiltinModule` gives the CommonJS exports, without one.
  */
 function namespace(module: object): object {
-  return Object.freeze({ ...module, default: module });
+  let made = namespaces.get(module);
+  if (made === undefined) {
+    made = Object.freeze({ ...module, default: module });
+    namespaces.set(module, made);
+  }
+  return made;
 }
 
 /**
