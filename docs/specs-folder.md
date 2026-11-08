@@ -136,7 +136,7 @@ specs/
   PRIORITIES.md                # Now, Next, Later
   INBOX.md                     # notes jotted down, waiting to be organized
   proposals/                   # upcoming features, free form: one becomes a dated folder when you
-                               # say "start it"; a postponed feature keeps its folder here, undated
+                               # say "start it"; a postponed feature becomes one, written by an agent
   notes/                       # inbox notes with images, and agents' notes: their files
   decisions/                   # decision ledger, one file per topic
   done/                        # one record per merged feature or change, in place of its folder
