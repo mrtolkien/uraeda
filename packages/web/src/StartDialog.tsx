@@ -10,7 +10,6 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { StatusText } from "./fields/StatusText.tsx";
 import { RuntimePicker } from "./RuntimePicker.tsx";
-import { useRuntimePick } from "./runtimes.ts";
 import { type EditorHandle } from "./fields/editor/Editor.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -53,8 +52,8 @@ function Ask({
 }) {
   const [value, setValue] = useState(initial);
   const [level, setLevel] = useState(effort?.initial);
-  // The pick as the picker shows it: one turned off since is never sent.
-  const runtime = useRuntimePick();
+  // As picked, which may be off since: the caller sends what the picker shows, `pickedRuntime`.
+  const [runtime, setRuntime] = useState<string>();
   const [error, setError] = useState(shown);
   // The field takes the focus, its text selected, once the dialog has settled: the dialog's own
   // focus goes to its first control as it opens, and Enter must confirm from the first key.
@@ -76,7 +75,7 @@ function Ask({
     starting.current = true;
     setError(undefined);
     try {
-      const refused = await onConfirm(value.trim(), level, hasRuntime ? runtime.kind : undefined);
+      const refused = await onConfirm(value.trim(), level, runtime);
       if (refused !== undefined) {
         setError(refused);
       }
@@ -110,9 +109,7 @@ function Ask({
           </SegmentedControl>
         </HStack>
       )}
-      {hasRuntime && (
-        <RuntimePicker isLabelShown onChange={runtime.setPicked} value={runtime.picked} />
-      )}
+      {hasRuntime && <RuntimePicker isLabelShown onChange={setRuntime} value={runtime} />}
       {error && (
         <StatusText role="alert" tone="error" type="supporting">
           {sentence(error)}
