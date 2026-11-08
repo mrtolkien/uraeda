@@ -43,7 +43,7 @@ const reason = (error: unknown) => (error instanceof Error ? error.message : Str
 /**
  * The sandbox's section of the instructions: what Codex cannot do without escalating, so it asks
  * its reviewer instead of failing, or working around the sandbox. The extensions folder is not
- * writable: Uraeda runs what it holds, so each write there is reviewed first (R20).
+ * writable: Uraeda runs what it holds, so each write there is reviewed first (R22).
  */
 function sandboxSection(extensions: string | undefined): string {
   const folder =
@@ -67,7 +67,7 @@ export function codexInstructions(extensions?: ExtensionPaths): string {
  * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
  * approvals on request, reviewed by its automatic reviewer. The one configuration override is the
  * trust of the session's directory, when known, the level Codex would apply itself: without it,
- * Codex writes it to the user's settings (R22). Never another, which could widen the permissions.
+ * Codex writes it to the user's settings (R24). Never another, which could widen the permissions.
  */
 export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
   return {
@@ -98,7 +98,7 @@ export type CodexTurn = Pick<Outgoing, "images" | "text"> & { effort?: string; t
 
 /**
  * The parameters of a `turn/start`: the message, the effort when set, and the sandbox's policy,
- * which writes only the session's directory, the network off: no other writable root (R20).
+ * which writes only the session's directory, the network off: no other writable root (R22).
  */
 export function codexTurnParams({ effort, threadId, ...message }: CodexTurn) {
   return {
@@ -450,7 +450,7 @@ export class CodexAdapter implements Adapter {
     if (id === undefined) {
       throw new Error(`${method} gave no thread`);
     }
-    // Codex's settings could still widen what it was asked for: it runs only as asked (R21).
+    // Codex's settings could still widen what it was asked for: it runs only as asked (R23).
     const problem = appliedProblem(answer);
     if (problem !== undefined) {
       throw new Error(problem);

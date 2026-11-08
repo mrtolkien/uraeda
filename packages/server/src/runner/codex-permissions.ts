@@ -1,7 +1,7 @@
 /**
  * What Uraeda checks of a Codex thread's permissions: those Codex applied, from its `thread/start`
- * or `thread/resume` answer (R21), and the trust of the session's project, given in memory so that
- * Codex does not write it to the user's settings (R22).
+ * or `thread/resume` answer (R23), and the trust of the session's project, given in memory so that
+ * Codex does not write it to the user's settings (R24).
  */
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, resolve } from "node:path";
@@ -82,7 +82,7 @@ function upwards(path: string): Array<string> {
  * The trust level Codex gives the project of `cwd`, from the user's `projects` setting as
  * `config/read` gives it: the entry of `cwd`, else of its main checkout `root`, else of the
  * closest folder holding either; `trusted` without one, the level Codex then writes to the user's
- * settings and applies (R22).
+ * settings and applies (R24).
  */
 export function codexTrust(cwd: string, root: string | undefined, projects: unknown): string {
   const entries = isJson(projects) ? projects : {};

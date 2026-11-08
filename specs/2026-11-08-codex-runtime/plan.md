@@ -795,7 +795,7 @@ What the process does:
   `<pluginDir>/skills` and the extensions' skill folders; then `thread/resume` (`excludeTurns`) or
   `thread/start`, both with the model, `cwd`, `approvalPolicy: "on-request"`,
   `approvalsReviewer: "auto_review"`, `sandbox: "workspace-write"`, the project's trust as the one
-  `config` override, so that Codex does not write it to the user's settings (R22), and
+  `config` override, so that Codex does not write it to the user's settings (R24), and
   `developerInstructions`: the web UI's instructions, then a sandbox section saying that `.git` is
   read-only and the network is off, so git writes and network commands run with escalated
   permissions, which a reviewer approves (worded as R18 says). Before the thread, one `model/list`
@@ -803,10 +803,10 @@ What the process does:
   thread's ID reaches the transcript as an `init` from the start or resume answer, once, whether or
   not Codex sends `thread/started`; a thread that fails to start gives an `init` with its `problem`
   (R19), and so does a thread whose answer says Codex applied other permissions than those asked for
-  (R21).
+  (R23).
 - Each turn: `turn/start` with the input, `effort` when set, and `sandboxPolicy`
   `{ type: "workspaceWrite", writableRoots: [], networkAccess: false }`: the extensions folder is
-  not writable, and the sandbox section says writing there needs escalated permissions (R20). A
+  not writable, and the sandbox section says writing there needs escalated permissions (R22). A
   message sent as `steer` during a turn is `turn/steer` with `expectedTurnId`; a `queue` message
   waits in the adapter's own queue, starts the next turn when the current one completes, and
   `takeBack` removes it with a `cancelled` event; an accepted message gives `accepted`. Images are

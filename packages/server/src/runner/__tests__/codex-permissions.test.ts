@@ -35,7 +35,7 @@ test("the main checkout of a worktree is the one holding its common git folder",
   expect(gitMainRoot(dir)).toBeUndefined();
 });
 
-test("a thread starts with its project's trust in memory, never written by Codex (R22)", async () => {
+test("a thread starts with its project's trust in memory, never written by Codex (R24)", async () => {
   const dir = temporaryFolder("uraeda-codex");
   const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
     cwd: dir,
