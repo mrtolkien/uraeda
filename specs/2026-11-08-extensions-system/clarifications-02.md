@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Extensions system
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions and 1 follow-up, about 15 minutes.
+> Answered on 2026-11-08.
 >
 > - Verdict: worth building, with changes: the host, hot reload, and built-ins as extensions are
 >   feasible now. Workflows as extensions would double the feature, so they come next.
@@ -109,7 +109,9 @@ takes.
   - [pro] the orchestrator in one feature.
   - [con] about twice the work, and a workflow format designed before the host exists.
 
-**Answer:**
+**Answer:** B: It's ok for this feature to be extremely big. I think it'll be better if both are
+made at once: this way the code can be directly evaluated against its integration with the new
+workflow extensions.
 
 ### Q1.B: How is a workflow defined?
 
@@ -127,7 +129,9 @@ Why it matters: it decides who can write a workflow.
   - [pro] any step logic.
   - [con] 2 to 19 MB more per binary, and Rust for authors.
 
-**Answer:**
+**Answer:** B: WASM is better: a workflow could have hooks, code, anything. And it's more portable.
+
+Making it a TOML step table is too restrictive.
 
 ## Q2: How deep do Uraeda's own parts become extensions?
 
@@ -158,7 +162,7 @@ Why it matters: it defines the "strong core", and how much code moves.
   - [pro] the inbox is gone everywhere.
   - [con] reaches the core's engine, which the first question moves to the next feature.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What can a hook do?
 
@@ -188,7 +192,7 @@ Why it matters: instructions added to runs change what agents do, beyond what th
   - [pro] nothing is out of reach.
   - [con] every action in the server gains a hook point, and a broken extension can block work.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What compiles your extensions?
 
@@ -212,7 +216,7 @@ Why it matters: it adds a dependency, and sets the package's size.
   - [pro] no native code.
   - [con] slower, and it pulls Babel in.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How does the compatibility decision change now that Uraeda is past 1.0?
 
@@ -237,7 +241,7 @@ Why it matters: other people's repositories now hold Uraeda's files.
   - [pro] no repository breaks on a minor release.
   - [con] migration code for every format change.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -253,3 +257,6 @@ Why it matters: other people's repositories now hold Uraeda's files.
   loudly.
 
 **Notes:**
+
+- **Extensions style with Astryx's components and the theme's colours**: I'd rather have a bit
+  bigger binary for better code and performance.
