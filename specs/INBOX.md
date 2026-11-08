@@ -1,5 +1,7 @@
 # Inbox
 
+- Adding notes on mobile is clunky
+
 ## Bugfix
 
 ## To test
