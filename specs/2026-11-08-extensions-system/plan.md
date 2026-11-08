@@ -336,7 +336,7 @@ If either test cannot pass, the build stops here and goes back to the human.
 - Consumes: nothing.
 - Produces: the dependencies above in `uraeda-server`, which task 6 uses.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 ```ts
 // packages/server/src/extensions/__tests__/spike.test.ts
@@ -361,17 +361,17 @@ The break each test catches:
 - StyleX: a hashing option that differs from the app's build (`debug`, `classNamePrefix`), giving
   extension styles classes that never override Astryx's.
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 - Run: `vp test packages/server/src/extensions/__tests__/spike.test.ts`
 - Expected: PASS. A failure here is a reason to stop: start a new round of questions.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp check`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/server/package.json pnpm-lock.yaml packages/server/src/extensions/__tests__/spike.test.ts

@@ -29,8 +29,12 @@
     "start": "node src/main.ts"
   },
   "dependencies": {
+    "@astryxdesign/core": "0.7.3",
+    "@babel/core": "catalog:",
     "@hono/node-server": "2.1.4",
     "@nkzw/fate": "1.13.0",
+    "@stylexjs/babel-plugin": "0.19.1",
+    "babel-plugin-react-compiler": "catalog:",
     "hono": "4.13.13",
     "uraeda-binding": "workspace:*"
   },
