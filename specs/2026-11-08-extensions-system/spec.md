@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 3
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Extensions system
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-08: 5 comments in spec-review.md.
 >
 > - You approve extensions of the server and the web UI, written by you or your agent, which Uraeda
 >   builds, installs from git, and reloads on save. Uraeda's own places and Claude Code become
