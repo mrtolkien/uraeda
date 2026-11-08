@@ -14,6 +14,7 @@ import {
   useContext,
 } from "react";
 import { useStoryHref } from "./data.ts";
+import { useIsOn } from "./extensions/useContributions.ts";
 import { ImageView } from "./ImageView.tsx";
 import { ProseParagraph } from "./Prose.tsx";
 import { useRepoPath } from "./routes.tsx";
@@ -89,7 +90,10 @@ function linkAlone(children: ReactNode): LinkProps | undefined {
   return only.props;
 }
 
-/** A paragraph holding a link alone: its story, when the link is a story's, else the paragraph. */
+/**
+ * A paragraph holding a link alone: its story, when the link is a story's and Previews is on here,
+ * else the paragraph.
+ */
 function StoryParagraph({
   link,
   paragraph,
@@ -99,8 +103,9 @@ function StoryParagraph({
   paragraph: ReactNode;
   stories: Stories;
 }) {
+  const previews = useIsOn("previews");
   const story = useStoryHref(link.href);
-  if (!story) {
+  if (!story || !previews) {
     return paragraph;
   }
   const label = textOf(link.children);

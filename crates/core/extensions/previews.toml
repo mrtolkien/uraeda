@@ -1,7 +1,7 @@
 # A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
 name = "previews"
 title = "Previews"
-description = "Storybook previews in specs and sessions."
+description = "Storybook previews and HTML mockups in specs, rounds, and sessions."
 api = 1
 icon = "uraeda:eye"
 scope = "global"

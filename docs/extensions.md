@@ -438,10 +438,11 @@ refuses a linked extension: edit its folder instead. See
 
 Uraeda's own parts are built-in extensions: `claude`, Claude Code; `fake`, the scripted agent of the
 tests and the sandbox; `inbox`; `priorities`, the priorities and starting from a proposal;
-`decisions`; `git`, the Git page; `previews`, the Storybook previews; and `notifications`. Each is
-turned off on the settings page, everywhere or in some repositories, like yours. Turning one off
-removes its place, keys, panes, and sections; its files stay, and `ura check` still checks them. A
-link to a place turned off opens a page saying "Inbox is off here", with "Turn it on here".
+`decisions`; `git`, the Git page; `previews`, the Storybook previews and HTML mockups in specs and
+sessions, drawn as their links while it is off; and `notifications`. Each is turned off on the
+settings page, everywhere or in some repositories, like yours. Turning one off removes its place,
+keys, panes, and sections; its files stay, and `ura check` still checks them. A link to a place
+turned off opens a page saying "Inbox is off here", with "Turn it on here".
 
 To change a built-in, leave Uraeda's source as it is: turn the built-in off, and write an extension
 that adds the part as you want it. Sessions, the session page, and the composer are always on.

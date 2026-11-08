@@ -1264,10 +1264,11 @@ git commit -m "feat(extensions-system): give extensions records, actions, routes
     count, phone tab "bar", add-note action), its home pane, its New section, its find key
     (`space f n`) and new key (`space n n`); priorities the same for priorities and proposals;
     decisions its place (`d`, phone tab "more") and find key; git its action-row place and keys
-    (`space g`, `g G`); previews nothing visible beyond today's story pages; notifications nothing:
-    the shell draws its banner and notifier while it is on (`useIsOn("notifications")`); sessions
-    (not an extension in the manifests: always on, R6) its place. Screens look exactly as today when
-    every built-in is on.
+    (`space g`, `g G`); previews nothing of its own: off, the story and mockup embeds draw as their
+    links and the story and mockup pages say it is off (R63); notifications nothing: the shell draws
+    its banner and notifier while it is on (`useIsOn("notifications")`); sessions (not an extension
+    in the manifests: always on, R6) its place. Screens look exactly as today when every built-in is
+    on.
 
 - [x] **Step 1: Write the failing tests**
 

@@ -7,11 +7,7 @@ import type { Route } from "../routeTable.ts";
 import { OffPage } from "./OffPage.tsx";
 import { IsOnContext, useContributions } from "./useContributions.ts";
 
-/**
- * The built-in each route belongs to. The storybook's and the mockups' pages belong to none: Previews
- * off stops the server warming a feature's Storybook, and leaves the page as it is
- * (`builtins/previews.tsx`), so a link to a story still opens it.
- */
+/** The built-in each route belongs to: the story and mockup pages are Previews'. */
 const OWNERS: Partial<Record<Route["page"], string>> = {
   "branch-decision": "decisions",
   constitution: "decisions",
@@ -20,9 +16,11 @@ const OWNERS: Partial<Record<Route["page"], string>> = {
   "decisions-check": "decisions",
   git: "git",
   inbox: "inbox",
+  mockup: "previews",
   note: "inbox",
   priorities: "priorities",
   proposal: "priorities",
+  storybook: "previews",
   triage: "inbox",
 };
 

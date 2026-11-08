@@ -699,3 +699,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   watching the one record the failure came from fixes a transient error (a file not there yet, a
   service down) without it.
 - **Where**: fix pass, `packages/web/src/extensions/ExtensionBoundary.tsx`, `hooks.ts`.
+
+## R63: Previews off draws the embeds as their links
+
+- **Decision**: while Previews is off in a repository, a story or HTML mockup embedded in a spec, a
+  round, a file, or an agent's message is drawn as the paragraph it is written as, its link, and the
+  story and mockup pages show the off page, with "Turn it on here", as other built-ins' pages.
+- **Rationale**: US5 has turning a built-in off remove its part from the UI at once; Previews' part
+  was the embeds, which stayed, so turning it off only stopped the server warming Storybooks.
+- **Where**: final review's fix pass, `packages/web/src/Blocks.tsx`, `AgentStories.tsx`,
+  `extensions/routes.tsx`, `extensions/builtins/previews.tsx`,
+  `crates/core/extensions/previews.toml`.
