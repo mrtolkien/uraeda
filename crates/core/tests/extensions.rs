@@ -329,3 +329,100 @@ fn a_first_write_creates_the_file_with_the_nested_table() {
     let json = extensions::settings_json(&config, "wiki", Some("my.repo"));
     assert_eq!(json, r#"{"folder":"pages"}"#);
 }
+
+#[test]
+fn an_unreadable_settings_file_turns_your_extensions_off() {
+    let dir = tempdir();
+    let config = dir.path();
+    extension(config, "wiki", WIKI, &[("page.tsx", "")]);
+    fs::write(config.join("config.toml"), "[extensions.wiki]\non = [\n").unwrap();
+    let read = extensions::read(config);
+    let wiki = find(&read, "wiki");
+    assert!(!wiki.on_all && wiki.on.is_empty(), "{wiki:?}");
+    assert_eq!(wiki.problems.len(), 1, "{:?}", wiki.problems);
+    let problem = &wiki.problems[0];
+    assert!(
+        problem
+            .message
+            .starts_with("config.toml cannot be read, so wiki is off: "),
+        "{}",
+        problem.message
+    );
+    assert_eq!(
+        (problem.file.as_str(), problem.is_fatal),
+        ("config.toml", false)
+    );
+    let inbox = read.extensions.iter().find(|e| e.name == "inbox").unwrap();
+    assert!(inbox.on_all, "a built-in extension stays on");
+}
+
+#[test]
+fn settings_file_shape_problems() {
+    // The settings file, the problem on wiki's row, its line, and whether wiki is off.
+    let rows: [(&str, &str, Option<u32>, bool); 4] = [
+        (
+            "[extensions.wiki]\non = \"none\"\n",
+            "on is \"all\" or a list of repository names, so wiki is off",
+            Some(2),
+            true,
+        ),
+        (
+            "[extensions.wiki]\non = [1]\n",
+            "on is \"all\" or a list of repository names, so wiki is off",
+            Some(2),
+            true,
+        ),
+        (
+            "extensions = 3\n",
+            "extensions is a table, with a table for each extension, so it is ignored",
+            Some(1),
+            false,
+        ),
+        (
+            "[extensions]\nwiki = 3\n",
+            "extensions.wiki is a table, so it is ignored",
+            Some(2),
+            false,
+        ),
+    ];
+    for (file, message, line, off) in rows {
+        let dir = tempdir();
+        let config = dir.path();
+        extension(config, "wiki", WIKI, &[("page.tsx", "")]);
+        fs::write(config.join("config.toml"), file).unwrap();
+        let read = extensions::read(config);
+        let wiki = find(&read, "wiki");
+        assert_eq!(wiki.problems.len(), 1, "{file}: {:?}", wiki.problems);
+        let problem = &wiki.problems[0];
+        assert_eq!(
+            (problem.message.as_str(), problem.line, problem.is_fatal),
+            (message, line, false),
+            "{file}"
+        );
+        assert_eq!(!wiki.on_all && wiki.on.is_empty(), off, "{file}");
+    }
+}
+
+#[test]
+fn a_list_default_holds_strings() {
+    let dir = tempdir();
+    let manifest = WIKI
+        .replacen("\"string\"", "\"list\"", 1)
+        .replacen("\"docs\"", "[1]", 1);
+    extension(dir.path(), "wiki", &manifest, &[("page.tsx", "")]);
+    let read = extensions::read(dir.path());
+    let problems = &find(&read, "wiki").problems;
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert_eq!(
+        (
+            problems[0].message.as_str(),
+            problems[0].line,
+            problems[0].is_fatal
+        ),
+        (
+            "settings.folder: the default is not a list of strings",
+            Some(12),
+            true
+        )
+    );
+}
