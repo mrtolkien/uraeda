@@ -729,3 +729,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `WEB_UI_INSTRUCTIONS` is gone; the tests call `webUiInstructions()`, amending R36.
 - **Rationale**: no script or benchmark ran Claude Code with it: only tests read it.
 - **Where**: final review's fix pass, `packages/server/src/runner/instructions.ts`.
+
+## R66: A page's version is never given twice
+
+- **Decision**: the loader numbers page bundles from one counter for the process, started at the
+  server's start time in thousandths of a millisecond, not from each extension's count of versions;
+  `pageVersion` stays a number through the Extensions record, the page route, and the runtime.
+- **Rationale**: versions restarted at 1 with the server, so a tab that registered version 1 kept
+  its code after the extension changed while the server was stopped. A content hash would also keep
+  a page unfetched across a server-only change, which today re-runs the page and clears its reported
+  problems; a string identity would change every type that carries the version.
+- **Where**: final review's fix pass, `packages/server/src/extensions/loader.ts`.
