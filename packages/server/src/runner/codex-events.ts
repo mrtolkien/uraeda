@@ -146,6 +146,11 @@ const textBlocks = (content: unknown): string =>
     .map((block) => text(block.text))
     .join("\n");
 
+/** The account's rate-limit bucket, as against a model's own. */
+const CODEX_BUCKET = "codex";
+const isAccountBucket = (limitId: unknown): boolean =>
+  limitId === CODEX_BUCKET || limitId === null || limitId === undefined;
+
 /** Where a notification belongs: the session's own thread, a sub-agent's under its call, or neither. */
 type Scope = { parent?: string } | undefined;
 
@@ -236,9 +241,13 @@ export class CodexEvents {
     return undefined;
   }
 
-  /** The usage windows of a sparse report, merged over the last, and a limit it says was reached. */
+  /**
+   * The usage windows of a sparse report, merged over the last, and a limit it says was reached.
+   * Only the account's bucket, `codex` (or unnamed in a sparse report), counts: a per-model
+   * bucket's windows and limit are that model's alone.
+   */
   #rateLimits(report: unknown): Array<AgentEvent> {
-    if (!isObject(report)) {
+    if (!isObject(report) || !isAccountBucket(report.limitId)) {
       return [];
     }
     const merged: Json = { ...this.#limits };

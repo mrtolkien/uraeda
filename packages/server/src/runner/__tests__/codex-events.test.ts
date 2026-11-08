@@ -239,6 +239,36 @@ test.each<[string, Array<CodexNotification>, unknown]>([
   expect(readAll(messages)).toContainEqual(expect.objectContaining(expected as object));
 });
 
+const rateLimits = (
+  limitId: string | null,
+  primary: { resetsAt: number; usedPercent: number; windowDurationMins: number } | null,
+): CodexNotification => ({
+  method: "account/rateLimits/updated",
+  params: {
+    rateLimits: {
+      credits: null,
+      limitId,
+      limitName: null,
+      normalModelSlug: limitId === "codex" || limitId === null ? null : "gpt-6-luna",
+      planType: null,
+      primary,
+      rateLimitReachedType: null,
+      secondary: null,
+    },
+  },
+});
+const FIVE_HOURS = { resetsAt: 1_794_155_269, usedPercent: 7, windowDurationMins: 300 };
+
+test("a per-model bucket's snapshot does not overwrite the account's usage", () => {
+  const events = readAll([
+    rateLimits("codex", FIVE_HOURS),
+    rateLimits("codex_luna", { ...FIVE_HOURS, usedPercent: 90 }),
+    rateLimits(null, { ...FIVE_HOURS, usedPercent: 8 }),
+  ]);
+  const usage = events.filter((event) => event.type === "usage");
+  expect(usage.map((event) => event.windows[0]!.used)).toEqual([0.07, 0.08]);
+});
+
 test("a usage limit comes before the result", () => {
   const events = readAll([turnFailed("You've hit your usage limit.", "usageLimitExceeded")]);
   expect(events.map((event) => event.type)).toEqual(["limit", "result"]);
