@@ -53,10 +53,12 @@ export function pages(cache: SessionCache, turn: number): number {
   return Math.ceil(cache.itemCount(turn) / TURN_PAGE);
 }
 
-export function agentRecord({ repo, sessions }: Context): AgentRecord {
+/** The agent's runtimes, each on or off by the repository's main checkout (R19). */
+export async function agentRecord({ repo, sessions }: Context): Promise<AgentRecord> {
+  const root = repo === null ? null : await sessions.mainRoot(repo).catch(() => repo);
   return {
     id: AGENT_ID,
-    runtimes: sessions.runtimes.records(repo, (name) => sessions.usage(name)),
+    runtimes: sessions.runtimes.records(root, (name) => sessions.usage(name)),
   };
 }
 

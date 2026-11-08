@@ -650,6 +650,44 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     ],
   ],
   [
+    "init with other plugins than Uraeda's, and no errors",
+    [
+      line({
+        plugin_errors: null,
+        plugins: [{ name: "cc-plugin-telemetry" }],
+        session_id: SESSION,
+        subtype: "init",
+        type: "system",
+      }),
+    ],
+    [
+      {
+        problem: "The Uraeda skill did not load: the plugins loaded were cc-plugin-telemetry",
+        sessionId: SESSION,
+        type: "init",
+      },
+    ],
+  ],
+  [
+    "init with no plugin",
+    [
+      line({
+        plugin_errors: null,
+        plugins: [],
+        session_id: SESSION,
+        subtype: "init",
+        type: "system",
+      }),
+    ],
+    [
+      {
+        problem: "The Uraeda skill did not load: the plugins loaded were none",
+        sessionId: SESSION,
+        type: "init",
+      },
+    ],
+  ],
+  [
     "control responses, and the system lines of 2.1.296 with nothing to show",
     [
       line({ response: { request_id: "r1", subtype: "success" }, type: "control_response" }),

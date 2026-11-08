@@ -378,8 +378,8 @@ export const sources = createSources<Context>([
   bufferSource,
   ...gitSources,
   fileSource(agentDataView, {
-    byIds: async (ctx, ids) => (ids.includes(AGENT_ID) ? [agentRecord(ctx)] : []),
-    list: async (ctx) => [agentRecord(ctx)],
+    byIds: async (ctx, ids) => (ids.includes(AGENT_ID) ? [await agentRecord(ctx)] : []),
+    list: async (ctx) => [await agentRecord(ctx)],
   }),
   fileSource(
     sessionDataView,

@@ -1,17 +1,38 @@
 // A message sent to a session, or to a feature, whose session is made with it: checked, sent, or
 // kept while the feature's start, or its commits, are still in the write queue.
+import type { Adapter } from "../runner/adapter.ts";
 import type { Trigger } from "../runner/events.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { messageRuntime } from "../runner/runtimes.ts";
 import { onSession } from "./change-starts.ts";
 import { sentImages } from "./chat-images.ts";
-import type { Resolver } from "./context.ts";
+import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { maskedSession as session } from "./session-moves.ts";
 import { TRIGGERS } from "./sessions.ts";
 import { keptForStart } from "./starts.ts";
 import { keptForCommits } from "./commit-messages.ts";
+
+/**
+ * The runtime a message goes to, as `messageRuntime` picks it: the session's, else the feature's
+ * latest session's, else the one a new session of the repository's main checkout runs on (R19).
+ */
+async function sendRuntime(
+  ctx: RepoContext,
+  input: { folder?: string; newSession?: boolean; session?: string },
+): Promise<Adapter | undefined> {
+  const { cache, runtimes } = ctx.sessions;
+  if (input.session !== undefined) {
+    return ctx.sessions.runtimeOf(input.session);
+  }
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const latest =
+    input.folder === undefined || input.newSession === true
+      ? undefined
+      : cache.latestSession(root, input.folder);
+  return runtimes.get(latest?.agent ?? runtimes.defaultFor(root) ?? "");
+}
 
 /** The mutation sending a message. */
 export const sendMutations = {
@@ -44,11 +65,7 @@ export const sendMutations = {
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
         throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
-      // The session's runtime, or the one a new session of the repository runs on.
-      const runtime =
-        input.session === undefined
-          ? ctx.sessions.runtimes.forRepository(ctx.repo)[0]
-          : ctx.sessions.runtimeOf(input.session);
+      const runtime = await sendRuntime(ctx, input);
       const images = await sentImages(ctx, input.images, workflow !== undefined, runtime);
       const message = {
         text: input.text,
