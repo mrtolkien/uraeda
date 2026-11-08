@@ -11,7 +11,7 @@ import {
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "../sessions.ts";
-import { CLEARED } from "../session-state.ts";
+import { CLEARED, REPLACED } from "../session-state.ts";
 import { flush, testSessions } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -1081,6 +1081,52 @@ test("a gone transcript starts a new session, which says so", async () => {
   expect(cache.items(turn, 0, 1)).toEqual([
     { kind: "system", seq: 0, text: "Started a new session: the previous one is gone." },
   ]);
+});
+
+test("a line held by a turn taken back while its process opened survives a reopening, which resumes the new session", async () => {
+  // The second worktree read, the reopened process's, waits until the test lets it go.
+  let reads = 0;
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: {
+      ...binding,
+      workDir: async (...args: Parameters<typeof binding.workDir>) => {
+        if (++reads === 2) {
+          await held;
+        }
+        return binding.workDir(...args);
+      },
+    },
+  });
+  adapter.hasSetEffort = false;
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn: first } = await sessions.send(repo, session.id, { text: "What is left?" });
+  const { turn: taken } = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: false, trigger: "manual" },
+  });
+  // The process dies, and its transcript is gone: the next one starts a new agent session.
+  adapter.sessions.clear();
+  adapter.exit(1, "crashed");
+  await sessions.settled(first);
+  await vi.waitFor(() => expect(reads).toBe(2));
+  sessions.takeBack(repo, session.id, cache.itemsOf(taken, "message")[0]!.id);
+  release();
+  await vi.waitFor(() => expect(adapter.opens).toHaveLength(2));
+  await flush();
+  const replaced = cache.session(session.id)!.nativeId;
+  expect(adapter.opens[1]).toMatchObject({ nativeId: replaced, resume: false });
+
+  // An effort its runtime cannot give a running process reopens it.
+  sessions.setEffort(repo, session.id, "max");
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on." });
+  await sessions.settled(turn);
+
+  expect(adapter.opens).toHaveLength(3);
+  expect(adapter.opens[2]).toMatchObject({ effort: "max", nativeId: replaced, resume: true });
+  expect(cache.session(session.id)?.nativeId).toBe(replaced);
+  expect(cache.itemsOf(turn, "system").map((item) => item.text)).toEqual([REPLACED]);
 });
 
 /** US5.2: a fresh step starts a new session of the feature; the earlier one keeps its turns. */
