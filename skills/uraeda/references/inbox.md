@@ -258,8 +258,8 @@ committed alone with `chore: answer the inbox triage`. `ura answer` answers feat
 
 A triage the human no longer wants, gone stale or asked too early, is dismissed, answered or not, so
 a new one can be proposed: delete `specs/INBOX-TRIAGE.md`, and commit its deletion alone with
-`chore: dismiss the inbox triage`. The inbox does not change. The web UI's Dismiss does it, and asks
-first when the triage holds answers not committed yet, which the deletion loses.
+`chore: dismiss the inbox triage`. The inbox does not change. Answers saved in the triage but not
+committed yet are lost with it: ask the human first when it holds some.
 
 ### Applying the answers
 
