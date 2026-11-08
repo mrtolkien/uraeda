@@ -7,8 +7,11 @@ import type { Category, IconName, Setting } from "./categories.ts";
 /** An extension, as the `Extensions` record lists it. */
 export type ExtensionRow = Extensions["extensions"][number];
 
-/** A key of an extension's another took first: `keys` as registered, `takenBy` its title. */
-export type KeyClash = { keys: string; takenBy: string };
+/**
+ * A key of an extension's another took first: `keys` as registered, `takenBy` its title, and
+ * `repositories` where, when not in all of them.
+ */
+export type KeyClash = { keys: string; repositories?: ReadonlyArray<string>; takenBy: string };
 
 /** Where an extension is on: every repository, or the repositories named, none when off. */
 export type OnIn = "all" | ReadonlyArray<string>;
@@ -117,10 +120,15 @@ export function noticesOf(row: ExtensionRow, clashes: ReadonlyArray<KeyClash> = 
       status: "info",
     });
   }
-  for (const clash of [...row.keys, ...clashes]) {
+  const taken: ReadonlyArray<KeyClash> = [...row.keys, ...clashes];
+  for (const clash of taken) {
     notices.push({
-      id: `${row.name}#key-${clash.keys}`,
-      parts: [`${row.title}: `, { keys: shownKeys(clash.keys) }, ` is taken by ${clash.takenBy}`],
+      id: `${row.name}#key-${clash.keys}-${clash.takenBy}`,
+      parts: [
+        `${row.title}: `,
+        { keys: shownKeys(clash.keys) },
+        ` is taken by ${clash.takenBy}${clash.repositories ? ` in ${clash.repositories.join(", ")}` : ""}`,
+      ],
       status: "warning",
     });
   }

@@ -89,6 +89,8 @@ test.each<[string, Partial<ExtensionRow>, string, Notice["status"]]>([
 test("a key clash the page's registry reports joins the record's", () => {
   const notices = noticesOf(deploy, [{ keys: "space y", takenBy: "Wiki" }]);
   expect(notices.map(text)).toEqual(["Deploy: `y` is taken by Wiki"]);
+  const here = noticesOf(deploy, [{ keys: "space y", repositories: ["uraeda"], takenBy: "Wiki" }]);
+  expect(here.map(text)).toEqual(["Deploy: `y` is taken by Wiki in uraeda"]);
 });
 
 test.each<[string, Partial<ExtensionRow>, string]>([

@@ -5,7 +5,9 @@
 // force.
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { useMemo } from "react";
 import { FateClient, useFateClient } from "react-fate";
+import { isOnIn } from "../extensions/ExtensionsOn.tsx";
 import { useRepositories, useSettings } from "../data.ts";
 import { useExtensionsRecord } from "./useExtensionsRecord.ts";
 import { useContributionEntries, useKeyClashes } from "../extensions/useContributions.ts";
@@ -65,7 +67,12 @@ function useExtensionsSection(repository: Client): {
   const record = useExtensionsRecord();
   const repositories = useRepositories();
   const view = ExtensionsRecordView;
-  const clashes = useKeyClashes();
+  const repositoryNames = useMemo(() => repositories.rows.map((row) => row.name), [repositories]);
+  const onIn = useMemo(() => {
+    const rows = record.extensions;
+    return (name: string) => isOnIn(rows, name);
+  }, [record.extensions]);
+  const clashes = useKeyClashes(repositoryNames, onIn);
   const sections = useContributionEntries("settingsSection");
   const { extensions: change } = fate.mutations;
   return {
@@ -99,7 +106,7 @@ function useExtensionsSection(repository: Client): {
           </FateClient>
         );
       },
-      repositories: repositories.rows.map((row) => row.name),
+      repositories: repositoryNames,
     },
   };
 }

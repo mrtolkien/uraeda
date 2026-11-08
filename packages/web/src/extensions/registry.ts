@@ -2,8 +2,9 @@
 // its order, its on-state, and the rule over keys. The places, the leader's keys, home's panes, the
 // phone's tabs, the New page's sections, the status line's items, the renderers of session items,
 // and the settings' sections are each a kind of contribution, listed for the extensions on in the
-// current repository: built-ins first in their order, today's, then yours by name. A key is kept by
-// the first extension that registers it; a later claim of it, or of a sequence it starts, is
+// current repository: built-ins first in their order, today's, then yours by name. Every claim of a
+// key is kept, and clashes are settled as the registry lists, among the extensions on there: the
+// first registered of them keeps a key, and a later claim of it, or of a sequence it starts, is
 // dropped and reported, so a clash never reaches the key registry, which throws on one.
 import type { ComponentType, ReactNode } from "react";
 import type { Item } from "uraeda-server/fate";
@@ -125,18 +126,25 @@ export type Contribution = {
 /** Who registers: an extension's name, and its title, which a clash names. */
 export type ExtensionRef = { name: string; title: string };
 
-/** A key an extension could not have, as another took it first: `takenBy` is that one's title. */
-export type KeyClash = { extension: string; keys: string; takenBy: string };
+/**
+ * A key an extension could not have, as another took it first: `takenBy` is that one's title, and
+ * `repositories` where, when not in all of them.
+ */
+export type KeyClash = {
+  extension: string;
+  keys: string;
+  repositories?: ReadonlyArray<string>;
+  takenBy: string;
+};
 
 type Entry = {
-  /** The keys it holds, after the ones dropped. */
+  /** The keys it claims, whether it keeps them or not, which depends on who else is on. */
   claims: ReadonlyArray<string>;
-  clashes: ReadonlyArray<KeyClash>;
   extension: ExtensionRef;
   /** A built-in's place among the built-ins; none for yours. */
   order: number | undefined;
   seq: number;
-  /** Its value as listed: a place's dropped keys left out, its path filled in. */
+  /** Its value, a place's path filled in. */
   value: Contribution;
 };
 
@@ -168,20 +176,34 @@ function claimsOf(contribution: Contribution): Array<string> {
   return [];
 }
 
-/** The contribution as listed: a place without the keys it lost, at its path. */
-function listed(name: string, contribution: Contribution, kept: ReadonlyArray<string>) {
+/** The contribution as registered: a place at its path. */
+function atPath(name: string, contribution: Contribution): Contribution {
+  if (contribution.kind !== "place" || contribution.value.path !== undefined) {
+    return contribution;
+  }
+  const place = { ...contribution.value, path: `/e/${name}/${contribution.value.id}` };
+  return { kind: "place", value: place };
+}
+
+/** The contribution as listed: a place without the keys it lost. */
+function listed(contribution: Contribution, kept: ReadonlyArray<string>): Contribution {
   if (contribution.kind !== "place") {
     return contribution;
   }
-  const { goKey, key, path } = contribution.value;
-  const place = { ...contribution.value, path: path ?? `/e/${name}/${contribution.value.id}` };
-  if (key !== undefined && !kept.includes(`space ${key}`)) {
+  const { goKey, key } = contribution.value;
+  const losesKey = key !== undefined && !kept.includes(`space ${key}`);
+  const losesGo = goKey !== undefined && !kept.includes(`g ${goKey}`);
+  if (!losesKey && !losesGo) {
+    return contribution;
+  }
+  const place = { ...contribution.value };
+  if (losesKey) {
     delete place.key;
   }
-  if (goKey !== undefined && !kept.includes(`g ${goKey}`)) {
+  if (losesGo) {
     delete place.goKey;
   }
-  return { kind: "place" as const, value: place };
+  return { kind: "place", value: place };
 }
 
 /** Built-ins first, in their order; then yours, by name; each in the order it registered. */
@@ -195,22 +217,50 @@ function compare(a: Entry, b: Entry): number {
   return a.extension.name.localeCompare(b.extension.name) || a.seq - b.seq;
 }
 
+/**
+ * The keys each entry keeps among the extensions `isOn`, and the claims dropped: in registration
+ * order, a claim is dropped when an earlier entry kept the same press.
+ */
+function settle(snapshot: Snapshot, isOn: (extension: string) => boolean) {
+  const held: Array<{ keys: string; title: string }> = [];
+  const kept = new Map<Entry, ReadonlyArray<string>>();
+  const clashes: Array<KeyClash> = [];
+  for (const entry of snapshot) {
+    if (entry.claims.length === 0 || !isOn(entry.extension.name)) {
+      continue;
+    }
+    const mine = entry.claims.filter((keys) => {
+      const holder = held.find((one) => keysClash(one.keys, keys));
+      if (holder) {
+        clashes.push({ extension: entry.extension.name, keys, takenBy: holder.title });
+      }
+      return !holder;
+    });
+    held.push(...mine.map((keys) => ({ keys, title: entry.extension.title })));
+    kept.set(entry, mine);
+  }
+  return { clashes, kept };
+}
+
 /** The contributions of `kind` in `snapshot` of the extensions `isOn`, with their extension. */
 export function entriesOf<K extends ContributionKind>(
   snapshot: Snapshot,
   kind: K,
   isOn: (extension: string) => boolean,
 ): Array<{ extension: ExtensionRef; value: Contributions[K] }> {
-  return snapshot
-    .filter(
-      (entry) =>
-        entry.value.kind === kind &&
-        isOn(entry.extension.name) &&
-        // A key whose keys another holds is dropped whole.
-        (kind !== "key" || entry.claims.length > 0),
-    )
-    .sort(compare)
-    .map((entry) => ({ extension: entry.extension, value: entry.value.value as Contributions[K] }));
+  const { kept } = settle(snapshot, isOn);
+  return (
+    snapshot
+      .filter((entry) => entry.value.kind === kind && isOn(entry.extension.name))
+      .map((entry) => ({ entry, keeps: kept.get(entry) ?? [] }))
+      // A key whose keys another holds is dropped whole.
+      .filter(({ entry, keeps }) => kind !== "key" || keeps.length > 0)
+      .sort((a, b) => compare(a.entry, b.entry))
+      .map(({ entry, keeps }) => ({
+        extension: entry.extension,
+        value: listed(entry.value, keeps).value as Contributions[K],
+      }))
+  );
 }
 
 /** The contributions of `kind` in `snapshot` of the extensions `isOn`, in their order. */
@@ -222,9 +272,11 @@ export function listOf<K extends ContributionKind>(
   return entriesOf(snapshot, kind, isOn).map((entry) => entry.value);
 }
 
-/** The keys dropped in `snapshot`, each with the extension that holds it. */
-export const clashesOf = (snapshot: Snapshot): Array<KeyClash> =>
-  snapshot.flatMap((entry) => entry.clashes);
+/** The keys dropped in `snapshot` among the extensions `isOn`, each with the one that holds it. */
+export const clashesOf = (
+  snapshot: Snapshot,
+  isOn: (extension: string) => boolean,
+): Array<KeyClash> => settle(snapshot, isOn).clashes;
 
 export function createRegistry() {
   let entries: Snapshot = [];
@@ -242,32 +294,22 @@ export function createRegistry() {
     }
   };
   return {
-    /** The keys dropped, each with the extension that holds it. */
-    clashes: () => clashesOf(entries),
+    /** The keys dropped among the extensions `isOn`, each with the extension that holds it. */
+    clashes: (isOn: (extension: string) => boolean) => clashesOf(entries, isOn),
     list: <K extends ContributionKind>(kind: K, isOn: (extension: string) => boolean) =>
       listOf(entries, kind, isOn),
     /**
-     * Adds `contribution` of `extension`, a built-in with its `order`, yours without: a key another
-     * entry holds is dropped and reported. Gives back what undoes it.
+     * Adds `contribution` of `extension`, a built-in with its `order`, yours without, with every
+     * key it claims: which it keeps is settled as the registry lists. Gives back what undoes it.
      */
     register(extension: ExtensionRef, order: number | undefined, contribution: Contribution) {
-      const claims = claimsOf(contribution);
-      const clashes: Array<KeyClash> = [];
-      const kept = claims.filter((keys) => {
-        const holder = entries.find((entry) => entry.claims.some((held) => keysClash(held, keys)));
-        if (holder) {
-          clashes.push({ extension: extension.name, keys, takenBy: holder.extension.title });
-        }
-        return !holder;
-      });
       seq += 1;
       const entry: Entry = {
-        claims: kept,
-        clashes,
+        claims: claimsOf(contribution),
         extension,
         order,
         seq,
-        value: listed(extension.name, contribution, kept),
+        value: atPath(extension.name, contribution),
       };
       publish([...entries, entry]);
       return () => remove((one) => one === entry);
