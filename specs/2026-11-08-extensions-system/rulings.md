@@ -601,6 +601,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     measured, and the manifests and settings of the core.
 - **Rationale**: SC-004 asks for growth no larger than the plan measured, and the release notes to
   say how much; R8 puts the numbers here.
+- **If wrong**: the spec's review estimated about 5 MB for Babel and its two plugins; the server's
+  bundle grew by 7.5 MB, Babel's core and parser being most of it. Loading the page compiler only
+  when a page compiles would not shrink the package; dropping run-time StyleX and React Compiler
+  would, at the cost the spec's styling choice rejected.
 - **Where**: task 14.
 
 ## R55: Key clashes are settled among the extensions on in each repository
