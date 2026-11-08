@@ -41,14 +41,18 @@ const reason = (error: unknown) => (error instanceof Error ? error.message : Str
 
 /**
  * The sandbox's section of the instructions: what Codex cannot do without escalating, so it asks
- * its reviewer instead of failing, or working around the sandbox.
+ * its reviewer instead of failing, or working around the sandbox. The extensions folder is not
+ * writable: Uraeda runs what it holds, so each write there is reviewed first (R20).
  */
 function sandboxSection(extensions: string | undefined): string {
-  const writable = extensions === undefined ? "" : ` and in \`${extensions}\``;
+  const folder =
+    extensions === undefined
+      ? ""
+      : ` Writing in \`${extensions}\`, your extensions folder, needs escalated permissions too, from its first try.`;
   return `
 # Sandbox
 
-Your commands run in a sandbox: you write in the working directory${writable}, but git's own folder is read-only, and the network is off. So run every git command that writes, as \`git add\`, \`git commit\`, \`git mv\`, and \`git worktree add\`, and every command that uses the network, as \`git push\` and \`gh\`, with escalated permissions from its first try (\`sandbox_permissions: "require_escalated"\`, with a one-line justification): a reviewer approves each before it runs, and you are allowed to ask. Never work around the sandbox, and never stop at a git command the sandbox refused: run it again with escalated permissions.
+Your commands run in a sandbox: you write in the working directory only, git's own folder is read-only, and the network is off. So run every git command that writes, as \`git add\`, \`git commit\`, \`git mv\`, and \`git worktree add\`, and every command that uses the network, as \`git push\` and \`gh\`, with escalated permissions from its first try (\`sandbox_permissions: "require_escalated"\`, with a one-line justification): a reviewer approves each before it runs, and you are allowed to ask.${folder} Never work around the sandbox, and never stop at a git command the sandbox refused: run it again with escalated permissions.
 `;
 }
 
@@ -84,19 +88,14 @@ export function codexInput({ images, text }: Pick<Outgoing, "images" | "text">) 
   ];
 }
 
-/** A turn to start: its thread, its message, the effort when set, and the folders it writes. */
-export type CodexTurn = Pick<Outgoing, "images" | "text"> & {
-  effort?: string;
-  threadId: string;
-  /** The folders it writes besides the session's directory: the extensions folder. */
-  writableRoots: ReadonlyArray<string>;
-};
+/** A turn to start: its thread, its message, and the effort when set. */
+export type CodexTurn = Pick<Outgoing, "images" | "text"> & { effort?: string; threadId: string };
 
 /**
  * The parameters of a `turn/start`: the message, the effort when set, and the sandbox's policy,
- * which writes only the session's directory and `writableRoots`, the network off.
+ * which writes only the session's directory, the network off: no other writable root (R20).
  */
-export function codexTurnParams({ effort, threadId, writableRoots, ...message }: CodexTurn) {
+export function codexTurnParams({ effort, threadId, ...message }: CodexTurn) {
   return {
     input: codexInput(message),
     sandboxPolicy: {
@@ -104,7 +103,7 @@ export function codexTurnParams({ effort, threadId, writableRoots, ...message }:
       excludeTmpdirEnvVar: false,
       networkAccess: false,
       type: "workspaceWrite",
-      writableRoots: [...writableRoots],
+      writableRoots: [],
     },
     threadId,
     ...(effort === undefined ? {} : { effort }),
@@ -387,7 +386,6 @@ export class CodexAdapter implements Adapter {
         return undefined;
       },
     );
-    const writableRoots = folder === undefined ? [] : [folder];
     const turns = new CodexTurns(
       {
         endInput: () => server.child.stdin.end(),
@@ -396,7 +394,7 @@ export class CodexAdapter implements Adapter {
         rpc: server.rpc,
         thread,
         turnParams: (message, threadId, effort) =>
-          codexTurnParams({ ...message, threadId, writableRoots, ...(effort ? { effort } : {}) }),
+          codexTurnParams({ ...message, threadId, ...(effort ? { effort } : {}) }),
       },
       options.effort,
     );

@@ -13,7 +13,7 @@ import {
 import type { AgentEvent } from "../events.ts";
 
 const open: OpenOptions = { cwd: "/w", nativeId: "id", resume: false, skills: [] };
-const turn = { images: [], text: "Hi", threadId: "t", writableRoots: ["/x/extensions"] };
+const turn = { images: [], text: "Hi", threadId: "t" };
 
 /** Two pages of `model/list`, as Codex 0.163.0 gives them, a hidden model among them. */
 const PAGES = [
@@ -84,10 +84,16 @@ test("a thread's permissions", () => {
     excludeTmpdirEnvVar: false,
     networkAccess: false,
     type: "workspaceWrite",
-    writableRoots: ["/x/extensions"],
+    writableRoots: [],
   });
   expect(turnParams.effort).toBe("high");
   expect(codexTurnParams(turn)).not.toHaveProperty("effort");
+  // Uraeda runs what the extensions folder holds: writing there is reviewed first (R20).
+  const sandbox = codexInstructions({ docs: "/x/docs", folder: "/x/extensions" }).split(
+    "# Sandbox",
+  )[1];
+  expect(sandbox).toMatch(/in `\/x\/extensions`.*escalated permissions/s);
+  expect(sandbox).not.toMatch(/you write in the working directory and in/);
 });
 
 test("a message's images are local images", () => {
