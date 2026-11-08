@@ -96,6 +96,20 @@ test("a symlinked theme file is seen changing at its target", async () => {
   await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ee5522");
 });
 
+test("a read that finds nothing changed tells no one", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  mkdirSync(join(dir, "themes"));
+  writeFileSync(join(dir, "themes", "ember.toml"), ember("#ff7a45"));
+  const themes = await opened(dir);
+  const told = vi.fn();
+  themes.onChange(told);
+
+  // As after an editor's swap file, which changes no theme.
+  await themes.reload();
+  await themes.reload();
+  expect(told).not.toHaveBeenCalled();
+});
+
 test("a first read that fails is tried again, so the shipped themes are served", async () => {
   const dir = temporaryFolder("uraeda-config");
   let reads = 0;

@@ -2,7 +2,7 @@
 //! backgrounds it is read on, as WCAG 2.x measures it, mirroring the web's `theme/contrast.ts`. A
 //! colour with alpha is laid over its background first.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// The roles read as text, at 4.5:1 on `page` and on `raised`.
 const TEXT: &[&str] = &[
@@ -38,7 +38,7 @@ const MARK_FLOOR: f64 = 3.0;
 
 /// Each pair of `roles` under its floor: the foreground role, and its warning,
 /// `ink-faint is 3.1:1 on page, under 4.5.`
-pub fn warnings(roles: &HashMap<String, String>) -> Vec<(String, String)> {
+pub fn warnings(roles: &BTreeMap<String, String>) -> Vec<(String, String)> {
     let mut pairs: Vec<(&str, &str, f64)> = Vec::new();
     for background in ["page", "raised"] {
         pairs.extend(TEXT.iter().map(|role| (*role, background, TEXT_FLOOR)));

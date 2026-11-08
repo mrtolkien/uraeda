@@ -3,7 +3,7 @@
 //! are in `themes/` in the config folder. Reading them never fails: each problem is reported on its
 //! file's row, with its line, and a broken theme leaves the lists without stopping any other.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -93,11 +93,11 @@ pub struct Theme {
     pub mode: String,
     pub is_shipped: bool,
     /// Every role, `#rrggbb` or `#rrggbbaa`, in lower case.
-    pub roles: HashMap<String, String>,
+    pub roles: BTreeMap<String, String>,
     /// The palette, merged over the palettes of the themes it extends.
-    pub palette: HashMap<String, String>,
+    pub palette: BTreeMap<String, String>,
     /// For each role that names a palette entry, the entry's name.
-    pub sources: HashMap<String, String>,
+    pub sources: BTreeMap<String, String>,
 }
 
 /// A problem of a theme file: an error, or a warning, which never leaves the lists.

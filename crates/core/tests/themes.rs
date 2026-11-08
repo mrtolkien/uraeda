@@ -717,3 +717,13 @@ fn the_schema_lists_every_role_in_order() {
         .collect();
     assert!(at.is_sorted(), "the schema's roles in ROLES' order");
 }
+
+/// The server compares two reads as JSON to tell a change: the maps keep one order between reads.
+#[test]
+fn two_reads_of_one_folder_list_their_maps_in_one_order() {
+    let dir = tempdir();
+    write(dir.path(), &[("ember.toml", EMBER.as_bytes())]);
+    let first = format!("{:?}", themes::read(dir.path()));
+    let second = format!("{:?}", themes::read(dir.path()));
+    assert!(first == second, "two reads printed apart");
+}
