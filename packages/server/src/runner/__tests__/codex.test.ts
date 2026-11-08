@@ -26,6 +26,10 @@ test("a thread's permissions", () => {
   });
   expect(params.developerInstructions).toMatch(/escalated permissions/);
   expect(params).not.toHaveProperty("config");
+  // The one override: the project's trust, which Codex would otherwise write (R22).
+  expect(codexThreadParams(open, "instructions", "untrusted").config).toEqual({
+    projects: { "/w": { trust_level: "untrusted" } },
+  });
   expect(JSON.stringify(params)).not.toMatch(/danger|"never"/i);
   const resumed = codexThreadParams({ ...open, resume: true }, "instructions");
   expect(resumed).toMatchObject({ excludeTurns: true, threadId: "id" });

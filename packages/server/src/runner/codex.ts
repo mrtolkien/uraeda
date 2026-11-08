@@ -13,7 +13,7 @@ import type {
 } from "./adapter.ts";
 import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
-import { appliedProblem } from "./codex-permissions.ts";
+import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
@@ -65,13 +65,17 @@ export function codexInstructions(extensions?: ExtensionPaths): string {
 /**
  * The parameters of a session's `thread/start`, or `thread/resume` when resuming: the model when
  * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
- * approvals on request, reviewed by its automatic reviewer. Never a configuration override, which
- * could widen them.
+ * approvals on request, reviewed by its automatic reviewer. The one configuration override is the
+ * trust of the session's directory, when known, the level Codex would apply itself: without it,
+ * Codex writes it to the user's settings (R22). Never another, which could widen the permissions.
  */
-export function codexThreadParams(options: OpenOptions, instructions: string) {
+export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
   return {
     approvalPolicy: "on-request",
     approvalsReviewer: "auto_review",
+    ...(trust === undefined
+      ? {}
+      : { config: { projects: { [options.cwd]: { trust_level: trust } } } }),
     cwd: options.cwd,
     developerInstructions: instructions,
     sandbox: "workspace-write",
@@ -435,10 +439,12 @@ export class CodexAdapter implements Adapter {
     for (const { id, name } of list?.models ?? []) {
       names.set(id, name);
     }
+    // Unread settings give no trust: Codex then decides it, and may write it.
+    const trust = listed && codexTrust(options.cwd, gitMainRoot(options.cwd), config.projects);
     const method = options.resume ? "thread/resume" : "thread/start";
     const answer = await rpc.request(
       method,
-      codexThreadParams(options, codexInstructions(this.#extensions)),
+      codexThreadParams(options, codexInstructions(this.#extensions), trust),
     );
     const id = isJson(answer) && isJson(answer.thread) ? textOf(answer.thread.id) : undefined;
     if (id === undefined) {
