@@ -267,3 +267,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   did not read.
 - **Where**: review fix, `crates/core/src/extensions/install.rs` (`is_link`),
   `crates/cli/src/extension/list.rs`.
+
+## R28: Activation is synchronous
+
+- **Decision**: an activation that returns a promise, or any thenable, is refused: the version is
+  `broken` with the problem
+  `activation must be synchronous: start async work from a callback, not while loading`, and what it
+  registered is undone. The loader no longer waits up to 2 seconds for the promise.
+- **Rationale**: SC-003 says an extension that loops on load leaves the others running. `vm`'s
+  timeout stops synchronous code only: a loop after an `await` runs in a promise job, outside any
+  timeout, and would hang the server. Only a synchronous activation can be stopped, and refusing a
+  promise also removes the window in which a version removed or closed during the wait was kept.
+- **If wrong**: async work starts from a callback the activation registers, or from a scoped timer
+  ([R28](#r28-late-throws-break-only-their-extension)).
+- **Where**: task 7, `packages/server/src/extensions/evaluate.ts` and `loader.ts`.

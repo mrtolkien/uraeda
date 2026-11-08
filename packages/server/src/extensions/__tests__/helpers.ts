@@ -87,6 +87,37 @@ export function identityPage(source: string, filename: string) {
   return { code: source, css: `/* ${filename} */` };
 }
 
+/**
+ * The real binding, whose `readExtensions` can be held once at a gate: after it reads, so a save
+ * made while it waits is read, or with `readFirst`, before, so it gives the files as they were.
+ */
+export async function gatedBinding() {
+  const real: Binding = await import("uraeda-binding");
+  let held: { gate: Promise<void>; reached: () => void; readFirst: boolean } | null = null;
+  const binding: Binding = {
+    ...real,
+    readExtensions: async (dir: string) => {
+      const hold = held;
+      held = null;
+      if (!hold) {
+        return real.readExtensions(dir);
+      }
+      const read = hold.readFirst ? await real.readExtensions(dir) : undefined;
+      hold.reached();
+      await hold.gate;
+      return read ?? real.readExtensions(dir);
+    },
+  };
+  /** Holds the next read; resolves `reached` once a reload waits at it, until `release`. */
+  const hold = ({ readFirst = false } = {}) => {
+    const { promise: reached, resolve } = Promise.withResolvers<void>();
+    const { promise: gate, resolve: release } = Promise.withResolvers<void>();
+    held = { gate, reached: resolve, readFirst };
+    return { reached, release };
+  };
+  return { binding, hold };
+}
+
 /** A temporary config folder, and a loader over it, closed when the test ends. */
 export async function openLoader(
   options: Partial<LoaderOptions> & { configDir?: string; marks?: Marks } = {},

@@ -4,9 +4,9 @@ import { relative, join } from "node:path";
 import { rmSync, symlinkSync } from "node:fs";
 import { afterEach, expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import type { Binding } from "../../fate/context.ts";
 import {
   extensionFolder,
+  gatedBinding,
   loaded,
   manifest,
   marking,
@@ -20,32 +20,6 @@ export default function Page() {
   return <p>{title}</p>;
 }
 `;
-
-/** The real binding, whose `readExtensions` can be held once at a gate, to save mid-compile. */
-async function gatedBinding() {
-  const real: Binding = await import("uraeda-binding");
-  let held: { gate: Promise<void>; reached: () => void } | null = null;
-  const binding: Binding = {
-    ...real,
-    readExtensions: async (dir: string) => {
-      const hold = held;
-      held = null;
-      if (hold) {
-        hold.reached();
-        await hold.gate;
-      }
-      return real.readExtensions(dir);
-    },
-  };
-  /** Holds the next read; resolves `reached` once a reload waits at it, until `release`. */
-  const hold = () => {
-    const { promise: reached, resolve } = Promise.withResolvers<void>();
-    const { promise: gate, resolve: release } = Promise.withResolvers<void>();
-    held = { gate, reached: resolve };
-    return { reached, release };
-  };
-  return { binding, hold };
-}
 
 /** A server entry that registers `v` imported from `from`. */
 const importing = (from: string) =>
@@ -140,6 +114,10 @@ const BREAKAGES: Record<string, (config: string) => void> = {
       "extension.toml": manifest("wiki", { api: 2 }),
       "server.ts": marking("broken"),
     }),
+  "async function activate": (config) =>
+    extensionFolder(config, "wiki", {
+      "server.ts": `export default async function activate(api: { mark(value: unknown): void }) {\n  api.mark("broken");\n}\n`,
+    }),
   "const = ;": (config) => extensionFolder(config, "wiki", { "server.ts": "const = ;\n" }),
   "throw new Error('boom')": (config) =>
     extensionFolder(config, "wiki", {
@@ -154,6 +132,12 @@ const BREAKAGES: Record<string, (config: string) => void> = {
 test.each([
   ["throws", "throw new Error('boom')", "broken", "server.ts: boom"],
   ["loops", "while (true) {}", "broken", "Script execution timed out"],
+  [
+    "activates asynchronously",
+    "async function activate",
+    "broken",
+    "server.ts: activation must be synchronous: start async work from a callback, not while loading",
+  ],
   ["does not compile", "const = ;", "broken", "server.ts:1"],
   [
     "is built for another API",
