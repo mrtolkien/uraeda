@@ -31,12 +31,15 @@ export function restoredForm(
 
 /** The comment form open on a point, keyed by what it writes: a new comment, or an edit. */
 export function SettledForm({
+  hasAutoFocus,
   onAsk,
   onClose,
   path,
   shown,
   writes,
 }: {
+  /** Whether its field takes the focus as it is drawn, as after the human opened it. */
+  hasAutoFocus: boolean;
   /** Sends a new comment's text to the feature's session, about its point, in place of the comment. */
   onAsk?: (subject: string, text: string) => Promise<string | undefined>;
   onClose: () => void;
@@ -47,6 +50,7 @@ export function SettledForm({
   return (
     <CommentForm
       anchor={`On "${shown.point.subject}"`}
+      hasAutoFocus={hasAutoFocus}
       key={shown.kind === "edit" ? `edit-${shown.comment.number}` : `new-${shown.point.subject}`}
       onCancel={onClose}
       {...(shown.kind === "edit"

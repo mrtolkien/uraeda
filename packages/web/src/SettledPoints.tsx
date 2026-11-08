@@ -1,7 +1,9 @@
-import { type ReactNode, useState } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, useRef, useState } from "react";
 import type { Block, Document, SettledGroup, SettledPoint } from "uraeda-binding";
 import { topBlock } from "./Folds.tsx";
 import { Blocks } from "./Blocks.tsx";
+import { isKeyInput } from "./cursor/held.ts";
 import type { StopKey } from "./cursor/StopKeys.tsx";
 import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -21,10 +23,17 @@ import { CommentBox } from "./layout/CommentBox.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
+const styles = stylex.create({
+  // A box only to find the form's field in: the form is laid out by what holds it.
+  contents: { display: "contents" },
+});
+
 /**
  * The comment form open on some of a round's settled points, `points`, `shown` while the round
  * awaits the human, and the writes it makes: the one holding unsaved text when the page is drawn
- * opens again, and a write done or a removal closes or follows it.
+ * opens again, and a write done or a removal closes or follows it. `open` opens a form the human
+ * asked for, its field focused as it is drawn when `takesFocus` says so; `focus` gives the focus
+ * back to the field of the form open.
  */
 function useSettledForm(
   file: File,
@@ -37,22 +46,37 @@ function useSettledForm(
   const [open, setOpen] = useState<Open | undefined>(() =>
     readOnly ? undefined : restoredForm(repo, file.path, points, round?.settledComments ?? []),
   );
-  const writes = useSettledWrites(
-    file,
-    () => setOpen(undefined),
-    (number) => setOpen(afterRemoval(number)),
-  );
+  // Whether the form's field takes the focus as it is drawn: not the one restored with the page,
+  // nor an edit renumbered by a removal, which the human did not open.
+  const [hasFocus, setHasFocus] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const close = () => {
+    setOpen(undefined);
+    setHasFocus(false);
+  };
+  const writes = useSettledWrites(file, close, (number) => {
+    setOpen(afterRemoval(number));
+    setHasFocus(false);
+  });
   const shown = readOnly ? undefined : open;
   const form = shown && (
-    <SettledForm
-      onClose={() => setOpen(undefined)}
-      {...(onAsk ? { onAsk } : {})}
-      path={file.path}
-      shown={shown}
-      writes={writes}
-    />
+    <div ref={box} {...stylex.props(styles.contents)}>
+      <SettledForm
+        hasAutoFocus={hasFocus}
+        onClose={close}
+        {...(onAsk ? { onAsk } : {})}
+        path={file.path}
+        shown={shown}
+        writes={writes}
+      />
+    </div>
   );
-  return { form, setOpen, shown, writes };
+  const openForm = (next: Open, takesFocus: boolean) => {
+    setOpen(next);
+    setHasFocus(takesFocus);
+  };
+  const focus = () => box.current?.querySelector<HTMLElement>('[role="textbox"]')?.focus();
+  return { close, focus, form, open: openForm, shown, writes };
 }
 
 /** The group a point lies in, if any. */
@@ -76,8 +100,8 @@ function partOf(file: File, part: SettledPart | undefined) {
 }
 
 /**
- * A settled point's keys while the keyboard's cursor holds its block: Enter comments on it, as a tap
- * does, and `s` asks the agent about it, with `onAskAbout`.
+ * A settled point's keys while the keyboard's cursor holds its block: Enter, or `i`, comments on it,
+ * as a tap does, and `s` asks the agent about it, with `onAskAbout`.
  */
 function pointKeys(
   block: Block,
@@ -85,21 +109,26 @@ function pointKeys(
   point: SettledPoint | undefined,
   onAskAbout: ((subject: string) => void) | undefined,
 ): ReadonlyArray<StopKey> {
-  const comment: StopKey = { bar: "⏎", keys: "Enter", label: "comment", run: () => onTap(block) };
+  const comment: ReadonlyArray<StopKey> = [
+    { bar: "⏎", keys: "Enter", label: "comment", run: () => onTap(block) },
+    { keys: "i", label: "comment", run: () => onTap(block) },
+  ];
   return point && onAskAbout
-    ? [comment, { bar: "s", keys: "s", label: "ask", run: () => onAskAbout(point.subject) }]
-    : [comment];
+    ? [...comment, { bar: "s", keys: "s", label: "ask", run: () => onAskAbout(point.subject) }]
+    : comment;
 }
 
 /**
  * The points a round settled without the human, in their groups, with their comments under them.
  * While the round awaits the human, a point that starts in bold is tapped to comment on it, in a
  * form under it on wide screens and in a sheet on the phone, and its comments have Edit and
- * Remove. Each form's text is kept in the unsaved store; the one holding text when the page is
- * drawn opens again, "Under the hood" opened for it. With `part`, only that part's points, with
+ * Remove. A form the human opens, on a wide screen or by a key, takes the focus in its field; a tap
+ * or a key on the point whose form is open gives its field the focus back. Each form's text is kept
+ * in the unsaved store; the one holding text when the page is drawn opens again, "Under the hood"
+ * opened for it. With `part`, only that part's points, with
  * a comment form of their own: "Check these", or the groups of the round's end. With `onAsk`, a new
  * comment's form has "Ask AI", which sends its text to the feature's session instead. A point's
- * block held by the keyboard's cursor comments on it with Enter, as a tap does, and with
+ * block held by the keyboard's cursor comments on it with Enter or `i`, as a tap does, and with
  * `onAskAbout`, asks the agent about it with `s`.
  */
 export function SettledPoints({
@@ -118,7 +147,7 @@ export function SettledPoints({
   const wide = !isNarrow(useWidthClass());
   const document = file.current.document;
   const { all, comments, groups, points } = partOf(file, part);
-  const { form, setOpen, shown, writes } = useSettledForm(file, readOnly, points, onAsk);
+  const { close, focus, form, open, shown, writes } = useSettledForm(file, readOnly, points, onAsk);
   if (groups.length === 0) {
     return null;
   }
@@ -148,7 +177,7 @@ export function SettledPoints({
               <SettledNote
                 comment={comment}
                 key={comment.number}
-                onEdit={() => setOpen({ comment, kind: "edit", point })}
+                onEdit={() => open({ comment, kind: "edit", point }, wide || isKeyInput())}
                 point={point}
                 readOnly={readOnly}
                 writes={writes}
@@ -160,10 +189,17 @@ export function SettledPoints({
       </>
     );
   };
+  // On the phone, a tap opens the sheet without raising the keyboard; a key types at once.
   const onTap = (block: Block) => {
     const point = pointOf(block);
-    if (point && !newOn(block)) {
-      setOpen({ kind: "new", point });
+    const takesFocus = wide || isKeyInput();
+    if (!point) {
+      return;
+    }
+    if (!newOn(block)) {
+      open({ kind: "new", point }, takesFocus);
+    } else if (takesFocus) {
+      focus();
     }
   };
   const selection = {
@@ -187,12 +223,7 @@ export function SettledPoints({
       />
       {inPage(gone)}
       {!wide && !readOnly && (
-        <Overlay
-          isOpen={shown !== undefined}
-          label="Comment"
-          onClose={() => setOpen(undefined)}
-          sheetHeight="capped"
-        >
+        <Overlay isOpen={shown !== undefined} label="Comment" onClose={close} sheetHeight="capped">
           {form}
         </Overlay>
       )}
