@@ -43,6 +43,7 @@ oxc_diagnostics = "=0.152.0"
 oxc_parser = "=0.152.0"
 oxc_semantic = "=0.152.0"
 oxc_span = "=0.152.0"
+oxc_syntax = "=0.152.0"
 oxc_transformer = "=0.152.0"
 pulldown-cmark = { version = "0.13.4", default-features = false }
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
