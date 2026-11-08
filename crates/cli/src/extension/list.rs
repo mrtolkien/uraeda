@@ -1,6 +1,7 @@
-//! `ura extension list`: every extension, built-in ones first, with where it is on and where it
-//! came from, and its problems: its manifest's, and, when the server wrote what it saw, its state
-//! and the problems of loading and compiling its code, as the running server last saw them.
+//! `ura extension list`: every extension but `fake`, built-in ones first, with where it is on and
+//! where it came from, and its problems: its manifest's, and, when the server wrote what it saw,
+//! its state and the problems of loading and compiling its code, as the running server last saw
+//! them.
 
 use std::process::ExitCode;
 
@@ -71,6 +72,11 @@ struct Problem<'a> {
 
 pub fn run(folders: &Folders, json: bool) -> Result<ExitCode, String> {
     let mut listed = extensions::read(&folders.config);
+    // The scripted agent of the tests and the sandbox, which the web shows only where a server
+    // registered it: no one picks it from here.
+    listed
+        .extensions
+        .retain(|extension| extension.name != "fake");
     // A symbolic link is linked whatever it holds: `ura` never updates it.
     for extension in &mut listed.extensions {
         if !extension.is_built_in && install::is_link(&folders.config, &extension.name) {
