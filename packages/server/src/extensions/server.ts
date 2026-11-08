@@ -23,6 +23,7 @@ import { EventBus, guarded, reportFor, StepWatch } from "./events.ts";
 import { type LoadedExtension, Loader, type PageBundle, type Problem } from "./loader.ts";
 import { compilePage } from "./page-compiler.ts";
 import { PageProblems } from "./page-problems.ts";
+import { GLOBAL, printOf } from "./settings-print.ts";
 import { RuntimeTurns } from "./turns.ts";
 
 /** What `ExtensionsHost.open` takes. */
@@ -48,22 +49,8 @@ export type ExtensionState = {
   waitingFor: string | null;
 };
 
-const GLOBAL = "";
-
 /** An extension whose `on`, or whose settings, changed at a read. */
 type Changed = { name: string; onChanged: boolean; valuesChanged: boolean };
-
-/**
- * The settings' print, compared between reads: every repository's, and each repository's that
- * differs, so a repository joining the list without settings of its own reloads nothing.
- */
-function printOf(values: Map<string, Record<string, unknown>>): string {
-  const global = JSON.stringify(values.get(GLOBAL) ?? {});
-  const own = [...values].filter(
-    ([key, value]) => key === GLOBAL || JSON.stringify(value) !== global,
-  );
-  return JSON.stringify(own);
-}
 
 /** The extensions of the server's config folder, and what they registered. */
 export class ExtensionsHost implements Registry {
