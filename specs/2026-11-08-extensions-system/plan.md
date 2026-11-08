@@ -911,42 +911,63 @@ git commit -m "feat(extensions-system): compile extension pages with StyleX and 
 
 **Interfaces:**
 
-- Consumes: task 2's `readExtensions`, `extensionApi`; task 3's `compileModule`; `FileWatch`.
+- Consumes: task 2's `readExtensions`, `extensionApi`, `extensionsFolder`; task 3's `compileModule`;
+  `FileWatch`. Task 6's `compilePage` is built beside this task, so the loader takes it as an
+  option, and task 8 passes the real one
+  ([R23](rulings.md#r23-the-loader-takes-the-page-compiler-as-an-option)).
 - Produces:
   - `class Loader`:
-    `static open({ binding, configDir, api: (scope: Scope) => object, shared: Record<string, unknown> }): Promise<Loader>`;
+    `static open({ binding, configDir, api: (scope: Scope) => object, shared: Record<string, unknown>, compilePage: PageCompiler }): Promise<Loader>`,
+    with
+    `PageCompiler = (source: string, filename: string) => { code: string; css: string } | { error: { line: number; column: number; message: string } }`
+    (task 6's `compilePage` with its `tokens` bound; `filename` is the file's absolute path);
     `list(): ReadonlyArray<LoadedExtension>`; `get(name)`;
     `onChange(listener: (name: string) => void): () => void` (after every load, unload, or problem);
-    `pageBundle(name): PageBundle | undefined`; `defer(name, until: Promise<void>)` (a reload waits
-    on it: task 8's runtimes); `close()`.
+    `pageBundle(name): PageBundle | undefined`;
+    `defer(name, until: Promise<void>, waitingFor?: string)` (a reload waits on it: task 8's
+    runtimes); `reload(name): Promise<void>` (reads and loads it again, as a change of its settings
+    asks); `close()`.
   - `LoadedExtension = { extension: Extension /* task 2 */; version: number; state: "on" | "off" | "broken" | "waiting"; problems: ReadonlyArray<{ file: string; line?: number; message: string }>; waitingFor?: string }`.
   - `class Scope`: `name`, `isLive()`, `add(undo: () => void)`, `check()` (throws
     `Error("<name>: this version of the extension was unloaded")` once unloaded), `onUnload(fn)`.
   - `PageBundle = { version: number; modules: Record<string, string>; entry: string; css: string }`
-    (relative paths as keys): page files compiled through `compilePage` then `compileModule`.
+    (relative paths as keys, `/` between parts, the entry first): page files compiled through
+    `compilePage` then `compileModule`, the CSS of each file joined by a line break. A module's
+    relative imports keep their text: the page runtime resolves them against the keys with the same
+    rule (`.ts`, `.tsx`, `/index.ts`, `/index.tsx`).
 
 Behaviour:
 
 - Reads `readExtensions(configDir)` at open and on every change of `<config>/extensions/` and of
   each extension's folder (links followed); never another path.
 - An extension is evaluated when its `api` equals `extensionApi()` (else state `off`, problem
-  `built for extension API <n>, and Uraeda runs API <m>`), it has no fatal problem, and it has a
-  `server` entry. Built-ins (`isBuiltIn`) are never evaluated here: task 8 registers them.
+  `built for extension API <n>, and Uraeda runs API <m>`), it has no fatal problem (else state
+  `broken`, its running version unloaded, as for `folder not found`), it is on in some repository
+  (else `off`), and it has a `server` entry. Built-ins (`isBuiltIn`) are listed, `on` or `off`, and
+  never evaluated here: task 8 registers them.
 - Compile the entry's graph first: relative imports resolve inside the folder only (`.ts`, `.tsx`,
   `/index.ts`), a path leaving it is a problem; bare specifiers must be keys of `shared` or `node:`
-  modules (server only). Any compile problem keeps the last working version running, with the
-  problem shown (state stays `on`, problems set).
+  modules (server only); a page's bare specifiers are the page runtime's to check, except `node:`
+  ones, refused ([R26](rulings.md#r26-a-pages-bare-imports-are-the-page-runtimes-to-check)). Any
+  compile problem keeps the last working version running, with the problem shown (state stays `on`,
+  problems set); with no working version, state `broken`.
 - Evaluate synchronously inside one `new vm.Script("…").runInThisContext({ timeout: 2000 })`: the
   module bodies (from `vm.compileFunction` with the file as `filename`) and the call of the entry's
   default export with `api(scope)`. A throw or the timeout makes state `broken`, with the message,
-  and undoes what the version registered.
+  and undoes what the version registered. An activation that returns a promise is awaited for at
+  most 2 seconds, a rejection or the wait making it `broken` too. Each module function is compiled
+  with an empty context extension, which keeps V8's compilation cache from holding every version
+  ([R24](rulings.md#r24-module-functions-are-compiled-with-an-empty-context-extension)).
 - Reload: debounce changes 50 ms per extension; one compile at a time per extension; a change during
   a compile queues exactly one more, of the latest files. Before evaluating a new version, unload
   the old one: run its undos in reverse order, then mark its scope dead.
-- `defer(name, until)`: a reload of that extension waits until the promise settles, state `waiting`,
-  `waitingFor` set by the caller.
+- Watches: `<config>/extensions/` (its entries and their link targets); for a linked extension, its
+  folder and the folder of each file its last version compiled or had a problem in; for an installed
+  one, its `.ura-source` only, which `ura extension update` rewrites.
+- `defer(name, until, waitingFor)`: a reload of that extension waits until the promise settles,
+  state `waiting`, `waitingFor` set by the caller.
 
-- [ ] **Step 1: Write the failing tests, and their helpers**
+- [x] **Step 1: Write the failing tests, and their helpers**
 
 ```ts
 // packages/server/src/extensions/__tests__/loader.test.ts
@@ -986,31 +1007,33 @@ test("loads only the config folder's extensions", async () => {
 // packages/server/src/extensions/__tests__/loader.bench.test.ts
 test("SC-001: a saved change reloads an extension of 50 files within 1 second", async () => {});
 test("SC-002: 100 reloads grow the heap by less than 10 MB", async () => {
-  // global.gc between measures: the test file runs with --expose-gc (its own Vitest project
-  // option, or skipped with a message when gc is unavailable).
+  // gc between measures: exposed at run time with `v8.setFlagsFromString("--expose-gc")` and a
+  // new `vm` context, skipped with a message when it is unavailable (R25).
 });
 ```
 
-The break each test catches: Node's `import()` used instead (memory grows, SC-002); undos not run
-(old registration kept); an older compile finishing last and winning; the timeout missing (the test
-process hangs: the loop row is the guard); a compile error unloading the working version.
+The first test also defers a reload (`defer`), and holds a reload mid-compile through a binding
+whose `readExtensions` waits at a gate, so a save then compiles exactly once more. The break each
+test catches: Node's `import()` used instead (memory grows, SC-002); undos not run (old registration
+kept); an older compile finishing last and winning; the timeout missing (the test process hangs: the
+loop row is the guard); a compile error unloading the working version.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/extensions`
 - Expected: FAIL, `Cannot find module '../loader.ts'`.
 
-- [ ] **Step 3: Implement the loader**
+- [x] **Step 3: Implement the loader**
 
 Make the breaks: drop the undo call (the reload test fails); drop the timeout (the loop row hangs:
 stop it, revert); report both in the commit body.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp check && vp test packages/server`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/extensions

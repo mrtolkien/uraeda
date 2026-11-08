@@ -210,3 +210,44 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a repository removed from the list since it was turned on stays in `on`; refusing
   it would keep the owner from changing anything else in `on` until they took it out.
 - **Where**: review fix, `crates/core/src/extensions/write.rs`.
+
+## R23: The loader takes the page compiler as an option
+
+- **Decision**: `Loader.open` takes `compilePage: (source, filename) => { code, css } | { error }`,
+  task 6's `compilePage` with its `tokens` path bound, instead of importing `page-compiler.ts`. The
+  loader's tests pass a compiler that changes nothing; task 8 passes the real one.
+- **Rationale**: tasks 6 and 7 are built at the same time, in one wave, so task 7's branch has no
+  `page-compiler.ts`; an option also keeps Babel out of the loader's tests.
+- **Where**: task 7, `packages/server/src/extensions/loader.ts`; task 8 wires it.
+
+## R24: Module functions are compiled with an empty context extension
+
+- **Decision**: each module body goes through `vm.compileFunction` with
+  `contextExtensions: [Object.create(null)]`, an object with no prototype, so it resolves no name
+  and every free name still reaches the globals.
+- **Rationale**: measured on Node 24.22, V8 keeps every function `vm.compileFunction`,
+  `new Function`, or `vm.Script` compiles in its compilation cache, freed only by a last-resort
+  collection near the heap's limit: 100 reloads of a 200 KB file held 60 MB, 400 held 243 MB. V8
+  does not cache a function compiled with a context extension: 400 reloads stayed flat, and SC-002
+  measures about −1 MB. Turning the cache off for the whole process, `--no-compilation-cache`, would
+  also work, but changes every other script the server runs.
+- **If wrong**: free names in extension code take V8's slower dynamic lookup; if that shows, the
+  loader can set `--no-compilation-cache` at start instead.
+- **Where**: task 7, `packages/server/src/extensions/evaluate.ts`.
+
+## R25: The memory benchmark exposes `gc` at run time
+
+- **Decision**: `loader.bench.test.ts` calls `v8.setFlagsFromString("--expose-gc")` and reads `gc`
+  from a new `vm` context, skipping SC-002 with a message when that gives none.
+- **Rationale**: a Vitest project with `execArgv: ["--expose-gc"]` would run one file apart for one
+  flag; the run-time flag gives the same `gc` in the same worker.
+- **Where**: task 7, `packages/server/src/extensions/__tests__/loader.bench.test.ts`.
+
+## R26: A page's bare imports are the page runtime's to check
+
+- **Decision**: the loader refuses a page's `node:` imports and any relative import leaving the
+  folder, and leaves other bare specifiers to the page runtime, which knows its shared modules
+  (React, Astryx and its subpaths, `uraeda/page`).
+- **Rationale**: the loader's `shared` modules are the server's; listing the page's in the server
+  too would be a second home for the page runtime's list (R7).
+- **Where**: task 7, `packages/server/src/extensions/graph.ts`; task 12 checks the rest.
