@@ -1,7 +1,7 @@
 //! Theme files resolved into themes: `extends` followed, loops found, and each role resolved
 //! against the palette merged over the extended themes' (ruling R2 of the color themes plan).
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::parse::{Expr, at_line};
 use super::{DEFAULT_DARK, DEFAULT_LIGHT, Source, Theme, ThemeFile, contrast};
@@ -9,7 +9,7 @@ use super::{DEFAULT_DARK, DEFAULT_LIGHT, Source, Theme, ThemeFile, contrast};
 /// A theme resolved: its mode, its merged palette, and each role's value, inherited ones included.
 struct Resolved {
     mode: &'static str,
-    palette: HashMap<String, String>,
+    palette: BTreeMap<String, String>,
     exprs: HashMap<String, Expr>,
 }
 
@@ -269,8 +269,8 @@ impl Walk {
 
 /// A resolved file as a theme: each role's colour, and the palette name it took.
 fn theme(id: String, name: String, is_shipped: bool, resolved: Resolved) -> Theme {
-    let mut roles = HashMap::new();
-    let mut sources = HashMap::new();
+    let mut roles = BTreeMap::new();
+    let mut sources = BTreeMap::new();
     for (role, expr) in resolved.exprs {
         match expr {
             Expr::Colour(colour) => {
