@@ -1,5 +1,5 @@
 import { mkdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { ServerThemes } from "../themes.ts";
@@ -94,6 +94,23 @@ test("a symlinked theme file is seen changing at its target", async () => {
 
   writeFileSync(join(dotfiles, "my-ember.toml"), ember("#ee5522"));
   await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ee5522");
+});
+
+/** Edge case: a theme file symlinked to a file not made yet, as before a dotfiles checkout. */
+test("a symlinked theme file whose target is made later is served", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  const dotfiles = temporaryFolder("uraeda-dotfiles");
+  mkdirSync(join(dir, "themes"));
+  symlinkSync(
+    join("..", "..", basename(dotfiles), "colours", "my-ember.toml"),
+    join(dir, "themes", "ember.toml"),
+  );
+  const themes = await opened(dir);
+  expect(needsYou(themes, "ember")).toBeUndefined();
+
+  mkdirSync(join(dotfiles, "colours"));
+  writeFileSync(join(dotfiles, "colours", "my-ember.toml"), ember("#ff7a45"));
+  await expect.poll(() => needsYou(themes, "ember"), POLL).toBe("#ff7a45");
 });
 
 test("a read that finds nothing changed tells no one", async () => {

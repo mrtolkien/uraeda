@@ -2,8 +2,16 @@
 // does, and the folder of the file a symlinked `config.toml` points to, as dotfiles managers make.
 // The themes folder is watched the same way, and its own entries too, through any symlink, and
 // each of its entries that is a symlink at its target.
-import { type FSWatcher, readdirSync, realpathSync, statSync, watch } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import {
+  type FSWatcher,
+  lstatSync,
+  readdirSync,
+  readlinkSync,
+  realpathSync,
+  statSync,
+  watch,
+} from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 /**
  * One folder watched, for the entries of `names`, or every entry for `"all"`, as made: its inode
@@ -41,7 +49,13 @@ function nearest(dir: string, file: string): Watched {
   return { names: new Set([child, basename(path)]), path };
 }
 
-/** The folder of the file `path` points to, and its name, when a symlink leads elsewhere. */
+/** How many symlinks a dangling chain is followed through, as the system's own limit. */
+const MOST_LINKS = 40;
+
+/**
+ * The folder of the file `path` points to, and its name, when a symlink leads elsewhere; for a
+ * symlink to nothing, the nearest folder toward its missing target, which sees it made.
+ */
 function target(dir: string, path: string): Watched | null {
   try {
     const real = realpathSync(path);
@@ -50,9 +64,27 @@ function target(dir: string, path: string): Watched | null {
     }
     return { names: new Set([basename(real)]), path: dirname(real) };
   } catch {
-    // No file, or a symlink to nothing: the folder's watch sees it made.
-    return null;
+    // No file, or a symlink to nothing: the folder's watch sees the first made.
+    const missing = dangling(path);
+    return missing === null ? null : nearest(dirname(missing), basename(missing));
   }
+}
+
+/** The missing file the symlink `path` ends at, through its chain, or null when it is no link. */
+function dangling(path: string): string | null {
+  let at = path;
+  for (let links = 0; links < MOST_LINKS; links++) {
+    try {
+      if (!lstatSync(at).isSymbolicLink()) {
+        // A link through a missing folder or a file in the way: no target to wait for.
+        return null;
+      }
+      at = resolve(dirname(at), readlinkSync(at));
+    } catch {
+      return at === path ? null : at;
+    }
+  }
+  return null;
 }
 
 /** The folder `path`, its symlinks followed, watched for every entry, when it is a folder. */
