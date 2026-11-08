@@ -413,7 +413,7 @@ each problem above the rows, with its file and line when it has one:
 after saving: a manifest's problems always, and its state and the problems of loading, compiling,
 and drawing its code as the running server last saw them, with the time it saw them. The server
 writes those to `run/extensions-status.json` in Uraeda's data folder, and removes the file as it
-stops.
+stops; `ura extension list` ignores a file whose server no longer runs, as one killed leaves.
 
 `api.log` writes to the server's output, where a route's or a listener's error also shows, after the
 extension's name.
