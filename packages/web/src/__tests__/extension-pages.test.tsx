@@ -155,3 +155,34 @@ export default function activate(api) {
   await refreshUntil(() => expect(screen.getByText("Every post read")).toBeTruthy());
   expect(screen.queryByText(/^Post: /)).toBeNull();
 });
+
+test("a page's action answers through fate", async () => {
+  const config = temporaryFolder("uraeda-config");
+  writeFileSync(join(config, "config.toml"), "");
+  extension(config, "ship", {
+    "extension.toml": manifest("ship", "Ship", true),
+    "page.tsx": `import { useState } from "react";
+import { useAction } from "uraeda/page";
+
+function Ship() {
+  const ship = useAction<{ to: string }, { done: string }>("ship");
+  const [done, setDone] = useState("not yet");
+  return <button onClick={() => void ship({ to: "prod" }).then((out) => setDone(out.done))}>{done}</button>;
+}
+
+export default function page(api) {
+  api.place({ component: Ship, icon: "uraeda:globe", id: "ship", title: "Ship" });
+}
+`,
+    "server.ts": `export default function activate(api) {\n  api.action("ship", (input) => ({ done: "shipped to " + input.to }));\n}\n`,
+  });
+  await renderPage("/", fixtureRepo(), { config, extensions: true });
+  await waitFor(() => expect(links("Ship")).toHaveLength(1));
+  await act(async () => navigate(atRepo("/e/ship/ship")));
+  await quiet();
+  const button = await screen.findByRole("button", { name: "not yet" });
+  await act(async () => fireEvent.click(button));
+  await refreshUntil(() =>
+    expect(screen.getByRole("button", { name: "shipped to prod" })).toBeTruthy(),
+  );
+});
