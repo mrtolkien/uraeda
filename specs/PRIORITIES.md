@@ -24,6 +24,7 @@
 > Features for public release
 
 - Cooler home view: logo, progress, gauges, ...
+  - Home should be an extension or have widgets
 - Dedicated docs website
   - Explain the concepts and the controls
   - Make sure docs stay up-to-date with agents instructions

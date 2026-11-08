@@ -7,8 +7,8 @@ icon: refresh-cw
 # Run lifecycle
 
 A run goes on to the next human gate without the human typing "Continue". Uraeda continues a run the
-server's restart cut, a usage limit stopped, or that ended before its gate, and says so in the
-session. Each automatic continue can be turned off, and their number in a row is capped.
+server's restart cut or a usage limit stopped, and says so in the session. Each automatic continue
+can be turned off, and their number in a row is capped.
 
 ## Rules
 
@@ -16,8 +16,6 @@ session. Each automatic continue can be turned off, and their number in a row is
   recently. Checked by the runner's tests.
 - A run stopped by a usage limit MUST continue by itself once the limit resets, as a best effort.
   Checked by the runner's tests.
-- A run that ends before the next human gate MUST be asked once to continue to it. Checked by the
-  runner's tests.
 - Automatic continues MUST stop after the number in a row the human set, without a commit or a
   message from them. Checked by the runner's tests.
 - Each automatic continue MUST say in its session why it happened. Checked by the runner's tests.
@@ -28,10 +26,10 @@ session. Each automatic continue can be turned off, and their number in a row is
 
 ## Why
 
-A run that stops for something outside the work, a restart, a limit, or an early end, costs hours
-until the human notices, often overnight. Continuing it keeps the workflow asynchronous. Continuing
-without a cap could loop and spend usage, so the human sets one. A run that polls cannot read the
-human's messages, and its waits outlive the work. History:
+A run that stops for something outside the work, a restart or a limit, costs hours until the human
+notices, often overnight. Continuing it keeps the workflow asynchronous. Continuing without a cap
+could loop and spend usage, so the human sets one. A run that polls cannot read the human's
+messages, and its waits outlive the work. History:
 [Worker lifecycle](../done/2026-11-03-worker-lifecycle.md).
 
 ## Alternatives considered
@@ -40,6 +38,8 @@ human's messages, and its waits outlive the work. History:
   agents are run, on undocumented behaviour.
 - Letting the agent wait out a limit inside its own process: a restart during the wait loses it.
 - A hook that refuses polling commands: works for one agent only, and refuses waits that were right.
+- Asking a run that ended before its next human gate to continue to it: removed, as it misfired
+  almost every time. A run that ends there asks for the human instead.
 
 ## Consequences
 
