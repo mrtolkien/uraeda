@@ -7,6 +7,7 @@
 > Still wanted for my personal usage
 
 - [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
+- [Nix / Docker based execution environments](/specs/2026-11-08-nix-docker/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
@@ -18,9 +19,6 @@
 > [!NOTE]
 >
 > Features for public release
-
-- Nix / Docker based execution environments
-  - Make it _safer_ to run agents in YOLO mode
 
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
