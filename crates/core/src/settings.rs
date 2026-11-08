@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
-use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
+use toml_edit::{Array, DocumentMut, Item, Key, TableLike, Value};
 
 use crate::api::ApiError;
 
@@ -14,7 +14,7 @@ mod file;
 mod list;
 mod rules;
 
-pub(crate) use file::line;
+pub(crate) use file::{line, load as load_text};
 
 /// The start of a file the first write creates.
 const HEADER: &str =
@@ -335,33 +335,65 @@ fn change(
     change_table(dir, "server", edit)
 }
 
-/// Applies `edit` to the table `name` of the file as it is now, created when absent, one write at
-/// a time, and writes the file, refused while the file cannot be read.
+/// Applies `edit` to the table `name` of the file as it is now, as `change_path` does.
 fn change_table(
     dir: &Path,
     name: &str,
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
+    change_path(dir, &[name], edit)
+}
+
+/// Applies `edit` to the table at `path`, like `["extensions", "wiki"]` for `[extensions.wiki]`,
+/// of the file as it is now, created when absent with the tables above it implicit, one write at a
+/// time, and writes the file, refused while the file cannot be read.
+pub(crate) fn change_path(
+    dir: &Path,
+    path: &[&str],
+    edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
+) -> Result<Settings, ApiError> {
     let _lock = crate::cache::folder_lock(dir);
     let (read, _) = checked(dir)?;
-    let (text, layout) =
-        read.unwrap_or_else(|| (format!("{HEADER}\n[{name}]\n"), file::Layout::default()));
-    // `checked` parsed the same text, so these failures are unreachable; each still answers.
+    let (text, layout) = read.unwrap_or_else(|| {
+        let keys: Vec<String> = path
+            .iter()
+            .map(|name| Key::new(*name).to_string())
+            .collect();
+        let header = keys.join(".");
+        (format!("{HEADER}\n[{header}]\n"), file::Layout::default())
+    });
+    // `checked` parsed the same text, so this failure is unreachable; it still answers.
     let mut document: DocumentMut = text
         .parse()
         .map_err(|error: toml_edit::TomlError| unreadable(dir, error.message()))?;
-    let table = document
-        .as_table_mut()
-        .entry(name)
-        .or_insert_with(toml_edit::table)
-        .as_table_like_mut()
-        .ok_or_else(|| unreadable(dir, &format!("[{name}] is a table of settings.")))?;
-    edit(table)?;
+    edit(nested(dir, document.as_table_mut(), path)?)?;
     let text = document.to_string();
     let not_saved = |reason: &str| refused(format!("Could not save {}: {reason}", shown_file(dir)));
     let settings = file::parse(&text).map_err(|problem| not_saved(&problem))?;
     file::save(dir, &text, layout).map_err(|reason| not_saved(&format!("{reason}.")))?;
     Ok(settings)
+}
+
+/// The table at `path` in `table`, each one created when absent: implicit, so that it shows no
+/// header of its own, but for the last.
+fn nested<'a>(
+    dir: &Path,
+    table: &'a mut dyn TableLike,
+    path: &[&str],
+) -> Result<&'a mut dyn TableLike, ApiError> {
+    let Some((name, rest)) = path.split_first() else {
+        return Ok(table);
+    };
+    let inner = table
+        .entry(name)
+        .or_insert_with(|| {
+            let mut created = toml_edit::Table::new();
+            created.set_implicit(!rest.is_empty());
+            Item::Table(created)
+        })
+        .as_table_like_mut()
+        .ok_or_else(|| unreadable(dir, &format!("[{name}] is a table of settings.")))?;
+    nested(dir, inner, rest)
 }
 
 /// `allowed_hosts`, created empty when absent.
@@ -392,7 +424,7 @@ fn positions(hosts: &Array, name: &str) -> Vec<usize> {
 }
 
 /// Sets `key` to `value`, keeping the comment and spaces around the value it replaces.
-fn set(table: &mut dyn TableLike, key: &str, mut value: Value) {
+pub(crate) fn set(table: &mut dyn TableLike, key: &str, mut value: Value) {
     match table.get_mut(key) {
         Some(Item::Value(old)) => {
             *value.decor_mut() = old.decor().clone();
@@ -404,7 +436,7 @@ fn set(table: &mut dyn TableLike, key: &str, mut value: Value) {
     }
 }
 
-fn refused(message: impl Into<String>) -> ApiError {
+pub(crate) fn refused(message: impl Into<String>) -> ApiError {
     ApiError {
         code: "refused",
         message: message.into(),

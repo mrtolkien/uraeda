@@ -75,3 +75,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the feature's record, which the release's changelog quotes.
 - **Rationale**: `CHANGELOG.md` is written at release time from the records.
 - **Where**: tasks 3 and 14.
+
+## R9: A `list` setting is a list of strings
+
+- **Decision**: a manifest's setting of type `list` holds strings only, its default and its values
+  in `config.toml` alike; any other item is the setting's problem.
+- **Rationale**: the data model names the four types without saying what a list holds; the settings
+  page edits a list as lines of text, as it does `vim_commands`.
+- **If wrong**: a list of numbers or tables needs a type of its own, like `list-of-integers`.
+- **Where**: task 2, `crates/core/src/extensions/values.rs`.
+
+## R10: A wrong `on` turns the extension off
+
+- **Decision**: an `on` in `[extensions.<name>]` that is neither `"all"` nor a list of names turns
+  the extension off, with a problem naming it; an absent `on` is `"all"`.
+- **Rationale**: a value the owner wrote and got wrong most likely meant to narrow where it runs;
+  turning it on everywhere would run it where they did not want it.
+- **Where**: task 2, `crates/core/src/extensions/values.rs`.
+
+## R11: Built-in manifests name the app's icons and have no version
+
+- **Decision**: a built-in manifest's `icon` is the app's icon name, `uraeda:inbox`, as the Settings
+  mockup's rows use, and it has no `version`: its version is Uraeda's.
+- **Where**: task 2, `crates/core/extensions/`.

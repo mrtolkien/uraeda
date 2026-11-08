@@ -391,8 +391,8 @@ the settings file.
   `crates/core/extensions/{claude,fake,inbox,priorities,decisions,git,previews,notifications}.toml`
   (built-in manifests, embedded with `include_dir!`; `crates/core/build.rs` adds
   `rerun-if-changed=extensions`)
-- Modify: `crates/core/src/lib.rs`, `crates/core/src/settings.rs` (`change_table` reaches a nested
-  path; split out a helper if it would pass 100 lines)
+- Modify: `crates/core/src/lib.rs`, `crates/core/src/settings.rs` (`change_table` calls the new
+  `change_path`, which reaches a nested path, the tables above it created implicit)
 - Create: `crates/binding/src/extensions.rs`; Modify: `crates/binding/src/lib.rs`
 - Test: `crates/core/tests/extensions.rs`
 
@@ -435,7 +435,7 @@ or unreadable `extension.toml` is one fatal problem. A folder named like a built
 `<name> is taken by a built-in extension`. A dangling symbolic link is fatal: `folder not found`.
 `.ura-source` is read when present. Hidden entries are skipped, as for themes.
 
-- [ ] **Step 1: Write the failing tests, and their helpers**
+- [x] **Step 1: Write the failing tests, and their helpers**
 
 ```rust
 // crates/core/tests/extensions.rs
@@ -469,12 +469,17 @@ The break each test catches:
 - Problems: a broken manifest hiding the others, or a wrong type silently accepted.
 - Turning on: a write that reorders or drops a human's comments.
 
-- [ ] **Step 2: Run them to check they fail**
+Built: a fourth test, `a_first_write_creates_the_file_with_the_nested_table`, writes a repository
+named `my.repo` into a new file, its key quoted. A `list` setting is a list of strings (R9); an `on`
+that is neither `"all"` nor a list of names turns the extension off, with its problem (R10); the
+built-in manifests name icons as the app does, `uraeda:inbox`, and have no version (R11).
+
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test extensions`
 - Expected: FAIL to compile, `unresolved import uraeda_core::extensions`.
 
-- [ ] **Step 3: Implement the reader, the writes, the built-in manifests, and the binding**
+- [x] **Step 3: Implement the reader, the writes, the built-in manifests, and the binding**
 
 Built-in manifests carry `api = 1`, `scope = "global"`, their title and one-line description from
 the Settings mockup (`packages/web/src/ExtensionsMockups.stories.tsx`), and no `server` or `page`
@@ -482,7 +487,7 @@ path (their code is Uraeda's). `claude` declares one setting, `command` (string,
 the command it runs. Rebuild the binding (`vp run binding:build`) so `index.d.ts` has the new
 functions.
 
-- [ ] **Step 4: Make the break, then run the task's validation**
+- [x] **Step 4: Make the break, then run the task's validation**
 
 Swap the merge order of the global and repository tables, see
 `settings_for_one_repository_override_the_global_ones` fail, revert it, and name the failure in the
@@ -492,7 +497,7 @@ commit body.
   `nix develop -c cargo nextest run -p uraeda-core && nix develop -c cargo clippy --workspace --all-targets -- -D warnings && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding/index.d.ts

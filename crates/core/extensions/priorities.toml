@@ -1,0 +1,7 @@
+# A built-in extension: its code is Uraeda's, and turning it off removes it. It has no version of its own.
+name = "priorities"
+title = "Priorities and proposals"
+description = "The Priorities place and starting a feature from a proposal."
+api = 1
+icon = "uraeda:list"
+scope = "global"
