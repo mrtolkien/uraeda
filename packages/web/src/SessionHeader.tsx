@@ -20,7 +20,7 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 }
 
 /**
- * A session's header: its title, then its status, agent, and place on one line. Its title
+ * A session's header: its title, then its status, agent, model and effort, and place on one line. Its title
  * is renamed in place, once the session exists. The agent is the one the session runs on, by its
  * kind, as its card in the navigation names it; before the session exists, the one it will start,
  * while only one is on: with more, the composer's picker says which.
@@ -29,6 +29,7 @@ export function SessionHeader({
   agent: kind,
   place,
   rename,
+  runsOn,
   status,
   title,
 }: {
@@ -36,6 +37,8 @@ export function SessionHeader({
   agent?: string;
   place?: string;
   rename?: RenameControls;
+  /** The model and the effort that ran, as the agent reported them: "GPT-6.1-Sol · High". */
+  runsOn?: string;
   status?: { label: string; status: Status };
   title: string;
 }) {
@@ -43,7 +46,7 @@ export function SessionHeader({
   const shown = kind ?? (on.length === 1 ? on[0]!.kind : undefined);
   const { name } = useHarnessMark(shown ?? "");
   const agent = shown === undefined ? undefined : { kind: shown, name };
-  const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
+  const meta = [agent?.name, runsOn, place].filter((part): part is string => Boolean(part));
   return (
     <PageTitle
       meta={{
