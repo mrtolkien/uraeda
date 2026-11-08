@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Codex runtime + model settings
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-08: 3 comments in spec-review.md.
 >
 > - You approve Codex as a second agent, sandboxed with each action outside its worktree reviewed,
 >   and a model and effort picked when any session starts, kept for its whole life.
