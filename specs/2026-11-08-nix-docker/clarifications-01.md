@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Nix / Docker based execution environments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions, about 25 minutes.
+> Answered on 2026-11-08.
 >
 > - Verdict: worth building, with changes. A local sandbox gives real security. Only a remote host
 >   adds performance, and it is a feature of its own, built on the local one.
@@ -137,7 +137,7 @@ feature. Dropping both keeps agents unconfined.
   - [pro] nothing to build or maintain.
   - [con] agents keep running with your full access, behind a classifier only.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What confines the agent?
 
@@ -173,7 +173,7 @@ platforms get a sandbox.
   - [pro] the strongest boundary.
   - [con] unsupported on your distribution, and it runs Docker's `claude`, not yours.
 
-**Answer:**
+**Answer:** C: It runs, just installed it from AUR. Looks like a perfect fit?
 
 ## Q3: How does the sandbox's checkout reach the repository?
 
@@ -205,7 +205,7 @@ checkout, today always a worktree.
   - [pro] nothing to build.
   - [con] the sandbox is bypassed in one line.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Do agents skip permissions inside the sandbox?
 
@@ -232,7 +232,7 @@ could then delete the branch's uncommitted work, or push with the sandbox's git 
   - [pro] two layers, and the decision stays as is.
   - [con] the classifier still stops unattended runs.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What can the sandbox reach on the network?
 
@@ -261,7 +261,9 @@ branch's code and the sandbox's logins to any website.
   - [pro] nothing to set up.
   - [con] the agent can reach anything on your network.
 
-**Answer:**
+**Answer:** Look at the default balanced mode of docker sandboxes. It looks good to me.
+
+Also it should be easy to allow an URL that was blocked.
 
 ## Q6: How do the agent and git log in inside the sandbox?
 
@@ -293,7 +295,7 @@ in the agent's steps.
   - [pro] no git login to steal.
   - [con] the implementation and finish steps move their pushes and `gh` calls into Uraeda.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: What gives the sandbox its tools?
 
@@ -323,7 +325,7 @@ Why it matters: it decides the start time, the disk used, and which projects can
   - [pro] any project can be sandboxed.
   - [con] a second environment file to keep beside the flake.
 
-**Answer:**
+**Answer:** B: Review how docker sandboxes work. Also except me all users run MacOS.
 
 ## Q8: Which platforms get the sandbox?
 
@@ -347,7 +349,7 @@ Why it matters: macOS doubles the platforms to build and test, for users other t
   - [pro] every user gets a sandbox.
   - [con] a second environment path, and slow shared folders.
 
-**Answer:**
+**Answer:** B: Review based on other answers.
 
 ## Settled without the human
 
@@ -387,3 +389,10 @@ Why it matters: macOS doubles the platforms to build and test, for users other t
   See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 
 **Notes:**
+
+- **Chats on the main checkout are sandboxed too**: I'm scared this will slow things down too much.
+  It should be an option when the session starts.
+- **No Uraeda flake for the agent.**: Well I'd want the _full_ claude then. With all installed
+  plugins, skills, memory, ...
+
+  If it's too complex, maybe we'll just drop this.
