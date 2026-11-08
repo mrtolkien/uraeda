@@ -1,8 +1,8 @@
-// The first usage window the runtime in view reported, Claude Code's five hours, in the "Usage"
-// pane at the column's foot, and until a run reports it, nothing: the runtime of the session shown,
-// or of the feature shown, its latest session's, else the one new sessions run on. In the closed
-// rail the pane is hidden and a small bar stands in for it, on the icons' axis: what is left of the
-// window, red once it is nearly gone.
+// The usage windows the runtime in view reported, Claude Code's five hours and its week, in the
+// "Usage" pane at the column's foot, and until a run reports one, nothing: the runtime of the
+// session shown, or of the feature shown, its latest session's, else the one new sessions run on.
+// In the closed rail the pane is hidden and a small bar stands in for it, on the icons' axis: what
+// is left of the first window alone, the shortest, red once it is nearly gone.
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -67,10 +67,13 @@ function Bar({ agent }: { agent: Runtime | undefined }) {
   return (
     <>
       <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
-        <VStack gap={1} xstyle={styles.usage}>
-          <UsageWindow kind={agent.kind} window={window} />
+        <VStack gap={3} xstyle={styles.usage}>
+          {agent.usage.map((each) => (
+            <UsageWindow key={each.id} kind={agent.kind} window={each} />
+          ))}
         </VStack>
       </Pane>
+      {/* The rail has room for one bar: the first window's, the one that runs out first. */}
       <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
         <div
           aria-label={`${window.label} allowance remaining`}
