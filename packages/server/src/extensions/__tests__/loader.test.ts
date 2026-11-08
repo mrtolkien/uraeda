@@ -256,3 +256,13 @@ test("loads only the config folder's extensions", async () => {
   expect(problemLines(extension)).toEqual([": folder not found"]);
   expect(marks.of("linked")).toEqual([]);
 });
+
+test("server code imports a node: module by its default, its names, or as a namespace", async () => {
+  const config = temporaryFolder("config");
+  extensionFolder(config, "wiki", {
+    "server.ts": `import path, { join } from "node:path";\nimport * as fs from "node:fs";\nexport default function activate(api: { mark(value: unknown): void }) {\n  api.mark([path.join("a", "b"), join("c", "d"), typeof fs.readFileSync, typeof fs.default.readFileSync]);\n}\n`,
+  });
+  const { loader, marks } = await openLoader({ configDir: config });
+  expect(loader.get("wiki")).toMatchObject({ problems: [], state: "on" });
+  expect(marks.of("wiki")).toEqual([["a/b", "c/d", "function", "function"]]);
+});

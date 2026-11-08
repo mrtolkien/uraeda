@@ -948,7 +948,8 @@ Behaviour:
   never evaluated here: task 8 registers them.
 - Compile the entry's graph first: relative imports resolve inside the folder only (`.ts`, `.tsx`,
   `/index.ts`), a path leaving it is a problem; bare specifiers must be keys of `shared` or `node:`
-  modules (server only); a page's bare specifiers are the page runtime's to check, except `node:`
+  modules (server only), a `node:` module given as an ES module's namespace, its names and the
+  module as `default`; a page's bare specifiers are the page runtime's to check, except `node:`
   ones, refused ([R26](rulings.md#r26-a-pages-bare-imports-are-the-page-runtimes-to-check)). Any
   compile problem keeps the last working version running, with the problem shown (state stays `on`,
   problems set); with no working version, state `broken`.

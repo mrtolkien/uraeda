@@ -43,7 +43,16 @@ function imported(
   if (Object.hasOwn(shared, target.module)) {
     return shared[target.module];
   }
-  return process.getBuiltinModule(target.module);
+  const builtIn = process.getBuiltinModule(target.module);
+  return builtIn && namespace(builtIn);
+}
+
+/**
+ * A built-in module as an ES module's namespace: its names, and the module as its `default`,
+ * which a default import reads; `process.getBuiltinModule` gives the CommonJS exports, without one.
+ */
+function namespace(module: object): object {
+  return Object.freeze({ ...module, default: module });
 }
 
 /**
