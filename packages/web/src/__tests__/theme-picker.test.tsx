@@ -153,3 +153,26 @@ test("a theme picked in another tab is drawn here, and the cache follows", async
   await waitFor(() => expect(darkPage()).toBe(NORD_PAGE));
   expect(cachedPage("dark")).toBe(NORD_PAGE);
 });
+
+// Breaks: the page kept in its own mode under a previewed theme of the other, or left in it.
+test("previewing a theme of the other mode shows that mode, and closing shows the picked one", async () => {
+  const field = await openPicker();
+  expect(document.documentElement.dataset.theme).toBe("dark");
+
+  await moveTo(field, "Catppuccin Latte");
+  await waitFor(() => expect(document.documentElement.dataset.theme).toBe("light"));
+
+  await act(async () => void fireEvent.keyDown(field, { key: "Escape" }));
+  await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
+});
+
+// Breaks: the first paint's cache holding the previewed theme, drawn after a reload mid-preview.
+test("the drawn cache holds the picked themes, not the one previewed", async () => {
+  const field = await openPicker();
+  await waitFor(() => expect(cachedPage("dark")).toBe(MOCHA_PAGE));
+
+  await moveTo(field, "Nord");
+  await waitFor(() => expect(darkPage()).toBe(NORD_PAGE));
+  expect(cachedPage("dark")).toBe(MOCHA_PAGE);
+  expect(cachedPage("light")).toBe(LATTE_PAGE);
+});
