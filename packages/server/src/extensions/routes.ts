@@ -1,0 +1,32 @@
+// The extensions' routes: each one's `/x/<name>/…`, globally and under a repository's `/r/<repo>`,
+// and the page bundle the page runtime fetches. All are server paths, so the session check closes
+// them as it closes `/fate`.
+import type { Hono } from "hono";
+import type { FateVariables } from "../fate.ts";
+import type { Hosts } from "../repositories.ts";
+import type { ExtensionsHost } from "./server.ts";
+
+/** Adds the extensions' routes to `app`. */
+export function extensionRoutes(
+  app: Hono<{ Variables: FateVariables }>,
+  extensions: ExtensionsHost,
+  hosts: Pick<Hosts, "current">,
+): void {
+  app.get("/extensions/:name/page", (c) => {
+    const bundle = extensions.pageBundle(c.req.param("name"));
+    c.header("Cache-Control", "no-store");
+    return bundle ? c.json(bundle) : c.json({ error: "no page" }, 404);
+  });
+  app.all("/x/:extension/*", (c) =>
+    extensions.answer(c, c.req.param("extension"), c.req.path, null),
+  );
+  app.all("/r/:name/x/:extension/*", async (c) => {
+    const name = c.req.param("name");
+    const host = await hosts.current(name);
+    if (!host) {
+      return c.text(`No repository named “${name}”`, 404);
+    }
+    const path = c.req.path.replace(/^\/r\/[^/]+/, "");
+    return extensions.answer(c, c.req.param("extension"), path, host.name);
+  });
+}

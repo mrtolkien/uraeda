@@ -44,6 +44,11 @@ const closed: Array<Row> = [
   ["POST", "/open", { authorization: "Bearer another-token" }],
   ["POST", "/session/key"],
   ["DELETE", "/sessions"],
+  // An extension's routes and its page's files.
+  ["GET", "/x/wiki/hello"],
+  ["POST", "/x/wiki/hello"],
+  ["GET", "/r/<name>/x/wiki/hello"],
+  ["GET", "/extensions/wiki/page"],
 ];
 
 test.each(closed)("%s %s needs a session", async (method, path, headers = {}) => {

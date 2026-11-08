@@ -5,7 +5,6 @@ import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { devFrames, devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { runtimesOf } from "../runner/runtimes.ts";
 import { checkoutOf, rawUpgrade, ready, socketOpens } from "../preview/__tests__/helpers.ts";
 import { fixture, fixtureRepo } from "./helpers.ts";
 import { addStoryFeature, STORY_FEATURE, temporaryFolder } from "uraeda-binding/test-utils";
@@ -43,7 +42,7 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   vi.stubEnv("URAEDA_REPO", undefined);
   vi.stubEnv("URAEDA_DATA_DIR", undefined);
   const handler = devHandler(root, {
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    agents: { fake: new FakeAdapter() },
     signIn: false,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
@@ -87,7 +86,7 @@ test("the dev server answers a handoff on Vite's port", async () => {
   process.env.URAEDA_REPO = fixtureRepo();
   process.env.URAEDA_DATA_DIR = temporaryFolder("uraeda-data");
   const handler = devHandler(root, {
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    agents: { fake: new FakeAdapter() },
     signIn: false,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
@@ -121,7 +120,7 @@ test("the dev server serves a repository's image routes, its uploads in the data
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", data);
   const handler = devHandler(root, {
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    agents: { fake: new FakeAdapter() },
     signIn: false,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
@@ -156,7 +155,7 @@ test("vp dev sends preview paths and their sockets to the server", async () => {
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
   const handler = devHandler(temporaryFolder("uraeda-dev"), {
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    agents: { fake: new FakeAdapter() },
     signIn: false,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
@@ -205,7 +204,7 @@ async function fateStatus(options: { signIn?: boolean }) {
   vi.stubEnv("URAEDA_REPO", fixtureRepo());
   vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
   const handler = devHandler(temporaryFolder("uraeda-dev"), {
-    runtimes: runtimesOf({ fake: new FakeAdapter() }),
+    agents: { fake: new FakeAdapter() },
     ...options,
   });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));

@@ -1,6 +1,6 @@
 import { existsSync, type FSWatcher, mkdirSync, watch } from "node:fs";
 import { join } from "node:path";
-import type { Repository, WatchHandle } from "uraeda-binding";
+import type { Changes, Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 import { keyFolders, WRITE_QUEUE_ID } from "./fate/write-queue.ts";
@@ -55,8 +55,12 @@ const NO_CHANGES = {
  */
 type HostsOptions = {
   binding: Binding;
+  /** Told of each change the core's watcher reports in a host's files, after its live updates. */
+  changed?: (host: Host, changes: Changes) => void;
   dataDir: string;
   sessions: Sessions;
+  /** Told of each host started, a missing folder's too. */
+  started?: (host: Host) => void;
   stopped?: (host: Host) => void;
 };
 
@@ -278,6 +282,7 @@ export class Hosts {
         entry.watch = binding.watch(path, (changes) => {
           publish(changes, entry.host, sessions);
           entry.pulls?.onChanges(changes);
+          this.#options.changed?.(entry.host, changes);
         });
       } catch (error) {
         // The host still serves its files: its pages read them again when shown.
@@ -287,6 +292,7 @@ export class Hosts {
       }
     }
     this.#entries.set(name, entry);
+    this.#options.started?.(entry.host);
   }
 
   /**

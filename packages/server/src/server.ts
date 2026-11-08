@@ -7,7 +7,9 @@ import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
-import { keptBases, startWaiting } from "./fate/preview-waiting.ts";
+import { keptBases, startWaiting, warmPreview } from "./fate/preview-waiting.ts";
+import { ExtensionsHost } from "./extensions/server.ts";
+import type { Adapter } from "./runner/adapter.ts";
 import {
   continueSettings,
   createSessions,
@@ -22,9 +24,9 @@ import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
 import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
-import type { Runtimes } from "./runner/runtimes.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
+import type { Runtimes } from "./runner/runtimes.ts";
 import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
@@ -87,6 +89,8 @@ export async function startSessions(options: {
  */
 export type Server = {
   app: ReturnType<typeof createApp>;
+  /** The extensions, built in and yours, and what they registered. */
+  extensions: ExtensionsHost;
   /** The frame secret of preview and mockup paths: replacing it restarts the Storybooks. */
   frames: FrameSecret;
   hosts: Hosts;
@@ -235,10 +239,18 @@ function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
 
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
+  /**
+   * The agents the runtimes run on instead of Claude Code, by runtime name: `fake` for tests and
+   * the sandbox, which the built-in `fake` registers; a name no built-in has is registered as is.
+   * Without it, the built-in `claude` runs the `claude` command, and `fake` is off.
+   */
+  agents?: Record<string, Adapter>;
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   binding: Binding;
   dataDir: string;
+  /** Modules extensions' server code may import by name: tests'. */
+  extensionModules?: Record<string, unknown>;
   /** Whether the repository was named, by `--repo` or `URAEDA_REPO`, so it must be in git. */
   given: boolean;
   /** The host token `/open` and `/session/key` accept from the host's own `uraeda`. */
@@ -249,8 +261,6 @@ type StartOptions = {
   port: number;
   /** The repository to open first. */
   repo: string;
-  /** The agent runtimes sessions run on. */
-  runtimes: Runtimes;
   /**
    * The settings in force, whose host names the guard and the cookie read at each request: the
    * server owns them, and closes them as it stops, or as its start fails.
@@ -280,6 +290,48 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 }
 
 /**
+ * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
+ * of the listed repositories, whose changes the extensions turn into events: all closed again when
+ * one fails to open.
+ */
+async function openParts(options: StartOptions, previews: Previews) {
+  const { binding, dataDir } = options;
+  const extensions = await ExtensionsHost.open({
+    agents: options.agents,
+    binding,
+    configDir: options.settings.dir,
+    dataDir,
+    modules: options.extensionModules,
+    settings: options.settings,
+  });
+  let hosts: Hosts | undefined;
+  let sessions: Awaited<ReturnType<typeof startSessions>> | undefined;
+  try {
+    sessions = await startSessions({
+      binding,
+      dataDir,
+      hosts: () => hosts,
+      runtimes: extensions.runtimes,
+      settings: options.settings,
+    });
+    hosts = await Hosts.open({
+      binding,
+      changed: (host, changes) => extensions.changes(host, changes),
+      dataDir,
+      sessions: sessions.sessions,
+      started: (host) => extensions.seed(host),
+      // A repository removed from the list stops its Storybooks.
+      stopped: (host) => previews.stopRepository(host.name),
+    });
+  } catch (error) {
+    await sessions?.stop();
+    extensions.close();
+    throw error;
+  }
+  return { extensions, hosts, sessions };
+}
+
+/**
  * Starts the server once its sign-in and its themes are open, `key` the access key when this start
  * made it.
  */
@@ -288,33 +340,38 @@ async function startOpened(
   signIn: SignInOptions | undefined,
   key: string | undefined,
 ): Promise<Server> {
-  const { binding, dataDir, runtimes } = options;
+  const { binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   const { frames, previews } = startPreviews(dataDir);
-  let hosts: Hosts | undefined;
-  const sessions = await startSessions({
-    binding,
-    dataDir,
-    hosts: () => hosts,
-    runtimes,
-    settings: options.settings,
-  });
+  const { extensions, hosts: opened, sessions } = await openParts(options, previews);
+  const shared = {
+    ...options,
+    extensions,
+    frames,
+    hosts: opened,
+    previews,
+    sessions: sessions.sessions,
+  };
   try {
-    hosts = await Hosts.open({
-      binding,
-      dataDir,
+    await extensions.start({
+      hosts: opened,
       sessions: sessions.sessions,
-      // A repository removed from the list stops its Storybooks.
-      stopped: (host) => previews.stopRepository(host.name),
+      warm: (repository, folder) => {
+        const host = opened.get(repository);
+        if (host) {
+          warmPreview({ ...shared, repo: host.path }, folder).catch(() => {});
+        }
+      },
     });
   } catch (error) {
+    opened.close();
+    extensions.close();
     await sessions.stop();
     throw error;
   }
-  // Once the repositories are open: a run of one no longer listed does not go on after a restart.
+  // Once the repositories and the runtimes are there: a run of one no longer listed does not go on
+  // after a restart.
   await sessions.sessions.startContinues();
-  const opened = hosts;
-  const shared = { ...options, frames, hosts: opened, previews, sessions: sessions.sessions };
   const sweepPreviews = waitingPreviews(shared);
   const sweeping = setInterval(() => {
     sweepPreviews();
@@ -328,12 +385,14 @@ async function startOpened(
       ...options,
       binding,
       dataDir,
+      extensions,
       frames,
       hosts: opened,
       previews,
       sessions: sessions.sessions,
       signIn,
     }),
+    extensions,
     frames,
     hosts: opened,
     ...(key !== undefined && { key }),
@@ -358,6 +417,7 @@ async function startOpened(
         opened.close();
         options.settings.close();
         options.themes.close();
+        extensions.close();
         await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
       return stopping;

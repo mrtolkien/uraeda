@@ -1061,18 +1061,27 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
 - Create: `packages/server/src/extensions/api.ts` (`serverApi(scope, deps): ServerApi`),
   `extensions/events.ts` (step comparison and the event bus), `extensions/routes.ts` (the
   `/x/<name>/*` dispatch and the page-bundle route), `extensions/builtins.ts` (registers the
-  built-ins' server parts through the same `serverApi`), `extensions/server.ts` (opens the loader
-  with its deps; `startServer` calls it)
+  built-ins' server parts through the same `serverApi`, and `BuiltIns`, their scopes and reloads),
+  `extensions/server.ts` (`ExtensionsHost`: reads the extensions and their settings, owns the
+  runtimes, opens the loader with its deps; `startServer` calls it), `extensions/contributions.ts`
+  (records, actions, and routes, each called inside a guard), `extensions/turns.ts` (the sessions at
+  work by runtime, which a runtime's reload waits for)
 - Create: `packages/server/src/extension-api.ts`: the public types extensions import as
   `uraeda/server` (`ServerApi`, `Runtime`, `UsageWindow`, event payloads), exported from
   `packages/server/package.json` as `./extension-api`
-- Create: `fate/extensions.ts` (views `Extensions`, id `extensions`, and `ExtensionRecord`, id
-  `<extension>/<name>`; mutations `extensions.setOn`, `extensions.setSetting`, `extensions.act`)
+- Create: `fate/extensions.ts` (views `Extensions`, id `extensions`, `ExtensionRecord`, id
+  `<extension>/<name>`, and `ExtensionAction`, an action's answer), `fate/extension-mutations.ts`
+  (mutations `extensions.setOn`, `extensions.setSetting`, `extensions.act`)
 - Modify: `fate.ts`, `fate/mutations.ts`, `fate/sources.ts`, `fate/context.ts`
-  (`extensions: ExtensionsHost` in the context), `server.ts`, `app.ts`, `server-paths.ts`, `live.ts`
-  (publish `Extensions` and records), `repositories.ts` (each repository's watch also feeds the
-  events), `main.ts`, `dev.ts` (runtimes now come from the built-ins), `preview/warmer.ts` (its
-  turn-done listener moves into the `previews` built-in)
+  (`extensions?: ExtensionsHost` in the context, absent in tests' apps made without one, R32),
+  `server.ts` (`startServer` takes `agents` instead of `runtimes`, R31), `app.ts` (the extensions'
+  routes; the turn-done Storybook warmer stays only for an app without extensions, the `previews`
+  built-in doing it otherwise), `server-paths.ts`, `live.ts` (`onSessionChange`,
+  `announceEverywhere`), `repositories.ts` (`started` and `changed` hooks feed the events),
+  `settings.ts` (`onRead`, after every read of `config.toml`), `runner/cache.ts` (`onCreated`, for
+  `session-started`), `runner/runtimes.ts` (a status carried across a re-registration; refusals name
+  the extension's title), `main.ts`, `dev.ts`, the tests and the sandbox that passed `runtimes`
+  (runtimes now come from the built-ins)
 - Test: `extensions/__tests__/api.test.ts`; Modify: `sign-in/__tests__/closed.test.ts`
 
 **Interfaces:**
@@ -1088,21 +1097,25 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
       `path` must start with `/x/<name>/`, else throws `<name>: routes must be under /x/<name>/`;
     - `on(event: "step-reached" | "turn-ended" | "commit-landed" | "session-started", handler): void`,
       each payload with `repository` and `time` (ISO), and: step-reached `{ feature, step }`,
-      turn-ended `{ session, feature }`, commit-landed `{ branch }`, session-started
-      `{ session, runtime }`; delivered only for repositories the extension is on in;
+      turn-ended `{ session, feature, state }`, commit-landed `{ branch, commit }`, session-started
+      `{ session, runtime }`; step-reached also gives `waitsOn`, and its `step` is the waiting
+      file's kind at a human gate (R30); delivered only for repositories the extension is on in;
     - `settings(repository: string | null): Record<string, unknown>` (task 2's `settings_json`);
     - `repositories(): ReadonlyArray<{ name: string; path: string }>` (the on ones);
     - `log(message: string): void` (to the server's output, prefixed with the name).
   - fate: `Extensions` =
-    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, icon, isBuiltIn, isLinked, source, onAll, on, state, problems, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
-    `ExtensionRecord` = `{ id, value: string /* JSON */, error: string | null }` on each
-    repository's fate server, live through its bus.
+    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, api, icon, isBuiltIn, isLinked, source, onAll, on, state, problems: Array<{ file, line: number | null, message }>, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
+    `keys` is always empty from the server: the page fills in its clashes (task 9, R35); `docs` is
+    `<checkout>/docs/extensions.md` until task 14 ships the documentation; `ExtensionRecord` =
+    `{ id, value: string /* JSON */, error: string | null }` on each repository's fate server, live
+    through its bus.
   - Mutations: `extensions.setOn({ name, on: "all" | string[] })`,
     `extensions.setSetting({ name, repository, key, valueJson })`,
-    `extensions.act({ extension, name, inputJson })` → `{ outputJson }` (repository from the
-    request's context; refused when off there).
+    `extensions.act({ extension, name, inputJson })` → `ExtensionAction` `{ id, outputJson }`
+    (repository from the request's context; refused when off there).
   - Routes: `GET /extensions/<name>/page` → the `PageBundle` JSON, `cache-control: no-store`;
-    `ALL /x/<name>/*` and `/r/<repo>/x/<name>/*` → the extension's handler. Both in `SERVER_PATHS`,
+    `ALL /x/<name>/*` and `/r/<repo>/x/<name>/*` → the extension's handler (a route path ending `/*`
+    takes the paths under it; without `method`, every method answers, R33). Both in `SERVER_PATHS`,
     both closed.
   - Events: the server keeps each repository's last step per feature (from its workspace read); each
     watcher `Changes` listing a feature compares the new step's `name` with the kept one and emits
@@ -1116,9 +1129,13 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
     server part: their data stays in Uraeda's static fate views, which stay served when they are
     off.
   - A runtime extension's reload is deferred (`loader.defer`) while one of its sessions has a turn
-    running, with `waitingFor` = that session's title; it reloads when the turn ends.
+    running, with `waitingFor` = that session's title; it reloads when the turn ends. A built-in's
+    settings change registers it again, a runtime's once its turns end, the same way (R34).
+  - Each read of `config.toml` reads the extensions and their settings again: an extension whose
+    `on` or settings changed reloads (`loader.reload`, or the built-in registered again), and the
+    `Extensions` record is sent on every bus, as after each of the loader's notices.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/extensions/__tests__/api.test.ts
@@ -1147,21 +1164,21 @@ The break each test catches: records served to repositories the extension is off
 leaking across repositories; a runtime reloaded mid-turn; an extension route reachable without
 sign-in.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/extensions packages/server/src/sign-in`
 - Expected: FAIL, `Cannot find module '../api.ts'`.
 
-- [ ] **Step 3: Implement the API, the views, the routes, the events, and the built-ins**
+- [x] **Step 3: Implement the API, the views, the routes, the events, and the built-ins**
 
 Make the break: drop the `isOn` check in event delivery; see the events test fail; revert.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp check && vp test packages/server packages/web`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/web/.fate

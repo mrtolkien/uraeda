@@ -5,7 +5,6 @@ import "./threadpool.ts";
 import { rmSync } from "node:fs";
 import { createServer, type RequestListener, type Server as HttpServer } from "node:http";
 import { getRequestListener } from "@hono/node-server";
-import { chatImages } from "./attach.ts";
 import { loadBinding } from "./binding.ts";
 import type { Binding } from "./fate/context.ts";
 import { browserOpens, openBrowser } from "./browser.ts";
@@ -13,8 +12,6 @@ import { loadConfigDir, loadDataDir, loadEnv } from "./env.ts";
 import { handOff, type HandOff, newKeyOn } from "./open-client.ts";
 import { HELP, type Options, parseOptions } from "./options.ts";
 import { layout, requireWeb } from "./paths.ts";
-import { ClaudeAdapter } from "./runner/claude.ts";
-import { runtimesOf } from "./runner/runtimes.ts";
 import { keyLines, newKeyLines, startServer } from "./server.ts";
 import { ServerSettings } from "./settings.ts";
 import { readHostToken, removeHostToken, writeHostToken } from "./sign-in/host.ts";
@@ -102,7 +99,7 @@ function serveWhenReady(http: HttpServer): (listener: RequestListener) => void {
  * What the first start needs besides its options: the binding, the settings in force, and the
  * paths it starts on.
  */
-type Start = Settled & { binding: Binding; plugin: string; web: string };
+type Start = Settled & { binding: Binding; web: string };
 
 /**
  * Starts the server on the port this process took, with a new host token, removed at exit. Prints
@@ -110,7 +107,7 @@ type Start = Settled & { binding: Binding; plugin: string; web: string };
  * opens the browser through a one-time link, made only when a browser opens.
  */
 async function serve(http: HttpServer, options: Options, start: Start): Promise<number> {
-  const { binding, dataDir, plugin, settings, web } = start;
+  const { binding, dataDir, settings, web } = start;
   const {
     openBrowser: open,
     port: { inForce: port },
@@ -130,9 +127,6 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
     hostToken,
     port,
     repo: options.repo,
-    runtimes: runtimesOf({
-      claude: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
-    }),
     settings,
     webRoot: web,
   });
@@ -158,7 +152,7 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
 }
 
 async function main(argv: Array<string>): Promise<number> {
-  const { checkout, plugin, web } = layout();
+  const { checkout, web } = layout();
   const options = parseOptions(argv, loadEnv(checkout));
   // `--help` needs no binding: it works before the binding is built or installed.
   if (options.show === "help") {
@@ -188,7 +182,7 @@ async function main(argv: Array<string>): Promise<number> {
     settings.close();
     return handOver(options, { dataDir, settings });
   }
-  return serve(http, options, { binding, dataDir, plugin, settings, web });
+  return serve(http, options, { binding, dataDir, settings, web });
 }
 
 try {

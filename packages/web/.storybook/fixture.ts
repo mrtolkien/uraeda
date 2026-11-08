@@ -27,7 +27,6 @@ import {
   previewDecision,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
-import { runtimesOf } from "uraeda-server/runner/runtimes";
 import { FakeAdapter } from "uraeda-server/testing";
 import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
@@ -245,9 +244,9 @@ export function fixtureServer(): Array<Plugin> {
   return [
     fateOverGet(),
     uraedaServer({
+      agents: { fake: new FakeAdapter() },
       file: false,
       lockedList: true,
-      runtimes: runtimesOf({ fake: new FakeAdapter() }),
       signIn: false,
     }),
   ];

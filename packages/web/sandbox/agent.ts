@@ -8,7 +8,6 @@ import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
 import type { Outgoing } from "uraeda-server/runner/adapter";
-import { type Runtimes, runtimesOf } from "uraeda-server/runner/runtimes";
 import { dirname, join } from "node:path";
 import { REALISTIC_FOLDERS, SAMPLE_FOLDERS } from "../samples/index.ts";
 
@@ -354,9 +353,9 @@ export function sandboxAgent({ wait = timerWait }: { wait?: Wait } = {}): Sandbo
  */
 export const SANDBOX_KINDS = ["fake", "claude", "codex"] as const;
 
-/** The sandbox's runtimes: `agent` as each of `SANDBOX_KINDS`. */
-export function sandboxRuntimes(agent: SandboxAgent): Runtimes {
-  return runtimesOf(Object.fromEntries(SANDBOX_KINDS.map((kind) => [kind, agent])));
+/** The sandbox's agents: `agent` as each of `SANDBOX_KINDS`, which the server registers. */
+export function sandboxAgents(agent: SandboxAgent): Record<string, SandboxAgent> {
+  return Object.fromEntries(SANDBOX_KINDS.map((kind) => [kind, agent]));
 }
 
 /** The workflow's message for a feature waiting on the agent, as "Continue" sends it. */
@@ -377,7 +376,7 @@ export async function workflowMessage(repo: string, folder: string): Promise<str
 /**
  * Starts `work` on `folder`'s session, as "Continue" does. With `kind`, the session is one of that
  * runtime's, to show its mark: a session records the runtime it was made on, so it is retagged,
- * and the sandbox's agent runs every kind (`sandboxRuntimes`).
+ * and the sandbox's agent runs every kind (`sandboxAgents`).
  */
 async function startAtWork(
   sessions: Sessions,

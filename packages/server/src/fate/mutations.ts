@@ -16,6 +16,7 @@ import { maskedSession, sessionMoves } from "./session-moves.ts";
 import { featureRecord, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
+import { extensionMutations } from "./extension-mutations.ts";
 import { sources } from "./sources.ts";
 import { priorities, proposalFile, undoablePriorities } from "./masked.ts";
 import { featureDataView } from "./views.ts";
@@ -341,4 +342,5 @@ export const mutations = {
   ...repositoryOnly(repositoryMutations),
   ...listMutations,
   ...settingsMutations,
+  ...extensionMutations,
 };
