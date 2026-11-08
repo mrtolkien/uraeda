@@ -129,10 +129,12 @@ export class Processes {
       const adapter = sessionRuntime(runtimes, row);
       const resume = adapter.hasSession(row.nativeId);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
-      // A session that ran before has lost its transcript: Claude Code deletes old ones.
-      const line = resume || !ran ? held : REPLACED;
-      const nativeId = line !== REPLACED ? row.nativeId : randomUUID();
-      if (line === REPLACED) {
+      // A session that ran before has lost its transcript: Claude Code deletes old ones. A line
+      // held from a replacement the process opened on is carried, resuming that new session.
+      const replaced = !resume && ran;
+      const line = replaced ? REPLACED : held;
+      const nativeId = replaced ? randomUUID() : row.nativeId;
+      if (replaced) {
         cache.updateSession(live.id, { nativeId });
       }
       const agent = adapter.open({

@@ -176,6 +176,26 @@ test.each([true, false])(
   },
 );
 
+test.each([true, false])(
+  "an effort set back to the process's own before the next turn changes nothing (setEffort: %s)",
+  async (hasSetEffort) => {
+    const { adapter, repo, sessions } = await testSessions();
+    adapter.hasSetEffort = hasSetEffort;
+    adapter.fallback = () => [];
+    const chat = await sessions.newChat(repo, { effort: "high", runtime: "fake" });
+    await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+
+    sessions.setEffort(repo, chat.id, "max");
+    sessions.setEffort(repo, chat.id, "high");
+    await sessions.settled((await sessions.send(repo, chat.id, { text: "Again" })).turn);
+
+    expect(adapter.opens).toHaveLength(1);
+    expect(adapter.efforts).toEqual([]);
+    expect(adapter.closes).toBe(0);
+    sessions.close();
+  },
+);
+
 test("a model list is asked for at most once a minute, and one that fails keeps the last one", async () => {
   let now = Date.now();
   vi.spyOn(Date, "now").mockImplementation(() => now);
