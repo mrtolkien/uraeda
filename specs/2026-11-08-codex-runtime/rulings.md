@@ -114,8 +114,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R13: A Codex command's target drops its shell wrapper
 
-- **Decision**: a command's target reads `git commit -m 'add a'`, not `/usr/bin/bash -lc "..."`;
-  its input keeps the full command line.
+- **Decision**: a command's target reads `git commit -m 'add a'`, not `/usr/bin/bash -lc "..."`; its
+  input keeps the full command line.
 - **Rationale**: the transcript shows what the agent ran, as Claude Code's Bash targets do.
 - **Where**: task 4, `shellCommand` in `codex-events.ts`.
 
