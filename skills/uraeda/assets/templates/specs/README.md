@@ -16,9 +16,8 @@ Without it, the file names and their `status` fields still tell where each featu
 - `DECISIONS-CHECK.md`: an agent's questions about how the decisions fit together, answered like
   questions; and `decisions-check/`, holding each option's edited decision until it is applied
 - `proposals/`: proposal files, upcoming features written by humans, free form, usually linked from
-  `PRIORITIES.md`. A folder is a postponed feature: its proposal, with the discovery rounds and
-  questions it had, kept for when it starts again; or a proposal with images, its `proposal.md` next
-  to its `images/`
+  `PRIORITIES.md`. A postponed feature is a proposal file too, written by an agent from its state
+  when postponed. A folder is a proposal with images, its `proposal.md` next to its `images/`
 - `notes/`: note files, the inbox's notes written as files, free form: `<slug>.md`, or a `note.md`
   next to its `images/`; and agents' notes, which no line of `INBOX.md` links, each a note of the
   inbox on its own

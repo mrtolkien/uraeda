@@ -78,8 +78,8 @@ specs/
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
   DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/
   proposals/                # proposal files: upcoming features, human-written, free form:
-                            # <slug>.md; a folder is a postponed feature, or a proposal with images:
-                            # <slug>/proposal.md, images/, ...
+                            # <slug>.md, or an agent's, for a postponed feature; a folder is a
+                            # proposal with images: <slug>/proposal.md, images/, ...
   notes/                    # note files: inbox notes with images, and agents' notes
   decisions/                # decision ledger, one file per topic: due-dates.md
   ui/                       # the project's UI guides, free form: read before designing a view
