@@ -48,12 +48,17 @@ export class CodexTurns {
   #closing = false;
   /** The effort of the next turns: undefined for the agent's default. */
   #effort: string | undefined;
-  /** Whether a turn was given an effort, which Codex keeps for the turns after it. */
-  #overridden = false;
+  /**
+   * Whether the thread may hold an effort other than the default, which Codex keeps for the turns
+   * after it: once a turn was given one, and from the start for a resumed thread, which keeps the
+   * effort it last ran on.
+   */
+  #overridden: boolean;
 
-  constructor(deps: TurnsDeps, effort: string | undefined) {
+  constructor(deps: TurnsDeps, effort: string | undefined, resumed = false) {
     this.#deps = deps;
     this.#effort = effort;
+    this.#overridden = resumed;
     void deps.thread.then((thread) => (this.#thread = thread));
   }
 
