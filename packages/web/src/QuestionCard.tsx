@@ -158,6 +158,8 @@ function useTypingIn(inside: RefObject<HTMLElement | null>) {
     };
     card.addEventListener("focusin", update);
     card.addEventListener("focusout", update);
+    // The focus may have come in before this effect ran, as a field focused as the card draws.
+    update();
     return () => {
       card.removeEventListener("focusin", update);
       card.removeEventListener("focusout", update);
