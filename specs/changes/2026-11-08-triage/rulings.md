@@ -22,7 +22,9 @@ proposal and the decisions. None binds future work: those are decisions.
 ## R2: Dismiss asks only when answers would be lost
 
 - **Decision**: Dismiss asks "Dismiss the inbox triage?" only when the triage holds answers saved
-  but not committed, which the deletion loses for good. A triage committed as it is goes at once.
+  but not committed, which the deletion loses for good. A triage committed as it is goes at once. A
+  triage never committed is refused, "INBOX-TRIAGE.md was never committed: delete it by hand to
+  dismiss it.", as git would not keep it, and could not commit its deletion.
 - **Rationale**: the [undo decision](/specs/decisions/undo.md) keeps questions for what loses work
   for good, so a question still means danger. A committed triage stays in git's history.
 - **Where**: `packages/web/src/InboxTriage.tsx`

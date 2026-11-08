@@ -132,7 +132,8 @@ pub fn retry(place: &Place, round: DefaultRound) -> Result<Committed, ActionErro
 
 /// Dismisses the round: deletes its file and commits the deletion alone, so a new one can be asked
 /// for. Refused before anything is written when it changed since it was read with the hash
-/// `previous`, and for a round that cannot be dismissed: the decisions check has its candidates.
+/// `previous`, for a round that is gone or was never committed, and for a round that cannot be
+/// dismissed: the decisions check has its candidates.
 pub fn dismiss(
     place: &Place,
     round: DefaultRound,
@@ -144,6 +145,17 @@ pub fn dismiss(
             answer::name_of(round.path())
         )));
     };
+    let name = answer::name_of(round.path());
+    if !place.root.join(round.path()).exists() {
+        return Err(ActionError::Refused("No inbox triage waits.".to_string()));
+    }
+    // Git keeps a committed triage; one never committed would be lost for good, and git cannot
+    // commit its deletion.
+    if super::place::committed(place, round.path()).is_none() {
+        return Err(ActionError::Refused(format!(
+            "{name} was never committed: delete it by hand to dismiss it."
+        )));
+    }
     ensure_unchanged(place, round, previous)?;
     fs::remove_file(place.root.join(round.path()))?;
     commit::commit_only(

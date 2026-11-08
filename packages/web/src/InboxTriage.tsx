@@ -5,15 +5,15 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/round-messages";
+import { APPLY_TRIAGE, ORGANIZE_INBOX, TRIAGE_ID } from "uraeda-server/round-messages";
 import { MessageToCopy, RoundBanner, type StartChat } from "./StartChat.tsx";
 import { Foldable } from "./layout/Foldable.tsx";
+import { useState } from "react";
 import { useFateClient } from "react-fate";
-import { TRIAGE_ID } from "uraeda-server/round-messages";
-import { useRound } from "./data.ts";
+import type { WorkflowFile } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
-import { InboxView } from "./views.ts";
+import { FileView, InboxView } from "./views.ts";
 
 /**
  * "Organize with AI", as the decisions page's "Review with AI": starts the triage's chat, gone
@@ -45,7 +45,7 @@ export function OrganizeMessage() {
   );
 }
 
-/** What Dismiss asks when the triage holds answers not committed yet, which it deletes for good. */
+/** What Dismiss asks when the triage holds changes not committed yet, which it deletes for good. */
 export const DISMISS_UNSUBMITTED = {
   body: "The answers you saved but did not submit are deleted with it.",
   cancel: "Keep it",
@@ -56,24 +56,31 @@ export const DISMISS_UNSUBMITTED = {
 
 /**
  * Dismiss: deletes the triage and commits the deletion alone, so "Organize with AI" asks for a new
- * one. A triage committed as it is goes at once, as git keeps it; one holding answers saved but not
- * committed asks first, as those are lost. `onRefused` shows the server's refusal, as a triage
- * changed since it was read.
+ * one. A triage committed as it is goes at once, as git keeps it; one holding changes not committed
+ * asks first, as those are lost. The triage is read at the press, not while the banner draws, so
+ * the page never waits for it, and the hash sent is the freshest. `onRefused` shows the server's
+ * refusal, as a triage changed since, gone, or never committed.
  */
 export function DismissTriage({ onRefused }: { onRefused: (message: string) => void }) {
   const fate = useFateClient();
   const confirm = useConfirm();
-  const file = useRound(TRIAGE_ID);
-  if (!file || file.missing) {
-    return null;
-  }
+  const [busy, setBusy] = useState(false);
   const dismiss = async () => {
-    if (file.committed && !(await confirm(DISMISS_UNSUBMITTED))) {
+    const { workflowFile } = await fate.request(
+      { workflowFile: { id: TRIAGE_ID, view: FileView } },
+      { mode: "network-only" },
+    );
+    // fate types the request's root as any entity: the view gives the round's fields.
+    const file = (await fate.readView(FileView, workflowFile)).data as unknown as Pick<
+      WorkflowFile,
+      "committed" | "current"
+    > | null;
+    if (file?.committed && !(await confirm(DISMISS_UNSUBMITTED))) {
       return;
     }
     const result = await fate.mutations.defaultRound.dismiss({
       input: {
-        previous: file.current.document.hash,
+        previous: file?.current.document.hash ?? "",
         write: { href: "/inbox", label: "Dismissing the inbox triage" },
       },
       view: InboxView,
@@ -83,9 +90,19 @@ export function DismissTriage({ onRefused }: { onRefused: (message: string) => v
     }
   };
   // Not a `clickAction`: its transition would hold the question back until the action ends, which
-  // waits for the answer.
-  // Ghost: the banner's own action, Answer it or Apply the answers, stays its one lead.
-  return <Button label="Dismiss" onClick={() => void dismiss()} variant="ghost" />;
+  // waits for the answer. Ghost: the banner's own action, Answer it or Apply the answers, stays its
+  // one lead.
+  return (
+    <Button
+      isDisabled={busy}
+      label="Dismiss"
+      onClick={() => {
+        setBusy(true);
+        void dismiss().finally(() => setBusy(false));
+      }}
+      variant="ghost"
+    />
+  );
 }
 
 /**
