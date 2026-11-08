@@ -203,7 +203,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   saying why.
 - **Where**: review fix, `crates/core/src/extensions/values.rs`.
 
-## R19: Turning on refuses only repositories new to `on`
+## R22: Turning on refuses only repositories new to `on`
 
 - **Decision**: `set_on` refuses a repository that is not in Uraeda's list only when the current
   `on` does not already name it.
