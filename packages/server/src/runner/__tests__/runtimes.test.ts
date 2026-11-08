@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { mutate, testServer } from "../../__tests__/helpers.ts";
 import { FakeAdapter, fakeModels } from "../fake.ts";
-import { MODELS_REFRESH_MS, Runtimes } from "../runtimes.ts";
+import { MODELS_REFRESH_MS, MODELS_TIMEOUT_MS, Runtimes } from "../runtimes.ts";
 import { flush, restart, testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -227,6 +227,44 @@ test("a model list is asked for at most once a minute, and one that fails keeps 
 
   unregister();
   expect(runtimes.models("fake")).toBeUndefined();
+});
+
+test("each model list counts as it comes, and one that hangs times out, keeping the last one", async () => {
+  vi.useFakeTimers();
+  const fast = new FakeAdapter();
+  const slow = new FakeAdapter();
+  const hung: Array<(list: ReturnType<typeof fakeModels>) => void> = [];
+  slow.models = () => new Promise((resolve) => hung.push(resolve));
+  const runtimes = new Runtimes();
+  runtimes.register("fast", fast);
+  runtimes.register("slow", slow);
+  let changes = 0;
+  runtimes.onChange(() => changes++);
+  let settled = false;
+
+  const refresh = runtimes.refreshModels().then(() => (settled = true));
+  await vi.advanceTimersByTimeAsync(0);
+  // The fast list is in, and said, while the slow one is still asked for.
+  expect(runtimes.models("fast")).toEqual(fakeModels());
+  expect(changes).toBe(1);
+  expect(settled).toBe(false);
+
+  await vi.advanceTimersByTimeAsync(MODELS_TIMEOUT_MS);
+  await refresh;
+  expect(runtimes.models("slow")).toBeUndefined();
+  expect(changes).toBe(1);
+
+  // Asked again, the slow one answers: the first ask's late answer does not replace it.
+  const small = { defaults: {}, models: [fakeModels().models[1]!] };
+  vi.advanceTimersByTime(MODELS_REFRESH_MS);
+  const second = runtimes.refreshModels(["slow"]);
+  await vi.advanceTimersByTimeAsync(0);
+  hung[1]!(small);
+  await second;
+  hung[0]!(fakeModels());
+  await vi.advanceTimersByTimeAsync(0);
+  expect(runtimes.models("slow")).toEqual(small);
+  expect(changes).toBe(2);
 });
 
 test("a runtime without a model list has none", async () => {
