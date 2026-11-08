@@ -1,0 +1,64 @@
+# Rulings: Codex runtime + model settings
+
+The low-impact choices made while planning and building [the plan](plan.md), inside the limits of
+[the spec](spec.md) and the decisions. None binds future work: those are decisions.
+
+## R1: A process opened without resume adopts its agent's first ID
+
+- **Decision**: a process opened for a new agent session takes the session ID of its first `init` as
+  the session's, silently; any later different ID in the same process is still a `/clear`.
+- **Rationale**: Codex picks a thread's ID, so its first `init` always differs from the ID Uraeda
+  stored, and `Transcript.#init` would read it as a clear. Claude Code's first `init` repeats the ID
+  it was given, so nothing changes for it.
+- **Alternatives considered**: a runtime flag saying "picks its own IDs": a contract field for what
+  the process already knows.
+- **Where**: task 2, `transcript.ts` and `Proc.adopts`.
+
+## R2: The agent reports what ran by names, in a `runsOn` event
+
+- **Decision**: each runtime sends `{ type: "runsOn", model, effort }` with names for people,
+  resolved from its own model list; the cache stores them as `ran_model` and `ran_effort`.
+- **Rationale**: the data model stores names, and only the runtime knows how its IDs map to them:
+  Claude Code reports `claude-opus-5-5` for the `opus` row, Codex `gpt-6-luna` for "GPT-6-Luna".
+- **Where**: tasks 2, 4, 5, and 7.
+
+## R3: An effort change applies when the next turn opens its process
+
+- **Decision**: `session.setEffort` only stores the effort; `Processes.open`, at the next turn's
+  start, applies it through `setEffort`, or reopens a process whose runtime has none.
+- **Rationale**: the spec keeps the running turn's effort; Claude Code's `apply_flag_settings`
+  mid-turn could change the requests left in it.
+- **If wrong**: a message Claude Code itself queued during the turn runs on the old effort; moving
+  the call into `setEffort` at once would fix it.
+- **Where**: task 3.
+
+## R4: Model lists live in `Runtimes`, beside each runtime's status
+
+- **Decision**: `Runtimes` keeps each runtime's last list and refreshes it, at most once a minute
+  per runtime; its records carry the list.
+- **Rationale**: `Runtimes` already owns each runtime's registration and status, and a list belongs
+  to a registered runtime: an unregistered one takes its list with it.
+- **Where**: task 3.
+
+## R5: Efforts carry no description
+
+- **Decision**: a model's efforts are `{ id, name }`, as the data model lists them; the picker's
+  effort preview shows the name, and the mockup's descriptions go.
+- **Rationale**: the data model is the spec's, and Claude Code gives no description.
+- **Where**: tasks 2 and 8.
+
+## R6: Codex's requests to the client are refused at once
+
+- **Decision**: any JSON-RPC request Codex sends the client gets an error answer straight away.
+- **Rationale**: with the auto-reviewer, approvals never reach the client; anything else, as a
+  question to the user, would hang an unattended turn. A refused request ends in Codex's own error,
+  in the transcript.
+- **Where**: task 7.
+
+## R7: Uraeda's skill reaches Codex as an extra skill root
+
+- **Decision**: `skills/extraRoots/set` with the server's `<plugin>/skills` folder and the
+  extensions' `skills/` folders, as Claude Code gets them as plugins.
+- **Rationale**: the folder already holds `skills/uraeda/`, and Codex reads a root's skill folders;
+  no copy is made.
+- **Where**: task 7.
