@@ -7,7 +7,7 @@ const row = (name: string, on: ReadonlyArray<string>, onAll = false) => ({ name,
 // Break: yours on until the record is read, flashing a place off in this repository.
 test("until the rows are read, the built-ins are on and yours off", () => {
   const isOn = isOnIn(undefined, "uraeda");
-  expect(["inbox", "sessions", "git"].map(isOn)).toEqual([true, true, true]);
+  expect(["inbox", "sessions", "git", "claude"].map(isOn)).toEqual([true, true, true, true]);
   expect(isOn("deploy")).toBe(false);
 });
 
@@ -19,4 +19,11 @@ test("each is on where its row says, Sessions always", () => {
   );
   expect(["deploy", "wiki", "inbox", "sessions"].map(isOn)).toEqual([true, true, false, true]);
   expect(isOnIn([row("deploy", ["other"])], "uraeda")("deploy")).toBe(false);
+});
+
+// Break: a name without a row on, as before: an extension of yours removed kept its place.
+test("once the rows are read, one of yours without a row is off", () => {
+  const isOn = isOnIn([row("inbox", [], true)], "uraeda");
+  expect(isOn("removed")).toBe(false);
+  expect(isOn("sessions")).toBe(true);
 });
