@@ -1,10 +1,15 @@
 // The extensions' routes: each one's `/x/<name>/…`, globally and under a repository's `/r/<repo>`,
 // and the page bundle the page runtime fetches. All are server paths, so the session check closes
-// them as it closes `/fate`.
-import type { Hono } from "hono";
+// them as it closes `/fate`. A route refuses a request another site sent, whatever its method: the
+// session's cookie goes with a link followed from another site, and a route may act on a GET.
+import type { Context, Hono } from "hono";
 import type { FateVariables } from "../fate.ts";
 import type { Hosts } from "../repositories.ts";
 import type { ExtensionsHost } from "./server.ts";
+
+/** Whether a browser says another site, or another port of this one, sent the request. */
+const fromOtherSite = (c: Context) =>
+  ["cross-site", "same-site"].includes(c.req.header("sec-fetch-site") ?? "");
 
 /** Adds the extensions' routes to `app`. */
 export function extensionRoutes(
@@ -17,10 +22,16 @@ export function extensionRoutes(
     c.header("Cache-Control", "no-store");
     return bundle ? c.json(bundle) : c.json({ error: "no page" }, 404);
   });
-  app.all("/x/:extension/*", (c) =>
-    extensions.answer(c, c.req.param("extension"), c.req.path, null),
-  );
+  app.all("/x/:extension/*", async (c) => {
+    if (fromOtherSite(c)) {
+      return c.text("Refused: another site sent this request", 403);
+    }
+    return extensions.answer(c, c.req.param("extension"), c.req.path, null);
+  });
   app.all("/r/:name/x/:extension/*", async (c) => {
+    if (fromOtherSite(c)) {
+      return c.text("Refused: another site sent this request", 403);
+    }
     const name = c.req.param("name");
     const host = await hosts.current(name);
     if (!host) {

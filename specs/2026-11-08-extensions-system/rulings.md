@@ -338,11 +338,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   loader would only slow them.
 - **Where**: task 8, `packages/server/src/app.ts`, `fate/extensions.ts`.
 
-## R33: A route without a method answers every method
+## R33: A route without a method answers GET and POST
 
-- **Decision**: `api.route(path, handler)` without a method answers every method; a path ending in
-  `/*` answers every path under it. A route answers globally with no repository, and under
-  `/r/<repo>/` only where its extension is on, else 404; a handler that throws answers 500.
+- **Decision**: `api.route(path, handler)` without a method answers GET and POST, and a GET route
+  answers HEAD too; a path ending in `/*` answers every path under it, and a trailing slash is the
+  same path. A route answers globally with no repository, and under `/r/<repo>/` only where its
+  extension is on, else 404; a handler that throws answers 500.
 - **Where**: task 8, `packages/server/src/extensions/contributions.ts`, `routes.ts`.
 
 ## R34: Built-ins register their server parts wherever they are on or off
@@ -380,3 +381,38 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   tests free of the file system.
 - **Where**: task 11, `packages/server/src/runner/claude.ts`, `runner/instructions.ts`,
   `runner/runtimes.ts`, `extensions/server.ts`.
+
+## R37: An extension's route refuses a request from another site
+
+- **Decision**: `/x/<name>/*` and `/r/<repo>/x/<name>/*` answer 403, whatever the method, when the
+  browser's `Sec-Fetch-Site` says `cross-site` or `same-site`; `same-origin`, `none`, and no header
+  (a script, a terminal) pass on to the session check and the route.
+- **Rationale**: the guard lets GETs through, and the session's cookie is `SameSite=Lax`, so a link
+  followed from another site carries it; a route may act on a GET (R33), so it must not answer one
+  another site sent. `same-site` is refused too: another port of the same host is another server.
+- **Where**: fix of task 8, `packages/server/src/extensions/routes.ts`.
+
+## R38: An extension's record, action, or route has 10 s to answer
+
+- **Decision**: each read of a record, each action, and each route races 10 s. Past it, the record
+  reads with the error `<extension>: no answer in 10 s`, the action is refused with
+  `refused: <extension>: no answer in 10 s`, and the route answers 504 with the same text; each is
+  reported under the extension's name, as a throw is. The call itself goes on: it cannot be stopped,
+  only no longer waited for.
+- **Rationale**: a record read in a fate request, or a route, that never settles would hold Uraeda's
+  own request, and every record read beside it, forever; 10 s is longer than any read a page waits
+  for. The tests run the 10 s on fake timers.
+- **Where**: fix of task 8, `packages/server/src/extensions/contributions.ts`.
+
+## R39: The steps are read only while an extension listens to them
+
+- **Decision**: the watch of steps and commits reads a repository's workspace, as its host starts or
+  it changes, only while a handler of `step-reached` or `commit-landed` is registered. Without one,
+  a change drops what the watch kept for the repository; the first handler added reads every
+  repository it knows that has nothing kept, so its first change compares with where the repository
+  was then. The extensions host no longer seeds the repositories as it starts: the hosts' `started`
+  hook does, once.
+- **Rationale**: a workspace read per change is the costly part of the watch, wasted when nothing
+  listens, as with only the built-ins; a stale step kept across a gap would emit a step reached long
+  ago.
+- **Where**: fix of task 8, `packages/server/src/extensions/events.ts`, `extensions/server.ts`.

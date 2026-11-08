@@ -125,17 +125,24 @@ export class BuiltIns {
     }
   }
 
-  /** Whether the built-in registered its server part, or has none. */
-  registered(name: string): boolean {
-    return this.#entries.get(name)?.scope !== undefined || !(name in BUILT_IN_SERVER);
-  }
-
-  problems(name: string): ReadonlyArray<Problem> {
-    return this.#entries.get(name)?.problems ?? [];
-  }
-
-  waitingFor(name: string): string | undefined {
-    return this.#entries.get(name)?.waitingFor;
+  /**
+   * A built-in's state, off by its `on` or a runtime missing when `off`, and its problems: while
+   * its reload waits, the session it waits for, the one of its runtime at work now.
+   */
+  state(name: string, off: boolean) {
+    const entry = this.#entries.get(name);
+    const problems: ReadonlyArray<Problem> = entry?.problems ?? [];
+    const waiting = entry?.waitingFor;
+    const waitingFor = waiting ? (this.#options.turns()?.busy(name) ?? waiting) : null;
+    const registered = entry?.scope !== undefined || !(name in BUILT_IN_SERVER);
+    const state = waitingFor
+      ? "waiting"
+      : problems.length > 0
+        ? "broken"
+        : off || !registered
+          ? "off"
+          : "on";
+    return { problems, state, waitingFor } as const;
   }
 
   /** Registers a built-in's server part in a new scope, the last one unloaded, a throw kept. */

@@ -47,6 +47,8 @@ const closed: Array<Row> = [
   // An extension's routes and its page's files.
   ["GET", "/x/wiki/hello"],
   ["POST", "/x/wiki/hello"],
+  // A link on another site is no way in either.
+  ["GET", "/x/wiki/hello", { "sec-fetch-site": "cross-site" }],
   ["GET", "/r/<name>/x/wiki/hello"],
   ["GET", "/extensions/wiki/page"],
 ];

@@ -1,104 +1,13 @@
-// The server API on a started server: an extension's records reach fate, its events reach only
-// the repositories it is on in, a runtime of yours reloads once its turns end, and routes stay
-// under `/x/<name>/` and behind sign-in.
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, expect, test } from "vite-plus/test";
-import { commitOnBranch, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
-import { fateAt, port, signInCookie } from "../../__tests__/helpers.ts";
-import { FakeAdapter } from "../../runner/fake.ts";
+// The server API on a started server: an extension's records and actions reach fate, its events
+// reach only the repositories it is on in, and its routes stay under `/x/<name>/`, behind sign-in,
+// and closed to other sites.
+import { expect, test } from "vite-plus/test";
+import { fateAt, signInCookie } from "../../__tests__/helpers.ts";
 import { SERVER_PATHS } from "../../server-paths.ts";
-import { type Server, startServer } from "../../server.ts";
-import { testSettings } from "../../testing.ts";
 import type { Registry } from "../api.ts";
 import { serverApi } from "../api.ts";
 import { Scope } from "../scope.ts";
-import { extensionFolder, writeFiles } from "./helpers.ts";
-
-const binding = await import("uraeda-binding");
-
-/** The spec waiting for the human on its branch, in the fixture. */
-const FEATURE = "2026-10-06-recurring-tasks";
-const SPEC = `specs/${FEATURE}/spec.md`;
-
-const servers: Array<Server> = [];
-
-afterEach(async () => {
-  for (const server of servers.splice(0)) {
-    await server.stop();
-  }
-});
-
-/** What extensions under test share with the test: through the module `test/sink`. */
-type Sink = {
-  activations: number;
-  adapter: FakeAdapter;
-  changed?: () => void;
-  events: Array<Record<string, unknown>>;
-};
-
-/**
- * A server on two repositories, `uraeda` and `other`, its config folder holding `extensions` (by
- * name, their files) and `config.toml`, on the fake agent. `prepare` runs on each repository first.
- */
-async function serve(
-  extensions: Record<string, Record<string, string>>,
-  config: string,
-  {
-    prepare = () => {},
-    signIn = false,
-  }: { prepare?: (repo: string) => void; signIn?: boolean } = {},
-) {
-  const configDir = temporaryFolder("uraeda-config");
-  for (const [name, files] of Object.entries(extensions)) {
-    extensionFolder(configDir, name, files);
-  }
-  writeFileSync(join(configDir, "config.toml"), config);
-  const dataDir = temporaryFolder("uraeda-data");
-  const parent = temporaryFolder("uraeda-repos");
-  const repos = ["other", "uraeda"].map((name) => fixtureRepo("repo", join(parent, name)));
-  repos.forEach(prepare);
-  for (const repo of repos) {
-    await binding.addRepository(dataDir, repo);
-  }
-  const sink: Sink = { activations: 0, adapter: new FakeAdapter(), events: [] };
-  const server = await startServer({
-    agents: { fake: new FakeAdapter() },
-    allowOrigins: [],
-    binding,
-    dataDir,
-    extensionModules: { "test/sink": { sink } },
-    given: false,
-    port,
-    repo: repos[1],
-    settings: await testSettings({ dir: configDir }),
-    ...(!signIn && { signIn: false as const }),
-  });
-  servers.push(server);
-  const [other, uraeda] = repos;
-  return { configDir, other, server, sink, uraeda };
-}
-
-/** The spec of the fixture's feature, waiting for the human or a draft. */
-function setSpec(repo: string, status: "awaiting-human" | "draft") {
-  const spec = git(repo, "show", `${FEATURE}:${SPEC}`).replace(
-    /^status: .*$/m,
-    `status: ${status}`,
-  );
-  commitOnBranch(repo, FEATURE, { [SPEC]: spec });
-}
-
-/** Reads `ExtensionRecord`s on a repository's endpoint. */
-async function records(server: Server, repository: string, ids: Array<string>) {
-  const [result] = await fateAt(server.app, repository, [
-    { ids, kind: "byId", select: ["error", "value"], type: "ExtensionRecord" },
-  ]);
-  return result.data as Array<{ error: string | null; id: string; value: string }>;
-}
-
-/** The extension's row in the `Extensions` record, as the host gives it. */
-const stateOf = (server: Server, name: string) =>
-  server.extensions.states().extensions.find((one) => one.extension.name === name);
+import { FEATURE, mutate, records, serve, setSpec, stateOf, url } from "./serve.ts";
 
 /** An extension's files: it pushes the step events it receives, by its name. */
 const listening = (name: string) => ({
@@ -108,20 +17,6 @@ api.on("step-reached", (event) => { sink.events.push({ by: "${name}", ...event }
 }
 `,
 });
-
-/** A runtime extension's files, at `version`: it counts its activations. */
-const runtime = (version: number) => ({
-  "server.ts": `import { sink } from "test/sink";
-export default function activate(api) {
-sink.activations += 1;
-api.runtime(sink.adapter);
-}
-// version ${version}
-`,
-});
-
-/** The address of a path on the test's server. */
-const url = (path: string) => `http://127.0.0.1:${port}${path}`;
 
 test("records reach fate, live", async () => {
   const server = `import { sink } from "test/sink";
@@ -183,64 +78,26 @@ test("events reach only repositories the extension is on in", async () => {
   ]);
 });
 
-test("a runtime reloads once its turns end", async () => {
-  const opened = await serve({ durable: runtime(1) }, "");
-  const { adapter } = opened.sink;
-  const { sessions } = opened.server;
-  await sessions.check();
-  expect(opened.sink.activations).toBe(1);
-  const session = await sessions.featureSession(opened.uraeda, FEATURE, "durable");
-  const turnEnds = Promise.withResolvers<void>();
-  const started = Promise.withResolvers<void>();
-  adapter.script([
-    async () => {
-      started.resolve();
-      await turnEnds.promise;
-    },
-    { text: "Done.", type: "text" },
-    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
-  ]);
-  const { turn } = await sessions.send(opened.uraeda, session.id, { text: "Go on" });
-  await started.promise;
+test("session-started reaches extensions once the session is recorded, until the server stops", async () => {
+  const server = `import { sink } from "test/sink";
+export default function activate(api) {
+api.on("session-started", (event) => { sink.events.push(event); });
+}
+`;
+  const opened = await serve({ every: { "server.ts": server } }, "");
+  const { cache } = opened.server.sessions;
+  const row = { agent: "fake", folder: null, nativeId: "n1", repo: opened.uraeda, title: null };
 
-  writeFiles(join(opened.configDir, "extensions", "durable"), runtime(2));
-  await expect.poll(() => stateOf(opened.server, "durable")?.state).toBe("waiting");
-  expect(stateOf(opened.server, "durable")?.waitingFor).toBe(FEATURE);
-  expect(opened.sink.activations).toBe(1);
+  const created = cache.createSession(row);
+  expect(opened.sink.events).toEqual([]);
+  await expect
+    .poll(() => opened.sink.events)
+    .toMatchObject([{ repository: "uraeda", runtime: "fake", session: created.id }]);
 
-  turnEnds.resolve();
-  await sessions.settled(turn);
-  await expect.poll(() => opened.sink.activations).toBe(2);
-  expect(stateOf(opened.server, "durable")?.state).toBe("on");
-  expect(sessions.runtimeOf(session.id)).toBe(adapter);
-});
-
-/** An extension's files: its manifest, without entries, and one skill. */
-const skills = (name: string) => ({
-  "extension.toml": `name = "${name}"\ntitle = "${name}"\napi = 1\n`,
-  "skills/astryx-docs/SKILL.md": "---\nname: astryx-docs\ndescription: Astryx.\n---\n",
-});
-
-test("a session gets the skills of the extensions on in its repository only", async () => {
-  const opened = await serve(
-    { "docs-ext": skills("docs-ext"), durable: runtime(1), "off-ext": skills("off-ext") },
-    `[extensions.docs-ext]\non = ["uraeda"]\n\n[extensions.off-ext]\non = []\n`,
-  );
-  const { adapter } = opened.sink;
-  const { sessions } = opened.server;
-  await sessions.check();
-  const sent = async (repo: string) => {
-    const session = await sessions.featureSession(repo, FEATURE, "durable");
-    adapter.script([{ denials: [], errors: [], interrupted: false, ok: true, type: "result" }]);
-    const { turn } = await sessions.send(repo, session.id, { text: "Go on" });
-    await sessions.settled(turn);
-    return adapter.opens.at(-1)?.skills;
-  };
-
-  expect(await sent(opened.uraeda)).toEqual([
-    join(opened.configDir, "extensions", "docs-ext", "skills"),
-  ]);
-  expect(await sent(opened.other)).toEqual([]);
+  opened.server.extensions.close();
+  cache.createSession({ ...row, nativeId: "n2" });
+  await new Promise((resolve) => setImmediate(resolve));
+  expect(opened.sink.events).toHaveLength(1);
 });
 
 /** A registry that records nothing: the route's check comes first. */
@@ -291,6 +148,101 @@ test("an extension's route needs a session, and answers where its extension is o
   expect(uncovered).toEqual([]);
 });
 
+test("an extension's route refuses other sites, and answers GET, HEAD, and POST", async () => {
+  const server = `export default function activate(api) {
+  api.route("/x/deploy/run", (c) => c.text("ran " + c.req.method));
+  api.route("/x/deploy/status", (c) => c.text("status"), "GET");
+  api.route("/x/deploy/files/*", (c) => c.text("file"));
+}
+`;
+  const opened = await serve(
+    { deploy: { "server.ts": server } },
+    `[extensions.deploy]\non = ["uraeda"]\n`,
+    { signIn: true },
+  );
+  const { app } = opened.server;
+  const cookie = await signInCookie(app, opened.server.key!);
+  const send = (path: string, method = "GET", site?: string) =>
+    app.request(url(path), {
+      headers: { cookie, ...(site !== undefined && { "sec-fetch-site": site }) },
+      method,
+    });
+
+  // A link on another site, followed with the session's cookie, runs nothing.
+  for (const site of ["cross-site", "same-site"]) {
+    expect((await send("/x/deploy/run", "GET", site)).status).toBe(403);
+    expect((await send("/r/uraeda/x/deploy/run", "GET", site)).status).toBe(403);
+  }
+  expect(await (await send("/x/deploy/run", "GET", "same-origin")).text()).toBe("ran GET");
+  expect(await (await send("/x/deploy/run", "POST", "same-origin")).text()).toBe("ran POST");
+  expect(await (await send("/x/deploy/run", "GET", "none")).text()).toBe("ran GET");
+  // A route without a method answers GET and POST only; a GET route answers HEAD too.
+  expect((await send("/x/deploy/run", "PUT")).status).toBe(404);
+  expect((await send("/x/deploy/run", "DELETE")).status).toBe(404);
+  expect((await send("/x/deploy/status", "HEAD")).status).toBe(200);
+  expect((await send("/x/deploy/run", "HEAD")).status).toBe(200);
+  expect((await send("/x/deploy/status", "POST")).status).toBe(404);
+  // A trailing slash is the same route.
+  expect(await (await send("/x/deploy/run/")).text()).toBe("ran GET");
+  expect(await (await send("/r/uraeda/x/deploy/status/")).text()).toBe("status");
+  expect(await (await send("/x/deploy/files/")).text()).toBe("file");
+});
+
+test("an action runs where its extension is on, and is refused off or on input not JSON", async () => {
+  const server = `export default function activate(api) {
+  api.action("double", (input, repository) => ({ doubled: input.n * 2, repository }));
+}
+`;
+  const opened = await serve(
+    { wiki: { "server.ts": server } },
+    `[extensions.wiki]\non = ["uraeda"]\n`,
+  );
+  const act = async (repository: string, inputJson: string) => {
+    const [result] = await fateAt(opened.server.app, repository, [
+      {
+        input: { extension: "wiki", inputJson, name: "double" },
+        kind: "mutation",
+        name: "extensions.act",
+        select: ["outputJson"],
+      },
+    ]);
+    return result;
+  };
+
+  expect((await act("uraeda", '{"n":2}')).data).toMatchObject({
+    outputJson: JSON.stringify({ doubled: 4, repository: "uraeda" }),
+  });
+  const off = await act("other", '{"n":2}');
+  expect(off.ok).toBe(false);
+  expect(off.error?.message).toBe("refused: wiki is off in other");
+  const garbled = await act("uraeda", "{n:2");
+  expect(garbled.ok).toBe(false);
+  expect(garbled.error?.message).toBe("refused: wiki: the input of double is not JSON");
+});
+
+test("an extension reads no settings of a repository it is off in", async () => {
+  const manifest = `name = "wiki"\ntitle = "Wiki"\napi = 1\nserver = "server.ts"\n\n[settings.folder]\ntype = "string"\ndefault = "docs"\nlabel = "Folder"\nhelp = "Where the pages are."\n`;
+  const server = `import { sink } from "test/sink";
+export default function activate(api) {
+  sink.settings = (repository) => api.settings(repository);
+}
+`;
+  const opened = await serve(
+    { wiki: { "extension.toml": manifest, "server.ts": server } },
+    `[extensions.wiki]\non = ["uraeda"]\n`,
+  );
+
+  expect(opened.sink.settings!("uraeda")).toEqual({ folder: "docs" });
+  expect(opened.sink.settings!(null)).toEqual({ folder: "docs" });
+  expect(opened.sink.settings!("other")).toEqual({});
+  // A main checkout no repository of the list has is named for no one.
+  expect(await opened.server.extensions.readRecord("wiki/pages", "/home/someone/secret")).toEqual({
+    error: "wiki is off in this repository",
+    id: "wiki/pages",
+    value: "null",
+  });
+});
+
 test("settings written from the page reach the extension, and turning it off unloads it", async () => {
   const manifest = `name = "wiki"\ntitle = "Wiki"\napi = 1\nserver = "server.ts"\n\n[settings.folder]\ntype = "string"\ndefault = "docs"\nlabel = "Folder"\nhelp = "Where the pages are."\n`;
   const server = `export default function activate(api) {
@@ -301,9 +253,7 @@ test("settings written from the page reach the extension, and turning it off unl
   const folder = async () => (await records(opened.server, "uraeda", ["wiki/folder"]))[0];
   expect(await folder()).toMatchObject({ value: '"docs"' });
 
-  const mutate = (name: string, input: unknown) =>
-    fateAt(opened.server.app, null, [{ input, kind: "mutation", name, select: ["extensions"] }]);
-  const [written] = await mutate("extensions.setSetting", {
+  const [written] = await mutate(opened.server, "extensions.setSetting", {
     key: "folder",
     name: "wiki",
     repository: "uraeda",
@@ -315,7 +265,7 @@ test("settings written from the page reach the extension, and turning it off unl
     value: '"docs"',
   });
 
-  const [off] = await mutate("extensions.setOn", { name: "wiki", on: [] });
+  const [off] = await mutate(opened.server, "extensions.setOn", { name: "wiki", on: [] });
   expect(off.ok).toBe(true);
   await expect.poll(() => stateOf(opened.server, "wiki")?.state).toBe("off");
   expect((await folder()).error).toBe("wiki is off in uraeda");

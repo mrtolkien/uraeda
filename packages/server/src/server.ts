@@ -320,8 +320,11 @@ async function openParts(options: StartOptions, previews: Previews) {
       dataDir,
       sessions: sessions.sessions,
       started: (host) => extensions.seed(host),
-      // A repository removed from the list stops its Storybooks.
-      stopped: (host) => previews.stopRepository(host.name),
+      // A repository removed from the list stops its Storybooks, and its steps are forgotten.
+      stopped: (host) => {
+        previews.stopRepository(host.name);
+        extensions.stopped(host);
+      },
     });
   } catch (error) {
     await sessions?.stop();

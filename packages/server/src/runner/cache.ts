@@ -88,8 +88,8 @@ const sessionColumns = {
 export class SessionCache {
   readonly db: DatabaseSync;
   #pid: number;
-  /** Called with each session recorded: see `onCreated`. */
-  onCreated: ((row: SessionRow) => void) | undefined;
+  /** Called with each session recorded, inside its insert: see `onCreated`. */
+  readonly #created = new Set<(row: SessionRow) => void>();
 
   private constructor(db: DatabaseSync, pid: number) {
     this.db = db;
@@ -140,6 +140,15 @@ export class SessionCache {
     }
   }
 
+  /**
+   * Calls `listener` with each session recorded, inside its insert, so it must not call back into
+   * the cache: gives its removal.
+   */
+  onCreated(listener: (row: SessionRow) => void): () => void {
+    this.#created.add(listener);
+    return () => this.#created.delete(listener);
+  }
+
   /** Records a new session, with a new ID: a folder may hold several. */
   createSession(row: {
     agent: string;
@@ -165,7 +174,7 @@ export class SessionCache {
         created,
       ) as Row;
     const session = toSession(inserted);
-    this.onCreated?.(session);
+    this.#created.forEach((listener) => listener(session));
     return session;
   }
 
