@@ -7,6 +7,7 @@ mod clean;
 mod complete;
 mod editor;
 mod expand;
+mod extension;
 mod inbox;
 mod init;
 mod install;
@@ -189,6 +190,8 @@ enum Command {
         #[arg(value_hint = clap::ValueHint::DirPath)]
         folder: Option<std::path::PathBuf>,
     },
+    /// Add, update, remove, and list your extensions, in the config folder's extensions/
+    Extension(extension::Args),
 }
 
 fn main() -> ExitCode {
@@ -246,6 +249,7 @@ fn main() -> ExitCode {
             .map_err(|error| error.to_string()),
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
+        Command::Extension(args) => extension::run(args),
         Command::Review {
             target,
             comment,

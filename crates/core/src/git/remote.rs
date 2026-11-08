@@ -172,7 +172,7 @@ fn sync_within(
 
 /// The error of `git <subcommand>` talking to `origin`: git's, with the credential hint after its
 /// line when the remote needed credentials git could not ask for, or the stop at `deadline`.
-fn remote_error(failure: Failure, subcommand: &str, deadline: Duration) -> GitError {
+pub(super) fn remote_error(failure: Failure, subcommand: &str, deadline: Duration) -> GitError {
     match failure {
         Failure::Deadline => GitError::Command {
             subcommand: subcommand.to_string(),

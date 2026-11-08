@@ -717,8 +717,11 @@ git commit -m "feat(extensions-system): run sessions on several runtimes, usage 
 - Create: `crates/cli/src/extension.rs` (args and dispatch), `crates/cli/src/extension/add.rs`,
   `update.rs`, `remove.rs`, `list.rs`, `where.rs` (the "where is it on" question)
 - Create: `crates/core/src/extensions/install.rs` (clone, pin, link, source file, remove: core, so
-  the CLI stays thin and the rules are tested once)
-- Modify: `crates/cli/src/main.rs` (`Command::Extension(extension::Args)`), `docs/cli.md`
+  the CLI stays thin and the rules are tested once), and `crates/core/src/git/pin.rs` (the clone,
+  the fetch, the detached checkout, and the diff, in the git module, as the git decision asks of
+  every write)
+- Modify: `crates/cli/src/main.rs` (`Command::Extension(extension::Args)`), `docs/cli.md`,
+  `skills/uraeda/references/cli.md` (the skill names every command, `crates/cli/tests/skill.rs`)
 - Test: `crates/cli/tests/extension.rs`
 
 **Interfaces:**
@@ -728,7 +731,8 @@ git commit -m "feat(extensions-system): run sessions on several runtimes, usage 
   `install::add(config_dir, source: &str, cwd: &Path) -> Result<Extension, ApiError>`,
   `install::update(config_dir, name) -> Result<Pending, ApiError>` (fetches, returns
   `Pending { from, to, diff: String }`), `install::apply(config_dir, name, to: &str)`,
-  `install::remove(config_dir, name) -> Result<(), ApiError>`.
+  `install::remove(config_dir, name) -> Result<(), ApiError>`; `ExtensionProblem::text()`, a problem
+  as `extension.toml:3: <message>`.
 
 Commands:
 
@@ -737,23 +741,35 @@ Commands:
   folder is only turned on); a URL (anything `git clone` takes that is not an existing folder) is
   cloned into a temporary folder, its manifest read for the name, then moved to
   `<config>/extensions/<name>`, checked out at the default branch's commit, detached, with
-  `.ura-source` (`url`, `commit`, `ref`). Refuses: `<name> is taken by a built-in extension`, a name
-  already installed (`<name> is already installed: run ura extension update <name>`), a manifest
-  with a fatal problem (its message). Then asks where it is on: a picker "Every repository" / "This
-  repository (<name>)", the second first when the manifest's `scope` is `repository`; outside a
-  listed repository only "Every repository". Prints `Turned <title> on for: every repository` or
-  `…: <name>`. Without a terminal and without a flag: `no terminal to ask: pass --all or --here`.
-- `ura extension update <name> [--yes]`: fetches `ref`, prints the new commit and
-  `git diff <old>..<new>`, asks "Move <title> to <short commit>?", and moves only on yes; nothing
-  new: `<title> is up to date at <short commit>`. Linked folders:
-  `<name> is linked: update its folder yourself`. Without a terminal and without `--yes`, prints the
-  diff and moves nothing.
-- `ura extension remove <name>`: deletes the folder or the link; the settings stay. Built-ins:
+  `.ura-source` (`url`, `commit`, `ref`); a host without a scheme, `github.com/gary/uraeda-deploy`,
+  is cloned over `https://`. Refuses: `<name> is taken by a built-in extension`, a manifest with a
+  fatal problem (`<file>:<line>: <message>`), a name already installed
+  (`<name> is already installed: run ura extension update <name>`). A new extension is written
+  `on = []` before its folder appears (R18). The flags are read before anything is cloned. Then asks
+  where it is on: a picker "Every repository" / "This repository (<name>)", the second first when
+  the manifest's `scope` is `repository`; outside a listed repository only "Every repository".
+  Prints `Turned <title> on for: every repository` or `…: <name>`. Without a terminal and without a
+  flag: `no terminal to ask: pass --all or --here`. `--here` outside a listed repository:
+  `this folder is in no repository of Uraeda's list: run ura add, or pass --all or --repo <name>`. A
+  cancelled picker leaves it installed, its `on` unchanged:
+  `cancelled: where <title> is on did not change`.
+- `ura extension update <name> [--yes]`: fetches `ref`, prints `<title>: <old> -> <new>` and
+  `git diff <old>..<new>`, asks "Move <title> to <short commit>?" (No first), and moves only on yes,
+  printing `Moved <title> to <short commit>`; nothing new:
+  `<title> is up to date at <short commit>`. Linked folders:
+  `<name> is linked: update its folder yourself`; built-ins:
+  `<name> is built in: it updates with Uraeda`. Without a terminal and without `--yes`, prints the
+  diff, then `<title> stays at <old>: pass --yes to move it`, and moves nothing.
+- `ura extension remove <name>`: deletes the folder or the link, never a linked folder's files; the
+  settings stay: `Removed <title>: its settings stay in <config.toml>`. Built-ins:
   `<name> is built in: turn it off in Settings, Extensions`.
-- `ura extension list [--json]`: name, title, version, where on, source; `--json` with
-  `{"version": 1, "extensions": [...]}`.
+- `ura extension list [--json]`: name, title, version, where on (`every repository`, names, or
+  `off`), source (`built in`, `<url> at <short commit>`, or `linked <folder>`), then each problem
+  indented; `--json` with `{"version": 1, "extensions": [...]}`, each with `name`, `title`,
+  `description`, `version`, `api`, `scope`, `folder`, `is_built_in`, `is_linked`, `on_all`, `on`,
+  `source` (`url`, `commit`, `ref`, or `null`), and `problems`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/cli/tests/extension.rs
@@ -784,31 +800,31 @@ fn add_without_a_terminal_needs_where() {
 }
 ```
 
-A unit test in `where.rs` covers the picker's order for both scopes.
+A unit test in `where.rs` covers the picker's order for both scopes, and the flags' answers.
 
 The break each test catches: a clone left on a branch that moves; an update that moves without yes;
 a remove that deletes settings; a prompt an agent cannot answer.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test extension`
 - Expected: FAIL, `unrecognized subcommand 'extension'`.
 
-- [ ] **Step 3: Implement the commands**
+- [x] **Step 3: Implement the commands**
 
 Make the break: skip the detached checkout; see `add_clones_pins_and_turns_on` fail on the commit;
 revert.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-cli -p uraeda-core && nix develop -c cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/cli crates/core docs/cli.md
+git add crates/cli crates/core docs/cli.md skills/uraeda/references/cli.md specs/2026-11-08-extensions-system
 git commit -m "feat(extensions-system): add, update, remove, and list extensions with ura"
 ```
 

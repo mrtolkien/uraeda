@@ -158,3 +158,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   message is Babel's first line without the file's path or position. A plugin's error, like
   StyleX's, takes its position from Babel's code frame.
 - **Where**: task 6, `packages/server/src/extensions/page-compiler.ts`.
+
+## R18: `ura extension add` writes a new extension off before its folder appears
+
+- **Decision**: `add` writes `[extensions.<name>] on = []` before it links or moves the folder into
+  `extensions/`, then writes where the flags or the picker say. A cancelled picker leaves the
+  extension installed and off. The flags are read, and a missing answer refused, before anything is
+  cloned.
+- **Rationale**: an absent `on` means every repository, and a running server loads a folder as soon
+  as it appears: without this, a cloned extension would run everywhere while `ura` waits on the
+  picker, or for good after a cancel.
+- **If wrong**: drop the first write, and remove the folder on a cancel instead.
+- **Where**: task 5, `crates/core/src/extensions/install.rs`.
