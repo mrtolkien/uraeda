@@ -45,11 +45,19 @@ function imported(
 }
 
 /**
- * Runs the graph's modules, each once, from its entry, and calls the entry's default export with
- * `api`, all inside one script stopped after `EVALUATION_MS`; returns what the activation
- * returned. Throws what a module or the activation threw, or the timeout's error.
+ * Why an activation that returns a promise is refused: the timeout stops synchronous code only,
+ * never the promise jobs after it, so a loop after an `await` would hang the server.
  */
-export function evaluate(graph: Graph, { api, shared }: EvaluateOptions): unknown {
+const ASYNC_ACTIVATION =
+  "activation must be synchronous: start async work from a callback, not while loading";
+
+/**
+ * Runs the graph's modules, each once, from its entry, and calls the entry's default export with
+ * `api`, all inside one script stopped after `EVALUATION_MS`. Throws what a module or the
+ * activation threw, the timeout's error, or, when the activation returned a promise, that it must
+ * be synchronous.
+ */
+export function evaluate(graph: Graph, { api, shared }: EvaluateOptions): void {
   const functions = new Map<string, ModuleFunction>();
   for (const [file, { code }] of graph.files) {
     const filename = join(graph.folder, file);
@@ -92,7 +100,11 @@ export function evaluate(graph: Graph, { api, shared }: EvaluateOptions): unknow
   } finally {
     delete running[RUN];
   }
-  return result;
+  if (typeof (result as { then?: unknown } | null)?.then === "function") {
+    // Its rejection is this error's to report, not the process's.
+    Promise.resolve(result).catch(() => undefined);
+    throw new Error(ASYNC_ACTIVATION);
+  }
 }
 
 /**
@@ -109,23 +121,4 @@ export function failure(error: unknown, graph: Pick<Graph, "entry" | "folder">):
       ? graph.entry
       : (stack.slice(at + graph.folder.length + 1).match(/^[^:\s)]+/)?.[0] ?? graph.entry);
   return { file, message };
-}
-
-/** Waits for what the activation returned, when it is a promise, at most `EVALUATION_MS`. */
-export async function settled(result: unknown): Promise<void> {
-  if (typeof (result as { then?: unknown } | null)?.then !== "function") {
-    return;
-  }
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`activation did not finish within ${EVALUATION_MS} ms`)),
-      EVALUATION_MS,
-    );
-  });
-  try {
-    await Promise.race([result, late]);
-  } finally {
-    clearTimeout(timer);
-  }
 }

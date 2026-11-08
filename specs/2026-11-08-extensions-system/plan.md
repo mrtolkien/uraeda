@@ -954,13 +954,17 @@ Behaviour:
 - Evaluate synchronously inside one `new vm.Script("…").runInThisContext({ timeout: 2000 })`: the
   module bodies (from `vm.compileFunction` with the file as `filename`) and the call of the entry's
   default export with `api(scope)`. A throw or the timeout makes state `broken`, with the message,
-  and undoes what the version registered. An activation that returns a promise is awaited for at
-  most 2 seconds, a rejection or the wait making it `broken` too. Each module function is compiled
-  with an empty context extension, which keeps V8's compilation cache from holding every version
+  and undoes what the version registered. Activation is synchronous: one that returns a promise is
+  `broken`, with the problem
+  `activation must be synchronous: start async work from a callback, not while loading`, and its
+  registrations undone ([R27](rulings.md#r27-activation-is-synchronous)). A version removed, or the
+  loader closed, while it loads is unloaded and never kept. Each module function is compiled with an
+  empty context extension, which keeps V8's compilation cache from holding every version
   ([R24](rulings.md#r24-module-functions-are-compiled-with-an-empty-context-extension)).
 - Reload: debounce changes 50 ms per extension; one compile at a time per extension; a change during
-  a compile queues exactly one more, of the latest files. Before evaluating a new version, unload
-  the old one: run its undos in reverse order, then mark its scope dead.
+  a compile queues exactly one more, of the latest files. `reload(name)` during a load queues that
+  one more and resolves after it. Before evaluating a new version, unload the old one: run its undos
+  in reverse order, then mark its scope dead.
 - Watches: `<config>/extensions/` (its entries and their link targets); for a linked extension, its
   folder and the folder of each file its last version compiled or had a problem in; for an installed
   one, its `.ura-source` only, which `ura extension update` rewrites.

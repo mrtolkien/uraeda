@@ -8,7 +8,7 @@ import { basename, dirname, join } from "node:path";
 import type { Extension } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
 import { FileWatch } from "../settings-watch.ts";
-import { evaluate, failure, settled } from "./evaluate.ts";
+import { evaluate, failure } from "./evaluate.ts";
 import { compileVersion, type PageCompiler, type Problem } from "./graph.ts";
 import { Scope } from "./scope.ts";
 
@@ -54,8 +54,9 @@ type Entry = {
   /** The files of the last version compiled, whose folders are watched. */
   files: ReadonlyArray<string>;
   loaded: LoadedExtension;
+  /** The loop of loads running now, which a reload asked meanwhile also waits for. */
+  loop?: Promise<void>;
   page?: PageBundle;
-  running: boolean;
   scope?: Scope;
   timer?: ReturnType<typeof setTimeout>;
   watched: string;
@@ -213,7 +214,6 @@ export class Loader {
       deferrals: new Map(),
       files: [],
       loaded: { extension, problems: [], state: "off", version: 0 },
-      running: false,
       watched: "",
       watches: [],
     };
@@ -244,18 +244,24 @@ export class Loader {
 
   /**
    * Loads the extension `name`, `known` as just read, else read again; while a load of it runs,
-   * queues exactly one more, which reads the latest files.
+   * queues exactly one more, which reads the latest files, and gives the running loop, which
+   * settles after it.
    */
-  async #reload(name: string, known?: Extension): Promise<void> {
+  #reload(name: string, known?: Extension): Promise<void> {
     const entry = this.#entries.get(name);
     if (!entry || entry.loaded.extension.isBuiltIn) {
-      return;
+      return Promise.resolve();
     }
-    if (entry.running) {
+    if (entry.loop) {
       entry.again = true;
-      return;
+      return entry.loop;
     }
-    entry.running = true;
+    entry.loop = this.#loop(name, entry, known);
+    return entry.loop;
+  }
+
+  /** Loads the entry's extension until no load is queued; clears `entry.loop` as it ends. */
+  async #loop(name: string, entry: Entry, known?: Extension): Promise<void> {
     try {
       let extension = known;
       do {
@@ -270,11 +276,11 @@ export class Loader {
           this.#rescan();
           return;
         }
-        await this.#load(entry, extension);
+        this.#load(entry, extension);
         extension = undefined;
       } while (entry.again && !this.#closed);
     } finally {
-      entry.running = false;
+      entry.loop = undefined;
     }
   }
 
@@ -297,9 +303,9 @@ export class Loader {
   /**
    * Loads one version of `extension`: off or broken by its manifest, else compiled, and on a
    * compile problem the running version kept; else the running version unloaded, then the new
-   * one evaluated, and unloaded again when it throws.
+   * one evaluated, synchronously, and unloaded again when it throws.
    */
-  async #load(entry: Entry, extension: Extension): Promise<void> {
+  #load(entry: Entry, extension: Extension): void {
     const problems = extension.problems.map(problemOf);
     const api = this.#options.binding.extensionApi();
     if (extension.problems.some((problem) => problem.isFatal)) {
@@ -343,17 +349,17 @@ export class Loader {
     const scope = new Scope(extension.name);
     try {
       if (compiled.server) {
-        await settled(
-          evaluate(compiled.server, {
-            api: this.#options.api(scope),
-            shared: this.#options.shared,
-          }),
-        );
+        evaluate(compiled.server, { api: this.#options.api(scope), shared: this.#options.shared });
       }
     } catch (error) {
       scope.unload();
       const graph = compiled.server ?? { entry: "", folder: extension.folder };
       this.#set(entry, extension, "broken", [...problems, failure(error, graph)], version);
+      return;
+    }
+    if (this.#closed || this.#entries.get(extension.name) !== entry) {
+      // Removed, or the loader closed, while it loaded: nothing of it stays.
+      scope.unload();
       return;
     }
     entry.scope = scope;
