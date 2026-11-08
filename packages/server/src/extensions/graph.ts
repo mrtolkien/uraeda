@@ -77,6 +77,16 @@ function inside(folder: string, path: string): string | null {
   return rest.split(sep).join("/");
 }
 
+/** The path `path` with its links resolved, or as written when it does not exist. */
+function realpathOr(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    // Missing: reading it reports the problem.
+    return path;
+  }
+}
+
 /**
  * The file of the folder the relative import `specifier` of the file `from` names: tried as
  * written when it ends in `.ts` or `.tsx`, else with each of `ENDINGS`. A file out of the folder,
@@ -94,7 +104,7 @@ function resolveFile(folder: string, from: string, specifier: string): Target | 
     const file = inside(folder, realpathSync(found));
     return file === null ? leaves : { file };
   }
-  const tried = /\.tsx?$/.test(specifier) ? "" : `, with .ts, .tsx, or /index.ts`;
+  const tried = /\.tsx?$/.test(specifier) ? "" : `, with .ts, .tsx, /index.ts, or /index.tsx`;
   return `"${specifier}" is not a file of the extension${tried}`;
 }
 
@@ -109,11 +119,20 @@ function target(options: GraphOptions, from: string, specifier: string): Target 
   return options.refuse(specifier) ?? { module: specifier };
 }
 
-/** Reads and compiles the file `file` of the folder, its imports resolved, or its problems. */
+/** The largest file the loader reads: a bigger one is refused before it is read. */
+const MOST_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Reads and compiles the file `file` of the folder, its imports resolved, or its problems: a file
+ * over `MOST_BYTES` is refused unread.
+ */
 function compileFile(options: GraphOptions, file: string): GraphFile | Array<Problem> {
   const path = join(options.folder, file);
   let source: string;
   try {
+    if (statSync(path).size > MOST_BYTES) {
+      return [{ file, message: `${file} is over 2 MB` }];
+    }
     source = readFileSync(path, "utf8");
   } catch (error) {
     return [{ file, message: `cannot be read: ${(error as NodeJS.ErrnoException).code ?? error}` }];
@@ -142,7 +161,7 @@ function compileFile(options: GraphOptions, file: string): GraphFile | Array<Pro
 export function compileGraph(
   options: GraphOptions,
 ): { graph: Graph } | { problems: Array<Problem> } {
-  const entry = inside(options.folder, options.entry);
+  const entry = inside(options.folder, realpathOr(options.entry));
   if (entry === null) {
     return { problems: [{ file: "", message: `${options.entry} leaves the extension's folder` }] };
   }
