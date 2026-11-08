@@ -191,6 +191,48 @@ test("a session's process: its skills, its thread, steered and taken-back messag
   });
 });
 
+/** The `effort` of each `turn/start` the stand-in read, absent when none was sent. */
+const turnEfforts = (dir: string) =>
+  written(dir)
+    .filter((line) => line.method === "turn/start")
+    .map((line) => (line.params as Record<string, unknown>).effort);
+
+test("an effort reset goes back to the agent's default, which Codex would not do itself", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    effort: "low",
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  await until(events, "result");
+  agent.setEffort!(undefined);
+  agent.send(message("m2", "Again"));
+  await until(events, "result");
+  agent.close();
+  await until(events, "exit");
+  // Codex keeps a turn's effort for the next ones: the reset sends the default, CONFIG's (R17).
+  expect(turnEfforts(dir)).toEqual(["low", "high"]);
+});
+
+test("a thread never given an effort sends none", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  await until(events, "result");
+  agent.setEffort!(undefined);
+  agent.send(message("m2", "Again"));
+  await until(events, "result");
+  agent.close();
+  await until(events, "exit");
+  expect(turnEfforts(dir)).toEqual([undefined, undefined]);
+});
+
 test("a resumed thread reports its ID, and a stopped turn ends interrupted", async () => {
   const dir = temporaryFolder("uraeda-codex");
   const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
