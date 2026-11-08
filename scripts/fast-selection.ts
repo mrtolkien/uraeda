@@ -112,6 +112,7 @@ export type Family = keyof typeof families;
 const names = Object.keys(families) as Array<Family>;
 /** The crates depending on each crate, which its change can break: checked against `cargo metadata`. */
 const dependents: Record<string, Array<string>> = {
+  "uraeda-compile": ["uraeda-binding"],
   "uraeda-core": ["uraeda-binding", "uraeda-cli", "uraeda-lsp"],
   "uraeda-lsp": ["uraeda-cli"],
 };
