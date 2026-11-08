@@ -416,3 +416,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   listens, as with only the built-ins; a stale step kept across a gap would emit a step reached long
   ago.
 - **Where**: fix of task 8, `packages/server/src/extensions/events.ts`, `extensions/server.ts`.
+
+## R40: An extension's form for one repository starts from the values for every repository
+
+- **Decision**: the settings' form of an extension picks the repository its values are for, every
+  repository first; picking one shows the values for every repository, says so, and saves through
+  `extensions.setSetting` with that repository. The `Extensions` record carries only the values for
+  every repository (`values`), so a value already saved for one repository is not shown.
+- **Rationale**: the spec asks for a setting saved for `uraeda` only (US1), which the mutation
+  already does; showing each repository's own values needs one more field on the record, a server
+  change outside task 10, worth adding when the page runtime's task touches the record.
+- **Where**: task 10, `packages/web/src/settings/ExtensionForm.tsx`.
+
+## R41: The Extensions category draws its own two panes, and hides the fake agent while it is off
+
+- **Decision**: the settings page's Extensions category is "Your extensions" and "Built in", as the
+  spec's mockup draws them, each a pane of its own under the banners, with no pane titled
+  "Extensions" around them; its rows join the settings search by title, description, name, and
+  setting names. The `fake` built-in is listed only while it is not off, in tests and the sandbox:
+  elsewhere its switch would do nothing. Banners say "Deploy is off: page.tsx, line 12: …" for an
+  extension that does not run, "Deploy: …" for one that runs with a problem, "Deploy reloads when
+  the turn of “…” ends", and "Deploy: `y` is taken by Wiki", the title leading each.
+- **Rationale**: a pane inside a pane draws two borders around every row; a fake agent's row is
+  pointless for an owner. The mockup's Update button on the API banner is left out, as the plan
+  says: an agent updates it.
+- **Where**: task 10, `packages/web/src/settings/ExtensionSettings.tsx`, `settings/extensions.ts`.

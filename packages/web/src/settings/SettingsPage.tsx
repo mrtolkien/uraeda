@@ -1,14 +1,16 @@
 // The settings page's route: the server's settings record, read on the global client as the list
-// of repositories is, and its changes, and the colour themes, passed to `SettingsView`. Removing
+// of repositories is, and its changes, the colour themes, and the extensions with the names of the
+// repositories they can be on in, passed to `SettingsView`. Removing
 // the host name this browser reached the server through asks first, while the file's names are in
 // force.
 import { useFateClient } from "react-fate";
-import { useSettings } from "../data.ts";
+import { useRepositories, useSettings } from "../data.ts";
+import { useExtensionsRecord } from "./useExtensionsRecord.ts";
 import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { OnListClient } from "../ListClient.tsx";
 import { useRestoreScroll } from "../routes.tsx";
-import { SettingsRecordView } from "../views.ts";
+import { ExtensionsRecordView, SettingsRecordView } from "../views.ts";
 import { categoryOf } from "./categories.ts";
 import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";
@@ -16,6 +18,8 @@ import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 import { useThemes } from "../useThemes.ts";
 import type { AppearanceThemes } from "./AppearanceSettings.tsx";
+import type { ExtensionActions, ExtensionsValues } from "./ExtensionSettings.tsx";
+import { withOn } from "./extensions.ts";
 
 const UNREACHABLE = "Could not reach the Uraeda server.";
 
@@ -43,9 +47,41 @@ async function run(call: () => Promise<{ error?: unknown }>): Promise<string | u
   }
 }
 
+/**
+ * The Extensions section's record and changes: where one is on shows at once, and a setting once
+ * the core wrote it, as the port's does.
+ */
+function useExtensionsSection(): { actions: ExtensionActions; values: ExtensionsValues } {
+  const fate = useFateClient();
+  const record = useExtensionsRecord();
+  const repositories = useRepositories();
+  const view = ExtensionsRecordView;
+  const { extensions: change } = fate.mutations;
+  return {
+    actions: {
+      setOn: (name, on) =>
+        run(() =>
+          change.setOn({
+            input: { name, on: on === "all" ? "all" : [...on] },
+            optimistic: { extensions: withOn(record.extensions, name, on), id: record.id },
+            view,
+          }),
+        ),
+      setSetting: (name, repository, key, valueJson) =>
+        run(() => change.setSetting({ input: { key, name, repository, valueJson }, view })),
+    },
+    values: {
+      extensions: record.extensions,
+      folder: record.folder,
+      repositories: repositories.rows.map((row) => row.name),
+    },
+  };
+}
+
 /** The page, on the record the global client reads. */
 function OnSettings({ category }: { category?: string }) {
   const fate = useFateClient();
+  const extensions = useExtensionsSection();
   const settings = useSettings();
   const themes = useThemes() ?? NO_THEMES;
   const confirm = useConfirm();
@@ -110,6 +146,8 @@ function OnSettings({ category }: { category?: string }) {
   return (
     <SettingsView
       category={category === undefined ? undefined : categoryOf(category)?.id}
+      extensionActions={extensions.actions}
+      extensions={extensions.values}
       server={settings}
       serverActions={actions}
       themes={themes}

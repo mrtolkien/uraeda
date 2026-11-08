@@ -6,6 +6,7 @@ import type {
   AllBranchChanges,
   BranchChanges,
   BranchDecision,
+  Extensions,
   ProposalFile,
   Feature,
   FolderSuggestions,
@@ -398,6 +399,19 @@ export const SettingsRecordView = view<Settings>()({
     openBrowser: SettingSelection,
     port: SettingSelection,
   },
+});
+
+/**
+ * Every extension, built in or yours, as the settings' Extensions section reads it, from every
+ * endpoint: each one's state, problems, where it is on, and its settings. Named apart from the
+ * page runtime's view, which task 12 may fold into this one.
+ */
+export const ExtensionsRecordView = view<Extensions>()({
+  api: true,
+  docs: true,
+  extensions: true,
+  folder: true,
+  id: true,
 });
 
 /** The folders the add form suggests for a typed text, its id. */

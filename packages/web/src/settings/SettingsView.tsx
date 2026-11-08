@@ -1,5 +1,5 @@
 // The settings page: one form of bordered sections, Server, Appearance, Fonts, Keyboard, Sign-in,
-// and Runs, each setting a row. The search sits at the end of the heading row on wide screens, and
+// Runs, and Extensions, which draws its own two, yours and the built-in ones; each setting a row. The search sits at the end of the heading row on wide screens, and
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
 // without one is hidden. The title and the search stay in view as the page scrolls. A section named
 // in the address is scrolled into view, below them.
@@ -22,6 +22,12 @@ import { KeyboardSettings } from "./KeyboardSettings.tsx";
 import { AppearanceSettings, type AppearanceThemes } from "./AppearanceSettings.tsx";
 import { FontSettings, SignInSettings } from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
+import {
+  type ExtensionActions,
+  ExtensionSettings,
+  type ExtensionsValues,
+} from "./ExtensionSettings.tsx";
+import { extensionsCategory } from "./extensions.ts";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 import { Empty } from "../layout/Empty.tsx";
@@ -76,7 +82,20 @@ function Rows({
       return <SignInSettings category={category} shows={shows} />;
     case "runs":
       return <RunSettings {...props} />;
+    case "extensions":
+      // Drawn by `ExtensionSettings` itself, in its own panes.
+      return null;
   }
+}
+
+/** The sections the page has: the Extensions one with a row per extension, or none without them. */
+function categoriesOf(extensions: ExtensionsValues | undefined): ReadonlyArray<Category> {
+  return CATEGORIES.flatMap((category) => {
+    if (category.id !== "extensions") {
+      return [category];
+    }
+    return extensions ? [extensionsCategory(category, extensions.extensions)] : [];
+  });
 }
 
 /** The search field: its text is the page's own, never saved, like the repository menu's filter. */
@@ -135,12 +154,18 @@ function useScrollToSection(id: CategoryId | undefined, bar: RefObject<HTMLEleme
  */
 export function SettingsView({
   category: id,
+  extensionActions,
+  extensions,
   initialSearch = "",
   server,
   serverActions,
   themes,
 }: {
   category: CategoryId | undefined;
+  /** What the Extensions section changes. */
+  extensionActions?: ExtensionActions;
+  /** What the Extensions section reads: without it, as in most stories, the section is left out. */
+  extensions?: ExtensionsValues;
   /** The search's text when the page opens, for the stories; empty by default. */
   initialSearch?: string;
   server: ServerValues;
@@ -153,27 +178,43 @@ export function SettingsView({
   const bar = useRef<HTMLDivElement>(null);
   const jump = useScrollToSection(id, bar);
   const search = <SearchField onChange={setText} text={text} wide={wide} />;
-  const sections = CATEGORIES.map((category) => ({ category, shown: shownLabels(category, text) }))
+  const sections = categoriesOf(extensions)
+    .map((category) => ({ category, shown: shownLabels(category, text) }))
     .filter(({ shown }) => shown.size > 0)
-    .map(({ category, shown }) => (
-      <Pane
-        icon={category.icon}
-        id={sectionId(category.id)}
-        key={category.id}
-        title={category.label}
-        xstyle={[
-          jump?.to === category.id && jump.margin !== undefined && jumpStyles.margin(jump.margin),
-        ]}
-      >
-        <Rows
-          category={category}
-          server={server}
-          serverActions={serverActions}
-          shows={(label) => shown.has(label)}
-          themes={themes}
-        />
-      </Pane>
-    ));
+    .map(({ category, shown }) => {
+      const jumped = [
+        jump?.to === category.id && jump.margin !== undefined && jumpStyles.margin(jump.margin),
+      ];
+      if (category.id === "extensions" && extensions && extensionActions) {
+        return (
+          <div id={sectionId(category.id)} key={category.id} {...stylex.props(jumped)}>
+            <ExtensionSettings
+              actions={extensionActions}
+              isSearching={text.trim() !== ""}
+              shows={(label) => shown.has(label)}
+              values={extensions}
+            />
+          </div>
+        );
+      }
+      return (
+        <Pane
+          icon={category.icon}
+          id={sectionId(category.id)}
+          key={category.id}
+          title={category.label}
+          xstyle={jumped}
+        >
+          <Rows
+            category={category}
+            server={server}
+            serverActions={serverActions}
+            shows={(label) => shown.has(label)}
+            themes={themes}
+          />
+        </Pane>
+      );
+    });
   return (
     <Page beside="--size-setting-control" kind="rows">
       <RefusalsProvider>

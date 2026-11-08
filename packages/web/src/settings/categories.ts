@@ -1,10 +1,18 @@
 // The settings page's sections, in the order the form shows them, each with its settings: their
-// icon, name, and line of help; and the search that filters the form's rows.
+// icon, name, and line of help, the Extensions section's read from the server; and the search that
+// filters the form's rows.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
 import { ROLES } from "../theme/fonts.ts";
 
-export type CategoryId = "server" | "appearance" | "fonts" | "keyboard" | "sign-in" | "runs";
+export type CategoryId =
+  | "server"
+  | "appearance"
+  | "fonts"
+  | "keyboard"
+  | "sign-in"
+  | "runs"
+  | "extensions";
 
 /** An icon's name, as Astryx's `Icon` takes it. */
 export type IconName = ComponentProps<typeof Icon>["icon"];
@@ -165,6 +173,13 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         label: "Automatic continues in a row",
       },
     ],
+  },
+  {
+    icon: "uraeda:plug",
+    id: "extensions",
+    label: "Extensions",
+    // Its rows are the extensions the server lists, one each (`extensionsCategory`).
+    settings: [],
   },
 ];
 

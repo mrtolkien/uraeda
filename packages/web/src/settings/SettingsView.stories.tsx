@@ -1,12 +1,15 @@
 // The settings page's states, as the spec's mockups: the form, with values a flag or a variable
 // overrides, with a file that cannot be read, opened at its Runs or Keyboard section, the keyboard
-// switch off, and searched, with a match and without one.
+// switch off, and searched, with a match and without one; and the Extensions section, at rest and
+// with extensions that need you.
 // The Server values are records as the server's settings source gives them, passed in, as
 // `SettingsPage` passes the one it reads, and so are the themes; Sign-in is the real one.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RepositoryPathContext } from "../routes.tsx";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
+import type { ExtensionActions } from "./ExtensionSettings.tsx";
+import { sampleExtensions, sampleExtensionsNeedingYou } from "./sampleExtensions.ts";
 import { sampleThemes } from "./sampleThemes.ts";
 
 /** Vim's settings at their defaults: off, without commands. */
@@ -54,6 +57,12 @@ const serverActions: ServerActions = {
   setSingleKeyShortcuts: async () => undefined,
   setVimCommands: async () => undefined,
   setVimMode: async () => undefined,
+};
+
+/** Every change of the Extensions section succeeds, and changes nothing. */
+const extensionActions: ExtensionActions = {
+  setOn: async () => undefined,
+  setSetting: async () => undefined,
 };
 
 const meta = {
@@ -168,3 +177,19 @@ export const Search: Story = { args: { initialSearch: "port" } };
 
 /** A search that finds nothing, and says so. */
 export const NoMatch: Story = { args: { initialSearch: "zzz" } };
+
+/**
+ * Opened at `/settings/extensions`: your three, then Uraeda's own, the inbox turned off, as the
+ * spec's Settings, Extensions mockup draws them.
+ */
+export const Extensions: Story = {
+  args: { category: "extensions", extensionActions, extensions: sampleExtensions },
+};
+
+/**
+ * The same section when extensions need you: a compile error, an old API, a reload waiting for a
+ * turn, and a key taken first, each a banner above the rows.
+ */
+export const ExtensionsNeedYou: Story = {
+  args: { category: "extensions", extensionActions, extensions: sampleExtensionsNeedingYou },
+};

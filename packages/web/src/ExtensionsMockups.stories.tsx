@@ -1,26 +1,20 @@
-// The extensions system's mockups (`specs/2026-11-08-extensions-system/spec.md`): the settings'
-// Extensions section, Uraeda's own parts and yours, each with its switch; the same section with
-// extensions that need you; the leader menu with the inbox turned off and two of your places in it;
-// and a place one of your extensions draws, the "deploy" example, in the shell. Built from the real
-// components over fixed text.
+// The extensions system's mockups (`specs/2026-11-08-extensions-system/spec.md`): the leader menu
+// with the inbox turned off and two of your places in it, and a place one of your extensions draws, the "deploy" example, in the shell. Built from the real
+// components over fixed text. The settings' Extensions section is the real one now, in
+// `settings/SettingsView.stories.tsx`.
 import { Badge } from "@astryxdesign/core/Badge";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useState } from "react";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { DESTINATIONS } from "./destinations.ts";
 import { Home } from "./Home.tsx";
 import { LeaderMenu, type MenuEntry } from "./keys/LeaderMenu.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { SettingRow, SettingRows } from "./settings/SettingRow.tsx";
-import type { Setting } from "./settings/categories.ts";
 import { Shell } from "./Shell.tsx";
 
 const styles = stylex.create({
@@ -29,142 +23,6 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-3"],
   },
 });
-
-/** An extension as the section lists it: its row, what the page says of it, and its switch. */
-type Row = Pick<Setting, "help" | "icon" | "label"> & {
-  isOn: boolean;
-  notes?: ReactNode;
-};
-
-/** Uraeda's own parts, shipped as extensions: each can be turned off, none removed. */
-const BUILT_IN: ReadonlyArray<Row> = [
-  {
-    help: "Runs your installed claude command in sessions.",
-    icon: "uraeda:harness-claude",
-    isOn: true,
-    label: "Claude Code",
-  },
-  {
-    help: "The Inbox place, its keys, its home pane, and its New-page section.",
-    icon: "uraeda:inbox",
-    isOn: false,
-    label: "Inbox",
-  },
-  {
-    help: "The Priorities place and starting a feature from a proposal.",
-    icon: "uraeda:list",
-    isOn: true,
-    label: "Priorities and proposals",
-  },
-  {
-    help: "The Decisions place and the decisions check.",
-    icon: "uraeda:ruler",
-    isOn: true,
-    label: "Decisions",
-  },
-  { help: "The Git place.", icon: "uraeda:git-branch", isOn: true, label: "Git" },
-  {
-    help: "Storybook previews in specs and sessions.",
-    icon: "uraeda:eye",
-    isOn: true,
-    label: "Previews",
-  },
-  {
-    help: "Browser notifications when work needs you.",
-    icon: "uraeda:flag",
-    isOn: true,
-    label: "Notifications",
-  },
-];
-
-/** Where an extension of yours comes from, under its help. */
-function Source({ commit, from, on }: { commit?: string; from: string; on: string }) {
-  return (
-    <Text color="secondary" size="sm">
-      {commit ? `${from} at ${commit}` : `Linked: ${from}, reloads on save`}, on in {on}
-    </Text>
-  );
-}
-
-/** Your extensions, in your config folder: two installed from git, one linked while you write it. */
-const YOURS: ReadonlyArray<Row> = [
-  {
-    help: "Your production and preview deployments, from the hosting API, cached for 5 minutes.",
-    icon: "uraeda:globe",
-    isOn: true,
-    label: "Deploy",
-    notes: <Source from="~/code/uraeda-deploy" on="uraeda only" />,
-  },
-  {
-    help: "Browse the repository's docs folder as a wiki.",
-    icon: "uraeda:book-open",
-    isOn: true,
-    label: "Wiki",
-    notes: <Source commit="3f9c2a1" from="github.com/gary/uraeda-wiki" on="every repository" />,
-  },
-  {
-    help: "Runs pi-durable in sessions.",
-    icon: "uraeda:harness-pi",
-    isOn: false,
-    label: "pi-durable",
-    notes: <Source commit="b71e04d" from="github.com/gary/uraeda-pi" on="no repository" />,
-  },
-];
-
-/** A row with its switch, which flips in place: the server applies it at once. */
-function ExtensionRow({ row }: { row: Row }) {
-  const [isOn, setOn] = useState(row.isOn);
-  return (
-    <SettingRow notes={row.notes} setting={row}>
-      <Switch label="On" onChange={setOn} value={isOn} />
-    </SettingRow>
-  );
-}
-
-/** The settings' Extensions section: Uraeda's own first, then yours, or what needs you first. */
-function Extensions({ needsYou, yours }: { needsYou?: ReactNode; yours: ReadonlyArray<Row> }) {
-  return (
-    <VStack gap={3} xstyle={styles.page}>
-      {needsYou}
-      <Pane icon="uraeda:plug" title="Your extensions">
-        <SettingRows>
-          {yours.map((row) => (
-            <ExtensionRow key={row.label} row={row} />
-          ))}
-        </SettingRows>
-      </Pane>
-      <Pane icon="uraeda:layers" title="Built in">
-        <SettingRows>
-          {BUILT_IN.map((row) => (
-            <ExtensionRow key={row.label} row={row} />
-          ))}
-        </SettingRows>
-      </Pane>
-    </VStack>
-  );
-}
-
-/** Extensions that need you, each turned off alone, the others running. */
-const NEEDS_YOU = (
-  <VStack gap={2}>
-    <Banner
-      collapsible={false}
-      status="error"
-      title="Deploy is off: deploy/page.tsx, line 12: Expected '>' but found 'status'"
-    />
-    <Banner
-      collapsible={false}
-      endContent={<Button label="Update" size="sm" />}
-      status="warning"
-      title="pi-durable is off: built for extension API 1, and Uraeda runs API 2. Its sessions can be read, not continued."
-    />
-    <Banner
-      collapsible={false}
-      status="info"
-      title="Claude Code reloads when the turn of “Fix the login redirect” ends."
-    />
-  </VStack>
-);
 
 /** The leader menu with the inbox turned off, and your two places after Uraeda's. */
 const TOP: ReadonlyArray<MenuEntry> = [
@@ -243,21 +101,12 @@ function MenuOverHome() {
 }
 
 const meta = {
-  component: Extensions,
   decorators: [inRepositoryFolder],
   parameters: { layout: "fullscreen" },
   title: "Mockups/Extensions",
-} satisfies Meta<typeof Extensions>;
+} satisfies Meta;
 
 export default meta;
-
-type Story = StoryObj<typeof meta>;
-
-/** Settings, Extensions: your three, then Uraeda's own, the inbox turned off. */
-export const Settings: Story = { args: { yours: YOURS } };
-
-/** The same section when extensions need you: a compile error, an old API, a reload waiting. */
-export const NeedsYou: Story = { args: { needsYou: NEEDS_YOU, yours: YOURS } };
 
 /** Space pressed: no Inbox, and your Deploy and Wiki places after Uraeda's. */
 export const LeaderMenuWithYourPlaces: StoryObj = { render: () => <MenuOverHome /> };
