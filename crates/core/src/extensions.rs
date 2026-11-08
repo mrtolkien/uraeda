@@ -186,7 +186,7 @@ fn find(config_dir: &Path, name: &str) -> Option<Extension> {
     if BUILT_INS.contains(&name) {
         return Some(built_in(name));
     }
-    if name.starts_with('.') || name.contains(['/', '\\']) {
+    if !manifest::kebab(name) {
         return None;
     }
     one(&extensions_dir(config_dir), name)

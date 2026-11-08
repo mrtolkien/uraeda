@@ -6,6 +6,7 @@ use std::path::Path;
 
 use toml_edit::Value;
 
+use super::manifest::kebab;
 use super::{Extension, find, values};
 use crate::api::ApiError;
 use crate::settings::{change_path, refused, set};
@@ -20,13 +21,20 @@ pub enum On {
 }
 
 /// Writes the repositories the extension `name` is on in, refusing a repository not in the list
-/// in the data folder `data_dir`.
+/// in the data folder `data_dir`, unless it already is in `on`: a repository that has left the
+/// list stays where it is until it is taken out.
 pub fn set_on(config_dir: &Path, data_dir: &Path, name: &str, on: On) -> Result<(), ApiError> {
-    known(config_dir, name)?;
+    let mut extension = known(config_dir, name)?;
     let value = match on {
         On::All => Value::from("all"),
         On::Some(names) => {
-            listed(data_dir, &names)?;
+            values::Config::load(config_dir).apply(&mut extension);
+            let new: Vec<String> = names
+                .iter()
+                .filter(|name| !extension.on.contains(name))
+                .cloned()
+                .collect();
+            listed(data_dir, &new)?;
             Value::Array(names.iter().map(String::as_str).collect())
         }
     };
@@ -72,6 +80,11 @@ pub fn set_setting(
 
 /// The extension `name`, its manifest read, or the refusal that there is none.
 fn known(config_dir: &Path, name: &str) -> Result<Extension, ApiError> {
+    if !kebab(name) {
+        return Err(refused(format!(
+            "{name:?} is not an extension's name, which is kebab-case"
+        )));
+    }
     find(config_dir, name).ok_or_else(|| refused(format!("no extension named {name}")))
 }
 
