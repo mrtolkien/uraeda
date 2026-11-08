@@ -79,3 +79,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   moving them frees almost nothing; the edits are the longest bodies, one kind of call, a stored
   field the human changes, and `setEffort` is one more of them.
 - **Where**: task 1, `session-edits.ts`; task 3 adds `setEffort` there.
+
+## R10: An effort is checked against the models the last list holds
+
+- **Decision**: `checkEffort` refuses an effort only for a model the runtime's last list holds, the
+  picked one or the list's default: with no list, or for a model the list no longer holds, the
+  effort goes to the agent, which answers for it in the turn.
+- **Rationale**: a model is refused without a list, so a new session's effort is always checked
+  against a known model, except on the agent's default with no list yet, which the picker never
+  offers an effort for; a running session's model retired since keeps its effort changeable, as the
+  spec's "the session's next turn fails with the agent's error".
+- **Alternatives considered**: refusing every effort without a known model: a running session on a
+  retired model could not even go back to its default effort, and the refusal would need a model
+  name it does not have.
+- **Where**: task 3, `picks.ts`.

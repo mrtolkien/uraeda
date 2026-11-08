@@ -238,7 +238,7 @@ const repositoryMutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ runtime?: string }>) =>
       session(
         ctx,
-        (await refusedOn(() => ctx.sessions.newChat(ctx.repo, input.runtime))).id,
+        (await refusedOn(() => ctx.sessions.newChat(ctx.repo, { runtime: input.runtime }))).id,
         select,
       ),
     type: "Session",

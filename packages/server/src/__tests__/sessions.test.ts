@@ -5,6 +5,7 @@ import { chatImages } from "../attach.ts";
 import type { RepoContext } from "../fate/context.ts";
 import { featureStatusOf } from "../fate/feature-status.ts";
 import type { AgentEvent } from "../runner/events.ts";
+import { fakeModels } from "../runner/fake.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
 import { OUTPUT_LIMIT, SERVER_STOPPED, TAKEN_BACK } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
@@ -948,7 +949,7 @@ test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a messag
   expect(sent).toMatchObject({ archived: false, title: "Drafts" });
 });
 
-test("Agent reads each runtime's name, mark, availability, version, capabilities, and usage", async () => {
+test("Agent reads each runtime's name, mark, availability, version, capabilities, models, and usage", async () => {
   const server = await testServer();
 
   const [agent] = await byId(server.app, "Agent", ["agent"], ["id", "runtimes"]);
@@ -969,6 +970,7 @@ test("Agent reads each runtime's name, mark, availability, version, capabilities
         icon: "uraeda:harness-agent",
         isOn: true,
         kind: "fake",
+        models: fakeModels(),
         name: "Claude Code",
         // No extension's title here: the name it is registered as.
         title: "fake",

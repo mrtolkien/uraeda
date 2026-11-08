@@ -488,7 +488,10 @@ export function checkEffort(
   `refreshModels(names?: ReadonlyArray<string>): Promise<void>`, each runtime at most once a minute,
   a failure keeping the last list, a change calling `changed()`;
   `RuntimeRecord.models: ModelList | null`. Registration refreshes the new runtime; the server's
-  start refreshes all.
+  start refreshes all (task 6, in `server.ts`). A refresh asked for within the minute waits for the
+  ask in flight; `MODELS_REFRESH_MS` is the minute. `checkEffort` checks only against a model the
+  last list holds
+  ([R10](rulings.md#r10-an-effort-is-checked-against-the-models-the-last-list-holds)).
 - Produces, in `limits.ts`: `RUNTIME_REFUSALS.noModel(runtime: string, model: string)` and
   `RUNTIME_REFUSALS.noEffort(model: string, effort: string)`, the spec's texts, `effort` given by
   its name.
@@ -498,10 +501,13 @@ export function checkEffort(
   `setEffort(repo: string, session: string, effort: string | null): void`, checked by `checkEffort`,
   refused for a session not on this repository.
 - Produces, on `FakeAdapter`: `models()` giving two models, one with efforts `low` to `max` and one
-  without efforts, defaults on the first at `medium`; `efforts: Array<string | undefined>`, each
-  `setEffort` call.
+  without efforts, defaults on the first at `medium` (`fake-big` "Fake Big", `fake-small` "Fake
+  Small", exported as `fakeModels()`); `modelList` and `modelsFail`, which a test changes;
+  `efforts: Array<string | undefined>`, each `setEffort` call; `hasSetEffort`, false for processes
+  without `setEffort`.
+- Produces, on `Proc`: `effort: string | null`, the effort it opened with or was last changed to.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // picks.test.ts: newSessionPick and checkEffort over a Runtimes with fake lists
@@ -548,20 +554,20 @@ The break each test catches:
   `setEffort` exists.
 - Failed refresh: the picker emptied by one failed call.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/server/src/runner/__tests__/picks.test.ts packages/server/src/runner/__tests__/runtimes.test.ts`
   - Expected: FAIL, `Cannot find module '../picks.ts'`.
-- [ ] **Step 3: Implement the rule and its callers.** `session-folders.ts`'s `create` stores
+- [x] **Step 3: Implement the rule and its callers.** `session-folders.ts`'s `create` stores
       `newSessionPick`'s result; `send.ts`'s fresh session copies `agent`, `model`, and `effort`.
       `Processes.open` passes the row's `model` and `effort`, keeps the effort opened with on the
       `Proc`, and, reusing a process whose effort differs from the row's, calls `setEffort` or
       closes and reopens it. Keep `newSessionRuntime` for the callers that pick only a runtime, or
       fold it into `newSessionPick`, whichever leaves one rule.
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

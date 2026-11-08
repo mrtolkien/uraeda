@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { mutate, testServer } from "../../__tests__/helpers.ts";
-import { FakeAdapter } from "../fake.ts";
-import { Runtimes } from "../runtimes.ts";
+import { FakeAdapter, fakeModels } from "../fake.ts";
+import { MODELS_REFRESH_MS, Runtimes } from "../runtimes.ts";
 import { flush, restart, testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -40,7 +40,7 @@ test.each<[string, boolean | undefined, string]>([
 ])("a session runs on the runtime it was started with (%s)", async (_, state, expected) => {
   const { claude, durable, on, runtimes, unregister } = twoRuntimes();
   const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
-  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  const session = await sessions.featureSession(repo, AGENT, { runtime: "pi-durable" });
   expect(cache.session(session.id)?.agent).toBe("pi-durable");
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
   await sessions.settled(turn);
@@ -89,10 +89,11 @@ test("a new session runs on the first runtime on in its repository", async () =>
   expect(session.agent).toBe("pi-durable");
 });
 
-test("a fresh run keeps the runtime of the session it was sent to, not the first one on (R20)", async () => {
+test("a fresh run keeps the runtime, model, and effort of the session it was sent to, not the first one on's (R20)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
   const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
-  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  const pick = { effort: "high", model: "fake-big", runtime: "pi-durable" };
+  const session = await sessions.featureSession(repo, AGENT, pick);
   await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
 
   const workflow = { fresh: true, step: "plan", trigger: "manual" } as const;
@@ -101,9 +102,121 @@ test("a fresh run keeps the runtime of the session it was sent to, not the first
 
   const fresh = cache.session(cache.turn(turn)!.sessionId)!;
   expect(fresh.id).not.toBe(session.id);
-  expect(fresh.agent).toBe("pi-durable");
+  expect(fresh).toMatchObject({ agent: "pi-durable", effort: "high", model: "fake-big" });
   expect(durable.opens).toHaveLength(2);
+  expect(durable.opens[1]).toMatchObject({ effort: "high", model: "fake-big", resume: false });
   expect(claude.opens).toHaveLength(0);
+});
+
+test("a new session runs on the pick, and records what its agent reported", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.script([{ effort: "High", model: "Fake Big", type: "runsOn" }]);
+  const chat = await sessions.newChat(repo, { effort: "high", model: "fake-big", runtime: "fake" });
+
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+
+  expect(adapter.opens.at(-1)).toMatchObject({ effort: "high", model: "fake-big" });
+  expect(cache.session(chat.id)).toMatchObject({
+    effort: "high",
+    model: "fake-big",
+    ranEffort: "High",
+    ranModel: "Fake Big",
+  });
+});
+
+test("a session on the agent's defaults opens without a model or an effort", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.fallback = () => [];
+  const chat = await sessions.newChat(repo);
+
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+
+  expect(cache.session(chat.id)).toMatchObject({ effort: null, model: null });
+  expect(adapter.opens[0]).not.toHaveProperty("model");
+  expect(adapter.opens[0]).not.toHaveProperty("effort");
+});
+
+test.each([true, false])(
+  "an effort changed mid-turn applies to the next turn only (setEffort: %s)",
+  async (hasSetEffort) => {
+    const { adapter, cache, repo, sessions } = await testSessions();
+    adapter.hasSetEffort = hasSetEffort;
+    adapter.fallback = () => [];
+    let release!: () => void;
+    adapter.script([() => new Promise<void>((resolve) => (release = resolve))]);
+    const chat = await sessions.newChat(repo);
+    const { turn } = await sessions.send(repo, chat.id, { text: "Hello" });
+    await vi.waitFor(() => expect(cache.turn(turn)?.state).toBe("running"));
+
+    expect(() => sessions.setEffort(repo, chat.id, "ultra")).toThrow(
+      "Fake Big takes no Ultra effort: pick another",
+    );
+    sessions.setEffort(repo, chat.id, "max");
+    expect(cache.session(chat.id)?.effort).toBe("max");
+    // The running turn keeps its effort: its process is not touched.
+    expect(adapter.efforts).toEqual([]);
+    expect(adapter.closes).toBe(0);
+    release();
+    await sessions.settled(turn);
+
+    for (const text of ["Again", "Once more"]) {
+      await sessions.settled((await sessions.send(repo, chat.id, { text })).turn);
+    }
+
+    if (hasSetEffort) {
+      expect(adapter.efforts).toEqual(["max"]);
+      expect(adapter.opens).toHaveLength(1);
+      expect(adapter.closes).toBe(0);
+    } else {
+      // Reopened once, resuming the agent session, and not again once its effort is the stored one.
+      expect(adapter.opens).toHaveLength(2);
+      expect(adapter.opens[1]).toMatchObject({ effort: "max", resume: true });
+    }
+    sessions.close();
+  },
+);
+
+test("a model list is asked for at most once a minute, and one that fails keeps the last one", async () => {
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const fake = new FakeAdapter();
+  const runtimes = new Runtimes();
+  const unregister = runtimes.register("fake", fake);
+  await runtimes.refreshModels();
+  let changes = 0;
+  runtimes.onChange(() => changes++);
+  expect(runtimes.models("fake")).toEqual(fakeModels());
+  expect(runtimes.records(null, () => [])[0]?.models).toEqual(fakeModels());
+
+  const small = { defaults: {}, models: [fakeModels().models[1]!] };
+  fake.modelList = small;
+  await runtimes.refreshModels();
+  expect(runtimes.models("fake")).toEqual(fakeModels());
+
+  fake.modelsFail = true;
+  now += MODELS_REFRESH_MS;
+  await runtimes.refreshModels();
+  expect(runtimes.models("fake")).toEqual(fakeModels());
+  expect(changes).toBe(0);
+
+  fake.modelsFail = false;
+  now += MODELS_REFRESH_MS;
+  await runtimes.refreshModels();
+  expect(runtimes.models("fake")).toEqual(small);
+  expect(changes).toBe(1);
+
+  unregister();
+  expect(runtimes.models("fake")).toBeUndefined();
+});
+
+test("a runtime without a model list has none", async () => {
+  const fake = new FakeAdapter();
+  Object.defineProperty(fake, "models", { value: undefined });
+  const runtimes = new Runtimes();
+  runtimes.register("fake", fake);
+  await runtimes.refreshModels();
+
+  expect(runtimes.records(null, () => [])[0]?.models).toBeNull();
 });
 
 test("each runtime's usage is its own, for windows of the same ID", async () => {
@@ -115,7 +228,7 @@ test("each runtime's usage is its own, for windows of the same ID", async () => 
   durable.script([{ type: "usage", windows: [window(0.7)] }]);
 
   for (const runtime of ["claude", "pi-durable"]) {
-    const chat = await sessions.newChat(repo, runtime);
+    const chat = await sessions.newChat(repo, { runtime });
     await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
   }
 
@@ -126,7 +239,7 @@ test("each runtime's usage is its own, for windows of the same ID", async () => 
 test("a queued turn of a runtime turned off fails, never opening it again", async () => {
   const { durable, on, runtimes } = twoRuntimes();
   const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
-  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  const session = await sessions.featureSession(repo, AGENT, { runtime: "pi-durable" });
   durable.capabilities.steer = false;
   let crash!: () => void;
   durable.script([
@@ -155,7 +268,7 @@ test("turning a runtime on within the restart window continues the runs a restar
     vi.advanceTimersByTime(ms);
     await flush();
   };
-  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  const session = await sessions.featureSession(repo, AGENT, { runtime: "pi-durable" });
   durable.script([() => new Promise<void>(() => {})]);
   const workflow = { fresh: false, step: "plan", trigger: "manual" } as const;
   await sessions.send(repo, session.id, { text: "Write the plan", workflow });

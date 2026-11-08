@@ -1,5 +1,13 @@
-import type { Adapter, AgentProcess, Capabilities, OpenOptions, Outgoing } from "./adapter.ts";
+import type {
+  Adapter,
+  AgentProcess,
+  Capabilities,
+  ModelList,
+  OpenOptions,
+  Outgoing,
+} from "./adapter.ts";
 import { allowRule } from "./claude-events.ts";
+import { effortName } from "./efforts.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
 /**
@@ -15,6 +23,24 @@ type Signal = Parameters<AgentProcess["kill"]>[0];
 /** The exit code of a shell process ended by each signal. */
 const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGKILL: 137, SIGTERM: 143 };
 
+/**
+ * The fake's model list: a model taking every effort from Low to Max, its default at Medium, and
+ * one taking none.
+ */
+export function fakeModels(): ModelList {
+  const efforts = ["low", "medium", "high", "xhigh", "max"].map((id) => ({
+    id,
+    name: effortName(id),
+  }));
+  return {
+    defaults: { effort: "medium", model: "fake-big" },
+    models: [
+      { description: "The fake's large model", efforts, id: "fake-big", name: "Fake Big" },
+      { efforts: [], id: "fake-small", name: "Fake Small" },
+    ],
+  };
+}
+
 /** One fake process: its events are pushed, and read in order until its `exit`. */
 class FakeProcess implements AgentProcess {
   #steps: Array<FakeStep> = [];
@@ -24,6 +50,8 @@ class FakeProcess implements AgentProcess {
   #exited = false;
   #adapter: FakeAdapter;
   #cwd: string;
+  /** Records each effort change, unless the test took it away: `FakeAdapter.hasSetEffort`. */
+  setEffort?: (effort: string | undefined) => void;
 
   constructor(adapter: FakeAdapter, cwd: string) {
     this.#adapter = adapter;
@@ -208,6 +236,14 @@ export class FakeAdapter implements Adapter {
   ignoreClose = false;
   /** Keeps a process running after SIGTERM: only SIGKILL ends it. */
   ignoreTerm = false;
+  /** The model list `models` gives, which a test may change. */
+  modelList: ModelList = fakeModels();
+  /** Makes `models` reject, as an agent down or too slow would. */
+  modelsFail = false;
+  /** Whether its processes change their effort, `setEffort`: without it, they are reopened. */
+  hasSetEffort = true;
+  /** Each effort its processes were changed to, by `setEffort`. */
+  efforts: Array<string | undefined> = [];
   /** Whether a process says `init` as it opens, with its own session ID; else a test emits it. */
   autoInit = true;
   /**
@@ -220,6 +256,13 @@ export class FakeAdapter implements Adapter {
 
   async version() {
     return this.installed ? "0.0.0 (fake agent)" : undefined;
+  }
+
+  async models(): Promise<ModelList> {
+    if (this.modelsFail) {
+      throw new Error("the fake agent cannot list its models");
+    }
+    return structuredClone(this.modelList);
   }
 
   hasSession(nativeId: string) {
@@ -247,6 +290,9 @@ export class FakeAdapter implements Adapter {
     this.opens.push(options);
     this.sessions.add(options.nativeId);
     const agent = new FakeProcess(this, options.cwd);
+    if (this.hasSetEffort) {
+      agent.setEffort = (effort) => this.efforts.push(effort);
+    }
     this.#current = agent;
     if (this.autoInit) {
       agent.push({ sessionId: options.nativeId, type: "init" });

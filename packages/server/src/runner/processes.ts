@@ -98,18 +98,20 @@ export class Processes {
    * The session's open process, opened when it has none, or when it is closing: then once it
    * exited. A transcript that is gone starts a new agent session: `line` says so, in the session
    * that ran before. `allowed` reopens the process with the rules. The directory is the session's
-   * folder as it is now: a session moved to a change opens in the change's worktree.
+   * folder as it is now: a session moved to a change opens in the change's worktree. It runs on the
+   * session's model and effort: an effort changed since the process opened is given to it, or, for
+   * a runtime that cannot change it, reopens it (R3). Called as a turn starts, never during one.
    */
   async open(
     live: Live,
     { allowed }: { allowed?: ReadonlyArray<string> } = {},
   ): Promise<{ line?: string; proc: Proc }> {
     const { binding, cache, runtimes } = this.#context;
-    if (live.proc && !live.proc.closing && allowed === undefined) {
-      // A turn taken back while the process opened left its line to the next one.
-      const { line } = live.proc;
+    // A turn taken back while the process opened left its line to the next one.
+    const held = live.proc?.line;
+    if (live.proc && !live.proc.closing && allowed === undefined && this.#effortSet(live)) {
       delete live.proc.line;
-      return { proc: live.proc, ...(line === undefined ? {} : { line }) };
+      return { proc: live.proc, ...(held === undefined ? {} : { line: held }) };
     }
     if (live.proc) {
       this.close(live.proc);
@@ -128,9 +130,9 @@ export class Processes {
       const resume = adapter.hasSession(row.nativeId);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
       // A session that ran before has lost its transcript: Claude Code deletes old ones.
-      const line = resume || !ran ? undefined : REPLACED;
-      const nativeId = line === undefined ? row.nativeId : randomUUID();
-      if (line !== undefined) {
+      const line = resume || !ran ? held : REPLACED;
+      const nativeId = line !== REPLACED ? row.nativeId : randomUUID();
+      if (line === REPLACED) {
         cache.updateSession(live.id, { nativeId });
       }
       const agent = adapter.open({
@@ -139,6 +141,8 @@ export class Processes {
         resume,
         skills: runtimes.skills(live.repo),
         ...(allowed === undefined ? {} : { allowed }),
+        ...(row.model === null ? {} : { model: row.model }),
+        ...(row.effort === null ? {} : { effort: row.effort }),
       });
       const proc: Proc = {
         adopts: !resume,
@@ -147,6 +151,7 @@ export class Processes {
         closing: false,
         cwd,
         done: Promise.resolve(),
+        effort: row.effort,
         kind: row.agent,
         runtime: adapter,
         terminate: [],
@@ -160,6 +165,24 @@ export class Processes {
       cache.releaseSession(live.id);
       throw error;
     }
+  }
+
+  /**
+   * Whether the session's open process runs on its effort: one changed since is given to it, when
+   * its runtime can change it. Else it is to be reopened.
+   */
+  #effortSet(live: Live): boolean {
+    const proc = live.proc!;
+    const { effort } = rowOf(this.#context.cache, live);
+    if (effort === proc.effort) {
+      return true;
+    }
+    if (!proc.agent.setEffort) {
+      return false;
+    }
+    proc.agent.setEffort(effort ?? undefined);
+    proc.effort = effort;
+    return true;
   }
 
   /** Starts the process's new agent session, after `/clear`: its next total counts whole. */

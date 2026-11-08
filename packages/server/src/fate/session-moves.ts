@@ -250,7 +250,7 @@ export const sessionMoves = {
       const row = await refusedOn(async () => {
         // A folder that is no change's or feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
-        return ctx.sessions.newSession(ctx.repo, input.folder, input.runtime);
+        return ctx.sessions.newSession(ctx.repo, input.folder, { runtime: input.runtime });
       });
       return maskedSession(ctx, row.id, select);
     },

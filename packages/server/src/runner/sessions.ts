@@ -9,7 +9,8 @@ import { Processes } from "./processes.ts";
 import { checkAvailable, readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
-import { archive, dismiss, rename, seen } from "./session-edits.ts";
+import type { SessionPick } from "./picks.ts";
+import { archive, dismiss, rename, seen, setEffort } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
@@ -194,15 +195,15 @@ export class Sessions {
     return wakeupPending(this.#context.live.get(session)?.proc);
   }
 
-  /** The latest session of a change or a feature, made on `runtime` with none: `featureSession`. */
-  async featureSession(repo: string, folder: string, runtime?: string): Promise<SessionRow> {
-    return featureSession(this.#context, await this.mainRoot(repo), folder, runtime);
+  /** The latest session of a change or a feature, made on `pick` with none: `featureSession`. */
+  async featureSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
+    return featureSession(this.#context, await this.mainRoot(repo), folder, pick);
   }
 
-  /** A new session of a change or a feature, on `runtime`, which becomes its latest: `newSession`. */
-  async newSession(repo: string, folder: string, runtime?: string): Promise<SessionRow> {
+  /** A new session of a change or a feature, on `pick`, which becomes its latest: `newSession`. */
+  async newSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
-    return newSession(this.#context, this.#options.onChange, root, { folder, runtime });
+    return newSession(this.#context, this.#options.onChange, root, { folder, pick });
   }
 
   /** Moves a session without a workflow to the change it became, between turns: `attach`. */
@@ -241,9 +242,9 @@ export class Sessions {
     archiveFolder(this.#context, this.#options.onChange, await this.mainRoot(repo), folder);
   }
 
-  /** A new chat, without a feature, on `runtime`, titled by its first message. */
-  async newChat(repo: string, runtime?: string): Promise<SessionRow> {
-    return newChat(this.#context, await this.mainRoot(repo), runtime);
+  /** A new chat, without a feature, on `pick`, titled by its first message. */
+  async newChat(repo: string, pick?: SessionPick): Promise<SessionRow> {
+    return newChat(this.#context, await this.mainRoot(repo), pick);
   }
 
   /**
@@ -343,6 +344,11 @@ export class Sessions {
       throw new Error(`no turn ${turn}`);
     }
     dismiss(this.#context, this.#options.onChange, this.#ownNow(repo, row.sessionId), row);
+  }
+
+  /** Changes the effort the session runs on, from its next turn: `setEffort`. */
+  setEffort(repo: string, session: string, effort: string | null): void {
+    setEffort(this.#context, this.#options.onChange, this.#ownNow(repo, session), effort);
   }
 
   /** Records that the human saw the session. */

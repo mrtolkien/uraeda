@@ -46,7 +46,9 @@ async function sendFirstRun(
     return null;
   }
   // The change's latest session: its only one, made now, unless a session moved to it.
-  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder, runtime));
+  const { id } = await onSession(ctx, () =>
+    ctx.sessions.featureSession(ctx.repo, folder, { runtime }),
+  );
   const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );

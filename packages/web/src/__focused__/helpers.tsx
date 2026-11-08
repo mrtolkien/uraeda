@@ -82,6 +82,7 @@ function agentRecord(): AgentRecord {
         icon: "uraeda:harness-agent",
         isOn: true,
         kind: "fake",
+        models: null,
         name: "Claude Code",
         title: "Fake agent",
         usage: [],
