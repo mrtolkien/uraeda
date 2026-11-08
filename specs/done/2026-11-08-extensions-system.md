@@ -2,6 +2,8 @@
 kind: feature
 finished: 2026-11-08
 pull-request: https://github.com/mrtolkien/uraeda/pull/113
+superseded-by:
+  - 2026-11-08-codex-runtime
 ---
 
 # Record: Extensions system
@@ -11,6 +13,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/113
 > The record of a merged feature, not instructions to follow. Started on 2026-11-08, finished on
 > 2026-11-08, in [its pull request](https://github.com/mrtolkien/uraeda/pull/113). Its full files
 > are in git: `git log -- specs/2026-11-08-extensions-system/`.
+>
+> Superseded in part by [2026-11-08-codex-runtime](2026-11-08-codex-runtime.md).
 
 ## What and why
 
