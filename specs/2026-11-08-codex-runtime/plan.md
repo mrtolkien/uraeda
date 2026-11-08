@@ -391,7 +391,7 @@ export type ModelList = {
 - Produces, on `Proc`: `adopts: boolean`, true for a process opened without `resume`, until its
   first `init`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // cache.test.ts
@@ -431,20 +431,20 @@ The break each test catches:
 - Adopted: Codex's first thread ID read as `/clear`, with a "cleared" line in every new session; or
   a later real `/clear` no longer recorded.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/server/src/runner/__tests__/cache.test.ts packages/server/src/runner/__tests__/sessions.test.ts`
   - Expected: FAIL, the new fields `undefined`, and a `CLEARED` item found.
-- [ ] **Step 3: Implement the contract, the migration, and the transcript's two rules.** Migration
+- [x] **Step 3: Implement the contract, the migration, and the transcript's two rules.** Migration
       10 adds the four nullable columns to `sessions`. `Transcript.#init`: while `proc.adopts`, a
       different ID updates the row's `nativeId` silently and clears `adopts`; otherwise as today.
       `runsOn` writes `ranModel` and `ranEffort` (null without an effort) and calls `changed`;
       `notice` appends a `system` item to the running turn. `docs/extensions.md` documents the
       optional `models`, `setEffort`, `model`, `effort`, `runsOn`, and `notice`.
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src docs/extensions.md

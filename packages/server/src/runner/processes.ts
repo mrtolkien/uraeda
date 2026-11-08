@@ -141,6 +141,7 @@ export class Processes {
         ...(allowed === undefined ? {} : { allowed }),
       });
       const proc: Proc = {
+        adopts: !resume,
         agent,
         background: new Map(),
         closing: false,

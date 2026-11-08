@@ -19,7 +19,7 @@ type Result = Extract<AgentEvent, { type: "result" }>;
 /** The events recorded as the turn's items. */
 type Output = Exclude<
   AgentEvent,
-  { type: "exit" | "init" | "background" | "tokens" | "accepted" | "cancelled" }
+  { type: "exit" | "init" | "runsOn" | "background" | "tokens" | "accepted" | "cancelled" }
 >;
 
 /** The events that show the agent working, which reopen its ended turn. */
@@ -57,6 +57,13 @@ export class Transcript {
       case "init":
         this.#init(live, proc, turn, event);
         return;
+      case "runsOn":
+        this.#context.cache.updateSession(live.id, {
+          ranEffort: event.effort ?? null,
+          ranModel: event.model,
+        });
+        this.#context.changed(live);
+        return;
       case "background":
         this.#background(live, proc, turn, event.tasks);
         return;
@@ -92,18 +99,23 @@ export class Transcript {
   }
 
   /**
-   * Records the process's start: a new agent session after `/clear`, and a process without the
-   * skill, which must not run.
+   * Records the process's start: the agent session ID a new process's first init reports, adopted,
+   * a new agent session after `/clear`, and a process without the skill, which must not run.
    */
   #init(live: Live, proc: Proc, turn: Running | undefined, event: Init) {
     const { cache, changed, turns } = this.#context;
-    // `/clear` starts a new agent session in the same process.
+    const adopts = proc.adopts;
+    proc.adopts = false;
     if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
       cache.updateSession(live.id, { nativeId: event.sessionId });
-      this.#context.processes.cleared(proc);
-      // Its line marks where the agent session's tokens start, for a process resuming it.
-      if (turn) {
-        cache.appendItem(turn.id, { kind: "system", text: CLEARED });
+      // An agent that picks its own IDs, as Codex, reports a new session's at its first start (R1);
+      // a later new ID is `/clear`, a new agent session in the same process.
+      if (!adopts) {
+        this.#context.processes.cleared(proc);
+        // Its line marks where the agent session's tokens start, for a process resuming it.
+        if (turn) {
+          cache.appendItem(turn.id, { kind: "system", text: CLEARED });
+        }
       }
       changed(live, turn?.id);
     }
@@ -118,7 +130,12 @@ export class Transcript {
 
   /** Records the agent's output in its turn: texts, tool calls, retries, skipped lines, results. */
   #output(live: Live, proc: Proc, turn: Running, event: Output) {
-    if (event.type !== "result" && event.type !== "skipped" && event.type !== "retry") {
+    if (
+      event.type !== "result" &&
+      event.type !== "skipped" &&
+      event.type !== "retry" &&
+      event.type !== "notice"
+    ) {
       this.#track(live, turn, event);
     }
     switch (event.type) {
@@ -157,6 +174,9 @@ export class Transcript {
       case "retry":
         this.#append(live, turn, { kind: "system", text: retryText(event) });
         return;
+      case "notice":
+        this.#append(live, turn, { kind: "system", text: event.text });
+        return;
       case "skipped": {
         const count = (turn.skipped?.count ?? 0) + 1;
         const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${proc.runtime.name} printed that Uraeda does not read.`;
@@ -178,7 +198,7 @@ export class Transcript {
   #track(
     live: Live,
     turn: Running,
-    event: Exclude<Output, { type: "result" | "skipped" | "retry" }>,
+    event: Exclude<Output, { type: "result" | "skipped" | "retry" | "notice" }>,
   ) {
     const parent =
       event.type === "toolStart" || event.type === "thought"

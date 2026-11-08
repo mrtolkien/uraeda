@@ -30,6 +30,10 @@ export type AgentEvent =
    * as a skill that did not load: the turn fails with it as its reason.
    */
   | { problem?: string; sessionId: string; type: "init" }
+  /** The model and effort the agent runs on, by its names for people: no effort for none. */
+  | { effort?: string; model: string; type: "runsOn" }
+  /** A line of the agent's for the transcript, as a reviewer's verdict. */
+  | { text: string; type: "notice" }
   /** A piece of the text being written. */
   | { text: string; type: "textDelta" }
   /** A text block, whole. */

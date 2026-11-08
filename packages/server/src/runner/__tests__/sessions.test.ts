@@ -11,6 +11,7 @@ import {
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "../sessions.ts";
+import { CLEARED } from "../session-state.ts";
 import { flush, testSessions } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -1433,6 +1434,49 @@ test("an init with a new session ID updates the native ID", async () => {
   await flush();
 
   expect(cache.session(session.id)?.nativeId).toBe("cleared-1");
+});
+
+test("a new agent session's own ID is adopted, not read as a clear", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.autoInit = false;
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+
+  // An agent that picks its own IDs, as Codex picks a thread's, reports one Uraeda did not give.
+  adapter.emit({ sessionId: "thread-1", type: "init" });
+  await flush();
+
+  expect(cache.session(session.id)?.nativeId).toBe("thread-1");
+  const texts = () => cache.items(turn, 0, 20).map((item) => "text" in item && item.text);
+  expect(texts()).not.toContain(CLEARED);
+
+  // A later new ID in the same process is the agent's `/clear`.
+  adapter.emit({ sessionId: "thread-2", type: "init" });
+  await flush();
+
+  expect(cache.session(session.id)?.nativeId).toBe("thread-2");
+  expect(texts()).toContain(CLEARED);
+});
+
+test("the model and effort the agent reports are stored, and its notices recorded", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+
+  adapter.emit({ effort: "Medium", model: "GPT-6.1-Sol", type: "runsOn" });
+  adapter.emit({ text: "The reviewer approved the commit.", type: "notice" });
+  await flush();
+
+  expect(cache.session(session.id)).toMatchObject({ ranEffort: "Medium", ranModel: "GPT-6.1-Sol" });
+  expect(cache.items(turn, 0, 20)).toContainEqual(
+    expect.objectContaining({ kind: "system", text: "The reviewer approved the commit." }),
+  );
+
+  // A model without efforts reports none: the last one does not stay.
+  adapter.emit({ model: "GPT-6-Luna", type: "runsOn" });
+  await flush();
+
+  expect(cache.session(session.id)).toMatchObject({ ranEffort: null, ranModel: "GPT-6-Luna" });
 });
 
 test("the watchdog fails a silent turn after 30 minutes with 'No output for 30 minutes.'", async () => {

@@ -6,8 +6,11 @@ import type { Adapter } from "./runner/adapter.ts";
 
 export type {
   Adapter as Runtime,
+  AgentModel,
   AgentProcess,
   Capabilities,
+  ModelEffort,
+  ModelList,
   OpenOptions,
 } from "./runner/adapter.ts";
 export type { AgentEvent, UsageWindow } from "./runner/events.ts";

@@ -16,13 +16,44 @@ export type Capabilities = {
   takeBack: boolean;
 };
 
+/** An effort a model takes: the agent's ID for it, and its name for people. */
+export type ModelEffort = { id: string; name: string };
+
+/** A model the agent lists for the account. */
+export type AgentModel = {
+  /** The agent's line about it. */
+  description?: string;
+  /** The efforts it takes, in the agent's order: empty for none. */
+  efforts: Array<ModelEffort>;
+  /** The agent's ID, which a session stores as its model. */
+  id: string;
+  /** Its name for people. */
+  name: string;
+};
+
+/**
+ * The models a runtime lists, in the agent's order, and the model and effort the agent runs on when
+ * none is picked, by their IDs.
+ */
+export type ModelList = {
+  defaults: { effort?: string; model?: string };
+  models: Array<AgentModel>;
+};
+
 /** How to open a session's process. */
 export type OpenOptions = {
   /** The allow rules for this process only, from "Allow and retry" or "Allow all". */
   allowed?: ReadonlyArray<string>;
   /** The feature's worktree, or the main checkout. */
   cwd: string;
-  /** The agent's own session ID. */
+  /** The effort to run on, by the agent's ID: none for the agent's default. */
+  effort?: string;
+  /** The model to run on, by the agent's ID: none for the agent's default. */
+  model?: string;
+  /**
+   * The agent's own session ID. An agent that picks its own, when not resuming, reports it in its
+   * first `init`, which the session adopts.
+   */
   nativeId: string;
   /** Resume `nativeId`, or start a new session with it. */
   resume: boolean;
@@ -52,6 +83,11 @@ export interface AgentProcess {
   /** Signals the process, and the processes it started. */
   kill(signal: "SIGINT" | "SIGTERM" | "SIGKILL"): void;
   send(message: Outgoing): void;
+  /**
+   * Changes the effort it runs on, from its next turn on: undefined for the agent's default. A
+   * runtime without it is reopened with the new effort.
+   */
+  setEffort?(effort: string | undefined): void;
   /** Takes back a message the agent has not read. */
   takeBack(id: string): void;
 }
@@ -73,6 +109,8 @@ export interface Adapter {
   readonly icon: string;
   /** The agent's own kind, which a benchmark's record names it by: "claude". */
   readonly kind: string;
+  /** The models the agent lists, offered where a session starts: none without it. */
+  models?(): Promise<ModelList>;
   /** The agent's name, for people: "Claude Code". */
   readonly name: string;
   open(options: OpenOptions): AgentProcess;
