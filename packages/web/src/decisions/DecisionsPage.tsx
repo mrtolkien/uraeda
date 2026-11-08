@@ -14,7 +14,8 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use, useRef, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
-import { useAgent, useLedger } from "../data.ts";
+import { useLedger } from "../data.ts";
+import { useRuntimesAvailable } from "../runtimes.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -154,7 +155,7 @@ function LedgerList({
 }) {
   const here = useRepoPath();
   const pane = use(ListPaneContext);
-  const agent = useAgent()?.available === true;
+  const agent = useRuntimesAvailable().available;
   const chat = useStartChat();
   const check = ledger.decisionsCheck;
   const shown = shownPath(ledger, open);

@@ -44,9 +44,9 @@ function WikiPlace() {
       <HStack gap={2} wrap="wrap">
         {wiki.pages.map((page) => (
           <Button
+            clickAction={() => setPicked(page.path)}
             key={page.path}
             label={page.title}
-            onClick={() => setPicked(page.path)}
             size="sm"
             variant={page.path === shown.path ? "primary" : "secondary"}
           />

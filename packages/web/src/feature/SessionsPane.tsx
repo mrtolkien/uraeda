@@ -12,7 +12,6 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useState } from "react";
 import type { TaskProgress } from "uraeda-binding";
-import { useAgent } from "../data.ts";
 import { progressText, stepLabel } from "../labels.ts";
 import { Pane } from "../layout/Pane.tsx";
 import { KeyPicker } from "../keys/KeyPicker.tsx";
@@ -27,6 +26,7 @@ import { clock, day, duration } from "./times.ts";
 import { CardRow } from "../sidebar/CardRow.tsx";
 import { Empty } from "../layout/Empty.tsx";
 import { statusLabel } from "../wait.ts";
+import { useRuntimesAvailable } from "../runtimes.ts";
 
 const styles = stylex.create({
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
@@ -212,7 +212,7 @@ function useSessionKeys(
 
 /**
  * The sessions' pane, titled with their count: its sessions, the latest first, "New session", and
- * that the agent is not on this machine.
+ * that no agent on here runs on this machine.
  */
 export function SessionsPane({
   folder,
@@ -223,9 +223,10 @@ export function SessionsPane({
   progress?: TaskProgress | null;
   sessions: ReadonlyArray<string>;
 }) {
-  const agent = useAgent();
+  const runtimes = useRuntimesAvailable();
   const here = useRepoPath();
-  const canStart = agent?.available !== false;
+  // With none on, the new session's page says why it cannot start.
+  const canStart = runtimes.on.length === 0 || runtimes.available;
   const start = () => navigate(here(newSessionPath(folder)));
   const picker = useSessionKeys(folder, sessions, canStart ? start : undefined);
   return (
@@ -247,9 +248,11 @@ export function SessionsPane({
             />
           </HStack>
         )}
-        {agent?.available === false && (
+        {!canStart && (
           <Text color="secondary" type="supporting">
-            {agent.name} is not available on this machine.
+            {runtimes.on.length === 1
+              ? `${runtimes.on[0]!.name} is not available on this machine.`
+              : "No agent on here is available on this machine."}
           </Text>
         )}
       </VStack>
