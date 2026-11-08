@@ -1,18 +1,15 @@
 // Home: the core, then the overview. Above a dashed "Overview" line, the problems that stop the
 // workflow when there are any, what waits on the human, In progress, and Sessions, as the sidebar's
 // cards, in the two columns that end nearest each other (`Core.tsx`); under it, the widgets in two
-// columns as well: the inbox's latest notes with what is done under them, and the priorities now
-// with the usage. From semi-wide, two columns; on the phone, one, in the same order. While Continue
+// columns as well, the home panes of the extensions on here (`home/panes.tsx`): the inbox's latest
+// notes with what is done under them, and the priorities now with the usage. From semi-wide, two columns; on the phone, one, in the same order. While Continue
 // all's preview is on, the widgets are dimmed with the cards it leaves alone.
-import { type FocusEvent, Fragment, useRef, useState } from "react";
+import { type FocusEvent, Fragment, type ReactNode, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { useInbox, usePriorities } from "../data.ts";
-import { byRunning, lookOf } from "../lists/PrioritiesList.tsx";
 import { WorkList, type WorkSection } from "../lists/WorkList.tsx";
-import { navigate, useRepoPath } from "../routes.tsx";
+import { navigate } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
-import { plain } from "../Spans.tsx";
 import type { Move } from "../lists/destination.ts";
 import {
   cardKeyOf,
@@ -26,13 +23,13 @@ import { type CorePart, continuedKeys, coreParts, splitColumns } from "./Core.ts
 import { previewStyles } from "./ContinueAll.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { homeFeatures } from "./features.ts";
-import { Columns, Overview, PaneLink } from "./parts.tsx";
+import { Columns, Overview } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
-import { inboxSummary, NOT_SORTED } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
-import { plural } from "../labels.ts";
 import type { Feature, Row } from "../sidebar/cards.ts";
-import { proposalFilePage } from "../readAhead.ts";
+import { Collect } from "../extensions/Collect.tsx";
+import type { HomePane } from "../extensions/registry.ts";
+import { useContributions } from "../extensions/useContributions.ts";
 
 const styles = stylex.create({
   // The widgets' space: the column of the page's grid it sits in, however wide it grows.
@@ -49,15 +46,12 @@ const STEP_OF: Record<Move, CoreStep> = {
   right: "right",
 };
 
-/** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
-const PRIORITIES_SHOWN = 5;
-
 /**
  * The row the list selects as a move down from the core asks, `follow`: each move selects the first
  * row of its column, or of the other one where it has none. It follows each new `follow` as the
  * list renders, where an effect would render the list twice.
  */
-function useFollowed(follow: { column: number } | undefined, sections: Array<WorkSection>) {
+function useFollowed(follow: { column: number } | undefined, sections: ReadonlyArray<WorkSection>) {
   const [selecting, setSelecting] = useState<{ key: string }>();
   const [followed, setFollowed] = useState<{ column: number }>();
   if (follow !== followed) {
@@ -74,24 +68,8 @@ function useFollowed(follow: { column: number } | undefined, sections: Array<Wor
   return selecting;
 }
 
-/**
- * The inbox's three latest notes and the first five entries of Now that are not running, which the
- * core above already shows, as the inbox and the priorities pages draw them: the same cards, side
- * by side as the columns of one list, so that `h l` moves between them as it does on the priorities
- * page. A note shows its category in its border, none for one without; a proposal, its file marked
- * so. A card opens its note or its proposal's pane, and each pane ends with its way to its page.
- * From semi-wide, the done items go under the inbox and the usage under the priorities, so that the
- * columns end near each other; on the phone, one under the other, in that order, `below` the list.
- */
-function Lists({
-  clear,
-  features,
-  follow,
-  isNarrow: narrow,
-  onEdge,
-  onSelected,
-  rows,
-}: {
+/** What the overview's list is given by the home. */
+type ListsProps = {
   /** Each new object leaves no row selected: a card of the core is. */
   clear: object | undefined;
   features: Array<Feature>;
@@ -103,65 +81,71 @@ function Lists({
   /** Hears a row selected, by the keys or the pointer: the core's card is no longer. */
   onSelected: (key: string | undefined) => void;
   rows: Array<Row>;
-}) {
-  const here = useRepoPath();
-  const { count, latest } = inboxSummary(useInbox());
-  const priorities = usePriorities();
-  const proposals = (
-    priorities
-      ? (byRunning(priorities).sections.find((s) => s.section === "now")?.proposals ?? [])
-      : []
-  ).slice(0, PRIORITIES_SHOWN);
+};
+
+/** A pane's section: a built-in's read by its own component, yours with its body as its footer. */
+function readPane(pane: HomePane, next: (section: WorkSection) => ReactNode): ReactNode {
+  if (pane.section) {
+    const Section = pane.section;
+    return <Section>{next}</Section>;
+  }
+  const Body = pane.component;
+  return next({
+    ...(Body ? { footer: <Body /> } : {}),
+    icon: pane.icon,
+    id: pane.id,
+    isFixed: true,
+    rows: [],
+    title: pane.title,
+    tone: pane.tone,
+  });
+}
+
+/**
+ * The panes of the extensions on here, the built-ins' first, the inbox's and the priorities' now,
+ * as the same cards side by side as the columns of one list, so that `h l` moves between them as it
+ * does on the priorities page.
+ */
+function Lists(props: ListsProps) {
+  const panes = useContributions("homePane");
+  return (
+    <Collect items={panes} read={readPane}>
+      {(sections) => <PaneList {...props} panes={panes} sections={sections} />}
+    </Collect>
+  );
+}
+
+/**
+ * The overview's list. From semi-wide, the done items go under the first pane of the left column,
+ * the inbox's, and the usage under the first of the right, the priorities', so that the columns end
+ * near each other; on the phone, or with no pane in their column, under the list, in that order.
+ */
+function PaneList({
+  clear,
+  features,
+  follow,
+  isNarrow: narrow,
+  onEdge,
+  onSelected,
+  panes,
+  rows,
+  sections,
+}: ListsProps & { panes: ReadonlyArray<HomePane>; sections: ReadonlyArray<WorkSection> }) {
   const recent = <Recent features={features} rows={rows} />;
   const usage = <Usage />;
-  const sections: Array<WorkSection> = [
-    {
-      ...(narrow ? {} : { below: recent }),
-      ...(count === 0 ? { context: "The inbox is empty." } : {}),
-      // Of all its notes, though three are listed.
-      count,
-      footer: (
-        <PaneLink
-          href={here("/inbox")}
-          label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
-        />
-      ),
-      icon: "uraeda:inbox",
-      id: "inbox",
-      isFixed: true,
-      rows: latest.map((note) => ({
-        href: here(`/inbox/${note.key}`),
-        ...(note.file === undefined ? {} : { page: proposalFilePage(note.file) }),
-        isFixed: true,
-        key: note.key,
-        lines: note.nestedSpans.map(plain),
-        ...(note.category === NOT_SORTED ? {} : { marks: note.category }),
-        text: plain(note.spans),
-      })),
-      title: "Inbox",
-      tone: "neutral",
-    },
-    {
-      ...(narrow ? {} : { below: usage }),
-      ...(proposals.length === 0 ? { context: "Nothing in Now." } : {}),
-      footer: <PaneLink href={here("/priorities")} label="Open priorities" />,
-      icon: "uraeda:list",
-      id: "now",
-      isFixed: true,
-      rows: proposals.map((proposal) => ({
-        href: here(`/priorities/${proposal.key}`),
-        ...(proposal.file ? { page: proposalFilePage(proposal.file.path) } : {}),
-        ...lookOf(proposal),
-        isFixed: true,
-        key: proposal.key,
-        lines: proposal.nestedSpans.map(plain),
-        text: plain(proposal.spans),
-      })),
-      title: "Priorities now",
-      tone: "now",
-    },
-  ];
-  const selecting = useFollowed(follow, sections);
+  const columnOf = (id: string) => panes.find((pane) => pane.id === id)?.column ?? 0;
+  const firstIn = (column: number) =>
+    narrow ? undefined : sections.find((section) => columnOf(section.id) === column)?.id;
+  const recentAt = firstIn(0);
+  const usageAt = firstIn(1);
+  const placed = sections.map((section) =>
+    section.id === recentAt
+      ? { ...section, below: recent }
+      : section.id === usageAt
+        ? { ...section, below: usage }
+        : section,
+  );
+  const selecting = useFollowed(follow, placed);
   return (
     <VStack gap={1}>
       <WorkList
@@ -170,14 +154,14 @@ function Lists({
         layout="columns"
         level={3}
         onEdge={(move, section) =>
-          onEdge(move, section === undefined ? undefined : section === "now" ? 1 : 0)
+          onEdge(move, section === undefined ? undefined : columnOf(section))
         }
         onOpen={navigate}
         onSelected={onSelected}
-        sections={sections}
+        sections={placed}
       />
-      {narrow && recent}
-      {narrow && usage}
+      {recentAt === undefined && recent}
+      {usageAt === undefined && usage}
     </VStack>
   );
 }

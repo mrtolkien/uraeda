@@ -3,7 +3,7 @@
 // any of them (SC-005 of the layout look).
 import type { Ledger } from "uraeda-server/fate";
 import { type LedgerPrinciple, rulesOf } from "./ConstitutionRegion.tsx";
-import { DESTINATIONS } from "../destinations.ts";
+import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
 import { markdownPreview, type PickerItem } from "../keys/pickerSources.ts";
 import type { LedgerDecision } from "./model.ts";
 import { decisionIcon } from "../theme/icons.ts";
@@ -132,7 +132,9 @@ export function searchEntries(entries: ReadonlyArray<JumpEntry>, query: string):
 export function pickerItemOf(entry: JumpEntry): PickerItem {
   return {
     icon:
-      entry.kind === "principle" ? DESTINATIONS.decisions.icon : decisionIcon(entry.decision.icon),
+      entry.kind === "principle"
+        ? BUILT_IN_PLACES.decisions.icon
+        : decisionIcon(entry.decision.icon),
     id: entry.kind === "principle" ? `${entry.path}#${entry.principle.number}` : entry.path,
     kind: "decisions",
     mark: entry.kind === "principle" ? entry.principle.number : undefined,

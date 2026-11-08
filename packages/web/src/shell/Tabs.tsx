@@ -1,7 +1,8 @@
 // The phone's bar of tabs, at the top of every page, a terminal's tab line: Home with the count of
-// what needs the human, Inbox with its notes' count, Priorities, Sessions with the running
-// sessions' count, Git with what waits on it, a `…` that holds Decisions and Settings, and New, each
-// an icon named by its page. Nothing is filled: the current page's tab is in the accent, a line in
+// what needs the human, then the extensions' places that ask for a tab, the built-ins' first: Inbox
+// with its notes' count, Priorities, Sessions with the running sessions' count, Git with what waits
+// on it; a `…` that holds the ones that ask for a place there, Decisions, then Settings; and New,
+// each an icon named by its page. Nothing is filled: the current page's tab is in the accent, a line in
 // the accent under it at the bar's edge; a count is a small number after its icon; New is framed.
 // The Sessions tab opens the shell's panes as a page of their own. The phone's status line holds a
 // page's own controls only: these counts are its counts.
@@ -17,6 +18,9 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
+import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
+import type { Place } from "../extensions/registry.ts";
+import { useContributions } from "../extensions/useContributions.ts";
 import { useInbox } from "../data.ts";
 import { useGitSummary } from "../git/data.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
@@ -183,7 +187,7 @@ function Tab({
  * The Git tab, always there, the phone's way to the Git page: the main checkout's changes to commit
  * and the commits to pull, counted together after its icon while any wait, and each named after the page.
  */
-function GitTab({ isCurrent }: { isCurrent: boolean }) {
+function GitCounted({ isCurrent }: { isCurrent: boolean }) {
   const summary = useGitSummary();
   const changes = summary?.changes ?? 0;
   const behind = summary?.behind ?? 0;
@@ -196,10 +200,42 @@ function GitTab({ isCurrent }: { isCurrent: boolean }) {
     <Tab
       count={changes + behind}
       counted={counted}
-      icon={DESTINATIONS.git.icon}
+      icon={BUILT_IN_PLACES.git.icon}
       isCurrent={isCurrent}
-      label={DESTINATIONS.git.label}
-      to={DESTINATIONS.git.path}
+      label={BUILT_IN_PLACES.git.label}
+      to={BUILT_IN_PLACES.git.path}
+    />
+  );
+}
+
+/** The Git tab, its count once read. */
+export function GitTab({ isCurrent }: { isCurrent: boolean }) {
+  return (
+    <Suspense
+      fallback={
+        <Tab
+          icon={BUILT_IN_PLACES.git.icon}
+          isCurrent={isCurrent}
+          label={BUILT_IN_PLACES.git.label}
+          to={BUILT_IN_PLACES.git.path}
+        />
+      }
+    >
+      <GitCounted isCurrent={isCurrent} />
+    </Suspense>
+  );
+}
+
+/** The Sessions tab, with the running sessions' count. */
+export function SessionsTab({ isCurrent }: { isCurrent: boolean }) {
+  return (
+    <Tab
+      count={runningSessions(useNavigation())}
+      counted={(n) => `${n} running`}
+      icon={DESTINATIONS.sessions.icon}
+      isCurrent={isCurrent}
+      label={DESTINATIONS.sessions.label}
+      to={DESTINATIONS.sessions.path}
     />
   );
 }
@@ -223,20 +259,22 @@ function NewTab({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
-/** The places the `…` holds: the least visited, with no count to show. */
-const FOLDED = [DESTINATIONS.decisions, DESTINATIONS.settings] as const;
-
 /**
- * The `…` of the places the bar has no room for, Decisions and Settings, a popover anchored to it:
- * marked as the current page's tab while one of them is open, and named by it then.
+ * The `…` of the places the bar has no room for, the extensions' that ask for it, then Settings, a
+ * popover anchored to it: the least visited, with no count to show. Marked as the current page's
+ * tab while one of them is open, and named by it then.
  */
-function MoreTab({ at }: { at: (to: string) => boolean }) {
+function MoreTab({ at, places }: { at: (to: string) => boolean; places: ReadonlyArray<Place> }) {
   const here = useRepoPath();
-  const current = FOLDED.find((place) => at(place.path));
+  const folded = [
+    ...places.map((place) => ({ icon: place.icon, label: place.title, path: place.path ?? "/" })),
+    DESTINATIONS.settings,
+  ];
+  const current = folded.find((place) => at(place.path));
   return (
     <DropdownMenu
       alignment="end"
-      items={FOLDED.map((place) => ({
+      items={folded.map((place) => ({
         icon: place.icon,
         label: place.label,
         onClick: () => navigate(here(place.path)),
@@ -256,6 +294,26 @@ function MoreTab({ at }: { at: (to: string) => boolean }) {
   );
 }
 
+/** The inbox's tab, with its notes' count once read: none in a repository without `specs/`. */
+export function InboxTab({ isCurrent }: { isCurrent: boolean }) {
+  const data = useNavigation();
+  const inbox = (
+    <Tab
+      icon={BUILT_IN_PLACES.inbox.icon}
+      isCurrent={isCurrent}
+      label={BUILT_IN_PLACES.inbox.label}
+      to={BUILT_IN_PLACES.inbox.path}
+    />
+  );
+  return data.workspace?.noSpecs ? (
+    inbox
+  ) : (
+    <Suspense fallback={inbox}>
+      <InboxCounted isCurrent={isCurrent} />
+    </Suspense>
+  );
+}
+
 /** The inbox's tab, with its notes' count once read. */
 function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   const inbox = useInbox();
@@ -263,11 +321,50 @@ function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
     <Tab
       count={inbox?.count}
       counted={(n) => plural(n, "note")}
-      icon={DESTINATIONS.inbox.icon}
+      icon={BUILT_IN_PLACES.inbox.icon}
       isCurrent={isCurrent}
-      label={DESTINATIONS.inbox.label}
-      to={DESTINATIONS.inbox.path}
+      label={BUILT_IN_PLACES.inbox.label}
+      to={BUILT_IN_PLACES.inbox.path}
     />
+  );
+}
+
+/** A count drawn by a hook of its place: called as a hook, once per render of its tab. */
+function CountedTab({
+  isCurrent,
+  place,
+  useCount,
+}: {
+  isCurrent: boolean;
+  place: Place;
+  useCount: () => number | undefined;
+}) {
+  return (
+    <Tab
+      count={useCount()}
+      icon={place.icon}
+      isCurrent={isCurrent}
+      label={place.title}
+      to={place.path ?? "/"}
+    />
+  );
+}
+
+/** An extension's place's tab: its own, or its icon and title, with its count once read. */
+function PlaceTab({ isCurrent, place }: { isCurrent: boolean; place: Place }) {
+  if (place.tab) {
+    const Own = place.tab;
+    return <Own isCurrent={isCurrent} />;
+  }
+  const plain = (
+    <Tab icon={place.icon} isCurrent={isCurrent} label={place.title} to={place.path ?? "/"} />
+  );
+  return place.count ? (
+    <Suspense fallback={plain}>
+      <CountedTab isCurrent={isCurrent} place={place} useCount={place.count} />
+    </Suspense>
+  ) : (
+    plain
   );
 }
 
@@ -281,14 +378,9 @@ export function Tabs({
   const pathname = useShellPath();
   const data = useNavigation();
   const at = (to: string) => selects(pathname, to);
-  const inbox = (
-    <Tab
-      icon={DESTINATIONS.inbox.icon}
-      isCurrent={at(DESTINATIONS.inbox.path)}
-      label={DESTINATIONS.inbox.label}
-      to={DESTINATIONS.inbox.path}
-    />
-  );
+  const places = useContributions("place");
+  const bar = places.filter((place) => place.phoneTab === "bar");
+  const more = places.filter((place) => place.phoneTab === "more");
   return (
     <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
       <div {...stylex.props(styles.toggle)}>
@@ -311,40 +403,10 @@ export function Tabs({
         label={DESTINATIONS.home.label}
         to={DESTINATIONS.home.path}
       />
-      {data.workspace?.noSpecs ? (
-        inbox
-      ) : (
-        <Suspense fallback={inbox}>
-          <InboxCounted isCurrent={at("/inbox")} />
-        </Suspense>
-      )}
-      <Tab
-        icon={DESTINATIONS.priorities.icon}
-        isCurrent={at(DESTINATIONS.priorities.path)}
-        label={DESTINATIONS.priorities.label}
-        to={DESTINATIONS.priorities.path}
-      />
-      <Tab
-        count={runningSessions(data)}
-        counted={(n) => `${n} running`}
-        icon={DESTINATIONS.sessions.icon}
-        isCurrent={at(DESTINATIONS.sessions.path)}
-        label={DESTINATIONS.sessions.label}
-        to={DESTINATIONS.sessions.path}
-      />
-      <Suspense
-        fallback={
-          <Tab
-            icon={DESTINATIONS.git.icon}
-            isCurrent={at(DESTINATIONS.git.path)}
-            label={DESTINATIONS.git.label}
-            to={DESTINATIONS.git.path}
-          />
-        }
-      >
-        <GitTab isCurrent={at(DESTINATIONS.git.path)} />
-      </Suspense>
-      <MoreTab at={at} />
+      {bar.map((place) => (
+        <PlaceTab isCurrent={at(place.path ?? "/")} key={place.id} place={place} />
+      ))}
+      <MoreTab at={at} places={more} />
       <NewTab isCurrent={at(DESTINATIONS.new.path)} />
     </nav>
   );

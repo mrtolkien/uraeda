@@ -2,7 +2,7 @@
 // preview, drawn as the app draws that content (`PickerPreview.tsx`). The picker reads only what its kind needs, in one request, once it is opened
 // (never while closed, so no page waits on it); a feature's and a change's proposal comes in one
 // more request after the list, as a batch of the files, and joins the previews when it arrives.
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { use, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useFateClient, useLiveView, view, type ViewRef } from "react-fate";
 import type { Span } from "uraeda-binding";
 import type { WorkflowFile } from "uraeda-server/fate";
@@ -19,6 +19,7 @@ import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView }
 import { type Row, rowOf, sessionCard, toCard } from "../sidebar/cards.ts";
 import { statusLabel } from "../wait.ts";
 import type { CardItem } from "../sidebar/ItemCard.tsx";
+import { IsOnContext } from "../extensions/useContributions.ts";
 import { KIND_ICONS } from "./kinds.ts";
 import type { IconName } from "./store.ts";
 
@@ -287,6 +288,13 @@ function sessionItems(
   );
 }
 
+/** The kinds a built-in extension owns, by its name: off, it finds none. */
+const KINDS_OWNED: ReadonlyArray<readonly [PickerKind, string]> = [
+  ["decisions", "decisions"],
+  ["notes", "inbox"],
+  ["priorities", "priorities"],
+];
+
 /** What `usePickerItems` gives back: the items, and how the read of them went. */
 export type PickerRead = {
   /** The error the read failed with, if it did. */
@@ -304,7 +312,13 @@ export type PickerRead = {
  * request, which holds what the kind needs and nothing else, is under way. Empty until it ends.
  */
 export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): PickerRead {
-  const is = (...kinds: Array<PickerKind>) => kind === "all" || kinds.includes(kind);
+  // A kind whose built-in is off here is not found, even over every kind.
+  const isOn = use(IsOnContext);
+  const off = KINDS_OWNED.filter(([, owner]) => !isOn(owner))
+    .map(([owned]) => owned)
+    .join(" ");
+  const is = (...kinds: Array<PickerKind>) =>
+    kinds.some((one) => (kind === "all" || kind === one) && !off.split(" ").includes(one));
   const fate = useFateClient();
   // The request's state, observed outside Suspense: it starts as the first reader subscribes, and
   // ends as the last leaves. The request depends on `kind` alone, so the observer is kept per kind.
@@ -325,8 +339,8 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
         } as never,
         { enabled: isEnabled },
       ),
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `is` reads `kind` only
-    [fate, kind, isEnabled],
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `is` reads `kind` and `off` only
+    [fate, kind, off, isEnabled],
   );
   const state = useSyncExternalStore(observer.subscribe, observer.getSnapshot);
   const records = (state.data ?? {}) as unknown as Records;
@@ -346,9 +360,9 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
     ...features.filter((item) => item.kind === "features" && is("features")),
     ...features.filter((item) => item.kind === "changes" && is("changes")),
     ...(is("sessions") ? sessionItems(sessionList?.rows ?? [], workspace) : []),
-    ...(ledger ? jumpEntries(ledger, ledger.decisions).map(pickerItemOf) : []),
+    ...(ledger && is("decisions") ? jumpEntries(ledger, ledger.decisions).map(pickerItemOf) : []),
     // A row not written yet has no page: it is offered once written.
-    ...(inbox?.categories ?? []).flatMap((category) =>
+    ...(is("notes") ? (inbox?.categories ?? []) : []).flatMap((category) =>
       category.notes
         .filter((note) => !isPending(note.key))
         .map((note): PickerItem => ({
@@ -364,7 +378,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
           title: note.text,
         })),
     ),
-    ...(priorities?.sections ?? []).flatMap((section) =>
+    ...(is("priorities") ? (priorities?.sections ?? []) : []).flatMap((section) =>
       section.proposals
         .filter((proposal) => !isPending(proposal.key))
         .map((proposal): PickerItem => ({

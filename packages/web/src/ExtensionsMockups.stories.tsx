@@ -12,6 +12,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { DESTINATIONS } from "./destinations.ts";
+import { BUILT_IN_PLACES } from "./extensions/builtins/places.ts";
 import { Home } from "./Home.tsx";
 import { LeaderMenu, type MenuEntry } from "./keys/LeaderMenu.tsx";
 import { Pane } from "./layout/Pane.tsx";
@@ -29,8 +30,8 @@ const TOP: ReadonlyArray<MenuEntry> = [
   { icon: "search", key: "space", label: "Find anything…" },
   { icon: "uraeda:arrow-right", key: "c", label: "Continue" },
   { icon: DESTINATIONS.home.icon, key: "h", label: DESTINATIONS.home.label },
-  { icon: DESTINATIONS.priorities.icon, key: "p", label: DESTINATIONS.priorities.label },
-  { icon: DESTINATIONS.decisions.icon, key: "d", label: DESTINATIONS.decisions.label },
+  { icon: BUILT_IN_PLACES.priorities.icon, key: "p", label: BUILT_IN_PLACES.priorities.label },
+  { icon: BUILT_IN_PLACES.decisions.icon, key: "d", label: BUILT_IN_PLACES.decisions.label },
   { icon: DESTINATIONS.sessions.icon, key: "s", label: DESTINATIONS.sessions.label },
   { icon: "uraeda:globe", key: "y", label: "Deploy" },
   { icon: "uraeda:book-open", key: "w", label: "Wiki" },

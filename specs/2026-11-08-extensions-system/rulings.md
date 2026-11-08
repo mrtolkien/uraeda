@@ -441,3 +441,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   pointless for an owner. The mockup's Update button on the API banner is left out, as the plan
   says: an agent updates it.
 - **Where**: task 10, `packages/web/src/settings/ExtensionSettings.tsx`, `settings/extensions.ts`.
+
+## R42: The built-ins draw their rows, tabs, and sections with today's components
+
+- **Decision**: a built-in's place may give its own `navRow`, `action`, and `tab`, and its own
+  `goKey` and `column`; a built-in's home pane and New section give `section`, a component that
+  reads its data with its own hooks and hands its `WorkSection` to its children (`Collect`), so that
+  every pane stays a section of one list, which the keys move across. Yours draw from `title`,
+  `icon`, and `count`, and render `component` as a section's body.
+- **Rationale**: the inbox counts "0" in the column but nothing on its tab, the priorities count Now
+  in the column only, Git sits among the column's actions, and home's and the New page's panes are
+  one `WorkList`: one generic row could not draw them as today, which the screens must keep.
+- **Where**: task 9, `packages/web/src/extensions/registry.ts`, `Collect.tsx`, `builtins/`.
+
+## R43: Uraeda's own keys win over an extension's
+
+- **Decision**: the leader's keys that are no extension's (Home, Settings, `g n`, Find's and New's
+  own kinds, `Space r`, the UI group, Continue, the key map, `g g`, `b`) are kept; an extension's
+  key that is one of them, starts one, or goes through a group `groups.ts` does not name is dropped,
+  and `useKeyClashes` reports it with `takenBy: "Uraeda"`.
+- **Rationale**: the key registry throws on any of them outside production, which would blank the
+  page for an extension's typo.
+- **Where**: task 9, `packages/web/src/extensions/useContributions.ts` (`useExtensionKeys`).
+
+## R44: Sessions registers its place like a built-in, always on
+
+- **Decision**: Sessions is registered through the page API under the name `sessions`, with its
+  order among the built-ins, and is on wherever no `Extensions` row names it, which none does.
+- **Rationale**: its place sits between the priorities and Git on the phone's bar and in the leader
+  menu: registered, it keeps that place without a second list (R6 keeps it out of the manifests).
+- **Where**: task 9, `packages/web/src/extensions/builtins/sessions.tsx`, `ExtensionsOn.tsx`.

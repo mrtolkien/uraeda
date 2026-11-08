@@ -29,8 +29,8 @@ export type ExtensionsValues = {
   /** Your extensions folder, as messages show it. */
   folder: string;
   /**
-   * The keys of an extension's page another took first, by the page's key registry: task 12 wires
-   * it to task 9's registry. The record's own `keys` are shown too.
+   * The keys of an extension's page another took first, from the page's registry
+   * (`useKeyClashes`). The record's own `keys` are shown too.
    */
   keyClashes?: (name: string) => ReadonlyArray<KeyClash>;
   /**

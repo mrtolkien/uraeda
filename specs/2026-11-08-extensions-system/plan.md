@@ -1201,47 +1201,75 @@ git commit -m "feat(extensions-system): give extensions records, actions, routes
 
 **Files:**
 
-- Create: `packages/web/src/extensions/registry.ts` (the store), `extensions/pageApi.ts` (the
-  `PageApi` type and `pageApi(name, registry)`), `extensions/useContributions.ts`,
-  `extensions/OffPage.tsx` ("Inbox is off here" with a button that turns it on here),
-  `extensions/builtins/{inbox,priorities,decisions,git,previews,notifications,sessions}.tsx`
-- Modify: `destinations.ts` (keeps only Home, Sessions, New, Settings), `keys/leaderTree.ts`,
-  `keys/LeaderKeys.tsx`, `keys/kinds.ts`, `keys/pickerSources.ts`, `shell/ColumnPanes.tsx`,
-  `shell/Tabs.tsx`, `home/HomeHub.tsx`, `NewEntries.tsx`, `NewPage.tsx`, `shell/StatusLine.tsx`,
-  `routeTable.ts` (route `extension { name, rest }` at `/e/<name>/…`), `App.tsx` (`RoutePage`
-  renders a place's component, or `OffPage` for a built-in place off here), `views.ts` and `data.ts`
-  (`ExtensionsView`, `useExtensions()`)
-- Test: `extensions/registry.test.ts`, `src/__tests__/extensions-builtins.test.tsx`
+- Create: `packages/web/src/extensions/registry.ts` (the store, its contribution types, `keysClash`,
+  `listOf`, `entriesOf`), `extensions/pageApi.ts` (the `PageApi` type and
+  `pageApi(name, registry, { order?, title? })`), `extensions/useContributions.ts` (the app's
+  `registry`, `IsOnContext`, `useContributions`, `useIsOn`, `useExtensionKeys`, `useKeyClashes`),
+  `extensions/ExtensionsOn.tsx` (reads task 10's `useExtensionsRecord()` once, around the shell),
+  `extensions/Collect.tsx` (gathers the sections built-ins read with their own hooks, R42),
+  `extensions/routes.tsx` (`UnlessOff`: a built-in's route off here draws `OffPage`;
+  `ExtensionPlace` for `/e/<name>/…`), `extensions/OffPage.tsx` ("Inbox is off here" with a button
+  "Turn it on here"),
+  `extensions/builtins/{inbox,priorities,decisions,git,previews,notifications,sessions}.tsx`, with
+  `builtins/order.ts` (their order and titles), `builtins/places.ts` (their icons, labels, paths),
+  `builtins/index.ts` (imported by `App.tsx` and Storybook's preview); `home/panes.tsx` (the inbox's
+  and the priorities' home sections, out of `HomeHub`'s `Lists`)
+- Modify: `destinations.ts` (keeps only Home, Sessions, New, Settings), `keys/leaderTree.ts`
+  (Uraeda's own keys only: Home, Settings, `g n`, Find's and New's kinds that are no built-in's),
+  `keys/LeaderKeys.tsx`, `keys/kinds.ts`, `keys/pickerSources.ts` (a kind of a built-in off here is
+  not found), `keys/pickerState.ts` (`openPicker`), `SidebarAdd.tsx` (`openAddForm`, for a key
+  outside React), `shell/ColumnPanes.tsx`, `shell/Tabs.tsx`, `home/HomeHub.tsx`, `NewEntries.tsx`,
+  `NewPage.tsx`, `shell/StatusLine.tsx`, `session/ActivityRows.tsx` (item renderers by tool name),
+  `Shell.tsx` (the notifier while `notifications` is on), `routeTable.ts` (route
+  `extension { name, rest }` at `/e/<name>/…`), `App.tsx`, `decisions/jump.ts`, the stories that
+  read the moved places, `settings/SettingsPage.tsx` (its `keyClashes` from `useKeyClashes`); the
+  record is read through task 10's `ExtensionsRecordView` and `useExtensionsRecord()`, one view of
+  it
+- Test: `extensions/registry.test.ts`, `src/__tests__/extensions-builtins.test.tsx`;
+  `__tests__/keys-leader-tree.test.tsx` reads the built-ins' places from `builtins/places.ts`, and
+  its unit test of `findBindings` covers the kinds that are no built-in's (the page test still opens
+  all six)
 
 **Interfaces:**
 
 - Consumes: task 8's `Extensions` view and `extensions.setOn`.
 - Produces:
   - `type PageApi = { place(p: Place): void; homePane(p: HomePane): void; newSection(s: NewSection): void; statusItem(s: StatusItem): void; itemRenderer(r: ItemRenderer): void; settingsSection(s: SettingsSection): void; key(k: ExtensionKey): void }`,
-    each registration tagged with its extension and undone with the extension.
-  - `Place = { id: string; title: string; icon: IconName; key?: string /* leader key after Space */; path?: string /* built-ins keep theirs; yours are /e/<name>/<id> */; component: ComponentType; count?: () => number | undefined; phoneTab?: "bar" | "more"; actions?: ComponentType }`;
-    `HomePane = { id; title; icon; tone; component: ComponentType; column: 0 | 1 }` (renders as a
-    `WorkSection`'s body);
-    `NewSection = { id; title; tone; component: ComponentType<{ search: string; onInsert: … }> }`;
+    each registration tagged with its extension; `pageApi(name, registry, { order?, title? })` gives
+    it with `remove()`, which undoes them all (`title` names it in a clash; built-ins give `order`).
+  - `Place = { id: string; title: string; icon: IconName; key?: string /* leader key after Space */; path?: string /* built-ins keep theirs; yours are /e/<name>/<id> */; component: ComponentType; count?: () => number | undefined /* called as a hook */; phoneTab?: "bar" | "more"; actions?: ComponentType }`,
+    plus the built-ins' own optional fields (R42): `goKey` (after `g`), `column`
+    (`"navigate" | "actions" | "none"`), `navRow`, `action`, and `tab`, which draw today's rows and
+    tabs; `HomePane = { id; title; icon; tone; component?: ComponentType; section?; column: 0 | 1 }`
+    (yours render `component` as a `WorkSection`'s body; a built-in's `section` hands its
+    `WorkSection` to its children, R42);
+    `NewSection = { id; title; tone; component?: ComponentType<{ search: string; onInsert: (text: string) => void }>; section? }`;
     `StatusItem = { id; component: ComponentType }`;
     `ItemRenderer = { tool: string; component: ComponentType<{ item: Item }> }`;
     `SettingsSection = { id; title; icon; component: ComponentType }`;
     `ExtensionKey = { keys: string; label: string; icon?: IconName; run: () => void }` (always under
-    the leader, `space …`).
-  - `createRegistry()`: `register(extension, order, contribution) → undo`; `list(kind, isOn)`:
-    built-ins in their `order` (today's order), then yours by extension name; keys: the first
-    registered keeps a key, a later clash is dropped and reported as `{ keys, takenBy: <title> }`
-    (shown by task 10 as "`y` is taken by Deploy").
-  - `useContributions(kind)`: the current repository's on extensions only (from `useExtensions()`).
+    the leader: `"y"` and `"space y"` are the same key).
+  - `createRegistry()`:
+    `register(extension: { name, title }, order: number | undefined, contribution: { kind, value }) → undo`;
+    `remove(name)`; `list(kind, isOn)`: built-ins in their `order` (today's order), then yours by
+    extension name; keys: the first registered keeps a key (a place's `space <key>` and `g <goKey>`
+    are keys too), a later clash, the same key or a sequence it starts, is dropped and reported by
+    `clashes()` as `{ extension, keys: "space y", takenBy: <title> }`.
+  - `useContributions(kind)`: the current repository's on extensions only (`ExtensionsOn`, from
+    `useExtensionsRecord()`); `useIsOn(name)`; `IsOnContext`.
+  - `useKeyClashes(): ReadonlyArray<{ extension, keys, takenBy }>`: every key an extension could not
+    have, the registry's clashes and those Uraeda's own keys hold (`takenBy: "Uraeda"`, R43): what
+    task 10 shows as "`y` is taken by Deploy", the key without its `space `.
   - Each built-in file registers what today's literals draw: the inbox its place (`i`, `/inbox`,
     count, phone tab "bar", add-note action), its home pane, its New section, its find key
     (`space f n`) and new key (`space n n`); priorities the same for priorities and proposals;
     decisions its place (`d`, phone tab "more") and find key; git its action-row place and keys
-    (`space g`, `g G`); previews nothing visible beyond today's story pages; notifications its
-    needs-you behaviour; sessions (not an extension in the manifests: always on) its place. Screens
-    look exactly as today when every built-in is on.
+    (`space g`, `g G`); previews nothing visible beyond today's story pages; notifications nothing:
+    the shell draws its banner and notifier while it is on (`useIsOn("notifications")`); sessions
+    (not an extension in the manifests: always on, R6) its place. Screens look exactly as today when
+    every built-in is on.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/extensions/registry.test.ts
@@ -1271,20 +1299,20 @@ test.each([
 The break each test catches: yours sorted before Uraeda's; a clash reaching `useKeys`, which throws
 outside production and blanks the page; a list still reading the old literal.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/extensions packages/web/src/__tests__/extensions-builtins.test.tsx`
 - Expected: FAIL, `Cannot find module './registry.ts'`.
 
-- [ ] **Step 3: Implement the registry, the built-ins, and move each list onto it**
+- [x] **Step 3: Implement the registry, the built-ins, and move each list onto it**
 
-- [ ] **Step 4: Run the task's validation, and review the screens**
+- [x] **Step 4: Run the task's validation, and review the screens**
 
 - Run: `vp check && vp test packages/web`
 - Expected: PASS. Then `vp run sandbox`: the home, the navigation, the phone tabs, the leader menu,
   and the New page look as before with everything on; with the inbox off, it is gone from each.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

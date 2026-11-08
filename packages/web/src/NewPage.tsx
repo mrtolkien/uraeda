@@ -20,7 +20,7 @@ import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ChangeComposer } from "./NewChangePage.tsx";
-import { type Entry, EntryLists, lineEntry } from "./NewEntries.tsx";
+import { type Entry, EntryLists, lineEntry, withAdded } from "./NewEntries.tsx";
 import { FeatureComposer } from "./NewFeatureComposer.tsx";
 import { type NewDraft, useNewDraft } from "./newDraft.ts";
 import { withInserted } from "./RecommendedMessage.tsx";
@@ -210,6 +210,13 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
       focusSoon();
     }
   };
+  // An extension's section's text, a paragraph under what the composer holds.
+  const insertText = (text: string) => {
+    if (kind !== undefined) {
+      draft.setText((typed) => withAdded(typed, text));
+      focusSoon();
+    }
+  };
   const start = (entry: Entry) => {
     draft.start(entry);
     focusSoon();
@@ -258,7 +265,9 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
           {kind === "feature" && <FeatureComposer draft={draft} inputRef={input} />}
         </div>
         {hasSpecs && <LineInsert kind={kind} start={start} />}
-        {hasSpecs && kind !== undefined && <EntryLists onInsert={insert} search={search} />}
+        {hasSpecs && kind !== undefined && (
+          <EntryLists onInsert={insert} onInsertText={insertText} search={search} />
+        )}
       </VStack>
     </Page>
   );

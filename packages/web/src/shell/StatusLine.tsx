@@ -1,7 +1,7 @@
 // The status line, at the bottom of the window. On semi-wide and wide screens, one line in
 // LazyVim's shape, lualine's sections (`status/`): the Vim mode while Vim's keys are on, the branch
-// a page names, the hints of the keys that work on the page (the key registry's), then how many
-// cards need the human and how many sessions run. On the phone, a bar of the page's own controls
+// a page names, the hints of the keys that work on the page (the key registry's), the extensions'
+// items, then how many cards need the human and how many sessions run. On the phone, a bar of the page's own controls
 // only (`TopBarSlot`, as a round's count and Next), while it has any: the phone's tabs show the
 // counts. An Astryx gap (plan, Complexity tracking): no component draws a status line. Astryx's
 // `Kbd` writes keys in capitals, "J K", where the line writes them as typed. Its counts are not
@@ -29,6 +29,7 @@ import { Section, sectionStyles, Separator, type Tone, toneOf } from "./status/S
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { barVars } from "../layout/bar.stylex.ts";
 import { ruleStyles } from "../layout/rules.ts";
+import { useContributions } from "../extensions/useContributions.ts";
 
 const styles = stylex.create({
   count: {
@@ -275,6 +276,12 @@ function Start({ tone }: { tone: Tone }) {
   );
 }
 
+/** The extensions' items, after the hints: none from Uraeda's built-ins. */
+function StatusItems() {
+  const items = useContributions("statusItem");
+  return items.map(({ component: Item, id }) => <Item key={id} />);
+}
+
 /**
  * The line of semi-wide and wide screens: the mode and the branch, the hints, and the counts.
  */
@@ -289,6 +296,7 @@ function Line() {
     <footer aria-label="Status line" {...stylex.props(ruleStyles.above, styles.line, styles.wide)}>
       <Start tone={tone} />
       <Hints />
+      <StatusItems />
       <Counts />
     </footer>
   );

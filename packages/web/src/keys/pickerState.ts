@@ -63,6 +63,9 @@ export function usePickerState(): PickerState {
 
 const OPENER = { open };
 
+/** Opens the key picker over a kind, from a key the extensions' registry holds. */
+export const openPicker = open;
+
 /** Opens the key picker over a kind of thing, `"all"` for every kind, from anywhere. */
 export function useKeyPicker(): { open: (kind: PickerKind | "all") => void } {
   return OPENER;

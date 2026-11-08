@@ -69,6 +69,9 @@ import {
   usePreloadPages,
 } from "./pages.ts";
 import { useNavigationTiming } from "./slow.ts";
+import "./extensions/builtins/index.ts";
+import { ExtensionsOn } from "./extensions/ExtensionsOn.tsx";
+import { ExtensionPlace, UnlessOff } from "./extensions/routes.tsx";
 import { storyOf } from "./stories.tsx";
 
 /** Shows that the server could not be reached, with a way to try again. */
@@ -135,7 +138,9 @@ function Page({ route }: { route: Route }) {
   usePreloadPages();
   return (
     <>
-      <RoutePage route={route} />
+      <UnlessOff route={route}>
+        <RoutePage route={route} />
+      </UnlessOff>
       <StartsStorybook route={route} />
     </>
   );
@@ -196,6 +201,8 @@ function RoutePage({ route }: { route: Route }) {
       return <FirstRun />;
     case "settings":
       return <SettingsPage category={route.category} />;
+    case "extension":
+      return <ExtensionPlace name={route.name} rest={route.rest} />;
     default:
       return <Nothing />;
   }
@@ -425,11 +432,13 @@ export function App({
                         <Suspense fallback={<Loading />}>
                           <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
                             <Suspense fallback={<Loading />}>
-                              <Shell keysSwitch={keysSwitch}>
-                                <Suspense fallback={<Loading />}>
-                                  <Page key={pageKey(route, pathname, entryId)} route={route} />
-                                </Suspense>
-                              </Shell>
+                              <ExtensionsOn>
+                                <Shell keysSwitch={keysSwitch}>
+                                  <Suspense fallback={<Loading />}>
+                                    <Page key={pageKey(route, pathname, entryId)} route={route} />
+                                  </Suspense>
+                                </Shell>
+                              </ExtensionsOn>
                             </Suspense>
                           </InRepository>
                         </Suspense>

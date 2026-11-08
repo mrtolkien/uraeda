@@ -7,6 +7,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { addChange } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { DESTINATIONS } from "../destinations.ts";
+import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
 import { SHOW_AFTER } from "../keys/leader.ts";
 import { findBindings } from "../keys/leaderTree.ts";
 import type { PickerKind } from "../keys/pickerSources.ts";
@@ -111,15 +112,20 @@ const FIND_KEYS: Array<[key: string, kind: PickerKind]> = [
   ["p", "priorities"],
 ];
 
+// The kinds no extension owns: the built-ins' Find keys are the registry's, opened on the page below.
+const OWN_FIND_KEYS = FIND_KEYS.filter(([, kind]) =>
+  ["features", "changes", "sessions"].includes(kind),
+);
+
 test("each Space f key opens the picker of its own kind (US4)", () => {
   const opened: Array<PickerKind | "all"> = [];
   const bindings = findBindings((kind) => void opened.push(kind));
-  for (const [key] of FIND_KEYS) {
+  for (const [key] of OWN_FIND_KEYS) {
     bindings
       .find((binding) => binding.keys === `space f ${key}`)
       ?.run(new KeyboardEvent("keydown"));
   }
-  expect(opened).toEqual(FIND_KEYS.map(([, kind]) => kind));
+  expect(opened).toEqual(OWN_FIND_KEYS.map(([, kind]) => kind));
   bindings.find((binding) => binding.keys === "space space")?.run(new KeyboardEvent("keydown"));
   expect(opened.at(-1)).toBe("all");
 });
@@ -239,7 +245,8 @@ function expectPlaces(menu: HTMLElement, nav: HTMLElement, places: Array<{ label
 // Break: a place entry with an icon or a label of its own.
 test("the menu's place entries draw the icon and label of the navigation column's links (SC-007)", async () => {
   await atHome();
-  const { decisions, git, home, inbox, priorities, settings } = DESTINATIONS;
+  const { home, settings } = DESTINATIONS;
+  const { decisions, git, inbox, priorities } = BUILT_IN_PLACES;
   const nav = screen.getByRole("navigation", { name: "Navigation" });
   const menu = menuAfter(" ");
   expectPlaces(menu, nav, [decisions, git, home, inbox, priorities, settings]);
@@ -252,7 +259,8 @@ test("the menu's place entries draw the icon and label of the navigation column'
 test("the menu's place entries draw the icon and label of the phone's tabs too (SC-007)", async () => {
   atWidth(402);
   await atChanged("Tabs");
-  const { git, home, inbox, priorities, sessions } = DESTINATIONS;
+  const { home, sessions } = DESTINATIONS;
+  const { git, inbox, priorities } = BUILT_IN_PLACES;
   expectPlaces(menuAfter(" "), screen.getByRole("navigation", { name: "Tabs" }), [
     git,
     home,
@@ -273,7 +281,8 @@ function expectLinks(nav: HTMLElement, places: Array<{ label: string }>) {
 
 test("the navigation column names its places as the menu does (SC-007)", async () => {
   await atHome();
-  const { decisions, git, home, inbox, priorities, settings } = DESTINATIONS;
+  const { home, settings } = DESTINATIONS;
+  const { decisions, git, inbox, priorities } = BUILT_IN_PLACES;
   expectLinks(screen.getByRole("navigation", { name: "Navigation" }), [
     decisions,
     git,
@@ -287,7 +296,8 @@ test("the navigation column names its places as the menu does (SC-007)", async (
 test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
   atWidth(402);
   await atChanged("Tabs");
-  const { git, home, inbox, priorities, sessions } = DESTINATIONS;
+  const { home, sessions } = DESTINATIONS;
+  const { git, inbox, priorities } = BUILT_IN_PLACES;
   expectLinks(screen.getByRole("navigation", { name: "Tabs" }), [
     git,
     home,

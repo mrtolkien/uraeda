@@ -1,12 +1,13 @@
 // The column's own parts, around the shell's panes of work: its heading with the logo and the
-// repository menu, New and Note, the Navigate pane with the inbox's and the priorities' ＋ and
-// counts, and at its foot the 5 h window and Settings. The closed rail clips each row to its icon.
+// repository menu, the actions, Git's and New, the Navigate pane with Home and the extensions'
+// places, the inbox's and the priorities' with their ＋ and counts, and at its foot the 5 h window
+// and Settings. The closed rail clips each row to its icon.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense } from "react";
+import { type ComponentType, type ReactNode, Suspense } from "react";
 import { useInbox } from "../data.ts";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { Room } from "../layout/Room.tsx";
@@ -18,6 +19,9 @@ import { Allowance } from "../sidebar/Allowance.tsx";
 import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
+import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
+import type { Place } from "../extensions/registry.ts";
+import { useContributions } from "../extensions/useContributions.ts";
 import { AddNoteButton, AddProposalButton } from "../SidebarAdd.tsx";
 import { columnVars } from "./column.stylex.ts";
 import { ShellPane } from "./ShellPanes.tsx";
@@ -96,16 +100,26 @@ export function ColumnHeading({
 /** The sidebar's Git entry's words: "Git", then the changes to commit and "↓" the commits to pull. */
 export function gitLabel(changes: number, behind: number): string {
   return [
-    DESTINATIONS.git.label,
+    BUILT_IN_PLACES.git.label,
     ...(changes > 0 ? [String(changes)] : []),
     ...(behind > 0 ? [`↓${behind}`] : []),
   ].join(" · ");
 }
 
 /**
- * Git, always there, with the count of what waits on the Git page: the main checkout's changes to
- * commit, then the commits to pull. First, as the thing to do before the rest; an icon alone in the closed rail.
+ * Git, while its built-in is on, with the count of what waits on the Git page: the main checkout's
+ * changes to commit, then the commits to pull. First, as the thing to do before the rest; an icon
+ * alone in the closed rail.
  */
+export function GitColumnAction({ isColumn }: { isColumn: boolean }) {
+  const look = useActionLook(isColumn);
+  return (
+    <Suspense fallback={<GitButton label={BUILT_IN_PLACES.git.label} look={look} />}>
+      <GitAction look={look} />
+    </Suspense>
+  );
+}
+
 function GitAction({ look }: { look: ActionLook }) {
   const summary = useGitSummary();
   return <GitButton label={gitLabel(summary?.changes ?? 0, summary?.behind ?? 0)} look={look} />;
@@ -115,8 +129,8 @@ function GitButton({ label, look }: { label: string; look: ActionLook }) {
   const here = useRepoPath();
   return (
     <Button
-      href={here(DESTINATIONS.git.path)}
-      icon={<Icon icon={DESTINATIONS.git.icon} size={look.icon} />}
+      href={here(BUILT_IN_PLACES.git.path)}
+      icon={<Icon icon={BUILT_IN_PLACES.git.icon} size={look.icon} />}
       label={label}
       variant="secondary"
       xstyle={look.xstyle}
@@ -137,8 +151,8 @@ function useActionLook(isColumn: boolean): ActionLook {
 }
 
 /**
- * `lead` first, as the folded column's Unfold; then Git, with what waits; then New, which
- * opens the New page. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
+ * `lead` first, as the folded column's Unfold; then the extensions' actions, Git's with what waits;
+ * then New, which opens the New page. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
  * which the closed rail shows alone.
  */
 export function ColumnActions({
@@ -149,12 +163,15 @@ export function ColumnActions({
   lead?: ReactNode;
 }) {
   const look = useActionLook(isColumn);
+  const actions = useContributions("place").flatMap((place) =>
+    place.column === "actions" && place.action ? [{ Action: place.action, id: place.id }] : [],
+  );
   return (
     <div {...stylex.props(styles.actions)}>
       {lead}
-      <Suspense fallback={<GitButton label={DESTINATIONS.git.label} look={look} />}>
-        <GitAction look={look} />
-      </Suspense>
+      {actions.map(({ Action, id }) => (
+        <Action isColumn={isColumn} key={id} />
+      ))}
       <NewButton look={look} />
     </div>
   );
@@ -194,6 +211,18 @@ function NewButton({ look }: { look: ActionLook }) {
   );
 }
 
+/** The inbox's row in Navigate, its count once read: none in a repository without `specs/`. */
+export function InboxNavRow({ pathname }: { pathname: string }) {
+  const data = useNavigation();
+  return data.workspace?.noSpecs ? (
+    <InboxRow pathname={pathname} />
+  ) : (
+    <Suspense fallback={<InboxRow pathname={pathname} />}>
+      <InboxCounted pathname={pathname} />
+    </Suspense>
+  );
+}
+
 /** The inbox's row, its count once read. */
 function InboxCounted({ pathname }: { pathname: string }) {
   const inbox = useInbox();
@@ -206,18 +235,67 @@ function InboxRow({ notes, pathname }: { notes?: number; pathname: string }) {
     <Item
       actions={<AddNoteButton />}
       endContent={notes === undefined ? undefined : count(notes)}
-      icon={<Icon icon={DESTINATIONS.inbox.icon} />}
-      label={DESTINATIONS.inbox.label}
+      icon={<Icon icon={BUILT_IN_PLACES.inbox.icon} />}
+      label={BUILT_IN_PLACES.inbox.label}
       pathname={pathname}
-      to={DESTINATIONS.inbox.path}
+      to={BUILT_IN_PLACES.inbox.path}
     />
   );
 }
 
-/** Navigate: Home, the inbox and the priorities with their ＋ and counts, and the decisions. */
+/** The priorities' row in Navigate, with its ＋ and Now's count. */
+export function PrioritiesNavRow({ pathname }: { pathname: string }) {
+  const now = nowCount(useNavigation());
+  return (
+    <Item
+      actions={<AddProposalButton />}
+      // Now's own lines, not every priority: none shows nothing, rather than a "0" that reads as
+      // an empty file; its tooltip says what it counts.
+      endContent={now > 0 && <span title={`${now} in Now`}>{count(now)}</span>}
+      icon={<Icon icon={BUILT_IN_PLACES.priorities.icon} />}
+      label={BUILT_IN_PLACES.priorities.label}
+      pathname={pathname}
+      to={BUILT_IN_PLACES.priorities.path}
+    />
+  );
+}
+
+/** A count drawn by a hook of its place: called as a hook, once per render of its row. */
+function PlaceCount({ useCount }: { useCount: () => number | undefined }) {
+  const n = useCount();
+  return n === undefined ? null : count(n);
+}
+
+/** An extension's place in Navigate: its own row, or its icon, title, actions, and count. */
+function PlaceRow({ pathname, place }: { pathname: string; place: Place }) {
+  if (place.navRow) {
+    const Row = place.navRow;
+    return <Row pathname={pathname} />;
+  }
+  const Actions: ComponentType | undefined = place.actions;
+  return (
+    <Item
+      actions={Actions && <Actions />}
+      endContent={
+        place.count && (
+          <Suspense fallback={null}>
+            <PlaceCount useCount={place.count} />
+          </Suspense>
+        )
+      }
+      icon={<Icon icon={place.icon} />}
+      label={place.title}
+      pathname={pathname}
+      to={place.path ?? "/"}
+    />
+  );
+}
+
+/** Navigate: Home, then the extensions' places, the inbox's and the priorities' with their ＋. */
 export function Navigate({ pathname }: { pathname: string }) {
-  const data = useNavigation();
-  const now = nowCount(data);
+  const places = useContributions("place").filter(
+    (place) => (place.column ?? "navigate") === "navigate",
+  );
   return (
     <ShellPane title="Navigate">
       <Item
@@ -226,29 +304,9 @@ export function Navigate({ pathname }: { pathname: string }) {
         pathname={pathname}
         to={DESTINATIONS.home.path}
       />
-      {data.workspace?.noSpecs ? (
-        <InboxRow pathname={pathname} />
-      ) : (
-        <Suspense fallback={<InboxRow pathname={pathname} />}>
-          <InboxCounted pathname={pathname} />
-        </Suspense>
-      )}
-      <Item
-        actions={<AddProposalButton />}
-        // Now's own lines, not every priority: none shows nothing, rather than a "0" that reads as
-        // an empty file; its tooltip says what it counts.
-        endContent={now > 0 && <span title={`${now} in Now`}>{count(now)}</span>}
-        icon={<Icon icon={DESTINATIONS.priorities.icon} />}
-        label={DESTINATIONS.priorities.label}
-        pathname={pathname}
-        to={DESTINATIONS.priorities.path}
-      />
-      <Item
-        icon={<Icon icon={DESTINATIONS.decisions.icon} />}
-        label={DESTINATIONS.decisions.label}
-        pathname={pathname}
-        to={DESTINATIONS.decisions.path}
-      />
+      {places.map((place) => (
+        <PlaceRow key={place.id} pathname={pathname} place={place} />
+      ))}
     </ShellPane>
   );
 }
