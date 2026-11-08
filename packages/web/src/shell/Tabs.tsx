@@ -4,6 +4,7 @@
 // on it; a `…` that holds the ones that ask for a place there, Decisions, then Settings; and New,
 // each an icon named by its page. Nothing is filled: the current page's tab is in the accent, a line in
 // the accent under it at the bar's edge; a count is a small number after its icon; New is framed.
+// The bar has room for four places: yours beyond them go into the `…`.
 // The Sessions tab opens the shell's panes as a page of their own. The phone's status line holds a
 // page's own controls only: these counts are its counts.
 import { DropdownMenu, type DropdownMenuTriggerProps } from "@astryxdesign/core/DropdownMenu";
@@ -368,6 +369,22 @@ function PlaceTab({ isCurrent, place }: { isCurrent: boolean; place: Place }) {
   );
 }
 
+/**
+ * The places the bar has room for, as many as the built-ins' four: the built-ins come first, so
+ * one of yours takes a tab only where a built-in's is off. The rest that ask for the bar go into
+ * the `…`, before the ones that ask for it.
+ */
+export const BAR_ROOM = 4;
+
+/** The places on the bar, and those in the `…`, in their order. */
+export function phoneTabs(places: ReadonlyArray<Place>): { bar: Array<Place>; more: Array<Place> } {
+  const asking = places.filter((place) => place.phoneTab === "bar");
+  return {
+    bar: asking.slice(0, BAR_ROOM),
+    more: [...asking.slice(BAR_ROOM), ...places.filter((place) => place.phoneTab === "more")],
+  };
+}
+
 export function Tabs({
   isSidebarOpen,
   onToggleSidebar,
@@ -379,8 +396,7 @@ export function Tabs({
   const data = useNavigation();
   const at = (to: string) => selects(pathname, to);
   const places = useContributions("place");
-  const bar = places.filter((place) => place.phoneTab === "bar");
-  const more = places.filter((place) => place.phoneTab === "more");
+  const { bar, more } = phoneTabs(places);
   return (
     <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
       <div {...stylex.props(styles.toggle)}>

@@ -4,6 +4,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { CheckboxList, CheckboxListItem } from "@astryxdesign/core/CheckboxList";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
+import { useState } from "react";
 import type { ExtensionRow, OnIn } from "./extensions.ts";
 
 /** Sends where an extension is on: the refusal to show, or nothing once saved. */
@@ -11,7 +12,8 @@ export type SetOn = (name: string, on: OnIn) => Promise<string | undefined>;
 
 /**
  * The row's controls: its switch, on when it is on anywhere, turning it on for every repository or
- * off everywhere; and "Only in…", which shows or hides the repositories' list.
+ * off everywhere, and back on in the repositories it was on in before, when it was in some only;
+ * and "Only in…", which shows or hides the repositories' list.
  */
 export function WhereControls({
   isPicking,
@@ -24,6 +26,16 @@ export function WhereControls({
   row: ExtensionRow;
   setOn: (on: OnIn) => void;
 }) {
+  // The repositories it was on in before the switch turned it off, while the row is drawn.
+  const [before, setBefore] = useState<ReadonlyArray<string>>([]);
+  const turn = (on: boolean) => {
+    if (on) {
+      setOn(before.length > 0 ? before : "all");
+      return;
+    }
+    setBefore(row.onAll ? [] : row.on);
+    setOn([]);
+  };
   return (
     <HStack align="center" gap={3}>
       <Button
@@ -36,7 +48,7 @@ export function WhereControls({
       <Switch
         isLabelHidden
         label={`${row.title} on`}
-        onChange={(on: boolean) => setOn(on ? "all" : [])}
+        onChange={turn}
         value={row.onAll || row.on.length > 0}
       />
     </HStack>
