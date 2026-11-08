@@ -108,10 +108,11 @@ export class Sessions {
       runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;
-    // A runtime registered, unregistered, or turned on or off is checked, and shown, at once.
+    // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
+    // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {
       options.onChange({ agent: true });
-      void this.check();
+      void this.check({ continueCuts: true });
     });
   }
 
@@ -136,13 +137,16 @@ export class Sessions {
     return this.#context.processes.usage(runtime);
   }
 
-  /** Asks each runtime for its version, and reports a change of availability. */
-  async check(): Promise<void> {
+  /**
+   * Asks each runtime for its version, and reports a change of availability. A runtime back, or
+   * `continueCuts`, continues the runs the server's restart cut, on the runtimes that work.
+   */
+  async check({ continueCuts = false }: { continueCuts?: boolean } = {}): Promise<void> {
     const { back, changed } = await this.runtimes.check();
     if (changed) {
       this.#options.onChange({ agent: true });
     }
-    if (back) {
+    if (back || continueCuts) {
       await this.#context.continuer.agentBack();
     }
   }

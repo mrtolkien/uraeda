@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
+import { fixtureRepo } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../fake.ts";
 import { Runtimes } from "../runtimes.ts";
 import { flush, restart, testSessions } from "./helpers.ts";
@@ -7,6 +8,9 @@ import { flush, restart, testSessions } from "./helpers.ts";
 const AGENT = "2026-10-12-cli-tuis";
 
 const OFF = "pi-durable is off: turn it on to continue this session";
+
+/** Every automatic continue on. */
+const runs = () => ({ afterLimit: true, afterRestart: true, beforeGate: true, cap: 3 });
 
 afterEach(() => {
   vi.useRealTimers();
@@ -82,4 +86,92 @@ test("a new session runs on the first runtime on in its repository", async () =>
   const session = await sessions.featureSession(repo, AGENT);
 
   expect(session.agent).toBe("pi-durable");
+});
+
+test("a fresh run keeps the runtime of the session it was sent to, not the first one on (R20)", async () => {
+  const { claude, durable, runtimes } = twoRuntimes();
+  const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
+  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+
+  const workflow = { fresh: true, step: "plan", trigger: "manual" } as const;
+  const { turn } = await sessions.send(repo, session.id, { text: "Again", workflow });
+  await sessions.settled(turn);
+
+  const fresh = cache.session(cache.turn(turn)!.sessionId)!;
+  expect(fresh.id).not.toBe(session.id);
+  expect(fresh.agent).toBe("pi-durable");
+  expect(durable.opens).toHaveLength(2);
+  expect(claude.opens).toHaveLength(0);
+});
+
+test("each runtime's usage is its own, for windows of the same ID", async () => {
+  const { claude, durable, runtimes } = twoRuntimes();
+  const { repo, sessions } = await testSessions(undefined, { runtimes });
+  const resetsAt = new Date(Date.now() + 3_600_000).toISOString();
+  const window = (used: number) => ({ id: "five_hour", label: "5h", resetsAt, used });
+  claude.script([{ type: "usage", windows: [window(0.2)] }]);
+  durable.script([{ type: "usage", windows: [window(0.7)] }]);
+
+  for (const runtime of ["claude", "pi-durable"]) {
+    const chat = await sessions.newChat(repo, runtime);
+    await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+  }
+
+  expect(sessions.usage("claude")).toEqual([window(0.2)]);
+  expect(sessions.usage("pi-durable")).toEqual([window(0.7)]);
+});
+
+test("a queued turn of a runtime turned off fails, never opening it again", async () => {
+  const { durable, on, runtimes } = twoRuntimes();
+  const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
+  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  durable.capabilities.steer = false;
+  let crash!: () => void;
+  durable.script([
+    () => new Promise<void>((_, reject) => (crash = () => reject(new Error("gone")))),
+  ]);
+  await sessions.send(repo, session.id, { text: "Plan it" });
+  await vi.waitFor(() => expect(cache.turns(session.id).at(-1)?.state).toBe("running"));
+  const { turn: queued } = await sessions.send(repo, session.id, { text: "Then the tasks" });
+
+  on["pi-durable"] = false;
+  crash();
+  await sessions.settled(queued);
+
+  expect(durable.opens).toHaveLength(1);
+  expect(cache.turn(queued)).toMatchObject({ reason: OFF, state: "failed" });
+  sessions.close();
+});
+
+test("turning a runtime on within the restart window continues the runs a restart cut on it", async () => {
+  const { durable, on, runtimes } = twoRuntimes();
+  const { cache, repo, sessions } = await testSessions(fixtureRepo(), { runs, runtimes });
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const later = async (ms: number) => {
+    now += ms;
+    vi.advanceTimersByTime(ms);
+    await flush();
+  };
+  const session = await sessions.featureSession(repo, AGENT, "pi-durable");
+  durable.script([() => new Promise<void>(() => {})]);
+  const workflow = { fresh: false, step: "plan", trigger: "manual" } as const;
+  await sessions.send(repo, session.id, { text: "Write the plan", workflow });
+  await vi.waitFor(() => expect(cache.turns(session.id).at(-1)?.state).toBe("running"));
+  on["pi-durable"] = false;
+  const next = await restart(sessions, { runs });
+  await next.startContinues();
+  await later(10_000);
+  const sent = durable.sent.length;
+
+  on["pi-durable"] = true;
+  runtimes.changed();
+  await later(10_000);
+
+  await vi.waitFor(() => expect(durable.sent).toHaveLength(sent + 1));
+  expect(durable.sent.at(-1)?.text).toBe(
+    "The server restarted while you worked. Continue where you left off.",
+  );
+  next.close();
 });

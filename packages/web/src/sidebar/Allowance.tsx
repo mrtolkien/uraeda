@@ -1,6 +1,7 @@
 // The first usage window the runtime of new sessions reported, Claude Code's five hours, in the
-// "Usage" pane at the column's foot, and until a run reports it, nothing. In the closed rail the pane is hidden and a small bar stands in
-// for it, on the icons' axis: what is left of the window, red once it is nearly gone.
+// "Usage" pane at the column's foot, and until a run reports it, nothing. In the closed rail the
+// pane is hidden and a small bar stands in for it, on the icons' axis: what is left of the window,
+// red once it is nearly gone.
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
+import { sessionRuntime } from "./runtimes.ts";
 import {
   type Live,
   type Proc,
@@ -121,11 +122,9 @@ export class Processes {
     try {
       const cwd = live.folder === null ? live.repo : await binding.workDir(live.repo, live.folder);
       const row = rowOf(cache, live);
-      // The session's own runtime, never another: one unregistered since leaves it read-only.
-      const adapter = runtimes.get(row.agent);
-      if (!adapter) {
-        throw refused(REFUSALS.runtimeOff(row.agent));
-      }
+      // The session's own runtime, never another: one unregistered or turned off since leaves it
+      // read-only.
+      const adapter = sessionRuntime(runtimes, row);
       const resume = adapter.hasSession(row.nativeId);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
       // A session that ran before has lost its transcript: Claude Code deletes old ones.
