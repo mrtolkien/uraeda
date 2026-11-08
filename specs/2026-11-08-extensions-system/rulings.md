@@ -130,15 +130,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R15: A page's CSS gets the specificity Astryx's stylesheet gives each priority level
 
-- **Decision**: `compilePage` adds a placeholder rule at every StyleX priority level up to the
-  page's highest before `processStylexRules`, and drops the placeholders from its output, so each
-  rule gets one `:not(#\#)` per level, as in Astryx's `astryx.css` (`padding` one, `padding-block`
-  two, `padding-top` four).
+- **Decision**: `compilePage` adds a placeholder rule at each StyleX priority level Astryx's
+  `astryx.css` has rules at (`ASTRYX_LEVELS`: 0 to 4, 6, 7 to 9, and 11), and at every level above
+  them up to the page's highest, before `processStylexRules`, and drops the placeholders from its
+  output, so each rule gets as many `:not(#\#)` as Astryx's at the same level (`padding` one,
+  `padding-block` two, `padding-top` four, `::after{content}` seven). StyleX's plugin runs before
+  React Compiler's, in the app's order; the output is the same either way.
 - **Rationale**: without layers, StyleX counts only the levels present in the rules it is given: a
   page using only `paddingBlock` got none, and lost to Astryx's `padding` on the same element. The
-  spike's single rule did not show it, as its class was checked and not its CSS.
-- **If wrong**: a StyleX release that counts levels differently fails
-  `extensions/__tests__/page-compiler.test.ts`, which compares each level's rule with Astryx's.
+  spike's single rule did not show it, as its class was checked and not its CSS. Astryx skips levels
+  5 and 10: a placeholder at every level gave pseudo-elements one `:not(#\#)` more than Astryx's.
+- **If wrong**: a StyleX release that counts levels differently, or an Astryx release with rules at
+  other levels, fails `extensions/__tests__/page-compiler.test.ts`, which compares each level's rule
+  with Astryx's, and the number of levels with the specificities in `astryx.css`.
 - **Where**: task 6, `packages/server/src/extensions/page-compiler.ts`.
 
 ## R16: A page's CSS skips the app's Lightning CSS pass
