@@ -1,9 +1,9 @@
-// The usage windows the runtime in view reported, Claude Code's five hours and its week, in the
-// "Usage" pane at the column's foot, and until a run reports one, nothing: the runtime of the
-// session shown, or of the feature shown, its latest session's, else the one new sessions run on.
-// In the closed rail the pane is hidden and a small bar stands in for it, on the icons' axis: what
-// is left of the first window alone, the shortest, red once it is nearly gone.
-import { VStack } from "@astryxdesign/core/VStack";
+// The usage windows every runtime on reported, Claude Code's five hours and its week, then Codex's,
+// in the "Usage" pane at the column's foot, as Home's pane lists them, and until a run reports one,
+// nothing. In the closed rail the pane is hidden and a small bar stands in for it, on the icons'
+// axis: what is left of the first window alone, the shortest, of the runtime in view, red once it
+// is nearly gone: the runtime of the session shown, or of the feature shown, its latest session's,
+// else the one new sessions run on.
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
@@ -12,7 +12,7 @@ import { useAgent } from "../data.ts";
 import { type Runtime, useFeatureRuntime, useSessionRuntime } from "../runtimes.ts";
 import { useRoute } from "../routes.tsx";
 import type { Route } from "../routeTable.ts";
-import { UsageWindow } from "../UsageWindow.tsx";
+import { UsageWindows, useReportedRuntimes } from "../UsageWindow.tsx";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
 
@@ -59,42 +59,47 @@ const styles = stylex.create({
 
 function Bar({ agent }: { agent: Runtime | undefined }) {
   const window = agent?.usage[0];
+  const reported = useReportedRuntimes();
   const isRail = useClosedRail();
-  if (!agent || !window) {
+  if (reported.length === 0) {
     return null;
   }
-  const remaining = Math.min(100, Math.max(0, 100 - window.used * 100));
   return (
     <>
       <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
-        <VStack gap={3} xstyle={styles.usage}>
-          {agent.usage.map((each) => (
-            <UsageWindow key={each.id} kind={agent.kind} window={each} />
-          ))}
-        </VStack>
+        <UsageWindows isCompact runtimes={reported} xstyle={styles.usage} />
       </Pane>
-      {/* The rail has room for one bar: the first window's, the one that runs out first. */}
-      <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
-        <div
-          aria-label={`${window.label} allowance remaining`}
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={Math.round(remaining)}
-          role="progressbar"
-          title={`${window.label}: ${Math.round(remaining)}% left`}
-          {...stylex.props(styles.track)}
-        >
-          <div
-            {...stylex.props(
-              styles.fill(
-                `${remaining}%`,
-                remaining <= LOW ? colorVars["--color-error"] : colorVars["--color-accent"],
-              ),
-            )}
-          />
-        </div>
-      </div>
+      {window && <RailBar isRail={isRail} window={window} />}
     </>
+  );
+}
+
+/**
+ * The rail's one bar: the first window's of the runtime in view, the one that runs out first.
+ */
+function RailBar({ isRail, window }: { isRail: boolean; window: Runtime["usage"][number] }) {
+  const remaining = Math.min(100, Math.max(0, 100 - window.used * 100));
+  return (
+    <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
+      <div
+        aria-label={`${window.label} allowance remaining`}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={Math.round(remaining)}
+        role="progressbar"
+        title={`${window.label}: ${Math.round(remaining)}% left`}
+        {...stylex.props(styles.track)}
+      >
+        <div
+          {...stylex.props(
+            styles.fill(
+              `${remaining}%`,
+              remaining <= LOW ? colorVars["--color-error"] : colorVars["--color-accent"],
+            ),
+          )}
+        />
+      </div>
+    </div>
   );
 }
 

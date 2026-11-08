@@ -7,7 +7,7 @@ import type { AgentEvent } from "uraeda-server/runner/events";
 import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
-import type { Outgoing } from "uraeda-server/runner/adapter";
+import type { AgentProcess, OpenOptions, Outgoing } from "uraeda-server/runner/adapter";
 import { dirname, join } from "node:path";
 import { REALISTIC_FOLDERS, SAMPLE_FOLDERS } from "../samples/index.ts";
 
@@ -234,6 +234,36 @@ export class SandboxAgent extends FakeAdapter {
     // It never says a message was taken back, which a take-back waits for.
     this.capabilities = { ...this.capabilities, steer: false, takeBack: false };
     this.fallback = (message) => this.#answer(message);
+  }
+
+  /**
+   * Opens a process that reports, as it opens and as its effort changes, the model and the effort
+   * it runs on, by their names, as a real agent does: the session's, else the list's defaults.
+   */
+  override open(options: OpenOptions): AgentProcess {
+    const opened = super.open(options) as AgentProcess & { push: (event: AgentEvent) => void };
+    const model = options.model ?? this.modelList.defaults.model;
+    opened.push(this.#runsOn(model, options.effort));
+    const setEffort = opened.setEffort?.bind(opened);
+    if (setEffort) {
+      opened.setEffort = (effort) => {
+        setEffort(effort);
+        opened.push(this.#runsOn(model, effort));
+      };
+    }
+    return opened;
+  }
+
+  /** What a process on `model` at `effort`, else its default, says it runs on. */
+  #runsOn(id: string | undefined, effort: string | undefined): AgentEvent {
+    const model = this.modelList.models.find((each) => each.id === id);
+    const ran = model?.efforts.length ? (effort ?? this.modelList.defaults.effort) : undefined;
+    const effortName = model?.efforts.find((each) => each.id === ran)?.name;
+    return {
+      model: model?.name ?? id ?? "Fake Big",
+      type: "runsOn",
+      ...(effortName === undefined ? {} : { effort: effortName }),
+    };
   }
 
   /**
