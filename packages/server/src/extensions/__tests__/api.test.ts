@@ -1,13 +1,15 @@
 // The server API on a started server: an extension's records and actions reach fate, its events
 // reach only the repositories it is on in, and its routes stay under `/x/<name>/`, behind sign-in,
 // and closed to other sites.
+import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
+import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 import { fateAt, signInCookie } from "../../__tests__/helpers.ts";
 import { SERVER_PATHS } from "../../server-paths.ts";
 import type { Registry } from "../api.ts";
 import { serverApi } from "../api.ts";
 import { Scope } from "../scope.ts";
-import { FEATURE, mutate, records, serve, setSpec, stateOf, url } from "./serve.ts";
+import { binding, FEATURE, mutate, records, serve, setSpec, stateOf, url } from "./serve.ts";
 
 /** An extension's files: it pushes the step events it receives, by its name. */
 const listening = (name: string) => ({
@@ -241,6 +243,25 @@ export default function activate(api) {
     id: "wiki/pages",
     value: "null",
   });
+});
+
+test("a repository added after the start reads its own settings", async () => {
+  const manifest = `name = "wiki"\ntitle = "Wiki"\napi = 1\nserver = "server.ts"\n\n[settings.folder]\ntype = "string"\ndefault = "docs"\nlabel = "Folder"\nhelp = "Where the pages are."\n`;
+  const server = `import { sink } from "test/sink";
+export default function activate(api) {
+  sink.settings = (repository) => api.settings(repository);
+}
+`;
+  const opened = await serve(
+    { wiki: { "extension.toml": manifest, "server.ts": server } },
+    `[extensions.wiki.repositories.third]\nfolder = "notes"\n`,
+  );
+  const third = fixtureRepo("repo", join(temporaryFolder("uraeda-repos"), "third"));
+  await binding.addRepository(opened.dataDir, third);
+  await opened.server.hosts.reload();
+
+  await expect.poll(() => opened.sink.settings!("third")).toEqual({ folder: "notes" });
+  expect(opened.sink.settings!("uraeda")).toEqual({ folder: "docs" });
 });
 
 test("settings written from the page reach the extension, and turning it off unloads it", async () => {

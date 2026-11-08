@@ -169,9 +169,15 @@ export class ExtensionsHost implements Registry {
     await this.refresh();
   }
 
-  /** Reads a repository's steps, as its host starts. */
+  /**
+   * Reads a repository's steps, as its host starts, and, once started, the extensions' settings
+   * again: a repository listed since the last read gets its own.
+   */
   seed(host: Pick<Host, "name" | "path">): void {
     this.#steps.seed(host);
+    if (this.#hosts !== undefined) {
+      void this.refresh();
+    }
   }
 
   /** Forgets a repository's steps, as its host stops. */
