@@ -810,8 +810,10 @@ What the process does:
   not writable, and the sandbox section says writing there needs escalated permissions (R22). A
   message sent as `steer` during a turn is `turn/steer` with `expectedTurnId`; a `queue` message
   waits in the adapter's own queue, starts the next turn when the current one completes, and
-  `takeBack` removes it with a `cancelled` event; an accepted message gives `accepted`. Images are
-  `localImage` inputs.
+  `takeBack` removes it with a `cancelled` event; an accepted message gives `accepted`. A steer
+  Codex refuses waits in that queue, and starts the next turn only after one that ended well, never
+  after a failed turn or while closing, when the runner takes it back (R26). Images are `localImage`
+  inputs.
 - `interrupt` is `turn/interrupt`; `close` ends stdin once no turn runs, and the app-server exits;
   `setEffort` keeps the effort for the next `turn/start`, the default effort sent when it goes back
   to the default after another (R17).

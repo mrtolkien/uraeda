@@ -66,15 +66,15 @@ export const APPLIED = {
 
 /**
  * How a stand-in differs from Codex: the permissions its thread's answers say it applied, and a
- * method it never answers.
+ * method it never answers, and one it refuses.
  */
-export type StandIn = { applied?: Record<string, unknown>; hang?: string };
+export type StandIn = { applied?: Record<string, unknown>; hang?: string; refuse?: string };
 
 /**
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
  * as Codex 0.163.0 does, from `PAGES` and `CONFIG`. A turn whose text says `ask` sends the client
- * a question and completes once answered; one that says `wait` completes when steered; any other
- * completes at once. It writes what it read to `<dir>/stdin`. Its thread's answers say it applied
+ * a question and completes once answered; one that says `wait` completes when steered, failed if
+ * it says `fail on steer`, the steer then refused; any other completes at once. It writes what it read to `<dir>/stdin`. Its thread's answers say it applied
  * the permissions Uraeda asks for, or what `options.applied` says.
  */
 export function appServer(dir: string, options: StandIn = {}): string {
@@ -89,6 +89,7 @@ const out = (message) => process.stdout.write(JSON.stringify(message) + "\\n");
 let turns = 0;
 let threadId = "t-1";
 let waiting;
+let waitingText;
 const note = (name, params) => out({ method: name, params });
 const complete = (id, status) => note("turn/completed", { threadId, turn: { id, status } });
 require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
@@ -97,6 +98,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
   const ok = (result) => out({ id: message.id, result });
   const { params } = message;
   if (message.method === ${JSON.stringify(options.hang ?? null)}) return;
+  if (message.method === ${JSON.stringify(options.refuse ?? null)}) return out({ error: { code: -1, message: "Refused" }, id: message.id });
   switch (message.method) {
     case undefined:
       if (message.id === "ask-1") complete(waiting, "completed");
@@ -113,11 +115,17 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
       note("turn/started", { threadId, turn: { id } });
       const text = params.input[0].text;
       waiting = id;
+      waitingText = text;
       if (text.includes("ask")) return out({ id: "ask-1", method: "item/tool/requestUserInput", params: {} });
       if (!text.includes("wait")) complete(id, "completed");
       return;
     }
-    case "turn/steer": ok({ turnId: params.expectedTurnId }); return complete(waiting, "completed");
+    case "turn/steer":
+      if (waitingText.includes("fail on steer")) {
+        complete(waiting, "failed");
+        return out({ error: { code: -1, message: "No turn runs" }, id: message.id });
+      }
+      ok({ turnId: params.expectedTurnId }); return complete(waiting, "completed");
     case "turn/interrupt": ok({}); return complete(waiting, "interrupted");
     default: return ok({});
   }
