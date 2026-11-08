@@ -212,3 +212,80 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   agent. Opened in the frame the model step closed, the effort step had no row under its cursor and
   no preview.
 - **Where**: task 8, `SessionPicker.tsx`, `ComposerSend.tsx`.
+
+## R22: The extensions folder is not writable for Codex
+
+- **Decision**: a turn's sandbox has no writable root besides the session's directory; the sandbox
+  section of the instructions says writing in the extensions folder needs escalated permissions,
+  from its first try, as git writes do. The spec's Architecture gives Codex "the extensions folder
+  as writable": the Agents decision wins over it.
+- **Rationale**: Uraeda's loader runs an extension's `server.ts` in its own process, with the
+  network. A sandboxed Codex writing there without escalation would be an action outside its
+  worktree that no reviewer saw, which the Agents decision forbids ("each action outside its
+  worktree, the network included, reviewed before it runs"); it outranks the spec.
+- **If the human prefers the spec's wording**: give `codexTurnParams` the extensions folder in
+  `writableRoots` again (`[this.#extensions.folder]` from `CodexAdapter.open`), drop the extensions
+  sentence of `sandboxSection`, and amend the Agents decision to name the extensions folder as an
+  exception.
+- **Where**: `codex.ts`, `codexTurnParams` and `sandboxSection`.
+
+## R23: A thread runs only on the permissions Codex says it applied
+
+- **Decision**: `#begin` reads the `sandbox`, `approvalPolicy`, and `approvalsReviewer` of the
+  `thread/start` or `thread/resume` answer, and refuses a thread that is not on the `workspaceWrite`
+  sandbox with `networkAccess: false`, `on-request`, and `auto_review`: the R19 path, an `init`
+  whose `problem` names what Codex applied, as "Codex applied danger-full-access instead of
+  workspace-write: Uraeda does not run it". The sandbox's writable roots are not checked: each
+  `turn/start` sends its own policy, with none (R22).
+- **Rationale**: the parameters ask for the permissions, but the user's settings, a managed
+  configuration, or a later Codex could apply others; the Agents decision asks that the agent never
+  run wider than reviewed. This machine's own `~/.codex/config.toml` says `danger-full-access` and
+  `approval_policy = "never"`.
+- **Where**: `codex-permissions.ts` (`appliedProblem`), `CodexAdapter.#begin`.
+
+## R24: A thread gives Codex its project's trust, so that Codex does not write it
+
+- **Decision**: `thread/start` and `thread/resume` carry one `config` override,
+  `projects."<session directory>".trust_level`: the level of the user's `projects` setting, as
+  `config/read` gives it, for the session's directory, else its main checkout, else the closest
+  folder holding either; `trusted` without one. Unread settings give no override.
+- **Rationale**: on Codex 0.163.0, every `thread/start` in a project without its own entry, a
+  worktree's being its main checkout's, writes
+  `[projects."<main checkout>"] trust_level = "trusted"` into `~/.codex/config.toml`, whatever the
+  sandbox and approval parameters, ephemeral threads included; a parent folder's entry (`/tmp`) is
+  honoured but does not stop the write. An entry given in memory for the session's directory stops
+  it, and wins over the main checkout's. `thread/resume` writes nothing, but gets the same override
+  so a resumed thread has the trust its start had. The Agents decision says Uraeda MUST NOT change
+  an agent's settings; `trusted` is the level Codex would write and apply, so a project without an
+  entry runs as before, without the write; an existing entry, `untrusted` included, is kept.
+- **Alternatives considered**: `ephemeral: true`, which writes the entry all the same and keeps no
+  rollout to resume; `untrusted` in memory for every project, which would drop the project's own
+  `.codex/` settings that the user's trust lets Codex read.
+- **If wrong**: where Codex looks trust up differently (a symlinked path, a managed layer), the
+  override can differ from what Codex alone would apply; it is never wider than `trusted`, the level
+  Codex gives a project without an entry.
+- **Where**: `codex-permissions.ts` (`codexTrust`, `gitMainRoot`), `codexThreadParams`,
+  `CodexAdapter.#begin`.
+
+## R25: A Codex process's start gives up after 60 seconds
+
+- **Decision**: from `initialize` to the answer of `thread/start` or `thread/resume`, a process has
+  `START_TIMEOUT_MS`, 60 seconds; past it, its start fails on the R19 path, an `init` whose
+  `problem` says "Codex did not answer within 60 seconds", and its process group gets `SIGKILL`.
+  `CodexAdapterOptions.startTimeoutMs` changes it, for the tests.
+- **Rationale**: a Codex that never answers would hold the turn running with nothing to stop; the
+  model list and the configuration read before the thread are part of the start, as a slow account
+  check is.
+- **Where**: `CodexAdapter.#bounded`, `open`.
+
+## R26: A refused steer never starts a turn after a failed one
+
+- **Decision**: a `turn/steer` Codex refuses after the turn ended badly, or while the process
+  closes, puts its message back in the adapter's queue, where the runner's `takeBack` cancels it;
+  only after a turn that ended well does it start the next turn. A process closed while its thread
+  fails to start ends its input then.
+- **Rationale**: the runner takes back what a failed turn left; a refused steer that started a turn
+  by itself, its refusal arriving before the runner's `takeBack`, ran outside any runner turn, and
+  the runner marked it taken back all the same. A close that came while `#start` waited for the
+  thread left the process running with nothing to end it.
+- **Where**: `codex-turns.ts`, `#steer` and `#start`.
