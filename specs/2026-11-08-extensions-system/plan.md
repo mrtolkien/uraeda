@@ -508,11 +508,16 @@ git commit -m "feat(extensions-system): read extension manifests and settings in
 
 **Files:**
 
-- Create: `crates/compile/Cargo.toml` (`uraeda-compile`; `oxc_allocator`, `oxc_parser`,
-  `oxc_semantic`, `oxc_transformer`, `oxc_codegen`, `oxc_span`, one pinned oxc version),
+- Create: `crates/compile/Cargo.toml` (`uraeda-compile`; `oxc_allocator`, `oxc_ast`,
+  `oxc_ast_visit`, `oxc_codegen`, `oxc_diagnostics`, `oxc_parser`, `oxc_semantic`, `oxc_span`,
+  `oxc_transformer`, all pinned at `=0.152.0`:
+  [R12](rulings.md#r12-oxc-is-pinned-at-01520-the-last-release-that-builds-with-rust-196)),
   `crates/compile/src/lib.rs`, `crates/compile/src/modules.rs` (the import and export rewrite)
 - Modify: `Cargo.toml` (workspace member, and in `default-members`), `crates/binding/Cargo.toml`,
-  `crates/binding/src/lib.rs`; Create: `crates/binding/src/compile.rs`
+  `crates/binding/src/lib.rs`, `vite.tasks.ts` (`rust:features` also refuses oxc:
+  [R14](rulings.md#r14-rustfeatures-also-refuses-oxc-in-ura)); Create:
+  `crates/binding/src/compile.rs`; regenerated: `packages/binding/index.d.ts`,
+  `packages/binding/index.js`
 - Test: `crates/compile/tests/compile.rs`
 
 **Interfaces:**
@@ -521,11 +526,14 @@ git commit -m "feat(extensions-system): read extension manifests and settings in
 - Produces:
   - `pub fn compile(source: &str, filename: &str) -> Result<Compiled, CompileError>`
   - `pub struct Compiled { pub code: String, pub imports: Vec<String> }`: `code` is the body of a
-    function called as `f(__import, __exports)`; `imports` lists every specifier, in order.
+    function called as `f(__import, __exports)`; `imports` lists every specifier, in order, each
+    once.
   - `pub struct CompileError { pub line: u32, pub column: u32, pub message: String }`
   - Binding: `compileModule(source: string, filename: string): CompiledModule` (synchronous: a file
     takes about 2 ms) with
-    `CompiledModule { code: string; imports: string[]; error: { line: number; column: number; message: string } | null }`.
+    `CompiledModule { code: string; imports: string[]; error: { line: number; column: number; message: string } | null }`,
+    the error's type named `CompileModuleError`; line and column count from 1, the column in
+    characters. A panic in oxc is caught and thrown as a JavaScript error.
 
 The rewrite, applied after the TypeScript and JSX transform (`.ts` without JSX, `.tsx` with the
 automatic runtime, `importSource` `react`):
@@ -535,12 +543,15 @@ automatic runtime, `importSource` `react`):
   a ruling); `import * as n from "x"` → `const n = __import("x");`; `import "x"` → `__import("x");`.
 - `export const|let|function|class x` → the declaration, and
   `Object.defineProperty(__exports, "x", { enumerable: true, get: () => x })` placed first in the
-  body; `export default <expr>` → `__exports.default = <expr>`; `export { a as b }` → a getter;
-  `export … from "x"` → an import and getters; `export * from "x"` → copy the keys.
+  body; `export default function f` or `class C` → the declaration and a getter;
+  `export default <expr>` → `__exports.default = (<expr>)`; `export { a as b }` → a getter;
+  `export … from "x"` → an import and getters; `export * from "x"` → a getter per key but `default`
+  and the module's own names
+  ([R13](rulings.md#r13-every-export-is-a-getter-defined-first-and-export--adds-getters)).
 - Refused, with their position: top-level `await` ("top-level await is not supported: load in the
   function you export"), dynamic `import()` ("dynamic import is not supported"), and `import.meta`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/compile/tests/compile.rs
@@ -560,29 +571,29 @@ the errors.
 The break the test catches: an export left as an ES statement, which `vm` refuses at run time; an
 import missing from `imports`, so the loader never compiles that file.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-compile`
 - Expected: FAIL to compile, the crate does not exist.
 
-- [ ] **Step 3: Implement the crate and the binding function**
+- [x] **Step 3: Implement the crate and the binding function**
 
 Rewrite by spans on the transformed code (parse it again, splice each top-level module declaration),
 not by building AST nodes.
 
-- [ ] **Step 4: Measure, then run the task's validation**
+- [x] **Step 4: Measure, then run the task's validation**
 
-Record the release binding's size before and after (`vp run binding:build:release`, the `.node`
-file's bytes) in `rulings.md`, for SC-004.
+Record the release binding's size before and after (`pnpm run build:release` in `packages/binding`,
+the `.node` file's bytes) in `rulings.md`, for SC-004.
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-compile && nix develop -c cargo clippy --workspace --all-targets -- -D warnings && vp run rust:features`
 - Expected: PASS; `rust:features` confirms `uraeda-cli` pulls in neither `napi` nor oxc.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add Cargo.toml Cargo.lock crates/compile crates/binding packages/binding/index.d.ts specs/2026-11-08-extensions-system/rulings.md
+git add Cargo.toml Cargo.lock vite.tasks.ts crates/compile crates/binding packages/binding/index.d.ts packages/binding/index.js specs/2026-11-08-extensions-system/plan.md specs/2026-11-08-extensions-system/rulings.md
 git commit -m "feat(extensions-system): compile extension files with oxc"
 ```
 

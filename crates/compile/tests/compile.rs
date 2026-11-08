@@ -1,0 +1,173 @@
+//! The compiler's contract: the text it emits has no module statement left, lists every import in
+//! order, and refuses what the function body cannot run, at the line and column of the source. The
+//! server's loader tests run the output for real.
+
+use uraeda_compile::{CompileError, compile};
+
+/// Whether `code` still holds an ES module statement, which `vm` refuses at run time.
+fn has_module_statement(code: &str) -> bool {
+    code.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with("import ") || line.starts_with("import{") || line.starts_with("export ")
+    })
+}
+
+#[test]
+fn compiles() {
+    // Source, file name, the imports in order, and fragments the code must contain.
+    let rows: &[(&str, &str, &[&str], &[&str])] = &[
+        (
+            "import d, { a, b as c } from \"x\";\nconsole.log(d, a, c);\n",
+            "default-and-named.ts",
+            &["x"],
+            &[
+                "const __m0 = __import(\"x\");",
+                "const d = __m0.default;",
+                "const { a, b: c } = __m0;",
+            ],
+        ),
+        (
+            "import * as n from \"x\";\nimport \"y\";\nimport type { T } from \"z\";\nconst t: T = n;\n",
+            "namespace-and-bare.ts",
+            &["x", "y"],
+            &["const n = __import(\"x\");", "__import(\"y\");"],
+        ),
+        (
+            "export const answer: number = 42;\nexport function f() {}\nexport class C {}\n",
+            "declarations.ts",
+            &[],
+            &[
+                "Object.defineProperty(__exports, \"answer\", { enumerable: true, get: () => answer });",
+                "Object.defineProperty(__exports, \"f\", { enumerable: true, get: () => f });",
+                "Object.defineProperty(__exports, \"C\", { enumerable: true, get: () => C });",
+                "const answer = 42;",
+                "function f() {}",
+            ],
+        ),
+        (
+            "const a = 1;\nexport { a as b };\nexport default { a };\n",
+            "named-and-default.ts",
+            &[],
+            &[
+                "Object.defineProperty(__exports, \"b\", { enumerable: true, get: () => a });",
+                "__exports.default = ",
+            ],
+        ),
+        (
+            "export { a, b as c } from \"x\";\nexport * from \"y\";\nexport * as z from \"z\";\n",
+            "re-exports.ts",
+            &["x", "y", "z"],
+            &[
+                "get: () => __m0.a",
+                "Object.defineProperty(__exports, \"c\", { enumerable: true, get: () => __m0.b });",
+                "for (const __k of Object.keys(__m1))",
+                "Object.defineProperty(__exports, \"z\", { enumerable: true, get: () => __m2 });",
+            ],
+        ),
+        (
+            "import { useState } from \"react\";\nexport default function Page() {\n  const [n] = useState(0);\n  return <p>{n}</p>;\n}\n",
+            "page.tsx",
+            &["react", "react/jsx-runtime"],
+            &[
+                "__import(\"react/jsx-runtime\")",
+                "function Page()",
+                "get: () => Page",
+            ],
+        ),
+        (
+            "export enum Size {\n  Small,\n  Large,\n}\n",
+            "enum.ts",
+            &[],
+            &["Object.defineProperty(__exports, \"Size\", { enumerable: true, get: () => Size });"],
+        ),
+        (
+            "export const f = async () => {\n  await Promise.resolve();\n};\n",
+            "await-in-function.ts",
+            &[],
+            &["await Promise.resolve()"],
+        ),
+    ];
+    for (source, filename, imports, fragments) in rows {
+        let compiled = compile(source, filename)
+            .unwrap_or_else(|error| panic!("{filename}: {}", error.message));
+        assert!(
+            !has_module_statement(&compiled.code),
+            "{filename}: a module statement is left in\n{}",
+            compiled.code
+        );
+        assert_eq!(&compiled.imports, imports, "{filename}: imports");
+        for fragment in *fragments {
+            assert!(
+                compiled.code.contains(fragment),
+                "{filename}: no `{fragment}` in\n{}",
+                compiled.code
+            );
+        }
+    }
+}
+
+#[test]
+fn getters_come_first() {
+    let compiled = compile("console.log(1);\nexport const x = 1;\n", "first.ts").unwrap();
+    assert!(
+        compiled
+            .code
+            .starts_with("Object.defineProperty(__exports, \"x\""),
+        "{}",
+        compiled.code
+    );
+}
+
+#[test]
+fn refuses() {
+    // Source, file name, line, column, and the start of the message.
+    let rows: &[(&str, &str, u32, u32, &str)] = &[
+        (
+            "const a = 1;\nconst b = 2;\nconst c = ;\n",
+            "syntax.ts",
+            3,
+            11,
+            "Unexpected token",
+        ),
+        (
+            "const a = 1;\nconst data = await fetch(\"x\");\n",
+            "await.ts",
+            2,
+            14,
+            "top-level await is not supported: load in the function you export",
+        ),
+        (
+            "for await (const x of xs) {}\n",
+            "for-await.ts",
+            1,
+            1,
+            "top-level await is not supported: load in the function you export",
+        ),
+        (
+            "export function f() {\n  return import(\"x\");\n}\n",
+            "dynamic.ts",
+            2,
+            10,
+            "dynamic import is not supported",
+        ),
+        (
+            "\nconst url = import.meta.url;\n",
+            "meta.ts",
+            2,
+            13,
+            "import.meta is not supported",
+        ),
+    ];
+    for (source, filename, line, column, message) in rows {
+        let CompileError {
+            line: got_line,
+            column: got_column,
+            message: got_message,
+        } = compile(source, filename).expect_err(filename);
+        assert!(
+            got_message.starts_with(message),
+            "{filename}: {got_message}"
+        );
+        assert_eq!((got_line, got_column), (*line, *column), "{filename}");
+    }
+}

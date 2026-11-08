@@ -162,6 +162,27 @@ export declare function committedSince(repo: string, change: ChangeView): Promis
 export declare function commitText(repo: string, path: string): Promise<CommitView>
 
 /**
+ * A compiled file: `code` is the body of a function called as `f(__import, __exports)`, and
+ * `imports` every module it imports, in order. When the file does not compile, `error` says where
+ * and why, and `code` and `imports` are empty.
+ */
+export interface CompiledModule {
+  code: string
+  imports: Array<string>
+  error: CompileModuleError | null
+}
+
+/** Compiles one TypeScript or TSX file, whose `filename` extension picks the syntax. */
+export declare function compileModule(source: string, filename: string): CompiledModule
+
+/** Why a file did not compile, at a line and a column of its source, both counted from 1. */
+export interface CompileModuleError {
+  line: number
+  column: number
+  message: string
+}
+
+/**
  * Uraeda's config folder: `custom` when set and not empty, else `URAEDA_CONFIG_DIR` from this
  * process's environment, else `$XDG_CONFIG_HOME/uraeda`, else `~/.config/uraeda`.
  */
