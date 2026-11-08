@@ -3,7 +3,7 @@ import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { extensionFolder, loaded, openLoader, writeFiles } from "./helpers.ts";
+import { extensionFolder, loaded, manifest, openLoader, writeFiles } from "./helpers.ts";
 
 /** How many files the SC-001 extension has: its entry, and the files it imports. */
 const FILES = 50;
@@ -54,11 +54,24 @@ function heavyEntry(version: number): string {
 
 const gc = exposedGc();
 
+/** Collects twice: a first collection's finalizers free more for the second. */
+function settle(): void {
+  gc?.();
+  gc?.();
+}
+
+/** The benchmark's page, so each reload compiles and drops a page bundle too. */
+const PAGE = `export default function Page() {\n  return <p>Heavy</p>;\n}\n`;
+
 test.skipIf(gc === undefined)(
   "SC-002: 100 reloads grow the heap by less than 10 MB",
   async () => {
     const config = temporaryFolder("config");
-    const folder = extensionFolder(config, "heavy", { "server.ts": heavyEntry(0) });
+    const folder = extensionFolder(config, "heavy", {
+      "extension.toml": manifest("heavy", { page: true }),
+      "page.tsx": PAGE,
+      "server.ts": heavyEntry(0),
+    });
     const { loader, marks } = await openLoader({ configDir: config });
     const reload = async (version: number) => {
       const next = loaded(loader, "heavy", (extension) => extension.version === version + 1);
@@ -69,12 +82,12 @@ test.skipIf(gc === undefined)(
     for (let version = 1; version <= 5; version++) {
       await reload(version);
     }
-    gc?.();
+    settle();
     const before = process.memoryUsage().heapUsed;
     for (let version = 6; version <= 105; version++) {
       await reload(version);
     }
-    gc?.();
+    settle();
     const grown = process.memoryUsage().heapUsed - before;
     expect(marks.of("heavy")).toEqual([10_105]);
     expect(grown).toBeLessThan(10 * 1024 * 1024);
