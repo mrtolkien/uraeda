@@ -10,6 +10,7 @@ import {
   extensionFolder,
   gatedBinding,
   loaded,
+  manifest,
   marking,
   openLoader,
   writeFiles,
@@ -164,4 +165,22 @@ test("a subfolder deleted and made again is still watched", async () => {
   writeFiles(folder, { "lib/v.ts": `export const v = "c";\n` });
   await saved;
   expect(marks.of("wiki")).toEqual(["c"]);
+});
+
+test("a manifest broken and fixed loads the extension again", async () => {
+  const config = temporaryFolder("config");
+  const folder = extensionFolder(config, "wiki", { "server.ts": marking(1) });
+  const { loader, marks } = await openLoader({ configDir: config });
+  expect(marks.of("wiki")).toEqual([1]);
+
+  const broken = loaded(loader, "wiki", (extension) => extension.state === "broken");
+  writeFiles(folder, { "extension.toml": "name = \n" });
+  await broken;
+  expect(marks.of("wiki")).toEqual([]);
+
+  // Its folder is still watched: the fix is seen, though the manifest named no file.
+  const fixed = loaded(loader, "wiki", (extension) => extension.state === "on");
+  writeFiles(folder, { "extension.toml": manifest("wiki"), "server.ts": marking(2) });
+  expect(await fixed).toMatchObject({ problems: [], version: 2 });
+  expect(marks.of("wiki")).toEqual([2]);
 });
