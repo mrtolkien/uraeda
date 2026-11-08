@@ -25,7 +25,10 @@ export type PageDeps = {
 };
 
 /** The version of each extension's page that is wanted, and the one registered. */
-const pages = new Map<string, { registered?: number; style?: HTMLStyleElement; wanted: number }>();
+const pages = new Map<
+  string,
+  { registered?: number; remove?: () => void; style?: HTMLStyleElement; wanted: number }
+>();
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -99,15 +102,24 @@ function guardedApi(api: PageApi, boundary: Boundary): PageApi {
     itemRenderer: (renderer) => api.itemRenderer(guarded(renderer, boundary)),
     key: (key) => api.key(guarded(key, boundary)),
     newSection: (section) => api.newSection(guarded(section, boundary)),
+    onUnload: (fn) =>
+      api.onUnload(() => {
+        try {
+          fn();
+        } catch (error) {
+          boundary.report(messageOf(error));
+        }
+      }),
     place: (place) => api.place(guarded(place, boundary)),
     settingsSection: (section) => api.settingsSection(guarded(section, boundary)),
     statusItem: (item) => api.statusItem(guarded(item, boundary, true)),
   };
 }
 
-/** Undoes what the extension's page registered, and takes its CSS out. */
+/** Undoes what the extension's page registered, its `onUnload` callbacks run, and its CSS. */
 function unload(name: string, registry: Registry) {
   const page = pages.get(name);
+  page?.remove?.();
   registry.remove(name);
   page?.style?.remove();
   pages.delete(name);
@@ -135,7 +147,7 @@ function activate(row: PageRow, bundle: PageBundle, shared: SharedModules, deps:
   style.dataset.extension = name;
   style.textContent = bundle.css;
   document.head.append(style);
-  pages.set(name, { registered: version, style, wanted: row.pageVersion! });
+  pages.set(name, { registered: version, remove: api.remove, style, wanted: row.pageVersion! });
 }
 
 /** Gives up the fetch of the version wanted: the next sync asks for it again. */

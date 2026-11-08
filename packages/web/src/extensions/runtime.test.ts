@@ -180,3 +180,39 @@ test("a relative import is the file the server resolved it to, never one out of 
     activation({ "page.tsx": `__import("./gone");` }, { "page.tsx": { "./gone": "gone.ts" } }),
   ).toThrow(`page.tsx: "./gone" is not a file of the page`);
 });
+
+/** A bundle whose activation registers two unload callbacks, and throws when `throws`. */
+const unloading = (version: number, throws = false): PageBundle => ({
+  css: "",
+  entry: "page.tsx",
+  imports: {},
+  modules: {
+    "page.tsx": `__exports.default = (api) => {
+  const log = (globalThis.unloads ??= []);
+  api.onUnload(() => log.push("first ${version}"));
+  api.onUnload(() => log.push("second ${version}"));
+  ${throws ? `throw new Error("broken");` : ""}
+};`,
+  },
+  version,
+});
+
+// Break: `onUnload`'s callbacks never run, or in the order registered.
+test("a version's onUnload callbacks run as it unloads, the last first", async () => {
+  const { deps, http } = setup();
+  last = deps;
+  const log: Array<string> = [];
+  (globalThis as { unloads?: Array<string> }).unloads = log;
+  syncPages([row("timers", 1)], deps);
+  http.answer(0, unloading(1));
+  await settle();
+  expect(log).toEqual([]);
+  syncPages([row("timers", 2)], deps);
+  http.answer(1, unloading(2, true));
+  await settle();
+  // Version 1 unloaded for 2, and 2, which threw, undone at once.
+  expect(log).toEqual(["second 1", "first 1", "second 2", "first 2"]);
+  syncPages([], deps);
+  expect(log).toHaveLength(4);
+  delete (globalThis as { unloads?: Array<string> }).unloads;
+});
