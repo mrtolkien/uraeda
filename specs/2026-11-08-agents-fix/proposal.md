@@ -17,6 +17,7 @@ So:
   Let them stop on problematic conflicts and raise an issue, but it should be extremely rare if it
   ever happens.
   - This should be a workflow setting
+  - This setting should be in-line with the models/run settings
 
 ## Why
 
