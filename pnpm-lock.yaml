@@ -248,12 +248,24 @@ importers:
 
   packages/server:
     dependencies:
+      '@astryxdesign/core':
+        specifier: 0.7.3
+        version: 0.7.3(@stylexjs/stylex@0.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@babel/core':
+        specifier: 'catalog:'
+        version: 8.0.7
       '@hono/node-server':
         specifier: 2.1.4
         version: 2.1.4(hono@4.13.13)
       '@nkzw/fate':
         specifier: 1.13.0
         version: 1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+      '@stylexjs/babel-plugin':
+        specifier: 0.19.1
+        version: 0.19.1(supports-color@7.2.0)
+      babel-plugin-react-compiler:
+        specifier: 'catalog:'
+        version: 1.0.0
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -4437,7 +4449,7 @@ snapshots:
       '@babel/helper-compilation-targets': 7.29.7
       '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0)
       '@babel/helpers': 7.29.10
-      '@babel/parser': 7.29.8
+      '@babel/parser': 7.29.9
       '@babel/template': 7.29.7
       '@babel/traverse': 7.29.10(supports-color@7.2.0)
       '@babel/types': 7.29.8
@@ -4471,7 +4483,7 @@ snapshots:
 
   '@babel/generator@7.29.8':
     dependencies:
-      '@babel/parser': 7.29.8
+      '@babel/parser': 7.29.9
       '@babel/types': 7.29.8
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
@@ -4703,7 +4715,7 @@ snapshots:
   '@babel/template@7.29.7':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@babel/parser': 7.29.8
+      '@babel/parser': 7.29.9
       '@babel/types': 7.29.8
 
   '@babel/template@8.0.0':
