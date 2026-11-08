@@ -81,8 +81,9 @@ help = "The folder of the repository the pages are read from."
 
 `name` and `api` are required, and a setting needs a `type` and a `default`. An entry must be a file
 inside the folder. The names of the built-in extensions are taken: `claude`, `fake`, `inbox`,
-`priorities`, `decisions`, `git`, `previews`, and `notifications`. `on` and `repositories` are not
-setting names.
+`priorities`, `decisions`, `git`, `previews`, and `notifications`, and Uraeda keeps `uraeda` and
+`sessions`: an extension with one of these names is refused, as `sessions is reserved by Uraeda`.
+`on` and `repositories` are not setting names.
 
 An icon is one of the app's set: `uraeda:` and a name of a [Lucide](https://lucide.dev/icons/) icon
 the app ships, like `uraeda:book-open`, `uraeda:database`, `uraeda:globe`, or `uraeda:rows-3`, each
@@ -116,7 +117,10 @@ returns. When `config.toml` cannot be read, your extensions are off until it can
 ones run on their defaults.
 
 Settings, Extensions lists "Your extensions" and the built-in ones, each with a switch, "Only in…",
-and its settings for every repository or one. `ura extension add` asks where a new one is on.
+and its settings for every repository or one. Picked for one repository, the settings show its own
+values over those for every repository: a value set there only reads "Set for uraeda only.", and
+"Use the shared value" removes it from `config.toml`, so that the value for every repository, or the
+default, applies there again. `ura extension add` asks where a new one is on.
 
 ## Server code
 
@@ -210,11 +214,13 @@ name, and never stops the event for others.
 
 An agent runtime is what sessions run on. Claude Code is the built-in `claude` extension, and a
 runtime of yours is registered with `api.runtime(runtime)`, under your extension's name. A session
-stores the name of the runtime it was started on, and keeps running on it; new sessions take the
-first runtime on in the repository, Claude Code before yours. Where a session's runtime is off, its
-transcript shows, and the composer says `pi-durable is off: turn it on to continue this session`.
-Where every runtime is off, starting a session says
-`No agent runtime is on here: turn one on in Settings, Extensions`.
+stores the name of the runtime it was started on, and keeps running on it. With one runtime on in
+the repository, new sessions take it; with two or more, a picker shows wherever a message makes a
+session: the composer of a new chat or of a feature's new session, the change's start dialog, and
+"Apply the answers" of a round. It picks the first runtime on, Claude Code before yours, until you
+pick another. Where a session's runtime is off, its transcript shows, and the composer says
+`pi-durable is off: turn it on to continue this session`. Where every runtime is off, starting a
+session says `No agent runtime is on here: turn one on in Settings, Extensions`.
 
 A runtime implements the contract every agent is reached through, the `Runtime` type of
 `uraeda/server`: its `name`, `kind`, `icon`, and `capabilities`, `open` for a session's process,
@@ -279,12 +285,14 @@ stripped.
 | `itemRenderer(renderer)`   | What draws a tool's items in a session, by the tool's name, in place of its output          |
 | `settingsSection(section)` | A section under the extension's row in Settings, Extensions                                 |
 | `key(key)`                 | A key under the leader, `Space`                                                             |
+| `onUnload(fn)`             | Nothing: `fn` runs when this version of the page unloads                                    |
 
 - A **place** is `{ id, title, icon, component }`, with an optional `key`, its key after `Space`;
-  `count`, a function called as a hook while its row draws, giving the number the row shows, which
-  cannot call the hooks of `uraeda/page`; and `phoneTab`, `"bar"` or `"more"`, to show it among the
-  phone's tabs. It opens at `/r/<repo>/e/<name>/<id>`, drawn in the app's column, at the app's
-  widths.
+  `count`, a function called as a hook while its row and its phone tab draw, inside the extension's
+  boundary, giving the number they show: it may call the hooks of `uraeda/page`, and one that throws
+  shows no number; and `phoneTab`, `"bar"` or `"more"`, to show it among the phone's tabs. The bar
+  holds four places, Uraeda's first: the rest go into its `…`. A place opens at
+  `/r/<repo>/e/<name>/<id>`, drawn in the app's column, at the app's widths.
 - A **home pane** is `{ id, title, icon, column, tone, component }`, `tone` one of `"now"`,
   `"ongoing"`, `"later"`, or `"neutral"`.
 - A **New-page section** is `{ id, title, tone, component }`; its component gets `search`, the
@@ -296,12 +304,20 @@ stripped.
   sequence under one of Uraeda's groups, like `"n y"` under New.
 
 The places, panes, and sections show only in the repositories the extension is on in, after Uraeda's
-own, then yours by name. A key is kept by the first extension that registers it, and Uraeda's own
+own, then yours by name. A key is kept by the first extension that registers it among those on in
+the repository, so two extensions on in different repositories may each have it, and Uraeda's own
 keys win over every extension's. A key lost shows on the settings page as
-`` `y` is taken by Deploy ``.
+`` `y` is taken by Deploy ``, with the repositories it is lost in when not all of them:
+`` `y` is taken by Deploy in uraeda ``.
 
 Each component is drawn inside its extension's own boundary: one that throws shows "Wiki: <message>"
-in its place, and the rest of the page goes on.
+in its place, and the rest of the page goes on. One that threw its record's error draws again once
+the record reads.
+
+`onUnload(fn)` undoes what the activation started, like an interval or a listener of the document:
+its callbacks run, the last given first, when that version of the page unloads, at a reload, when
+the extension is turned off or removed, or when its activation throws. Work a component starts
+belongs in its own effect, which React undoes with it.
 
 ### The hooks of `uraeda/page`
 
@@ -348,8 +364,9 @@ mode. Types are stripped, never checked. Some module syntax has no place in it:
 - No dynamic `import()`, and no `import.meta`.
 - No `import x = require("y")`, and no `export =`.
 - A relative import names a file of the folder, with or without its ending: `./pages` finds
-  `pages.ts`, `pages.tsx`, `pages/index.ts`, or `pages/index.tsx`. A path out of the folder, by `..`
-  or a link, is refused. A file over 2 MB is refused.
+  `pages.ts`, `pages.tsx`, `pages/index.ts`, or `pages/index.tsx`. A link inside the folder to
+  another of its files is that file. A path out of the folder, by `..` or a link, is refused. A file
+  over 2 MB is refused.
 - An import is a copy of the value, taken when the importing file runs: a file importing one that
   imports it back reads `undefined` for what is not defined yet. Avoid import cycles.
 
@@ -360,9 +377,9 @@ and the version before it keeps running.
 
 An extension whose folder has no `.ura-source`, a linked folder or one written in place, reloads
 each time you save one of its files, within a second, and when its settings or where it is on
-change. Its old version is undone first: its records, routes, listeners, timers, places, and keys. A
-page redraws without reloading the browser's page, and loses its unsaved state, like the text of a
-field.
+change. Its old version is undone first: its records, routes, listeners, timers, places, and keys,
+and what its page's `onUnload` undoes. A page redraws without reloading the browser's page, and
+loses its unsaved state, like the text of a field.
 
 An extension `ura` installed from git changes only when `ura extension update` moves it.
 
@@ -370,8 +387,8 @@ An extension `ura` installed from git changes only when `ura extension update` m
 
 An extension's `skills/` folder, in the [Agent Skills](https://agentskills.io/) format, reaches the
 agent of every session in the repositories the extension is on in, beside the Uraeda skill: Claude
-Code gets it as a plugin of its own. A skill tells the agent how to use your extension, or anything
-else; the instructions of a session are Uraeda's, and an extension adds none.
+Code gets it as a plugin of its own, named `ext-<name>`. A skill tells the agent how to use your
+extension, or anything else; the instructions of a session are Uraeda's, and an extension adds none.
 
 ## When something breaks
 
@@ -412,10 +429,10 @@ ura extension list --json                                # every extension, the 
 `add` takes a folder, which it links as `extensions/<name>`, or a git URL, which it clones and
 checks out at its default branch's commit, writing `.ura-source` with the URL, the commit, and the
 branch. A URL without a scheme is cloned over `https://`. It refuses a built-in extension's name,
-one installed already, and a manifest with a fatal problem. Without a terminal, give `--all`,
-`--here`, or `--repo <name>`, repeated for more. `update` refuses a linked extension: edit its
-folder instead. See [the CLI's page](https://github.com/mrtolkien/uraeda/blob/main/docs/cli.md) for
-the rest.
+`uraeda` and `sessions`, which Uraeda keeps, one installed already, and a manifest with a fatal
+problem. Without a terminal, give `--all`, `--here`, or `--repo <name>`, repeated for more. `update`
+refuses a linked extension: edit its folder instead. See
+[the CLI's page](https://github.com/mrtolkien/uraeda/blob/main/docs/cli.md) for the rest.
 
 ## Changing a part of Uraeda
 
