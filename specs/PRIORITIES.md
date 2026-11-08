@@ -7,7 +7,6 @@
 > Still wanted for my personal usage
 
 - [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
-- [Nix / Docker based execution environments](/specs/2026-11-08-nix-docker/proposal.md)
 - [Pressing enter on a keyboard-focused row in the "clarifications" step opened…](/specs/changes/2026-11-08-pressing-enter/proposal.md)
 
 - Spec comments: suggestion vs change needed
@@ -46,6 +45,8 @@
   - Needs multiple agents and full features
 
 - Agents fix merge conflicts on open pull requests on their own, after Worker lifecycle
+
+- [Nix / Docker based execution environments](/specs/proposals/nix-docker/proposal.md)
 
 ## Later
 
