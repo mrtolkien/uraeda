@@ -527,6 +527,26 @@ fn add_refuses_a_repository_not_in_the_list_before_cloning() {
     assert!(!folders.extension("deploy").exists());
 }
 
+// Break: the list showing every built-in, `fake` included, as before.
+#[test]
+fn list_leaves_out_the_fake_agent() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+
+    let listed: serde_json::Value =
+        serde_json::from_str(&folders.ura(elsewhere.path(), &["list", "--json"]).stdout).unwrap();
+    let names: Vec<&str> = listed["extensions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["name"].as_str().unwrap())
+        .collect();
+    assert!(names.contains(&"claude"), "{names:?}");
+    assert!(!names.contains(&"fake"), "{names:?}");
+    let text = folders.ura(elsewhere.path(), &["list"]).stdout;
+    assert!(!text.contains("fake"), "{text}");
+}
+
 #[test]
 fn list_shows_the_running_servers_states_and_problems() {
     let folders = Folders::new();
