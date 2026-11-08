@@ -29,7 +29,9 @@ import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 /** `codex --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
 /** The short process that lists the models gives up after this long. */
-const MODELS_TIMEOUT_MS = 10_000;
+export const MODELS_TIMEOUT_MS = 10_000;
+/** That process, sent SIGTERM as it is done with, is killed when it still runs this long after. */
+export const MODELS_KILL_AFTER_MS = 5000;
 /** A process's start, from `initialize` to its thread started or resumed, gives up after this long. */
 export const START_TIMEOUT_MS = 60_000;
 /** `model/list` pages read at most, should Codex never stop giving a cursor. */
@@ -314,7 +316,8 @@ export class CodexAdapter implements Adapter {
 
   /**
    * The models listed for the account, through a short app-server, closed once it answered
-   * `model/list`, every page, and `config/read`: rejected when it fails to within 10 seconds.
+   * `model/list`, every page, and `config/read`: rejected when it fails to within 10 seconds. Its
+   * process group then gets SIGTERM, and SIGKILL when it still runs 5 seconds after.
    */
   async models(): Promise<ModelList> {
     const server = appServer(
@@ -325,7 +328,6 @@ export class CodexAdapter implements Adapter {
     );
     const timer = setTimeout(() => {
       server.rpc.end(`Codex did not list its models within ${MODELS_TIMEOUT_MS / 1000} seconds`);
-      server.signal("SIGTERM");
     }, MODELS_TIMEOUT_MS);
     try {
       await server.started;
@@ -333,7 +335,12 @@ export class CodexAdapter implements Adapter {
       return codexModels(rows, config);
     } finally {
       clearTimeout(timer);
+      // Done with, answered or not: its group ends, killed if it outlives SIGTERM.
       server.child.stdin.end();
+      server.signal("SIGTERM");
+      const kill = setTimeout(() => server.signal("SIGKILL"), MODELS_KILL_AFTER_MS);
+      kill.unref();
+      void server.exited.then(() => clearTimeout(kill));
     }
   }
 

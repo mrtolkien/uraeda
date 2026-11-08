@@ -1,6 +1,7 @@
 /** A stand-in for `codex app-server` and the helpers of the tests that run it. */
-import { chmodSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { vi } from "vite-plus/test";
 import type { AgentEvent } from "../events.ts";
 
 /** Two pages of `model/list`, as Codex 0.163.0 gives them, a hidden model among them. */
@@ -66,9 +67,15 @@ export const APPLIED = {
 
 /**
  * How a stand-in differs from Codex: the permissions its thread's answers say it applied, and a
- * method it never answers, and one it refuses.
+ * method it never answers, one it refuses, and whether it outlives SIGTERM and the end of its
+ * stdin, writing its pid to `<dir>/pid`.
  */
-export type StandIn = { applied?: Record<string, unknown>; hang?: string; refuse?: string };
+export type StandIn = {
+  applied?: Record<string, unknown>;
+  hang?: string;
+  refuse?: string;
+  stubborn?: boolean;
+};
 
 /**
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
@@ -85,6 +92,11 @@ export function appServer(dir: string, options: StandIn = {}): string {
 const pages = ${JSON.stringify(PAGES)};
 const config = ${JSON.stringify(CONFIG)};
 const applied = ${JSON.stringify({ ...APPLIED, ...options.applied })};
+if (${options.stubborn === true}) {
+  require("node:fs").writeFileSync(${JSON.stringify(join(dir, "pid"))}, String(process.pid));
+  process.on("SIGTERM", () => {});
+  setInterval(() => {}, 1000);
+}
 const out = (message) => process.stdout.write(JSON.stringify(message) + "\\n");
 let turns = 0;
 let threadId = "t-1";
@@ -166,3 +178,45 @@ export const message = (id: string, text: string, when: "steer" | "queue" = "que
   text,
   when,
 });
+
+/** Whether the process `pid` runs. */
+export function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves once the process is gone, or rejects after 10 seconds, killing it. */
+export async function gone(pid: number): Promise<void> {
+  try {
+    await vi.waitFor(
+      () => {
+        if (alive(pid)) {
+          throw new Error(`process ${pid} outlived its adapter's end`);
+        }
+      },
+      { interval: 50, timeout: 10_000 },
+    );
+  } catch (error) {
+    process.kill(pid, "SIGKILL");
+    throw error;
+  }
+}
+
+/** The pid a stubborn stand-in wrote to `<dir>/pid`, once it did. */
+export function standInPid(dir: string): Promise<number> {
+  const file = join(dir, "pid");
+  return vi.waitFor(
+    () => {
+      const pid = existsSync(file) ? readFileSync(file, "utf8").trim() : "";
+      if (pid === "") {
+        throw new Error("the stand-in command did not start");
+      }
+      return Number(pid);
+    },
+    { interval: 50, timeout: 10_000 },
+  );
+}
