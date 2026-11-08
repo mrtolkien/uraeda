@@ -13,6 +13,7 @@ mod diff;
 mod history;
 mod log;
 mod message;
+mod pin;
 pub(crate) mod process;
 mod refresh;
 mod remote;
@@ -27,6 +28,7 @@ pub use checkout::{CheckoutState, Conflict, ConflictKind, FileChange, FileState,
 pub use commit::{OnOutput, Stage, others_staged};
 pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff};
 pub use history::{CommitInfo, CommitPaths, Mark, Range};
+pub use pin::{Pinned, clone_pinned};
 pub use remote::{FETCH_DEADLINE, SYNC_DEADLINE};
 pub use resolve::Resolution;
 pub use stopped::{Stopped, StoppedKind};

@@ -12,6 +12,7 @@ use include_dir::{Dir, include_dir};
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 
+pub mod install;
 mod manifest;
 mod values;
 mod write;
@@ -127,6 +128,17 @@ pub struct ExtensionProblem {
     /// The setting it is about.
     pub setting: Option<String>,
     pub is_fatal: bool,
+}
+
+impl ExtensionProblem {
+    /// The problem as messages show it: its file and line first, as `extension.toml:3: …`.
+    pub fn text(&self) -> String {
+        match (self.file.as_str(), self.line) {
+            ("", _) => self.message.clone(),
+            (file, Some(line)) => format!("{file}:{line}: {}", self.message),
+            (file, None) => format!("{file}: {}", self.message),
+        }
+    }
 }
 
 /// Your extensions folder, in the config folder `config_dir`.

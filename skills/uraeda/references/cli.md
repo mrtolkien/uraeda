@@ -26,6 +26,7 @@ the current branch's feature, or the only one waiting for that action.
 | `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                                                                         |
 | `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                                                            |
 | `ura add [folder]`                                                                     | Adds the repository holding a folder to the list of repositories the server serves                                                     |
+| `ura extension add <folder or URL>`, `--all`, `--here`; `update`, `remove`, `list`     | Links or clones an extension into the config folder, pinned to a commit, and says where it is on                                       |
 
 `ura next` and `ura status` read the open pull requests with `gh`. One that is not a draft, with no
 changes requested, and lacks the branch's latest commit names the step `push`, whose reference is
