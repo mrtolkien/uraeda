@@ -243,3 +243,22 @@ test.each<[string, Record<string, unknown>, boolean, string]>([
     expect(written(dir).some((line) => line.method === "turn/start")).toBe(false);
   },
 );
+
+test("a thread that does not start in time fails the start, and its process is killed", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const command = appServer(dir, { hang: "thread/start" });
+  const agent = new CodexAdapter({ command, pluginDir: "/p", startTimeoutMs: 200 }).open({
+    ...open,
+    cwd: dir,
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  const [init] = await until(events, "init");
+  expect(init).toEqual({
+    problem: "Codex did not start the session: Codex did not answer within 0.2 seconds",
+    sessionId: "",
+    type: "init",
+  });
+  // Killed, never closed.
+  expect(await until(events, "exit")).toMatchObject([{ type: "exit" }]);
+});

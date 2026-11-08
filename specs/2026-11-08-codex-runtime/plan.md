@@ -803,7 +803,8 @@ What the process does:
   thread's ID reaches the transcript as an `init` from the start or resume answer, once, whether or
   not Codex sends `thread/started`; a thread that fails to start gives an `init` with its `problem`
   (R19), and so does a thread whose answer says Codex applied other permissions than those asked for
-  (R23).
+  (R23), and a start that takes over 60 seconds (`START_TIMEOUT_MS`), from `initialize` to the
+  thread's answer, whose process is then killed (R25).
 - Each turn: `turn/start` with the input, `effort` when set, and `sandboxPolicy`
   `{ type: "workspaceWrite", writableRoots: [], networkAccess: false }`: the extensions folder is
   not writable, and the sandbox section says writing there needs escalated permissions (R22). A
