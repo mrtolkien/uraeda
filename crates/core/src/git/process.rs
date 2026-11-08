@@ -77,6 +77,28 @@ pub(crate) fn git_write_within(
     stream_command(write_command(args, dir), on_line, Some(deadline))
 }
 
+/// Runs `git` with `args` in `dir` as [`git_write`] does, on a clone of code no one trusted yet:
+/// no hook runs (`core.hooksPath=/dev/null`), not even the user's own, no submodule is fetched or
+/// checked out (`submodule.recurse=false`), and Git LFS downloads no file
+/// (`GIT_LFS_SKIP_SMUDGE=1`). Stopped past `deadline`, when one is given, as
+/// [`git_write_within`] does.
+pub(crate) fn git_untrusted(
+    args: &[&str],
+    dir: &Path,
+    deadline: Option<Duration>,
+) -> Result<Vec<u8>, Failure> {
+    let mut all = vec![
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "submodule.recurse=false",
+    ];
+    all.extend_from_slice(args);
+    let mut git = write_command(&all, dir);
+    git.env("GIT_LFS_SKIP_SMUDGE", "1");
+    stream_command(git, &|_| {}, deadline)
+}
+
 /// `git` with `args`, to run in `dir` for a write: see [`git_write`].
 fn write_command(args: &[&str], dir: &Path) -> Command {
     let mut git = command("git", args, dir);

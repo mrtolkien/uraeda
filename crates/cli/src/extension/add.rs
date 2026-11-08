@@ -42,6 +42,7 @@ pub fn run(folders: &Folders, flags: &Flags) -> Result<ExitCode, String> {
         &given,
         terminal::interactive(flags.no_input),
         here.as_deref(),
+        &r#where::listed(&folders.data),
     )?;
     let extension =
         install::add(&folders.config, &flags.source, &cwd).map_err(|error| error.message)?;

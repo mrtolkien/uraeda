@@ -1,6 +1,7 @@
 //! `ura extension update`: fetches the branch or tag an installed extension follows, prints the
 //! diff, and moves it only once confirmed.
 
+use std::fmt::Write;
 use std::process::ExitCode;
 
 use uraeda_core::extensions::install;
@@ -18,7 +19,7 @@ pub fn run(folders: &Folders, name: &str, yes: bool) -> Result<ExitCode, String>
         return Ok(ExitCode::SUCCESS);
     }
     println!("{title}: {from} -> {to}");
-    print!("{}", pending.diff);
+    print!("{}", visible(&pending.diff));
     let moves = if yes {
         true
     } else if terminal::interactive(false) {
@@ -34,6 +35,28 @@ pub fn run(folders: &Folders, name: &str, yes: bool) -> Result<ExitCode, String>
         println!("{title} stays at {from}");
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// `diff`, the untrusted files of a commit not checked out yet, with its control characters but
+/// newlines and tabs made visible, so none moves the cursor, retitles the terminal, or hides a
+/// line: `^[` for escape, `^?` for delete, `\u{9b}` for the other ones.
+fn visible(diff: &str) -> String {
+    let mut shown = String::with_capacity(diff.len());
+    for character in diff.chars() {
+        match character {
+            '\n' | '\t' => shown.push(character),
+            '\u{0}'..='\u{1f}' => {
+                shown.push('^');
+                shown.extend(char::from_u32(u32::from(character) + 0x40));
+            }
+            '\u{7f}' => shown.push_str("^?"),
+            _ if character.is_control() => {
+                let _ = write!(shown, "\\u{{{:x}}}", u32::from(character));
+            }
+            _ => shown.push(character),
+        }
+    }
+    shown
 }
 
 /// Asks whether to move, keeping the commit by default; a cancel keeps it.

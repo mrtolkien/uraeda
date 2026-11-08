@@ -23,16 +23,17 @@ impl Folders {
 
     /// Runs `ura extension <args>` in `dir`.
     fn ura(&self, dir: &Path, args: &[&str]) -> Output {
+        self.ura_with(dir, args, &[])
+    }
+
+    /// Runs `ura extension <args>` in `dir`, with more environment variables.
+    fn ura_with(&self, dir: &Path, args: &[&str], env: &[(&str, &str)]) -> Output {
         let mut all = vec!["extension"];
         all.extend_from_slice(args);
-        ura_in(
-            dir,
-            &all,
-            &[
-                ("URAEDA_CONFIG_DIR", self.config.path().to_str().unwrap()),
-                ("URAEDA_DATA_DIR", self.data.path().to_str().unwrap()),
-            ],
-        )
+        let mut env = env.to_vec();
+        env.push(("URAEDA_CONFIG_DIR", self.config.path().to_str().unwrap()));
+        env.push(("URAEDA_DATA_DIR", self.data.path().to_str().unwrap()));
+        ura_in(dir, &all, &env)
     }
 
     /// The extension `name`'s folder.
@@ -314,4 +315,158 @@ fn add_without_a_terminal_needs_where() {
          --repo <name>\n"
     );
     assert_eq!(outside.code, 1);
+}
+
+#[test]
+fn a_linked_folder_is_never_fetched_whatever_it_holds() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    let (_repo, url) = upstream("deploy", "Deploy");
+    assert_eq!(
+        folders.ura(elsewhere.path(), &["add", &url, "--all"]).code,
+        0
+    );
+    // A clone moved out and linked back: its `.ura-source` is the owner's, not `ura`'s to move.
+    let owned = TempDir::new().unwrap();
+    let moved = owned.path().join("deploy");
+    fs::rename(folders.extension("deploy"), &moved).unwrap();
+    std::os::unix::fs::symlink(&moved, folders.extension("deploy")).unwrap();
+    let commit = head(&moved);
+
+    let update = folders.ura(elsewhere.path(), &["update", "deploy", "--yes"]);
+
+    assert_eq!(
+        update.stderr,
+        "ura: deploy is linked: update its folder yourself\n"
+    );
+    assert_eq!(update.code, 1);
+    assert_eq!(head(&moved), commit);
+    let folder = fs::canonicalize(&moved).unwrap();
+    let text = folders.ura(elsewhere.path(), &["list"]);
+    let linked = format!("linked {}", folder.display());
+    assert_eq!(text.row("deploy")[3], linked);
+    let list = folders.ura(elsewhere.path(), &["list", "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&list.stdout).unwrap();
+    let deploy = &json["extensions"].as_array().unwrap().last().unwrap();
+    assert_eq!(
+        (&deploy["is_linked"], &deploy["source"]),
+        (&serde_json::json!(true), &serde_json::Value::Null)
+    );
+}
+
+#[test]
+fn update_shows_control_characters_of_the_diff_escaped() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    let (repo, url) = upstream("deploy", "Deploy");
+    assert_eq!(
+        folders.ura(elsewhere.path(), &["add", &url, "--all"]).code,
+        0
+    );
+    repo.write(
+        "server.ts",
+        "// \u{1b}[2J\u{1b}]0;owned\u{7}\r\tdone\u{7f}\u{9b}\n",
+    );
+    repo.commit("feat: a server");
+
+    let asked = folders.ura(elsewhere.path(), &["update", "deploy"]);
+
+    assert!(
+        asked
+            .stdout
+            .contains("+// ^[[2J^[]0;owned^G^M\tdone^?\\u{9b}\n"),
+        "{}",
+        asked.stdout
+    );
+    assert!(
+        !asked
+            .stdout
+            .contains(['\u{1b}', '\u{7}', '\r', '\u{7f}', '\u{9b}'])
+    );
+}
+
+#[test]
+fn a_clone_runs_none_of_the_users_hooks() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    let (repo, url) = upstream("deploy", "Deploy");
+    let hooks = TempDir::new().unwrap();
+    let ran = hooks.path().join("ran");
+    let hook = hooks.path().join("post-checkout");
+    fs::write(
+        &hook,
+        format!("#!/bin/sh\necho ran >> '{}'\n", ran.display()),
+    )
+    .unwrap();
+    fs::set_permissions(
+        &hook,
+        <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o755),
+    )
+    .unwrap();
+    let config = hooks.path().join("gitconfig");
+    fs::write(
+        &config,
+        format!("[core]\n\thooksPath = {}\n", hooks.path().display()),
+    )
+    .unwrap();
+    let env = [("GIT_CONFIG_GLOBAL", config.to_str().unwrap())];
+
+    let added = folders.ura_with(elsewhere.path(), &["add", &url, "--all"], &env);
+    repo.write("server.ts", "export default () => {};\n");
+    repo.commit("feat: a server");
+    let moved = folders.ura_with(elsewhere.path(), &["update", "deploy", "--yes"], &env);
+
+    assert_eq!(
+        (added.code, moved.code),
+        (0, 0),
+        "{}{}",
+        added.stderr,
+        moved.stderr
+    );
+    assert!(!ran.exists(), "a hook ran");
+}
+
+#[test]
+fn add_removes_what_an_earlier_add_left_and_undoes_off_when_it_fails() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    let extensions = folders.config.path().join("extensions");
+    fs::create_dir_all(extensions.join(".adding-1/.git")).unwrap();
+    // Too long a folder name for the move in place, after `on = []` is written.
+    let long = "a".repeat(300);
+    let repo = TestRepo::named("uraeda-long");
+    repo.write("extension.toml", &manifest(&long, "Long"));
+    repo.commit("feat: the extension");
+    let url = format!("file://{}", repo.path().display());
+
+    let failed = folders.ura(elsewhere.path(), &["add", &url, "--all"]);
+
+    assert!(
+        failed
+            .stderr
+            .starts_with(&format!("ura: cannot move {long} in place")),
+        "{}",
+        failed.stderr
+    );
+    assert_eq!(failed.code, 1);
+    assert_eq!(fs::read_dir(&extensions).unwrap().count(), 0);
+    let settings =
+        fs::read_to_string(folders.config.path().join("config.toml")).unwrap_or_default();
+    assert!(!settings.contains(&long), "{settings}");
+}
+
+#[test]
+fn add_refuses_a_repository_not_in_the_list_before_cloning() {
+    let folders = Folders::new();
+    let elsewhere = TempDir::new().unwrap();
+    let (_repo, url) = upstream("deploy", "Deploy");
+
+    let output = folders.ura(elsewhere.path(), &["add", &url, "--repo", "nowhere"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: no repository named nowhere in Uraeda's list\n"
+    );
+    assert_eq!(output.code, 1);
+    assert!(!folders.extension("deploy").exists());
 }

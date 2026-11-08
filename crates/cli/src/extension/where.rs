@@ -17,9 +17,15 @@ pub struct Flags<'a> {
     pub repo: &'a [String],
 }
 
-/// Where it is on from the flags, `here` the current repository's name in Uraeda's list; asked
-/// in a terminal without a flag, an error without one.
-pub fn resolve(flags: &Flags, interactive: bool, here: Option<&str>) -> Result<Choice<On>, String> {
+/// Where it is on from the flags, `here` the current repository's name in Uraeda's list, `listed`
+/// every name in it: a `--repo` not in it is refused before anything is cloned. Asked in a
+/// terminal without a flag, an error without one.
+pub fn resolve(
+    flags: &Flags,
+    interactive: bool,
+    here: Option<&str>,
+    listed: &[String],
+) -> Result<Choice<On>, String> {
     if flags.all {
         return Ok(Choice::Given(On::All));
     }
@@ -33,6 +39,9 @@ pub fn resolve(flags: &Flags, interactive: bool, here: Option<&str>) -> Result<C
             names.push(here.to_owned());
         }
         for name in flags.repo {
+            if !listed.contains(name) {
+                return Err(format!("no repository named {name} in Uraeda's list"));
+            }
             if !names.contains(name) {
                 names.push(name.clone());
             }
@@ -44,6 +53,18 @@ pub fn resolve(flags: &Flags, interactive: bool, here: Option<&str>) -> Result<C
     } else {
         Err("no terminal to ask: pass --all or --here".to_owned())
     }
+}
+
+/// The names of the repositories of Uraeda's list in `data_dir`: none when it cannot be read.
+pub fn listed(data_dir: &Path) -> Vec<String> {
+    repositories::read(data_dir)
+        .map(|repositories| {
+            repositories
+                .into_iter()
+                .map(|repository| repository.name)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// The name, in Uraeda's list in `data_dir`, of the repository holding `cwd`.
@@ -135,8 +156,25 @@ mod tests {
     type Row<'a> = (Flags<'a>, bool, Option<&'a str>, Result<Choice<On>, String>);
 
     #[test]
+    fn a_repository_not_in_the_list_is_refused() {
+        let repo = ["docs".to_owned(), "nowhere".to_owned()];
+        let flags = Flags {
+            all: false,
+            here: false,
+            repo: &repo,
+        };
+        let listed = ["docs".to_owned(), "uraeda".to_owned()];
+
+        assert_eq!(
+            resolve(&flags, false, None, &listed),
+            Err("no repository named nowhere in Uraeda's list".to_owned())
+        );
+    }
+
+    #[test]
     fn flags_say_where_or_name_what_is_missing() {
         let repo = ["docs".to_owned(), "uraeda".to_owned()];
+        let listed = repo.clone();
         let none: &[String] = &[];
         let flags = |all, here, repo| Flags { all, here, repo };
         let given = |on| Ok(Choice::Given(on));
@@ -178,8 +216,12 @@ mod tests {
             ),
         ];
         for (flags, interactive, here, expected) in rows {
-            assert_eq!(resolve(&flags, interactive, here), expected, "{here:?}");
+            assert_eq!(
+                resolve(&flags, interactive, here, &listed),
+                expected,
+                "{here:?}"
+            );
         }
-        assert!(resolve(&flags(false, true, none), true, None).is_err());
+        assert!(resolve(&flags(false, true, none), true, None, &listed).is_err());
     }
 }
