@@ -357,22 +357,17 @@ export class CodexAdapter implements Adapter {
     const events = new EventQueue();
     const names = new Map<string, string>();
     const reader = new CodexEvents(options.cwd, (model) => names.get(model) ?? model);
-    let session: string | undefined;
-    // The thread's start gives its `init` once, whether Codex reports it or not.
-    const push = (event: AgentEvent) => {
-      if (event.type === "init") {
-        if (event.sessionId === session) {
-          return;
-        }
-        session = event.sessionId;
-      }
-      events.push(event);
-    };
+    const push = (event: AgentEvent) => events.push(event);
     const server = appServer(
       this.#command,
       options.cwd,
       (notification) => {
         for (const event of reader.read(notification)) {
+          // The thread's start gives its `init`, once its permissions are checked: Codex's own
+          // `thread/started` can come before.
+          if (event.type === "init") {
+            continue;
+          }
           push(event);
           if (event.type === "result") {
             turns.ended(event.ok);
