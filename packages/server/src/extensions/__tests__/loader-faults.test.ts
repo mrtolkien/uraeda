@@ -184,3 +184,20 @@ test("a manifest broken and fixed loads the extension again", async () => {
   expect(await fixed).toMatchObject({ problems: [], version: 2 });
   expect(marks.of("wiki")).toEqual([2]);
 });
+
+test("a file imported before it exists loads the extension once it is made", async () => {
+  const config = temporaryFolder("config");
+  const folder = extensionFolder(config, "wiki", {
+    "lib/other.ts": `export const other = 1;\n`,
+    "server.ts": IMPORTING,
+  });
+  const { loader, marks } = await openLoader({ configDir: config });
+  expect(loader.get("wiki")?.state).toBe("broken");
+
+  // `lib/` exists, and the extension's root sees no change in it: the missing file's folder is
+  // watched too.
+  const made = loaded(loader, "wiki", (extension) => extension.state === "on");
+  writeFiles(folder, { "lib/v.ts": `export const v = "made";\n` });
+  expect(await made).toMatchObject({ problems: [] });
+  expect(marks.of("wiki")).toEqual(["made"]);
+});
