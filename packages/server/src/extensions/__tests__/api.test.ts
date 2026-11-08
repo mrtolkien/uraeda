@@ -150,7 +150,7 @@ test("an extension's route needs a session, and answers where its extension is o
   expect(uncovered).toEqual([]);
 });
 
-test("an extension's route refuses other sites, and answers GET, HEAD, and POST", async () => {
+test("an extension's route and page refuse other sites, and a route answers GET, HEAD, and POST", async () => {
   const server = `export default function activate(api) {
   api.route("/x/deploy/run", (c) => c.text("ran " + c.req.method));
   api.route("/x/deploy/status", (c) => c.text("status"), "GET");
@@ -174,6 +174,7 @@ test("an extension's route refuses other sites, and answers GET, HEAD, and POST"
   for (const site of ["cross-site", "same-site"]) {
     expect((await send("/x/deploy/run", "GET", site)).status).toBe(403);
     expect((await send("/r/uraeda/x/deploy/run", "GET", site)).status).toBe(403);
+    expect((await send("/extensions/deploy/page", "GET", site)).status).toBe(403);
   }
   expect(await (await send("/x/deploy/run", "GET", "same-origin")).text()).toBe("ran GET");
   expect(await (await send("/x/deploy/run", "POST", "same-origin")).text()).toBe("ran POST");
