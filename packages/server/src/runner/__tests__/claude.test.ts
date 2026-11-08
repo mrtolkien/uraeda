@@ -13,17 +13,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
-import { lines } from "../child.ts";
+import { lines, MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
 import { allowRule, type Blocks, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
-import {
-  ClaudeAdapter,
-  claudeArgs,
-  extensionPlugins,
-  MODELS_KILL_AFTER_MS,
-  MODELS_TIMEOUT_MS,
-  prunePlugins,
-} from "../claude.ts";
+import { ClaudeAdapter, claudeArgs, extensionPlugins, prunePlugins } from "../claude.ts";
 import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";

@@ -3,14 +3,13 @@ import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
+import { MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
 import {
   CodexAdapter,
   codexInstructions,
   codexModels,
   codexThreadParams,
   codexTurnParams,
-  MODELS_KILL_AFTER_MS,
-  MODELS_TIMEOUT_MS,
 } from "../codex.ts";
 import {
   alive,

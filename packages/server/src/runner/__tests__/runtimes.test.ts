@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { mutate, testServer } from "../../__tests__/helpers.ts";
 import { FakeAdapter, fakeModels } from "../fake.ts";
-import { MODELS_REFRESH_MS, MODELS_TIMEOUT_MS, Runtimes } from "../runtimes.ts";
+import { MODELS_REFRESH_MS, MODELS_REFRESH_TIMEOUT_MS, Runtimes } from "../runtimes.ts";
 import { flush, restart, testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -250,7 +250,7 @@ test("each model list counts as it comes, and one that hangs times out, keeping 
   expect(changes).toBe(1);
   expect(settled).toBe(false);
 
-  await vi.advanceTimersByTimeAsync(MODELS_TIMEOUT_MS);
+  await vi.advanceTimersByTimeAsync(MODELS_REFRESH_TIMEOUT_MS);
   await refresh;
   expect(runtimes.models("slow")).toBeUndefined();
   expect(changes).toBe(1);

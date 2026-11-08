@@ -2,6 +2,10 @@ import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import type { AgentEvent } from "./events.ts";
 
+/** A short process, as one that lists an agent's models, gives up after this long. */
+export const MODELS_TIMEOUT_MS = 10_000;
+/** A short process, sent SIGTERM as it is done with, is killed when it still runs this long after. */
+export const MODELS_KILL_AFTER_MS = 5000;
 /** A failed process keeps this many lines of stderr. */
 const STDERR_LINES = 20;
 /** The characters of stderr kept while a process runs, enough for its last lines. */
@@ -172,4 +176,16 @@ export function spawnGrouped(command: string, args: Array<string>, cwd: string):
     }
   };
   return { child, exited, signal, write };
+}
+
+/**
+ * Ends a short process done with, answered or not: its stdin closes, its group gets SIGTERM, and
+ * SIGKILL when it still runs `MODELS_KILL_AFTER_MS` after.
+ */
+export function endShortProcess({ child, exited, signal }: Child) {
+  child.stdin.end();
+  signal("SIGTERM");
+  const kill = setTimeout(() => signal("SIGKILL"), MODELS_KILL_AFTER_MS);
+  kill.unref();
+  void exited.then(() => clearTimeout(kill));
 }

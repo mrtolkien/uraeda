@@ -14,7 +14,14 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { Adapter, AgentProcess, Capabilities, ModelList, OpenOptions } from "./adapter.ts";
-import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
+import {
+  type Child,
+  endShortProcess,
+  EventQueue,
+  lines,
+  MODELS_TIMEOUT_MS,
+  spawnGrouped,
+} from "./child.ts";
 import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
@@ -22,10 +29,6 @@ import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
-/** The short process that lists the models gives up after this long. */
-export const MODELS_TIMEOUT_MS = 10_000;
-/** That process, sent SIGTERM as it is done with, is killed when it still runs this long after. */
-export const MODELS_KILL_AFTER_MS = 5000;
 /**
  * The arguments of that process: print mode and stream-json, as a session's, in `auto` mode, which
  * the list says each model keeps or drops, and no transcript written, as no message is sent.
@@ -283,17 +286,17 @@ export class ClaudeAdapter implements Adapter {
    * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that.
    */
   async models(): Promise<ModelList> {
-    const { child, exited, signal, write } = spawnGrouped(this.#command, MODELS_ARGS, homedir());
-    const controls = new Controls(write);
+    const short = spawnGrouped(this.#command, MODELS_ARGS, homedir());
+    const controls = new Controls(short.write);
     void (async () => {
       try {
-        for await (const line of lines(child.stdout)) {
+        for await (const line of lines(short.child.stdout)) {
           controls.answer(line);
         }
       } catch {
         // A process that failed to start has no output.
       }
-      const { missing, stderr } = await exited;
+      const { missing, stderr } = await short.exited;
       controls.end(
         missing
           ? `Claude Code is not available: ${stderr}`
@@ -310,12 +313,7 @@ export class ClaudeAdapter implements Adapter {
       return claudeModels(list, await controls.ask({ subtype: "get_settings" }));
     } finally {
       clearTimeout(timer);
-      // Done with, answered or not: its group ends, killed if it outlives SIGTERM.
-      child.stdin.end();
-      signal("SIGTERM");
-      const kill = setTimeout(() => signal("SIGKILL"), MODELS_KILL_AFTER_MS);
-      kill.unref();
-      void exited.then(() => clearTimeout(kill));
+      endShortProcess(short);
     }
   }
 

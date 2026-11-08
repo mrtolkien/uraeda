@@ -11,7 +11,14 @@ import type {
   OpenOptions,
   Outgoing,
 } from "./adapter.ts";
-import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
+import {
+  type Child,
+  endShortProcess,
+  EventQueue,
+  lines,
+  MODELS_TIMEOUT_MS,
+  spawnGrouped,
+} from "./child.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { CodexRpc } from "./codex-rpc.ts";
@@ -28,10 +35,6 @@ import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 
 /** `codex --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
-/** The short process that lists the models gives up after this long. */
-export const MODELS_TIMEOUT_MS = 10_000;
-/** That process, sent SIGTERM as it is done with, is killed when it still runs this long after. */
-export const MODELS_KILL_AFTER_MS = 5000;
 /** A process's start, from `initialize` to its thread started or resumed, gives up after this long. */
 export const START_TIMEOUT_MS = 60_000;
 /** `model/list` pages read at most, should Codex never stop giving a cursor. */
@@ -335,12 +338,7 @@ export class CodexAdapter implements Adapter {
       return codexModels(rows, config);
     } finally {
       clearTimeout(timer);
-      // Done with, answered or not: its group ends, killed if it outlives SIGTERM.
-      server.child.stdin.end();
-      server.signal("SIGTERM");
-      const kill = setTimeout(() => server.signal("SIGKILL"), MODELS_KILL_AFTER_MS);
-      kill.unref();
-      void server.exited.then(() => clearTimeout(kill));
+      endShortProcess(server);
     }
   }
 
