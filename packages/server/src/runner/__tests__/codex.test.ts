@@ -26,7 +26,7 @@ test("a thread's permissions", () => {
   });
   expect(params.developerInstructions).toMatch(/escalated permissions/);
   expect(params).not.toHaveProperty("config");
-  // The one override: the project's trust, which Codex would otherwise write (R22).
+  // The one override: the project's trust, which Codex would otherwise write (R24).
   expect(codexThreadParams(open, "instructions", "untrusted").config).toEqual({
     projects: { "/w": { trust_level: "untrusted" } },
   });
@@ -44,7 +44,7 @@ test("a thread's permissions", () => {
   });
   expect(turnParams.effort).toBe("high");
   expect(codexTurnParams(turn)).not.toHaveProperty("effort");
-  // Uraeda runs what the extensions folder holds: writing there is reviewed first (R20).
+  // Uraeda runs what the extensions folder holds: writing there is reviewed first (R22).
   const sandbox = codexInstructions({ docs: "/x/docs", folder: "/x/extensions" }).split(
     "# Sandbox",
   )[1];
