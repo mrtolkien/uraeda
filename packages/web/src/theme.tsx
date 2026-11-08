@@ -204,7 +204,7 @@ function useDrawnCache(drawn: Drawn | undefined) {
 }
 
 /** The keys of the picks, whose change in another tab this one reads. */
-const PICK_KEYS: ReadonlySet<string | null> = new Set([KEYS.dark, KEYS.light, KEYS.mode]);
+const PICK_KEYS: ReadonlySet<string | null> = new Set([KEYS.dark, KEYS.light, KEYS.mode, null]);
 
 /**
  * Reads the picks again when another tab of this browser changes them, or clears the storage
