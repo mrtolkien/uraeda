@@ -315,3 +315,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: both scripts are run the same way from the repository's root, and `CONTRIBUTING.md`
   names them together; `model/list` gives no prices.
 - **Where**: task 10, `package.json`, `packages/server/scripts/validate-codex.ts`.
+
+## R29: A Codex run that ends before its gate asks for the human, as the run lifecycle now says
+
+- **Decision**: the spec's edge case "Codex runs `git commit` without escalating" no longer ends
+  with the run lifecycle asking the run once to continue to its gate: `main` removed that continue
+  while this branch was built, and the run asks for the human instead, as for any agent.
+- **Rationale**: the [Run lifecycle](../decisions/run-lifecycle.md) decision, changed on `main`
+  after the spec's approval, says "A run that ends before its next human gate asks for the human:
+  Uraeda never asks it to go on". The sandbox's instructions (R18) make the escalation the usual
+  path: `validate:codex` committed through it on every run.
+- **If wrong**: a Codex step that forgets to escalate stops at its commit until the human sends a
+  message.
+- **Where**: the final review's catch-up with `main`.
