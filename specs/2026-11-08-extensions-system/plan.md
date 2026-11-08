@@ -958,13 +958,13 @@ Behaviour:
   and undoes what the version registered. Activation is synchronous: one that returns a promise is
   `broken`, with the problem
   `activation must be synchronous: start async work from a callback, not while loading`, and its
-  registrations undone ([R27](rulings.md#r27-activation-is-synchronous)). A version removed, or the
+  registrations undone ([R28](rulings.md#r28-activation-is-synchronous)). A version removed, or the
   loader closed, while it loads is unloaded and never kept. A throw after activation breaks only its
   extension: module code sees scoped `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask`,
   and their `clear*`, whose callbacks' throws break the version and which unloading clears; and the
   loader's handlers of the process's `uncaughtException` and `unhandledRejection` break the
   extension whose folder the error's stack names, else print it and exit with code 1, as Node does
-  ([R28](rulings.md#r28-late-throws-break-only-their-extension)). Each module function is compiled
+  ([R29](rulings.md#r29-late-throws-break-only-their-extension)). Each module function is compiled
   with a context extension without a prototype, holding only those timers, which keeps V8's
   compilation cache from holding every version
   ([R24](rulings.md#r24-module-functions-are-compiled-with-an-empty-context-extension)).
