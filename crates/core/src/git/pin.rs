@@ -1,7 +1,8 @@
 //! A clone pinned to a commit, for an extension `ura` installs from git: cloned, fetched, and
 //! moved only through the one write runner, which never prompts, each talk to the remote stopped
 //! at the fetch deadline. `HEAD` stays detached, so nothing but `ura extension update` moves it.
-//! Nothing here runs the clone's code; git runs only the hooks of the user's own configuration.
+//! Nothing here runs the clone's code, nor any hook, submodule, or Git LFS download: see
+//! [`process::git_untrusted`].
 
 use std::path::Path;
 
@@ -26,7 +27,7 @@ pub fn clone_pinned(url: &str, into: &Path) -> Result<Pinned, GitError> {
     let parent = into.parent().unwrap_or(Path::new("."));
     let into_text = into.to_string_lossy();
     let clone = ["clone", "--quiet", "--", url, into_text.as_ref()];
-    process::git_write_within(&clone, parent, &|_| {}, FETCH_DEADLINE)
+    process::git_untrusted(&clone, parent, Some(FETCH_DEADLINE))
         .map_err(|failure| remote_error(failure, "clone", FETCH_DEADLINE))?;
     let git = Git::open(into)?;
     let (Some(branch), Some(commit)) = (git.current_branch(), git.head()) else {
@@ -51,7 +52,7 @@ impl Git {
         }
         let refspec = format!("+{git_ref}:{FETCHED}");
         let fetch = ["fetch", "--quiet", "--no-tags", "origin", refspec.as_str()];
-        process::git_write_within(&fetch, &self.root, &|_| {}, FETCH_DEADLINE)
+        process::git_untrusted(&fetch, &self.root, Some(FETCH_DEADLINE))
             .map_err(|failure| remote_error(failure, "fetch", FETCH_DEADLINE))?;
         // A fresh read: the fetch wrote a reference this `Git` may not see.
         Git::open(&self.root)?
@@ -63,7 +64,7 @@ impl Git {
     pub fn checkout_detached(&self, commit: ObjectId) -> Result<(), GitError> {
         let commit = commit.to_string();
         let checkout = ["checkout", "--quiet", "--detach", commit.as_str()];
-        process::git_write(&checkout, &self.root, None)
+        process::git_untrusted(&checkout, &self.root, None)
             .map(drop)
             .map_err(|failure| failure.into_git("checkout"))
     }

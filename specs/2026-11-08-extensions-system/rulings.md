@@ -255,3 +255,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the loader's `shared` modules are the server's; listing the page's in the server
   too would be a second home for the page runtime's list (R7).
 - **Where**: task 7, `packages/server/src/extensions/graph.ts`; task 12 checks the rest.
+
+## R27: `ura` never updates a symbolic link, whatever its folder holds
+
+- **Decision**: `ura extension update` refuses an extension whose entry in the extensions folder is
+  a symbolic link, with "is linked", even when its folder holds a `.ura-source`, and
+  `ura extension list` shows it linked; the server still reloads by R4's rule, a folder without
+  `.ura-source`.
+- **Rationale**: a link points at a folder the owner keeps elsewhere, perhaps a clone they moved out
+  and work in: fetching and checking out a commit there would overwrite their work with code they
+  did not read.
+- **Where**: review fix, `crates/core/src/extensions/install.rs` (`is_link`),
+  `crates/cli/src/extension/list.rs`.

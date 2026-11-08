@@ -134,23 +134,41 @@ fn link(config_dir: &Path, dir: &Path, folder: &Path) -> Result<String, ApiError
 }
 
 /// Clones `url` into a hidden folder of `dir`, which the extensions' reads skip, checks its
-/// manifest, and moves it to its name; returns its name.
+/// manifest, and moves it to its name; returns its name. The hidden folders an earlier add left,
+/// stopped before it cleaned up, are removed first. When the move fails, the settings `on` is
+/// as it was before.
 fn clone(config_dir: &Path, dir: &Path, url: &str) -> Result<String, ApiError> {
+    remove_unfinished(dir);
     let temporary = dir.join(format!(".adding-{}", std::process::id()));
-    let _ = fs::remove_dir_all(&temporary);
     let added = (|| {
         let pinned = clone_pinned(url, &temporary)?;
         let name = checked(dir, &temporary)?;
         write_source(&temporary, url, pinned.commit, &pinned.branch)?;
-        turn_off(config_dir, &name)?;
-        fs::rename(&temporary, dir.join(&name))
-            .map_err(|error| refused(format!("cannot move {name} in place: {error}")))?;
+        let before = turn_off(config_dir, &name)?;
+        if let Err(error) = fs::rename(&temporary, dir.join(&name)) {
+            // The failure to tell is the move's: an undo that fails too leaves the extension off.
+            let _ = undo_turn_off(config_dir, &name, before);
+            return Err(refused(format!("cannot move {name} in place: {error}")));
+        }
         Ok(name)
     })();
     if added.is_err() {
         let _ = fs::remove_dir_all(&temporary);
     }
     added
+}
+
+/// Removes the hidden `.adding-*` folders of `dir`, each a clone an add never moved in place.
+fn remove_unfinished(dir: &Path) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.filter_map(Result::ok) {
+        let unfinished = entry.file_name().to_string_lossy().starts_with(".adding-");
+        if unfinished && entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+            let _ = fs::remove_dir_all(entry.path());
+        }
+    }
 }
 
 /// The name of the extension in `folder`, from its manifest, once it is checked: refused when it
@@ -185,10 +203,46 @@ fn fatal(extension: &Extension) -> Result<(), ApiError> {
     }
 }
 
-/// Writes the extension `name` off, `on = []`, before its folder appears.
-fn turn_off(config_dir: &Path, name: &str) -> Result<(), ApiError> {
+/// What the settings held of an extension before [`turn_off`]: its `on`, if any, and whether it
+/// had a table at all.
+struct Before {
+    on: Option<Item>,
+    had_table: bool,
+}
+
+/// Writes the extension `name` off, `on = []`, before its folder appears; returns what it was.
+fn turn_off(config_dir: &Path, name: &str) -> Result<Before, ApiError> {
+    let mut before = Before {
+        on: None,
+        had_table: false,
+    };
     change_path(config_dir, &["extensions", name], |table| {
+        before.had_table = !table.is_empty();
+        before.on = table.get("on").cloned();
         set(table, "on", Value::Array(toml_edit::Array::new()));
+        Ok(())
+    })?;
+    Ok(before)
+}
+
+/// Puts back what [`turn_off`] changed: the old `on`, or no table for `name` when it had none.
+fn undo_turn_off(config_dir: &Path, name: &str, before: Before) -> Result<(), ApiError> {
+    if !before.had_table {
+        return change_path(config_dir, &["extensions"], |table| {
+            table.remove(name);
+            Ok(())
+        })
+        .map(drop);
+    }
+    change_path(config_dir, &["extensions", name], |table| {
+        match before.on {
+            Some(on) => {
+                table.insert("on", on);
+            }
+            None => {
+                table.remove("on");
+            }
+        }
         Ok(())
     })
     .map(drop)
@@ -204,7 +258,8 @@ fn installed(config_dir: &Path, name: &str) -> Result<Extension, ApiError> {
 }
 
 /// The clone of the installed extension `name`, with the commit it is pinned to and the branch or
-/// tag it follows: refused for a built-in extension and a linked folder.
+/// tag it follows: refused for a built-in extension, a folder without `.ura-source`, and a
+/// symbolic link, whatever its folder holds: a linked clone is the owner's to move.
 fn pinned(config_dir: &Path, name: &str) -> Result<(Git, (ObjectId, String)), ApiError> {
     if BUILT_INS.contains(&name) {
         return Err(refused(format!(
@@ -212,7 +267,7 @@ fn pinned(config_dir: &Path, name: &str) -> Result<(Git, (ObjectId, String)), Ap
         )));
     }
     let extension = installed(config_dir, name)?;
-    if extension.is_linked {
+    if extension.is_linked || is_link(config_dir, name) {
         return Err(refused(format!(
             "{name} is linked: update its folder yourself"
         )));
@@ -228,6 +283,14 @@ fn pinned(config_dir: &Path, name: &str) -> Result<(Git, (ObjectId, String)), Ap
         .or_else(|| git.head())
         .ok_or_else(|| refused(format!("{name} has no commit checked out")))?;
     Ok((git, (commit, source.git_ref)))
+}
+
+/// Whether your extension `name` is a symbolic link in the extensions folder, linked by `ura
+/// extension add` or by hand: `ura` never fetches into it, even when it holds a `.ura-source`.
+pub fn is_link(config_dir: &Path, name: &str) -> bool {
+    is_folder_name(name)
+        && fs::symlink_metadata(extensions_dir(config_dir).join(name))
+            .is_ok_and(|metadata| metadata.is_symlink())
 }
 
 /// Writes `.ura-source` in `folder`.

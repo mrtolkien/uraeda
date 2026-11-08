@@ -4,7 +4,7 @@
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::extensions::{self, Extension};
+use uraeda_core::extensions::{self, Extension, install};
 
 use super::{Folders, short};
 use crate::output;
@@ -50,7 +50,14 @@ struct Problem<'a> {
 }
 
 pub fn run(folders: &Folders, json: bool) -> Result<ExitCode, String> {
-    let listed = extensions::read(&folders.config);
+    let mut listed = extensions::read(&folders.config);
+    // A symbolic link is linked whatever it holds: `ura` never updates it.
+    for extension in &mut listed.extensions {
+        if !extension.is_built_in && install::is_link(&folders.config, &extension.name) {
+            extension.is_linked = true;
+            extension.source = None;
+        }
+    }
     if json {
         output::print_json(&Listing {
             extensions: listed.extensions.iter().map(row).collect(),
