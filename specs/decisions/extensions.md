@@ -38,7 +38,7 @@ An agent writes an extension in minutes, so any part of Uraeda can be changed or
 forking it. The agent already runs commands as the owner, so a sandbox would protect little: what
 protects them is that code never comes from a cloned repository. Instructions added to runs would
 split the workflow between the skill and the web UI. A build or a restart would slow extensions
-written on the spot. History: [Extensions system](../2026-11-08-extensions-system/spec.md).
+written on the spot. History: [Extensions system](../done/2026-11-08-extensions-system.md).
 
 ## Alternatives considered
 

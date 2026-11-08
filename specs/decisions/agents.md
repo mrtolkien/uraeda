@@ -36,7 +36,7 @@ allow with a subscription. Other agents' terms allow a bundled harness, as pi-du
 Skipped permissions would let an agent do anything on the user's machine. One concept of a session,
 whatever workflow surrounds it, gives each conversation a page and a history of its own. History:
 [Merge chats](../done/2026-10-20-merge-chats.md),
-[Extensions system](../2026-11-08-extensions-system/spec.md).
+[Extensions system](../done/2026-11-08-extensions-system.md).
 
 ## Alternatives considered
 

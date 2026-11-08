@@ -1,4 +1,4 @@
-// The extensions system's mockups (`specs/2026-11-08-extensions-system/spec.md`): the leader menu
+// The extensions system's mockups (`specs/done/2026-11-08-extensions-system.md`): the leader menu
 // with the inbox turned off and two of your places in it, and a place one of your extensions draws, the "deploy" example, in the shell. Built from the real
 // components over fixed text. The settings' Extensions section is the real one now, in
 // `settings/SettingsView.stories.tsx`.
