@@ -51,7 +51,7 @@ export type PageBundle = {
 type Entry = {
   again: boolean;
   deferrals: Map<Promise<void>, string | undefined>;
-  /** The files of the last version compiled, whose folders are watched. */
+  /** The files of the last version that compiled, whose folders are watched. */
   files: ReadonlyArray<string>;
   loaded: LoadedExtension;
   /** The loop of loads running now, which a reload asked meanwhile also waits for. */
@@ -314,8 +314,8 @@ export class Loader {
       this.#set(entry, extension, "broken", problems);
       return;
     }
-    this.#watchFolder(entry, extension, entry.files);
     if (extension.api !== api || offEverywhere(extension)) {
+      this.#watchFolder(entry, extension, entry.files);
       this.#stop(entry);
       const message = `built for extension API ${extension.api}, and Uraeda runs API ${api}`;
       const why = extension.api === api ? [] : [{ file: "extension.toml", message }];
@@ -329,12 +329,9 @@ export class Loader {
       shared,
     });
     if ("problems" in compiled) {
-      // The files at fault are watched too, so their fix reloads.
-      this.#watchFolder(
-        entry,
-        extension,
-        compiled.problems.map((problem) => problem.file),
-      );
+      // The working version's files and the files at fault, so a fix of either reloads.
+      const faulty = compiled.problems.map((problem) => problem.file);
+      this.#watchFolder(entry, extension, [...entry.files, ...faulty]);
       const state = entry.scope?.isLive() ? "on" : "broken";
       this.#set(entry, extension, state, [...problems, ...compiled.problems]);
       return;
@@ -343,6 +340,7 @@ export class Loader {
       ...(compiled.server?.files.keys() ?? []),
       ...Object.keys(compiled.page?.modules ?? {}),
     ];
+    entry.files = files;
     this.#watchFolder(entry, extension, files);
     this.#stop(entry);
     const version = entry.loaded.version + 1;
@@ -372,7 +370,6 @@ export class Loader {
    * `files`, an installed one's `.ura-source`, which `ura extension update` rewrites.
    */
   #watchFolder(entry: Entry, extension: Extension, files: ReadonlyArray<string>): void {
-    entry.files = files;
     const folders = extension.isLinked
       ? [...new Set(["", ...files.map((file) => dirname(file)).filter((folder) => folder !== ".")])]
       : [];
@@ -382,7 +379,13 @@ export class Loader {
     }
     this.#unwatch(entry);
     entry.watched = watched;
-    const changed = () => this.#schedule(extension.name);
+    const changed = () => {
+      // A folder deleted and made again is a new one: follow it, or its saves go unseen.
+      for (const watch of entry.watches) {
+        watch.refresh();
+      }
+      this.#schedule(extension.name);
+    };
     if (!extension.isLinked) {
       entry.watches = [
         new FileWatch(extension.folder, ".ura-source", changed, { what: extension.name }),
