@@ -1,5 +1,5 @@
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Block, Document, SettledGroup, SettledPoint } from "uraeda-binding";
 import { topBlock } from "./Folds.tsx";
 import { Blocks } from "./Blocks.tsx";
@@ -32,8 +32,8 @@ const styles = stylex.create({
  * The comment form open on some of a round's settled points, `points`, `shown` while the round
  * awaits the human, and the writes it makes: the one holding unsaved text when the page is drawn
  * opens again, and a write done or a removal closes or follows it. `open` opens a form the human
- * asked for, its field focused as it is drawn when `takesFocus` says so; `focus` gives the focus
- * back to the field of the form open.
+ * asked for, and `focus` gives the field of the form open the focus back, on a wide screen or
+ * after a key.
  */
 function useSettledForm(
   file: File,
@@ -46,23 +46,19 @@ function useSettledForm(
   const [open, setOpen] = useState<Open | undefined>(() =>
     readOnly ? undefined : restoredForm(repo, file.path, points, round?.settledComments ?? []),
   );
-  // Whether the form's field takes the focus as it is drawn: not the one restored with the page,
-  // nor an edit renumbered by a removal, which the human did not open.
-  const [hasFocus, setHasFocus] = useState(false);
+  // Each focus the human asked for, by opening the form or coming back to it: once, so the form
+  // drawn again later, as its point moves or the window narrows, takes no focus, nor does the one
+  // restored with the page.
+  const [focusAsked, setFocusAsked] = useState(0);
+  const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
-  const close = () => {
-    setOpen(undefined);
-    setHasFocus(false);
-  };
-  const writes = useSettledWrites(file, close, (number) => {
-    setOpen(afterRemoval(number));
-    setHasFocus(false);
-  });
+  useFocusAsked(box, focusAsked, wide);
+  const close = () => setOpen(undefined);
+  const writes = useSettledWrites(file, close, (number) => setOpen(afterRemoval(number)));
   const shown = readOnly ? undefined : open;
   const form = shown && (
     <div ref={box} {...stylex.props(styles.contents)}>
       <SettledForm
-        hasAutoFocus={hasFocus}
         onClose={close}
         {...(onAsk ? { onAsk } : {})}
         path={file.path}
@@ -71,12 +67,44 @@ function useSettledForm(
       />
     </div>
   );
-  const openForm = (next: Open, takesFocus: boolean) => {
-    setOpen(next);
-    setHasFocus(takesFocus);
+  // On the phone, a tap opens the sheet without raising the keyboard; a key types at once.
+  const focus = () => {
+    if (wide || isKeyInput()) {
+      setFocusAsked((asked) => asked + 1);
+    }
   };
-  const focus = () => box.current?.querySelector<HTMLElement>('[role="textbox"]')?.focus();
+  const openForm = (next: Open) => {
+    setOpen(next);
+    focus();
+  };
   return { close, focus, form, open: openForm, shown, writes };
+}
+
+/** The frames the form's field is waited for, as the sheet or the form opens. */
+const FOCUS_FRAMES = 10;
+
+/**
+ * Gives the field in `box` the focus once it is drawn, each time `asked` grows: the page keeps its
+ * scroll on the phone, where the sheet shows the field; on a wide screen, the field comes into view.
+ */
+function useFocusAsked(box: RefObject<HTMLElement | null>, asked: number, wide: boolean) {
+  const focusField = useEffectEvent((field: HTMLElement) => field.focus({ preventScroll: !wide }));
+  useEffect(() => {
+    // None asked yet, as the form restored with the page is drawn.
+    if (asked === 0) {
+      return undefined;
+    }
+    let frames = 0;
+    let frame = requestAnimationFrame(function find() {
+      const field = box.current?.querySelector<HTMLElement>('[role="textbox"]');
+      if (field) {
+        focusField(field);
+      } else if (++frames < FOCUS_FRAMES) {
+        frame = requestAnimationFrame(find);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [asked, box]);
 }
 
 /** The group a point lies in, if any. */
@@ -110,7 +138,7 @@ function pointKeys(
   onAskAbout: ((subject: string) => void) | undefined,
 ): ReadonlyArray<StopKey> {
   const comment: ReadonlyArray<StopKey> = [
-    { bar: "⏎", keys: "Enter", label: "comment", run: () => onTap(block) },
+    { bar: "⏎ i", keys: "Enter", label: "comment", run: () => onTap(block) },
     { keys: "i", label: "comment", run: () => onTap(block) },
   ];
   return point && onAskAbout
@@ -177,7 +205,7 @@ export function SettledPoints({
               <SettledNote
                 comment={comment}
                 key={comment.number}
-                onEdit={() => open({ comment, kind: "edit", point }, wide || isKeyInput())}
+                onEdit={() => open({ comment, kind: "edit", point })}
                 point={point}
                 readOnly={readOnly}
                 writes={writes}
@@ -189,16 +217,11 @@ export function SettledPoints({
       </>
     );
   };
-  // On the phone, a tap opens the sheet without raising the keyboard; a key types at once.
   const onTap = (block: Block) => {
     const point = pointOf(block);
-    const takesFocus = wide || isKeyInput();
-    if (!point) {
-      return;
-    }
-    if (!newOn(block)) {
-      open({ kind: "new", point }, takesFocus);
-    } else if (takesFocus) {
+    if (point && !newOn(block)) {
+      open({ kind: "new", point });
+    } else if (point) {
       focus();
     }
   };
