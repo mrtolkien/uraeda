@@ -141,6 +141,22 @@ test("a failed fetch is reported, and tried again at the next sync", async () =>
   expect(titles()).toEqual(["Flaky"]);
 });
 
+test("a bundle throwing as it registers leaves the other extension's place", async () => {
+  const { deps, http, reports, titles } = setup();
+  last = deps;
+  syncPages([row("fine", 1), row("broken", 1)], deps);
+  http.answer(0, bundleOf(1, "Fine"));
+  http.answer(1, {
+    ...bundleOf(1, "Broken"),
+    modules: {
+      "page.tsx": `__exports.default = (api) => { api.place({ component: () => null, icon: "uraeda:list", id: "p", title: "Broken" }); throw new Error("no wiki"); };`,
+    },
+  });
+  await settle();
+  expect(titles()).toEqual(["Fine"]);
+  expect(reports).toEqual([["broken", 1, "no wiki"]]);
+});
+
 /** The activation of a bundle of `modules`, its entry `page.tsx`, its imports as `imports`. */
 const activation = (
   modules: Record<string, string>,
