@@ -176,3 +176,30 @@ test("the drawn cache holds the picked themes, not the one previewed", async () 
   expect(cachedPage("dark")).toBe(MOCHA_PAGE);
   expect(cachedPage("light")).toBe(LATTE_PAGE);
 });
+
+// Breaks: a phone's scroll starting on the page closing the list, or a tap outside it opening
+// what it lands on.
+test("a press outside that is no click keeps the list, and a click outside closes it alone", async () => {
+  const field = await openPicker();
+  await moveTo(field, "Nord");
+  const navigation = screen.getByRole("navigation", { name: "Navigation" });
+  const link = within(navigation).getAllByRole("link")[0];
+  const path = window.location.pathname;
+
+  // A scroll starts with a press and sends no click.
+  await act(async () => void fireEvent.pointerDown(link, { pointerType: "touch" }));
+  expect(screen.queryByRole("dialog", { name: "Theme" })).not.toBeNull();
+
+  // A tap: its press keeps the focus in the list, and its click closes it, acting on nothing.
+  let isPressKept = true;
+  let isClickKept = true;
+  await act(async () => {
+    isPressKept = fireEvent.mouseDown(link);
+    isClickKept = fireEvent.click(link);
+  });
+  expect(isPressKept).toBe(false);
+  expect(isClickKept).toBe(false);
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Theme" })).toBeNull());
+  await waitFor(() => expect(darkPage()).toBe(MOCHA_PAGE));
+  expect(window.location.pathname).toBe(path);
+});

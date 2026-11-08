@@ -303,3 +303,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the theme picker's field gives `j` and `k` to the cursor in every mode, and its
   search loses those two letters.
 - **Where**: task 8, its review's fix
+
+## R23: The theme picker closes on a click outside it, not on a press, and that click does nothing else
+
+- **Decision**: the in-page layer (`keys/InPage.tsx`) closes on a `click` outside it, heard in the
+  capture phase and stopped there, so the page does not act on it; a mouse press outside keeps the
+  focus in the list, so the focus leaving it does not close it first. The focus leaving it by Tab,
+  Escape, and Back still close it. This replaces R20's "press outside".
+- **Rationale**: on a phone, a press outside closed the picker as a scroll of the page began, and a
+  tap on a card closed the picker and opened the card, in the running app at 390 pixels with touch.
+  A scroll sends no click, and a swallowed click opens nothing.
+- **If wrong**: the layer closes on a press again, and the page under it acts on the tap.
+- **Where**: the final review's fix
