@@ -40,6 +40,16 @@ async function press(key: string) {
 async function focusedField() {
   const field = await screen.findByLabelText("Comment text");
   await waitFor(() => expect(document.activeElement).toBe(field));
+  return field;
+}
+
+/** A tap on a settled point, on its text as a finger lands. */
+async function tapPoint(subject: string) {
+  const point = await settledPoint(subject);
+  await act(async () => {
+    fireEvent.pointerDown(point);
+    fireEvent.click(point);
+  });
 }
 
 // Break: the form opened with the focus left on the point, so typing ran the page's keys.
@@ -51,12 +61,33 @@ test("Enter on a held settled point opens its comment with the focus in its fiel
 });
 
 // Break: the phone's sheet opened without the focus, as a tap opens it.
-test("on the phone, Enter on a held settled point focuses its comment's field", async () => {
+test.each(["Enter", "i"])(
+  "on the phone, %s on a held settled point focuses its comment's field",
+  async (key) => {
+    atWidth(402);
+    await renderPage(PAGE, roundRepo());
+    hold(await settledPoint(COMMITS));
+    await press(key);
+    await focusedField();
+  },
+);
+
+// Break: a tap on a wide screen leaving the focus behind, as before the human could type.
+test("a tap on a wide screen focuses the comment's field", async () => {
+  await renderPage(PAGE, roundRepo());
+  await tapPoint(COMMITS);
+  await focusedField();
+});
+
+// Break: a tap on the phone raising the keyboard over the sheet.
+test("a tap on the phone opens the comment without focusing its field", async () => {
   atWidth(402);
   await renderPage(PAGE, roundRepo());
-  hold(await settledPoint(COMMITS));
-  await press("Enter");
-  await focusedField();
+  await tapPoint(COMMITS);
+  const field = await screen.findByLabelText("Comment text");
+  // The frames the focus would have been given in.
+  await act(() => new Promise((done) => setTimeout(done, 200)));
+  expect(document.activeElement).not.toBe(field);
 });
 
 // Break: `i` on a held point went to the page, and Enter on a point whose form is open did nothing.
@@ -64,12 +95,34 @@ test("i, or Enter, on a held point whose comment is open takes the focus back to
   await renderPage(PAGE, roundRepo());
   hold(await settledPoint(COMMITS));
   await press("i");
-  await focusedField();
+  const field = await focusedField();
 
   for (const key of ["i", "Enter"]) {
     await press("Escape");
+    // Escape leaves the field, and its form stays open: the key comes back to it.
+    await waitFor(() => expect(document.activeElement).not.toBe(field));
+    expect(field.isConnected).toBe(true);
     hold(await settledPoint(COMMITS));
     await press(key);
-    await focusedField();
+    expect(await focusedField()).toBe(field);
   }
+});
+
+// Break: the focus asked as the form opened, kept on: the form drawn again in the phone's sheet as
+// the window narrowed took the focus once more, and raised the keyboard.
+test("a form drawn again as the window narrows takes no focus", async () => {
+  await renderPage(PAGE, roundRepo());
+  await tapPoint(COMMITS);
+  const wide = await focusedField();
+  act(() => wide.blur());
+
+  atWidth(402);
+  const narrow = await waitFor(() => {
+    const field = screen.getByLabelText("Comment text");
+    expect(field).not.toBe(wide);
+    return field;
+  });
+  // The frames the focus would have been given in.
+  await act(() => new Promise((done) => setTimeout(done, 200)));
+  expect(document.activeElement).not.toBe(narrow);
 });
