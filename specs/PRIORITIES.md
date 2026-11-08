@@ -6,7 +6,6 @@
 >
 > Required for personal usage
 
-- [Default theme based on terminal colors like pi agent! I really like their idea.](/specs/changes/2026-11-08-default-theme/proposal.md)
 - [Codex runtime + model settings](/specs/2026-11-08-codex-runtime/proposal.md)
 
 - Spec comments: suggestion vs change needed
@@ -25,7 +24,6 @@
 > Features for public release
 
 - Cooler home view: logo, progress, gauges, ...
-  - Needs more features/extensions
 - Dedicated docs website
   - Explain the concepts and the controls
   - Make sure docs stay up-to-date with agents instructions
