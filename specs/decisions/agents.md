@@ -1,19 +1,20 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: bot
 ---
 
 # Agents
 
 Uraeda drives the coding agent the user already installed and signed in to, and never touches its
-credentials or settings. Every agent is reached through one adapter, and its conversations are kept
-in one agent-neutral shape, so Claude Code is only the first agent. A conversation with an agent is
-a session, which only the human can turn into a change or a feature.
+credentials or settings. Every agent is reached through one adapter, provided by an extension, as
+Claude Code's built-in one is, and its conversations are kept in one agent-neutral shape. A
+conversation with an agent is a session, which only the human can turn into a change or a feature.
 
 ## Rules
 
-- The server MUST run the user's installed agent, never a bundled one or the agent's SDK.
+- Uraeda's shipped runtimes MUST run the user's installed agent, never a bundled one or the agent's
+  SDK.
 - Every agent MUST be reached through one adapter, which keeps the agent's formats inside it and
   declares what the agent can do.
 - Sessions, their turns, and their items MUST be stored and shown in one agent-neutral shape.
@@ -27,13 +28,16 @@ a session, which only the human can turn into a change or a feature.
   accepts it.
 - Sessions MUST be a cache in Uraeda's data folder, never stored in a repository.
 - Tests MUST reach agents through a fake adapter, never a real agent.
+- A runtime from the owner's own extension MAY reach its agent however its author chooses.
 
 ## Why
 
 Running the user's own `claude` uses their binary, settings, and login: the use Anthropic's terms
-allow with a subscription. Skipped permissions would let an agent do anything on the user's machine.
-One concept of a session, whatever workflow surrounds it, gives each conversation a page and a
-history of its own. History: [Merge chats](../done/2026-10-20-merge-chats.md).
+allow with a subscription. A runtime the owner writes is theirs to keep within its agent's terms.
+Skipped permissions would let an agent do anything on the user's machine. One concept of a session,
+whatever workflow surrounds it, gives each conversation a page and a history of its own. History:
+[Merge chats](../done/2026-10-20-merge-chats.md),
+[Extensions system](../2026-11-08-extensions-system/spec.md).
 
 ## Alternatives considered
 
@@ -53,8 +57,9 @@ history of its own. History: [Merge chats](../done/2026-10-20-merge-chats.md).
 
 ## Applies to
 
-- [`packages/server/src/runner/`](/packages/server/src/runner/), and every feature that starts,
-  follows, or stops an agent: the chat, benchmarks, notifications, and other agents' runtimes
+- [`packages/server/src/runner/`](/packages/server/src/runner/), the runtimes built in and those of
+  extensions, and every feature that starts, follows, or stops an agent: the chat, benchmarks,
+  notifications, and other agents' runtimes
 
 ## Revisit when
 
