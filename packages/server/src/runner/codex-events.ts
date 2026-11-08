@@ -379,14 +379,26 @@ export class CodexEvents {
   }
 }
 
-/** Codex's automatic review of an escalated action, as a line for the transcript. */
+/**
+ * The final statuses of a review, `GuardianApprovalReviewStatus` but `inProgress`, as people read
+ * them: a decision carries its risk, a review that ended without one does not.
+ */
+const REVIEW_ENDS = new Map<string, { risk: boolean; said: string }>([
+  ["aborted", { risk: false, said: "aborted" }],
+  ["approved", { risk: true, said: "approved" }],
+  ["denied", { risk: true, said: "denied" }],
+  ["timedOut", { risk: false, said: "timed out" }],
+]);
+
+/** Codex's automatic review of an escalated action, as a line for the transcript, once it ends. */
 function reviewNotice(review: unknown): Array<AgentEvent> {
-  if (!isObject(review) || (review.status !== "approved" && review.status !== "denied")) {
+  const end = isObject(review) ? REVIEW_ENDS.get(text(review.status)) : undefined;
+  if (!isObject(review) || end === undefined) {
     return [];
   }
-  const risk = text(review.riskLevel) || "unknown";
+  const risk = text(review.riskLevel) || (end.risk ? "unknown" : "");
   const rationale = text(review.rationale);
-  const verdict = `Automatic review ${review.status} (risk: ${risk})`;
+  const verdict = `Automatic review ${end.said}${risk ? ` (risk: ${risk})` : ""}`;
   return [{ text: rationale ? `${verdict}: ${rationale}` : verdict, type: "notice" }];
 }
 

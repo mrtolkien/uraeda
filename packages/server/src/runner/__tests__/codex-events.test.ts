@@ -51,7 +51,11 @@ const SPAWN = {
   type: "collabAgentToolCall",
 };
 const collabStarted = () => started(SPAWN);
-const review = (status: string, riskLevel: string, rationale: string): CodexNotification => ({
+const review = (
+  status: string,
+  riskLevel: string | null,
+  rationale: string | null,
+): CodexNotification => ({
   method: "item/autoApprovalReview/completed",
   params: { review: { rationale, riskLevel, status, userAuthorization: "high" }, threadId: THREAD },
 });
@@ -191,6 +195,16 @@ test.each<[string, Array<CodexNotification>, unknown]>([
     { text: "Automatic review denied (risk: high): It pushes to a remote.", type: "notice" },
   ],
   [
+    "a review that timed out",
+    [review("timedOut", null, "The reviewer did not answer in time.")],
+    { text: "Automatic review timed out: The reviewer did not answer in time.", type: "notice" },
+  ],
+  [
+    "an aborted review",
+    [review("aborted", null, null)],
+    { text: "Automatic review aborted", type: "notice" },
+  ],
+  [
     "a turn refused by the usage limit",
     [turnFailed("You've hit your usage limit.", "usageLimitExceeded")],
     { limit: { kind: "other", text: "You've hit your usage limit." }, type: "limit" },
@@ -206,6 +220,7 @@ test("a usage limit comes before the result", () => {
 
 test.each<[string, Array<CodexNotification>]>([
   ["an unknown notification", [{ method: "thread/moderationMetadata", params: {} }]],
+  ["a review in progress", [review("inProgress", null, null)]],
   [
     "a sub-agent's thread starting",
     [
