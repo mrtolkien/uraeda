@@ -25,5 +25,5 @@ cheaper one.
 
 ## Notes
 
-- Split from [Worker lifecycle](/specs/2026-11-03-worker-lifecycle/proposal.md).
+- Split from [Worker lifecycle](/specs/done/2026-11-03-worker-lifecycle.md).
 - The settings page already lists these as planned rows, under Agents, Runs, and Reviews.

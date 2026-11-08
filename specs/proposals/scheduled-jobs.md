@@ -15,4 +15,4 @@ Recurring upkeep should not wait for someone to start it.
 
 ## Notes
 
-- Split from [Worker lifecycle](/specs/2026-11-03-worker-lifecycle/proposal.md).
+- Split from [Worker lifecycle](/specs/done/2026-11-03-worker-lifecycle.md).
