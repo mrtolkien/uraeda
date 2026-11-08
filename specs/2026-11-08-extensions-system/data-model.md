@@ -61,10 +61,10 @@ Written by `ura extension add` and `ura extension update`, read by the settings 
 | `[extensions.<name>]` other keys          | per its manifest         | Its settings for every repository, checked against its manifest's schema         | New    |
 | `[extensions.<name>.repositories.<repo>]` | table                    | Its settings for one repository, over the ones above                             | New    |
 
-## Status file, `extensions-status.json`
+## Status file, `run/extensions-status.json`
 
-In the data folder, written by the running server, whole and atomically, as the `Extensions` record
-changes, and removed as it stops; read by `ura extension list`.
+In the data folder's `run/`, written by the running server, whole and atomically, as the
+`Extensions` record changes, and removed as it stops; read by `ura extension list`.
 
 | Field                     | Type                                     | Meaning                                                     | Change |
 | ------------------------- | ---------------------------------------- | ----------------------------------------------------------- | ------ |
