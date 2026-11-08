@@ -146,7 +146,7 @@ More scenarios:
 Someone shares a repository's address. `ura` clones it into your config folder, pinned to its
 commit, asks where it is on, and only moves it when you update.
 
-[Settings, Extensions](/packages/web/src/ExtensionsMockups.stories.tsx#Settings)
+[Settings, Extensions](/packages/web/src/settings/SettingsView.stories.tsx#Extensions)
 
 Key scenarios:
 
@@ -189,7 +189,7 @@ Key scenarios:
 
 A failing extension is turned off alone, and says why.
 
-[Settings, extensions that need you](/packages/web/src/ExtensionsMockups.stories.tsx#NeedsYou)
+[Settings, extensions that need you](/packages/web/src/settings/SettingsView.stories.tsx#ExtensionsNeedYou)
 
 Key scenarios:
 

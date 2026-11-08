@@ -1296,33 +1296,44 @@ git commit -m "feat(extensions-system): draw Uraeda's places from registries, as
 **Files:**
 
 - Start from: `packages/web/src/ExtensionsMockups.stories.tsx#Settings` and `#NeedsYou`
-- Create: `packages/web/src/settings/ExtensionSettings.tsx` (the category's rows, banners, and each
-  extension's settings form), `settings/ExtensionWhere.tsx` (on for every repository, or a picker of
-  repositories)
-- Modify: `settings/categories.ts` (`CategoryId` gains `extensions`), `settings/SettingsView.tsx`,
-  `settings/SettingsPage.tsx`, `views.ts`, `data.ts`; delete the mockups story's `Settings` and
-  `NeedsYou` exports once the real section draws them (the story file keeps the others for task 12)
+- Create: `packages/web/src/settings/ExtensionSettings.tsx` (the category's banners, its two panes,
+  and each extension's row), `settings/ExtensionWhere.tsx` (on for every repository, or a list of
+  repositories ticked in place under the row), `settings/ExtensionForm.tsx` (each extension's
+  settings form), `settings/extensions.ts` (the rows' words, the banners' texts, the search's rows),
+  `settings/useExtensionsRecord.ts` (the record's hook: `data.ts` is at its 500-line limit),
+  `settings/sampleExtensions.ts` (the stories' records), `src/__tests__/extension-notices.test.ts`
+- Modify: `settings/categories.ts` (`CategoryId` gains `extensions`), `settings/SettingsView.tsx`
+  (props `extensions?: ExtensionsValues`, `extensionActions?: ExtensionActions`),
+  `settings/SettingsPage.tsx`, `settings/SettingsView.stories.tsx` (stories `Extensions` and
+  `ExtensionsNeedYou`, which the spec's links now name), `views.ts` (`ExtensionsRecordView`); delete
+  the mockups story's `Settings` and `NeedsYou` exports (the story file keeps the others for
+  task 12)
 
 **Interfaces:**
 
-- Consumes: task 8's view and mutations; task 9's `useContributions("settingsSection")` (an
-  extension's own section renders under its row).
+- Consumes: task 8's view and mutations. Task 9's registry was not merged while this task ran:
+  `ExtensionsValues` leaves two slots that task 12 wires to it, `ownSection(name)`, an extension's
+  own section from `useContributions("settingsSection")`, drawn under its row, and
+  `keyClashes(name)`, the registry's dropped keys, shown beside the record's `keys`.
 - Produces: the Extensions category: "Your extensions" then "Built in", each row with its icon,
   title, description, version and source, its switch (on for every repository / off) and "Only in…"
   picker; under it, its settings form from `settings` (bool switch, integer and string fields, list
   as one value per line) for every repository or one; above, a banner per problem: errors with file
   and line, the API message with no Update button (an agent updates it), "reloads when the turn of …
-  ends", and each key clash "`y` is taken by Deploy".
+  ends", and each key clash "`y` is taken by Deploy". The `fake` built-in is listed only while it is
+  not off (R41); a form for one repository starts from the values for every repository (R40).
 
-- [ ] **Step 1: Build the section from the story's components**
+- [x] **Step 1: Build the section from the story's components**
 
-- [ ] **Step 2: Run the task's validation, and review it**
+- [x] **Step 2: Run the task's validation, and review it**
 
 - Run: `vp check && vp test packages/web`
 - Expected: PASS. In the sandbox, in both themes, at a phone's and a desktop's width: switching the
-  inbox off removes it at once; a broken sample extension shows its banner.
+  inbox off removes it at once; a broken sample extension shows its banner. The switch writes
+  `[extensions.inbox] on = []` and flips at once; the inbox's place leaving the navigation is task
+  9's registry, not merged here.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web

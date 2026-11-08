@@ -49,12 +49,17 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-body-leading"],
   },
+  // What a row holds under its line, like an extension's settings, level with its text on wider
+  // screens; on the phone, the whole width.
   row: {
     borderBlockEndColor: colorVars["--color-border"],
     borderBlockEndStyle: "solid",
     borderBlockEndWidth: { ":last-child": 0, default: borderVars["--border-width"] },
     paddingBlock: spacingVars["--spacing-3"],
     paddingInline: spacingVars["--spacing-3"],
+  },
+  under: {
+    paddingInlineStart: `calc(var(--setting-icon, 1rem) + ${spacingVars["--spacing-3"]})`,
   },
 });
 
@@ -69,16 +74,19 @@ export function SettingRows({ children }: { children: ReactNode }) {
 
 /**
  * A setting's row: its icon, its name as a heading under its section's, its help under it, then
- * `notes`, what the page says of its value, and `children`, its control.
+ * `notes`, what the page says of its value, and `children`, its control; then `under`, what the
+ * row holds below its line and its control, like an extension's settings, level with its text.
  */
 export function SettingRow({
   children,
   notes,
   setting: { help, icon, label },
+  under,
 }: {
   children?: ReactNode;
   notes?: ReactNode;
   setting: Pick<Setting, "help" | "icon" | "label">;
+  under?: ReactNode;
 }) {
   const narrow = isNarrow(useWidthClass());
   const text = (
@@ -96,19 +104,31 @@ export function SettingRow({
     </HStack>
   );
   const control = children && <VStack xstyle={styles.control}>{children}</VStack>;
-  if (narrow) {
-    return (
-      <VStack as="li" gap={3} xstyle={styles.row}>
-        {text}
-        {control}
-      </VStack>
-    );
-  }
-  return (
-    <HStack align="center" as="li" gap={4} justify="between" xstyle={styles.row}>
+  const line = narrow ? (
+    <VStack as={under ? "div" : "li"} gap={3} xstyle={!under && styles.row}>
+      {text}
+      {control}
+    </VStack>
+  ) : (
+    <HStack
+      align="center"
+      as={under ? "div" : "li"}
+      gap={4}
+      justify="between"
+      xstyle={!under && styles.row}
+    >
       {text}
       {control}
     </HStack>
+  );
+  if (!under) {
+    return line;
+  }
+  return (
+    <VStack as="li" gap={3} xstyle={styles.row}>
+      {line}
+      <VStack xstyle={!narrow && [styles.under, styles.column]}>{under}</VStack>
+    </VStack>
   );
 }
 
