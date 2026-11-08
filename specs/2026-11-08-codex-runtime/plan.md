@@ -608,12 +608,12 @@ The mapping, from the probe and the generated types:
 | `turn/completed`                                                                                      | `result`: `ok` for `completed`, `interrupted` for `interrupted`, the error's message for `failed`; a `usageLimitExceeded` error gives `limit` first |
 | anything else                                                                                         | nothing, never `skipped`: Codex sends many notifications Uraeda has no use for                                                                      |
 
-Windows: `primary` and `secondary`, IDs `five-hour` and `week` as Claude Code's are named in
-`claude-limits.ts` when their durations are 300 and 10,080 minutes, else the duration; `used` is
-`usedPercent / 100`; `resetsAt` from epoch seconds. A limit is `session` for the 300-minute window,
-else `other`.
+Windows: `primary` and `secondary`, IDs `five_hour` and `seven_day`, labels `5h` and `Week`, as
+Claude Code's are named in `claude-limits.ts`, when their durations are 300 and 10,080 minutes, else
+the duration (`60m`, labelled `1h`); `used` is `usedPercent / 100`; `resetsAt` from epoch seconds. A
+limit is `session` for the 300-minute window, else `other`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // codex-events.test.ts, reading fixtures/codex-turn.jsonl and rows of hand-written notifications
@@ -640,17 +640,17 @@ The break each test catches: a renamed Codex field dropping commands or verdicts
 transcript; the model's ID shown instead of its name; a failed turn read as done; a limit read as a
 failure, so the run never continues.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/server/src/runner/__tests__/codex-events.test.ts packages/server/src/runner/__tests__/codex-limits.test.ts`
   - Expected: FAIL, `Cannot find module '../codex-events.ts'`.
-- [ ] **Step 3: Implement both modules.** Read the installed version's generated types
+- [x] **Step 3: Implement both modules.** Read the installed version's generated types
       (`codex app-server generate-ts --out /tmp/codex-ts`) for the field names; keep Codex's types
       inside these files.
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/codex-events.ts packages/server/src/runner/codex-limits.ts packages/server/src/runner/__tests__/
