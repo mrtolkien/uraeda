@@ -14,6 +14,7 @@ const base: Omit<ExtensionRow, "description" | "icon" | "name" | "title"> = {
   onAll: true,
   pageVersion: null,
   problems: [],
+  repositoryValues: "{}",
   settings: [],
   source: null,
   state: "on",
@@ -105,6 +106,7 @@ const YOURS: ReadonlyArray<ExtensionRow> = [
     isBuiltIn: false,
     name: "wiki",
     pageVersion: 1,
+    repositoryValues: '{"uraeda":{"byDate":false}}',
     settings: [
       {
         defaultJson: '"docs"',

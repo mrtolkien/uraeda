@@ -264,6 +264,21 @@ test("settings written from the page reach the extension, and turning it off unl
   expect((await records(opened.server, "other", ["wiki/folder"]))[0]).toMatchObject({
     value: '"docs"',
   });
+  // The settings form reads each repository's own values on the global endpoint.
+  const wikiRow = (result: typeof written) =>
+    (
+      result.data as { extensions: Array<{ name: string; repositoryValues: string }> }
+    ).extensions.find((row) => row.name === "wiki");
+  expect(wikiRow(written)?.repositoryValues).toBe('{"uraeda":{"folder":"wiki"}}');
+  // `null` clears it back to the shared value.
+  const [cleared] = await mutate(opened.server, "extensions.setSetting", {
+    key: "folder",
+    name: "wiki",
+    repository: "uraeda",
+    valueJson: "null",
+  });
+  expect(wikiRow(cleared)?.repositoryValues).toBe("{}");
+  await expect.poll(async () => (await folder()).value).toBe('"docs"');
 
   const [off] = await mutate(opened.server, "extensions.setOn", { name: "wiki", on: [] });
   expect(off.ok).toBe(true);

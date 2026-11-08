@@ -417,16 +417,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   ago.
 - **Where**: fix of task 8, `packages/server/src/extensions/events.ts`, `extensions/server.ts`.
 
-## R40: An extension's form for one repository starts from the values for every repository
+## R40: An extension's form for one repository shows that repository's own values over the shared ones
 
 - **Decision**: the settings' form of an extension picks the repository its values are for, every
-  repository first; picking one shows the values for every repository, says so, and saves through
-  `extensions.setSetting` with that repository. The `Extensions` record carries only the values for
-  every repository (`values`), so a value already saved for one repository is not shown.
-- **Rationale**: the spec asks for a setting saved for `uraeda` only (US1), which the mutation
-  already does; showing each repository's own values needs one more field on the record, a server
-  change outside task 10, worth adding when the page runtime's task touches the record.
-- **Where**: task 10, `packages/web/src/settings/ExtensionForm.tsx`.
+  repository first; picking one shows its own values over those for every repository, says that a
+  value saved there applies to it only, and saves through `extensions.setSetting` with that
+  repository. Each value set for that repository only reads "Set for <repository> only." with "Use
+  the shared value", which sends JSON `null`: the core removes the key, so that the value for every
+  repository, or the default, applies again. Each row of the `Extensions` record carries
+  `repositoryValues`, the values set for one repository only, as JSON by repository
+  (`{"uraeda": {"folder": "wiki"}}`), read from the core (`repository_settings_json`) on the global
+  endpoint, `{}` on a repository's, where `valuesHere` serves the page.
+- **Rationale**: showing the shared values for a repository made a save for it look lost, and a
+  switch flip back (review finding I3). The merged values per repository could not tell a value set
+  there from one that only equals the shared one, which "Use the shared value" needs.
+- **Where**: task 10, `packages/web/src/settings/ExtensionForm.tsx`,
+  `packages/server/src/fate/extensions.ts`, `crates/core/src/extensions/write.rs`, `values.rs`.
 
 ## R41: The Extensions category draws its own two panes, and hides the fake agent while it is off
 

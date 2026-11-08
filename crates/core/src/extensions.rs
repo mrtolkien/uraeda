@@ -190,6 +190,17 @@ pub fn settings_json(config_dir: &Path, name: &str, repository: Option<&str>) ->
     serde_json::Value::Object(values).to_string()
 }
 
+/// The values of the extension `name` set for one repository, over those for every repository, as
+/// a JSON object by repository: `{"uraeda": {"folder": "wiki"}}`. A wrong value, and a repository
+/// with none, are left out; `{}` for an extension that does not exist.
+pub fn repository_settings_json(config_dir: &Path, name: &str) -> String {
+    let Some(extension) = find(config_dir, name) else {
+        return "{}".to_owned();
+    };
+    let values = values::Config::load(config_dir).by_repository(&extension);
+    serde_json::Value::Object(values).to_string()
+}
+
 /// Whether `extension` is on in `repository`; with no repository, whether it is on in every one.
 pub fn is_on(extension: &Extension, repository: Option<&str>) -> bool {
     extension.on_all || repository.is_some_and(|name| extension.on.iter().any(|on| on == name))

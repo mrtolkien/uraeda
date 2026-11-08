@@ -24,6 +24,7 @@ const deploy: ExtensionRow = {
   onAll: true,
   pageVersion: 1,
   problems: [],
+  repositoryValues: "{}",
   settings: [],
   source: null,
   state: "on",

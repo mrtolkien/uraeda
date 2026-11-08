@@ -146,12 +146,25 @@ export function withOn(
   );
 }
 
-/** An extension's settings for every repository, from the record's JSON; none when unreadable. */
-export function valuesOf(row: ExtensionRow): Record<string, unknown> {
+/** A JSON object of the record's, none when it is no object or cannot be read. */
+function objectOf(json: string): Record<string, unknown> {
   try {
-    const values: unknown = JSON.parse(row.values);
-    return typeof values === "object" && values !== null ? (values as Record<string, unknown>) : {};
+    const value: unknown = JSON.parse(json);
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   } catch {
     return {};
   }
+}
+
+/** An extension's settings for every repository, from the record's JSON; none when unreadable. */
+export const valuesOf = (row: ExtensionRow): Record<string, unknown> => objectOf(row.values);
+
+/** The values of an extension's set for `repository` only, over those for every repository. */
+export function ownValuesOf(row: ExtensionRow, repository: string): Record<string, unknown> {
+  const own = objectOf(row.repositoryValues)[repository];
+  return typeof own === "object" && own !== null && !Array.isArray(own)
+    ? (own as Record<string, unknown>)
+    : {};
 }

@@ -28,6 +28,11 @@ export type ExtensionRow = {
   /** The version of its running page, which the page runtime fetches again as it changes. */
   pageVersion: number | null;
   problems: Array<ExtensionProblemRow>;
+  /**
+   * The values set for one repository only, over `values`, as a JSON object by repository, read on
+   * the global endpoint, the settings form's; `{}` on a repository's.
+   */
+  repositoryValues: string;
   settings: Array<SettingSpec>;
   source: Source | null;
   /** `on`, `off`, `broken`, or `waiting`, while a reload waits for a turn. */
@@ -78,7 +83,11 @@ export const extensionActionDataView = dataView<ExtensionActionRecord>("Extensio
   outputJson: true,
 });
 
-function row({ extension, ...state }: ExtensionState, here = state.values): ExtensionRow {
+function row(
+  { extension, ...state }: ExtensionState,
+  here = state.values,
+  repositoryValues = "{}",
+): ExtensionRow {
   const { api, description, icon, isBuiltIn, isLinked, name, on, onAll, settings } = extension;
   return {
     api,
@@ -96,6 +105,7 @@ function row({ extension, ...state }: ExtensionState, here = state.values): Exte
       line: line ?? null,
       message,
     })),
+    repositoryValues,
     settings,
     source: extension.source ?? null,
     state: state.state,
@@ -116,13 +126,27 @@ const readState = (extension: Extension): ExtensionState => ({
   values: {},
   waitingFor: null,
 });
+/**
+ * The values of `extension` set for one repository, as JSON by repository: read on the global
+ * endpoint only, where the settings form is, `{}` on a repository's or without settings.
+ */
+const repositoryValues = (ctx: Context, extension: Extension): Promise<string> =>
+  ctx.repo !== null || extension.settings.length === 0
+    ? Promise.resolve("{}")
+    : ctx.binding.extensionRepositorySettings(ctx.settings.dir, extension.name);
+
 /** Without an extensions host, as some tests' apps: the extensions as the core reads them. */
 async function readOnly(ctx: Context): Promise<ExtensionsRecord> {
   const { extensions, folder } = await ctx.binding.readExtensions(ctx.settings.dir);
   return {
     api: ctx.binding.extensionApi(),
     docs: "",
-    extensions: extensions.map((extension) => row(readState(extension))),
+    extensions: await Promise.all(
+      extensions.map(async (extension) => {
+        const state = readState(extension);
+        return row(state, state.values, await repositoryValues(ctx, extension));
+      }),
+    ),
     folder,
     id: EXTENSIONS_ID,
   };
@@ -136,12 +160,13 @@ export async function extensionsRecord(ctx: Context): Promise<ExtensionsRecord> 
   const host = ctx.extensions;
   const { extensions, ...rest } = host.states();
   const repository = ctx.repo === null ? null : (ctx.hosts.byPath(ctx.repo)?.name ?? null);
-  const here = (state: ExtensionState) =>
+  const here = async (state: ExtensionState) =>
     row(
       state,
       repository === null ? state.values : host.settings(state.extension.name, repository),
+      await repositoryValues(ctx, state.extension),
     );
-  return { ...rest, extensions: extensions.map(here), id: EXTENSIONS_ID };
+  return { ...rest, extensions: await Promise.all(extensions.map(here)), id: EXTENSIONS_ID };
 }
 
 /** The extensions' sources: their records are read on a repository's endpoint only. */

@@ -130,6 +130,44 @@ fn settings_for_one_repository_override_the_global_ones() {
         "{}",
         config_text(&config)
     );
+    let own = || extensions::repository_settings_json(&config, "wiki");
+    assert_eq!(
+        own(),
+        r#"{"other":{"folder":"pages"},"uraeda":{"folder":"wiki"}}"#
+    );
+    assert_eq!(
+        extensions::repository_settings_json(&config, "nothing"),
+        "{}"
+    );
+}
+
+// Break: `null` refused as "folder is a string", or written, so a value for one repository could
+// never go back to the shared one.
+#[test]
+fn a_null_value_clears_a_setting_back_to_the_shared_one() {
+    let dir = tempdir();
+    let (config, data) = (dir.path().join("config"), dir.path().join("data"));
+    fs::create_dir_all(&data).unwrap();
+    repositories(&data, &["uraeda"]);
+    extension(&config, "wiki", WIKI, &[("page.tsx", "")]);
+    let file = "[extensions.wiki]\nfolder = \"notes\"\n\n[extensions.wiki.repositories.uraeda]\nfolder = \"wiki\" # Mine.\n";
+    fs::write(config.join("config.toml"), file).unwrap();
+    let folder = |repository: Option<&str>| {
+        let json = extensions::settings_json(&config, "wiki", repository);
+        serde_json::from_str::<serde_json::Value>(&json).unwrap()["folder"].clone()
+    };
+
+    extensions::set_setting(&config, &data, "wiki", Some("uraeda"), "folder", "null").unwrap();
+    assert_eq!(folder(Some("uraeda")), "notes");
+    assert_eq!(extensions::repository_settings_json(&config, "wiki"), "{}");
+    // For every repository: back to the manifest's default.
+    extensions::set_setting(&config, &data, "wiki", None, "folder", "null").unwrap();
+    assert_eq!(folder(None), "docs");
+    assert!(
+        !config_text(&config).contains("folder"),
+        "{}",
+        config_text(&config)
+    );
 }
 
 #[test]

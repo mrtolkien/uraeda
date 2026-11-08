@@ -47,7 +47,8 @@ pub fn set_on(config_dir: &Path, data_dir: &Path, name: &str, on: On) -> Result<
 
 /// Writes the setting `key` of the extension `name` to `value_json`, a JSON value, for
 /// `repository` or for every one: refusing a key its manifest does not declare, a value of another
-/// type, and a repository not in the list in the data folder `data_dir`.
+/// type, and a repository not in the list in the data folder `data_dir`. `null` removes the value,
+/// so that the one for every repository, or the default, applies again.
 pub fn set_setting(
     config_dir: &Path,
     data_dir: &Path,
@@ -64,15 +65,24 @@ pub fn set_setting(
         .ok_or_else(|| refused(format!("{name} has no setting named {key}")))?;
     let json: serde_json::Value = serde_json::from_str(value_json)
         .map_err(|error| refused(format!("{key}: the value is not JSON: {error}")))?;
-    let value = values::toml(&spec.kind, &json)
-        .ok_or_else(|| refused(format!("{key} is {}", values::kind_text(&spec.kind))))?;
+    let value = if json.is_null() {
+        None
+    } else {
+        Some(
+            values::toml(&spec.kind, &json)
+                .ok_or_else(|| refused(format!("{key} is {}", values::kind_text(&spec.kind))))?,
+        )
+    };
     let mut path = vec!["extensions", name];
     if let Some(repository) = repository {
         listed(data_dir, &[repository.to_owned()])?;
         path.extend(["repositories", repository]);
     }
     change_path(config_dir, &path, |table| {
-        set(table, key, value);
+        match value {
+            Some(value) => set(table, key, value),
+            None => drop(table.remove(key)),
+        }
         Ok(())
     })
     .map(drop)
