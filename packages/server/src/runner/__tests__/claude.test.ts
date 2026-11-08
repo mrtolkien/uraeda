@@ -15,7 +15,7 @@ import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
 import { ClaudeAdapter, claudeArgs, extensionPlugins } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
-import { WEB_UI_INSTRUCTIONS, webUiInstructions } from "../instructions.ts";
+import { webUiInstructions } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
@@ -81,7 +81,7 @@ test("SC-006: a new session's arguments", () => {
     "--add-dir",
     "/data/images",
     "--append-system-prompt",
-    WEB_UI_INSTRUCTIONS,
+    webUiInstructions(),
     "--session-id",
     "id",
   ]);
@@ -157,14 +157,14 @@ test("without extensions, no folder is added and no skill passed", () => {
 test("a resumed session gets the web UI's instructions again", () => {
   const args = claudeArgs({ ...open, resume: true }, "/plugin", "/data/images");
 
-  expect(args[args.indexOf("--append-system-prompt") + 1]).toBe(WEB_UI_INSTRUCTIONS);
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toBe(webUiInstructions());
 });
 
 test("the web UI's instructions show its offer blocks", () => {
   for (const kind of ["change", "feature"]) {
-    expect(WEB_UI_INSTRUCTIONS).toContain(`\`uraeda-offer ${kind}\``);
+    expect(webUiInstructions()).toContain(`\`uraeda-offer ${kind}\``);
   }
-  expect(WEB_UI_INSTRUCTIONS).toContain("```uraeda-offer change\n# ");
+  expect(webUiInstructions()).toContain("```uraeda-offer change\n# ");
 });
 
 test("a resumed session with an allow rule", () => {

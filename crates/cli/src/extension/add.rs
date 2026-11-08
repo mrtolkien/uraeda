@@ -1,9 +1,10 @@
 //! `ura extension add`: links a folder or clones a git repository into the extensions folder,
-//! then turns it on where the flags or the picker say.
+//! then turns it on where the flags or the picker say: in those repositories too, for an extension
+//! already there.
 
 use std::process::ExitCode;
 
-use uraeda_core::extensions::{install, set_on};
+use uraeda_core::extensions::{add_on, install};
 
 use super::Folders;
 use super::r#where::{self, Flags as Where};
@@ -12,7 +13,7 @@ use crate::terminal;
 
 #[derive(clap::Args)]
 pub struct Flags {
-    /// A folder to link, or a git URL to clone and pin
+    /// A folder to link, a git URL to clone and pin, or an installed extension's name
     #[arg(value_hint = clap::ValueHint::AnyPath)]
     source: String,
     /// On in every repository
@@ -51,7 +52,8 @@ pub fn run(folders: &Folders, flags: &Flags) -> Result<ExitCode, String> {
         Choice::Ask => r#where::ask(&extension.title, &extension.scope, here.as_deref())?
             .ok_or_else(|| format!("cancelled: where {} is on did not change", extension.title))?,
     };
-    set_on(&folders.config, &folders.data, &extension.name, on.clone())
+    // An extension already there is on in these repositories too.
+    let on = add_on(&folders.config, &folders.data, &extension.name, on)
         .map_err(|error| error.message)?;
     println!("Turned {} on for: {}", extension.title, r#where::words(&on));
     Ok(ExitCode::SUCCESS)

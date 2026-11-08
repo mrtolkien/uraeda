@@ -45,6 +45,36 @@ pub fn set_on(config_dir: &Path, data_dir: &Path, name: &str, on: On) -> Result<
     .map(drop)
 }
 
+/// Turns the extension `name` on in `on` too, as `ura extension add` does on an extension it may
+/// already have: `All` turns it on everywhere, and repositories join the ones its `on` lists. One
+/// with no `on` written, on everywhere by default, is on in `on` alone from now; one written on
+/// everywhere stays so. Returns where it is on now.
+pub fn add_on(config_dir: &Path, data_dir: &Path, name: &str, on: On) -> Result<On, ApiError> {
+    let On::Some(names) = on else {
+        set_on(config_dir, data_dir, name, On::All)?;
+        return Ok(On::All);
+    };
+    let mut extension = known(config_dir, name)?;
+    let config = values::Config::load(config_dir);
+    let written = config.has_on(name);
+    config.apply(&mut extension);
+    let now = match (extension.on_all, written) {
+        (true, true) => return Ok(On::All),
+        (true, false) => names,
+        (false, _) => {
+            let mut now = extension.on;
+            for name in names {
+                if !now.contains(&name) {
+                    now.push(name);
+                }
+            }
+            now
+        }
+    };
+    set_on(config_dir, data_dir, name, On::Some(now.clone()))?;
+    Ok(On::Some(now))
+}
+
 /// Writes the setting `key` of the extension `name` to `value_json`, a JSON value, for
 /// `repository` or for every one: refusing a key its manifest does not declare, a value of another
 /// type, and a repository not in the list in the data folder `data_dir`. `null` removes the value,

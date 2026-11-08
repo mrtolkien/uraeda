@@ -25,14 +25,20 @@ pub struct Pending {
 }
 
 /// Installs the extension at `source`, a folder, relative to `cwd`, or a git URL: a folder in
-/// your extensions folder is left as it is, any other is linked there; a URL is cloned there,
-/// pinned. Refuses a built-in extension's name, one installed already, and a manifest with a fatal
-/// problem. A new extension is off until [`super::set_on`] says where it is on.
+/// your extensions folder, or the name of one when `cwd` holds no folder of that name, is left as
+/// it is, any other is linked there; a URL is cloned there, pinned. Refuses a built-in
+/// extension's name, one installed already from elsewhere, and a manifest with a fatal problem. A
+/// new extension is off until [`super::add_on`] says where it is on.
 pub fn add(config_dir: &Path, source: &str, cwd: &Path) -> Result<Extension, ApiError> {
     let dir = extensions_dir(config_dir);
     fs::create_dir_all(&dir)
         .map_err(|error| refused(format!("cannot create {}: {error}", dir.display())))?;
     let folder = cwd.join(source);
+    if !folder.is_dir() && is_folder_name(source) && dir.join(source).is_dir() {
+        let extension = installed(config_dir, source)?;
+        fatal(&extension)?;
+        return Ok(extension);
+    }
     let name = if folder.is_dir() {
         link(config_dir, &dir, &folder)?
     } else {

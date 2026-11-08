@@ -18,7 +18,7 @@ pub mod status;
 mod values;
 mod write;
 
-pub use write::{On, set_on, set_setting};
+pub use write::{On, add_on, set_on, set_setting};
 
 /// The extension API this Uraeda runs: an extension built for another is turned off.
 pub const EXTENSION_API: u32 = 1;

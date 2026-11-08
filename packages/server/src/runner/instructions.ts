@@ -21,7 +21,7 @@ function extensionsSection({ docs, folder }: ExtensionPaths): string {
   return `
 # Extensions
 
-Uraeda's server and web UI take extensions, TypeScript folders in \`${folder}\`, documented in \`${docs}\`. To change a part of Uraeda, a built-in one included, write or edit an extension there, never Uraeda's source. Then run \`ura extension add <folder> --here\` to turn it on in this repository, or \`--all\` for every repository.
+Uraeda's server and web UI take extensions, TypeScript folders in \`${folder}\`, documented in \`${docs}\`. To change a part of Uraeda, a built-in one included, write or edit an extension there, never Uraeda's source. A folder there with no table in \`config.toml\` is on in every repository from its first saved file, so for a new extension, create its folder with its \`extension.toml\` first, then run \`ura extension add <folder> --here\` to turn it on in this repository alone, and only then write its code. On an extension already there, \`ura extension add <name> --here\` turns it on in this repository too, and \`--all\` in every repository.
 `;
 }
 
@@ -71,6 +71,3 @@ A run that starts a change without making it, as applying an inbox triage or a d
 - Mermaid diagrams render.
 - In your messages, write the paths of the files you link from the repository root.
 `;
-
-/** The instructions without the section on extensions, as tools outside the server run them. */
-export const WEB_UI_INSTRUCTIONS = webUiInstructions();

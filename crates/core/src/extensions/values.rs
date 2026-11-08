@@ -40,6 +40,12 @@ impl Config {
             .as_table_like()
     }
 
+    /// Whether the table `[extensions.<name>]` gives an `on`.
+    pub(super) fn has_on(&self, name: &str) -> bool {
+        self.table(name)
+            .is_some_and(|table| table.contains_key("on"))
+    }
+
     /// The problem of `[extensions]`, or of its `name` entry, that is not a table, when it is not.
     fn shape(&self, name: &str) -> Option<ExtensionProblem> {
         let document = self.document.as_ref().ok()?.as_ref()?;

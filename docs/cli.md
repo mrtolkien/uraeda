@@ -49,22 +49,23 @@ points at its record, keeping a question's anchor. A link to a deleted file beco
 for the same repair.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
-code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder or a
-git URL:
+code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder, a
+git URL, or an installed extension's name:
 
 - A folder is linked as `extensions/<name>`, the name its `extension.toml` gives, and reloads on
-  each save. A folder already in `extensions/` is only turned on.
+  each save. A folder already in `extensions/`, or its name, is only turned on: in the repositories
+  given, besides the ones it is on in already, or everywhere with `--all`.
 - A URL is cloned, then checked out at its default branch's commit, detached, with `.ura-source`
   naming the URL, the commit, and the branch. A host without a scheme, like
   `github.com/gary/uraeda-deploy`, is cloned over `https://`.
 
 `add` refuses a built-in extension's name, `uraeda` and `sessions`, which Uraeda keeps, one
-installed already, and a manifest with a fatal problem. It then asks whether the extension is on in
-every repository or in this one, the one its `scope` suggests first. Without a terminal, pass
-`--all`, `--here`, or `--repo <name>`, repeated for more. `update <name>` moves a cloned extension
-only after you confirm, or with `--yes`: without a terminal, it prints the diff and moves nothing.
-`remove <name>` deletes the folder, or only the link to a linked one, and keeps its settings in
-`config.toml`. `list --json` prints every extension, the built-in ones first.
+installed already from another folder or URL, and a manifest with a fatal problem. It then asks
+whether the extension is on in every repository or in this one, the one its `scope` suggests first.
+Without a terminal, pass `--all`, `--here`, or `--repo <name>`, repeated for more. `update <name>`
+moves a cloned extension only after you confirm, or with `--yes`: without a terminal, it prints the
+diff and moves nothing. `remove <name>` deletes the folder, or only the link to a linked one, and
+keeps its settings in `config.toml`. `list --json` prints every extension, the built-in ones first.
 
 Every command works without a terminal, and the read commands print JSON with `--json`.
 `ura <command> --help` lists a command's options.
