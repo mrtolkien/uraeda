@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 3
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Extensions system
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes for what changed.
+> Approved on 2026-11-08.
 >
 > - You approve extensions of the server and the web UI, written by you or a session, which Uraeda
 >   builds, installs from git, and reloads on save, for every repository or some. Uraeda's own
