@@ -8,6 +8,7 @@
 
 - [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
 - [Pressing enter on a keyboard-focused row in the "clarifications" step opened…](/specs/changes/2026-11-08-pressing-enter/proposal.md)
+- [We should be able to dismiss an inbox triage and recreate a new one.](/specs/changes/2026-11-08-triage/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
