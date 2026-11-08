@@ -145,6 +145,34 @@ impl Config {
         values
     }
 
+    /// The values of `extension` set for each repository on its own, by repository, without the
+    /// defaults or the values for every repository: a wrong value left out, a repository with
+    /// none left out.
+    pub(super) fn by_repository(&self, extension: &Extension) -> Map<String, Json> {
+        let Some(tables) = self
+            .table(&extension.name)
+            .and_then(|table| table.get("repositories"))
+            .and_then(Item::as_table_like)
+        else {
+            return Map::new();
+        };
+        tables
+            .iter()
+            .filter_map(|(repository, item)| {
+                let table = item.as_table_like()?;
+                let values: Map<String, Json> = extension
+                    .settings
+                    .iter()
+                    .filter_map(|spec| {
+                        let value = json(&spec.kind, table.get(&spec.key)?)?;
+                        Some((spec.key.clone(), value))
+                    })
+                    .collect();
+                (!values.is_empty()).then(|| (repository.to_owned(), Json::Object(values)))
+            })
+            .collect()
+    }
+
     fn text(&self) -> &str {
         match &self.document {
             Ok(Some(document)) => document.raw(),

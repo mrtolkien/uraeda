@@ -276,6 +276,12 @@ export declare function expandProposal(repo: string, id: string, previous: strin
 export declare function extensionApi(): number
 
 /**
+ * The values of the extension `name` set for one repository, as a JSON object by repository:
+ * `{}` for an extension that does not exist.
+ */
+export declare function extensionRepositorySettings(configDir: string, name: string): Promise<string>
+
+/**
  * The settings of the extension `name` for `repository`, or for every repository, as a JSON
  * object: `{}` for an extension that does not exist.
  */

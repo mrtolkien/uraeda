@@ -45,6 +45,16 @@ pub fn extension_settings(
     })
 }
 
+/// The values of the extension `name` set for one repository, as a JSON object by repository:
+/// `{}` for an extension that does not exist.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn extension_repository_settings(config_dir: String, name: String) -> AsyncTask<Job<String>> {
+    job(move || {
+        let json = extensions::repository_settings_json(Path::new(&config_dir), &name);
+        Ok(json)
+    })
+}
+
 /// Writes the repositories the extension `name` is on in: `"all"`, or their names, none turning it
 /// off.
 #[napi(

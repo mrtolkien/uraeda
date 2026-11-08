@@ -1107,7 +1107,7 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
     - `repositories(): ReadonlyArray<{ name: string; path: string }>` (the on ones);
     - `log(message: string): void` (to the server's output, prefixed with the name).
   - fate: `Extensions` =
-    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, api, icon, isBuiltIn, isLinked, source, onAll, on, state, problems: Array<{ file, line: number | null, message }>, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, valuesHere: string /* JSON, the endpoint's repository: task 12, R46 */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
+    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, api, icon, isBuiltIn, isLinked, source, onAll, on, state, problems: Array<{ file, line: number | null, message }>, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, valuesHere: string /* JSON, the endpoint's repository: task 12, R46 */, repositoryValues: string /* JSON by repository, each one's own values, global endpoint only: R40 */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
     `keys` is always empty from the server: the page fills in its clashes (task 9, R35); `docs` is
     `<checkout>/docs/extensions.md` until task 14 ships the documentation; `ExtensionRecord` =
     `{ id, value: string /* JSON */, error: string | null }` on each repository's fate server, live
@@ -1349,7 +1349,8 @@ git commit -m "feat(extensions-system): draw Uraeda's places from registries, as
   as one value per line) for every repository or one; above, a banner per problem: errors with file
   and line, the API message with no Update button (an agent updates it), "reloads when the turn of …
   ends", and each key clash "`y` is taken by Deploy". The `fake` built-in is listed only while it is
-  not off (R41); a form for one repository starts from the values for every repository (R40).
+  not off (R41); a form for one repository shows its own values over the shared ones, each clearable
+  (R40).
 
 - [x] **Step 1: Build the section from the story's components**
 

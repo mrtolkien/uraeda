@@ -1,7 +1,8 @@
 // An extension's settings, under its row, from its manifest's schema: for every repository or one,
 // picked first; then each setting, its name, its help, and its control: a switch, a whole number or
 // a line edited in place as the port is, or a list, one value per line, saved with Save or
-// Ctrl+Enter as the Vim commands are. The core checks and writes each value into `config.toml`.
+// Ctrl+Enter as the Vim commands are. For one repository, a value set there shows with what clears
+// it back to the shared one. The core checks and writes each value into `config.toml`.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Selector } from "@astryxdesign/core/Selector";
@@ -15,10 +16,13 @@ import { SaveKeys } from "../fields/SaveKeys.tsx";
 import { TextField } from "../fields/TextField.tsx";
 import { useTextField } from "../fields/useTextField.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
-import { type ExtensionRow, valuesOf } from "./extensions.ts";
+import { type ExtensionRow, ownValuesOf, valuesOf } from "./extensions.ts";
 import { useRefusal } from "./SettingRow.tsx";
 
-/** Sends a setting's value, as JSON, for a repository or every one (`null`). */
+/**
+ * Sends a setting's value, as JSON, for a repository or every one (`null`): JSON `null` removes
+ * it, so that the shared value, or the default, applies again.
+ */
 export type SetSetting = (
   name: string,
   repository: string | null,
@@ -62,9 +66,14 @@ function integerJson(spec: SettingSpec, text: string): { json: string } | { refu
     : { refused: `${spec.label} is a whole number.` };
 }
 
+/** The key of a setting's refusal: one per repository, as each has its own value. */
+const refusalKey = ({ extension, repository, spec }: ControlProps) =>
+  `extension:${extension}:${repository ?? EVERY}:${spec.key}`;
+
 /** A switch, saved at once. */
-function BoolControl({ extension, save, spec, value }: ControlProps) {
-  const [refused, setRefused] = useRefusal(`extension:${extension}:${spec.key}`);
+function BoolControl(props: ControlProps) {
+  const { save, spec, value } = props;
+  const [refused, setRefused] = useRefusal(refusalKey(props));
   return (
     <VStack gap={2}>
       <Switch
@@ -104,13 +113,14 @@ function LineControl({ extension, repository, save, spec, value }: ControlProps)
 }
 
 /** A list, one value per line, kept unsaved until Save or Ctrl+Enter. */
-function ListControl({ extension, repository, save, spec, value }: ControlProps) {
+function ListControl(props: ControlProps) {
+  const { extension, repository, save, spec, value } = props;
   const lines = Array.isArray(value) ? value.map(String) : [];
   const field = useTextField(
     `settings#extension-${extension}-${repository ?? EVERY}-${spec.key}`,
     lines.join("\n"),
   );
-  const [refused, setRefused] = useRefusal(`extension:${extension}:${spec.key}`);
+  const [refused, setRefused] = useRefusal(refusalKey(props));
   const [saving, setSaving] = useState(false);
   const submit = async () => {
     const text = field.text;
@@ -147,14 +157,38 @@ function ListControl({ extension, repository, save, spec, value }: ControlProps)
   );
 }
 
+/** What clears a value set for one repository, back to the one for every repository. */
+function OwnValue({ repository, save }: { repository: string; save: ControlProps["save"] }) {
+  const [refused, setRefused] = useState<string>();
+  return (
+    <VStack gap={1}>
+      <HStack align="center" gap={2}>
+        <Text color="secondary">Set for {repository} only.</Text>
+        <Button
+          label="Use the shared value"
+          onClick={async () => {
+            setRefused(undefined);
+            setRefused(await save("null"));
+          }}
+          size="sm"
+          variant="ghost"
+        />
+      </HStack>
+      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+    </VStack>
+  );
+}
+
 /** A setting: its name and help over its control, a switch's name its own label. */
-function SettingField(props: ControlProps) {
-  const { spec } = props;
+function SettingField(props: ControlProps & { isOwn: boolean }) {
+  const { isOwn, repository, save, spec } = props;
+  const own = isOwn && repository !== null && <OwnValue repository={repository} save={save} />;
   if (spec.kind === "bool") {
     return (
       <VStack gap={1}>
         <BoolControl {...props} />
         <Text color="secondary">{spec.help}</Text>
+        {own}
       </VStack>
     );
   }
@@ -165,14 +199,15 @@ function SettingField(props: ControlProps) {
         <Text color="secondary">{spec.help}</Text>
       </VStack>
       {spec.kind === "list" ? <ListControl {...props} /> : <LineControl {...props} />}
+      {own}
     </VStack>
   );
 }
 
 /**
- * An extension's settings: the repository they are for, every one first, then each setting. The
- * values shown are those for every repository, as the record carries no other (R40): a value
- * saved for one repository applies there, over them.
+ * An extension's settings: the repository they are for, every one first, then each setting. For
+ * one repository, the values shown are its own over those for every repository (R40), and each of
+ * its own can be cleared back to the shared one.
  */
 export function ExtensionForm({
   repositories,
@@ -185,7 +220,8 @@ export function ExtensionForm({
 }) {
   const [scope, setScope] = useState(EVERY);
   const repository = scope === EVERY ? null : scope;
-  const values = valuesOf(row);
+  const own = repository === null ? {} : ownValuesOf(row, repository);
+  const values = { ...valuesOf(row), ...own };
   return (
     <VStack gap={3}>
       <Selector
@@ -200,19 +236,24 @@ export function ExtensionForm({
       />
       {repository !== null && (
         <Text color="secondary">
-          Shows the values for every repository; a value saved here applies to {repository} only.
+          A value saved here applies to {repository} only, over the one for every repository.
         </Text>
       )}
-      {row.settings.map((spec) => (
-        <SettingField
-          extension={row.name}
-          key={`${scope}:${spec.key}`}
-          repository={repository}
-          save={(valueJson) => setSetting(row.name, repository, spec.key, valueJson)}
-          spec={spec}
-          value={valueOf(spec, values)}
-        />
-      ))}
+      {row.settings.map((spec) => {
+        const isOwn = spec.key in own;
+        return (
+          <SettingField
+            extension={row.name}
+            isOwn={isOwn}
+            // Drawn again as a value is set or cleared here: the field reads its value once.
+            key={`${scope}:${spec.key}:${isOwn}`}
+            repository={repository}
+            save={(valueJson) => setSetting(row.name, repository, spec.key, valueJson)}
+            spec={spec}
+            value={valueOf(spec, values)}
+          />
+        );
+      })}
     </VStack>
   );
 }
