@@ -5,9 +5,10 @@ proposal and the decisions. None binds future work: those are decisions.
 
 ## R1: The postponed feature's branch stays, as a dropped one's does
 
-- **Decision**: postponing never merges the branch. It removes the worktree, keeps the branch, and
-  the new proposal names the branch and its last commit, where the discovery, questions, and spec
-  stay readable with `git show`.
+- **Decision**: postponing never merges the branch. Its last commit removes the folder, so no tool
+  counts it as a feature, which `branch_feature` in `crates/core/src/workspace/branches.rs` would.
+  The worktree goes, the branch stays, and the new proposal names the commit before the last, where
+  the discovery, questions, and spec stay readable with `git show`.
 - **Rationale**: the proposal asks for a postponed feature to be only a proposal, so its folder,
   code, and decision edits no longer reach the default branch. Keeping the branch, as **Drop**
   already does, means nothing is lost, and the human deletes it when they choose.
