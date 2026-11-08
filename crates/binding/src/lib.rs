@@ -25,6 +25,7 @@ use uraeda_core::watch::{self, Changes};
 
 pub mod buffer;
 pub mod cache;
+pub mod compile;
 pub mod deferred;
 pub mod drafts;
 pub mod extensions;

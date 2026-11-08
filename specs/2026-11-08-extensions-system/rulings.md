@@ -98,3 +98,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: a built-in manifest's `icon` is the app's icon name, `uraeda:inbox`, as the Settings
   mockup's rows use, and it has no `version`: its version is Uraeda's.
 - **Where**: task 2, `crates/core/extensions/`.
+
+## R12: oxc is pinned at 0.152.0, the last release that builds with Rust 1.96
+
+- **Decision**: every oxc crate is pinned at `=0.152.0` in the workspace's dependencies. The binding
+  measured, release build on x86_64 Linux: 8,512,296 bytes before the compiler, 9,841,992 after,
+  1,329,696 bytes more (+15.6%).
+- **Rationale**: oxc 0.153 and later need Rust 1.97, and the toolchain is 1.96; oxc's crates release
+  together, so one exact version keeps them in step.
+- **If wrong**: raise the pin with the toolchain; the compiler's tests pin its output.
+- **Where**: task 3, `Cargo.toml`.
+
+## R13: Every export is a getter defined first, and `export *` adds getters
+
+- **Decision**: `export default function f` and `export default class C` keep their declaration and
+  get a getter, like named exports; only `export default <expression>` assigns `__exports.default`.
+  `export * from "x"` defines a getter per key of `x`, except `default` and the names the module
+  exports itself, instead of copying the values. `imports` lists each module once, at its first
+  import. A file whose extension is not a script's is refused.
+- **Rationale**: getters read the current value, like an ES module, so a function declared below its
+  export or a re-exported module still loading reads right; listing a module once is all the loader
+  needs to compile it.
+- **Where**: task 3, `crates/compile/src/modules.rs`.
+
+## R14: `rust:features` also refuses oxc in `ura`
+
+- **Decision**: the `rust:features` task fails when `uraeda-cli` pulls in an `oxc` crate, besides
+  `napi`.
+- **Rationale**: the plan says the task confirms it; it only checked `napi`.
+- **Where**: task 3, `vite.tasks.ts`.
