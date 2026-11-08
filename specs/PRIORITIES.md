@@ -6,7 +6,7 @@
 >
 > Required for personal usage
 
-- [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
+- [Default theme based on terminal colors like pi agent! I really like their idea.](/specs/changes/2026-11-08-default-theme/proposal.md)
 
 - Codex runtime + model settings
 - Spec comments: suggestion vs change needed
