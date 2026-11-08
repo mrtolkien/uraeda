@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 03: Extensions system
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 3 questions, about 10 minutes.
+> Answered on 2026-11-08.
 >
 > - Verdict: worth building, with changes: WASM workflows and "Uraeda builds them" fit together only
 >   if workflows are TypeScript run in a JavaScript engine inside WASM.
@@ -91,7 +91,7 @@ Why it matters: it decides what an author installs, and how big `ura` gets.
   - [pro] the smallest, at 1.3 MB.
   - [con] the engine had sandbox-breaking flaws in 2026, which would reach `ura` itself.
 
-**Answer:**
+**Answer:** B
 
 ## Q2: Where does a project's workflow load from?
 
@@ -117,7 +117,7 @@ repository can run.
   - [pro] one rule for every extension.
   - [con] a clone without it cannot read its own steps, against the constitution.
 
-**Answer:**
+**Answer:** B
 
 ## Q3: How are features and changes built as workflows?
 
@@ -140,6 +140,26 @@ Why it matters: it trades speed against proof that the interface suffices.
   - [pro] the built-ins prove the path every day.
   - [con] slower, and the core's step logic is rewritten.
 
-**Answer:**
+**Answer:** A
 
-**Notes:**
+**Notes:** Sorry, I know this is messy...
+
+But let's DROP workflows extensions from this feature. Put it in "later"
+
+We'll continue being focused on the uraeda flow.
+
+The extensions will ONLY be server-side, nothing in the repo.
+
+And the extensions can touch:
+
+- The server for data fetching or agent driving
+- The client for a new UI
+
+The example extensions are:
+
+- Claude Code
+- Codex (will add it when extensions are ready)
+- A pi-durable based runtime
+- A "deploy" tab that fetches and caches data from a remote, and shows it in the UI, with the same
+  look and feel as the rest of the app. Accessible with the leader menu.
+- A "wiki" tab that lets the user navigate the "docs" folder like a wiki (just an example)
