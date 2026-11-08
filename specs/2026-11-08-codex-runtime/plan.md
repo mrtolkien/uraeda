@@ -821,7 +821,8 @@ What the process does:
   error, "Uraeda does not answer <method>", at once.
 - `hasSession(id)` looks for `<codexHome>/sessions/**/rollout-*-<id>.jsonl`; `version()` runs
   `codex --version`; `models()` runs a short app-server, `model/list` (every page) and
-  `config/read`, 10 seconds at most.
+  `config/read`, 10 seconds at most, its group then sent SIGTERM, and SIGKILL 5 seconds later
+  (`MODELS_KILL_AFTER_MS`) if it still runs, as Claude Code's.
 
 - [x] **Step 1: Write the failing tests**
 

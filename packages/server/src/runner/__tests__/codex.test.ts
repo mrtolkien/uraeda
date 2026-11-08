@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
 import {
@@ -9,8 +9,21 @@ import {
   codexModels,
   codexThreadParams,
   codexTurnParams,
+  MODELS_KILL_AFTER_MS,
+  MODELS_TIMEOUT_MS,
 } from "../codex.ts";
-import { APPLIED, appServer, CONFIG, message, PAGES, until, written } from "./codex-stand-in.ts";
+import {
+  alive,
+  APPLIED,
+  appServer,
+  CONFIG,
+  gone,
+  message,
+  PAGES,
+  standInPid,
+  until,
+  written,
+} from "./codex-stand-in.ts";
 
 const open: OpenOptions = { cwd: "/w", nativeId: "id", resume: false, skills: [] };
 const turn = { images: [], text: "Hi", threadId: "t" };
@@ -293,3 +306,34 @@ test("a process closed while its thread fails to start ends", async () => {
   // Closed already, it reports no problem: it ends.
   expect(await until(events, "exit")).toMatchObject([{ code: 0, type: "exit" }]);
 }, 5000);
+
+test.each([
+  ["answers", undefined],
+  ["times out", "model/list"],
+])(
+  "models() kills its short process when it %s, even one that ignores SIGTERM",
+  async (_, hang) => {
+    const dir = temporaryFolder("uraeda-codex");
+    const adapter = new CodexAdapter({
+      command: appServer(dir, { stubborn: true, ...(hang ? { hang } : {}) }),
+      pluginDir: "/p",
+    });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const listed = adapter.models();
+      const pid = await standInPid(dir);
+      if (hang === undefined) {
+        expect((await listed).models).not.toEqual([]);
+      } else {
+        const rejected = expect(listed).rejects.toThrow("Codex did not list its models within");
+        vi.advanceTimersByTime(MODELS_TIMEOUT_MS);
+        await rejected;
+      }
+      expect(alive(pid)).toBe(true);
+      vi.advanceTimersByTime(MODELS_KILL_AFTER_MS);
+      await gone(pid);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
