@@ -319,7 +319,14 @@ export class Loader {
     const problems = extension.problems.map(problemOf);
     const api = this.#options.binding.extensionApi();
     if (extension.problems.some((problem) => problem.isFatal)) {
-      this.#unwatch(entry);
+      // Its folder stays watched while it has one, or a fix of its manifest goes unseen: the
+      // extensions folder's watch sees its entries, not the files inside them. A folder gone, or
+      // never one, is the extensions folder's watch to see.
+      if (extension.folder === "") {
+        this.#unwatch(entry);
+      } else {
+        this.#watchFolder(entry, extension, entry.files);
+      }
       this.#stop(entry);
       this.#set(entry, extension, "broken", problems);
       return;
