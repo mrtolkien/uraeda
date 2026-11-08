@@ -21,6 +21,14 @@
 >
 > Features for public release
 
+- Codex runtime + model settings
+- Cooler home view: logo, progress, gauges, ...
+  - Needs more features/extensions
+- Dedicated docs website
+  - Explain the concepts and the controls
+  - Make sure docs stay up-to-date with agents instructions
+  - Needs multiple agents and full features
+- Video intro: show core features, look and feel, ...
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
   - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
@@ -33,21 +41,13 @@
   repos and not in a monorepo
   - Cross repo notes would be nice!
 
-- Codex runtime + model settings
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
-
-- Cooler home view: logo, progress, gauges, ...
-  - Needs more features/extensions
-
-- Dedicated docs website
-  - Explain the concepts and the controls
-  - Make sure docs stay up-to-date with agents instructions
-  - Needs multiple agents and full features
+  - Model settings -> allow for local models and Synthetic, at least
 
 - Agents fix merge conflicts on open pull requests on their own, after Worker lifecycle
 
-- [Nix / Docker based execution environments](/specs/proposals/nix-docker/proposal.md)
+- [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
 
 ## Later
 
