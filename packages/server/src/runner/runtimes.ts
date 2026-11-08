@@ -47,14 +47,29 @@ export class Runtimes {
   #last = new Map<string, RuntimeStatus>();
 
   readonly #title: (name: string) => string | undefined;
+  readonly #skills: (root: string) => ReadonlyArray<string>;
 
-  /** `title` names a runtime in refusals, its extension's title: the name itself by default. */
+  /**
+   * `title` names a runtime in refusals, its extension's title: the name itself by default.
+   * `skills` gives the skill folders of the extensions on in a main checkout: none by default.
+   */
   constructor({
     isOn = () => true,
+    skills = () => [],
     title = () => undefined,
-  }: { isOn?: IsOn; title?: (name: string) => string | undefined } = {}) {
+  }: {
+    isOn?: IsOn;
+    skills?: (root: string) => ReadonlyArray<string>;
+    title?: (name: string) => string | undefined;
+  } = {}) {
     this.isOn = isOn;
+    this.#skills = skills;
     this.#title = title;
+  }
+
+  /** The skill folders a session opening in the main checkout `root` gets, beside Uraeda's. */
+  skills(root: string): ReadonlyArray<string> {
+    return this.#skills(root);
   }
 
   /** The runtime's name for people in refusals, registered or not. */

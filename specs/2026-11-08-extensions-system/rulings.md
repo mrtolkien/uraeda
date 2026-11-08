@@ -362,3 +362,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: the `Extensions` record's `keys` is an empty list from the server: keys are
   registered in the page, which knows which extension took a key first (task 9).
 - **Where**: task 8, `packages/server/src/fate/extensions.ts`.
+
+## R36: Skills pass through the extensions folder, and the instructions keep their constant
+
+- **Decision**: `skillsFor(repository)` gives `<extensions folder>/<name>/skills` for each extension
+  of yours on in the repository, built for this API, without a fatal problem, whose folder has
+  `skills/`; `Runtimes.skills(root)` maps a main checkout to it, as `isOn` does (R19), and the
+  session manager passes it as `OpenOptions.skills`.
+  `claudeArgs(options, pluginDir, imagesDir, extensions?)` takes `{ folder, docs, plugins }` and
+  stays pure: `extensionPlugins(skills, plugins)` makes the plugin folders as the process opens.
+  `webUiInstructions(paths?)` builds the instructions; `WEB_UI_INSTRUCTIONS` stays, without the
+  section on extensions, for the scripts and benchmarks that run Claude Code outside the server,
+  which give no `extensions`.
+- **Rationale**: a linked extension's folder resolves to a path whose last folder need not be its
+  name, so the path through the extensions folder names the plugin; an extension turned off for
+  another API version must not reach the agent either; a pure `claudeArgs` keeps the arguments'
+  tests free of the file system.
+- **Where**: task 11, `packages/server/src/runner/claude.ts`, `runner/instructions.ts`,
+  `runner/runtimes.ts`, `extensions/server.ts`.

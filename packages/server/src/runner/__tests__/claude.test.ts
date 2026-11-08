@@ -1,14 +1,21 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
-import { ClaudeAdapter, claudeArgs } from "../claude.ts";
+import { ClaudeAdapter, claudeArgs, extensionPlugins } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
-import { WEB_UI_INSTRUCTIONS } from "../instructions.ts";
+import { WEB_UI_INSTRUCTIONS, webUiInstructions } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
@@ -78,6 +85,60 @@ test("SC-006: a new session's arguments", () => {
     "--session-id",
     "id",
   ]);
+});
+
+test("claudeArgs lets the agent write extensions, and passes their skills", () => {
+  const config = temporaryFolder("uraeda-config");
+  const skills = join(config, "extensions", "docs-ext", "skills");
+  mkdirSync(join(skills, "astryx-docs"), { recursive: true });
+  const plugins = join(temporaryFolder("uraeda-data"), "extension-plugins");
+  const extensions = {
+    docs: "/u/docs/extensions.md",
+    folder: join(config, "extensions"),
+    plugins,
+  };
+  const options = { ...open, resume: false, skills: [skills] };
+
+  const folders = extensionPlugins(options.skills, plugins);
+  const args = claudeArgs(options, "/plugin", "/data/images", extensions);
+
+  expect(folders).toEqual([join(plugins, "docs-ext")]);
+  expect(realpathSync(join(folders[0], "skills"))).toBe(realpathSync(skills));
+  expect(
+    JSON.parse(readFileSync(join(folders[0], ".claude-plugin", "plugin.json"), "utf8")),
+  ).toEqual({ name: "docs-ext" });
+  // Uraeda's own plugin first, then each extension's.
+  const pluginDirs = args.flatMap((arg, at) => (arg === "--plugin-dir" ? [args[at + 1]] : []));
+  expect(pluginDirs).toEqual(["/plugin", join(plugins, "docs-ext")]);
+  const addDirs = args.flatMap((arg, at) => (arg === "--add-dir" ? [args[at + 1]] : []));
+  expect(addDirs).toEqual(["/data/images", join(config, "extensions")]);
+  const instructions = args[args.indexOf("--append-system-prompt") + 1];
+  expect(instructions).toBe(webUiInstructions(extensions));
+  expect(instructions).toContain("# Extensions");
+  expect(instructions).toContain(`\`${join(config, "extensions")}\``);
+  expect(instructions).toContain("`/u/docs/extensions.md`");
+  expect(instructions).toContain("`ura extension add <folder> --here`");
+});
+
+test("an extension's plugin folder is made again as its skills move", () => {
+  const plugins = join(temporaryFolder("uraeda-data"), "extension-plugins");
+  const first = join(temporaryFolder("uraeda-config"), "extensions", "docs-ext", "skills");
+  const second = join(temporaryFolder("uraeda-config"), "extensions", "docs-ext", "skills");
+  mkdirSync(first, { recursive: true });
+  mkdirSync(second, { recursive: true });
+
+  extensionPlugins([first], plugins);
+  extensionPlugins([first], plugins);
+  const [folder] = extensionPlugins([second], plugins);
+
+  expect(realpathSync(join(folder, "skills"))).toBe(realpathSync(second));
+});
+
+test("without extensions, no folder is added and no skill passed", () => {
+  const args = claudeArgs({ ...open, resume: false }, "/plugin", "/data/images");
+
+  expect(args.filter((arg) => arg === "--plugin-dir" || arg === "--add-dir")).toHaveLength(2);
+  expect(args[args.indexOf("--append-system-prompt") + 1]).not.toContain("# Extensions");
 });
 
 test("a resumed session gets the web UI's instructions again", () => {

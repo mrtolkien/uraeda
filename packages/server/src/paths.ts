@@ -1,5 +1,6 @@
-// The one home of where the server finds its plugin, its web UI, its StyleX tokens, and its
-// checkout (the distribution decision): no other module builds these paths.
+// The one home of where the server finds its plugin, its extensions' documentation, its web UI,
+// its StyleX tokens, and its checkout (the distribution decision): no other module builds these
+// paths.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +9,11 @@ import { fileURLToPath } from "node:url";
 export type Layout = {
   /** The checkout's root, for its `.env` and the binding's freshness check; null in the package. */
   checkout: string | null;
+  /**
+   * The documentation of the extension API, which sessions are told to read: `docs/extensions.md`
+   * of the checkout, or of the package, which ships it.
+   */
+  docs: string;
   /** `package` from the bundle, `checkout` from the server's sources. */
   kind: "checkout" | "package";
   /** The folder passed to `claude --plugin-dir`: `.claude-plugin/plugin.json` and `skills/uraeda/`. */
@@ -38,6 +44,7 @@ export function layout(packaged: boolean = PACKAGED, moduleUrl: string = import.
   if (packaged) {
     return {
       checkout: null,
+      docs: path("../docs/extensions.md"),
       kind: "package",
       plugin: path("../plugin"),
       stylexTokens: path("./stylex/tokens.stylex.js"),
@@ -46,6 +53,7 @@ export function layout(packaged: boolean = PACKAGED, moduleUrl: string = import.
   }
   return {
     checkout: path("../../.."),
+    docs: path("../../../docs/extensions.md"),
     kind: "checkout",
     plugin: path("../plugin"),
     stylexTokens: path("../node_modules/@astryxdesign/core/dist/theme/tokens.stylex.js"),

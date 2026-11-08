@@ -8,6 +8,7 @@ test.each([
   {
     expected: {
       checkout: "/work/uraeda",
+      docs: "/work/uraeda/docs/extensions.md",
       kind: "checkout",
       plugin: "/work/uraeda/packages/server/plugin",
       stylexTokens:
@@ -21,6 +22,7 @@ test.each([
   {
     expected: {
       checkout: null,
+      docs: "/home/ana/.npm/_npx/1a/node_modules/uraeda/docs/extensions.md",
       kind: "package",
       plugin: "/home/ana/.npm/_npx/1a/node_modules/uraeda/plugin",
       stylexTokens: "/home/ana/.npm/_npx/1a/node_modules/uraeda/dist/stylex/tokens.stylex.js",

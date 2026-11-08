@@ -2,6 +2,7 @@
 // Code's runtime, the fake agent's for tests and the sandbox, and the Storybook warmer of previews.
 // The inbox, priorities, decisions, git, and notifications have no server part: their data stays
 // in Uraeda's static fate views (R5).
+import { join } from "node:path";
 import { chatImages } from "../attach.ts";
 import type { ServerApi } from "../extension-api.ts";
 import { layout } from "../paths.ts";
@@ -21,6 +22,8 @@ export type BuiltInDeps = {
    */
   agents?: Record<string, Adapter>;
   dataDir: string;
+  /** Your extensions folder, absolute, where sessions write extensions. */
+  extensionsDir: string;
   /** Starts the Storybook of a repository's feature, by the repository's name. */
   warm: (repository: string, folder: string) => void;
 };
@@ -36,11 +39,16 @@ function claudeCommand(api: ServerApi): string {
 
 /** Each built-in's server part, by its name. */
 export const BUILT_IN_SERVER: Record<string, (api: ServerApi, deps: BuiltInDeps) => void> = {
-  claude: (api, { agents, dataDir }) => {
+  claude: (api, { agents, dataDir, extensionsDir }) => {
     const adapter = agents
       ? agents.claude
       : new ClaudeAdapter({
           command: claudeCommand(api),
+          extensions: {
+            docs: layout().docs,
+            folder: extensionsDir,
+            plugins: join(dataDir, "extension-plugins"),
+          },
           imagesDir: chatImages(dataDir).dir,
           pluginDir: layout().plugin,
         });
@@ -146,6 +154,7 @@ export class BuiltIns {
       register(serverApi(scope, this.#options.registry), {
         agents: this.#options.agents,
         dataDir: this.#options.dataDir,
+        extensionsDir: this.#options.extensionsDir,
         warm: (repository, folder) => this.#options.warm()(repository, folder),
       });
       entry.scope = scope;
