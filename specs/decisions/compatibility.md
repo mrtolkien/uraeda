@@ -31,7 +31,7 @@ Code reading old formats would grow with each change, while an agent rewrites an
 seconds. An agent meeting an old file fixes it, rather than working around it. A changelog entry
 tells other people's repositories what their agent will rewrite. The owner's extensions are few, and
 an agent updates them faster than Uraeda could keep old APIs. History:
-[Extensions system](../2026-11-08-extensions-system/spec.md).
+[Extensions system](../done/2026-11-08-extensions-system.md).
 
 ## Alternatives considered
 
