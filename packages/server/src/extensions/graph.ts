@@ -47,6 +47,12 @@ export type PageFiles = {
 /** A version's compiled files: its server graph, and its page's. */
 export type Version = { page?: PageFiles; server?: Graph };
 
+/**
+ * Why files do not compile: their problems, and the paths, relative to the folder, a relative
+ * import was looked for at and not found, whose making may fix them.
+ */
+export type Failure = { missing: Array<string>; problems: Array<Problem> };
+
 /** What compiling one file gives: its code, imports, and CSS, or why it does not compile. */
 export type Compiled =
   | { code: string; css: string; imports: ReadonlyArray<string> }
@@ -100,7 +106,12 @@ function realpathOr(path: string): string {
  * written when it ends in `.ts` or `.tsx`, else with each of `ENDINGS`. A file out of the folder,
  * once its links are resolved, is refused.
  */
-function resolveFile(folder: string, from: string, specifier: string): Target | string {
+function resolveFile(
+  folder: string,
+  from: string,
+  specifier: string,
+  missing: Array<string>,
+): Target | string {
   const base = resolve(dirname(from), specifier);
   const leaves = `"${specifier}" leaves the extension's folder`;
   if (inside(folder, base) === null && base !== folder) {
@@ -112,14 +123,23 @@ function resolveFile(folder: string, from: string, specifier: string): Target | 
     const file = inside(folder, realpathSync(found));
     return file === null ? leaves : { file };
   }
+  missing.push(...candidates.flatMap((candidate) => inside(folder, candidate) ?? []));
   const tried = /\.tsx?$/.test(specifier) ? "" : `, with .ts, .tsx, /index.ts, or /index.tsx`;
   return `"${specifier}" is not a file of the extension${tried}`;
 }
 
-/** Where the import `specifier` of the file `from` leads, or why it cannot be imported. */
-function target(options: GraphOptions, from: string, specifier: string): Target | string {
+/**
+ * Where the import `specifier` of the file `from` leads, or why it cannot be imported; a relative
+ * one not found adds the paths it was looked for at to `missing`.
+ */
+function target(
+  options: GraphOptions,
+  from: string,
+  specifier: string,
+  missing: Array<string>,
+): Target | string {
   if (specifier.startsWith("./") || specifier.startsWith("../")) {
-    return resolveFile(options.folder, from, specifier);
+    return resolveFile(options.folder, from, specifier, missing);
   }
   if (specifier.startsWith("/") || specifier === "." || specifier === "..") {
     return `"${specifier}" is not a relative path, like "./lib/view"`;
@@ -131,10 +151,15 @@ function target(options: GraphOptions, from: string, specifier: string): Target 
 const MOST_BYTES = 2 * 1024 * 1024;
 
 /**
- * Reads and compiles the file `file` of the folder, its imports resolved, or its problems: a file
- * over `MOST_BYTES` is refused unread.
+ * Reads and compiles the file `file` of the folder, its imports resolved, or its problems, the
+ * paths its imports were looked for at added to `missing`: a file over `MOST_BYTES` is refused
+ * unread.
  */
-function compileFile(options: GraphOptions, file: string): GraphFile | Array<Problem> {
+function compileFile(
+  options: GraphOptions,
+  file: string,
+  missing: Array<string>,
+): GraphFile | Array<Problem> {
   const path = join(options.folder, file);
   let source: string;
   try {
@@ -152,7 +177,7 @@ function compileFile(options: GraphOptions, file: string): GraphFile | Array<Pro
   const problems: Array<Problem> = [];
   const resolved = new Map<string, Target>();
   for (const specifier of compiled.imports) {
-    const found = target(options, path, specifier);
+    const found = target(options, path, specifier, missing);
     if (typeof found === "string") {
       problems.push({ file, message: found });
     } else {
@@ -164,21 +189,21 @@ function compileFile(options: GraphOptions, file: string): GraphFile | Array<Pro
 
 /**
  * Compiles the entry and every file it imports, each once: the graph, or every problem found in
- * any of its files.
+ * any of its files, and the paths imports were looked for at and not found.
  */
-export function compileGraph(
-  options: GraphOptions,
-): { graph: Graph } | { problems: Array<Problem> } {
+export function compileGraph(options: GraphOptions): { graph: Graph } | Failure {
   const entry = inside(options.folder, realpathOr(options.entry));
   if (entry === null) {
-    return { problems: [{ file: "", message: `${options.entry} leaves the extension's folder` }] };
+    const message = `${options.entry} leaves the extension's folder`;
+    return { missing: [], problems: [{ file: "", message }] };
   }
   const files = new Map<string, GraphFile>();
   const problems: Array<Problem> = [];
+  const missing: Array<string> = [];
   const queue = [entry];
   const seen = new Set(queue);
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    const compiled = compileFile(options, next);
+    const compiled = compileFile(options, next, missing);
     if (Array.isArray(compiled)) {
       problems.push(...compiled);
       continue;
@@ -191,7 +216,9 @@ export function compileGraph(
       }
     }
   }
-  return problems.length > 0 ? { problems } : { graph: { entry, files, folder: options.folder } };
+  return problems.length > 0
+    ? { missing, problems }
+    : { graph: { entry, files, folder: options.folder } };
 }
 
 /** The compiler's result as `compileGraph` takes it, with the CSS `css`. */
@@ -226,13 +253,15 @@ function refuseOnPage(specifier: string): string | null {
 
 /**
  * Compiles the extension's server entry and its page entry, each with the files it imports: page
- * files through StyleX and React Compiler first. Gives the version, or every problem of both.
+ * files through StyleX and React Compiler first. Gives the version, or every problem of both and
+ * the paths their imports were looked for at and not found.
  */
 export function compileVersion(
   extension: { folder: string; page?: string; server?: string },
   { compileModule, compilePage, shared }: VersionOptions,
-): Version | { problems: Array<Problem> } {
+): Version | Failure {
   const problems: Array<Problem> = [];
+  const missing: Array<string> = [];
   const version: Version = {};
   const { folder } = extension;
   if (extension.server) {
@@ -244,6 +273,7 @@ export function compileVersion(
     });
     if ("problems" in result) {
       problems.push(...result.problems);
+      missing.push(...result.missing);
     } else {
       version.server = result.graph;
     }
@@ -256,6 +286,7 @@ export function compileVersion(
     const result = compileGraph({ compile, entry: extension.page, folder, refuse: refuseOnPage });
     if ("problems" in result) {
       problems.push(...result.problems);
+      missing.push(...result.missing);
     } else {
       const { entry, files } = result.graph;
       const modules = Object.fromEntries([...files].map(([file, { code }]) => [file, code]));
@@ -273,5 +304,5 @@ export function compileVersion(
       version.page = { css: css.join("\n"), entry, imports, modules };
     }
   }
-  return problems.length > 0 ? { problems } : version;
+  return problems.length > 0 ? { missing, problems } : version;
 }

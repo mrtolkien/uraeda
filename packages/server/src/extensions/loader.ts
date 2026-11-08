@@ -352,8 +352,8 @@ export class Loader {
       shared,
     });
     if ("problems" in compiled) {
-      // The working version's files and the files at fault, so a fix of either reloads.
-      const faulty = compiled.problems.map((problem) => problem.file);
+      // The working version's files, the files at fault, and those imports looked for: a fix reloads.
+      const faulty = [...compiled.problems.map((problem) => problem.file), ...compiled.missing];
       this.#watchFolder(entry, extension, [...entry.files, ...faulty]);
       const state = entry.scope?.isLive() ? "on" : "broken";
       this.#set(entry, extension, state, [...problems, ...compiled.problems]);

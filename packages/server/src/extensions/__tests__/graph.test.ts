@@ -75,8 +75,28 @@ test("an entry that links out of the folder is refused", () => {
     { compileModule, compilePage: identityPage, shared: {} },
   );
   expect(compiled).toEqual({
+    missing: [],
     problems: [{ file: "", message: `${join(folder, "server.ts")} leaves the extension's folder` }],
   });
+});
+
+test("an import not found gives the paths it was looked for at", () => {
+  const folder = temporaryFolder("wiki");
+  writeFiles(folder, {
+    "lib/other.ts": `export const other = 1;\n`,
+    "server.ts": `import { v } from "./lib/v";\nimport { w } from "./w.ts";\nexport default function activate() {\n  return [v, w];\n}\n`,
+  });
+  const compiled = compileVersion(
+    { folder, server: join(folder, "server.ts") },
+    { compileModule, compilePage: identityPage, shared: {} },
+  );
+  expect("missing" in compiled && compiled.missing).toEqual([
+    "lib/v.ts",
+    "lib/v.tsx",
+    "lib/v/index.ts",
+    "lib/v/index.tsx",
+    "w.ts",
+  ]);
 });
 
 // Break: the page's imports keyed by the specifier only, which the page runtime resolved against
