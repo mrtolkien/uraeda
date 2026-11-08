@@ -36,6 +36,12 @@ An agent's session may write your extensions folder, as it may any file you can 
 write code the server runs as you, on its next save, in every repository the extension is on in,
 with no review step between. Read a session's changes to your extensions before relying on them.
 
+A folder written straight into the extensions folder, with no `[extensions.<name>]` table in
+`config.toml`, is on in every repository from its first saved file. So a session writing an
+extension creates its folder with its `extension.toml` first, runs
+`ura extension add <folder> --here` to turn it on in its repository alone, and only then writes its
+code. Uraeda's instructions to the agent say so.
+
 ## A first extension
 
 [`examples/extensions/wiki/`](https://github.com/mrtolkien/uraeda/tree/main/examples/extensions/wiki)
@@ -428,10 +434,12 @@ ura extension list --json                                # every extension, the 
 
 `add` takes a folder, which it links as `extensions/<name>`, or a git URL, which it clones and
 checks out at its default branch's commit, writing `.ura-source` with the URL, the commit, and the
-branch. A URL without a scheme is cloned over `https://`. It refuses a built-in extension's name,
-`uraeda` and `sessions`, which Uraeda keeps, one installed already, and a manifest with a fatal
-problem. Without a terminal, give `--all`, `--here`, or `--repo <name>`, repeated for more. `update`
-refuses a linked extension: edit its folder instead. See
+branch. A URL without a scheme is cloned over `https://`. Given a folder already in `extensions/`,
+or an installed extension's name, it only turns it on: in the repositories given, besides the ones
+it is on in already, or everywhere with `--all`. It refuses a built-in extension's name, `uraeda`
+and `sessions`, which Uraeda keeps, one installed already from another folder or URL, and a manifest
+with a fatal problem. Without a terminal, give `--all`, `--here`, or `--repo <name>`, repeated for
+more. `update` refuses a linked extension: edit its folder instead. See
 [the CLI's page](https://github.com/mrtolkien/uraeda/blob/main/docs/cli.md) for the rest.
 
 ## Changing a part of Uraeda

@@ -323,6 +323,56 @@ fn add_without_a_terminal_needs_where() {
     assert_eq!(outside.code, 1);
 }
 
+// Break: `add` writing the repositories given, as before, which took the extension off in the
+// first repository.
+#[test]
+fn add_on_an_installed_extension_adds_repositories() {
+    let folders = Folders::new();
+    let repos = [TestRepo::named("uraeda"), TestRepo::named("other")];
+    for repo in &repos {
+        let data = folders.data.path().to_str().unwrap();
+        let listed = ura_in(repo.path(), &["add"], &[("URAEDA_DATA_DIR", data)]);
+        assert_eq!(listed.code, 0, "{}", listed.stderr);
+    }
+    // Written straight into the extensions folder, with no table: on everywhere.
+    let wiki = folders.extension("wiki");
+    fs::create_dir_all(&wiki).unwrap();
+    fs::write(wiki.join("extension.toml"), manifest("wiki", "Wiki")).unwrap();
+    let wiki_path = wiki.to_str().unwrap();
+
+    let first = folders.ura(repos[0].path(), &["add", wiki_path, "--here"]);
+    assert_eq!(
+        first.stdout, "Turned Wiki on for: uraeda\n",
+        "{}",
+        first.stderr
+    );
+    let second = folders.ura(repos[1].path(), &["add", wiki_path, "--here"]);
+    assert_eq!(
+        second.stdout, "Turned Wiki on for: uraeda, other\n",
+        "{}",
+        second.stderr
+    );
+    assert_eq!(
+        folders.settings(),
+        "[extensions.wiki]\non = [\"uraeda\", \"other\"]\n"
+    );
+
+    // By its name too.
+    let all = folders.ura(repos[1].path(), &["add", "wiki", "--all"]);
+    assert_eq!(
+        all.stdout, "Turned Wiki on for: every repository\n",
+        "{}",
+        all.stderr
+    );
+    let again = folders.ura(repos[0].path(), &["add", wiki_path, "--here"]);
+    assert_eq!(
+        again.stdout, "Turned Wiki on for: every repository\n",
+        "{}",
+        again.stderr
+    );
+    assert_eq!(folders.settings(), "[extensions.wiki]\non = \"all\"\n");
+}
+
 #[test]
 fn a_linked_folder_is_never_fetched_whatever_it_holds() {
     let folders = Folders::new();

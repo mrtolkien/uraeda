@@ -710,3 +710,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: final review's fix pass, `packages/web/src/Blocks.tsx`, `AgentStories.tsx`,
   `extensions/routes.tsx`, `extensions/builtins/previews.tsx`,
   `crates/core/extensions/previews.toml`.
+
+## R64: `ura extension add` on an installed extension adds repositories
+
+- **Decision**: given a folder already in the extensions folder, or an installed extension's name,
+  `add` turns it on in the repositories given besides the ones its `on` lists
+  (`extensions::add_on`); `--all` turns it on everywhere, and one written on everywhere stays so.
+  One with no `on` written, on everywhere by default, is on in the repositories given alone. A
+  session writing an extension creates its folder and manifest, runs `add <folder> --here`, then
+  writes its code, as the agent's instructions and `docs/extensions.md` say.
+- **Rationale**: `add --here` in a second repository took the extension off in the first; and a
+  folder written straight in is on everywhere from its first saved file, before any `add`.
+- **Where**: final review's fix pass, `crates/core/src/extensions/write.rs`, `install.rs`,
+  `crates/cli/src/extension/add.rs`, `packages/server/src/runner/instructions.ts`, `docs/`.
+
+## R65: The instructions without extensions are built, not kept
+
+- **Decision**: `WEB_UI_INSTRUCTIONS` is gone; the tests call `webUiInstructions()`, amending R36.
+- **Rationale**: no script or benchmark ran Claude Code with it: only tests read it.
+- **Where**: final review's fix pass, `packages/server/src/runner/instructions.ts`.
