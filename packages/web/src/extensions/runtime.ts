@@ -204,8 +204,8 @@ export function syncPages(rows: ReadonlyArray<PageRow>, deps: PageDeps): void {
   for (const [name, row] of withPage) {
     const page = pages.get(name);
     const version = row.pageVersion!;
-    // Any other version is fetched, an older one too: versions start again at 1 after the
-    // server restarts, or the extension is removed and added again.
+    // Any other version is fetched, a smaller one too: the server gives each page version once,
+    // across its restarts, so a different number is always different code.
     if (page?.wanted === version) {
       continue;
     }

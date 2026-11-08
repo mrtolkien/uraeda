@@ -932,7 +932,9 @@ git commit -m "feat(extensions-system): compile extension pages with StyleX and 
   - `class Scope`: `name`, `isLive()`, `add(undo: () => void)`, `check()` (throws
     `Error("<name>: this version of the extension was unloaded")` once unloaded), `onUnload(fn)`.
   - `PageBundle = { version: number; modules: Record<string, string>; entry: string; css: string }`
-    (relative paths as keys, `/` between parts, the entry first): page files compiled through
+    (relative paths as keys, `/` between parts, the entry first; `version` unique in the process and
+    across server starts, counted from the start's time,
+    [R66](rulings.md#r66-a-pages-version-is-never-given-twice)): page files compiled through
     `compilePage` then `compileModule`, the CSS of each file joined by a line break. A module's
     relative imports keep their text: the page runtime resolves them against the keys with the same
     rule (`.ts`, `.tsx`, `/index.ts`, `/index.tsx`).

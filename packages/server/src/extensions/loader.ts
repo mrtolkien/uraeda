@@ -18,6 +18,12 @@ export type { PageCompiler, Problem } from "./graph.ts";
 /** How long the loader waits for a quiet moment after a change before it reads again. */
 const RELOAD_QUIET_MS = 50;
 
+/**
+ * The last page version any loader gave, counted from the process's start time, so a server
+ * started again never gives a version a tab still holding an earlier page's code has.
+ */
+let lastPageVersion = Date.now() * 1000;
+
 /** What `Loader.open` takes. */
 export type LoaderOptions = {
   /** The server API one version of an extension gets, scoped to it. */
@@ -49,6 +55,7 @@ export type PageBundle = {
   entry: string;
   imports: Record<string, Record<string, string>>;
   modules: Record<string, string>;
+  /** The page's identity: unique to this version, across extensions and server starts. */
   version: number;
 };
 
@@ -319,9 +326,8 @@ export class Loader {
     const problems = extension.problems.map(problemOf);
     const api = this.#options.binding.extensionApi();
     if (extension.problems.some((problem) => problem.isFatal)) {
-      // Its folder stays watched while it has one, or a fix of its manifest goes unseen: the
-      // extensions folder's watch sees its entries, not the files inside them. A folder gone, or
-      // never one, is the extensions folder's watch to see.
+      // Its folder stays watched, if any, or a fixed manifest goes unseen: the extensions
+      // folder's watch sees its entries, not the files inside them.
       if (extension.folder === "") {
         this.#unwatch(entry);
       } else {
@@ -386,7 +392,7 @@ export class Loader {
     }
     entry.scope = scope;
     entry.fail = fail;
-    entry.page = compiled.page && { ...compiled.page, version };
+    entry.page = compiled.page && { ...compiled.page, version: ++lastPageVersion };
     this.#set(entry, extension, "on", problems, version);
   }
 

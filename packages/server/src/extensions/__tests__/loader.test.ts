@@ -45,8 +45,8 @@ test("a saved change reloads the extension once, latest files", async () => {
   expect(loader.pageBundle("wiki")).toMatchObject({
     css: `/* ${folder}/page.tsx */\n/* ${folder}/lib/title.ts */`,
     entry: "page.tsx",
-    version: 1,
   });
+  const firstPage = loader.pageBundle("wiki")?.version ?? 0;
   expect(Object.keys(loader.pageBundle("wiki")?.modules ?? {})).toEqual([
     "page.tsx",
     "lib/title.ts",
@@ -59,7 +59,7 @@ test("a saved change reloads the extension once, latest files", async () => {
   }
   expect(await next).toMatchObject({ state: "on", version: 2 });
   expect(marks.of("wiki")).toEqual([3]);
-  expect(loader.pageBundle("wiki")?.version).toBe(2);
+  expect(loader.pageBundle("wiki")?.version).toBeGreaterThan(firstPage);
 
   // A save while a version compiles: exactly one more compile, of the latest files.
   const { reached, release } = hold();
@@ -265,4 +265,21 @@ test("server code imports a node: module by its default, its names, or as a name
   const { loader, marks } = await openLoader({ configDir: config });
   expect(loader.get("wiki")).toMatchObject({ problems: [], state: "on" });
   expect(marks.of("wiki")).toEqual([["a/b", "c/d", "function", "function"]]);
+});
+
+test("a page's version is never one an earlier server gave", async () => {
+  const config = temporaryFolder("config");
+  extensionFolder(config, "wiki", {
+    "extension.toml": manifest("wiki", { page: true }),
+    "lib/title.ts": `export const title = "Wiki";\n`,
+    "page.tsx": PAGE,
+    "server.ts": marking(0),
+  });
+  // Each loader as a server started again: a tab that holds the first's page fetches the second's.
+  const first = await openLoader({ configDir: config });
+  const before = first.loader.pageBundle("wiki")?.version;
+  first.loader.close();
+  const second = await openLoader({ configDir: config });
+  expect(second.loader.get("wiki")?.version).toBe(1);
+  expect(second.loader.pageBundle("wiki")?.version).not.toBe(before);
 });
