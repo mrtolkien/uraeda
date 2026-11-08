@@ -1,5 +1,6 @@
 // The page API: what an extension's page module, and each of Uraeda's built-ins, registers through.
-// Every registration is tagged with its extension, and undone with it, by `remove`.
+// Every registration is tagged with its extension, and undone with it, by `remove`, which runs the
+// callbacks given to `onUnload` first, the last given first.
 import type {
   Contribution,
   ExtensionKey,
@@ -17,6 +18,12 @@ export type PageApi = {
   itemRenderer(renderer: ItemRenderer): void;
   key(key: ExtensionKey): void;
   newSection(section: NewSection): void;
+  /**
+   * Runs `fn` as this version of the page unloads: at a reload, when the extension is turned off
+   * everywhere or removed, or when its activation throws. Work a page starts while it activates,
+   * an interval or a listener, is undone here.
+   */
+  onUnload(fn: () => void): void;
   place(place: Place): void;
   settingsSection(section: SettingsSection): void;
   statusItem(item: StatusItem): void;
@@ -35,13 +42,20 @@ export function pageApi(
   const extension = { name, title };
   const add = (contribution: Contribution) =>
     void registry.register(extension, order, contribution);
+  const unloads: Array<() => void> = [];
   return {
     homePane: (value) => add({ kind: "homePane", value }),
     itemRenderer: (value) => add({ kind: "itemRenderer", value }),
     key: (value) => add({ kind: "key", value }),
     newSection: (value) => add({ kind: "newSection", value }),
+    onUnload: (fn) => void unloads.push(fn),
     place: (value) => add({ kind: "place", value }),
-    remove: () => registry.remove(name),
+    remove: () => {
+      for (const fn of unloads.splice(0).toReversed()) {
+        fn();
+      }
+      registry.remove(name);
+    },
     settingsSection: (value) => add({ kind: "settingsSection", value }),
     statusItem: (value) => add({ kind: "statusItem", value }),
   };
