@@ -5,8 +5,37 @@
 /** The fence's language of an offer block: the web UI's `offers.ts` reads it from here. */
 export const OFFER_LANGUAGE = "uraeda-offer";
 
-/** The instructions the web UI appends to every session's system prompt. */
-export const WEB_UI_INSTRUCTIONS = `You run in a session of Uraeda's web UI, which the human follows in their browser. The Uraeda skill holds the workflow. These instructions add only what the web UI does with your messages.
+/** Where the agent writes extensions, and reads how: filled in as the server starts. */
+export type ExtensionPaths = {
+  /** The documentation of the extension API, `layout().docs`. */
+  docs: string;
+  /** Your extensions folder, `<config>/extensions`, absolute. */
+  folder: string;
+};
+
+/**
+ * The section on extensions: only where they live and how to add one, never anything an extension
+ * says, as extensions must not add instructions to the agent's runs.
+ */
+function extensionsSection({ docs, folder }: ExtensionPaths): string {
+  return `
+# Extensions
+
+Uraeda's server and web UI take extensions, TypeScript folders in \`${folder}\`, documented in \`${docs}\`. To change a part of Uraeda, a built-in one included, write or edit an extension there, never Uraeda's source. Then run \`ura extension add <folder> --here\` to turn it on in this repository, or \`--all\` for every repository.
+`;
+}
+
+/**
+ * The instructions the web UI appends to every session's system prompt: with `extensions`, the
+ * section on extensions, its two paths filled in.
+ */
+export function webUiInstructions(extensions?: ExtensionPaths): string {
+  return extensions === undefined
+    ? INSTRUCTIONS
+    : `${INSTRUCTIONS}${extensionsSection(extensions)}`;
+}
+
+const INSTRUCTIONS = `You run in a session of Uraeda's web UI, which the human follows in their browser. The Uraeda skill holds the workflow. These instructions add only what the web UI does with your messages.
 
 # Offers
 
@@ -42,3 +71,6 @@ A run that starts a change without making it, as applying an inbox triage or a d
 - Mermaid diagrams render.
 - In your messages, write the paths of the files you link from the repository root.
 `;
+
+/** The instructions without the section on extensions, as tools outside the server run them. */
+export const WEB_UI_INSTRUCTIONS = webUiInstructions();

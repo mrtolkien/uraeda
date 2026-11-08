@@ -2,7 +2,8 @@
 // through the core, registers the built-ins' server parts, opens the loader for yours, and owns
 // what both register through the server API: runtimes, records, actions, routes, and events, each
 // only where its extension is on. It sends the `Extensions` record live as any of it changes.
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { Changes, Extension } from "uraeda-binding";
 import type { ApiRepository } from "../extension-api.ts";
 import type { Binding } from "../fate/context.ts";
@@ -90,6 +91,10 @@ export class ExtensionsHost implements Registry {
     this.api = options.binding.extensionApi();
     this.runtimes = new Runtimes({
       isOn: (name, root) => this.#runtimeOn(name, root),
+      skills: (root) => {
+        const repository = this.#hosts?.byPath(root)?.name;
+        return repository === undefined ? [] : this.skillsFor(repository);
+      },
       title: (name) => this.#extensions.get(name)?.title,
     });
     this.#events = new EventBus((name, repository) => this.isOn(name, repository));
@@ -98,6 +103,7 @@ export class ExtensionsHost implements Registry {
       agents: options.agents,
       announce: () => this.#announce(),
       dataDir: options.dataDir,
+      extensionsDir: options.binding.extensionsFolder(options.configDir),
       register: (name, agent) => this.runtimes.register(name, agent),
       registry: this,
       turns: () => this.#turns,
@@ -181,6 +187,25 @@ export class ExtensionsHost implements Registry {
     return extension !== undefined && (extension.onAll || extension.on.includes(repository));
   }
 
+  /**
+   * The skill folders sessions get in the repository of this name: the `skills/` folder of each
+   * extension of yours on there, loadable on this API, as `<extensions folder>/<name>/skills`,
+   * whose last folder names it. The built-ins ship no skills.
+   */
+  skillsFor(repository: string): Array<string> {
+    const folder = this.#options.binding.extensionsFolder(this.#options.configDir);
+    return [...this.#extensions.values()]
+      .filter(
+        (extension) =>
+          !extension.isBuiltIn &&
+          extension.api === this.api &&
+          !extension.problems.some((problem) => problem.isFatal) &&
+          this.isOn(extension.name, repository) &&
+          existsSync(join(extension.folder, "skills")),
+      )
+      .map((extension) => join(folder, extension.name, "skills"));
+  }
+
   /** Whether a runtime is on in the main checkout `root`, one of no extension everywhere. */
   #runtimeOn(name: string, root: string | null): boolean {
     const extension = this.#extensions.get(name);
@@ -202,7 +227,7 @@ export class ExtensionsHost implements Registry {
 
   /** The extensions, their states, and their settings, for the `Extensions` record. */
   states(): { api: number; docs: string; extensions: Array<ExtensionState>; folder: string } {
-    const docs = join(layout().checkout ?? dirname(layout().plugin), "docs", "extensions.md");
+    const { docs } = layout();
     const extensions = [...this.#extensions.values()].map((extension) => this.#state(extension));
     return { api: this.api, docs, extensions, folder: this.#folder };
   }

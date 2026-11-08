@@ -1,12 +1,21 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
 import { allowRule, type Blocks, lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
-import { WEB_UI_INSTRUCTIONS } from "./instructions.ts";
+import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 
 /** A failed process keeps this many lines of stderr. */
 const STDERR_LINES = 20;
@@ -34,18 +43,78 @@ function endWithServer() {
   }
 }
 
+/** Where sessions write extensions, read their documentation, and get their skills. */
+export type ClaudeExtensions = ExtensionPaths & {
+  /** The folder of the extensions' plugins, `<data folder>/extension-plugins`. */
+  plugins: string;
+};
+
+/** The plugin folder of the extension whose `skills/` folder is `skills`, by its name. */
+function pluginOf(skills: string, plugins: string): string {
+  return join(plugins, basename(dirname(skills)));
+}
+
+/** Writes `path` unless it holds `text` already: sessions opening together write the same. */
+function writeIfChanged(path: string, text: string) {
+  let old: string | undefined;
+  try {
+    old = readFileSync(path, "utf8");
+  } catch {
+    old = undefined;
+  }
+  if (old !== text) {
+    writeFileSync(path, text);
+  }
+}
+
+/**
+ * Makes the plugin folder of each extension's skills, `<plugins>/<name>/`: its
+ * `.claude-plugin/plugin.json`, and `skills`, a link to the extension's `skills/` folder, replaced
+ * whole when it points elsewhere. Each of `skills` is `<extensions folder>/<name>/skills`. Gives
+ * the folders, in the order of `skills`.
+ */
+export function extensionPlugins(skills: ReadonlyArray<string>, plugins: string): Array<string> {
+  return skills.map((folder) => {
+    const plugin = pluginOf(folder, plugins);
+    mkdirSync(join(plugin, ".claude-plugin"), { recursive: true });
+    const name = basename(plugin);
+    writeIfChanged(join(plugin, ".claude-plugin", "plugin.json"), `${JSON.stringify({ name })}\n`);
+    const link = join(plugin, "skills");
+    let target: string | undefined;
+    try {
+      target = readlinkSync(link);
+    } catch {
+      target = undefined;
+    }
+    if (target !== folder) {
+      // A new link renamed over the old one: another session never sees it missing.
+      const next = `${link}.${randomUUID()}`;
+      symlinkSync(folder, next);
+      renameSync(next, link);
+    }
+    return plugin;
+  });
+}
+
 /**
  * The arguments of a session's process: print mode, stream-json both ways, `auto` mode, the skill,
  * the web UI's instructions, appended to the system prompt on every start, and the chat images'
  * folder, which the agent reads even when the user blocks reads outside the working directory.
  * Only that folder is added, never the whole data folder: `auto` mode lets the agent write to added
- * folders.
+ * folders. With `extensions`, the extensions folder is added too, so the agent writes extensions
+ * there, the instructions say so, and each extension of `options.skills` gives one more plugin
+ * folder, after Uraeda's own (`extensionPlugins` makes them).
  */
 export function claudeArgs(
   options: OpenOptions,
   pluginDir: string,
   imagesDir: string,
+  extensions?: ClaudeExtensions,
 ): Array<string> {
+  const plugins =
+    extensions === undefined
+      ? []
+      : options.skills.map((skills) => pluginOf(skills, extensions.plugins));
   return [
     "-p",
     "--input-format",
@@ -58,10 +127,12 @@ export function claudeArgs(
     "auto",
     "--plugin-dir",
     pluginDir,
+    ...plugins.flatMap((plugin) => ["--plugin-dir", plugin]),
     "--add-dir",
     imagesDir,
+    ...(extensions === undefined ? [] : ["--add-dir", extensions.folder]),
     "--append-system-prompt",
-    WEB_UI_INSTRUCTIONS,
+    webUiInstructions(extensions && { docs: extensions.docs, folder: extensions.folder }),
     options.resume ? "--resume" : "--session-id",
     options.nativeId,
     ...(options.allowed === undefined ? [] : ["--allowedTools", ...options.allowed]),
@@ -104,6 +175,11 @@ export type ClaudeAdapterOptions = {
   command?: string;
   /** Claude Code's configuration folder, where it keeps its transcripts. */
   configDir?: string;
+  /**
+   * Where sessions write extensions and get their skills: the server always gives it; scripts
+   * running Claude Code outside the server, without extensions, do not.
+   */
+  extensions?: ClaudeExtensions;
   /** The chat images' folder, `<data folder>/images`, created as a process opens. */
   imagesDir: string;
   /** The plugin folder that holds the Uraeda skill, `layout().plugin` in the server. */
@@ -143,13 +219,16 @@ export class ClaudeAdapter implements Adapter {
   #configDir: string;
   #pluginDir: string;
   #imagesDir: string;
+  #extensions: ClaudeExtensions | undefined;
 
   constructor({
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
+    extensions,
     imagesDir,
     pluginDir,
   }: ClaudeAdapterOptions) {
+    this.#extensions = extensions;
     this.#command = command;
     this.#configDir = configDir;
     this.#pluginDir = pluginDir;
@@ -186,10 +265,19 @@ export class ClaudeAdapter implements Adapter {
     return allowRule(denial);
   }
 
-  /** Starts the process, its images' folder made first: `--add-dir` refuses a missing folder. */
+  /**
+   * Starts the process, its images' and extensions' folders made first, as `--add-dir` refuses a
+   * missing folder, and its extensions' plugin folders.
+   */
   #spawn(options: OpenOptions, grouped: boolean) {
     mkdirSync(this.#imagesDir, { recursive: true });
-    return spawn(this.#command, claudeArgs(options, this.#pluginDir, this.#imagesDir), {
+    const extensions = this.#extensions;
+    if (extensions) {
+      mkdirSync(extensions.folder, { recursive: true });
+      extensionPlugins(options.skills, extensions.plugins);
+    }
+    const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);
+    return spawn(this.#command, args, {
       cwd: options.cwd,
       detached: grouped,
       stdio: ["pipe", "pipe", "pipe"],

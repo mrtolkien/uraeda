@@ -215,6 +215,34 @@ test("a runtime reloads once its turns end", async () => {
   expect(sessions.runtimeOf(session.id)).toBe(adapter);
 });
 
+/** An extension's files: its manifest, without entries, and one skill. */
+const skills = (name: string) => ({
+  "extension.toml": `name = "${name}"\ntitle = "${name}"\napi = 1\n`,
+  "skills/astryx-docs/SKILL.md": "---\nname: astryx-docs\ndescription: Astryx.\n---\n",
+});
+
+test("a session gets the skills of the extensions on in its repository only", async () => {
+  const opened = await serve(
+    { "docs-ext": skills("docs-ext"), durable: runtime(1), "off-ext": skills("off-ext") },
+    `[extensions.docs-ext]\non = ["uraeda"]\n\n[extensions.off-ext]\non = []\n`,
+  );
+  const { adapter } = opened.sink;
+  const { sessions } = opened.server;
+  await sessions.check();
+  const sent = async (repo: string) => {
+    const session = await sessions.featureSession(repo, FEATURE, "durable");
+    adapter.script([{ denials: [], errors: [], interrupted: false, ok: true, type: "result" }]);
+    const { turn } = await sessions.send(repo, session.id, { text: "Go on" });
+    await sessions.settled(turn);
+    return adapter.opens.at(-1)?.skills;
+  };
+
+  expect(await sent(opened.uraeda)).toEqual([
+    join(opened.configDir, "extensions", "docs-ext", "skills"),
+  ]);
+  expect(await sent(opened.other)).toEqual([]);
+});
+
 /** A registry that records nothing: the route's check comes first. */
 const nothing = new Proxy({} as Registry, { get: () => () => () => {} });
 

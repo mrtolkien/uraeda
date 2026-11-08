@@ -137,7 +137,7 @@ export class Processes {
         cwd,
         nativeId,
         resume,
-        skills: [],
+        skills: runtimes.skills(live.repo),
         ...(allowed === undefined ? {} : { allowed }),
       });
       const proc: Proc = {

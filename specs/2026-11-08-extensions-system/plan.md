@@ -1322,10 +1322,13 @@ git commit -m "feat(extensions-system): list, turn on, and set up extensions in 
 **Files:**
 
 - Modify: `packages/server/src/runner/instructions.ts` (a section on extensions), `runner/claude.ts`
-  (`claudeArgs` adds `--add-dir <config>/extensions` and a `--plugin-dir` per extension with
-  skills), `runner/processes.ts` (passes `skills` from the runtimes' host), and the host that knows
-  the folders (task 8's `extensions/server.ts`: `skillsFor(repository): string[]`)
-- Test: `runner/__tests__/claude.test.ts`
+  (`claudeArgs` adds `--add-dir <config>/extensions` and a `--plugin-dir` per extension with skills;
+  `extensionPlugins` makes their folders), `runner/runtimes.ts` (`skills(root)`),
+  `runner/processes.ts` (passes `runtimes.skills(live.repo)`), `extensions/builtins.ts` (the
+  `claude` built-in gives the paths), `paths.ts` (`layout().docs`), and the host that knows the
+  folders (task 8's `extensions/server.ts`: `skillsFor(repository): string[]`, R36)
+- Test: `runner/__tests__/claude.test.ts`, `extensions/__tests__/api.test.ts` (the host's filter,
+  through a session), `__tests__/paths.test.ts`
 
 **Interfaces:**
 
@@ -1335,13 +1338,19 @@ git commit -m "feat(extensions-system): list, turn on, and set up extensions in 
     TypeScript folders in `<extensions folder>`, documented in `<docs path>`; to change a part of
     Uraeda, a built-in included, write or edit an extension there, never Uraeda's source, then run
     `ura extension add <folder> --here` (or `--all`). The two paths are filled in when the server
-    starts (`layout().docs`, task 14 ships it). No other text reaches runs from extensions.
-  - `claudeArgs(options, pluginDir, imagesDir, extensionsDir)`: `--add-dir <extensionsDir>`; for
-    each folder in `options.skills`, a plugin folder `<data>/extension-plugins/<name>/` holding
+    starts (`layout().docs`, task 14 ships it): `webUiInstructions({ folder, docs })`;
+    `WEB_UI_INSTRUCTIONS` stays the text without that section, for scripts outside the server. No
+    other text reaches runs from extensions.
+  - `claudeArgs(options, pluginDir, imagesDir, extensions?: { folder, docs, plugins })`:
+    `--add-dir <folder>`; for each folder in `options.skills` (`<folder>/<name>/skills`), a plugin
+    folder `<plugins>/<name>/` (`<data>/extension-plugins/<name>/`) holding
     `.claude-plugin/plugin.json` (`{"name": "<name>"}`) and `skills` linked to the extension's
-    `skills/`, passed as one more `--plugin-dir`. Uraeda's own plugin stays first.
+    `skills/`, made by `extensionPlugins(skills, plugins)` as the process opens, passed as one more
+    `--plugin-dir`. Uraeda's own plugin stays first.
+  - `skillsFor(repository)`: each extension of yours on there, built for this API, without a fatal
+    problem, with a `skills/` folder; the built-ins ship none.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // in packages/server/src/runner/__tests__/claude.test.ts
@@ -1352,22 +1361,26 @@ test("claudeArgs lets the agent write extensions, and passes their skills", () =
 });
 ```
 
-The break it catches: skills passed for an extension off in that repository (the host's filter,
-asserted by giving none), or the agent unable to write the folder it was told to use.
+In `extensions/__tests__/api.test.ts`, a session in `uraeda` gets the skills of an extension on
+there, and a session in `other`, where it is off, and of an extension off everywhere, gets none.
 
-- [ ] **Step 2: Run it to check it fails**
+The break it catches: skills passed for an extension off in that repository (the host's filter,
+asserted by giving none), or the agent unable to write the folder it was told to use. Made: the
+`isOn` check dropped from `skillsFor`, the api test failed with both extensions' skills.
+
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/server/src/runner/__tests__/claude.test.ts`
-- Expected: FAIL, the args lack `/c/extensions`.
+- Expected: FAIL, `extensionPlugins is not a function`, and the session gets no skills.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp check && vp test packages/server`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server
