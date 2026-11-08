@@ -58,13 +58,13 @@ git URL:
   naming the URL, the commit, and the branch. A host without a scheme, like
   `github.com/gary/uraeda-deploy`, is cloned over `https://`.
 
-`add` refuses a built-in extension's name, one installed already, and a manifest with a fatal
-problem. It then asks whether the extension is on in every repository or in this one, the one its
-`scope` suggests first. Without a terminal, pass `--all`, `--here`, or `--repo <name>`, repeated for
-more. `update <name>` moves a cloned extension only after you confirm, or with `--yes`: without a
-terminal, it prints the diff and moves nothing. `remove <name>` deletes the folder, or only the link
-to a linked one, and keeps its settings in `config.toml`. `list --json` prints every extension, the
-built-in ones first.
+`add` refuses a built-in extension's name, `uraeda` and `sessions`, which Uraeda keeps, one
+installed already, and a manifest with a fatal problem. It then asks whether the extension is on in
+every repository or in this one, the one its `scope` suggests first. Without a terminal, pass
+`--all`, `--here`, or `--repo <name>`, repeated for more. `update <name>` moves a cloned extension
+only after you confirm, or with `--yes`: without a terminal, it prints the diff and moves nothing.
+`remove <name>` deletes the folder, or only the link to a linked one, and keeps its settings in
+`config.toml`. `list --json` prints every extension, the built-in ones first.
 
 Every command works without a terminal, and the read commands print JSON with `--json`.
 `ura <command> --help` lists a command's options.
