@@ -27,6 +27,7 @@ import { useInPane } from "./layout/paneContext.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { holdsImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
+import { useIsOn } from "./extensions/useContributions.ts";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
 import { ruleStyles } from "./layout/rules.ts";
 import { tableVars } from "./layout/table.stylex.ts";
@@ -351,11 +352,13 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
 function BlockNode({ block, context }: { block: Block; context: BlockContext }): ReactNode {
   const story = useStoryAt(block);
   const mockup = useMockupAt(block);
+  // Previews off draws the paragraph as it is written: its link.
+  const previews = useIsOn("previews");
   const own = context.override?.(block);
   if (own !== undefined) {
     return own;
   }
-  if (story || mockup) {
+  if ((story || mockup) && previews) {
     return (
       <SinceBlock block={block}>
         <EmbedNode block={block} context={context} />

@@ -69,7 +69,12 @@ const BUILT_IN: ReadonlyArray<ExtensionRow> = [
   ),
   builtIn("decisions", "Decisions", "uraeda:ruler", "The Decisions place and the decisions check."),
   builtIn("git", "Git", "uraeda:git-branch", "The Git place."),
-  builtIn("previews", "Previews", "uraeda:eye", "Storybook previews in specs and sessions."),
+  builtIn(
+    "previews",
+    "Previews",
+    "uraeda:eye",
+    "Storybook previews and HTML mockups in specs, rounds, and sessions.",
+  ),
   builtIn(
     "notifications",
     "Notifications",

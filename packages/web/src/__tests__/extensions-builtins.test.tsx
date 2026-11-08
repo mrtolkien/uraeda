@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { commitOnBranch, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routeHistory.ts";
 import { atRepo, fixtureRepo, quiet, renderPage } from "./helpers.tsx";
@@ -17,6 +17,10 @@ function inboxOn(on: ReadonlyArray<string>, config = temporaryFolder("uraeda-con
   );
   return config;
 }
+
+/** The fixture's feature, whose spec links its mockup. */
+const FEATURE = "2026-10-06-recurring-tasks";
+const SPEC = `specs/${FEATURE}/spec.md`;
 
 const press = (key: string) => fireEvent.keyDown(document.body, { key });
 
@@ -72,4 +76,23 @@ test.each([
   await quiet();
   expect(inboxLink()).toBeTruthy();
   expect(inboxPane()).toBeTruthy();
+});
+
+// Break: the spec's embed drawn whatever Previews is, and the mockup's page left to no extension.
+test("Previews turned off draws a mockup's embed as its link, and its page says it is off", async () => {
+  const repo = fixtureRepo();
+  const spec = git(repo, "show", `${FEATURE}:${SPEC}`).replace(
+    "The [Repeat](mockups/repeat.html) mockup",
+    "[Repeat](mockups/repeat.html)\n\nThe mockup",
+  );
+  commitOnBranch(repo, FEATURE, { [SPEC]: spec });
+  const config = temporaryFolder("uraeda-config");
+  writeFileSync(join(config, "config.toml"), `[extensions.previews]\non = []\n`);
+  await renderPage(`/f/${FEATURE}/spec.md`, repo, { config });
+  expect(await screen.findByRole("link", { name: "Repeat" })).toBeTruthy();
+  await quiet();
+  expect(screen.queryByRole("figure", { name: "Repeat" })).toBeNull();
+
+  await goTo(`/f/${FEATURE}/mockups/repeat.html`);
+  expect(await screen.findByText("Previews is off here")).toBeTruthy();
 });
