@@ -92,6 +92,33 @@ const COMPILES: &[Row] = &[
         &["await Promise.resolve()"],
     ),
     (
+        "const x = 1;\nexport { x as default };\n",
+        "named-default.ts",
+        &[],
+        &["Object.defineProperty(__exports, \"default\", { enumerable: true, get: () => x });"],
+    ),
+    (
+        "import { \"a-b\" as c } from \"x\";\nconsole.log(c);\n",
+        "string-import.ts",
+        &["x"],
+        &["const { \"a-b\": c } = __m0;"],
+    ),
+    (
+        "export default function Page(props: object) {\n  return <p {...props} key=\"k\" />;\n}\n",
+        "spread-then-key.tsx",
+        &["react"],
+        &["__import(\"react\")", "createElement"],
+    ),
+    (
+        "export * from \"y\";\nexport const own = 1;\n",
+        "export-all.ts",
+        &["y"],
+        &[
+            "if (__k !== \"default\" && !Object.prototype.hasOwnProperty.call(__exports, __k))",
+            "Object.defineProperty(__exports, \"own\", { enumerable: true, get: () => own });",
+        ],
+    ),
+    (
         "const __m0 = 1;\nimport { a } from \"x\";\nexport { b } from \"y\";\nconsole.log(__m0, a);\n",
         "generated-names.ts",
         &["x", "y"],
