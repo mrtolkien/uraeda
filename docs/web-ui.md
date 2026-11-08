@@ -260,7 +260,10 @@ shows an extension's icon, title, and description, its version, where it came fr
 commit or "reloads on save", and where it is on. Its switch turns it on in every repository or off
 everywhere, and "Only in…" picks the repositories it is on in. Under the row, its settings, from its
 manifest, are saved for every repository, or for the one picked above them, and a section its page
-adds shows under them. The page writes both into `config.toml`, keeping your comments:
+adds shows under them. Picked for one repository, the settings show its own values over the shared
+ones: a value set there only reads "Set for uraeda only.", and "Use the shared value" takes it out,
+so that the shared value applies there again. The page writes both into `config.toml`, keeping your
+comments:
 
 ```toml
 [extensions.inbox]
@@ -273,7 +276,8 @@ command = "claude"    # the command Claude Code's sessions run
 A banner above the rows names each extension that needs you: one turned off by a problem, with its
 file and line, like "Deploy is off: page.tsx, line 12: …"; one running with a problem, like a
 setting on its default; one whose reload waits for a session's turn, "Deploy reloads when the turn
-of “…” ends"; and a key another extension took first, "Deploy: `y` is taken by Wiki".
+of “…” ends"; and a key another extension on in the same repository took first, "Deploy: `y` is
+taken by Wiki", with the repositories it is taken in when not all of them, "in uraeda".
 
 A turned-off part leaves at once: the inbox off removes its place, its keys, its Home pane, its
 phone tab, and its New-page section, in the repositories it is off in. A link to its place opens
@@ -281,10 +285,11 @@ phone tab, and its New-page section, in the repositories it is off in. A link to
 them.
 
 An extension's places show after Uraeda's, in the navigation column, the leader menu, and the
-phone's tabs, and open at `/r/<repo>/e/<name>/<id>`. Its panes, sections, keys, and status line's
-items show beside Uraeda's, in the repositories it is on in. A saved change redraws them without
-reloading the page. One that throws shows its error in its own place, and the rest of the page goes
-on.
+phone's tabs, and open at `/r/<repo>/e/<name>/<id>`. The phone's bar holds four places, Uraeda's
+first: one of yours takes a tab there only where one of Uraeda's is off, and the rest go into the
+`…`. Its panes, sections, keys, and status line's items show beside Uraeda's, in the repositories it
+is on in. A saved change redraws them without reloading the page. One that throws shows its error in
+its own place, and the rest of the page goes on.
 
 ## Editing text
 
@@ -503,12 +508,14 @@ same way. A run that starts a change it does not make, like applying an inbox tr
 change's page, where its own session runs.
 
 Sessions run Claude Code, the built-in `claude` extension, unless it is off; a runtime extension of
-yours runs another agent. A session keeps the runtime it was started on, and is read-only while that
-runtime is off. Claude Code runs in `auto` permission mode, with your own settings, and with the
-server's copy of the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.
-Each extension of yours on in the repository adds its `skills/` folder as one more plugin. The skill
-holds the workflow for any agent, and never describes the web UI. The server adds the web UI's own
-instructions to every session, in
+yours runs another agent. With two runtimes or more on, the composer of a new session, the change's
+start dialog, and a round's "Apply the answers" show a picker of them, the first one on picked until
+you pick another. A session keeps the runtime it was started on, and is read-only while that runtime
+is off. Claude Code runs in `auto` permission mode, with your own settings, and with the server's
+copy of the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision. Each
+extension of yours on in the repository adds its `skills/` folder as one more plugin, `ext-<name>`.
+The skill holds the workflow for any agent, and never describes the web UI. The server adds the web
+UI's own instructions to every session, in
 [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
 shows of the agent's messages, and where your extensions folder and their documentation are. A
 session may write in your extensions folder, so asking it for a change to Uraeda gives you an
