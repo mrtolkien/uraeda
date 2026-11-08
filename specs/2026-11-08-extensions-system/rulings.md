@@ -667,3 +667,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   extension's code, so it reads what the server met rather than meeting it again.
 - **Where**: fix pass, `packages/server/src/extensions/status-file.ts`, `server.ts`,
   `crates/core/src/extensions/status.rs`, `crates/cli/src/extension/list.rs`, `data-model.md`.
+
+## R60: A place's count is drawn in its extension's boundary
+
+- **Decision**: the page runtime binds each count a place of yours gives to its extension's
+  boundary, and the shell draws the count through `CountIn`: in a Suspense, and in that boundary, so
+  the count may call `uraeda/page`'s hooks. A count that throws draws the shell's fallback (no
+  count; the plain tab on the phone) and is reported once per version of the page.
+- **Rationale**: the shell called the count as a hook outside every extension's boundary, where the
+  hooks threw, and the runtime's try/catch around it swallowed fate's suspension too. The binding
+  stays out of `Place`'s type, which extensions see.
+- **Where**: fix pass, `packages/web/src/extensions/CountIn.tsx`, `runtime.ts`,
+  `shell/ColumnPanes.tsx`, `shell/Tabs.tsx`.
+
+## R61: A page's relative imports are the files the server resolved them to
+
+- **Decision**: the page bundle carries `imports`, the file each relative import of each file
+  resolved to by the loader's rule, and the page runtime imports by it alone.
+- **Rationale**: the server keys the files by their real path, links resolved, while the runtime
+  joined each specifier against the importing file's path: an import of a link inside the folder
+  named a file the bundle did not have. One rule, the loader's, on both sides.
+- **Where**: fix pass, `packages/server/src/extensions/graph.ts`, `loader.ts`,
+  `packages/web/src/extensions/evaluate.ts`.
+
+## R62: A contribution failed by its record's error draws again once the record changes
+
+- **Decision**: `useRecord` still throws a record's error, which the boundary shows; the boundary
+  then watches the record, and draws its contribution again once the record reads or its error is
+  another.
+- **Rationale**: returning errors as values would change `useRecord`'s contract for every page;
+  watching the one record the failure came from fixes a transient error (a file not there yet, a
+  service down) without it.
+- **Where**: fix pass, `packages/web/src/extensions/ExtensionBoundary.tsx`, `hooks.ts`.
