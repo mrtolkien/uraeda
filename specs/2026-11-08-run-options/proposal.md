@@ -12,6 +12,12 @@ How each workflow step runs, set globally with per-feature overrides:
 - Model and effort per step
 - Review options: command, model, prompt, depth, number of reviewers
 
+There should be two layers:
+
+- Defaults, set in settings
+- Per-feature/change/session options: at creation, it should be easy to change one of the values. Of
+  course, this has to be doable with the keyboard.
+
 ## Why
 
 Every step runs the same way today. Some steps need a stronger model or a clean context, others a
