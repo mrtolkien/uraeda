@@ -262,3 +262,34 @@ test("a thread that does not start in time fails the start, and its process is k
   // Killed, never closed.
   expect(await until(events, "exit")).toMatchObject([{ type: "exit" }]);
 });
+
+test("a steer refused after a failed turn waits to be taken back, never starting a turn", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "wait, then fail on steer"));
+  await until(events, "accepted");
+  agent.send(message("m2", "join it", "steer"));
+  expect(await until(events, "result")).toMatchObject([{ ok: false, type: "result" }]);
+  // The steer's refusal comes before the runner takes back what the failed turn left.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  agent.takeBack("m2");
+  expect(await until(events, "cancelled")).toEqual([{ id: "m2", type: "cancelled" }]);
+  agent.close();
+  await until(events, "exit");
+  expect(written(dir).filter((line) => line.method === "turn/start")).toHaveLength(1);
+});
+
+test("a process closed while its thread fails to start ends", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const command = appServer(dir, { refuse: "thread/start" });
+  const agent = new CodexAdapter({ command, pluginDir: "/p" }).open({ ...open, cwd: dir });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  agent.close();
+  // Closed already, it reports no problem: it ends.
+  expect(await until(events, "exit")).toMatchObject([{ code: 0, type: "exit" }]);
+}, 5000);

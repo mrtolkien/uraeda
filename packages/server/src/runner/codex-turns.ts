@@ -31,6 +31,8 @@ export class CodexTurns {
   readonly #deps: TurnsDeps;
   /** Whether a turn runs, from its `turn/start` until its end. */
   #running = false;
+  /** Whether the last turn ended well: after one that did not, the runner takes back the rest. */
+  #lastOk = true;
   /** The running turn's ID, once `turn/start` answered. */
   #turnId: string | undefined;
   /** Counts the turns started, so a late answer of an ended turn changes nothing. */
@@ -108,6 +110,7 @@ export class CodexTurns {
    */
   ended(ok: boolean) {
     this.#running = false;
+    this.#lastOk = ok;
     this.#turnId = undefined;
     this.#stop = false;
     if (this.#closing) {
@@ -132,12 +135,16 @@ export class CodexTurns {
 
   async #start(message: Outgoing) {
     this.#running = true;
+    this.#lastOk = true;
     this.#turnId = undefined;
     const started = ++this.#started;
     const thread = await this.#deps.thread;
     if (thread === undefined) {
-      // The process reported why it cannot run, and closes.
+      // The process reported why it cannot run, and closes: now, when closed meanwhile.
       this.#running = false;
+      if (this.#closing) {
+        this.#deps.endInput();
+      }
       return;
     }
     const params = this.#deps.turnParams(message, thread.id, this.#turnEffort());
@@ -177,7 +184,8 @@ export class CodexTurns {
 
   /**
    * Joins the running turn: refused, as when the turn ended meanwhile, the message waits for the
-   * next turn, or starts it, unless it was taken back.
+   * next turn, or starts it, unless it was taken back. After a turn that did not end well, or while
+   * closing, it only waits: the runner takes it back, as it does what that turn left (R19).
    */
   #steer(message: Outgoing, turnId: string) {
     const { id } = message;
@@ -194,7 +202,7 @@ export class CodexTurns {
         this.#steering.delete(id);
         if (this.#takenBack.delete(id)) {
           this.#deps.push({ id, type: "cancelled" });
-        } else if (this.#running) {
+        } else if (this.#running || !this.#lastOk || this.#closing) {
           this.#queue.push(message);
         } else {
           void this.#start(message);
