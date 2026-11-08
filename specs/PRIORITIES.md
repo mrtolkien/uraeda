@@ -59,6 +59,10 @@
 
 > Might get dropped, low prio features
 
+- Workflow extensions: features, changes, and new workflows as WASM extensions that `ura` and the
+  web UI both run, with hooks inside workflows. Postponed from the
+  [Extensions system](/specs/2026-11-08-extensions-system/spec.md).
+
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
   this proposal?", "Is this a valuable decision?", "Is this code change in line with the
   constitution?", ...
