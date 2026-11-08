@@ -738,18 +738,20 @@ git commit -m "feat(codex-runtime): Claude Code's models and effort"
   beside it, passed on as one `SessionPick`; a mutation
   `session.setEffort({ id, effort: string | null })`; a mutation `agent.refreshModels({})`, which
   starts the refresh and returns at once; the session record's fields `model`, `effort`, `ranModel`,
-  `ranEffort`; the `Agent` record's runtimes with `models`.
+  `ranEffort`; the `Agent` record's runtimes with `models`. `uraeda-server/fate` exports the types
+  `SessionPick`, `ModelList`, `AgentModel`, and `ModelEffort` for the web UI; `pickOf(input)` in
+  `runner/picks.ts` takes the pick out of an input.
 
-- [ ] **Step 1: Extend the existing test.** The `change.start` row of `runtimes.test.ts` sends a
+- [x] **Step 1: Extend the existing test.** The `change.start` row of `runtimes.test.ts` sends a
       model and an effort, and asserts the session's row has them.
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c vp test packages/server/src/runner/__tests__/runtimes.test.ts`
   - Expected: FAIL, `model` null.
-- [ ] **Step 3: Thread the pick through the six paths, and add the two mutations and the fields.**
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 3: Thread the pick through the six paths, and add the two mutations and the fields.**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

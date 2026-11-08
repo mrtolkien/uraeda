@@ -69,6 +69,9 @@ export async function startSessions(options: {
   }
   const sessions = createSessions({ ...options, cache, runs: continueSettings(options.settings) });
   await sessions.check();
+  // Every runtime's model list, asked once at start, which the pickers read: not awaited, as an
+  // agent slow to list never holds the server's start.
+  void options.runtimes.refreshModels();
   const unsubscribe = options.settings.onChange(() => sessions.runsChanged());
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
   timer.unref();

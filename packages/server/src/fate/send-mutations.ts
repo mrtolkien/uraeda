@@ -3,6 +3,7 @@
 import type { Adapter } from "../runner/adapter.ts";
 import type { Trigger } from "../runner/events.ts";
 import type { ChatImage } from "../runner/images.ts";
+import { pickOf } from "../runner/picks.ts";
 import { messageRuntime } from "../runner/runtimes.ts";
 import { onSession } from "./change-starts.ts";
 import { sentImages } from "./chat-images.ts";
@@ -43,18 +44,22 @@ export const sendMutations = {
       input,
       select,
     }: Resolver<{
+      /** The effort a session made with this message runs on, else its agent's default. */
+      effort?: string;
       /** Or the feature, whose session is created with its first message. */
       folder?: string;
       /** The chat images, as `POST /attach` saved them. */
       images?: Array<ChatImage>;
+      /** The model a session made with this message runs on, else its agent's default. */
+      model?: string;
       /**
        * With `folder`: a new session of the feature, as "New session" asks, created with this first
        * message, never before; without it, the feature's session, created if it has none.
        */
       newSession?: boolean;
       /**
-       * The runtime a session made with this message runs on, else the first one on here: unused
-       * for a message to a session that exists (R20).
+       * The runtime a session made with this message runs on, else the first one on here: unused,
+       * as `model` and `effort` are, for a message to a session that exists (R20).
        */
       runtime?: string;
       /** The session to send to. */
@@ -113,10 +118,10 @@ export const sendMutations = {
         messageRuntime(ctx.sessions.runtimes, root, latest, input.runtime);
         // A folder that is no feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
+        const pick = pickOf(input);
         return input.newSession === true
-          ? (await ctx.sessions.newSession(ctx.repo, input.folder, { runtime: input.runtime })).id
-          : (await ctx.sessions.featureSession(ctx.repo, input.folder, { runtime: input.runtime }))
-              .id;
+          ? (await ctx.sessions.newSession(ctx.repo, input.folder, pick)).id
+          : (await ctx.sessions.featureSession(ctx.repo, input.folder, pick)).id;
       });
       // A run that starts fresh went to a new session: the one it went to answers.
       const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));

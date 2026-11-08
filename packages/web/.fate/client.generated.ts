@@ -6,6 +6,11 @@ import { clientRoot, createClient, createHTTPTransport, mutation, type InferFate
 type FateAPI = InferFateAPI<typeof fateServer>;
 
 const mutations = {
+  'agent.refreshModels': mutation<
+    Agent,
+    FateAPI['mutations']['agent.refreshModels']['input'],
+    FateAPI['mutations']['agent.refreshModels']['output']
+  >('Agent'),
   'answer.save': mutation<
     WorkflowFile,
     FateAPI['mutations']['answer.save']['input'],
@@ -415,6 +420,11 @@ const mutations = {
     Session,
     FateAPI['mutations']['session.send']['input'],
     FateAPI['mutations']['session.send']['output']
+  >('Session'),
+  'session.setEffort': mutation<
+    Session,
+    FateAPI['mutations']['session.setEffort']['input'],
+    FateAPI['mutations']['session.setEffort']['output']
   >('Session'),
   'session.stop': mutation<
     Session,

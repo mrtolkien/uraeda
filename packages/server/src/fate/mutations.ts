@@ -13,13 +13,14 @@ import { gitMutations } from "./git-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { maskedSession, sessionMoves } from "./session-moves.ts";
-import { featureRecord, writable } from "./sessions.ts";
+import { pickOf, type SessionPick } from "../runner/picks.ts";
+import { agentRecord, featureRecord, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { extensionMutations } from "./extension-mutations.ts";
 import { sources } from "./sources.ts";
 import { priorities, proposalFile, undoablePriorities } from "./masked.ts";
-import { featureDataView } from "./views.ts";
+import { agentDataView, featureDataView } from "./views.ts";
 import { LISTS, listCommit, type Queued, queued } from "./write-queue.ts";
 
 /** A session, masked to the fields the client selected. */
@@ -235,10 +236,10 @@ const repositoryMutations = {
     type: "Session",
   },
   "session.newChat": {
-    resolve: async ({ ctx, input, select }: Resolver<{ runtime?: string }>) =>
+    resolve: async ({ ctx, input, select }: Resolver<SessionPick>) =>
       session(
         ctx,
-        (await refusedOn(() => ctx.sessions.newChat(ctx.repo, { runtime: input.runtime }))).id,
+        (await refusedOn(() => ctx.sessions.newChat(ctx.repo, pickOf(input)))).id,
         select,
       ),
     type: "Session",
@@ -254,6 +255,13 @@ const repositoryMutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
       await onSession(ctx, () => ctx.sessions.seen(ctx.repo, input.session));
       return session(ctx, input.session, select);
+    },
+    type: "Session",
+  },
+  "session.setEffort": {
+    resolve: async ({ ctx, input, select }: Resolver<{ effort: string | null; id: string }>) => {
+      await onSession(ctx, () => ctx.sessions.setEffort(ctx.repo, input.id, input.effort));
+      return session(ctx, input.id, select);
     },
     type: "Session",
   },
@@ -342,8 +350,23 @@ function repositoryOnly(definitions: RepositoryMutations) {
   };
 }
 
+/**
+ * The agent's mutation, on every endpoint: asks each runtime for its model list again, at most once
+ * a minute, without waiting for it. The lists that changed reach the record as a live update.
+ */
+const agentMutations = {
+  "agent.refreshModels": {
+    resolve: async ({ ctx, select }: ListResolver<Record<string, never>>) => {
+      void ctx.sessions.runtimes.refreshModels();
+      return sources.masked(agentDataView, ctx, await agentRecord(ctx), select);
+    },
+    type: "Agent",
+  },
+};
+
 export const mutations = {
   ...repositoryOnly(repositoryMutations),
+  ...agentMutations,
   ...listMutations,
   ...settingsMutations,
   ...extensionMutations,

@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
+import { pickOf, type SessionPick } from "../runner/picks.ts";
 import { runtimeState } from "../runner/runtimes.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -29,26 +30,25 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
 /**
  * Sends a started change's first run to its session, through the queue a running turn would hold
  * it in (R3), with the agent available and its workflow message written: the session's ID, or
- * `null` when no run was sent. A session made for it runs on `runtime`, else on the first one on.
+ * `null` when no run was sent. A session made for it runs on what `pick` says, else on the first
+ * runtime on, on its default model and effort.
  */
 async function sendFirstRun(
   ctx: RepoContext,
   folder: string,
-  runtime?: string,
+  pick: SessionPick = {},
 ): Promise<string | null> {
   // Without the agent, or a run to start, the change's page offers its message unsent.
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const latest = ctx.sessions.cache.latestSession(root, folder);
-  const message = runtimeState(ctx.sessions.runtimes, root, latest, runtime).available
+  const message = runtimeState(ctx.sessions.runtimes, root, latest, pick.runtime).available
     ? await readWorkflowMessage(ctx, `${folder}:start`)
     : undefined;
   if (!message?.text) {
     return null;
   }
   // The change's latest session: its only one, made now, unless a session moved to it.
-  const { id } = await onSession(ctx, () =>
-    ctx.sessions.featureSession(ctx.repo, folder, { runtime }),
-  );
+  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder, pick));
   const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );
@@ -59,9 +59,13 @@ async function sendFirstRun(
  * Sends the started change's first run: whether one was sent. Once the change exists, a run that
  * could not be sent is logged, not refused (R12): the change's page offers it unsent.
  */
-async function firstRunSent(ctx: RepoContext, folder: string, runtime?: string): Promise<boolean> {
+async function firstRunSent(
+  ctx: RepoContext,
+  folder: string,
+  pick?: SessionPick,
+): Promise<boolean> {
   try {
-    return (await sendFirstRun(ctx, folder, runtime)) !== null;
+    return (await sendFirstRun(ctx, folder, pick)) !== null;
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its first run was not sent: ${reasonOf(error)}\n`,
@@ -71,21 +75,23 @@ async function firstRunSent(ctx: RepoContext, folder: string, runtime?: string):
 }
 
 /**
- * The started change's folder, once its first run was sent, on `runtime` when one was picked, or
- * could not be: the start's last step.
+ * The started change's folder, once its first run was sent, on what `pick` says, or could not be:
+ * the start's last step.
  */
 const withFirstRun =
-  (ctx: RepoContext, runtime?: string) =>
+  (ctx: RepoContext, pick?: SessionPick) =>
   async ({ folder }: { folder: string }): Promise<{ folder: string; sent: boolean }> => ({
     folder,
-    sent: await firstRunSent(ctx, folder, runtime),
+    sent: await firstRunSent(ctx, folder, pick),
   });
 
-/** A typed change's start: its text, images, line of Now, slug, and the runtime it runs on. */
-type TypedChange = {
+/**
+ * A typed change's start: its text, images, line of Now, slug, and the runtime, model, and effort
+ * it runs on.
+ */
+type TypedChange = SessionPick & {
   images?: Array<ChatImage>;
   line?: string;
-  runtime?: string;
   slug?: string;
   text: string;
 };
@@ -104,7 +110,7 @@ async function startTypedChange(
     ctx,
     (onStep) =>
       ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, input.line, onStep),
-    withFirstRun(ctx, input.runtime),
+    withFirstRun(ctx, pickOf(input)),
     input.slug,
   );
 }

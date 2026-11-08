@@ -5,6 +5,7 @@ import type { PlannedView, StartedView, StartStepView } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { runMessage } from "../runner/message.ts";
+import { pickOf, type SessionPick } from "../runner/picks.ts";
 import { messageRuntime } from "../runner/runtimes.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import type { WriteInput, WriteQueue } from "../writes/queue.ts";
@@ -278,7 +279,7 @@ export async function landedStart<R>(
  */
 export async function keptForStart(
   ctx: RepoContext,
-  to: { folder?: string; runtime?: string; session?: string },
+  to: SessionPick & { folder?: string; session?: string },
   input: SendInput,
 ): Promise<string | undefined> {
   const root = await ctx.sessions.mainRoot(ctx.repo);
@@ -292,8 +293,7 @@ export async function keptForStart(
   const runtime = messageRuntime(runtimes, root, latest, to.runtime);
   checkSend(input, runtime.capabilities);
   const made = row === undefined && cache.folderSessions(root, folder).length === 0;
-  const session =
-    row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder, { runtime: to.runtime })).id;
+  const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder, pickOf(to))).id;
   if (starts.keep(root, folder, session, input)) {
     return session;
   }

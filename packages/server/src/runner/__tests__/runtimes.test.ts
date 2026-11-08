@@ -318,22 +318,33 @@ test("a runtime picked that is off is refused, making no session", async () => {
   expect(JSON.stringify(made.error)).toContain(OFF);
 });
 
-test("change.start sends the change's first run on the runtime picked (R20)", async () => {
+test("change.start sends the change's first run on the runtime, model, and effort picked (R20)", async () => {
   const server = await testServer();
   const durable = new FakeAdapter();
   durable.fallback = () => [];
   server.sessions.runtimes.register("pi-durable", durable);
   await server.sessions.check();
+  await server.sessions.runtimes.refreshModels();
 
   const started = await mutate(
     server.app,
     "change.start",
-    { runtime: "pi-durable", slug: "home-icon", text: "Another home icon" },
+    {
+      effort: "high",
+      model: "fake-big",
+      runtime: "pi-durable",
+      slug: "home-icon",
+      text: "Another home icon",
+    },
     ["folder", "session"],
   );
 
   expect(started.error).toBeUndefined();
   const session = (started.data as { session: string }).session;
-  expect(server.sessions.cache.session(session)?.agent).toBe("pi-durable");
+  expect(server.sessions.cache.session(session)).toMatchObject({
+    agent: "pi-durable",
+    effort: "high",
+    model: "fake-big",
+  });
   expect(server.adapter.opens).toEqual([]);
 });

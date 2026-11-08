@@ -181,6 +181,10 @@ export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */
 export type { Item } from "./runner/events.ts";
 export type { Capabilities } from "./runner/adapter.ts";
+/** A runtime's model list, as each `RuntimeRecord` carries it, a model of it, and its efforts. */
+export type { AgentModel, ModelEffort, ModelList } from "./runner/adapter.ts";
+/** What a session runs on, as every input that starts one takes it beside its other fields. */
+export type { SessionPick } from "./runner/picks.ts";
 /** An agent runtime, as the `Agent` record lists it, and one window of its usage. */
 export type { RuntimeRecord } from "./runner/runtimes.ts";
 export type { UsageWindow } from "./runner/events.ts";
