@@ -237,6 +237,21 @@ test("a thread never given an effort sends none", async () => {
   expect(turnEfforts(dir)).toEqual([undefined, undefined]);
 });
 
+test("a resumed thread on the default effort is given it, as it may keep another", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const agent = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    resume: true,
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  agent.send(message("m1", "Hi"));
+  await until(events, "result");
+  agent.close();
+  await until(events, "exit");
+  expect(turnEfforts(dir)).toEqual(["high"]);
+});
+
 test("a turn that completes before its start is answered still accepts its message", async () => {
   const dir = temporaryFolder("uraeda-codex");
   const command = appServer(dir, { completesFirst: true });

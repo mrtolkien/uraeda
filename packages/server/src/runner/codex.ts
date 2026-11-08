@@ -400,6 +400,7 @@ export class CodexAdapter implements Adapter {
           codexTurnParams({ ...message, threadId, ...(effort ? { effort } : {}) }),
       },
       options.effort,
+      options.resume,
     );
     return {
       close: () => {
