@@ -69,6 +69,7 @@ import { undo2 } from "./undoIcons.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import {
   badgeCheck,
+  cpu,
   hourglass,
   keyboard,
   lightbulb,
@@ -161,6 +162,7 @@ const DECISION_ICONS = {
   bot,
   "calendar-clock": calendarClock,
   component,
+  cpu,
   database,
   eye: review,
   "file-text": fileText,
