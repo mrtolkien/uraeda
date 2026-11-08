@@ -300,8 +300,8 @@ tell it to escalate, which its auto-reviewer then approves.
 - **Images**: Claude reads `[Image: <path>]` lines; Codex takes `localImage` inputs.
 - **Turning a runtime off** in Settings, Extensions leaves its sessions read-only, as today.
 - **Other features in flight**: none on another branch touches the runner.
-  [Run options](../2026-11-08-run-options/proposal.md), a proposal in **Now**, plans "model and effort per
-  step" with global defaults and per-feature overrides, on top of what this feature adds.
+  [Run options](../2026-11-08-run-options/proposal.md), a proposal in **Now**, plans "model and
+  effort per step" with global defaults and per-feature overrides, on top of what this feature adds.
 
 ### Rules and their owners
 
