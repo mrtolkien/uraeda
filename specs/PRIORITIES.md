@@ -50,6 +50,8 @@
   repos and not in a monorepo
   - Cross repo notes would be nice!
 - [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
+- [Markdown extensions](/specs/proposals/markdown-extensions.md): extensions draw blocks and inline
+  patterns, mermaid as a built-in; maybe the grammar itself
 
 ## Later
 
