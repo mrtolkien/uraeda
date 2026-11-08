@@ -1,9 +1,10 @@
 // The loader runs the owner's code in the server: each test writes extension folders to a temporary
 // config folder, opens the loader over the real binding and compiler, and waits for its notices.
 import { relative, join } from "node:path";
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync, symlinkSync, watch } from "node:fs";
 import { afterEach, expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import type { Binding } from "../../fate/context.ts";
 import {
   extensionFolder,
   gatedBinding,
@@ -84,6 +85,39 @@ test("a saved change reloads the extension once, latest files", async () => {
   turn.resolve();
   expect(await after).toMatchObject({ state: "on" });
   expect(marks.of("wiki")).toEqual([6]);
+});
+
+test("a save within the quiet moment after a watched one compiles once", async () => {
+  const config = temporaryFolder("config");
+  const folder = extensionFolder(config, "wiki", { "server.ts": marking(1) });
+  const real: Binding = await import("uraeda-binding");
+  let compiles = 0;
+  const binding: Binding = {
+    ...real,
+    compileModule: (source, filename) => {
+      compiles += filename.endsWith("server.ts") ? 1 : 0;
+      return real.compileModule(source, filename);
+    },
+  };
+  const { loader, marks } = await openLoader({ binding, configDir: config });
+  expect(compiles).toBe(1);
+
+  // The first save seen, as the loader's watch sees it, then a second 20 ms later, in another
+  // batch of events but within the quiet moment.
+  const seen = Promise.withResolvers<void>();
+  const watcher = watch(folder, () => seen.resolve());
+  const next = loaded(loader, "wiki");
+  writeFiles(folder, { "server.ts": marking(2) });
+  await seen.promise;
+  watcher.close();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  writeFiles(folder, { "server.ts": marking(3) });
+  expect(await next).toMatchObject({ state: "on" });
+  // Twice the quiet moment, for a second compile to show.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  expect(compiles).toBe(2);
+  expect(loader.get("wiki")?.version).toBe(2);
+  expect(marks.of("wiki")).toEqual([3]);
 });
 
 test("a file that fails to compile keeps the last working version", async () => {
