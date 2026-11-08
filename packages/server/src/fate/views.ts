@@ -179,9 +179,13 @@ export type SessionRecord = {
    * first edit, with their count of completed edits: a failed edit does not count.
    */
   edited: Array<EditedFile>;
+  /** The effort picked, by the agent's ID: null for the agent's default. */
+  effort: string | null;
   /** The feature's folder, null for a chat. */
   folder: string | null;
   id: string;
+  /** The model picked, by the agent's ID: null for the agent's default. */
+  model: string | null;
   /**
    * Its own title, a chat's, kept once it became a change's or a feature's: null for a session
    * started in a change or a feature, whose `title` is its feature's.
@@ -189,6 +193,10 @@ export type SessionRecord = {
   name: string | null;
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
+  /** The effort its agent last reported running on, by its name for people: null for none. */
+  ranEffort: string | null;
+  /** The model its agent last reported running on, by its name for people: null before it did. */
+  ranModel: string | null;
   /** When it started, which its place in a feature's sessions follows. */
   startedAt: string;
   status: SessionStatus;
@@ -382,10 +390,14 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   automaticContinues: true,
   backgroundCommands: true,
   edited: true,
+  effort: true,
   folder: true,
   id: true,
+  model: true,
   name: true,
   place: true,
+  ranEffort: true,
+  ranModel: true,
   startedAt: true,
   status: true,
   statusLabel: true,

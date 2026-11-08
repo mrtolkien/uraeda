@@ -2,6 +2,7 @@
 // sent once they land, in order, exactly once, and dropped if one is refused, their text kept in the
 // refused write for the composer, as a send's refusal returns them (`kept-sends.ts`). The agent
 // never starts on a file written but not committed yet.
+import { pickOf, type SessionPick } from "../runner/picks.ts";
 import { messageRuntime } from "../runner/runtimes.ts";
 import { ofDropped } from "../runner/session-state.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -15,7 +16,7 @@ import { featureKeys } from "./write-queue.ts";
 const waiting = new WeakMap<WriteQueue, Map<string, Array<Kept>>>();
 
 /** Where a message goes: a session, or a feature, in its latest session or a new one. */
-type To = { folder?: string; newSession?: boolean; runtime?: string; session?: string };
+type To = SessionPick & { folder?: string; newSession?: boolean; session?: string };
 
 /** The session a message kept for `folder` goes to, and whether it was made for it. */
 async function sessionFor(
@@ -34,14 +35,14 @@ async function sessionFor(
   if (to.newSession === true) {
     return {
       made: true,
-      session: (await ctx.sessions.newSession(ctx.repo, folder, { runtime: to.runtime })).id,
+      session: (await ctx.sessions.newSession(ctx.repo, folder, pickOf(to))).id,
     };
   }
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const made = ctx.sessions.cache.folderSessions(root, folder).length === 0;
   return {
     made,
-    session: (await ctx.sessions.featureSession(ctx.repo, folder, { runtime: to.runtime })).id,
+    session: (await ctx.sessions.featureSession(ctx.repo, folder, pickOf(to))).id,
   };
 }
 

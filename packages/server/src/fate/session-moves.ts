@@ -1,6 +1,7 @@
 import { reasonOf } from "../reason.ts";
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
+import { pickOf, type SessionPick } from "../runner/picks.ts";
 import { messageRuntime, runtimeState } from "../runner/runtimes.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
@@ -246,11 +247,11 @@ export const sessionMoves = {
     type: "Feature",
   },
   "session.new": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string; runtime?: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<SessionPick & { folder: string }>) => {
       const row = await refusedOn(async () => {
         // A folder that is no change's or feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
-        return ctx.sessions.newSession(ctx.repo, input.folder, { runtime: input.runtime });
+        return ctx.sessions.newSession(ctx.repo, input.folder, pickOf(input));
       });
       return maskedSession(ctx, row.id, select);
     },

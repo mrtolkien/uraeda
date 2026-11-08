@@ -11,6 +11,11 @@ import { refused } from "./session-state.ts";
 /** What the human picked where a session starts: each one left out for the default. */
 export type SessionPick = { effort?: string; model?: string; runtime?: string };
 
+/** The pick an input carries beside its other fields, `runtime`, `model`, and `effort`. */
+export function pickOf({ effort, model, runtime }: SessionPick): SessionPick {
+  return { effort, model, runtime };
+}
+
 /** What a new session stores: its runtime's name, and its model and effort, null for the agent's. */
 export type Picked = { agent: string; effort: string | null; model: string | null };
 

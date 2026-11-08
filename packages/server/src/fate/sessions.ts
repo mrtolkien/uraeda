@@ -123,9 +123,13 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
   return {
     agent: row.agent,
     allowable: read.allowable,
+    effort: row.effort,
     folder: row.folder,
     id: row.id,
+    model: row.model,
     name: row.title,
+    ranEffort: row.ranEffort,
+    ranModel: row.ranModel,
     startedAt: row.createdAt,
     title: titleOf(row, feature),
     ...statusOf(
