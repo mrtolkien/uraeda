@@ -322,6 +322,16 @@ test("claudeModels keeps the models that keep auto mode, without the default row
   ]);
 });
 
+test.each<[string, Record<string, unknown>, string | undefined]>([
+  ["its own ID", { effective: { model: "sonnet" } }, "sonnet"],
+  ["the ID it resolves to", { effective: { model: "claude-sonnet-5-5" } }, "sonnet"],
+  ["no listed row", { effective: { model: "claude-mythos-1" } }, undefined],
+  ["a row that drops auto mode", { effective: { model: "claude-haiku-4-5-20251001" } }, undefined],
+  ["no row, running on one", { applied: { model: "claude-sonnet-5-5" }, effective: {} }, "sonnet"],
+])("claudeModels's default model is a listed row's ID: configured as %s", (_, settings, model) => {
+  expect(claudeModels(LIST_MODELS, settings).defaults.model).toBe(model);
+});
+
 test("claudeModels reads no default it is not given, and no list from a broken answer", () => {
   expect(claudeModels(LIST_MODELS, { applied: {}, effective: {} }).defaults).toEqual({});
   expect(claudeModels({ models: "none" }, null)).toEqual({ defaults: {}, models: [] });

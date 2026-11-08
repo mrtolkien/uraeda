@@ -55,30 +55,34 @@ function rowOf(rows: ReturnType<typeof modelRows>, model: string) {
 /**
  * The models of Claude Code's `list_models` and `get_settings` answers: each row but the `default`
  * one and those that drop `auto` mode, which an unattended run cannot do without, its `value` as
- * the ID. The defaults are the configured model, else the row of the one it runs on, and the
- * effort it runs on.
+ * the ID. The defaults are the listed row of the configured model, else of the one it runs on,
+ * none when neither is listed, and the effort it runs on.
  */
 export function claudeModels(listModels: unknown, getSettings: unknown): ModelList {
-  const rows = modelRows(listModels);
-  const models = rows
-    .filter((row) => row.supportsAutoMode === true)
-    .map((row): AgentModel => {
-      const levels = field(row, "supportedEffortLevels");
-      const description = textOf(row.description);
-      return {
-        ...(description === undefined ? {} : { description }),
-        efforts: (Array.isArray(levels) ? levels : [])
-          .filter((id): id is string => typeof id === "string")
-          .map((id) => ({ id, name: effortName(id) })),
-        id: row.value,
-        name: textOf(row.displayName) ?? row.value,
-      };
-    });
+  const listed = modelRows(listModels).filter((row) => row.supportsAutoMode === true);
+  const models = listed.map((row): AgentModel => {
+    const levels = field(row, "supportedEffortLevels");
+    const description = textOf(row.description);
+    return {
+      ...(description === undefined ? {} : { description }),
+      efforts: (Array.isArray(levels) ? levels : [])
+        .filter((id): id is string => typeof id === "string")
+        .map((id) => ({ id, name: effortName(id) })),
+      id: row.value,
+      name: textOf(row.displayName) ?? row.value,
+    };
+  });
   const applied = field(getSettings, "applied");
   const running = textOf(field(applied, "model"));
-  const model =
-    textOf(field(field(getSettings, "effective"), "model")) ??
-    (running === undefined ? undefined : rowOf(rows, running)?.value);
+  const configured = textOf(field(field(getSettings, "effective"), "model"));
+  // The configured model may be an ID the list resolves, as the one it runs on is.
+  const model = (
+    (configured === undefined
+      ? undefined
+      : (listed.find((row) => row.value === configured) ??
+        listed.find((row) => row.resolvedModel === configured))) ??
+    (running === undefined ? undefined : rowOf(listed, running))
+  )?.value;
   const effort = textOf(field(applied, "effort"));
   return {
     defaults: {
