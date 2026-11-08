@@ -157,14 +157,12 @@ type Scope = { parent?: string } | undefined;
 /**
  * The events of one Codex process's notifications, read in order. It keeps what a notification
  * alone does not say: the session's thread and its sub-agents' threads, the text streamed by each
- * message, the tool items already started, the last usage report, and the current turn's ID, for
- * the caller to steer or interrupt it.
+ * message, the tool items already started, and the last usage report.
  */
 export class CodexEvents {
   readonly #cwd: string;
   readonly #names: (model: string) => string;
   #thread: string | undefined;
-  #turn: string | undefined;
   /** The effort the thread's settings name; none at the default. */
   #effort: string | undefined;
   /** The effort Codex resolved the thread to at its start, the default's when none is named. */
@@ -182,11 +180,6 @@ export class CodexEvents {
   constructor(cwd: string, names: (model: string) => string) {
     this.#cwd = cwd;
     this.#names = names;
-  }
-
-  /** The turn running or last run, from its `turn/started`. */
-  get turnId(): string | undefined {
-    return this.#turn;
   }
 
   /** The events of one notification: none for one Uraeda has no use for. */
@@ -278,11 +271,6 @@ export class CodexEvents {
         return this.#runsOn(text(params.toModel));
       case "thread/tokenUsage/updated":
         return tokensOf(isObject(params.tokenUsage) ? params.tokenUsage.total : undefined);
-      case "turn/started": {
-        const turn = isObject(params.turn) ? params.turn : {};
-        this.#turn = text(turn.id) || this.#turn;
-        return [];
-      }
       case "turn/completed":
         return this.#turnCompleted(isObject(params.turn) ? params.turn : {});
       default:

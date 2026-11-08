@@ -91,13 +91,6 @@ test("an escalated command and its review", () => {
   expect(events).not.toContainEqual({ type: "skipped" });
 });
 
-test("the current turn's ID is kept for the caller", () => {
-  const events = new CodexEvents(CWD, names);
-  expect(events.turnId).toBeUndefined();
-  readAll(fixture("codex-turn.jsonl").slice(0, 4), events);
-  expect(events.turnId).toBe(TURN);
-});
-
 const threadStarted = (thread: Record<string, unknown>): CodexNotification => ({
   method: "thread/started",
   params: { thread: { id: THREAD, parentThreadId: null, ...thread } },
