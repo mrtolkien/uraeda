@@ -93,3 +93,40 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   retired model could not even go back to its default effort, and the refusal would need a model
   name it does not have.
 - **Where**: task 3, `picks.ts`.
+
+## R11: Claude Code's control requests live in `claude-control.ts`
+
+- **Decision**: the control requests a Claude Code process writes and the answers it waits for, by
+  request ID, and the readings of `list_models` and `get_settings` (`claudeModels`, `claudeRunsOn`),
+  go in `runner/claude-control.ts`; `claude.ts` keeps the adapter.
+- **Rationale**: in `claude.ts` they would take it past the 500 lines the code quality decision
+  allows, and `claude-events.ts` is near it; they are one concern, the control channel.
+- **Where**: task 5.
+
+## R12: Codex's usage windows take Claude Code's IDs
+
+- **Decision**: Codex's 300- and 10,080-minute windows are `five_hour` and `seven_day`, labelled
+  `5h` and `Week`, as `claude-limits.ts` names Claude Code's; other lengths get an ID by their
+  duration, and a window without a reset time is left out.
+- **Rationale**: the usage window draws both agents' windows the same; the plan's `five-hour` and
+  `week` did not match the code.
+- **Where**: task 4, `codex-limits.ts`.
+
+## R13: A Codex command's target drops its shell wrapper
+
+- **Decision**: a command's target reads `git commit -m 'add a'`, not `/usr/bin/bash -lc "..."`;
+  its input keeps the full command line.
+- **Rationale**: the transcript shows what the agent ran, as Claude Code's Bash targets do.
+- **Where**: task 4, `shellCommand` in `codex-events.ts`.
+
+## R14: Only the session's thread, and its sub-agents', reach the transcript
+
+- **Decision**: notifications of another thread are dropped; a sub-agent's thread, learned from a
+  `spawnAgent` item's `receiverThreadIds`, gives tools and thoughts with `parent`, and no text; a
+  sub-agent's `thread/started` gives no `init`. Without a `thread/started`, as on resume, the first
+  thread heard from is the session's. `model/rerouted` gives `runsOn` with the model that ran.
+- **Rationale**: a sub-agent's `turn/completed` or `thread/started` would end the session's turn or
+  read as a clear; Claude Code's sub-agents' text is dropped the same way.
+- **If wrong**: only the generated types back the sub-agent shapes; `validate:codex` at Ultra can
+  check them.
+- **Where**: task 4, `codex-events.ts`.

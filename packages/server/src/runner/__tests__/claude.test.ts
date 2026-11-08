@@ -17,6 +17,7 @@ import { lines } from "../child.ts";
 import { allowRule, type Blocks, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
 import { ClaudeAdapter, claudeArgs, extensionPlugins, prunePlugins } from "../claude.ts";
+import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
@@ -208,24 +209,136 @@ test("several allow rules are each their own argument, last", () => {
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(rm -rf dist)", "Edit(src/a.ts)"]);
 });
 
-test("no argument skips permissions or sets a model", () => {
+test("the model and effort picked are arguments; none skips permissions", () => {
+  const picked = claudeArgs(
+    { ...open, effort: "high", model: "sonnet", resume: false },
+    "/plugin",
+    "/data/images",
+  );
+  const at = picked.indexOf("--model");
+  expect(picked.slice(at, at + 4)).toEqual(["--model", "sonnet", "--effort", "high"]);
+  const defaults = claudeArgs({ ...open, resume: false }, "/plugin", "/data/images");
+  expect(defaults).not.toContain("--model");
+  expect(defaults).not.toContain("--effort");
   for (const args of [
-    claudeArgs({ ...open, resume: false }, "/plugin", "/data/images"),
+    picked,
+    defaults,
     claudeArgs(
       { ...open, allowed: ["Bash(gh pr create --draft)"], resume: true },
       "/plugin",
       "/data/images",
     ),
   ]) {
-    for (const forbidden of [
-      "bypassPermissions",
-      "--dangerously-skip-permissions",
-      "--model",
-      "--effort",
-    ]) {
-      expect(args).not.toContain(forbidden);
-    }
+    expect(args).not.toContain("bypassPermissions");
+    expect(args).not.toContain("--dangerously-skip-permissions");
+    const mode = args.indexOf("--permission-mode");
+    expect(args.slice(mode, mode + 2)).toEqual(["--permission-mode", "auto"]);
   }
+});
+
+/** Claude Code 2.1.319's answer to `list_models`, some of its rows. */
+const LIST_MODELS = {
+  models: [
+    {
+      description: "Opus 5.5 · Best for everyday, complex tasks",
+      displayName: "Default (recommended)",
+      resolvedModel: "claude-opus-5-5",
+      supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+      supportsAutoMode: true,
+      supportsEffort: true,
+      value: "default",
+    },
+    {
+      description: "For complex work and everyday tasks",
+      displayName: "Opus 5.5",
+      resolvedModel: "claude-opus-5-5",
+      supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+      supportsAutoMode: true,
+      supportsEffort: true,
+      value: "opus",
+    },
+    {
+      description: "Most efficient for simpler tasks",
+      displayName: "Sonnet 5.5",
+      resolvedModel: "claude-sonnet-5-5",
+      supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+      supportsAutoMode: true,
+      supportsEffort: true,
+      value: "sonnet",
+    },
+    {
+      description: "Fastest for quick answers",
+      displayName: "Haiku 4.5",
+      resolvedModel: "claude-haiku-4-5-20251001",
+      supportsThinkingOff: true,
+      value: "claude-haiku-4-5-20251001",
+    },
+    {
+      description: "Best for everyday, complex tasks",
+      displayName: "Opus 4.6",
+      resolvedModel: "claude-opus-4-6",
+      supportedEffortLevels: ["low", "medium", "high", "max"],
+      supportsAutoMode: true,
+      supportsEffort: true,
+      value: "claude-opus-4-6",
+    },
+  ],
+};
+
+/** Claude Code 2.1.319's answer to `get_settings`, its fields this runtime reads. */
+const GET_SETTINGS = {
+  applied: { advisor: null, effort: "medium", model: "claude-opus-5-5", ultracode: false },
+  effective: { model: "opus", theme: "dark" },
+};
+
+test("claudeModels keeps the models that keep auto mode, without the default row", () => {
+  const list = claudeModels(LIST_MODELS, GET_SETTINGS);
+  expect(list.models.map((model) => model.id)).toEqual(["opus", "sonnet", "claude-opus-4-6"]);
+  expect(list.defaults).toEqual({ effort: "medium", model: "opus" });
+  expect(list.models[0]).toEqual({
+    description: "For complex work and everyday tasks",
+    efforts: [
+      { id: "low", name: "Low" },
+      { id: "medium", name: "Medium" },
+      { id: "high", name: "High" },
+      { id: "xhigh", name: "Extra high" },
+      { id: "max", name: "Max" },
+    ],
+    id: "opus",
+    name: "Opus 5.5",
+  });
+  expect(list.models[2]!.efforts.map((effort) => effort.id)).toEqual([
+    "low",
+    "medium",
+    "high",
+    "max",
+  ]);
+});
+
+test("claudeModels reads no default it is not given, and no list from a broken answer", () => {
+  expect(claudeModels(LIST_MODELS, { applied: {}, effective: {} }).defaults).toEqual({});
+  expect(claudeModels({ models: "none" }, null)).toEqual({ defaults: {}, models: [] });
+});
+
+test.each<[string, Record<string, unknown>, Extract<AgentEvent, { type: "runsOn" }> | undefined]>([
+  [
+    "the row of the model it resolves to",
+    { effort: "xhigh", model: "claude-opus-5-5" },
+    { effort: "Extra high", model: "Opus 5.5", type: "runsOn" },
+  ],
+  [
+    "the row of its ID",
+    { effort: "low", model: "sonnet" },
+    { effort: "Low", model: "Sonnet 5.5", type: "runsOn" },
+  ],
+  [
+    "a model not listed, by its ID",
+    { model: "claude-opus-5-5[1m]" },
+    { model: "claude-opus-5-5[1m]", type: "runsOn" },
+  ],
+  ["no model", { effort: "low" }, undefined],
+])("runsOn names what runs: %s", (_, applied, expected) => {
+  expect(claudeRunsOn(LIST_MODELS, { applied, effective: {} })).toEqual(expected);
 });
 
 test.each<[string, Array<AgentEvent>]>([
@@ -1005,12 +1118,15 @@ function script(body: string): string {
   return path;
 }
 
-/** The JSON lines a stand-in command read on its stdin. */
+/** The JSON lines a stand-in command read on its stdin, but the `list_models` of every opening. */
 const written = (path: string) =>
   readFileSync(path, "utf8")
     .split("\n")
     .filter(Boolean)
-    .map((text) => JSON.parse(text) as Record<string, unknown>);
+    .map((text) => JSON.parse(text) as Record<string, unknown>)
+    .filter(
+      (value) => (value.request as { subtype?: string } | undefined)?.subtype !== "list_models",
+    );
 
 test("version() is the command's first line", async () => {
   const command = script('echo "2.1.296 (Claude Code)"; echo more');
@@ -1222,6 +1338,121 @@ test("interrupt writes the interrupt control request, and close ends stdin", asy
     type: "control_request",
   });
   expect(second!.request_id).not.toBe(first!.request_id);
+});
+
+/**
+ * A stand-in for `claude` that answers its control requests as Claude Code 2.1.319 does, from
+ * `LIST_MODELS`, an effort `apply_flag_settings` changes and `null` sets back to `medium`, and the
+ * error of a subtype it does not know, or of every request with `fail`. It writes what it read to
+ * `<dir>/stdin`.
+ */
+function controlAgent(dir: string, fail = false): string {
+  const agent = join(dir, "agent.cjs");
+  writeFileSync(
+    agent,
+    `const { appendFileSync } = require("node:fs");
+const list = ${JSON.stringify(LIST_MODELS)};
+let effort = "medium";
+const out = (response) => process.stdout.write(JSON.stringify({ response, type: "control_response" }) + "\\n");
+require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
+  appendFileSync(${JSON.stringify(join(dir, "stdin"))}, line + "\\n");
+  const { request, request_id } = JSON.parse(line);
+  const ok = (response) => out({ request_id, subtype: "success", ...(response ? { response } : {}) });
+  if (${fail}) out({ error: "Not now", request_id, subtype: "error" });
+  else if (request.subtype === "list_models") ok(list);
+  else if (request.subtype === "get_settings") ok({ applied: { effort, model: "claude-opus-5-5" }, effective: { model: "opus" } });
+  else if (request.subtype === "apply_flag_settings") { effort = request.settings.effortLevel ?? "medium"; ok(); }
+  else out({ error: "Unsupported", request_id, subtype: "error" });
+});
+`,
+  );
+  return script(`exec "${process.execPath}" "${agent}"`);
+}
+
+test("an open process says what it runs on, and again after each change of effort", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const agent = new ClaudeAdapter({
+    command: controlAgent(dir),
+    imagesDir: images(),
+    pluginDir: "/p",
+  }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  const events = agent.events[Symbol.asyncIterator]();
+  const next = async () => (await events.next()).value as AgentEvent;
+
+  expect(await next()).toEqual({ effort: "Medium", model: "Opus 5.5", type: "runsOn" });
+  agent.setEffort!("xhigh");
+  expect(await next()).toEqual({ effort: "Extra high", model: "Opus 5.5", type: "runsOn" });
+  agent.setEffort!(undefined);
+  expect(await next()).toEqual({ effort: "Medium", model: "Opus 5.5", type: "runsOn" });
+  agent.interrupt();
+  agent.close();
+  expect(await next()).toEqual({ code: 0, stderr: "", type: "exit" });
+
+  expect(written(join(dir, "stdin")).map((value) => value.request)).toEqual([
+    { subtype: "get_settings" },
+    { settings: { effortLevel: "xhigh" }, subtype: "apply_flag_settings" },
+    { subtype: "get_settings" },
+    { settings: { effortLevel: null }, subtype: "apply_flag_settings" },
+    { subtype: "get_settings" },
+    { subtype: "interrupt" },
+  ]);
+});
+
+test("an open process whose control requests fail says nothing of its model", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const agent = new ClaudeAdapter({
+    command: controlAgent(dir, true),
+    imagesDir: images(),
+    pluginDir: "/p",
+  }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  agent.setEffort!("high");
+  agent.close();
+  expect(await collect(agent.events)).toEqual([{ code: 0, stderr: "", type: "exit" }]);
+});
+
+test("models() lists through a short process, which it closes", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const adapter = new ClaudeAdapter({
+    command: controlAgent(dir),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  expect(await adapter.models()).toEqual(claudeModels(LIST_MODELS, GET_SETTINGS));
+  const read = readFileSync(join(dir, "stdin"), "utf8").split("\n").filter(Boolean);
+  expect(read.map((text) => (JSON.parse(text) as { request: unknown }).request)).toEqual([
+    { subtype: "list_models" },
+    { subtype: "get_settings" },
+  ]);
+});
+
+test("models() rejects when the agent refuses, or exits before answering", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const refusing = new ClaudeAdapter({
+    command: controlAgent(dir, true),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  await expect(refusing.models()).rejects.toThrow("Not now");
+  const exiting = new ClaudeAdapter({
+    command: script("exit 1"),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  await expect(exiting.models()).rejects.toThrow();
+  const missing = new ClaudeAdapter({
+    command: join(dir, "nothing"),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  await expect(missing.models()).rejects.toThrow();
 });
 
 test("kill sends its signal to the process", async () => {

@@ -4,8 +4,8 @@ import { toolTarget } from "./message.ts";
 
 /**
  * The line types Claude Code prints in stream-json output. Those the adapter has no use for, like
- * hooks and the answers to its control requests, give no event; any other type
- * is skipped and counted.
+ * hooks, give no event, nor do the answers to its control requests, which `claude-control.ts` reads;
+ * any other type is skipped and counted.
  */
 const KNOWN_TYPES = new Set([
   "assistant",
