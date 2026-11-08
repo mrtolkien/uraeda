@@ -78,8 +78,13 @@ The web UI bundles the [Monaspace](https://github.com/githubnext/monaspace),
 [Atkinson Hyperlegible Next](https://github.com/googlefonts/atkinson-hyperlegible-next),
 [Literata](https://github.com/googlefonts/literata),
 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), and
-[Inter](https://github.com/rsms/inter) fonts, under the SIL Open Font License 1.1. It takes its
-colours from [Catppuccin](https://github.com/catppuccin/catppuccin), under the MIT license.
+[Inter](https://github.com/rsms/inter) fonts, under the SIL Open Font License 1.1.
+
+The shipped colour themes, in `crates/core/themes/`, take their colours from their projects, each
+file's header naming its source, its version, and its license: Catppuccin, Dracula and Alucard,
+GitHub's Primer, Gruvbox, Kanagawa, Nord, Atom's One Dark and One Light, Rosé Pine, Solarized, and
+the Tokyo Night VS Code theme (Tokyo Night Light), under the MIT license; and folke's
+tokyonight.nvim (Tokyo Night, Storm, and Moon), under the Apache-2.0 license.
 
 The harnesses' marks are [Codicons](https://github.com/microsoft/vscode-codicons)' drawings, by
 Microsoft, under the Creative Commons Attribution 4.0 license (CC BY 4.0). The app's other icons are

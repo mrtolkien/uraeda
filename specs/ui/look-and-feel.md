@@ -84,8 +84,9 @@ the roles, which [`theme/roles.ts`](/packages/web/src/theme/roles.ts) turns into
 - **`sub-agent`** (teal) marks sub-agents, apart from `removed`, which reads as wrong.
 - **`added`** (green) is the repository's mark and what was added; **`removed`** (red) what was
   removed or is wrong.
-- **Headings** take their level's role, `heading-1` to `heading-3` (mauve, blue, green); page, pane,
-  and group titles keep their own colours.
+- **Headings** take their level's role, `heading-1` to `heading-3` (mauve, blue, green), and so does
+  a page or pane title that is a document's heading: a spec's `#` title, a user story's pane, a `##`
+  section's pane. Other page, pane, and group titles keep their own colours.
 - **Text stays the text's colour.** The secondary colour is for what reads second, never for the
   row's own text.
 
