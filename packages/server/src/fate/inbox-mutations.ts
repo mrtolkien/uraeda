@@ -61,6 +61,15 @@ export const inboxMutations = {
     },
     type: "WorkflowFile",
   },
+  // The triage deleted, its deletion committed alone, so "Organize with AI" asks for a new one.
+  // Answers with the inbox, which has no triage left.
+  "defaultRound.dismiss": {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ previous: string }>>) => {
+      await listCommit(ctx, input.write, () => ctx.binding.dismissTriage(ctx.repo, input.previous));
+      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+    },
+    type: "Inbox",
+  },
   "defaultRound.notes": {
     resolve: async ({
       ctx,

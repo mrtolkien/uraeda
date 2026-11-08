@@ -171,3 +171,64 @@ fn a_missing_round_reads_as_none() {
             .is_some()
     );
 }
+
+#[test]
+fn dismissing_the_triage_deletes_it_alone_in_its_own_commit() {
+    let repo = repo_with_both_files();
+    let check_before = repo.read(CHECK);
+    // A note added since, and not committed: someone's work, which the dismissal leaves as it is.
+    repo.write("specs/INBOX.md", "# Inbox\n\n- A new note\n");
+
+    api::dismiss_round(
+        repo.path(),
+        DefaultRound::Triage,
+        &base(&repo, DefaultRound::Triage),
+    )
+    .unwrap();
+
+    assert!(!repo.exists(TRIAGE));
+    assert_eq!(repo.subjects("main")[0], "chore: dismiss the inbox triage");
+    assert_eq!(repo.changed_in("HEAD"), [TRIAGE]);
+    assert_eq!(repo.read(CHECK), check_before);
+    assert_eq!(repo.read("specs/INBOX.md"), "# Inbox\n\n- A new note\n");
+    // The inbox has no triage left, so a new one can be asked for.
+    assert!(
+        api::read_round(repo.path(), DefaultRound::Triage)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(api::read_inbox(repo.path()).unwrap().triage, None);
+}
+
+#[test]
+fn dismissing_a_triage_changed_since_it_was_read_is_refused() {
+    let repo = repo_with_both_files();
+    let read = base(&repo, DefaultRound::Triage);
+    answer_all(&repo, DefaultRound::Triage);
+    let answered = repo.read(TRIAGE);
+
+    let error = api::dismiss_round(repo.path(), DefaultRound::Triage, &read).unwrap_err();
+
+    assert!(error.to_string().contains("INBOX-TRIAGE.md"), "{error}");
+    assert_eq!(repo.read(TRIAGE), answered);
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: propose a triage and a check"
+    );
+}
+
+#[test]
+fn the_decisions_check_cannot_be_dismissed() {
+    let repo = repo_with_both_files();
+    let check_before = repo.read(CHECK);
+
+    let error = api::dismiss_round(
+        repo.path(),
+        DefaultRound::DecisionsCheck,
+        &base(&repo, DefaultRound::DecisionsCheck),
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("cannot be dismissed"), "{error}");
+    assert_eq!(repo.read(CHECK), check_before);
+}

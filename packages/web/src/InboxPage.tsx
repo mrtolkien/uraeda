@@ -22,7 +22,7 @@ import { PageTitle } from "./layout/PageTitle.tsx";
  * "New category" adds a pane. Each note is edited in place, or opens its file, and drags to its
  * place; the Git page commits the inbox's changes with the priorities'. The heading carries the
  * count, and "Organize with AI", on its right, asks for a triage, one at a time, which its
- * banner leads to. `select` selects a note, as its address names it.
+ * banner leads to, or dismisses for a new one. `select` selects a note, as its address names it.
  */
 export function InboxPage({ select }: { select?: { key: string } | undefined } = {}) {
   const inbox = useInbox();
@@ -52,7 +52,9 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
           Inbox
         </PageTitle>
         {!agent && inbox.triage === null && <OrganizeMessage />}
-        {inbox.triage !== null && <TriageBanner agent={agent} chat={chat} status={inbox.triage} />}
+        {inbox.triage !== null && (
+          <TriageBanner agent={agent} chat={chat} onRefused={setMessage} status={inbox.triage} />
+        )}
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         {inbox.count === 0 && (

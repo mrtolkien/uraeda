@@ -47,7 +47,9 @@ The web UI reads the workflow's files as the skill writes them, and draws them:
   with images as a file of its own. A note's page adds images with "Add images", or by dropping
   them, and draws them under its text.
 - The banners of the inbox's triage and of the decisions check open their round with "Answer it", in
-  the questions view, where Submit commits it.
+  the questions view, where Submit commits it. The triage's Dismiss deletes it, in a commit of its
+  own, so "Organize with AI" asks for a new one; a triage holding answers you have not submitted
+  asks first.
 - A done feature's page repairs links its files lost to a later move with "Fix moved links", as
   `ura check --fix` does.
 

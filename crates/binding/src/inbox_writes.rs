@@ -8,6 +8,7 @@ use std::path::Path;
 use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi_derive::napi;
 use uraeda_core::actions::commit::InboxAdded;
+use uraeda_core::actions::default_round::DefaultRound;
 use uraeda_core::api;
 use uraeda_core::api::undo;
 use uraeda_core::files::inbox::Inbox;
@@ -377,4 +378,11 @@ pub fn retry_round(repo: String, id: String) -> AsyncTask<Job<FileView>> {
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn submit_round(repo: String, id: String, previous: String) -> AsyncTask<Job<FileView>> {
     job(move || api::submit_round(Path::new(&repo), api::default_round(&id)?, &previous))
+}
+
+/// Dismisses the inbox's triage, read with the hash `previous`: deletes it and commits the deletion
+/// alone, so a new one can be asked for.
+#[napi(ts_return_type = "Promise<void>")]
+pub fn dismiss_triage(repo: String, previous: String) -> AsyncTask<Job<()>> {
+    job(move || api::dismiss_round(Path::new(&repo), DefaultRound::Triage, &previous))
 }

@@ -160,6 +160,15 @@ pub fn retry_round(repo: &Path, round: DefaultRound) -> Result<FileView> {
     committed(&place, round)
 }
 
+/// Dismisses the round, read with the hash `previous`: deletes its file and commits the deletion
+/// alone, so "Organize with AI" asks for a new one.
+pub fn dismiss_round(repo: &Path, round: DefaultRound, previous: &str) -> Result<()> {
+    let _lock = write_lock(repo);
+    let place = reach_default(repo)?;
+    default_round::dismiss(&place, round, previous)?;
+    Ok(())
+}
+
 /// The round's view once committed.
 fn committed(place: &Place, round: DefaultRound) -> Result<FileView> {
     let text = std::fs::read_to_string(place.root.join(round.path()))

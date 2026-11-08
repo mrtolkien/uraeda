@@ -190,6 +190,12 @@ export declare function discardPriorities(repo: string): Promise<Priorities>
 export declare function discoveryLevels(): Array<string>
 
 /**
+ * Dismisses the inbox's triage, read with the hash `previous`: deletes it and commits the deletion
+ * alone, so a new one can be asked for.
+ */
+export declare function dismissTriage(repo: string, previous: string): Promise<void>
+
+/**
  * Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
  * unless it has uncommitted changes, never forced, and its branch stays.
  */

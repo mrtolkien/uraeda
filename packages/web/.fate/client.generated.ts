@@ -46,6 +46,11 @@ const mutations = {
     FateAPI['mutations']['defaultRound.answer']['input'],
     FateAPI['mutations']['defaultRound.answer']['output']
   >('WorkflowFile'),
+  'defaultRound.dismiss': mutation<
+    Inbox,
+    FateAPI['mutations']['defaultRound.dismiss']['input'],
+    FateAPI['mutations']['defaultRound.dismiss']['output']
+  >('Inbox'),
   'defaultRound.notes': mutation<
     WorkflowFile,
     FateAPI['mutations']['defaultRound.notes']['input'],

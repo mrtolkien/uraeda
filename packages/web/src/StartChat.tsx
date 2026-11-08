@@ -3,6 +3,7 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
+import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -43,6 +44,7 @@ export function RoundBanner({
   agent,
   apply,
   chat,
+  dismiss,
   href,
   status,
   titles,
@@ -50,14 +52,27 @@ export function RoundBanner({
   agent: boolean;
   apply: string;
   chat: StartChat;
+  /** A second action after the first, the triage's Dismiss. */
+  dismiss?: ReactNode;
   href: string;
   status: string;
   titles: { answered: string; waiting: string };
 }) {
   const here = useRepoPath();
-  // On the phone, the action goes under the title, which keeps the banner's width.
+  // On the phone, the actions go under the title, which keeps the banner's width.
   const narrow = isNarrow(useWidthClass());
-  const placed = (action: ReactNode) => (narrow ? { description: action } : { endContent: action });
+  const placed = (action?: ReactNode) => {
+    const actions =
+      action && dismiss ? (
+        <HStack gap={2} wrap="wrap">
+          {action}
+          {dismiss}
+        </HStack>
+      ) : (
+        (action ?? dismiss)
+      );
+    return actions ? (narrow ? { description: actions } : { endContent: actions }) : {};
+  };
   if (status === "answered") {
     return agent ? (
       <Banner
@@ -67,7 +82,13 @@ export function RoundBanner({
         title={titles.answered}
       />
     ) : (
-      <Banner collapsible={false} status="info" title={titles.answered}>
+      <Banner
+        collapsible={false}
+        // Without an agent, the message to copy is its action, and Dismiss alone sits on the side.
+        {...placed()}
+        status="info"
+        title={titles.answered}
+      >
         <MessageToCopy text={apply} />
       </Banner>
     );
