@@ -42,10 +42,14 @@ reaches it from your phone, at `https://mac.tail1234.ts.net/`.
 The npm package reads no `.env`: its settings come from its flags, its environment, and your
 settings file, as [the web UI's page](docs/web-ui.md#settings) says.
 
-## Claude Code's integration
+## The agents' integrations
 
 When Claude Code changes and sessions break, `vp run validate:claude` checks the integration against
-the installed `claude`, with a few short sessions.
+the installed `claude`, with a few short sessions. When Codex does, `vp run validate:codex` checks
+its own against the installed `codex`, on its cheapest model at its lowest effort, in throwaway
+repositories: the model list, a commit its reviewer approves, a steered message, an interrupt, an
+image, and that `~/.codex/config.toml` is left unchanged. Both spend a little of the account's plan,
+and neither runs in `vp test` or `vp run ready`.
 
 ## The README's screenshots
 

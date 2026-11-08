@@ -35,7 +35,7 @@ Uraeda has three parts, each optional but the first:
   for you and for agents.
 - **A web UI** that drives it. It shows every feature and file, performs every human step, and holds
   your sessions with the agent, from a phone too. Only these sessions need a local, signed-in Claude
-  Code, for now.
+  Code or Codex.
 
 > [!WARNING]
 >
@@ -100,7 +100,7 @@ tasks feature through the whole workflow:
 
 Install `ura`, the skill, and the web UI. [INSTALL.md](INSTALL.md) has every other way.
 
-> [!WARNING] At the moment, only Claude Code is supported by the Web UI
+> [!WARNING] At the moment, the web UI's sessions run Claude Code or Codex only
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-cli-installer.sh | sh
@@ -144,9 +144,9 @@ answered.
 
 ## Project status
 
-The skill came first, then `ura` and the web UI, then the web UI's sessions with Claude Code. A git
-listener that starts the agent when you commit an answer is planned. What is being built now, and
-next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md).
+The skill came first, then `ura` and the web UI, then the web UI's sessions with Claude Code, then
+Codex. A git listener that starts the agent when you commit an answer is planned. What is being
+built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md).
 
 ## License
 

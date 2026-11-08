@@ -67,9 +67,26 @@ curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 Claude Code is a built-in extension, `claude`: Settings, Extensions turns it off, in every
-repository or some, and sets the command it runs, `claude` by default. Another agent runs through a
-runtime [extension](docs/extensions.md#runtimes) of yours. Without any agent, the web UI still shows
-and edits every file, and its pages only commit.
+repository or some, and sets the command it runs, `claude` by default.
+
+## Codex
+
+The web UI's sessions can run Codex too, installed and signed in on the machine that runs Uraeda,
+with a ChatGPT plan or an OpenAI API key. Install it as its
+[documentation](https://developers.openai.com/codex/cli) says, then sign in, for example:
+
+```sh
+npm install -g @openai/codex
+codex login
+```
+
+Codex is a built-in extension, `codex`, turned off and given its command, `codex` by default, the
+same way. Its sessions run in its sandbox, which writes the session's folder only, with the network
+off, whatever your `~/.codex/config.toml` says: its automatic reviewer approves each git write and
+network command first.
+
+Another agent runs through a runtime [extension](docs/extensions.md#runtimes) of yours. Without any
+agent, the web UI still shows and edits every file, and its pages only commit.
 
 ## The web UI
 

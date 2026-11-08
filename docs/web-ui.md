@@ -248,9 +248,9 @@ their lines:
 
 ## Extensions
 
-Uraeda's parts are extensions: Claude Code, the fake agent of the tests and the sandbox, the inbox,
-the priorities and proposals, the decisions, Git, the previews, and the notifications are built in,
-and yours are TypeScript folders in `~/.config/uraeda/extensions/`, beside `config.toml`.
+Uraeda's parts are extensions: Claude Code, Codex, the fake agent of the tests and the sandbox, the
+inbox, the priorities and proposals, the decisions, Git, the previews, and the notifications are
+built in, and yours are TypeScript folders in `~/.config/uraeda/extensions/`, beside `config.toml`.
 [Extensions](extensions.md) says how to write one, and `ura extension` installs one, as
 [the CLI's page](cli.md) says.
 
@@ -270,6 +270,9 @@ on = ["uraeda"]       # every repository by default, "all"; [] turns it off
 
 [extensions.claude]
 command = "claude"    # the command Claude Code's sessions run
+
+[extensions.codex]
+command = "codex"     # the command Codex's sessions run
 ```
 
 A banner above the rows names each extension that needs you: one turned off by a problem, with its
@@ -458,10 +461,11 @@ uraeda.example.com { reverse_proxy 127.0.0.1:4310 }
 On a tailnet, `tailscale serve --bg 4310` reaches it from your phone, at your machine's full name,
 like `https://mac.tail1234.ts.net/`, once that name is in `allowed_hosts`.
 
-## Sessions with Claude Code
+## Sessions with Claude Code and Codex
 
-Sessions need `claude` installed and signed in on the machine, with a paid plan: see
-[INSTALL.md](../INSTALL.md#claude-code). Without `claude`, the pages only commit.
+Sessions need `claude` or `codex` installed and signed in on the machine, with a paid plan: see
+[Claude Code](../INSTALL.md#claude-code) and [Codex](../INSTALL.md#codex) in `INSTALL.md`. Without
+either, the pages only commit.
 
 Every conversation with the agent is a session. "＋ New" opens one in the main checkout, or starts a
 change or a feature. Its three cards share one text, kept until it starts. A feature asks its slug
@@ -478,12 +482,14 @@ agent", commit. They then open its session with the workflow's message in the co
 until you send it. A message sent while the agent works is steered into its turn. Stop ends the turn
 and keeps the session.
 
-The sidebar shows every session with what needs you, what works, and each new reply. A feature reads
-Working while any of its sessions runs, whatever its step. A run that failed or was stopped asks for
-you until you dismiss it, with Dismiss on its feature's or change's card, or on its session's
-banner. A pull request reads "PR ready" only once it holds its branch's latest commit. While its
-branch holds commits the pull request lacks, the feature reads "Push", in In progress, for the agent
-to push.
+The sidebar shows every session with what needs you, what works, and each new reply. Its usage pane
+shows the windows of every agent that reported its usage, like Claude Code's five hours and week,
+then Codex's, each with its mark; the closed rail's one bar shows the agent of the page in view. A
+feature reads Working while any of its sessions runs, whatever its step. A run that failed or was
+stopped asks for you until you dismiss it, with Dismiss on its feature's or change's card, or on its
+session's banner. A pull request reads "PR ready" only once it holds its branch's latest commit.
+While its branch holds commits the pull request lacks, the feature reads "Push", in In progress, for
+the agent to push.
 
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
@@ -506,19 +512,36 @@ the change's worktree. A change that needs more than a change's flow is offered 
 same way. A run that starts a change it does not make, like applying an inbox triage, gives the
 change's page, where its own session runs.
 
-Sessions run Claude Code, the built-in `claude` extension, unless it is off; a runtime extension of
-yours runs another agent. With two runtimes or more on, the composer of a new session, the change's
-start dialog, and a round's "Apply the answers" show a picker of them, the first one on picked until
-you pick another. A session keeps the runtime it was started on, and is read-only while that runtime
-is off. Claude Code runs in `auto` permission mode, with your own settings, and with the server's
-copy of the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision. Each
-extension of yours on in the repository adds its `skills/` folder as one more plugin, `ext-<name>`.
-The skill holds the workflow for any agent, and never describes the web UI. The server adds the web
-UI's own instructions to every session, in
+Sessions run Claude Code or Codex, the built-in `claude` and `codex` extensions, while they are on;
+a runtime extension of yours runs another agent. Wherever a session starts, the composer of a new
+chat or of a feature's new session, the change's start dialog, and a round's "Apply the answers", a
+button names the agent, model, and effort it will run on, like "Codex · GPT-6.1-Sol · Medium". It,
+or `Space a`, opens the picker in two steps: first the models of every agent on, each agent's
+"Default" first, naming the model it stands for, then the picked model's efforts, "Default" first. A
+model that takes no effort skips the second step, and on a phone the picker rises as a sheet. A new
+session runs on the first agent on, at the agent's own default model and effort, until you pick
+others.
+
+A session keeps the agent and the model it started on, its automatic runs included, and a fresh
+session of its feature starts on the same ones; it is read-only while its agent is off. To change
+the model, start a new session. In a running session, the composer's button names the effort alone,
+like "Effort · High", and it or `Space a` opens the effort step: the turn at work keeps its effort,
+and the next turns run on the new one. The session's header names the agent, then the model and
+effort it reports running on, like "Codex · GPT-6.1-Sol · Medium".
+
+Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
+the skill as a plugin. Codex runs in its `workspace-write` sandbox, the network off, with approvals
+on request, which its automatic reviewer decides, whatever your `~/.codex/config.toml` says: it
+escalates each git write and network command, and the transcript shows the review's verdict, like
+"Automatic review approved (risk: low): …". It gets the skill as one more skill folder. See the
+[agents](../specs/decisions/agents.md) decision. Each extension of yours on in the repository adds
+its `skills/` folder the same way, as one more plugin, `ext-<name>`, for Claude Code. The skill
+holds the workflow for any agent, and never describes the web UI. The server adds the web UI's own
+instructions to every session, in
 [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
 shows of the agent's messages, and where your extensions folder and their documentation are. A
-session may write in your extensions folder, so asking it for a change to Uraeda gives you an
-extension.
+session may write in your extensions folder, Codex's after its reviewer approves each write, so
+asking it for a change to Uraeda gives you an extension.
 
 ## The data folder
 

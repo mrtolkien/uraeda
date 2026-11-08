@@ -303,3 +303,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   of the navigation's "Needs you" and "In progress" panes on a 900 px tall window; the fake runtime
   reported no `runsOn`, so the header could not be reviewed in the sandbox.
 - **Where**: task 9, `UsageWindow.tsx`, `sidebar/Allowance.tsx`, `packages/web/sandbox/agent.ts`.
+
+## R28: `validate:codex` is a script of the workspace, beside `validate:claude`
+
+- **Decision**: `vp run validate:codex` is declared in the root `package.json`, where
+  `validate:claude` is, not in `packages/server/package.json` as the plan said. It runs on the
+  cheapest model by its description ("affordable"), else the last listed, at its lowest effort;
+  `URAEDA_CODEX_MODEL` picks another. Its `runsOn` check reads the last `runsOn` of the turn, which
+  names the effort picked: the thread's start gives the default effort, the turn's settings update
+  the picked one.
+- **Rationale**: both scripts are run the same way from the repository's root, and `CONTRIBUTING.md`
+  names them together; `model/list` gives no prices.
+- **Where**: task 10, `package.json`, `packages/server/scripts/validate-codex.ts`.
