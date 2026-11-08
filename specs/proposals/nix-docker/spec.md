@@ -38,22 +38,20 @@ the [proposal](proposal.md), [discovery](discovery-01.md), and
 
 ## Decisions
 
-- **New: [Agent sandboxes](../decisions/agent-sandboxes.md)**. A sandboxed repository's agents run
-  in Docker Sandboxes, each in its own clone, and a sandboxed session never runs outside its
-  sandbox.
-- **Changed: [Agents](../decisions/agents.md)**. Inside a sandbox, the agent is the sandbox's copy,
-  signed in to the user's account, and it may run with its permissions skipped.
+Postponing this feature reverted the two decisions it proposed: a new one, Agent sandboxes, and a
+change to [Agents](/specs/decisions/agents.md). Their proposed text is in commit `86d8d1d8`, and
+comes back with the feature.
 
 Relied on:
 
-| Decision                                       | What it means for this spec                                             |
-| ---------------------------------------------- | ----------------------------------------------------------------------- |
-| [Git](../decisions/git.md)                     | hooks still run, inside the sandbox; clones are removed only when asked |
-| [Settings](../decisions/settings.md)           | the sandboxed repositories are a table of `config.toml`                 |
-| [Run lifecycle](../decisions/run-lifecycle.md) | a continued run resumes from transcripts kept outside the sandbox       |
-| [Stack](../decisions/stack.md)                 | the server stops the Storybook it started in a sandbox when it stops    |
-| [Distribution](../decisions/distribution.md)   | the package downloads nothing: environments build inside sandboxes      |
-| [Preview](../decisions/preview.md)             | the mockups are stories, and Storybook runs from the decision's command |
+| Decision                                           | What it means for this spec                                             |
+| -------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Git](/specs/decisions/git.md)                     | hooks still run, inside the sandbox; clones are removed only when asked |
+| [Settings](/specs/decisions/settings.md)           | the sandboxed repositories are a table of `config.toml`                 |
+| [Run lifecycle](/specs/decisions/run-lifecycle.md) | a continued run resumes from transcripts kept outside the sandbox       |
+| [Stack](/specs/decisions/stack.md)                 | the server stops the Storybook it started in a sandbox when it stops    |
+| [Distribution](/specs/decisions/distribution.md)   | the package downloads nothing: environments build inside sandboxes      |
+| [Preview](/specs/decisions/preview.md)             | the mockups are stories, and Storybook runs from the decision's command |
 
 ## User stories
 

@@ -6,7 +6,7 @@ plan's.
 ## Settings file
 
 `config.toml`, in Uraeda's config folder, gains a `[sandbox]` table, edited by hand or by the
-settings page, as the [settings](../decisions/settings.md) decision says.
+settings page, as the [settings](/specs/decisions/settings.md) decision says.
 
 | Field                  | Type             | Meaning                                                            | Change |
 | ---------------------- | ---------------- | ------------------------------------------------------------------ | ------ |
