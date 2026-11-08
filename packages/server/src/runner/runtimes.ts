@@ -40,14 +40,18 @@ const UNCHECKED: RuntimeStatus = { available: false, version: null };
 /** A runtime's model list is asked for at most once in this time. */
 export const MODELS_REFRESH_MS = 60_000;
 
+/** A model list asked for longer than this is given up on: the runtime keeps its last one. */
+export const MODELS_TIMEOUT_MS = 15_000;
+
 /**
  * A registered runtime: its status, and its last model list, with when it was last asked for and
- * the ask, which leave with it once it is unregistered. The ask resolves to whether the list
- * changed.
+ * the ask, which leave with it once it is unregistered. `asks` counts the asks: only the latest one
+ * keeps its list.
  */
 type Entry = {
+  asks: number;
   listedAt?: number;
-  listing?: Promise<boolean>;
+  listing?: Promise<void>;
   models?: ModelList;
   runtime: Adapter;
   status: RuntimeStatus;
@@ -106,7 +110,7 @@ export class Runtimes {
     if (this.#entries.has(name)) {
       throw new Error(`a runtime is registered as ${name} already`);
     }
-    const entry: Entry = { runtime, status: this.#last.get(name) ?? UNCHECKED };
+    const entry: Entry = { asks: 0, runtime, status: this.#last.get(name) ?? UNCHECKED };
     this.#entries.set(name, entry);
     this.changed();
     void this.refreshModels([name]);
@@ -174,7 +178,8 @@ export class Runtimes {
   /**
    * Asks the runtimes of these names, every one by default, for their model lists, each at most
    * once a minute: one asked for less than a minute ago waits for that ask. A list that cannot be
-   * read keeps the last one. A list that changed calls `changed`.
+   * read, or not within `MODELS_TIMEOUT_MS`, keeps the last one. Each list that changed calls
+   * `changed` as it comes, without waiting for the others.
    */
   async refreshModels(names: ReadonlyArray<string> = this.names()): Promise<void> {
     const asks = names.flatMap((name) => {
@@ -183,30 +188,41 @@ export class Runtimes {
         return [];
       }
       if (entry.listing && Date.now() - entry.listedAt! < MODELS_REFRESH_MS) {
-        return [entry.listing.then(() => false)];
+        return [entry.listing];
       }
       entry.listedAt = Date.now();
       entry.listing = this.#list(entry);
       return [entry.listing];
     });
-    if ((await Promise.all(asks)).includes(true)) {
-      this.changed();
-    }
+    await Promise.all(asks);
   }
 
-  /** Asks the runtime for its model list, and keeps it: whether it changed. */
-  async #list(entry: Entry): Promise<boolean> {
+  /**
+   * Asks the runtime for its model list, and keeps it if it is still the latest ask's: calls
+   * `changed` when it changed.
+   */
+  async #list(entry: Entry): Promise<void> {
+    const ask = ++entry.asks;
+    let timer: NodeJS.Timeout | undefined;
+    const timedOut = new Promise<undefined>((resolve) => {
+      timer = setTimeout(resolve, MODELS_TIMEOUT_MS, undefined);
+      timer.unref();
+    });
     // An extension's runtime may throw at once, as well as reject.
-    const list = await Promise.resolve()
+    const asked = Promise.resolve()
       .then(() => entry.runtime.models!())
       .catch(() => undefined);
+    const list = await Promise.race([asked, timedOut]);
+    clearTimeout(timer);
     // Unregistered meanwhile, it took its list with it.
-    if (list === undefined || ![...this.#entries.values()].includes(entry)) {
-      return false;
+    if (list === undefined || ask !== entry.asks || ![...this.#entries.values()].includes(entry)) {
+      return;
     }
     const same = JSON.stringify(list) === JSON.stringify(entry.models);
     entry.models = list;
-    return !same;
+    if (!same) {
+      this.changed();
+    }
   }
 
   /** Calls `listener` at each registration, unregistration, or `changed`: gives its removal. */
