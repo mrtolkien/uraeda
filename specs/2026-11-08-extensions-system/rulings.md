@@ -547,3 +547,52 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one on; the UI read no title for a runtime off.
 - **Where**: task 13, `packages/server/src/fate/sessions.ts`, `runner/runtimes.ts`, `limits.ts`;
   `packages/web/src/runtimes.ts`, `sidebar/Allowance.tsx`.
+
+## R51: The extensions' documentation links to GitHub
+
+- **Decision**: `docs/extensions.md` links the example, the API's types, and other files of the
+  repository by their GitHub address on `main`, not by a relative path.
+- **Rationale**: the package ships the page as `docs/extensions.md`, and sessions read that copy
+  (`layout().docs`); a relative link from it leads nowhere in an installed package, and the types
+  are what an agent writing an extension needs most.
+- **If wrong**: a reader of the checkout's page opens GitHub instead of the file beside it; the
+  package could ship the types it links instead.
+- **Where**: task 14, `docs/extensions.md`.
+
+## R52: `uraeda/page` exports the `PageApi` type, and the examples are type-checked
+
+- **Decision**: `packages/web/src/extensions/hooks.ts`, the module pages import as `uraeda/page`,
+  also exports the `PageApi` type, so a page's entry is typed as `page(api: PageApi)`. The lint's
+  type check covers `examples/`, through `examples/tsconfig.json`, which maps `uraeda/page`,
+  `uraeda/server`, React, StyleX, and Astryx onto the checkout's; `examples/**` may import StyleX's
+  namespace, as the web UI does.
+- **Rationale**: the lint type-checks every file it lints; without the mapping, each import of the
+  example was an error, and an example that drifts from the API must fail the checks. A type export
+  adds nothing at run time.
+- **Where**: task 14, `examples/tsconfig.json`, `vite.config.ts`, `hooks.ts`.
+
+## R53: The smoke test compiles the example's page in the package
+
+- **Decision**: the package's smoke test starts the installed server with the example in a config
+  folder of its own, signs in with the key the start prints, reads `/extensions/wiki/page`, and
+  compares its CSS with the checkout's `compilePage` of the same file.
+- **Rationale**: the page compiler runs Babel's plugins from the server's bundle, against the
+  package's copy of Astryx's tokens: only a start of the package shows both work, and the same CSS
+  shows the classes match the app's.
+- **Where**: task 14, `packages/uraeda/scripts/smoke-extension.ts`, `smoke.ts`.
+
+## R54: The measured growth of the package and the binding (SC-004)
+
+- **Decision**: the release note says the following, measured on x86_64 Linux with
+  `npm pack --dry-run` and the binding's release build (`build:release`), before the feature
+  (`a3914e75`, the branch's base on `main`) and after it (task 14):
+  - `@uraeda/ui`: 5,069,661 bytes packed before, 6,720,385 after, +1,650,724 (+32.6%); 8,761,320
+    unpacked before, 16,976,866 after, +8,215,546 (+93.8%), 316 files before, 362 after. The
+    server's bundle grew from 805,810 bytes to 8,351,238, by the page compiler's Babel, StyleX, and
+    React Compiler; the web UI from 7,449,137 to 8,065,179 (R45); the documentation and Astryx's
+    tokens add 54 kB.
+  - The binding: 8,512,168 bytes before, 9,934,728 after, +1,422,560 (+16.7%): the compiler, as R12
+    measured, and the manifests and settings of the core.
+- **Rationale**: SC-004 asks for growth no larger than the plan measured, and the release notes to
+  say how much; R8 puts the numbers here.
+- **Where**: task 14.

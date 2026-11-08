@@ -3,7 +3,7 @@
  * [--timed]`: packs `@uraeda/ui`, installs it with npm in a new temporary folder outside the
  * repository, and runs it as a user would: its version, help, an unknown option, a start in a new
  * git repository whose `.env` must be ignored, a start outside git, a start on the settings file's
- * port, and the package's contents.
+ * port, a start that compiles an extension's page, and the package's contents.
  *
  * `--binding` gives the native binding through `NAPI_RS_NATIVE_LIBRARY_PATH`, as `vp run ready`
  * does with the checkout's build: a `.node` file, or a folder holding one `uraeda-binding.*.node`,
@@ -39,6 +39,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { freePort } from "../../server/src/free-port.ts";
 import { cargoVersion } from "./release.ts";
+import { extensionFolders, pageProblem } from "./smoke-extension.ts";
 
 /** `packages/uraeda`, which is packed. */
 const PACKAGE = resolve(import.meta.dirname, "..");
@@ -391,13 +392,40 @@ async function startOnSettingsFile(install: Install) {
 }
 
 /**
- * The package's contents: the plugin with its copy of the skill, and the loader napi-rs generated,
- * unchanged, which the bundle imports next to it, never from the checkout.
+ * A start with the documentation's example extension in a config folder of its own: the packaged
+ * server compiles its page, StyleX and React Compiler included, to the checkout's CSS.
+ */
+async function startWithExtension(install: Install) {
+  const check = "extension page";
+  const env = { ...install.env, ...extensionFolders(install.folder) };
+  const port = await freePort();
+  const started = start(
+    install,
+    ["--no-open", "--port", String(port)],
+    join(install.folder, "todo"),
+    env,
+  );
+  try {
+    await line(check, started, port);
+    const problem = await pageProblem(port, started.stdout());
+    expect(check, problem === null, problem ?? "");
+  } finally {
+    await stop(started);
+  }
+}
+
+/**
+ * The package's contents: the plugin with its copy of the skill, the extension API's documentation
+ * and Astryx's StyleX tokens, which the server finds by its layout, and the loader napi-rs
+ * generated, unchanged, which the bundle imports next to it, never from the checkout.
  */
 function contents(install: Install) {
   const plugin = ["plugin/skills/uraeda/SKILL.md", "plugin/.claude-plugin/plugin.json"];
   const missing = plugin.filter((file) => !existsSync(join(install.root, file)));
   expect("plugin", missing.length === 0, `missing ${missing.join(", ")}`);
+  const extensions = ["docs/extensions.md", "dist/stylex/tokens.stylex.js"];
+  const absent = extensions.filter((file) => !existsSync(join(install.root, file)));
+  expect("extension files", absent.length === 0, `missing ${absent.join(", ")}`);
   const loader = join(install.root, "dist/binding.js");
   const bundlePath = join(install.root, "dist/uraeda.mjs");
   const bundle = existsSync(bundlePath) ? readFileSync(bundlePath, "utf8") : "";
@@ -435,6 +463,7 @@ async function main() {
       await startInRepository(installed, values.timed);
       await startOutsideGit(installed);
       await startOnSettingsFile(installed);
+      await startWithExtension(installed);
     }
   } finally {
     for (const child of children) {

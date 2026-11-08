@@ -73,3 +73,6 @@ export function useExtensionSettings<T = Record<string, unknown>>(): T {
 }
 
 export { useRepository };
+
+/** What a page's entry is called with: types only, for the extensions that import it. */
+export type { PageApi } from "./pageApi.ts";

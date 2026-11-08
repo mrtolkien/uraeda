@@ -342,7 +342,7 @@ test("every file a family's tests read is an input of the cached ts:test task", 
         cwd: ROOT,
         exclude: (path) =>
           /(^|\/)(node_modules|dist|\.vitest|storybook-static|target|\.git)$/.test(path) ||
-          /^packages\/uraeda\/(plugin|web)$/.test(path),
+          /^packages\/uraeda\/(docs|plugin|web)$/.test(path),
       }),
     ),
   );

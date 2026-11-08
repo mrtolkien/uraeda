@@ -247,6 +247,45 @@ their lines:
   4.5:1 on `code-ground`, and `rule`, `sub-agent`, and `marked` at 3:1 on `page` and on `raised`. A
   colour with alpha is measured laid over its background.
 
+## Extensions
+
+Uraeda's parts are extensions: Claude Code, the fake agent of the tests and the sandbox, the inbox,
+the priorities and proposals, the decisions, Git, the previews, and the notifications are built in,
+and yours are TypeScript folders in `~/.config/uraeda/extensions/`, beside `config.toml`.
+[Extensions](extensions.md) says how to write one, and `ura extension` installs one, as
+[the CLI's page](cli.md) says.
+
+The settings' Extensions category lists "Your extensions", then the built-in ones, "Built in". A row
+shows an extension's icon, title, and description, its version, where it came from, a git URL at its
+commit or "reloads on save", and where it is on. Its switch turns it on in every repository or off
+everywhere, and "Only in…" picks the repositories it is on in. Under the row, its settings, from its
+manifest, are saved for every repository, or for the one picked above them, and a section its page
+adds shows under them. The page writes both into `config.toml`, keeping your comments:
+
+```toml
+[extensions.inbox]
+on = ["uraeda"]       # every repository by default, "all"; [] turns it off
+
+[extensions.claude]
+command = "claude"    # the command Claude Code's sessions run
+```
+
+A banner above the rows names each extension that needs you: one turned off by a problem, with its
+file and line, like "Deploy is off: page.tsx, line 12: …"; one running with a problem, like a
+setting on its default; one whose reload waits for a session's turn, "Deploy reloads when the turn
+of “…” ends"; and a key another extension took first, "Deploy: `y` is taken by Wiki".
+
+A turned-off part leaves at once: the inbox off removes its place, its keys, its Home pane, its
+phone tab, and its New-page section, in the repositories it is off in. A link to its place opens
+"Inbox is off here", with "Turn it on here". The files it read stay, and `ura check` still checks
+them.
+
+An extension's places show after Uraeda's, in the navigation column, the leader menu, and the
+phone's tabs, and open at `/r/<repo>/e/<name>/<id>`. Its panes, sections, keys, and status line's
+items show beside Uraeda's, in the repositories it is on in. A saved change redraws them without
+reloading the page. One that throws shows its error in its own place, and the rest of the page goes
+on.
+
 ## Editing text
 
 Every text field is the same editor, in the look of a terminal's text. Markdown is highlighted as
@@ -463,12 +502,17 @@ the change's worktree. A change that needs more than a change's flow is offered 
 same way. A run that starts a change it does not make, like applying an inbox triage, gives the
 change's page, where its own session runs.
 
-Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
-the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision. The skill holds the
-workflow for any agent, and never describes the web UI. The server adds the web UI's own
+Sessions run Claude Code, the built-in `claude` extension, unless it is off; a runtime extension of
+yours runs another agent. A session keeps the runtime it was started on, and is read-only while that
+runtime is off. Claude Code runs in `auto` permission mode, with your own settings, and with the
+server's copy of the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.
+Each extension of yours on in the repository adds its `skills/` folder as one more plugin. The skill
+holds the workflow for any agent, and never describes the web UI. The server adds the web UI's own
 instructions to every session, in
 [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
-shows of the agent's messages.
+shows of the agent's messages, and where your extensions folder and their documentation are. A
+session may write in your extensions folder, so asking it for a change to Uraeda gives you an
+extension.
 
 ## The data folder
 
