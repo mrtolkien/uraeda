@@ -261,8 +261,6 @@ export function continueMessage(reason: ContinueReason): string {
       return "The server restarted while you worked. Continue where you left off.";
     case "limit":
       return "The usage limit has reset. Continue where you left off.";
-    case "gate":
-      return "You stopped before the next human gate. Continue to it.";
   }
 }
 
@@ -273,8 +271,6 @@ export function continuedLine(reason: ContinueReason): string {
       return "Continued after the server restarted.";
     case "limit":
       return "Continued after the usage limit's reset.";
-    case "gate":
-      return "The run stopped before a human gate. Uraeda asked it to continue to the next one.";
   }
 }
 

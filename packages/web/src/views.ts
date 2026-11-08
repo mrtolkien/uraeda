@@ -401,7 +401,6 @@ export const SettingsRecordView = view<Settings>()({
     buildInFreshSession: SettingSelection,
     continueAfterLimit: SettingSelection,
     continueAfterRestart: SettingSelection,
-    continueBeforeGate: SettingSelection,
   },
   server: {
     allowedHosts: SettingSelection,

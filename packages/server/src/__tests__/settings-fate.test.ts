@@ -59,7 +59,6 @@ const runDefaults = {
   buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
-  continueBeforeGate: { inForce: true, saved: null, source: { kind: "default" } },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
@@ -103,7 +102,7 @@ test("each change answers the record with its value", async () => {
   const port = await change(opened, "setPort", { port: " 4400 " });
   const open = await change(opened, "setOpenBrowser", { open: false });
   const fresh = await change(opened, "setBuildInFreshSession", { fresh: false });
-  const gate = await change(opened, "setContinue", { key: "gate", on: false });
+  const limit = await change(opened, "setContinue", { key: "limit", on: false });
   const continues = await change(opened, "setAutomaticContinues", { continues: "4" });
   const tooMany = await change(opened, "setAutomaticContinues", { continues: "11" });
 
@@ -120,7 +119,7 @@ test("each change answers the record with its value", async () => {
     saved: false,
     source: { kind: "file" },
   });
-  expect(gate.data.runs.continueBeforeGate).toEqual({
+  expect(limit.data.runs.continueAfterLimit).toEqual({
     inForce: false,
     saved: false,
     source: { kind: "file" },
@@ -137,7 +136,7 @@ test("each change answers the record with its value", async () => {
   expect((await binding.readSettings(opened.configDir)).runs).toEqual({
     automaticContinues: 4,
     buildInFreshSession: false,
-    continueBeforeGate: false,
+    continueAfterLimit: false,
   });
 });
 
@@ -203,7 +202,7 @@ test("an unknown kind of continue is refused as a bad request", async () => {
 
   expect(result.error).toEqual({
     code: "BAD_REQUEST",
-    message: "refused: sleep is not a kind of continue: restart, limit, or gate.",
+    message: "refused: sleep is not a kind of continue: restart or limit.",
   });
 });
 

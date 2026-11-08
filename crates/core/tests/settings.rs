@@ -71,7 +71,6 @@ fn reads_each_file() {
             build_in_fresh_session: Some(false),
             continue_after_restart: Some(false),
             continue_after_limit: Some(true),
-            continue_before_gate: Some(false),
             automatic_continues: Some(4),
         },
         ..Settings::default()
@@ -82,7 +81,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\ncontinue_before_gate = false\nautomatic_continues = 4\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\n",
             ),
             Ok(full),
         ),
@@ -159,7 +158,7 @@ fn reads(
 #[test]
 fn refuses_each_continue_setting_out_of_its_rule() {
     let dir = tempdir();
-    let rows: [(Option<&str>, Result<Settings, String>); 6] = [
+    let rows: [(Option<&str>, Result<Settings, String>); 5] = [
         (
             Some("[runs]\ncontinue_after_restart = \"no\"\n"),
             Err(
@@ -170,13 +169,6 @@ fn refuses_each_continue_setting_out_of_its_rule() {
             Some("[runs]\ncontinue_after_limit = 0\n"),
             Err(
                 "line 2, continue_after_limit: Continue after a usage limit is true or false."
-                    .into(),
-            ),
-        ),
-        (
-            Some("[runs]\ncontinue_before_gate = \"true\"\n"),
-            Err(
-                "line 2, continue_before_gate: Continue before a human gate is true or false."
                     .into(),
             ),
         ),
@@ -364,15 +356,13 @@ fn sets_each_continue_in_the_runs_table() {
     );
 
     settings::set_continue(dir.path(), settings::ContinueKey::Restart, false).unwrap();
-    settings::set_continue(dir.path(), settings::ContinueKey::Limit, false).unwrap();
-    let saved = settings::set_continue(dir.path(), settings::ContinueKey::Gate, false).unwrap();
+    let saved = settings::set_continue(dir.path(), settings::ContinueKey::Limit, false).unwrap();
 
     assert_eq!(saved.runs.continue_after_restart, Some(false));
     assert_eq!(saved.runs.continue_after_limit, Some(false));
-    assert_eq!(saved.runs.continue_before_gate, Some(false));
     assert_eq!(
         text(dir.path()),
-        "# mine\n[runs]\ncontinue_after_limit = false # on\ncontinue_after_restart = false\ncontinue_before_gate = false\n"
+        "# mine\n[runs]\ncontinue_after_limit = false # on\ncontinue_after_restart = false\n"
     );
 }
 

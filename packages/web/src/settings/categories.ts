@@ -163,11 +163,6 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         label: "Continue after a usage limit",
       },
       {
-        help: "A run that ends before the next human gate is asked once to continue to it.",
-        icon: "uraeda:workflow",
-        label: "Continue before a human gate",
-      },
-      {
         help: "How many times in a row Uraeda continues a run without a commit or a message from you. Past it, the run asks for you.",
         icon: "uraeda:history",
         label: "Automatic continues in a row",

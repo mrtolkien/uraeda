@@ -61,10 +61,7 @@ export const settingsMutations = {
     type: "Settings",
   },
   "settings.setContinue": {
-    resolve: ({
-      input,
-      ...call
-    }: ListResolver<{ key: "gate" | "limit" | "restart"; on: boolean }>) =>
+    resolve: ({ input, ...call }: ListResolver<{ key: "limit" | "restart"; on: boolean }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setContinue(dir, input.key, input.on)),
     type: "Settings",
   },

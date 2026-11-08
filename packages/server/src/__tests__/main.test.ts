@@ -255,7 +255,7 @@ test("refuses to start on a folder that is not a repository", async () => {
 });
 
 /** A switch's variable that is not true or false is checked after --help and --version. */
-const BAD_SWITCH = { ...process.env, URAEDA_CONTINUE_BEFORE_GATE: "yes" };
+const BAD_SWITCH = { ...process.env, URAEDA_CONTINUE_AFTER_LIMIT: "yes" };
 
 test("--help prints the options and exits 0", () => {
   const result = spawnSync(process.execPath, [main, "--help"], {
@@ -868,8 +868,8 @@ test.each<{ args: Array<string>; env: Record<string, string>; problem: string }>
   { args: [], env: { URAEDA_PORT: "70000" }, problem: NOT_A_PORT },
   {
     args: [],
-    env: { URAEDA_CONTINUE_BEFORE_GATE: "yes" },
-    problem: "URAEDA_CONTINUE_BEFORE_GATE is true or false.",
+    env: { URAEDA_CONTINUE_AFTER_LIMIT: "yes" },
+    problem: "URAEDA_CONTINUE_AFTER_LIMIT is true or false.",
   },
 ])("a value that is not one refuses the start: $args $env", async ({ args, env, problem }) => {
   const data = temporaryFolder("uraeda-data");

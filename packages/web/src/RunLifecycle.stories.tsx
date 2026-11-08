@@ -69,7 +69,6 @@ function Continued() {
       <Line>Continued after the server restarted.</Line>
       <Line>{"You've hit your session limit · resets 8:40am"}</Line>
       <Line>{"Continued after the usage limit's reset."}</Line>
-      <Line>The run stopped before a human gate. Uraeda asked it to continue to the next one.</Line>
     </VStack>
   );
 }
@@ -227,10 +226,6 @@ function RunsSettings() {
           help="A run stopped by Claude Code's session limit continues by itself when the limit resets. Weekly limits still stop the run."
           label="Continue after a usage limit"
         />
-        <SwitchRow
-          help="A run that ends before the next human gate is asked once to continue to it."
-          label="Continue before a human gate"
-        />
         <SettingRow
           setting={{
             help: "How many times in a row Uraeda continues a run without a commit or a message from you. Past it, the run asks for you.",
@@ -269,7 +264,7 @@ type Story = StoryObj<typeof meta>;
 /** A run waiting for the usage limit's reset: the limit's line, then the banner saying when it goes on. */
 export const WaitingForReset: Story = { render: () => <Waiting /> };
 
-/** The line each automatic continue leaves: after a restart, after a limit's reset, before a gate. */
+/** The line each automatic continue leaves: after a restart, after a limit's reset. */
 export const ContinuedLines: Story = { render: () => <Continued /> };
 
 /** The cap reached: the run asks for the human, with Dismiss. */
@@ -287,5 +282,5 @@ export const Home: Story = { render: () => <HomePanes /> };
  */
 export const ContinueAllPreview: Story = { render: () => <HomePanes isPreviewing /> };
 
-/** The Runs settings' new rows: three switches, on by default, and the cap. */
+/** The Runs settings' new rows: two switches, on by default, and the cap. */
 export const RunsSection: Story = { render: () => <RunsSettings /> };

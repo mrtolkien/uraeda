@@ -11,7 +11,7 @@ const AGENT = "2026-10-12-cli-tuis";
 const OFF = "pi-durable is off: turn it on to continue this session";
 
 /** Every automatic continue on. */
-const runs = () => ({ afterLimit: true, afterRestart: true, beforeGate: true, cap: 3 });
+const runs = () => ({ afterLimit: true, afterRestart: true, cap: 3 });
 
 afterEach(() => {
   vi.useRealTimers();

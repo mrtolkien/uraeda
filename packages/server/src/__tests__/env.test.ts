@@ -63,13 +63,9 @@ test("the continues' variables are kept as typed, and their flags replace them",
     value: "false",
   });
 
-  const options = parseOptions(
-    ["--no-continue-after-limit", "--no-continue-before-gate", "--automatic-continues", "6"],
-    env,
-  );
+  const options = parseOptions(["--no-continue-after-limit", "--automatic-continues", "6"], env);
 
   expect(options.continueAfterLimit).toEqual({ name: "--no-continue-after-limit", value: false });
-  expect(options.continueBeforeGate).toEqual({ name: "--no-continue-before-gate", value: false });
   expect(options.continueAfterRestart).toEqual(env.continueAfterRestart);
   expect(options.automaticContinues).toEqual({ name: "--automatic-continues", value: "6" });
   expect(parseOptions([], env).automaticContinues).toEqual({
@@ -77,10 +73,10 @@ test("the continues' variables are kept as typed, and their flags replace them",
     value: "5",
   });
   // A variable that is neither is checked with the port, after --help: a flag replaces it.
-  const bad = loadEnv(null, { URAEDA_CONTINUE_BEFORE_GATE: "yes" });
-  expect(bad.continueBeforeGate).toEqual({ name: "URAEDA_CONTINUE_BEFORE_GATE", value: "yes" });
-  expect(parseOptions(["--no-continue-before-gate"], bad).continueBeforeGate).toEqual({
-    name: "--no-continue-before-gate",
+  const bad = loadEnv(null, { URAEDA_CONTINUE_AFTER_LIMIT: "yes" });
+  expect(bad.continueAfterLimit).toEqual({ name: "URAEDA_CONTINUE_AFTER_LIMIT", value: "yes" });
+  expect(parseOptions(["--no-continue-after-limit"], bad).continueAfterLimit).toEqual({
+    name: "--no-continue-after-limit",
     value: false,
   });
 });

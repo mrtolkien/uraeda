@@ -113,15 +113,14 @@ Its `[runs]` table holds how the workflow's runs start and go on by themselves:
 build_in_fresh_session = true  # whether the build after a spec's approval starts in a new session
 continue_after_restart = true  # continue a run a server restart cut less than 6 hours before
 continue_after_limit = true    # continue a run a session limit stopped, a minute after its reset
-continue_before_gate = true    # ask a run that ended before its next human gate to continue to it
 automatic_continues = 3        # automatic continues in a row, 1 to 10, before the run asks for you
 ```
 
-They apply at once. Each continue's switch comes from its flag, `--no-continue-after-restart`,
-`--no-continue-after-limit`, or `--no-continue-before-gate`, else from its environment variable,
-`URAEDA_CONTINUE_AFTER_RESTART`, `URAEDA_CONTINUE_AFTER_LIMIT`, or `URAEDA_CONTINUE_BEFORE_GATE`,
-set to `true` or `false`, else the file, else its default. The continues in a row come from
-`--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else the file, else 3.
+They apply at once. Each continue's switch comes from its flag, `--no-continue-after-restart` or
+`--no-continue-after-limit`, else from its environment variable, `URAEDA_CONTINUE_AFTER_RESTART` or
+`URAEDA_CONTINUE_AFTER_LIMIT`, set to `true` or `false`, else the file, else its default. The
+continues in a row come from `--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else
+the file, else 3.
 
 The page shows them under Runs: a switch for each kind of continue, and the continues in a row,
 saved on Enter or when you leave the field, a number outside 1 to 10 refused. Turning a switch off

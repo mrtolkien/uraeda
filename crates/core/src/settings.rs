@@ -49,8 +49,6 @@ pub struct RunSettings {
     pub continue_after_restart: Option<bool>,
     /// Whether a run a session limit stopped continues at its reset: `true` when unset.
     pub continue_after_limit: Option<bool>,
-    /// Whether a run that ended before its gate is asked to continue: `true` when unset.
-    pub continue_before_gate: Option<bool>,
     /// Automatic continues in a row before the run asks, 1 to 10: 3 when unset.
     pub automatic_continues: Option<i64>,
 }
@@ -62,8 +60,6 @@ pub enum ContinueKey {
     Restart,
     /// `continue_after_limit`.
     Limit,
-    /// `continue_before_gate`.
-    Gate,
 }
 
 impl ContinueKey {
@@ -72,7 +68,6 @@ impl ContinueKey {
         match self {
             Self::Restart => "continue_after_restart",
             Self::Limit => "continue_after_limit",
-            Self::Gate => "continue_before_gate",
         }
     }
 }

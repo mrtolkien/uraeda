@@ -1,7 +1,6 @@
 // The Runs section: whether the run after a spec's approval starts in a fresh session, the default
-// the approval's own switch starts from; whether Uraeda continues a run by itself after a restart,
-// a usage limit, or an early end before its gate, and how many times in a row; then the run
-// settings later features bring.
+// the approval's own switch starts from; whether Uraeda continues a run by itself after a restart
+// or a usage limit, and how many times in a row; then the run settings later features bring.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
@@ -25,7 +24,6 @@ type RowProps = { actions: ServerActions; category: Category; values: ServerValu
 const CONTINUES: ReadonlyArray<{ key: ContinueKey; label: string }> = [
   { key: "restart", label: "Continue after a restart" },
   { key: "limit", label: "Continue after a usage limit" },
-  { key: "gate", label: "Continue before a human gate" },
 ];
 
 const CAP = "Automatic continues in a row";

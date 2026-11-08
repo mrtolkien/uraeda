@@ -3,7 +3,6 @@
 import type { Settings } from "uraeda-binding";
 import type {
   ContinuesName,
-  GateName,
   Given,
   GivenName,
   LimitName,
@@ -51,7 +50,6 @@ export type RunSettingsView = {
   buildInFreshSession: Setting<boolean>;
   continueAfterLimit: Setting<boolean>;
   continueAfterRestart: Setting<boolean>;
-  continueBeforeGate: Setting<boolean>;
 };
 
 /**
@@ -103,7 +101,6 @@ export type GivenValues = Pick<
   | "automaticContinues"
   | "continueAfterLimit"
   | "continueAfterRestart"
-  | "continueBeforeGate"
   | "noOpen"
   | "port"
 >;
@@ -111,16 +108,11 @@ export type GivenValues = Pick<
 /** The values given for this run, the port, the automatic continues, and the switches checked. */
 export type RunValues = Omit<
   GivenValues,
-  | "automaticContinues"
-  | "continueAfterLimit"
-  | "continueAfterRestart"
-  | "continueBeforeGate"
-  | "port"
+  "automaticContinues" | "continueAfterLimit" | "continueAfterRestart" | "port"
 > & {
   automaticContinues?: Given<number, ContinuesName>;
   continueAfterLimit?: Given<boolean, LimitName>;
   continueAfterRestart?: Given<boolean, RestartName>;
-  continueBeforeGate?: Given<boolean, GateName>;
   port?: Given<number, PortName>;
 };
 
@@ -154,15 +146,13 @@ function checkedSwitch<N extends string>(
  */
 export function checked(given: GivenValues, checks: Checks): RunValues {
   const { automaticContinues, port, ...rest } = given;
-  const { continueAfterLimit, continueAfterRestart, continueBeforeGate, ...others } = rest;
+  const { continueAfterLimit, continueAfterRestart, ...others } = rest;
   const limit = checkedSwitch(continueAfterLimit);
   const restart = checkedSwitch(continueAfterRestart);
-  const gate = checkedSwitch(continueBeforeGate);
   return {
     ...others,
     ...(limit && { continueAfterLimit: limit }),
     ...(restart && { continueAfterRestart: restart }),
-    ...(gate && { continueBeforeGate: gate }),
     ...(port && { port: { ...port, value: checks.checkedPort(port.value) } }),
     ...(automaticContinues && {
       automaticContinues: {
@@ -198,7 +188,6 @@ export function inForce(options: RunValues, file: Settings | null): SettingsView
       buildInFreshSession: setting(undefined, runs.buildInFreshSession, true),
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
       continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
-      continueBeforeGate: setting(options.continueBeforeGate, runs.continueBeforeGate, true),
     },
     server: {
       allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),

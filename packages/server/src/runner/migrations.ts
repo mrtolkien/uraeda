@@ -149,6 +149,8 @@ export const migrations: Array<Migration> = [
   `ALTER TABLE turns ADD COLUMN continue_at INTEGER;
   ALTER TABLE turns ADD COLUMN continue_reason TEXT;
   ALTER TABLE sessions ADD COLUMN automatic_continues INTEGER NOT NULL DEFAULT 0;`,
+  // The continue before a human gate is gone: its waits and its capped runs read halted.
+  "UPDATE turns SET continue_at = NULL, continue_reason = NULL WHERE continue_reason = 'gate';",
 ];
 
 /**

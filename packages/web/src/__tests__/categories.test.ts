@@ -12,7 +12,6 @@ test.each([
     [
       ["Continue after a restart", "Runs"],
       ["Continue after a usage limit", "Runs"],
-      ["Continue before a human gate", "Runs"],
       ["Automatic continues in a row", "Runs"],
     ],
   ],

@@ -1,7 +1,6 @@
 // The automatic continues of the run lifecycle decision: whether a stopped turn continues, and
 // when; the switches, the cap, and what sets the count back; the stagger; and the cancels. The
 // cache holds every pending continue: a timer only wakes this server to claim one.
-import type { FeatureView } from "uraeda-binding";
 import type { SessionRow, TurnRow } from "./cache.ts";
 import { limitContinueAt, MINUTE_MS, worktreeCommit } from "./continue-reads.ts";
 import type { ContinueReason, Limit } from "./events.ts";
@@ -14,14 +13,12 @@ import {
   type SessionContext,
   TAKEN_BACK,
   type Timer,
-  wakeupPending,
 } from "./session-state.ts";
 
 /** Which automatic continues are on, and how many in a row a session takes: the `[runs]` settings. */
 export type ContinueSettings = {
   afterLimit: boolean;
   afterRestart: boolean;
-  beforeGate: boolean;
   cap: number;
 };
 
@@ -29,7 +26,6 @@ export type ContinueSettings = {
 export const CONTINUES_ON: ContinueSettings = {
   afterLimit: true,
   afterRestart: true,
-  beforeGate: true,
   cap: 3,
 };
 
@@ -37,7 +33,6 @@ export const CONTINUES_ON: ContinueSettings = {
 export const CONTINUES_OFF: ContinueSettings = {
   afterLimit: false,
   afterRestart: false,
-  beforeGate: false,
   cap: 3,
 };
 
@@ -48,7 +43,6 @@ const LONGEST_TIMER_MS = 2 ** 31 - 1;
 
 /** The setting that turns each kind of continue off. */
 const SWITCHES: Record<ContinueReason, Exclude<keyof ContinueSettings, "cap">> = {
-  gate: "beforeGate",
   limit: "afterLimit",
   restart: "afterRestart",
 };
@@ -101,9 +95,8 @@ export class Continuer {
 
   /**
    * Decides the continue of a turn that ended, before its end is published, so it never reads as
-   * asking: a turn failed by a session's limit waits for the reset, and a workflow turn done
-   * before its feature's next human gate is asked to go on to it, unless a turn queued after it
-   * goes on with the run. A promise while the decision reads the feature, the end published once
+   * asking: a turn failed by a session's limit waits for the reset, unless a turn queued after it
+   * goes on with the run. A promise while the decision reads the worktree, the end published once
    * it settles. A continue's turn that ends without starting, taken back or refused, gives the run
    * back its own reason.
    */
@@ -115,9 +108,6 @@ export class Continuer {
     const taken = this.#taken(turn.sessionId);
     if (turn.state === "failed" && limit?.kind === "session") {
       return this.#decide(turn, "limit", () => limitContinueAt(this.#context.cache, limit), taken);
-    }
-    if (turn.state === "done" && turn.kind === "workflow") {
-      return this.#beforeGate(live, turn, taken);
     }
     return undefined;
   }
@@ -323,31 +313,6 @@ export class Continuer {
   }
 
   /**
-   * Asks a workflow turn done before its feature's next human gate to go on to it: once, so the
-   * gate's own continue's turn that ends so asks for the human, halted. Never while its process
-   * waits for a wakeup the agent set: the agent goes on by itself then (R24).
-   */
-  async #beforeGate(live: Live, turn: TurnRow, taken: number): Promise<void> {
-    const { binding, cache } = this.#context;
-    const session = cache.session(turn.sessionId);
-    if (!session?.folder || !this.#runs().beforeGate || wakeupPending(live.proc)) {
-      return;
-    }
-    // Asked once: the turn of the gate's own continue, sent, stops for the human. A gate past the
-    // cap was never asked, so the next stop after the human's message is.
-    const [first] = cache.items(turn.id, 0, 1);
-    if (first?.kind === "system" && first.text === continuedLine("gate")) {
-      return;
-    }
-    // A feature gone from the repository has no gate to go on to.
-    const feature = await binding.readFeature(session.repo, session.folder).catch(() => undefined);
-    const step = feature?.step;
-    if (step?.waitsOn === "agent" && step.name !== "pull-request-unknown") {
-      await this.#decide(turn, "gate", Date.now, taken, feature);
-    }
-  }
-
-  /**
    * Waits the turn for its continue of `reason` at `at()`, or, at the session's cap, marks it
    * capped: nothing when that kind is off, its repository is no longer listed, the session is not
    * its folder's latest, nor a chat, the turn is not its latest, or it was refused an action the
@@ -360,7 +325,6 @@ export class Continuer {
     reason: ContinueReason,
     at: () => number,
     taken: number,
-    feature?: FeatureView,
   ): Promise<void> {
     const { cache } = this.#context;
     const session = cache.session(turn.sessionId);
@@ -376,7 +340,7 @@ export class Continuer {
     if (cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed)) {
       return;
     }
-    const commit = await worktreeCommit(this.#context.binding, session, feature);
+    const commit = await worktreeCommit(this.#context.binding, session);
     // The human's message, Stop, or a dismiss while the commit was read takes the run over.
     const now = cache.turn(turn.id);
     if (

@@ -617,8 +617,8 @@ test("a continue is scheduled only for its session's latest turn, undecided and 
   expect(cache.markCapped(older, "limit", TAKEN)).toBe(false);
   expect(cache.scheduleContinue(latest, 1000, "limit", TAKEN)).toBe(true);
   // Decided once: a second decision, as another server's, changes nothing.
-  expect(cache.scheduleContinue(latest, 2000, "gate", TAKEN)).toBe(false);
-  expect(cache.markCapped(latest, "gate", TAKEN)).toBe(false);
+  expect(cache.scheduleContinue(latest, 2000, "restart", TAKEN)).toBe(false);
+  expect(cache.markCapped(latest, "restart", TAKEN)).toBe(false);
   expect(cache.turn(latest)).toMatchObject({ continueAt: 1000, continueReason: "limit" });
   expect(cache.turn(older)).toMatchObject({ continueAt: null, continueReason: null });
 });

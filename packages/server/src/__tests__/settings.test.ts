@@ -148,16 +148,15 @@ test.each<{
       automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
       continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
       continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
-      continueBeforeGate: { inForce: true, saved: null, source: { kind: "default" } },
     },
   },
   {
-    file: { automaticContinues: 4, continueBeforeGate: false },
+    file: { automaticContinues: 4, continueAfterLimit: false },
     name: "the file's continues over the defaults",
     options: none,
     runs: {
       automaticContinues: { inForce: 4, saved: 4, source: { kind: "file" } },
-      continueBeforeGate: { inForce: false, saved: false, source: { kind: "file" } },
+      continueAfterLimit: { inForce: false, saved: false, source: { kind: "file" } },
     },
   },
   {
@@ -386,22 +385,22 @@ test("a given cap on automatic continues is the core's number, from 1 to 10", as
   expect(settings.runs().automaticContinues.inForce).toBe(7);
 });
 
-/** The switch typed in `URAEDA_CONTINUE_BEFORE_GATE`. */
-const gate = (value: string) => ({
-  continueBeforeGate: { name: "URAEDA_CONTINUE_BEFORE_GATE" as const, value },
+/** The switch typed in `URAEDA_CONTINUE_AFTER_LIMIT`. */
+const limit = (value: string) => ({
+  continueAfterLimit: { name: "URAEDA_CONTINUE_AFTER_LIMIT" as const, value },
   noOpen: false,
 });
 
 /** R13 */
 test("a given switch's variable reads true or false, and stops the start otherwise", async () => {
-  await expect(opened(temporaryFolder("uraeda-config"), gate("yes"))).rejects.toThrow(
-    /^URAEDA_CONTINUE_BEFORE_GATE is true or false\.$/,
+  await expect(opened(temporaryFolder("uraeda-config"), limit("yes"))).rejects.toThrow(
+    /^URAEDA_CONTINUE_AFTER_LIMIT is true or false\.$/,
   );
-  const settings = await opened(temporaryFolder("uraeda-config"), gate(" false "));
-  expect(settings.runs().continueBeforeGate).toEqual({
+  const settings = await opened(temporaryFolder("uraeda-config"), limit(" false "));
+  expect(settings.runs().continueAfterLimit).toEqual({
     inForce: false,
     saved: null,
-    source: { kind: "environment", name: "URAEDA_CONTINUE_BEFORE_GATE" },
+    source: { kind: "environment", name: "URAEDA_CONTINUE_AFTER_LIMIT" },
   });
 });
 

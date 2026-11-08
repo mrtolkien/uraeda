@@ -17,9 +17,6 @@ export type RestartName = "--no-continue-after-restart" | "URAEDA_CONTINUE_AFTER
 /** The flag and the variable turning off the continue after a usage limit's reset. */
 export type LimitName = "--no-continue-after-limit" | "URAEDA_CONTINUE_AFTER_LIMIT";
 
-/** The flag and the variable turning off the continue before a human gate. */
-export type GateName = "--no-continue-before-gate" | "URAEDA_CONTINUE_BEFORE_GATE";
-
 /** The flag and the variable giving the automatic continues in a row. */
 export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUES";
 
@@ -30,7 +27,7 @@ export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUE
 export type Switch<N extends string> = Given<boolean | string, N>;
 
 /** Every flag and variable giving a setting's value for one run. */
-export type GivenName = HostsName | PortName | RestartName | LimitName | GateName | ContinuesName;
+export type GivenName = HostsName | PortName | RestartName | LimitName | ContinuesName;
 
 /**
  * The variables of the server's settings, from the process's environment, then `.env` at the
@@ -46,8 +43,6 @@ export type Env = {
   continueAfterLimit?: Switch<LimitName>;
   /** Whether a run the server's restart cut continues. */
   continueAfterRestart?: Switch<RestartName>;
-  /** Whether a run that ended before its gate is asked to continue. */
-  continueBeforeGate?: Switch<GateName>;
   /** Whether `URAEDA_REPO` named the repository, which must then be in git. */
   given: boolean;
   /** The port as typed: the settings unit checks it with the core's rule. */
@@ -80,7 +75,6 @@ export function loadEnv(
   const continues = value("URAEDA_AUTOMATIC_CONTINUES");
   const restart = value("URAEDA_CONTINUE_AFTER_RESTART");
   const limit = value("URAEDA_CONTINUE_AFTER_LIMIT");
-  const gate = value("URAEDA_CONTINUE_BEFORE_GATE");
   return {
     ...(hosts && { allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: hostNames(hosts) } }),
     ...(continues && {
@@ -90,7 +84,6 @@ export function loadEnv(
     ...(restart && {
       continueAfterRestart: { name: "URAEDA_CONTINUE_AFTER_RESTART", value: restart },
     }),
-    ...(gate && { continueBeforeGate: { name: "URAEDA_CONTINUE_BEFORE_GATE", value: gate } }),
     given: Boolean(repo),
     ...(port && { port: { name: "URAEDA_PORT", value: port } }),
     repo: resolve(root ?? process.cwd(), repo || "."),

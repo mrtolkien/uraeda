@@ -1,7 +1,6 @@
 // What the continuer's decisions read: when a limit's continue goes, from the cache's other waits,
 // and the commit the feature's worktree has checked out, which sets the count back.
 import { resolve } from "node:path";
-import type { FeatureView } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { Limit } from "./events.ts";
@@ -38,13 +37,12 @@ export function limitContinueAt(cache: SessionCache, limit: Limit): number {
 export async function worktreeCommit(
   binding: Binding,
   session: SessionRow,
-  read?: FeatureView,
 ): Promise<string | undefined> {
   if (session.folder === null) {
     return undefined;
   }
   try {
-    const feature = read ?? (await binding.readFeature(session.repo, session.folder));
+    const feature = await binding.readFeature(session.repo, session.folder);
     if (feature.worktree === undefined) {
       return undefined;
     }

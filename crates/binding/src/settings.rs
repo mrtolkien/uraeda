@@ -92,20 +92,18 @@ pub fn set_single_key_shortcuts(dir: String, on: bool) -> AsyncTask<Job<Settings
     job(move || settings::set_single_key_shortcuts(Path::new(&dir), on))
 }
 
-/// Sets whether a kind of automatic continue is on: after a restart, after a usage limit, or
-/// before a human gate.
+/// Sets whether a kind of automatic continue is on: after a restart or after a usage limit.
 #[napi(
-    ts_args_type = "dir: string, key: \"restart\" | \"limit\" | \"gate\", on: boolean",
+    ts_args_type = "dir: string, key: \"restart\" | \"limit\", on: boolean",
     ts_return_type = "Promise<Settings>"
 )]
 pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTask<Job<Settings>>> {
     let key = match key.as_str() {
         "restart" => ContinueKey::Restart,
         "limit" => ContinueKey::Limit,
-        "gate" => ContinueKey::Gate,
         _ => {
             return Err(napi::Error::from_reason(format!(
-                "refused: {key} is not a kind of continue: restart, limit, or gate."
+                "refused: {key} is not a kind of continue: restart or limit."
             )));
         }
     };

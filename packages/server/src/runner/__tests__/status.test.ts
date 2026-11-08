@@ -72,15 +72,6 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Idle", status: "idle" },
   ],
   [
-    "a run the cap stopped before its gate",
-    {
-      latest: ended("done", "workflow", { continueReason: "gate" }),
-      seenAt: "2026-10-13T11:00",
-      waitsOnAgent: true,
-    },
-    { label: "Needs attention", reason: "capped", status: "attention" },
-  ],
-  [
     "an ended turn with a blocked action",
     { blocked: true, latest: ended("done") },
     { label: "Needs you", reason: "blocked", status: "needs-you" },

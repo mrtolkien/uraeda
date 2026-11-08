@@ -360,7 +360,6 @@ export function continueSettings(settings: ServerSettings): () => ContinueSettin
     return {
       afterLimit: runs.continueAfterLimit.inForce,
       afterRestart: runs.continueAfterRestart.inForce,
-      beforeGate: runs.continueBeforeGate.inForce,
       cap: runs.automaticContinues.inForce,
     };
   };

@@ -175,11 +175,6 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
         "continue_after_limit",
         "Continue after a usage limit is true or false.",
     )?;
-    settings.continue_before_gate = switch(
-        runs,
-        "continue_before_gate",
-        "Continue before a human gate is true or false.",
-    )?;
     if let Some((key, item)) = runs.get_key_value("automatic_continues") {
         let continues = item
             .as_integer()
