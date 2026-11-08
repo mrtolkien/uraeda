@@ -13,14 +13,16 @@ use std::path::Path;
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{
     ArrowFunctionExpression, AwaitExpression, ForOfStatement, Function, Program,
-    VariableDeclaration, VariableDeclarationKind,
+    TSExportAssignment, TSImportEqualsDeclaration, TSModuleReference, VariableDeclaration,
+    VariableDeclarationKind,
 };
 use oxc_ast_visit::{Visit, walk};
 use oxc_codegen::Codegen;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_parser::{Parser, ParserReturn};
 use oxc_semantic::{ScopeFlags, SemanticBuilder};
-use oxc_span::SourceType;
+use oxc_span::{GetSpan, SourceType, Span};
+use oxc_syntax::module_record::{ExportExportName, ModuleRecord};
 use oxc_transformer::{JsxOptions, JsxRuntime, TransformOptions, Transformer};
 
 /// A compiled file.
@@ -48,8 +50,15 @@ const IMPORT_META: &str = "import.meta is not supported";
 /// Compiles `source`, read from a file called `filename`, whose extension picks the syntax: `.ts`
 /// without JSX, `.tsx` with it.
 pub fn compile(source: &str, filename: &str) -> Result<Compiled, CompileError> {
-    let source_type = SourceType::from_path(filename)
-        .map_err(|_| error_at(source, 0, format!("{filename} is not a TypeScript file")))?
+    let typescript = |extension: &str| {
+        filename
+            .strip_suffix(extension)
+            .is_some_and(|stem| !stem.is_empty() && !stem.ends_with(".d"))
+    };
+    let source_type = (typescript(".ts") || typescript(".tsx"))
+        .then(|| SourceType::from_path(filename).ok())
+        .flatten()
+        .ok_or_else(|| error_at(source, 0, format!("{filename} is not a TypeScript file")))?
         .with_module(true);
     let allocator = Allocator::default();
     let ParserReturn {
@@ -61,27 +70,23 @@ pub fn compile(source: &str, filename: &str) -> Result<Compiled, CompileError> {
     if let Some(diagnostic) = diagnostics.errors().next() {
         return Err(diagnostic_error(source, diagnostic));
     }
-    let mut refusals: Vec<(u32, &str)> = module_record
+    let mut refusals: Vec<(u32, String)> = module_record
         .dynamic_imports
         .iter()
-        .map(|import| (import.span.start, DYNAMIC_IMPORT))
+        .map(|import| (import.span.start, DYNAMIC_IMPORT.to_owned()))
         .chain(
             module_record
                 .import_metas
                 .iter()
-                .map(|span| (span.start, IMPORT_META)),
+                .map(|span| (span.start, IMPORT_META.to_owned())),
         )
+        .chain(duplicate_exports(&program, &module_record))
         .collect();
-    let mut awaits = TopLevelAwaits::default();
-    awaits.visit_program(&program);
-    refusals.extend(
-        awaits
-            .found
-            .into_iter()
-            .map(|start| (start, TOP_LEVEL_AWAIT)),
-    );
+    let mut refused = Refusals::default();
+    refused.visit_program(&program);
+    refusals.extend(refused.found);
     if let Some((start, message)) = refusals.into_iter().min_by_key(|(start, _)| *start) {
-        return Err(error_at(source, start, message.to_owned()));
+        return Err(error_at(source, start, message));
     }
     let code = transform(&allocator, &mut program, filename, source)?;
     modules::rewrite(&code).map_err(|message| {
@@ -91,6 +96,38 @@ pub fn compile(source: &str, filename: &str) -> Result<Compiled, CompileError> {
             format!("the compiled file is invalid: {message}"),
         )
     })
+}
+
+/// Each name exported a second time, at its second export, which the module rewrite would refuse
+/// without a position: TypeScript's parse leaves them, as an overload, a type, or a merged enum
+/// may share a name, so only the exports of values count.
+fn duplicate_exports(program: &Program, record: &ModuleRecord) -> Vec<(u32, String)> {
+    let types: Vec<Span> = program
+        .body
+        .iter()
+        .filter(|statement| statement.is_typescript_syntax())
+        .map(GetSpan::span)
+        .collect();
+    let mut seen: Vec<String> = Vec::new();
+    let mut found = Vec::new();
+    let entries = record
+        .local_export_entries
+        .iter()
+        .chain(&record.indirect_export_entries)
+        .filter(|entry| !entry.is_type && !types.contains(&entry.statement_span));
+    for entry in entries {
+        let (name, span) = match &entry.export_name {
+            ExportExportName::Name(name) => (name.name.to_string(), name.span),
+            ExportExportName::Default(span) => ("default".to_owned(), *span),
+            ExportExportName::Null => continue,
+        };
+        if seen.contains(&name) {
+            found.push((span.start, format!("{name} is exported twice")));
+        } else {
+            seen.push(name);
+        }
+    }
+    found
 }
 
 /// Strips the types and turns the JSX into `react/jsx-runtime` calls, then prints the module.
@@ -124,14 +161,23 @@ fn transform<'a>(
     Ok(Codegen::new().build(program).code)
 }
 
-/// The starts of every `await` outside a function: an expression, `for await`, or `await using`.
+/// What the function body cannot run, each at its start: an `await` outside a function (an
+/// expression, `for await`, or `await using`), `import x = require("y")`, and `export =`.
 #[derive(Default)]
-struct TopLevelAwaits {
+struct Refusals {
     depth: u32,
-    found: Vec<u32>,
+    found: Vec<(u32, String)>,
 }
 
-impl<'a> Visit<'a> for TopLevelAwaits {
+impl Refusals {
+    fn top_level_await(&mut self, start: u32) {
+        if self.depth == 0 {
+            self.found.push((start, TOP_LEVEL_AWAIT.to_owned()));
+        }
+    }
+}
+
+impl<'a> Visit<'a> for Refusals {
     fn visit_function(&mut self, it: &Function<'a>, flags: ScopeFlags) {
         self.depth += 1;
         walk::walk_function(self, it, flags);
@@ -145,24 +191,39 @@ impl<'a> Visit<'a> for TopLevelAwaits {
     }
 
     fn visit_await_expression(&mut self, it: &AwaitExpression<'a>) {
-        if self.depth == 0 {
-            self.found.push(it.span.start);
-        }
+        self.top_level_await(it.span.start);
         walk::walk_await_expression(self, it);
     }
 
     fn visit_for_of_statement(&mut self, it: &ForOfStatement<'a>) {
-        if self.depth == 0 && it.r#await {
-            self.found.push(it.span.start);
+        if it.r#await {
+            self.top_level_await(it.span.start);
         }
         walk::walk_for_of_statement(self, it);
     }
 
     fn visit_variable_declaration(&mut self, it: &VariableDeclaration<'a>) {
-        if self.depth == 0 && it.kind == VariableDeclarationKind::AwaitUsing {
-            self.found.push(it.span.start);
+        if it.kind == VariableDeclarationKind::AwaitUsing {
+            self.top_level_await(it.span.start);
         }
         walk::walk_variable_declaration(self, it);
+    }
+
+    fn visit_ts_import_equals_declaration(&mut self, it: &TSImportEqualsDeclaration<'a>) {
+        if let TSModuleReference::ExternalModuleReference(module) = &it.module_reference {
+            let message = format!(
+                "import = require is not supported: use import {} from \"{}\"",
+                it.id.name, module.expression.value
+            );
+            self.found.push((it.span.start, message));
+        }
+        walk::walk_ts_import_equals_declaration(self, it);
+    }
+
+    fn visit_ts_export_assignment(&mut self, it: &TSExportAssignment<'a>) {
+        let message = "export = is not supported: use export default".to_owned();
+        self.found.push((it.span.start, message));
+        walk::walk_ts_export_assignment(self, it);
     }
 }
 

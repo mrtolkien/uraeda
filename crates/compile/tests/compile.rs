@@ -182,6 +182,55 @@ fn refuses() {
             13,
             "import.meta is not supported",
         ),
+        (
+            "export default 1;\nexport default 2;\n",
+            "two-defaults.ts",
+            2,
+            8,
+            "default is exported twice",
+        ),
+        (
+            "const a = 1;\nexport { a };\nexport { a };\n",
+            "two-names.ts",
+            3,
+            10,
+            "a is exported twice",
+        ),
+        (
+            "\nimport x = require(\"y\");\n",
+            "import-equals.ts",
+            2,
+            1,
+            "import = require is not supported: use import x from \"y\"",
+        ),
+        (
+            "const x = 1;\nexport = x;\n",
+            "export-assignment.ts",
+            2,
+            1,
+            "export = is not supported: use export default",
+        ),
+        (
+            "export const a = 1;\n",
+            "page.js",
+            1,
+            1,
+            "page.js is not a TypeScript file",
+        ),
+        (
+            "export const a = 1;\n",
+            "page.jsx",
+            1,
+            1,
+            "page.jsx is not a TypeScript file",
+        ),
+        (
+            "export const a = 1;\n",
+            "types.d.ts",
+            1,
+            1,
+            "types.d.ts is not a TypeScript file",
+        ),
     ];
     for (source, filename, line, column, message) in rows {
         let CompileError {
@@ -195,4 +244,10 @@ fn refuses() {
         );
         assert_eq!((got_line, got_column), (*line, *column), "{filename}");
     }
+}
+
+#[test]
+fn overloads_and_merged_types_are_not_duplicates() {
+    let source = "export function f(a: string): void;\nexport function f(a: number): void;\nexport function f(a: unknown) {}\nexport interface T {}\nexport type T2 = T;\n";
+    compile(source, "overloads.ts").unwrap_or_else(|error| panic!("{}", error.message));
 }
