@@ -61,7 +61,7 @@ export function useRecord<T = unknown>(name: string): T {
 
 /**
  * Runs the extension's action `name` in the current repository with an input: gives its output,
- * or throws why it was refused.
+ * or throws why it was refused. Its answer is not kept in fate's store.
  */
 export function useAction<I = unknown, O = unknown>(name: string): (input?: I) => Promise<O> {
   const extension = useExtensionName("useAction");
@@ -76,7 +76,13 @@ export function useAction<I = unknown, O = unknown>(name: string): (input?: I) =
       if (result.error) {
         throw new Error(refusal(result.error).message);
       }
-      return JSON.parse(result.result?.outputJson ?? "null") as O;
+      const answer = result.result;
+      const output = JSON.parse(answer?.outputJson ?? "null") as O;
+      // Read once: fate's store keeps no answer, which would grow by one at each call.
+      if (answer) {
+        fate.deleteRecord("ExtensionAction", answer.id);
+      }
+      return output;
     },
     [extension, fate, name],
   );
