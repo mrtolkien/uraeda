@@ -260,11 +260,13 @@ test("loads only the config folder's extensions", async () => {
 test("server code imports a node: module by its default, its names, or as a namespace", async () => {
   const config = temporaryFolder("config");
   extensionFolder(config, "wiki", {
-    "server.ts": `import path, { join } from "node:path";\nimport * as fs from "node:fs";\nexport default function activate(api: { mark(value: unknown): void }) {\n  api.mark([path.join("a", "b"), join("c", "d"), typeof fs.readFileSync, typeof fs.default.readFileSync]);\n}\n`,
+    "lib.ts": `import * as fs from "node:fs";\nexport const libFs = fs;\n`,
+    "server.ts": `import path, { join } from "node:path";\nimport * as fs from "node:fs";\nimport { libFs } from "./lib";\nexport default function activate(api: { mark(value: unknown): void }) {\n  api.mark([path.join("a", "b"), join("c", "d"), typeof fs.readFileSync, typeof fs.default.readFileSync, libFs === fs]);\n}\n`,
   });
   const { loader, marks } = await openLoader({ configDir: config });
   expect(loader.get("wiki")).toMatchObject({ problems: [], state: "on" });
-  expect(marks.of("wiki")).toEqual([["a/b", "c/d", "function", "function"]]);
+  // Break: a namespace made at each import gives two files two objects for one module.
+  expect(marks.of("wiki")).toEqual([["a/b", "c/d", "function", "function", true]]);
 });
 
 test("a page's version is never one an earlier server gave", async () => {
