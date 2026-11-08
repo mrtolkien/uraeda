@@ -32,6 +32,10 @@ A folder there may be a symbolic link to a folder you keep elsewhere, as `ura ex
 one. Your extensions run with your rights, as Uraeda's own code does: an extension can read every
 repository in Uraeda's list, commit, and run agents. Install only the ones you would run yourself.
 
+An agent's session may write your extensions folder, as it may any file you can write: an agent can
+write code the server runs as you, on its next save, in every repository the extension is on in,
+with no review step between. Read a session's changes to your extensions before relying on them.
+
 ## A first extension
 
 [`examples/extensions/wiki/`](https://github.com/mrtolkien/uraeda/tree/main/examples/extensions/wiki)
@@ -381,6 +385,11 @@ each problem above the rows, with its file and line when it has one:
   it draws.
 - A linked folder that was deleted: `folder not found`.
 - An extension built for another API version.
+
+`ura extension list` shows the same problems, so an agent that wrote an extension checks it there
+after saving: a manifest's problems always, and its state and the problems of loading, compiling,
+and drawing its code as the running server last saw them, with the time it saw them. The server
+writes those to `extensions-status.json` in Uraeda's data folder, and removes the file as it stops.
 
 `api.log` writes to the server's output, where a route's or a listener's error also shows, after the
 extension's name.
