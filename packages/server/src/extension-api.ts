@@ -47,7 +47,8 @@ export type ApiRepository = { name: string; path: string };
  * The server API: the one object an extension's server code receives. Every call checks that the
  * version calling it is still loaded, and throws `<name>: this version of the extension was
  * unloaded` otherwise; everything it registers is undone when that version unloads. Callbacks
- * that throw or reject are reported under the extension's name and never reach Uraeda's callers.
+ * that throw or reject are reported under the extension's name and never reach Uraeda's callers;
+ * a record, an action, or a route that does not answer in 10 s answers `no answer in 10 s`.
  */
 export type ServerApi = {
   /** Registers the action `name`, which pages call through fate, in a repository it is on in. */
@@ -70,8 +71,9 @@ export type ServerApi = {
   /**
    * Registers a route at `path`, which must start with `/x/<extension>/`; a path ending in `/*`
    * takes every path under it. It answers at `path` and under each repository's `/r/<name>`, the
-   * repository then given, only where the extension is on; every route needs a signed-in session.
-   * Without `method`, it answers every method.
+   * repository then given, only where the extension is on; every route needs a signed-in session,
+   * and refuses a request another site sent. Without `method`, it answers GET and POST; a GET route
+   * answers HEAD too. A handler that does not answer in 10 s answers 504.
    */
   route(
     path: string,
@@ -80,6 +82,6 @@ export type ServerApi = {
   ): void;
   /** Registers an agent runtime, under the extension's name. */
   runtime(runtime: Adapter): void;
-  /** The extension's settings, for a repository by name, or for every repository with null. */
+  /** The extension's settings: a repository's by name, none where it is off; every one's for null. */
   settings(repository: string | null): Record<string, unknown>;
 };

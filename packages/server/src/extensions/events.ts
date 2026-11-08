@@ -35,9 +35,20 @@ type Handler = { extension: string; handler: (payload: never) => unknown };
 export class EventBus {
   readonly #handlers = new Map<EventName, Set<Handler>>();
   readonly #isOn: (extension: string, repository: string) => boolean;
+  readonly #onListen = new Set<(event: EventName) => void>();
 
   constructor(isOn: (extension: string, repository: string) => boolean) {
     this.#isOn = isOn;
+  }
+
+  /** Whether any handler listens to one of `events`. */
+  listens(...events: Array<EventName>): boolean {
+    return events.some((event) => (this.#handlers.get(event)?.size ?? 0) > 0);
+  }
+
+  /** Calls `listener` with the event of each handler added, after it is. */
+  onListen(listener: (event: EventName) => void): void {
+    this.#onListen.add(listener);
   }
 
   /** Adds `handler` of the extension for `event`: gives its removal. */
@@ -50,6 +61,7 @@ export class EventBus {
     this.#handlers.set(event, handlers);
     const entry: Handler = { extension, handler: handler as Handler["handler"] };
     handlers.add(entry);
+    this.#onListen.forEach((listener) => listener(event));
     return () => handlers.delete(entry);
   }
 
@@ -75,29 +87,52 @@ type Seen = { branch?: string; commit: string | null; steps: Map<string, string>
 /** A repository as the watch knows it: its name and main checkout. */
 type Repo = { name: string; path: string };
 
+/** The events the watch emits: it reads repositories only while one has a handler. */
+const WATCHED: Array<EventName> = ["step-reached", "commit-landed"];
+
 /**
  * The watch of the repositories' steps and commits: `seed` reads where a repository is, and each
  * of its `changes` compares the features they list, and the `HEAD` when git changed, with what was
- * seen, emitting `step-reached` and `commit-landed` for what moved.
+ * seen, emitting `step-reached` and `commit-landed` for what moved. While no extension listens to
+ * either, it reads nothing and forgets what it saw; the first handler added reads each repository.
  */
 export class StepWatch {
   readonly #binding: Pick<Binding, "checkoutCommit" | "readWorkspace">;
   readonly #bus: EventBus;
+  /** The repositories seeded and not forgotten, by path. */
+  readonly #repos = new Map<string, Repo>();
   /** Each repository's last read, by its path: a promise, so changes wait for the seed. */
   readonly #seen = new Map<string, Promise<Seen>>();
 
   constructor(binding: Pick<Binding, "checkoutCommit" | "readWorkspace">, bus: EventBus) {
     this.#binding = binding;
     this.#bus = bus;
+    bus.onListen((event) => {
+      if (WATCHED.includes(event)) {
+        for (const repo of this.#repos.values()) {
+          if (!this.#seen.has(repo.path)) {
+            this.seed(repo);
+          }
+        }
+      }
+    });
   }
 
-  /** Reads where the repository is now, before any change of it is compared. */
-  seed({ path }: Repo): void {
-    this.#seen.set(path, this.#read(path));
+  /** Reads where the repository is now, before any change of it is compared, if one listens. */
+  seed(repo: Repo): void {
+    this.#repos.set(repo.path, repo);
+    if (this.#bus.listens(...WATCHED)) {
+      this.#seen.set(repo.path, this.#read(repo.path));
+    }
   }
 
   /** Compares the repository after `changes`, emitting what moved; never throws. */
   changes(repo: Repo, changes: Pick<Changes, "features" | "git">): Promise<void> {
+    if (!this.#bus.listens(...WATCHED)) {
+      // What was seen goes stale: the next listener reads the repository first.
+      this.#seen.delete(repo.path);
+      return Promise.resolve();
+    }
     if (changes.features.length === 0 && !changes.git) {
       return Promise.resolve();
     }
@@ -119,6 +154,7 @@ export class StepWatch {
 
   /** Forgets a repository that left the list. */
   forget({ path }: Repo): void {
+    this.#repos.delete(path);
     this.#seen.delete(path);
   }
 

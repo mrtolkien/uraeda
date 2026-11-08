@@ -1078,11 +1078,14 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
   routes; the turn-done Storybook warmer stays only for an app without extensions, the `previews`
   built-in doing it otherwise), `server-paths.ts`, `live.ts` (`onSessionChange`,
   `announceEverywhere`), `repositories.ts` (`started` and `changed` hooks feed the events),
-  `settings.ts` (`onRead`, after every read of `config.toml`), `runner/cache.ts` (`onCreated`, for
-  `session-started`), `runner/runtimes.ts` (a status carried across a re-registration; refusals name
-  the extension's title), `main.ts`, `dev.ts`, the tests and the sandbox that passed `runtimes`
+  `settings.ts` (`onRead`, after every read of `config.toml`), `runner/cache.ts`
+  (`onCreated(listener)`, a set of listeners, each removal kept by the host and called as it closes,
+  for `session-started`), `runner/runtimes.ts` (a status carried across a re-registration; refusals
+  name the extension's title), `main.ts`, `dev.ts`, the tests and the sandbox that passed `runtimes`
   (runtimes now come from the built-ins)
-- Test: `extensions/__tests__/api.test.ts`; Modify: `sign-in/__tests__/closed.test.ts`
+- Test: `extensions/__tests__/api.test.ts`, `runtimes.test.ts`, `contributions.test.ts`,
+  `events.test.ts`, with `serve.ts` the started server they share; Modify:
+  `sign-in/__tests__/closed.test.ts`
 
 **Interfaces:**
 
@@ -1115,13 +1118,21 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
     (repository from the request's context; refused when off there).
   - Routes: `GET /extensions/<name>/page` → the `PageBundle` JSON, `cache-control: no-store`;
     `ALL /x/<name>/*` and `/r/<repo>/x/<name>/*` → the extension's handler (a route path ending `/*`
-    takes the paths under it; without `method`, every method answers, R33). Both in `SERVER_PATHS`,
-    both closed.
+    takes the paths under it, a trailing slash is the same path; without `method`, GET and POST
+    answer, and a GET route answers HEAD, R33). Both in `SERVER_PATHS`, both closed, and both refuse
+    with 403 a request whose `Sec-Fetch-Site` is `cross-site` or `same-site` (R37).
+  - Each record's read, action, and route is given 10 s: then the record reads with the error
+    `<extension>: no answer in 10 s`, the action is refused with it, and the route answers 504, each
+    reported under the extension's name (R38). `api.settings(repository)` gives `{}` for a
+    repository the extension is off in.
   - Events: the server keeps each repository's last step per feature (from its workspace read); each
     watcher `Changes` listing a feature compares the new step's `name` with the kept one and emits
     `step-reached` when it differs; `git: true` emits `commit-landed` with the branch; `onTurnDone`
-    emits `turn-ended`; a session's creation emits `session-started`. A handler's throw is logged
-    with the extension's name and never reaches the caller.
+    emits `turn-ended`; a session's creation emits `session-started`, after its insert. A handler's
+    throw is logged with the extension's name and never reaches the caller. While no extension
+    listens to `step-reached` or `commit-landed`, the watch reads no workspace and lets what it kept
+    go stale; the first handler added reads each repository first (R39). A repository whose host
+    stops is forgotten.
   - Built-ins' server parts through `serverApi` with a built-in scope: `claude` registers
     `ClaudeAdapter` (its `command` setting), `fake` registers `FakeAdapter` only when the server is
     started with a fake agent (tests, sandbox) and is off otherwise, `previews` moves the Storybook
@@ -1129,7 +1140,8 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
     server part: their data stays in Uraeda's static fate views, which stay served when they are
     off.
   - A runtime extension's reload is deferred (`loader.defer`) while one of its sessions has a turn
-    running, with `waitingFor` = that session's title; it reloads when the turn ends. A built-in's
+    running, with `waitingFor` = the title of the session of its runtime at work longest, which
+    follows the sessions still at work as one ends; it reloads when the last turn ends. A built-in's
     settings change registers it again, a runtime's once its turns end, the same way (R34).
   - Each read of `config.toml` reads the extensions and their settings again: an extension whose
     `on` or settings changed reloads (`loader.reload`, or the built-in registered again), and the

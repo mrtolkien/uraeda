@@ -13,6 +13,7 @@ import { layout } from "../paths.ts";
 import type { Host, Hosts } from "../repositories.ts";
 import type { Adapter } from "../runner/adapter.ts";
 import { Runtimes } from "../runner/runtimes.ts";
+import type { SessionRow } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { ServerSettings } from "../settings.ts";
 import { type Registry, serverApi } from "./api.ts";
@@ -140,7 +141,11 @@ export class ExtensionsHost implements Registry {
     this.#hosts = deps.hosts;
     this.#warm = deps.warm;
     const { sessions } = deps;
-    this.#turns = new RuntimeTurns(sessions, (runtime, title) => this.#busy(runtime, title));
+    this.#turns = new RuntimeTurns(
+      sessions,
+      (runtime, title) => this.#busy(runtime, title),
+      () => this.#announce(),
+    );
     this.#stops.push(
       onSessionChange(sessions, (change) => {
         if (!("agent" in change)) {
@@ -149,13 +154,14 @@ export class ExtensionsHost implements Registry {
         }
       }),
     );
-    sessions.cache.onCreated = (row) => {
+    // After the session's insert, not inside it.
+    const started = (row: SessionRow) => {
       const repository = this.#hosts?.byPath(row.repo)?.name;
-      if (repository !== undefined) {
+      if (repository !== undefined && !this.#closed) {
         this.#events.emit("session-started", { repository, runtime: row.agent, session: row.id });
       }
     };
-    deps.hosts.all().forEach((host) => this.seed(host));
+    this.#stops.push(sessions.cache.onCreated((row) => queueMicrotask(() => started(row))));
     // The repositories' own settings, read before your extensions load.
     await this.#read();
     const { binding, configDir, modules = {} } = this.#options;
@@ -174,6 +180,11 @@ export class ExtensionsHost implements Registry {
   /** Reads a repository's steps, as its host starts. */
   seed(host: Pick<Host, "name" | "path">): void {
     this.#steps.seed(host);
+  }
+
+  /** Forgets a repository's steps, as its host stops. */
+  stopped(host: Pick<Host, "name" | "path">): void {
+    this.#steps.forget(host);
   }
 
   /** Turns a repository's changes into events. */
@@ -239,36 +250,22 @@ export class ExtensionsHost implements Registry {
     );
     if (extension.isBuiltIn) {
       const { name } = extension;
-      const problems = this.#builtIns.problems(name);
-      const waitingFor = this.#builtIns.waitingFor(name);
       const off = !extension.onAll && extension.on.length === 0;
-      const unregistered =
-        !this.#builtIns.registered(name) ||
-        (BUILT_IN_RUNTIMES.has(name) && this.runtimes.get(name) === undefined);
-      const state = waitingFor
-        ? "waiting"
-        : problems.length > 0
-          ? "broken"
-          : off || unregistered
-            ? "off"
-            : "on";
-      return {
-        extension,
-        pageVersion: null,
-        problems: [...own, ...problems],
-        state,
-        values,
-        waitingFor: waitingFor ?? null,
-      };
+      const unregistered = BUILT_IN_RUNTIMES.has(name) && this.runtimes.get(name) === undefined;
+      const { problems, ...state } = this.#builtIns.state(name, off || unregistered);
+      return { extension, pageVersion: null, problems: [...own, ...problems], values, ...state };
     }
     const loaded = this.#loader?.get(extension.name);
+    // A runtime's reload waits for its sessions at work: it names the one at work now.
+    const waitingFor =
+      loaded?.waitingFor && (this.#turns?.busy(extension.name) ?? loaded.waitingFor);
     return {
       extension,
       pageVersion: this.#loader?.pageBundle(extension.name)?.version ?? null,
       problems: loaded?.problems ?? own,
       state: loaded?.state ?? "off",
       values,
-      waitingFor: loaded?.waitingFor ?? null,
+      waitingFor: waitingFor || null,
     };
   }
 
@@ -282,7 +279,8 @@ export class ExtensionsHost implements Registry {
     const extension = id.split("/")[0];
     const repository = this.#hosts?.byPath(root)?.name;
     if (repository === undefined || !this.isOn(extension, repository)) {
-      return { error: `${extension} is off in ${repository ?? root}`, id, value: "null" };
+      const where = repository ?? "this repository";
+      return { error: `${extension} is off in ${where}`, id, value: "null" };
     }
     return this.#contributions.read(id, repository);
   }
@@ -346,7 +344,11 @@ export class ExtensionsHost implements Registry {
       .map(({ name, path }) => ({ name, path }));
   }
 
+  /** The extension's settings in a repository, none where it is off, or every repository's. */
   settings(extension: string, repository: string | null): Record<string, unknown> {
+    if (repository !== null && !this.isOn(extension, repository)) {
+      return {};
+    }
     const values = this.#values.get(extension);
     return { ...(values?.get(repository ?? GLOBAL) ?? values?.get(GLOBAL) ?? {}) };
   }
