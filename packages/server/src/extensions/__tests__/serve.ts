@@ -73,7 +73,7 @@ export async function serve(
   });
   onTestFinished(() => server.stop());
   const [other, uraeda] = repos;
-  return { configDir, other, server, sink, uraeda };
+  return { configDir, dataDir, other, server, sink, uraeda };
 }
 
 /** The spec of the fixture's feature, waiting for the human or a draft. */

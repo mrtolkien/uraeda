@@ -650,3 +650,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the bar fits eight 44 px controls on a 375 px phone with Home, the sidebar's
   toggle, the `…`, and New: four places.
 - **Where**: fix pass, `packages/web/src/shell/Tabs.tsx` (`phoneTabs`).
+
+## R59: The server writes what it saw of the extensions for `ura extension list`
+
+- **Decision**: the server writes each extension's state, what it waits for, and its problems to
+  `extensions-status.json` in the data folder
+  (`{"version":1,"at":…,"extensions":[{name, state, problems:[{file,line,message}], waitingFor}]}`),
+  through a temporary file and a rename, once per burst of changes of the `Extensions` record, and
+  removes it as it stops. `ura extension list` reads it through the core
+  (`extensions::status::read_status`) and shows, under each extension the server knew, its state "as
+  the running server last saw it at <time>" and the problems its manifest's do not already show;
+  `--json` gives them in each row's `server` key, `null` without a file.
+- **Rationale**: an agent that wrote an extension saw only its manifest's problems: loading,
+  compiling, and page problems reached the settings page alone (US2). The CLI never runs an
+  extension's code, so it reads what the server met rather than meeting it again.
+- **Where**: fix pass, `packages/server/src/extensions/status-file.ts`, `server.ts`,
+  `crates/core/src/extensions/status.rs`, `crates/cli/src/extension/list.rs`, `data-model.md`.

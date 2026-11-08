@@ -61,6 +61,20 @@ Written by `ura extension add` and `ura extension update`, read by the settings 
 | `[extensions.<name>]` other keys          | per its manifest         | Its settings for every repository, checked against its manifest's schema         | New    |
 | `[extensions.<name>.repositories.<repo>]` | table                    | Its settings for one repository, over the ones above                             | New    |
 
+## Status file, `extensions-status.json`
+
+In the data folder, written by the running server, whole and atomically, as the `Extensions` record
+changes, and removed as it stops; read by `ura extension list`.
+
+| Field                     | Type                                     | Meaning                                                     | Change |
+| ------------------------- | ---------------------------------------- | ----------------------------------------------------------- | ------ |
+| `version`                 | number                                   | The format's version, `1`: another reads as no file         | New    |
+| `at`                      | ISO 8601 string                          | When the server wrote it                                    | New    |
+| `extensions[].name`       | string                                   | The extension's name                                        | New    |
+| `extensions[].state`      | `"on"`, `"off"`, `"broken"`, `"waiting"` | Its state, as the settings page shows it                    | New    |
+| `extensions[].problems[]` | `{file, line?, message}`                 | Its problems: manifest, settings, loading, compiling, pages | New    |
+| `extensions[].waitingFor` | string or null                           | The session a runtime's reload waits for                    | New    |
+
 ## Session cache
 
 | Field   | Type   | Meaning                                                          | Change  |

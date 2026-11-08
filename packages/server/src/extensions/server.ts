@@ -1,7 +1,8 @@
 // The extensions host: what the server knows of its extensions. It reads them and their settings
 // through the core, registers the built-ins' server parts, opens the loader for yours, and owns
 // what both register through the server API: runtimes, records, actions, routes, and events, each
-// only where its extension is on. It sends the `Extensions` record live as any of it changes.
+// only where its extension is on. It sends the `Extensions` record live as any of it changes, and
+// writes it to the data folder for `ura extension list` (`status-file.ts`).
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Changes, Extension } from "uraeda-binding";
@@ -24,6 +25,7 @@ import { type LoadedExtension, Loader, type PageBundle, type Problem } from "./l
 import { compilePage } from "./page-compiler.ts";
 import { PageProblems } from "./page-problems.ts";
 import { GLOBAL, printOf } from "./settings-print.ts";
+import { StatusFile } from "./status-file.ts";
 import { RuntimeTurns } from "./turns.ts";
 
 /** What `ExtensionsHost.open` takes. */
@@ -61,6 +63,10 @@ export class ExtensionsHost implements Registry {
   readonly #pageProblems = new PageProblems();
   readonly #events: EventBus;
   readonly #steps: StepWatch;
+  readonly #status = new StatusFile(
+    () => this.#options.dataDir,
+    () => this.states().extensions,
+  );
   #folder = "";
   #extensions = new Map<string, Extension>();
   /** Each extension's settings: every repository's under "", then each repository's by name. */
@@ -468,6 +474,7 @@ export class ExtensionsHost implements Registry {
 
   /** Sends the `Extensions` record on every bus. */
   #announce(): void {
+    this.#status.changed();
     if (this.#hosts) {
       guarded("extensions", () => announceEverywhere(this.#hosts!, "Extensions", EXTENSIONS_ID));
     }
@@ -480,5 +487,6 @@ export class ExtensionsHost implements Registry {
     this.#loader?.close();
     this.#turns?.close();
     this.#builtIns.close();
+    this.#status.close();
   }
 }
