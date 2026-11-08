@@ -38,7 +38,7 @@ Running the user's own `claude` and `codex` uses their binaries, settings, and l
 subscriptions allow; a wrapper would sit between Uraeda and the agent. Skipped permissions, or an
 unreviewed network, would let a hostile page make an agent act on, or send away, the user's code.
 One concept of a session, whatever workflow surrounds it, gives each conversation a page and a
-history of its own. History: [Codex runtime + model settings](../2026-11-08-codex-runtime/spec.md).
+history of its own. History: [Codex runtime + model settings](../done/2026-11-08-codex-runtime.md).
 
 ## Alternatives considered
 
