@@ -30,17 +30,18 @@ Its name is the extension's name. A linked extension is a symbolic link to the f
 
 ## Manifest, `extension.toml`
 
-| Field          | Type           | Meaning                                                                        | Change |
-| -------------- | -------------- | ------------------------------------------------------------------------------ | ------ |
-| `name`         | string         | Kebab-case, unique, the folder's name; built-ins' names are reserved           | New    |
-| `title`        | string         | Shown on the settings page                                                     | New    |
-| `description`  | string         | One line, shown under the title                                                | New    |
-| `version`      | string         | The extension's own version, shown on the settings page                        | New    |
-| `api`          | integer        | The extension API version it is built for                                      | New    |
-| `icon`         | string         | An icon name of the app's set                                                  | New    |
-| `server`       | path, optional | Its server entry                                                               | New    |
-| `page`         | path, optional | Its page entry                                                                 | New    |
-| `[settings.*]` | tables         | Each setting: `type` (bool, integer, string, list), `default`, `label`, `help` | New    |
+| Field          | Type                         | Meaning                                                                        | Change |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------------ | ------ |
+| `name`         | string                       | Kebab-case, unique, the folder's name; built-ins' names are reserved           | New    |
+| `title`        | string                       | Shown on the settings page                                                     | New    |
+| `description`  | string                       | One line, shown under the title                                                | New    |
+| `version`      | string                       | The extension's own version, shown on the settings page                        | New    |
+| `api`          | integer                      | The extension API version it is built for                                      | New    |
+| `icon`         | string                       | An icon name of the app's set                                                  | New    |
+| `scope`        | `"global"` or `"repository"` | Where `ura extension add` suggests turning it on first                         | New    |
+| `server`       | path, optional               | Its server entry                                                               | New    |
+| `page`         | path, optional               | Its page entry                                                                 | New    |
+| `[settings.*]` | tables                       | Each setting: `type` (bool, integer, string, list), `default`, `label`, `help` | New    |
 
 ## Source, `.ura-source`
 
@@ -54,10 +55,11 @@ Written by `ura extension add` and `ura extension update`, read by the settings 
 
 ## Settings file, `config.toml`
 
-| Field                 | Type          | Meaning                                                          | Change |
-| --------------------- | ------------- | ---------------------------------------------------------------- | ------ |
-| `[extensions] off`    | list of names | Extensions turned off, built-ins included; absent means all on   | New    |
-| `[extensions.<name>]` | table         | That extension's settings, checked against its manifest's schema | New    |
+| Field                                     | Type                     | Meaning                                                                          | Change |
+| ----------------------------------------- | ------------------------ | -------------------------------------------------------------------------------- | ------ |
+| `[extensions.<name>] on`                  | `"all"` or list of names | The repositories it is on in, by their names; `[]` turns it off; default `"all"` | New    |
+| `[extensions.<name>]` other keys          | per its manifest         | Its settings for every repository, checked against its manifest's schema         | New    |
+| `[extensions.<name>.repositories.<repo>]` | table                    | Its settings for one repository, over the ones above                             | New    |
 
 ## Session cache
 

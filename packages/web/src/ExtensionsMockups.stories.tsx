@@ -75,19 +75,13 @@ const BUILT_IN: ReadonlyArray<Row> = [
     isOn: true,
     label: "Notifications",
   },
-  {
-    help: "Claude Code's five-hour and weekly usage.",
-    icon: "uraeda:hourglass",
-    isOn: true,
-    label: "Usage window",
-  },
 ];
 
 /** Where an extension of yours comes from, under its help. */
-function Source({ commit, from }: { commit?: string; from: string }) {
+function Source({ commit, from, on }: { commit?: string; from: string; on: string }) {
   return (
     <Text color="secondary" size="sm">
-      {commit ? `${from} at ${commit}` : `Linked: ${from}, reloads on save`}
+      {commit ? `${from} at ${commit}` : `Linked: ${from}, reloads on save`}, on in {on}
     </Text>
   );
 }
@@ -99,21 +93,21 @@ const YOURS: ReadonlyArray<Row> = [
     icon: "uraeda:globe",
     isOn: true,
     label: "Deploy",
-    notes: <Source from="~/code/uraeda-deploy" />,
+    notes: <Source from="~/code/uraeda-deploy" on="uraeda only" />,
   },
   {
     help: "Browse the repository's docs folder as a wiki.",
     icon: "uraeda:book-open",
     isOn: true,
     label: "Wiki",
-    notes: <Source commit="3f9c2a1" from="github.com/gary/uraeda-wiki" />,
+    notes: <Source commit="3f9c2a1" from="github.com/gary/uraeda-wiki" on="every repository" />,
   },
   {
     help: "Runs pi-durable in sessions.",
     icon: "uraeda:harness-pi",
     isOn: false,
     label: "pi-durable",
-    notes: <Source commit="b71e04d" from="github.com/gary/uraeda-pi" />,
+    notes: <Source commit="b71e04d" from="github.com/gary/uraeda-pi" on="no repository" />,
   },
 ];
 
