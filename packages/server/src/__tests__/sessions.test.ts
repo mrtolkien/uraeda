@@ -970,6 +970,8 @@ test("Agent reads each runtime's name, mark, availability, version, capabilities
         isOn: true,
         kind: "fake",
         name: "Claude Code",
+        // No extension's title here: the name it is registered as.
+        title: "fake",
         usage: [],
         version: "0.0.0 (fake agent)",
       },

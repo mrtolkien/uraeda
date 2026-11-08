@@ -87,6 +87,11 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorkt
     missing?: boolean;
     /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;
+    /**
+     * The runtime of its latest session, which its runs go to, null before its first message, when
+     * they go to a new session on the runtime picked, or the first one on.
+     */
+    runtime: string | null;
     /** Its latest session's ID, the one its runs go to, null before its first message. */
     session: string | null;
     /** Its sessions' IDs, the latest started first. */
@@ -301,6 +306,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   preview: true,
   problems: true,
   pullRequest: true,
+  runtime: true,
   session: true,
   sessions: true,
   slug: true,

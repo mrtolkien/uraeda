@@ -4,7 +4,6 @@ import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { useFeature } from "./data.ts";
-import { harnessMark } from "./HarnessMark.tsx";
 import { type ColumnPanel, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { showDocumentColumn } from "./layout/documentColumnWidth.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -69,9 +68,9 @@ const SESSION_PANEL = "column-session";
 
 /**
  * The column's Session tab, on the feature's session in `folder`, its composer holding `draft`, its
- * icon the mark of `agent`, the kind of agent asked, as the session's page draws it.
+ * icon the mark of the agent asked, `icon`, as the session's page draws it.
  */
-export function sessionTab(draft: Draft, folder: string, agent: string | undefined): ColumnPanel {
+export function sessionTab(draft: Draft, folder: string, icon: ColumnPanel["icon"]): ColumnPanel {
   return {
     content: (
       <div id={SESSION_PANEL}>
@@ -80,7 +79,7 @@ export function sessionTab(draft: Draft, folder: string, agent: string | undefin
         </Suspense>
       </div>
     ),
-    icon: harnessMark(agent ?? "").icon,
+    icon,
     key: "session",
     label: "Session",
   };

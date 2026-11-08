@@ -57,12 +57,14 @@ function useStart({ sent: clear, sources }: NewDraft) {
     sent: string,
     images: ReadonlyArray<DraftImage>,
     slug: string,
+    runtime?: string,
   ): Promise<Started> => {
     const line = nowLine(sources);
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
         ...(line ? { line: line.text } : {}),
+        ...(runtime === undefined ? {} : { runtime }),
         // Never empty: the dialog starts nothing while its field is.
         slug,
         text: sent,
@@ -104,11 +106,13 @@ function SlugQuestion({
 }: {
   asking: Asking;
   onCancel: () => void;
-  onConfirm: (slug: string) => Promise<string | undefined>;
+  onConfirm: (slug: string, level?: string, runtime?: string) => Promise<string | undefined>;
 }) {
   const proposed = useSlugProposal(asking.text);
   return (
     <StartDialog
+      // The change's first run starts as it does: its session runs on the runtime picked.
+      hasRuntime
       initial={proposed}
       isOpen
       onCancel={onCancel}
@@ -141,11 +145,11 @@ export function ChangeComposer({
     asking?.resolve(sent);
     setAsking(undefined);
   };
-  const confirm = async (slug: string) => {
+  const confirm = async (slug: string, _level?: string, runtime?: string) => {
     if (!asking) {
       return undefined;
     }
-    const result = await start(asking.text, asking.images, slug);
+    const result = await start(asking.text, asking.images, slug, runtime);
     if (!result.ok) {
       return result.message;
     }

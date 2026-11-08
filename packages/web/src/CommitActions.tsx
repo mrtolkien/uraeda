@@ -1,6 +1,6 @@
 import { HStack } from "@astryxdesign/core/HStack";
 import type { ReactNode } from "react";
-import { useAgent } from "./data.ts";
+import { type RuntimeChoice, runtimeRefusal, useFeatureRuntime, useRuntime } from "./runtimes.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
 
 type Variant = "primary" | "secondary" | "destructive";
@@ -12,18 +12,19 @@ type Variant = "primary" | "secondary" | "destructive";
  * to send or not; it resolves to `false` when nothing was committed. The commit lands behind it, in
  * the toast, and nothing waits for it. `children` lead the row. `resume` adds the primary button of an answer that continues
  * the work in progress, reading as `resume.label`: the page's button then turns secondary, as the
- * way back, and reads as `continueLabel`.
+ * way back, and reads as `continueLabel`. The agent is the runtime of `folder`'s latest session,
+ * which its runs go to, else the one a new session runs on.
  */
-export function CommitActions({
-  children,
-  continueLabel,
-  isDisabled,
-  label,
-  onCommit,
-  resume,
-  tooltip,
-  variant = "primary",
-}: {
+export function CommitActions(props: CommitProps & { folder?: string }) {
+  const { folder, ...rest } = props;
+  return folder === undefined ? (
+    <DefaultActions {...rest} />
+  ) : (
+    <FeatureActions {...rest} folder={folder} />
+  );
+}
+
+type CommitProps = {
   children?: ReactNode;
   continueLabel?: string;
   isDisabled?: boolean;
@@ -32,9 +33,28 @@ export function CommitActions({
   resume?: { label: string; onCommit: () => Promise<unknown> };
   tooltip?: string;
   variant?: Variant;
-}) {
-  const agent = useAgent();
-  const continues = agent?.available === true;
+};
+
+function DefaultActions(props: CommitProps) {
+  return <Actions {...props} runtime={useRuntime()} />;
+}
+
+function FeatureActions({ folder, ...props }: CommitProps & { folder: string }) {
+  return <Actions {...props} runtime={useFeatureRuntime(folder)} />;
+}
+
+function Actions({
+  children,
+  continueLabel,
+  isDisabled,
+  label,
+  onCommit,
+  resume,
+  runtime,
+  tooltip,
+  variant = "primary",
+}: CommitProps & { runtime: RuntimeChoice }) {
+  const continues = runtimeRefusal(runtime) === undefined;
   const resumes = continues && resume !== undefined;
   return (
     // A long label takes its own line rather than being cut.

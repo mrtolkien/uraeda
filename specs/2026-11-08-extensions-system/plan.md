@@ -1522,38 +1522,49 @@ git commit -m "feat(extensions-system): load extension pages in the web UI, relo
 
 **Files:**
 
+- Create: `packages/web/src/runtimes.ts` (`useRuntimes`, `useRuntime`, `useFeatureRuntime`,
+  `useSessionRuntime`, `runtimeRefusal`), `packages/web/src/RuntimePicker.tsx`
 - Modify: `packages/web/src/StartDialog.tsx` and `StartChat.tsx` (a runtime picker when several are
-  on), `Composer.tsx` (a session whose runtime is off says so and sends nothing), `home/Setup.tsx`
+  on), `Composer.tsx` (a picker for a message that makes its session; a session whose runtime is off
+  says so and sends nothing), `useComposerSend.ts`, `sessions.ts`, `ComposerSend.tsx`,
+  `SessionView.tsx`, `Transcript.tsx`, `SessionHeader.tsx`, `RoundColumn.tsx`, `RoundPage.tsx`,
+  `CommitActions.tsx`, `feature/FeatureBar.tsx`, `feature/FeaturePage.tsx`, `spec/pageSession.ts`
+  (each follows its session's or its feature's runtime, R50), `NewChangePage.tsx`, `home/Setup.tsx`
   (the setup link names the default runtime, not Claude Code), `HarnessMark.tsx` (marks from each
-  runtime's `icon`), `UsageWindow.tsx`, `home/Usage.tsx`, `sidebar/Allowance.tsx` (one window per
-  reported `UsageWindow`, the active runtime's), `packages/server/src/fate/send-mutations.ts`
-  (`input.runtime`)
-- Test: `packages/server/src/runner/__tests__/runtimes.test.ts` (a row: `session.send` with
-  `runtime: "pi-durable"` stores it)
+  runtime's `icon`), `sidebar/Allowance.tsx` (one window per reported `UsageWindow`, the runtime in
+  view's), `packages/web/sandbox/agent.ts` (each sandbox kind with its own mark and name),
+  `packages/server/src/fate/send-mutations.ts`, `mutations.ts`, `session-moves.ts`,
+  `change-starts.ts`, `starts.ts`, `commit-messages.ts` (`input.runtime`), `fate/sessions.ts` and
+  `fate/views.ts` (`FeatureRecord.runtime`), `runner/runtimes.ts` (`RuntimeRecord.title`),
+  `limits.ts` (`RUNTIME_REFUSALS`)
+- Test: `packages/server/src/runner/__tests__/runtimes.test.ts` (rows: `session.send`,
+  `session.new`, `session.newChat`, and `change.start` with `runtime: "pi-durable"` store it; a
+  runtime picked that is off is refused)
 
 **Interfaces:**
 
 - Consumes: task 4's `AgentRecord.runtimes`, its refusals' texts; task 8's titles.
-- Produces: the start picker (shown only with two runtimes or more), the composer's off text
+- Produces: the start picker (shown only with two runtimes or more, R49), the composer's off text
   `<title> is off: turn it on to continue this session`, the start refusal shown as is.
+  `RuntimeRecord` gains `title`; `FeatureRecord` gains `runtime: string | null` (R50).
 
-- [ ] **Step 1: Add the row, run it to check it fails**
+- [x] **Step 1: Add the rows, run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/runtimes.test.ts`
-- Expected: FAIL, the session's `agent` is `claude`.
+- Expected: FAIL, the session's `agent` is the first runtime on (`fake` in the tests).
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
-- [ ] **Step 3: Run the task's validation, and review it**
+- [x] **Step 3: Run the task's validation, and review it**
 
 - Run: `vp check && vp test packages/server packages/web`
-- Expected: PASS. In the sandbox with two fake runtimes: the picker, the marks, the usage windows,
+- Expected: PASS. In the sandbox with its three runtimes: the picker, the marks, the usage windows,
   and the composer's off text, in both themes and widths.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add packages/web packages/server
+git add packages/web packages/server specs/2026-11-08-extensions-system
 git commit -m "feat(extensions-system): pick a runtime, and show each runtime's usage"
 ```
 

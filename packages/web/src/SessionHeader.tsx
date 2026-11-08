@@ -2,9 +2,9 @@
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import type { SessionStatus as Status } from "uraeda-server/fate";
-import { useAgent } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { HarnessMark, harnessMark } from "./HarnessMark.tsx";
+import { HarnessMark, useHarnessMark } from "./HarnessMark.tsx";
+import { useRuntimesOn } from "./RuntimePicker.tsx";
 import { StatusMark } from "./StatusMark.tsx";
 import type { RenameControls } from "./useSessionControls.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
@@ -22,7 +22,8 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 /**
  * A session's header: its title, then its status, agent, and place on one line. Its title
  * is renamed in place, once the session exists. The agent is the one the session runs on, by its
- * kind, as its card in the navigation names it; before the session exists, the one it will start.
+ * kind, as its card in the navigation names it; before the session exists, the one it will start,
+ * while only one is on: with more, the composer's picker says which.
  */
 export function SessionHeader({
   agent: kind,
@@ -38,8 +39,10 @@ export function SessionHeader({
   status?: { label: string; status: Status };
   title: string;
 }) {
-  const configured = useAgent();
-  const agent = kind === undefined ? configured : { kind, name: harnessMark(kind).name };
+  const on = useRuntimesOn();
+  const shown = kind ?? (on.length === 1 ? on[0]!.kind : undefined);
+  const { name } = useHarnessMark(shown ?? "");
+  const agent = shown === undefined ? undefined : { kind: shown, name };
   const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
   return (
     <PageTitle

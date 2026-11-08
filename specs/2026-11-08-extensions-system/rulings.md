@@ -522,3 +522,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   already fixed.
 - **Where**: task 12, `packages/server/src/extensions/page-problems.ts`, `extensions/server.ts`,
   `packages/web/src/extensions/runtime.ts`.
+
+## R49: A runtime is picked where its session is made
+
+- **Decision**: the picker shows, with two runtimes or more on, wherever a message makes its
+  session: the composer of a new chat, of a feature's new session, of a feature without a session
+  (the hand-over of a feature's start among them), the change's start dialog, whose first run makes
+  the session, and the round banner's "Apply the answers". A feature's start dialog has none: the
+  hand-over's composer picks it. `session.send`, `session.new`, `session.newChat`, and
+  `change.start` take `runtime`, unused for a session that exists.
+- **Rationale**: R20 puts the choice where the row is written; a feature's start writes no session,
+  its first message does.
+- **Where**: task 13, `packages/web/src/RuntimePicker.tsx`, `Composer.tsx`, `StartDialog.tsx`,
+  `StartChat.tsx`; `packages/server/src/fate/send-mutations.ts`, `change-starts.ts`.
+
+## R50: A feature's views follow its latest session's runtime
+
+- **Decision**: `FeatureRecord` gains `runtime`, its latest session's `agent`, null before one; the
+  feature's page, its Session tab, its round and review buttons, and the sidebar's usage on its
+  pages follow it, as a session's views follow its own `agent`, and the rest the first runtime on.
+  `RuntimeRecord` gains `title`, the extension's, and the refusals' texts move to `limits.ts`'s
+  `RUNTIME_REFUSALS`, so the composer shows the server's words before sending.
+- **Rationale**: a feature's runs go to its latest session (R20), whose runtime may not be the first
+  one on; the UI read no title for a runtime off.
+- **Where**: task 13, `packages/server/src/fate/sessions.ts`, `runner/runtimes.ts`, `limits.ts`;
+  `packages/web/src/runtimes.ts`, `sidebar/Allowance.tsx`.

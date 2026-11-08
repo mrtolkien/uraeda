@@ -368,6 +368,7 @@ export async function featureRecord(
     // fields a record leaves out.
     missing: false,
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
+    runtime: sessions[0]?.agent ?? null,
     session: sessions[0]?.id ?? null,
     status: await featureStatusOf(ctx, feature),
     // An archived session, of a dropped change, leaves the lists.

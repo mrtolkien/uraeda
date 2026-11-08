@@ -210,6 +210,7 @@ function missingFeature(folder: string): FeatureRecord {
     path: "",
     preview: false,
     problems: [],
+    runtime: null,
     session: null,
     sessions: [],
     slug: "",

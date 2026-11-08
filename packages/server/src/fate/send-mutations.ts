@@ -16,11 +16,12 @@ import { keptForCommits } from "./commit-messages.ts";
 
 /**
  * The runtime a message goes to, as `messageRuntime` picks it: the session's, else the feature's
- * latest session's, else the one a new session of the repository's main checkout runs on (R19).
+ * latest session's, else the one a new session of the repository's main checkout runs on (R19),
+ * `runtime` when one was picked (R20).
  */
 async function sendRuntime(
   ctx: RepoContext,
-  input: { folder?: string; newSession?: boolean; session?: string },
+  input: { folder?: string; newSession?: boolean; runtime?: string; session?: string },
 ): Promise<Adapter | undefined> {
   const { cache, runtimes } = ctx.sessions;
   if (input.session !== undefined) {
@@ -31,7 +32,7 @@ async function sendRuntime(
     input.folder === undefined || input.newSession === true
       ? undefined
       : cache.latestSession(root, input.folder);
-  return runtimes.get(latest?.agent ?? runtimes.defaultFor(root) ?? "");
+  return runtimes.get(latest?.agent ?? input.runtime ?? runtimes.defaultFor(root) ?? "");
 }
 
 /** The mutation sending a message. */
@@ -51,6 +52,11 @@ export const sendMutations = {
        * message, never before; without it, the feature's session, created if it has none.
        */
       newSession?: boolean;
+      /**
+       * The runtime a session made with this message runs on, else the first one on here: unused
+       * for a message to a session that exists (R20).
+       */
+      runtime?: string;
       /** The session to send to. */
       session?: string;
       text: string;
@@ -104,12 +110,12 @@ export const sendMutations = {
           input.newSession === true
             ? undefined
             : ctx.sessions.cache.latestSession(root, input.folder);
-        messageRuntime(ctx.sessions.runtimes, root, latest);
+        messageRuntime(ctx.sessions.runtimes, root, latest, input.runtime);
         // A folder that is no feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
         return input.newSession === true
-          ? (await ctx.sessions.newSession(ctx.repo, input.folder)).id
-          : (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
+          ? (await ctx.sessions.newSession(ctx.repo, input.folder, input.runtime)).id
+          : (await ctx.sessions.featureSession(ctx.repo, input.folder, input.runtime)).id;
       });
       // A run that starts fresh went to a new session: the one it went to answers.
       const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));

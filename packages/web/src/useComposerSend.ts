@@ -9,7 +9,7 @@ import { clearPending, markPending } from "./writes/store.ts";
 /**
  * Sends the composer's message and stops its turn: a refused send puts its text and images back,
  * with the reason. The workflow's message goes alone: the draft's images stay for the next one
- * (R67).
+ * (R67). A session the message makes runs on `runtime`, when one was picked.
  */
 export function useSend(
   {
@@ -20,9 +20,10 @@ export function useSend(
     onImagesChange,
     onSend,
     onSent,
+    runtime,
     session,
     workflow,
-  }: ComposerProps,
+  }: ComposerProps & { runtime?: string | undefined },
   { canSend, sent }: { canSend: boolean; sent: () => void },
 ) {
   const fate = useFateClient();
@@ -68,6 +69,7 @@ export function useSend(
             : { folder, ...(isNewSession ? { newSession: true } : {}) }
           : { session }),
         images: sending.flatMap((image) => (image.image ? [image.image] : [])),
+        ...(session === undefined && runtime !== undefined ? { runtime } : {}),
         text,
         ...(workflow === undefined ? {} : { workflow }),
       },

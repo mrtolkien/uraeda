@@ -116,6 +116,7 @@ export const FeatureView = view<Feature>()({
   preview: true,
   problems: true,
   pullRequest: { number: true, state: true, url: true },
+  runtime: true,
   session: true,
   sessions: true,
   slug: true,
@@ -283,6 +284,12 @@ export const ProposalFileTextView = view<ProposalFile>()({
 export const AgentView = view<Agent>()({
   id: true,
   runtimes: true,
+});
+
+/** A session's runtime alone, by the name it stored, as the sidebar's usage reads it. */
+export const SessionAgentView = view<Session>()({
+  agent: true,
+  id: true,
 });
 
 export const SessionView = view<Session>()({

@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
+import { mutate, testServer } from "../../__tests__/helpers.ts";
 import { FakeAdapter } from "../fake.ts";
 import { Runtimes } from "../runtimes.ts";
 import { flush, restart, testSessions } from "./helpers.ts";
@@ -174,4 +175,52 @@ test("turning a runtime on within the restart window continues the runs a restar
     "The server restarted while you worked. Continue where you left off.",
   );
   next.close();
+});
+
+test.each<[string, string, Record<string, unknown>]>([
+  ["session.send", "a feature's first message", { folder: AGENT, text: "Plan it" }],
+  ["session.send", "a new session of a feature", { folder: AGENT, newSession: true, text: "Hi" }],
+  ["session.new", "a new session", { folder: AGENT }],
+  ["session.newChat", "a new chat", {}],
+])("%s makes %s on the runtime picked (R20)", async (name, _, input) => {
+  const server = await testServer();
+  const durable = new FakeAdapter();
+  durable.fallback = () => [];
+  server.sessions.runtimes.register("pi-durable", durable);
+  await server.sessions.check();
+
+  const made = await mutate(server.app, name, { ...input, runtime: "pi-durable" }, ["id", "agent"]);
+
+  expect(made.error).toBeUndefined();
+  expect(made.data).toMatchObject({ agent: "pi-durable" });
+  expect(server.adapter.opens).toEqual([]);
+});
+
+test("a runtime picked that is off is refused, making no session", async () => {
+  const server = await testServer();
+
+  const made = await mutate(server.app, "session.newChat", { runtime: "pi-durable" }, ["id"]);
+
+  expect(made.error).toBeDefined();
+  expect(JSON.stringify(made.error)).toContain(OFF);
+});
+
+test("change.start sends the change's first run on the runtime picked (R20)", async () => {
+  const server = await testServer();
+  const durable = new FakeAdapter();
+  durable.fallback = () => [];
+  server.sessions.runtimes.register("pi-durable", durable);
+  await server.sessions.check();
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { runtime: "pi-durable", slug: "home-icon", text: "Another home icon" },
+    ["folder", "session"],
+  );
+
+  expect(started.error).toBeUndefined();
+  const session = (started.data as { session: string }).session;
+  expect(server.sessions.cache.session(session)?.agent).toBe("pi-durable");
+  expect(server.adapter.opens).toEqual([]);
 });

@@ -73,5 +73,13 @@ export const OneLeft: Story = {
   },
 };
 
-/** Without Claude Code on the machine: the message to copy, and where to install it. */
+/** Without Claude Code on the machine, the runtime new sessions run on: the message to copy, and where to install it. */
 export const WithoutAgent: Story = { args: { hasAgent: false } };
+
+/** Without Codex on the machine, the runtime new sessions run on: its name, without a link. */
+export const WithoutOtherRuntime: Story = {
+  args: { hasAgent: false, runtime: { kind: "codex", name: "Codex" } },
+};
+
+/** With every runtime off here: where to turn one on. */
+export const WithoutRuntime: Story = { args: { hasAgent: false, runtime: null } };

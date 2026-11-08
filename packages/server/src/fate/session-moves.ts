@@ -246,11 +246,11 @@ export const sessionMoves = {
     type: "Feature",
   },
   "session.new": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<{ folder: string; runtime?: string }>) => {
       const row = await refusedOn(async () => {
         // A folder that is no change's or feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
-        return ctx.sessions.newSession(ctx.repo, input.folder);
+        return ctx.sessions.newSession(ctx.repo, input.folder, input.runtime);
       });
       return maskedSession(ctx, row.id, select);
     },

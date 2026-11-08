@@ -353,9 +353,36 @@ export function sandboxAgent({ wait = timerWait }: { wait?: Wait } = {}): Sandbo
  */
 export const SANDBOX_KINDS = ["fake", "claude", "codex"] as const;
 
-/** The sandbox's agents: `agent` as each of `SANDBOX_KINDS`, which the server registers. */
+/** Each kind's mark and name, as its runtime declares them: the sandbox's agent plays them all. */
+const KIND_MARKS: Record<(typeof SANDBOX_KINDS)[number], { icon: string; name: string }> = {
+  claude: { icon: "uraeda:harness-claude", name: "Claude Code" },
+  codex: { icon: "uraeda:harness-openai", name: "Codex" },
+  fake: { icon: "uraeda:harness-agent", name: "Fake agent" },
+};
+
+/**
+ * `agent` as the runtime of `kind`: its mark and name, every other field and method the agent's
+ * own, called on it, so the kinds share its turns and its state.
+ */
+function asKind(agent: SandboxAgent, kind: (typeof SANDBOX_KINDS)[number]): SandboxAgent {
+  const mark = KIND_MARKS[kind];
+  return new Proxy(agent, {
+    get(target, key) {
+      if (key === "icon" || key === "name") {
+        return mark[key];
+      }
+      const value: unknown = Reflect.get(target, key, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+/**
+ * The sandbox's agents: `agent` as each of `SANDBOX_KINDS`, which the server registers, each with
+ * its own mark and name.
+ */
 export function sandboxAgents(agent: SandboxAgent): Record<string, SandboxAgent> {
-  return Object.fromEntries(SANDBOX_KINDS.map((kind) => [kind, agent]));
+  return Object.fromEntries(SANDBOX_KINDS.map((kind) => [kind, asKind(agent, kind)]));
 }
 
 /** The workflow's message for a feature waiting on the agent, as "Continue" sends it. */
