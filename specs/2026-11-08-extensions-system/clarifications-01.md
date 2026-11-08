@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Extensions system
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions and 3 follow-ups, about 30 minutes.
+> Answered on 2026-11-08.
 >
 > - Verdict: worth building, with changes: server and UI extensions build on seams the code already
 >   has. Core extensions in WASM clash with the CLI decision, and add megabytes to both binaries.
@@ -116,7 +116,7 @@ much this feature builds. The isolation (Q4, Q5) and install questions (Q6, Q7) 
   - [pro] others' work reaches you without asking them.
   - [con] a catalog, its review, and a stable API, months of work before any user exists.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Should the Rust core take extensions in this feature?
 
@@ -150,7 +150,8 @@ TypeScript one.
   - [pro] no size cost in `ura`.
   - [con] the CLI and the web UI disagree on a file's problems.
 
-**Answer:**
+**Answer:** A: Ok but mark down WASM core extensions as a next goal, with the express goal being
+workflow customization.
 
 ### Q2.B: What may a core extension add?
 
@@ -198,7 +199,9 @@ added later, without changing existing extensions.
   - [pro] nothing is out of reach.
   - [con] a rewrite of the server and the web UI.
 
-**Answer:**
+**Answer:** C: I’m just scared of the complexity but it’s the approach that appeals to me. Maybe a
+user wants to remove the inbox and just use proposals. IMO it should be allowed if it’s not too
+complex (at least removing it from the UI)
 
 ## Q4: How does an extension's page run in the web UI?
 
@@ -230,7 +233,7 @@ becomes part of the extensions decision.
   - [pro] safe and consistent.
   - [con] only the layouts the app offers.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How does an extension's server code run?
 
@@ -252,7 +255,7 @@ can reach.
   - [pro] a crash stops only the extension.
   - [con] a message protocol for every contribution, and one more process per extension.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Where may Uraeda load extensions from?
 
@@ -279,7 +282,7 @@ extensions decision.
   - [pro] a team shares its extensions with its code.
   - [con] one yes lets the repository's authors run code as you, and later commits change that code.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How is an extension installed?
 
@@ -306,7 +309,7 @@ reviewed.
   - [pro] no terminal needed.
   - [con] changes the distribution decision; the server then runs `git` on any URL it is given.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: How does the Claude Code runtime become an extension?
 
@@ -329,7 +332,7 @@ Why it matters: the first real user of the runtime API decides whether it fits a
   - [pro] no API to keep for runtimes.
   - [con] Codex and pi need changes to Uraeda's source.
 
-**Answer:**
+**Answer:** A
 
 ### Q8.A: Must a runtime from an extension follow the agents decision?
 
@@ -348,7 +351,7 @@ Why it matters: it decides whether the decision binds code Uraeda does not ship.
   - [pro] the decision stays as it is.
   - [con] an SDK-only agent cannot become a runtime.
 
-**Answer:**
+**Answer:** A
 
 ### Q8.B: Must a runtime from an extension follow the agents decision?
 
@@ -394,7 +397,7 @@ C can come on top of A.
   - [pro] a real extension tests the API early.
   - [con] that feature waits for this one.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: What happens to extensions when their API changes before 1.0?
 
@@ -417,7 +420,7 @@ Why it matters: it decides what an upgrade does to your extensions.
   - [pro] upgrades never turn an extension off.
   - [con] old API code grows with each version, against the compatibility decision.
 
-**Answer:**
+**Answer:** A: We’re already past 1.0 btw, change the decision
 
 ## Settled without the human
 
@@ -444,4 +447,28 @@ Why it matters: it decides what an upgrade does to your extensions.
 - **Tests** reach runtimes through the fake adapter, itself loaded as an extension, as the agents
   decision asks.
 
-**Notes:**
+**Notes:** I know it’s hard: I want to combine an opinionated workflow and UI with easy
+extensibility.
+
+I myself am not sure how deep the extensibility really should be.
+
+Maybe uraeda could be more of an orchestrator and the default workflow be an extension itself?
+Because then we’d be able to define workflows: change and features would become workflow extensions,
+and inbox and proposals core extensions. We could even have a docs or deploy extension. And hooks
+inside the workflows (for example triggering documentation update).
+
+I know it’s a bit fuzzy. It is fuzzy for me too.
+
+I’m happy with the current state of uraeda for my personal use btw. This feature is more to be able
+to share and let it be used by other people. I’m doing it now because the core features are good and
+I want to explore extensions because the codebase becomes too big and monolithic that it’s
+impossible to add an extension system.
+
+We can do more clarifications and more research as needed. No need to rush to a spec.
+
+- **Extensions ship ready to run**: It’s extremely crucial that creating local extensions is
+  trivial. Build should be simple/handled by us directly.
+- **Changes apply when the server restarts**: No, we need hot reloading where possible. Requiring a
+  server restart is a bad design pattern since most extensions will be created ad-hoc by users.
+- **Only the agent runtimes move**: Honestly the more we can make into extensions (with a strong
+  core) the more extensible/customizable it’ll be
