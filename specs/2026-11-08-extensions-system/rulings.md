@@ -654,7 +654,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R59: The server writes what it saw of the extensions for `ura extension list`
 
 - **Decision**: the server writes each extension's state, what it waits for, and its problems to
-  `extensions-status.json` in the data folder
+  `run/extensions-status.json` in the data folder, beside the other files that live while a server
+  runs
   (`{"version":1,"at":…,"extensions":[{name, state, problems:[{file,line,message}], waitingFor}]}`),
   through a temporary file and a rename, once per burst of changes of the `Extensions` record, and
   removes it as it stops. `ura extension list` reads it through the core

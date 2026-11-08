@@ -503,8 +503,9 @@ fn list_shows_the_running_servers_states_and_problems() {
         .clone();
     assert_eq!(last["server"], serde_json::Value::Null);
 
+    fs::create_dir_all(folders.data.path().join("run")).unwrap();
     fs::write(
-        folders.data.path().join("extensions-status.json"),
+        folders.data.path().join("run").join("extensions-status.json"),
         r#"{"version":1,"at":"2026-11-08T10:00:00.000Z","extensions":[
             {"name":"deploy","state":"broken","problems":[{"file":"server.ts","line":3,"message":"boom"}],"waitingFor":null}]}"#,
     )

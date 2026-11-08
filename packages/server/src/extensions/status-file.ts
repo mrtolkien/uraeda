@@ -1,14 +1,15 @@
-// The extensions as the running server sees them, written to `extensions-status.json` in the data
-// folder for `ura extension list`: each one's state, what it waits for, and its problems, its
+// The extensions as the running server sees them, written to `run/extensions-status.json` in the
+// data folder for `ura extension list`: each one's state, what it waits for, and its problems, its
 // code's loading, compiling, and page included, which only the server meets. Agents read it there
 // after writing an extension. Written whole, through a temporary file and a rename, once per burst
 // of changes; removed as the server stops, when it no longer says what runs.
-import { renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { runFolder } from "../run-folder.ts";
 import { guarded } from "./events.ts";
 import type { ExtensionState } from "./server.ts";
 
-/** The file's name in the data folder: the core's `STATUS_FILE`. */
+/** The file's name in the data folder's `run/`: the core's `STATUS_FILE`. */
 export const STATUS_FILE = "extensions-status.json";
 
 /** The file's format version: the core's `STATUS_VERSION`. */
@@ -59,7 +60,9 @@ export class StatusFile {
 
   #write(): void {
     const text = `${JSON.stringify(statusOf(this.#states(), new Date()), null, 2)}\n`;
-    const path = join(this.#dataDir(), STATUS_FILE);
+    const folder = runFolder(this.#dataDir());
+    mkdirSync(folder, { mode: 0o700, recursive: true });
+    const path = join(folder, STATUS_FILE);
     const temporary = `${path}.${process.pid}.tmp`;
     writeFileSync(temporary, text);
     renameSync(temporary, path);
@@ -68,6 +71,8 @@ export class StatusFile {
   /** Removes the file: a stopped server runs nothing it said. */
   close(): void {
     this.#closed = true;
-    guarded("extensions status", () => rmSync(join(this.#dataDir(), STATUS_FILE), { force: true }));
+    guarded("extensions status", () =>
+      rmSync(join(runFolder(this.#dataDir()), STATUS_FILE), { force: true }),
+    );
   }
 }

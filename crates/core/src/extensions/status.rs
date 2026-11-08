@@ -1,6 +1,6 @@
 //! The extensions as the running server last saw them: each one's state and problems, loading and
-//! compiling its code included, which the server writes to `extensions-status.json` in the data
-//! folder whenever they change. `ura extension list` reads it, so an agent that wrote an
+//! compiling its code included, which the server writes to `run/extensions-status.json` in the
+//! data folder whenever they change, and removes as it stops. `ura extension list` reads it, so an agent that wrote an
 //! extension sees what the server made of it. The server writes it; this module only reads it.
 
 use std::fs;
@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-/// The file's name, in the data folder.
+/// The file's name, in the data folder's `run/`, where the files that live while a server runs go.
 pub const STATUS_FILE: &str = "extensions-status.json";
 
 /// The file's format version: a file of another version reads as none.
@@ -59,7 +59,7 @@ impl ServerProblem {
 /// The status the server last wrote in `data_dir`: none when it never wrote one, or the file is
 /// unreadable or of another version.
 pub fn read_status(data_dir: &Path) -> Option<ServerStatus> {
-    let text = fs::read_to_string(data_dir.join(STATUS_FILE)).ok()?;
+    let text = fs::read_to_string(data_dir.join("run").join(STATUS_FILE)).ok()?;
     let status: ServerStatus = serde_json::from_str(&text).ok()?;
     (status.version == STATUS_VERSION).then_some(status)
 }
@@ -75,7 +75,8 @@ mod tests {
         let text = r#"{"version":1,"at":"2026-11-08T10:00:00.000Z","extensions":[
             {"name":"deploy","state":"broken","problems":[{"file":"server.ts","line":3,"message":"boom"},{"file":"page.tsx","message":"no"}],"waitingFor":null},
             {"name":"wiki","state":"waiting","problems":[],"waitingFor":"Fix it"}]}"#;
-        fs::write(dir.path().join(STATUS_FILE), text).unwrap();
+        fs::create_dir(dir.path().join("run")).unwrap();
+        fs::write(dir.path().join("run").join(STATUS_FILE), text).unwrap();
         let status = read_status(dir.path()).unwrap();
         assert_eq!(status.at, "2026-11-08T10:00:00.000Z");
         let texts: Vec<String> = status.extensions[0]
@@ -91,10 +92,11 @@ mod tests {
     fn none_without_a_file_a_readable_one_or_its_version() {
         let dir = TempDir::new().unwrap();
         assert_eq!(read_status(dir.path()), None);
-        fs::write(dir.path().join(STATUS_FILE), "{not json").unwrap();
+        fs::create_dir(dir.path().join("run")).unwrap();
+        fs::write(dir.path().join("run").join(STATUS_FILE), "{not json").unwrap();
         assert_eq!(read_status(dir.path()), None);
         let other = r#"{"version":2,"at":"x","extensions":[]}"#;
-        fs::write(dir.path().join(STATUS_FILE), other).unwrap();
+        fs::write(dir.path().join("run").join(STATUS_FILE), other).unwrap();
         assert_eq!(read_status(dir.path()), None);
     }
 }

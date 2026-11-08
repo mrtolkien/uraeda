@@ -18,7 +18,9 @@ type Written = {
 
 const read = (dataDir: string): Written | undefined => {
   try {
-    return JSON.parse(readFileSync(join(dataDir, "extensions-status.json"), "utf8")) as Written;
+    return JSON.parse(
+      readFileSync(join(dataDir, "run", "extensions-status.json"), "utf8"),
+    ) as Written;
   } catch {
     return undefined;
   }
