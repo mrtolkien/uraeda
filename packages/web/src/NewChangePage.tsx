@@ -17,6 +17,7 @@ import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { SLUG_LABEL } from "./SlugField.tsx";
+import { pickedRuntime, useRuntimes } from "./runtimes.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -109,14 +110,16 @@ function SlugQuestion({
   onConfirm: (slug: string, level?: string, runtime?: string) => Promise<string | undefined>;
 }) {
   const proposed = useSlugProposal(asking.text);
+  const runtimes = useRuntimes();
   return (
     <StartDialog
-      // The change's first run starts as it does: its session runs on the runtime picked.
+      // The change's first run starts as it does: its session runs on the runtime picked, as the
+      // picker shows it, never a pick turned off since.
       hasRuntime
       initial={proposed}
       isOpen
       onCancel={onCancel}
-      onConfirm={onConfirm}
+      onConfirm={(slug, level, runtime) => onConfirm(slug, level, pickedRuntime(runtimes, runtime))}
       question={{
         confirm: "Start the change",
         description: "Two words at most: it names the folder and the branch.",
