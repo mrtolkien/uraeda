@@ -321,7 +321,8 @@ function useComposerRuntime({ agent, blocked, onSend, session }: ComposerProps) 
   return {
     agent: choice.runtime,
     picker: makes && <RuntimePicker onChange={setPicked} value={picked} />,
-    runtime: makes ? picked : undefined,
+    // What the picker shows: a pick turned off since is never sent.
+    runtime: makes ? choice.runtime?.kind : undefined,
     unavailable: onSend ? blocked : (runtimeRefusal(choice) ?? blocked),
   };
 }

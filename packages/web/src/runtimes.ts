@@ -1,6 +1,7 @@
 // The agent runtimes as the views read them: every one registered, the one a session runs on by
 // the name it stored, and the one a new session would run on, with why a message cannot go to it,
 // in the server's words.
+import { useState } from "react";
 import { useLiveView, useRequest } from "react-fate";
 import type { Agent } from "uraeda-server/fate";
 import { RUNTIME_REFUSALS } from "uraeda-server/limits";
@@ -47,6 +48,26 @@ export function runtimeFor(
   const on = runtimes.filter((each) => each.isOn);
   const runtime = on.find((each) => each.kind === picked) ?? on[0];
   return runtime ? { runtime } : { off: RUNTIME_REFUSALS.noRuntime };
+}
+
+/**
+ * The name a new session's message sends, as the picker shows it: `picked` while it is on, else
+ * the first one on, and nothing while none is. A pick turned off since is never sent.
+ */
+export function pickedRuntime(
+  runtimes: ReadonlyArray<Runtime>,
+  picked: string | undefined,
+): string | undefined {
+  return runtimeFor(runtimes, undefined, picked).runtime?.kind;
+}
+
+/**
+ * The runtime picked for a new session: `picked`, what the human chose, for the picker's value, and
+ * `kind`, what the message sends, `pickedRuntime`'s.
+ */
+export function useRuntimePick() {
+  const [picked, setPicked] = useState<string>();
+  return { kind: pickedRuntime(useRuntimes(), picked), picked, setPicked };
 }
 
 /** `runtimeFor` over the runtimes read: a session's by its stored `kind`, else a new session's. */
