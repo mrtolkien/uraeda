@@ -2,8 +2,9 @@
 // data folder for `ura extension list`: each one's state, what it waits for, and its problems, its
 // code's loading, compiling, and page included, which only the server meets. Agents read it there
 // after writing an extension. Written whole, through a temporary file and a rename, once per burst
-// of changes; removed as the server stops, when it no longer says what runs.
-import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+// of changes, with the server's process id, by which the core reads a killed server's file as none;
+// removed as the server stops, when it no longer says what runs, unless another server wrote it.
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runFolder } from "../run-folder.ts";
 import { guarded } from "./events.ts";
@@ -15,7 +16,7 @@ export const STATUS_FILE = "extensions-status.json";
 /** The file's format version: the core's `STATUS_VERSION`. */
 const VERSION = 1;
 
-/** The file's content: the states as the server sees them `at`. */
+/** The file's content: the states as this server's process sees them `at`. */
 export function statusOf(states: ReadonlyArray<ExtensionState>, at: Date) {
   return {
     at: at.toISOString(),
@@ -27,6 +28,7 @@ export function statusOf(states: ReadonlyArray<ExtensionState>, at: Date) {
       state,
       waitingFor,
     })),
+    pid: process.pid,
     version: VERSION,
   };
 }
@@ -68,11 +70,18 @@ export class StatusFile {
     renameSync(temporary, path);
   }
 
-  /** Removes the file: a stopped server runs nothing it said. */
+  /** Removes the file, when this server wrote it: a stopped server runs nothing it said. */
   close(): void {
     this.#closed = true;
-    guarded("extensions status", () =>
-      rmSync(join(runFolder(this.#dataDir()), STATUS_FILE), { force: true }),
-    );
+    const path = join(runFolder(this.#dataDir()), STATUS_FILE);
+    let pid: unknown;
+    try {
+      pid = (JSON.parse(readFileSync(path, "utf8")) as { pid?: unknown }).pid;
+    } catch {
+      return;
+    }
+    if (pid === process.pid) {
+      guarded("extensions status", () => rmSync(path, { force: true }));
+    }
   }
 }

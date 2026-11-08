@@ -1,7 +1,8 @@
 //! The extensions as the running server last saw them: each one's state and problems, loading and
 //! compiling its code included, which the server writes to `run/extensions-status.json` in the
-//! data folder whenever they change, and removes as it stops. `ura extension list` reads it, so an agent that wrote an
-//! extension sees what the server made of it. The server writes it; this module only reads it.
+//! data folder whenever they change, with its process id, and removes as it stops. `ura extension
+//! list` reads it, so an agent that wrote an extension sees what the server made of it. The server
+//! writes it; this module only reads it, and reads a file whose server is gone as none.
 
 use std::fs;
 use std::path::Path;
@@ -14,10 +15,12 @@ pub const STATUS_FILE: &str = "extensions-status.json";
 /// The file's format version: a file of another version reads as none.
 pub const STATUS_VERSION: u32 = 1;
 
-/// The file: when the server wrote it, an ISO 8601 time, and each extension it knew.
+/// The file: the server's process id, when it wrote it, an ISO 8601 time, and each extension it
+/// knew.
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ServerStatus {
     pub version: u32,
+    pub pid: u32,
     pub at: String,
     pub extensions: Vec<ServerExtension>,
 }
@@ -56,12 +59,32 @@ impl ServerProblem {
     }
 }
 
-/// The status the server last wrote in `data_dir`: none when it never wrote one, or the file is
-/// unreadable or of another version.
+/// The status the server last wrote in `data_dir`: none when it never wrote one, the file is
+/// unreadable or of another version, or its server no longer runs, as one killed leaves it.
 pub fn read_status(data_dir: &Path) -> Option<ServerStatus> {
     let text = fs::read_to_string(data_dir.join("run").join(STATUS_FILE)).ok()?;
     let status: ServerStatus = serde_json::from_str(&text).ok()?;
-    (status.version == STATUS_VERSION).then_some(status)
+    (status.version == STATUS_VERSION && runs(status.pid)).then_some(status)
+}
+
+/// Whether a process of id `pid` runs: one of another user's counts.
+#[cfg(unix)]
+fn runs(pid: u32) -> bool {
+    let Ok(pid) = libc::pid_t::try_from(pid) else {
+        return false;
+    };
+    if pid <= 0 {
+        return false;
+    }
+    // SAFETY: `kill` takes no pointer; signal 0 only checks that the process exists.
+    let sent = unsafe { libc::kill(pid, 0) };
+    sent == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+}
+
+/// Without unix, a file is read as its server's while it is there.
+#[cfg(not(unix))]
+fn runs(_pid: u32) -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -72,9 +95,12 @@ mod tests {
     #[test]
     fn reads_what_the_server_wrote() {
         let dir = TempDir::new().unwrap();
-        let text = r#"{"version":1,"at":"2026-11-08T10:00:00.000Z","extensions":[
-            {"name":"deploy","state":"broken","problems":[{"file":"server.ts","line":3,"message":"boom"},{"file":"page.tsx","message":"no"}],"waitingFor":null},
-            {"name":"wiki","state":"waiting","problems":[],"waitingFor":"Fix it"}]}"#;
+        let text = format!(
+            r#"{{"version":1,"pid":{},"at":"2026-11-08T10:00:00.000Z","extensions":[
+            {{"name":"deploy","state":"broken","problems":[{{"file":"server.ts","line":3,"message":"boom"}},{{"file":"page.tsx","message":"no"}}],"waitingFor":null}},
+            {{"name":"wiki","state":"waiting","problems":[],"waitingFor":"Fix it"}}]}}"#,
+            std::process::id()
+        );
         fs::create_dir(dir.path().join("run")).unwrap();
         fs::write(dir.path().join("run").join(STATUS_FILE), text).unwrap();
         let status = read_status(dir.path()).unwrap();
@@ -95,8 +121,32 @@ mod tests {
         fs::create_dir(dir.path().join("run")).unwrap();
         fs::write(dir.path().join("run").join(STATUS_FILE), "{not json").unwrap();
         assert_eq!(read_status(dir.path()), None);
-        let other = r#"{"version":2,"at":"x","extensions":[]}"#;
-        fs::write(dir.path().join("run").join(STATUS_FILE), other).unwrap();
+        let of = |version: u32, pid: u32| {
+            format!(r#"{{"version":{version},"pid":{pid},"at":"x","extensions":[]}}"#)
+        };
+        fs::write(
+            dir.path().join("run").join(STATUS_FILE),
+            of(2, std::process::id()),
+        )
+        .unwrap();
+        assert_eq!(read_status(dir.path()), None);
+        // Without a process id, as a server before them wrote it.
+        let unknown = r#"{"version":1,"at":"x","extensions":[]}"#;
+        fs::write(dir.path().join("run").join(STATUS_FILE), unknown).unwrap();
+        assert_eq!(read_status(dir.path()), None);
+    }
+
+    // Break: the process id not checked, so a server killed left its last status read.
+    #[cfg(unix)]
+    #[test]
+    fn none_once_its_server_no_longer_runs() {
+        let dir = TempDir::new().unwrap();
+        fs::create_dir(dir.path().join("run")).unwrap();
+        let mut child = std::process::Command::new("true").spawn().unwrap();
+        let gone = child.id();
+        child.wait().unwrap();
+        let text = format!(r#"{{"version":1,"pid":{gone},"at":"x","extensions":[]}}"#);
+        fs::write(dir.path().join("run").join(STATUS_FILE), text).unwrap();
         assert_eq!(read_status(dir.path()), None);
     }
 }

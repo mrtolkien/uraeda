@@ -64,16 +64,18 @@ Written by `ura extension add` and `ura extension update`, read by the settings 
 ## Status file, `run/extensions-status.json`
 
 In the data folder's `run/`, written by the running server, whole and atomically, as the
-`Extensions` record changes, and removed as it stops; read by `ura extension list`.
+`Extensions` record changes, and removed as it stops, when it wrote it; read by
+`ura extension list`, as no file when its process no longer runs.
 
-| Field                     | Type                                     | Meaning                                                     | Change |
-| ------------------------- | ---------------------------------------- | ----------------------------------------------------------- | ------ |
-| `version`                 | number                                   | The format's version, `1`: another reads as no file         | New    |
-| `at`                      | ISO 8601 string                          | When the server wrote it                                    | New    |
-| `extensions[].name`       | string                                   | The extension's name                                        | New    |
-| `extensions[].state`      | `"on"`, `"off"`, `"broken"`, `"waiting"` | Its state, as the settings page shows it                    | New    |
-| `extensions[].problems[]` | `{file, line?, message}`                 | Its problems: manifest, settings, loading, compiling, pages | New    |
-| `extensions[].waitingFor` | string or null                           | The session a runtime's reload waits for                    | New    |
+| Field                     | Type                                     | Meaning                                                                                 | Change |
+| ------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------- | ------ |
+| `version`                 | number                                   | The format's version, `1`: another reads as no file                                     | New    |
+| `pid`                     | number                                   | The server's process id: a file whose process is gone, or without one, reads as no file | New    |
+| `at`                      | ISO 8601 string                          | When the server wrote it                                                                | New    |
+| `extensions[].name`       | string                                   | The extension's name                                                                    | New    |
+| `extensions[].state`      | `"on"`, `"off"`, `"broken"`, `"waiting"` | Its state, as the settings page shows it                                                | New    |
+| `extensions[].problems[]` | `{file, line?, message}`                 | Its problems: manifest, settings, loading, compiling, pages                             | New    |
+| `extensions[].waitingFor` | string or null                           | The session a runtime's reload waits for                                                | New    |
 
 ## Session cache
 

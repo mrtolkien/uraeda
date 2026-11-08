@@ -13,6 +13,7 @@ type Written = {
     state: string;
     waitingFor: string | null;
   }>;
+  pid: number;
   version: number;
 };
 
@@ -36,6 +37,7 @@ test("the server writes each extension's state and problems, and rewrites them a
   await expect.poll(() => of(opened.dataDir, "bad")?.state).toBe("broken");
   const written = read(opened.dataDir)!;
   expect(written.version).toBe(1);
+  expect(written.pid).toBe(process.pid);
   expect(Number.isNaN(Date.parse(written.at))).toBe(false);
   expect(
     of(opened.dataDir, "bad")
@@ -49,4 +51,20 @@ test("the server writes each extension's state and problems, and rewrites them a
   writeFileSync(join(opened.configDir, "extensions", "bad", "server.ts"), fixed);
   await expect.poll(() => of(opened.dataDir, "bad")?.state, { timeout: 5000 }).toBe("on");
   expect(of(opened.dataDir, "bad")?.problems).toEqual([]);
+});
+
+// Break: the file removed whoever wrote it, as before: a server stopping took the status of the
+// one started after it.
+test("a server stopping removes the file only when it wrote it", async () => {
+  const own = await serve({}, "");
+  await expect.poll(() => read(own.dataDir)?.pid).toBe(process.pid);
+  await own.server.stop();
+  expect(read(own.dataDir)).toBeUndefined();
+
+  const opened = await serve({}, "");
+  await expect.poll(() => read(opened.dataDir)?.pid).toBe(process.pid);
+  const another = { ...read(opened.dataDir)!, pid: process.pid + 1 };
+  writeFileSync(join(opened.dataDir, "run", "extensions-status.json"), JSON.stringify(another));
+  await opened.server.stop();
+  expect(read(opened.dataDir)?.pid).toBe(process.pid + 1);
 });

@@ -576,8 +576,12 @@ fn list_shows_the_running_servers_states_and_problems() {
     fs::create_dir_all(folders.data.path().join("run")).unwrap();
     fs::write(
         folders.data.path().join("run").join("extensions-status.json"),
-        r#"{"version":1,"at":"2026-11-08T10:00:00.000Z","extensions":[
-            {"name":"deploy","state":"broken","problems":[{"file":"server.ts","line":3,"message":"boom"}],"waitingFor":null}]}"#,
+        // As a server running now wrote it: this test's process stands in for it.
+        format!(
+            r#"{{"version":1,"pid":{},"at":"2026-11-08T10:00:00.000Z","extensions":[
+            {{"name":"deploy","state":"broken","problems":[{{"file":"server.ts","line":3,"message":"boom"}}],"waitingFor":null}}]}}"#,
+            std::process::id()
+        ),
     )
     .unwrap();
     let text = folders.ura(elsewhere.path(), &["list"]);
