@@ -107,12 +107,12 @@ Do these only when a human asks.
   1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the proposal file into
      it as `proposal.md`, its words unchanged: the proposal is the human's words, never rewritten.
      Only its relative links change, to point at the same files from the new folder, as **Expand**
-     does. When the proposal is a folder, a proposal with images, or a feature postponed before
-     postponing wrote a proposal file, move all its files into it, the same way. A proposal with no
-     file is expanded first, as **Expand** says: the human writes its file, and asks for the start
-     once it is ready. Every other file of `specs/` linking a moved file points at its new path, in
-     its own form, as [the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved
-     link. A file with uncommitted changes is rewritten too, but stays out of the commit.
+     does. When the proposal is a folder, a proposal with images or a feature postponed in an older
+     version of this step, move all its files into it, the same way. A proposal with no file is
+     expanded first, as **Expand** says: the human writes its file, and asks for the start once it
+     is ready. Every other file of `specs/` linking a moved file points at its new path, in its own
+     form, as [the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved link. A
+     file with uncommitted changes is rewritten too, but stays out of the commit.
   2. In the same commit, move the feature's proposal in `PRIORITIES.md` to the top of **Now**, after
      the other started proposals, then a blank line, unless the human says otherwise, as a link to
      the `proposal.md` from the repository root,
@@ -145,30 +145,40 @@ Do these only when a human asks.
   the link is added at the top of **Now**, and the line leaves in a write of its own. A session's
   yes starts one too: see [Change](change.md#starting-a-change). With `ura`,
   `ura start <proposal> --slug <slug> --change` starts a proposal file as a change, and refuses a
-  postponed folder holding files a change's folder has no place for, like a feature's `spec.md`:
-  start that one as a feature. By hand, the steps above, with the proposal linked to
-  `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
+  folder postponed in an older version of this step, holding files a change's folder has no place
+  for, like a feature's `spec.md`: start that one as a feature. By hand, the steps above, with the
+  proposal linked to `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the
+  [change](change.md) step.
 - **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
   It keeps its code and its worktree. With `ura`, `ura start <change> --feature`. By hand, as
   [Upgrading](change.md#upgrading) says.
 - **Postpone or block**: the feature leaves the workflow, and only a proposal stays. Stop first when
-  its worktree has uncommitted changes, since they would be lost. On the default branch, write the
-  feature's current state, read on its branch, as a new proposal file, `specs/proposals/<slug>.md`,
-  without its date. It keeps the proposal's `discovery` level, its `# Title`, a **What** and a
-  **Why**, and the human's words wherever they still hold. What their answers, notes, and reviews
-  settled becomes part of the request, said as they decided it, never as a question or an option. It
-  ends with what is still open or unverified, and where the earlier work lives: the branch and its
-  last commit, and the paths of its discovery rounds, questions, and spec, read with
-  `git show <commit>:<path>`. It links no file of the folder. In the same commit, remove the dated
-  folder from the default branch, and move the feature's line in `PRIORITIES.md` to the section the
-  human names, **Later** for one not scheduled, after what it needs when it is blocked, linked to
-  the new proposal file. Commit with `chore(<slug>): postpone <feature name>`. Commit these files
-  alone: other changes in the checkout, uncommitted or staged, stay as they are. The branch is never
-  merged: its code and its edits to the decisions never reach the default branch. Links to the
-  folder then read as deleted: repair them as
-  [the catch-up](implementation.md#where-a-moved-link-points) says, with `ura check --fix`, and
-  commit them alone, `fix(<slug>): repair the links to moved files`. Remove the worktree and keep
-  the branch, as **Drop** says below.
+  its worktree, or its folder on the default branch, has uncommitted changes, since they would be
+  lost.
+  1. On the feature's branch, remove its dated folder, and commit with
+     `chore(<slug>): close for postponing`: a branch without its folder is no longer a feature, so
+     no tool resumes it in place of the new proposal. Its previous commit keeps every file.
+  2. On the default branch, write the feature's current state, read on its branch, as a new proposal
+     file, `specs/proposals/<slug>.md`, without its date. It keeps the proposal's `discovery` level,
+     its `# Title`, a **What** and a **Why**, and the human's words wherever they still hold. What
+     their answers, notes, and reviews settled becomes part of the request, said as they decided it,
+     never as a question or an option. It ends with what is still open or unverified, and where the
+     earlier work lives: the branch, the commit before the one that closed it, and the paths of its
+     discovery rounds, questions, and spec, read with `git show <commit>:<path>`. It links no file
+     of the folder.
+  3. In the same commit, remove the dated folder from the default branch, and move the feature's
+     line in `PRIORITIES.md` to the section the human names, **Later** for one not scheduled, after
+     what it needs when it is blocked, linked to the new proposal file. Commit these files alone,
+     `chore(<slug>): postpone <feature name>`, only when `PRIORITIES.md` had no other changes:
+     otherwise they stay uncommitted, beside the human's edits.
+  4. Repair the links into the removed folder, as
+     [the catch-up](implementation.md#where-a-moved-link-points) says: a link to its `proposal.md`
+     points at the new proposal file, and every other one becomes its words. With `ura`,
+     `ura check --fix`. Commit them alone, `fix(<slug>): repair the links to moved files`.
+
+  The branch is never merged: its code and its edits to the decisions never reach the default
+  branch. Remove the worktree and keep the branch, as **Drop** says below.
+
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
   branch keeps no folder of a dropped feature or change: it would read as merged once its branch is
