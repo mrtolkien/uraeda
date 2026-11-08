@@ -427,3 +427,43 @@ test("Escape in the picker's normal mode closes it", async () => {
   await keys(field, "<Esc>");
   await waitFor(() => expect(screen.queryByRole("combobox", { name: "Find anything" })).toBeNull());
 });
+
+/** A key pressed outside any field, as the page hears it. */
+const pressOutside = (key: string) =>
+  act(async () => void fireEvent.keyDown(document.body, { key }));
+
+// Break caught: outside a buffer's text, Enter, `i`, `o`, and `a` do nothing, or run as the page's
+// keys, rather than bringing the focus back to the text, as Vim's keys there.
+test("outside a buffer's text, Enter and Vim's `i`, `o`, and `a` go back to it", async () => {
+  const config = vimOn();
+  const repo = fixtureRepo();
+  await renderPage("/buffer/specs/PRIORITIES.md", repo, { config });
+  const field = await screen.findByRole("textbox", { name: "specs/PRIORITIES.md" });
+  const view = EditorView.findFromDOM(field)!;
+  await waitFor(() => expect(getCM(view)).not.toBeNull());
+  const inserting = () => getCM(view)!.state.vim?.insertMode;
+  const away = async () => {
+    await act(async () => view.contentDOM.blur());
+    expect(view.hasFocus).toBe(false);
+  };
+
+  await away();
+  await pressOutside("Enter");
+  expect(view.hasFocus).toBe(true);
+  expect(inserting()).toBe(false);
+
+  for (const key of ["i", "a"]) {
+    await keys(field, "<Esc>");
+    await away();
+    await pressOutside(key);
+    expect(view.hasFocus).toBe(true);
+    expect(inserting()).toBe(true);
+  }
+
+  await keys(field, "<Esc>");
+  await away();
+  const lines = view.state.doc.lines;
+  await pressOutside("o");
+  expect(inserting()).toBe(true);
+  expect(view.state.doc.lines).toBe(lines + 1);
+});

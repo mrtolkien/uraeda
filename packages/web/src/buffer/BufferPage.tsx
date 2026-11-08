@@ -1,13 +1,15 @@
 // A file opened as a buffer (US5), at `/buffer/<path>`: the whole file, frontmatter included, fills
 // the center column under its bufferline, the sidebar beside it; the page has no column of its own
 // at the right. Its cursor starts at the file's start, in Vim's normal mode with Vim on, as a file
-// Vim opens. `:w` or Ctrl+Enter saves it on its branch, which the status line names, without
+// Vim opens. Outside the text, Enter brings the focus back to it, and `i`, `o`, and `a` too, then
+// run as Vim's, in insert mode. `:w` or Ctrl+Enter saves it on its branch, which the status line names, without
 // committing: the Git page lists it. `:q`, or `b` outside the text, goes back, the Leave guard
 // asking first while the text is not saved. On the phone, the bottom bar holds Back and Save.
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { Editor } from "../fields/editor/Editor.tsx";
+import { useRef } from "react";
+import { Editor, type EditorHandle } from "../fields/editor/Editor.tsx";
 import { isMarkdownPath } from "../fields/editor/markdown.ts";
 import { RestoreNotice } from "../fields/RestoreNotice.tsx";
 import { useVimOn } from "../fields/editor/vim/load.ts";
@@ -62,9 +64,27 @@ export function BufferPage({ path }: { path: string }) {
   // `:q`, after `:wq`'s save has answered: a refused save keeps the text unsaved, which the Leave
   // guard asks about.
   const quit = () => void buffer.flush().then(back);
+  const editor = useRef<EditorHandle>(null);
+  // Back in the text, its mode kept; with `key`, Vim's key run there, as typed in it.
+  const focus = (key?: string) => () => {
+    const view = editor.current?.view();
+    if (!view) {
+      return false;
+    }
+    view.focus();
+    if (key && isVim) {
+      view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key }),
+      );
+    }
+  };
   useKeys(
     buffer.file
       ? [
+          { hint: "⏎", keys: "Enter", label: "edit", run: focus() },
+          { hint: "i", keys: "i", label: "insert", run: focus("i") },
+          { keys: "o", label: "open a line", run: focus("o") },
+          { keys: "a", label: "append", run: focus("a") },
           { hint: isVim ? ":w" : "⌃⏎", keys: "mod+Enter", label: "save", run: buffer.saveText },
           // The shell's `b` goes back; this one, its fallback, only names it, or goes home when
           // there is nothing to go back to.
@@ -106,6 +126,7 @@ export function BufferPage({ path }: { path: string }) {
               onChange={buffer.field.change}
               onQuit={quit}
               onSubmit={buffer.saveText}
+              ref={editor}
               value={buffer.field.text}
               variant="page"
             />
