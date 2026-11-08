@@ -77,8 +77,9 @@ export type Searchable = { numeral?: string; summary: string | null; title: stri
 
 /**
  * How well an item matches a query, lower first, or undefined when it does not: a principle's
- * numeral or its whole title, the title's start, a word's start in it, anywhere in it, then in its
- * first sentence.
+ * numeral or its whole title, the title's start, a word's start in it, anywhere in it, in its first
+ * sentence, then each word of the query, anywhere in its title or its first sentence, as "codex
+ * big" finds "Codex · Fake Big".
  */
 function rank({ numeral, summary, title: name }: Searchable, query: string): number | undefined {
   const title = name.toLowerCase();
@@ -94,7 +95,14 @@ function rank({ numeral, summary, title: name }: Searchable, query: string): num
   if (title.includes(query)) {
     return 3;
   }
-  return summary?.toLowerCase().includes(query) ? 4 : undefined;
+  const sentence = summary?.toLowerCase() ?? "";
+  if (sentence.includes(query)) {
+    return 4;
+  }
+  const words = query.split(/\s+/);
+  return words.length > 1 && words.every((word) => title.includes(word) || sentence.includes(word))
+    ? 5
+    : undefined;
 }
 
 /** The items a query matches, the best first, ties in the list's order; all of them for none. */
