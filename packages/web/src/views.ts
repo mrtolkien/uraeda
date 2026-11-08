@@ -403,8 +403,8 @@ export const SettingsRecordView = view<Settings>()({
 
 /**
  * Every extension, built in or yours, as the settings' Extensions section reads it, from every
- * endpoint: each one's state, problems, where it is on, and its settings. Named apart from the
- * page runtime's view, which task 12 may fold into this one.
+ * endpoint: each one's state, problems, where it is on, and its settings. The registries read
+ * it too, for where each one is on (`ExtensionsOn`).
  */
 export const ExtensionsRecordView = view<Extensions>()({
   api: true,

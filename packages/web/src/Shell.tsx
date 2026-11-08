@@ -35,6 +35,7 @@ import { CommitToast } from "./writes/CommitToast.tsx";
 import { useUndoErrors } from "./undo/pageErrors.ts";
 import { UndoKeys } from "./undo/UndoKeys.tsx";
 import { ruleStyles } from "./layout/rules.ts";
+import { useIsOn } from "./extensions/useContributions.ts";
 
 const styles = stylex.create({
   bare: {
@@ -268,8 +269,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                 <ScrollKeys />
                 <UndoKeys />
                 <LeaderKeys />
-                <NotifyBanner />
-                <Notifier />
+                <Notifications />
                 <UndoErrors />
                 <KeyPickerHost />
                 <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
@@ -297,5 +297,18 @@ export function BareShell({ children, current }: { children: ReactNode; current:
     >
       {children}
     </Frame>
+  );
+}
+
+/** The notifications' banner and notifier, while the built-in Notifications is on here. */
+function Notifications() {
+  if (!useIsOn("notifications")) {
+    return null;
+  }
+  return (
+    <>
+      <NotifyBanner />
+      <Notifier />
+    </>
   );
 }

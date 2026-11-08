@@ -1,21 +1,18 @@
-// The leader's tree as data: the bindings of the places, of New and Find, as pure builders over
-// the actions they run, so a test reads their icons and labels without a page. The places come
-// from `destinations.ts`, which the navigation column and the phone's tabs read too, so a place is
-// drawn the same everywhere (UI components): a place's icon and label are never written here.
+// The leader's tree as data: the bindings of Uraeda's own places, and of New and Find, as pure
+// builders over the actions they run, so a test reads their icons and labels without a page. The
+// places come from `destinations.ts`, which the navigation column and the phone's tabs read too, so
+// a place is drawn the same everywhere (UI components): a place's icon and label are never written
+// here. The extensions' places and keys, the built-ins' among them, the inbox's, the priorities',
+// the decisions', and Git's, come from the registry (`useExtensionKeys`).
 import { NEW_FEATURE_HREF } from "uraeda-server/hrefs";
 import { DESTINATIONS, type Destination } from "../destinations.ts";
 import { KIND_ICONS } from "./kinds.ts";
 import type { PickerKind } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
-import { NEW_PROPOSAL_HASH } from "../lists/PrioritiesList.tsx";
 
-/** The key of each place, after `Space` or `g`. */
+/** The key of each of Uraeda's own places, after `Space` or `g`: Sessions is a built-in's. */
 const PLACES: ReadonlyArray<readonly [key: string, place: Destination]> = [
   ["h", DESTINATIONS.home],
-  ["i", DESTINATIONS.inbox],
-  ["p", DESTINATIONS.priorities],
-  ["d", DESTINATIONS.decisions],
-  ["s", DESTINATIONS.sessions],
   [",", DESTINATIONS.settings],
 ];
 
@@ -43,27 +40,13 @@ export function goNewBinding(go: (path: string) => void): Binding {
 }
 
 /**
- * `Space g` and `g G`: the Git page. Not one of `PLACES`: `Space c` is Continue's and `g g` the
- * top of a list, so the go keys take `G` for it.
+ * The kinds `Space f` finds that are no extension's, by their key, as the picker's sources name
+ * them: the built-ins add notes (`n`), priorities (`p`), and decisions (`d`).
  */
-export function goGitBindings(go: (path: string) => void): Array<Binding> {
-  const git = DESTINATIONS.git;
-  return ["space g", "g G"].map((keys) => ({
-    icon: git.icon,
-    keys,
-    label: git.label,
-    run: () => go(git.path),
-  }));
-}
-
-/** The kinds `Space f` finds, by their key, as the picker's sources name them. */
 const FIND: ReadonlyArray<readonly [key: string, kind: PickerKind, label: string]> = [
   ["f", "features", "Features"],
   ["c", "changes", "Changes"],
   ["s", "sessions", "Sessions"],
-  ["d", "decisions", "Decisions"],
-  ["n", "notes", "Notes"],
-  ["p", "priorities", "Priorities"],
 ];
 
 /** `Space Space`, find anything, and `Space f` with a key per kind. */
@@ -79,17 +62,11 @@ export function findBindings(open: (kind: PickerKind | "all") => void): Array<Bi
   ];
 }
 
-/** The forms a New key opens: the inbox's note and the priorities' proposal. */
-export type AddForm = "note" | "proposal";
-
 /**
- * `Space n`: a session, a change, a feature (the pages the New page's cards lead to), a note, and
- * a proposal (the forms of the column's buttons).
+ * `Space n`: a session, a change, and a feature, the pages the New page's cards lead to. The
+ * built-ins add a note (`n`) and a proposal (`p`), the forms of the column's buttons.
  */
-export function newBindings(
-  go: (path: string) => void,
-  openForm: (form: AddForm) => void,
-): Array<Binding> {
+export function newBindings(go: (path: string) => void): Array<Binding> {
   return [
     {
       icon: KIND_ICONS.sessions,
@@ -108,19 +85,6 @@ export function newBindings(
       keys: "space n f",
       label: "Feature",
       run: () => go(NEW_FEATURE_HREF),
-    },
-    {
-      icon: KIND_ICONS.notes,
-      keys: "space n n",
-      label: "Note (inbox entry)",
-      run: () => openForm("note"),
-    },
-    {
-      icon: KIND_ICONS.priorities,
-      keys: "space n p",
-      label: "Proposal",
-      // A new row at the top of Now.
-      run: () => go(`/priorities${NEW_PROPOSAL_HASH}`),
     },
   ];
 }

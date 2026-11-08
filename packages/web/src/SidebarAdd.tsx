@@ -4,7 +4,15 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
-import { createContext, type ReactNode, Suspense, useContext, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  Suspense,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient } from "react-fate";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { usePickedImages } from "./NoteImage.tsx";
@@ -43,6 +51,14 @@ const OpenContext = createContext<OpenForm>(() => {});
  */
 export function useOpenAddForm(): OpenForm {
   return useContext(OpenContext);
+}
+
+/** The mounted forms' opener, which a built-in's key reaches outside React: none before them. */
+let mounted: OpenForm = () => {};
+
+/** Opens a form from a key the registry holds, as `useOpenAddForm`'s opener does. */
+export function openAddForm(form: "note" | "proposal") {
+  mounted(form);
 }
 
 /**
@@ -266,6 +282,22 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
       picked.add(dropped);
     }
   };
+  // A key's form, in its default place, as `openForm` opens it.
+  useEffect(() => {
+    const opens: OpenForm = (form) => {
+      if (!noSpecs) {
+        setDrawn((forms) => (forms.includes(form) ? forms : [...forms, form]));
+        setPlace({});
+        setOpen(form);
+      }
+    };
+    mounted = opens;
+    return () => {
+      if (mounted === opens) {
+        mounted = () => {};
+      }
+    };
+  }, [noSpecs]);
   return (
     <OpenContext value={openForm}>
       {children}

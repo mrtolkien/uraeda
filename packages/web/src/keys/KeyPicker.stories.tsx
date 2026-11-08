@@ -6,6 +6,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
 import { DESTINATIONS } from "../destinations.ts";
+import { BUILT_IN_PLACES } from "../extensions/builtins/places.ts";
 import { Home } from "../Home.tsx";
 import { Shell } from "../Shell.tsx";
 import { KeyPicker } from "./KeyPicker.tsx";
@@ -64,7 +65,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     title: "Fix the status line",
   },
   {
-    icon: DESTINATIONS.inbox.icon,
+    icon: BUILT_IN_PLACES.inbox.icon,
     id: "/inbox/text-input-feels-laggy",
     kind: "notes",
     path: "/inbox/text-input-feels-laggy",
@@ -76,7 +77,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     title: "Text input feels laggy on the sessions page",
   },
   {
-    icon: DESTINATIONS.priorities.icon,
+    icon: BUILT_IN_PLACES.priorities.icon,
     id: "/priorities/nix-docker",
     kind: "priorities",
     path: "/priorities/nix-docker",

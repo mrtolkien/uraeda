@@ -1,16 +1,15 @@
 // The leader's tree: what `Space` and `g` lead to, declared where the shell mounts it. Each entry
-// runs what a button or a page already runs: the places navigate (`destinations.ts`), New opens
-// the page or the form of its button, Find opens the key picker over a kind, Continue opens what
+// runs what a button or a page already runs: the places navigate (`destinations.ts`, and the
+// extensions' places, the built-ins' first), New opens the page or the form of its button, Find opens the key picker over a kind, Continue opens what
 // needs the human, `r` the repository menu, `u m` cycles the colour mode, `u t` opens the theme
 // picker (`ThemePicker`), and `u f` then a part's
 // key opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
 // confirmed. `?` and `Space ?` open the key map (`KeyMap`), of the keys that work where the focus
 // was. The entries of the UI group that fold the navigation and the right column are declared by
 // those columns (`u [`, `u ]`), as a key belongs to the owner of its action.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { openRepositoryMenu, RepositoryMenuHost } from "../RepositoryMenu.tsx";
 import { navigateHere, useRepository } from "../routes.tsx";
-import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { type Mode, usePicks } from "../theme.tsx";
 import { useConfirm } from "../fields/Confirm.tsx";
 import { type FontRole, restoreDefaultFonts, ROLES } from "../theme/fonts.ts";
@@ -19,13 +18,8 @@ import { useContinue } from "./Continue.tsx";
 import { useKeyPicker } from "./KeyPicker.tsx";
 import { useKeyMap } from "./KeyMap.tsx";
 import { ThemePicker } from "./ThemePicker.tsx";
-import {
-  findBindings,
-  goGitBindings,
-  goNewBinding,
-  newBindings,
-  placeBindings,
-} from "./leaderTree.ts";
+import { reportOwnClashes, useExtensionKeys } from "../extensions/useContributions.ts";
+import { findBindings, goNewBinding, newBindings, placeBindings } from "./leaderTree.ts";
 import { useKeys } from "./registry.tsx";
 import { edge } from "./scroll.ts";
 import type { Binding } from "./store.ts";
@@ -49,7 +43,6 @@ async function confirmDefaultFonts(confirm: ReturnType<typeof useConfirm>) {
 /** Declares the tree, and draws what it opens: Continue's picker and the repository menu. */
 export function LeaderKeys() {
   const current = useRepository();
-  const openForm = useOpenAddForm();
   const picker = useKeyPicker();
   const [picks, pick] = usePicks();
   const [fontRole, setFontRole] = useState<FontRole>();
@@ -57,13 +50,12 @@ export function LeaderKeys() {
   const confirm = useConfirm();
   const { binding: continuing, picker: continuePicker } = useContinue();
   const { bindings: keyMapping, keyMap } = useKeyMap();
-  const bindings: Array<Binding> = [
+  const own: Array<Binding> = [
     ...placeBindings("space", navigateHere),
     ...placeBindings("g", navigateHere),
     goNewBinding(navigateHere),
-    ...goGitBindings(navigateHere),
     ...findBindings(picker.open),
-    ...newBindings(navigateHere, openForm),
+    ...newBindings(navigateHere),
     continuing,
     {
       // The leader's one hint, "space menu": it shows while the sequences do, and goes with them
@@ -129,7 +121,10 @@ export function LeaderKeys() {
       },
     },
   ];
-  useKeys(bindings, "shell");
+  // The extensions' keys, less any Uraeda's own hold: a clash would throw in the key registry.
+  const extensions = useExtensionKeys(own);
+  useEffect(() => reportOwnClashes(extensions.clashes), [extensions.clashes]);
+  useKeys([...own, ...extensions.bindings], "shell");
   return (
     <>
       <RepositoryMenuHost current={current} />

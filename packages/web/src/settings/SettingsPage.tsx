@@ -6,6 +6,7 @@
 import { useFateClient } from "react-fate";
 import { useRepositories, useSettings } from "../data.ts";
 import { useExtensionsRecord } from "./useExtensionsRecord.ts";
+import { useKeyClashes } from "../extensions/useContributions.ts";
 import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { OnListClient } from "../ListClient.tsx";
@@ -56,6 +57,7 @@ function useExtensionsSection(): { actions: ExtensionActions; values: Extensions
   const record = useExtensionsRecord();
   const repositories = useRepositories();
   const view = ExtensionsRecordView;
+  const clashes = useKeyClashes();
   const { extensions: change } = fate.mutations;
   return {
     actions: {
@@ -73,6 +75,7 @@ function useExtensionsSection(): { actions: ExtensionActions; values: Extensions
     values: {
       extensions: record.extensions,
       folder: record.folder,
+      keyClashes: (name) => clashes.filter((clash) => clash.extension === name),
       repositories: repositories.rows.map((row) => row.name),
     },
   };

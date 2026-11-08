@@ -1,11 +1,15 @@
-// What the New page starts from, the same under all three cards: the inbox's notes and the
-// priorities' proposals not yet started, as the lists draw them everywhere else (`WorkList`): cards
+// What the New page starts from, the same under all three cards: the sections of the extensions on
+// here, the inbox's notes and the priorities' proposals not yet started first, as the lists draw them everywhere else (`WorkList`): cards
 // in two columns, `j k` between them and `h l` across, the search filtering them. Selecting a card
 // inserts its text in the composer, with a link to the file it is in; a card with a file of its
 // own, a proposal file or a note file, opens that file's page instead.
+import type { ReactNode } from "react";
 import { useInbox, usePriorities } from "./data.ts";
+import { Collect } from "./extensions/Collect.tsx";
+import type { NewSection, NewSectionRead } from "./extensions/registry.ts";
+import { useContributions } from "./extensions/useContributions.ts";
 import { isPending } from "./lists/outline.ts";
-import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
+import { WorkList, type WorkRow } from "./lists/WorkList.tsx";
 import { titleOf } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
@@ -105,19 +109,14 @@ const marksOf = (...marks: ReadonlyArray<string | false | undefined>) => {
   return shown.length === 0 ? undefined : shown.join(" · ");
 };
 
-/**
- * The entries as the list's sections, "Inbox" and "Priorities", the notes apart from the proposals
- * that have not started, and each card's entry by its address. The search
- * keeps the cards whose text, or a nested line, holds it.
- */
-function useEntries(search: string) {
-  const here = useRepoPath();
-  const inbox = useInbox();
-  const priorities = usePriorities();
-  const needle = search.trim().toLowerCase();
-  const byHref = new Map<string, Entry>();
+/** What a built-in's section reads: the search, and what takes its section and its cards' entries. */
+type Read = { children: (read: NewSectionRead) => ReactNode; search: string };
+
+/** Each card's entry, by its href, as a section's rows are made. */
+function rowsOf() {
+  const entries = new Map<string, Entry>();
   const rowOf = (entry: Entry, href: string, key: string, marks: string | undefined): WorkRow => {
-    byHref.set(href, entry);
+    entries.set(href, entry);
     return {
       href,
       ...(entry.linked === undefined ? {} : { page: proposalFilePage(entry.linked) }),
@@ -130,6 +129,22 @@ function useEntries(search: string) {
       text: entry.text,
     };
   };
+  return { entries, rowOf };
+}
+
+/** A section's context while it has no card: what it is without a search, "No match." with one. */
+const empty = (needle: string, nothing: string) =>
+  needle === "" ? { context: nothing } : { context: "No match." };
+
+/**
+ * The inbox's notes, as the New page's "Inbox" section, the search keeping the cards whose text,
+ * or a nested line, holds it.
+ */
+export function InboxNewSection({ children, search }: Read) {
+  const here = useRepoPath();
+  const inbox = useInbox();
+  const needle = search.trim().toLowerCase();
+  const { entries, rowOf } = rowsOf();
   // A row not written yet has no page and no id the core knows: it is offered once written.
   const notes = (inbox?.categories ?? []).flatMap((category) =>
     category.notes.flatMap((note) => {
@@ -151,6 +166,29 @@ function useEntries(search: string) {
       return [rowOf(entry, here(`/inbox/${note.key}`), `note:${note.key}`, marksOf(category.name))];
     }),
   );
+  return children({
+    entries,
+    section: {
+      ...(notes.length === 0 ? empty(needle, "The inbox is empty.") : {}),
+      icon: "uraeda:inbox",
+      id: "inbox",
+      isFixed: true,
+      rows: notes,
+      title: "Inbox",
+      tone: "neutral",
+    },
+  });
+}
+
+/**
+ * The priorities' proposals that have not started, as the New page's "Priorities" section, the
+ * search keeping the cards whose text, or a nested line, holds it.
+ */
+export function PrioritiesNewSection({ children, search }: Read) {
+  const here = useRepoPath();
+  const priorities = usePriorities();
+  const needle = search.trim().toLowerCase();
+  const { entries, rowOf } = rowsOf();
   const lines = (priorities?.sections ?? []).flatMap((section) =>
     section.proposals
       .filter(startable)
@@ -170,20 +208,10 @@ function useEntries(search: string) {
         ];
       }),
   );
-  const empty = (nothing: string) =>
-    needle === "" ? { context: nothing } : { context: "No match." };
-  const sections: Array<WorkSection> = [
-    {
-      ...(notes.length === 0 ? empty("The inbox is empty.") : {}),
-      icon: "uraeda:inbox",
-      id: "inbox",
-      isFixed: true,
-      rows: notes,
-      title: "Inbox",
-      tone: "neutral",
-    },
-    {
-      ...(lines.length === 0 ? empty("Nothing to start from.") : {}),
+  return children({
+    entries,
+    section: {
+      ...(lines.length === 0 ? empty(needle, "Nothing to start from.") : {}),
       icon: "uraeda:list",
       id: "priorities",
       isFixed: true,
@@ -191,34 +219,65 @@ function useEntries(search: string) {
       title: "Priorities",
       tone: "now",
     },
-  ];
-  return { byHref, sections };
+  });
 }
 
+/** What the list's onOpen and the extensions' sections insert. */
+type Inserts = { onInsert: (entry: Entry) => void; onInsertText: (text: string) => void };
+
 /**
- * The list under the composer, whatever the kind: `onInsert` takes the entry a card selects, unless
- * the entry has a file of its own, whose page opens.
+ * The list under the composer, whatever the kind: the sections of the extensions on here, the
+ * inbox's and the priorities' first, in two columns, `j k` between their cards and `h l` across.
+ * `onInsert` takes the entry a card selects, unless the entry has a file of its own, whose page
+ * opens; an extension's own section inserts its text through `onInsertText`.
  */
-export function EntryLists({
+export function EntryLists({ onInsert, onInsertText, search }: Inserts & { search: string }) {
+  const sections = useContributions("newSection");
+  const read = (section: NewSection, next: (read: NewSectionRead) => ReactNode): ReactNode => {
+    if (section.section) {
+      const Section = section.section;
+      return <Section search={search}>{next}</Section>;
+    }
+    const Body = section.component;
+    return next({
+      entries: new Map(),
+      section: {
+        ...(Body ? { footer: <Body onInsert={onInsertText} search={search} /> } : {}),
+        id: section.id,
+        isFixed: true,
+        rows: [],
+        title: section.title,
+        tone: section.tone,
+      },
+    });
+  };
+  return (
+    <Collect items={sections} read={read}>
+      {(reads) => <Entries onInsert={onInsert} reads={reads} />}
+    </Collect>
+  );
+}
+
+/** The sections' list, a card opening its entry's file, or inserting it. */
+function Entries({
   onInsert,
-  search,
+  reads,
 }: {
   onInsert: (entry: Entry) => void;
-  search: string;
+  reads: ReadonlyArray<NewSectionRead>;
 }) {
-  const { byHref, sections } = useEntries(search);
   return (
     <WorkList
       layout="columns"
       onOpen={(href) => {
-        const entry = byHref.get(href);
+        const entry = reads.map((one) => one.entries.get(href)).find(Boolean);
         if (entry?.linkedHref) {
           navigate(entry.linkedHref);
         } else if (entry) {
           onInsert(entry);
         }
       }}
-      sections={sections}
+      sections={reads.map((one) => one.section)}
     />
   );
 }

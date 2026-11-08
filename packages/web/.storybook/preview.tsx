@@ -9,6 +9,8 @@ import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "../src/theme/fontFiles.ts";
 import "../src/theme/built/uraeda.css";
+// The built-ins' places, panes, and keys, as the app registers them.
+import "../src/extensions/builtins/index.ts";
 import "../../../skills/uraeda/assets/storybook/uraeda-pick.js";
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { Theme } from "@astryxdesign/core/theme";

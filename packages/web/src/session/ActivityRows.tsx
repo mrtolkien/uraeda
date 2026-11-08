@@ -27,6 +27,7 @@ import { keepPlace, topOf } from "../keepPlace.ts";
 import { ProseMarkdown } from "../Prose.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
+import { useContributions } from "../extensions/useContributions.ts";
 import type { Run } from "./activityRuns.ts";
 import { CallTarget, LineCharsRoom } from "./CallTarget.tsx";
 import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
@@ -193,7 +194,11 @@ function RowHead({ item, live, view }: { item: ActivityItem; live: boolean; view
 
 /** A call or a thought of a run, marked when it belongs to the stretch the address names. */
 function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
-  const fold = foldOf(item, view);
+  // A tool an extension draws: its renderer in place of the output.
+  const Own = useContributions("itemRenderer").find(
+    (renderer) => item.kind === "tool" && renderer.tool === item.name,
+  )?.component;
+  const fold = Own ? () => <Own item={item} /> : foldOf(item, view);
   const key = foldKey(view.run.turn, item.seq);
   const isOpen = view.keys.open.includes(key);
   const row = useRef<HTMLLIElement>(null);

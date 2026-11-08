@@ -32,6 +32,8 @@ export type Route =
   | { page: "moved"; path: string }
   | { page: "first-run" }
   | { category?: string; page: "settings" }
+  // An extension's place, `/e/<name>/<id>…`: `rest` is the path after its name (R1).
+  | { name: string; page: "extension"; rest: string }
   | { page: "missing"; path: string };
 
 /** What the New page starts: a session, a change, or a feature. */
@@ -136,6 +138,9 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (parts[0] === "decisions" && parts.length <= 3) {
     return decisionsRoute(parts, pathname);
+  }
+  if (parts[0] === "e" && parts.length > 1) {
+    return { name: parts[1], page: "extension", rest: parts.slice(2).join("/") };
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
