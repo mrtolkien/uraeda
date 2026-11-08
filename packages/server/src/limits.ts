@@ -2,7 +2,8 @@
 // core sees the image: their refusal is the core's text. And the chat's own limits on a message's
 // images, which the sessions enforce and the composer checks first. And the size of a turn's log's
 // pages, which the UI reads a stretch's page by. And the refusals of a runtime off or not available,
-// which the composer shows before sending. Free of Node's modules, so the UI can import it.
+// or of a model or an effort it does not offer, which the composer shows before sending. Free of
+// Node's modules, so the UI can import it.
 
 /** The items in each page of a turn's log. */
 export const TURN_PAGE = 100;
@@ -41,4 +42,8 @@ export const RUNTIME_REFUSALS = {
   noRuntime: "No agent runtime is on here: turn one on in Settings, Extensions",
   /** A message to a session whose runtime is off in its repository, or not registered. */
   runtimeOff: (title: string) => `${title} is off: turn it on to continue this session`,
+  /** A model its runtime's list does not hold: the runtime by its name for people. */
+  noModel: (runtime: string, model: string) => `${runtime} has no model ${model}: pick another`,
+  /** An effort the model does not take: the model and the effort by their names for people. */
+  noEffort: (model: string, effort: string) => `${model} takes no ${effort} effort: pick another`,
 };

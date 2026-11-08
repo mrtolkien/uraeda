@@ -28,7 +28,7 @@ test("a runtime reloads once its turns end", async () => {
   const { sessions } = opened.server;
   await sessions.check();
   expect(opened.sink.activations).toBe(1);
-  const session = await sessions.featureSession(opened.uraeda, FEATURE, "durable");
+  const session = await sessions.featureSession(opened.uraeda, FEATURE, { runtime: "durable" });
   const turnEnds = Promise.withResolvers<void>();
   const started = Promise.withResolvers<void>();
   adapter.script([
@@ -69,7 +69,7 @@ test("a session gets the skills of the extensions on in its repository only", as
   const { sessions } = opened.server;
   await sessions.check();
   const sent = async (repo: string) => {
-    const session = await sessions.featureSession(repo, FEATURE, "durable");
+    const session = await sessions.featureSession(repo, FEATURE, { runtime: "durable" });
     adapter.script([{ denials: [], errors: [], interrupted: false, ok: true, type: "result" }]);
     const { turn } = await sessions.send(repo, session.id, { text: "Go on" });
     await sessions.settled(turn);
@@ -87,8 +87,8 @@ test("a reload waits for the sessions still at work, naming the one at work now"
   const { adapter } = opened.sink;
   const { sessions } = opened.server;
   await sessions.check();
-  const feature = await sessions.featureSession(opened.uraeda, FEATURE, "durable");
-  const chat = await sessions.newChat(opened.uraeda, "durable");
+  const feature = await sessions.featureSession(opened.uraeda, FEATURE, { runtime: "durable" });
+  const chat = await sessions.newChat(opened.uraeda, { runtime: "durable" });
   sessions.rename(opened.uraeda, chat.id, "Second chat");
   const first = held(adapter);
   const { turn: firstTurn } = await sessions.send(opened.uraeda, feature.id, { text: "Go on" });
@@ -118,7 +118,7 @@ test("a built-in's settings change registers it again once its runtime's turns e
   const { sessions } = server;
   await sessions.check();
   const register = vi.spyOn(server.extensions.runtimes, "register");
-  const session = await sessions.featureSession(opened.uraeda, FEATURE, "claude");
+  const session = await sessions.featureSession(opened.uraeda, FEATURE, { runtime: "claude" });
   const turn = held(claude);
   const sent = await sessions.send(opened.uraeda, session.id, { text: "Go on" });
   await turn.started;

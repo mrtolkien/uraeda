@@ -35,7 +35,7 @@ test("session.send checks a feature's images against its latest session's runtim
   seeing.fallback = () => [];
   server.sessions.runtimes.register("seeing", seeing);
   await server.sessions.check();
-  await server.sessions.featureSession(server.repo, AGENT, "seeing");
+  await server.sessions.featureSession(server.repo, AGENT, { runtime: "seeing" });
   const image = await chatImages(server.dataDir).save({
     bytes: Buffer.from("RIFF....WEBP"),
     extension: "webp",

@@ -11,6 +11,7 @@ function runtime(kind: string, isOn: boolean, available = true): Runtime {
     icon: "bot",
     isOn,
     kind,
+    models: null,
     name: `${kind} name`,
     title: `${kind} title`,
     usage: [],

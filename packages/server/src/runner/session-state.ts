@@ -126,6 +126,11 @@ export type Proc = {
   /** Resolves once its events are read to its exit. */
   done: Promise<void>;
   /**
+   * The effort it runs on, by the agent's ID, null for the agent's default: what it opened with,
+   * or its last `setEffort`.
+   */
+  effort: string | null;
+  /**
    * The turn that last ended on it, which reopens when the agent goes on by itself after it ended:
    * a background shell or sub-agent reported back.
    */

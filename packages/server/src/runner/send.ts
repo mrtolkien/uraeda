@@ -59,10 +59,13 @@ export async function sendTo(
     const { kind } = await binding.readFeature(live.repo, live.folder);
     throw refused(REFUSALS.otherWorking(kind));
   }
-  // The new session runs on the runtime of the one the run was sent to.
+  // The new session runs on the runtime, the model, and the effort of the one the run was sent to.
+  const { agent, effort, model } = rowOf(cache, live);
   const row = cache.createSession({
-    agent: rowOf(cache, live).agent,
+    agent,
+    effort,
     folder: live.folder,
+    model,
     nativeId: randomUUID(),
     repo: live.repo,
     title: null,

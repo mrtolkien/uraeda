@@ -1,4 +1,4 @@
-import type { Adapter, Capabilities } from "./adapter.ts";
+import type { Adapter, Capabilities, ModelList } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
 import type { UsageWindow } from "./events.ts";
 import { REFUSALS, refused } from "./session-state.ts";
@@ -24,6 +24,8 @@ export type RuntimeRecord = {
   isOn: boolean;
   /** The name it is registered as, which its sessions store as their `agent`. */
   kind: string;
+  /** Its last model list, kept through a failed refresh: none before one, or without a list. */
+  models: ModelList | null;
   /** Its name for people: "Claude Code". */
   name: string;
   /** Its extension's title, which its refusals name it by: its `kind` without one. */
@@ -35,6 +37,22 @@ export type RuntimeRecord = {
 
 const UNCHECKED: RuntimeStatus = { available: false, version: null };
 
+/** A runtime's model list is asked for at most once in this time. */
+export const MODELS_REFRESH_MS = 60_000;
+
+/**
+ * A registered runtime: its status, and its last model list, with when it was last asked for and
+ * the ask, which leave with it once it is unregistered. The ask resolves to whether the list
+ * changed.
+ */
+type Entry = {
+  listedAt?: number;
+  listing?: Promise<boolean>;
+  models?: ModelList;
+  runtime: Adapter;
+  status: RuntimeStatus;
+};
+
 /**
  * The agent runtimes sessions run on, by the names they are registered as, in registration order.
  * A session stores the name of the runtime it was made with, and runs on that runtime only: one
@@ -43,7 +61,7 @@ const UNCHECKED: RuntimeStatus = { available: false, version: null };
  */
 export class Runtimes {
   readonly isOn: IsOn;
-  #entries = new Map<string, { runtime: Adapter; status: RuntimeStatus }>();
+  #entries = new Map<string, Entry>();
   #listeners = new Set<() => void>();
   /** Each name's status when it was unregistered, which a registration under it starts from. */
   #last = new Map<string, RuntimeStatus>();
@@ -82,15 +100,16 @@ export class Runtimes {
   /**
    * Registers `runtime` as `name`: gives the undo, which unregisters it. It starts from the status
    * the last runtime of that name had, unchecked for a new name, so a runtime reloaded is not
-   * refused as unavailable until its next check.
+   * refused as unavailable until its next check. Its model list is asked for at once.
    */
   register(name: string, runtime: Adapter): () => void {
     if (this.#entries.has(name)) {
       throw new Error(`a runtime is registered as ${name} already`);
     }
-    const entry = { runtime, status: this.#last.get(name) ?? UNCHECKED };
+    const entry: Entry = { runtime, status: this.#last.get(name) ?? UNCHECKED };
     this.#entries.set(name, entry);
     this.changed();
+    void this.refreshModels([name]);
     return () => {
       if (this.#entries.get(name) === entry) {
         this.#last.set(name, entry.status);
@@ -147,6 +166,49 @@ export class Runtimes {
     return found;
   }
 
+  /** The runtime's last model list: none before one, nor for a runtime without a list. */
+  models(name: string): ModelList | undefined {
+    return this.#entries.get(name)?.models;
+  }
+
+  /**
+   * Asks the runtimes of these names, every one by default, for their model lists, each at most
+   * once a minute: one asked for less than a minute ago waits for that ask. A list that cannot be
+   * read keeps the last one. A list that changed calls `changed`.
+   */
+  async refreshModels(names: ReadonlyArray<string> = this.names()): Promise<void> {
+    const asks = names.flatMap((name) => {
+      const entry = this.#entries.get(name);
+      if (!entry?.runtime.models) {
+        return [];
+      }
+      if (entry.listing && Date.now() - entry.listedAt! < MODELS_REFRESH_MS) {
+        return [entry.listing.then(() => false)];
+      }
+      entry.listedAt = Date.now();
+      entry.listing = this.#list(entry);
+      return [entry.listing];
+    });
+    if ((await Promise.all(asks)).includes(true)) {
+      this.changed();
+    }
+  }
+
+  /** Asks the runtime for its model list, and keeps it: whether it changed. */
+  async #list(entry: Entry): Promise<boolean> {
+    // An extension's runtime may throw at once, as well as reject.
+    const list = await Promise.resolve()
+      .then(() => entry.runtime.models!())
+      .catch(() => undefined);
+    // Unregistered meanwhile, it took its list with it.
+    if (list === undefined || ![...this.#entries.values()].includes(entry)) {
+      return false;
+    }
+    const same = JSON.stringify(list) === JSON.stringify(entry.models);
+    entry.models = list;
+    return !same;
+  }
+
   /** Calls `listener` at each registration, unregistration, or `changed`: gives its removal. */
   onChange(listener: () => void): () => void {
     this.#listeners.add(listener);
@@ -160,12 +222,13 @@ export class Runtimes {
 
   /** Each runtime, for the UI, its `isOn` in `repo`. */
   records(repo: string | null, usage: (name: string) => Array<UsageWindow>): Array<RuntimeRecord> {
-    return [...this.#entries].map(([kind, { runtime, status }]) => ({
+    return [...this.#entries].map(([kind, { models, runtime, status }]) => ({
       ...status,
       capabilities: { ...runtime.capabilities },
       icon: runtime.icon,
       isOn: this.isOn(kind, repo),
       kind,
+      models: models ?? null,
       name: runtime.name,
       title: this.title(kind),
       usage: usage(kind),

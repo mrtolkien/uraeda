@@ -292,7 +292,8 @@ export async function keptForStart(
   const runtime = messageRuntime(runtimes, root, latest, to.runtime);
   checkSend(input, runtime.capabilities);
   const made = row === undefined && cache.folderSessions(root, folder).length === 0;
-  const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder, to.runtime)).id;
+  const session =
+    row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder, { runtime: to.runtime })).id;
   if (starts.keep(root, folder, session, input)) {
     return session;
   }

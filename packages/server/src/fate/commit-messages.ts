@@ -34,12 +34,15 @@ async function sessionFor(
   if (to.newSession === true) {
     return {
       made: true,
-      session: (await ctx.sessions.newSession(ctx.repo, folder, to.runtime)).id,
+      session: (await ctx.sessions.newSession(ctx.repo, folder, { runtime: to.runtime })).id,
     };
   }
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const made = ctx.sessions.cache.folderSessions(root, folder).length === 0;
-  return { made, session: (await ctx.sessions.featureSession(ctx.repo, folder, to.runtime)).id };
+  return {
+    made,
+    session: (await ctx.sessions.featureSession(ctx.repo, folder, { runtime: to.runtime })).id,
+  };
 }
 
 /**

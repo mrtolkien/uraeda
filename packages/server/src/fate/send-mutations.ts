@@ -114,8 +114,9 @@ export const sendMutations = {
         // A folder that is no feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
         return input.newSession === true
-          ? (await ctx.sessions.newSession(ctx.repo, input.folder, input.runtime)).id
-          : (await ctx.sessions.featureSession(ctx.repo, input.folder, input.runtime)).id;
+          ? (await ctx.sessions.newSession(ctx.repo, input.folder, { runtime: input.runtime })).id
+          : (await ctx.sessions.featureSession(ctx.repo, input.folder, { runtime: input.runtime }))
+              .id;
       });
       // A run that starts fresh went to a new session: the one it went to answers.
       const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));

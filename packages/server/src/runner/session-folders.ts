@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SessionRow } from "./cache.ts";
 import { transaction } from "./migrations.ts";
-import { newSessionRuntime } from "./runtimes.ts";
+import { newSessionPick, type SessionPick } from "./picks.ts";
 import {
   ofDropped,
   REFUSALS,
@@ -21,17 +21,17 @@ type OnChange = (change: SessionChange) => void;
 const now = () => new Date().toISOString();
 
 /**
- * A new session in `root`, of `folder` or a chat, on the runtime `runtime`, else the first one on
- * in `root`: refused with none on.
+ * A new session in `root`, of `folder` or a chat, on what `pick` says, as `newSessionPick` rules:
+ * refused with no runtime on, or a model or an effort its runtime does not offer.
  */
 function create(
   context: SessionContext,
   root: string,
   folder: string | null,
-  runtime?: string,
+  pick?: SessionPick,
 ): SessionRow {
   return context.cache.createSession({
-    agent: newSessionRuntime(context.runtimes, root, runtime),
+    ...newSessionPick(context.runtimes, root, pick),
     folder,
     nativeId: randomUUID(),
     repo: root,
@@ -47,43 +47,43 @@ function refuseDropped(latest: SessionRow | undefined) {
 }
 
 /**
- * The latest session of a change or a feature, created on `runtime` when it has none: refused for a
+ * The latest session of a change or a feature, created on `pick` when it has none: refused for a
  * dropped one, whose sessions are all archived, so its runs never recreate its worktree.
  */
 export function featureSession(
   context: SessionContext,
   root: string,
   folder: string,
-  runtime?: string,
+  pick?: SessionPick,
 ): SessionRow {
   const { cache } = context;
   // One transaction: another server cannot create a first session between the read and the write.
   return transaction(cache.db, () => {
     const latest = cache.latestSession(root, folder);
     refuseDropped(latest);
-    return latest ?? create(context, root, folder, runtime);
+    return latest ?? create(context, root, folder, pick);
   });
 }
 
 /**
- * A new session of a change or a feature, on `runtime`, which becomes its latest: its runs go to
- * it. Its feature's open pages are sent it. Refused for a dropped one.
+ * A new session of a change or a feature, on `pick`, which becomes its latest: its runs go to it.
+ * Its feature's open pages are sent it. Refused for a dropped one.
  */
 export function newSession(
   context: SessionContext,
   onChange: OnChange,
   root: string,
-  { folder, runtime }: { folder: string; runtime?: string },
+  { folder, pick }: { folder: string; pick?: SessionPick },
 ): SessionRow {
   refuseDropped(context.cache.latestSession(root, folder));
-  const row = create(context, root, folder, runtime);
+  const row = create(context, root, folder, pick);
   onChange({ folder, repo: root, session: row.id });
   return row;
 }
 
-/** A new chat, without a feature, on `runtime`, titled by its first message. */
-export function newChat(context: SessionContext, root: string, runtime?: string): SessionRow {
-  return create(context, root, null, runtime);
+/** A new chat, without a feature, on `pick`, titled by its first message. */
+export function newChat(context: SessionContext, root: string, pick?: SessionPick): SessionRow {
+  return create(context, root, null, pick);
 }
 
 /**

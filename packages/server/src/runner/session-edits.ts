@@ -1,5 +1,6 @@
 import type { SessionRow, TurnRow } from "./cache.ts";
 import { chatTitle } from "./message.ts";
+import { checkEffort } from "./picks.ts";
 import {
   REFUSALS,
   refused,
@@ -47,6 +48,22 @@ export function archive(
     throw new Error("a feature's session is not archived");
   }
   context.cache.updateSession(row.id, { archivedAt: archived ? now() : null });
+  report(onChange, row);
+}
+
+/**
+ * Changes the effort the session runs on, null for its agent's default: refused when its model does
+ * not take it. Only stored: its next turn's process takes it as it opens, so a running turn keeps
+ * its effort.
+ */
+export function setEffort(
+  context: SessionContext,
+  onChange: OnChange,
+  row: SessionRow,
+  effort: string | null,
+): void {
+  checkEffort(context.runtimes, row.agent, row.model, effort);
+  context.cache.updateSession(row.id, { effort });
   report(onChange, row);
 }
 
