@@ -1,4 +1,4 @@
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import {
   existsSync,
@@ -14,35 +14,13 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
-import { allowRule, type Blocks, lines, parseLine } from "./claude-events.ts";
-import type { AgentEvent, Denial } from "./events.ts";
+import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
+import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
+import type { Denial } from "./events.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 
-/** A failed process keeps this many lines of stderr. */
-const STDERR_LINES = 20;
-/** The characters of stderr kept while a process runs, enough for its last lines. */
-const STDERR_KEPT = 64_000;
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
-
-/** What signals each open process's group, until its output closes. */
-const groups = new Set<(signal: NodeJS.Signals) => void>();
-let ending = false;
-
-/**
- * Sends SIGTERM to every open process's group as the server exits, even on a crash: in groups of
- * their own, they would outlive it.
- */
-function endWithServer() {
-  if (!ending) {
-    ending = true;
-    process.once("exit", () => {
-      for (const signal of groups) {
-        signal("SIGTERM");
-      }
-    });
-  }
-}
 
 /** Where sessions write extensions, read their documentation, and get their skills. */
 export type ClaudeExtensions = ExtensionPaths & {
@@ -166,37 +144,6 @@ export function claudeArgs(
   ];
 }
 
-/** Events pushed by one reader and read in order by one consumer, until it ends. */
-class EventQueue implements AsyncIterable<AgentEvent> {
-  #items: Array<AgentEvent> = [];
-  #ended = false;
-  #wake: (() => void) | undefined;
-
-  push(event: AgentEvent) {
-    this.#items.push(event);
-    this.#wake?.();
-  }
-
-  end() {
-    this.#ended = true;
-    this.#wake?.();
-  }
-
-  async *[Symbol.asyncIterator](): AsyncIterator<AgentEvent> {
-    for (;;) {
-      const event = this.#items.shift();
-      if (event !== undefined) {
-        yield event;
-      } else if (this.#ended) {
-        return;
-      } else {
-        await new Promise<void>((resolve) => (this.#wake = resolve));
-        this.#wake = undefined;
-      }
-    }
-  }
-}
-
 export type ClaudeAdapterOptions = {
   /** The command to run, `claude` from the `PATH` by default. */
   command?: string;
@@ -296,7 +243,7 @@ export class ClaudeAdapter implements Adapter {
    * Starts the process, its images' and extensions' folders made first, as `--add-dir` refuses a
    * missing folder, and its extensions' plugin folders, those of extensions removed taken away.
    */
-  #spawn(options: OpenOptions, grouped: boolean) {
+  #spawn(options: OpenOptions): Child {
     mkdirSync(this.#imagesDir, { recursive: true });
     const extensions = this.#extensions;
     if (extensions) {
@@ -305,76 +252,11 @@ export class ClaudeAdapter implements Adapter {
       extensionPlugins(options.skills, extensions.plugins);
     }
     const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);
-    return spawn(this.#command, args, {
-      cwd: options.cwd,
-      detached: grouped,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    return spawnGrouped(this.#command, args, options.cwd);
   }
 
-  // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the process's signals, exit, and output in helpers
   open(options: OpenOptions): AgentProcess {
-    // In a process group of its own, which its signals reach whole: the tools it started end with
-    // it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits. Windows
-    // has no process groups to signal: there, the process alone is.
-    const grouped = process.platform !== "win32";
-    const child = this.#spawn(options, grouped);
-    // Until its output closes, a process of the group holds it: the group's ID is not reused.
-    let running = child.pid !== undefined;
-    const signal = (name: NodeJS.Signals) => {
-      if (!running || child.pid === undefined) {
-        return;
-      }
-      try {
-        if (grouped) {
-          process.kill(-child.pid, name);
-        } else {
-          child.kill(name);
-        }
-      } catch {
-        // The group is gone.
-      }
-    };
-    groups.add(signal);
-    const forget = () => {
-      running = false;
-      groups.delete(signal);
-    };
-    child.once("close", forget);
-    child.once("error", forget);
-    endWithServer();
-    // Only its end is kept: a failed process shows its last lines.
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (data: string) => {
-      stderr = (stderr + data).slice(-STDERR_KEPT);
-    });
-    // A process that exited closes stdin: later writes fail here, and are dropped.
-    child.stdin.on("error", () => {});
-    const exited = new Promise<AgentEvent>((resolve) => {
-      child.on("error", (error: NodeJS.ErrnoException) => {
-        // Node says ENOENT for a missing directory as for a missing command.
-        if (error.code === "ENOENT" && !existsSync(options.cwd)) {
-          resolve({
-            code: null,
-            stderr: `The session's directory is gone: ${options.cwd}`,
-            type: "exit",
-          });
-          return;
-        }
-        resolve({
-          code: null,
-          stderr: error.message,
-          type: "exit",
-          ...(error.code === "ENOENT" ? { missing: true } : {}),
-        });
-      });
-      // After stdout and stderr have closed, so nothing printed is lost.
-      child.on("close", (code) => {
-        const tail = stderr.trimEnd().split("\n").slice(-STDERR_LINES).join("\n");
-        resolve({ code, stderr: tail, type: "exit" });
-      });
-    });
+    const { child, exited, signal, write } = this.#spawn(options);
 
     // Stdout is read as it comes, whether or not the events are: Claude Code loses its last lines
     // when they are read slowly.
@@ -395,11 +277,6 @@ export class ClaudeAdapter implements Adapter {
       events.end();
     })();
 
-    const write = (value: unknown) => {
-      if (child.stdin.writable) {
-        child.stdin.write(`${JSON.stringify(value)}\n`);
-      }
-    };
     const control = (request: Record<string, unknown>) =>
       write({ request, request_id: randomUUID(), type: "control_request" });
 

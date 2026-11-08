@@ -1,8 +1,13 @@
-import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
+import {
+  insertSession,
+  type NewSession,
+  type SessionFields,
+  writeSession,
+} from "./cache-sessions.ts";
 import { addTurnTokens, agentSessionTokens } from "./cache-tokens.ts";
 import {
   addContinue,
@@ -70,14 +75,6 @@ const contains = (text: string) => `%${text.replaceAll(/[\\%_]/g, String.raw`\$&
 
 /** How many sessions a list gives, by default. */
 const SESSIONS_LIMIT = 50;
-
-/** The session columns a write may change, by their field. */
-const sessionColumns = {
-  archivedAt: "archived_at",
-  nativeId: "native_id",
-  seenAt: "seen_at",
-  title: "title",
-} as const;
 
 /**
  * The runner's cache of sessions, their turns, and the turns' items, in SQLite. It holds no
@@ -150,30 +147,8 @@ export class SessionCache {
   }
 
   /** Records a new session, with a new ID: a folder may hold several. */
-  createSession(row: {
-    agent: string;
-    folder: string | null;
-    nativeId: string;
-    repo: string;
-    title: string | null;
-  }): SessionRow {
-    const created = now();
-    const inserted = this.db
-      .prepare(
-        `INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
-      )
-      .get(
-        randomUUID(),
-        row.repo,
-        row.folder,
-        row.agent,
-        row.nativeId,
-        row.title,
-        created,
-        created,
-      ) as Row;
-    const session = toSession(inserted);
+  createSession(row: NewSession): SessionRow {
+    const session = insertSession(this.db, row);
     this.#created.forEach((listener) => listener(session));
     return session;
   }
@@ -233,22 +208,8 @@ export class SessionCache {
   }
 
   /** Changes the session's fields that are given. */
-  updateSession(
-    id: string,
-    fields: Partial<Pick<SessionRow, "nativeId" | "title" | "seenAt" | "archivedAt">>,
-  ): void {
-    const changed = (Object.keys(sessionColumns) as Array<keyof typeof sessionColumns>).filter(
-      (field) => fields[field] !== undefined,
-    );
-    if (changed.length === 0) {
-      return;
-    }
-    this.db
-      .prepare(
-        `UPDATE sessions SET ${changed.map((field) => `${sessionColumns[field]} = ?`).join(", ")}
-         WHERE id = ?`,
-      )
-      .run(...changed.map((field) => fields[field] ?? null), id);
+  updateSession(id: string, fields: SessionFields): void {
+    writeSession(this.db, id, fields);
   }
 
   /**

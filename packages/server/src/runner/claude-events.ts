@@ -433,25 +433,3 @@ function resultEvent(message: Json): AgentEvent {
     interrupted: message.terminal_reason === "aborted_streaming",
   };
 }
-
-/** The lines of a byte stream, decoded as UTF-8 across chunks. Empty lines are dropped. */
-export async function* lines(chunks: AsyncIterable<Buffer>): AsyncIterable<string> {
-  const decoder = new TextDecoder();
-  let rest = "";
-  for await (const chunk of chunks) {
-    rest += decoder.decode(chunk, { stream: true });
-    const parts = rest.split("\n");
-    rest = parts.pop() ?? "";
-    for (const part of parts) {
-      const line = part.replace(/\r$/, "");
-      if (line !== "") {
-        yield line;
-      }
-    }
-  }
-  rest += decoder.decode();
-  const line = rest.replace(/\r$/, "");
-  if (line !== "") {
-    yield line;
-  }
-}

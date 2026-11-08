@@ -5,11 +5,11 @@ import type { SessionCache, SessionRow } from "./cache.ts";
 import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
-import { chatTitle } from "./message.ts";
 import { Processes } from "./processes.ts";
 import { checkAvailable, readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { archive, dismiss, rename, seen } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
@@ -19,7 +19,6 @@ import {
   commandCount,
   refused,
   SERVER_STOPPED,
-  TAKEN_BACK,
   type SessionChange,
   type SessionContext,
   wakeupPending,
@@ -40,8 +39,6 @@ export {
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "./session-state.ts";
-
-const now = () => new Date().toISOString();
 
 /**
  * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
@@ -331,61 +328,26 @@ export class Sessions {
 
   /** Renames a session, by the title's first line that is not blank, cut at 80 characters. */
   rename(repo: string, session: string, title: string): void {
-    const row = this.#ownNow(repo, session);
-    if (title.trim() === "") {
-      throw refused(REFUSALS.blank);
-    }
-    this.cache.updateSession(row.id, { title: chatTitle(title) });
-    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
+    rename(this.#context, this.#options.onChange, this.#ownNow(repo, session), title);
   }
 
   /** Archives a chat, or brings it back. */
   archive(repo: string, session: string, archived: boolean): void {
-    const row = this.#ownNow(repo, session);
-    if (row.folder !== null) {
-      throw new Error("a feature's session is not archived");
-    }
-    this.cache.updateSession(row.id, { archivedAt: archived ? now() : null });
-    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
+    archive(this.#context, this.#options.onChange, this.#ownNow(repo, session), archived);
   }
 
-  /**
-   * Dismisses a failed or stopped turn of the repository's: it no longer asks for the human. Refused
-   * while the turn runs or waits, and for a message taken back, which the status skips (`latestOf`);
-   * a turn dismissed already, or done, is left as it is.
-   */
+  /** Dismisses a failed or stopped turn of the repository's: `dismiss`. */
   dismiss(repo: string, turn: number): void {
     const row = this.cache.turn(turn);
     if (!row) {
       throw new Error(`no turn ${turn}`);
     }
-    const session = this.#ownNow(repo, row.sessionId);
-    if (row.state === "running" || row.state === "queued") {
-      throw refused(REFUSALS.stillRunning);
-    }
-    if (row.state === "stopped" && row.reason === TAKEN_BACK) {
-      throw refused(REFUSALS.takenBack);
-    }
-    // A decision of its continue under way is dropped too.
-    this.#context.continuer.takenOver(session.id);
-    if (this.cache.dismiss(turn)) {
-      // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,
-      // and what needs the human, and never reaches `onTurnDone`, which takes done turns only.
-      this.#options.onChange({
-        folder: session.folder,
-        repo: session.repo,
-        session: session.id,
-        state: row.state,
-        turn,
-      });
-    }
+    dismiss(this.#context, this.#options.onChange, this.#ownNow(repo, row.sessionId), row);
   }
 
   /** Records that the human saw the session. */
   seen(repo: string, session: string): void {
-    const row = this.#ownNow(repo, session);
-    this.cache.updateSession(row.id, { seenAt: now() });
-    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
+    seen(this.#context, this.#options.onChange, this.#ownNow(repo, session));
   }
 
   /**
