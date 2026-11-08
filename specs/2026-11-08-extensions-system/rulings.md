@@ -471,3 +471,54 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: its place sits between the priorities and Git on the phone's bar and in the leader
   menu: registered, it keeps that place without a second list (R6 keeps it out of the manifests).
 - **Where**: task 9, `packages/web/src/extensions/builtins/sessions.tsx`, `ExtensionsOn.tsx`.
+
+## R45: A page's shared modules load with its first page, through dynamic imports
+
+- **Decision**: `extensions/shared.ts` loads React, `react/jsx-runtime`, `react/compiler-runtime`,
+  `react-dom`, StyleX, Astryx's index, its tokens' module, and `uraeda/page` with `import()`, once,
+  when the first page loads; the page runtime itself (`PageRuntime.tsx`, `runtime.ts`,
+  `evaluate.ts`) is a lazy chunk `ExtensionsOn` mounts once an extension has a page, never preloaded
+  with the pages.
+- **Rationale**: the lint forbids namespace imports (`import * as`), and a namespace is what a
+  shared module is. Measured with `vp run --filter uraeda-web build`: the main chunk went from 317.1
+  kB to 290.7 kB, the runtime is 10.2 kB, and Astryx's index (about 580 kB) loads only with a page;
+  but the components the app and the index share now sit in chunks of their own, so the first load
+  fetches 81 files instead of 52, 2.21 MB instead of 2.18 MB (+28 kB).
+- **If wrong**: Rolldown's chunking options can merge the shared components back into the main
+  chunk.
+- **Where**: task 12, `packages/web/src/extensions/shared.ts`, `ExtensionsOn.tsx`.
+
+## R46: A page reads its settings for the current repository from `valuesHere`
+
+- **Decision**: each row of the `Extensions` record gains `valuesHere`, its settings in the
+  endpoint's repository as JSON (`{}` where it is off, every repository's on the global endpoint),
+  which `useExtensionSettings()` reads. `values` stays every repository's, for the settings form
+  (R40).
+- **Rationale**: a setting saved for `uraeda` only must reach the page drawn in `uraeda`; the server
+  already has it (`ExtensionsHost.settings`), and the record is read per endpoint.
+- **Where**: task 12, `packages/server/src/fate/extensions.ts`,
+  `packages/web/src/extensions/hooks.ts`.
+
+## R47: Your places draw in the app's column, and your settings sections on the repository's client
+
+- **Decision**: a place of yours at `/e/<name>/<id>` draws its component inside the app's `Page` of
+  kind `rows`, so it gets the app's widths at each width; an extension's settings section
+  (`ownSection`) draws under its row titled with its `title`, inside the repository's fate client,
+  as the settings page itself reads the global one.
+- **Rationale**: an extension cannot import the app's `Page`; and its section's `useRecord` reads a
+  repository's record, which the global endpoint refuses.
+- **Where**: task 12, `packages/web/src/extensions/routes.tsx`, `settings/SettingsPage.tsx`.
+
+## R48: A page's problems are kept per version, ten at most
+
+- **Decision**: the page posts `extensions.reportPageProblem({ name, version, message })` when its
+  entry throws while registering, an import is refused, its bundle cannot be fetched, or one of its
+  contributions throws while drawing (its boundary shows "<title>: <message>" in its place, one line
+  in the status line), or its `count` or a key's `run` throws. The host keeps them for the running
+  page's version only, dropping a report for another, at most 10 per version, each cut to 1000
+  characters, and lists them with the extension's problems under the page's entry file.
+- **Rationale**: a page throwing at each draw would otherwise grow the server's memory and the
+  settings page without end; a report from a tab still on the old version would show a problem
+  already fixed.
+- **Where**: task 12, `packages/server/src/extensions/page-problems.ts`, `extensions/server.ts`,
+  `packages/web/src/extensions/runtime.ts`.

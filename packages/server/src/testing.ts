@@ -4,8 +4,10 @@ import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import { ExtensionsHost } from "./extensions/server.ts";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
+import type { Hosts } from "./repositories.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "./runner/continuer.ts";
 import type { TokenCounts } from "./runner/events.ts";
@@ -100,6 +102,33 @@ export function testSettings({
  */
 export function testThemes(dir: string): Promise<ServerThemes> {
   return ServerThemes.open({ binding, dir });
+}
+
+/**
+ * The extensions of a test's server, on the config folder of `settings`: the built-ins with no
+ * agent of their own, and yours loaded from its `extensions` folder, over `hosts`. The caller
+ * closes them, as `startServer`'s `stop` does.
+ */
+export async function testExtensions({
+  dataDir,
+  hosts,
+  sessions,
+  settings,
+}: {
+  dataDir: string;
+  hosts: Hosts;
+  sessions: Sessions;
+  settings: ServerSettings;
+}): Promise<ExtensionsHost> {
+  const extensions = await ExtensionsHost.open({
+    agents: {},
+    binding,
+    configDir: settings.dir,
+    dataDir,
+    settings,
+  });
+  await extensions.start({ hosts, sessions, warm: () => {} });
+  return extensions;
 }
 
 /**

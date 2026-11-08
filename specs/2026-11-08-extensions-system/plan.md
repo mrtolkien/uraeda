@@ -1107,7 +1107,7 @@ git commit -m "feat(extensions-system): load, isolate, and reload extensions"
     - `repositories(): ReadonlyArray<{ name: string; path: string }>` (the on ones);
     - `log(message: string): void` (to the server's output, prefixed with the name).
   - fate: `Extensions` =
-    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, api, icon, isBuiltIn, isLinked, source, onAll, on, state, problems: Array<{ file, line: number | null, message }>, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
+    `{ id: "extensions", folder, docs, api, extensions: Array<{ name, title, description, version, api, icon, isBuiltIn, isLinked, source, onAll, on, state, problems: Array<{ file, line: number | null, message }>, waitingFor, settings: SettingSpec[], values: string /* JSON, global */, valuesHere: string /* JSON, the endpoint's repository: task 12, R46 */, keys: Array<{ keys, takenBy }>, pageVersion: number | null }> }`;
     `keys` is always empty from the server: the page fills in its clashes (task 9, R35); `docs` is
     `<checkout>/docs/extensions.md` until task 14 ships the documentation; `ExtensionRecord` =
     `{ id, value: string /* JSON */, error: string | null }` on each repository's fate server, live
@@ -1442,33 +1442,46 @@ git commit -m "feat(extensions-system): let sessions write extensions and use th
 
 **Files:**
 
-- Create: `packages/web/src/extensions/runtime.ts` (fetches `/extensions/<name>/page` when an on
-  extension's `pageVersion` changes, evaluates its modules with
-  `new Function("__import", "__exports", code)`, calls the entry's default export with
-  `pageApi(name, registry)`, injects its CSS in one `<style data-extension="<name>">` replaced on
-  reload, and undoes the old version's registrations first), `extensions/shared.ts` (the modules
-  pages may import: `react`, `react/jsx-runtime`, `react/compiler-runtime`, `react-dom`,
-  `@stylexjs/stylex`, `@astryxdesign/core` and each `@astryxdesign/core/<path>` resolved to its
-  index, `uraeda/page`), `extensions/hooks.ts` (exported from `uraeda/page`: `useRecord<T>(name)`,
-  `useAction(name)`, `useExtensionSettings()`, `useRepository()`),
-  `extensions/ExtensionBoundary.tsx` (an error boundary per contribution, keyed by the extension's
-  version so a reload remounts it)
-- Modify: `App.tsx` (mounts the runtime inside the repository's client), `pages.ts` (the runtime's
-  chunk loads lazily, only when an extension page is on), `views.ts`, `data.ts`
-  (`ExtensionRecordView`)
-- Test: `src/__tests__/extension-pages.test.tsx`
+- Create: `packages/web/src/extensions/runtime.ts` (`syncPages(rows, deps)`: fetches
+  `/extensions/<name>/page` when an extension's `pageVersion` changes, undoes the old version's
+  registrations, calls the entry's default export with `pageApi(name, registry, { title })`, every
+  contribution's components drawn in an `ExtensionBoundary` keyed by the version, and injects its
+  CSS in one `<style data-extension="<name>">` replaced on reload), `extensions/evaluate.ts`
+  (`pageActivation(bundle, shared)`: each module through
+  `new Function("__import", "__exports", code)`, relative imports resolved against the bundle's keys
+  by the loader's rule, bare imports only the shared modules), `extensions/shared.ts` (the modules
+  pages may import, loaded with the first page through `import()`, R45: `react`,
+  `react/jsx-runtime`, `react/compiler-runtime`, `react-dom`, `@stylexjs/stylex`,
+  `@astryxdesign/core` and each `@astryxdesign/core/<path>` resolved to its index,
+  `@astryxdesign/core/theme/tokens.stylex`, `uraeda/page`), `extensions/hooks.ts` (exported from
+  `uraeda/page`: `useRecord<T>(name)`, `useAction(name)`, `useExtensionSettings()`,
+  `useRepository()`), `extensions/ExtensionBoundary.tsx` (an error boundary per contribution, which
+  also gives the hooks their extension), `extensions/PageRuntime.tsx` (the lazy chunk's component),
+  `packages/server/src/extensions/page-problems.ts` (R48)
+- Modify: `extensions/ExtensionsOn.tsx` (mounts the lazy runtime, inside the repository's client,
+  once an extension has a page, instead of `App.tsx` and `pages.ts`, whose chunks are preloaded),
+  `extensions/routes.tsx` (your places in the app's `Page`, R47), `extensions/useContributions.ts`
+  (`useContributionEntries`), `settings/SettingsPage.tsx` (task 10's `ownSection` slot, R47),
+  `views.ts` (`ExtensionRecordView`, `ExtensionActionView`: `data.ts` is at its size limit);
+  `packages/server/src/fate/extension-mutations.ts` (`extensions.reportPageProblem`),
+  `fate/extensions.ts` (`valuesHere`, R46), `extensions/server.ts` (`reportPageProblem`),
+  `testing.ts` (`testExtensions`); the web tests' `helpers.tsx` (`renderPage`'s `extensions` option
+  starts an `ExtensionsHost` over the config folder)
+- Test: `src/__tests__/extension-pages.test.tsx`;
+  `packages/server/src/extensions/__tests__/page-problems.test.ts`
 
 **Interfaces:**
 
 - Consumes: tasks 8, 9.
 - Produces: `uraeda/page`'s runtime values (`definePage` is not needed: the entry exports
   `default (api: PageApi) => void`); the hooks above, `useRecord` reading `ExtensionRecord`
-  `<name>/<record>` live, `useAction` calling `extensions.act`. A throwing entry registers nothing,
-  is reported on the settings page through the `Extensions` view's problems (the page posts it with
-  `extensions.reportPageProblem({ name, version, message })`, a mutation task 8's file gains here),
-  and leaves every other contribution drawn.
+  `<name>/<record>` live, `useAction` calling `extensions.act`, `useExtensionSettings` reading the
+  row's new `valuesHere` (R46). A throwing entry registers nothing, is reported on the settings page
+  through the `Extensions` view's problems (the page posts it with
+  `extensions.reportPageProblem({ name, version, message })`, a mutation task 8's file gains here,
+  kept per version, R48), and leaves every other contribution drawn.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/web/src/__tests__/extension-pages.test.tsx
@@ -1484,23 +1497,24 @@ test("an extension page registers a place and reloads", async () => {
 The break it catches: an old version's place left registered beside the new one; a throwing page
 blanking the shell.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/extension-pages.test.tsx`
 - Expected: FAIL, no "Wiki" in the leader menu.
 
-- [ ] **Step 3: Implement the runtime, the shared modules, and the hooks**
+- [x] **Step 3: Implement the runtime, the shared modules, and the hooks**
 
-- [ ] **Step 4: Run the task's validation, and review it**
+- [x] **Step 4: Run the task's validation, and review it**
 
-- Run: `vp check && vp test packages/web && vp run web:build`
-- Expected: PASS; the main chunk does not grow by the runtime (it is lazy). In the sandbox, the
-  example extension of task 14 (a temporary copy until then) draws in both themes and both widths.
+- Run: `vp check && vp test packages/web packages/server && vp run --filter uraeda-web build`
+- Expected: PASS; the main chunk does not grow by the runtime (it is lazy; R45 has the sizes). In
+  the sandbox, the example extension of task 14 (a temporary copy until then) draws in both themes
+  and both widths.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web packages/server/src/fate
+git add packages/web packages/server specs/2026-11-08-extensions-system
 git commit -m "feat(extensions-system): load extension pages in the web UI, reloaded on save"
 ```
 

@@ -1,6 +1,7 @@
 // Which extensions are on in the current repository, read once for the whole shell: the registries'
-// readers list only their contributions (`useContributions`).
-import type { ReactNode } from "react";
+// readers list only their contributions (`useContributions`). Once one of your extensions has a
+// page, the page runtime loads, in a chunk of its own, and registers it.
+import { lazy, type ReactNode, Suspense } from "react";
 import { useExtensionsRecord } from "../settings/useExtensionsRecord.ts";
 import { useRepository } from "../routes.tsx";
 import { type IsOn, IsOnContext } from "./useContributions.ts";
@@ -20,10 +21,31 @@ export function isOnIn(rows: ReadonlyArray<Row>, repository: string): IsOn {
   };
 }
 
-/** Its children, with the extensions on in the current repository. */
+/** The page runtime: fetched only once an extension has a page, and never preloaded. */
+const PageRuntime = lazy(async () => ({
+  default: (await import("./PageRuntime.tsx")).PageRuntime,
+}));
+
+/**
+ * Whether an extension had a page since the app loaded: the runtime then stays, to undo the last
+ * page as it goes. Global, as the registry is.
+ */
+let hadPages = false;
+
+/** Its children, with the extensions on in the current repository, and your extensions' pages. */
 export function ExtensionsOn({ children }: { children: ReactNode }) {
   const repository = useRepository();
   const rows = useExtensionsRecord()?.extensions;
   const isOn = isOnIn(rows ?? [], repository);
-  return <IsOnContext value={isOn}>{children}</IsOnContext>;
+  hadPages ||= rows?.some((row) => row.pageVersion !== null) ?? false;
+  return (
+    <IsOnContext value={isOn}>
+      {hadPages && rows && (
+        <Suspense fallback={null}>
+          <PageRuntime rows={rows} />
+        </Suspense>
+      )}
+      {children}
+    </IsOnContext>
+  );
 }

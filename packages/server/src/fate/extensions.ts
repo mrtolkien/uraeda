@@ -35,6 +35,11 @@ export type ExtensionRow = {
   title: string;
   /** Its settings for every repository, as a JSON object. */
   values: string;
+  /**
+   * Its settings in the repository of the endpoint, as a JSON object, `{}` where it is off; every
+   * repository's on the global endpoint. What the extension's page reads.
+   */
+  valuesHere: string;
   version: string;
   waitingFor: string | null;
 };
@@ -73,7 +78,7 @@ export const extensionActionDataView = dataView<ExtensionActionRecord>("Extensio
   outputJson: true,
 });
 
-function row({ extension, ...state }: ExtensionState): ExtensionRow {
+function row({ extension, ...state }: ExtensionState, here = state.values): ExtensionRow {
   const { api, description, icon, isBuiltIn, isLinked, name, on, onAll, settings } = extension;
   return {
     api,
@@ -96,6 +101,7 @@ function row({ extension, ...state }: ExtensionState): ExtensionRow {
     state: state.state,
     title: extension.title,
     values: JSON.stringify(state.values),
+    valuesHere: JSON.stringify(here),
     version: extension.version,
     waitingFor: state.waitingFor,
   };
@@ -127,8 +133,15 @@ export async function extensionsRecord(ctx: Context): Promise<ExtensionsRecord> 
   if (!ctx.extensions) {
     return readOnly(ctx);
   }
-  const { extensions, ...rest } = ctx.extensions.states();
-  return { ...rest, extensions: extensions.map(row), id: EXTENSIONS_ID };
+  const host = ctx.extensions;
+  const { extensions, ...rest } = host.states();
+  const repository = ctx.repo === null ? null : (ctx.hosts.byPath(ctx.repo)?.name ?? null);
+  const here = (state: ExtensionState) =>
+    row(
+      state,
+      repository === null ? state.values : host.settings(state.extension.name, repository),
+    );
+  return { ...rest, extensions: extensions.map(here), id: EXTENSIONS_ID };
 }
 
 /** The extensions' sources: their records are read on a repository's endpoint only. */

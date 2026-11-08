@@ -6,6 +6,8 @@ import type {
   AllBranchChanges,
   BranchChanges,
   BranchDecision,
+  ExtensionAction,
+  ExtensionRecord,
   Extensions,
   ProposalFile,
   Feature,
@@ -413,6 +415,12 @@ export const ExtensionsRecordView = view<Extensions>()({
   folder: true,
   id: true,
 });
+
+/** An extension's named record, `<extension>/<name>`: its value as JSON, or why it was not read. */
+export const ExtensionRecordView = view<ExtensionRecord>()({ error: true, id: true, value: true });
+
+/** An extension's action's answer, its output as JSON. */
+export const ExtensionActionView = view<ExtensionAction>()({ id: true, outputJson: true });
 
 /** The folders the add form suggests for a typed text, its id. */
 export const FolderSuggestionsView = view<FolderSuggestions>()({
