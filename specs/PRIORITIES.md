@@ -6,10 +6,7 @@
 >
 > Still wanted for my personal usage
 
-- [Keyboard nav in questions and specs](/specs/2026-11-07-keyboard-nav/proposal.md)
-- [Global undo](/specs/2026-11-07-global-undo/proposal.md)
-- [Color themes](/specs/2026-11-07-color-themes/proposal.md)
-- [Storybook previews take way too long to appear. I know in the past we also had…](/specs/2026-11-07-storybook-previews/proposal.md)
+- [Extensions system](/specs/2026-11-08-extensions-system/proposal.md)
 
 - Spec comments: suggestion vs change needed
 - Review the UI guidelines properly
@@ -22,10 +19,6 @@
 >
 > Features for public release
 
-- Extensions system
-  - claude integration could become an extension
-  - Needs both core extenstions (WASM?), server extensions (TS?), and UI extensions
-  - same for the references system which is more of a skill tbh
 - Nix / Docker based execution environments
   - Make it _safer_ to run agents in YOLO mode
 
@@ -34,8 +27,6 @@
   - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
     decision?
   - This is early because it will help us develop the rest
-
-- Git listener process?
 
 - Proper security: Passkeys to sign in, on top of the access key of basic security
 - Monorepo support: multiple `specs` folders, principles per package, ...
