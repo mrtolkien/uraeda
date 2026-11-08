@@ -4,6 +4,7 @@ finished: 2026-10-27
 pull-request: https://github.com/mrtolkien/uraeda/pull/63
 superseded-by:
   - 2026-11-07-keyboard-nav
+  - 2026-11-07-color-themes
 ---
 
 # Record: Leader key/shortcut map
@@ -15,6 +16,8 @@ superseded-by:
 > in git: `git log -- specs/2026-10-26-leader-key/`.
 >
 > Superseded in part by [2026-11-07-keyboard-nav](2026-11-07-keyboard-nav.md).
+>
+> Superseded in part by [2026-11-07-color-themes](2026-11-07-color-themes.md).
 
 ## What and why
 

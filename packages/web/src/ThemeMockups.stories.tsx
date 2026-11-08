@@ -1,4 +1,4 @@
-// The colour themes' mockups (`specs/2026-11-07-color-themes/spec.md`): the settings' Appearance
+// The colour themes' mockups (`specs/done/2026-11-07-color-themes.md`): the settings' Appearance
 // section, with the mode, a theme for each mode, and your theme files, their problems included; the
 // theme picker of `Space u t`, a list over the app, which is the preview, fading after a second;
 // and a document's headings, a colour per level. Built from the real components over fixed text;
