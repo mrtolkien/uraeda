@@ -602,3 +602,47 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: SC-004 asks for growth no larger than the plan measured, and the release notes to
   say how much; R8 puts the numbers here.
 - **Where**: task 14.
+
+## R55: Key clashes are settled among the extensions on in each repository
+
+- **Decision**: the web registry keeps every key an extension claims, and settles clashes as it
+  lists, among the extensions on in the current repository, in registration order: the first of them
+  keeps a key. The settings page reports each clash for every repository in Uraeda's list, naming
+  the repositories it happens in when not all of them ("`y` is taken by Deploy in uraeda").
+- **Rationale**: settled once at registration, a key held by an extension off here (the built-in
+  inbox off in a repository) blocked its replacement, and an extension on only in one repository
+  blocked another on only in a second. The spec's "the first loaded keeps it" holds among the
+  extensions that are on together.
+- **Where**: fix pass, `packages/web/src/extensions/registry.ts`, `useContributions.ts`
+  (`clashesIn`), `settings/SettingsPage.tsx`, `settings/extensions.ts`.
+
+## R56: `uraeda` and `sessions` are kept by Uraeda, and agent plugins are named `ext-<name>`
+
+- **Decision**: the core refuses an extension named `uraeda` or `sessions` ("sessions is reserved by
+  Uraeda"), on reading and in `ura extension add`, as it refuses a built-in's name. Each extension's
+  Claude plugin folder, and its `plugin.json` name, is `ext-<name>`. The web never reads an
+  `Extensions` row named `sessions`.
+- **Rationale**: Sessions is registered in the web like a built-in without a manifest (R44), so a
+  row of yours named `sessions` would turn it off; an extension named `uraeda` would give a plugin
+  of the same name as Uraeda's own. The prefix keeps every extension's plugin apart whatever its
+  name.
+- **Where**: fix pass, `crates/core/src/extensions.rs` (`RESERVED`, `taken`),
+  `packages/server/src/runner/claude.ts`, `packages/web/src/extensions/ExtensionsOn.tsx`.
+
+## R57: Until the Extensions record is read, the built-ins are on and yours off
+
+- **Decision**: `isOnIn` without rows treats the built-ins (Sessions included) as on and every other
+  extension as off.
+- **Rationale**: drawing everything until the record loads flashed a place of yours, or a built-in
+  off here, in a repository it is off in; the built-ins are on almost everywhere, so drawing them
+  keeps the first paint as it was.
+- **Where**: fix pass, `packages/web/src/extensions/ExtensionsOn.tsx`, `builtins/order.ts`.
+
+## R58: The phone's bar holds four places, the built-ins' first
+
+- **Decision**: of the places asking for a phone tab on the bar, the first four, in the registry's
+  order (built-ins first), are drawn there; the rest go into the `…`, before the places asking for
+  it. One of yours takes a tab only where a built-in's is off.
+- **Rationale**: the bar fits eight 44 px controls on a 375 px phone with Home, the sidebar's
+  toggle, the `…`, and New: four places.
+- **Where**: fix pass, `packages/web/src/shell/Tabs.tsx` (`phoneTabs`).
