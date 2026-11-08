@@ -6,14 +6,17 @@ import { layout } from "./paths.ts";
 type Binding = typeof import("uraeda-binding");
 
 /**
- * What the binding is built from: the core, the binding's crate, and the skill and shipped colour
- * themes the core embeds. Not the crates' tests, which a build does not read.
+ * What the binding is built from: the core, the compiler, the binding's crate, and the skill, shipped
+ * colour themes, and built-in extension manifests the core embeds. Not the crates' tests, which a build does not read.
  */
 export const SOURCES = [
   "crates/core/src",
   "crates/core/build.rs",
   "crates/core/Cargo.toml",
   "crates/core/themes",
+  "crates/core/extensions",
+  "crates/compile/src",
+  "crates/compile/Cargo.toml",
   "crates/binding/src",
   "crates/binding/build.rs",
   "crates/binding/Cargo.toml",
