@@ -149,3 +149,16 @@ test("a server given no agents has no fake runtime", async () => {
   expect(opened.server.extensions.runtimes.get("claude")).toBeDefined();
   expect(stateOf(opened.server, "fake")?.state).toBe("off");
 });
+
+// Break: the extensions closed before the sessions stop watching the runtimes, as before.
+test("a server stopping checks no runtime as its extensions unload", async () => {
+  const opened = await serve({ durable: runtime(1) }, "");
+  const { sessions } = opened.server;
+  await sessions.check();
+  expect(opened.sink.activations).toBe(1);
+  const check = vi.spyOn(sessions, "check");
+
+  await opened.server.stop();
+
+  expect(check).not.toHaveBeenCalled();
+});

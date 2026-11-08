@@ -368,8 +368,8 @@ async function startOpened(
     });
   } catch (error) {
     opened.close();
-    extensions.close();
     await sessions.stop();
+    extensions.close();
     throw error;
   }
   // Once the repositories and the runtimes are there: a run of one no longer listed does not go on
@@ -420,8 +420,8 @@ async function startOpened(
         opened.close();
         options.settings.close();
         options.themes.close();
-        extensions.close();
-        await Promise.all([sessions.stop(), previews.stopAll()]);
+        // The sessions stop before the extensions unload: an unloaded runtime checks nothing.
+        await Promise.all([sessions.stop().then(() => extensions.close()), previews.stopAll()]);
       })();
       return stopping;
     },
