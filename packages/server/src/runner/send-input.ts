@@ -35,7 +35,7 @@ export type SendInput = {
  * A message checked before any session work: text, or images alone, as `checkImages` allows
  * them. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
  */
-export function checkSend(input: SendInput, capabilities: Capabilities) {
+export function checkSend(input: SendInput, capabilities: Pick<Capabilities, "images">) {
   const images = input.images ?? [];
   const blank = input.text.trim() === "";
   if (blank && images.length === 0) {

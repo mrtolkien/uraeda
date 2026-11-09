@@ -10,7 +10,7 @@ import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
 import { Processes } from "./processes.ts";
-import { checkAvailable, readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
+import { readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
 import type { SessionPick } from "./picks.ts";
@@ -276,12 +276,15 @@ export class Sessions {
     input: SendInput,
   ): Promise<{ session: string; turn: number }> {
     const row = await this.#own(repo, session);
-    const message = checkSend(input, sessionRuntime(this.runtimes, row).capabilities);
-    const available = () => checkAvailable(this.runtimes, row.agent);
-    available();
+    // A workflow message takes no images, and its run's session, maybe another, checks its agent.
+    const capabilities =
+      input.workflow === undefined
+        ? sessionRuntime(this.runtimes, readySession(this.runtimes, row)).capabilities
+        : { images: false };
+    const message = checkSend(input, capabilities);
     const live = this.#context.live.of(row);
     return this.#context.live.serial(live, () =>
-      this.#asHuman(live, () => sendTo(this.#context, live, message, available)),
+      this.#asHuman(live, () => sendTo(this.#context, live, message)),
     );
   }
 

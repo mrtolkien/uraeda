@@ -159,8 +159,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a run joined to a session sets its effort only when the step picks one: a step on
   the agent's default keeps the session's effort. A chained run that is refused, as on a model gone,
-  leaves its reason as the ended turn's last line. A legacy session's run step is read by the core's
-  `runStepOf`, a new function of the binding.
+  leaves its reason as the ended turn's last line. A workflow run checks the agent of the session it
+  goes to, never the agent of the session it was sent from: a chained run, Continue all, or a
+  workflow message runs while the ended session's agent is gone. A legacy session's run step is read
+  by the core's `runStepOf`, a new function of the binding.
 - **Rationale**: an effort the human set on the session is not undone by a step that picks none; the
   human reads why the next step did not start; TypeScript reaches the core's step mapping only
   through the binding.

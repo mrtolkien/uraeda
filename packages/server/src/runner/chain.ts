@@ -4,10 +4,12 @@
 import { reasonOf } from "../reason.ts";
 import type { TurnRow } from "./cache.ts";
 import { recommendedMessage } from "./message.ts";
-import { checkAvailable, runtimeState, sessionRuntime } from "./runtimes.ts";
 import { checkSend } from "./send-input.ts";
 import { sendTo } from "./send.ts";
-import { type Live, rowOf, type SessionContext } from "./session-state.ts";
+import { type Live, refused, rowOf, type SessionContext } from "./session-state.ts";
+
+/** The agent a step's message is read for when the session it goes to checks its own agent. */
+export const ANY_AGENT = { available: true, name: "" };
 
 /**
  * Starts the next step's run as a step's run ends, before a gate, in the session the next step's
@@ -51,7 +53,7 @@ export class Chain {
    * step that waits on the agent, and the session's run was not taken over since `taken`.
    */
   async #next(live: Live, folder: string, step: string, taken: number): Promise<void> {
-    const { binding, cache, runtimes } = this.#context;
+    const { binding } = this.#context;
     const next = await binding.nextStep(live.repo, folder);
     const { runStep } = next.step;
     if (
@@ -62,21 +64,18 @@ export class Chain {
       return;
     }
     const feature = await binding.readFeature(live.repo, folder);
-    const row = rowOf(cache, live);
-    const agent = runtimeState(runtimes, live.repo, row);
-    const message = recommendedMessage({ agent, feature, next });
+    // The ended session's agent may not run the next step: the session it goes to checks its own.
+    const message = recommendedMessage({ agent: ANY_AGENT, feature, next });
     if ("reason" in message) {
-      return;
+      throw refused(message.reason);
     }
     const workflow = { step: message.step, trigger: "next-step" } as const;
-    const { capabilities } = sessionRuntime(runtimes, row);
-    const checked = checkSend({ text: message.text, workflow }, capabilities);
-    const available = () => checkAvailable(runtimes, row.agent);
+    const checked = checkSend({ text: message.text, workflow }, { images: false });
     await this.#context.live.serial(live, async () => {
       if (this.#context.continuer.takeovers(live.id) !== taken) {
         return undefined;
       }
-      return sendTo(this.#context, live, checked, available);
+      return sendTo(this.#context, live, checked);
     });
   }
 }

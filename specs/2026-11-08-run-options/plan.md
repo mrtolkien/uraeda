@@ -747,7 +747,10 @@ share, and concurrency with the continuer.
     publication until sent. It sends nothing otherwise, so the status stays `halted` as today, nor
     once the session's run was taken over while it read, by Stop or a message: it compares
     `Continuer.takeovers(session)` at the turn's end and right before it sends. A refused chained
-    run leaves its reason as the turn's last line (R16).
+    run leaves its reason as the turn's last line (R16). `sendTo(context, live, checked)` checks the
+    agent of the session the message goes to, `runSession`'s for a workflow run, never the agent of
+    the session it was sent from: the chain, Continue all, and `Sessions.send` for a workflow
+    message no longer check that one (R16).
   - `runStepOf(step: string): string | null` on the binding, the core's `StepName::parse` and
     `run_step`: the run step of a legacy session's last workflow turn (R16).
   - `Sessions` takes `runOptions(repo, folder)`, the server's `FeatureOptions.resolved`, given by
@@ -761,9 +764,10 @@ share, and concurrency with the continuer.
   Opus, build on Sonnet; the plan turn ends with the next step at `implementation`; a new session on
   Sonnet holds a workflow turn "Implement the plan", trigger `next-step`, and the automatic
   continues count stays 0. Rows: a step's model gone refuses with the exact text; a build agent off
-  runs on the first runtime on; a turn the human stopped chains nothing, nor one stopped once ended,
-  while the chain reads the next step. Break: chaining from `stopped`, or counting the chain as a
-  continue.
+  runs on the first runtime on; the plan's agent gone runs the build on its own; a turn the human
+  stopped chains nothing, nor one stopped once ended, while the chain reads the next step; a feature
+  merged leaves its reason as the plan's last line. Break: chaining from `stopped`, or counting the
+  chain as a continue.
 - "a step joined to the one before runs in its session, on its own effort": Spec at High, Plan at
   Medium, joined; the plan's run sent after the spec's approval goes to the spec's session with
   effort Medium (a spec revision is the Spec step's own run, R17). Row: a legacy session without

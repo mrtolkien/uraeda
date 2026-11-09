@@ -118,7 +118,7 @@ export function startCatchUps(options: {
         trigger: "catch-up" as const,
       };
       try {
-        await continueOne(ctx, root, feature, session, automatic);
+        await continueOne(ctx, feature, session, automatic);
       } catch (error) {
         const key = `${root}\0${feature.folder}\0${catchUp.commit}`;
         if (!printed.has(key)) {

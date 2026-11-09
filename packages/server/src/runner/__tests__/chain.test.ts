@@ -36,18 +36,20 @@ const STEPS = {
 
 /**
  * The real binding, but the feature's next step is `state.at` once a test sets it: a run moves the
- * feature on by setting it, as its commit would. Its reads wait on `state.held` while a test sets it.
+ * feature on by setting it, as its commit would. Its reads wait on `state.held` while a test sets it,
+ * and read no branch once `state.merged` is set.
  */
 function stepped() {
-  const state: { at?: Partial<NextStepView>; held?: Promise<void> } = {};
+  const state: { at?: Partial<NextStepView>; held?: Promise<void>; merged?: boolean } = {};
   const through: Binding = {
     ...binding,
     nextStep: async (repo: string, folder: string): Promise<NextView> => {
       await state.held;
-      const next = await binding.nextStep(repo, folder);
+      const { branch, ...next } = await binding.nextStep(repo, folder);
+      const read = state.merged === true || branch === undefined ? next : { ...next, branch };
       return state.at === undefined
-        ? next
-        : { ...next, step: { ...next.step, waitsOn: "agent", ...state.at } };
+        ? read
+        : { ...read, step: { ...read.step, waitsOn: "agent", ...state.at } };
     },
   };
   return { state, through };
@@ -69,15 +71,19 @@ async function twoRuntimes(on: Record<string, boolean> = {}) {
   return { fake, other, runtimes };
 }
 
-/**
- * A plan run on Fake Small, its build on `build`, sent and ended, the feature moved on to the build:
- * stopped by the human as it runs, or, `reading`, once it ended, while the chain reads the feature.
- */
-async function planRun(
-  build: RunOptions["steps"][number],
-  { stop }: { stop?: "running" | "reading" } = {},
-) {
-  const { fake, other, runtimes } = await twoRuntimes({ other: false });
+/** How a plan run ends, besides moving the feature on to the build. */
+type PlanEnd = {
+  /** The plan's agent is gone, uninstalled, once its run ended: the `other` runtime is on. */
+  gone?: boolean;
+  /** The feature's branch is merged as the run ends. */
+  merged?: boolean;
+  /** The human stops the run as it runs, or, `reading`, once it ended, while the chain reads. */
+  stop?: "running" | "reading";
+};
+
+/** A plan run on Fake Small, its build on `build`, sent and ended, the feature moved on to the build. */
+async function planRun(build: RunOptions["steps"][number], { gone, merged, stop }: PlanEnd = {}) {
+  const { fake, other, runtimes } = await twoRuntimes({ other: gone === true });
   const { state, through } = stepped();
   const options: RunOptions = { steps: [{ model: "fake-small", step: "plan" }, build] };
   const { cache, repo, sessions } = await testSessions(undefined, {
@@ -88,8 +94,13 @@ async function planRun(
   const root = await sessions.mainRoot(repo);
   const plan = await sessions.featureSession(repo, AGENT, { model: "fake-small", runtime: "fake" });
   fake.script([
-    () => {
+    async () => {
       state.at = STEPS.implementation;
+      state.merged = merged;
+      if (gone) {
+        fake.installed = false;
+        await runtimes.check();
+      }
     },
     ...(stop === "running" ? [() => new Promise<void>(() => {})] : []),
   ]);
@@ -110,27 +121,32 @@ async function planRun(
   return { cache, fake, other, plan, root, sessions, turn };
 }
 
-test.each<[string, RunOptions["steps"][number], { stop?: "running" | "reading" }]>([
+test.each<[string, RunOptions["steps"][number], PlanEnd]>([
   ["on its pick", { effort: "high", model: "fake-big", step: "build" }, {}],
   ["a model gone", { model: "fake-gone", step: "build" }, {}],
   ["an agent off", { agent: "other", effort: "low", model: "other-big", step: "build" }, {}],
   ["stopped", { effort: "high", model: "fake-big", step: "build" }, { stop: "running" }],
   ["stopped once ended", { effort: "high", model: "fake-big", step: "build" }, { stop: "reading" }],
+  ["the plan's agent gone", { agent: "other", model: "fake-small", step: "build" }, { gone: true }],
+  ["merged", { effort: "high", model: "fake-big", step: "build" }, { merged: true }],
 ])(
   "a plan run that ends at the build starts the build's run in a new session on its pick (%s)",
-  async (row, build, { stop }) => {
-    const { cache, fake, other, plan, root, sessions, turn } = await planRun(build, { stop });
+  async (row, build, end) => {
+    const { cache, fake, other, plan, root, sessions, turn } = await planRun(build, end);
 
     const latest = cache.latestSession(root, AGENT)!;
-    if (row === "a model gone" || row.startsWith("stopped")) {
+    if (row === "a model gone" || row === "merged" || row.startsWith("stopped")) {
       expect(latest.id).toBe(plan.id);
       expect(cache.turns(plan.id)).toHaveLength(1);
       // The chain's refusal is the plan run's last line: the human reads why the build waits.
       const last = cache.items(turn, 0, 100).at(-1);
-      if (row === "a model gone") {
+      if (row === "a model gone" || row === "merged") {
         expect(last).toMatchObject({
           kind: "system",
-          text: "Build runs on fake-gone, which Claude Code no longer lists.",
+          text:
+            row === "merged"
+              ? "This feature has no branch left: it is merged."
+              : "Build runs on fake-gone, which Claude Code no longer lists.",
         });
       } else {
         expect(cache.turn(turn)?.state).toBe(row === "stopped" ? "stopped" : "done");
@@ -139,11 +155,12 @@ test.each<[string, RunOptions["steps"][number], { stop?: "running" | "reading" }
       return;
     }
     expect(latest.id).not.toBe(plan.id);
-    expect(latest).toMatchObject(
-      row === "on its pick"
-        ? { agent: "fake", effort: "high", model: "fake-big", step: "build" }
-        : { agent: "fake", effort: null, model: null, step: "build" },
-    );
+    const picked = {
+      "an agent off": { agent: "fake", effort: null, model: null },
+      "on its pick": { agent: "fake", effort: "high", model: "fake-big" },
+      "the plan's agent gone": { agent: "other", effort: null, model: "fake-small" },
+    }[row];
+    expect(latest).toMatchObject({ ...picked, step: "build" });
     const [chained] = cache.turns(latest.id);
     expect(chained).toMatchObject({
       kind: "workflow",
@@ -151,11 +168,12 @@ test.each<[string, RunOptions["steps"][number], { stop?: "running" | "reading" }
       trigger: "next-step",
     });
     await sessions.settled(chained!.id);
-    expect(fake.sent.at(-1)?.text).toContain(
+    const builder = row === "the plan's agent gone" ? other : fake;
+    expect(builder.sent.at(-1)?.text).toContain(
       ": Implement the plan, starting with skills/uraeda/references/implementation.md.\n" +
         "Stop when every task of the plan is checked, ",
     );
-    expect(other.opens).toHaveLength(0);
+    expect(other.opens).toHaveLength(builder === other ? 1 : 0);
     // A chained run is no automatic continue: neither session counts one.
     expect(cache.session(plan.id)?.automaticContinues).toBe(0);
     expect(cache.session(latest.id)?.automaticContinues).toBe(0);

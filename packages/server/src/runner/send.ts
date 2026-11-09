@@ -4,6 +4,7 @@ import type { TurnRow } from "./cache.ts";
 import type { ContinueReason, TurnKind } from "./events.ts";
 import { chatTitle, continueMessage } from "./message.ts";
 import { isStepId, runSession } from "./run-session.ts";
+import { readySession } from "./runtimes.ts";
 import { type checkSend, messageItem, openingOf, sendPlace } from "./send-input.ts";
 import {
   type Live,
@@ -23,26 +24,27 @@ type Place = Awaited<ReturnType<typeof sendPlace>>;
  * Sends a checked message to the session, under its lock, and returns the session it went to and
  * its turn. A workflow run goes to the session `runSession` gives its run step: a new session of
  * the change or the feature becomes its latest, queued there while the session it was sent to
- * works. `available` refuses once the agent is gone. A session of a dropped change or feature is
- * refused: its worktree is gone, and stays gone.
+ * works. The session the message goes to is refused while its agent is off or gone: a workflow
+ * run's, not the one it was sent to. A session of a dropped change or feature is refused: its
+ * worktree is gone, and stays gone.
  */
 export async function sendTo(
   context: SessionContext,
   live: Live,
   checked: Checked,
-  available: () => void,
 ): Promise<{ session: string; turn: number }> {
   if (ofDropped(rowOf(context.cache, live))) {
     throw refused(REFUSALS.dropped);
   }
   const place = await sendPlace(context.binding, live, checked.workflow);
-  available();
   const workflow = place.asChat === undefined ? checked.workflow : undefined;
   if (workflow === undefined || live.folder === null || !isStepId(place.runStep)) {
+    readySession(context.runtimes, rowOf(context.cache, live));
     return deliver(context, live, checked, place, false);
   }
   const behind = live.turn !== undefined || live.queue.length > 0;
   const next = await runSession(context, live, place.runStep, workflow.fresh);
+  readySession(context.runtimes, rowOf(context.cache, next));
   if (next === live) {
     return deliver(context, live, checked, place, false);
   }
