@@ -265,7 +265,7 @@ test("a session's status change is published at once, with the list, its feature
 });
 
 /** US6: the parent's record lists its sub-sessions' states, which change with their turns. */
-test("a sub-session's status change is published with its parent's record", () => {
+test("a sub-session's status change is published with its parent's record, not the list", () => {
   const { cache, session: parent } = sessionWithItems(0);
   const sub = cache.createSession({
     agent: "fake",
@@ -284,6 +284,8 @@ test("a sub-session's status change is published with its parent's record", () =
 
   expect(sent()).toContain(`Session ${sub.id}`);
   expect(sent()).toContain(`Session ${parent}`);
+  // The list leaves sub-sessions out.
+  expect(sent()).not.toContain("SessionList all");
 });
 
 test("two changes published in one millisecond have different event IDs", () => {

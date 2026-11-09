@@ -180,12 +180,57 @@ function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
   }
 }
 
-/** Sends the session's record, and, for a sub-session, its parent's, which lists it with its state. */
-function sendSession(cache: SessionCache, update: ReturnType<typeof sender>, session: string) {
+/**
+ * Sends the session's record, and, for a sub-session, its parent's, which lists it with its state
+ * and its usage: the parent's list follows a sub-session's usage as its state changes. Gives
+ * whether it is a sub-session, which the sidebar's list leaves out.
+ */
+function sendSession(
+  cache: SessionCache,
+  update: ReturnType<typeof sender>,
+  session: string,
+): boolean {
   update("Session", session);
   const parent = cache.session(session)?.parent;
   if (parent) {
     update("Session", parent);
+  }
+  return Boolean(parent);
+}
+
+/** Sends a turn's record and its last two item pages, where a tool call may finish. */
+function sendTurn(cache: SessionCache, update: ReturnType<typeof sender>, id: number) {
+  update("Turn", String(id));
+  const count = pages(cache, id);
+  for (const page of [count - 2, count - 1].filter((page) => page >= 0)) {
+    update("TurnLog", `${id}:${page}`);
+  }
+}
+
+/**
+ * Sends a session's change at once on `bus`: its record, a sub-session's parent's, its turn, the
+ * list but for a sub-session, its feature, the workspace, and, as a turn starts or ends, the Git
+ * page, whose writes it refuses or lets.
+ */
+function publishAtOnce(
+  cache: SessionCache,
+  bus: LiveBus,
+  change: Exclude<SessionChange, { agent: true }>,
+) {
+  const update = sender(bus);
+  const sub = sendSession(cache, update, change.session);
+  if (change.turn !== undefined) {
+    sendTurn(cache, update, change.turn);
+  }
+  if (!sub) {
+    update("SessionList", SESSION_LIST_ID);
+  }
+  if (change.folder !== null) {
+    update("Feature", change.folder);
+  }
+  update("Workspace", WORKSPACE_ID);
+  if (change.state !== undefined) {
+    publishGit(bus);
   }
 }
 
@@ -194,9 +239,11 @@ function sendSession(cache: SessionCache, update: ReturnType<typeof sender>, ses
  * and their last two item pages, where a tool call may finish, go out at most every 250 ms while
  * items change, with the sidebar's list when a sub-agent starts or ends. A turn's state change,
  * and any other change of the session, go out at once, with the list, the session's feature, the
- * workspace's working folders, and a sub-session's parent. A change of the agent's availability
- * goes with every feature's recommended message, which reads it; a commit's goes with the
- * feature's, through `publish`.
+ * workspace's working folders, and a sub-session's parent, whose record lists its usage: the
+ * parent's list updates a sub-session's usage as its state changes, not with each of its items.
+ * The list, which leaves sub-sessions out, is not sent for theirs. A change of the agent's
+ * availability goes with every feature's recommended message, which reads it; a commit's goes with
+ * the feature's, through `publish`.
  */
 export function sessionPublisher(
   cache: SessionCache,
@@ -208,13 +255,7 @@ export function sessionPublisher(
     string,
     { last: number; repo: string; subagents: string; timer?: Timer; turns: Set<number> }
   >();
-  const turn = (update: ReturnType<typeof sender>, id: number) => {
-    update("Turn", String(id));
-    const count = pages(cache, id);
-    for (const page of [count - 2, count - 1].filter((page) => page >= 0)) {
-      update("TurnLog", `${id}:${page}`);
-    }
-  };
+  const turn = (update: ReturnType<typeof sender>, id: number) => sendTurn(cache, update, id);
   /** The sub-agents running in the turns, which the sidebar lists: the cache's `subagentsOf`. */
   const subagents = (turns: Iterable<number>) =>
     [...turns].flatMap((id) => cache.subagentsOf(id).map((subagent) => subagent.id)).join(" ");
@@ -241,7 +282,10 @@ export function sessionPublisher(
     const running = subagents(turns);
     if (running !== entry.subagents) {
       entry.subagents = running;
-      update("SessionList", SESSION_LIST_ID);
+      // The list, which leaves sub-sessions out, lists none of theirs.
+      if (!cache.session(session)?.parent) {
+        update("SessionList", SESSION_LIST_ID);
+      }
     }
   };
   return (change) => {
@@ -258,20 +302,7 @@ export function sessionPublisher(
       if (!bus) {
         return;
       }
-      const update = sender(bus);
-      sendSession(cache, update, session);
-      if (change.turn !== undefined) {
-        turn(update, change.turn);
-      }
-      update("SessionList", SESSION_LIST_ID);
-      if (change.folder !== null) {
-        update("Feature", change.folder);
-      }
-      update("Workspace", WORKSPACE_ID);
-      // A turn's start or end refuses or lets the Git page's writes.
-      if (change.state !== undefined) {
-        publishGit(bus);
-      }
+      publishAtOnce(cache, bus, change);
       return;
     }
     let entry = sessions.get(session);
