@@ -4,6 +4,7 @@ finished: 2026-11-08
 pull-request: https://github.com/mrtolkien/uraeda/pull/113
 superseded-by:
   - 2026-11-08-codex-runtime
+  - 2026-11-08-run-options
 ---
 
 # Record: Extensions system
@@ -15,6 +16,8 @@ superseded-by:
 > are in git: `git log -- specs/2026-11-08-extensions-system/`.
 >
 > Superseded in part by [2026-11-08-codex-runtime](2026-11-08-codex-runtime.md).
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

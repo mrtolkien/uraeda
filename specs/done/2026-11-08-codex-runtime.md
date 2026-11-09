@@ -4,6 +4,7 @@ finished: 2026-11-09
 pull-request: https://github.com/mrtolkien/uraeda/pull/114
 supersedes:
   - 2026-11-08-extensions-system
+superseded-by: [2026-11-08-run-options]
 ---
 
 # Record: Codex runtime + model settings
@@ -13,6 +14,8 @@ supersedes:
 > The record of a merged feature, not instructions to follow. Started on 2026-11-08, finished on
 > 2026-11-09, in [its pull request](https://github.com/mrtolkien/uraeda/pull/114). Its full files
 > are in git: `git log -- specs/2026-11-08-codex-runtime/`.
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

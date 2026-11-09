@@ -30,7 +30,7 @@ A model that changes during a session would surprise the human, and a feature's 
 model nobody picked for them. Effort changes cost and depth as much as the model, but keeps the
 conversation and the model, so the human tunes it as the work goes, or per step. Without a pick, the
 agent's defaults already express the human's preference. History:
-[Run options](../2026-11-08-run-options/spec.md).
+[Run options](../done/2026-11-08-run-options.md).
 
 ## Alternatives considered
 

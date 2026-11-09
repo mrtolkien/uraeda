@@ -39,7 +39,7 @@ subscriptions allow; a wrapper would sit between Uraeda and the agent. Skipped p
 unreviewed network, would let a hostile page make an agent act on, or send away, the user's code.
 One concept of a session, whatever workflow surrounds it, gives each conversation a page and a
 history of its own, a sub-agent's included. History:
-[Run options](../2026-11-08-run-options/spec.md).
+[Run options](../done/2026-11-08-run-options.md).
 
 ## Alternatives considered
 

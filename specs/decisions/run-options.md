@@ -34,7 +34,7 @@ feature's options stay on the human's machine, out of the repository.
 Some steps need a stronger model or a clean context, others a cheaper one, and most of a build's
 usage is its sub-agents. A pick an agent can override inside its own sub-agents is no pick. Findings
 in git survive a stopped run. A repository someone else wrote must never choose what the human's
-runs spend. History: [Run options](../2026-11-08-run-options/spec.md).
+runs spend. History: [Run options](../done/2026-11-08-run-options.md).
 
 ## Alternatives considered
 
