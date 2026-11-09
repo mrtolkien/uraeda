@@ -77,9 +77,23 @@ export type UraedaTools = { token: string; url: string };
 export type Outgoing = {
   id: string;
   images: Array<{ path: string }>;
+  /**
+   * The text is the instructions of a review the agent runs as its own, as Codex's `review/start`
+   * does: set by `reviewMessage` only.
+   */
+  review?: boolean;
   text: string;
   when: "steer" | "queue";
 };
+
+/**
+ * A review an agent runs: the commits `<base>..<head>`, at `effort`, the reviewer's effort, else
+ * its model's default, with `instructions` added to the agent's own review prompt.
+ */
+export type ReviewAsk = { base: string; effort?: string; head: string; instructions?: string };
+
+/** The message that runs a review in the agent's own way: its text, and `Outgoing.review`. */
+export type ReviewMessage = Pick<Outgoing, "review" | "text">;
 
 /** A session's open process, which takes messages until it is closed. */
 export interface AgentProcess {
@@ -123,6 +137,11 @@ export interface Adapter {
   /** The agent's name, for people: "Claude Code". */
   readonly name: string;
   open(options: OpenOptions): AgentProcess;
+  /**
+   * The message that runs `ask` through the agent's own review, when it has one: else a reviewer on
+   * it is asked to review in plain words.
+   */
+  reviewMessage?(ask: ReviewAsk): ReviewMessage;
   /** The agent's version, or undefined when it is not available on this machine. */
   version(): Promise<string | undefined>;
 }

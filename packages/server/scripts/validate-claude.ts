@@ -14,7 +14,8 @@
  *
  * With `--stdin`, only the stdin checks run, with no copy of the fixture needed by the others. Every
  * run ends with the check of Uraeda's tool, a session on Haiku given a stand-in of it, which also
- * checks that `settings.json` is left as it was; with `--tools`, only that check runs.
+ * checks that `settings.json` is left as it was; with `--tools`, only that check runs. Then the check
+ * of a reviewer: `/code-review` on a commit that adds a bug, on Haiku; with `--review`, only it runs.
  *
  * It prints one line per check, `PASS` or `FAIL` with what it got, and exits 1 on any failure.
  */
@@ -32,6 +33,7 @@ import { layout } from "../src/paths.ts";
 import { ClaudeAdapter } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { imageChecks, imagesFolder, wrappedAdapter } from "./validate-claude-images.ts";
+import { reviewCheck } from "./validate-reviews.ts";
 import { toolsCheck } from "./validate-tools.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
@@ -52,7 +54,8 @@ const cwd = fixtureRepo();
 const stdinDir = mkdtempSync(join(tmpdir(), "uraeda-stdin-"));
 /** With `--stdin`, only the stdin checks run. */
 const stdinOnly = process.argv.includes("--stdin");
-const toolsOnly = process.argv.includes("--tools");
+const reviewOnly = process.argv.includes("--review");
+const toolsOnly = process.argv.includes("--tools") || reviewOnly;
 let failed = false;
 
 function report(name: string, ok: boolean, got: unknown) {
@@ -577,7 +580,12 @@ try {
     await stdinChecks();
   }
   const settings = join(configDir, "settings.json");
-  await toolsCheck(adapter, { cwd: stdinDir, pick: { model: "haiku" }, report, settings });
+  if (!reviewOnly) {
+    await toolsCheck(adapter, { cwd: stdinDir, pick: { model: "haiku" }, report, settings });
+  }
+  if (reviewOnly || !process.argv.includes("--tools")) {
+    await reviewCheck(adapter, { effort: "low", pick: { model: "haiku" }, report });
+  }
 } finally {
   rmSync(cwd, { force: true, recursive: true });
   rmSync(outside, { force: true, recursive: true });

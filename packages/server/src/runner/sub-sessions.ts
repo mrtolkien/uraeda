@@ -18,8 +18,20 @@ import { type SessionContext, TAKEN_BACK } from "./session-state.ts";
 /** A sub-session's role in its parent's run. */
 export type Role = "implementer" | "reviewer";
 
-/** The sub-session to start: its task, or what it reviews, its worktree, its message, its pick. */
-export type SubSessionStart = { about: string; cwd: string; message: string; pick: Picked };
+/**
+ * The sub-session to start: its task, or what it reviews, its worktree, its message, its pick, and
+ * whether its message runs the agent's own review, `Outgoing.review`.
+ */
+export type SubSessionStart = {
+  about: string;
+  cwd: string;
+  message: string;
+  pick: Picked;
+  review?: boolean;
+};
+
+/** A sub-session's turn: its message, and whether it runs the agent's own review. */
+type Turn = { review: boolean; text: string };
 
 /** The input `run_agent` takes: the task, the implementer's prompt, and the task's worktree. */
 type RunAgentInput = { prompt: string; task: string; worktree: string };
@@ -53,13 +65,13 @@ export class SubSessions {
    * up, the sub-session left working.
    */
   start(parent: string, role: Role, start: SubSessionStart, signal?: AbortSignal): Promise<string> {
-    return this.#counted(parent, () => this.#start(parent, role, start, signal));
+    return this.counted(parent, () => this.#start(parent, role, start, signal));
   }
 
   async #start(
     parent: string,
     role: Role,
-    { about, cwd, message, pick }: SubSessionStart,
+    { about, cwd, message, pick, review = false }: SubSessionStart,
     signal?: AbortSignal,
   ): Promise<string> {
     const { cache } = this.#context;
@@ -84,7 +96,7 @@ export class SubSessions {
         worktree: cwd,
       });
     });
-    return this.#run(row, message, signal);
+    return this.#run(row, { review, text: message }, signal);
   }
 
   /** The sub-session of `parent` as `role` for `about`, when a start made it. */
@@ -93,7 +105,7 @@ export class SubSessions {
   }
 
   /** Starts a turn of the sub-session when it runs again, and answers once it no longer works. */
-  async #run(row: SessionRow, message: string, signal?: AbortSignal): Promise<string> {
+  async #run(row: SessionRow, message: Turn, signal?: AbortSignal): Promise<string> {
     await this.#begin(row, message);
     await this.#idle(row.id, signal);
     return this.#answer(row);
@@ -107,8 +119,8 @@ export class SubSessions {
     return (this.#calls.get(parent) ?? 0) > 0 || subSessionsWork(this.#context, parent);
   }
 
-  /** Runs `call`, a tool call of `parent`, counted while it waits. */
-  async #counted<T>(parent: string, call: () => Promise<T>): Promise<T> {
+  /** Runs `call`, a tool call of `parent`, counted while it waits: `busy` holds meanwhile. */
+  async counted<T>(parent: string, call: () => Promise<T>): Promise<T> {
     this.#calls.set(parent, (this.#calls.get(parent) ?? 0) + 1);
     try {
       return await call();
@@ -136,7 +148,7 @@ export class SubSessions {
    * sub-session, before the worktree and the pick are read.
    */
   runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
-    return this.#counted(parent, () => this.#runAgent(parent, input, signal));
+    return this.counted(parent, () => this.#runAgent(parent, input, signal));
   }
 
   async #runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
@@ -149,7 +161,7 @@ export class SubSessions {
       // The same task again answers its sub-session, wherever the call says it works.
       const found = this.#find(parent, "implementer", task);
       if (found) {
-        return await this.#run(found, prompt, signal);
+        return await this.#run(found, { review: false, text: prompt }, signal);
       }
       const cwd = await this.#worktree(row.repo, worktree);
       const pick = implementerPick(this.#context, row.repo, row.folder);
@@ -209,7 +221,7 @@ export class SubSessions {
    * the call answers that turn's end. A first turn that cannot start removes the sub-session, which
    * has nothing to show: a call waiting for it then answers that it did not start.
    */
-  async #begin(row: SessionRow, text: string): Promise<void> {
+  async #begin(row: SessionRow, { review, text }: Turn): Promise<void> {
     const { cache, processes, turns } = this.#context;
     const live = this.#context.live.of(row);
     await this.#context.live.serial(live, async () => {
@@ -223,7 +235,13 @@ export class SubSessions {
       }
       const id = randomUUID();
       const item = messageItem(id, "workflow", text);
-      const message = { id, images: [], text, when: "queue" as const };
+      const message = {
+        id,
+        images: [],
+        text,
+        when: "queue" as const,
+        ...(review ? { review } : {}),
+      };
       live.starting = true;
       try {
         const { line } = await processes.open(live);

@@ -78,7 +78,7 @@ function runningPick(context: SessionContext, root: string, pick: StepPick): Ste
  */
 function newPicked(
   context: SessionContext,
-  step: StepId | "implementer",
+  step: StepId | "implementer" | "reviewer",
   pick: StepPick,
   available = true,
 ): Picked {
@@ -157,6 +157,20 @@ export function implementerPick(context: SessionContext, root: string, folder: s
   }
   const map = toMap(context.runOptions(root, folder), fallback);
   return newPicked(context, "implementer", runningPick(context, root, map.implementers));
+}
+
+/**
+ * What an agent reviewer of the main checkout `root` runs on: its pick, refused as a new session of a
+ * role is, and never on another agent: its agent off there, gone, or not available is refused as not
+ * available on this machine.
+ */
+export function reviewerPick(context: SessionContext, root: string, pick: StepPick): Picked {
+  const { runtimes } = context;
+  const runtime = runtimes.get(pick.runtime);
+  if (runtime === undefined || !runtimes.isOn(pick.runtime, root)) {
+    throw refused(RUNTIME_REFUSALS.unavailable(runtime?.name ?? runtimes.title(pick.runtime)));
+  }
+  return newPicked(context, "reviewer", pick);
 }
 
 /**

@@ -364,3 +364,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `stepPickOf` in `packages/server/src/runner/run-session.ts`, `StartMessages.open`, and
   `keptOptions` in `packages/server/src/fate/change-starts.ts`.
 - **Where**: task 11.
+
+## R28: An agent's own review is the adapter's message, Codex's on a custom target and its thread's effort
+
+- **Decision**: each adapter makes its own review's message, `Adapter.reviewMessage`, and
+  `Outgoing.review` is a flag: the message's text is the review's instructions. Claude Code's is
+  `/code-review <level> <base>..<head>`, the level the reviewer's effort, else its model's default,
+  `medium` for an effort `/code-review` does not name, never left out; the instructions follow on
+  the lines after it. Codex's is a `review/start` with a `custom` target, whose text names the range
+  and holds the instructions, instead of `baseBranch` or `commit`. A new Codex thread on an effort
+  starts on it, `model_reasoning_effort` in `thread/start`'s configuration, which a review's turn
+  runs on, as `review/start` takes no effort. A reviewer whose agent is off or unavailable is not
+  moved to another agent, as a step is: its section says it did not review. A review is counted as
+  its parent's call, so the parent's watchdog waits for its commands too. A reviewer's sub-session
+  is titled `<its name> on <base>..<head>`, so the same range asked again answers its first review.
+- **Rationale**: checked on Claude Code 2.1.319 and Codex 0.163.0. `/code-review` reads all the text
+  after its level as its target, newlines joined, and its review read the range and followed the
+  instructions there; without a level it reuses the one the human last typed. It runs as its own
+  forked command even with `Agent` and `Task` disallowed, and the session's last message is its
+  findings. Codex's `baseBranch` target compares with the branch's upstream, and takes no
+  instructions; its review runs in a review thread of its own, whose rollout showed the thread's
+  model and the effort set in `thread/start`'s configuration; after `exitedReviewMode`, Codex sends
+  the review as an `agentMessage`, so the last message is the review with no change to
+  `codex-events.ts`.
+- **If wrong**: `claudeReview` in `packages/server/src/runner/claude.ts`, `codexReview` and
+  `codexThreadParams` in `codex-thread.ts`, `CodexTurns.#start` in `codex-turns.ts`, and `Reviews`
+  in `reviews.ts`.
+- **Where**: task 9, checked with `validate:claude --review` and `validate:codex --review`.

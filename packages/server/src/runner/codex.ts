@@ -9,6 +9,8 @@ import type {
   Capabilities,
   ModelList,
   OpenOptions,
+  ReviewAsk,
+  ReviewMessage,
 } from "./adapter.ts";
 import {
   type Child,
@@ -31,6 +33,8 @@ import type { ExtensionPaths } from "./instructions.ts";
 import {
   codexInput,
   codexInstructions,
+  codexReview,
+  codexReviewParams,
   codexServerArgs,
   codexThreadParams,
   codexTurnParams,
@@ -338,6 +342,10 @@ export class CodexAdapter implements Adapter {
     return [join(this.#pluginDir, "skills"), ...options.skills];
   }
 
+  reviewMessage(ask: ReviewAsk): ReviewMessage {
+    return codexReview(ask);
+  }
+
   open(options: OpenOptions): AgentProcess {
     const folder = this.#extensions?.folder;
     if (folder !== undefined) {
@@ -398,6 +406,7 @@ export class CodexAdapter implements Adapter {
         endInput: server.endInput,
         input: codexInput,
         push,
+        reviewParams: codexReviewParams,
         rpc: server.rpc,
         thread,
         turnParams: (message, threadId, effort) =>

@@ -10,7 +10,9 @@
  * account's plan, on the cheapest listed model at its lowest effort, in throwaway repositories
  * under a temporary folder. `URAEDA_CODEX_MODEL` picks another model.
  *
- * With `--tools`, only the check of Uraeda's tool runs.
+ * With `--tools`, only the check of Uraeda's tool runs. Then the check of a reviewer: Codex's own
+ * review of a commit that adds a bug, on the model and effort picked; with `--review`, only it
+ * runs.
  *
  * It prints one line per check, `PASS` or `FAIL` with what it got, and exits 1 on any failure.
  */
@@ -24,6 +26,7 @@ import type { AgentModel, AgentProcess, ModelList, Outgoing } from "../src/runne
 import { CodexAdapter } from "../src/runner/codex.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { layout } from "../src/paths.ts";
+import { reviewCheck } from "./validate-reviews.ts";
 import { toolsCheck } from "./validate-tools.ts";
 
 /** A turn that has not ended after this long is stopped, and its check fails. */
@@ -312,11 +315,31 @@ function spawned(threadId: string): Array<unknown> {
     .filter((line) => line.includes('"name":"spawn_agent"'));
 }
 
+/**
+ * What the review of a thread ran on, from the rollout of its review thread, whose parent the
+ * thread is: the model and the effort of its turn's context.
+ */
+function reviewedOn(threadId: string): { effort?: string; model?: string } | undefined {
+  const found = execFileSync(
+    "grep",
+    ["-rl", "--include=*.jsonl", `"parent_thread_id":"${threadId}"`, join(codexHome, "sessions")],
+    { encoding: "utf8" },
+  ).split("\n")[0];
+  const context = found
+    ? readFileSync(found, "utf8")
+        .split("\n")
+        .find((line) => line.includes('"type":"turn_context"'))
+    : undefined;
+  const payload = context === undefined ? undefined : JSON.parse(context).payload;
+  return payload && { effort: payload.effort ?? undefined, model: payload.model ?? undefined };
+}
+
 const configBefore = existsSync(configPath) ? readFileSync(configPath) : undefined;
 try {
   const version = await adapter.version();
   report(`version() returns a version (${version})`, version !== undefined, version);
-  const toolsOnly = process.argv.includes("--tools");
+  const reviewOnly = process.argv.includes("--review");
+  const toolsOnly = process.argv.includes("--tools") || reviewOnly;
   const pick = await modelChecks();
   if (!toolsOnly) {
     await commitChecks(pick);
@@ -330,7 +353,17 @@ try {
     await interruptCheck(chat, plain);
     await imageCheck(chat, plain);
   }
-  await toolsCheck(adapter, { cwd: chat, pick: plain, report, settings: configPath, spawned });
+  if (!reviewOnly) {
+    await toolsCheck(adapter, { cwd: chat, pick: plain, report, settings: configPath, spawned });
+  }
+  if (reviewOnly || !process.argv.includes("--tools")) {
+    await reviewCheck(adapter, {
+      ...(plain.effort ? { effort: plain.effort } : {}),
+      pick: plain,
+      report,
+      reviewedOn,
+    });
+  }
 } finally {
   rmSync(root, { force: true, recursive: true });
   const configAfter = existsSync(configPath) ? readFileSync(configPath) : undefined;

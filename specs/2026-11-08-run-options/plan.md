@@ -1004,9 +1004,13 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
 
 **Files:**
 
-- Create: `packages/server/src/runner/reviews.ts`
-- Modify: `runner/adapter.ts` (`Outgoing.review`), `runner/codex-turns.ts` (a review turn starts
-  `review/start`), `runner/claude.ts` only if a review needs more than its message
+- Create: `packages/server/src/runner/reviews.ts`, `packages/server/scripts/validate-reviews.ts`
+- Modify: `runner/adapter.ts` (`Outgoing.review`, `Adapter.reviewMessage`), `runner/claude.ts`
+  (`claudeReview`), `runner/codex-thread.ts` (`codexReview`, `codexReviewParams`, a new thread's
+  effort), `runner/codex-turns.ts` (a review turn starts `review/start`), `runner/codex.ts`,
+  `runner/fake.ts`, `runner/sub-sessions.ts` (`SubSessionStart.review`, `counted`),
+  `runner/run-session.ts` (`reviewerPick`), `runner/sessions.ts` (`Sessions.reviews`), `server.ts`,
+  `scripts/validate-claude.ts` and `scripts/validate-codex.ts` (`--review`)
 - Test: `packages/server/src/runner/__tests__/reviews.test.ts`
 
 **Interfaces:**
@@ -1019,10 +1023,17 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
     review: this feature's reviews run on the branch only." and runs nothing. Otherwise it runs
     every reviewer of the feature's resolved options at once and answers with the path and text of
     the `findings-NN.md` it committed.
-  - An agent reviewer is a sub-session with `role` `reviewer` in the feature's worktree, on its
-    pick: on Claude Code its message is `/code-review <level>` on the range, the level its effort's;
-    on Codex, `Outgoing.review = { base, instructions }` makes its turn a `review/start` with the
-    effort set before. Its `instructions` follow its prompt. Its last message is its section.
+  - `class Reviews { review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
+    reached as `Sessions.reviews`, and `reviewTool(reviews: Reviews): McpTool`, pushed into the
+    server's `mcp.tools`; a review is counted as the parent's call (`SubSessions.counted`), so its
+    watchdog waits meanwhile.
+  - An agent reviewer is a sub-session with `role` `reviewer` in the feature's worktree, on its pick
+    (`reviewerPick`), titled `<its name> on <base>..<head>`, given its agent's
+    `Adapter.reviewMessage({ base, head, effort, instructions })`: on Claude Code
+    `/code-review <level> <base>..<head>`, the level its effort, else its model's default; on Codex
+    `Outgoing.review` set, which makes its turn a `review/start` on a custom target holding the
+    range and the instructions, on the effort the new thread starts on (R28). The call's `context`,
+    then the reviewer's `instructions`, follow its prompt. Its last message is its section.
   - A command reviewer runs `sh -c <command>` in the feature's worktree; its output is its section,
     with its exit code when it failed.
   - A reviewer that fails, or whose agent is not available, gets "Did not review: <agent> is not
@@ -1030,7 +1041,7 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
   - Section names as the map shows a reviewer: "Claude Code · Opus", "Codex · GPT-6.1-Sol", and a
     command's own text.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `reviews.test.ts`:
 
@@ -1043,22 +1054,23 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
   the other, or a failure dropping the file.
 - "a wave's review on a branch-only feature runs no reviewer". Break: depth ignored.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/reviews.test.ts`
 - Expected: FAIL, `Cannot find module '../reviews.ts'`
 
-- [ ] **Step 3: Implement the tool and the review turns**
+- [x] **Step 3: Implement the tool and the review turns**
 
 Check `/code-review`'s arguments and Codex's `review/start` target against the installed agents, and
 add a review to `validate:claude` and `validate:codex`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
-- Run: `vp run fast`, then `vp run validate:claude` and `vp run validate:codex`
+- Run: `vp run fast`, then `vp run validate:claude -- --review` and
+  `vp run validate:codex -- --review`, the review checks alone
 - Expected: PASS but `keys-structural.test.ts`; both validations pass
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src packages/server/scripts

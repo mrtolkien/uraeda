@@ -1,6 +1,6 @@
 // The parameters of a Codex thread and its turns: its instructions, its permissions, and its
 // configuration, apart from the adapter that sends them.
-import type { OpenOptions, Outgoing } from "./adapter.ts";
+import type { OpenOptions, Outgoing, ReviewAsk, ReviewMessage } from "./adapter.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
 import { TOKEN_VARIABLE, TOOL_TIMEOUT_MS, TOOLS_SERVER } from "./uraeda-tools.ts";
 
@@ -66,12 +66,17 @@ function toolsConfig(tools: OpenOptions["tools"]) {
  * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
  * approvals on request, reviewed by its automatic reviewer. The configuration overrides only the
  * trust of the session's directory, when known, the level Codex would apply itself: without it,
- * Codex writes it to the user's settings (R24); and, for a workflow session, Uraeda's tools.
- * Never another, which could widen the permissions.
+ * Codex writes it to the user's settings (R24); for a workflow session, Uraeda's tools; and for a
+ * new thread on an effort, that effort, which a review's turn runs on. Never another, which could
+ * widen the permissions.
  */
 export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
   const config = {
     ...toolsConfig(options.tools),
+    // A new thread holds its effort from the start: a review's turn takes no effort of its own.
+    ...(options.effort === undefined || options.resume
+      ? {}
+      : { model_reasoning_effort: options.effort }),
     ...(trust === undefined ? {} : { projects: { [options.cwd]: { trust_level: trust } } }),
   };
   return {
@@ -115,4 +120,22 @@ export function codexTurnParams({ effort, threadId, ...message }: CodexTurn) {
     threadId,
     ...(effort === undefined ? {} : { effort }),
   };
+}
+
+/**
+ * Codex's own review of the commits `<base>..<head>`: a review turn, `review/start`, on a custom
+ * target, as its base-branch target compares with a branch's upstream, and takes no instructions.
+ * The text is the review's prompt, with the instructions after it.
+ */
+export function codexReview({ base, head, instructions }: ReviewAsk): ReviewMessage {
+  const range = `${base}..${head}`;
+  const prompt =
+    `Review the code changes of the commits ${range}: run \`git diff ${range}\` to see them, ` +
+    `and \`git log ${range}\` for their messages. Provide prioritized, actionable findings.`;
+  return { review: true, text: instructions ? `${prompt}\n\n${instructions}` : prompt };
+}
+
+/** The parameters of the `review/start` of a review message: its text as a custom target. */
+export function codexReviewParams({ text }: Pick<Outgoing, "text">, threadId: string) {
+  return { target: { instructions: text, type: "custom" }, threadId };
 }

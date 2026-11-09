@@ -13,7 +13,15 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import type { Adapter, AgentProcess, Capabilities, ModelList, OpenOptions } from "./adapter.ts";
+import type {
+  Adapter,
+  AgentProcess,
+  Capabilities,
+  ModelList,
+  OpenOptions,
+  ReviewAsk,
+  ReviewMessage,
+} from "./adapter.ts";
 import {
   type Child,
   endShortProcess,
@@ -246,6 +254,21 @@ export function messageContent(text: string, images: Array<{ path: string }>): s
  * Claude Code, run through its installed `claude` command, in print mode, its stdin kept open for
  * the session's messages.
  */
+/** The levels `/code-review` takes, the names of Claude Code's efforts. */
+const REVIEW_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+/**
+ * Claude Code's own review of the commits `<base>..<head>`: `/code-review` at the level of the
+ * reviewer's effort, `medium` for an effort it does not name, never left out, which would reuse the
+ * level the human last typed. `/code-review` reads all the text after its level as its target: the
+ * instructions follow the range there, and the review reads them.
+ */
+export function claudeReview({ base, effort, head, instructions }: ReviewAsk): ReviewMessage {
+  const level = effort !== undefined && REVIEW_LEVELS.has(effort) ? effort : "medium";
+  const command = `/code-review ${level} ${base}..${head}`;
+  return { text: instructions ? `${command}\n\n${instructions}` : command };
+}
+
 export class ClaudeAdapter implements Adapter {
   readonly icon = "uraeda:harness-claude";
   readonly kind = "claude";
@@ -360,6 +383,10 @@ export class ClaudeAdapter implements Adapter {
       clearTimeout(timer);
       endShortProcess(short);
     }
+  }
+
+  reviewMessage(ask: ReviewAsk): ReviewMessage {
+    return claudeReview(ask);
   }
 
   open(options: OpenOptions): AgentProcess {

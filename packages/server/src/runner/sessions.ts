@@ -19,6 +19,7 @@ import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-ed
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
+import { Reviews } from "./reviews.ts";
 import { SubSessions } from "./sub-sessions.ts";
 import {
   type Live,
@@ -87,6 +88,8 @@ export class Sessions {
   readonly starts: StartMessages;
   /** The sessions Uraeda starts for its workflow runs' sub-agents. */
   readonly subSessions: SubSessions;
+  /** The reviews its workflow sessions run, each reviewer at once. */
+  readonly reviews: Reviews;
 
   constructor(options: SessionsOptions) {
     this.#options = options;
@@ -127,6 +130,7 @@ export class Sessions {
     this.#context = context;
     this.subSessions = new SubSessions(context);
     context.subSessions = this.subSessions;
+    this.reviews = new Reviews(context);
     // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
     // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {
