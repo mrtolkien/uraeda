@@ -193,3 +193,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   session.
 - **If wrong**: `runSession` in `packages/server/src/runner/run-session.ts`.
 - **Where**: task 6, from its review.
+
+## R19: The chain has no cap of its own, and a restart before a chained send leaves the run halted
+
+- **Decision**: the step chain counts no run and has no limit of its own: each chained run needs the
+  run before it to commit files that move the feature to another run step, and a run whose step did
+  not move on starts nothing. A server that stops between a run's end and its chained send sends
+  nothing once restarted: the run reads as halted, and the human starts the next step.
+- **Rationale**: a loop of chained runs needs the workflow to move forward each time, which ends at
+  the next human gate; the restart's scan continues only runs a restart cut, and a run that ended
+  done was not cut. Both are rare, and the human sees the run waiting.
+- **If wrong**: `Chain` in `packages/server/src/runner/chain.ts`, and the continuer's restart scan.
+- **Where**: task 6, from its review.
