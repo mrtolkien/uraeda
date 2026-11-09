@@ -3,12 +3,12 @@
 // to the build's implementers and the reviewers under the track and back. Enter on a step, the
 // implementers, or a reviewer opens the app's key picker, the agent and model, then the effort;
 // Enter or Space on a joint cuts it, starting a clean session there, or joins it; `r` puts the
-// selection back to the default; `a` adds a reviewer and `d` removes the one selected. The bar
-// under the map says what the place selected can do, each by its key and by a press; the keys are
-// the registry's, a selection's while the map holds the focus. The settings' Runs section draws it
-// on the defaults, a feature's page on the feature's own options, with its history in place of the
-// timeline: there a step that started, and every joint before it, keeps what it ran on, and a
-// merged feature's map only reads.
+// selection back to the default; `a` adds a reviewer and `d` removes the one selected, unless it is
+// the only one. The bar under the map says what the place selected can do, each by its key and by a
+// press; the keys are the registry's, a selection's while the map holds the focus. The settings'
+// Runs section draws it on the defaults, a feature's page on the feature's own options, with its
+// history in place of the timeline: there a step that started, and every joint before it, keeps
+// what it ran on, and a merged feature's map only reads.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -99,6 +99,17 @@ function isEditable(place: ReturnType<typeof placeOf>, stages: FeatureStages | u
   return isOpen(stages, "review");
 }
 
+/**
+ * Whether the place is a reviewer that can be removed: one of several, as no reviewers at all reads
+ * back as the default reviewer.
+ */
+function isRemovable(
+  place: ReturnType<typeof placeOf>,
+  value: RunOptions,
+): place is { reviewer: number } {
+  return typeof place === "object" && "reviewer" in place && value.reviewers.length > 1;
+}
+
 /** What the map's presses do at the place selected: pick, cut or join, add, or switch; reset; remove. */
 type Does = { act: () => void; remove: () => void; reset: () => void };
 
@@ -124,11 +135,10 @@ function actionsOf(
       { keys: "⏎", label: place === "add" ? "add a reviewer" : "waves or branch", run: does.act },
     ];
   }
-  const isReviewer = typeof place === "object" && "reviewer" in place;
   return [
     { keys: "⏎", label: "pick", run: does.act },
     { icon: "uraeda:history", keys: "r", label: "reset", run: does.reset },
-    ...(isReviewer
+    ...(isRemovable(place, value)
       ? [{ icon: "uraeda:trash", keys: "d", label: "remove", run: does.remove } as const]
       : []),
   ];
@@ -246,8 +256,10 @@ function useMapKeys({
       return false;
     }
     if (typeof place === "object" && "joint" in place) {
-      const isDefault = defaults.cuts.includes(place.joint) === value.cuts.includes(place.joint);
-      onChange(isDefault ? value : withCut(runtimes, value, place.joint));
+      if (defaults.cuts.includes(place.joint) === value.cuts.includes(place.joint)) {
+        return false;
+      }
+      onChange(withCut(runtimes, value, place.joint));
     } else if (target !== undefined) {
       const fallback = target === "implementers" ? defaults.implementers : pickOf(defaults, target);
       onChange(withPick(value, target, fallback));
@@ -257,7 +269,7 @@ function useMapKeys({
     return undefined;
   };
   const remove = () => {
-    if (!(typeof place === "object" && "reviewer" in place && isEditable(place, stages))) {
+    if (!(isRemovable(place, value) && isEditable(place, stages))) {
       return false;
     }
     onChange({
