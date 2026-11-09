@@ -2,7 +2,7 @@
 // its catalog puts on multi-agent v2, where `features.multi_agent` leaves `spawn_agent` on (R20).
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /** `codex debug models` gives up after this long. */
@@ -52,11 +52,16 @@ function debugModels(command: string, cwd: string): Promise<string> {
   });
 }
 
-/** Writes `text` to `path` whole, through a temporary file. */
+/** Writes `text` to `path` whole, through a temporary file removed when it cannot be put in place. */
 async function writeWhole(path: string, text: string) {
   const next = `${path}.${process.pid}.${Date.now()}`;
-  await writeFile(next, text);
-  await rename(next, path);
+  try {
+    await writeFile(next, text);
+    await rename(next, path);
+  } catch (error) {
+    await rm(next, { force: true });
+    throw error;
+  }
 }
 
 /**

@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+import { expect, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
 import { CodexAdapter } from "../codex.ts";
-import { catalogPath, withoutSubAgents } from "../codex-catalog.ts";
+import { catalogPath, CodexCatalogs, withoutSubAgents } from "../codex-catalog.ts";
 import { appServer, message, until } from "./codex-stand-in.ts";
 
 const tools = { token: "secret-token", url: "http://127.0.0.1:4000/mcp" };
@@ -70,4 +70,21 @@ test("sessions opening together share one catalog of their folder's, never holdi
     "-c",
     `model_catalog_json=${JSON.stringify(catalogPath(folder, other))}`,
   ]);
+});
+
+test("a catalog that cannot be put in place leaves no temporary file", async () => {
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  try {
+    const dir = temporaryFolder("uraeda-codex");
+    const folder = join(dir, "catalog");
+    const path = catalogPath(folder, dir);
+    // A folder where the catalog goes: the rename fails.
+    mkdirSync(path, { recursive: true });
+    writeFileSync(join(path, "kept"), "");
+    const catalog = await new CodexCatalogs(appServer(dir), folder).write(dir);
+    expect(catalog).toHaveProperty("problem");
+    expect(readdirSync(dirname(path))).toEqual([basename(path)]);
+  } finally {
+    log.mockRestore();
+  }
 });
