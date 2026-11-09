@@ -8,33 +8,24 @@ import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import { type CatchUps, catcher } from "./catch-ups.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
-import { keptBases, startWaiting, warmPreview } from "./fate/preview-waiting.ts";
+import { warmPreview } from "./fate/preview-waiting.ts";
 import { ExtensionsHost } from "./extensions/server.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import {
-  continueSettings,
-  createSessions,
-  type HostsOf,
-  livePreviews,
-  renewPreviews,
-} from "./live.ts";
+import { continueSettings, createSessions, type HostsOf } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
-import { guardCheck } from "./guard.ts";
 import type { McpTool, ServerAddress } from "./mcp/endpoint.ts";
 import { McpTokens } from "./mcp/tokens.ts";
 import { reviewTool } from "./runner/reviews.ts";
 import { runAgentTool } from "./runner/sub-sessions.ts";
-import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
-import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
-import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
 import type { Runtimes } from "./runner/runtimes.ts";
 import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
-import { FrameSecret } from "./sign-in/frames.ts";
+import type { FrameSecret } from "./sign-in/frames.ts";
+import { startPreviews, upgrades, waitingPreviews } from "./server-previews.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
 import { type FeatureOptions, featureOptionsOf } from "./runner/feature-options.ts";
 import type { ServerSettings } from "./settings.ts";
@@ -232,31 +223,6 @@ export async function startServer(options: StartOptions): Promise<Server> {
   }
 }
 
-/**
- * Starts the Storybooks of the folders waiting for the human, one after the other, and returns the
- * runner's sweep, which keeps them: a tick while the last one still reads them is skipped, and one
- * whose read fails keeps none. Each listed repository's context is the one a turn's end gives
- * `warmPreview`.
- */
-function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
-  const { hosts, previews } = shared;
-  const contexts = () => hosts.all().map((host) => ({ ...shared, repo: host.path }));
-  startWaiting(contexts()).catch(() => {});
-  let sweeping = false;
-  return () => {
-    if (sweeping) {
-      return;
-    }
-    sweeping = true;
-    void keptBases(contexts())
-      .catch(() => new Set<string>())
-      .then((kept) => previews.sweep(kept))
-      .finally(() => {
-        sweeping = false;
-      });
-  };
-}
-
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
   /**
@@ -291,23 +257,6 @@ type StartOptions = {
   /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
   webRoot?: string;
 };
-
-/**
- * The server's Storybook runner and its frame secret. The Storybooks a killed server left run no
- * more: their record's groups are killed first, an earlier version's in the data folder's root too,
- * before its running files there are removed.
- */
-function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previews } {
-  const record = groupsFolder(dataDir);
-  killLeftGroups(record);
-  killLeftGroups(oldGroupsFolder(dataDir));
-  removeOldRunFiles(dataDir);
-  const previews = livePreviews({ record: new GroupRecord(record) });
-  // One frame secret for the server: each replacement restarts its Storybooks under the new base.
-  const frames = new FrameSecret();
-  frames.onReplace(() => renewPreviews(previews));
-  return { frames, previews };
-}
 
 /**
  * The server's MCP endpoint: its address, its tokens, and its tools, which the app serves at `/mcp`
@@ -380,20 +329,6 @@ async function openParts(
     throw error;
   }
   return { extensions, featureOptions, hosts, sessions };
-}
-
-/** The server's upgrades: WebSockets to the Storybooks, through the guard's rule. */
-function upgrades(options: StartOptions, frames: FrameSecret, previews: Previews) {
-  return previewUpgrade({
-    check: guardCheck({
-      allowedHosts: () => options.settings.allowedHosts(),
-      allowOrigins: options.allowOrigins,
-      isFrame: (path) => frames.allows(path),
-      port: options.port,
-    }),
-    frames,
-    previews,
-  });
 }
 
 /**

@@ -87,14 +87,7 @@ async function deliver(
     const { kind } = await binding.readFeature(live.repo, live.folder as string);
     throw refused(REFUSALS.otherWorking(kind));
   }
-  const row = rowOf(cache, live);
-  if (row.folder === null && row.title === null) {
-    cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
-  }
-  // An archived chat comes back with a message: a dropped change's session was refused above.
-  if (row.archivedAt !== null) {
-    cache.updateSession(row.id, { archivedAt: null });
-  }
+  reopened(cache, live, text, paths.length > 0);
   const id = randomUUID();
   const origin = workflow ? "workflow" : "human";
   // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
@@ -162,6 +155,25 @@ async function deliver(
     if (live.turn === undefined) {
       turns.wake(live);
     }
+  }
+}
+
+/**
+ * Titles a chat without a title by its message, `text`, sent with images when `withImages`, and
+ * brings an archived session back: a dropped change's session was refused before.
+ */
+function reopened(
+  cache: SessionContext["cache"],
+  live: Live,
+  text: string,
+  withImages: boolean,
+): void {
+  const row = rowOf(cache, live);
+  if (row.folder === null && row.title === null) {
+    cache.updateSession(row.id, { title: chatTitle(text, withImages) });
+  }
+  if (row.archivedAt !== null) {
+    cache.updateSession(row.id, { archivedAt: null });
   }
 }
 
