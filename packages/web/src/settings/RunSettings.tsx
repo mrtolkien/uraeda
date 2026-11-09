@@ -142,7 +142,7 @@ export function RunSettings({
       {isContinuing && (
         <VStack paddingBlock={2} paddingInline={3}>
           <Text color="secondary" type="supporting">
-            A change applies at once: turning one off cancels the waits it started.
+            A change applies at once: turning a continue off cancels the waits it started.
           </Text>
         </VStack>
       )}

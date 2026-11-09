@@ -245,7 +245,7 @@ function RunsSettings() {
         </SettingRow>
       </SettingRows>
       <Text color="secondary" type="supporting">
-        A change applies at once: turning one off cancels the waits it started.
+        A change applies at once: turning a continue off cancels the waits it started.
       </Text>
     </VStack>
   );
