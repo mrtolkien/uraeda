@@ -3,7 +3,7 @@
 // pick, and answers with its last message. Sub-sessions work at once, never become their feature's
 // latest session, stop with their parent, and continue before it after a restart.
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import type { RunOptions } from "uraeda-binding";
 import { git } from "uraeda-binding/test-utils";
@@ -180,6 +180,10 @@ test.each([
   {
     name: "a folder in a task's worktree",
     worktree: ({ worktrees }: Places) => join(worktrees[4], "src"),
+  },
+  {
+    name: "a task's worktree by a relative path",
+    worktree: ({ worktrees }: Places) => relative(process.cwd(), worktrees[4]),
   },
 ])("run_agent refuses $name as the task's worktree", async ({ worktree }) => {
   const { fake, other, parent, root, sessions, signal, tool, worktrees } = await building();

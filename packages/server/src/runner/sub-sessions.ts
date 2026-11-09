@@ -3,7 +3,7 @@
 // a workflow session starts its implementers with, each in its task's worktree.
 import { randomUUID } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import type { McpTool } from "../mcp/endpoint.ts";
 import { reasonOf } from "../reason.ts";
 import type { SessionRow, TurnRow } from "./cache.ts";
@@ -165,13 +165,17 @@ export class SubSessions {
   }
 
   /**
-   * The worktree `given` names, by its real path: refused unless it is a linked worktree of the
-   * repository whose main checkout is `root`, there now, as `git worktree list` gives them, and not
-   * the worktree of a change or a feature, which has its branch: the parent's own, or another's.
+   * The worktree `given` names, by its real path: refused unless it is the absolute path of a
+   * linked worktree of the repository whose main checkout is `root`, there now, as `git worktree
+   * list` gives them, and not the worktree of a change or a feature, which has its branch: the
+   * parent's own, or another's. A relative path would be read from the server's own directory.
    */
   async #worktree(root: string, given: string): Promise<string> {
     const refuse = (why: string) =>
       new Error(`${given} ${why}: give the path of the task's worktree, from git worktree list.`);
+    if (!isAbsolute(given)) {
+      throw refuse("is not an absolute path");
+    }
     const real = await realpath(given).catch(() => undefined);
     if (real === undefined) {
       throw refuse("is not a worktree of this repository");
