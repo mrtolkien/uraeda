@@ -6,6 +6,7 @@
 - in the global picker, in-progress and needs-you should be first
 - [codex-runtime] Decisions are too specific/constraining: for example the agents decisions focus
   too much on Claude Code and its behaviour and not general rules.
+- Tapping a session composer on mobile does not open the virtual keyboard
 
 ## Bugfix
 
