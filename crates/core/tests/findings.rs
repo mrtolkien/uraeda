@@ -113,14 +113,18 @@ fn writes_and_commits_only_the_findings() {
 fn refuses_findings_with_a_wrong_frontmatter() {
     let repo = feature();
     let wrong_part = "a review's findings review the branch or a wave, like wave 2";
-    let wrong_commits = "a review's findings name their commits on one line, like abc..def";
-    let rows: [(&str, &str, &str); 6] = [
+    let wrong_commits = "a review's findings name their commits by two commit IDs, like abc..def";
+    let rows: [(&str, &str, &str); 9] = [
         ("wave", "abc..def", wrong_part),
         ("wave two", "abc..def", wrong_part),
         ("the branch", "abc..def", wrong_part),
         ("wave 2", " ", wrong_commits),
         ("wave 2", "abc..def\nstatus: approved", wrong_commits),
         ("branch", "a: b", wrong_commits),
+        // Text YAML reads otherwise unquoted, and names the review resolves first.
+        ("branch", "#abc..def", wrong_commits),
+        ("branch", "main..HEAD", wrong_commits),
+        ("branch", "abc..def..012", wrong_commits),
     ];
     for (reviewed, commits, message) in rows {
         let findings = Findings {

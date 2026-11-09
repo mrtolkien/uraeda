@@ -445,8 +445,9 @@ git commit -m "feat(run-options): run options in the settings file"
     and `pub struct FindingsSection { reviewer: String, text: String }`: writes the next
     `findings-NN.md` in the folder of the feature's worktree, titled `# Findings: <title>, wave 2`,
     commits only that file with `review(<slug>): findings NN`, and returns its path from the
-    repository's root. `retry_commit` commits it again after a hook's refusal. Binding:
-    `writeFindings(repo, folder, findings)`.
+    repository's root. It refuses `commits` that are not two commit IDs, `<base>..<head>` in
+    lowercase hex, so the frontmatter holds plain YAML text. `retry_commit` commits it again after a
+    hook's refusal. Binding: `writeFindings(repo, folder, findings)`.
 
 - [x] **Step 1: Write the failing tests**
 

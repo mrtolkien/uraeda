@@ -10,7 +10,7 @@ use super::place::Place;
 use super::{ActionError, Change};
 
 /// The findings of one review: what was reviewed, `wave 2` or `branch`, the range of commits
-/// reviewed, `<base>..<head>`, and each reviewer's section, in the order they ran.
+/// reviewed, `<base>..<head>` by their IDs, and each reviewer's section, in the order they ran.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Findings {
@@ -103,10 +103,21 @@ fn demoted(body: &str) -> String {
     lines.join("\n")
 }
 
+/// Whether `commits` is a range of two commit IDs, `<base>..<head>`, in lowercase hex: plain text
+/// in YAML, written unquoted.
+fn is_range(commits: &str) -> bool {
+    let id = |part: &str| {
+        !part.is_empty() && part.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+    };
+    commits
+        .split_once("..")
+        .is_some_and(|(base, head)| id(base) && id(head))
+}
+
 /// Writes the next `findings-NN.md` in the feature's folder of `place`, and commits it alone: other
 /// changes of the working tree stay out of the commit. Returns its path from the top level. Refused
-/// without a section, for a `reviewed` not `branch` or `wave <N>`, and for `commits` empty or not
-/// one line.
+/// without a section, for a `reviewed` not `branch` or `wave <N>`, and for `commits` not two commit
+/// IDs, `<base>..<head>`.
 pub fn write_and_commit(
     place: &Place,
     feature: &Feature,
@@ -129,10 +140,9 @@ pub fn write_and_commit(
             "a review's findings review the branch or a wave, like wave 2".into(),
         ));
     }
-    let commits = findings.commits.trim();
-    if commits.is_empty() || commits.contains(": ") || commits.contains(['\n', '\r']) {
+    if !is_range(findings.commits.trim()) {
         return Err(ActionError::Refused(
-            "a review's findings name their commits on one line, like abc..def".into(),
+            "a review's findings name their commits by two commit IDs, like abc..def".into(),
         ));
     }
     let round = next_round(place, feature)?;
