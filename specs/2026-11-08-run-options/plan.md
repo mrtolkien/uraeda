@@ -1138,8 +1138,9 @@ git commit -m "feat(run-options): the Runs settings draw the run map"
   (`RunsOn` removed), `runs/RunStrip.tsx` (its keys its own, on the structural test's list: R26),
   `server/src/fate/starts.ts` (`feature.startText` takes `options`),
   `server/src/fate/change-starts.ts` (`change.start` takes `options` in place of a pick; its first
-  run on its build step's pick), the new session's picker default for a feature's first session (its
-  discovery step's pick: the feature record's `newPick`, `web/src/ComposerPicker.tsx`, R27)
+  run on its build step's pick, sent even when its options cannot be kept), the new session's picker
+  default for a feature's first session (its discovery step's pick: the feature record's `newPick`,
+  `web/src/ComposerPicker.tsx`, R27)
 - Test: `web/src/__tests__/start-runs.test.tsx`; `runtimes.test.ts`'s change start test rewritten
 
 **Interfaces:**
@@ -1151,10 +1152,11 @@ git commit -m "feat(run-options): the Runs settings draw the run map"
 - [x] **Step 1: Write the failing tests**
 
 - `start-runs.test.tsx` "a feature started with Spec on Opus keeps only that pick": on the New page
-  with two runtimes, Tab to the strip, → → over the joint to Spec (R26), Enter, pick Opus, then
-  High, start; the strip read "Spec on Opus · High" before the start, and the feature's own options
-  hold only `steps: [{ step: "spec", agent: "claude", model: "opus", effort: "high" }]`. Break:
-  storing the whole resolved map, so later defaults never reach it.
+  with two runtimes, Tab to the strip, → to the joint, a switch Enter cuts and `r` puts back, → to
+  Spec (R26), Enter, pick Opus, then High, start; the strip read "Spec on Opus · High" before the
+  start, and the feature's own options hold only
+  `steps: [{ step: "spec", agent: "claude", model: "opus", effort: "high" }]`. Break: storing the
+  whole resolved map, so later defaults never reach it.
 - `runtimes.test.ts`: the change start test sends its first run on the build step's pick of its
   options.
 

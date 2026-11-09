@@ -104,7 +104,13 @@ test("a feature started with Spec on Opus keeps only that pick", async () => {
   act(() => stops[0]!.focus());
   // The map's keys: → over the joint, then to Spec, and Enter opens the picker.
   act(() => press("ArrowRight"));
-  expect(document.activeElement?.getAttribute("aria-label")).toBe("Discovery to Spec");
+  const joint = document.activeElement;
+  expect(joint?.getAttribute("aria-label")).toBe("Discovery to Spec");
+  // Enter cuts the joint, a switch, and `r` puts it back to the default.
+  act(() => press("Enter"));
+  expect(joint?.getAttribute("aria-checked")).toBe("true");
+  act(() => press("r"));
+  expect(joint?.getAttribute("aria-checked")).toBe("false");
   act(() => press("ArrowRight"));
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Spec");
   act(() => press("Enter"));

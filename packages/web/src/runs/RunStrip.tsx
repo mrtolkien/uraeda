@@ -1,10 +1,12 @@
 // The run map in one line, for a start dialog: "Runs", each step's agent mark in a small square,
 // the scissors where a clean session starts, then what differs from the defaults in a few words. Tab
 // reaches it; ← → (h l) move along the steps and the joints between them, as on the map, the focus
-// with them; Enter opens the key picker on the step selected, and Enter or Space on a joint cuts or
-// joins it. A change runs one step: its strip holds that step and its reviewers, Enter on an agent
-// reviewer picking its agent and model. The strip is drawn in a dialog, a layer the key registry
-// leaves to its owner: its keys are its own, as a radio group's are (run options R26).
+// with them; Enter opens the key picker on the step selected, Enter or Space on a joint cuts or
+// joins it, a switch's Space, and `r` puts the selection back to the default. A change runs one
+// step: its strip holds that step and its reviewers, Enter on an agent reviewer picking its agent
+// and model, `a` adding a reviewer and `d` removing the one selected, unless it is the only one. The
+// strip is drawn in a dialog, a layer the key registry leaves to its owner: its keys are its own, as
+// a radio group's are (run options R26).
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -16,11 +18,12 @@ import { bareButtonStyles } from "../layout/bareButton.ts";
 import { useSingleKeys } from "../keys/registry.tsx";
 import { pickedStyles } from "../layout/picked.ts";
 import { PickSteps, type PickerRuntime, type SessionPick } from "../SessionPicker.tsx";
-import { Scissors } from "./glyphs.tsx";
-import { drawn, sessionColour } from "./parts.tsx";
+import { Lock, Scissors } from "./glyphs.tsx";
+import { drawn, partStyles, sessionColour } from "./parts.tsx";
 import {
   changes,
   differences,
+  isForced,
   jointCuts,
   reviewerChanged,
   type RunOptions,
@@ -40,6 +43,7 @@ const styles = stylex.create({
     inlineSize: spacingVars["--spacing-4"],
     justifyContent: "center",
     minBlockSize: spacingVars["--spacing-7"],
+    position: "relative",
   },
   line: {
     borderBlockStartStyle: "solid",
@@ -106,10 +110,15 @@ function Square({
   );
 }
 
-/** A joint of the strip: the scissors where a clean session starts, else a line in its colour. */
+/**
+ * A joint of the strip: the scissors where a clean session starts, else a line in its colour,
+ * locked when the two steps' models force it. A switch, as the map's joint is, so that Space is its
+ * own, the button's click.
+ */
 function StripJoint({
   colour,
   isCut,
+  isForced,
   isPicked,
   isStop,
   label,
@@ -118,6 +127,7 @@ function StripJoint({
 }: {
   colour: string;
   isCut: boolean;
+  isForced: boolean;
   isPicked: boolean;
   isStop: boolean;
   label: string;
@@ -127,16 +137,25 @@ function StripJoint({
   return (
     // oxlint-disable-next-line react/forbid-elements -- a joint of the strip, a glyph or a line between two squares pressed as one, which Astryx's Button does not draw (an Astryx gap)
     <button
+      aria-checked={isCut}
+      aria-disabled={isForced}
       aria-label={label}
-      aria-pressed={isCut}
-      onClick={onPress}
+      onClick={isForced ? undefined : onPress}
       ref={ref}
+      role="switch"
       tabIndex={isStop ? 0 : -1}
       type="button"
       {...stylex.props(bareButtonStyles.bare, styles.joint, isPicked && pickedStyles.picked)}
     >
       {isCut ? (
-        <Icon icon={Scissors} size="xsm" />
+        <>
+          <Icon color={isForced ? "secondary" : "primary"} icon={Scissors} size="xsm" />
+          {isForced && (
+            <span {...stylex.props(partStyles.lock)}>
+              <Icon color="secondary" icon={Lock} size="xsm" />
+            </span>
+          )}
+        </>
       ) : (
         <span {...stylex.props(styles.line, drawn.border(colour))} />
       )}
@@ -186,55 +205,116 @@ function withPickAt(value: RunOptions, place: Place, pick: SessionPick): RunOpti
   };
 }
 
+/** `value` with the place back on its default in `defaults`, or `undefined` when it already is. */
+function resetAt(
+  runtimes: ReadonlyArray<PickerRuntime>,
+  value: RunOptions,
+  defaults: RunOptions,
+  place: Place,
+): RunOptions | undefined {
+  if (place.kind === "joint") {
+    const isDefault = defaults.cuts.includes(place.index) === value.cuts.includes(place.index);
+    return isDefault ? undefined : withCut(runtimes, value, place.index);
+  }
+  const pick = pickAt(value, place);
+  if (pick === undefined) {
+    return undefined;
+  }
+  const fallback = place.kind === "step" ? defaults.steps[place.step] : pickAt(defaults, place);
+  return withPickAt(value, place, fallback ?? defaults.steps.review);
+}
+
+/** `value` with the reviewer at `place` removed, or `undefined` when it is not one of several. */
+function removedAt(value: RunOptions, place: Place | undefined): RunOptions | undefined {
+  if (place?.kind !== "reviewer" || value.reviewers.length <= 1) {
+    return undefined;
+  }
+  return { ...value, reviewers: value.reviewers.filter((_, index) => index !== place.index) };
+}
+
 /**
- * The strip's cursor and its keys: ← → (h l, while single keys are on) move it, the focus with it,
- * Enter and Space act on its place. `act` is what a tap does too.
+ * What the strip's letters do at `place`, while single keys are on: `r` resets it, and on a
+ * change's strip, `a` adds a reviewer, `d` removes the one selected. `undefined` when the key does
+ * nothing there.
  */
-function useStripKeys({
-  onChange,
-  places,
-  runtimes,
-  setPicking,
-  value,
-}: {
+function lettered(
+  key: string,
+  { defaults, isChange, place, runtimes, value }: StripKeysOptions & { place: Place | undefined },
+): RunOptions | undefined {
+  if (key === "r") {
+    return place && resetAt(runtimes, value, defaults, place);
+  }
+  if (key === "a" && isChange) {
+    return {
+      ...value,
+      reviewers: [...value.reviewers, { kind: "agent", pick: defaults.steps.review }],
+    };
+  }
+  return key === "d" ? removedAt(value, place) : undefined;
+}
+
+type StripKeysOptions = {
+  defaults: RunOptions;
+  isChange: boolean;
   onChange: (value: RunOptions) => void;
   places: ReadonlyArray<Place>;
   runtimes: ReadonlyArray<PickerRuntime>;
   setPicking: (step: "model" | "effort" | undefined) => void;
   value: RunOptions;
-}) {
+};
+
+/**
+ * The strip's cursor and its keys: ← → (h l, while single keys are on) move it, the focus with it,
+ * Enter acts on its place, and the letters `lettered` names change it. Space is left to the
+ * buttons' own click, which a keydown here would act on twice. `act` is what a tap does too.
+ */
+function useStripKeys(options: StripKeysOptions) {
+  const { onChange, places, runtimes, setPicking, value } = options;
   const [cursor, setCursor] = useState(0);
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
   const singleKeys = useSingleKeys();
-  const act = (at: number) => {
-    const place = places[at];
-    setCursor(at);
+  const at = Math.min(cursor, places.length - 1);
+  const act = (index: number) => {
+    const place = places[index];
+    setCursor(index);
     if (place?.kind === "joint") {
-      onChange(withCut(runtimes, value, place.index));
+      if (!isForced(runtimes, value, place.index)) {
+        onChange(withCut(runtimes, value, place.index));
+      }
     } else if (pickAt(value, place) !== undefined) {
       setPicking("model");
     }
+  };
+  const moveTo = (index: number) => {
+    const next = Math.max(0, Math.min(places.length - 1, index));
+    setCursor(next);
+    buttons.current[next]?.focus();
   };
   const onKey = (event: KeyboardEvent) => {
     const letters = singleKeys ? { h: -1, l: 1 } : {};
     const step = ({ ArrowLeft: -1, ArrowRight: 1, ...letters } as Record<string, number>)[
       event.key
     ];
+    const changed = singleKeys ? lettered(event.key, { ...options, place: places[at] }) : undefined;
     if (step !== undefined) {
-      const next = Math.max(0, Math.min(places.length - 1, cursor + step));
-      setCursor(next);
-      buttons.current[next]?.focus();
-    } else if (event.key === "Enter" || event.key === " ") {
-      act(cursor);
+      moveTo(at + step);
+    } else if (event.key === "Enter") {
+      act(at);
+    } else if (changed !== undefined) {
+      onChange(changed);
+      // The reviewer removed takes its button: the focus goes to the place before it.
+      if (event.key === "d") {
+        moveTo(at - 1);
+      }
     } else {
       return;
     }
     event.preventDefault();
   };
-  const refAt = (at: number) => (button: HTMLButtonElement | null) => {
-    buttons.current[at] = button;
+  const refAt = (index: number) => (button: HTMLButtonElement | null) => {
+    buttons.current[index] = button;
   };
-  return { act, cursor: Math.min(cursor, places.length - 1), onKey, refAt };
+  return { act, cursor: at, onKey, refAt };
 }
 
 /** The strip of a feature, its six steps, or of a change (`isChange`), its one step and reviewers. */
@@ -256,6 +336,8 @@ export function RunStrip({
   const [isFocused, setFocused] = useState(false);
   const places = placesOf(isChange, value.reviewers.length);
   const { act, cursor, onKey, refAt } = useStripKeys({
+    defaults,
+    isChange,
     onChange,
     places,
     runtimes,
@@ -342,6 +424,7 @@ function StripPlace({
       <StripJoint
         colour={sessionColour(sessionOf(place.index))}
         isCut={jointCuts(runtimes, value, place.index)}
+        isForced={isForced(runtimes, value, place.index)}
         isPicked={isPicked}
         isStop={isStop}
         label={`${STEP_LOOKS[STEPS[place.index - 1]!].name} to ${STEP_LOOKS[after].name}`}

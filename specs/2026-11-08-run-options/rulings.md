@@ -331,9 +331,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a layer the key registry leaves to its owner, so a binding declared with `useKeys` would never run
   there. Its keys are the map's: ← → (h l, while single keys are on) move along the steps and the
   joints between them, the focus with them (one tab stop), Enter on a step or an agent reviewer
-  opens the key picker, and Enter or Space on a joint cuts or joins it. So changing Spec's model
-  from the dialog takes Tab, two moves (over the joint Discovery to Spec), Enter, and the pick: one
-  key more than SC-001's four.
+  opens the key picker, Enter or Space on a joint cuts or joins it (a switch, as the map's, Space
+  its button's own click, and locked when forced), and `r` puts the selection back to the default. A
+  change's strip, which shows its reviewers, also takes `a` to add one and `d` to remove the one
+  selected, unless it is the only one. So changing Spec's model from the dialog takes Tab, two moves
+  (over the joint Discovery to Spec), Enter, and the pick: one key more than SC-001's four.
 - **Rationale**: the Run options decision: "Run options MUST be shown and edited as one diagram of
   the steps, the same wherever they appear", which outranks the spec's success criterion; the
   Keyboard decision's list exists for a dialog's and a widget's own keys.
