@@ -447,8 +447,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   it. A test pins it to the core's `merge_run_options` over every case the map stores. Sub-sessions
   leave the sidebar's list and search; their parent's record lists them, and its Sub-agents pane and
   the feature's sessions draw them from there. The stories' sub-sessions are sessions of Storybook's
-  server, seeded by `recordSubSessions`; one at work has no turn yet, as a stored running turn is
-  stopped once the server starts.
+  server, seeded by `recordSubSessions`; those at work wait to continue after their agent's limit,
+  as a stored running turn is stopped once the server starts. A sub-session's state follows the
+  runner's rule, `subSessionsWork`'s: at work while its turn runs or it waits to continue; before
+  its first turn, at work while its parent runs a turn, else stopped.
 - **Rationale**: the web UI cannot call the core, and the record holds only the feature's own
   options (R12): the map of the settings is at hand, and the overlay is the map's own rule, as
   `toStored` is.

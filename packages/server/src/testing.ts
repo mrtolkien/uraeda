@@ -15,6 +15,7 @@ import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import { runtimesOf } from "./runner/runtimes.ts";
 import type { Sessions } from "./runner/sessions.ts";
+import { TAKEN_BACK } from "./runner/session-state.ts";
 import { ServerSettings, type SettingsEnvironment } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
@@ -184,7 +185,10 @@ export function recordRun(
   }
 }
 
-/** A sub-session `recordSubSessions` writes: none of `run` is one at work, before its first turn. */
+/**
+ * A sub-session `recordSubSessions` writes: none of `run` is one stopped before its first turn; a
+ * run failed at its agent's limit that `continues` is at work, waiting to continue then.
+ */
 export type RecordedSubSession = {
   about: string;
   agent: string;
@@ -194,6 +198,8 @@ export type RecordedSubSession = {
   role: "implementer" | "reviewer";
   run?: {
     at: string;
+    /** When a run failed at its agent's limit continues, an ISO 8601 time. */
+    continues?: string;
     ended: string;
     state: "done" | "failed" | "stopped";
     /** What its agent wrote, its transcript. */
@@ -204,8 +210,8 @@ export type RecordedSubSession = {
 
 /**
  * Writes `subs` in the cache of `dataDir`, sub-sessions of the latest session of `folder`, which
- * `recordRun` wrote: each a workflow run of the build, ended, or at work before its first turn,
- * started as the cache is written.
+ * `recordRun` wrote: each a workflow run of the build, ended, waiting to continue, or stopped
+ * before its first turn, started as the cache is written.
  */
 export function recordSubSessions(
   dataDir: string,
@@ -244,6 +250,9 @@ export function recordSubSessions(
         cache.addTurnTokens(turn, run.tokens);
       }
       cache.endTurn(turn, { state: run.state });
+      if (run.continues !== undefined) {
+        cache.scheduleContinue(turn, Date.parse(run.continues), "limit", TAKEN_BACK);
+      }
       cache.db
         .prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?")
         .run(run.at, run.ended, turn);

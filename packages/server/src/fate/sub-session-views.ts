@@ -2,7 +2,7 @@
 // workflow run is a session Uraeda started, its implementer of a task or a reviewer, read here from
 // the cache with its state, its time, and its usage, and its model and effort by their names for
 // people, from its agent's list.
-import type { SessionRow } from "../runner/cache.ts";
+import type { SessionRow, TurnRow } from "../runner/cache.ts";
 import type { Role } from "../runner/sub-sessions.ts";
 import type { RepoContext } from "./context.ts";
 import { latestOf } from "./session-reads.ts";
@@ -48,14 +48,32 @@ function namesOf(ctx: RepoContext, row: SessionRow) {
   };
 }
 
-/** The record of the sub-session `row`: a session without a turn yet is at work. */
+/**
+ * Where the sub-session `row` stands, by the runner's rule (`subSessionsWork`): at work while its
+ * turn runs or waits, or it waits to continue, after its agent's limit; before its first turn, at
+ * work while its parent runs the turn that starts it, else stopped.
+ */
+function stateOf(ctx: RepoContext, row: SessionRow, latest: TurnRow | undefined): SubSessionState {
+  const { sessions } = ctx;
+  if (latest === undefined) {
+    const starting = row.parent !== null && sessions.sessionWorking(row.parent);
+    return starting || sessions.subSessions.works(row.id) ? "working" : "stopped";
+  }
+  if (
+    sessions.subSessions.works(row.id) ||
+    latest.state === "running" ||
+    latest.state === "queued"
+  ) {
+    return "working";
+  }
+  return latest.state;
+}
+
+/** The record of the sub-session `row`. */
 export function subSessionRecord(ctx: RepoContext, row: SessionRow): SubSessionRecord {
   const turns = ctx.sessions.cache.turns(row.id);
   const { latest } = latestOf(turns);
-  const state: SubSessionState =
-    latest === undefined || latest.state === "running" || latest.state === "queued"
-      ? "working"
-      : latest.state;
+  const state = stateOf(ctx, row, latest);
   const tokens = featureTokens(turns);
   return {
     about: row.title ?? "",

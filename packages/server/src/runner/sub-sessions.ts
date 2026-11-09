@@ -121,6 +121,11 @@ export class SubSessions {
     return (this.#calls.get(parent) ?? 0) > 0 || subSessionsWork(this.#context, parent);
   }
 
+  /** Whether the sub-session `sub` works, or waits to continue: `subSessionWorks`. */
+  works(sub: string): boolean {
+    return subSessionWorks(this.#context, sub);
+  }
+
   /**
    * Runs `call`, a tool call of `parent`, counted while it waits: `busy` holds meanwhile. The
    * signal `call` is given is aborted by `stopAll`, as the parent's turn halts, even when the
@@ -329,16 +334,29 @@ export class SubSessions {
  * for them, or it would call its tools again before they answered.
  */
 export function subSessionsWork(context: SessionContext, parent: string): boolean {
-  const { cache, live } = context;
-  const subs = cache.subSessionsOf(parent);
+  const subs = context.cache.subSessionsOf(parent);
   if (subs.length === 0) {
     return false;
   }
-  const waiting = new Set(cache.pendingContinues().map((turn) => turn.sessionId));
-  return subs.some((sub) => {
-    const held = live.get(sub.id);
-    return waiting.has(sub.id) || (held !== undefined && working(held));
-  });
+  const waiting = waitingSessions(context);
+  return subs.some((sub) => subSessionWorks(context, sub.id, waiting));
+}
+
+/** The sessions with a continue waiting. */
+const waitingSessions = (context: SessionContext) =>
+  new Set(context.cache.pendingContinues().map((turn) => turn.sessionId));
+
+/**
+ * Whether the sub-session `sub` works, or waits to continue, as `subSessionsWork` reads each:
+ * `waiting` holds the sessions with a continue waiting.
+ */
+export function subSessionWorks(
+  context: SessionContext,
+  sub: string,
+  waiting: ReadonlySet<string> = waitingSessions(context),
+): boolean {
+  const held = context.live.get(sub);
+  return waiting.has(sub) || (held !== undefined && working(held));
 }
 
 /** The latest turn, skipping those taken back, which never ran. */

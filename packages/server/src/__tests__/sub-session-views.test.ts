@@ -3,6 +3,7 @@
 // names, its state, its time, and its usage; a sub-session's own record names its parent and role.
 // The sidebar's list leaves them out: their parent's views list them.
 import { expect, test } from "vite-plus/test";
+import { TAKEN_BACK } from "../runner/session-state.ts";
 import { byId, type Data, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -71,6 +72,12 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
   turn(server, reviewer.id, "done");
   const failed = subSession(server, parent, { about: "Task 5", role: "implementer" });
   turn(server, failed.id, "failed");
+  // At its agent's limit, it waits to continue: the runner holds its parent meanwhile.
+  const limited = subSession(server, parent, { about: "Task 6", role: "implementer" });
+  const limit = turn(server, limited.id, "failed");
+  server.sessions.cache.scheduleContinue(limit, Date.now() + 3_600_000, "limit", TAKEN_BACK);
+  // Never started, and its parent no longer runs a turn to start it.
+  const unstarted = subSession(server, parent, { about: "Task 7", role: "implementer" });
 
   const [record] = await byId(
     server.app,
@@ -85,6 +92,8 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
     [working.id, "implementer", "working"],
     [reviewer.id, "reviewer", "done"],
     [failed.id, "implementer", "failed"],
+    [limited.id, "implementer", "working"],
+    [unstarted.id, "implementer", "stopped"],
   ]);
   expect(subs[0]).toEqual({
     about: "Task 4: Next due date",

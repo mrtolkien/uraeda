@@ -1240,9 +1240,10 @@ feature's change, updates `folderSessions` alone, which leaves sub-sessions out.
 list, or leave them out of it, and refresh a feature's sub-sessions with their parents.
 
 Built: the list and search leave sub-sessions out; a feature's change refreshes its sessions'
-sub-sessions, and a sub-session's change its parent's record. The map reads `overStored`, a
-feature's options over the settings' map (R32). The stories read sub-sessions Storybook's server
-keeps, `samples/subSessions.ts`; `FeatureRunMap` is the map without the server, for the stories.
+sub-sessions, and a sub-session's change its parent's record. A sub-session's state follows the
+runner's rule, `subSessionsWork`'s (R32). The map reads `overStored`, a feature's options over the
+settings' map (R32). The stories read sub-sessions Storybook's server keeps,
+`samples/subSessions.ts`; `FeatureRunMap` is the map without the server, for the stories.
 
 - [x] **Step 2: Run the task's validation**
 

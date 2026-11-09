@@ -1,9 +1,19 @@
 // The sub-sessions of the feature page's building feature (spec of Run options), as the runner's
 // cache keeps them: its build's wave of three implementers, one at work, one done, one failed, and
 // two reviewers of the wave before, one at work on Codex's review and one stopped. Those at work
-// have no turn yet, as a stored running turn would be stopped once the server starts.
+// wait to continue after their agent's limit, as a stored running turn would be stopped once the
+// server starts.
 import { type RecordedSubSession, recordSubSessions } from "uraeda-server/testing";
 import { FEATURE_PAGES } from "./folders.ts";
+
+/** A run at work: failed at its agent's limit, it waits to continue, long after the stories. */
+const atLimit = (at: string, ended: string, text: string) => ({
+  at,
+  continues: "2099-01-01T00:00:00Z",
+  ended,
+  state: "failed" as const,
+  text,
+});
 
 const SUB_SESSIONS: ReadonlyArray<RecordedSubSession> = [
   {
@@ -12,6 +22,11 @@ const SUB_SESSIONS: ReadonlyArray<RecordedSubSession> = [
     effort: "Low",
     model: "Sonnet 5.5",
     role: "implementer",
+    run: atLimit(
+      "2026-10-17T15:09:00Z",
+      "2026-10-17T15:14:00Z",
+      "The next due date reads the task's rule.",
+    ),
   },
   {
     about: "Task 5: The repeat icon in the list",
@@ -46,6 +61,7 @@ const SUB_SESSIONS: ReadonlyArray<RecordedSubSession> = [
     effort: "High",
     model: "GPT-6.1-Sol",
     role: "reviewer",
+    run: atLimit("2026-10-17T15:05:00Z", "2026-10-17T15:08:00Z", "Codex's review reads the wave."),
   },
   {
     about: "Wave 1",
