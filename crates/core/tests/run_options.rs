@@ -378,11 +378,40 @@ fn refuses_to_write_options_that_do_not_pass_the_check() {
 #[test]
 fn a_write_keeps_the_unknown_keys_and_comments() {
     let dir = tempdir();
-    let rows: [(&str, RunOptions, &str); 1] = [(
-        "# my spec\n[runs.steps.spec]\nagent = \"claude\"\nnotes = \"keep\"\n\n[runs.implementers]\nagent = \"codex\"\nnotes = \"keep too\"\n",
-        RunOptions::default(),
-        "# my spec\n[runs.steps.spec]\nnotes = \"keep\"\n\n[runs.implementers]\nnotes = \"keep too\"\n",
-    )];
+    let reviewers = "[runs]\nautomatic_continues = 3\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n";
+    let rows: [(&str, RunOptions, &str); 3] = [
+        (
+            "# my spec\n[runs.steps.spec]\nagent = \"claude\"\nnotes = \"keep\"\n\n[runs.implementers]\nagent = \"codex\"\nnotes = \"keep too\"\n",
+            RunOptions::default(),
+            "# my spec\n[runs.steps.spec]\nnotes = \"keep\"\n\n[runs.implementers]\nnotes = \"keep too\"\n",
+        ),
+        (
+            reviewers,
+            RunOptions {
+                reviewers: Some(vec![
+                    command_reviewer("make check"),
+                    agent_reviewer("claude"),
+                ]),
+                ..RunOptions::default()
+            },
+            "[runs]\nautomatic_continues = 3\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\n",
+        ),
+        (
+            reviewers,
+            RunOptions {
+                reviewers: Some(vec![
+                    agent_reviewer("codex"),
+                    command_reviewer("make check"),
+                    ReviewerOptions {
+                        model: Some("opus".into()),
+                        ..agent_reviewer("claude")
+                    },
+                ]),
+                ..RunOptions::default()
+            },
+            "[runs]\nautomatic_continues = 3\n\n[[runs.reviewers]]\nagent = \"codex\"\n\n# the second\n[[runs.reviewers]]\ncommand = \"make check\"\nnotes = \"two\"\n\n# the first\n[[runs.reviewers]]\nagent = \"claude\"\nnotes = \"one\"\nmodel = \"opus\"\n",
+        ),
+    ];
     for (before, options, after) in rows {
         write(dir.path(), before);
 

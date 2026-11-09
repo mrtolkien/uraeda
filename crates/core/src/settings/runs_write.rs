@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use toml_edit::{ArrayOfTables, Item, TableLike, Value};
+use toml_edit::{ArrayOfTables, Item, Table, TableLike, Value};
 
 use super::runs::{ReviewerOptions, RunOptions, RunPick, StepOptions, check_run_options};
 use super::{Settings, change_path, nested, set};
@@ -110,39 +110,72 @@ fn write_implementers(
     Ok(())
 }
 
-/// Replaces `[[runs.reviewers]]` with `reviewers`, each table still there edited in its place,
-/// removed when unset or empty.
+/// Replaces `[[runs.reviewers]]` with `reviewers`, removed when unset or empty. Each reviewer keeps
+/// its own table, with its comments and unknown keys, found by its agent and model, its command, or
+/// else its agent; a table no reviewer keeps is removed, and a reviewer without one gets a new one.
 fn write_reviewers(runs: &mut dyn TableLike, reviewers: Option<&[ReviewerOptions]>) {
     let reviewers = reviewers.unwrap_or_default();
+    let old = runs.remove("reviewers");
     if reviewers.is_empty() {
-        runs.remove("reviewers");
         return;
     }
-    if runs
-        .get("reviewers")
-        .and_then(Item::as_array_of_tables)
-        .is_none()
-    {
-        runs.insert("reviewers", Item::ArrayOfTables(ArrayOfTables::new()));
-    }
-    let Some(tables) = runs
-        .get_mut("reviewers")
-        .and_then(Item::as_array_of_tables_mut)
-    else {
-        return;
-    };
-    while tables.len() > reviewers.len() {
-        tables.remove(tables.len() - 1);
-    }
-    for (index, reviewer) in reviewers.iter().enumerate() {
-        if index == tables.len() {
-            tables.push(toml_edit::Table::new());
+    let mut old: Vec<Option<Table>> = old
+        .and_then(|item| item.into_array_of_tables().ok())
+        .map(|tables| tables.into_iter().map(Some).collect())
+        .unwrap_or_default();
+    // The tables' places in the file, given in turn to the reviewers' tables, so that the file
+    // shows them in their new order.
+    let mut places: Vec<isize> = old.iter().flatten().filter_map(Table::position).collect();
+    places.sort_unstable();
+    let mut kept: Vec<Option<Table>> = reviewers.iter().map(|_| None).collect();
+    let passes: [fn(&ReviewerOptions, &Table) -> bool; 2] = [same_reviewer, same_agent];
+    for pass in passes {
+        for (reviewer, slot) in reviewers.iter().zip(kept.iter_mut()) {
+            if slot.is_some() {
+                continue;
+            }
+            *slot = old
+                .iter_mut()
+                .find(|table| table.as_ref().is_some_and(|table| pass(reviewer, table)))
+                .and_then(Option::take);
         }
-        let Some(table) = tables.get_mut(index) else {
-            continue;
-        };
-        put_pick(table, &reviewer.agent, &reviewer.model, &reviewer.effort);
-        put(table, "instructions", reviewer.instructions.as_deref());
-        put(table, "command", reviewer.command.as_deref());
     }
+    let mut tables = ArrayOfTables::new();
+    for (index, (reviewer, table)) in reviewers.iter().zip(kept).enumerate() {
+        let mut table = table.unwrap_or_default();
+        // A reviewer past the old tables' count follows the last of them.
+        if let Some(place) = places.get(index).or(places.last()) {
+            table.set_position(*place);
+        }
+        put_pick(
+            &mut table,
+            &reviewer.agent,
+            &reviewer.model,
+            &reviewer.effort,
+        );
+        put(&mut table, "instructions", reviewer.instructions.as_deref());
+        put(&mut table, "command", reviewer.command.as_deref());
+        tables.push(table);
+    }
+    runs.insert("reviewers", Item::ArrayOfTables(tables));
+}
+
+/// Whether `table` is `reviewer`'s: the same agent and model, or the same command.
+fn same_reviewer(reviewer: &ReviewerOptions, table: &Table) -> bool {
+    let text = |key: &str| table.get(key).and_then(Item::as_str);
+    match &reviewer.command {
+        Some(command) => text("command") == Some(command),
+        None => {
+            text("command").is_none()
+                && text("agent") == reviewer.agent.as_deref()
+                && text("model") == reviewer.model.as_deref()
+        }
+    }
+}
+
+/// Whether `table` runs `reviewer`'s agent, whatever its model.
+fn same_agent(reviewer: &ReviewerOptions, table: &Table) -> bool {
+    reviewer.agent.is_some()
+        && table.get("command").is_none()
+        && table.get("agent").and_then(Item::as_str) == reviewer.agent.as_deref()
 }
