@@ -103,6 +103,9 @@ function Subagents({ session }: { session: string }) {
   const now = useNow(1000);
   const rows = useKeptRows(topLevel(record?.subagents ?? []), now);
   const subs = record?.subSessions ?? [];
+  // Once the session has sub-sessions, its agent's own sub-agents are not drawn: sub-sessions come
+  // from workflow runs, which take the agent's own sub-agents away and run their implementers and
+  // reviewers as sub-sessions instead, so the pane lists one kind, never both mixed.
   if (subs.length > 0) {
     return <SubSessions subs={subs} />;
   }
