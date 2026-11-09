@@ -41,13 +41,12 @@ test("sessions opening together share one catalog of their folder's, never holdi
   const folder = join(dir, "catalog");
   const adapter = new CodexAdapter({
     catalogDir: folder,
-    command: appServer(dir, { catalogMs: 1000 }),
+    command: appServer(dir),
     pluginDir: "/p",
   });
-  const started = performance.now();
   const agents = [adapter.open({ ...open, cwd: dir }), adapter.open({ ...open, cwd: dir })];
-  // `codex debug models` takes a second: the opens return before it ends.
-  expect(performance.now() - started).toBeLessThan(500);
+  // The opens return before `codex debug models` ran: a run that held them wrote the catalog first.
+  expect(existsSync(catalogPath(folder, dir))).toBe(false);
   agents.push(adapter.open({ ...open, cwd: other }));
   for (const agent of agents) {
     const events = agent.events[Symbol.asyncIterator]();
