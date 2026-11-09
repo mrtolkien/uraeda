@@ -9,7 +9,6 @@ import type {
   Capabilities,
   ModelList,
   OpenOptions,
-  Outgoing,
 } from "./adapter.ts";
 import {
   type Child,
@@ -26,7 +25,13 @@ import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
 import type { AgentEvent } from "./events.ts";
-import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
+import type { ExtensionPaths } from "./instructions.ts";
+import {
+  codexInput,
+  codexInstructions,
+  codexThreadParams,
+  codexTurnParams,
+} from "./codex-thread.ts";
 
 /**
  * Codex, run through its installed `codex` command's `app-server`, its own JSON-RPC protocol over
@@ -47,81 +52,6 @@ const isJson = (value: unknown): value is Json =>
 const textOf = (value: unknown): string | undefined =>
   typeof value === "string" && value !== "" ? value : undefined;
 const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-/**
- * The sandbox's section of the instructions: what Codex cannot do without escalating, so it asks
- * its reviewer instead of failing, or working around the sandbox. The extensions folder is not
- * writable: Uraeda runs what it holds, so each write there is reviewed first (R22).
- */
-function sandboxSection(extensions: string | undefined): string {
-  const folder =
-    extensions === undefined
-      ? ""
-      : ` Writing in \`${extensions}\`, your extensions folder, needs escalated permissions too, from its first try.`;
-  return `
-# Sandbox
-
-Your commands run in a sandbox: you write in the working directory only, git's own folder is read-only, and the network is off. So run every git command that writes, as \`git add\`, \`git commit\`, \`git mv\`, and \`git worktree add\`, and every command that uses the network, as \`git push\` and \`gh\`, with escalated permissions from its first try (\`sandbox_permissions: "require_escalated"\`, with a one-line justification): a reviewer approves each before it runs, and you are allowed to ask.${folder} Never work around the sandbox, and never stop at a git command the sandbox refused: run it again with escalated permissions.
-`;
-}
-
-/** The developer instructions of every thread: the web UI's, then the sandbox's. */
-export function codexInstructions(extensions?: ExtensionPaths): string {
-  return `${webUiInstructions(extensions)}${sandboxSection(extensions?.folder)}`;
-}
-
-/**
- * The parameters of a session's `thread/start`, or `thread/resume` when resuming: the model when
- * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
- * approvals on request, reviewed by its automatic reviewer. The one configuration override is the
- * trust of the session's directory, when known, the level Codex would apply itself: without it,
- * Codex writes it to the user's settings (R24). Never another, which could widen the permissions.
- */
-export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
-  return {
-    approvalPolicy: "on-request",
-    approvalsReviewer: "auto_review",
-    ...(trust === undefined
-      ? {}
-      : { config: { projects: { [options.cwd]: { trust_level: trust } } } }),
-    cwd: options.cwd,
-    developerInstructions: instructions,
-    sandbox: "workspace-write",
-    ...(options.model === undefined ? {} : { model: options.model }),
-    // A resumed thread's turns stay unread: the transcript has them.
-    ...(options.resume ? { excludeTurns: true, threadId: options.nativeId } : {}),
-  };
-}
-
-/** A message's input items: its text, then its images by their paths. */
-export function codexInput({ images, text }: Pick<Outgoing, "images" | "text">) {
-  return [
-    ...(text === "" ? [] : [{ text, text_elements: [], type: "text" }]),
-    ...images.map(({ path }) => ({ path, type: "localImage" })),
-  ];
-}
-
-/** A turn to start: its thread, its message, and the effort when set. */
-export type CodexTurn = Pick<Outgoing, "images" | "text"> & { effort?: string; threadId: string };
-
-/**
- * The parameters of a `turn/start`: the message, the effort when set, and the sandbox's policy,
- * which writes only the session's directory, the network off: no other writable root (R22).
- */
-export function codexTurnParams({ effort, threadId, ...message }: CodexTurn) {
-  return {
-    input: codexInput(message),
-    sandboxPolicy: {
-      excludeSlashTmp: false,
-      excludeTmpdirEnvVar: false,
-      networkAccess: false,
-      type: "workspaceWrite",
-      writableRoots: [],
-    },
-    threadId,
-    ...(effort === undefined ? {} : { effort }),
-  };
-}
 
 /** The rows of `model/list` pages offered in a picker: each but the hidden ones. */
 function shownRows(rows: unknown): Array<Json & { model: string }> {

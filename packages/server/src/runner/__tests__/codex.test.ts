@@ -4,13 +4,8 @@ import { expect, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
 import { MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
-import {
-  CodexAdapter,
-  codexInstructions,
-  codexModels,
-  codexThreadParams,
-  codexTurnParams,
-} from "../codex.ts";
+import { CodexAdapter, codexModels } from "../codex.ts";
+import { codexInstructions, codexThreadParams, codexTurnParams } from "../codex-thread.ts";
 import {
   alive,
   APPLIED,
