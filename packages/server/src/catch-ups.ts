@@ -111,6 +111,7 @@ export function startCatchUps(options: {
       const { catchUp, session } = catching;
       const { feature } = read;
       const automatic = {
+        commit: catchUp.commit,
         line: catchUpLine(catchUp),
         step: CATCH_UP,
         trigger: "catch-up" as const,

@@ -147,10 +147,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R14: The catcher's message goes only to the step it read, and its record is tested on a dismissal
 
-- **Decision**: `continueOne` takes an optional automatic run, `{ line, step, trigger }`, and sends
-  its message only while the feature's step, read again as it sends, is still `step`. The test of
-  "one catch-up per tip" starts from a manual catch-up the human stopped and dismissed, not one that
-  ended done, then lets the catcher's own catch-up end done for R12.
+- **Decision**: `continueOne` takes an optional automatic run, `{ commit, line, step, trigger }`,
+  and sends its message only while the feature's step, read again as it sends, is still `step`, and
+  still catches up with `commit`: the final review found main moving between the read and the send.
+  The test of "one catch-up per tip" starts from a manual catch-up the human stopped and dismissed,
+  not one that ended done, then lets the catcher's own catch-up end done for R12.
 - **Rationale**: the catcher reads the step, then sends: a step that moved meanwhile would get a
   message with the catch-up's trigger and line, which says a run that never happens. A manual
   catch-up that ended done at the current tip reads as a conflict, which the catcher skips by its

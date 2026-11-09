@@ -254,3 +254,21 @@ test("the server's catcher leaves a missing repository alone", async () => {
   expect(log.mock.calls.map(([text]) => String(text)).join("")).not.toContain("catch-ups");
   log.mockRestore();
 });
+
+/**
+ * Review: main moved between the catcher's read and its send. Catches: a message whose line names
+ * the commit read, sent for another; the next trigger catches up with the new one.
+ */
+test("main moving between the read and the send sends nothing", async () => {
+  const moved = { ...CATCH_UP, commit: "d".repeat(40) };
+  const using = {
+    ...atCatchUp(binding, AGENT, CATCH_UP),
+    nextStep: atCatchUp(binding, AGENT, moved).nextStep,
+  };
+  const server = await testServer(undefined, { binding: using });
+  const { session } = await endedRun(server, AGENT);
+
+  await catcher(server, using, () => true).run(server.repo);
+
+  expect(added(server, session)).toHaveLength(0);
+});

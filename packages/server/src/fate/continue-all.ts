@@ -14,15 +14,16 @@ import { sources } from "./sources.ts";
 import { continuedAllDataView, type RefusedRun } from "./views-continued-all.ts";
 
 /**
- * An automatic run's message: the step it is sent at, what started it, and the line its session
- * shows before it, saying why it happened.
+ * An automatic run's message: the step it is sent at, what started it, the line its session shows
+ * before it, saying why it happened, and the commit it catches up with, when it does.
  */
-export type Automatic = { line: string; step: string; trigger: Trigger };
+export type Automatic = { commit?: string; line: string; step: string; trigger: Trigger };
 
 /**
  * Sends the feature its step's message in `session`, which goes on there, as its run did: none
  * when its step has no message, as at a gate. An automatic run, `automatic`, sends it with its own
- * trigger and line, and only while the feature is still at its step.
+ * trigger and line, and only while the feature is still at its step, catching up with its commit:
+ * the default branch moved since, the next trigger catches up with the new tip.
  */
 export async function continueOne(
   ctx: RepoContext,
@@ -40,7 +41,10 @@ export async function continueOne(
   if (automatic === undefined) {
     const workflow = { fresh: false, step: message.step, trigger: message.trigger };
     await ctx.sessions.send(ctx.repo, session, { text: message.text, workflow });
-  } else if (message.step === automatic.step) {
+  } else if (
+    message.step === automatic.step &&
+    (automatic.commit === undefined || next.step.catchUp?.commit === automatic.commit)
+  ) {
     const { line, step, trigger } = automatic;
     await ctx.sessions.send(ctx.repo, session, {
       text: message.text,
