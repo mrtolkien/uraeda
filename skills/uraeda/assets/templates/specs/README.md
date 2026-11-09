@@ -31,9 +31,9 @@ Without it, the file names and their `status` fields still tell where each featu
   the changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
 - `changes/YYYY-MM-DD-<slug>/`: a change, the light flow for a bug fix or a small change, on the
   branch `change/YYYY-MM-DD-<slug>` until it is finished into its record: its `proposal.md` from a
-  human, its rounds of `clarifications-NN.md` when it needs a decision, and `rulings.md`. There is
-  no spec or plan: the agent's investigation is in its commits, and the human reviews the pull
-  request
+  human, its rounds of `clarifications-NN.md` when it needs a decision, `rulings.md`, and its
+  review's `findings-NN.md`. There is no spec or plan: the agent's investigation is in its commits,
+  and the human reviews the pull request
 - `images/`, in a feature's, a change's, a proposal's, or a note's folder: the images a human
   attached, as WebP or animated GIF, linked from the folder's files with `![alt](images/name.webp)`,
   and deleted with a feature's or a change's folder when it is finished
@@ -48,6 +48,8 @@ Without it, the file names and their `status` fields still tell where each featu
     answered, the decisions, the user stories, then how it is built and its limits
   - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
+  - `findings-NN.md`: one review's findings, of a wave or of the branch, a section per reviewer,
+    committed before any of them is fixed
   - `data-model.md`: the stored data and file formats the spec adds or changes, written with it
   - `contracts/`: the interfaces the plan builds on, when needed
   - `mockups/`: what users will see, for any UI work: HTML mockups, or the stories of a mockups

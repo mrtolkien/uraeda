@@ -209,13 +209,14 @@ step, containing only its files. Messages follow
 The scope is the feature's or the change's slug, its folder's name without the date. The description
 is the feature name for a first version, and what changed for later commits.
 
-| Type         | Step                                     | Example                                            |
-| ------------ | ---------------------------------------- | -------------------------------------------------- |
-| `discovery:` | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`      |
-| `decision:`  | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`       |
-| `spec:`      | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
-| `plan:`      | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
-| `finish:`    | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
+| Type         | Step                                         | Example                                            |
+| ------------ | -------------------------------------------- | -------------------------------------------------- |
+| `discovery:` | A discovery and questions round              | `discovery(recurring-tasks): recurring tasks`      |
+| `decision:`  | Apply approved decisions                     | `decision(recurring-tasks): apply due dates`       |
+| `spec:`      | Write or revise a spec and its decisions     | `spec(recurring-tasks): recurring tasks`           |
+| `plan:`      | Write or revise a plan                       | `plan(recurring-tasks): split the store migration` |
+| `review:`    | Commit a review's findings, `findings-NN.md` | `review(recurring-tasks): findings 02`             |
+| `finish:`    | Replace the folder with its record           | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
 `feat(recurring-tasks): repeat menu`. A change has no plan. Its code commits use `fix(<slug>):` for

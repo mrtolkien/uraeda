@@ -1273,7 +1273,7 @@ git commit -m "feat(run-options): the feature page's run map, and sub-sessions"
   `docs/specs-folder.md`, `docs/extensions.md` (a runtime must accept an outside tool and turn its
   own sub-agents off)
 
-- [ ] **Step 1: Write the skill's changes**
+- [x] **Step 1: Write the skill's changes**
 
 When Uraeda runs the workflow, a run's message names where it stops: the skill says to stop there,
 and Uraeda starts the next step. When the session has Uraeda's tools, it gives each task to
@@ -1281,14 +1281,14 @@ and Uraeda starts the next step. When the session has Uraeda's tools, it gives e
 findings as it grades them today. Without them, it uses its own sub-agents, as today, and writes
 `findings-NN.md` itself. The templates' and the example's READMEs list `findings-NN.md`.
 
-- [ ] **Step 2: Update the documentation**
+- [x] **Step 2: Update the documentation**
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`, then `ura check`
 - Expected: PASS, and no problem
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add skills docs

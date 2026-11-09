@@ -479,6 +479,9 @@ human's review, whatever the spec's `plan-review`.
 | `plan-review: false`                    | `auto-approved`  | [Implementation](implementation.md) |
 
 An auto-approved plan is not a stop: commit it, then start the implementation in the same session.
+When Uraeda runs the workflow and its message says to stop once the plan is committed, stop there:
+Uraeda starts the implementation's run itself, as
+[continue to the next human gate](../SKILL.md#finding-the-next-step) says.
 
 A spec with no `plan-review` has `false`, whatever its tier. The plan waits only when the human
 turned plan review on when approving the spec, or when it lists a constitution exception.

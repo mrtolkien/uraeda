@@ -110,12 +110,48 @@ Its `[runs]` table holds how the workflow's runs start and go on by themselves:
 
 ```toml
 [runs]
-build_in_fresh_session = true   # whether the build after a spec's approval starts in a new session
 continue_after_restart = true   # continue a run a server restart cut less than 6 hours before
 continue_after_limit = true     # continue a run a session limit stopped, a minute after its reset
 automatic_continues = 3         # automatic continues in a row, 1 to 10, before the run asks for you
 catch_up_pull_requests = false  # catch up open pull requests behind the default branch
+review_depth = "waves"          # "waves": review each wave and the branch; "branch": the branch
 ```
+
+Its other tables say how each workflow step runs, and with which sub-agents. The steps are
+`discovery`, `spec`, `plan`, `build`, `review`, and `comments`, each with a table of its own, all
+optional:
+
+```toml
+[runs.steps.spec]
+agent = "claude"     # claude or codex; else the first agent on
+model = "opus"       # a model the agent lists; else the agent's default
+effort = "high"      # an effort the model takes; else the model's default
+
+[runs.steps.plan]
+new_session = true   # start a clean session for this step; true for the plan when unset
+
+[runs.implementers]  # the build's implementers; else the build's agent, on its defaults
+agent = "codex"
+model = "gpt-6.1-sol"
+effort = "low"
+
+[[runs.reviewers]]   # an agent reviewer, running its agent's own review
+agent = "claude"
+model = "opus"
+effort = "high"
+instructions = "Check the migrations first."  # added to the review's prompt
+
+[[runs.reviewers]]   # a command reviewer, run in the feature's worktree
+command = "coderabbit review --plain"
+```
+
+A missing table or key is the default: Discovery and Spec share a session, and Plan to Comments a
+second one, every step on the first agent on and its defaults. `new_session` is ignored on
+`discovery`, which always starts a session, and is forced on a step whose agent or model differs
+from the step before. Without `[[runs.reviewers]]`, one agent reviewer runs on the review step's
+agent and its defaults. A reviewer holds `agent` or `command`, never both. The old
+`build_in_fresh_session = false` is read once, as the plan joined to the spec's session, and the
+next write replaces it with `[runs.steps.plan]` `new_session = false`.
 
 They apply at once. Each continue's switch comes from its flag, `--no-continue-after-restart` or
 `--no-continue-after-limit`, else from its environment variable, `URAEDA_CONTINUE_AFTER_RESTART` or
@@ -125,10 +161,21 @@ the file, else 3. The catch-up of open pull requests comes from `--catch-up-pull
 turns it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file, else
 off.
 
-The page shows them under Runs: a switch for each kind of continue, the continues in a row, saved on
-Enter or when you leave the field, a number outside 1 to 10 refused, and the switch "Catch up open
-pull requests". Turning a continue's switch off cancels the waits it started, and those runs ask for
-you.
+The page shows them under Runs. "How each step runs" draws the run map: the six steps in a row, each
+tile with its agent's mark, its model, and its effort as a 5-cell meter, and between two tiles a
+line where they share a session, or scissors where a clean one starts, locked where the steps run on
+different agents or models. Bands under the tiles name the sessions. Under Build, the Implementers
+tile; under Review, the reviewers, an agent or a command each, and "Waves" or "Branch". ← → (or h l)
+move along the tiles and the joints, ↓ ↑ (or j k) go to the implementers or the reviewers and back.
+Enter on a tile opens the agent and model picker, then the effort; Enter or Space on a joint cuts or
+joins it; `r` puts the selection back to its default; `a` adds a reviewer and `d` removes the one
+selected. Each is also a tap, and each change is saved at once. When `CLAUDE_CODE_EFFORT_LEVEL` is
+set in the server's environment, every Claude Code effort follows it, and the page says so under the
+map.
+
+Then a switch for each kind of continue, the continues in a row, saved on Enter or when you leave
+the field, a number outside 1 to 10 refused, and the switch "Catch up open pull requests". Turning a
+continue's switch off cancels the waits it started, and those runs ask for you.
 
 A flag or a variable holds for one run, is never written into the file, and the page says which one
 is in force. A file that cannot be read is never overwritten: the server says why and uses its
@@ -213,7 +260,7 @@ The roles, each named for where it draws or what it means, with Catppuccin Mocha
 | `working`                               | a running session's mark                                             | blue                   |
 | `live`                                  | a live window's double border and title                              | sapphire               |
 | `example`                               | an example pane                                                      | teal                   |
-| `sub-agent`                             | a sub-agent's mark                                                   | teal                   |
+| `sub-agent`                             | a sub-agent's mark, and a sub-session under its parent               | teal                   |
 | `heading-1`, `heading-2`, `heading-3`   | headings by level; deeper levels take `heading-3`                    | mauve, blue, green     |
 | `code-inline`                           | inline code in markdown                                              | peach                  |
 | `quote`                                 | a markdown quote                                                     | subtext0               |
@@ -473,20 +520,24 @@ either, the pages only commit.
 
 Every conversation with the agent is a session. "＋ New" opens one in the main checkout, or starts a
 change or a feature. Its three cards share one text, kept until it starts. A feature asks its slug
-and its research effort, then opens its session. It starts with no proposal file: the text's first
-line is the title, and the research effort goes in the proposal's `discovery` field. A change starts
-from a typed request, an inbox note, or a priorities line. A line of **Now** it was filled from is
-replaced by the new link in the start commit. "Drop the change…" and "Drop the feature…", in a
-session's actions, drop it. "Postpone the change" and "Postpone the feature", in its page's actions,
-send its latest session, or a new one, the message that makes it a proposal again, in **Later**, and
-open that session. A line's Start, on the priorities, puts the line in that text, in place of what
-it held, which `u` brings back. A change or a feature holds one or more sessions, in its worktree,
-where the workflow's runs and your messages follow each other.
+and its research effort, then opens its session. The feature's and the change's start dialogs show
+the run map as a strip: six tiny tiles and their joints, then what differs from your settings,
+"defaults" or "Spec on Opus · High". A change's strip shows its one step and its reviewers. Tab
+reaches it, and the map's keys work there: what you change is the feature's own, and the rest
+follows your settings. It starts with no proposal file: the text's first line is the title, and the
+research effort goes in the proposal's `discovery` field. A change starts from a typed request, an
+inbox note, or a priorities line. A line of **Now** it was filled from is replaced by the new link
+in the start commit. "Drop the change…" and "Drop the feature…", in a session's actions, drop it.
+"Postpone the change" and "Postpone the feature", in its page's actions, send its latest session, or
+a new one, the message that makes it a proposal again, in **Later**, and open that session. A line's
+Start, on the priorities, puts the line in that text, in place of what it held, which `u` brings
+back. A change or a feature holds one or more sessions, in its worktree, where the workflow's runs
+and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
-agent", commit. They then open its session with the workflow's message in the composer. Nothing goes
-until you send it. A message sent while the agent works is steered into its turn. Stop ends the turn
-and keeps the session.
+agent", commit. They then open the session of its next step with the workflow's message in the
+composer, as the run map's joints say. Nothing goes until you send it. A message sent while the
+agent works is steered into its turn. Stop ends the turn and keeps the session.
 
 The sidebar shows every session with what needs you, what works, and each new reply. Its usage pane
 shows the windows of every agent that reported its usage, like Claude Code's five hours and week,
@@ -505,6 +556,14 @@ session's banner says "The catch-up stopped on a conflict." until you answer by 
 or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until main
 moves again.
 
+Each workflow step is a run of its own: the run's message says where it stops, at the end of its
+step. When a run ends its step before a gate of yours, Uraeda starts the next step's run itself, in
+the same session where the run map joins the two steps, else in a new session on the next step's
+agent, model, and effort, until the workflow waits for you. A step at work keeps its pick: a change
+made to it on the feature's page applies from its next run. The next step's run is no automatic
+continue, and counts nothing toward the continues in a row. A run you stopped, one that failed, and
+one that ended without finishing its step start nothing: the run asks for you.
+
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
 time it goes on, and its session says so above the composer: a message you send goes at once, and
@@ -513,8 +572,8 @@ until it, and nothing asks it to go on before. Past the continues in a row set u
 commit or a message from you, the run reads "The agent keeps stopping." and asks for you.
 
 On Home, Needs you has "Continue all" in its border while a run there failed, was stopped, or ended
-early, at a step where the agent works. It sends each such run its step's message, in its own
-session, as continuing the step does, and leaves the features waiting for you at a gate alone. It
+early, at a step where the agent works. It sends each such run its step's message, in the session of
+its step, as continuing the step does, and leaves the features waiting for you at a gate alone. It
 also catches up each feature reading "Catch up" whose catch-up has not run yet for main's current
 commit. Under the pointer or focused, it tints the runs it continues and dims every other row; on a
 touch screen, the first tap shows this and the second sends. A run it could not continue, as while
@@ -529,30 +588,64 @@ change's page, where its own session runs.
 
 Sessions run Claude Code or Codex, the built-in `claude` and `codex` extensions, while they are on;
 a runtime extension of yours runs another agent. Wherever a session starts, the composer of a new
-chat or of a feature's new session, the change's start dialog, and a round's "Apply the answers", a
-button names the agent, model, and effort it will run on, like "Codex · GPT-6.1-Sol · Medium". It,
-or `Space a`, opens the picker in two steps: first the models of every agent on, each agent's
-"Default" first, naming the model it stands for, then the picked model's efforts, "Default" first. A
-model that takes no effort skips the second step, and on a phone the picker rises as a sheet. In a
-composer, on the New page, a session's page, or a session in a review's column, `m` opens it too,
-once the field is left with `Escape`. A new session runs on the first agent on, at the agent's own
-default model and effort, until you pick others.
+chat or of a feature's new session, and a round's "Apply the answers", a button names the agent,
+model, and effort it will run on, like "Codex · GPT-6.1-Sol · Medium". It, or `Space a`, opens the
+picker in two steps: first the models of every agent on, each agent's "Default" first, naming the
+model it stands for, then the picked model's efforts, "Default" first. A model that takes no effort
+skips the second step, and on a phone the picker rises as a sheet. In a composer, on the New page, a
+session's page, or a session in a review's column, `m` opens it too, once the field is left with
+`Escape`. A new chat runs on the first agent on, at the agent's own default model and effort, until
+you pick others. A new session of a feature or a change runs on the pick of its next step, from the
+run map, which the button shows until you pick others.
 
-A session keeps the agent and the model it started on, its automatic runs included, and a fresh
-session of its feature starts on the same ones; it is read-only while its agent is off. To change
-the model, start a new session. In a running session, the composer's button names the effort alone,
-like "Effort · High", and it, `m`, or `Space a` opens the effort step: the turn at work keeps its
-effort, and the next turns run on the new one. The session's header names the agent, then the model
-and effort it reports running on, like "Codex · GPT-6.1-Sol · Medium".
+A session keeps the agent and the model it started on, its automatic runs included; it is read-only
+while its agent is off. Each step's run starts on that step's own pick, and a run joined to a
+session runs on its step's effort. To change the model, start a new session. In a running session,
+the composer's button names the effort alone, like "Effort · High", and it, `m`, or `Space a` opens
+the effort step: the turn at work keeps its effort, and the next turns run on the new one. The
+session's header names the agent, then the model and effort it reports running on, like "Codex ·
+GPT-6.1-Sol · Medium".
+
+A feature's page draws its run map, in place of a timeline. A Proposal cap opens the track and a
+Merged cap ends it. Each tile carries what its stage had: its time, like "12:11 · 2 h 50 min" or
+"since 15:08", its files as links, Discovery its rounds, and Build its tasks. A joint where the
+workflow waits for you shows your gate, the answers, the approval, a plan review when it is on, or
+the pull request's review, in the `needs-you` colour while the feature waits there. Steps done dim,
+the current one is in the accent, and the steps not started stay editable, with the settings' keys:
+what you change there is the feature's own. A finished feature shows its whole map, read only.
+
+In a workflow run, the agent's own sub-agents are off: the build's implementers and the reviewers
+are sub-sessions, sessions Uraeda starts for the run, each on the agent, model, and effort its role
+is set to. The implementers work in their tasks' worktrees, beside their parent. The reviewers of a
+review run at once, each with its agent's own review, Claude Code's `/code-review` at a level
+matching its effort, Codex's review on its model, or as a command in the feature's worktree. Uraeda
+commits their findings in the feature's folder as the next `findings-NN.md`, a section per reviewer,
+before the run fixes them. A reviewer that fails says why in its section, like "Did not review:
+Codex is not available on this machine.", and the others stand. With "Branch", a wave's review runs
+nothing. Stop on a session stops its sub-sessions too.
+
+A session's Sub-agents pane lists its sub-sessions, each with its role, its task or what it reviews,
+its agent, model, and effort, its state, its time, and its usage. A click on one, or Enter, opens
+its page: its transcript, without a composer, with Stop while it works and a link back to its
+parent. On a feature's page, the sessions pane nests each sub-session under the session that started
+it, in the `sub-agent` colour. A chat keeps its agent's own sub-agents, shown in the pane as before.
 
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
 the skill as a plugin. Codex runs in its `workspace-write` sandbox, the network off, with approvals
 on request, which its automatic reviewer decides, whatever your `~/.codex/config.toml` says: it
 escalates each git write and network command, and the transcript shows the review's verdict, like
 "Automatic review approved (risk: low): …". It gets the skill as one more skill folder. See the
-[agents](../specs/decisions/agents.md) decision. Each extension of yours on in the repository adds
-its `skills/` folder the same way, as one more plugin, `ext-<name>`, for Claude Code. The skill
-holds the workflow for any agent, and never describes the web UI. The server adds the web UI's own
+[agents](../specs/decisions/agents.md) decision. A workflow session gets Uraeda's MCP server,
+`uraeda`, with two tools: `run_agent`, which runs one task in a sub-session, and `review`, which
+runs the reviewers and commits their findings. Its token is in the process's environment,
+`URAEDA_MCP_TOKEN`, and holds only while that process runs. Claude Code's `Agent`, `Task`,
+`Workflow`, and `TeamCreate` tools are disallowed there. Codex runs on a copy of its model catalog
+with every model's sub-agents disabled, written to `codex-catalog/` in the data folder as the
+session opens, which leaves your Codex home untouched; when it cannot be written, Codex runs on its
+own catalog, and the session says its own sub-agents may run. Each extension of yours on in the
+repository adds its `skills/` folder the same way, as one more plugin, `ext-<name>`, for Claude
+Code. The skill holds the workflow for any agent, and never describes the web UI: it names only
+Uraeda's two tools, and the run's message that says where to stop. The server adds the web UI's own
 instructions to every session, in
 [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
 shows of the agent's messages, and where your extensions folder and their documentation are. A
@@ -565,4 +658,4 @@ Sessions are kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data
 `~/.local/share/uraeda/` on Linux, and each feature's own run options in `run-options.sqlite` beside
 it: a cache that cannot be read starts empty, but never takes the features' options with it. There,
 a running server keeps the files that only live while it runs, like its host token and its
-Storybooks' records, in `run/`.
+Storybooks' records, in `run/`, and Codex's catalogs without sub-agents, in `codex-catalog/`.

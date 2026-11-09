@@ -7,8 +7,8 @@ reviewed, and opens a pull request.
 - **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, its pull
   request has changes requested or lacks the branch's latest commits, or the human's message asks to
   address its pull request's comments
-- **Writes**: the code and its tests, `rulings.md`, a round of questions when one is needed, and the
-  draft pull request
+- **Writes**: the code and its tests, `rulings.md`, the review's `findings-NN.md`, a round of
+  questions when one is needed, and the draft pull request
 - **Ends at**: the [finish](finish.md) step; a human gate, a round of questions; or an offer to
   upgrade the change to a feature
 
@@ -280,7 +280,10 @@ open its draft pull request, and run the finish step, as
 [grade the findings](implementation.md#grade-the-findings) describe. What differs for a change:
 
 - the reviewer is given the proposal and its answered rounds in place of the spec and the plan;
-- there were no per-item reviews before it, so this one review is the change's only one;
+- there were no per-item reviews before it, so this one review is the change's only one: with
+  Uraeda's `review` tool, call it once, with `reviewed` `branch`, as
+  [implementers and reviewers](implementation.md#implementers-and-reviewers) says; without it, write
+  the findings in the change's next `findings-NN.md` and commit them before fixing any;
 - fixes use the change's scope.
 
 ## The pull request

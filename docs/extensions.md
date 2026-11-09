@@ -222,11 +222,12 @@ An agent runtime is what sessions run on. Claude Code and Codex are the built-in
 `codex` extensions, and a runtime of yours is registered with `api.runtime(runtime)`, under your
 extension's name. A session stores the name of the runtime it was started on, and keeps running on
 it. A picker shows wherever a message makes a session: the composer of a new chat or of a feature's
-new session, the change's start dialog, and "Apply the answers" of a round. It offers every runtime
-on, with the models of those that list them, and picks the first runtime on, Claude Code, then
-Codex, before yours, until you pick another. Where a session's runtime is off, its transcript shows,
-and the composer says `pi-durable is off: turn it on to continue this session`. Where every runtime
-is off, starting a session says `No agent runtime is on here: turn one on in Settings, Extensions`.
+new session, and "Apply the answers" of a round; the start dialogs and the settings' run map pick a
+runtime for each workflow step. It offers every runtime on, with the models of those that list them,
+and picks the first runtime on, Claude Code, then Codex, before yours, until you pick another. Where
+a session's runtime is off, its transcript shows, and the composer says
+`pi-durable is off: turn it on to continue this session`. Where every runtime is off, starting a
+session says `No agent runtime is on here: turn one on in Settings, Extensions`.
 
 A runtime implements the contract every agent is reached through, the `Runtime` type of
 `uraeda/server`: its `name`, `kind`, `icon`, and `capabilities`, `open` for a session's process,
@@ -256,6 +257,17 @@ and
 are whole runtimes, and
 [`runner/fake.ts`](https://github.com/mrtolkien/uraeda/blob/main/packages/server/src/runner/fake.ts)
 a scripted one.
+
+A runtime that runs workflow steps takes Uraeda's tools, and turns its agent's own sub-agents off,
+as the [run options](../specs/decisions/run-options.md) decision requires: every sub-agent of a
+workflow run is a session Uraeda starts, on its role's runtime, model, and effort. `open` gets
+`tools`: for a workflow session, `{ url, token }`, Uraeda's MCP endpoint and the process's token, to
+give the agent as the MCP server `uraeda`, with its tools `run_agent` and `review`, sent as
+`Authorization: Bearer <token>`; for a sub-session, `"none"`, and no sub-agents at all; for a chat,
+nothing, and the agent's own sub-agents stay. A runtime whose agent has a review of its own offers
+`reviewMessage(ask)`, the message that reviews the commits `<base>..<head>` its agent's way, at the
+reviewer's effort, with the reviewer's instructions; without it, a reviewer on that runtime is asked
+to review in plain words.
 
 A runtime reloads only once its sessions' turns end: until then the settings page says
 `Wiki reloads when the turn of “…” ends`, with the session's title.

@@ -7,8 +7,8 @@ delivers the branch as a pull request for the human to review.
   checked and the branch has no pull request; or its pull request has changes requested, or the
   human's message asks to address its comments; or its open pull request is behind the default
   branch, or lacks the branch's latest commits
-- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
-  request
+- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, the reviews'
+  `findings-NN.md`, and the draft pull request
 - **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after its comments are
   addressed; or a new [discovery](discovery.md) round, when blocked
 
@@ -46,18 +46,44 @@ task branch, and changes left uncommitted, are not trusted: read them, delete th
 task from its first step. A wave merged without its review, because the session ended, is reviewed
 now.
 
+## Implementers and reviewers
+
+When Uraeda runs the workflow, the session has Uraeda's tools, `run_agent` and `review`, and the
+agent's own sub-agents are off. Both run their sub-agents as sessions of the feature, on the agent,
+model, and effort the human set for their role:
+
+- **`run_agent`** runs one task as an implementer, in the task's worktree. Give it the task's name
+  as the plan gives it, `Task 4`, the worktree's absolute path, and
+  [the implementer's brief](#the-implementers-brief) as its prompt. It answers with the
+  implementer's last message once it ends. Call it for every task of a wave in the same turn, so
+  they run at once. The same task asked again answers the first call, or runs a stopped task again
+  in its session and worktree.
+- **`review`** runs every reviewer the human set, at once, on the commits `base..head`: `reviewed`
+  says what they are, `wave 2` or `branch`, and `context` what the reviewers should know. It commits
+  their findings as the folder's next `findings-NN.md`, a section per reviewer, and answers with its
+  text. When the human set reviews on the branch only, a wave's call answers that no review runs:
+  that wave has nothing to fix.
+
+Without these tools, use your harness's own sub-agents where it can run them, as the sections below
+say, and write each review's findings yourself in the folder's next `findings-NN.md`, from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/findings-01.md), a section per
+reviewer named after its agent and model. `NN` counts the reviews of the branch, the waves'
+included. Commit it alone, `review(<slug>): findings 02`, before fixing any of them. Either way, a
+review's findings are in git before they are fixed, so a run that stops loses none.
+
 ## For each wave
 
 The plan's **Waves** group the tasks that can be built without seeing each other's code. Each wave
 is built on what the earlier waves made, so it starts once the previous wave is merged, not once it
 is reviewed: the review of a wave runs while the next one is built.
 
-1. **Build its tasks at the same time.** If your harness can run agents, give each task of the wave
-   to a fresh implementer agent, with [its brief](#the-implementers-brief) but not your session's
-   history, all at once. Each works in its own worktree, on a task branch made from the feature
-   branch as it is now, `<feature-branch>-task-N`, and follows [each task](#each-task). Task
-   branches stay local: they are never pushed. Otherwise, build the wave's tasks yourself, one after
-   the other, in the plan's order, on the feature branch.
+1. **Build its tasks at the same time.** Give each task of the wave to a fresh implementer, with
+   [its brief](#the-implementers-brief) but not your session's history, all at once: through
+   `run_agent`, or your harness's own agents, as
+   [implementers and reviewers](#implementers-and-reviewers) says. Each works in its own worktree,
+   on a task branch made from the feature branch as it is now, `<feature-branch>-task-N`, and
+   follows [each task](#each-task). Task branches stay local: they are never pushed. Otherwise,
+   build the wave's tasks yourself, one after the other, in the plan's order, on the feature branch.
 2. **Merge them, in the plan's order**, a task that finishes early waiting for those before it:
    rebase its task branch on the feature branch, fast-forward the feature branch to it, then remove
    its worktree and branch. The history stays linear, one commit per task, as if the tasks had been
@@ -72,7 +98,8 @@ is reviewed: the review of a wave runs while the next one is built.
 
 You coordinate: you merge, validate, and hand out the work. When an implementer stops or is
 interrupted, give its task to a fresh one, in the same worktree, told to resume from its commits and
-checked boxes, rather than building it in your own session.
+checked boxes, rather than building it in your own session. With `run_agent`, ask for the same task
+again.
 
 ### The implementer's brief
 
@@ -154,26 +181,31 @@ with a blank line before and after, as a [story link](conventions.md#markdown).
 
 ### Review the waves
 
-When your harness can run a fresh reviewer agent, review each wave once it is merged, so its
+Review each wave once it is merged, with `review` or a fresh reviewer agent of your harness, so its
 problems are fixed while their context is fresh, not all at the final review. The review covers
 every task the wave merged, on the diff of their commits, with the fix commits merged since the last
 review; a risky task, one that changes security, the format of stored data or its migration,
-concurrency, or a rule several callers share, gets a reviewer of its own, at the same time. The
-review runs in the background while the next wave is built. Give the reviewer the tasks' text, the
-spec's sections they implement and its approval comments, the global constraints, and the diff. It
+concurrency, or a rule several callers share, gets a reviewer of its own, at the same time; with
+`review`, the context names it for the reviewers to check first. The review runs in the background
+while the next wave is built: call `review` in the same turn as the next wave's `run_agent` calls.
+Give the reviewer the tasks' text, the spec's sections they implement and its approval comments, the
+global constraints, and the diff, or, with `review`, the paths and headings where they are. It
 derives expected behaviour from the approved requirements before checking the implementation and
 tests, then reviews the changed responsibilities and their callers. It gives two verdicts, spec
 compliance first, then quality, with the criteria of [Review the branch](#review-the-branch) scaled
 to the tasks, and flags what the tasks grew, not sizes that were already there
 ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
-Its findings are [graded](#grade-the-findings) like the final review's: the critical and important
-ones are fixed, with the minor ones worth fixing. Once the review ends, fix them at the next point
-between two waves, after a wave is merged and before the next one starts: give them to a fresh
-implementer on the feature branch, each behaviour fix with a test that fails first, in its own
-commit. After the last wave, fix them as soon as the review ends. The next review checks those fix
-commits with its wave. Structural fixes must keep behavioural tests passing and satisfy explicit
-architectural constraints. A finding still open after two reviews is ruled on, in `rulings.md`.
+Its findings, in its committed `findings-NN.md`, are [graded](#grade-the-findings) like the final
+review's: the critical and important ones are fixed, with the minor ones worth fixing. Once the
+review ends, fix them at the next point between two waves, after a wave is merged and before the
+next one starts: give them to a fresh implementer on the feature branch, each behaviour fix with a
+test that fails first, in its own commit. With `run_agent`, which never works in the feature's own
+worktree, the fixes are a task of their own, `Fixes of wave 2`, in a worktree and branch made like a
+task's, and merged like one. After the last wave, fix them as soon as the review ends. The next
+review checks those fix commits with its wave. Structural fixes must keep behavioural tests passing
+and satisfy explicit architectural constraints. A finding still open after two reviews is ruled on,
+in `rulings.md`.
 
 ### Rulings
 
@@ -295,11 +327,14 @@ reporting the ones in `specs/`. Its `links.file` message says where each file we
 
 ### Review the branch
 
-Once the branch is caught up, review the whole branch, even when each wave was reviewed. Give a
-fresh reviewer agent, on the most capable model available, the diff since the branch started, the
-spec and its approval comments, the plan, its **Review focus** to check one item at a time, and
-`rulings.md`. Without a reviewer agent, review the branch yourself as a separate pass, and say so in
-the pull request: a review by the author is weaker.
+Once the branch is caught up, review the whole branch, even when each wave was reviewed. With
+`review`, call it with `reviewed` `branch` on the commits since the branch started, its context
+naming the spec and its approval comments, the plan, its **Review focus** to check one item at a
+time, and `rulings.md`: the reviewers and their models are the human's choice. Otherwise, give a
+fresh reviewer agent, on the most capable model available, the diff since the branch started and the
+same files, and write its findings in `findings-NN.md`. Without a reviewer agent, review the branch
+yourself as a separate pass, write your findings there the same way, and say so in the pull request:
+a review by the author is weaker.
 
 Review the changed subsystem and affected callers, including relevant code outside the diff:
 
@@ -328,8 +363,9 @@ Review the changed subsystem and affected callers, including relevant code outsi
 
 ### Grade the findings
 
-Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
-that triggers it:
+Read the findings in the committed `findings-NN.md`, every reviewer's section. Grade each finding by
+what a user gets if the branch ships, not by whether the spec names the input that triggers it,
+whatever grade its reviewer gave:
 
 - **Critical and important**: fix them in one pass, behaviour fixes with tests that fail first,
   structural fixes with behavioural regression checks and any explicit architectural checks. Do not
@@ -346,10 +382,12 @@ past a limit, or a copy of a rule ([one home per rule](code-quality.md#one-home-
 A critical or important finding you decide not to fix is a ruling, written in `rulings.md` with the
 others.
 
-A second reviewer, such as another tool's review skill, can review the branch too, after the first.
-Its findings are graded and fixed the same way, and the pull request names it. It reviews the branch
-once; after its fixes, a second pass reviews only the fix commits. Its critical and important
-findings are fixed once more, without another review, and its minor ones are fixed or dropped.
+With `review`, every reviewer the human set answers in the same file: grade their sections together,
+and the pull request names them. Without it, a second reviewer, such as another tool's review skill,
+can review the branch too, after the first, its findings in a `findings-NN.md` of their own. They
+are graded and fixed the same way, and the pull request names it. It reviews the branch once; after
+its fixes, a second pass reviews only the fix commits. Its critical and important findings are fixed
+once more, without another review, and its minor ones are fixed or dropped.
 
 Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
 replaces the folder with its record, and marks the pull request ready.
