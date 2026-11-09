@@ -26,7 +26,8 @@ export class Chain {
    * feature now waits on the agent at another run step than the turn's. A promise while it reads
    * the feature and sends, the turn's end published once it settles; undefined when nothing
    * chains, so the session's status stays as the turn left it. A refused run leaves its reason as
-   * the turn's last line.
+   * the turn's last line. The human's Stop, or any takeover of the session's run, while it reads,
+   * drops the send.
    */
   ended(live: Live, turn: TurnRow): Promise<void> | undefined {
     if (
@@ -39,16 +40,17 @@ export class Chain {
     ) {
       return undefined;
     }
-    return this.#next(live, live.folder, turn.step).catch((error: unknown) => {
+    const taken = this.#context.continuer.takeovers(live.id);
+    return this.#next(live, live.folder, turn.step, taken).catch((error: unknown) => {
       this.#context.cache.appendItem(turn.id, { kind: "system", text: reasonOf(error) });
     });
   }
 
   /**
    * Sends the next step's message after a run of `step`, when the feature moved on to another run
-   * step that waits on the agent.
+   * step that waits on the agent, and the session's run was not taken over since `taken`.
    */
-  async #next(live: Live, folder: string, step: string): Promise<void> {
+  async #next(live: Live, folder: string, step: string, taken: number): Promise<void> {
     const { binding, cache, runtimes } = this.#context;
     const next = await binding.nextStep(live.repo, folder);
     const { runStep } = next.step;
@@ -70,6 +72,11 @@ export class Chain {
     const { capabilities } = sessionRuntime(runtimes, row);
     const checked = checkSend({ text: message.text, workflow }, capabilities);
     const available = () => checkAvailable(runtimes, row.agent);
-    await this.#context.live.serial(live, () => sendTo(this.#context, live, checked, available));
+    await this.#context.live.serial(live, async () => {
+      if (this.#context.continuer.takeovers(live.id) !== taken) {
+        return undefined;
+      }
+      return sendTo(this.#context, live, checked, available);
+    });
   }
 }

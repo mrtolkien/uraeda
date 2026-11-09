@@ -744,8 +744,10 @@ share, and concurrency with the continuer.
     continuer: for a workflow turn of a feature's session, not a sub-session, ended `done`, it reads
     the next step; when it waits on the agent and its `runStep` differs from the turn's, it sends
     the recommended message with trigger `next-step`, as `continueOne` does, holding the end's
-    publication until sent. It sends nothing otherwise, so the status stays `halted` as today. A
-    refused chained run leaves its reason as the turn's last line (R16).
+    publication until sent. It sends nothing otherwise, so the status stays `halted` as today, nor
+    once the session's run was taken over while it read, by Stop or a message: it compares
+    `Continuer.takeovers(session)` at the turn's end and right before it sends. A refused chained
+    run leaves its reason as the turn's last line (R16).
   - `runStepOf(step: string): string | null` on the binding, the core's `StepName::parse` and
     `run_step`: the run step of a legacy session's last workflow turn (R16).
   - `Sessions` takes `runOptions(repo, folder)`, the server's `FeatureOptions.resolved`, given by
@@ -759,8 +761,9 @@ share, and concurrency with the continuer.
   Opus, build on Sonnet; the plan turn ends with the next step at `implementation`; a new session on
   Sonnet holds a workflow turn "Implement the plan", trigger `next-step`, and the automatic
   continues count stays 0. Rows: a step's model gone refuses with the exact text; a build agent off
-  runs on the first runtime on; a turn the human stopped chains nothing. Break: chaining from
-  `stopped`, or counting the chain as a continue.
+  runs on the first runtime on; a turn the human stopped chains nothing, nor one stopped once ended,
+  while the chain reads the next step. Break: chaining from `stopped`, or counting the chain as a
+  continue.
 - "a step joined to the one before runs in its session, on its own effort": Spec at High, Plan at
   Medium, joined; the plan's run sent after the spec's approval goes to the spec's session with
   effort Medium (a spec revision is the Spec step's own run, R17). Row: a legacy session without

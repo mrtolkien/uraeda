@@ -158,6 +158,14 @@ export class Continuer {
     return { restore, turns: cancelled.map((turn) => turn.id) };
   }
 
+  /**
+   * How many times the session's run was taken over, by a message, Allow, Stop, or a dismiss: a
+   * read under way compares it after, as the step chain does before it sends.
+   */
+  takeovers(session: string): number {
+    return this.#taken(session);
+  }
+
   /** Drops the decisions of the session's continue under way: the run was taken over. */
   takenOver(session: string): void {
     this.#takenOver.set(session, this.#taken(session) + 1);

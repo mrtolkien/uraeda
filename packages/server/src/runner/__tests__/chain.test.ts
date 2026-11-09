@@ -36,13 +36,14 @@ const STEPS = {
 
 /**
  * The real binding, but the feature's next step is `state.at` once a test sets it: a run moves the
- * feature on by setting it, as its commit would.
+ * feature on by setting it, as its commit would. Its reads wait on `state.held` while a test sets it.
  */
 function stepped() {
-  const state: { at?: Partial<NextStepView> } = {};
+  const state: { at?: Partial<NextStepView>; held?: Promise<void> } = {};
   const through: Binding = {
     ...binding,
     nextStep: async (repo: string, folder: string): Promise<NextView> => {
+      await state.held;
       const next = await binding.nextStep(repo, folder);
       return state.at === undefined
         ? next
@@ -68,8 +69,14 @@ async function twoRuntimes(on: Record<string, boolean> = {}) {
   return { fake, other, runtimes };
 }
 
-/** A plan run on Fake Small, its build on `build`, sent and ended, the feature moved on to the build. */
-async function planRun(build: RunOptions["steps"][number], { stop = false } = {}) {
+/**
+ * A plan run on Fake Small, its build on `build`, sent and ended, the feature moved on to the build:
+ * stopped by the human as it runs, or, `reading`, once it ended, while the chain reads the feature.
+ */
+async function planRun(
+  build: RunOptions["steps"][number],
+  { stop }: { stop?: "running" | "reading" } = {},
+) {
   const { fake, other, runtimes } = await twoRuntimes({ other: false });
   const { state, through } = stepped();
   const options: RunOptions = { steps: [{ model: "fake-small", step: "plan" }, build] };
@@ -84,30 +91,38 @@ async function planRun(build: RunOptions["steps"][number], { stop = false } = {}
     () => {
       state.at = STEPS.implementation;
     },
-    ...(stop ? [() => new Promise<void>(() => {})] : []),
+    ...(stop === "running" ? [() => new Promise<void>(() => {})] : []),
   ]);
   const workflow = { step: "plan", trigger: "manual" } as const;
   const { turn } = await sessions.send(repo, plan.id, { text: "Write the plan", workflow });
-  if (stop) {
+  if (stop === "running") {
     await vi.waitFor(() => expect(state.at).toBe(STEPS.implementation));
     sessions.stop(repo, plan.id);
+  }
+  if (stop === "reading") {
+    const held = Promise.withResolvers<void>();
+    state.held = held.promise;
+    await vi.waitFor(() => expect(cache.turn(turn)?.state).toBe("done"));
+    sessions.stop(repo, plan.id);
+    held.resolve();
   }
   await sessions.settled(turn);
   return { cache, fake, other, plan, root, sessions, turn };
 }
 
-test.each<[string, RunOptions["steps"][number], { stop?: boolean }]>([
+test.each<[string, RunOptions["steps"][number], { stop?: "running" | "reading" }]>([
   ["on its pick", { effort: "high", model: "fake-big", step: "build" }, {}],
   ["a model gone", { model: "fake-gone", step: "build" }, {}],
   ["an agent off", { agent: "other", effort: "low", model: "other-big", step: "build" }, {}],
-  ["stopped", { effort: "high", model: "fake-big", step: "build" }, { stop: true }],
+  ["stopped", { effort: "high", model: "fake-big", step: "build" }, { stop: "running" }],
+  ["stopped once ended", { effort: "high", model: "fake-big", step: "build" }, { stop: "reading" }],
 ])(
   "a plan run that ends at the build starts the build's run in a new session on its pick (%s)",
   async (row, build, { stop }) => {
     const { cache, fake, other, plan, root, sessions, turn } = await planRun(build, { stop });
 
     const latest = cache.latestSession(root, AGENT)!;
-    if (row === "a model gone" || row === "stopped") {
+    if (row === "a model gone" || row.startsWith("stopped")) {
       expect(latest.id).toBe(plan.id);
       expect(cache.turns(plan.id)).toHaveLength(1);
       // The chain's refusal is the plan run's last line: the human reads why the build waits.
@@ -118,7 +133,7 @@ test.each<[string, RunOptions["steps"][number], { stop?: boolean }]>([
           text: "Build runs on fake-gone, which Claude Code no longer lists.",
         });
       } else {
-        expect(cache.turn(turn)?.state).toBe("stopped");
+        expect(cache.turn(turn)?.state).toBe(row === "stopped" ? "stopped" : "done");
       }
       sessions.close();
       return;
