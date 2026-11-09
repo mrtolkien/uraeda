@@ -81,6 +81,20 @@ test("the continues' variables are kept as typed, and their flags replace them",
   });
 });
 
+test("the catch-up's variable is kept as typed, and its flag turns it on over it", () => {
+  const env = loadEnv(null, { URAEDA_CATCH_UP_PULL_REQUESTS: "false" });
+  expect(env.catchUpPullRequests).toEqual({
+    name: "URAEDA_CATCH_UP_PULL_REQUESTS",
+    value: "false",
+  });
+
+  expect(parseOptions([], env).catchUpPullRequests).toEqual(env.catchUpPullRequests);
+  expect(parseOptions(["--catch-up-pull-requests"], env).catchUpPullRequests).toEqual({
+    name: "--catch-up-pull-requests",
+    value: true,
+  });
+});
+
 /** R7 */
 test("an empty variable leaves .env's value", () => {
   const dir = root(

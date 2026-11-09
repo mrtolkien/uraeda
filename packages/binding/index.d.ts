@@ -655,8 +655,11 @@ export declare function setAutomaticContinues(dir: string, continues: string): P
 /** Sets whether the run after a spec's approval starts in a new agent session. */
 export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
 
-/** Sets whether a kind of automatic continue is on: after a restart or after a usage limit. */
-export declare function setContinue(dir: string, key: "restart" | "limit", on: boolean): Promise<Settings>
+/**
+ * Sets whether a kind of automatic run is on: the continue after a restart or after a usage
+ * limit, or the catch-up of open pull requests.
+ */
+export declare function setContinue(dir: string, key: "restart" | "limit" | "catch-up", on: boolean): Promise<Settings>
 
 /** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
@@ -2136,6 +2139,11 @@ export interface RunSettings {
   continueAfterLimit?: boolean
   /** Automatic continues in a row before the run asks, 1 to 10: 3 when unset. */
   automaticContinues?: number
+  /**
+   * Whether an open pull request behind the default branch is caught up by itself: `false`
+   * when unset.
+   */
+  catchUpPullRequests?: boolean
 }
 
 export interface Scenario {

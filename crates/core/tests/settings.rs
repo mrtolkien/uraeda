@@ -72,6 +72,7 @@ fn reads_each_file() {
             continue_after_restart: Some(false),
             continue_after_limit: Some(true),
             automatic_continues: Some(4),
+            catch_up_pull_requests: Some(true),
         },
         ..Settings::default()
     };
@@ -81,7 +82,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\n",
             ),
             Ok(full),
         ),
@@ -158,7 +159,14 @@ fn reads(
 #[test]
 fn refuses_each_continue_setting_out_of_its_rule() {
     let dir = tempdir();
-    let rows: [(Option<&str>, Result<Settings, String>); 5] = [
+    let rows: [(Option<&str>, Result<Settings, String>); 6] = [
+        (
+            Some("[runs]\ncatch_up_pull_requests = \"yes\"\n"),
+            Err(
+                "line 2, catch_up_pull_requests: Catching up open pull requests is true or false."
+                    .into(),
+            ),
+        ),
         (
             Some("[runs]\ncontinue_after_restart = \"no\"\n"),
             Err(
@@ -356,13 +364,15 @@ fn sets_each_continue_in_the_runs_table() {
     );
 
     settings::set_continue(dir.path(), settings::ContinueKey::Restart, false).unwrap();
-    let saved = settings::set_continue(dir.path(), settings::ContinueKey::Limit, false).unwrap();
+    settings::set_continue(dir.path(), settings::ContinueKey::Limit, false).unwrap();
+    let saved = settings::set_continue(dir.path(), settings::ContinueKey::CatchUp, true).unwrap();
 
     assert_eq!(saved.runs.continue_after_restart, Some(false));
     assert_eq!(saved.runs.continue_after_limit, Some(false));
+    assert_eq!(saved.runs.catch_up_pull_requests, Some(true));
     assert_eq!(
         text(dir.path()),
-        "# mine\n[runs]\ncontinue_after_limit = false # on\ncontinue_after_restart = false\n"
+        "# mine\n[runs]\ncontinue_after_limit = false # on\ncontinue_after_restart = false\ncatch_up_pull_requests = true\n"
     );
 }
 

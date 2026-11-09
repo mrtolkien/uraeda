@@ -1,6 +1,7 @@
 // The Runs section: whether the run after a spec's approval starts in a fresh session, the default
 // the approval's own switch starts from; whether Uraeda continues a run by itself after a restart
-// or a usage limit, and how many times in a row; then the run settings later features bring.
+// or a usage limit, and how many times in a row; whether it catches up open pull requests behind
+// the default branch; then the run settings later features bring.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
@@ -25,6 +26,9 @@ const CONTINUES: ReadonlyArray<{ key: ContinueKey; label: string }> = [
   { key: "restart", label: "Continue after a restart" },
   { key: "limit", label: "Continue after a usage limit" },
 ];
+
+/** The catch-up of open pull requests' switch, off by default, after the continues' rows. */
+const CATCH_UP = { key: "catch-up", label: "Catch up open pull requests" } as const;
 
 const CAP = "Automatic continues in a row";
 const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10.";
@@ -52,7 +56,7 @@ function BuildFresh({ actions, category, values }: RowProps) {
 }
 
 /**
- * A kind of automatic continue's switch, saved at once, with the flag or the variable that sets it
+ * A kind of automatic run's switch, saved at once, with the flag or the variable that sets it
  * for this run, and its refusal, under it.
  */
 function ContinueSwitch({
@@ -60,7 +64,7 @@ function ContinueSwitch({
   category,
   kind,
   values,
-}: RowProps & { kind: (typeof CONTINUES)[number] }) {
+}: RowProps & { kind: { key: ContinueKey; label: string } }) {
   const setting = settingOf(category, kind.label);
   const value = values.runs[CONTINUE_SETTINGS[kind.key]];
   const note = overridden(value, (on) => (on ? "on" : "off"));
@@ -133,6 +137,7 @@ export function RunSettings({
         {!values.problem &&
           kinds.map((kind) => <ContinueSwitch key={kind.key} {...props} kind={kind} />)}
         {!values.problem && shows(CAP) && <AutomaticContinues {...props} />}
+        {!values.problem && shows(CATCH_UP.label) && <ContinueSwitch {...props} kind={CATCH_UP} />}
       </SettingRows>
       {isContinuing && (
         <VStack paddingBlock={2} paddingInline={3}>

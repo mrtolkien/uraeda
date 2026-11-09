@@ -167,6 +167,11 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         icon: "uraeda:history",
         label: "Automatic continues in a row",
       },
+      {
+        help: "When main gains code, decisions, or records, each pull request ready for your review is rebased on it by its agent, checked, and pushed again. A conflict that needs your choice stops it, with a comment on the pull request. A change applies at once.",
+        icon: "uraeda:workflow",
+        label: "Catch up open pull requests",
+      },
     ],
   },
   {

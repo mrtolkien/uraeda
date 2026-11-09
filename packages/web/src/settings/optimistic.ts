@@ -6,11 +6,15 @@ import type { Settings } from "uraeda-server/fate";
 
 type Values = Pick<Settings, "id" | "keyboard" | "runs" | "server">;
 
-/** A kind of automatic continue, as the server's `settings.setContinue` names it. */
-export type ContinueKey = "limit" | "restart";
+/**
+ * A kind of automatic run, as the server's `settings.setContinue` names it: a continue, or the
+ * catch-up of open pull requests.
+ */
+export type ContinueKey = "catch-up" | "limit" | "restart";
 
-/** The record's switch of each kind of automatic continue. */
+/** The record's switch of each kind of automatic run. */
 export const CONTINUE_SETTINGS = {
+  "catch-up": "catchUpPullRequests",
   limit: "continueAfterLimit",
   restart: "continueAfterRestart",
 } as const satisfies Record<ContinueKey, keyof Settings["runs"]>;

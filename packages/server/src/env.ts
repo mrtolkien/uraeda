@@ -17,17 +17,27 @@ export type RestartName = "--no-continue-after-restart" | "URAEDA_CONTINUE_AFTER
 /** The flag and the variable turning off the continue after a usage limit's reset. */
 export type LimitName = "--no-continue-after-limit" | "URAEDA_CONTINUE_AFTER_LIMIT";
 
+/** The flag and the variable turning on the catch-up of open pull requests behind the default branch. */
+export type CatchUpName = "--catch-up-pull-requests" | "URAEDA_CATCH_UP_PULL_REQUESTS";
+
 /** The flag and the variable giving the automatic continues in a row. */
 export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUES";
 
 /**
- * A switch given for one run: a `--no-…` flag's `false`, or its variable as typed, which the
+ * A switch given for one run: a `--no-…` flag's `false`, `--catch-up-pull-requests`'s `true`, or
+ * its variable as typed, which the
  * settings unit checks with the port, after `--help` and `--version` (R13).
  */
 export type Switch<N extends string> = Given<boolean | string, N>;
 
 /** Every flag and variable giving a setting's value for one run. */
-export type GivenName = HostsName | PortName | RestartName | LimitName | ContinuesName;
+export type GivenName =
+  | HostsName
+  | PortName
+  | RestartName
+  | LimitName
+  | CatchUpName
+  | ContinuesName;
 
 /**
  * The variables of the server's settings, from the process's environment, then `.env` at the
@@ -39,6 +49,8 @@ export type Env = {
   allowedHosts?: Given<Array<string>, HostsName>;
   /** The automatic continues in a row as typed: the settings unit checks it with the core's rule. */
   automaticContinues?: Given<string, ContinuesName>;
+  /** Whether an open pull request behind the default branch is caught up by itself. */
+  catchUpPullRequests?: Switch<CatchUpName>;
   /** Whether a run a usage limit stopped continues at its reset. */
   continueAfterLimit?: Switch<LimitName>;
   /** Whether a run the server's restart cut continues. */
@@ -75,10 +87,14 @@ export function loadEnv(
   const continues = value("URAEDA_AUTOMATIC_CONTINUES");
   const restart = value("URAEDA_CONTINUE_AFTER_RESTART");
   const limit = value("URAEDA_CONTINUE_AFTER_LIMIT");
+  const catchUp = value("URAEDA_CATCH_UP_PULL_REQUESTS");
   return {
     ...(hosts && { allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: hostNames(hosts) } }),
     ...(continues && {
       automaticContinues: { name: "URAEDA_AUTOMATIC_CONTINUES", value: continues },
+    }),
+    ...(catchUp && {
+      catchUpPullRequests: { name: "URAEDA_CATCH_UP_PULL_REQUESTS", value: catchUp },
     }),
     ...(limit && { continueAfterLimit: { name: "URAEDA_CONTINUE_AFTER_LIMIT", value: limit } }),
     ...(restart && {

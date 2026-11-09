@@ -110,21 +110,24 @@ Its `[runs]` table holds how the workflow's runs start and go on by themselves:
 
 ```toml
 [runs]
-build_in_fresh_session = true  # whether the build after a spec's approval starts in a new session
-continue_after_restart = true  # continue a run a server restart cut less than 6 hours before
-continue_after_limit = true    # continue a run a session limit stopped, a minute after its reset
-automatic_continues = 3        # automatic continues in a row, 1 to 10, before the run asks for you
+build_in_fresh_session = true   # whether the build after a spec's approval starts in a new session
+continue_after_restart = true   # continue a run a server restart cut less than 6 hours before
+continue_after_limit = true     # continue a run a session limit stopped, a minute after its reset
+automatic_continues = 3         # automatic continues in a row, 1 to 10, before the run asks for you
+catch_up_pull_requests = false  # catch up open pull requests behind the default branch
 ```
 
 They apply at once. Each continue's switch comes from its flag, `--no-continue-after-restart` or
 `--no-continue-after-limit`, else from its environment variable, `URAEDA_CONTINUE_AFTER_RESTART` or
 `URAEDA_CONTINUE_AFTER_LIMIT`, set to `true` or `false`, else the file, else its default. The
 continues in a row come from `--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else
-the file, else 3.
+the file, else 3. The catch-up of open pull requests is off unless `--catch-up-pull-requests` turns
+it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file.
 
-The page shows them under Runs: a switch for each kind of continue, and the continues in a row,
-saved on Enter or when you leave the field, a number outside 1 to 10 refused. Turning a switch off
-cancels the waits it started, and those runs ask for you.
+The page shows them under Runs: a switch for each kind of continue, the continues in a row, saved on
+Enter or when you leave the field, a number outside 1 to 10 refused, and the switch "Catch up open
+pull requests". Turning a continue's switch off cancels the waits it started, and those runs ask for
+you.
 
 A flag or a variable holds for one run, is never written into the file, and the page says which one
 is in force. A file that cannot be read is never overwritten: the server says why and uses its
