@@ -57,10 +57,11 @@ export const BUILT_IN_SERVER: Record<string, (api: ServerApi, deps: BuiltInDeps)
       api.runtime(adapter);
     }
   },
-  codex: (api, { agents, extensionsDir }) => {
+  codex: (api, { agents, dataDir, extensionsDir }) => {
     const adapter = agents
       ? agents.codex
       : new CodexAdapter({
+          catalogDir: join(dataDir, "codex-catalog"),
           command: commandSetting(api, "codex"),
           extensions: { docs: layout().docs, folder: extensionsDir },
           pluginDir: layout().plugin,

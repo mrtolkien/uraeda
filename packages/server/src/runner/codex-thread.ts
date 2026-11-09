@@ -2,6 +2,7 @@
 // configuration, apart from the adapter that sends them.
 import type { OpenOptions, Outgoing } from "./adapter.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
+import { TOKEN_VARIABLE, TOOL_TIMEOUT_MS, TOOLS_SERVER } from "./uraeda-tools.ts";
 
 /**
  * The sandbox's section of the instructions: what Codex cannot do without escalating, so it asks
@@ -26,19 +27,57 @@ export function codexInstructions(extensions?: ExtensionPaths): string {
 }
 
 /**
+ * The arguments of a session's `codex app-server`: with `tools`, either Uraeda's or `"none"`, and
+ * `catalog`, Codex's model catalog with every model's sub-agents off, that catalog. The one switch
+ * Codex 0.163.0 honours: `features.multi_agent` and `multi_agent_v2` off, for the thread or the
+ * process, leave `spawn_agent` to a model its catalog puts on multi-agent v2 (R18). A chat keeps
+ * Codex's own catalog, and its sub-agents.
+ */
+export function codexServerArgs(tools: OpenOptions["tools"], catalog?: string): Array<string> {
+  return [
+    "app-server",
+    ...(tools === undefined || catalog === undefined
+      ? []
+      : ["-c", `model_catalog_json=${JSON.stringify(catalog)}`]),
+  ];
+}
+
+/**
+ * The configuration that gives a workflow thread Uraeda's tools: its MCP server, its token read
+ * from the process's environment, its tools approved, so Codex never asks for them, run in
+ * parallel, and given up only after `TOOL_TIMEOUT_MS`.
+ */
+function toolsConfig(tools: OpenOptions["tools"]) {
+  if (tools === undefined || tools === "none") {
+    return {};
+  }
+  const server = {
+    bearer_token_env_var: TOKEN_VARIABLE,
+    default_tools_approval_mode: "approve",
+    supports_parallel_tool_calls: true,
+    tool_timeout_sec: TOOL_TIMEOUT_MS / 1000,
+    url: tools.url,
+  };
+  return { mcp_servers: { [TOOLS_SERVER]: server } };
+}
+
+/**
  * The parameters of a session's `thread/start`, or `thread/resume` when resuming: the model when
  * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
- * approvals on request, reviewed by its automatic reviewer. The one configuration override is the
+ * approvals on request, reviewed by its automatic reviewer. The configuration overrides only the
  * trust of the session's directory, when known, the level Codex would apply itself: without it,
- * Codex writes it to the user's settings (R24). Never another, which could widen the permissions.
+ * Codex writes it to the user's settings (R24); and, for a workflow session, Uraeda's tools.
+ * Never another, which could widen the permissions.
  */
 export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
+  const config = {
+    ...toolsConfig(options.tools),
+    ...(trust === undefined ? {} : { projects: { [options.cwd]: { trust_level: trust } } }),
+  };
   return {
     approvalPolicy: "on-request",
     approvalsReviewer: "auto_review",
-    ...(trust === undefined
-      ? {}
-      : { config: { projects: { [options.cwd]: { trust_level: trust } } } }),
+    ...(Object.keys(config).length === 0 ? {} : { config }),
     cwd: options.cwd,
     developerInstructions: instructions,
     sandbox: "workspace-write",

@@ -818,9 +818,11 @@ git commit -m "feat(run-options): each step its own run, chained to the next"
 **Files:**
 
 - Modify: `runner/adapter.ts` (`OpenOptions.tools`), `runner/claude.ts` (`claudeArgs`),
-  `runner/child.ts` (`spawnGrouped` takes `env`), `runner/codex.ts` (structural split first),
-  `packages/server/scripts/validate-claude.ts`, `packages/server/scripts/validate-codex.ts`
-- Create: `runner/codex-thread.ts`
+  `runner/child.ts` (`spawnGrouped` takes `env`), `extensions/builtins.ts` (the catalog folder),
+  `runner/codex.ts` (structural split first), `packages/server/scripts/validate-claude.ts`,
+  `packages/server/scripts/validate-codex.ts`
+- Create: `runner/codex-thread.ts`, `runner/codex-catalog.ts`, `runner/uraeda-tools.ts`,
+  `packages/server/scripts/validate-tools.ts`
 - Test: `runner/__tests__/claude.test.ts`, `runner/__tests__/codex.test.ts` (rewritten)
 
 **Interfaces:**
@@ -830,18 +832,25 @@ git commit -m "feat(run-options): each step its own run, chained to the next"
   - `OpenOptions.tools?: { url: string; token: string } | "none"`: the endpoint and the process's
     token for a workflow session; `"none"` for a sub-session, which gets neither Uraeda's tool nor
     the agent's sub-agents; absent for a chat, which keeps the agent's own sub-agents.
-  - Claude Code, with `tools`: `--mcp-config` naming server `uraeda` over HTTP with the token as a
-    bearer header, `--strict-mcp-config` absent (the user's servers stay),
-    `--disallowedTools Agent Task Workflow`, `mcp__uraeda__run_agent` and `mcp__uraeda__review`
-    added to `--allowedTools`, and `MCP_TOOL_TIMEOUT` in the process's environment high enough for a
-    60-minute call. With `"none"`: only `--disallowedTools`.
-  - Codex, with `tools`: the thread's `config` gains `mcp_servers.uraeda` (its URL, the token, a
-    tool timeout of at least 60 minutes, its tools approved and parallel) and turns its sub-agents
-    off; with `"none"`, only its sub-agents off. The project's trust stays.
+  - The token in the process's environment, `URAEDA_MCP_TOKEN` (`toolsEnv` in
+    `runner/uraeda-tools.ts`, `spawnGrouped`'s `env`), never in its arguments (R20).
+  - Claude Code, with `tools`: `--mcp-config` naming server `uraeda` over HTTP with
+    `Authorization: Bearer ${URAEDA_MCP_TOKEN}` and its own `timeout` of 2 hours,
+    `--strict-mcp-config` absent (the user's servers stay),
+    `--disallowedTools Agent Task Workflow TeamCreate`, `mcp__uraeda__run_agent` and
+    `mcp__uraeda__review` added to `--allowedTools`. With `"none"`: only `--disallowedTools`.
+  - Codex, with `tools`: the thread's `config` gains `mcp_servers.uraeda` (its URL,
+    `bearer_token_env_var`, `tool_timeout_sec` of 2 hours,
+    `default_tools_approval_mode = "approve"`, `supports_parallel_tool_calls`). With `tools` or
+    `"none"`, its sub-agents are off through its model catalog:
+    `codex app-server -c model_catalog_json=<data folder>/codex-catalog/models.json`, Codex's
+    catalog with every model's `multi_agent_version` `"disabled"` (`codex-catalog.ts`, R20). The
+    project's trust stays.
 
-- [ ] **Step 1: Split `codex.ts` before it changes**
+- [x] **Step 1: Split `codex.ts` before it changes**
 
-Move `codexThreadParams` and `codexTrust` to `codex-thread.ts`, unchanged.
+Move `codexThreadParams`, and the instructions and turn parameters beside it, to `codex-thread.ts`,
+unchanged (`codexTrust` was already in `codex-permissions.ts`).
 
 - Run: `vp test packages/server/src/runner/__tests__/codex.test.ts`, before and after
 - Expected: PASS both times
@@ -851,23 +860,24 @@ git add packages/server/src/runner/codex.ts packages/server/src/runner/codex-thr
 git commit -m "refactor(run-options): codex's thread parameters in their own file"
 ```
 
-- [ ] **Step 2: Rewrite the replaced tests**
+- [x] **Step 2: Rewrite the replaced tests**
 
 - `claude.test.ts` "the model and effort picked are arguments; none skips permissions" keeps its
   assertions, and gains a row per `tools` value: with tools, `--disallowedTools` names `Agent`, the
-  MCP configuration's URL and header carry the token, both tool names are allowed; with none, no
-  `--mcp-config`. Break: a sub-session given the tool, so sub-agents nest.
+  MCP configuration's URL is the endpoint and its header names the token's variable, the token only
+  in the environment, both tool names are allowed; with none, no `--mcp-config`. Break: a
+  sub-session given the tool, so sub-agents nest.
 - `codex.test.ts` "a thread's permissions" keeps its trust and sandbox assertions, its `config`
   equal to the trust plus `mcp_servers.uraeda` and the sub-agents off with tools. Break: an approval
   policy loosened for the tool.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/runner/__tests__/claude.test.ts packages/server/src/runner/__tests__/codex.test.ts`
 - Expected: FAIL, `expected [ …(n) ] to include '--disallowedTools'`
 
-- [ ] **Step 4: Implement the arguments and the configuration, then check both agents**
+- [x] **Step 4: Implement the arguments and the configuration, then check both agents**
 
 Extend `validate-claude.ts` and `validate-codex.ts` with a session given a stand-in tool on a
 temporary `/mcp` that sleeps 70 seconds and answers: the agent calls it, waits past a progress, gets
@@ -879,12 +889,12 @@ human.
 - Run: `vp run validate:claude` and `vp run validate:codex`
 - Expected: both pass, the tool's answer in the transcript
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS but `keys-structural.test.ts`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner packages/server/scripts

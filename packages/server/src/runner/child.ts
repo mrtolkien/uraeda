@@ -158,14 +158,24 @@ function exitOf(
 }
 
 /**
- * Starts `command` with `args` in `cwd`, its stdio piped. In a process group of its own, which its
- * signals reach whole: the tools it started end with it. The terminal's Ctrl-C no longer reaches
- * it, so the server ends it as it exits. Windows has no process groups to signal: there, the
- * process alone is.
+ * Starts `command` with `args` in `cwd`, its stdio piped, with `env` added to the server's own
+ * environment. In a process group of its own, which its signals reach whole: the tools it started
+ * end with it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits.
+ * Windows has no process groups to signal: there, the process alone is.
  */
-export function spawnGrouped(command: string, args: Array<string>, cwd: string): Child {
+export function spawnGrouped(
+  command: string,
+  args: Array<string>,
+  cwd: string,
+  env?: Record<string, string>,
+): Child {
   const grouped = process.platform !== "win32";
-  const child = spawn(command, args, { cwd, detached: grouped, stdio: ["pipe", "pipe", "pipe"] });
+  const child = spawn(command, args, {
+    cwd,
+    detached: grouped,
+    stdio: ["pipe", "pipe", "pipe"],
+    ...(env === undefined ? {} : { env: { ...process.env, ...env } }),
+  });
   const signal = track(child, grouped);
   const exited = exitOf(child, cwd);
   // A process that exited closes stdin: later writes fail here, and are dropped.

@@ -12,7 +12,9 @@
  * It is not part of `vp test` or `vp run ready`: it runs the real `claude`, which costs a few
  * cents, in a temporary copy of `fixtures/repo`, with `--permission-mode auto`.
  *
- * With `--stdin`, only the stdin checks run, with no copy of the fixture needed by the others.
+ * With `--stdin`, only the stdin checks run, with no copy of the fixture needed by the others. Every
+ * run ends with the check of Uraeda's tool, a session on Haiku given a stand-in of it, which also
+ * checks that `settings.json` is left as it was; with `--tools`, only that check runs.
  *
  * It prints one line per check, `PASS` or `FAIL` with what it got, and exits 1 on any failure.
  */
@@ -30,6 +32,7 @@ import { layout } from "../src/paths.ts";
 import { ClaudeAdapter } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { imageChecks, imagesFolder, wrappedAdapter } from "./validate-claude-images.ts";
+import { toolsCheck } from "./validate-tools.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 180_000;
@@ -49,6 +52,7 @@ const cwd = fixtureRepo();
 const stdinDir = mkdtempSync(join(tmpdir(), "uraeda-stdin-"));
 /** With `--stdin`, only the stdin checks run. */
 const stdinOnly = process.argv.includes("--stdin");
+const toolsOnly = process.argv.includes("--tools");
 let failed = false;
 
 function report(name: string, ok: boolean, got: unknown) {
@@ -481,7 +485,7 @@ let subAgentLines: Array<string> = [];
 let seen: Array<string> = [];
 
 try {
-  if (!stdinOnly) {
+  if (!stdinOnly && !toolsOnly) {
     // 1. The version.
     const version = await adapter.version();
     report(`version() returns a version (${version})`, version !== undefined, version);
@@ -569,7 +573,11 @@ try {
     );
     await imageChecks({ configDir, cwd, outside, report, run });
   }
-  await stdinChecks();
+  if (!toolsOnly) {
+    await stdinChecks();
+  }
+  const settings = join(configDir, "settings.json");
+  await toolsCheck(adapter, { cwd: stdinDir, pick: { model: "haiku" }, report, settings });
 } finally {
   rmSync(cwd, { force: true, recursive: true });
   rmSync(outside, { force: true, recursive: true });

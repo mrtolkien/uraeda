@@ -59,7 +59,16 @@ export type OpenOptions = {
   resume: boolean;
   /** The skill folders to give the agent, beside Uraeda's own. */
   skills: ReadonlyArray<string>;
+  /**
+   * Uraeda's tools, which start sub-agents as sessions of the feature: for a workflow session, the
+   * MCP endpoint's URL and its process's token, given instead of the agent's own sub-agents; for a
+   * sub-session, `"none"`, neither. A chat has none set, and keeps the agent's own sub-agents.
+   */
+  tools?: UraedaTools | "none";
 };
+
+/** Uraeda's MCP endpoint, `<server>/mcp`, and the token of one agent process there. */
+export type UraedaTools = { token: string; url: string };
 
 /**
  * A message sent to an agent: steered into its turn, or queued after it, with the paths of its chat

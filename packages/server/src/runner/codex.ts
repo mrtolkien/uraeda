@@ -18,17 +18,20 @@ import {
   MODELS_TIMEOUT_MS,
   spawnGrouped,
 } from "./child.ts";
+import { catalogWithoutSubAgents } from "./codex-catalog.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { hasRollout } from "./codex-rollouts.ts";
 import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
+import { toolsEnv } from "./uraeda-tools.ts";
 import type { AgentEvent } from "./events.ts";
 import type { ExtensionPaths } from "./instructions.ts";
 import {
   codexInput,
   codexInstructions,
+  codexServerArgs,
   codexThreadParams,
   codexTurnParams,
 } from "./codex-thread.ts";
@@ -129,15 +132,17 @@ type AppServer = Child & { rpc: CodexRpc; started: Promise<unknown> };
 /**
  * Starts `codex app-server` in `cwd`, in a process group of its own, and introduces the client:
  * `initialize`, asking for the experimental API, then `initialized`. Each notification goes to
- * `heard`, and `ended` runs once its output closed, with the exit event.
+ * `heard`, and `ended` runs once its output closed, with the exit event. It runs with `args`, `app-server` by default, and `env` added to
+ * its environment.
  */
 function appServer(
   command: string,
   cwd: string,
   heard: (notification: CodexNotification) => void,
   ended: (exit: Extract<AgentEvent, { type: "exit" }>) => void,
+  { args = ["app-server"], env }: { args?: Array<string>; env?: Record<string, string> } = {},
 ): AppServer {
-  const child = spawnGrouped(command, ["app-server"], cwd);
+  const child = spawnGrouped(command, args, cwd, env);
   const rpc = new CodexRpc(child.write);
   void (async () => {
     try {
@@ -166,6 +171,12 @@ function appServer(
 }
 
 export type CodexAdapterOptions = {
+  /**
+   * The folder of Codex's model catalog without its sub-agents, which workflow sessions and
+   * sub-sessions run on, `<data folder>/codex-catalog`: never in Codex's home. Without it, they run
+   * on Codex's own catalog.
+   */
+  catalogDir?: string;
   /** Codex's home folder, where it keeps its threads: `$CODEX_HOME`, else `~/.codex`. */
   codexHome?: string;
   /** The command to run, `codex` from the `PATH` by default. */
@@ -194,6 +205,7 @@ export class CodexAdapter implements Adapter {
     subagents: false,
     takeBack: true,
   };
+  #catalogDir: string | undefined;
   #command: string;
   #codexHome: string;
   #extensions: ExtensionPaths | undefined;
@@ -201,12 +213,14 @@ export class CodexAdapter implements Adapter {
   #startTimeoutMs: number;
 
   constructor({
+    catalogDir,
     codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex"),
     command = "codex",
     extensions,
     pluginDir,
     startTimeoutMs = START_TIMEOUT_MS,
   }: CodexAdapterOptions) {
+    this.#catalogDir = catalogDir;
     this.#codexHome = codexHome;
     this.#command = command;
     this.#extensions = extensions;
@@ -263,6 +277,21 @@ export class CodexAdapter implements Adapter {
     }
   }
 
+  /**
+   * The catalog without sub-agents a workflow session or a sub-session runs on, written afresh as
+   * it opens: none for a chat, or without a catalog folder, or when it could not be written.
+   */
+  #catalog(options: OpenOptions): string | undefined {
+    if (options.tools === undefined) {
+      return undefined;
+    }
+    if (this.#catalogDir === undefined) {
+      process.stderr.write("Codex's sub-agents stay on in this session: no catalog folder\n");
+      return undefined;
+    }
+    return catalogWithoutSubAgents(this.#command, this.#catalogDir);
+  }
+
   /** The skill folders Codex reads besides its own: Uraeda's, then the extensions'. */
   #skillRoots(options: OpenOptions): Array<string> {
     return [join(this.#pluginDir, "skills"), ...options.skills];
@@ -296,6 +325,10 @@ export class CodexAdapter implements Adapter {
       (exit) => {
         events.push(exit);
         events.end();
+      },
+      {
+        args: codexServerArgs(options.tools, this.#catalog(options)),
+        env: toolsEnv(options.tools),
       },
     );
     let closing = false;

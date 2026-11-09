@@ -205,3 +205,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   done was not cut. Both are rare, and the human sees the run waiting.
 - **If wrong**: `Chain` in `packages/server/src/runner/chain.ts`, and the continuer's restart scan.
 - **Where**: task 6, from its review.
+
+## R20: The agents read their token from their environment, and Codex runs on a catalog without sub-agents
+
+- **Decision**: a workflow process gets its `/mcp` token in its environment, `URAEDA_MCP_TOKEN`
+  (`spawnGrouped` takes `env`): Claude Code's `--mcp-config` names it as
+  `Authorization: Bearer ${URAEDA_MCP_TOKEN}`, which Claude Code expands, and Codex's
+  `mcp_servers.uraeda` as `bearer_token_env_var`, as Codex refuses an inline `bearer_token`. The
+  call's limit is the server's own `timeout` in Claude Code's configuration, 2 hours, instead of
+  `MCP_TOOL_TIMEOUT`, and `tool_timeout_sec` in Codex's. Claude Code's `TeamCreate`, which starts
+  teammates, is disallowed beside `Agent`, `Task`, and `Workflow`. Codex's sub-agents are off
+  through its model catalog: as a workflow session or a sub-session opens, the adapter runs
+  `codex debug models`, sets every model's `multi_agent_version` to `"disabled"`, every model and
+  field kept, writes it to `<data folder>/codex-catalog/models.json`, and starts
+  `codex app-server -c model_catalog_json=<file>`; a chat keeps Codex's own catalog. The catalog is
+  written afresh at each such open, about 40 ms, so a new Codex version or catalog is never missed.
+  When it cannot be written, the process starts on Codex's own catalog and the server prints why on
+  stderr; `validate:codex` then fails, as it reads `spawn_agent` calls from the thread's rollout.
+- **Rationale**: a process's arguments are readable by every user of the machine, its environment
+  only by its own; the server's own limit leaves the user's other servers' limits as they are, and
+  holds past SC-003's 60 minutes, as progress does not extend it. Codex 0.163.0 has no
+  `agents.enabled`, and `features.multi_agent = false` and `features.multi_agent_v2 = false`, in a
+  thread's configuration or as `codex app-server --disable`, left `spawn_agent` to GPT-6-Luna, which
+  its catalog puts on multi-agent v2: the model called it. The catalog's `"disabled"` took it away,
+  and writes nothing in Codex's home. The human chose this way.
+- **If wrong**: `packages/server/src/runner/uraeda-tools.ts` holds the variable's name and the
+  limit; `toolsArgs` in `claude.ts`, `toolsConfig` and `codexServerArgs` in `codex-thread.ts`, and
+  `codex-catalog.ts` the agents' settings.
+- **Found on the way**: the full `validate:claude` fails two checks that pass no `tools`, unrelated
+  to this task: "a first run loads the uraeda plugin…" gives `skillLoaded: false`, and after the
+  image checks the script throws
+  `refused: 2026-10-10-cli-core is merged: it has no branch to write on`, so its stdin checks never
+  run. Its tool check passes alone (`--tools`).
+- **Where**: task 7, checked with `validate:claude --tools` and `validate:codex` on Claude Code
+  2.1.319 and Codex 0.163.0.
