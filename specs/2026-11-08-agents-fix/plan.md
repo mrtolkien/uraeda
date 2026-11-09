@@ -641,8 +641,11 @@ git commit -m "feat(agents-fix): a catch-up turn records the commit it catches u
 - Consumes: task 1's step `catch-up` in the binding.
 - Produces:
   - `StatusReason` gains `"conflict"`: a done turn sent at `catch-up`, not dismissed, while the step
-    is still `catch-up`. Label "Needs attention", status `attention`. Not continuable: Continue all
-    leaves it.
+    is still `catch-up` for the commit the turn caught up with: `sessionStatus` takes
+    `catchUpCommit?: string`, the step's `catchUp.commit` that `statusOf` passes, and its `latest`
+    gains `caughtUpTo`. Behind a newer commit, main moved again: the turn reads as the next rule
+    does, idle or a new reply (R12). Label "Needs attention", status `attention`. Not continuable:
+    Continue all leaves it.
   - At `catch-up`, any other done turn reads as the rules after `halted` do (idle, or a new reply),
     never `halted`.
   - `dismiss` also takes a done turn whose step is `catch-up`; its change carries `dismissed`, so it
@@ -777,7 +780,8 @@ test("a feature at Catch up gets its run, with the line saying why", async () =>
 test("one catch-up per tip, across a restart", async () => {
   // A turn sent with Continue at catch-up (trigger manual) ended done. run(repo): no new turn. A new
   // catcher on the same cache file (a restart): no new turn. The commit becomes "d".repeat(40):
-  // one new turn, caughtUpTo "ddd…".
+  // the done turn, of an older commit, reads idle, not a conflict (R12): one new turn, caughtUpTo
+  // "ddd…".
 });
 
 /** US2 more 2. */

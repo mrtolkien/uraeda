@@ -119,3 +119,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the folder's runs go to its latest session, so an older one's catch-up stopped
   nothing now; a dismissal says the human has seen it.
 - **Where**: `runner/status.ts` `sessionStatus`; task 5.
+
+## R12: A catch-up stopped on a conflict only for the tip it caught up with
+
+- **Decision**: a done turn sent at `catch-up` reads `conflict` only when its `caught_up_to` is the
+  step's current `catchUp.commit`. One that caught up with an older tip falls through to the rules
+  after it: idle, or a new reply.
+- **Rationale**: a catch-up that rebased and pushed while main moved again ends with the step still
+  `catch-up`, for the new tip. Read as a conflict, it would ask for the human and the catcher would
+  skip it, where the spec starts one more catch-up for the new tip.
+- **Alternatives considered**: reading the turn's end for a conflict: the agent's end says nothing
+  the server can read reliably, and the tip already tells the two apart.
+- **If wrong**: a catch-up that stopped on a conflict, with main moving again before the human sees
+  it, reads idle and is caught up again for the new tip, stopping on the conflict once more.
+- **Where**: `runner/status.ts` `sessionStatus`, `fate/session-reads.ts` `statusOf`; task 5.
