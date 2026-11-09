@@ -374,6 +374,7 @@ fn each_step_belongs_to_its_run_step() {
         (StepName::PullRequestUnknown, Some("review")),
         (StepName::PullRequestChanges, Some("comments")),
         (StepName::Push, Some("comments")),
+        (StepName::CatchUp, Some("comments")),
         (StepName::PullRequest, None),
         (StepName::Done, None),
         (StepName::None, None),

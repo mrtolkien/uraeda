@@ -5,6 +5,7 @@ import { reasonOf } from "../reason.ts";
 import type { TurnRow } from "./cache.ts";
 import { recommendedMessage } from "./message.ts";
 import { checkSend } from "./send-input.ts";
+import { CATCH_UP } from "./status.ts";
 import { sendTo } from "./send.ts";
 import { type Live, refused, rowOf, type SessionContext } from "./session-state.ts";
 
@@ -50,7 +51,9 @@ export class Chain {
 
   /**
    * Sends the next step's message after a run of `step`, when the feature moved on to another run
-   * step that waits on the agent, and the session's run was not taken over since `taken`.
+   * step that waits on the agent, and the session's run was not taken over since `taken`. A feature
+   * at Catch up is left to the catcher: a catch-up runs by itself only once the human turned it on,
+   * and once per tip of the default branch (the run lifecycle decision).
    */
   async #next(live: Live, folder: string, step: string, taken: number): Promise<void> {
     const { binding } = this.#context;
@@ -58,6 +61,7 @@ export class Chain {
     const { runStep } = next.step;
     if (
       next.step.waitsOn !== "agent" ||
+      next.step.name === CATCH_UP ||
       runStep === undefined ||
       runStep === binding.runStepOf(step)
     ) {

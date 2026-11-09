@@ -25,6 +25,13 @@ const STEPS = {
     runStep: "plan",
     waitsOn: "agent",
   },
+  catchUp: {
+    catchUp: { branch: "main", commit: "c".repeat(40), subject: "feat: main moved" },
+    name: "catch-up",
+    reference: "skills/uraeda/references/implementation.md",
+    runStep: "comments",
+    waitsOn: "agent",
+  },
   implementation: {
     name: "implementation",
     reference: "skills/uraeda/references/implementation.md",
@@ -263,6 +270,32 @@ test("a run whose step did not move on starts nothing", async () => {
   const workflow = { step: "plan", trigger: "manual" } as const;
 
   const { turn } = await sessions.send(repo, session.id, { text: "Write the plan", workflow });
+  await sessions.settled(turn);
+
+  expect(cache.folderSessions(await sessions.mainRoot(repo), AGENT)).toHaveLength(1);
+  expect(cache.turns(session.id)).toHaveLength(1);
+  expect(fake.sent).toHaveLength(1);
+  sessions.close();
+});
+
+test("a run that ends at Catch up starts nothing: the catch-up is the catcher's, once turned on", async () => {
+  const { fake, runtimes } = await twoRuntimes();
+  const { state, through } = stepped();
+  const { cache, repo, sessions } = await testSessions(undefined, { binding: through, runtimes });
+  const session = await sessions.featureSession(repo, AGENT);
+  state.at = {
+    name: "final-review",
+    reference: "skills/uraeda/references/implementation.md",
+    runStep: "review",
+  };
+  fake.script([
+    () => {
+      state.at = STEPS.catchUp;
+    },
+  ]);
+  const workflow = { step: "final-review", trigger: "manual" } as const;
+
+  const { turn } = await sessions.send(repo, session.id, { text: "Review the branch", workflow });
   await sessions.settled(turn);
 
   expect(cache.folderSessions(await sessions.mainRoot(repo), AGENT)).toHaveLength(1);

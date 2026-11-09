@@ -460,3 +460,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `subSessionFields` in `packages/server/src/fate/sub-session-views.ts`, and the
   stories' `samples/subSessions.ts`.
 - **Where**: task 12, and its review.
+
+## R33: A catch-up is part of Comments, and only the catcher starts it
+
+- **Decision**: the run lifecycle and feature status decisions, as main's agents-fix changed them,
+  apply without conflict. The core's new step `catch-up` belongs to the run step Comments, as `push`
+  does (R1): its run takes Comments' agent, model, effort, and session. The chain starts no run at
+  `catch-up`: a run that ends there, as a final review whose branch main moved past, leaves the
+  feature to the catcher. The catcher's run keeps its own trigger, `catch-up`, and its line saying
+  why, wherever `runSession` sends it, and its commit is recorded on its turn, so "once per tip"
+  holds across the feature's sessions. A catch-up run's message stops at the end of its step, the
+  pull request ready for review again.
+- **Rationale**: the run lifecycle decision allows an automatic catch-up only once the human turned
+  it on, at most once per tip of the default branch; a chained run, trigger `next-step`, would start
+  one with the switch off. A catch-up rebases and pushes the pull request's branch, the work of a
+  push to an open pull request.
+- **If wrong**: `StepName::run_step` in `crates/core/src/steps.rs`, and `Chain.#next` in
+  `packages/server/src/runner/chain.ts`.
+- **Where**: the final review's catch-up with main.

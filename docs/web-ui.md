@@ -551,17 +551,19 @@ While its branch holds commits the pull request lacks, the feature reads "Push",
 the agent to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase,
 validate, and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch
 up open pull requests", under Runs in Settings, starts that run by itself, once per commit of main,
-in the feature's latest session, once no turn runs there. Its session opens with the line "Catching
-up with main, which moved to “<subject of the commit>”." A catch-up that meets a conflict with main,
-one needing your choice, asks on the pull request: the feature reads "Needs attention", and its
-session's banner says "The catch-up stopped on a conflict." until you answer by requesting changes,
-or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until main
-moves again.
+once no turn runs in the feature's latest session. It runs as part of Comments on the run map, on
+its agent, model, and effort, in the session its joint gives. Its session opens with the line
+"Catching up with main, which moved to “<subject of the commit>”." A catch-up that meets a conflict
+with main, one needing your choice, asks on the pull request: the feature reads "Needs attention",
+and its session's banner says "The catch-up stopped on a conflict." until you answer by requesting
+changes, or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until
+main moves again.
 
 Each workflow step is a run of its own: the run's message says where it stops, at the end of its
 step. When a run ends its step before a gate of yours, Uraeda starts the next step's run itself, in
 the same session where the run map joins the two steps, else in a new session on the next step's
-agent, model, and effort, until the workflow waits for you. A step at work keeps its pick: a change
+agent, model, and effort, until the workflow waits for you. A run that ends at "Catch up" starts
+nothing: only the switch above starts a catch-up by itself. A step at work keeps its pick: a change
 made to it on the feature's page applies from its next run. The next step's run is no automatic
 continue, and counts nothing toward the continues in a row. A run you stopped, one that failed, and
 one that ended without finishing its step start nothing: the run asks for you.
