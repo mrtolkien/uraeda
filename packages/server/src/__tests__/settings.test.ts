@@ -296,9 +296,9 @@ test("Vim is off and without commands by default, and the file's values turn it 
   });
 });
 
-/** Opens the settings of `dir`, closed after the test. */
+/** Opens the settings of `dir`, without the server's environment, closed after the test. */
 async function opened(dir: string, options: GivenValues = none) {
-  const settings = await ServerSettings.open({ binding, dir, options });
+  const settings = await ServerSettings.open({ binding, dir, environment: {}, options });
   onTestFinished(() => settings.close());
   return settings;
 }
