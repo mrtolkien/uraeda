@@ -36,7 +36,10 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
 for its sessions, a review's `n` for its verdict, the inbox's `c` to move a note to a category and
 `p` to promote it, the priorities' `e` to expand a proposal into a file, `c` to clean a merged one,
-and `v` to switch between columns and a list. A page never gives a base key another meaning.
+and `v` to switch between columns and a list. Wherever a composer picks what a session runs on, the
+New page, a session's page, and a session in a column, `m` opens its model picker, or its effort's
+in a running session, as `Space a` does: those pages have no row to move. A page never gives a base
+key another meaning while its own content uses it.
 
 ## In a field
 

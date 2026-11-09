@@ -518,7 +518,7 @@ Sessions run Claude Code or Codex, the built-in `claude` and `codex` extensions,
 a runtime extension of yours runs another agent. Wherever a session starts, the composer of a new
 chat or of a feature's new session, the change's start dialog, and a round's "Apply the answers", a
 button names the agent, model, and effort it will run on, like "Codex · GPT-6.1-Sol · Medium". It,
-or `Space a`, opens the picker in two steps: first the models of every agent on, each agent's
+`m`, or `Space a` opens the picker in two steps: first the models of every agent on, each agent's
 "Default" first, naming the model it stands for, then the picked model's efforts, "Default" first. A
 model that takes no effort skips the second step, and on a phone the picker rises as a sheet. A new
 session runs on the first agent on, at the agent's own default model and effort, until you pick
@@ -527,9 +527,9 @@ others.
 A session keeps the agent and the model it started on, its automatic runs included, and a fresh
 session of its feature starts on the same ones; it is read-only while its agent is off. To change
 the model, start a new session. In a running session, the composer's button names the effort alone,
-like "Effort · High", and it or `Space a` opens the effort step: the turn at work keeps its effort,
-and the next turns run on the new one. The session's header names the agent, then the model and
-effort it reports running on, like "Codex · GPT-6.1-Sol · Medium".
+like "Effort · High", and it, `m`, or `Space a` opens the effort step: the turn at work keeps its
+effort, and the next turns run on the new one. The session's header names the agent, then the model
+and effort it reports running on, like "Codex · GPT-6.1-Sol · Medium".
 
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
 the skill as a plugin. Codex runs in its `workspace-write` sandbox, the network off, with approvals

@@ -3,8 +3,8 @@
 // first, then its models, searchable by name; then the picked model's effort, "Default" first. A
 // model without efforts skips the second step. In a session already started, the button names the
 // effort alone, and opens the second step: the agent and the model stay, the effort applies from the
-// next turn. "Default" leaves the choice to the agent, and says what the agent would pick. `Space a`
-// opens the same step as the button, and opening a step asks the server for fresh model lists,
+// next turn. "Default" leaves the choice to the agent, and says what the agent would pick. `m` and
+// `Space a` open the same step as the button, and opening a step asks the server for fresh model lists,
 // without waiting: the lists already read show at once, and a list that changed arrives live.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -204,8 +204,8 @@ function useRefreshModels(): () => void {
 /**
  * The button and its picker over `runtimes`, those on here, in their order: `value` while its
  * agent is one of them, else the first one, on its defaults. With `isStarted`, the session runs
- * already: the button names the effort, and opens the effort step alone. `Space a` opens the same
- * step as the button; `step` opens one from the start, as a story does.
+ * already: the button names the effort, and opens the effort step alone. `m` and `Space a` open the
+ * same step as the button; `step` opens one from the start, as a story does.
  */
 export function SessionPicker({
   isStarted = false,
@@ -232,29 +232,27 @@ export function SessionPicker({
     refresh();
     setStep(next);
   };
+  const label = isStarted ? "Pick the effort" : "Pick the model";
+  const run = () => open(isStarted ? "effort" : "model");
   useKeys(
     isShown
       ? [
-          {
-            icon: "uraeda:bot",
-            keys: "space a",
-            label: isStarted ? "Pick the effort" : "Pick the model",
-            run: () => open(isStarted ? "effort" : "model"),
-          },
+          { icon: "uraeda:bot", keys: "space a", label, run },
+          { hint: "m", hintLabel: isStarted ? "effort" : "model", keys: "m", label, run },
         ]
       : [],
   );
   if (!isShown || !pick) {
     return null;
   }
-  const label = isStarted
+  const text = isStarted
     ? `Effort · ${effortRun(runtime, pick) ?? "Default"}`
     : pickLabel(runtime, pick, narrow);
   return (
     <>
       <Button
         icon={<Icon icon={runtime.icon} />}
-        label={label}
+        label={text}
         onClick={() => open(isStarted ? "effort" : "model")}
         size="sm"
         variant="ghost"
