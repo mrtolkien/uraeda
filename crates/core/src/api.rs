@@ -413,8 +413,8 @@ pub fn main_root(repo: &Path) -> Result<String> {
 }
 
 /// Commits again what a hook refused to commit, its files left written: a submitted round, a
-/// review's findings, or a verdict on a spec or a plan, with its review file; with the images the
-/// feature's folder links.
+/// review's findings, alone, or a verdict on a spec or a plan, with its review file; but for the
+/// findings, with the images the feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
     let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
@@ -453,10 +453,13 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
         }
         _ => return Err(refused(format!("{name} has nothing to commit again"))),
     };
-    paths.extend(crate::actions::images::linked_images(
-        &place,
-        &feature.path,
-    )?);
+    // Findings were committed alone, so they are again; a human's file takes its images.
+    if !matches!(FileKind::of(name), Some((FileKind::Findings, _))) {
+        paths.extend(crate::actions::images::linked_images(
+            &place,
+            &feature.path,
+        )?);
+    }
     paths.sort();
     let change = crate::actions::Change {
         paths,

@@ -621,7 +621,10 @@ export declare function renameCategory(repo: string, from: string, to: string, p
 /** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
 
-/** Commits again what a hook refused to commit: a submitted round, or a verdict. */
+/**
+ * Commits again what a hook refused to commit: a submitted round, a review's findings, or a
+ * verdict.
+ */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
 
 /** Commits the answered round `id` again, after a hook refused its submit. */

@@ -142,3 +142,32 @@ fn refuses_findings_with_a_wrong_frontmatter() {
     }
     assert_eq!(repo.subjects(FOLDER)[0], "feature");
 }
+
+/// Findings a hook refused are committed again alone: the images of the feature's folder stay out.
+#[test]
+fn try_again_commits_only_the_findings() {
+    let repo = feature();
+    let image = format!("{WORKTREE}/specs/{FOLDER}/images/shot.webp");
+    repo.write(&image, "shot");
+    let findings = Findings {
+        reviewed: "branch".into(),
+        commits: "abc..def".into(),
+        sections: vec![FindingsSection {
+            reviewer: "Claude Code · Opus".into(),
+            text: "- Nothing found.".into(),
+        }],
+    };
+    repo.set_hook("exit 1");
+    let refused = api::write_findings(repo.path(), FOLDER, &findings).unwrap_err();
+    assert_eq!(refused.code, "hook");
+    repo.set_hook("exit 0");
+
+    let committed = api::retry_commit(repo.path(), FOLDER, "findings-02.md").unwrap();
+
+    assert_eq!(committed.subject, "review(web-ui): findings 02");
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [format!("specs/{FOLDER}/findings-02.md")]
+    );
+    assert!(repo.exists(&image));
+}
