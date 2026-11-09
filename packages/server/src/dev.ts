@@ -32,8 +32,11 @@ export function devServer(env: Env) {
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
-/** A started server of the dev server, and its app as a Node listener. */
-type Started = { listener: Listener; server: Server };
+/**
+ * A started server of the dev server, its app as a Node listener, and the work `started` began on
+ * it, which its stop waits for.
+ */
+type Started = { listener: Listener; server: Server; work: Promise<void> };
 
 /**
  * The dev server's servers, by port: one per Vite server, started with its first request, which
@@ -43,13 +46,19 @@ const servers = new Map<number, Promise<Started>>();
 
 /**
  * Stops the turns of the dev server's sessions and closes their processes and watches, as Vite's
- * server closes. A server Vite starts again starts a new session manager.
+ * server closes, then waits for the work `started` began, which the stop refuses to go on: none
+ * reads or writes the repositories once this resolves. A server Vite starts again starts a new
+ * session manager.
  */
 export async function stopDevRuns(): Promise<void> {
   const stopping = [...servers.values()];
   servers.clear();
   await Promise.all(
-    stopping.map(async (started) => (await started.catch(() => undefined))?.server.stop()),
+    stopping.map(async (pending) => {
+      const started = await pending.catch(() => undefined);
+      await started?.server.stop();
+      await started?.work;
+    }),
   );
 }
 
@@ -117,8 +126,9 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
  * `signIn` is false, as for the screenshot scripts and Uraeda's own Storybook; a key the start
  * makes is printed, as `uraeda` prints it. `started` is called with the server once it has
- * started, as the sandbox starts its turn at work. A start that fails answers 500 with its
- * reason, and the next request tries again.
+ * started, as the sandbox starts its turns at work: the work it returns, not awaited by the
+ * requests, is by the server's stop. A start that fails answers 500 with its reason, and the next
+ * request tries again.
  */
 export function devHandler(
   root: string | null,
@@ -134,7 +144,7 @@ export function devHandler(
     allowOrigins?: (port: number) => Array<string>;
     lockedList?: boolean;
     signIn?: boolean;
-    started?: (server: Server) => void;
+    started?: (server: Server) => Promise<void> | void;
   } & Sources = {},
 ) {
   const env = loadEnv(root, process.env, sources);
@@ -166,8 +176,9 @@ export function devHandler(
     if (server.key !== undefined) {
       process.stdout.write(keyLines(server.key));
     }
-    started?.(server);
-    return { listener: getRequestListener(server.app.fetch), server };
+    // A failure of the work is its own to report: the stop only waits for its end.
+    const work = Promise.resolve(started?.(server)).catch(() => {});
+    return { listener: getRequestListener(server.app.fetch), server, work };
   };
   const serverOf = (port: number) => {
     let pending = servers.get(port);

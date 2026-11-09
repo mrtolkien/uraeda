@@ -114,8 +114,9 @@ export function sandboxConfig({
           started: (server) => {
             const repo = process.env.URAEDA_REPO ?? "";
             // One after the other: the realistic project's sessions take another agent kind as
-            // they are made, which a start beside them would copy.
-            void (async () => {
+            // they are made, which a start beside them would copy. The server's stop waits for
+            // them: those it stopped first are refused, after reading the repositories.
+            return (async () => {
               for (const start of [atWork, atWorkOnDiscovery, atWorkOnRealistic]) {
                 try {
                   await start(server.sessions, repo);
