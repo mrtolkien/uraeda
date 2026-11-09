@@ -14,7 +14,8 @@ import {
 } from "../run-options.ts";
 import type { SessionRow } from "./cache.ts";
 import type { SessionFields } from "./cache-sessions.ts";
-import { checkEffort, type Picked } from "./picks.ts";
+import type { NewPick } from "./session-folders.ts";
+import { checkEffort, type Picked, type SessionPick } from "./picks.ts";
 import { checkAvailable, type Runtimes } from "./runtimes.ts";
 import { type Live, REFUSALS, refused, rowOf, type SessionContext } from "./session-state.ts";
 
@@ -72,9 +73,14 @@ function runningPick(context: SessionContext, root: string, pick: StepPick): Ste
 /**
  * What a new session of `step` stores: its pick, refused for a model its agent's last list no
  * longer holds, or an effort the model does not take. Without a list, the agent answers for the
- * model.
+ * model. A session made for a run is refused too while its agent is not available, `available`.
  */
-function newPicked(context: SessionContext, step: StepId, pick: StepPick): Picked {
+function newPicked(
+  context: SessionContext,
+  step: StepId,
+  pick: StepPick,
+  available = true,
+): Picked {
   const { runtimes } = context;
   const model = pick.model ?? null;
   const effort = pick.effort ?? null;
@@ -85,8 +91,37 @@ function newPicked(context: SessionContext, step: StepId, pick: StepPick): Picke
     throw refused(RUNTIME_REFUSALS.stepModelGone(name, model, agent));
   }
   checkEffort(runtimes, pick.runtime, model, effort);
-  checkAvailable(runtimes, pick.runtime);
+  if (available) {
+    checkAvailable(runtimes, pick.runtime);
+  }
   return { agent: pick.runtime, effort, model };
+}
+
+/**
+ * What a new session of the feature `folder`, in the main checkout `root`, runs on (the models
+ * decision): `pick`, the human's, when it picks anything; else the pick of the run step its next
+ * step belongs to, as a run of that step starts on, refused as a new session of it is; else, at a
+ * step no agent runs, as a gate, or one that cannot be read, the agent's defaults.
+ */
+export async function newPickOf(
+  context: SessionContext,
+  root: string,
+  folder: string,
+  pick: SessionPick = {},
+): Promise<NewPick> {
+  if (pick.runtime !== undefined || pick.model !== undefined || pick.effort !== undefined) {
+    return pick;
+  }
+  const next = await context.binding.nextStep(root, folder).catch(() => undefined);
+  const runStep = next?.step.runStep;
+  const fallback = agentsOf(context.runtimes, root).runtime();
+  if (!isStepId(runStep) || fallback === undefined) {
+    return pick;
+  }
+  const map = toMap(context.runOptions(root, folder), fallback);
+  // Made before it runs, as any session: the send checks its agent is available.
+  const picked = newPicked(context, runStep, runningPick(context, root, map.steps[runStep]), false);
+  return () => picked;
 }
 
 /**
@@ -110,7 +145,7 @@ export type RunPlace = { fields: SessionFields; live: Live };
 
 /**
  * The session a workflow run of `runStep` goes to, from the feature's latest session `live`: that
- * one when it never ran, which then starts for `runStep` on the step's pick; that one when it runs
+ * one when it never ran, which then starts for `runStep` on the pick it was made on; that one when it runs
  * `runStep` already, whatever its pick; that one too when it runs on the step's agent and model,
  * and ran no workflow, which then starts for `runStep`, or its step's joint joins `runStep`, on the
  * step's effort, the agent's default when it picks none; else a new session of the feature on the
@@ -136,8 +171,8 @@ export async function runSession(
   const map = toMap(context.runOptions(live.repo, folder), agents.runtime() ?? row.agent);
   const pick = runningPick(context, live.repo, map.steps[runStep]);
   if (cache.turns(live.id).length === 0) {
-    // It never started: it starts on the step's pick.
-    return { fields: { ...newPicked(context, runStep, pick), step: runStep }, live };
+    // It never started: it starts on the pick it was made on, the human's or its step's.
+    return { fields: row.step === runStep ? {} : { step: runStep }, live };
   }
   const current = { runtime: row.agent, ...(row.model === null ? {} : { model: row.model }) };
   const onPick = row.agent === pick.runtime && samePick(agents, current, pick);

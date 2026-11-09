@@ -729,16 +729,16 @@ share, and concurrency with the continuer.
 - Produces:
   - `runSession(context, live, runStep: StepId, fresh?: boolean): Promise<RunPlace>` in
     `run-session.ts`: the session a run of `runStep` goes to. The latest session when it never ran,
-    which takes the step's pick (R18), or when it runs `runStep` already, whatever its pick (R18);
-    else the latest when it runs on the step's agent and model, and `stepSession` joins its step to
-    `runStep` or it ran no workflow (R15), on the step's effort, none when it picks none (R16); else
-    a new session on the step's pick, `step` set. `fresh: true` always starts a new one. A session
-    without `step` reads as the run step of its latest workflow turn. A step whose agent is off runs
-    on the first runtime on, without its model and effort. A step whose model the agent no longer
-    lists is refused with `RUNTIME_REFUSALS.stepModelGone(step, model, agent)`: "Spec runs on Opus
-    4.1, which Claude Code no longer lists." `RunPlace` is `{ live, fields }`: the session, and the
-    fields it takes, its pick, effort, or step, which `sendTo` writes only once the run is delivered
-    there (R16).
+    which keeps the pick it was made on (R18), or when it runs `runStep` already, whatever its pick
+    (R18); else the latest when it runs on the step's agent and model, and `stepSession` joins its
+    step to `runStep` or it ran no workflow (R15), on the step's effort, none when it picks none
+    (R16); else a new session on the step's pick, `step` set. `fresh: true` always starts a new one.
+    A session without `step` reads as the run step of its latest workflow turn. A step whose agent
+    is off runs on the first runtime on, without its model and effort. A step whose model the agent
+    no longer lists is refused with `RUNTIME_REFUSALS.stepModelGone(step, model, agent)`: "Spec runs
+    on Opus 4.1, which Claude Code no longer lists." `RunPlace` is `{ live, fields }`: the session,
+    and the fields it takes, its pick, effort, or step, which `sendTo` writes only once the run is
+    delivered there (R16).
   - `goal(step, planReview)` stops each run at its step: approval, plan, and plan revision "Write
     the plan" (or "Record the approved decisions and write the plan"), stopping when "the plan is
     committed" without plan review; implementation stopping when "every task of the plan is
@@ -758,6 +758,13 @@ share, and concurrency with the continuer.
     `run_step`: the run step of a legacy session's last workflow turn (R16).
   - `Sessions` takes `runOptions(repo, folder)`, the server's `FeatureOptions.resolved`, given by
     `startSessions`; the session context holds it and the chain.
+  - `newPickOf(context, root, folder, pick?): Promise<NewPick>` in `run-session.ts`: what a new
+    session of a feature or a change runs on, the pick given when it picks anything, else the pick
+    of the run step of its next step (a change's is its build step), else the agent's defaults.
+    `Sessions.featureSession` and `Sessions.newSession` make their sessions on it, so every start,
+    send, and move that makes a session without a pick makes it on its step's (R18).
+    `featureSession` and `newSession` in `session-folders.ts` take a `NewPick`, a `SessionPick` or a
+    function giving the `Picked` to store.
 
 - [x] **Step 1: Write the failing tests, and rewrite the replaced ones**
 
@@ -780,9 +787,9 @@ share, and concurrency with the continuer.
 - "a run whose step did not move on starts nothing": the plan turn ends with the step still `plan`;
   no new turn anywhere. Break: a loop of plan runs.
 
-Rewrite `message.test.ts`'s plan messages, the R20 test to "a session that never ran takes its
-step's pick, and a run of the same step stays there" (R18), and remove the fresh session's tests the
-spec lists.
+Rewrite `message.test.ts`'s plan messages, the R20 test to "a session made without a pick runs on
+its step's, one picked keeps it, and a run of its step stays there" (R18), and remove the fresh
+session's tests the spec lists.
 
 - [x] **Step 2: Run them to check they fail**
 

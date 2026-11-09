@@ -13,6 +13,7 @@ import { Processes } from "./processes.ts";
 import { readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { newPickOf } from "./run-session.ts";
 import type { SessionPick } from "./picks.ts";
 import { archive, dismiss, rename, seen, setEffort } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
@@ -209,15 +210,25 @@ export class Sessions {
     return wakeupPending(this.#context.live.get(session)?.proc);
   }
 
-  /** The latest session of a change or a feature, made on `pick` with none: `featureSession`. */
+  /**
+   * The latest session of a change or a feature, made with none on `pick`, else on its next step's:
+   * `featureSession`.
+   */
   async featureSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
-    return featureSession(this.#context, await this.mainRoot(repo), folder, pick);
+    const root = await this.mainRoot(repo);
+    const made = this.#context.cache.latestSession(root, folder) === undefined;
+    const picked = made ? await newPickOf(this.#context, root, folder, pick) : pick;
+    return featureSession(this.#context, root, folder, picked);
   }
 
-  /** A new session of a change or a feature, on `pick`, which becomes its latest: `newSession`. */
+  /**
+   * A new session of a change or a feature, on `pick`, else on its next step's, which becomes its
+   * latest: `newSession`.
+   */
   async newSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
-    return newSession(this.#context, this.#options.onChange, root, { folder, pick });
+    const picked = await newPickOf(this.#context, root, folder, pick);
+    return newSession(this.#context, this.#options.onChange, root, { folder, pick: picked });
   }
 
   /** Moves a session without a workflow to the change it became, between turns: `attach`. */

@@ -30,8 +30,8 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
 /**
  * Sends a started change's first run to its session, through the queue a running turn would hold
  * it in (R3), with the agent available and its workflow message written: the session's ID, or
- * `null` when no run was sent. A session made for it runs on what `pick` says, else on the first
- * runtime on, on its default model and effort.
+ * `null` when no run was sent. A session made for it runs on what `pick` says, else on its build
+ * step's pick (R18).
  */
 async function sendFirstRun(
   ctx: RepoContext,
@@ -88,7 +88,7 @@ const withFirstRun =
 /**
  * Refuses a pick a new session could not run on, an agent off, a model its agent does not list, an
  * effort the model does not take, before the change starts: once committed, a first run that
- * cannot be sent is only logged (R12). Nothing picked is the agent's defaults, never refused here.
+ * cannot be sent is only logged (R12). Nothing picked is its build step's, never refused here.
  */
 async function checkPick(ctx: RepoContext, pick: SessionPick): Promise<void> {
   if (Object.values(pick).every((value) => value === undefined)) {

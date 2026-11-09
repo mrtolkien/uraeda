@@ -180,19 +180,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   effort of its own; joining two steps tests the same rule, a joined step's own effort.
 - **Where**: task 6.
 
-## R18: A run of the session's own step stays there, and a session that never ran takes the step's pick
+## R18: A run of the session's own step stays there, and a session made without a pick takes its step's
 
 - **Decision**: a workflow run of the run step its session runs, not fresh, goes on in that session
   whatever its pick: "Again" at the plan stays in the plan's session. A session that never ran,
-  reused for its first run, takes the step's agent, model, and effort, as a new session would. Until
-  Task 11 stores a change's start pick as its options, `change.start`'s runtime, model, and effort
-  no longer reach its first run: `runtimes.test.ts`'s change start test says so, marked
-  `TEMPORARY:`.
-- **Rationale**: a continue of a step is the same run, which a session of its own holds; a session
-  that never started has no context to keep, so the step's options decide it, as for any new
-  session.
-- **If wrong**: `runSession` in `packages/server/src/runner/run-session.ts`.
-- **Where**: task 6, from its review.
+  reused for its first run, keeps the pick it was made on. A feature's or a change's session made
+  without a pick, by a start, a message, a move, or a new session, is made on the pick of the run
+  step of its next step, from the feature's resolved options (a change's next step is its build),
+  and on the agent's defaults at a step no agent runs, as a gate; a pick given where it starts, as
+  `change.start`'s runtime, model, and effort or the composer's picker, is used as given
+  (`newPickOf`). The step's pick is checked as a run's, except that its agent may be unavailable, as
+  any session's may be when it is made.
+- **Rationale**: the Models decision: "A new session MUST start on the model and effort the human
+  picked for it, where it starts or in the run options of its step or role, else on the agent's own
+  defaults." A pick made where a session starts is the human's, which the first run keeps; a session
+  made without one has its step's options. A first version took the step's pick on the first run,
+  which overrode a pick made at the start.
+- **If wrong**: `runSession` and `newPickOf` in `packages/server/src/runner/run-session.ts`.
+- **Where**: task 6, from its review, and the follow-up of the Task 6 fixes.
 
 ## R19: The chain has no cap of its own, and a restart before a chained send leaves the run halted
 

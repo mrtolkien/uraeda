@@ -90,7 +90,7 @@ test("a new session runs on the first runtime on in its repository", async () =>
   expect(session.agent).toBe("pi-durable");
 });
 
-test("a session that never ran takes its step's pick, and a run of the same step stays there (R20)", async () => {
+test("a session made without a pick runs on its step's, one picked keeps it, and a run of its step stays there (R18)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
   await runtimes.refreshModels();
   const plan = { agent: "pi-durable", effort: "high", model: "fake-big", step: "plan" };
@@ -98,7 +98,14 @@ test("a session that never ran takes its step's pick, and a run of the same step
     runOptions: () => ({ steps: [plan] }),
     runtimes,
   });
-  const session = await sessions.featureSession(repo, AGENT, { runtime: "claude" });
+  // Made where the feature starts, with no pick: on the pick of its next step's run step.
+  expect(await sessions.featureSession(repo, AGENT)).toMatchObject({
+    agent: "pi-durable",
+    effort: "high",
+    model: "fake-big",
+  });
+  // Made on the human's pick: its first run keeps it, and a run of its step again stays there.
+  const session = await sessions.newSession(repo, AGENT, { runtime: "claude" });
   const workflow = { step: "plan", trigger: "manual" } as const;
   const first = await sessions.send(repo, session.id, { text: "Write the plan", workflow });
   await sessions.settled(first.turn);
@@ -109,13 +116,13 @@ test("a session that never ran takes its step's pick, and a run of the same step
 
   expect(again.session).toBe(session.id);
   expect(cache.session(session.id)).toMatchObject({
-    agent: "pi-durable",
-    effort: "high",
-    model: "fake-big",
+    agent: "claude",
+    effort: null,
+    model: null,
     step: "plan",
   });
-  expect(durable.opens).toEqual([expect.objectContaining({ effort: "high", model: "fake-big" })]);
-  expect(claude.opens).toHaveLength(0);
+  expect(claude.opens).toHaveLength(1);
+  expect(durable.opens).toHaveLength(0);
 });
 
 test("a new session runs on the pick, and records what its agent reported", async () => {
@@ -390,9 +397,7 @@ test("a runtime picked that is off is refused, making no session", async () => {
   expect(JSON.stringify(made.error)).toContain(OFF);
 });
 
-// TEMPORARY: until Task 11 stores the start's pick as the change's options, the first run of a
-// session that never ran takes its step's pick, the defaults here, not the start's (R20).
-test("change.start sends the change's first run on its step's pick, not the one picked (R20)", async () => {
+test("change.start sends the change's first run on the runtime, model, and effort picked (R20)", async () => {
   const server = await testServer();
   const durable = new FakeAdapter();
   durable.fallback = () => [];
@@ -416,11 +421,11 @@ test("change.start sends the change's first run on its step's pick, not the one 
   expect(started.error).toBeUndefined();
   const session = (started.data as { session: string }).session;
   expect(server.sessions.cache.session(session)).toMatchObject({
-    agent: "fake",
-    effort: null,
-    model: null,
+    agent: "pi-durable",
+    effort: "high",
+    model: "fake-big",
   });
-  expect(durable.opens).toEqual([]);
+  expect(server.adapter.opens).toEqual([]);
 });
 
 test.each<[string, Record<string, unknown>, string]>([
