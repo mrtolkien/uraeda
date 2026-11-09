@@ -37,10 +37,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R4: SKILL.md makes room for the catch-up rows
 
 - **Decision**: the paragraph on follow-up questions and blank answers moves from `SKILL.md` to
-  [Writing for the human](/skills/uraeda/references/writing.md), with a one-line pointer.
+  [Writing for the human](/skills/uraeda/references/writing.md), with a one-line pointer. The notes
+  paragraph keeps one sentence, its bullet example moving to the notes of that reference. The step
+  table's catch-up rows link as `[Catch up](...)`, not `[Implementation](...), catch up`.
 - **Rationale**: `SKILL.md` holds 19,973 characters, and `crates/cli/tests/skill.rs` refuses more
   than 20,000, asking to move what most steps do not need. Only the spec step and `ura answer` read
-  how follow-ups are answered.
+  how follow-ups are answered. The move alone left too little room: the longer link widens every row
+  of the table, the step column padded to it, and `SKILL.md` reached 20,136 characters.
 - **Where**: task 3.
 
 ## R5: The step rows behind main get a table of their own

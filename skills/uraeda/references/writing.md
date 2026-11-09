@@ -78,10 +78,21 @@ shows a change's round waiting for the human. In order, a round holds:
 The inbox triage and [the decisions check](decisions-check.md) follow the same rules, with two
 exceptions. Their Context is free text without parts. They have no settled points.
 
+### Answers
+
+The workflow only moves on when every question is answered. A follow-up `Q2.B` needs an answer only
+when its parent's answer starts with its letter: "B", "B and C: ...", "A, B". A parent answered
+without a letter, in the human's own words, closes its follow-ups: they need no answer. If a
+clarifications file is `answered` with questions left blank, set its status back to
+`awaiting-human`, name the blank questions in the first line of its block, as "2 questions still
+need an answer: Q3 and Q5", and commit.
+
 ### The notes
 
 A comment on one settled point, of Check these or of the settled section, is a bullet at the end of
-the notes, starting with that point's bold subject. Its further lines are indented by two spaces.
+the notes, starting with that point's bold subject:
+`- **Undoing a completion**: Keep the undo, but say what it restored.` Its further lines are
+indented by two spaces.
 
 ### The block
 

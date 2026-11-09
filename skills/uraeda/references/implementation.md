@@ -5,8 +5,8 @@ delivers the branch as a pull request for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
   checked and the branch has no pull request; or its pull request has changes requested, or the
-  human's message asks to address its comments; or its open pull request lacks the branch's latest
-  commits
+  human's message asks to address its comments; or its open pull request is behind the default
+  branch, or lacks the branch's latest commits
 - **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
   request
 - **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after its comments are
@@ -387,6 +387,41 @@ the branch is then most likely behind it.
 3. **Leave the pull request as it is.** Once it holds the branch's latest commit, it waits for the
    human's review again: a human gate.
 
+## Catch up an open pull request
+
+The catch-up runs when the pull request is open, not a draft, with no changes requested, and its
+branch is behind the default branch. Uraeda names this step `catch-up`, and it wins over the
+[push](#push), since the catch-up pushes too. The default branch moves under an open pull request
+when another one merges: the human would then review code that is not what merges.
+
+A branch is **behind** when it lacks the tip of `origin/<default>`, or of the local default branch
+without a remote, and the commits it lacks change any file but the default branch's own. Those are
+`PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`, `DECISIONS-CHECK.md`, `decisions-check/`,
+`proposals/`, `notes/`, and a started folder's `proposal.md`, all under `specs/`. They never reach a
+branch. With `ura`, `ura next` names the step. By hand, after `git fetch`, the branch lacks the tip
+when `git merge-base --is-ancestor origin/<default> <branch>` fails. Then
+`git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks change.
+
+1. **Catch up** as [the final review](#catch-up-with-the-default-branch) does, its steps 1 to 5: the
+   new rules, the rebase, the moved links, and the complete validation.
+2. **Push** as [the push](#push) does, with `--force-with-lease` after the rebase.
+3. **Leave the pull request as it is.** Once it holds the caught-up branch, it waits for the human's
+   review again: a human gate.
+
+Two cases stop the catch-up differently from the final review, without a round of questions. One is
+a decision or an amendment on the default branch that conflicts with the branch. The other is a
+conflict whose resolution needs a choice the spec and the decisions do not settle. The human reviews
+the pull request, so the question goes there:
+
+1. **Leave the branch as it was**: abort a rebase in progress with `git rebase --abort`, and push
+   nothing, so its local and remote tips do not move.
+2. **Comment on the pull request** with `gh pr comment <number>`: the conflicting files, or the
+   decision, the choice it needs, and your recommendation with its reason.
+3. **End the run.** The step stays `catch-up`. The human answers by requesting changes, which
+   [the comments pass](#comments-on-the-pull-request) handles.
+
+Nothing else is written on GitHub, as for the comments pass: no reply, and no thread resolved.
+
 ## Comments on the pull request
 
 The comments pass runs when the human's message asks to address the pull request's comments,
@@ -427,6 +462,10 @@ page, with `pageInfo { hasNextPage endCursor }` and `after:`.
 
 A reviewer bot's comment is handled like a person's: the human chose when to send the agent, so what
 the bot wrote is part of what they asked.
+
+**A branch behind the default branch is caught up first**, as
+[the catch-up](#catch-up-an-open-pull-request) says, before the comments are handled. A comment
+settling a conflict's choice, asked by a catch-up that stopped, is followed as its resolution.
 
 **What to do with each comment**:
 
