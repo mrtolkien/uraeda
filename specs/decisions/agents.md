@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: bot
 ---
 
@@ -22,8 +22,8 @@ change or a feature.
   its permissions skipped, and each action outside its worktree, the network included, reviewed
   before it runs. Checked by the runner's tests.
 - Uraeda MUST NOT read or change an agent's credentials or settings.
-- Every conversation with an agent MUST be a session, run in the worktree of its change or feature.
-  Checked by the runner's tests.
+- Every conversation with an agent MUST be a session, run in the worktree of its change or feature,
+  or of one of its tasks. Checked by the runner's tests.
 - An agent MUST NOT turn a session into a change, or a change into a feature, unless the human
   accepts it.
 - Sessions MUST be a cache in Uraeda's data folder, never stored in a repository.
@@ -38,7 +38,8 @@ Running the user's own `claude` and `codex` uses their binaries, settings, and l
 subscriptions allow; a wrapper would sit between Uraeda and the agent. Skipped permissions, or an
 unreviewed network, would let a hostile page make an agent act on, or send away, the user's code.
 One concept of a session, whatever workflow surrounds it, gives each conversation a page and a
-history of its own. History: [Codex runtime + model settings](../done/2026-11-08-codex-runtime.md).
+history of its own, a sub-agent's included. History:
+[Run options](../2026-11-08-run-options/spec.md).
 
 ## Alternatives considered
 
@@ -54,7 +55,8 @@ history of its own. History: [Codex runtime + model settings](../done/2026-11-08
 - The server parses each agent's events itself, and Codex's protocol is labelled experimental, so a
   new version of either agent can break its runtime.
 - Without an agent installed and signed in, the web UI only commits.
-- Several sessions share one worktree, so only one of them works at a time.
+- Several sessions share one worktree, so only one of them works at a time, but for a run's
+  sub-agents, which work beside it.
 - A branch that changes the skill runs with the server's copy of the skill, not its own.
 
 ## Applies to

@@ -7,7 +7,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { StatusText } from "./fields/StatusText.tsx";
 import { useRuntimesOn } from "./runtimes.ts";
 import { pickerRuntimes, type SessionPick, SessionPicker } from "./SessionPicker.tsx";
@@ -58,6 +58,7 @@ function Ask({
   onCancel,
   onConfirm,
   question,
+  runs,
 }: {
   effort?: Effort | undefined;
   /** A refusal to show from the start, as a story does. */
@@ -67,6 +68,8 @@ function Ask({
   onCancel: () => void;
   onConfirm: OnConfirm;
   question: Question;
+  /** How the start's steps run, the run map's strip, in place of the one session's picker. */
+  runs?: ReactNode;
 }) {
   const [value, setValue] = useState(initial);
   const [level, setLevel] = useState(effort?.initial);
@@ -127,7 +130,7 @@ function Ask({
           </SegmentedControl>
         </HStack>
       )}
-      {hasRuntime && <RunsOn onChange={setPick} value={pick} />}
+      {runs ?? (hasRuntime && <RunsOn onChange={setPick} value={pick} />)}
       {error && (
         <StatusText role="alert" tone="error" type="supporting">
           {sentence(error)}
@@ -161,6 +164,7 @@ export function StartDialog({
   onCancel,
   onConfirm,
   question,
+  runs,
 }: {
   effort?: Effort;
   error?: string;
@@ -170,6 +174,7 @@ export function StartDialog({
   onCancel: () => void;
   onConfirm: OnConfirm;
   question: Question;
+  runs?: ReactNode;
 }) {
   return (
     <Overlay isOpen={isOpen} label={question.title} onClose={onCancel} sheetHeight="hug">
@@ -182,6 +187,7 @@ export function StartDialog({
           onCancel={onCancel}
           onConfirm={onConfirm}
           question={question}
+          runs={runs}
         />
       )}
     </Overlay>
