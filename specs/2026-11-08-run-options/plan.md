@@ -941,10 +941,11 @@ git commit -m "feat(run-options): workflow sessions call Uraeda's sub-agents, ne
     with why it failed or stopped; a second `start` with the same parent, role, and `about` resolves
     with the first one's answer, waiting while it works, after a restart too (R21); once that one
     stopped or failed without a continue to wait for, it sends its `message` as a new workflow turn
-    of the same sub-session (R23). Task 9 adds the reviewer's own options to `SubSessionStart`.
-    `stopAll` runs on the parent's Stop, and as its running turn fails, but by a usage limit, or
-    stops, but by the server's stop (R21). `busy` holds while a call of the parent waits or one of
-    its sub-sessions works or waits to continue: the parent's turn's watchdog waits then.
+    of the same sub-session (R23). A sub-session whose first turn cannot start is removed. Task 9
+    adds the reviewer's own options to `SubSessionStart`. `stopAll` runs on the parent's Stop, and
+    as its running turn fails, but by a usage limit, or stops, but by the server's stop (R21).
+    `busy` holds while a call of the parent waits or one of its sub-sessions works or waits to
+    continue: the parent's turn's watchdog waits then.
   - `runAgentTool(subSessions: SubSessions): McpTool`, pushed into the server's `mcp.tools`;
     `subSessionsWork(context, parent): boolean`, which the continuer reads;
     `implementerPick(context, root, folder): Picked` in `run-session.ts`.

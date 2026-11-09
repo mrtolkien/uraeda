@@ -188,15 +188,24 @@ test.each([
     name: "a task's worktree by a relative path",
     worktree: ({ worktrees }: Places) => relative(process.cwd(), worktrees[4]),
   },
-])("run_agent refuses $name as the task's worktree", async ({ worktree }) => {
+  {
+    // The task's own worktree, but its agent cannot start: the empty sub-session goes.
+    error: /cannot start/,
+    name: "an implementer that cannot start",
+    worktree: ({ worktrees }: Places) => worktrees[4],
+  },
+])("run_agent answers an error for $name, and leaves no session", async (row) => {
   const { fake, other, parent, root, sessions, signal, tool, worktrees } = await building();
   mkdirSync(join(worktrees[4], "src"));
   const feature = fake.opens[0].cwd;
   expect(feature).not.toBe(root);
+  vi.spyOn(other, "open").mockImplementation(() => {
+    throw new Error("The agent cannot start.");
+  });
 
-  const given = worktree({ feature, root, worktrees });
+  const given = row.worktree({ feature, root, worktrees });
   const input = { prompt: "Implement task 4", task: "Task 4", worktree: given };
-  await expect(tool.call(parent.id, input, signal)).rejects.toThrow(/worktree/);
+  await expect(tool.call(parent.id, input, signal)).rejects.toThrow(row.error ?? /worktree/);
   expect(other.opens).toHaveLength(0);
   expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(0);
 });

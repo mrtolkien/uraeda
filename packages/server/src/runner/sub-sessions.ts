@@ -206,12 +206,18 @@ export class SubSessions {
    * Starts a turn of the sub-session, its first, or a new one once its latest stopped or failed
    * without a continue to wait for: its process opens in its worktree, and the turn takes its
    * parent's step and trigger. Nothing while it works or waits to continue, or once it ended done:
-   * the call answers that turn's end.
+   * the call answers that turn's end. A first turn that cannot start removes the sub-session, which
+   * has nothing to show: a call waiting for it then answers that it did not start.
    */
   async #begin(row: SessionRow, text: string): Promise<void> {
     const { cache, processes, turns } = this.#context;
     const live = this.#context.live.of(row);
     await this.#context.live.serial(live, async () => {
+      if (!cache.session(row.id)) {
+        throw new Error(
+          `The ${row.role ?? "sub-agent"} of ${row.title ?? "its task"} did not start.`,
+        );
+      }
       if (working(live) || !runsAgain(latestTurn(cache.turns(row.id)))) {
         return;
       }
@@ -229,6 +235,10 @@ export class SubSessions {
           ...parentTurn(this.#context, row.parent as string),
           ...(line === undefined ? {} : { line }),
         });
+      } catch (error) {
+        // A sub-session that never started a turn goes: the task asked again starts a new one.
+        cache.removeEmptySession(row.id);
+        throw error;
       } finally {
         live.starting = false;
       }
