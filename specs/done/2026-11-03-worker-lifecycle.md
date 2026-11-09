@@ -3,6 +3,7 @@ kind: feature
 finished: 2026-11-04
 pull-request: https://github.com/mrtolkien/uraeda/pull/91
 supersedes: [2026-10-13-chat-in-the-web-ui, 2026-10-30-feature-state]
+superseded-by: [2026-11-08-agents-fix]
 ---
 
 # Record: Worker lifecycle
@@ -12,6 +13,8 @@ supersedes: [2026-10-13-chat-in-the-web-ui, 2026-10-30-feature-state]
 > The record of a merged feature, not instructions to follow. Started on 2026-11-03, finished on
 > 2026-11-04, in [its pull request](https://github.com/mrtolkien/uraeda/pull/91). Its full files are
 > in git: `git log -- specs/2026-11-03-worker-lifecycle/`.
+>
+> Superseded in part by [2026-11-08-agents-fix](2026-11-08-agents-fix.md).
 
 ## What and why
 
