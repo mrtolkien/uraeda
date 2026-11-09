@@ -54,3 +54,17 @@ decisions. None binds future work: those are decisions.
   is reviewed before it runs.
 - **If wrong**: a postpone needs one or two approvals more than a run in the main checkout would.
 - **Where**: [claude.ts](/packages/server/src/runner/claude.ts), unchanged
+
+## R6: The worktree the agent works in stays
+
+- **Decision**: postponing from a session leaves the item's worktree in place, as **Drop** already
+  does for the worktree it runs in, and the agent gives the human `git worktree remove <path>`. A
+  postponed change's proposal says it was a change, to start again as one.
+- **Rationale**: the review found that removing it would leave the item's sessions, the one the
+  human reads included, on a folder that is gone, and their next message failing. Drop archives a
+  dropped item's sessions on the server; a postpone, run by the agent, has nothing that does.
+- **Alternatives considered**: the server noticing the closing commit and archiving the sessions,
+  then removing the worktree: more code, for a cleanup the human runs once.
+- **If wrong**: a worktree per postponed item stays until the human removes it.
+- **Where**:
+  [projects.md](/skills/uraeda/references/projects.md#starting-postponing-and-dropping-a-feature)

@@ -1,7 +1,8 @@
 // The messages of the default branch's rounds, the inbox's triage (`references/inbox.md`) and the
-// decisions check (`references/decisions-check.md`), and the project's setup: each starts a chat in
-// the main checkout. Also postponing a feature or a change, sent to its own session. Free of Node's modules, so the UI imports them as they are. Also the one home of the
-// rounds' ids and file names, which the server and the UI share.
+// decisions check (`references/decisions-check.md`), and the project's setup, each starting a chat
+// in the main checkout; and postponing a feature or a change, sent to its own session. Free of
+// Node's modules, so the UI imports them as they are. Also the one home of the rounds' ids and file
+// names, which the server and the UI share.
 
 /** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
 export const TRIAGE_ID = "inbox-triage";
