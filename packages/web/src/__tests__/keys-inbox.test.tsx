@@ -4,12 +4,21 @@
 // would. The note picked shows its own keys in a bar under it, and the status line names only the
 // page's: `o`, then the categories' `C`, `D`, `R`. A key pressed on the focused note reaches the
 // window as a user's does; none of them acts in a text field or under a dialog.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, fieldText, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import {
+  atWidth,
+  fakeAgent,
+  fieldText,
+  fixture,
+  fixtureRepo,
+  read,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -174,6 +183,27 @@ test("m puts the note in the move mode, whose j moves it into the next category 
   await press("j", controlOf("Idea two"));
   await waitFor(() => expect(read(repo, PATH)).toContain("## Later\n\n- Idea two\n- Later one\n"));
   expect(read(repo, PATH)).toContain("## Ideas\n\n- Idea one\n");
+});
+
+// Break: the triage banner's model picker declaring `m` too, which the registry refuses.
+test("beside an answered triage's model picker, `m` still moves the note", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, PATH), INBOX);
+  const triage = readFileSync(fixture("INBOX-TRIAGE.md"), "utf8");
+  writeFileSync(
+    join(repo, "specs/INBOX-TRIAGE.md"),
+    triage.replace("status: awaiting-human", "status: answered"),
+  );
+  await renderPage("/inbox", repo, { agent: await fakeAgent() });
+  await screen.findByText("Your triage answers are ready to apply");
+  await screen.findByRole("heading", { name: "Ideas · 2" });
+  const link = controlOf("Idea two");
+  act(() => link.focus());
+
+  await press("m", link);
+
+  expect(within(rowOf("Idea two")).getByRole("button", { name: "⏎ done" })).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "Pick the model" })).toBeNull();
 });
 
 test("c moves the note to the end of the category its picker chose", async () => {

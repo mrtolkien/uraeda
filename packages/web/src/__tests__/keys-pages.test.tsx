@@ -161,6 +161,35 @@ test.each([
   expect(await screen.findByRole("dialog", { name: "Pick the model" })).toBeTruthy();
 });
 
+// Break: `m` opening the model step in a running session, where only the effort changes.
+test("in a running session, `m` opens the effort step, as its button does", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the drafts" });
+  await fake.sessions.settled(turn);
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
+  await screen.findByRole("button", { name: /^Effort · / });
+
+  await press("m");
+
+  expect(await screen.findByRole("dialog", { name: /^Pick the effort/ })).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "Pick the model" })).toBeNull();
+});
+
+// Break: `m` taken from the composer's text by the page.
+test("in the composer, `m` is typed, not a key of the page", async () => {
+  await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
+  const field = await composer();
+  act(() => field.focus());
+
+  await type(field, "m");
+
+  expect(fieldText(field)).toBe("m");
+  expect(screen.queryByRole("dialog", { name: "Pick the model" })).toBeNull();
+});
+
 // Break: a card's plain line gone, or no longer read as the card's description.
 test("each New card says in a short plain line what it is for, read as its description", async () => {
   await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
