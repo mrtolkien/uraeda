@@ -234,7 +234,14 @@ fn merges_a_feature_over_the_settings() {
         model: Some("opus".into()),
         ..step("spec")
     };
-    let rows: [(RunOptions, RunOptions); 3] = [
+    let rows: [(RunOptions, RunOptions); 4] = [
+        (
+            RunOptions {
+                reviewers: Some(vec![]),
+                ..RunOptions::default()
+            },
+            defaults.clone(),
+        ),
         (
             RunOptions {
                 steps: vec![feature_spec],

@@ -97,7 +97,7 @@ pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
 }
 
 /// `feature`'s options over `defaults`: each value the feature sets wins, step by step and value by
-/// value, and the feature's reviewers replace the defaults' list whole.
+/// value, and the feature's reviewers, when it lists any, replace the defaults' list whole.
 pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOptions {
     let mut steps = defaults.steps.clone();
     for step in &feature.steps {
@@ -123,7 +123,10 @@ pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOpti
     RunOptions {
         steps,
         implementers,
-        reviewers: over(&feature.reviewers, &defaults.reviewers),
+        reviewers: over(
+            &feature.reviewers.clone().filter(|list| !list.is_empty()),
+            &defaults.reviewers,
+        ),
         review_depth: over(&feature.review_depth, &defaults.review_depth),
     }
 }
