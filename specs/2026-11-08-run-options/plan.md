@@ -574,8 +574,10 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
     `worktree`, each `string | null`.
   - `class FeatureOptions { own(repo, folder): RunOptions; set(repo, folder, options: RunOptions): void; resolved(repo, folder): RunOptions; close(): void }`,
     built on `{ binding, defaults: () => RunOptions, path, timeout? }`: `own` is what the feature
-    changed, `{steps: []}` when none or while the file cannot be read; `set` checks with
-    `checkRunOptions` and stores what it is given, deleting the row for empty options, and throws
+    changed, `{steps: []}` when none or while the file cannot be read; `set` normalizes the options
+    through the core (`mergeRunOptions({ steps: [] }, options)`, without the tables that change
+    nothing: `reviewers: []` is none), refusing a value of the wrong type with `refused: `, checks
+    them with `checkRunOptions`, and stores them, deleting the row for empty options, and throws
     `refused: ` while the file is locked or unreadable, never keeping them in memory instead;
     `resolved` merges the feature's over the settings' as they are now.
   - `ctx.settings.runs().options`, the settings' run options, and `claudeEffortFromEnv?: string`,

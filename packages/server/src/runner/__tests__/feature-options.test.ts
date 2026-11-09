@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import type { RunOptions } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { testSettings } from "../../testing.ts";
 import { migrations, SessionCache } from "../cache.ts";
@@ -79,13 +80,16 @@ test("a feature without options reads none, and options set back to none leave n
 
   expect(options.own(REPO, FOLDER)).toEqual({ steps: [] });
   options.set(REPO, FOLDER, { reviewDepth: "branch", steps: [] });
-  options.set(REPO, FOLDER, { steps: [] });
+  // Tables that change nothing, and an empty reviewers' list, which keeps the settings', are none.
+  options.set(REPO, FOLDER, { implementers: {}, reviewers: [], steps: [{ step: "spec" }] });
 
   expect(options.own(REPO, FOLDER)).toEqual({ steps: [] });
   const file = new DatabaseSync(join(dataDir, FEATURE_OPTIONS_FILE));
   onTestFinished(() => file.close());
   expect(file.prepare("SELECT COUNT(*) AS rows FROM feature_options").get()).toEqual({ rows: 0 });
   expect(() => options.set(REPO, FOLDER, { reviewDepth: "deep", steps: [] })).toThrow(/^refused: /);
+  const wrong = { steps: "spec" } as unknown as RunOptions;
+  expect(() => options.set(REPO, FOLDER, wrong)).toThrow(/^refused: /);
 });
 
 test("a feature's options outlive the cache, and a file that cannot be read is kept", async () => {

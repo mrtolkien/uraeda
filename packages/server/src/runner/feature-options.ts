@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { RunOptions } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
+import { reasonOf } from "../reason.ts";
 import { transaction } from "./migrations.ts";
 
 /** The features' options' database, in Uraeda's data folder. */
@@ -33,6 +34,32 @@ function empty(options: RunOptions): boolean {
     options.reviewers === undefined &&
     options.reviewDepth === undefined
   );
+}
+
+/**
+ * The options as the core reads them, merged over none: each step once, an empty reviewers' list
+ * gone, as it keeps the settings'; checked, then without the tables that change nothing. Throws
+ * the core's `refused: ` and its problem, and `refused: ` for a value of the wrong type, which the
+ * binding cannot read.
+ */
+function normalized(binding: FeatureOptionsOptions["binding"], options: RunOptions): RunOptions {
+  let merged: RunOptions;
+  try {
+    merged = binding.mergeRunOptions({ steps: [] }, options);
+  } catch (error) {
+    throw new Error(`refused: The run options are not of the right shape: ${reasonOf(error)}`, {
+      cause: error,
+    });
+  }
+  binding.checkRunOptions(merged);
+  const { implementers, ...rest } = merged;
+  return {
+    ...rest,
+    ...(implementers === undefined || Object.keys(implementers).length === 0
+      ? {}
+      : { implementers }),
+    steps: merged.steps.filter((step) => Object.keys(step).some((key) => key !== "step")),
+  };
 }
 
 /** The schema's one version: the table of the features' options. */
@@ -123,12 +150,13 @@ export class FeatureOptions {
   }
 
   /**
-   * Keeps `options` as the feature's own, whole, or removes its row when they change nothing.
+   * Keeps `given` as the feature's own, whole and normalized, or removes its row when they change
+   * nothing.
    * Throws the core's `refused: ` and its problem for options it refuses, and `refused: ` while the
    * file cannot be written, keeping the row.
    */
-  set(repo: string, folder: string, options: RunOptions): void {
-    this.#options.binding.checkRunOptions(options);
+  set(repo: string, folder: string, given: RunOptions): void {
+    const options = normalized(this.#options.binding, given);
     try {
       const db = this.#open();
       if (empty(options)) {
