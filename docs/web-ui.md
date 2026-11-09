@@ -496,8 +496,8 @@ stopped asks for you until you dismiss it, with Dismiss on its feature's or chan
 session's banner. A pull request reads "PR ready" only once it holds its branch's latest commit.
 While its branch holds commits the pull request lacks, the feature reads "Push", in In progress, for
 the agent to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase,
-validate, and push. "Catch up open pull requests", under Runs in Settings, starts that run by
-itself, once per commit of main.
+validate, and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch
+up open pull requests", under Runs in Settings, starts that run by itself, once per commit of main.
 
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the

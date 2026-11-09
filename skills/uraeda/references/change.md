@@ -296,7 +296,8 @@ minutes.", the points needing attention, among them the points you settled witho
 record's text, with a screenshot of each new view.
 
 Commits the open pull request lacks are pushed as for a feature, as [Push](implementation.md#push)
-says.
+says. A branch behind the default branch is caught up as for a feature, as
+[Catch up an open pull request](implementation.md#catch-up-an-open-pull-request) says.
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and

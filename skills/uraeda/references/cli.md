@@ -28,14 +28,14 @@ the current branch's feature, or the only one waiting for that action.
 | `ura add [folder]`                                                                        | Adds the repository holding a folder to the list of repositories the server serves                                                     |
 | `ura extension add <folder, URL, or name>`, `--all`, `--here`; `update`, `remove`, `list` | Links or clones an extension into the config folder, pinned to a commit, and says where it is on, too                                  |
 
-`ura next` and `ura status` read the open pull requests with `gh`. One that is not a draft, with no
-changes requested, and lacks the branch's latest commit names the step `push`, whose reference is
-[the push](implementation.md#push) for a feature, and [Change](change.md) for a change. It waits on
-the human only once it holds it. A head the repository never fetched counts as holding it: the
-branch is likely behind it. Such a pull request whose branch is behind the default branch names the
-step `catch-up` instead, which wins over `push`: its reference is
+`ura next` and `ura status` read the open pull requests with `gh`. An open, ready pull request whose
+branch is behind the default branch names the step `catch-up`, whose reference is
 [the catch-up](implementation.md#catch-up-an-open-pull-request) for a feature, and
-[Change](change.md) for a change.
+[Change](change.md) for a change. Otherwise, one that is not a draft, with no changes requested, and
+lacks the branch's latest commit names the step `push`, whose reference is
+[the push](implementation.md#push) for a feature, and [Change](change.md) for a change. It waits on
+the human only once it holds it. A head the repository never fetched counts as holding it: it is
+likely newer than the branch.
 
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
