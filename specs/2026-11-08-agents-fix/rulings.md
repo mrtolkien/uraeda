@@ -66,3 +66,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: `ServerSettings` has no `values()`: it gives each table through its own method,
   `view()`, `runs()`, and `keyboard()`.
 - **Where**: tasks 2 and 6.
+
+## R7: A branch holds the default branch's tip when its local tip or its remote tip does
+
+- **Decision**: the behind rule reads both `refs/heads/<branch>` and `origin/<branch>`, and a branch
+  is behind only when every one of them lacks the default branch's tip, with changes beyond the
+  default branch's own files.
+- **Rationale**: GitHub's "Update branch", or a push from another clone, catches up the remote
+  branch while the local one stays where it was. The pull request then holds the default branch's
+  tip, and a catch-up would only redo it. The local tip alone, read first, read Catch up then.
+- **Alternatives considered**: the remote tip alone: a catch-up committed but not pushed yet would
+  read Catch up again.
+- **Where**: `crates/core/src/behind.rs`, found in review.

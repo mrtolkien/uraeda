@@ -319,6 +319,12 @@ enum Gain {
     CodeLocalOnly,
     /// The code commit, the repository without `origin/main`.
     CodeNoRemote,
+    /// The code commit, pushed, then merged into `origin/<branch>`, as GitHub's "Update branch"
+    /// does, the local branch left where it was.
+    CodeRemoteMerged,
+    /// The code commit, pushed, merged into the branch, then a line of `specs/PRIORITIES.md`,
+    /// pushed.
+    CodeMergedThenOwn,
 }
 
 /// Makes `main` gain `gain` after `branch` started from it.
@@ -349,9 +355,29 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
             repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
         }
     }
-    if let Gain::CodeRebased = gain {
-        repo.git(&["rebase", "--quiet", "main", branch]);
-        repo.switch("main");
+    match gain {
+        Gain::CodeRebased => {
+            repo.git(&["rebase", "--quiet", "main", branch]);
+            repo.switch("main");
+        }
+        Gain::CodeRemoteMerged => {
+            let local = repo.git(&["rev-parse", branch]).trim().to_string();
+            repo.switch(branch);
+            repo.git(&["merge", "--quiet", "--no-edit", "main"]);
+            repo.switch("main");
+            let remote = format!("refs/remotes/origin/{branch}");
+            repo.git(&["update-ref", &remote, branch]);
+            repo.git(&["update-ref", &format!("refs/heads/{branch}"), &local]);
+        }
+        Gain::CodeMergedThenOwn => {
+            repo.switch(branch);
+            repo.git(&["merge", "--quiet", "--no-edit", "main"]);
+            repo.switch("main");
+            repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n- Y\n");
+            repo.commit("chore: prioritize");
+            repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
+        }
+        _ => {}
     }
 }
 
@@ -362,55 +388,69 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
 #[test]
 fn a_pull_request_behind_the_default_branch_catches_up() {
     let code = Some(("implementation", "feat: code"));
-    // (name, the branch of a change, what main gains, the head at the branch's tip, the catch-up's
-    // reference and subject when it catches up)
+    // (name, the branch of a change, what main gains, the pull request's head, `{b}` for the
+    // branch, the catch-up's reference and subject when it catches up)
     let rows = [
-        ("main gained code", false, Gain::Code, true, code),
+        ("main gained code", false, Gain::Code, "{b}", code),
         (
             "only priorities and a started proposal",
             false,
             Gain::OwnFiles,
-            true,
+            "{b}",
             None,
         ),
         (
             "a decision",
             false,
             Gain::Decision,
-            true,
+            "{b}",
             Some(("implementation", "decision: x")),
         ),
         (
             "the branch holds main's tip",
             false,
             Gain::CodeRebased,
-            true,
+            "{b}",
             None,
         ),
         (
             "only the local default branch moved",
             false,
             Gain::CodeLocalOnly,
-            true,
+            "{b}",
             None,
         ),
-        ("no remote", false, Gain::CodeNoRemote, true, code),
+        ("no remote", false, Gain::CodeNoRemote, "{b}", code),
         (
             "a change's branch",
             true,
             Gain::Code,
-            true,
+            "{b}",
             Some(("change", "feat: code")),
         ),
         (
             "behind and ahead of its pull request",
             false,
             Gain::Code,
-            false,
+            "{b}~1",
             code,
         ),
+        (
+            "origin's branch holds main's tip, the local one stale",
+            false,
+            Gain::CodeRemoteMerged,
+            "origin/{b}",
+            None,
+        ),
+        (
+            "merged main, then main gained only priorities",
+            false,
+            Gain::CodeMergedThenOwn,
+            "{b}",
+            None,
+        ),
     ];
-    for (name, is_change, moved, at_tip, catches_up) in rows {
+    for (name, is_change, moved, head, catches_up) in rows {
         let repo = TestRepo::new();
         repo.write("specs/proposals/y.md", "# Y\n\nWhy y.\n");
         repo.commit("proposal(y): add");
@@ -423,11 +463,7 @@ fn a_pull_request_behind_the_default_branch_catches_up() {
         gain(&repo, branch, moved);
         let rev = |revision: &str| repo.git(&["rev-parse", revision]).trim().to_string();
         let mut view = view(31, PullRequestState::Open);
-        view.head = rev(&if at_tip {
-            branch.to_string()
-        } else {
-            format!("{branch}~1")
-        });
+        view.head = rev(&head.replace("{b}", branch));
         let mut feature = if is_change {
             let texts = BTreeMap::from([("proposal.md".to_string(), proposal())]);
             Feature::from_texts(Kind::Change, "2026-10-10-x", texts)
