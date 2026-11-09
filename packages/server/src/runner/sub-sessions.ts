@@ -65,7 +65,7 @@ export class SubSessions {
     const { cache } = this.#context;
     // One transaction: two starts of the same task make one session.
     const row = cache.atomically(() => {
-      const found = this.ofParent(parent).find((one) => one.role === role && one.title === about);
+      const found = this.#find(parent, role, about);
       if (found) {
         return found;
       }
@@ -84,6 +84,16 @@ export class SubSessions {
         worktree: cwd,
       });
     });
+    return this.#run(row, message, signal);
+  }
+
+  /** The sub-session of `parent` as `role` for `about`, when a start made it. */
+  #find(parent: string, role: Role, about: string): SessionRow | undefined {
+    return this.ofParent(parent).find((one) => one.role === role && one.title === about);
+  }
+
+  /** Starts a turn of the sub-session when it runs again, and answers once it no longer works. */
+  async #run(row: SessionRow, message: string, signal?: AbortSignal): Promise<string> {
     await this.#begin(row, message);
     await this.#idle(row.id, signal);
     return this.#answer(row);
@@ -122,7 +132,8 @@ export class SubSessions {
   /**
    * Runs `run_agent` for the workflow session `parent`: an implementer of the task in its worktree,
    * on the feature's implementers' pick. A worktree that is not one of the repository's, or is its
-   * main checkout, is refused.
+   * main checkout, or a change's or a feature's, is refused. A task asked again goes to its
+   * sub-session, before the worktree and the pick are read.
    */
   runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
     return this.#counted(parent, () => this.#runAgent(parent, input, signal));
@@ -135,6 +146,11 @@ export class SubSessions {
       throw new Error("Only a workflow session of a feature starts implementers.");
     }
     try {
+      // The same task again answers its sub-session, wherever the call says it works.
+      const found = this.#find(parent, "implementer", task);
+      if (found) {
+        return await this.#run(found, prompt, signal);
+      }
       const cwd = await this.#worktree(row.repo, worktree);
       const pick = implementerPick(this.#context, row.repo, row.folder);
       return await this.start(

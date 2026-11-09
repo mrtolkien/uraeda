@@ -120,12 +120,18 @@ function allRunning(sessions: Sessions, cache: SessionCache, parent: string, cou
 }
 
 test("run_agent runs each task in its own sub-session at once, on the role's pick", async () => {
-  const { cache, call, fake, gate, other, parent, root, sessions, worktrees } = await building();
+  const { cache, call, fake, gate, other, parent, root, sessions, signal, tool, worktrees } =
+    await building();
 
   const calls = [4, 5, 6].map((task) => call(task));
-  // The same task again, while it works: it waits for the first one's answer.
-  const again = call(4);
   await until(() => allRunning(sessions, cache, parent.id, 3));
+  // The same task again, while it works: it waits for the first one's answer, whatever worktree
+  // it names.
+  const again = tool.call(
+    parent.id,
+    { prompt: "Implement task 4", task: "Task 4", worktree: "/tmp" },
+    signal,
+  );
 
   const subs = sessions.subSessions.ofParent(parent.id);
   expect(subs.map((sub) => sub.worktree).toSorted()).toEqual(Object.values(worktrees));
