@@ -1,4 +1,4 @@
-import type { RunOptions } from "uraeda-binding";
+import type { RunOptions, StepOptions } from "uraeda-binding";
 import { mergeRunOptions } from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
 import {
@@ -9,6 +9,7 @@ import {
   sessionSpans,
   STEPS,
   type StepId,
+  type StepPick,
   stepSession,
   toMap,
   toStored,
@@ -202,4 +203,27 @@ test("a feature's options stored over the settings' merge back to the map they w
     STEPS.indexOf("review"),
   );
   expect(toMap(mergeRunOptions(settings, toStored(map, defaults)), "claude")).toEqual(map);
+});
+
+/**
+ * The core's merge drops the settings' model and effort under a pick naming another agent than
+ * theirs: a step's model and effort the feature keeps, equal to the settings' or not, are stored
+ * with its agent.
+ */
+test.each<{ name: string; settings: StepOptions; spec: StepPick }>([
+  {
+    name: "a step moved to another agent keeps the settings' effort",
+    settings: { agent: "claude", effort: "high", model: "opus", step: "spec" },
+    spec: { effort: "high", model: "gpt-x", runtime: "codex" },
+  },
+  {
+    name: "a step's model changed over settings naming no agent keeps their effort",
+    settings: { effort: "high", model: "opus", step: "spec" },
+    spec: { effort: "high", model: "sonnet", runtime: "claude" },
+  },
+])("$name", ({ settings, spec }) => {
+  const defaults = toMap({ steps: [settings] }, "claude");
+  const map = { ...defaults, steps: { ...defaults.steps, spec } };
+  const merged = mergeRunOptions({ steps: [settings] }, toStored(map, defaults));
+  expect(toMap(merged, "claude").steps.spec).toEqual(spec);
 });

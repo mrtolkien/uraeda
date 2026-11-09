@@ -103,10 +103,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: when a feature's step or implementers pick an agent other than the settings' agent
   for them, `merge_run_options` drops the settings' model and effort: the feature's own model and
   effort apply, else the agent's defaults. A settings' table without an agent counts as another
-  agent. A feature's empty reviewers list keeps the settings' reviewers.
+  agent. A feature's empty reviewers list keeps the settings' reviewers. The run map stores a pick
+  naming its agent with its model and effort whenever they are set, equal to the settings' or not
+  (`storedPick`), so the merge gives back the pick the human made, as the final review found.
 - **Rationale**: a model belongs to its agent; the settings' `opus` for Claude is not a model Codex
   lists, and would make the feature's run fail or pick a wrong model.
-- **If wrong**: `merge_pick` in `crates/core/src/settings/runs.rs`.
+- **If wrong**: `merge_pick` in `crates/core/src/settings/runs.rs`, and `storedPick` in
+  `packages/server/src/run-options.ts`.
 - **Where**: task 1, from the review of wave 1.
 
 ## R12: A feature's record holds its own options and the core's merge of them
