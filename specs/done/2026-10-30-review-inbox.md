@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/71
+superseded-by: [2026-11-09-spec-comments]
 ---
 
 # Record: Review the inbox and fix all small issues that can be fixed without extra feedback
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/71
 > The record of a merged change, not instructions to follow. Started on 2026-10-30, finished on
 > 2026-10-30, in [its pull request](https://github.com/mrtolkien/uraeda/pull/71). Its full files are
 > in git: `git log -- specs/changes/2026-10-30-review-inbox/`.
+>
+> Superseded in part by [2026-11-09-spec-comments](2026-11-09-spec-comments.md).
 
 ## What and why
 
