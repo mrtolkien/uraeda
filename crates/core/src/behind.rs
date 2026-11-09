@@ -8,15 +8,13 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
 use crate::actions::default_round::DefaultRound;
-use crate::actions::priorities;
+use crate::actions::{inbox, priorities};
+use crate::decisions::candidates::CHECK_DIR;
 use crate::git::{Git, ObjectId};
 use crate::steps::CatchUp;
 use crate::target::{NOTES, PROPOSALS};
+use crate::workspace::{folder_slug, path_folder};
 
-/// The inbox, from the top level, on the default branch.
-const INBOX: &str = "specs/INBOX.md";
-/// The decisions check's folder of candidates, from the top level.
-const DECISIONS_CHECK: &str = "specs/decisions-check/";
 /// The most answers kept: past it, they are forgotten and computed again.
 const KEPT: usize = 4_096;
 
@@ -86,30 +84,29 @@ fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> Option<bool> {
 /// Whether the default branch alone writes the file at `path`, from the top level, so a branch
 /// lacking a change of it needs no catch-up: the priorities, the inbox and its triage, the
 /// decisions check and its candidates, the proposal and note files, and a started folder's
-/// `proposal.md`, which the start renames from `specs/proposals/`.
+/// `proposal.md`, a dated feature's or change's, which the start renames from `specs/proposals/`.
 pub fn default_branch_own(path: &str) -> bool {
     let files = [
         priorities::PATH,
-        INBOX,
+        inbox::PATH,
         DefaultRound::Triage.path(),
         DefaultRound::DecisionsCheck.path(),
     ];
     if files.contains(&path) {
         return true;
     }
-    if [DECISIONS_CHECK, PROPOSALS, NOTES]
-        .iter()
-        .any(|folder| path.starts_with(folder))
+    let in_check = path
+        .strip_prefix(CHECK_DIR)
+        .is_some_and(|rest| rest.starts_with('/'));
+    if in_check
+        || [PROPOSALS, NOTES]
+            .iter()
+            .any(|folder| path.starts_with(folder))
     {
         return true;
     }
-    let Some(rest) = path.strip_prefix("specs/") else {
-        return false;
-    };
-    let folder = rest.strip_prefix("changes/").unwrap_or(rest);
-    folder
-        .strip_suffix("/proposal.md")
-        .is_some_and(|folder| !folder.is_empty() && !folder.contains('/'))
+    path_folder(path)
+        .is_some_and(|(_, folder, inside)| inside == "proposal.md" && folder_slug(folder).is_some())
 }
 
 /// The diffs the behind rule computed on this thread since it started, for SC-005's test: by
