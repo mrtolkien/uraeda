@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 import { fateAt, signInCookie } from "../../__tests__/helpers.ts";
+import { FakeAdapter } from "../../runner/fake.ts";
 import { SERVER_PATHS } from "../../server-paths.ts";
 import type { Registry } from "../api.ts";
 import { serverApi } from "../api.ts";
@@ -99,6 +100,34 @@ api.on("session-started", (event) => { sink.events.push(event); });
   opened.server.extensions.close();
   cache.createSession({ ...row, nativeId: "n2" });
   await new Promise((resolve) => setImmediate(resolve));
+  expect(opened.sink.events).toHaveLength(1);
+});
+
+/** R9: catches a dismissal read as a turn's end, which would start an extension's work by itself. */
+test("turn-ended reaches extensions as a turn ends, never as it is dismissed", async () => {
+  const server = `import { sink } from "test/sink";
+export default function activate(api) {
+api.on("turn-ended", (event) => { sink.events.push(event); });
+}
+`;
+  const adapter = new FakeAdapter();
+  const opened = await serve({ every: { "server.ts": server } }, "", { agents: { fake: adapter } });
+  const { sessions } = opened.server;
+  const root = await sessions.mainRoot(opened.uraeda);
+  const chat = await sessions.newChat(root);
+  adapter.script([
+    { denials: [], errors: ["Crashed."], interrupted: false, ok: false, type: "result" },
+  ]);
+  const { turn } = await sessions.send(root, chat.id, { text: "What is left?" });
+  await sessions.settled(turn);
+  await expect
+    .poll(() => opened.sink.events)
+    .toMatchObject([{ repository: "uraeda", session: chat.id, state: "failed" }]);
+
+  sessions.dismiss(root, turn);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  expect(sessions.cache.turn(turn)?.dismissedAt).not.toBeNull();
   expect(opened.sink.events).toHaveLength(1);
 });
 

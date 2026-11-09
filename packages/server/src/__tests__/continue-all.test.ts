@@ -22,13 +22,19 @@ const CATCH_UP = {
 async function endedRun(
   server: Server,
   folder: string,
-  { reason, state, step }: { reason?: string; state: "done" | "failed"; step: string },
+  {
+    caughtUpTo = null,
+    reason,
+    state,
+    step,
+  }: { caughtUpTo?: string | null; reason?: string; state: "done" | "failed"; step: string },
 ): Promise<string> {
   const { cache } = server.sessions;
   const repo = await server.sessions.mainRoot(server.repo);
   const session = cache.createSession({ agent: "fake", folder, nativeId: "n", repo, title: null });
   const turn = cache.addTurn({
     allowed: null,
+    caughtUpTo,
     kind: "workflow",
     sessionId: session.id,
     state: "running",
@@ -98,10 +104,26 @@ test("Continue all sends an idle catch-up its message", async () => {
   const turns = server.sessions.cache.turns(idle);
   expect(turns).toHaveLength(2);
   await server.sessions.settled(turns[1].id);
-  expect(server.adapter.sent).toEqual([
-    expect.objectContaining({
-      text: expect.stringMatching(/^\/uraeda Continue the feature specs\/2026-10-12-cli-tuis\//),
-    }),
-  ]);
-  expect(turns[1]).toMatchObject({ kind: "workflow", step: "catch-up", trigger: "manual" });
+  expect(server.adapter.sent.at(-1)?.text).toContain("Catch up with main");
+  expect(turns[1]).toMatchObject({
+    caughtUpTo: CATCH_UP.commit,
+    kind: "workflow",
+    step: "catch-up",
+    trigger: "manual",
+  });
+});
+
+/** US3 2: a catch-up stopped on a conflict asks for the human's choice, which no message makes. */
+test("Continue all leaves a catch-up stopped on a conflict alone", async () => {
+  const server = await testServer(undefined, { binding: atCatchUp(binding, AGENT, CATCH_UP) });
+  const conflict = await endedRun(server, AGENT, {
+    caughtUpTo: CATCH_UP.commit,
+    state: "done",
+    step: "catch-up",
+  });
+
+  const result = await mutate(server.app, "feature.continueAll", {}, ["id"]);
+
+  expect(result.error).toBeUndefined();
+  expect(server.sessions.cache.turns(conflict)).toHaveLength(1);
 });
