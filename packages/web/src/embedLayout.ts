@@ -6,10 +6,10 @@ import { useBackCloses } from "./layout/useBackCloses.ts";
 import { PageColumn } from "./layout/Page.tsx";
 
 /** A length in px from a style's value, 0 when it has none. */
-const px = (value: string) => Number.parseFloat(value) || 0;
+export const px = (value: string) => Number.parseFloat(value) || 0;
 
 /** The space kept between a grown embed and what stops it: a column beside it, or the page's edge. */
-const GAP = 16;
+export const GAP = 16;
 
 /** How far the embed grows on each side, in px. */
 export type Outgrow = { end: number; start: number };
@@ -19,7 +19,7 @@ export type Outgrow = { end: number; start: number };
  * any ancestor that clips, and any element beside the box at the same height, in its column's
  * ancestors up to the page, so no column beside it is covered. Elements above or below it, as other blocks, do not stop it.
  */
-function room(own: DOMRect, from: Element, page: Element, outer: Element, inset: number) {
+export function room(own: DOMRect, from: Element, page: Element, outer: Element, inset: number) {
   const bounds = outer.getBoundingClientRect();
   let start = bounds.left + inset;
   let end = bounds.right - inset;
@@ -46,6 +46,19 @@ function room(own: DOMRect, from: Element, page: Element, outer: Element, inset:
     }
   }
   return { end: Math.max(0, end - own.right), start: Math.max(0, own.left - start) };
+}
+
+/**
+ * Calls `measure` as any box from `from` up to `outer`, the page's container, resizes, and returns
+ * what stops it: what grows past its box measures again as the window or a column resizes.
+ */
+export function observeUpTo(from: Element, outer: Element, measure: () => void): () => void {
+  const observer = new ResizeObserver(measure);
+  for (let at: Element | null = from; at && at !== outer; at = at.parentElement) {
+    observer.observe(at);
+  }
+  observer.observe(outer);
+  return () => observer.disconnect();
 }
 
 /**
@@ -107,12 +120,7 @@ export function useOutgrow(
     measure();
     // Every box from its parent up to the page's container: one that clips it, like a card, may
     // widen while its column keeps its width, as a question's card does once it knows it holds one.
-    const observer = new ResizeObserver(measure);
-    for (let at: Element | null = parent; at && at !== outer; at = at.parentElement) {
-      observer.observe(at);
-    }
-    observer.observe(outer);
-    return () => observer.disconnect();
+    return observeUpTo(parent, outer, measure);
   }, [column, embed, frame, isPastOnly, wide, width]);
   return grow;
 }

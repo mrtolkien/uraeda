@@ -774,6 +774,20 @@
     color: var(--role-heading-3) !important;
   }
 
+  .astryx-markdown-table {
+    --container-padding-inline-start: var(--message-table-start, 0px) !important;
+    max-width: var(--message-table-most, 100%) !important;
+    width: var(--message-table-width, auto) !important;
+  }
+
+  .astryx-markdown-table:is(*) .astryx-table-scroll-wrapper {
+    padding-inline-start: var(--message-table-start, 0px) !important;
+  }
+
+  .astryx-markdown-table:is(*) table {
+    background-color: var(--message-table-surface, transparent);
+  }
+
   .astryx-popover {
     border-color: var(--color-border);
     border-style: solid;

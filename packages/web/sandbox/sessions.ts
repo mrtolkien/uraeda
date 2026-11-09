@@ -61,6 +61,40 @@ const CHATS: Array<{ script: Array<AgentEvent>; text: string }> = [
   },
   {
     script: [
+      {
+        id: "personas",
+        input: { file_path: "README.md" },
+        kind: "read",
+        name: "Read",
+        target: "README.md",
+        type: "toolStart",
+      },
+      { id: "personas", isError: false, output: "# Todo", type: "toolEnd" },
+      {
+        text: [
+          "What the book asks of a persona, and what ours have:",
+          "",
+          "| Section | Book | Our personas today |",
+          "| --- | --- | --- |",
+          "| **Info** | Name, a short tagline, age, job, and a photo, all reflecting what a real group shares | Name and device only |",
+          "| **Details** | A short life story, behaviours, frustrations, goals and motivations, the tasks they do with the product | Mostly behaviours: input method, screen, rules a view must follow |",
+          "| **Insights** | Their attitude and mindset, in direct quotes | None |",
+          '| **Lens** (journey maps) | Persona + scenario + expectation ("Jane orders a ride and expects it within 10 minutes") | None. This is where "workflow" fits. |',
+          "",
+          "A table this wide takes the room right of the session, and scrolls past it.",
+          "",
+          "| Step | Reads | Writes | Waits on | Ends at | Commit | Next step |",
+          "| --- | --- | --- | --- | --- | --- | --- |",
+          "| Discovery | The proposal, the constitution, the decisions | `discovery-01.md`, `clarifications-01.md` | Nothing | The round's gate | `discovery(<slug>): <what it asks>` | The spec, once the round is answered |",
+          "| Spec | The answered rounds, the notes | `spec.md`, the proposed decisions | The answers | The spec's gate | `spec(<slug>): <title>` | The approval, then the plan |",
+        ].join("\n"),
+        type: "text",
+      },
+    ],
+    text: "Compare our personas with the book's",
+  },
+  {
+    script: [
       { text: "Looking at the failing test.", type: "text" },
       result({ errors: ["API Error: 500 Internal server error"], ok: false }),
     ],
@@ -106,8 +140,9 @@ async function withSessions(
 }
 
 /**
- * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: two finished chats, the
- * second showing the round mockup's SVG prototypes, and chats that failed, were stopped, and were
+ * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: three finished chats, the
+ * second showing the round mockup's SVG prototypes, the third a table wider than the session's
+ * column, and chats that failed, were stopped, and were
  * stopped by the usage limit; and with `realistic`, its leader key's spec session
  * (`seedRealisticSession`). The turn at work is not one: the sandbox starts it
  * as it starts, with `atWork`.

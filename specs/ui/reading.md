@@ -159,6 +159,12 @@ secondary colour, its text a list room in. Astryx's markdown lists take it from 
   tables in our reading panes". It scrolls sideways only past that room, and on the phone, where
   there is none, inside its pane. Its row lines run to its border, or to the pane's while it fits,
   and its first column's text keeps the pane's room from them.
+- A table in an agent's message, on semi-wide and wide screens, spreads to the right into the empty
+  room beside the session, as wide as its text needs, the reply's border growing around it, while
+  its prose keeps the measure: "They should spread to the right, expanding the border around them."
+  Past that room it scrolls, starting at the text's edge, and scrolling moves its left side past the
+  message's, into the room on the left: "This way a widescreen can be used to see the whole table +
+  it still starts left-aligned inside the main pane." On the phone, it scrolls inside the message.
 - A table has room above and below it, as a block among others, never touching the text.
 - No empty row between rows: a row's comments get a row of their own only when there are some.
 - A question whose context, example, or options hold a table, a mockup, or a story keeps one column,

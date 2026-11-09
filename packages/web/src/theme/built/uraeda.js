@@ -788,6 +788,19 @@ export const uraedaTheme = {
         }
       }
     },
+    "markdown-table": {
+      "base": {
+        "--container-padding-inline-start": "var(--message-table-start, 0px) !important",
+        ":is(*) .astryx-table-scroll-wrapper": {
+          "paddingInlineStart": "var(--message-table-start, 0px) !important"
+        },
+        ":is(*) table": {
+          "backgroundColor": "var(--message-table-surface, transparent)"
+        },
+        "maxWidth": "var(--message-table-most, 100%) !important",
+        "width": "var(--message-table-width, auto) !important"
+      }
+    },
     "popover": {
       "base": {
         "borderColor": "var(--color-border)",
