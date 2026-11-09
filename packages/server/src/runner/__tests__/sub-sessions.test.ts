@@ -13,6 +13,7 @@ import { CONTINUES_ON, type ContinueSettings } from "../continuer.ts";
 import { FakeAdapter, type FakeStep } from "../fake.ts";
 import { Runtimes } from "../runtimes.ts";
 import { SERVER_STOPPED, type Sessions } from "../sessions.ts";
+import { WATCHDOG_MS } from "../session-state.ts";
 import { runAgentTool } from "../sub-sessions.ts";
 import { flush, limitTurn, restart, testSessions } from "./helpers.ts";
 
@@ -176,10 +177,15 @@ test("a sub-session's continue after its limit starts while its parent works", a
 
   vi.advanceTimersByTime(5 * 60_000);
   await until(() => latest(cache, sub.id)?.state === "running");
+  // The parent asks again: the call waits for the continue's answer.
+  const again = call(4);
+  // The parent's watchdog waits while the call does: the sub-session's own has not run out yet.
+  vi.advanceTimersByTime(WATCHDOG_MS - 60_000);
+  await flush();
+  expect(latest(cache, parent.id)?.state).toBe("running");
   gate.open(other.sent.at(-1)!.text);
-  await until(() => latest(cache, sub.id)?.state === "done");
-  // The parent asks again: the continue's answer.
-  expect(await call(4)).toBe(`Done: ${other.sent.at(-1)!.text}`);
+  expect(await again).toBe(`Done: ${other.sent.at(-1)!.text}`);
+  expect(latest(cache, sub.id)?.state).toBe("done");
 });
 
 test("Stop on a parent stops its sub-sessions", async () => {

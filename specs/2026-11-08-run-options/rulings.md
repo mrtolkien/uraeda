@@ -266,3 +266,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `SubSessions.#idle` and `#worktree` in `packages/server/src/runner/sub-sessions.ts`,
   and `Continuer.fire` in `continuer.ts` and `ParentHolds` in `parent-holds.ts`.
 - **Where**: task 8.
+
+## R22: A parent's watchdog waits for its sub-sessions
+
+- **Decision**: a workflow session's turn is not halted for 30 minutes without output while one of
+  its tool calls waits for a sub-session, or one of its sub-sessions works or waits to continue
+  (`SubSessions.busy`, reached as the context's `subSessions`): its watchdog starts again, as for a
+  background command. Each sub-session keeps its own watchdog.
+- **Rationale**: an implementer's task often runs past 30 minutes, and the parent writes nothing
+  while it waits for the call's answer: the review found the parent halted mid-wave.
+- **If wrong**: `Turns.watch` in `packages/server/src/runner/turns.ts`, and `SubSessions.busy` in
+  `sub-sessions.ts`.
+- **Where**: task 8's review.

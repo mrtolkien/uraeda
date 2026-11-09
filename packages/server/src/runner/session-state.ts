@@ -11,6 +11,7 @@ import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } fr
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Runtimes } from "./runtimes.ts";
+import type { SubSessions } from "./sub-sessions.ts";
 import type { Transcript } from "./transcript.ts";
 import type { Turns } from "./turns.ts";
 
@@ -272,6 +273,8 @@ export type SessionContext = {
   runOptions: (repo: string, folder: string) => RunOptions;
   /** The runtimes sessions run on, each found by the session's stored `agent`. */
   runtimes: Runtimes;
+  /** The sessions Uraeda starts for its workflow runs' sub-agents, and the calls that start them. */
+  subSessions: SubSessions;
   /** Their events, recorded as items. */
   transcript: Transcript;
   /** Their turns: started, queued, halted, and ended. */

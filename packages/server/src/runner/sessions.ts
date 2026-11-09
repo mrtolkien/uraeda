@@ -126,6 +126,7 @@ export class Sessions {
     });
     this.#context = context;
     this.subSessions = new SubSessions(context);
+    context.subSessions = this.subSessions;
     // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
     // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {

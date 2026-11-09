@@ -31,6 +31,8 @@ type RunAgentInput = { prompt: string; task: string; worktree: string };
  */
 export class SubSessions {
   #context: SessionContext;
+  /** How many tool calls of each parent wait for their sub-session, by the parent. */
+  #calls = new Map<string, number>();
 
   constructor(context: SessionContext) {
     this.#context = context;
@@ -49,7 +51,11 @@ export class SubSessions {
    * waiting while it works, after a restart too. `signal` gives the wait up, the sub-session left
    * working.
    */
-  async start(
+  start(parent: string, role: Role, start: SubSessionStart, signal?: AbortSignal): Promise<string> {
+    return this.#counted(parent, () => this.#start(parent, role, start, signal));
+  }
+
+  async #start(
     parent: string,
     role: Role,
     { about, cwd, message, pick }: SubSessionStart,
@@ -82,6 +88,29 @@ export class SubSessions {
     return this.#answer(row);
   }
 
+  /**
+   * Whether `parent` waits for its sub-sessions: one of its calls waits for its answer, or one
+   * works or waits to continue. Its turn's watchdog waits meanwhile.
+   */
+  busy(parent: string): boolean {
+    return (this.#calls.get(parent) ?? 0) > 0 || subSessionsWork(this.#context, parent);
+  }
+
+  /** Runs `call`, a tool call of `parent`, counted while it waits. */
+  async #counted<T>(parent: string, call: () => Promise<T>): Promise<T> {
+    this.#calls.set(parent, (this.#calls.get(parent) ?? 0) + 1);
+    try {
+      return await call();
+    } finally {
+      const left = (this.#calls.get(parent) ?? 1) - 1;
+      if (left === 0) {
+        this.#calls.delete(parent);
+      } else {
+        this.#calls.set(parent, left);
+      }
+    }
+  }
+
   /** Stops the parent's sub-sessions that work or wait to continue: their calls answer an error. */
   stopAll(parent: string): void {
     for (const row of this.ofParent(parent)) {
@@ -94,7 +123,11 @@ export class SubSessions {
    * on the feature's implementers' pick. A worktree that is not one of the repository's, or is its
    * main checkout, is refused.
    */
-  async runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
+  runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
+    return this.#counted(parent, () => this.#runAgent(parent, input, signal));
+  }
+
+  async #runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
     const { prompt, task, worktree } = runAgentInput(input);
     const row = this.#context.cache.session(parent);
     if (!row || row.folder === null || row.parent !== null) {

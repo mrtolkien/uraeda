@@ -139,13 +139,14 @@ export class Turns {
   }
 
   /**
-   * Restarts the turn's watchdog, which waits while a background task runs: the agent's own limit
-   * stops a background command.
+   * Restarts the turn's watchdog, which waits while a background task runs, the agent's own limit
+   * stopping a background command, and while the session's sub-sessions work or one of its tool
+   * calls waits for them: their own watchdogs stop them.
    */
   watch(live: Live, turn: Running) {
     clearTimeout(turn.watchdog);
     turn.watchdog = setTimeout(() => {
-      if ((live.proc?.background.size ?? 0) > 0) {
+      if ((live.proc?.background.size ?? 0) > 0 || this.#context.subSessions.busy(live.id)) {
         this.watch(live, turn);
         return;
       }
