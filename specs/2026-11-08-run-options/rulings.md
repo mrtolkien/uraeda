@@ -71,3 +71,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the app to be one of them, so that a new route is closed by default. Naming the exception in the
   session check keeps that rule, and `vp dev` forwards `/mcp` to the server like its other paths.
 - **Where**: task 3.
+
+## R9: A feature's options are keyed by the main checkout, and set without the repository
+
+- **Decision**: `feature.setRunOptions` takes `{ folder, options }`, a mutation of the repository's
+  endpoint, as every other feature mutation: the endpoint gives the repository. `FeatureOptions` is
+  keyed by the repository's main checkout, as the sessions' rows are, so the runner reads a
+  session's feature's options with its row's `repo`. `ctx.featureOptions` is the store, made by
+  `featureOptionsOf` from the session manager's cache and the settings. A promoted change keeps its
+  folder's name, as its sessions keep theirs, so its row needs no move. The web UI's settings record
+  selects `runs.options` and `runs.claudeEffortFromEnv`, which its type now requires.
+- **Rationale**: a `repo` in the input would duplicate the endpoint's, and could name another
+  repository than the one the endpoint serves; `promoteChange` moves the change in place, and
+  `session-moves.ts` moves no session.
+- **Where**: task 4.

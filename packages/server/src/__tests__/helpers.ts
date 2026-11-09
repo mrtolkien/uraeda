@@ -18,12 +18,13 @@ import { livePreviews } from "../live.ts";
 import type { Previews } from "../preview/runner.ts";
 import { type Host, Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
+import { featureOptionsOf } from "../runner/feature-options.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { McpOptions } from "../mcp/endpoint.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
-import type { ServerSettings } from "../settings.ts";
+import type { ServerSettings, SettingsEnvironment } from "../settings.ts";
 import type { ServerThemes } from "../themes.ts";
 import { OneTimeLinks } from "../sign-in/links.ts";
 import { SignInStore } from "../sign-in/store.ts";
@@ -156,11 +157,12 @@ type Extra = { mcp?: McpOptions; signIn?: SignInOptions; webRoot?: string };
 
 /**
  * The settings and the themes of a test's app on a new config folder, its own, closed after the
- * test: the host names of `--allowed-hosts` given when `allowedHosts` is.
+ * test: the host names of `--allowed-hosts` given when `allowedHosts` is, and the server's
+ * variables of `environment`.
  */
-export async function appSettings(allowedHosts?: Array<string>) {
+export async function appSettings(allowedHosts?: Array<string>, environment?: SettingsEnvironment) {
   const configDir = temporaryFolder("uraeda-config");
-  const settings = await testSettings({ allowedHosts, dir: configDir });
+  const settings = await testSettings({ allowedHosts, dir: configDir, environment });
   settled.push(settings);
   const themes = await testThemes(configDir);
   settled.push(themes);
@@ -255,6 +257,7 @@ export async function testApp<SignedIn extends boolean = false>(
   {
     allowedHosts,
     binding: using = binding,
+    environment,
     hostToken,
     lockedList,
     mcp,
@@ -264,6 +267,8 @@ export async function testApp<SignedIn extends boolean = false>(
   }: {
     allowedHosts?: Array<string>;
     binding?: Binding;
+    /** The server's variables the settings read, none by default. */
+    environment?: SettingsEnvironment;
     /** The host token `/open` and `/session/key` accept, with `signIn`. */
     hostToken?: string;
     lockedList?: boolean;
@@ -283,7 +288,7 @@ export async function testApp<SignedIn extends boolean = false>(
 > {
   const opened = await testHosts([repo], { binding: using, installed: false });
   const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
-  const configured = await appSettings(allowedHosts);
+  const configured = await appSettings(allowedHosts, environment);
   const created = app(configured, opened, using, previewOptions, lockedList, {
     mcp,
     signIn: signedIn?.options,
@@ -472,7 +477,19 @@ export function repoContext(parts: {
   themes: ServerThemes;
 }): RepoContext {
   const { dataDir, frames, hosts, previews, repo, sessions, settings, themes } = parts;
-  return { binding, dataDir, frames, hosts, previews, repo, sessions, settings, themes };
+  const featureOptions = featureOptionsOf({ binding, sessions, settings });
+  return {
+    binding,
+    dataDir,
+    featureOptions,
+    frames,
+    hosts,
+    previews,
+    repo,
+    sessions,
+    settings,
+    themes,
+  };
 }
 
 /** The open pull request a feature that `atStep` or `atCatchUp` wraps reads: #116. */

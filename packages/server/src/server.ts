@@ -34,6 +34,7 @@ import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
+import { featureOptionsOf } from "./runner/feature-options.ts";
 import type { ServerSettings } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
@@ -426,6 +427,7 @@ async function startOpened(
   const shared = {
     ...options,
     extensions,
+    featureOptions: featureOptionsOf({ ...options, sessions: sessions.sessions }),
     frames,
     hosts: opened,
     previews,
@@ -451,6 +453,7 @@ async function startOpened(
       binding,
       dataDir,
       extensions,
+      featureOptions: shared.featureOptions,
       frames,
       hosts: opened,
       mcp,

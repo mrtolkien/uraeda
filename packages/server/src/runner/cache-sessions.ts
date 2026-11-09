@@ -12,8 +12,16 @@ export type NewSession = {
   /** The model picked, by the agent's ID: none for the agent's default. */
   model?: string | null;
   nativeId: string;
+  /** The session that started it, as a sub-session of a run: none for every other session. */
+  parent?: string | null;
   repo: string;
+  /** A sub-session's role in its parent's run, like `implementer`: none for every other one. */
+  role?: string | null;
+  /** The workflow step it starts for, like `spec`: none for a session started without one. */
+  step?: string | null;
   title: string | null;
+  /** The worktree it works in, when not its feature's: none for its feature's. */
+  worktree?: string | null;
 };
 
 /** The session fields a write may change. */
@@ -41,8 +49,9 @@ export function insertSession(db: DatabaseSync, row: NewSession): SessionRow {
   const inserted = db
     .prepare(
       `INSERT INTO sessions
-         (id, repo, folder, agent, native_id, title, model, effort, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+         (id, repo, folder, agent, native_id, title, model, effort, step, parent, role, worktree,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
     )
     .get(
       randomUUID(),
@@ -53,6 +62,10 @@ export function insertSession(db: DatabaseSync, row: NewSession): SessionRow {
       row.title,
       row.model ?? null,
       row.effort ?? null,
+      row.step ?? null,
+      row.parent ?? null,
+      row.role ?? null,
+      row.worktree ?? null,
       created,
       created,
     ) as Row;

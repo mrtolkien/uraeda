@@ -410,8 +410,10 @@ export const SettingsRecordView = view<Settings>()({
     automaticContinues: SettingSelection,
     buildInFreshSession: SettingSelection,
     catchUpPullRequests: SettingSelection,
+    claudeEffortFromEnv: true,
     continueAfterLimit: SettingSelection,
     continueAfterRestart: SettingSelection,
+    options: true,
   },
   server: {
     allowedHosts: SettingSelection,

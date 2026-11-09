@@ -577,11 +577,13 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
     over the settings' as they are now.
   - `ctx.settings.runs().options`, the settings' run options, and `claudeEffortFromEnv?: string`,
     `CLAUDE_CODE_EFFORT_LEVEL` when set.
-  - Fate mutations `settings.setRunOptions({ options })` and
-    `feature.setRunOptions({ repo, folder, options })`, refused with the core's message.
+  - Fate mutations `settings.setRunOptions({ options })` and, on a repository's endpoint,
+    `feature.setRunOptions({ folder, options })`, refused with the core's message (R9).
+  - `ctx.featureOptions`, made by `featureOptionsOf({ binding, sessions, settings })`, keyed by the
+    repository's main checkout, as the sessions are (R9).
   - The feature's record gains `runOptions: { own: RunOptions; defaults: RunOptions }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `feature-options.test.ts`:
 
@@ -596,22 +598,22 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
 `settings-fate.test.ts`: the existing record test asserts `runs.options` and, with the variable set,
 `claudeEffortFromEnv`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/feature-options.test.ts`
 - Expected: FAIL, `Cannot find module '../feature-options.ts'`
 
-- [ ] **Step 3: Implement the migration, the store, the settings' view, and the mutations**
+- [x] **Step 3: Implement the migration, the store, the settings' view, and the mutations**
 
-The migration's comment says the table is never cleared with the cache's sessions. A feature's row
-moves with a change promoted to a feature, where `session-moves.ts` moves its sessions.
+The migration's comment says the table is never cleared with the cache's sessions. A change promoted
+to a feature keeps its folder's name, and its sessions theirs: its row needs no move (R9).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

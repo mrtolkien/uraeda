@@ -1,5 +1,6 @@
-// The `Settings` record and its eleven changes, on every endpoint: the values in force, the file's,
-// and their sources; the core's refusals; and the live update each change sends (review focus 2).
+// The `Settings` record and its changes, on every endpoint: the values in force, the file's, and
+// their sources; the core's refusals; and the live update each change sends (review focus 2). And a
+// feature's own run options, which its record shows over the settings'.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
@@ -7,6 +8,7 @@ import { live } from "../fate.ts";
 import { binding, byIdAt, fateAt, testApp } from "./helpers.ts";
 
 const MAC = "mac.tail1234.ts.net";
+const FEATURE = "2026-10-12-cli-tuis";
 const SELECT = ["id", "file", "problem", "keyboard", "runs", "server"];
 
 type Opened = Awaited<ReturnType<typeof testApp>>;
@@ -52,7 +54,8 @@ const keyboardDefaults = {
 
 /**
  * The runs' defaults: the build after a spec's approval starts in a fresh session, every automatic
- * continue is on, 3 in a row, and open pull requests are not caught up by themselves.
+ * continue is on, 3 in a row, open pull requests are not caught up by themselves, and no run option
+ * is set.
  */
 const runDefaults = {
   automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
@@ -60,6 +63,7 @@ const runDefaults = {
   catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+  options: { steps: [] },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
@@ -77,6 +81,9 @@ test("the record of an empty config folder is read on the global endpoint and a 
     server: defaults,
   });
   expect(hosted).toEqual(global);
+
+  const effort = await testApp(undefined, { environment: { CLAUDE_CODE_EFFORT_LEVEL: "high" } });
+  expect((await record(effort)).runs).toEqual({ ...runDefaults, claudeEffortFromEnv: "high" });
 });
 
 /** US1.1 */
@@ -141,6 +148,50 @@ test("each change answers the record with its value", async () => {
     // The old switch reads as the plan's table until the settings' Runs section writes it away.
     options: { steps: [{ newSession: false, step: "plan" }] },
   });
+});
+
+test("the run options are written whole, and refused with the core's message", async () => {
+  const opened = await testApp();
+  const options = {
+    reviewDepth: "branch",
+    steps: [{ agent: "claude", effort: "high", model: "opus", step: "spec" }],
+  };
+
+  const result = await change(opened, "setRunOptions", { options });
+  const refused = await change(opened, "setRunOptions", {
+    options: { steps: [{ step: "deploy" }] },
+  });
+
+  expect(result.data.runs.options).toEqual(options);
+  expect((await binding.readSettings(opened.configDir)).runs.options).toEqual(options);
+  expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect((await record(opened)).runs.options).toEqual(options);
+});
+
+test("a feature's record holds its own run options, over the settings'", async () => {
+  const opened = await testApp();
+  const defaults = { steps: [{ model: "opus", step: "review" }] };
+  await change(opened, "setRunOptions", { options: defaults });
+  const set = (folder: string, options: unknown) =>
+    fateAt(opened.app, opened.name, [
+      {
+        input: { folder, options },
+        kind: "mutation",
+        name: "feature.setRunOptions",
+        select: ["id", "runOptions"],
+      },
+    ]);
+
+  const [result] = await set(FEATURE, { steps: [{ effort: "high", step: "spec" }] });
+  const [refused] = await set(FEATURE, { steps: [{ step: "deploy" }] });
+  const [unknown] = await set("2026-01-01-nothing", { steps: [] });
+  const [read] = await byIdAt(opened.app, opened.name, "Feature", [FEATURE], ["id", "runOptions"]);
+
+  const own = { steps: [{ effort: "high", step: "spec" }] };
+  expect(result.data.runOptions).toEqual({ defaults, own });
+  expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect(unknown.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect(read.runOptions).toEqual({ defaults, own });
 });
 
 /** US5 1 */

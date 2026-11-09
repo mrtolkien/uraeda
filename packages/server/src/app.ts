@@ -25,6 +25,7 @@ import { signInRoutes } from "./sign-in/routes.ts";
 export { Hosts } from "./repositories.ts";
 export { Previews } from "./preview/runner.ts";
 export { livePreviews } from "./live.ts";
+import { type FeatureOptions, featureOptionsOf } from "./runner/feature-options.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
@@ -41,6 +42,8 @@ type AppOptions = {
    * ends done still starts its Storybook, which the `previews` built-in does otherwise.
    */
   extensions?: ExtensionsHost;
+  /** The features' own run options: a store of the sessions' cache by default. */
+  featureOptions?: FeatureOptions;
   /** The frame secret of preview and mockup paths: a new one by default. */
   frames?: FrameSecret;
   hosts: Hosts;
@@ -85,7 +88,7 @@ function hostedRoutes(
     settings,
     themes,
   }: AppOptions,
-  frames: FrameSecret,
+  { featureOptions, frames }: { featureOptions: FeatureOptions; frames: FrameSecret },
 ) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
@@ -100,6 +103,7 @@ function hostedRoutes(
       binding,
       dataDir,
       extensions,
+      featureOptions,
       frames,
       hosts,
       lockedList,
@@ -172,6 +176,7 @@ export function createApp(options: AppOptions) {
   const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
+  const featureOptions = options.featureOptions ?? featureOptionsOf(options);
   // The settings' and the themes' changes reach every endpoint's views until they close, as the
   // server stops.
   announceSettings(settings, hosts);
@@ -197,6 +202,7 @@ export function createApp(options: AppOptions) {
       binding,
       dataDir,
       extensions,
+      featureOptions,
       frames,
       hosts,
       lockedList,
@@ -208,15 +214,15 @@ export function createApp(options: AppOptions) {
     });
     await next();
   });
-  hostedRoutes(app, options, frames);
+  hostedRoutes(app, options, { featureOptions, frames });
   fateRoutes(app, hosts);
   if (extensions) {
     extensionRoutes(app, extensions, hosts);
   } else {
     // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
     onTurnDone(sessions, (repo, folder) => {
-      const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions };
-      warmPreview({ ...ctx, settings, themes }, folder).catch(() => {});
+      const ctx = { binding, dataDir, featureOptions, frames, hosts, lockedList, previews, repo };
+      warmPreview({ ...ctx, sessions, settings, themes }, folder).catch(() => {});
     });
   }
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */

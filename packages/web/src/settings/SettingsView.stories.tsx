@@ -32,6 +32,7 @@ const server: ServerValues = {
     catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
     continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
     continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+    options: { steps: [] },
   },
   server: {
     allowedHosts: {

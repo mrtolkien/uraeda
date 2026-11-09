@@ -1,6 +1,6 @@
 // The server's settings in force: each from its flag, its variable, the settings file, then its
 // default, the file read through the core and watched while the server runs.
-import type { RunSettings, Settings } from "uraeda-binding";
+import type { RunOptions, RunSettings, Settings } from "uraeda-binding";
 import type {
   CatchUpName,
   ContinuesName,
@@ -44,16 +44,27 @@ export type ServerSettingsView = {
 
 /**
  * How the workflow's runs start and go on: the default of the run after a spec's approval, the
- * switch of each kind of automatic continue, the automatic continues in a row, and the switch of
- * the catch-up of open pull requests.
+ * switch of each kind of automatic continue, the automatic continues in a row, the switch of the
+ * catch-up of open pull requests, and each step's, the implementers', and the reviewers' run
+ * options.
  */
 export type RunSettingsView = {
   automaticContinues: Setting<number>;
   buildInFreshSession: Setting<boolean>;
   catchUpPullRequests: Setting<boolean>;
+  /**
+   * `CLAUDE_CODE_EFFORT_LEVEL` from the server's environment when set, which every Claude Code
+   * session inherits, over any effort picked.
+   */
+  claudeEffortFromEnv?: string;
   continueAfterLimit: Setting<boolean>;
   continueAfterRestart: Setting<boolean>;
+  /** The run options the file holds, only what it sets: no flag or variable gives them. */
+  options: RunOptions;
 };
+
+/** The variables of the server's environment the settings show, not set by Uraeda's own. */
+export type SettingsEnvironment = { CLAUDE_CODE_EFFORT_LEVEL?: string | undefined };
 
 /**
  * How the web UI's keys behave: whether the keys of one printable character act, whether the text
@@ -178,13 +189,19 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, no
  * catch-up of open pull requests, and the build in a fresh session, the single-key shortcuts on,
- * and Vim off without commands, which have no flag or variable. `file` is null when there is none,
- * or it cannot be read.
+ * and Vim off without commands, which have no flag or variable, and the run options the file holds.
+ * `file` is null when there is none, or it cannot be read. `environment` gives the Claude Code
+ * effort it sets, when it does.
  */
-export function inForce(options: RunValues, file: Settings | null): SettingsView {
+export function inForce(
+  options: RunValues,
+  file: Settings | null,
+  environment: SettingsEnvironment = {},
+): SettingsView {
   const saved = file?.server ?? {};
   const runs: Partial<RunSettings> = file?.runs ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
+  const claudeEffort = environment.CLAUDE_CODE_EFFORT_LEVEL?.trim();
   return {
     keyboard: {
       singleKeyShortcuts: setting(undefined, file?.keyboard.singleKeyShortcuts, true),
@@ -199,8 +216,10 @@ export function inForce(options: RunValues, file: Settings | null): SettingsView
       ),
       buildInFreshSession: setting(undefined, runs.buildInFreshSession, true),
       catchUpPullRequests: setting(options.catchUpPullRequests, runs.catchUpPullRequests, false),
+      ...(claudeEffort && { claudeEffortFromEnv: claudeEffort }),
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
       continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
+      options: runs.options ?? { steps: [] },
     },
     server: {
       allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),
@@ -219,6 +238,8 @@ type SettingsOptions = {
     "checkedAutomaticContinues" | "checkedPort" | "readSettings" | "settingsFile"
   >;
   dir: string;
+  /** The server's environment, `process.env` by default. */
+  environment?: SettingsEnvironment;
   options: GivenValues;
 };
 
@@ -236,6 +257,7 @@ export class ServerSettings {
   problem: string | null = null;
   readonly #options: Omit<SettingsOptions, "options">;
   readonly #given: RunValues;
+  readonly #environment: SettingsEnvironment;
   #view: SettingsView;
   #listeners = new Set<() => void>();
   #readers = new Set<() => void>();
@@ -244,12 +266,13 @@ export class ServerSettings {
   #timer?: ReturnType<typeof setTimeout>;
   #closed = false;
 
-  private constructor({ options, ...rest }: SettingsOptions) {
+  private constructor({ environment = process.env, options, ...rest }: SettingsOptions) {
     this.#options = rest;
     this.dir = rest.dir;
     this.#given = checked(options, rest.binding);
+    this.#environment = { CLAUDE_CODE_EFFORT_LEVEL: environment.CLAUDE_CODE_EFFORT_LEVEL };
     this.file = rest.binding.settingsFile(rest.dir);
-    this.#view = inForce(this.#given, null);
+    this.#view = inForce(this.#given, null, this.#environment);
   }
 
   /**
@@ -339,7 +362,7 @@ export class ServerSettings {
       );
     }
     this.problem = problem;
-    const view = inForce(this.#given, saved);
+    const view = inForce(this.#given, saved, this.#environment);
     // An unchanged read keeps the view, so `allowedHosts()` keeps its array: the guard rebuilds
     // its sets only on a change.
     if (JSON.stringify([view, problem]) !== before) {

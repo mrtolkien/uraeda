@@ -159,6 +159,21 @@ export const migrations: Array<Migration> = [
   ALTER TABLE sessions ADD COLUMN ran_effort TEXT;`,
   // A catch-up's commit of the default branch, null for every other turn and those made before.
   "ALTER TABLE turns ADD COLUMN caught_up_to TEXT;",
+  // A feature's own run options, only what it changed, as JSON: kept in this file beside the
+  // sessions, but never cleared with them. Where a session sits in its feature's runs: its step,
+  // the session that started it, its role there, and the worktree it works in, null for every
+  // session made before, and for the sessions the human starts.
+  `CREATE TABLE feature_options (
+    repo       TEXT NOT NULL,
+    folder     TEXT NOT NULL,
+    options    TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (repo, folder)
+  );
+  ALTER TABLE sessions ADD COLUMN step TEXT;
+  ALTER TABLE sessions ADD COLUMN parent TEXT;
+  ALTER TABLE sessions ADD COLUMN role TEXT;
+  ALTER TABLE sessions ADD COLUMN worktree TEXT;`,
 ];
 
 /**

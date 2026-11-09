@@ -4,6 +4,7 @@ import { fileMutations } from "./file-mutations.ts";
 import { inboxMutations } from "./inbox-mutations.ts";
 import { changeStarts, onSession } from "./change-starts.ts";
 import { continueAllMutations } from "./continue-all.ts";
+import { runOptionsMutations } from "./run-options.ts";
 import { startMutations } from "./starts.ts";
 import { sendMutations } from "./send-mutations.ts";
 import { writesMutations } from "./writes-mutations.ts";
@@ -31,6 +32,7 @@ const repositoryMutations = {
   ...sessionMoves,
   ...changeStarts,
   ...continueAllMutations,
+  ...runOptionsMutations,
   ...inboxMutations,
   ...startMutations,
   ...sendMutations,

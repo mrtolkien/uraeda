@@ -21,6 +21,8 @@ export type SessionRow = {
    * session's first start.
    */
   nativeId: string;
+  /** The session that started it, as a sub-session of a run: null for every other session. */
+  parent: string | null;
   /** The server process that holds the session's agent process, null when closed. */
   pid: number | null;
   /** The effort the agent last reported running on, by its name for people: null for none. */
@@ -29,12 +31,18 @@ export type SessionRow = {
   ranModel: string | null;
   /** The repository's main checkout. */
   repo: string;
+  /** A sub-session's role in its parent's run, like `implementer`: null for every other session. */
+  role: string | null;
   /** When the human last saw it ended. */
   seenAt: string | null;
+  /** The workflow step it was started for, like `spec`: null for a session made without one. */
+  step: string | null;
   /** Null for a feature's session: its feature's name shows. */
   title: string | null;
   /** The last turn's start or end. */
   updatedAt: string;
+  /** The worktree it works in, when not its feature's: null for its feature's or the repository's. */
+  worktree: string | null;
 };
 
 /** A turn, as the cache keeps it: one message until the agent settles. */
@@ -78,13 +86,17 @@ export const toSession = (row: Row): SessionRow => ({
   id: String(row.id),
   model: row.model as string | null,
   nativeId: String(row.native_id),
+  parent: row.parent as string | null,
   pid: row.pid as number | null,
   ranEffort: row.ran_effort as string | null,
   ranModel: row.ran_model as string | null,
   repo: String(row.repo),
+  role: row.role as string | null,
   seenAt: row.seen_at as string | null,
+  step: row.step as string | null,
   title: row.title as string | null,
   updatedAt: String(row.updated_at),
+  worktree: row.worktree as string | null,
 });
 
 export const toTurn = (row: Row): TurnRow => ({

@@ -14,7 +14,7 @@ import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import { runtimesOf } from "./runner/runtimes.ts";
 import type { Sessions } from "./runner/sessions.ts";
-import { ServerSettings } from "./settings.ts";
+import { ServerSettings, type SettingsEnvironment } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { OneTimeLinks } from "./sign-in/links.ts";
@@ -78,16 +78,22 @@ export function testSignIn(dataDir: string): { key: string; options: SignInOptio
 
 /**
  * The settings of a test's server, on `dir`, a new empty config folder by default: the host names
- * of `--allowed-hosts` given for the run when `allowedHosts` is, else the file's. The caller
- * closes them, as `startServer`'s `stop` does.
+ * of `--allowed-hosts` given for the run when `allowedHosts` is, else the file's, and the variables
+ * of `environment`, none by default, not the developer's. The caller closes them, as `startServer`'s `stop` does.
  */
 export function testSettings({
   allowedHosts,
   dir = temporaryFolder("uraeda-config"),
-}: { allowedHosts?: Array<string>; dir?: string } = {}): Promise<ServerSettings> {
+  environment = {},
+}: {
+  allowedHosts?: Array<string>;
+  dir?: string;
+  environment?: SettingsEnvironment;
+} = {}): Promise<ServerSettings> {
   return ServerSettings.open({
     binding,
     dir,
+    environment,
     options: {
       ...(allowedHosts && { allowedHosts: { name: "--allowed-hosts", value: allowedHosts } }),
       noOpen: false,
