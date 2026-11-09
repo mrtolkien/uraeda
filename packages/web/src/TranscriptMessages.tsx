@@ -6,7 +6,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
@@ -16,6 +16,7 @@ import { ProseMarkdown, proseStyles, READING_MEASURE } from "./Prose.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { MessageBody } from "./MessageBody.tsx";
 import type { Sent } from "./sentMessages.ts";
+import { useMessageTables } from "./session/messageTables.ts";
 import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
@@ -35,6 +36,13 @@ const styles = stylex.create({
     // A jump to the latest brings its start a step from the top.
     scrollMarginTop: spacingVars["--spacing-4"],
   },
+  // Grown past its right side by `grow` for its widest table (`session/messageTables.ts`): wider by
+  // as much, the room in its padding at the end, so its prose keeps the measure.
+  grown: (width: string, maxWidth: string, paddingInlineEnd: string) => ({
+    maxWidth,
+    paddingInlineEnd,
+    width,
+  }),
   // On the phone, a jump to the latest brings its start below the tabs.
   agentPhone: {
     scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
@@ -54,6 +62,8 @@ const styles = stylex.create({
   // which are context: on a raised surface in a border, square-cornered as the panes are, its text
   // at the measure inside its padding and border (`replyMost`).
   reply: {
+    // Its tables on its surface, scrolled past its side too (`session/messageTables.ts`).
+    "--message-table-surface": colorVars["--color-background-surface"],
     backgroundColor: colorVars["--color-background-surface"],
     borderBlockWidth: borderVars["--border-width"],
     borderColor: colorVars["--color-border"],
@@ -227,6 +237,8 @@ function AgentMessage({
   const wide = !isNarrow(useWidthClass());
   const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
   const plugins = useOfferPlugins(at, streaming, text);
+  const box = useRef<HTMLDivElement>(null);
+  const grow = useMessageTables(box, wide, text);
   return (
     <ChatMessage sender="assistant">
       <ChatMessageBubble
@@ -243,17 +255,25 @@ function AgentMessage({
                 styles.replyMost(wide ? REPLY_MOST : READING_MEASURE),
               ]
             : styles.aside,
+          grow > 0 &&
+            styles.grown(
+              `calc(${AGENT_WIDTH} + ${grow}px)`,
+              `calc(${isReply ? REPLY_MOST : READING_MEASURE} + ${grow}px)`,
+              `calc(${isReply ? spacingVars["--spacing-4"] : "0px"} + ${grow}px)`,
+            ),
         ]}
       >
         <MessageStories value={stories}>
-          {/* Drawn again once its offer shows: Astryx keeps a text's parse while the text stays. */}
-          <ProseMarkdown
-            components={agentStories}
-            key={plugins ? "offer" : "text"}
-            plugins={plugins}
-          >
-            {text}
-          </ProseMarkdown>
+          <div ref={box}>
+            {/* Drawn again once its offer shows: Astryx keeps a text's parse while the text stays. */}
+            <ProseMarkdown
+              components={agentStories}
+              key={plugins ? "offer" : "text"}
+              plugins={plugins}
+            >
+              {text}
+            </ProseMarkdown>
+          </div>
         </MessageStories>
       </ChatMessageBubble>
     </ChatMessage>

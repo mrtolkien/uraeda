@@ -292,6 +292,22 @@ export const uraedaTheme = defineTheme({
         ":is(*) h6": { color: "var(--role-heading-3) !important" },
       },
     },
+    // A table in an agent's message, on a wide screen, as wide as its text up to the room right of
+    // the session, and its scroll region reaching the room on its left, the table starting at the
+    // text's edge (`session/messageTables.ts`, which sets the vars). Astryx's own sizes elsewhere.
+    // Important, as Astryx's own are atomic classes, which may be emitted outside any layer.
+    "markdown-table": {
+      base: {
+        "--container-padding-inline-start": "var(--message-table-start, 0px) !important",
+        ":is(*) .astryx-table-scroll-wrapper": {
+          paddingInlineStart: "var(--message-table-start, 0px) !important",
+        },
+        // Scrolled past the reply's side, on the reply's surface, over its border.
+        ":is(*) table": { backgroundColor: "var(--message-table-surface, transparent)" },
+        maxWidth: "var(--message-table-most, 100%) !important",
+        width: "var(--message-table-width, auto) !important",
+      },
+    },
     "progress-bar": { base: { "--radius-full": "0px" } },
     "status-dot": { base: { "--radius-full": "0px" } },
     switch: { base: { "--radius-full": "0px" } },
