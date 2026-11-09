@@ -3,8 +3,8 @@
 //! which never make a branch behind, and keeps its answers in memory by the pair of tips, so a read
 //! with no tip moved computes no diff.
 
+use std::cell::Cell;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use crate::actions::default_round::DefaultRound;
@@ -74,7 +74,7 @@ fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> bool {
     let Ok(Some(base)) = git.merge_base(tip, target) else {
         return false;
     };
-    DIFFS.fetch_add(1, Ordering::Relaxed);
+    DIFFS.with(|diffs| diffs.set(diffs.get() + 1));
     git.changed_paths(base, target)
         .is_ok_and(|paths| paths.iter().any(|path| !default_branch_own(path)))
 }
@@ -108,12 +108,15 @@ pub fn default_branch_own(path: &str) -> bool {
         .is_some_and(|folder| !folder.is_empty() && !folder.contains('/'))
 }
 
-/// The diffs the behind rule computed since the process started, for SC-005's test.
+/// The diffs the behind rule computed on this thread since it started, for SC-005's test: by
+/// thread, so tests running beside it in the same process do not count.
 pub fn diffs() -> u64 {
-    DIFFS.load(Ordering::Relaxed)
+    DIFFS.with(Cell::get)
 }
 
-static DIFFS: AtomicU64 = AtomicU64::new(0);
+thread_local! {
+    static DIFFS: Cell<u64> = const { Cell::new(0) };
+}
 
 /// The behind rule's answers, by the branch's tip and the default branch's.
 fn answers() -> std::sync::MutexGuard<'static, HashMap<(ObjectId, ObjectId), bool>> {
