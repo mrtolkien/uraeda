@@ -473,9 +473,11 @@ and its research effort, then opens its session. It starts with no proposal file
 line is the title, and the research effort goes in the proposal's `discovery` field. A change starts
 from a typed request, an inbox note, or a priorities line. A line of **Now** it was filled from is
 replaced by the new link in the start commit. "Drop the change…" and "Drop the feature…", in a
-session's actions, drop it. A line's Start, on the priorities, puts the line in that text, in place
-of what it held, which `u` brings back. A change or a feature holds one or more sessions, in its
-worktree, where the workflow's runs and your messages follow each other.
+session's actions, drop it. "Postpone the change" and "Postpone the feature", in its page's actions,
+send its latest session, or a new one, the message that makes it a proposal again, in **Later**, and
+open that session. A line's Start, on the priorities, puts the line in that text, in place of what
+it held, which `u` brings back. A change or a feature holds one or more sessions, in its worktree,
+where the workflow's runs and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open its session with the workflow's message in the composer. Nothing goes

@@ -1,6 +1,6 @@
 // The messages of the default branch's rounds, the inbox's triage (`references/inbox.md`) and the
 // decisions check (`references/decisions-check.md`), and the project's setup: each starts a chat in
-// the main checkout. Free of Node's modules, so the UI imports them as they are. Also the one home of the
+// the main checkout. Also postponing a feature or a change, sent to its own session. Free of Node's modules, so the UI imports them as they are. Also the one home of the
 // rounds' ids and file names, which the server and the UI share.
 
 /** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
@@ -41,3 +41,17 @@ export const APPLY_DECISIONS_CHECK =
  */
 export const SET_UP_PROJECT =
   "/uraeda Set this project up for Uraeda: write what is missing, ask me before writing the constitution, never overwrite a file.";
+
+/**
+ * The message that postpones a feature or a change, from its menu (`references/projects.md`,
+ * "Postpone or block"): the agent writes its proposal and moves its line to Later. Sent at once to
+ * its latest session, made when it has none.
+ */
+export function postponeMessage(item: { branch: string; kind: string; path: string }): string {
+  return (
+    `/uraeda Postpone the ${item.kind} ${item.path}/ on branch ${item.branch}, following ` +
+    `"Postpone or block" in skills/uraeda/references/projects.md: write its proposal, and move ` +
+    `its line to Later.\n` +
+    `Stop when it is postponed, and earlier only if you need a decision from me.\n`
+  );
+}

@@ -12,6 +12,7 @@ export {
   APPLY_DECISIONS_CHECK,
   APPLY_TRIAGE,
   ORGANIZE_INBOX,
+  postponeMessage,
   RUN_DECISIONS_CHECK,
 } from "./round-messages.ts";
 
