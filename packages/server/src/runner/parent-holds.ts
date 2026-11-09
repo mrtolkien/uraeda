@@ -30,6 +30,11 @@ export class ParentHolds {
     return true;
   }
 
+  /** Forgets the held continue of `parent`: it was cancelled. */
+  drop(parent: string): void {
+    this.#held.delete(parent);
+  }
+
   /**
    * Fires the held continue of `parent`, the parent of a sub-session that ended, or stopped waiting,
    * once none of its sub-sessions works or waits to continue.

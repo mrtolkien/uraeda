@@ -53,12 +53,15 @@ const latest = (cache: SessionCache, session: string) => cache.turns(session).at
 /**
  * A feature's workflow session on `fake`, the build's agent, its turn held, with the implementers
  * on `other` at Low, and three task worktrees. Each implementer holds its turn until the test opens
- * its task's gate, then answers "Done: <its prompt>". `runs` turns its automatic continues on.
+ * its task's gate, then answers "Done: <its prompt>". `runs` turns its automatic continues on; a
+ * runtime named in `off` is off.
  */
 async function building({ runs }: { runs?: () => ContinueSettings } = {}) {
   const fake = new FakeAdapter();
   const other = new FakeAdapter();
-  const runtimes = new Runtimes({ isOn: () => true });
+  // The runtimes the test turned off.
+  const off = new Set<string>();
+  const runtimes = new Runtimes({ isOn: (name) => !off.has(name) });
   runtimes.register("fake", fake);
   runtimes.register("other", other);
   await runtimes.refreshModels();
@@ -99,7 +102,7 @@ async function building({ runs }: { runs?: () => ContinueSettings } = {}) {
       { prompt: `Implement task ${task}`, task: `Task ${task}`, worktree: worktrees[task] },
       signal,
     );
-  return { ...setup, call, fake, gate, other, parent, root, signal, tool, worktrees };
+  return { ...setup, call, fake, gate, off, other, parent, root, signal, tool, worktrees };
 }
 
 /** Whether every sub-session of the parent runs a turn now, `count` of them. */
@@ -238,4 +241,43 @@ test("after a restart, a parent continues once its sub-sessions end", async () =
   const input = { prompt: "Implement task 4", task: "Task 4", worktree: sub.worktree };
   expect(await tool.call(parent.id, input, signal)).toBe(`Done: ${restarted}`);
   expect(next.subSessions.ofParent(parent.id)).toHaveLength(1);
+});
+
+test.each([
+  {
+    leave: (next: Sessions, settings: ContinueSettings) => {
+      settings.afterLimit = false;
+      next.runsChanged();
+    },
+    name: "dropped, its kind turned off",
+  },
+  {
+    leave: (_: Sessions, __: ContinueSettings, off: Set<string>) => {
+      off.add("other");
+      vi.advanceTimersByTime(2 * 60 * 60_000);
+    },
+    name: "refused, its agent off",
+  },
+])("a parent's continue goes once its sub-session's continue is $name", async ({ leave }) => {
+  const settings = { ...CONTINUES_ON };
+  const { cache, call, fake, off, other, parent, sessions } = await building({
+    runs: () => settings,
+  });
+  limitTurn(other, { kind: "session", resetsAt: new Date(Date.now() + 60 * 60_000).toISOString() });
+  await expect(call(4)).rejects.toThrow(/failed/);
+  const [sub] = sessions.subSessions.ofParent(parent.id);
+
+  // The parent's restart continue waits for the sub-session's, which waits for its limit.
+  const next = await restart(sessions, { runs: () => settings });
+  fake.fallback = () => [];
+  const sent = fake.sent.length;
+  await next.startContinues();
+  vi.advanceTimersByTime(1);
+  await flush();
+  expect(latest(cache, sub.id)?.continueAt).not.toBeNull();
+  expect(cache.turns(parent.id)).toHaveLength(1);
+
+  leave(next, settings, off);
+  await until(() => fake.sent.length === sent + 1);
+  expect(cache.turns(parent.id)).toHaveLength(2);
 });

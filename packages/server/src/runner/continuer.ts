@@ -131,8 +131,16 @@ export class Continuer {
    */
   cancel(session: string, { stopped }: { stopped: boolean }): Array<number> {
     const cancelled = this.#cancel(session, { stopped }).map((turn) => turn.id);
-    this.#holds.subEnded(this.#context.cache.session(session)?.parent ?? null);
+    this.#left(session);
     return cancelled;
+  }
+
+  /**
+   * The session's pending continue left, cancelled, dropped, or refused: when it is a
+   * sub-session's, its parent's held continue goes once none of its sub-sessions works.
+   */
+  #left(session: string) {
+    this.#holds.subEnded(this.#context.cache.session(session)?.parent ?? null);
   }
 
   /**
@@ -190,6 +198,7 @@ export class Continuer {
   #cancel(session: string, { stopped }: { stopped: boolean }): Array<TurnRow> {
     const { cache } = this.#context;
     this.takenOver(session);
+    this.#holds.drop(session);
     if (stopped) {
       this.#stops.set(session, this.#taken(session));
     }
@@ -224,6 +233,7 @@ export class Continuer {
     const refuse = () => {
       cache.cancelContinue(claimed.id, { stopped: false });
       changed(live, claimed.id, claimed.state);
+      this.#left(row.id);
     };
     try {
       if (this.#refused(claimed, row, live)) {
@@ -331,6 +341,7 @@ export class Continuer {
       for (const turn of cache.dropContinues(reason)) {
         this.#clear(turn.id);
         this.#publish(turn);
+        this.#left(turn.sessionId);
       }
     }
   }

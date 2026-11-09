@@ -255,10 +255,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   an error saying it failed or stopped, and why. A sub-session's own automatic continue, after a
   limit or a restart, runs beside its parent, never waiting for its folder's sessions, and its
   answer goes to the parent's next call of the same task, which starts nothing. A parent's continue
-  waits while one of its sub-sessions works or waits to continue, and goes once the last one ends or
-  is stopped; after a restart, the sub-sessions' cuts are decided first. The worktrees `run_agent`
-  accepts are the linked worktrees the core's `gitPage` lists, not missing, compared by real path:
-  no new core or binding function.
+  waits while one of its sub-sessions works or waits to continue, and goes once the last one ends,
+  or its wait leaves without a turn: stopped, dropped by its setting turned off, or refused as it
+  fires (`ParentHolds`, released from the continuer's one `#left`); after a restart, the
+  sub-sessions' cuts are decided first. The worktrees `run_agent` accepts are the linked worktrees
+  the core's `gitPage` lists, not missing, compared by real path: no new core or binding function.
 - **Rationale**: a limit's continue may wait hours, past the call's 2-hour limit (R20); the parent
   asks again once it continues, as the plan's repeated call already answers. `gitPage` lists the
   worktrees through gix, as `git worktree list` does, and a call of `run_agent` is rare enough for
