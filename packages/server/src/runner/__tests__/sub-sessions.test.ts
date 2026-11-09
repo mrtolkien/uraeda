@@ -7,6 +7,7 @@ import { join, relative } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { type RunOptions, workDir } from "uraeda-binding";
 import { git } from "uraeda-binding/test-utils";
+import type { Binding } from "../../fate/context.ts";
 import type { McpTool } from "../../mcp/endpoint.ts";
 import { McpTokens } from "../../mcp/tokens.ts";
 import type { SessionCache } from "../cache.ts";
@@ -68,12 +69,13 @@ const IMPLEMENTERS_LOW: RunOptions = {
  * A feature's workflow session on `fake`, the build's agent, its turn held, with the implementers
  * on `other` at Low, unless `options` says otherwise, and three task worktrees. Each implementer holds its turn until the test opens
  * its task's gate, then answers "Done: <its prompt>". `runs` turns its automatic continues on; a
- * runtime named in `off` is off.
+ * runtime named in `off` is off. `binding` replaces the real one, as to hold a call.
  */
 async function building({
+  binding,
   options = IMPLEMENTERS_LOW,
   runs,
-}: { options?: RunOptions; runs?: () => ContinueSettings } = {}) {
+}: { binding?: Binding; options?: RunOptions; runs?: () => ContinueSettings } = {}) {
   const fake = new FakeAdapter();
   const other = new FakeAdapter();
   // The runtimes the test turned off.
@@ -84,6 +86,7 @@ async function building({
   await runtimes.refreshModels();
   const mcp = { address: { url: SERVER }, tokens: new McpTokens() };
   const setup = await testSessions(undefined, {
+    ...(binding === undefined ? {} : { binding }),
     mcp,
     runOptions: () => options,
     runtimes,
@@ -298,6 +301,40 @@ test.each([
   expect(cache.turns(sub.id).map((turn) => turn.state)).toEqual(["stopped", "done"]);
   expect(other.sent.at(-1)?.text).toBe("Implement task 4");
   expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(2);
+});
+
+test("Stop on a parent while a call checks its worktree starts no implementer", async () => {
+  const binding = await import("uraeda-binding");
+  // The worktree's check, held once the call reads it.
+  const checked = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  let holding = false;
+  const through: Binding = {
+    ...binding,
+    gitPage: async (root) => {
+      if (holding) {
+        checked.resolve();
+        await held.promise;
+      }
+      return binding.gitPage(root);
+    },
+  };
+  const { call, other, parent, repo, sessions } = await building({ binding: through });
+  holding = true;
+  let ended: Error | undefined;
+  call(4).catch((error: Error) => {
+    ended = error;
+  });
+  await checked.promise;
+
+  sessions.stop(repo, parent.id);
+  held.resolve();
+
+  // The call answers that the run stopped, without waiting for an implementer.
+  await until(() => ended !== undefined);
+  expect(ended?.message).toMatch(/stopped/);
+  expect(sessions.subSessions.ofParent(parent.id)).toEqual([]);
+  expect(other.sent).toEqual([]);
 });
 
 test("after a restart, a parent continues once its sub-sessions end", async () => {

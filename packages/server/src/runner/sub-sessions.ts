@@ -169,13 +169,19 @@ export class SubSessions {
    * Runs `run_agent` for the workflow session `parent`: an implementer of the task in its worktree,
    * on the feature's implementers' pick. A worktree that is not one of the repository's, or is its
    * main checkout, or a change's or a feature's, is refused. A task asked again goes to its
-   * sub-session, before the worktree and the pick are read.
+   * sub-session, before the worktree and the pick are read. Once the parent's turn halts, as Stop
+   * on it does (`stopAll`), while the call checks its worktree, it starts no implementer.
    */
   runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
-    return this.counted(parent, () => this.#runAgent(parent, input, signal));
+    return this.counted(parent, (halted) => this.#runAgent(parent, input, halted, signal));
   }
 
-  async #runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
+  async #runAgent(
+    parent: string,
+    input: unknown,
+    halted: AbortSignal,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const { prompt, task, worktree } = runAgentInput(input);
     const row = this.#context.cache.session(parent);
     if (!row || row.folder === null || row.parent !== null) {
@@ -188,6 +194,10 @@ export class SubSessions {
         return await this.#run(found, { review: false, text: prompt }, signal);
       }
       const cwd = await this.#worktree(row.repo, row.folder, worktree);
+      // Stop listed the parent's sub-sessions while the worktree was checked: start none after.
+      if (halted.aborted) {
+        throw new Error(`The run stopped before the implementer of ${task} started.`);
+      }
       const pick = implementerPick(this.#context, row.repo, row.folder);
       return await this.start(
         parent,
