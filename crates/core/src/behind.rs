@@ -22,7 +22,9 @@ const KEPT: usize = 4_096;
 /// in a repository without it, when the branch lacks it and the commits it lacks change any file
 /// but the default branch's own. `None` when it is not behind, or git cannot tell. The branch holds
 /// the tip when its local tip or `origin/<branch>` does: GitHub's "Update branch", or a push from
-/// another clone, catches up the remote branch before the local one.
+/// another clone, catches up the remote branch before the local one. Only the newest tips count: a
+/// tip the other one holds is older, and a stale tip the default branch merged says nothing of the
+/// commits after it.
 pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
     let default = git.default_branch()?;
     if default == branch {
@@ -31,13 +33,12 @@ pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
     let target = git
         .remote_tip(&default)
         .or_else(|| git.resolve(&format!("refs/heads/{default}")))?;
-    let tips = [
+    let tips = newest(
+        git,
         git.resolve(&format!("refs/heads/{branch}")),
         git.remote_tip(branch),
-    ];
-    let mut tips = tips.into_iter().flatten().peekable();
-    tips.peek()?;
-    if !tips.all(|tip| behind(git, tip, target)) {
+    );
+    if tips.is_empty() || !tips.into_iter().all(|tip| behind(git, tip, target)) {
         return None;
     }
     let subject = git.subject(target).ok()?;
@@ -46,6 +47,16 @@ pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
         commit: target.to_string(),
         subject,
     })
+}
+
+/// The branch's tips that no other one holds: both when they diverged, the newer when one holds
+/// the other, none when the branch has neither.
+fn newest(git: &Git, local: Option<ObjectId>, remote: Option<ObjectId>) -> Vec<ObjectId> {
+    match (local, remote) {
+        (Some(local), Some(remote)) if git.is_ancestor(local, remote) => vec![remote],
+        (Some(local), Some(remote)) if git.is_ancestor(remote, local) => vec![local],
+        (local, remote) => local.into_iter().chain(remote).collect(),
+    }
 }
 
 /// Whether the commit `tip` lacks `target`, and the changes it lacks touch any file but the default

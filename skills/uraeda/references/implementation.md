@@ -403,8 +403,9 @@ step. By hand, after `git fetch`, the branch lacks the tip when
 `git merge-base --is-ancestor origin/<default> <branch>` fails, and fails for `origin/<branch>` too.
 Then `git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks
 change. A branch the default branch already holds,
-`git merge-base --is-ancestor <branch> origin/<default>` succeeding, is merged, not behind. Without
-a remote, use `<default>` for `origin/<default>`.
+`git merge-base --is-ancestor <branch> origin/<default>` succeeding, is merged, not behind. When one
+of `<branch>` and `origin/<branch>` holds the other, only the newer one counts. Without a remote,
+use `<default>` for `origin/<default>`.
 
 1. **Sync with the remote branch**: `git fetch`, then `git pull --rebase origin <branch>`, so no
    commit pushed to it is lost.
