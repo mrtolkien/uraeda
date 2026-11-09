@@ -15,7 +15,7 @@ import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { OnListClient } from "../ListClient.tsx";
 import { useRestoreScroll } from "../routes.tsx";
-import { ExtensionsRecordView, SettingsRecordView } from "../views.ts";
+import { ExtensionsRecordView, SettingsRecordView } from "./settingsViews.ts";
 import { categoryOf } from "./categories.ts";
 import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";

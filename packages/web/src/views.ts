@@ -8,7 +8,6 @@ import type {
   BranchDecision,
   ExtensionAction,
   ExtensionRecord,
-  Extensions,
   ProposalFile,
   Feature,
   FolderSuggestions,
@@ -23,7 +22,6 @@ import type {
   Repositories,
   Session,
   SessionList,
-  Settings,
   SlugProposal,
   StartPlan,
   Story,
@@ -388,51 +386,6 @@ export const RepositoriesView = view<Repositories>()({
   id: true,
   problem: true,
   rows: true,
-});
-
-/** A setting: its value in force, the file's, and its source. */
-const SettingSelection = { inForce: true, saved: true, source: true } as const;
-
-/**
- * The server's settings, which every endpoint serves: the file, its problem, and each setting's
- * value in force, the file's, and its source. Named apart from the page's `SettingsView`.
- */
-export const SettingsRecordView = view<Settings>()({
-  file: true,
-  id: true,
-  keyboard: {
-    singleKeyShortcuts: SettingSelection,
-    vimCommands: SettingSelection,
-    vimMode: SettingSelection,
-  },
-  problem: true,
-  runs: {
-    automaticContinues: SettingSelection,
-    buildInFreshSession: SettingSelection,
-    catchUpPullRequests: SettingSelection,
-    claudeEffortFromEnv: true,
-    continueAfterLimit: SettingSelection,
-    continueAfterRestart: SettingSelection,
-    options: true,
-  },
-  server: {
-    allowedHosts: SettingSelection,
-    openBrowser: SettingSelection,
-    port: SettingSelection,
-  },
-});
-
-/**
- * Every extension, built in or yours, as the settings' Extensions section reads it, from every
- * endpoint: each one's state, problems, where it is on, and its settings. The registries read
- * it too, for where each one is on (`ExtensionsOn`).
- */
-export const ExtensionsRecordView = view<Extensions>()({
-  api: true,
-  docs: true,
-  extensions: true,
-  folder: true,
-  id: true,
 });
 
 /** An extension's named record, `<extension>/<name>`: its value as JSON, or why it was not read. */

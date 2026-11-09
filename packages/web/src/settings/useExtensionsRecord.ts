@@ -2,7 +2,7 @@
 // is at its size limit.
 import { useLiveView, useRequest } from "react-fate";
 import { useRefreshOnShow } from "../data.ts";
-import { ExtensionsRecordView } from "../views.ts";
+import { ExtensionsRecordView } from "./settingsViews.ts";
 
 /** The id of the one `Extensions` record, as the server names it. */
 const EXTENSIONS_ID = "extensions";

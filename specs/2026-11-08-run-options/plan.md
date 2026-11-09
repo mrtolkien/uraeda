@@ -1090,7 +1090,7 @@ git commit -m "feat(run-options): reviewers run at once, their findings committe
 - Produces: `RunMap`'s keys declared with `useKeys`: ← → h l, ↓ ↑ j k, Enter, Space, `r`, `a`, `d`,
   on the map's selection, so they never clash with a page's `j`/`k`.
 
-- [ ] **Step 1: Split `views.ts` before it changes**
+- [x] **Step 1: Split `views.ts` before it changes**
 
 Move the settings' selections to `settings/settingsViews.ts`, re-exported where they are imported.
 

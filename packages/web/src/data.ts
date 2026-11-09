@@ -23,7 +23,6 @@ import {
   NeedsYouView,
   RepositoriesView,
   SessionView,
-  SettingsRecordView,
   SlugProposalView,
   StoryHrefView,
   StoryView,
@@ -31,6 +30,7 @@ import {
   WorkflowMessageView,
   WorkspaceView,
 } from "./views.ts";
+import { SettingsRecordView } from "./settings/settingsViews.ts";
 import type { BaseMode } from "./freshBase.ts";
 import { filePage, proposalFilePage, show, storyRead } from "./readAhead.ts";
 
