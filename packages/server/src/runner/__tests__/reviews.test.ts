@@ -1,15 +1,24 @@
 // The reviewers of a feature (US4 of the run options): the `review` tool runs every reviewer of the
 // feature at once, agents through their own review in sub-sessions, commands in the feature's
 // worktree, and commits a section for each in `findings-NN.md`, before the build fixes them.
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import type { RunOptions } from "uraeda-binding";
+import { type RunOptions, workDir } from "uraeda-binding";
 import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { McpTokens } from "../../mcp/tokens.ts";
 import { claudeReview } from "../claude.ts";
 import { codexReview } from "../codex-thread.ts";
+import { alive } from "./codex-stand-in.ts";
 import { FakeAdapter, type FakeStep } from "../fake.ts";
 import { reviewTool } from "../reviews.ts";
 import { Runtimes } from "../runtimes.ts";
@@ -82,8 +91,8 @@ async function reviewing(options: RunOptions) {
   const workflow = { step: "plan", trigger: "manual" } as const;
   await sessions.send(repo, parent.id, { text: "Review the wave", workflow });
   const tool = reviewTool(sessions.reviews);
-  const review = (input: Record<string, string>) =>
-    tool.call(parent.id, input, new AbortController().signal);
+  const review = (input: Record<string, string>, signal = new AbortController().signal) =>
+    tool.call(parent.id, input, signal);
   return { ...setup, claude, codex, off, parent, review };
 }
 
@@ -160,6 +169,11 @@ test.each([
   const said = await answer;
   const path = said.split("\n")[0];
   expect(path).toMatch(/findings-\d\d\.md$/);
+  const round = /findings-(\d\d)\.md$/.exec(path)![1];
+  const worktree = dirname(dirname(dirname(path)));
+  expect(git(worktree, "log", "-1", "--format=%s").trim()).toBe(
+    `review(cli-tuis): findings ${round}`,
+  );
   const file = readFileSync(path, "utf8");
   expect(said.slice(path.length).trim()).toBe(file.trim());
   expect(file).toMatch(/reviewed: branch/);
@@ -254,4 +268,24 @@ test("findings a hook refuses are written, and the same review asked again commi
   // The reviewers ran once: the call committed the file the first one wrote.
   expect(readFileSync(runs, "utf8")).toBe("run\n");
   expect(existsSync(path.replace("findings-01", "findings-02"))).toBe(false);
+});
+
+test("a review whose call is cancelled ends its command reviewers and writes no findings", async () => {
+  const dir = temporaryFolder("uraeda-reviews");
+  const pidFile = join(dir, "pid");
+  const { repo, review } = await reviewing({
+    reviewers: [{ command: `echo $$ > '${pidFile}'; exec sleep 1000` }],
+    steps: [],
+  });
+  const controller = new AbortController();
+  const answer = review({ base: "abc123", head: "def456", reviewed: "branch" }, controller.signal);
+  await until(() => existsSync(pidFile) && readFileSync(pidFile, "utf8").trim() !== "");
+  const pid = Number(readFileSync(pidFile, "utf8"));
+
+  controller.abort();
+
+  await expect(answer).rejects.toThrow(/cancelled/);
+  expect(alive(pid)).toBe(false);
+  const folder = join(await workDir(repo, AGENT), "specs", AGENT);
+  expect(readdirSync(folder).filter((name) => name.startsWith("findings-"))).toEqual([]);
 });

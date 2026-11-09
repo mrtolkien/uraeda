@@ -287,6 +287,33 @@ test("a resumed thread on the default effort is given it, as it may keep another
   expect(turnEfforts(dir)).toEqual(["high"]);
 });
 
+test("a review starts review/start on a custom target, on the effort its new thread starts on", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const adapter = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" });
+  const agent = adapter.open({ ...open, cwd: dir, effort: "low" });
+  const events = agent.events[Symbol.asyncIterator]();
+  const review = adapter.reviewMessage({
+    base: "abc",
+    head: "def",
+    instructions: "Look at errors.",
+  });
+  agent.send({ ...message("m1", review.text), review: review.review });
+  expect(await until(events, "result")).toContainEqual({ id: "m1", type: "accepted" });
+  agent.close();
+  await until(events, "exit");
+
+  const requests = written(dir).filter((line) => line.method !== undefined);
+  const thread = requests.find((line) => line.method === "thread/start");
+  expect(thread?.params).toMatchObject({ config: { model_reasoning_effort: "low" } });
+  const reviews = requests.filter((line) => line.method === "review/start");
+  expect(reviews.map((line) => line.params)).toEqual([
+    { target: { instructions: review.text, type: "custom" }, threadId: "t-1" },
+  ]);
+  expect(review.text).toContain("abc..def");
+  expect(review.text).toContain("Look at errors.");
+  expect(requests.some((line) => line.method === "turn/start")).toBe(false);
+});
+
 test("a turn that completes before its start is answered still accepts its message", async () => {
   const dir = temporaryFolder("uraeda-codex");
   const command = appServer(dir, { completesFirst: true });

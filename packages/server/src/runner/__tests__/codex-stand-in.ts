@@ -85,7 +85,8 @@ export type StandIn = {
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
  * as Codex 0.163.0 does, from `PAGES` and `CONFIG`. A turn whose text says `ask` sends the client
  * a question and completes once answered; one that says `wait` completes when steered, failed if
- * it says `fail on steer`, the steer then refused; any other completes at once. It writes what it
+ * it says `fail on steer`, the steer then refused; any other completes at once. A review,
+ * `review/start`, runs as a turn on its target's instructions. It writes what it
  * read to `<dir>/stdin`, and its arguments to `<dir>/argv`. Its thread's answers say it applied
  * the permissions Uraeda asks for, or what `options.applied` says. As `codex debug models`, it
  * writes its working directory to `<dir>/debug` and prints a one-model catalog.
@@ -139,6 +140,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
     case "thread/resume":
       threadId = params.threadId;
       return ok({ ...applied, model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
+    case "review/start":
     case "turn/start": {
       const id = "turn-" + ++turns;
       if (${options.completesFirst === true}) {
@@ -148,7 +150,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
       }
       ok({ turn: { id } });
       note("turn/started", { threadId, turn: { id } });
-      const text = params.input[0].text;
+      const text = params.input ? params.input[0].text : params.target.instructions;
       waiting = id;
       waitingText = text;
       if (text.includes("ask")) return out({ id: "ask-1", method: "item/tool/requestUserInput", params: {} });
