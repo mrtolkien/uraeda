@@ -1,12 +1,8 @@
-import type { RunOptions } from "uraeda-binding";
-import type { Binding } from "../fate/context.ts";
-import type { ServerAddress } from "../mcp/endpoint.ts";
-import type { McpTokens } from "../mcp/tokens.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import { Chain } from "./chain.ts";
-import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
+import { CONTINUES_ON, Continuer } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
 import { Processes } from "./processes.ts";
@@ -27,8 +23,8 @@ import {
   commandCount,
   refused,
   SERVER_STOPPED,
-  type SessionChange,
   type SessionContext,
+  type SessionsOptions,
   wakeupPending,
 } from "./session-state.ts";
 import { Transcript } from "./transcript.ts";
@@ -47,28 +43,6 @@ export {
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "./session-state.ts";
-
-/**
- * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
- * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
- * says whether the server lists a main checkout: the restart's continues skip the others.
- * `runOptions` gives a feature's run options as its next run starts on them: the defaults when
- * left out.
- */
-type SessionsOptions = {
-  binding: Binding;
-  cache: SessionCache;
-  hosted?: (root: string) => boolean;
-  /**
-   * Where the agents' processes reach the server's MCP endpoint, and its tokens, one issued to each
-   * workflow process: none in tests that run no workflow.
-   */
-  mcp?: { address: ServerAddress; tokens: McpTokens };
-  onChange: (change: SessionChange) => void;
-  runOptions?: (repo: string, folder: string) => RunOptions;
-  runs?: () => ContinueSettings;
-  runtimes: Runtimes;
-};
 
 /**
  * Sessions of turns with agents: at most one process and one turn per session, and one working
@@ -114,6 +88,7 @@ export class Sessions {
       },
       live: new LiveSessions(),
       ...(options.mcp === undefined ? {} : { mcp: options.mcp }),
+      queue: options.queue ?? (() => undefined),
       runOptions: options.runOptions ?? (() => ({ steps: [] })),
       runtimes: options.runtimes,
     } as SessionContext;

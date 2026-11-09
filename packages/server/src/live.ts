@@ -412,6 +412,7 @@ export function createSessions(options: {
       const { folder, repo } = change;
       turnDone.get(sessions)?.forEach((listener) => listener(repo, folder));
     },
+    queue: (root) => options.hosts()?.byPath(root)?.queue,
   });
   return sessions;
 }

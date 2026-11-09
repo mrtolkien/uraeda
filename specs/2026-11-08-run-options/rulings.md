@@ -420,19 +420,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R30: Findings a hook refused are committed by the same review asked again
 
-- **Decision**: when a hook refuses the findings' commit, `review` answers with the file's path and
-  "written, not committed: " with the hook's output, and keeps, in memory, the file under its
-  feature, `reviewed`, and commits. The same review asked again commits that file with
-  `retryCommit`, running no reviewer and writing no next `findings-NN.md`; refused again, it answers
-  the same way. The file is found as the feature's last `findings-NN.md` in its worktree, as
-  `writeFindings` gives no path when it fails. After a restart, the same review asked again runs its
-  reviewers and writes the next file.
+- **Decision**: in a repository the server hosts, whose commits the core defers, `review` writes and
+  commits the findings through the repository's write queue, under the feature's keys
+  (`WriteQueue.commitLanded`), and answers once their commit landed. When a hook refuses it, the
+  queue's core puts back what the write left, so the file is gone: `review` answers "not committed:
+  " with the hook's output, and keeps the reviewers' findings in memory under the feature,
+  `reviewed`, and commits; the same review asked again writes and commits them through the queue,
+  running no reviewer, and the refused write leaves the queue's record, as the call answers with it.
+  Without a host, as in tests, the commit runs within the call and a hook's refusal leaves the file
+  written: the answer is its path and "written, not committed: " with the hook's output, the file
+  found as the feature's last `findings-NN.md` in its worktree, and the same review asked again
+  commits it with `retryCommit`. After a restart, the same review asked again runs its reviewers and
+  writes the next file.
 - **Rationale**: the review found a refused commit answered as a failed review, the file left
-  uncommitted, and the agent's next call running every reviewer again into the next file. Keeping it
-  in memory needs no new core or binding function: a restart within a review's retry is rare.
-- **If wrong**: `Reviews.#commitAgain` and `#lastFindings` in
-  `packages/server/src/runner/reviews.ts`.
-- **Where**: task 9's review.
+  uncommitted, and the agent's next call running every reviewer again into the next file. The final
+  review found the findings never committed in a hosted repository: the write ran outside the queue,
+  so its deferred commit was only recorded, and landed with the next unrelated queued write. Keeping
+  the findings in memory needs no new core or binding function: a restart within a review's retry is
+  rare.
+- **If wrong**: `Reviews.#save` and `#lastFindings` in `packages/server/src/runner/reviews.ts`, and
+  `WriteQueue.commitLanded` in `packages/server/src/writes/queue.ts`.
+- **Where**: task 9's review, and the final review.
 
 ## R31: A review ends as its parent's turn halts
 

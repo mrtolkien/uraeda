@@ -13,7 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { type RunOptions, workDir } from "uraeda-binding";
+import { deferCommits, land, type RunOptions, takeDeferred, workDir } from "uraeda-binding";
 import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { McpTokens } from "../../mcp/tokens.ts";
 import { claudeReview } from "../claude.ts";
@@ -22,14 +22,21 @@ import { alive } from "./codex-stand-in.ts";
 import { FakeAdapter, type FakeStep } from "../fake.ts";
 import { reviewTool } from "../reviews.ts";
 import { Runtimes } from "../runtimes.ts";
+import { WriteQueue } from "../../writes/queue.ts";
 import { testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
 
+/** The main checkouts whose commits a test deferred, as the server does for those it hosts. */
+const deferring: Array<string> = [];
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  for (const root of deferring.splice(0)) {
+    deferCommits(root, false);
+  }
 });
 
 /** Lets the session manager work until `done` holds. */
@@ -73,8 +80,9 @@ function held(finding: string) {
 /**
  * A feature's workflow session on `claude`, its turn held, with `options` as the feature's, and the
  * review tool the session calls. `claude` reviews as Claude Code does, `codex` as Codex does.
+ * `hosted`, its repository defers its commits for a write queue, as the server's hosts do.
  */
-async function reviewing(options: RunOptions) {
+async function reviewing(options: RunOptions, { hosted = false }: { hosted?: boolean } = {}) {
   const claude = new FakeAdapter();
   claude.reviewMessage = claudeReview;
   const codex = new FakeAdapter();
@@ -86,8 +94,24 @@ async function reviewing(options: RunOptions) {
   runtimes.register("codex", codex);
   await runtimes.refreshModels();
   const mcp = { address: { url: "http://127.0.0.1:4000" }, tokens: new McpTokens() };
-  const setup = await testSessions(undefined, { mcp, runOptions: () => options, runtimes });
+  let queue: WriteQueue | undefined;
+  const setup = await testSessions(undefined, {
+    mcp,
+    queue: () => queue,
+    runOptions: () => options,
+    runtimes,
+  });
   const { repo, sessions } = setup;
+  if (hosted) {
+    const root = await sessions.mainRoot(repo);
+    deferCommits(root, true);
+    deferring.push(root);
+    const core = {
+      land: (id: string, onOutput: (line: string) => void) => land(root, id, onOutput),
+      takeDeferred: () => takeDeferred(root),
+    };
+    queue = new WriteQueue(core, () => {});
+  }
   const parent = await sessions.featureSession(repo, AGENT, { runtime: "claude" });
   const parentGate = held("Reviewing");
   claude.script(parentGate.steps);
@@ -124,17 +148,25 @@ function sectionsOf(file: string) {
 test.each([
   {
     codex: ["Codex · Fake Big", "- [P3] An error is swallowed."],
+    hosted: false,
     name: "",
     off: false,
   },
   {
     codex: ["Codex · Fake Big", "Did not review: Codex is not available on this machine."],
+    hosted: false,
     name: ", but one whose agent is off",
     off: true,
   },
+  {
+    codex: ["Codex · Fake Big", "- [P3] An error is swallowed."],
+    hosted: true,
+    name: ", through the write queue of a hosted repository",
+    off: false,
+  },
 ])("a review runs every reviewer at once and commits a section for each$name", async (row) => {
   const coderabbit = fakeCoderabbit();
-  const { cache, claude, codex, off, parent, review, sessions } = await reviewing(REVIEWERS);
+  const { cache, claude, codex, off, parent, review, sessions } = await reviewing(REVIEWERS, row);
   if (row.off) {
     off.add("codex");
   }
@@ -237,13 +269,24 @@ test.each([
   expect(coderabbit.started()).toBe(false);
 });
 
-test("findings a hook refuses are written, and the same review asked again commits them", async () => {
+test.each([
+  { hosted: false, name: "are written", said: /^written, not committed: /, written: true },
+  {
+    hosted: true,
+    name: "in a hosted repository are put back",
+    said: /^not committed: /,
+    written: false,
+  },
+])("findings a hook refuses $name, and the same review asked again commits them", async (row) => {
   const dir = temporaryFolder("uraeda-reviews");
   const runs = join(dir, "runs");
-  const { repo, review, sessions } = await reviewing({
-    reviewers: [{ command: `echo run >> '${runs}'; echo "- [P2] A finding."` }],
-    steps: [],
-  });
+  const { repo, review, sessions } = await reviewing(
+    {
+      reviewers: [{ command: `echo run >> '${runs}'; echo "- [P2] A finding."` }],
+      steps: [],
+    },
+    row,
+  );
   const refuse = join(dir, "refuse");
   const hook = join(await sessions.mainRoot(repo), ".git/hooks/pre-commit");
   mkdirSync(dirname(hook), { recursive: true });
@@ -254,21 +297,23 @@ test("findings a hook refuses are written, and the same review asked again commi
   );
   writeFileSync(refuse, "");
   const input = { base: "abc123", head: "def456", reviewed: "wave 1" };
+  const worktree = await workDir(repo, AGENT);
+  const path = join(worktree, "specs", AGENT, "findings-01.md");
 
   const refused = await review(input);
-  const [path, said] = refused.split("\n\n");
-  expect(path).toMatch(/findings-01\.md$/);
-  expect(said).toMatch(/^written, not committed: /);
+  const said = row.written ? refused.slice(`${path}\n\n`.length) : refused;
+  expect(refused.startsWith(path)).toBe(row.written);
+  expect(said).toMatch(row.said);
   expect(said).toContain("lint: 1 problem");
-  expect(readFileSync(path, "utf8")).toContain("A finding.");
-  const worktree = dirname(dirname(dirname(path)));
+  expect(existsSync(path)).toBe(row.written);
   expect(git(worktree, "log", "-1", "--format=%s").trim()).not.toMatch(/findings/);
 
   rmSync(refuse);
   const committed = await review(input);
   expect(committed.split("\n")[0]).toBe(path);
+  expect(readFileSync(path, "utf8")).toContain("A finding.");
   expect(git(worktree, "log", "-1", "--format=%s").trim()).toBe("review(cli-tuis): findings 01");
-  // The reviewers ran once: the call committed the file the first one wrote.
+  // The reviewers ran once: the call committed the findings the first one gave.
   expect(readFileSync(runs, "utf8")).toBe("run\n");
   expect(existsSync(path.replace("findings-01", "findings-02"))).toBe(false);
 });

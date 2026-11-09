@@ -3,10 +3,11 @@ import type { Binding } from "../fate/context.ts";
 import type { ServerAddress } from "../mcp/endpoint.ts";
 import type { McpTokens } from "../mcp/tokens.ts";
 import { IMAGE_REFUSALS, RUNTIME_REFUSALS } from "../limits.ts";
+import type { WriteQueue } from "../writes/queue.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { Chain } from "./chain.ts";
-import type { Continuer } from "./continuer.ts";
+import type { ContinueSettings, Continuer } from "./continuer.ts";
 import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
@@ -269,6 +270,11 @@ export type SessionContext = {
   /** Their processes: opened, closed, and read. */
   processes: Processes;
   /**
+   * The write queue of a repository the server hosts, by its main checkout: none in tests, whose
+   * repositories commit within each call.
+   */
+  queue: (repo: string) => WriteQueue | undefined;
+  /**
    * The run options a feature's next run starts on, by its repository's main checkout and its
    * folder: its own over the settings', as they are now.
    */
@@ -281,6 +287,30 @@ export type SessionContext = {
   transcript: Transcript;
   /** Their turns: started, queued, halted, and ended. */
   turns: Turns;
+};
+
+/**
+ * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
+ * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
+ * says whether the server lists a main checkout: the restart's continues skip the others.
+ * `runOptions` gives a feature's run options as its next run starts on them: the defaults when
+ * left out.
+ */
+export type SessionsOptions = {
+  binding: Binding;
+  cache: SessionCache;
+  hosted?: (root: string) => boolean;
+  /**
+   * Where the agents' processes reach the server's MCP endpoint, and its tokens, one issued to each
+   * workflow process: none in tests that run no workflow.
+   */
+  mcp?: { address: ServerAddress; tokens: McpTokens };
+  onChange: (change: SessionChange) => void;
+  /** The write queue of a repository the server hosts, by its main checkout. */
+  queue?: (repo: string) => WriteQueue | undefined;
+  runOptions?: (repo: string, folder: string) => RunOptions;
+  runs?: () => ContinueSettings;
+  runtimes: Runtimes;
 };
 
 /** Whether the process is open, and waits for a wakeup the agent set: it goes on by itself then. */

@@ -3,6 +3,8 @@
 // feature's worktree, and their findings are committed in `findings-NN.md` before they are fixed.
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
+import type { Findings } from "uraeda-binding";
+import { featureKeys } from "../fate/write-queue.ts";
 import type { McpTool } from "../mcp/endpoint.ts";
 import { reasonOf } from "../reason.ts";
 import { type Reviewer, type StepPick, toMap } from "../run-options.ts";
@@ -25,16 +27,25 @@ type Section = { reviewer: string; text: string };
 type Review = ReviewInput & { cwd: string; parent: SessionRow; signal: AbortSignal | undefined };
 
 /**
+ * Findings a hook refused to commit: what the reviewers gave, and their file, from the top level,
+ * when the refusal left it written.
+ */
+type Unsaved = { findings: Findings; path?: string };
+
+/** Where findings are committed: the feature, and its worktree. */
+type Place = { cwd: string; folder: string; repo: string };
+
+/**
  * The reviews workflow sessions call: `review` runs every reviewer of the feature's options at once
  * and commits their findings.
  */
 export class Reviews {
   #context: SessionContext;
   /**
-   * The findings a hook refused to commit, written in their worktree, by `findingsKey`: the same
-   * review asked again commits them instead of running its reviewers again.
+   * The findings a hook refused to commit, by `findingsKey`: the same review asked again commits
+   * them instead of running its reviewers again.
    */
-  #unsaved = new Map<string, string>();
+  #unsaved = new Map<string, Unsaved>();
 
   constructor(context: SessionContext) {
     this.#context = context;
@@ -76,9 +87,10 @@ export class Reviews {
     const key = findingsKey(row.repo, folder, asked.reviewed, commits);
     try {
       const cwd = await binding.workDir(row.repo, folder);
+      const place = { cwd, folder, repo: row.repo };
       const unsaved = this.#unsaved.get(key);
       if (unsaved !== undefined) {
-        return await this.#commitAgain(key, row.repo, folder, join(cwd, unsaved));
+        return await this.#save(key, place, unsaved);
       }
       const review: Review = { ...asked, cwd, parent: row, signal };
       const names = map.reviewers.map((reviewer) => this.#name(reviewer));
@@ -91,37 +103,51 @@ export class Reviews {
         throw new Error("The call was cancelled.");
       }
       const findings = { commits, reviewed: asked.reviewed, sections };
-      try {
-        return await answerOf(join(cwd, await binding.writeFindings(row.repo, folder, findings)));
-      } catch (error) {
-        if (!isHookRefusal(error)) {
-          throw error;
-        }
-        const path = await this.#lastFindings(row.repo, folder);
-        this.#unsaved.set(key, path);
-        return notCommitted(join(cwd, path), error);
-      }
+      return await this.#save(key, place, { findings });
     } catch (error) {
       throw new Error(reasonOf(error), { cause: error });
     }
   }
 
   /**
-   * Commits again the findings a hook refused, at `file`, `key`'s: answers as a review does once
-   * committed, else again that they are written, not committed.
+   * Writes and commits `unsaved`'s findings, or commits again their file a hook's refusal left
+   * written, through the write queue of a repository the server hosts, answering once the commit
+   * landed. Answers with the file's path and its text; on a hook's refusal, keeps them under `key`
+   * and answers that they are not committed, with the hook's output: written still, or put back by
+   * the queue's core, which then writes them again on the next call.
    */
-  async #commitAgain(key: string, repo: string, folder: string, file: string): Promise<string> {
-    try {
-      await this.#context.binding.retryCommit(repo, folder, basename(file));
-    } catch (error) {
-      if (isHookRefusal(error)) {
-        return notCommitted(file, error);
+  async #save(key: string, place: Place, unsaved: Unsaved): Promise<string> {
+    const { binding, queue } = this.#context;
+    const { cwd, folder, repo } = place;
+    const { findings, path } = unsaved;
+    const write = async () => {
+      if (path === undefined) {
+        return binding.writeFindings(repo, folder, findings);
       }
+      await binding.retryCommit(repo, folder, basename(path));
+      return path;
+    };
+    const hosted = queue(repo);
+    try {
+      const saved =
+        hosted === undefined
+          ? await write()
+          : await hosted.commitLanded(featureKeys(folder), { folder }, write);
       this.#unsaved.delete(key);
-      throw error;
+      return await answerOf(join(cwd, saved));
+    } catch (error) {
+      if (!isHookRefusal(error)) {
+        this.#unsaved.delete(key);
+        throw error;
+      }
+      // A queued commit's refusal puts back what it wrote: a new file is gone.
+      const left =
+        path ?? (hosted === undefined ? await this.#lastFindings(repo, folder) : undefined);
+      this.#unsaved.set(key, left === undefined ? { findings } : { findings, path: left });
+      return left === undefined
+        ? `not committed: ${reasonOf(error)}`
+        : notCommitted(join(cwd, left), error);
     }
-    this.#unsaved.delete(key);
-    return answerOf(file);
   }
 
   /**
@@ -321,10 +347,10 @@ export function reviewTool(reviews: Reviews): McpTool {
       "Reviews the feature's commits `base..head` with every reviewer of the feature at once, " +
       "each an agent's own review in its own session or a command, then commits their findings " +
       "in the feature's folder as the next findings-NN.md. Answers with the file's path and its " +
-      "text, a section per reviewer. When a hook refuses the commit, it answers with the file's " +
-      "path and `written, not committed:` with the hook's output: fix what the hook says, then " +
-      "call it again with the same `reviewed`, `base`, and `head`, which commits the file and " +
-      "runs no reviewer. Call it once per review: after a wave is merged, with " +
+      "text, a section per reviewer. When a hook refuses the commit, it answers `not committed:` " +
+      "with the hook's output, after the file's path when the file is left written: fix what the " +
+      "hook says, then call it again with the same `reviewed`, `base`, and `head`, which commits " +
+      "the findings and runs no reviewer. Call it once per review: after a wave is merged, with " +
       "`reviewed` `wave <N>`, and on the whole branch, with `reviewed` `branch`.",
     inputSchema: {
       properties: {
