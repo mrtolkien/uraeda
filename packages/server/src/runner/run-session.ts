@@ -100,10 +100,11 @@ function takeEffort(context: SessionContext, live: Live, row: SessionRow, pick: 
 
 /**
  * The session a workflow run of `runStep` goes to, from the feature's latest session `live`: that
- * one when it never ran, or ran no workflow, which then starts for `runStep`; that one too when its
- * step's joint joins `runStep` and it runs on the step's agent and model, its effort set to the
- * step's for the next turn; else a new session of the feature on the step's pick, which becomes its
- * latest. `fresh` always starts a new one, once `live` ran. A step whose agent is off runs on the
+ * one when it never ran, which then starts for `runStep` on the step's pick; that one when it runs
+ * `runStep` already, whatever its pick, or ran no workflow, which then starts for `runStep`; that
+ * one too when its step's joint joins `runStep` and it runs on the step's agent and model, its
+ * effort set to the step's for the next turn; else a new session of the feature on the step's pick,
+ * which becomes its latest. `fresh` always starts a new one, once `live` ran. A step whose agent is off runs on the
  * first runtime on, on its defaults; a model its agent no longer lists is refused. A new session is
  * refused, before it exists, while a move holds `live`, or another session of its folder works and
  * `live` does not.
@@ -118,7 +119,7 @@ export async function runSession(
   const row = rowOf(cache, live);
   const folder = live.folder as string;
   const ran = sessionStep(context, row);
-  if (cache.turns(live.id).length === 0 || (fresh !== true && ran === undefined)) {
+  if (fresh !== true && (ran === undefined || ran === runStep) && cache.turns(live.id).length > 0) {
     if (row.step === null) {
       cache.updateSession(row.id, { step: runStep });
     }
@@ -127,6 +128,12 @@ export async function runSession(
   const agents = agentsOf(runtimes, live.repo);
   const map = toMap(context.runOptions(live.repo, folder), agents.runtime() ?? row.agent);
   const pick = runningPick(context, live.repo, map.steps[runStep]);
+  if (cache.turns(live.id).length === 0) {
+    // It never started: it starts on the step's pick.
+    cache.updateSession(row.id, { ...newPicked(context, runStep, pick), step: runStep });
+    context.changed(live);
+    return live;
+  }
   const current = { runtime: row.agent, ...(row.model === null ? {} : { model: row.model }) };
   const joined =
     fresh !== true &&

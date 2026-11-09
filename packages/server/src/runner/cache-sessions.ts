@@ -28,14 +28,25 @@ export type NewSession = {
 export type SessionFields = Partial<
   Pick<
     SessionRow,
-    "nativeId" | "title" | "seenAt" | "archivedAt" | "effort" | "ranModel" | "ranEffort" | "step"
+    | "agent"
+    | "nativeId"
+    | "title"
+    | "seenAt"
+    | "archivedAt"
+    | "effort"
+    | "model"
+    | "ranModel"
+    | "ranEffort"
+    | "step"
   >
 >;
 
 /** The session columns a write may change, by their field. */
 const sessionColumns = {
+  agent: "agent",
   archivedAt: "archived_at",
   effort: "effort",
+  model: "model",
   nativeId: "native_id",
   ranEffort: "ran_effort",
   ranModel: "ran_model",

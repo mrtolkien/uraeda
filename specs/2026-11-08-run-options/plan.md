@@ -728,7 +728,8 @@ share, and concurrency with the continuer.
   column (Task 4); `toMap`, `stepSession` (Task 5).
 - Produces:
   - `runSession(context, live, runStep: StepId, fresh?: boolean): Promise<Live>` in
-    `run-session.ts`: the session a run of `runStep` goes to. The latest session when it never ran;
+    `run-session.ts`: the session a run of `runStep` goes to. The latest session when it never ran,
+    which takes the step's pick (R18), or when it runs `runStep` already, whatever its pick (R18);
     else the latest when `stepSession` joins its step to `runStep` and it runs on the step's agent
     and model, its effort set to the step's for the next turn; else a new session on the step's
     pick, `step` set. `fresh: true` always starts a new one. A session without `step` reads as the
@@ -776,8 +777,9 @@ share, and concurrency with the continuer.
 - "a run whose step did not move on starts nothing": the plan turn ends with the step still `plan`;
   no new turn anywhere. Break: a loop of plan runs.
 
-Rewrite `message.test.ts`'s plan messages, the R20 test to "a new session runs on its step's pick",
-and remove the fresh session's tests the spec lists.
+Rewrite `message.test.ts`'s plan messages, the R20 test to "a session that never ran takes its
+step's pick, and a run of the same step stays there" (R18), and remove the fresh session's tests the
+spec lists.
 
 - [x] **Step 2: Run them to check they fail**
 

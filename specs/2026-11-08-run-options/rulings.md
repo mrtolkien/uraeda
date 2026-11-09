@@ -175,3 +175,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: `spec-revision` belongs to the Spec run step (R1), so the revision cannot have an
   effort of its own; joining two steps tests the same rule, a joined step's own effort.
 - **Where**: task 6.
+
+## R18: A run of the session's own step stays there, and a session that never ran takes the step's pick
+
+- **Decision**: a workflow run of the run step its session runs, not fresh, goes on in that session
+  whatever its pick: "Again" at the plan stays in the plan's session. A session that never ran,
+  reused for its first run, takes the step's agent, model, and effort, as a new session would. Until
+  Task 11 stores a change's start pick as its options, `change.start`'s runtime, model, and effort
+  no longer reach its first run: `runtimes.test.ts`'s change start test says so, marked
+  `TEMPORARY:`.
+- **Rationale**: a continue of a step is the same run, which a session of its own holds; a session
+  that never started has no context to keep, so the step's options decide it, as for any new
+  session.
+- **If wrong**: `runSession` in `packages/server/src/runner/run-session.ts`.
+- **Where**: task 6, from its review.
