@@ -97,3 +97,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `StepPick`'s `runtime` becomes optional and `Agents.runtime` resolves it, already
   written for it.
 - **Where**: task 5.
+
+## R11: A feature's other agent drops the settings' model and effort
+
+- **Decision**: when a feature's step or implementers pick an agent other than the settings' agent
+  for them, `merge_run_options` drops the settings' model and effort: the feature's own model and
+  effort apply, else the agent's defaults. A settings' table without an agent counts as another
+  agent. A feature's empty reviewers list keeps the settings' reviewers.
+- **Rationale**: a model belongs to its agent; the settings' `opus` for Claude is not a model Codex
+  lists, and would make the feature's run fail or pick a wrong model.
+- **If wrong**: `merge_pick` in `crates/core/src/settings/runs.rs`.
+- **Where**: task 1, from the review of wave 1.

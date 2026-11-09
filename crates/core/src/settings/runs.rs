@@ -97,15 +97,18 @@ pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
 }
 
 /// `feature`'s options over `defaults`: each value the feature sets wins, step by step and value by
-/// value, and the feature's reviewers, when it lists any, replace the defaults' list whole.
+/// value, and the feature's reviewers, when it lists any, replace the defaults' list whole. A model
+/// belongs to its agent: where the feature picks another agent, the defaults' model and effort are
+/// dropped.
 pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOptions {
     let mut steps = defaults.steps.clone();
     for step in &feature.steps {
         match steps.iter_mut().find(|default| default.step == step.step) {
             Some(default) => {
-                default.agent = over(&step.agent, &default.agent);
-                default.model = over(&step.model, &default.model);
-                default.effort = over(&step.effort, &default.effort);
+                let pick = merge_pick(&pick_of(default), &pick_of(step));
+                default.agent = pick.agent;
+                default.model = pick.model;
+                default.effort = pick.effort;
                 default.new_session = step.new_session.or(default.new_session);
             }
             None => steps.push(step.clone()),
@@ -113,11 +116,7 @@ pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOpti
     }
     in_order(&mut steps);
     let implementers = match (&defaults.implementers, &feature.implementers) {
-        (Some(default), Some(picked)) => Some(RunPick {
-            agent: over(&picked.agent, &default.agent),
-            model: over(&picked.model, &default.model),
-            effort: over(&picked.effort, &default.effort),
-        }),
+        (Some(default), Some(picked)) => Some(merge_pick(default, picked)),
         (default, picked) => over(picked, default),
     };
     RunOptions {
@@ -128,6 +127,28 @@ pub fn merge_run_options(defaults: &RunOptions, feature: &RunOptions) -> RunOpti
             &defaults.reviewers,
         ),
         review_depth: over(&feature.review_depth, &defaults.review_depth),
+    }
+}
+
+/// `picked` over `default`, value by value, but for the default's model and effort when `picked`
+/// names another agent.
+fn merge_pick(default: &RunPick, picked: &RunPick) -> RunPick {
+    if picked.agent.is_some() && picked.agent != default.agent {
+        return picked.clone();
+    }
+    RunPick {
+        agent: over(&picked.agent, &default.agent),
+        model: over(&picked.model, &default.model),
+        effort: over(&picked.effort, &default.effort),
+    }
+}
+
+/// A step's agent, model, and effort.
+fn pick_of(step: &StepOptions) -> RunPick {
+    RunPick {
+        agent: step.agent.clone(),
+        model: step.model.clone(),
+        effort: step.effort.clone(),
     }
 }
 

@@ -210,12 +210,13 @@ fn reports_where_a_run_option_is_wrong() {
     }
 }
 
-#[test]
-fn merges_a_feature_over_the_settings() {
-    let defaults = RunOptions {
+/// The settings' run options a feature's are merged over.
+fn settings_options() -> RunOptions {
+    RunOptions {
         steps: vec![
             StepOptions {
                 agent: Some("claude".into()),
+                effort: Some("high".into()),
                 ..step("spec")
             },
             StepOptions {
@@ -225,16 +226,43 @@ fn merges_a_feature_over_the_settings() {
         ],
         implementers: Some(RunPick {
             agent: Some("codex".into()),
+            model: Some("gpt-5".into()),
             ..RunPick::default()
         }),
         reviewers: Some(vec![agent_reviewer("claude"), agent_reviewer("codex")]),
         review_depth: Some("waves".into()),
+    }
+}
+
+#[test]
+fn merges_a_feature_over_the_settings() {
+    let defaults = settings_options();
+    let codex_spec = StepOptions {
+        agent: Some("codex".into()),
+        ..step("spec")
+    };
+    let claude_low = RunPick {
+        agent: Some("claude".into()),
+        effort: Some("low".into()),
+        ..RunPick::default()
     };
     let feature_spec = StepOptions {
         model: Some("opus".into()),
         ..step("spec")
     };
-    let rows: [(RunOptions, RunOptions); 4] = [
+    let rows: [(RunOptions, RunOptions); 5] = [
+        (
+            RunOptions {
+                steps: vec![codex_spec.clone()],
+                implementers: Some(claude_low.clone()),
+                ..RunOptions::default()
+            },
+            RunOptions {
+                steps: vec![codex_spec, defaults.steps[1].clone()],
+                implementers: Some(claude_low),
+                ..defaults.clone()
+            },
+        ),
         (
             RunOptions {
                 reviewers: Some(vec![]),
@@ -252,6 +280,7 @@ fn merges_a_feature_over_the_settings() {
                     StepOptions {
                         agent: Some("claude".into()),
                         model: Some("opus".into()),
+                        effort: Some("high".into()),
                         ..step("spec")
                     },
                     defaults.steps[1].clone(),
@@ -273,8 +302,8 @@ fn merges_a_feature_over_the_settings() {
                 reviewers: Some(vec![command_reviewer("make check")]),
                 implementers: Some(RunPick {
                     agent: Some("codex".into()),
+                    model: Some("gpt-5".into()),
                     effort: Some("low".into()),
-                    ..RunPick::default()
                 }),
                 review_depth: Some("branch".into()),
                 ..defaults.clone()
