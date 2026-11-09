@@ -22,15 +22,23 @@ async function featureSession(server: Server, title: string | null = null) {
   });
 }
 
-/** A sub-session of `parent`, as `role`, on the fake's large model at `effort`, titled `about`. */
+/**
+ * A sub-session of `parent`, as `role`, on `model`, the fake's large one by default, at `effort`,
+ * titled `about`.
+ */
 function subSession(
   server: Server,
   parent: { id: string; repo: string },
-  { about, effort, role }: { about: string; effort?: string; role: "implementer" | "reviewer" },
+  {
+    about,
+    effort,
+    model = "fake-big",
+    role,
+  }: { about: string; effort?: string; model?: string; role: "implementer" | "reviewer" },
 ) {
   return server.sessions.cache.createSession({
     agent: "fake",
-    ...(effort === undefined ? {} : { effort, model: "fake-big" }),
+    ...(effort === undefined ? {} : { effort, model }),
     folder: AGENT,
     nativeId: about,
     parent: parent.id,
@@ -78,6 +86,13 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
   server.sessions.cache.scheduleContinue(limit, Date.now() + 3_600_000, "limit", TAKEN_BACK);
   // Never started, and its parent no longer runs a turn to start it.
   const unstarted = subSession(server, parent, { about: "Task 7", role: "implementer" });
+  // On a model its agent no longer lists: its effort still by its name for people.
+  const unlisted = subSession(server, parent, {
+    about: "Task 8",
+    effort: "xhigh",
+    model: "fake-gone",
+    role: "implementer",
+  });
 
   const [record] = await byId(
     server.app,
@@ -94,6 +109,7 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
     [failed.id, "implementer", "failed"],
     [limited.id, "implementer", "working"],
     [unstarted.id, "implementer", "stopped"],
+    [unlisted.id, "implementer", "stopped"],
   ]);
   expect(subs[0]).toEqual({
     about: "Task 4: Next due date",
@@ -111,6 +127,7 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
   // On the agent's own model and effort, until it says which.
   expect(subs[1]).toMatchObject({ effort: null, model: "Default" });
   expect(subs[1]!.endedAt).toEqual(expect.any(String));
+  expect(subs[5]).toMatchObject({ effort: "Extra high" });
 
   const [own] = await byId(server.app, "Session", [working.id], ["parent", "role", "subSessions"]);
   expect(own).toMatchObject({ parent: parent.id, role: "implementer", subSessions: [] });

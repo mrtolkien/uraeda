@@ -3,6 +3,7 @@
 // the cache with its state, its time, and its usage, and its model and effort by their names for
 // people, from its agent's list.
 import type { SessionRow, TurnRow } from "../runner/cache.ts";
+import { effortName } from "../runner/efforts.ts";
 import type { Role } from "../runner/sub-sessions.ts";
 import type { RepoContext } from "./context.ts";
 import { latestOf } from "./session-reads.ts";
@@ -37,13 +38,16 @@ export type SubSessionRecord = {
 const roleOf = (row: SessionRow): Role | null =>
   row.role === null ? null : row.role === "reviewer" ? "reviewer" : "implementer";
 
-/** A sub-session's model and effort by their names for people, from its agent's list. */
+/**
+ * A sub-session's model and effort by their names for people, from its agent's list, else as its
+ * agent reported them; an effort neither names by the name agents share for it.
+ */
 function namesOf(ctx: RepoContext, row: SessionRow) {
   const listed = ctx.sessions.runtimes.models(row.agent)?.models ?? [];
   const model = listed.find((each) => each.id === row.model);
   const effort = model?.efforts.find((each) => each.id === row.effort);
   return {
-    effort: effort?.name ?? row.ranEffort ?? row.effort,
+    effort: effort?.name ?? row.ranEffort ?? (row.effort === null ? null : effortName(row.effort)),
     model: model?.name ?? row.ranModel ?? row.model ?? "Default",
   };
 }
