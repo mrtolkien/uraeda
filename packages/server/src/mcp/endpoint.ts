@@ -30,7 +30,10 @@ export const PROGRESS_EVERY_MS = 30_000;
 const MAX_BODY = 1024 * 1024;
 
 type Id = string | number;
-type Message = { id?: Id; method?: unknown; params?: Record<string, unknown> };
+type Message = { id?: Id; method?: unknown; params?: unknown };
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const encoder = new TextEncoder();
 
@@ -109,7 +112,9 @@ function respond(
   session: string,
   { every, tools }: { every: number; tools: ReadonlyArray<McpTool> },
 ): Response {
-  const { id, params = {} } = message;
+  const { id } = message;
+  // Params absent, null, or not an object are read as none: a missing name answers its error.
+  const params = isObject(message.params) ? message.params : {};
   switch (message.method) {
     case "initialize": {
       const asked = params.protocolVersion;
@@ -182,7 +187,7 @@ export function mcpRoutes({
     } catch {
       return context.json(failure(null, -32_700, "Parse error"), 400);
     }
-    if (typeof message !== "object" || message === null || Array.isArray(message)) {
+    if (!isObject(message)) {
       return context.json(failure(null, -32_600, "Invalid request"), 400);
     }
     const { id } = message as Message;

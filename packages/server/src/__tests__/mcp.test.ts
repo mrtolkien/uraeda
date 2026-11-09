@@ -26,15 +26,10 @@ function heldTool() {
   return { held, tool };
 }
 
-/** A JSON-RPC `tools/call` of the held tool, with the given `Authorization` header. */
-function call(authorization: string | undefined, progressToken?: string) {
+/** A JSON-RPC message posted with the given `Authorization` header. */
+function post(authorization: string | undefined, message: object) {
   return {
-    body: JSON.stringify({
-      id: 7,
-      jsonrpc: "2.0",
-      method: "tools/call",
-      params: { arguments: {}, name: "wait", ...(progressToken && { _meta: { progressToken } }) },
-    }),
+    body: JSON.stringify({ jsonrpc: "2.0", ...message }),
     headers: {
       accept: "application/json, text/event-stream",
       "content-type": "application/json",
@@ -42,6 +37,15 @@ function call(authorization: string | undefined, progressToken?: string) {
     },
     method: "POST",
   };
+}
+
+/** A JSON-RPC `tools/call` of the held tool, with the given `Authorization` header. */
+function call(authorization: string | undefined, progressToken?: string) {
+  return post(authorization, {
+    id: 7,
+    method: "tools/call",
+    params: { arguments: {}, name: "wait", ...(progressToken && { _meta: { progressToken } }) },
+  });
 }
 
 /** The JSON-RPC messages of an event stream, in order. */
@@ -112,4 +116,24 @@ test.each([
   expect(response.status).toBe(401);
   expect(await response.text()).toBe("Unauthorized");
   expect(held.calls).toBe(0);
+});
+
+// Wave 1 review. Break caught: null params read as an object, answering a 500.
+test("a request with null params answers a JSON-RPC error", async () => {
+  const tokens = new McpTokens();
+  const { tool } = heldTool();
+  const { app } = await testApp(undefined, { mcp: { tokens, tools: [tool] }, signIn: true });
+  const token = tokens.issue("session-1");
+
+  const response = await app.request(
+    url,
+    post(`Bearer ${token}`, { id: 7, method: "tools/call", params: null }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    error: { code: -32_602, message: "Unknown tool: undefined" },
+    id: 7,
+    jsonrpc: "2.0",
+  });
 });
