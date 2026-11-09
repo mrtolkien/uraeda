@@ -47,9 +47,10 @@ export class SubSessions {
    * Starts a sub-session of `parent`'s feature, as `role`, titled `about`, working in `cwd`, on
    * `pick`, sends it `message` as a workflow turn of its parent's step, and resolves with its last
    * message once the turn ends. A turn that does not end done rejects, with why. A second start of
-   * the same parent, role, and `about` starts nothing: it resolves with the first one's answer,
-   * waiting while it works, after a restart too. `signal` gives the wait up, the sub-session left
-   * working.
+   * the same parent, role, and `about` starts no session: it resolves with the first one's answer,
+   * waiting while it works, after a restart too; once that one stopped or failed without a continue
+   * to wait for, it sends `message` as a new turn of the same sub-session. `signal` gives the wait
+   * up, the sub-session left working.
    */
   start(parent: string, role: Role, start: SubSessionStart, signal?: AbortSignal): Promise<string> {
     return this.#counted(parent, () => this.#start(parent, role, start, signal));
@@ -172,14 +173,16 @@ export class SubSessions {
   }
 
   /**
-   * Starts the sub-session's first turn, unless it has one: its process opens in its worktree, and
-   * the turn takes its parent's step and trigger.
+   * Starts a turn of the sub-session, its first, or a new one once its latest stopped or failed
+   * without a continue to wait for: its process opens in its worktree, and the turn takes its
+   * parent's step and trigger. Nothing while it works or waits to continue, or once it ended done:
+   * the call answers that turn's end.
    */
   async #begin(row: SessionRow, text: string): Promise<void> {
     const { cache, processes, turns } = this.#context;
     const live = this.#context.live.of(row);
     await this.#context.live.serial(live, async () => {
-      if (working(live) || cache.turns(row.id).length > 0) {
+      if (working(live) || !runsAgain(latestTurn(cache.turns(row.id)))) {
         return;
       }
       const id = randomUUID();
@@ -264,6 +267,14 @@ export function subSessionsWork(context: SessionContext, parent: string): boolea
 /** The latest turn, skipping those taken back, which never ran. */
 const latestTurn = (turns: Array<TurnRow>) =>
   turns.findLast((turn) => !(turn.state === "stopped" && turn.reason === TAKEN_BACK));
+
+/**
+ * Whether a call starts a turn of a sub-session whose latest turn is `last`: its first, or once its
+ * latest stopped or failed without a continue to wait for.
+ */
+const runsAgain = (last: TurnRow | undefined) =>
+  last === undefined ||
+  ((last.state === "stopped" || last.state === "failed") && last.continueAt === null);
 
 /** The step and trigger of the parent's turn: its running one, else its latest workflow turn. */
 function parentTurn(

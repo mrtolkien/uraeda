@@ -279,3 +279,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Turns.watch` in `packages/server/src/runner/turns.ts`, and `SubSessions.busy` in
   `sub-sessions.ts`.
 - **Where**: task 8's review.
+
+## R23: A task stopped or failed runs again when the parent asks again
+
+- **Decision**: the same task asked again answers the first call's turn while its sub-session works
+  or waits to continue, or once that turn ended done. Once it stopped or failed without a continue
+  to wait for (Stop, a halt, a crash, or a capped limit), the new call sends its prompt as a new
+  workflow turn of the same sub-session, which keeps its worktree and its agent session.
+- **Rationale**: the review found a task stopped once could never run again: every later call
+  answered the old stop. A limit's wait still answers its failure at once, as R21 says.
+- **If wrong**: `runsAgain` and `SubSessions.#begin` in
+  `packages/server/src/runner/sub-sessions.ts`.
+- **Where**: task 8's review.

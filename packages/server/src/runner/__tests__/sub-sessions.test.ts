@@ -192,7 +192,7 @@ test("a sub-session's continue after its limit starts while its parent works", a
 });
 
 test("Stop on a parent stops its sub-sessions", async () => {
-  const { cache, call, parent, repo, sessions } = await building();
+  const { cache, call, gate, other, parent, repo, sessions } = await building();
   const calls = [4, 5].map((task) => call(task));
   await until(() => allRunning(sessions, cache, parent.id, 2));
 
@@ -205,6 +205,14 @@ test("Stop on a parent stops its sub-sessions", async () => {
     expect(latest(cache, sub.id)?.state).toBe("stopped");
     expect(sessions.sessionWorking(sub.id)).toBe(false);
   }
+
+  // Asked again, a stopped task runs again, a new turn of its sub-session.
+  const sub = sessions.subSessions.ofParent(parent.id).find((one) => one.title === "Task 4")!;
+  gate.open("Implement task 4");
+  expect(await call(4)).toBe("Done: Implement task 4");
+  expect(cache.turns(sub.id).map((turn) => turn.state)).toEqual(["stopped", "done"]);
+  expect(other.sent.at(-1)?.text).toBe("Implement task 4");
+  expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(2);
 });
 
 test("after a restart, a parent continues once its sub-sessions end", async () => {
