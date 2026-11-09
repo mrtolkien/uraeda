@@ -171,11 +171,10 @@ opened before [Finish](references/finish.md) existed.
    [Implementation](references/implementation.md#comments-on-the-pull-request)'s comments pass,
    whatever the table says.
 4. **Continue to the next human gate.** A run stops at a human gate, where its message says to stop,
-   or for a reason to stop that its step's reference names, like a new round of questions.
-   Otherwise, run the next step in the same session, without stopping to report: an auto-approved
-   plan goes straight on to the implementation. If you cannot go on, say why in your last message:
-   the next run finds the step with this table. When Uraeda runs the workflow, it starts the next
-   step itself.
+   or for a reason its step's reference names, like a new round of questions. Otherwise, run the
+   next step in the same session without reporting: an auto-approved plan goes on to the
+   implementation. If you cannot go on, say why in your last message. Uraeda's runs start the next
+   step themselves.
 
 **A file in an old format** is rewritten from its template before the step runs: see
 [Conventions](references/conventions.md#a-file-in-an-old-format).
