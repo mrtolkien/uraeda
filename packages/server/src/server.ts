@@ -295,10 +295,15 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 
 /**
  * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
- * of the listed repositories, whose changes the extensions turn into events, and each of whose
- * watcher bursts calls `burst` with the repository's path: all closed again when one fails to open.
+ * of the listed repositories, whose changes the extensions turn into events. Each watcher burst of
+ * a repository, and each refresh of its pull requests that changed them, calls `settled` with its
+ * path: all closed again when one fails to open.
  */
-async function openParts(options: StartOptions, previews: Previews, burst: (repo: string) => void) {
+async function openParts(
+  options: StartOptions,
+  previews: Previews,
+  settled: (repo: string) => void,
+) {
   const { binding, dataDir } = options;
   const extensions = await ExtensionsHost.open({
     agents: options.agents,
@@ -322,10 +327,11 @@ async function openParts(options: StartOptions, previews: Previews, burst: (repo
       binding,
       changed: (host, changes) => {
         extensions.changes(host, changes);
-        burst(host.path);
+        settled(host.path);
       },
       dataDir,
       sessions: sessions.sessions,
+      settled: (host) => settled(host.path),
       started: (host) => extensions.seed(host),
       // A repository removed from the list stops its Storybooks, and its steps are forgotten.
       stopped: (host) => {

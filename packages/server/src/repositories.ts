@@ -59,6 +59,11 @@ type HostsOptions = {
   changed?: (host: Host, changes: Changes) => void;
   dataDir: string;
   sessions: Sessions;
+  /**
+   * Told when a host's features may have moved to another step: after each refresh of its pull
+   * requests that changed them, which only `gh` sees, like a draft made ready.
+   */
+  settled?: (host: Host) => void;
   /** Told of each host started, a missing folder's too. */
   started?: (host: Host) => void;
   stopped?: (host: Host) => void;
@@ -262,22 +267,10 @@ export class Hosts {
       // The core defers this repository's commits for the queue from now on.
       binding.deferCommits(path, true);
       entry.host.fetcher = startFetcher(path, binding, queue, () => publishGit(live));
-      entry.pulls = startPullRequests(path, binding, (features) =>
-        publish(
-          {
-            branchDecisions: [],
-            decisions: false,
-            features,
-            files: [],
-            git: false,
-            inbox: false,
-            priorities: false,
-            workspace: true,
-          },
-          entry.host,
-          sessions,
-        ),
-      );
+      entry.pulls = startPullRequests(path, binding, (features) => {
+        publish({ ...NO_CHANGES, features, workspace: true }, entry.host, sessions);
+        this.#options.settled?.(entry.host);
+      });
       try {
         entry.watch = binding.watch(path, (changes) => {
           publish(changes, entry.host, sessions);

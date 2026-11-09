@@ -1,6 +1,7 @@
 // The catcher: with the switch on, each open pull request behind the default branch gets its
 // catch-up's run by itself, once per tip of the default branch (US2 of agents-fix). It runs on each
-// watcher burst and each turn's end in a repository, and on each change of the switch.
+// watcher burst, each refresh of the pull requests that changed them, and each turn's end in a
+// repository, and on each change of the switch.
 import type { CatchUpView, FeatureView } from "uraeda-binding";
 import { continueOne } from "./fate/continue-all.ts";
 import type { RepoContext } from "./fate/context.ts";
@@ -139,7 +140,7 @@ export function startCatchUps(options: {
 /**
  * Starts the catcher on the listed repositories, each one's context the one a request there gets:
  * it runs at each feature's turn that ends done, at each change of the settings, which may turn its
- * switch on, and once now. Its stop stops its triggers too. The hosts' watcher bursts run it too.
+ * switch on, and once now. Its stop stops its triggers too. The hosts run it too: see `openParts`.
  */
 export function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
   const { hosts, sessions, settings } = shared;
