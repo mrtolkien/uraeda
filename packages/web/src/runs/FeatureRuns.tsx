@@ -3,7 +3,7 @@
 // files, its gates. A step that started keeps what it ran on; the steps ahead stay editable. The
 // map draws the feature's options as its record carries them, merged over the settings' by the
 // core, and saves what differs from the settings' as the feature's, from its next run on.
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useSettings } from "../data.ts";
 import { refusal } from "../errors.ts";
@@ -95,25 +95,25 @@ function useSaves(feature: RunsFeature) {
 /**
  * The map of `feature`, over its `history`, on the agents on here: its options as its record
  * merges them, against the settings' run options; a change saved as the feature's at once, shown
- * before the server answers, with its refusal.
+ * before the server answers, with its refusal. Nothing until the settings are read.
  */
-export function FeatureRuns({
-  feature,
-  history,
-}: {
-  feature: RunsFeature;
-  history: StagesHistory;
-}) {
+function SavedRuns({ feature, history }: { feature: RunsFeature; history: StagesHistory }) {
   const runtimes = pickerRuntimes(useRuntimesOn());
   const saved = useSettings()?.runs.options;
   // With no agent on, the map still draws the feature's steps, on today's first agent.
   const fallback = runtimes[0]?.kind ?? "claude";
-  const defaults = useMemo(() => fromStored(saved ?? { steps: [] }, fallback), [fallback, saved]);
+  const defaults = useMemo(
+    () => (saved === undefined ? undefined : fromStored(saved, fallback)),
+    [fallback, saved],
+  );
   const merged = useMemo(
     () => fromStored(feature.runOptions.merged, fallback),
     [fallback, feature.runOptions.merged],
   );
   const { pending, refused, save } = useSaves(feature);
+  if (defaults === undefined) {
+    return null;
+  }
   return (
     <FeatureRunMap
       defaults={defaults}
@@ -124,5 +124,23 @@ export function FeatureRuns({
       runtimes={runtimes}
       value={pending ?? merged}
     />
+  );
+}
+
+/**
+ * The map of `feature`, over its `history`: drawn once the settings are read, without holding the
+ * rest of the page meanwhile.
+ */
+export function FeatureRuns({
+  feature,
+  history,
+}: {
+  feature: RunsFeature;
+  history: StagesHistory;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <SavedRuns feature={feature} history={history} />
+    </Suspense>
   );
 }

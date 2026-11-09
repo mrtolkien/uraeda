@@ -1,6 +1,7 @@
 // The start dialogs' run strip (spec of Run options, US5 and SC-001): Tab reaches it, the map's keys
 // move along it and open the picker, and the start keeps as the feature's own options only what the
-// strip changed, so every value left alone follows the settings at each run.
+// strip changed, so every value left alone follows the settings at each run. And the feature page's
+// map: drawn once the settings are read, without holding the page.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { FakeAdapter } from "uraeda-server/testing";
@@ -125,4 +126,38 @@ test("a feature started with Spec on Opus keeps only that pick", async () => {
       steps: [{ agent: "claude", effort: "high", model: "opus", step: "spec" }],
     }),
   );
+});
+
+/**
+ * `fetch`, holding each request whose body `holds` until `release`: each request held as it is
+ * made, never sent to the server before then.
+ */
+function holding(fetch: typeof globalThis.fetch, holds: (body: string) => boolean) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const held: typeof globalThis.fetch = async (input, init) => {
+    if (typeof init?.body === "string" && holds(init.body)) {
+      await released;
+    }
+    return fetch(input, init);
+  };
+  return { fetch: held, release };
+}
+
+/** The feature page's map of `2026-10-12-cli-tuis`, at its plan. */
+const PLANNING = "2026-10-12-cli-tuis";
+
+test("the feature page draws its map once the settings are read, the page drawn meanwhile", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const settings = holding(serverFetch(repo, fake.sessions), (body) => body.includes("Settings"));
+  await renderPage(`/f/${PLANNING}`, repo, { agent: fake, fetch: settings.fetch });
+
+  await screen.findByRole("heading", { name: /CLI TUIs/i });
+  expect(screen.queryByRole("group", { name: "How each step runs" })).toBeNull();
+
+  settings.release();
+  await screen.findByRole("group", { name: "How each step runs" });
 });
