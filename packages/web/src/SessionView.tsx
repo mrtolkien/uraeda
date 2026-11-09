@@ -93,8 +93,6 @@ const styles = stylex.create({
 export type Handing = {
   notice?: string;
   onSent?: (session: string) => void;
-  /** The controls of the workflow's run, in the composer's footer while it holds its message. */
-  options?: ReactNode;
   /** Whether the composer offers the feature's recommended message. */
   recommended?: boolean;
   workflow?: { file?: string; fresh?: boolean; trigger: Trigger };

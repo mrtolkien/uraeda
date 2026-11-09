@@ -89,8 +89,6 @@ export type ComposerProps = {
    */
   onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<boolean>;
   onSent?: (session: string) => void;
-  /** The controls of the workflow's run, in the composer's footer while it holds its message. */
-  options?: ReactNode;
   /** What the empty field says, in place of "Message <the agent>": "Write Proposal". */
   placeholder?: string;
   /** Whether it offers the recommended message of the feature in `folder`. */
@@ -227,7 +225,6 @@ function useInserted(given: ComposerProps, input: RefObject<EditorHandle | null>
   const setInserted = given.onRun ?? setOwn;
   const [inserts, setInserts] = useState(0);
   const workflow = given.workflow ?? (inserted === undefined ? undefined : workflowOf(inserted));
-  const options = given.workflow ? given.options : undefined;
   // The button goes once inserted: the field takes the focus.
   useEffect(() => {
     if (inserts > 0) {
@@ -236,7 +233,6 @@ function useInserted(given: ComposerProps, input: RefObject<EditorHandle | null>
   }, [input, inserts]);
   const props: ComposerProps = {
     ...given,
-    ...(options === undefined ? {} : { options }),
     onSent: (session) => {
       setInserted(undefined);
       given.onSent?.(session);
