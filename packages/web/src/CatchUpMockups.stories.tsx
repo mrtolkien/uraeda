@@ -1,4 +1,4 @@
-// The catch-up's mockups (`specs/2026-11-08-agents-fix/spec.md`): a feature whose open pull request
+// The catch-up's mockups (`specs/done/2026-11-08-agents-fix.md`): a feature whose open pull request
 // is behind main, its card while nobody catches it up, while its agent does, and once it stopped on
 // a conflict; the lines and the banner the catch-up leaves in its session; and the Runs settings'
 // new switch, off by default. Built from the real components over fixed text, with no server: the

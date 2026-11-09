@@ -3,7 +3,7 @@ kind: feature
 finished: 2026-10-31
 pull-request: https://github.com/mrtolkien/uraeda/pull/80
 supersedes: [2026-10-15-add-bugfixing, 2026-10-29-performance-pass]
-superseded-by: [2026-11-03-worker-lifecycle]
+superseded-by: [2026-11-03-worker-lifecycle, 2026-11-08-agents-fix]
 ---
 
 # Record: Feature state pass
@@ -15,6 +15,8 @@ superseded-by: [2026-11-03-worker-lifecycle]
 > in git: `git log -- specs/2026-10-30-feature-state/`.
 >
 > Superseded in part by [2026-11-03-worker-lifecycle](2026-11-03-worker-lifecycle.md).
+>
+> Superseded in part by [2026-11-08-agents-fix](2026-11-08-agents-fix.md).
 
 ## What and why
 
