@@ -566,7 +566,8 @@ git commit -m "feat(agents-fix): the skill catches up an open pull request"
     automatic continue's.
   - `deliver` records `caughtUpTo = next.step.catchUp.commit` on every workflow turn whose step is
     `catch-up`, whatever its trigger (R1), read by `sendPlace` as it sends; an automatic continue
-    keeps its stopped turn's, and a queued turn retyped as a chat drops it (R8).
+    keeps its stopped turn's, and a queued turn retyped as a chat drops it (R8), with its `line`,
+    whose place its message takes (R13). A message sent as a chat at once writes no `line`.
 
 - [x] **Step 1: Write the failing tests**
 
