@@ -730,13 +730,13 @@ share, and concurrency with the continuer.
   - `runSession(context, live, runStep: StepId, fresh?: boolean): Promise<Live>` in
     `run-session.ts`: the session a run of `runStep` goes to. The latest session when it never ran,
     which takes the step's pick (R18), or when it runs `runStep` already, whatever its pick (R18);
-    else the latest when `stepSession` joins its step to `runStep` and it runs on the step's agent
-    and model, its effort set to the step's for the next turn; else a new session on the step's
-    pick, `step` set. `fresh: true` always starts a new one. A session without `step` reads as the
-    run step of its latest workflow turn. A step whose agent is off runs on the first runtime on,
-    without its model and effort. A step whose model the agent no longer lists is refused with
-    `RUNTIME_REFUSALS.stepModelGone(step, model, agent)`: "Spec runs on Opus 4.1, which Claude Code
-    no longer lists."
+    else the latest when it runs on the step's agent and model, and `stepSession` joins its step to
+    `runStep` or it ran no workflow (R15), its effort set to the step's for the next turn; else a
+    new session on the step's pick, `step` set. `fresh: true` always starts a new one. A session
+    without `step` reads as the run step of its latest workflow turn. A step whose agent is off runs
+    on the first runtime on, without its model and effort. A step whose model the agent no longer
+    lists is refused with `RUNTIME_REFUSALS.stepModelGone(step, model, agent)`: "Spec runs on Opus
+    4.1, which Claude Code no longer lists."
   - `goal(step, planReview)` stops each run at its step: approval, plan, and plan revision "Write
     the plan" (or "Record the approved decisions and write the plan"), stopping when "the plan is
     committed" without plan review; implementation stopping when "every task of the plan is

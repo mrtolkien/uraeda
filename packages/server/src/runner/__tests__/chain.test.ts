@@ -252,3 +252,25 @@ test("a run whose step did not move on starts nothing", async () => {
   expect(fake.sent).toHaveLength(1);
   sessions.close();
 });
+
+test.each<[string, { model?: string }, boolean]>([
+  ["on the step's pick", {}, true],
+  ["on another model", { model: "fake-small" }, false],
+])(
+  "a session that ran no workflow takes a run only on its step's pick (%s)",
+  async (_, pick, kept) => {
+    const { runtimes } = await twoRuntimes();
+    const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
+    // A chat moved to the feature: it ran, but no step.
+    const chat = await sessions.featureSession(repo, AGENT, { ...pick, runtime: "fake" });
+    await sessions.settled((await sessions.send(repo, chat.id, { text: "Why?" })).turn);
+    const workflow = { step: "plan", trigger: "manual" } as const;
+
+    const sent = await sessions.send(repo, chat.id, { text: "Write the plan", workflow });
+    await sessions.settled(sent.turn);
+
+    expect(sent.session === chat.id).toBe(kept);
+    expect(cache.session(sent.session)).toMatchObject({ model: null, step: "plan" });
+    sessions.close();
+  },
+);

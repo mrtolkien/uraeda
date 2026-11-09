@@ -101,8 +101,8 @@ function takeEffort(context: SessionContext, live: Live, row: SessionRow, pick: 
 /**
  * The session a workflow run of `runStep` goes to, from the feature's latest session `live`: that
  * one when it never ran, which then starts for `runStep` on the step's pick; that one when it runs
- * `runStep` already, whatever its pick, or ran no workflow, which then starts for `runStep`; that
- * one too when its step's joint joins `runStep` and it runs on the step's agent and model, its
+ * `runStep` already, whatever its pick; that one too when it runs on the step's agent and model,
+ * and ran no workflow, which then starts for `runStep`, or its step's joint joins `runStep`, its
  * effort set to the step's for the next turn; else a new session of the feature on the step's pick,
  * which becomes its latest. `fresh` always starts a new one, once `live` ran. A step whose agent is off runs on the
  * first runtime on, on its defaults; a model its agent no longer lists is refused. A new session is
@@ -119,10 +119,7 @@ export async function runSession(
   const row = rowOf(cache, live);
   const folder = live.folder as string;
   const ran = sessionStep(context, row);
-  if (fresh !== true && (ran === undefined || ran === runStep) && cache.turns(live.id).length > 0) {
-    if (row.step === null) {
-      cache.updateSession(row.id, { step: runStep });
-    }
+  if (fresh !== true && ran === runStep) {
     return live;
   }
   const agents = agentsOf(runtimes, live.repo);
@@ -135,14 +132,17 @@ export async function runSession(
     return live;
   }
   const current = { runtime: row.agent, ...(row.model === null ? {} : { model: row.model }) };
+  const onPick = row.agent === pick.runtime && samePick(agents, current, pick);
+  // A session that ran no step, as a chat moved to the feature, takes it on the step's pick.
   const joined =
     fresh !== true &&
-    isStepId(ran) &&
-    stepSession(agents, map, ran, runStep) &&
-    row.agent === pick.runtime &&
-    samePick(agents, current, pick);
+    onPick &&
+    (ran === undefined || (isStepId(ran) && stepSession(agents, map, ran, runStep)));
   if (joined) {
     takeEffort(context, live, row, pick);
+    if (row.step === null) {
+      cache.updateSession(row.id, { step: runStep });
+    }
     return live;
   }
   const picked = newPicked(context, runStep, pick);

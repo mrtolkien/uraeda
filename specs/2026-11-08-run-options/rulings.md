@@ -147,8 +147,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R15: A session without a run step takes the run, and a promoted feature starts anew
 
 - **Decision**: a feature's latest session that ran no workflow turn, as a chat moved to a change,
-  takes the next workflow run, and starts for its step. A change promoted to a feature runs the
-  feature's first step in a new session: the change's Build is never joined to a step before it.
+  takes the next workflow run, and starts for its step, when it runs on the step's agent and model,
+  its effort set to the step's as a joined step's is; on another pick, the run goes to a new session
+  on the step's pick. A change promoted to a feature runs the feature's first step in a new session:
+  the change's Build is never joined to a step before it.
 - **Rationale**: a chat's turns hold the context the human gave, and no step ran there to cut from;
   the run options decision lets steps share a session only where the human joined them, forward. The
   session moves' test "promote runs the next step in the session" now expects a new session.
