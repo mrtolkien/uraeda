@@ -211,7 +211,7 @@ function missingFeature(folder: string): FeatureRecord {
     path: "",
     preview: false,
     problems: [],
-    runOptions: { steps: [] },
+    runOptions: { merged: { steps: [] }, own: { steps: [] } },
     runtime: null,
     session: null,
     sessions: [],

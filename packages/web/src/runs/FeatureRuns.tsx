@@ -1,8 +1,8 @@
 // A feature's or a change's page draws its run map where its timeline was (spec of Run options,
 // from the review's C2): how each step runs, and where the feature stands in them, its times, its
 // files, its gates. A step that started keeps what it ran on; the steps ahead stay editable. The
-// map reads the feature's own options over the settings', and saves what differs from the
-// settings' as the feature's, from its next run on.
+// map draws the feature's options as its record carries them, merged over the settings' by the
+// core, and saves what differs from the settings' as the feature's, from its next run on.
 import { useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useSettings } from "../data.ts";
@@ -16,14 +16,7 @@ import { FeatureView } from "../views.ts";
 import { featureStages, type StagesFeature } from "./featureStages.ts";
 import type { Pos } from "./runCursor.ts";
 import { RunMap } from "./RunMap.tsx";
-import {
-  fromStored,
-  overSettings,
-  type RunOptions,
-  STEPS,
-  type StoredOptions,
-  toSaved,
-} from "./runOptions.ts";
+import { fromStored, type RunOptions, STEPS, type StoredOptions, toSaved } from "./runOptions.ts";
 
 /** The cursor's first place: the step at work, else the first step shown. */
 function startOf(stages: ReturnType<typeof featureStages>): Pos {
@@ -69,50 +62,67 @@ export function FeatureRunMap({
   );
 }
 
+/** A feature as its map reads it: its record's run options, its own and their merge. */
+type RunsFeature = StagesFeature & {
+  folder: string;
+  id: string;
+  runOptions: { merged: StoredOptions; own: StoredOptions };
+};
+
 /**
- * The map of `feature`, over its `history`, on the agents on here: its own options, `runOptions`,
- * over the settings' run options; a change saved as the feature's at once, shown before the server
- * answers, with its refusal.
+ * The saves of `feature`'s options: each edit's map is shown until its save answers. Gives the map
+ * shown while a save goes, `pending`, the save's refusal, and `save`.
+ */
+function useSaves(feature: RunsFeature) {
+  const fate = useFateClient();
+  const [pending, setPending] = useState<RunOptions>();
+  const [refused, setRefused] = useState<string>();
+  const save = async (next: RunOptions, options: StoredOptions) => {
+    setPending(next);
+    setRefused(undefined);
+    const result = await fate.mutations.feature.setRunOptions({
+      input: { folder: feature.folder, options },
+      view: FeatureView,
+    });
+    setPending(undefined);
+    if (result.error) {
+      setRefused(refusal(result.error).message);
+    }
+  };
+  return { pending, refused, save };
+}
+
+/**
+ * The map of `feature`, over its `history`, on the agents on here: its options as its record
+ * merges them, against the settings' run options; a change saved as the feature's at once, shown
+ * before the server answers, with its refusal.
  */
 export function FeatureRuns({
   feature,
   history,
 }: {
-  feature: StagesFeature & { folder: string; id: string; runOptions: StoredOptions };
+  feature: RunsFeature;
   history: StagesHistory;
 }) {
-  const fate = useFateClient();
   const runtimes = pickerRuntimes(useRuntimesOn());
   const saved = useSettings()?.runs.options;
   // With no agent on, the map still draws the feature's steps, on today's first agent.
   const fallback = runtimes[0]?.kind ?? "claude";
   const defaults = useMemo(() => fromStored(saved ?? { steps: [] }, fallback), [fallback, saved]);
-  const value = useMemo(
-    () => overSettings(defaults, feature.runOptions),
-    [defaults, feature.runOptions],
+  const merged = useMemo(
+    () => fromStored(feature.runOptions.merged, fallback),
+    [fallback, feature.runOptions.merged],
   );
-  const [refused, setRefused] = useState<string>();
-  const save = async (next: RunOptions) => {
-    setRefused(undefined);
-    const options = toSaved(next, defaults);
-    const result = await fate.mutations.feature.setRunOptions({
-      input: { folder: feature.folder, options },
-      optimistic: { id: feature.id, runOptions: options },
-      view: FeatureView,
-    });
-    if (result.error) {
-      setRefused(refusal(result.error).message);
-    }
-  };
+  const { pending, refused, save } = useSaves(feature);
   return (
     <FeatureRunMap
       defaults={defaults}
       feature={feature}
       history={history}
-      onChange={(next) => void save(next)}
+      onChange={(next) => void save(next, toSaved(next, defaults))}
       refused={refused}
       runtimes={runtimes}
-      value={value}
+      value={pending ?? merged}
     />
   );
 }

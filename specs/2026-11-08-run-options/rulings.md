@@ -109,15 +109,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `merge_pick` in `crates/core/src/settings/runs.rs`.
 - **Where**: task 1, from the review of wave 1.
 
-## R12: A feature's record holds only its own options
+## R12: A feature's record holds its own options and the core's merge of them
 
-- **Decision**: the feature's record's `runOptions` is the feature's own options, a `RunOptions`;
-  the web UI takes the defaults from the settings' record's `runs.options`. `FeatureRunOptions` is
-  gone.
+- **Decision**: the feature's record's `runOptions` is `{ own, merged }`: `own`, the feature's own
+  options, a `RunOptions`, and `merged`, the binding's `mergeRunOptions` of them over the settings'
+  `runs.options`, as the server computes it. When the settings' run options change, the server sends
+  every host's `Feature` records again, as it sends the settings' record, so `merged` never goes
+  stale. The web UI draws the feature page's map from `merged`, and saves what differs from the
+  settings' map. `FeatureRunOptions` is gone.
 - **Rationale**: a copy of the settings' options in each feature's record goes stale when the
-  settings change, since nothing announces the features then; the settings' record is announced on
-  every change.
-- **Where**: task 4, from the review of wave 2.
+  settings change unless the features are announced then; and the stack decision says TypeScript
+  reaches the core only through the binding, never reimplementing it, which an overlay of the
+  feature's options over the settings' in the web UI did (R32, superseded).
+- **If wrong**: `runOptionsOf` in `packages/server/src/fate/sessions.ts`, `announceSettings` in
+  `packages/server/src/live.ts`, `FeatureRuns` in `packages/web/src/runs/FeatureRuns.tsx`.
+- **Where**: task 4, from the review of wave 2; task 12's review.
 
 ## R13: A feature's options have their own database file
 
@@ -440,20 +446,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and `Reviews.review` in `reviews.ts`.
 - **Where**: task 9's review.
 
-## R32: The feature page reads a feature's options over the settings' in the map's terms
+## R32: Sub-sessions leave the sessions' list, and the feature page's map (superseded in part)
 
-- **Decision**: `overStored(defaults, own)` in `uraeda-server/run-options` lays a feature's own
-  stored options over the settings' map, the inverse of `toStored`, and the feature page's map reads
-  it. A test pins it to the core's `merge_run_options` over every case the map stores. Sub-sessions
+- **Decision**: superseded for the map's options by R12, as task 12's review changed it: the feature
+  page's map reads the record's `merged`, the core's merge, and `overStored` is gone. Sub-sessions
   leave the sidebar's list and search; their parent's record lists them, and its Sub-agents pane and
   the feature's sessions draw them from there. The stories' sub-sessions are sessions of Storybook's
   server, seeded by `recordSubSessions`; those at work wait to continue after their agent's limit,
   as a stored running turn is stopped once the server starts. A sub-session's state follows the
   runner's rule, `subSessionsWork`'s: at work while its turn runs or it waits to continue; before
   its first turn, at work while its parent runs a turn, else stopped.
-- **Rationale**: the web UI cannot call the core, and the record holds only the feature's own
-  options (R12): the map of the settings is at hand, and the overlay is the map's own rule, as
-  `toStored` is.
-- **If wrong**: `overStored` in `packages/server/src/run-options.ts`, `FeatureRuns` in
-  `packages/web/src/runs/FeatureRuns.tsx`.
-- **Where**: task 12.
+- **Rationale**: a sub-session belongs to its parent's run, and its parent's views list it.
+- **If wrong**: `subSessionFields` in `packages/server/src/fate/sub-session-views.ts`, and the
+  stories' `samples/subSessions.ts`.
+- **Where**: task 12, and its review.

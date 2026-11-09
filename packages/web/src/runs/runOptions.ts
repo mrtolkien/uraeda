@@ -6,7 +6,6 @@ import {
   isForced as isForcedBy,
   jointCuts as jointCutsBy,
   type MapOptions,
-  overStored,
   samePick as samePickBy,
   sessionSpans as sessionSpansBy,
   STEPS,
@@ -203,11 +202,6 @@ export type StoredOptions = Settings["runs"]["options"];
 /** Stored options as the map edits them, a step that names no agent on `runtime`. */
 export function fromStored(stored: StoredOptions, runtime: string): RunOptions {
   return toMap(stored, runtime);
-}
-
-/** A feature's own stored options over the settings' `defaults`, as the map edits them. */
-export function overSettings(defaults: RunOptions, own: StoredOptions): RunOptions {
-  return overStored(defaults, own);
 }
 
 /** What the map's `options` store over `defaults`: only what differs from them. */

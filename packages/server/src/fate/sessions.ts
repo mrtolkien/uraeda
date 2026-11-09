@@ -363,6 +363,15 @@ function newPickOf(ctx: RepoContext, root: string, feature: FeatureView) {
   }
 }
 
+/**
+ * The run options of `folder`: its own, read with the main checkout `root` as its sessions are, none
+ * outside git; and the core's merge of them over the settings'.
+ */
+function runOptionsOf(ctx: RepoContext, root: string | undefined, folder: string) {
+  const own = root === undefined ? { steps: [] } : ctx.featureOptions.own(root, folder);
+  return { merged: ctx.featureOptions.over(own), own };
+}
+
 /** `turns`, the turns of `sessions`, with their sub-sessions', in the order they were added. */
 function withSubSessions(cache: SessionCache, sessions: Array<SessionRow>, turns: Array<TurnRow>) {
   const subs = sessions.flatMap((row) => cache.subSessionsOf(row.id));
@@ -397,9 +406,7 @@ export async function featureRecord(
     missing: false,
     newPick: root === undefined ? null : newPickOf(ctx, root, feature),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
-    // Its own, read with the main checkout as its sessions are: the settings' record holds the
-    // rest, live.
-    runOptions: root === undefined ? { steps: [] } : ctx.featureOptions.own(root, feature.folder),
+    runOptions: runOptionsOf(ctx, root, feature.folder),
     runtime: sessions[0]?.agent ?? null,
     session: sessions[0]?.id ?? null,
     status: await featureStatusOf(ctx, feature),

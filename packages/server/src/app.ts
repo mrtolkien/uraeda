@@ -181,7 +181,7 @@ export function createApp(options: AppOptions) {
   const { featureOptions } = options;
   // The settings' and the themes' changes reach every endpoint's views until they close, as the
   // server stops.
-  announceSettings(settings, hosts);
+  announceSettings(settings, hosts, binding);
   announceThemes(themes, hosts);
   const app: App = new Hono<{ Variables: FateVariables }>();
   for (const path of ["/fate", "/r/:name/fate"]) {

@@ -71,9 +71,9 @@ async function ownOptions(fetch: typeof globalThis.fetch, name: string) {
     method: "POST",
   });
   const body = (await response.json()) as {
-    results: Array<{ data: Array<{ runOptions: unknown }> }>;
+    results: Array<{ data: Array<{ runOptions: { own: unknown } }> }>;
   };
-  return body.results[0]?.data[0]?.runOptions;
+  return body.results[0]?.data[0]?.runOptions.own;
 }
 
 test("a feature started with Spec on Opus keeps only that pick", async () => {

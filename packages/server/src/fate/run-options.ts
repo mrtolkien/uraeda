@@ -1,5 +1,5 @@
 // The mutation of a feature's own run options, which apply from its next run on: its record shows
-// them, and the settings' record the settings' (see `featureRecord`).
+// them, and the core's merge of them over the settings' (see `featureRecord`).
 import type { RunOptions } from "uraeda-binding";
 import { sender } from "../live.ts";
 import type { Resolver } from "./context.ts";

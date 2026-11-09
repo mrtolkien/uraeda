@@ -588,8 +588,9 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
     `uraeda-server`), keyed by the repository's main checkout, as the sessions are (R9).
     `AppOptions.featureOptions` is required: the server builds the one store, and closes it as it
     stops.
-  - The feature's record gains `runOptions: RunOptions`, its own options only: the defaults are the
-    settings' record's `runs.options`, which stays live as the settings change (R12).
+  - The feature's record gains `runOptions: { own: RunOptions; merged: RunOptions }`: its own
+    options, and the binding's `mergeRunOptions` of them over the settings' `runs.options`, sent
+    again with every host's `Feature` records as the settings' run options change (R12).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -1219,7 +1220,7 @@ git commit -m "feat(run-options): the start dialogs' run strip"
 **Interfaces:**
 
 - Consumes: `SubSessions.ofParent`, the sessions' `parent` and `role` (Task 8); the feature record's
-  `runOptions` and `feature.setRunOptions` (Task 4); `toMap`, `toStored` (Task 5).
+  `runOptions.merged` and `feature.setRunOptions` (Task 4); `toMap`, `toStored` (Task 5).
 - Produces: `SessionRecord.subSessions: Array<SubSessionRecord>`, the web's `SubSession` fields
   (`about`, `agent`, `effort`, `endedAt`, `id`, `model`, `parent`, `role`, `startedAt`, `state`,
   `usage`); `SessionRecord.parent` and `role`. Every `TEMPORARY` marker of `runs/`, `SessionsPane`,
@@ -1227,12 +1228,12 @@ git commit -m "feat(run-options): the start dialogs' run strip"
 
 - [x] **Step 1: Serve the sub-sessions, and draw them**
 
-The feature page's map reads the feature's own options, its record's `runOptions`, and the settings'
-defaults, the settings record's `runs.options` (R12), and saves a change with
-`feature.setRunOptions`. The Sub-agents pane lists a session's sub-sessions; Enter or a click opens
-the sub-session's page, read only, with Stop while it works and a link to its parent. The feature's
-sessions pane nests sub-sessions under their parent, in the `sub-agent` colour. A chat's pane keeps
-the agent's own sub-agents.
+The feature page's map reads the feature's options merged over the settings', its record's
+`runOptions.merged`, against the settings' defaults, the settings record's `runs.options` (R12), and
+saves a change with `feature.setRunOptions`. The Sub-agents pane lists a session's sub-sessions;
+Enter or a click opens the sub-session's page, read only, with Stop while it works and a link to its
+parent. The feature's sessions pane nests sub-sessions under their parent, in the `sub-agent`
+colour. A chat's pane keeps the agent's own sub-agents.
 
 Left by Task 8's review: the sessions list, `SessionCache.sessions` (read by `fate/sessions.ts`),
 lists sub-sessions flat beside the workflow sessions, and the live refresh in `live.ts`, on a
@@ -1241,9 +1242,10 @@ list, or leave them out of it, and refresh a feature's sub-sessions with their p
 
 Built: the list and search leave sub-sessions out; a feature's change refreshes its sessions'
 sub-sessions, and a sub-session's change its parent's record. A sub-session's state follows the
-runner's rule, `subSessionsWork`'s (R32). The map reads `overStored`, a feature's options over the
-settings' map (R32). The stories read sub-sessions Storybook's server keeps,
-`samples/subSessions.ts`; `FeatureRunMap` is the map without the server, for the stories.
+runner's rule, `subSessionsWork`'s (R32). The map draws the record's `runOptions.merged`, the core's
+merge, and saves what differs from the settings' map (R12). The stories read sub-sessions
+Storybook's server keeps, `samples/subSessions.ts`; `FeatureRunMap` is the map without the server,
+for the stories.
 
 - [x] **Step 2: Run the task's validation**
 

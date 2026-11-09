@@ -168,11 +168,20 @@ function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
   for (const bus of [globalLive, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
     sender(bus)("Agent", AGENT_ID);
   }
-  for (const host of hosts()?.all() ?? []) {
+  sendEachFeature(binding, hosts()?.all() ?? [], "RecommendedMessage");
+}
+
+/** Sends the record of `type` of each feature of each host, on its bus. */
+function sendEachFeature(
+  binding: Pick<Binding, "readWorkspace">,
+  hosts: ReadonlyArray<Pick<Host, "live" | "path">>,
+  type: string,
+) {
+  for (const host of hosts) {
     void binding.readWorkspace(host.path).then(
       ({ features }) => {
         const update = sender(host.live);
-        features.forEach(({ folder }) => update("RecommendedMessage", folder));
+        features.forEach(({ folder }) => update(type, folder));
       },
       // A repository the core cannot read has no feature to update.
       () => undefined,
@@ -421,13 +430,24 @@ export function continueSettings(settings: ServerSettings): () => ContinueSettin
 
 /**
  * Sends the `Settings` record's live update on the global bus and every host's, each time the
- * settings in force or their problem change, once per change: returns its removal, which
- * `settings.close()`, as the server stops, makes too.
+ * settings in force or their problem change, once per change, with every host's `Feature` records
+ * when the run options change, as each holds its options merged over them: returns its removal,
+ * which `settings.close()`, as the server stops, makes too.
  */
-export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "all">): () => void {
+export function announceSettings(
+  settings: ServerSettings,
+  hosts: Pick<Hosts, "all">,
+  binding: Pick<Binding, "readWorkspace">,
+): () => void {
+  let options = JSON.stringify(settings.runs().options);
   return settings.onChange(() => {
     for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
       sender(bus)("Settings", SETTINGS_ID);
+    }
+    const now = JSON.stringify(settings.runs().options);
+    if (now !== options) {
+      options = now;
+      sendEachFeature(binding, hosts.all(), "Feature");
     }
   });
 }

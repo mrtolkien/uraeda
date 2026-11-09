@@ -5,7 +5,6 @@ import {
   type Agents,
   isForced,
   jointCuts,
-  overStored,
   samePick,
   sessionSpans,
   STEPS,
@@ -186,64 +185,12 @@ test("the defaults' reviewer is one agent on the review step's agent and its def
 });
 
 /**
- * The feature page reads a feature's own options over the settings' as the core merges them: the
- * map of the merge is the settings' map with the feature's options over it.
+ * The feature page saves what its map changed over the settings' map, and draws the core's merge of
+ * it over the settings', which its record carries: the map it saved.
  */
-test.each<{ defaults: RunOptions; name: string; own: RunOptions }>([
-  { defaults: { steps: [] }, name: "nothing of its own", own: { steps: [] } },
-  {
-    defaults: { steps: [{ effort: "high", model: "opus", step: "spec" }] },
-    name: "a step's effort over the settings' model",
-    own: { steps: [{ effort: "low", step: "spec" }] },
-  },
-  {
-    defaults: { steps: [{ agent: "claude", effort: "high", model: "opus", step: "spec" }] },
-    name: "another agent drops the settings' model and effort (R11)",
-    own: { steps: [{ agent: "codex", step: "spec" }] },
-  },
-  {
-    defaults: { steps: [{ newSession: false, step: "plan" }] },
-    name: "a cut over the settings' joint",
-    own: {
-      steps: [
-        { newSession: true, step: "plan" },
-        { newSession: true, step: "review" },
-      ],
-    },
-  },
-  {
-    defaults: { steps: [{ agent: "codex", step: "build" }] },
-    name: "the implementers following the feature's build",
-    own: { steps: [{ agent: "claude", step: "build" }] },
-  },
-  {
-    defaults: { implementers: { agent: "codex", effort: "low" }, steps: [] },
-    name: "the implementers' model over the settings'",
-    own: { implementers: { model: "gpt-6-astra" }, steps: [] },
-  },
-  {
-    defaults: { reviewDepth: "branch", reviewers: [{ command: "lint" }], steps: [] },
-    name: "the settings' reviewers and depth kept",
-    own: { steps: [{ agent: "codex", step: "review" }] },
-  },
-  {
-    defaults: { reviewers: [{ command: "lint" }], steps: [] },
-    name: "the feature's reviewers and depth",
-    own: { reviewDepth: "waves", reviewers: [{ agent: "codex", effort: "high" }], steps: [] },
-  },
-  {
-    defaults: { steps: [{ agent: "codex", step: "review" }] },
-    name: "the reviewer following the feature's review step",
-    own: { steps: [{ agent: "claude", step: "review" }] },
-  },
-])("a feature's options over the settings': $name", ({ defaults, name: _, own }) => {
-  expect(overStored(toMap(defaults, "claude"), own)).toEqual(
-    toMap(mergeRunOptions(defaults, own), "claude"),
-  );
-});
-
-test("a feature's options over the settings' give back the map they were stored from", () => {
-  const defaults = toMap({ steps: [{ effort: "high", model: "opus", step: "spec" }] }, "claude");
+test("a feature's options stored over the settings' merge back to the map they were stored from", () => {
+  const settings: RunOptions = { steps: [{ effort: "high", model: "opus", step: "spec" }] };
+  const defaults = toMap(settings, "claude");
   const map = withCut(
     AGENTS,
     {
@@ -254,5 +201,5 @@ test("a feature's options over the settings' give back the map they were stored 
     },
     STEPS.indexOf("review"),
   );
-  expect(overStored(defaults, toStored(map, defaults))).toEqual(map);
+  expect(toMap(mergeRunOptions(settings, toStored(map, defaults)), "claude")).toEqual(map);
 });

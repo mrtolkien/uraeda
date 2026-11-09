@@ -114,7 +114,10 @@ export const FeatureView = view<Feature>()({
   preview: true,
   problems: true,
   pullRequest: { number: true, state: true, url: true },
-  runOptions: { implementers: true, reviewDepth: true, reviewers: true, steps: true },
+  runOptions: {
+    merged: { implementers: true, reviewDepth: true, reviewers: true, steps: true },
+    own: { implementers: true, reviewDepth: true, reviewers: true, steps: true },
+  },
   runtime: true,
   session: true,
   sessions: true,

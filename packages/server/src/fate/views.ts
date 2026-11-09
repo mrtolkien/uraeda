@@ -102,10 +102,11 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorkt
     /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;
     /**
-     * Its own run options, only what it changed: the settings' record's `runs.options` gives every
-     * value it never changed.
+     * Its run options: `own`, only what it changed, which `feature.setRunOptions` keeps; and
+     * `merged`, the core's merge of them over the settings' `runs.options`, what its next run
+     * starts on, sent again as the settings' run options change.
      */
-    runOptions: RunOptions;
+    runOptions: { merged: RunOptions; own: RunOptions };
     /**
      * The runtime of its latest session, which its runs go to, null before its first message, when
      * they go to a new session on the runtime picked, or the first one on.

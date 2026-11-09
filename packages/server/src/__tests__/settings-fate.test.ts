@@ -1,6 +1,7 @@
 // The `Settings` record and its changes, on every endpoint: the values in force, the file's, and
 // their sources; the core's refusals; and the live update each change sends (review focus 2). And a
-// feature's own run options, which its record shows over the settings'.
+// feature's own run options, which its record shows with the core's merge over the settings', sent
+// again as the settings change.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
@@ -27,8 +28,8 @@ async function change(opened: Opened, mutation: string, input: unknown) {
   return result;
 }
 
-/** The `Settings` updates a bus's `update` gets from now on. */
-function heard(bus: { update: (...args: Array<never>) => void }) {
+/** The updates of records of `type`, `Settings` by default, a bus's `update` gets from now on. */
+function heard(bus: { update: (...args: Array<never>) => void }, type = "Settings") {
   const update = vi.spyOn(bus, "update");
   // The global bus's spy is shared by the tests of this file: its earlier calls are not heard.
   const from = update.mock.calls.length;
@@ -36,7 +37,7 @@ function heard(bus: { update: (...args: Array<never>) => void }) {
     update.mock.calls
       .slice(from)
       .map(([type, id]) => `${String(type)} ${String(id)}`)
-      .filter((call) => call.startsWith("Settings "));
+      .filter((call) => call.startsWith(`${type} `));
 }
 
 const defaults = {
@@ -158,7 +159,7 @@ test("the run options are written whole, and refused with the core's message", a
   expect((await record(opened)).runs.options).toEqual(options);
 });
 
-test("a feature's record holds its own run options, the settings' left to their record", async () => {
+test("a feature's record holds its own run options, and the core's merge over the settings'", async () => {
   // A linked worktree's endpoint keys the options by the main checkout, as the sessions are.
   const main = "/checkouts/main";
   const opened = await testApp(undefined, { binding: { ...binding, mainRoot: async () => main } });
@@ -173,19 +174,31 @@ test("a feature's record holds its own run options, the settings' left to their 
         select: ["id", "runOptions"],
       },
     ]);
+  const read = async () =>
+    (await byIdAt(opened.app, opened.name, "Feature", [FEATURE], ["id", "runOptions"]))[0];
 
   const [result] = await set(FEATURE, { steps: [{ effort: "high", step: "spec" }] });
   const [refused] = await set(FEATURE, { steps: [{ step: "deploy" }] });
   const [unknown] = await set("2026-01-01-nothing", { steps: [] });
-  const [read] = await byIdAt(opened.app, opened.name, "Feature", [FEATURE], ["id", "runOptions"]);
 
   const own = { steps: [{ effort: "high", step: "spec" }] };
-  expect(result.data.runOptions).toEqual(own);
+  const runOptions = { merged: binding.mergeRunOptions(defaults, own), own };
+  expect(result.data.runOptions).toEqual(runOptions);
   expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
   expect(unknown.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
-  expect(read.runOptions).toEqual(own);
+  expect((await read()).runOptions).toEqual(runOptions);
   expect(opened.featureOptions.own(main, FEATURE)).toEqual(own);
   expect(opened.featureOptions.own(opened.repo, FEATURE)).toEqual({ steps: [] });
+
+  // The settings' change sends the feature's record again, with the new merge.
+  const features = heard(opened.hosts.all()[0]!.live, "Feature");
+  const later = { steps: [{ model: "sonnet", step: "review" }] };
+  await change(opened, "setRunOptions", { options: later });
+  await vi.waitFor(() => expect(features()).toContain(`Feature ${FEATURE}`), {
+    interval: 10,
+    timeout: 10_000,
+  });
+  expect((await read()).runOptions).toEqual({ merged: binding.mergeRunOptions(later, own), own });
 });
 
 /** US5 1 */
