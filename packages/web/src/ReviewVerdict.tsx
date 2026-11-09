@@ -64,8 +64,14 @@ export function useRefusals() {
   return { continued, continues, error, message, run, setMessage };
 }
 
-/** Why a spec's Approve is held back. */
-const HELD = "A comment on a part of the spec asks for changes";
+/**
+ * What each verdict does with the pending comments, once there is one: either is accepted with
+ * them, and the human picks by whether they change the file now or can wait for the next step.
+ */
+function weighing(kind: File["kind"]) {
+  const [next, file] = kind === "spec" ? ["the plan", "spec"] : ["the code", "plan"];
+  return `With comments, Approve leaves them to ${next}; Request changes revises the ${file} first.`;
+}
 
 /**
  * The verdict's buttons, Request changes and Approve, each committing, then opening the session
@@ -75,12 +81,10 @@ const HELD = "A comment on a part of the spec asks for changes";
 function Verdicts({
   comments,
   file,
-  holdsApproval,
   onVerdict,
 }: {
   comments: number;
   file: File;
-  holdsApproval: boolean;
   onVerdict: (approve: boolean, next: boolean) => Promise<boolean>;
 }) {
   return (
@@ -95,10 +99,9 @@ function Verdicts({
       />
       <CommitActions
         folder={file.folder}
-        isDisabled={holdsApproval || file.committed != null}
+        isDisabled={file.committed != null}
         label="Approve"
         onCommit={(next) => onVerdict(true, next)}
-        tooltip={holdsApproval ? HELD : undefined}
       />
     </>
   );
@@ -226,20 +229,14 @@ export function ReviewVerdict({
   comments,
   file,
   refusals,
-  targeted,
 }: {
   choices: ChoicesState;
   /** How many comments are pending. */
   comments: number;
   file: File;
   refusals: Refusals;
-  /** How many of them point at a part of the file, not general. */
-  targeted: number;
 }) {
   const { error, hides, hold, message } = refusals;
-  // Approving a spec says it needs no change: a comment on a part of it asks for one. A general
-  // comment, pointers for the plan, does not, and a plan is approved with its comments.
-  const holdsApproval = file.kind === "spec" && targeted > 0;
   const spec = (file.committed ?? file.current).items.spec;
   const { retry, verdict } = useVerdict(file, choices, refusals);
   // The page's next step, as a round's `n` reaches its Commit: the verdict, from anywhere on it.
@@ -254,7 +251,6 @@ export function ReviewVerdict({
         <Verdicts
           comments={comments}
           file={file}
-          holdsApproval={holdsApproval}
           onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
         />
       </div>
@@ -266,9 +262,9 @@ export function ReviewVerdict({
           Request changes: Add a comment first
         </Text>
       )}
-      {holdsApproval && (
+      {comments > 0 && (
         <Text color="secondary" type="supporting">
-          Approve: {HELD}
+          {weighing(file.kind)}
         </Text>
       )}
     </>

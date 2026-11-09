@@ -285,26 +285,30 @@ test("a verdict with an open comment holding text is refused", async () => {
 const approveHeld = () =>
   screen.getByRole("button", { name: "Approve" }).getAttribute("aria-disabled") === "true";
 
+/** What the verdict says once a comment is pending: what each button does with the comments. */
+const WEIGH =
+  "With comments, Approve leaves them to the plan; Request changes revises the spec first.";
+
 /**
- * Approving a spec says it needs no change: a comment on a part of it holds Approve back, while a
- * general one, pointers for the plan, leaves it.
+ * A spec is approved with comments anywhere, a part's or general, which its plan carries out; what
+ * each verdict does with them shows once there is one, never before.
  */
-test("a comment on a part of the spec holds Approve back, a general one does not", async () => {
+test("a spec is approved with a comment on a part of it, the hint saying what each verdict does", async () => {
   const r = repo();
   await renderPage(PAGE, r);
-  await typeComment("Pointers for the plan.", await waitFor(generalField));
-  const end = within(document.getElementById(GENERAL_ID) as HTMLElement);
-  await click(end.getByRole("button", { name: /^(Add|Save) comment$/ }));
-  await saved(/^C1/, "Pointers for the plan.");
-  expect(approveHeld()).toBe(false);
-
+  expect(shown(WEIGH)).toHaveLength(0);
   await openUS2();
   await click(await scenario(FIRST));
   await comment("Say it stays.");
-  await saved(/^C2/, "Say it stays.");
+  await saved(/^C1/, "Say it stays.");
 
-  await waitFor(() => expect(approveHeld()).toBe(true));
-  expect(shown("Approve: A comment on a part of the spec asks for changes")).toHaveLength(1);
+  await waitFor(() => expect(shown(WEIGH)).toHaveLength(1));
+  expect(approveHeld()).toBe(false);
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(read(r, SPEC)).toContain("status: approved\n"));
+  expect(read(r, REVIEW)).toContain("verdict: approved\n");
+  expect(read(r, REVIEW)).toContain("Say it stays.");
 });
 
 /**
