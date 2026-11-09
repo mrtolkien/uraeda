@@ -121,11 +121,11 @@ function StepRuntime({
  * message that makes its session, to a feature without one or a new chat, the one picked, with its
  * `picker`, and `sent`, what the message's input sends of the pick: a feature's, never picked, its
  * next step's agent, as its picker shows. In a running session, `picker` is its effort's. A
- * workflow message in a session of a feature goes where the server runs its step: its next step's
- * agent, the session's when it is the same, else a new session on the step's pick (`runSession`).
- * `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off, gone, or
- * not on this machine; `offer` says it of a workflow message, which the recommended message would
- * be. `reader` reads the next step's agent, drawn by the composer. A message sent elsewhere,
+ * workflow message in a session of a feature goes where the server runs its step, which only the
+ * server knows (`runSession`): its runtime is named after its next step's agent, and checked at
+ * Send. `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off,
+ * gone, or not on this machine; `offer` says it of a workflow message, which the recommended
+ * message would be. `reader` reads the next step's agent, drawn by the composer. A message sent elsewhere,
  * `onSend`, needs no runtime.
  */
 export function useComposerRuntime({
@@ -161,7 +161,10 @@ export function useComposerRuntime({
     <SessionPicker hasPageKey onChange={setPick} runtimes={pickerRuntimes(on)} value={pick} />
   );
   const chatUnavailable = runtimeRefusal(choice) ?? blocked;
-  const workflowUnavailable = runtimeRefusal(step) ?? blocked;
+  // A workflow message in a session goes where the server's `runSession` sends it: that session,
+  // or a new one on its step's pick, which only the server knows. It refuses, at Send, a runtime
+  // off or gone there; the composer refuses only for a message that makes its session.
+  const workflowUnavailable = makes ? (runtimeRefusal(step) ?? blocked) : blocked;
   return {
     agent: (workflow ? step : choice).runtime,
     offer: onSend ? blocked : workflowUnavailable,
