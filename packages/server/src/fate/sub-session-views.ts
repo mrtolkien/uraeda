@@ -30,7 +30,11 @@ export type SubSessionRecord = {
   role: Role;
   startedAt: string;
   state: SubSessionState;
-  /** Its tokens, fresh input and cache writes, and output: null before its agent reported any. */
+  /**
+   * Its tokens, fresh input and cache writes, and output: null before its agent reported any. Its
+   * parent's record is sent again as its state changes, not with each of its items: the usage
+   * there is as of its last state change.
+   */
   usage: { input: number; output: number } | null;
 };
 

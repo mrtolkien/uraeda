@@ -363,9 +363,15 @@ function newPickOf(ctx: RepoContext, root: string, feature: FeatureView) {
   }
 }
 
+/** `turns`, the turns of `sessions`, with their sub-sessions', in the order they were added. */
+function withSubSessions(cache: SessionCache, sessions: Array<SessionRow>, turns: Array<TurnRow>) {
+  const subs = sessions.flatMap((row) => cache.subSessionsOf(row.id));
+  return [...turns, ...subs.flatMap((row) => cache.turns(row.id))].sort((a, b) => a.id - b.id);
+}
+
 /**
  * A feature's record: its view, with its sessions' IDs, latest first and not archived, their
- * tokens, and whether it has a preview.
+ * tokens and their sub-sessions', and whether it has a preview.
  */
 export async function featureRecord(
   ctx: RepoContext,
@@ -400,7 +406,7 @@ export async function featureRecord(
     // An archived session, of a dropped change, leaves the lists.
     sessions: sessions.filter((row) => row.archivedAt === null).map((row) => row.id),
     step: sentStep(feature.step),
-    tokens: featureTokens(turns),
+    tokens: featureTokens(withSubSessions(cache, sessions, turns)),
   };
 }
 

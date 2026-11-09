@@ -1703,17 +1703,27 @@ test("a feature lists no archived session", async () => {
   expect(feature).toEqual({ id: AGENT, sessions: [older.id] });
 });
 
-test("a feature's tokens count every session", async () => {
+test("a feature's tokens count every session, its sub-sessions too", async () => {
   const server = await testServer();
   const counts = { cacheRead: 100, cacheWrite: 20, input: 3, output: 40 };
   const older = await folderSession(server, AGENT);
   doneTurn(server, older.id, { tokens: counts });
   const latest = await folderSession(server, AGENT);
   doneTurn(server, latest.id, { tokens: counts });
+  const sub = server.sessions.cache.createSession({
+    agent: "fake",
+    folder: AGENT,
+    nativeId: "s",
+    parent: latest.id,
+    repo: latest.repo,
+    role: "implementer",
+    title: "Task 1",
+  });
+  doneTurn(server, sub.id, { kind: "workflow", tokens: counts });
 
   const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "tokens"]);
 
-  expect(feature.tokens).toMatchObject({ input: 46, output: 80, partial: false });
+  expect(feature.tokens).toMatchObject({ input: 69, output: 120, partial: false });
 });
 
 test("US3.5: a search for a feature finds every session of it", async () => {
