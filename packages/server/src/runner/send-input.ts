@@ -147,8 +147,9 @@ export async function openingOf(
 
 /**
  * Checks a queued workflow run again as it starts, with `sendPlace`'s rule: one that no longer
- * applies starts as a chat, from the human, with the line saying so, and the chat opening when a
- * chat there opens with it, after the opening it was sent with. Refused once its feature is merged.
+ * applies starts as a chat, from the human, with the line saying so in place of the workflow's
+ * line, and the chat opening when a chat there opens with it, after the opening it was sent with.
+ * Refused once its feature is merged.
  */
 export async function recheckQueued(
   context: SessionContext,
@@ -175,9 +176,20 @@ export async function recheckQueued(
   const lines = [sent.item.opening, chat].filter((line) => line !== undefined);
   const opening = lines.length === 0 ? undefined : lines.join("\n");
   sent.item = { ...sent.item, origin: "human", ...(opening === undefined ? {} : { opening }) };
-  cache.updateItem(queued.id, sent.seq, sent.item);
-  cache.retypeTurn(queued.id, { kind: "chat", step: null, trigger: null });
-  cache.appendItem(queued.id, { kind: "system", text: asChat });
+  // The workflow's line before the message said why it ran, as a catch-up's: a chat runs for none
+  // of it. The message takes its place, and the line saying it runs as a chat follows it.
+  const line = cache.items(queued.id, 0, sent.seq).findLast((item) => item.kind === "system");
+  cache.atomically(() => {
+    cache.retypeTurn(queued.id, { kind: "chat", step: null, trigger: null });
+    if (line === undefined) {
+      cache.updateItem(queued.id, sent.seq, sent.item);
+      cache.appendItem(queued.id, { kind: "system", text: asChat });
+      return;
+    }
+    cache.updateItem(queued.id, line.seq, sent.item);
+    cache.updateItem(queued.id, sent.seq, { kind: "system", text: asChat });
+    sent.seq = line.seq;
+  });
   queued.message = {
     ...queued.message,
     text: opening === undefined ? text : `${opening}\n${text}`,
