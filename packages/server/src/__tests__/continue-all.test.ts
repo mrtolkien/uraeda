@@ -18,17 +18,25 @@ const CATCH_UP = {
   subject: "finish(codex-runtime): Codex runtime + model settings",
 };
 
+/** How a test's run ended: its state at `step`, why, and the commit it caught up with. */
+type Ended = {
+  caughtUpTo?: string | null;
+  reason?: string;
+  state: "done" | "failed" | "stopped";
+  step: string;
+};
+
 /** A session of the folder whose one workflow turn ended `state` at `step`. */
-async function endedRun(
+async function endedRun(server: Server, folder: string, ended: Ended): Promise<string> {
+  return (await endedTurn(server, folder, ended)).session;
+}
+
+/** `endedRun`'s session, and its turn. */
+async function endedTurn(
   server: Server,
   folder: string,
-  {
-    caughtUpTo = null,
-    reason,
-    state,
-    step,
-  }: { caughtUpTo?: string | null; reason?: string; state: "done" | "failed"; step: string },
-): Promise<string> {
+  { caughtUpTo = null, reason, state, step }: Ended,
+): Promise<{ session: string; turn: number }> {
   const { cache } = server.sessions;
   const repo = await server.sessions.mainRoot(server.repo);
   const session = cache.createSession({ agent: "fake", folder, nativeId: "n", repo, title: null });
@@ -42,7 +50,7 @@ async function endedRun(
     trigger: "manual",
   });
   cache.endTurn(turn, { ...(reason === undefined ? {} : { reason }), state });
-  return session.id;
+  return { session: session.id, turn };
 }
 
 /** A session of the folder whose one workflow turn failed, not logged in. */
@@ -126,4 +134,41 @@ test("Continue all leaves a catch-up stopped on a conflict alone", async () => {
 
   expect(result.error).toBeUndefined();
   expect(server.sessions.cache.turns(conflict)).toHaveLength(1);
+});
+
+/**
+ * Review: a dismissed conflict reads idle, but its catch-up already ran for this tip. Catches:
+ * Continue all sending the same catch-up again.
+ */
+test("Continue all leaves a dismissed conflict alone", async () => {
+  const server = await testServer(undefined, { binding: atCatchUp(binding, AGENT, CATCH_UP) });
+  const conflict = await endedTurn(server, AGENT, {
+    caughtUpTo: CATCH_UP.commit,
+    state: "done",
+    step: "catch-up",
+  });
+  server.sessions.cache.dismiss(conflict.turn);
+
+  const result = await mutate(server.app, "feature.continueAll", {}, ["id"]);
+
+  expect(result.error).toBeUndefined();
+  expect(server.sessions.cache.turns(conflict.session)).toHaveLength(1);
+});
+
+/** Review: Catches: the tip's record keeping Continue all from a catch-up the human stopped. */
+test("Continue all continues a catch-up the human stopped", async () => {
+  const server = await testServer(undefined, { binding: atCatchUp(binding, AGENT, CATCH_UP) });
+  const stopped = await endedRun(server, AGENT, {
+    caughtUpTo: CATCH_UP.commit,
+    state: "stopped",
+    step: "catch-up",
+  });
+
+  server.adapter.script([]);
+  const result = await mutate(server.app, "feature.continueAll", {}, ["id"]);
+
+  expect(result.error).toBeUndefined();
+  const turns = server.sessions.cache.turns(stopped);
+  expect(turns).toHaveLength(2);
+  await server.sessions.settled(turns[1].id);
 });
