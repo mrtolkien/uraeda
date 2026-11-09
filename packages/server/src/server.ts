@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
-import { type CatchUps, startCatchUps } from "./catch-ups.ts";
+import { type CatchUps, catcher } from "./catch-ups.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
 import { keptBases, startWaiting, warmPreview } from "./fate/preview-waiting.ts";
 import { ExtensionsHost } from "./extensions/server.ts";
@@ -16,7 +16,6 @@ import {
   createSessions,
   type HostsOf,
   livePreviews,
-  onTurnDone,
   renewPreviews,
 } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
@@ -239,32 +238,6 @@ function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
       .finally(() => {
         sweeping = false;
       });
-  };
-}
-
-/**
- * Starts the catcher on the listed repositories, each one's context the one a request there gets:
- * it runs at each feature's turn that ends done, at each change of the settings, which may turn its
- * switch on, and once now. Its stop stops its triggers too. The hosts' watcher bursts run it too.
- */
-function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
-  const { hosts, sessions, settings } = shared;
-  const catchUps = startCatchUps({
-    context: (repo) => ({ ...shared, repo }),
-    enabled: () => settings.runs().catchUpPullRequests.inForce,
-    repos: () => hosts.all().map((host) => host.path),
-  });
-  const unsubscribe = [
-    onTurnDone(sessions, (repo) => void catchUps.run(repo)),
-    settings.onChange(() => void catchUps.runAll()),
-  ];
-  void catchUps.runAll();
-  return {
-    ...catchUps,
-    stop: () => {
-      unsubscribe.forEach((stop) => stop());
-      catchUps.stop();
-    },
   };
 }
 

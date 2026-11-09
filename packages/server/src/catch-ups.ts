@@ -5,6 +5,7 @@ import type { CatchUpView, FeatureView } from "uraeda-binding";
 import { continueOne } from "./fate/continue-all.ts";
 import type { RepoContext } from "./fate/context.ts";
 import { type FeatureStatus, featureStatuses } from "./fate/feature-status.ts";
+import { onTurnDone } from "./live.ts";
 import { reasonOf } from "./reason.ts";
 import { catchUpLine } from "./runner/message.ts";
 import { CATCH_UP } from "./runner/status.ts";
@@ -131,6 +132,32 @@ export function startCatchUps(options: {
     },
     stop: () => {
       stopped = true;
+    },
+  };
+}
+
+/**
+ * Starts the catcher on the listed repositories, each one's context the one a request there gets:
+ * it runs at each feature's turn that ends done, at each change of the settings, which may turn its
+ * switch on, and once now. Its stop stops its triggers too. The hosts' watcher bursts run it too.
+ */
+export function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
+  const { hosts, sessions, settings } = shared;
+  const catchUps = startCatchUps({
+    context: (repo) => ({ ...shared, repo }),
+    enabled: () => settings.runs().catchUpPullRequests.inForce,
+    repos: () => hosts.all().map((host) => host.path),
+  });
+  const unsubscribe = [
+    onTurnDone(sessions, (repo) => void catchUps.run(repo)),
+    settings.onChange(() => void catchUps.runAll()),
+  ];
+  void catchUps.runAll();
+  return {
+    ...catchUps,
+    stop: () => {
+      unsubscribe.forEach((stop) => stop());
+      catchUps.stop();
     },
   };
 }
