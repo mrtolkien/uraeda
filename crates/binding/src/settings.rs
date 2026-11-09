@@ -95,16 +95,17 @@ pub fn set_run_options(dir: String, options: RunOptions) -> AsyncTask<Job<Settin
 }
 
 /// Throws `refused: ` and the problem when `options` holds a step not of the workflow's, a step
-/// twice, a depth not `waves` or `branch`, or a reviewer without exactly one of an agent and a
-/// command. It reads nothing, so it returns at once.
+/// twice, a depth not `waves` or `branch`, an empty agent, or a reviewer without exactly one of an
+/// agent and a command, or with an empty command. It reads nothing, so it returns at once.
 #[napi]
 pub fn check_run_options(options: RunOptions) -> napi::Result<()> {
     settings::check_run_options(&options)
         .map_err(|error| napi::Error::from_reason(format!("{}: {}", error.code, error.message)))
 }
 
-/// A feature's run options over the settings' defaults: each value the feature sets wins, and its
-/// reviewers replace the defaults' list whole. It reads nothing, so it returns at once.
+/// A feature's run options over the settings' defaults: each value the feature sets wins, but for
+/// the defaults' model and effort, dropped where the feature picks another agent, and its reviewers,
+/// when it lists any, replace the defaults' list whole. It reads nothing, so it returns at once.
 #[napi]
 pub fn merge_run_options(defaults: RunOptions, feature: RunOptions) -> RunOptions {
     settings::merge_run_options(&defaults, &feature)

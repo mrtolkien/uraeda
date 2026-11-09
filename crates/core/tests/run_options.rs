@@ -343,7 +343,8 @@ fn checks_a_set_of_run_options() {
         reviewers: Some(vec![reviewer]),
         ..RunOptions::default()
     };
-    let rows: [(RunOptions, Result<(), ApiError>); 8] = [
+    let empty_agent = || Some(" ".to_owned());
+    let rows: [(RunOptions, Result<(), ApiError>); 11] = [
         (
             with_steps(&["discovery", "spec", "plan", "build", "review", "comments"]),
             Ok(()),
@@ -380,6 +381,30 @@ fn checks_a_set_of_run_options() {
         (
             with_reviewer(command_reviewer("  ")),
             Err(refused("A reviewer's command is empty.")),
+        ),
+        (
+            with_reviewer(agent_reviewer("")),
+            Err(refused("The agent is empty.")),
+        ),
+        (
+            RunOptions {
+                steps: vec![StepOptions {
+                    agent: empty_agent(),
+                    ..step("spec")
+                }],
+                ..RunOptions::default()
+            },
+            Err(refused("The agent is empty.")),
+        ),
+        (
+            RunOptions {
+                implementers: Some(RunPick {
+                    agent: empty_agent(),
+                    ..RunPick::default()
+                }),
+                ..RunOptions::default()
+            },
+            Err(refused("The agent is empty.")),
         ),
     ];
     for (options, expected) in rows {

@@ -72,11 +72,13 @@ pub struct ReviewerOptions {
     pub command: Option<String>,
 }
 
-/// Refuses a step not of the workflow's, a step listed twice, a depth not `waves` or `branch`, and
-/// a reviewer without exactly one of an agent and a command, or with an empty command.
+/// Refuses a step not of the workflow's, a step listed twice, a depth not `waves` or `branch`, an
+/// empty agent, and a reviewer without exactly one of an agent and a command, or with an empty
+/// command.
 pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
     for (index, step) in options.steps.iter().enumerate() {
         step_rule(&step.step).map_err(refused)?;
+        agent_rule(step.agent.as_deref()).map_err(refused)?;
         if options.steps[..index]
             .iter()
             .any(|before| before.step == step.step)
@@ -87,10 +89,14 @@ pub fn check_run_options(options: &RunOptions) -> Result<(), ApiError> {
             )));
         }
     }
+    if let Some(implementers) = &options.implementers {
+        agent_rule(implementers.agent.as_deref()).map_err(refused)?;
+    }
     if let Some(depth) = &options.review_depth {
         depth_rule(depth).map_err(refused)?;
     }
     for reviewer in options.reviewers.iter().flatten() {
+        agent_rule(reviewer.agent.as_deref()).map_err(refused)?;
         reviewer_rule(reviewer).map_err(refused)?;
     }
     Ok(())
@@ -181,6 +187,13 @@ fn depth_rule(depth: &str) -> Result<(), String> {
         return Ok(());
     }
     Err(format!("{depth} is not a review depth: waves or branch."))
+}
+
+fn agent_rule(agent: Option<&str>) -> Result<(), String> {
+    match agent {
+        Some(agent) if agent.trim().is_empty() => Err("The agent is empty.".into()),
+        _ => Ok(()),
+    }
 }
 
 fn reviewer_rule(reviewer: &ReviewerOptions) -> Result<(), String> {
