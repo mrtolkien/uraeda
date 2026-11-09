@@ -7,7 +7,8 @@ use crate::actions::findings::{self, Findings};
 use crate::view::feature_title;
 
 /// Writes the next `findings-NN.md` in the folder of the feature's worktree, and commits it alone,
-/// as `review(<slug>): findings NN`. Returns its path from the repository's top level.
+/// as `review(<slug>): findings NN`. Returns its path from the repository's top level. A hook's
+/// refusal leaves the file written, to be committed with `retry_commit(repo, folder, name)`.
 pub fn write_findings(repo: &Path, folder: &str, findings: &Findings) -> Result<String> {
     let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;

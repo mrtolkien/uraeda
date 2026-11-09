@@ -810,7 +810,9 @@ export declare function workDir(repo: string, folder: string): Promise<string>
 /**
  * Writes the next `findings-NN.md` in the folder of the feature's worktree, and commits it alone,
  * as `review(<slug>): findings NN`: other changes of the worktree stay out of the commit. Resolves
- * to its path from the repository's top level.
+ * to its path from the repository's top level. Rejects with `refused: ` findings without a
+ * section, a `reviewed` not `branch` or `wave <N>`, or `commits` empty or not one line. A hook's
+ * refusal leaves the file written, to be committed with `retryCommit(repo, folder, name)`.
  */
 export declare function writeFindings(repo: string, folder: string, findings: Findings): Promise<string>
 
