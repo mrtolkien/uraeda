@@ -159,3 +159,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the plan's optional trigger and line alone: a step's race the catcher
   cannot see.
 - **Where**: `packages/server/src/fate/continue-all.ts`, `__tests__/catch-ups.test.ts`; task 6.
+
+## R15: A branch the default branch holds is merged, not behind
+
+- **Decision**: the behind rule reads a tip that `origin/<default>` already holds, as a merge commit
+  leaves it, as not behind, whatever the default branch gained beside it.
+- **Rationale**: GitHub merges a pull request before `gh` says so: the fetch moves `origin/main`
+  first, and the snapshot still reads the pull request open. Read behind, the branch would get a
+  catch-up of work already merged. A squash merge leaves no such ancestry: the catcher waits for the
+  pull requests' refresh instead (R16).
+- **Alternatives considered**: none in the core alone: only the merge's ancestry says it, without
+  asking `gh`.
+- **Where**: `crates/core/src/behind.rs` `compute`, the skill's "Catch up an open pull request";
+  found in the final review.
