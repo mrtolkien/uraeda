@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Run options
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions and 1 follow-up, about 25 minutes.
+> Answered on 2026-11-09.
 >
 > - Verdict: worth building, with changes: one run covers several steps today, and "command" and
 >   "depth" of reviews need a meaning.
@@ -116,7 +116,7 @@ Why it matters: it sets how fine your control is, and whether a run stops at mor
   - [pro] two rows, the split most users want.
   - [con] the review runs on the build's model, unless reviewers pick their own.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Should a feature run in one session, or a new session at each step?
 
@@ -149,7 +149,10 @@ sessions a feature page lists.
   - [pro] no change to how you work today.
   - [con] the discovery and the spec cannot run on different agents.
 
-**Answer:**
+**Answer:** C: Why couldn't discovery and spec run on different agents?
+
+We need to review how the workflow is defined, we should be able to define an agent for multiple
+steps in a row! And it should be visually clear and simple to use.
 
 ## Q3: What happens when the next step's model differs from its session's?
 
@@ -182,7 +185,7 @@ Why it matters: it decides whether the Models decision changes, and what "one se
   - [pro] simple to explain.
   - [con] a feature in one session loses every per-step pick.
 
-**Answer:**
+**Answer:** A: It only continues the session if the user asked for a "master session" approach?
 
 ## Q4: Should the build's sub-agents get their own model and effort?
 
@@ -209,7 +212,8 @@ Why it matters: implementers do most of a build's work, so their model is most o
   - [pro] nothing more to set.
   - [con] no control over most of the build's usage.
 
-**Answer:**
+**Answer:** A: If we can pass our own "sub-agent" tool to Claude Code and Codex, letting us control
+the agent and model, imo that'd be the best. Full control in uraeda.
 
 ## Q5: How should reviewers be set?
 
@@ -241,7 +245,8 @@ away.
   - [pro] any review tool works, even one Uraeda does not know.
   - [con] you write and maintain each command and its model names.
 
-**Answer:**
+**Answer:** A: We need to be able to use the actual "review" features of the harnesses if they exist
+though. Maybe A + C cohabitating is best: we can define a reviewer as an agent OR a command.
 
 ### Q5.A: Who runs a reviewer on another agent?
 
@@ -267,7 +272,7 @@ orchestrates.
   - [pro] no orchestration in the server.
   - [con] that review shows only as a command's output, and its usage is not counted.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: What should a review's depth mean?
 
@@ -297,7 +302,7 @@ is fresh.
   - [con] the skill already fixes only critical and important ones, and drops minor ones not worth
     it.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Where should a feature's own options be kept?
 
@@ -322,7 +327,7 @@ runs spend.
   - [pro] in git, readable by an agent working without Uraeda.
   - [con] a repository someone else wrote could make your runs spend usage on its picks.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: How should a start dialog show the options?
 
@@ -345,7 +350,12 @@ Why it matters: it sets how heavy every start feels, and how fast one value chan
   - [pro] every value on screen.
   - [con] a dialog six rows taller for every start.
 
-**Answer:**
+**Answer:** A: I'll need to see mockups.
+
+I'd like an interactive diagram with models at each step (with icons, not a ton of text), and
+symbols showing when we start a clean session for example. All of course doable with the keyboard.
+
+Be original. Be bold. Make it instantly clear what the settings do without delving into text.
 
 ## Settled without the human
 
