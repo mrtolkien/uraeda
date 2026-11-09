@@ -80,6 +80,37 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   expect(await other.text()).toBe("vite");
 });
 
+test("stopping the dev runs waits for the work its start began", async () => {
+  vi.stubEnv("URAEDA_REPO", fixtureRepo());
+  vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
+  // The sandbox's turns at work, which read and write the repositories the test's end removes.
+  let done = false;
+  const handler = devHandler(temporaryFolder("uraeda-dev"), {
+    agents: { fake: new FakeAdapter() },
+    signIn: false,
+    started: () =>
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          done = true;
+          resolve();
+        }, 300),
+      ),
+  });
+  const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as { port: number };
+  await fetch(`http://127.0.0.1:${port}/fate`, {
+    body: JSON.stringify({ operations: [], version: 1 }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  server.close();
+
+  await stopDevRuns();
+
+  expect(done).toBe(true);
+});
+
 /** Edge case: the running server is `vp dev`. */
 test("the dev server answers a handoff on Vite's port", async () => {
   const root = temporaryFolder("uraeda-dev");

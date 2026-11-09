@@ -26,7 +26,8 @@ const sources = { file: !process.env.VITEST };
 
 /**
  * The server's routes, in Vite's own server, on Claude Code unless `runtimes` says otherwise. The
- * agents' runs end with Vite's server. It does not start on a binding older than the Rust core,
+ * agents' runs end with Vite's server, whose close waits for them: a test's end removes the folders
+ * they write in. It does not start on a binding older than the Rust core,
  * which the import of `fresh-binding` above rebuilt. `checkout` is where `.env` is read, unless
  * `file` is false: this checkout's root by default.
  */
@@ -42,8 +43,9 @@ export function uraedaServer(
       server.middlewares.use(devHandler(checkout, { ...sources, ...options }));
       // Vite's own HMR socket is left to Vite: only a preview's sockets go to the server.
       server.httpServer?.on("upgrade", devUpgrade());
-      server.httpServer?.once("close", () => void stopDevRuns());
     },
+    // Awaited by Vite's close, and run as it restarts.
+    closeServer: () => stopDevRuns(),
     name: "uraeda-server",
   };
 }
