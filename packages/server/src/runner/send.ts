@@ -224,8 +224,8 @@ export function deliverContinue(
   const { queued, seq } = cache.atomically(() => {
     const queued = cache.addTurn({
       allowed: null,
-      // A continued catch-up catches up with the same commit (R1).
-      caughtUpTo: chat ? null : stopped.caughtUpTo,
+      // A continued catch-up, or retry of one, catches up with the same commit (R1, R18).
+      caughtUpTo: stopped.caughtUpTo,
       kind: chat ? "chat" : stopped.kind,
       sessionId: live.id,
       state: "queued",
