@@ -2,7 +2,7 @@
 // starts each task in a sub-session of the feature, in the task's worktree, on the implementers'
 // pick, and answers with its last message. Sub-sessions work at once, never become their feature's
 // latest session, stop with their parent, and continue before it after a restart.
-import { mkdirSync } from "node:fs";
+import { mkdirSync, symlinkSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import type { RunOptions } from "uraeda-binding";
@@ -58,13 +58,22 @@ function gates() {
 /** The session's latest turn. */
 const latest = (cache: SessionCache, session: string) => cache.turns(session).at(-1);
 
+/** The implementers on `other` at Low. */
+const IMPLEMENTERS_LOW: RunOptions = {
+  implementers: { agent: "other", effort: "low", model: "fake-big" },
+  steps: [],
+};
+
 /**
  * A feature's workflow session on `fake`, the build's agent, its turn held, with the implementers
- * on `other` at Low, and three task worktrees. Each implementer holds its turn until the test opens
+ * on `other` at Low, unless `options` says otherwise, and three task worktrees. Each implementer holds its turn until the test opens
  * its task's gate, then answers "Done: <its prompt>". `runs` turns its automatic continues on; a
  * runtime named in `off` is off.
  */
-async function building({ runs }: { runs?: () => ContinueSettings } = {}) {
+async function building({
+  options = IMPLEMENTERS_LOW,
+  runs,
+}: { options?: RunOptions; runs?: () => ContinueSettings } = {}) {
   const fake = new FakeAdapter();
   const other = new FakeAdapter();
   // The runtimes the test turned off.
@@ -73,10 +82,6 @@ async function building({ runs }: { runs?: () => ContinueSettings } = {}) {
   runtimes.register("fake", fake);
   runtimes.register("other", other);
   await runtimes.refreshModels();
-  const options: RunOptions = {
-    implementers: { agent: "other", effort: "low", model: "fake-big" },
-    steps: [],
-  };
   const mcp = { address: { url: SERVER }, tokens: new McpTokens() };
   const setup = await testSessions(undefined, {
     mcp,
@@ -119,9 +124,20 @@ function allRunning(sessions: Sessions, cache: SessionCache, parent: string, cou
   return subs.length === count && subs.every((sub) => latest(cache, sub.id)?.state === "running");
 }
 
-test("run_agent runs each task in its own sub-session at once, on the role's pick", async () => {
+test.each([
+  {
+    expected: { agent: "other", effort: "low", model: "fake-big" },
+    name: "on the role's pick",
+    options: IMPLEMENTERS_LOW,
+  },
+  {
+    expected: { agent: "other" },
+    name: "on the build's agent when the role has no pick",
+    options: { steps: [{ agent: "other", step: "build" }] },
+  },
+])("run_agent runs each task in its own sub-session at once, $name", async (row) => {
   const { cache, call, fake, gate, other, parent, repo, root, sessions, signal, tool, worktrees } =
-    await building();
+    await building({ options: row.options });
 
   const calls = [4, 5, 6].map((task) => call(task));
   await until(() => allRunning(sessions, cache, parent.id, 3));
@@ -137,10 +153,8 @@ test("run_agent runs each task in its own sub-session at once, on the role's pic
   expect(subs.map((sub) => sub.worktree).toSorted()).toEqual(Object.values(worktrees));
   for (const sub of subs) {
     expect(sub).toMatchObject({
-      agent: "other",
-      effort: "low",
+      ...row.expected,
       folder: AGENT,
-      model: "fake-big",
       parent: parent.id,
       role: "implementer",
     });
@@ -178,6 +192,14 @@ type Places = { feature: string; root: string; worktrees: Record<number, string>
 test.each([
   { name: "a folder no worktree of the repository", worktree: () => "/tmp" },
   { name: "the main checkout", worktree: ({ root }: Places) => root },
+  {
+    name: "a link to the main checkout",
+    worktree: ({ root }: Places) => {
+      const link = join(root, ".worktrees", "main");
+      symlinkSync(root, link);
+      return link;
+    },
+  },
   { name: "a folder that is not there", worktree: ({ root }: Places) => join(root, "gone") },
   { name: "the feature's own worktree", worktree: ({ feature }: Places) => feature },
   {
