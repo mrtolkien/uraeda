@@ -327,6 +327,9 @@ enum Gain {
     CodeMergedThenOwn,
     /// `README.md` renamed to a note, in a commit `chore: note`, pushed.
     RenamedIntoNotes,
+    /// The code commit, then the branch merged into `main` with a merge commit, pushed, as GitHub
+    /// merges a pull request before `gh` reports it merged.
+    CodeThenBranchMerged,
 }
 
 /// Makes `main` gain `gain` after `branch` started from it.
@@ -347,6 +350,11 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
             repo.remove("README.md");
             repo.write("specs/notes/readme/note.md", "# Test\n");
             repo.commit("chore: note");
+        }
+        Gain::CodeThenBranchMerged => {
+            repo.write("src/a.rs", "fn a() {}\n");
+            repo.commit("feat: code");
+            repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", branch]);
         }
         _ => {
             repo.write("src/a.rs", "fn a() {}\n");
@@ -400,7 +408,7 @@ type BehindRow = (
 );
 
 /// The rows of [`a_pull_request_behind_the_default_branch_catches_up`].
-fn behind_rows() -> [BehindRow; 11] {
+fn behind_rows() -> [BehindRow; 12] {
     let code = Some(("implementation", "feat: code"));
     [
         ("main gained code", false, Gain::Code, "{b}", code),
@@ -467,6 +475,13 @@ fn behind_rows() -> [BehindRow; 11] {
             Gain::RenamedIntoNotes,
             "{b}",
             Some(("implementation", "chore: note")),
+        ),
+        (
+            "main merged the branch, its pull request not yet read merged",
+            false,
+            Gain::CodeThenBranchMerged,
+            "{b}",
+            None,
         ),
     ]
 }

@@ -66,11 +66,13 @@ fn behind(git: &Git, tip: ObjectId, target: ObjectId) -> bool {
     answer
 }
 
-/// The behind rule, without the memo: `tip` does not hold `target`, their histories meet, and the
-/// diff from where they meet to `target` changes a file the default branch does not own. `None`
-/// when git fails to read the histories or the diff.
+/// The behind rule, without the memo: `tip` does not hold `target`, `target` does not hold `tip`,
+/// their histories meet, and the diff from where they meet to `target` changes a file the default
+/// branch does not own. A tip the default branch holds is merged: its pull request reads merged
+/// once `gh` says so, and catching it up would only redo it. `None` when git fails to read the
+/// histories or the diff.
 fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> Option<bool> {
-    if git.is_ancestor(target, tip) {
+    if git.is_ancestor(target, tip) || git.is_ancestor(tip, target) {
         return Some(false);
     }
     let Some(base) = git.merge_base(tip, target).ok()? else {
