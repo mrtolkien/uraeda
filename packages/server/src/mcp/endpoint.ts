@@ -49,13 +49,17 @@ const failure = (id: Id | null, code: number, message: string) => ({
   jsonrpc: "2.0",
 });
 
-/** A tool's answer as a call's result: a tool that throws answers its message as an error. */
+/**
+ * A tool's answer as a call's result: a tool that throws answers its error's message, or what it
+ * threw as text, as an error.
+ */
 async function answer(tool: McpTool, session: string, input: unknown, signal: AbortSignal) {
   try {
     const text = await tool.call(session, input, signal);
     return { content: [{ text, type: "text" }] };
   } catch (error) {
-    return { content: [{ text: (error as Error).message, type: "text" }], isError: true };
+    const text = error instanceof Error ? error.message : String(error);
+    return { content: [{ text, type: "text" }], isError: true };
   }
 }
 

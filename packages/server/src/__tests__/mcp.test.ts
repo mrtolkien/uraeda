@@ -137,3 +137,29 @@ test("a request with null params answers a JSON-RPC error", async () => {
     jsonrpc: "2.0",
   });
 });
+
+// Wave 1 review. Break caught: a thrown string answered as `undefined`.
+test.each([
+  ["an error", new Error("No such feature.")],
+  ["a string", "No such feature."],
+])("a tool that throws %s answers it as an error", async (_, thrown) => {
+  const tokens = new McpTokens();
+  const tool: McpTool = {
+    call: () => Promise.reject(thrown),
+    description: "Throws.",
+    inputSchema: { type: "object" },
+    name: "wait",
+  };
+  const { app } = await testApp(undefined, { mcp: { tokens, tools: [tool] }, signIn: true });
+  const token = tokens.issue("session-1");
+
+  const response = await app.request(url, call(`Bearer ${token}`));
+
+  expect(messages(await response.text())).toEqual([
+    {
+      id: 7,
+      jsonrpc: "2.0",
+      result: { content: [{ text: "No such feature.", type: "text" }], isError: true },
+    },
+  ]);
+});
