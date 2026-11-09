@@ -843,9 +843,11 @@ git commit -m "feat(run-options): each step its own run, chained to the next"
     `bearer_token_env_var`, `tool_timeout_sec` of 2 hours,
     `default_tools_approval_mode = "approve"`, `supports_parallel_tool_calls`). With `tools` or
     `"none"`, its sub-agents are off through its model catalog:
-    `codex app-server -c model_catalog_json=<data folder>/codex-catalog/models.json`, Codex's
-    catalog with every model's `multi_agent_version` `"disabled"` (`codex-catalog.ts`, R20). The
-    project's trust stays.
+    `codex app-server -c model_catalog_json=<data folder>/codex-catalog/models-<cwd hash>.json`,
+    Codex's catalog in the session's working directory with every model's `multi_agent_version`
+    `"disabled"` (`CodexCatalogs` in `codex-catalog.ts`, R20): `codex debug models` runs without
+    blocking the server, once for the sessions of a folder opening together, and the process starts
+    once it ended. The project's trust stays.
 
 - [x] **Step 1: Split `codex.ts` before it changes**
 

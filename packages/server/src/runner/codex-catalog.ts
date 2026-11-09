@@ -1,7 +1,8 @@
 // Codex's model catalog without its sub-agents: the one switch Codex 0.163.0 honours for a model
-// its catalog puts on multi-agent v2, where `features.multi_agent` leaves `spawn_agent` on (R18).
-import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+// its catalog puts on multi-agent v2, where `features.multi_agent` leaves `spawn_agent` on (R20).
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /** `codex debug models` gives up after this long. */
@@ -28,38 +29,83 @@ export function withoutSubAgents(catalog: unknown): { models: Array<unknown> } {
 }
 
 /**
- * Writes the catalog of `command`'s Codex, its sub-agents off, to `<folder>/models.json`, read
- * afresh at each call, as Codex's own catalog changes with its version: its path. Written whole
- * through a temporary file, and only when it changed, as processes opening together read it. On a
- * failure, none: the server prints why, and the process runs on Codex's own catalog.
+ * The catalog's file for sessions in `cwd`, in `folder`: one per working directory, named by a
+ * hash of it, as a project's own Codex configuration may change the catalog.
  */
-export function catalogWithoutSubAgents(command: string, folder: string): string | undefined {
-  const path = join(folder, "models.json");
-  try {
-    const raw = execFileSync(command, ["debug", "models"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: CATALOG_TIMEOUT_MS,
-    });
-    const text = `${JSON.stringify(withoutSubAgents(JSON.parse(raw)))}\n`;
-    mkdirSync(folder, { recursive: true });
-    let old: string | undefined;
-    try {
-      old = readFileSync(path, "utf8");
-    } catch {
-      old = undefined;
-    }
-    if (old !== text) {
-      const next = `${path}.${process.pid}.${Date.now()}`;
-      writeFileSync(next, text);
-      renameSync(next, path);
-    }
-    return path;
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    process.stderr.write(
-      `Codex's sub-agents stay on in this session: its model catalog could not be written (${reason})\n`,
+export function catalogPath(folder: string, cwd: string): string {
+  const hash = createHash("sha256").update(cwd).digest("hex").slice(0, 16);
+  return join(folder, `models-${hash}.json`);
+}
+
+/** The catalog a session runs on, its file's path, or why it could not be written. */
+export type Catalog = { path: string } | { problem: string };
+
+/** Codex's model catalog in `cwd`, as `command debug models` prints it there. */
+function debugModels(command: string, cwd: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      command,
+      ["debug", "models"],
+      { cwd, encoding: "utf8", timeout: CATALOG_TIMEOUT_MS },
+      (error, stdout) => (error ? reject(error) : resolve(stdout)),
     );
-    return undefined;
+  });
+}
+
+/** Writes `text` to `path` whole, through a temporary file. */
+async function writeWhole(path: string, text: string) {
+  const next = `${path}.${process.pid}.${Date.now()}`;
+  await writeFile(next, text);
+  await rename(next, path);
+}
+
+/**
+ * The catalogs without sub-agents of one Codex command, written to `folder`: read afresh at each
+ * open, as Codex's own catalog changes with its version, without holding the server, and once for
+ * the sessions of a working directory opening together.
+ */
+export class CodexCatalogs {
+  #command: string;
+  #folder: string;
+  #running = new Map<string, Promise<Catalog>>();
+
+  constructor(command: string, folder: string) {
+    this.#command = command;
+    this.#folder = folder;
+  }
+
+  /**
+   * The catalog of the sessions in `cwd`, written only when it changed, as processes opening
+   * together read it. On a failure, why: the server prints it, and the process runs on Codex's
+   * own catalog.
+   */
+  write(cwd: string): Promise<Catalog> {
+    const running = this.#running.get(cwd);
+    if (running !== undefined) {
+      return running;
+    }
+    const catalog = this.#write(cwd).finally(() => this.#running.delete(cwd));
+    this.#running.set(cwd, catalog);
+    return catalog;
+  }
+
+  async #write(cwd: string): Promise<Catalog> {
+    const path = catalogPath(this.#folder, cwd);
+    try {
+      const raw = await debugModels(this.#command, cwd);
+      const text = `${JSON.stringify(withoutSubAgents(JSON.parse(raw)))}\n`;
+      await mkdir(this.#folder, { recursive: true });
+      const old = await readFile(path, "utf8").catch(() => undefined);
+      if (old !== text) {
+        await writeWhole(path, text);
+      }
+      return { path };
+    } catch (error) {
+      const problem = error instanceof Error ? error.message : String(error);
+      process.stderr.write(
+        `Codex's sub-agents stay on in this session: its model catalog could not be written (${problem})\n`,
+      );
+      return { problem };
+    }
   }
 }

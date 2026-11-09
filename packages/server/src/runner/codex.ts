@@ -18,7 +18,7 @@ import {
   MODELS_TIMEOUT_MS,
   spawnGrouped,
 } from "./child.ts";
-import { catalogWithoutSubAgents } from "./codex-catalog.ts";
+import { CodexCatalogs } from "./codex-catalog.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { hasRollout } from "./codex-rollouts.ts";
@@ -126,27 +126,50 @@ async function listAndConfig(rpc: CodexRpc): Promise<{ config: unknown; rows: Ar
   return { config, rows };
 }
 
-/** A running `codex app-server`, its channel, and its lines read as they come. */
-type AppServer = Child & { rpc: CodexRpc; started: Promise<unknown> };
+/** A `codex app-server`, its channel, and its lines read as they come, once it started. */
+type AppServer = {
+  /** Closes its stdin. */
+  endInput(): void;
+  rpc: CodexRpc;
+  /** Signals its process group. */
+  signal(name: NodeJS.Signals): void;
+  /** The process, once it started. */
+  spawned: Promise<Child>;
+  started: Promise<unknown>;
+};
 
 /**
  * Starts `codex app-server` in `cwd`, in a process group of its own, and introduces the client:
  * `initialize`, asking for the experimental API, then `initialized`. Each notification goes to
- * `heard`, and `ended` runs once its output closed, with the exit event. It runs with `args`, `app-server` by default, and `env` added to
- * its environment.
+ * `heard`, and `ended` runs once its output closed, with the exit event. It runs with `args`,
+ * `app-server` by default, once they are known, and `env` added to its environment: what is
+ * written or signalled before waits for its start.
  */
 function appServer(
   command: string,
   cwd: string,
   heard: (notification: CodexNotification) => void,
   ended: (exit: Extract<AgentEvent, { type: "exit" }>) => void,
-  { args = ["app-server"], env }: { args?: Array<string>; env?: Record<string, string> } = {},
+  {
+    args = ["app-server"],
+    env,
+  }: { args?: Array<string> | Promise<Array<string>>; env?: Record<string, string> } = {},
 ): AppServer {
-  const child = spawnGrouped(command, args, cwd, env);
-  const rpc = new CodexRpc(child.write);
+  let child: Child | undefined;
+  const waiting: Array<(child: Child) => void> = [];
+  const once = (act: (child: Child) => void) => (child ? act(child) : waiting.push(act));
+  const rpc = new CodexRpc((value) => once((running) => running.write(value)));
+  const spawned = (async () => {
+    child = spawnGrouped(command, await args, cwd, env);
+    for (const act of waiting.splice(0)) {
+      act(child);
+    }
+    return child;
+  })();
   void (async () => {
+    const { child: output, exited } = await spawned;
     try {
-      for await (const line of lines(child.child.stdout)) {
+      for await (const line of lines(output.stdout)) {
         const notification = rpc.read(line);
         if (notification !== undefined) {
           heard(notification);
@@ -155,7 +178,7 @@ function appServer(
     } catch {
       // A process that failed to start has no output.
     }
-    const exit = await child.exited;
+    const exit = await exited;
     rpc.end(exit.missing ? `Codex is not available: ${exit.stderr}` : "Codex exited");
     ended(exit);
   })();
@@ -167,7 +190,13 @@ function appServer(
     .then(() => rpc.notify("initialized"));
   // A failure shows where the start is awaited.
   started.catch(() => {});
-  return { ...child, rpc, started };
+  return {
+    endInput: () => once((running) => running.child.stdin.end()),
+    rpc,
+    signal: (name) => once((running) => running.signal(name)),
+    spawned,
+    started,
+  };
 }
 
 export type CodexAdapterOptions = {
@@ -205,7 +234,7 @@ export class CodexAdapter implements Adapter {
     subagents: false,
     takeBack: true,
   };
-  #catalogDir: string | undefined;
+  #catalogs: CodexCatalogs | undefined;
   #command: string;
   #codexHome: string;
   #extensions: ExtensionPaths | undefined;
@@ -220,7 +249,7 @@ export class CodexAdapter implements Adapter {
     pluginDir,
     startTimeoutMs = START_TIMEOUT_MS,
   }: CodexAdapterOptions) {
-    this.#catalogDir = catalogDir;
+    this.#catalogs = catalogDir === undefined ? undefined : new CodexCatalogs(command, catalogDir);
     this.#codexHome = codexHome;
     this.#command = command;
     this.#extensions = extensions;
@@ -273,7 +302,7 @@ export class CodexAdapter implements Adapter {
       return codexModels(rows, config);
     } finally {
       clearTimeout(timer);
-      endShortProcess(server);
+      void server.spawned.then(endShortProcess);
     }
   }
 
@@ -281,15 +310,16 @@ export class CodexAdapter implements Adapter {
    * The catalog without sub-agents a workflow session or a sub-session runs on, written afresh as
    * it opens: none for a chat, or without a catalog folder, or when it could not be written.
    */
-  #catalog(options: OpenOptions): string | undefined {
+  async #catalog(options: OpenOptions): Promise<string | undefined> {
     if (options.tools === undefined) {
       return undefined;
     }
-    if (this.#catalogDir === undefined) {
+    if (this.#catalogs === undefined) {
       process.stderr.write("Codex's sub-agents stay on in this session: no catalog folder\n");
       return undefined;
     }
-    return catalogWithoutSubAgents(this.#command, this.#catalogDir);
+    const catalog = await this.#catalogs.write(options.cwd);
+    return "path" in catalog ? catalog.path : undefined;
   }
 
   /** The skill folders Codex reads besides its own: Uraeda's, then the extensions'. */
@@ -327,7 +357,7 @@ export class CodexAdapter implements Adapter {
         events.end();
       },
       {
-        args: codexServerArgs(options.tools, this.#catalog(options)),
+        args: this.#catalog(options).then((catalog) => codexServerArgs(options.tools, catalog)),
         env: toolsEnv(options.tools),
       },
     );
@@ -354,7 +384,7 @@ export class CodexAdapter implements Adapter {
     );
     const turns = new CodexTurns(
       {
-        endInput: () => server.child.stdin.end(),
+        endInput: server.endInput,
         input: codexInput,
         push,
         rpc: server.rpc,

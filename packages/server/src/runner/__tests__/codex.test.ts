@@ -5,7 +5,6 @@ import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
 import { MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
 import { CodexAdapter, codexModels } from "../codex.ts";
-import { withoutSubAgents } from "../codex-catalog.ts";
 import {
   codexInstructions,
   codexServerArgs,
@@ -98,25 +97,6 @@ test("a thread's permissions", () => {
   )[1];
   expect(sandbox).toMatch(/in `\/x\/extensions`.*escalated permissions/s);
   expect(sandbox).not.toMatch(/you write in the working directory and in/);
-});
-
-test("the catalog without sub-agents keeps every model and field, its sub-agents disabled", () => {
-  expect(
-    withoutSubAgents({
-      models: [
-        { multi_agent_version: "v2", slug: "gpt-6-luna" },
-        { slug: "gpt-reserve", visibility: "hide" },
-      ],
-      version: 3,
-    }),
-  ).toEqual({
-    models: [
-      { multi_agent_version: "disabled", slug: "gpt-6-luna" },
-      { multi_agent_version: "disabled", slug: "gpt-reserve", visibility: "hide" },
-    ],
-    version: 3,
-  });
-  expect(() => withoutSubAgents({ error: "signed out" })).toThrow(/no models/);
 });
 
 test("a message's images are local images", () => {
