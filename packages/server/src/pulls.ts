@@ -3,13 +3,14 @@
 // branch is past its last task. A snapshot that changed publishes the repository's features.
 import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
+import { CATCH_UP } from "./runner/status.ts";
 
 /** How often the pull requests are asked again while a branch is past its last task. */
 export const PULL_REQUESTS_EVERY_MS = 60_000;
 
 /** The steps whose pull request's state decides the next one. */
 const PAST_LAST_TASK = new Set([
-  "catch-up",
+  CATCH_UP,
   "final-review",
   "finish",
   "pull-request",

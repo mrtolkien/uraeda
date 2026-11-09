@@ -3,11 +3,11 @@
 // the human, from the statuses the sidebar shows, with what it asks and where to answer it.
 import { dataView } from "@nkzw/fate/server";
 import type { FeatureView } from "uraeda-binding";
-import { TAKEN_BACK } from "../runner/session-state.ts";
 import { CATCH_UP, type SessionStatus, type StatusReason } from "../runner/status.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { itemLooks } from "./items.ts";
 import { type FeatureStatus, featureStatuses } from "./feature-status.ts";
+import { latestOf } from "./session-reads.ts";
 import { chatStatuses } from "./sessions.ts";
 
 /** Why an item needs the human, in the order a notification picks it. */
@@ -144,12 +144,9 @@ function askedBy(ctx: RepoContext, status: FeatureStatus): string {
   if (status.reason !== "step" || status.session === null) {
     return status.turn ?? "";
   }
-  const turn = ctx.sessions.cache
-    .turns(status.session)
-    .findLast(
-      (each) => each.step !== CATCH_UP && (each.state !== "stopped" || each.reason !== TAKEN_BACK),
-    );
-  return turn === undefined ? "" : String(turn.id);
+  const turns = ctx.sessions.cache.turns(status.session).filter((each) => each.step !== CATCH_UP);
+  const { latest } = latestOf(turns);
+  return latest === undefined ? "" : String(latest.id);
 }
 
 async function featureRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {

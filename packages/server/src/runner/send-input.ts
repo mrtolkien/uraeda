@@ -5,6 +5,7 @@ import type { ChatImage } from "./images.ts";
 import { MAX_IMAGES } from "../limits.ts";
 import { chatOpening, sentAsChat } from "./message.ts";
 import { type Live, type Queued, REFUSALS, refused, type SessionContext } from "./session-state.ts";
+import { CATCH_UP } from "./status.ts";
 
 /** A chat image sent with a message: its ID and size, which its item keeps, and its file's path. */
 export type SentImage = ChatImage & { path: string };
@@ -118,7 +119,7 @@ export async function sendPlace(
   if (asChat !== undefined) {
     return { asChat, branch, step: null };
   }
-  const caughtUpTo = next.step.name === "catch-up" ? next.step.catchUp?.commit : undefined;
+  const caughtUpTo = next.step.name === CATCH_UP ? next.step.catchUp?.commit : undefined;
   return { branch, ...(caughtUpTo === undefined ? {} : { caughtUpTo }), step: next.step.name };
 }
 
