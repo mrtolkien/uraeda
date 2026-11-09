@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Agents catch up open pull requests with main
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions, about 20 minutes.
+> Answered on 2026-11-09.
 >
 > - Verdict: worth building, with changes: a merge shows without pulling, since the server already
 >   fetches every 5 minutes, and "outside `specs/`" would miss new decisions.
@@ -120,7 +120,7 @@ whether a pull request you merge was tested against the main it lands on.
   - [pro] the proposal as written.
   - [con] the runs of B, yet a new decision alone never triggers one.
 
-**Answer:**
+**Answer:** B: Just always trigger it to make sure the code is coherent. It's not that big.
 
 ## Q2: What should make Uraeda look at the open pull requests?
 
@@ -146,7 +146,7 @@ back.
   - [con] nothing happens until you pull, and a local merge followed by a push triggers before the
     push, when there is nothing to catch up yet.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Should a pull request that needs a catch-up still read "ready for review"?
 
@@ -176,7 +176,7 @@ the catch-up works without the web UI.
   - [pro] the skill stays as it is.
   - [con] an agent run without the server never catches up, and the status hides the conflict.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Where should a catch-up that cannot settle a conflict ask you?
 
@@ -211,7 +211,7 @@ outside the session.
   - [pro] the quickest to answer.
   - [con] the question lives only in the session, a cache outside the repository.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Should the catch-up rebase the branch, or merge main into it?
 
@@ -241,7 +241,7 @@ Why it matters: it decides the history main gets, and what happens to a review i
   - [con] the record is no longer the last commit, and a rebase merge of a branch holding merge
     commits is not verified on GitHub.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Where should the switch live, and should it be on by default?
 
@@ -273,7 +273,7 @@ take over.
   - [pro] one design for every run setting.
   - [con] this feature waits on another one that has not started its discovery.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
@@ -301,3 +301,6 @@ take over.
   move. See [git](discovery-01.md#git).
 
 **Notes:**
+
+- **There is no opt-out per pull request**: There should be a global opt-out though, and the feature
+  shoul be off by default.
