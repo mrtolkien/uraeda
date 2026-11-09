@@ -144,3 +144,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: deleting the line's item: a new cache write for one case, and a turn
   whose first seq is not 0.
 - **Where**: `runner/send-input.ts` `recheckQueued`.
+
+## R14: The catcher's message goes only to the step it read, and its record is tested on a dismissal
+
+- **Decision**: `continueOne` takes an optional automatic run, `{ line, step, trigger }`, and sends
+  its message only while the feature's step, read again as it sends, is still `step`. The test of
+  "one catch-up per tip" starts from a manual catch-up the human stopped and dismissed, not one that
+  ended done, then lets the catcher's own catch-up end done for R12.
+- **Rationale**: the catcher reads the step, then sends: a step that moved meanwhile would get a
+  message with the catch-up's trigger and line, which says a run that never happens. A manual
+  catch-up that ended done at the current tip reads as a conflict, which the catcher skips by its
+  status alone, so the test would pass with the record read by the catcher's trigger only; a
+  dismissed one reads idle, and only the record keeps it from running again.
+- **Alternatives considered**: the plan's optional trigger and line alone: a step's race the catcher
+  cannot see.
+- **Where**: `packages/server/src/fate/continue-all.ts`, `__tests__/catch-ups.test.ts`; task 6.
