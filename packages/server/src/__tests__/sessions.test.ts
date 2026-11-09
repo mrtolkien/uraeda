@@ -1513,8 +1513,28 @@ test("a running session makes its feature Working everywhere, then it follows it
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
 
-  // Its run ends: the feature follows its latest session, which asks until dismissed.
+  // Its run ends while a sub-session of the latest works: Working, from the latest.
   server.sessions.cache.endTurn(running, { state: "done" });
+  const sub = server.sessions.cache.createSession({
+    agent: "fake",
+    folder: AGENT,
+    nativeId: "s",
+    parent: latest.id,
+    repo: latest.repo,
+    role: "implementer",
+    title: "Task 4",
+  });
+  const implementing = doneTurn(server, sub.id, { kind: "workflow", state: "running" });
+  expect(await statusesOf(server, AGENT)).toMatchObject({
+    label: "Working",
+    session: latest.id,
+    status: "working",
+    turn: String(stopped),
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+
+  // It ends: the feature follows its latest session, which asks until dismissed.
+  server.sessions.cache.endTurn(implementing, { state: "done" });
 
   expect(await statusesOf(server, AGENT)).toMatchObject({
     reason: "interrupted",

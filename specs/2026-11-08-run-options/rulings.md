@@ -293,3 +293,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `runsAgain` and `SubSessions.#begin` in
   `packages/server/src/runner/sub-sessions.ts`.
 - **Where**: task 8's review.
+
+## R24: A working sub-session makes its feature Working, from its parent
+
+- **Decision**: a feature reads Working while one of its sessions' sub-sessions runs or queues a
+  turn, as while the session itself does, and the status names the parent session and its latest
+  turn: the feature's pages show workflow sessions, and a sub-session's page comes with task 12.
+- **Rationale**: a parent's continue waits while its sub-sessions work (R21), so the parent alone
+  read "Needs attention" while its implementers worked.
+- **If wrong**: `readStatus` in `packages/server/src/fate/feature-status.ts`.
+- **Where**: task 8's review.

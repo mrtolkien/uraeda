@@ -36,8 +36,8 @@ const statuses = new WeakMap<RepoContext, Map<string, Promise<FeatureStatus>>>()
 
 /**
  * The rules of the Feature status decision, from the feature's step and its sessions, the first
- * that matches: a session running or queued, the latest started first, gives "Working", whatever
- * the step; a feature with problems needs the human; then the latest session's own status, which
+ * that matches: a session running or queued, or one whose sub-session is, the latest started
+ * first, gives "Working", from that session, whatever the step; a feature with problems needs the human; then the latest session's own status, which
  * reads the step, never an older session's outcome; without a session, the step needs the human
  * when it waits on them, else the feature is idle. Read once per request.
  */
@@ -55,6 +55,10 @@ export function featureStatusOf(ctx: RepoContext, feature: FeatureView): Promise
   return status;
 }
 
+/** Whether a session's turns, as `latestOf` reads them, have one running or queued. */
+const works = ({ latest, queued }: ReturnType<typeof latestOf>) =>
+  queued || latest?.state === "running" || latest?.state === "queued";
+
 /** A feature's status, reading of its sessions' turns only what the rules need. */
 async function readStatus(ctx: RepoContext, feature: FeatureView): Promise<FeatureStatus> {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
@@ -64,8 +68,12 @@ async function readStatus(ctx: RepoContext, feature: FeatureView): Promise<Featu
   let followed: { read: ReturnType<typeof latestOf>; row: SessionRow } | undefined;
   for (const row of sessions) {
     const read = latestOf(cache.turns(row.id));
-    const { latest, queued } = read;
-    if (queued || latest?.state === "running" || latest?.state === "queued") {
+    const { latest } = read;
+    // A session works, or one of its sub-sessions does, in a task's worktree.
+    if (
+      works(read) ||
+      cache.subSessionsOf(row.id).some((sub) => works(latestOf(cache.turns(sub.id))))
+    ) {
       const turn = latest === undefined ? null : String(latest.id);
       return { ...IDLE, label: "Working", session: row.id, status: "working", turn };
     }
