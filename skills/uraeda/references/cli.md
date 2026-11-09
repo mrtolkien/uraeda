@@ -32,7 +32,10 @@ the current branch's feature, or the only one waiting for that action.
 changes requested, and lacks the branch's latest commit names the step `push`, whose reference is
 [the push](implementation.md#push) for a feature, and [Change](change.md) for a change. It waits on
 the human only once it holds it. A head the repository never fetched counts as holding it: the
-branch is likely behind it.
+branch is likely behind it. Such a pull request whose branch is behind the default branch names the
+step `catch-up` instead, which wins over `push`: its reference is
+[the catch-up](implementation.md#catch-up-an-open-pull-request) for a feature, and
+[Change](change.md) for a change.
 
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of

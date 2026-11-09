@@ -30,7 +30,9 @@ ura upgrade                                # the latest release, then your skill
 
 `ura next` and `ura status` read your pull requests with `gh`. An open pull request, not a draft and
 with no changes requested, waits on you only once it holds its branch's latest commit. Until then,
-the step is `push`, for an agent.
+the step is `push`, for an agent. Once the default branch gains changes beyond its priorities,
+inbox, proposals, and notes, a branch lacking them reads `catch-up` instead, for an agent to rebase,
+validate, and push it. Settings › Runs in the web UI can start that run by itself.
 
 `ura check` says where a missing file went, from git's history: it moved, it became a finished
 feature's record, or a commit deleted it. `ura check --fix` repairs those links, without committing,

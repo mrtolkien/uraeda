@@ -480,17 +480,20 @@ git commit -m "feat(agents-fix): a switch to catch up open pull requests"
 - Produces: the anchor `implementation.md#catch-up-an-open-pull-request`, which task 4's message
   does not need but the step table links.
 
-- [ ] **Step 1: Move the follow-up paragraph** of `SKILL.md` ("The workflow only moves on when every
+- [x] **Step 1: Move the follow-up paragraph** of `SKILL.md` ("The workflow only moves on when every
       question is answered…", through the sentence on blank answers) to `writing.md`, next to the
-      round's shape, leaving one sentence linking it (R4).
+      round's shape, leaving one sentence linking it, and the notes paragraph's bullet example moves
+      to `writing.md`'s notes (R4).
 
-- [ ] **Step 2: Add the rows.** In `SKILL.md` and `change.md`, a row before each "lacks the latest
+- [x] **Step 2: Add the rows.** In `SKILL.md` and `change.md`, a row before each "lacks the latest
       commits" row: "The record, and an open pull request is behind the default branch" and "The
       open pull request is behind the default branch", both to
-      `[Implementation](references/implementation.md#catch-up-an-open-pull-request), catch up`.
-      "Behind" is defined once, in the new section, and linked.
+      `[Implementation](references/implementation.md#catch-up-an-open-pull-request), catch up` in
+      `change.md`, and `[Catch up](references/implementation.md#catch-up-an-open-pull-request)` in
+      `SKILL.md`, whose table would otherwise widen past its limit (R4). "Behind" is defined once,
+      in the new section, and linked.
 
-- [ ] **Step 3: Write the section "Catch up an open pull request"** in `implementation.md`, after
+- [x] **Step 3: Write the section "Catch up an open pull request"** in `implementation.md`, after
       Push. It says:
   - When it runs: the pull request is open, not a draft, with no changes requested, and the branch
     lacks the tip of `origin/<default>`, or of the local default branch without a remote, with a
@@ -508,21 +511,21 @@ git commit -m "feat(agents-fix): a switch to catch up open pull requests"
   - Nothing else is written on GitHub, as for the comments pass.
   - The pull request is left as it is: it waits for review again.
 
-- [ ] **Step 4: The comments pass catches up first**: one paragraph in "Comments on the pull
+- [x] **Step 4: The comments pass catches up first**: one paragraph in "Comments on the pull
       request": when the branch is behind, catch it up first, as the new section says, a comment
       settling a conflict's choice followed as the resolution.
 
-- [ ] **Step 5: `cli.md` and the docs**: `cli.md`'s paragraph on `ura next` names `catch-up`, which
+- [x] **Step 5: `cli.md` and the docs**: `cli.md`'s paragraph on `ura next` names `catch-up`, which
       wins over `push`; `docs/cli.md` line 31 and `docs/web-ui.md` lines 488-492 say a pull request
       behind the default branch reads "Catch up", for the agent, and that Settings › Runs can start
       it by itself.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test skill && nix develop -c vp run fast`
 - Expected: PASS: `SKILL.md` under 20,000 characters, every link resolves.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add skills/uraeda docs/cli.md docs/web-ui.md
