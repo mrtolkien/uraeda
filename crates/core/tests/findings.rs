@@ -108,3 +108,37 @@ fn writes_and_commits_only_the_findings() {
     let text = repo.read(&format!("{WORKTREE}/{path}"));
     assert!(text.contains("# Findings: Feature, the branch\n"), "{text}");
 }
+
+#[test]
+fn refuses_findings_with_a_wrong_frontmatter() {
+    let repo = feature();
+    let wrong_part = "a review's findings review the branch or a wave, like wave 2";
+    let wrong_commits = "a review's findings name their commits on one line, like abc..def";
+    let rows: [(&str, &str, &str); 6] = [
+        ("wave", "abc..def", wrong_part),
+        ("wave two", "abc..def", wrong_part),
+        ("the branch", "abc..def", wrong_part),
+        ("wave 2", " ", wrong_commits),
+        ("wave 2", "abc..def\nstatus: approved", wrong_commits),
+        ("branch", "a: b", wrong_commits),
+    ];
+    for (reviewed, commits, message) in rows {
+        let findings = Findings {
+            reviewed: reviewed.into(),
+            commits: commits.into(),
+            sections: vec![FindingsSection {
+                reviewer: "Claude Code · Opus".into(),
+                text: "- Nothing found.".into(),
+            }],
+        };
+
+        let error = api::write_findings(repo.path(), FOLDER, &findings).unwrap_err();
+
+        assert_eq!(
+            (error.code, error.message.as_str()),
+            ("refused", message),
+            "for {reviewed:?} and {commits:?}"
+        );
+    }
+    assert_eq!(repo.subjects(FOLDER)[0], "feature");
+}

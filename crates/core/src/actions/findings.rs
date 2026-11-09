@@ -104,7 +104,9 @@ fn demoted(body: &str) -> String {
 }
 
 /// Writes the next `findings-NN.md` in the feature's folder of `place`, and commits it alone: other
-/// changes of the working tree stay out of the commit. Returns its path from the top level.
+/// changes of the working tree stay out of the commit. Returns its path from the top level. Refused
+/// without a section, for a `reviewed` not `branch` or `wave <N>`, and for `commits` empty or not
+/// one line.
 pub fn write_and_commit(
     place: &Place,
     feature: &Feature,
@@ -114,6 +116,23 @@ pub fn write_and_commit(
     if findings.sections.is_empty() {
         return Err(ActionError::Refused(
             "a review's findings need one reviewer's section at least".into(),
+        ));
+    }
+    let wave = |reviewed: &str| {
+        reviewed.strip_prefix("wave ").is_some_and(|number| {
+            !number.is_empty() && number.bytes().all(|digit| digit.is_ascii_digit())
+        })
+    };
+    let reviewed = findings.reviewed.trim();
+    if reviewed != "branch" && !wave(reviewed) {
+        return Err(ActionError::Refused(
+            "a review's findings review the branch or a wave, like wave 2".into(),
+        ));
+    }
+    let commits = findings.commits.trim();
+    if commits.is_empty() || commits.contains(": ") || commits.contains(['\n', '\r']) {
+        return Err(ActionError::Refused(
+            "a review's findings name their commits on one line, like abc..def".into(),
         ));
     }
     let round = next_round(place, feature)?;
