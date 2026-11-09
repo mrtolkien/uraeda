@@ -6,6 +6,7 @@ import { limitContinueAt, MINUTE_MS, worktreeCommit } from "./continue-reads.ts"
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
 import { deliverContinue } from "./send.ts";
+import { subSessionsWork } from "./sub-sessions.ts";
 import {
   type Live,
   ofDropped,
@@ -78,6 +79,8 @@ export class Continuer {
   #closed = false;
   /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
   #decidedAt = new Map<string, string>();
+  /** The continue of each parent that waits for its sub-sessions to end, by the parent. */
+  #parents = new Map<string, number>();
 
   constructor(
     context: SessionContext,
@@ -107,9 +110,28 @@ export class Continuer {
     }
     const taken = this.#taken(turn.sessionId);
     if (turn.state === "failed" && limit?.kind === "session") {
-      return this.#decide(turn, "limit", () => limitContinueAt(this.#context.cache, limit), taken);
+      const deciding = this.#decide(
+        turn,
+        "limit",
+        () => limitContinueAt(this.#context.cache, limit),
+        taken,
+      );
+      return live.parent === null ? deciding : deciding.then(() => this.#subEnded(live.parent));
     }
+    this.#subEnded(live.parent);
     return undefined;
+  }
+
+  /**
+   * Fires the continue of the parent of a sub-session that ended, or stopped waiting, once none of
+   * its sub-sessions works or waits to continue.
+   */
+  #subEnded(parent: string | null) {
+    const turn = parent === null ? undefined : this.#parents.get(parent);
+    if (parent !== null && turn !== undefined && !subSessionsWork(this.#context, parent)) {
+      this.#parents.delete(parent);
+      this.fire(turn);
+    }
   }
 
   /**
@@ -117,7 +139,9 @@ export class Continuer {
    * message, or `stopped`, their Stop, which leaves the turn stopped.
    */
   cancel(session: string, { stopped }: { stopped: boolean }): Array<number> {
-    return this.#cancel(session, { stopped }).map((turn) => turn.id);
+    const cancelled = this.#cancel(session, { stopped }).map((turn) => turn.id);
+    this.#subEnded(this.#context.cache.session(session)?.parent ?? null);
+    return cancelled;
   }
 
   /**
@@ -194,6 +218,12 @@ export class Continuer {
   fire(turn: number): void {
     this.#timers.delete(turn);
     const { cache, changed, live: sessions } = this.#context;
+    // A parent goes on once its sub-sessions answered: their calls would be made again before.
+    const parent = cache.turn(turn)?.sessionId;
+    if (parent !== undefined && subSessionsWork(this.#context, parent)) {
+      this.#parents.set(parent, turn);
+      return;
+    }
     const claimed = cache.takeContinue(turn);
     const reason = claimed?.continueReason;
     const row = claimed && cache.session(claimed.sessionId);
@@ -282,7 +312,11 @@ export class Continuer {
     }
     const { cache, runtimes } = this.#context;
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
-    for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
+    // Sub-sessions first: their parents wait for them.
+    const cuts = cache.serverCuts(SERVER_STOPPED, since);
+    const parentOf = (turn: TurnRow) => cache.session(turn.sessionId)?.parent ?? null;
+    const subs = cuts.filter((turn) => parentOf(turn) !== null);
+    for (const turn of [...subs, ...cuts.filter((turn) => parentOf(turn) === null)]) {
       const session = cache.session(turn.sessionId);
       if (
         session &&
@@ -396,13 +430,17 @@ export class Continuer {
     return this.#takenOver.get(session) ?? 0;
   }
 
-  /** Whether the session's runs continue: a chat, or its folder's latest session, not archived. */
+  /**
+   * Whether the session's runs continue: a chat, a sub-session, or its folder's latest session, not
+   * archived.
+   */
   #current(session: SessionRow): boolean {
     if (session.archivedAt !== null) {
       return false;
     }
     return (
       session.folder === null ||
+      session.parent !== null ||
       this.#context.cache.latestSession(session.repo, session.folder)?.id === session.id
     );
   }

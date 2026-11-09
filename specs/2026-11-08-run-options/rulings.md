@@ -248,3 +248,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   run. Its tool check passes alone (`--tools`).
 - **Where**: task 7, checked with `validate:claude --tools` and `validate:codex` on Claude Code
   2.1.319 and Codex 0.163.0.
+
+## R21: An implementer's call answers as its turn ends, and the worktrees are the Git page's
+
+- **Decision**: `run_agent` answers once the sub-session's turn ends: its last text when done, else
+  an error saying it failed or stopped, and why. A sub-session's own automatic continue, after a
+  limit or a restart, runs beside its parent, never waiting for its folder's sessions, and its
+  answer goes to the parent's next call of the same task, which starts nothing. A parent's continue
+  waits while one of its sub-sessions works or waits to continue, and goes once the last one ends or
+  is stopped; after a restart, the sub-sessions' cuts are decided first. The worktrees `run_agent`
+  accepts are the linked worktrees the core's `gitPage` lists, not missing, compared by real path:
+  no new core or binding function.
+- **Rationale**: a limit's continue may wait hours, past the call's 2-hour limit (R20); the parent
+  asks again once it continues, as the plan's repeated call already answers. `gitPage` lists the
+  worktrees through gix, as `git worktree list` does, and a call of `run_agent` is rare enough for
+  its other reads.
+- **If wrong**: `SubSessions.#idle` and `#worktree` in `packages/server/src/runner/sub-sessions.ts`,
+  and `Continuer.fire` and `#subEnded` in `continuer.ts`.
+- **Where**: task 8.

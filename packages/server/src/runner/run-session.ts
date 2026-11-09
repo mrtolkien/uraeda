@@ -71,13 +71,14 @@ function runningPick(context: SessionContext, root: string, pick: StepPick): Ste
 }
 
 /**
- * What a new session of `step` stores: its pick, refused for a model its agent's last list no
- * longer holds, or an effort the model does not take. Without a list, the agent answers for the
- * model. A session made for a run is refused too while its agent is not available, `available`.
+ * What a new session of `step`, a run step or a role, stores: its pick, refused for a model its
+ * agent's last list no longer holds, or an effort the model does not take. Without a list, the
+ * agent answers for the model. A session made for a run is refused too while its agent is not
+ * available, `available`.
  */
 function newPicked(
   context: SessionContext,
-  step: StepId,
+  step: StepId | "implementer",
   pick: StepPick,
   available = true,
 ): Picked {
@@ -122,6 +123,20 @@ export async function newPickOf(
   // Made before it runs, as any session: the send checks its agent is available.
   const picked = newPicked(context, runStep, runningPick(context, root, map.steps[runStep]), false);
   return () => picked;
+}
+
+/**
+ * What a new implementer of the feature `folder`, in the main checkout `root`, runs on: the
+ * feature's implementers' pick, the build's agent on its defaults when unset, refused as a run's
+ * new session is. Its agent off runs it on the first runtime on, on that runtime's defaults.
+ */
+export function implementerPick(context: SessionContext, root: string, folder: string): Picked {
+  const fallback = agentsOf(context.runtimes, root).runtime();
+  if (fallback === undefined) {
+    throw refused(REFUSALS.noRuntime);
+  }
+  const map = toMap(context.runOptions(root, folder), fallback);
+  return newPicked(context, "implementer", runningPick(context, root, map.implementers));
 }
 
 /**

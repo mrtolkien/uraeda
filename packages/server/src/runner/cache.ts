@@ -167,18 +167,29 @@ export class SessionCache {
     return row ? toSession(row) : undefined;
   }
 
-  /** The sessions of a change or a feature, the latest started first. */
+  /** The sessions of a change or a feature, the latest started first, its sub-sessions left out. */
   folderSessions(repo: string, folder: string): Array<SessionRow> {
     const rows = this.db
       .prepare(
-        `SELECT * FROM sessions WHERE repo = ? AND folder = ?
+        `SELECT * FROM sessions WHERE repo = ? AND folder = ? AND parent IS NULL
          ORDER BY created_at DESC, rowid DESC`,
       )
       .all(repo, folder) as Array<Row>;
     return rows.map(toSession);
   }
 
-  /** The latest started session of a change or a feature, the one its runs go to. */
+  /** The sub-sessions the session's runs started, the first started first. */
+  subSessionsOf(parent: string): Array<SessionRow> {
+    const rows = this.db
+      .prepare("SELECT * FROM sessions WHERE parent = ? ORDER BY created_at, rowid")
+      .all(parent) as Array<Row>;
+    return rows.map(toSession);
+  }
+
+  /**
+   * The latest started session of a change or a feature, the one its runs go to: never a
+   * sub-session, started after its parent.
+   */
   latestSession(repo: string, folder: string): SessionRow | undefined {
     return this.folderSessions(repo, folder)[0];
   }

@@ -920,10 +920,13 @@ git commit -m "feat(run-options): workflow sessions call Uraeda's sub-agents, ne
 - Create: `packages/server/src/runner/sub-sessions.ts`
 - Modify: `runner/cache.ts` (`latestSession`, `folderSessions` leave sub-sessions out;
   `subSessionsOf(parent)`), `runner/live-sessions.ts` (`otherWorking` ignores sub-sessions, and a
-  sub-session ignores its folder), `runner/processes.ts` (a token per workflow process, revoked at
-  close; a sub-session's cwd is its `worktree`), `runner/sessions.ts` (`stop` stops a parent's
-  sub-sessions), `runner/continuer.ts` (a parent's restart continue waits for its sub-sessions),
-  `server.ts` (the tools reach the endpoint)
+  sub-session ignores its folder; `Live.parent`), `runner/processes.ts` (a token per workflow
+  process, revoked at its exit; a sub-session's cwd is its `worktree`, its tools `"none"`),
+  `runner/sessions.ts` (`stop` stops a parent's sub-sessions, through `stopRun` in
+  `session-edits.ts`; `Sessions.subSessions`), `runner/continuer.ts` (a sub-session's runs continue;
+  a parent's continue waits for its sub-sessions), `runner/run-session.ts` (`implementerPick`),
+  `runner/session-folders.ts` (a drop archives the sub-sessions too), `server.ts` (the tools reach
+  the endpoint)
 - Test: `packages/server/src/runner/__tests__/sub-sessions.test.ts`
 
 **Interfaces:**
@@ -931,17 +934,22 @@ git commit -m "feat(run-options): workflow sessions call Uraeda's sub-agents, ne
 - Consumes: `McpTokens`, `McpTool` (Task 3); `OpenOptions.tools` (Task 7); the sessions' columns and
   `FeatureOptions.resolved` (Task 4).
 - Produces:
-  - `class SubSessions { start(parent: string, role: "implementer" | "reviewer", { about, cwd, message, pick, review? }): Promise<string>; ofParent(parent: string): Array<SessionRow>; stopAll(parent: string): void }`:
-    `start` creates a session with `parent`, `role`, `title` `about`, `worktree` `cwd`, on `pick`,
-    sends `message` as a workflow turn, and resolves with its last message once the turn ends; a
-    second `start` with the same parent, role, and `about` resolves with the first one's answer,
-    waiting while it works, after a restart too.
+  - `class SubSessions { start(parent: string, role: "implementer" | "reviewer", { about, cwd, message, pick }: SubSessionStart, signal?: AbortSignal): Promise<string>; ofParent(parent: string): Array<SessionRow>; stopAll(parent: string): void; runAgent(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
+    reached as `Sessions.subSessions`: `start` creates a session with `parent`, `role`, `title`
+    `about`, `worktree` `cwd`, on `pick` (`Picked`), sends `message` as a workflow turn of the
+    parent's step and trigger, and resolves with its last message once the turn ends, or rejects
+    with why it failed or stopped; a second `start` with the same parent, role, and `about` resolves
+    with the first one's answer, waiting while it works, after a restart too (R21). Task 9 adds the
+    reviewer's own options to `SubSessionStart`.
+  - `runAgentTool(subSessions: SubSessions): McpTool`, pushed into the server's `mcp.tools`;
+    `subSessionsWork(context, parent): boolean`, which the continuer reads;
+    `implementerPick(context, root, folder): Picked` in `run-session.ts`.
   - The tool `run_agent`, input `{ task: string; prompt: string; worktree: string }`: refused when
     `worktree` is not a worktree of the parent's repository, or its main checkout; else starts an
     implementer on the feature's resolved `implementers` pick (the build's agent when unset).
   - `SessionRow.parent`, `role` set on sub-sessions; their turns' `step` is the parent's.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sub-sessions.test.ts`, on the session manager with the fake agent, calling the tool as the endpoint
 does:
@@ -951,8 +959,11 @@ does:
   at Low, each in its worktree, `parent` the build's session, `role` `implementer`; each call
   resolves with its session's last message; the feature's latest session is still the build's. Rows:
   a repeated call for task 4 resolves with the first one's answer and starts no session; a
-  `worktree` of `/tmp` and the main checkout are refused. Break: the second sub-session queued
-  behind the first, or the latest session becoming a sub-session.
+  `worktree` of `/tmp`, the main checkout, and a folder not there are refused, in a `test.each` of
+  their own. Break: the latest session becoming a sub-session.
+- "a sub-session's continue after its limit starts while its parent works": the call answers the
+  failure, the continue starts while the parent's turn runs, and the parent's next call of the task
+  answers the continue's last message. Break: a sub-session queued behind its folder's sessions.
 - "Stop on a parent stops its sub-sessions": two working sub-sessions; `stop` on the parent ends
   their turns `stopped`, and their calls answer with an error. Break: orphaned sub-sessions.
 - "after a restart, a parent continues once its sub-sessions end": a parent and a sub-session cut by
@@ -960,21 +971,22 @@ does:
   sub-session's turn ends. Break: the parent continuing at once, calling the tool again before its
   sub-session answered.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/sub-sessions.test.ts`
 - Expected: FAIL, `Cannot find module '../sub-sessions.ts'`
 
-- [ ] **Step 3: Implement sub-sessions, the tool, and their exclusions**
+- [x] **Step 3: Implement sub-sessions, the tool, and their exclusions**
 
-A worktree is checked against `git worktree list` of the repository, through the binding.
+A worktree is checked against the repository's linked worktrees, through the binding's `gitPage`
+(R21).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS but `keys-structural.test.ts`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

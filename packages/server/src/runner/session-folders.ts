@@ -115,14 +115,21 @@ export async function attach(
   });
 }
 
-/** Archives every session of a dropped change or feature, and closes their processes. */
+/**
+ * Archives every session of a dropped change or feature, their sub-sessions too, and closes their
+ * processes.
+ */
 export function archiveFolder(
   context: SessionContext,
   onChange: OnChange,
   root: string,
   folder: string,
 ): void {
-  for (const row of context.cache.folderSessions(root, folder)) {
+  const { cache } = context;
+  const rows = cache
+    .folderSessions(root, folder)
+    .flatMap((row) => [row, ...cache.subSessionsOf(row.id)]);
+  for (const row of rows) {
     const proc = context.live.get(row.id)?.proc;
     if (proc) {
       context.processes.close(proc);

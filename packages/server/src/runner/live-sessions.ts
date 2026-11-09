@@ -24,6 +24,7 @@ export class LiveSessions {
         id: row.id,
         lock: Promise.resolve(),
         messages: new Map(),
+        parent: row.parent,
         queue: [],
         repo: row.repo,
       };
@@ -52,7 +53,8 @@ export class LiveSessions {
   /**
    * Whether another session of the live session's change or feature works: they share its worktree,
    * so one works at a time. One works while its turn runs or starts, and, with `queued`, while a
-   * turn of it waits.
+   * turn of it waits. A sub-session works in its task's worktree, beside its parent and the other
+   * sub-sessions: it neither waits for its folder's sessions nor makes them wait.
    */
   otherWorking(live: Live, { queued }: { queued: boolean }): boolean {
     return this.#others(live).some(
@@ -66,12 +68,17 @@ export class LiveSessions {
     return this.#others(live).filter((other) => other.turn === undefined && other.queue.length > 0);
   }
 
+  /** The other sessions of the live session's change or feature, sub-sessions left out. */
   #others(live: Live): Array<Live> {
-    if (live.folder === null) {
+    if (live.folder === null || live.parent !== null) {
       return [];
     }
     return [...this.#live.values()].filter(
-      (other) => other !== live && other.repo === live.repo && other.folder === live.folder,
+      (other) =>
+        other !== live &&
+        other.parent === null &&
+        other.repo === live.repo &&
+        other.folder === live.folder,
     );
   }
 

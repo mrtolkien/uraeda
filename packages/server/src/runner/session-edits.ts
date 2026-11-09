@@ -2,6 +2,7 @@ import type { SessionRow, TurnRow } from "./cache.ts";
 import { chatTitle } from "./message.ts";
 import { checkEffort, pickedName } from "./picks.ts";
 import {
+  type Live,
   REFUSALS,
   refused,
   TAKEN_BACK,
@@ -107,4 +108,23 @@ export function dismiss(
       turn: turn.id,
     });
   }
+}
+
+/**
+ * Stops the session's running turn, which keeps the session, and the turns queued after it, or the
+ * run's wait to continue, or its agent's own wakeup, for good.
+ */
+export function stopRun(context: SessionContext, live: Live): void {
+  const { changed, continuer, turns } = context;
+  for (const queued of live.queue.splice(0)) {
+    turns.end(live, queued.id, { state: "stopped" });
+  }
+  if (live.turn) {
+    turns.halt(live, live.turn, { state: "stopped" });
+  }
+  turns.stopWakeup(live);
+  for (const turn of continuer.cancel(live.id, { stopped: true })) {
+    changed(live, turn, "stopped");
+  }
+  context.live.prune(live);
 }

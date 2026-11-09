@@ -15,10 +15,11 @@ import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
 import { newPickOf } from "./run-session.ts";
 import type { SessionPick } from "./picks.ts";
-import { archive, dismiss, rename, seen, setEffort } from "./session-edits.ts";
+import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
+import { SubSessions } from "./sub-sessions.ts";
 import {
   type Live,
   REFUSALS,
@@ -84,6 +85,8 @@ export class Sessions {
   #context: SessionContext;
   /** The messages sent to features whose start is still in the write queue. */
   readonly starts: StartMessages;
+  /** The sessions Uraeda starts for its workflow runs' sub-agents. */
+  readonly subSessions: SubSessions;
 
   constructor(options: SessionsOptions) {
     this.#options = options;
@@ -107,6 +110,7 @@ export class Sessions {
         });
       },
       live: new LiveSessions(),
+      ...(options.mcp === undefined ? {} : { mcp: options.mcp }),
       runOptions: options.runOptions ?? (() => ({ steps: [] })),
       runtimes: options.runtimes,
     } as SessionContext;
@@ -121,6 +125,7 @@ export class Sessions {
       runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;
+    this.subSessions = new SubSessions(context);
     // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
     // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {
@@ -314,22 +319,11 @@ export class Sessions {
 
   /**
    * Stops the running turn, which keeps the session, and the turns queued after it, or the run's
-   * wait to continue, or its agent's own wakeup, for good.
+   * wait to continue, or its agent's own wakeup, for good: `stopRun`. Its sub-sessions stop too.
    */
   stop(repo: string, session: string): void {
-    const { changed, continuer, turns } = this.#context;
-    const live = this.#context.live.of(this.#ownNow(repo, session));
-    for (const queued of live.queue.splice(0)) {
-      turns.end(live, queued.id, { state: "stopped" });
-    }
-    if (live.turn) {
-      turns.halt(live, live.turn, { state: "stopped" });
-    }
-    turns.stopWakeup(live);
-    for (const turn of continuer.cancel(live.id, { stopped: true })) {
-      changed(live, turn, "stopped");
-    }
-    this.#context.live.prune(live);
+    stopRun(this.#context, this.#context.live.of(this.#ownNow(repo, session)));
+    this.subSessions.stopAll(session);
   }
 
   /**

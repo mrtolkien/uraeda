@@ -22,6 +22,7 @@ import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import { guardCheck } from "./guard.ts";
 import type { McpTool, ServerAddress } from "./mcp/endpoint.ts";
 import { McpTokens } from "./mcp/tokens.ts";
+import { runAgentTool } from "./runner/sub-sessions.ts";
 import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
@@ -354,6 +355,8 @@ async function openParts(
       runtimes: extensions.runtimes,
       settings: options.settings,
     });
+    // The workflow sessions start their implementers through the endpoint.
+    mcp.tools.push(runAgentTool(sessions.sessions.subSessions));
     hosts = await Hosts.open({
       binding,
       changed: (host, changes) => extensions.changes(host, changes),

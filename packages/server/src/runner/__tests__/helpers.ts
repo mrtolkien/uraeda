@@ -2,6 +2,8 @@ import { vi } from "vite-plus/test";
 import type { RunOptions } from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { Binding } from "../../fate/context.ts";
+import type { ServerAddress } from "../../mcp/endpoint.ts";
+import type { McpTokens } from "../../mcp/tokens.ts";
 import { SessionCache } from "../cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
 import type { Denial, Limit } from "../events.ts";
@@ -23,18 +25,20 @@ export function flush() {
  * one, as to hold a call. Its automatic continues are off, unless `runs` turns them on (R4);
  * `onChange` sees each change as it is published, with the cache as it is then. Its fake adapter is
  * the runtime `fake`, unless `runtimes` gives others. `runOptions` gives each feature's run options,
- * the defaults when left out.
+ * the defaults when left out. `mcp` gives its workflow processes Uraeda's tools.
  */
 export async function testSessions(
   repo = fixtureRepo(),
   {
     binding: through = binding,
+    mcp,
     onChange,
     runOptions,
     runs = () => CONTINUES_OFF,
     runtimes,
   }: {
     binding?: Binding;
+    mcp?: { address: ServerAddress; tokens: McpTokens };
     onChange?: (change: SessionChange, cache: SessionCache) => void;
     runOptions?: (repo: string, folder: string) => RunOptions;
     runs?: () => ContinueSettings;
@@ -48,6 +52,7 @@ export async function testSessions(
   const sessions = new Sessions({
     binding: through,
     cache,
+    ...(mcp === undefined ? {} : { mcp }),
     onChange: (change) => {
       changes.push(change);
       onChange?.(change, cache);

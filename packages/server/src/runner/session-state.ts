@@ -1,5 +1,7 @@
 import type { RunOptions } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
+import type { ServerAddress } from "../mcp/endpoint.ts";
+import type { McpTokens } from "../mcp/tokens.ts";
 import { IMAGE_REFUSALS, RUNTIME_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
@@ -155,6 +157,8 @@ export type Proc = {
   runtime: Adapter;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
+  /** Its token of the MCP endpoint, for a workflow session's process: revoked as it exits. */
+  token?: string;
   /**
    * The latest one-shot wakeup the agent set, in epoch milliseconds: the idle timer waits a minute
    * past it, for the agent to go on by itself.
@@ -227,6 +231,8 @@ export type Live = {
   /** Sends and turn starts, one after another. */
   lock: Promise<unknown>;
   messages: Map<string, Sent>;
+  /** The session whose run started it, for a sub-session: null for every other session. */
+  parent: string | null;
   proc?: Proc;
   queue: Array<Queued>;
   repo: string;
@@ -252,6 +258,11 @@ export type SessionContext = {
   continuer: Continuer;
   /** The sessions kept in memory. */
   live: LiveSessions;
+  /**
+   * Where the agents' processes reach the server's MCP endpoint, and its tokens: none when the
+   * server gives no tools.
+   */
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   /** Their processes: opened, closed, and read. */
   processes: Processes;
   /**
