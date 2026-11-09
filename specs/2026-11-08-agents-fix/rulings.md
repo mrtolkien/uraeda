@@ -189,3 +189,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   is, a merged pull request at worst caught up once.
 - **Where**: `packages/server/src/pulls.ts` `onChanges`, `repositories.ts` `settled`, `server.ts`
   `openParts`; found in the final review.
+
+## R17: Only the branch's newest tips count for the behind rule
+
+- **Decision**: when one of `refs/heads/<branch>` and `origin/<branch>` holds the other, the behind
+  rule reads only the newer one; both count only when they diverged. R7 and R15 then apply to the
+  tips left: a remote that holds the default branch's tip, the local one stale, is not behind, and a
+  newest tip the default branch holds is merged.
+- **Rationale**: a local branch left at a commit the default branch merged, while `origin/<branch>`
+  went on with commits the default branch lacks, read as merged by R15, and its pull request,
+  behind, read ready forever. The older tip says nothing of the commits after it.
+- **Alternatives considered**: the remote tip alone: a catch-up committed but not pushed yet would
+  read Catch up again (R7).
+- **Where**: `crates/core/src/behind.rs` `newest`, the skill's "Catch up an open pull request";
+  found in review.

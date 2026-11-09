@@ -330,6 +330,10 @@ enum Gain {
     /// The code commit, then the branch merged into `main` with a merge commit, pushed, as GitHub
     /// merges a pull request before `gh` reports it merged.
     CodeThenBranchMerged,
+    /// The code commit, the branch merged into `main`, then `src/b.rs` in a commit
+    /// `feat: later code`, pushed; `origin/<branch>` gains a commit main lacks, the local branch
+    /// left at the tip main merged.
+    MergedThenRemoteAhead,
 }
 
 /// Makes `main` gain `gain` after `branch` started from it.
@@ -351,10 +355,14 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
             repo.write("specs/notes/readme/note.md", "# Test\n");
             repo.commit("chore: note");
         }
-        Gain::CodeThenBranchMerged => {
+        Gain::CodeThenBranchMerged | Gain::MergedThenRemoteAhead => {
             repo.write("src/a.rs", "fn a() {}\n");
             repo.commit("feat: code");
             repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", branch]);
+            if matches!(gain, Gain::MergedThenRemoteAhead) {
+                repo.write("src/b.rs", "fn b() {}\n");
+                repo.commit("feat: later code");
+            }
         }
         _ => {
             repo.write("src/a.rs", "fn a() {}\n");
@@ -392,6 +400,16 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
             repo.commit("chore: prioritize");
             repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
         }
+        Gain::MergedThenRemoteAhead => {
+            let local = repo.git(&["rev-parse", branch]).trim().to_string();
+            repo.switch(branch);
+            repo.write("c.md", "c\n");
+            repo.commit("feat: newer work");
+            repo.switch("main");
+            let remote = format!("refs/remotes/origin/{branch}");
+            repo.git(&["update-ref", &remote, branch]);
+            repo.git(&["update-ref", &format!("refs/heads/{branch}"), &local]);
+        }
         _ => {}
     }
 }
@@ -408,7 +426,7 @@ type BehindRow = (
 );
 
 /// The rows of [`a_pull_request_behind_the_default_branch_catches_up`].
-fn behind_rows() -> [BehindRow; 12] {
+fn behind_rows() -> [BehindRow; 13] {
     let code = Some(("implementation", "feat: code"));
     [
         ("main gained code", false, Gain::Code, "{b}", code),
@@ -482,6 +500,13 @@ fn behind_rows() -> [BehindRow; 12] {
             Gain::CodeThenBranchMerged,
             "{b}",
             None,
+        ),
+        (
+            "origin's branch went on past the tip main merged, the local one stale",
+            false,
+            Gain::MergedThenRemoteAhead,
+            "origin/{b}",
+            Some(("implementation", "feat: later code")),
         ),
     ]
 }
