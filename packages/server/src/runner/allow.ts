@@ -88,7 +88,7 @@ async function allowDenials(
     item: { id, kind: "message", origin: "human", state: "pending", text },
     kind: "allow",
     message: { id, images: [], text, when: "queue" },
-    ...(line === undefined ? {} : { line }),
+    ...(line === undefined ? {} : { lines: [line] }),
     step: null,
     trigger: null,
   });

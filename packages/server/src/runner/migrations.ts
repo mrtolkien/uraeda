@@ -157,6 +157,8 @@ export const migrations: Array<Migration> = [
   ALTER TABLE sessions ADD COLUMN effort TEXT;
   ALTER TABLE sessions ADD COLUMN ran_model TEXT;
   ALTER TABLE sessions ADD COLUMN ran_effort TEXT;`,
+  // A catch-up's commit of the default branch, null for every other turn and those made before.
+  "ALTER TABLE turns ADD COLUMN caught_up_to TEXT;",
 ];
 
 /**

@@ -191,11 +191,13 @@ export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
 
 /**
  * What started a workflow turn, which its message tells the agent: `comments` runs the comments
- * message on the feature's pull request.
+ * message on the feature's pull request; `catch-up`, the catcher's, catches up an open pull
+ * request behind the default branch.
  */
 export type Trigger =
   | "answers"
   | "approval"
+  | "catch-up"
   | "changes"
   | "comments"
   | "proposal"

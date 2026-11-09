@@ -610,6 +610,73 @@ test("a comments run carries its trigger", async () => {
   expect(cache.items(turn, 0, 1)[0]).toMatchObject({ origin: "workflow" });
 });
 
+/** The default branch's tip that feature `AGENT`'s branch, behind it, catches up with. */
+const TIP = { branch: "main", commit: "4b825dc6", subject: "feat(web): the board's columns" };
+const CATCH_UP_LINE = "Catching up with main, which moved to “feat(web): the board's columns”.";
+
+/** A binding whose feature `AGENT` is at `catch-up`, its open pull request behind `TIP`. */
+const catchingUp = {
+  ...binding,
+  nextStep: async (...args: Parameters<typeof binding.nextStep>) => {
+    const next = await binding.nextStep(...args);
+    return {
+      ...next,
+      step: {
+        catchUp: TIP,
+        name: "catch-up",
+        pullRequest: "behind",
+        reference: "skills/uraeda/references/implementation.md",
+        waitsOn: "agent",
+      },
+    };
+  },
+} as typeof binding;
+
+/** R1: catches a catch-up sent by hand that records no commit, or its line after the message. */
+test("a workflow turn at the catch-up records the commit read as it is sent, after its line", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: catchingUp,
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { line: CATCH_UP_LINE, step: "catch-up", trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ caughtUpTo: TIP.commit, step: "catch-up" });
+  expect(cache.caughtUp(repo, AGENT, TIP.commit)).toBe(true);
+  const [line, message] = cache.items(turn, 0, 2);
+  expect(line).toMatchObject({ kind: "system", text: CATCH_UP_LINE });
+  expect(message).toMatchObject({ kind: "message", origin: "workflow" });
+});
+
+/** Catches a queued catch-up that loses its commit or its line. */
+test("a catch-up queued behind a chat turn keeps its commit and its line", async () => {
+  const { cache, repo, sessions } = await testSessions(undefined, { binding: catchingUp });
+  const session = await sessions.featureSession(repo, AGENT);
+  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { fresh: false, line: CATCH_UP_LINE, step: "catch-up", trigger: "catch-up" },
+  });
+
+  expect(chat.turn).not.toBe(turn);
+  expect(cache.turn(turn)).toMatchObject({
+    caughtUpTo: TIP.commit,
+    state: "queued",
+    trigger: "catch-up",
+  });
+  const [line, message] = cache.items(turn, 0, 2);
+  expect(line).toMatchObject({ kind: "system", text: CATCH_UP_LINE });
+  expect(message).toMatchObject({ kind: "message", origin: "workflow" });
+  // A chat at the catch-up catches up with nothing.
+  expect(cache.turn(chat.turn)).toMatchObject({ caughtUpTo: null });
+});
+
 test("US2.5: a workflow message during a chat turn is queued, and starts after it", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);

@@ -11,7 +11,8 @@ export type SentImage = ChatImage & { path: string };
 
 /**
  * A message to send: its text, its chat images, and for the workflow's, what started it, whether
- * its run starts a new agent session, `fresh`, and the step its message was read at, `step`.
+ * its run starts a new agent session, `fresh`, the step its message was read at, `step`, and a
+ * system line its turn shows before the message, `line`, as an automatic continue's.
  * Without `fresh`, the run after a spec's approval starts one as the `build_in_fresh_session`
  * setting says, `freshByDefault`, on by default. A run that starts a new agent session goes to a
  * new session of its change or feature. `opening` is a line the server puts before the message,
@@ -25,6 +26,7 @@ export type SendInput = {
     file?: string;
     fresh?: boolean;
     freshByDefault?: boolean;
+    line?: string;
     step?: string;
     trigger: Trigger;
   };
@@ -89,12 +91,13 @@ export function messageItem(
 /**
  * Where a message goes: its feature's branch, refused once merged, and for the workflow's, the
  * step its run starts, or the line saying it runs as a chat, `asChat`, as `sentAsChat` decides.
+ * At `catch-up`, `caughtUpTo` is the default branch's commit it catches up with, read now (R1).
  */
 export async function sendPlace(
   binding: Binding,
   live: { folder: string | null; repo: string },
   workflow: SendInput["workflow"],
-): Promise<{ asChat?: string; branch?: string; step: string | null }> {
+): Promise<{ asChat?: string; branch?: string; caughtUpTo?: string; step: string | null }> {
   const { folder, repo } = live;
   if (folder === null) {
     if (workflow) {
@@ -112,7 +115,11 @@ export async function sendPlace(
   }
   const feature = () => binding.readFeature(repo, folder);
   const asChat = await sentAsChat({ feature, next, workflow });
-  return asChat === undefined ? { branch, step: next.step.name } : { asChat, branch, step: null };
+  if (asChat !== undefined) {
+    return { asChat, branch, step: null };
+  }
+  const caughtUpTo = next.step.name === "catch-up" ? next.step.catchUp?.commit : undefined;
+  return { branch, ...(caughtUpTo === undefined ? {} : { caughtUpTo }), step: next.step.name };
 }
 
 /**

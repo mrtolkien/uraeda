@@ -41,6 +41,8 @@ export type SessionRow = {
 export type TurnRow = {
   /** Allow turns: the allow rule. */
   allowed: string | null;
+  /** A catch-up's commit of the default branch, which it started for: null for any other turn. */
+  caughtUpTo: string | null;
   /** When Uraeda continues the run by itself, epoch ms, null when no continue waits. */
   continueAt: number | null;
   /** Why the run continues, or why it would have past the cap: kept once a continue is claimed. */
@@ -87,6 +89,7 @@ export const toSession = (row: Row): SessionRow => ({
 
 export const toTurn = (row: Row): TurnRow => ({
   allowed: row.allowed as string | null,
+  caughtUpTo: (row.caught_up_to ?? null) as string | null,
   continueAt: row.continue_at as number | null,
   continueReason: row.continue_reason as ContinueReason | null,
   dismissedAt: row.dismissed_at as string | null,

@@ -1,5 +1,5 @@
 import { isAbsolute, relative, sep } from "node:path";
-import type { FeatureView, NextView } from "uraeda-binding";
+import type { CatchUpView, FeatureView, NextView } from "uraeda-binding";
 import type { ContinueReason, Trigger } from "./events.ts";
 import {
   REFUSALS,
@@ -34,9 +34,9 @@ const COMMENTS: Goal = { stop: `${READY} again`, work: "Address the comments on 
 
 /**
  * What a run does from a step, and where it stops: the next human gate, which the step and the
- * spec's `plan-review` decide.
+ * spec's `plan-review` decide. A catch-up names the default branch, `catchUp.branch`.
  */
-function goal(step: string, planReview?: boolean): Goal {
+function goal(step: string, planReview?: boolean, catchUp?: Pick<CatchUpView, "branch">): Goal {
   const plan = (first: string): Goal =>
     planReview
       ? { stop: "the plan waits for my review", work: first }
@@ -63,6 +63,11 @@ function goal(step: string, planReview?: boolean): Goal {
       return { stop: READY, work: "Review the implementation" };
     case "pull-request-changes":
       return COMMENTS;
+    case "catch-up":
+      return {
+        stop: `${READY} again`,
+        work: `Catch up with ${catchUp?.branch ?? "the default branch"}`,
+      };
     case "push":
       return { stop: READY, work: "Push the branch's commits to its pull request" };
     case "change":
@@ -79,6 +84,8 @@ function goal(step: string, planReview?: boolean): Goal {
  */
 export function runMessage(input: {
   branch: string;
+  /** At `catch-up`, the default branch it catches up with. */
+  catchUp?: Pick<CatchUpView, "branch">;
   feature: Subject;
   /** The spec's `plan-review`, for the steps before the plan is approved. */
   planReview?: boolean;
@@ -88,7 +95,7 @@ export function runMessage(input: {
   trigger?: Trigger;
 }): string {
   const { stop, work } =
-    input.trigger === "comments" ? COMMENTS : goal(input.step, input.planReview);
+    input.trigger === "comments" ? COMMENTS : goal(input.step, input.planReview, input.catchUp);
   return (
     `/uraeda Continue the ${subject(input.feature)} on branch ${input.branch}: ` +
     `${work}, starting with ${input.reference}.\n` +
@@ -154,6 +161,7 @@ export function recommendedMessage({
       reference,
       step: step.name,
       ...(step.planReview === undefined ? {} : { planReview: step.planReview }),
+      ...(step.catchUp === undefined ? {} : { catchUp: step.catchUp }),
       ...(trigger === undefined ? {} : { trigger }),
     });
   const comments = (reference: string): Recommended => ({
@@ -166,7 +174,7 @@ export function recommendedMessage({
     if (step.name === "pull-request-changes") {
       return comments(step.reference);
     }
-    const { name, work } = goal(step.name, step.planReview);
+    const { name, work } = goal(step.name, step.planReview, step.catchUp);
     const words = name ?? work;
     return {
       name: `Continue, ${words.charAt(0).toLowerCase()}${words.slice(1)}`,
@@ -273,6 +281,11 @@ export function continuedLine(reason: ContinueReason): string {
     case "limit":
       return "Continued after the usage limit's reset.";
   }
+}
+
+/** The line a catch-up's turn opens with: the commit of the default branch it catches up with. */
+export function catchUpLine(catchUp: Pick<CatchUpView, "branch" | "subject">): string {
+  return `Catching up with ${catchUp.branch}, which moved to “${catchUp.subject}”.`;
 }
 
 const TITLE_LENGTH = 80;
