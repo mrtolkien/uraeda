@@ -61,12 +61,46 @@ pub fn text(title: &str, findings: &Findings) -> String {
     );
     for section in &findings.sections {
         text.push_str(&format!("\n## {}\n", line(&section.reviewer)));
-        let body = section.text.trim();
+        let body = demoted(section.text.trim());
         if !body.is_empty() {
             text.push_str(&format!("\n{body}\n"));
         }
     }
     text
+}
+
+/// `body` with each heading of level 1 or 2 outside a code fence made a level 3 one, so that a
+/// reviewer's own headings stay inside its section.
+fn demoted(body: &str) -> String {
+    let mut fence: Option<char> = None;
+    let lines: Vec<String> = body
+        .lines()
+        .map(|line| {
+            let start = line.trim_start_matches(' ');
+            let indent = line.len() - start.len();
+            if indent < 4 {
+                for mark in ['`', '~'] {
+                    if start.starts_with(&mark.to_string().repeat(3)) {
+                        fence = match fence {
+                            None => Some(mark),
+                            Some(open) if open == mark => None,
+                            open => open,
+                        };
+                    }
+                }
+            }
+            if fence.is_some() || indent >= 4 {
+                return line.to_owned();
+            }
+            let hashes = start.len() - start.trim_start_matches('#').len();
+            let rest = &start[hashes..];
+            if (1..=2).contains(&hashes) && (rest.is_empty() || rest.starts_with([' ', '\t'])) {
+                return format!("{}###{rest}", &line[..indent]);
+            }
+            line.to_owned()
+        })
+        .collect();
+    lines.join("\n")
 }
 
 /// Writes the next `findings-NN.md` in the feature's folder of `place`, and commits it alone: other

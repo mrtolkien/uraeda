@@ -52,7 +52,11 @@ fn writes_and_commits_only_the_findings() {
             },
             FindingsSection {
                 reviewer: "Codex · GPT-6.1-Sol".into(),
-                text: "- **Minor**: a name reads oddly.".into(),
+                // A reviewer's own headings stay inside its section.
+                text:
+                    "- **Minor**: a name reads oddly.\n\n## Summary\n\n# Verdict\n\n#### Kept\n\n\
+                       ```md\n## In a fence\n```"
+                        .into(),
             },
         ],
     };
@@ -65,7 +69,8 @@ fn writes_and_commits_only_the_findings() {
         repo.read(&format!("{WORKTREE}/{expected}")),
         "---\nreviewed: wave 2\ncommits: abc..def\n---\n\n# Findings: Feature, wave 2\n\n\
          ## Claude Code · Opus\n\n- **Important**: the undo is lost after a reload.\n\n\
-         ## Codex · GPT-6.1-Sol\n\n- **Minor**: a name reads oddly.\n"
+         ## Codex · GPT-6.1-Sol\n\n- **Minor**: a name reads oddly.\n\n### Summary\n\n### Verdict\n\n\
+         #### Kept\n\n```md\n## In a fence\n```\n"
     );
     assert_eq!(repo.subjects(FOLDER)[0], "review(web-ui): findings 02");
     assert_eq!(repo.changed_in(FOLDER), [expected.as_str()]);
