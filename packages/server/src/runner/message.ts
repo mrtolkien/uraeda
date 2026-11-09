@@ -1,6 +1,7 @@
 import { isAbsolute, relative, sep } from "node:path";
 import type { CatchUpView, FeatureView, NextView } from "uraeda-binding";
 import type { ContinueReason, Trigger } from "./events.ts";
+import { CATCH_UP } from "./status.ts";
 import {
   REFUSALS,
   SENT_AS_CHAT,
@@ -63,7 +64,7 @@ function goal(step: string, planReview?: boolean, catchUp?: Pick<CatchUpView, "b
       return { stop: READY, work: "Review the implementation" };
     case "pull-request-changes":
       return COMMENTS;
-    case "catch-up":
+    case CATCH_UP:
       return {
         stop: `${READY} again`,
         work: `Catch up with ${catchUp?.branch ?? "the default branch"}`,
