@@ -22,7 +22,9 @@ const KEPT: usize = 4_096;
 
 /// What `branch` must catch up with: the tip of `origin/<default>`, or of the local default branch
 /// in a repository without it, when the branch lacks it and the commits it lacks change any file
-/// but the default branch's own. `None` when it is not behind, or git cannot tell.
+/// but the default branch's own. `None` when it is not behind, or git cannot tell. The branch holds
+/// the tip when its local tip or `origin/<branch>` does: GitHub's "Update branch", or a push from
+/// another clone, catches up the remote branch before the local one.
 pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
     let default = git.default_branch()?;
     if default == branch {
@@ -31,8 +33,13 @@ pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
     let target = git
         .remote_tip(&default)
         .or_else(|| git.resolve(&format!("refs/heads/{default}")))?;
-    let tip = git.tip(branch)?;
-    if !behind(git, tip, target) {
+    let tips = [
+        git.resolve(&format!("refs/heads/{branch}")),
+        git.remote_tip(branch),
+    ];
+    let mut tips = tips.into_iter().flatten().peekable();
+    tips.peek()?;
+    if !tips.all(|tip| behind(git, tip, target)) {
         return None;
     }
     let subject = git.subject(target).ok()?;
