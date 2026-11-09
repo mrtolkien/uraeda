@@ -1,14 +1,15 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: refresh-cw
 ---
 
 # Run lifecycle
 
 A run goes on to the next human gate without the human typing "Continue". Uraeda continues a run the
-server's restart cut or a usage limit stopped, and says so in the session. Each automatic continue
-can be turned off, and their number in a row is capped.
+server's restart cut or a usage limit stopped, and, once the human turns it on, catches up an open
+pull request when the default branch moves. Each automatic run says why in its session, can be
+turned off, and is capped.
 
 ## Rules
 
@@ -18,19 +19,20 @@ can be turned off, and their number in a row is capped.
   Checked by the runner's tests.
 - Automatic continues MUST stop after the number in a row the human set, without a commit or a
   message from them. Checked by the runner's tests.
-- Each automatic continue MUST say in its session why it happened. Checked by the runner's tests.
+- An open pull request behind the default branch MUST be caught up by itself only when the human
+  turned it on, at most once per tip of the default branch. Checked by the server's tests.
+- Each automatic run MUST say in its session why it happened. Checked by the runner's tests.
 - A run the human stopped or dismissed MUST NOT continue by itself. Checked by the runner's tests.
-- Each kind of automatic continue MUST have a setting that turns it off. Checked by the core's
-  tests.
+- Each kind of automatic run MUST have a setting that turns it off. Checked by the core's tests.
 - Agents SHOULD wait for their background work by its notice, never by polling it.
 
 ## Why
 
 A run that stops for something outside the work, a restart or a limit, costs hours until the human
 notices, often overnight. Continuing it keeps the workflow asynchronous. Continuing without a cap
-could loop and spend usage, so the human sets one. A run that polls cannot read the human's
-messages, and its waits outlive the work. History:
-[Worker lifecycle](../done/2026-11-03-worker-lifecycle.md).
+could loop and spend usage, so the human sets one. Catching up a pull request behind spends usage on
+every merge, so the human turns it on. A run that polls cannot read the human's messages, and its
+waits outlive the work. History: [Worker lifecycle](../done/2026-11-03-worker-lifecycle.md).
 
 ## Alternatives considered
 
