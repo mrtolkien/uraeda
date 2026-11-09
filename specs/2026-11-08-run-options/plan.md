@@ -559,8 +559,7 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
   `packages/server/src/runner/cache-rows.ts`, `cache-sessions.ts`, `cache.ts` (session columns),
   `packages/server/src/settings.ts` (`RunSettingsView`),
   `packages/server/src/fate/settings-mutations.ts` (`settings.setRunOptions`), a fate mutation
-  `feature.setRunOptions` beside the feature's mutations, and the feature's record (its own options
-  and the defaults)
+  `feature.setRunOptions` beside the feature's mutations, and the feature's record (its own options)
 - Test: `packages/server/src/runner/__tests__/feature-options.test.ts`; `settings-fate.test.ts`
 
 **Interfaces:**
@@ -581,7 +580,8 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
     `feature.setRunOptions({ folder, options })`, refused with the core's message (R9).
   - `ctx.featureOptions`, made by `featureOptionsOf({ binding, sessions, settings })`, keyed by the
     repository's main checkout, as the sessions are (R9).
-  - The feature's record gains `runOptions: { own: RunOptions; defaults: RunOptions }`.
+  - The feature's record gains `runOptions: RunOptions`, its own options only: the defaults are the
+    settings' record's `runs.options`, which stays live as the settings change (R12).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -1129,11 +1129,12 @@ git commit -m "feat(run-options): the start dialogs' run strip"
 
 - [ ] **Step 1: Serve the sub-sessions, and draw them**
 
-The feature page's map reads the feature's own options and the settings' defaults, and saves a
-change with `feature.setRunOptions`. The Sub-agents pane lists a session's sub-sessions; Enter or a
-click opens the sub-session's page, read only, with Stop while it works and a link to its parent.
-The feature's sessions pane nests sub-sessions under their parent, in the `sub-agent` colour. A
-chat's pane keeps the agent's own sub-agents.
+The feature page's map reads the feature's own options, its record's `runOptions`, and the settings'
+defaults, the settings record's `runs.options` (R12), and saves a change with
+`feature.setRunOptions`. The Sub-agents pane lists a session's sub-sessions; Enter or a click opens
+the sub-session's page, read only, with Stop while it works and a link to its parent. The feature's
+sessions pane nests sub-sessions under their parent, in the `sub-agent` colour. A chat's pane keeps
+the agent's own sub-agents.
 
 - [ ] **Step 2: Run the task's validation**
 

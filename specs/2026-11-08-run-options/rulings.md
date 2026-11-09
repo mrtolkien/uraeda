@@ -108,3 +108,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   lists, and would make the feature's run fail or pick a wrong model.
 - **If wrong**: `merge_pick` in `crates/core/src/settings/runs.rs`.
 - **Where**: task 1, from the review of wave 1.
+
+## R12: A feature's record holds only its own options
+
+- **Decision**: the feature's record's `runOptions` is the feature's own options, a `RunOptions`;
+  the web UI takes the defaults from the settings' record's `runs.options`. `FeatureRunOptions` is
+  gone.
+- **Rationale**: a copy of the settings' options in each feature's record goes stale when the
+  settings change, since nothing announces the features then; the settings' record is announced on
+  every change.
+- **Where**: task 4, from the review of wave 2.

@@ -168,7 +168,7 @@ test("the run options are written whole, and refused with the core's message", a
   expect((await record(opened)).runs.options).toEqual(options);
 });
 
-test("a feature's record holds its own run options, over the settings'", async () => {
+test("a feature's record holds its own run options, the settings' left to their record", async () => {
   const opened = await testApp();
   const defaults = { steps: [{ model: "opus", step: "review" }] };
   await change(opened, "setRunOptions", { options: defaults });
@@ -188,10 +188,10 @@ test("a feature's record holds its own run options, over the settings'", async (
   const [read] = await byIdAt(opened.app, opened.name, "Feature", [FEATURE], ["id", "runOptions"]);
 
   const own = { steps: [{ effort: "high", step: "spec" }] };
-  expect(result.data.runOptions).toEqual({ defaults, own });
+  expect(result.data.runOptions).toEqual(own);
   expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
   expect(unknown.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
-  expect(read.runOptions).toEqual({ defaults, own });
+  expect(read.runOptions).toEqual(own);
 });
 
 /** US5 1 */

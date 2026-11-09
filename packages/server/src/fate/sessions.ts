@@ -373,11 +373,9 @@ export async function featureRecord(
     // fields a record leaves out.
     missing: false,
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
-    // Its own, read with the main checkout as its sessions are, and the settings' now.
-    runOptions: {
-      defaults: ctx.settings.runs().options,
-      own: root === undefined ? { steps: [] } : ctx.featureOptions.own(root, feature.folder),
-    },
+    // Its own, read with the main checkout as its sessions are: the settings' record holds the
+    // rest, live.
+    runOptions: root === undefined ? { steps: [] } : ctx.featureOptions.own(root, feature.folder),
     runtime: sessions[0]?.agent ?? null,
     session: sessions[0]?.id ?? null,
     status: await featureStatusOf(ctx, feature),

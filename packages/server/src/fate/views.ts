@@ -9,6 +9,7 @@ import type {
   Inbox,
   Priorities,
   RunningFeature,
+  RunOptions,
   SectionItems,
   StepView,
   TaskProgress,
@@ -38,7 +39,6 @@ import {
 } from "./views-proposal-file.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import type { ChangeRecord } from "./views-undo.ts";
-import type { FeatureRunOptions } from "../runner/feature-options.ts";
 import { bufferDataView } from "./views-buffer.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
@@ -88,8 +88,11 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorkt
     missing?: boolean;
     /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;
-    /** Its own run options, and the settings' its runs take for every value it never changed. */
-    runOptions: FeatureRunOptions;
+    /**
+     * Its own run options, only what it changed: the settings' record's `runs.options` gives every
+     * value it never changed.
+     */
+    runOptions: RunOptions;
     /**
      * The runtime of its latest session, which its runs go to, null before its first message, when
      * they go to a new session on the runtime picked, or the first one on.

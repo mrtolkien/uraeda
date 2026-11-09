@@ -11,9 +11,6 @@ type FeatureOptionsOptions = {
   defaults: () => RunOptions;
 };
 
-/** A feature's run options: what it changed, and the settings' that apply to every other value. */
-export type FeatureRunOptions = { defaults: RunOptions; own: RunOptions };
-
 /** Whether the options change nothing: no step, no implementers, no reviewers, and no depth. */
 function empty(options: RunOptions): boolean {
   return (

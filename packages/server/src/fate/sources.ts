@@ -210,7 +210,7 @@ function missingFeature(folder: string): FeatureRecord {
     path: "",
     preview: false,
     problems: [],
-    runOptions: { defaults: { steps: [] }, own: { steps: [] } },
+    runOptions: { steps: [] },
     runtime: null,
     session: null,
     sessions: [],
