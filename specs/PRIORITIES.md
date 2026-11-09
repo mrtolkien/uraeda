@@ -8,19 +8,24 @@
 
 - [Run options: one session per feature or per step, model and effort per step, review options, global defaults with per-feature overrides](/specs/2026-11-08-run-options/proposal.md)
 - [Agents fix merge conflicts on open pull requests on their own, triggered by pulling main after a merge](/specs/2026-11-08-agents-fix/proposal.md)
+- [Spec comments: suggestion vs change needed](/specs/changes/2026-11-09-spec-comments/proposal.md)
 
-- Spec comments: suggestion vs change needed
-- Review the UI guidelines properly
-
-- Review and improve personas: describe workflows, habits, ...
 - [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
   dependencies upgrade and performance pass
+
+Human reviews:
+
+- Review the UI guidelines properly
+- Review and improve personas: describe workflows, habits, ...
 
 ## Next
 
 > [!NOTE]
 >
 > Features for public release
+
+- Break the components in their own library I can re-use in other places
+  - Check if full Rust (Dioxus, or GPUI), is doable
 
 - Cooler home view: logo, progress, gauges, ...
   - Home should be an extension or have widgets
@@ -39,7 +44,7 @@
 
 - [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
 - Dedicated Pi-durable runtime with basic tooling
-  - Web tools in pi-durable
+  - Web tools in pi-durable -> "pi web access"
   - Model settings -> allow for local models and Synthetic, at least
 - Monorepo support: multiple `specs` folders, principles per package, ...
 
