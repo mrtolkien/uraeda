@@ -86,6 +86,12 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "leftBranch" | "leftWorkt
     /** For a merged feature, its worktree still there, else null. */
     leftWorktree: string | null;
     missing?: boolean;
+    /**
+     * What a session of it made without a pick runs on: its next run step's pick, over the
+     * settings', the agent's default for a model or an effort null; null at a step no agent runs.
+     * A new session's picker shows it until the human picks.
+     */
+    newPick: { effort: string | null; model: string | null; runtime: string } | null;
     /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;
     /**
@@ -315,6 +321,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   leftWorktree: true,
   missing: true,
   mockups: true,
+  newPick: true,
   notes: true,
   path: true,
   preview: true,

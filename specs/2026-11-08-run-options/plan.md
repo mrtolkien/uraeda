@@ -1133,11 +1133,13 @@ git commit -m "feat(run-options): the Runs settings draw the run map"
 **Files:**
 
 - Start from: `packages/web/src/runs/RunMap.stories.tsx#StartFeatureDefaults`
+- Create: `web/src/runs/StartRuns.tsx` (`useStartRuns`, the strip over the settings' options)
 - Modify: `web/src/NewFeatureComposer.tsx`, `web/src/NewChangePage.tsx`, `web/src/StartDialog.tsx`
-  (`RunsOn` removed), `runs/RunStrip.tsx` (its keys in the registry), `server/src/fate/starts.ts`
-  (`feature.startText` takes `options`), `server/src/fate/change-starts.ts` (`change.start` takes
-  `options` in place of a pick; its first run on its build step's pick), the new session's picker
-  default for a feature's first session (its discovery step's pick)
+  (`RunsOn` removed), `runs/RunStrip.tsx` (its keys its own, on the structural test's list: R26),
+  `server/src/fate/starts.ts` (`feature.startText` takes `options`),
+  `server/src/fate/change-starts.ts` (`change.start` takes `options` in place of a pick; its first
+  run on its build step's pick), the new session's picker default for a feature's first session (its
+  discovery step's pick: the feature record's `newPick`, `web/src/ComposerPicker.tsx`, R27)
 - Test: `web/src/__tests__/start-runs.test.tsx`; `runtimes.test.ts`'s change start test rewritten
 
 **Interfaces:**
@@ -1146,30 +1148,30 @@ git commit -m "feat(run-options): the Runs settings draw the run map"
 - Produces: `feature.startText` and `change.start` inputs gain `options?: RunOptions`, stored as the
   feature's own when not empty; `change.start` no longer takes `runtime`, `model`, `effort`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `start-runs.test.tsx` "a feature started with Spec on Opus keeps only that pick": on the New page
-  with two runtimes, Tab to the strip, → to Spec, Enter, pick Opus, then High, start; the strip read
-  "Spec on Opus · High" before the start, and the feature's own options hold only
-  `steps: [{ step: "spec", agent: "claude", model: "opus", effort: "high" }]`. Break: storing the
-  whole resolved map, so later defaults never reach it.
+  with two runtimes, Tab to the strip, → → over the joint to Spec (R26), Enter, pick Opus, then
+  High, start; the strip read "Spec on Opus · High" before the start, and the feature's own options
+  hold only `steps: [{ step: "spec", agent: "claude", model: "opus", effort: "high" }]`. Break:
+  storing the whole resolved map, so later defaults never reach it.
 - `runtimes.test.ts`: the change start test sends its first run on the build step's pick of its
   options.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/start-runs.test.tsx`
 - Expected: FAIL, `Unable to find an element with the text: Runs`
 
-- [ ] **Step 3: Implement the strips and the starts' options**
+- [x] **Step 3: Implement the strips and the starts' options**
 
-- [ ] **Step 4: Run the task's validation, and review in the sandbox**
+- [x] **Step 4: Run the task's validation, and review in the sandbox**
 
 - Run: `vp run fast`
-- Expected: PASS, `keys-structural.test.ts` included
+- Expected: PASS but `keys-structural.test.ts` for `RunMap.tsx` alone, which Task 10 fixes
 - In the sandbox: a feature's and a change's start dialogs, both themes, phone and desktop.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src packages/server/src

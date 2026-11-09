@@ -323,3 +323,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Joint` in `packages/web/src/runs/parts.tsx`, and `MapBar` and `useMapKeys` in
   `packages/web/src/runs/RunMap.tsx`.
 - **Where**: task 10.
+
+## R26: The strip keeps its keys, the map's, in the start dialogs
+
+- **Decision**: the run strip listens for its own keys, on its group, as home's grid of cards and a
+  radio group do, and is on `keys-structural.test.ts`'s list: it is drawn only in the start dialogs,
+  a layer the key registry leaves to its owner, so a binding declared with `useKeys` would never run
+  there. Its keys are the map's: ← → (h l, while single keys are on) move along the steps and the
+  joints between them, the focus with them (one tab stop), Enter on a step or an agent reviewer
+  opens the key picker, and Enter or Space on a joint cuts or joins it. So changing Spec's model
+  from the dialog takes Tab, two moves (over the joint Discovery to Spec), Enter, and the pick: one
+  key more than SC-001's four.
+- **Rationale**: the Run options decision: "Run options MUST be shown and edited as one diagram of
+  the steps, the same wherever they appear", which outranks the spec's success criterion; the
+  Keyboard decision's list exists for a dialog's and a widget's own keys.
+- **If wrong**: for SC-001's count, ← → on the strip could step from step to step, a joint reached
+  another way, as Space on a step cutting the joint before it: `useStripKeys` in
+  `packages/web/src/runs/RunStrip.tsx`. For keys in the registry, the registry would need a binding
+  that runs inside a layer, `keys/registry.tsx`'s `dispatch`.
+- **Where**: task 11.
+
+## R27: A feature's first session takes its first step's pick, and the composer shows it
+
+- **Decision**: `feature.startText` and `change.start` take `options`, only what the strip changed,
+  kept as the feature's own: a feature's once planned, before a message can make its session, and
+  removed if the start is refused; a change's once it landed, before its first run, after its build
+  step's pick was checked as a new session's before anything is committed. `change.start` no longer
+  takes `runtime`, `model`, and `effort`. A session made without a pick while its folder's start is
+  still in the write queue takes the pick of the run step the start begins with (Discovery for a
+  feature, Build for a change), as the folder cannot be read yet. A feature's record says what such
+  a session runs on, `newPick`, which the composer's picker shows until the human picks; a composer
+  that makes a feature's session sends no pick then, so the server makes it on its step's.
+- **Rationale**: the composer sent the first runtime on as a pick, which R18 uses as given: a
+  discovery set on another agent or model in the strip would never run there.
+- **If wrong**: `useComposerRuntime` in `packages/web/src/ComposerPicker.tsx`, `newPickOf` and
+  `stepPickOf` in `packages/server/src/runner/run-session.ts`, `StartMessages.open`.
+- **Where**: task 11.

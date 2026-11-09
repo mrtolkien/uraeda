@@ -1,11 +1,12 @@
 // The New page's feature part: a composer that starts a feature from the page's draft, its text and
-// images. Ctrl+Enter asks for the feature's slug, which the core proposes for the text, and its
-// research effort, High first; Enter starts it, and its session opens as soon as the start is
+// images. Ctrl+Enter asks for the feature's slug, which the core proposes for the text, its
+// research effort, High first, and how its steps run, on the strip; Enter starts it, and its session opens as soon as the start is
 // planned, the discovery's message in its composer, unsent, while the write queue commits it. The
 // draft goes once the start landed: a refused start leaves it in the composer.
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
+import type { RunOptions } from "uraeda-binding";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { useStartProposal } from "./data.ts";
@@ -15,6 +16,7 @@ import { useRepositoryPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./takeOut.ts";
+import { useStartRuns } from "./runs/StartRuns.tsx";
 import { remember } from "./useStart.ts";
 import { StartPlanView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
@@ -27,8 +29,8 @@ const INITIAL_EFFORT = "high";
 type Asking = { images: ReadonlyArray<DraftImage>; resolve: (sent: boolean) => void; text: string };
 
 /**
- * Starts the feature from the text and images sent, under the slug and effort asked: the refusal to
- * show in the dialog, or nothing once planned and its session opened. The first line of Now the
+ * Starts the feature from the text and images sent, under the slug and effort asked, on its own run
+ * options, what the strip changed: the refusal to show in the dialog, or nothing once planned and its session opened. The first line of Now the
  * draft was filled from is replaced by the feature's link in the start commit; the other entries
  * leave their files, and the draft goes, once it landed.
  */
@@ -39,6 +41,7 @@ function useFeatureStart(draft: NewDraft) {
     { images, text }: Pick<Asking, "images" | "text">,
     slug: string,
     discovery: string | undefined,
+    options: RunOptions | undefined,
   ): Promise<string | undefined> => {
     const { sources } = draft;
     const line = nowLine(sources);
@@ -47,6 +50,7 @@ function useFeatureStart(draft: NewDraft) {
         ...(discovery === undefined ? {} : { discovery }),
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
         ...(line ? { line: line.text } : {}),
+        ...(options === undefined ? {} : { options }),
         slug,
         text,
       },
@@ -86,22 +90,28 @@ function FeatureQuestion({
 }: {
   asking: Asking;
   onCancel: () => void;
-  onConfirm: (slug: string, level?: string) => Promise<string | undefined>;
+  onConfirm: (
+    slug: string,
+    level: string | undefined,
+    options: RunOptions | undefined,
+  ) => Promise<string | undefined>;
 }) {
   const { levels, slug } = useStartProposal(asking.text);
+  const { options, strip } = useStartRuns();
   return (
     <StartDialog
       {...(levels.length === 0 ? {} : { effort: { initial: INITIAL_EFFORT, levels } })}
       initial={slug}
       isOpen
       onCancel={onCancel}
-      onConfirm={onConfirm}
+      onConfirm={(value, level) => onConfirm(value, level, options)}
       question={{
         confirm: "Start the feature",
         description: "Two words at most: it names the folder and the branch.",
         label: SLUG_LABEL,
         title: "Name the feature",
       }}
+      runs={strip}
     />
   );
 }
@@ -120,11 +130,15 @@ export function FeatureComposer({
     asking?.resolve(sent);
     setAsking(undefined);
   };
-  const confirm = async (slug: string, level?: string) => {
+  const confirm = async (
+    slug: string,
+    level: string | undefined,
+    options: RunOptions | undefined,
+  ) => {
     if (!asking) {
       return undefined;
     }
-    const refused = await start(asking, slug, level);
+    const refused = await start(asking, slug, level, options);
     if (refused === undefined) {
       // Started, but the draft and its images stay until the start lands: they are its to clear.
       answer(false);

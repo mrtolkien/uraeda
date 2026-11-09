@@ -1,7 +1,7 @@
 // The starts through the write queue (US4): a proposal file's start answers once the core planned
 // it, with the workflow's message of its first step, and the queue runs it, its steps in its write.
 // A message sent to its folder meanwhile waits in the runner, and goes once the start lands.
-import type { PlannedView, StartedView, StartStepView } from "uraeda-binding";
+import type { PlannedView, RunOptions, StartedView, StartStepView } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { runMessage } from "../runner/message.ts";
@@ -168,12 +168,39 @@ function inPlanTurn<T>(queue: WriteQueue, plan: () => Promise<T>): Promise<T> {
 }
 
 /**
+ * Keeps `options` as the run options of the planned `folder`, refused as `feature.setRunOptions`
+ * refuses them: what removes them again, for a start that is refused. Nothing given keeps nothing.
+ */
+async function keepOptions(
+  ctx: RepoContext,
+  root: string,
+  folder: string,
+  options: RunOptions | undefined,
+): Promise<() => void> {
+  if (options === undefined) {
+    return () => {};
+  }
+  await refusable(async () => ctx.featureOptions.set(root, folder, options));
+  return () => {
+    try {
+      ctx.featureOptions.set(root, folder, { steps: [] });
+    } catch (error) {
+      process.stderr.write(
+        `uraeda: the run options of ${folder}, whose start was refused, stay: ${reasonOf(error)}\n`,
+      );
+    }
+  };
+}
+
+/**
  * A start the core plans: its kind, the write it queues, or the page its refusal opens when the
  * call names none, its plan, and its run as planned.
  */
 type Plannable = {
   href: string;
   kind: Kind;
+  /** Its own run options, kept for its folder once planned, and dropped if it is refused. */
+  options?: RunOptions | undefined;
   plan: () => Promise<PlannedView>;
   run: (planned: PlannedView, onStep: (step: StartStepView) => void) => Promise<StartedView>;
   write: WriteInput | undefined;
@@ -187,7 +214,7 @@ type Plannable = {
  */
 async function startPlanned(
   ctx: RepoContext,
-  { href, kind, plan, run, write }: Plannable,
+  { href, kind, options, plan, run, write }: Plannable,
 ): Promise<StartPlanRecord> {
   const queue = ctx.hosts.byPath(ctx.repo)?.queue;
   if (!queue) {
@@ -201,16 +228,23 @@ async function startPlanned(
     if (startQueued(queue, planned)) {
       throw callSiteError(taken(kind, planned));
     }
+    // Kept before a message can make its session, which runs on its first step's pick.
+    const forget = await keepOptions(ctx, root, folder, options);
     let id = "";
     // A message kept before the start's write is queued waits for its id.
     let early: string | undefined;
-    starts.open(root, folder, (text) => {
+    const onKept = (text: string) => {
       if (id === "") {
         early = text;
       } else {
         queue.update(id, { queued: text });
       }
-    });
+    };
+    starts.open(root, folder, onKept, kind === "change" ? "build" : "discovery");
+    const refused = () => {
+      starts.drop(root, folder);
+      forget();
+    };
     const start = {
       branch,
       folder,
@@ -218,12 +252,10 @@ async function startPlanned(
       then: () => sendStartKept(ctx, root, folder),
       write: write ?? { href, label: `Starting the ${kind} ${title}` },
     };
-    const queued = await queueStart(ctx, queue, start, () => starts.drop(root, folder)).catch(
-      (error: unknown) => {
-        starts.drop(root, folder);
-        throw error;
-      },
-    );
+    const queued = await queueStart(ctx, queue, start, refused).catch((error: unknown) => {
+      refused();
+      throw error;
+    });
     id = queued.id;
     if (early !== undefined) {
       queue.update(id, { queued: early });
@@ -321,11 +353,16 @@ function proposalStart(
   };
 }
 
-/** What `feature.startText` starts: a typed text, its images, its line of Now, and its effort. */
+/**
+ * What `feature.startText` starts: a typed text, its images, its line of Now, its effort, and its
+ * run options.
+ */
 type TypedFeature = Queued<{
   discovery?: string;
   images?: Array<ChatImage>;
   line?: string;
+  /** Its own run options, only what differs from the settings'. */
+  options?: RunOptions;
   slug: string;
   text: string;
 }>;
@@ -348,6 +385,7 @@ async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Planna
     // whose composer still holds the text.
     href: NEW_FEATURE_HREF,
     kind: "feature",
+    options: input.options,
     plan: () => ctx.binding.planTextStart(ctx.repo, input.text, images, options),
     run: (planned, onStep) =>
       ctx.binding.startText(ctx.repo, input.text, images, { ...options, day: planned.day }, onStep),

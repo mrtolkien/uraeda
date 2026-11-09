@@ -2,9 +2,11 @@
 // note, or a proposal file.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { RunOptions } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
+import { toMap } from "../run-options.ts";
 import type { ChatImage } from "../runner/images.ts";
-import { newSessionPick, pickOf, type SessionPick } from "../runner/picks.ts";
+import { newSessionPick } from "../runner/picks.ts";
 import { runtimeState } from "../runner/runtimes.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -30,25 +32,22 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
 /**
  * Sends a started change's first run to its session, through the queue a running turn would hold
  * it in (R3), with the agent available and its workflow message written: the session's ID, or
- * `null` when no run was sent. A session made for it runs on what `pick` says, else on its build
- * step's pick (R18).
+ * `null` when no run was sent. A session made for it runs on its build step's pick, from its own
+ * options over the settings' (R18).
  */
-async function sendFirstRun(
-  ctx: RepoContext,
-  folder: string,
-  pick: SessionPick = {},
-): Promise<string | null> {
+async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | null> {
   // Without the agent, or a run to start, the change's page offers its message unsent.
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const latest = ctx.sessions.cache.latestSession(root, folder);
-  const message = runtimeState(ctx.sessions.runtimes, root, latest, pick.runtime).available
+  const runtime = ctx.sessions.stepPick(root, folder, "build")?.runtime;
+  const message = runtimeState(ctx.sessions.runtimes, root, latest, runtime).available
     ? await readWorkflowMessage(ctx, `${folder}:start`)
     : undefined;
   if (!message?.text) {
     return null;
   }
   // The change's latest session: its only one, made now, unless a session moved to it.
-  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder, pick));
+  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder));
   const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );
@@ -56,16 +55,20 @@ async function sendFirstRun(
 }
 
 /**
- * Sends the started change's first run: whether one was sent. Once the change exists, a run that
- * could not be sent is logged, not refused (R12): the change's page offers it unsent.
+ * Sends the started change's first run, its own run options kept first: whether one was sent. Once
+ * the change exists, options that could not be kept, or a run that could not be sent, are logged,
+ * not refused (R12): the change's page offers the run unsent.
  */
 async function firstRunSent(
   ctx: RepoContext,
   folder: string,
-  pick?: SessionPick,
+  options?: RunOptions,
 ): Promise<boolean> {
   try {
-    return (await sendFirstRun(ctx, folder, pick)) !== null;
+    if (options !== undefined) {
+      ctx.featureOptions.set(await ctx.sessions.mainRoot(ctx.repo), folder, options);
+    }
+    return (await sendFirstRun(ctx, folder)) !== null;
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its first run was not sent: ${reasonOf(error)}\n`,
@@ -75,44 +78,49 @@ async function firstRunSent(
 }
 
 /**
- * The started change's folder, once its first run was sent, on what `pick` says, or could not be:
- * the start's last step.
+ * The started change's folder, once its own `options` were kept and its first run was sent on
+ * them, or could not be: the start's last step.
  */
 const withFirstRun =
-  (ctx: RepoContext, pick?: SessionPick) =>
+  (ctx: RepoContext, options?: RunOptions) =>
   async ({ folder }: { folder: string }): Promise<{ folder: string; sent: boolean }> => ({
     folder,
-    sent: await firstRunSent(ctx, folder, pick),
+    sent: await firstRunSent(ctx, folder, options),
   });
 
 /**
- * Refuses a pick a new session could not run on, an agent off, a model its agent does not list, an
- * effort the model does not take, before the change starts: once committed, a first run that
- * cannot be sent is only logged (R12). Nothing picked is its build step's, never refused here.
+ * Refuses run options the store would refuse, or whose build step a new session could not run on,
+ * an agent off, a model its agent does not list, an effort the model does not take, before the
+ * change starts: once committed, a first run that cannot be sent is only logged (R12). A build step
+ * the options leave to the settings is never refused here.
  */
-async function checkPick(ctx: RepoContext, pick: SessionPick): Promise<void> {
-  if (Object.values(pick).every((value) => value === undefined)) {
+async function checkOptions(ctx: RepoContext, options: RunOptions): Promise<void> {
+  const resolved = await refusable(async () => ctx.featureOptions.over(options));
+  if (!options.steps.some((step) => step.step === "build")) {
     return;
   }
   await refusedOn(async () => {
-    newSessionPick(ctx.sessions.runtimes, await ctx.sessions.mainRoot(ctx.repo), pick);
+    const root = await ctx.sessions.mainRoot(ctx.repo);
+    const fallback = ctx.sessions.runtimes.defaultFor(root) ?? "";
+    newSessionPick(ctx.sessions.runtimes, root, toMap(resolved, fallback).steps.build);
   });
 }
 
 /**
- * A typed change's start: its text, images, line of Now, slug, and the runtime, model, and effort
- * it runs on.
+ * A typed change's start: its text, images, line of Now, slug, and its own run options, only what
+ * differs from the settings', its build step's pick the one its first run's session runs on.
  */
-type TypedChange = SessionPick & {
+type TypedChange = {
   images?: Array<ChatImage>;
   line?: string;
+  options?: RunOptions;
   slug?: string;
   text: string;
 };
 
 /**
- * Starts a change from a typed text and its images, then sends its first run, its pick checked
- * first. The core writes the
+ * Starts a change from a typed text and its images, then sends its first run, its run options
+ * checked first. The core writes the
  * images into the change's folder: the workflow's message carries none. `line`, the text of a line
  * of Now the text was filled from, is replaced by the change's link in the start commit.
  */
@@ -120,14 +128,15 @@ async function startTypedChange(
   ctx: RepoContext,
   input: TypedChange,
 ): Promise<{ folder: string; sent: boolean }> {
-  const pick = pickOf(input);
-  await checkPick(ctx, pick);
+  if (input.options !== undefined) {
+    await checkOptions(ctx, input.options);
+  }
   const bytes = await changeImages(ctx, input.images);
   return landedStart(
     ctx,
     (onStep) =>
       ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, input.line, onStep),
-    withFirstRun(ctx, pick),
+    withFirstRun(ctx, input.options),
     input.slug,
   );
 }

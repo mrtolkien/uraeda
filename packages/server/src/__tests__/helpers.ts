@@ -107,11 +107,14 @@ export async function testHosts(
   }
   // The session manager may read the hosts while they open: undefined until then.
   const opening: { hosts?: Hosts } = {};
+  // The features' options, once a test's app opened them: the settings' alone until then.
+  const runOptions: { of?: FeatureOptions } = {};
   const { adapter, sessions } = fakeSessions({
     binding: using,
     ...(cache === undefined ? {} : { cache }),
     hosts: () => opening.hosts,
     installed,
+    runOptions: (root, folder) => runOptions.of?.resolved(root, folder) ?? { steps: [] },
   });
   managers.push(sessions);
   const hosts = await Hosts.open({
@@ -122,7 +125,7 @@ export async function testHosts(
   });
   opening.hosts = hosts;
   opened.push(hosts);
-  return { adapter, dataDir, hosts, names: added, sessions };
+  return { adapter, dataDir, hosts, names: added, runOptions, sessions };
 }
 
 /**
@@ -188,7 +191,7 @@ export async function appSettings(allowedHosts?: Array<string>, environment?: Se
 
 function app(
   { settings, themes }: { settings: ServerSettings; themes: ServerThemes },
-  { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
+  { dataDir, hosts, names: [name], runOptions, sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
   lockedList = false,
@@ -197,6 +200,8 @@ function app(
   const previews = testPreviews(options);
   const frames = new FrameSecret();
   const featureOptions = testFeatureOptions(dataDir, settings, using);
+  // Each run starts on its feature's options, as the server's sessions do.
+  runOptions.of = featureOptions;
   const created = createApp({
     allowOrigins: ["http://localhost:5173"],
     binding: using,

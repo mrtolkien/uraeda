@@ -13,7 +13,7 @@ import { Processes } from "./processes.ts";
 import { readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
-import { newPickOf } from "./run-session.ts";
+import { newPickOf, stepPickOf } from "./run-session.ts";
 import type { SessionPick } from "./picks.ts";
 import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
@@ -223,7 +223,8 @@ export class Sessions {
   async featureSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
     const made = this.#context.cache.latestSession(root, folder) === undefined;
-    const picked = made ? await newPickOf(this.#context, root, folder, pick) : pick;
+    const starting = this.starts.runStep(root, folder);
+    const picked = made ? await newPickOf(this.#context, root, folder, pick, starting) : pick;
     return featureSession(this.#context, root, folder, picked);
   }
 
@@ -233,8 +234,14 @@ export class Sessions {
    */
   async newSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
-    const picked = await newPickOf(this.#context, root, folder, pick);
+    const starting = this.starts.runStep(root, folder);
+    const picked = await newPickOf(this.#context, root, folder, pick, starting);
     return newSession(this.#context, this.#options.onChange, root, { folder, pick: picked });
+  }
+
+  /** What a session of `folder` in `root`, made without a pick for `runStep`, runs on. */
+  stepPick(root: string, folder: string, runStep: string | null | undefined) {
+    return stepPickOf(this.#context, root, folder, runStep);
   }
 
   /** Moves a session without a workflow to the change it became, between turns: `attach`. */

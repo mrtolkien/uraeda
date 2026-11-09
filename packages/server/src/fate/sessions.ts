@@ -346,6 +346,20 @@ export async function readWorkflowMessage(
   };
 }
 
+/** What a session of `feature` made without a pick runs on: `FeatureRecord.newPick`. */
+function newPickOf(ctx: RepoContext, root: string, feature: FeatureView) {
+  try {
+    const runStep = ctx.binding.runStepOf(feature.step.name);
+    const pick = ctx.sessions.stepPick(root, feature.folder, runStep);
+    return pick
+      ? { effort: pick.effort ?? null, model: pick.model ?? null, runtime: pick.runtime }
+      : null;
+  } catch {
+    // No runtime on: the composer says so.
+    return null;
+  }
+}
+
 /**
  * A feature's record: its view, with its sessions' IDs, latest first and not archived, their
  * tokens, and whether it has a preview.
@@ -372,6 +386,7 @@ export async function featureRecord(
     // Said, not left out: a client that read the folder missing before its start landed keeps the
     // fields a record leaves out.
     missing: false,
+    newPick: root === undefined ? null : newPickOf(ctx, root, feature),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     // Its own, read with the main checkout as its sessions are: the settings' record holds the
     // rest, live.

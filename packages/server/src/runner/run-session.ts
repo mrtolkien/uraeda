@@ -99,29 +99,49 @@ function newPicked(
 }
 
 /**
+ * What a session of the feature `folder`, in the main checkout `root`, made for a run of `runStep`
+ * runs on: the step's pick from the feature's resolved options, its agent the first runtime on when
+ * its own is off. Undefined at a step no agent runs, or with no runtime on.
+ */
+export function stepPickOf(
+  context: SessionContext,
+  root: string,
+  folder: string,
+  runStep: string | null | undefined,
+): StepPick | undefined {
+  const fallback = agentsOf(context.runtimes, root).runtime();
+  if (!isStepId(runStep) || fallback === undefined) {
+    return undefined;
+  }
+  const map = toMap(context.runOptions(root, folder), fallback);
+  return runningPick(context, root, map.steps[runStep]);
+}
+
+/**
  * What a new session of the feature `folder`, in the main checkout `root`, runs on (the models
  * decision): `pick`, the human's, when it picks anything; else the pick of the run step its next
  * step belongs to, as a run of that step starts on, refused as a new session of it is; else, at a
- * step no agent runs, as a gate, or one that cannot be read, the agent's defaults.
+ * step no agent runs, as a gate, the agent's defaults. A folder that cannot be read yet, as one
+ * whose start is still in the write queue, takes the run step its start begins with, `starting`.
  */
 export async function newPickOf(
   context: SessionContext,
   root: string,
   folder: string,
   pick: SessionPick = {},
+  starting?: StepId,
 ): Promise<NewPick> {
   if (pick.runtime !== undefined || pick.model !== undefined || pick.effort !== undefined) {
     return pick;
   }
   const next = await context.binding.nextStep(root, folder).catch(() => undefined);
-  const runStep = next?.step.runStep;
-  const fallback = agentsOf(context.runtimes, root).runtime();
-  if (!isStepId(runStep) || fallback === undefined) {
+  const runStep = next?.step.runStep ?? starting;
+  const stepPick = stepPickOf(context, root, folder, runStep);
+  if (stepPick === undefined) {
     return pick;
   }
-  const map = toMap(context.runOptions(root, folder), fallback);
   // Made before it runs, as any session: the send checks its agent is available.
-  const picked = newPicked(context, runStep, runningPick(context, root, map.steps[runStep]), false);
+  const picked = newPicked(context, runStep as StepId, stepPick, false);
   return () => picked;
 }
 

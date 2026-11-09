@@ -131,6 +131,22 @@ export function changes(pick: SessionPick, fallback: SessionPick) {
   };
 }
 
+/** Whether a reviewer differs from the default's at its place: its kind, command, or pick. */
+export function reviewerChanged(reviewer: Reviewer, fallback: Reviewer | undefined): boolean {
+  if (fallback === undefined) {
+    return true;
+  }
+  if (reviewer.kind === "command" || fallback.kind === "command") {
+    return !(
+      reviewer.kind === "command" &&
+      fallback.kind === "command" &&
+      reviewer.command === fallback.command
+    );
+  }
+  const changed = changes(reviewer.pick, fallback.pick);
+  return changed.agent || changed.model || changed.effort;
+}
+
 /** An effort's name for people, from the runtime's lists: "xhigh" is "Extra high". */
 function effortName(runtimes: ReadonlyArray<PickerRuntime>, id: string): string {
   for (const runtime of runtimes) {
@@ -172,6 +188,10 @@ export function differences(
   }
   if (options.reviewers.length !== defaults.reviewers.length) {
     parts.push(`${options.reviewers.length} reviewers`);
+  } else if (
+    options.reviewers.some((each, index) => reviewerChanged(each, defaults.reviewers[index]))
+  ) {
+    parts.push("reviewers changed");
   }
   return parts.length === 0 ? "defaults" : parts.join(", ");
 }

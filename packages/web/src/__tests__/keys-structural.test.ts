@@ -157,6 +157,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     reason: "a filter's own keys, the editor's: Down and Up move along the repositories it lists",
   },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },
+  "runs/RunStrip.tsx": {
+    hits: 1,
+    reason:
+      "the run strip's own keys, a toolbar's inside the start dialogs, a layer the registry " +
+      "leaves to its owner: ← → (h l) move along its steps and joints, Enter and Space act (run options R26)",
+  },
   "sandbox/mountSandboxBar.tsx": {
     hits: 1,
     reason: "the sandbox's bar: its own pick shortcut, in the sandbox only",

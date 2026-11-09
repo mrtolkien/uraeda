@@ -1,6 +1,7 @@
 // The messages sent to a feature while its start is still in the write queue: kept in memory only,
 // sent once the start lands, dropped if it is refused or the server stops, never sent twice. The
 // server's stop drops those kept for features' commits too.
+import type { StepId } from "../run-options.ts";
 import type { SessionCache } from "./cache.ts";
 import type { SendInput } from "./send-input.ts";
 
@@ -9,6 +10,8 @@ type Waiting = {
   inputs: Array<SendInput>;
   /** Told of the messages' text as each one is kept, for the start's write. */
   onKept: (text: string) => void;
+  /** The run step the start begins with: a session made for it runs on that step's pick. */
+  runStep?: StepId;
   session?: string;
 };
 
@@ -30,9 +33,17 @@ export class StartMessages {
     this.#cache = cache;
   }
 
-  /** Opens the start of `folder`: the messages sent to it wait until `take` or `drop`. */
-  open(root: string, folder: string, onKept: (text: string) => void): void {
-    this.#waiting.set(keyOf(root, folder), { inputs: [], onKept });
+  /**
+   * Opens the start of `folder`, which begins with `runStep`: the messages sent to it wait until
+   * `take` or `drop`.
+   */
+  open(root: string, folder: string, onKept: (text: string) => void, runStep?: StepId): void {
+    this.#waiting.set(keyOf(root, folder), { inputs: [], onKept, ...(runStep && { runStep }) });
+  }
+
+  /** The run step the start of `folder` begins with, while it is in the queue. */
+  runStep(root: string, folder: string): StepId | undefined {
+    return this.#waiting.get(keyOf(root, folder))?.runStep;
   }
 
   /** Whether the start of `folder` is still in the queue, keeping its messages. */

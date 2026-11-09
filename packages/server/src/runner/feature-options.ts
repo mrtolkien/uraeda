@@ -182,6 +182,15 @@ export class FeatureOptions {
     return binding.mergeRunOptions(defaults(), this.own(repo, folder));
   }
 
+  /**
+   * `given`, checked and normalized as `set` keeps them, over the settings' as they are now: what a
+   * feature with those options would run on, for options not kept yet. Throws as `set` refuses.
+   */
+  over(given: RunOptions): RunOptions {
+    const { binding, defaults } = this.#options;
+    return binding.mergeRunOptions(defaults(), normalized(binding, given));
+  }
+
   /** Closes the file, if it was opened. */
   close(): void {
     this.#db?.close();

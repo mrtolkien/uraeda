@@ -1,7 +1,8 @@
 // The one question the New page asks once Ctrl+Enter starts a change or a feature: its slug, which
-// names its folder and branch, and for a feature its research effort, under it. Prefilled, so that
-// Enter alone confirms; a dialog on wide screens, a bottom sheet on the phone, as the rename is. The
-// page has no field for it: the composer is the page's one field.
+// names its folder and branch, for a feature its research effort, under it, and how its steps run,
+// the run map's strip. Prefilled, so that Enter alone confirms; a dialog on wide screens, a bottom
+// sheet on the phone, as the rename is. The page has no field for it: the composer is the page's
+// one field.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -9,8 +10,6 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { StatusText } from "./fields/StatusText.tsx";
-import { useRuntimesOn } from "./runtimes.ts";
-import { pickerRuntimes, type SessionPick, SessionPicker } from "./SessionPicker.tsx";
 import { type EditorHandle } from "./fields/editor/Editor.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -28,32 +27,14 @@ const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
 const levelLabel = (level: string) => level.charAt(0).toUpperCase() + level.slice(1);
 
 /**
- * Starts with the value, the effort picked when one is asked, and what the session runs on when the
- * picker shows, as picked: the refusal to show under the field, or nothing once it started.
+ * Starts with the value and the effort picked when one is asked: the refusal to show under the
+ * field, or nothing once it started.
  */
-type OnConfirm = (value: string, level?: string, pick?: SessionPick) => Promise<string | undefined>;
-
-/** What the session the start makes runs on, named as the research effort is, beside its picker. */
-function RunsOn({
-  onChange,
-  value,
-}: {
-  onChange: (pick: SessionPick) => void;
-  value: SessionPick | undefined;
-}) {
-  const on = useRuntimesOn();
-  return (
-    <HStack align="center" gap={3} wrap="wrap">
-      <Text color="secondary">Runs on</Text>
-      <SessionPicker onChange={onChange} runtimes={pickerRuntimes(on)} value={value} />
-    </HStack>
-  );
-}
+type OnConfirm = (value: string, level?: string) => Promise<string | undefined>;
 
 function Ask({
   effort,
   error: shown,
-  hasRuntime,
   initial,
   onCancel,
   onConfirm,
@@ -63,18 +44,15 @@ function Ask({
   effort?: Effort | undefined;
   /** A refusal to show from the start, as a story does. */
   error?: string | undefined;
-  hasRuntime: boolean;
   initial: string;
   onCancel: () => void;
   onConfirm: OnConfirm;
   question: Question;
-  /** How the start's steps run, the run map's strip, in place of the one session's picker. */
+  /** How the start's steps run, the run map's strip, under the effort. */
   runs?: ReactNode;
 }) {
   const [value, setValue] = useState(initial);
   const [level, setLevel] = useState(effort?.initial);
-  // As picked, which may be off since: the caller sends what the picker shows, `pickSent`.
-  const [pick, setPick] = useState<SessionPick>();
   const [error, setError] = useState(shown);
   // The field takes the focus, its text selected, once the dialog has settled: the dialog's own
   // focus goes to its first control as it opens, and Enter must confirm from the first key.
@@ -96,7 +74,7 @@ function Ask({
     starting.current = true;
     setError(undefined);
     try {
-      const refused = await onConfirm(value.trim(), level, pick);
+      const refused = await onConfirm(value.trim(), level);
       if (refused !== undefined) {
         setError(refused);
       }
@@ -130,7 +108,7 @@ function Ask({
           </SegmentedControl>
         </HStack>
       )}
-      {runs ?? (hasRuntime && <RunsOn onChange={setPick} value={pick} />)}
+      {runs}
       {error && (
         <StatusText role="alert" tone="error" type="supporting">
           {sentence(error)}
@@ -152,13 +130,11 @@ function Ask({
 /**
  * The question, over the page while `isOpen`, its field starting as `initial`. Closing it, by Cancel,
  * Escape, or Back, cancels the start: the composer keeps what it holds. With `effort`, the research
- * effort is picked under the field; `hasRuntime`, the agent, the model, and the effort of the session
- * the start makes.
+ * effort is picked under the field; `runs`, the run map's strip, says how its steps run.
  */
 export function StartDialog({
   effort,
   error,
-  hasRuntime = false,
   initial,
   isOpen,
   onCancel,
@@ -168,7 +144,6 @@ export function StartDialog({
 }: {
   effort?: Effort;
   error?: string;
-  hasRuntime?: boolean;
   initial: string;
   isOpen: boolean;
   onCancel: () => void;
@@ -182,7 +157,6 @@ export function StartDialog({
         <Ask
           effort={effort}
           error={error}
-          hasRuntime={hasRuntime}
           initial={initial}
           onCancel={onCancel}
           onConfirm={onConfirm}

@@ -1,6 +1,7 @@
 // What the server's and the UI's tests use: the session manager on the fake adapter, with a cache in
 // memory, sign-in on a test's data folder, and settings and themes on a test's config folder.
 import { randomUUID } from "node:crypto";
+import type { RunOptions } from "uraeda-binding";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
@@ -38,6 +39,7 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   cache = ":memory:",
   hosts = () => undefined,
   installed = true,
+  runOptions,
   runs = () => CONTINUES_OFF,
 }: {
   adapter?: T;
@@ -45,6 +47,8 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   cache?: string;
   hosts?: HostsOf;
   installed?: boolean;
+  /** A feature's run options as its next run starts on them: none, the defaults, when left out. */
+  runOptions?: (repo: string, folder: string) => RunOptions;
   runs?: () => ContinueSettings;
 } = {}): {
   adapter: T;
@@ -55,6 +59,7 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
     binding: using,
     cache: SessionCache.open(cache),
     hosts,
+    ...(runOptions && { runOptions }),
     runs,
     runtimes: runtimesOf({ fake: adapter }),
   });
