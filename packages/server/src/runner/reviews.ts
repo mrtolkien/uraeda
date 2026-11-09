@@ -194,24 +194,38 @@ async function runCommand(command: string, cwd: string, signal?: AbortSignal): P
   }
 }
 
-/** The input of `review`, each field a text that is not blank, `context` optional: else refused. */
+/** What a review reviews: the whole branch, or a wave, `wave 2`. */
+const REVIEWED = /^(branch|wave [0-9]+)$/;
+
+/**
+ * A commit as a review takes it, `base` or `head`: one word on one line, without a colon, as a
+ * reviewer's message and the findings' `commits` name the range.
+ */
+const COMMIT = /^[^\s:]+$/;
+
+/**
+ * The input of `review`, each field a text that is not blank, `context` optional: else refused.
+ * `reviewed` is `branch` or `wave <N>`, and `base` and `head` each a commit, one word without a
+ * colon: checked before any reviewer runs.
+ */
 function reviewInput(input: unknown): ReviewInput {
   const fields = (typeof input === "object" && input !== null ? input : {}) as Record<
     string,
     unknown
   >;
-  const text = (name: keyof ReviewInput) => {
+  const text = (name: keyof ReviewInput, valid: RegExp, what: string) => {
     const value = fields[name];
-    if (typeof value !== "string" || value.trim() === "") {
-      throw new Error(`review needs \`${name}\`, a text.`);
+    const trimmed = typeof value === "string" ? value.trim() : "";
+    if (!valid.test(trimmed)) {
+      throw new Error(`review needs \`${name}\`, ${what}.`);
     }
-    return value.trim();
+    return trimmed;
   };
   const context = typeof fields.context === "string" ? fields.context.trim() : "";
   return {
-    base: text("base"),
-    head: text("head"),
-    reviewed: text("reviewed"),
+    base: text("base", COMMIT, "a commit, one word without a colon"),
+    head: text("head", COMMIT, "a commit, one word without a colon"),
+    reviewed: text("reviewed", REVIEWED, "`branch` or `wave <N>`"),
     ...(context === "" ? {} : { context }),
   };
 }
@@ -231,12 +245,16 @@ export function reviewTool(reviews: Reviews): McpTool {
       "`reviewed` `wave <N>`, and on the whole branch, with `reviewed` `branch`.",
     inputSchema: {
       properties: {
-        base: { description: "The commit the reviewed changes start after.", type: "string" },
+        base: {
+          description: "The commit the reviewed changes start after.",
+          pattern: "^[^\\s:]+$",
+          type: "string",
+        },
         context: {
           description: "What the reviewers should know: what the changes do, what to look at.",
           type: "string",
         },
-        head: { description: "The last commit reviewed.", type: "string" },
+        head: { description: "The last commit reviewed.", pattern: "^[^\\s:]+$", type: "string" },
         reviewed: {
           description: "What is reviewed: `wave 2`, or `branch`.",
           pattern: "^(branch|wave [0-9]+)$",

@@ -391,3 +391,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `codexThreadParams` in `codex-thread.ts`, `CodexTurns.#start` in `codex-turns.ts`, and `Reviews`
   in `reviews.ts`.
 - **Where**: task 9, checked with `validate:claude --review` and `validate:codex --review`.
+
+## R29: A review's input is checked before any reviewer runs, its commits as one word
+
+- **Decision**: `review` refuses, before any reviewer runs, a `reviewed` other than `branch` or
+  `wave <N>`, and a `base` or a `head` that is not one word without a colon. The commits are not
+  resolved with `git rev-parse --verify` in the feature's worktree: no function of the core or the
+  binding resolves a revision there (`gitCommit` takes a hex ID in the main checkout only), and the
+  plan adds none for it.
+- **Rationale**: the review found a wrong `reviewed` refused only by `writeFindings`, after every
+  reviewer ran, and a `base` with a space or a newline passed on into the reviewers' messages and
+  the findings' `commits`. A commit that does not resolve still fails each reviewer, which says so
+  in its section.
+- **If wrong**: `reviewInput` in `packages/server/src/runner/reviews.ts`, with a binding function
+  over the core's `Git::resolve` to resolve the commits in the feature's worktree.
+- **Where**: task 9's review.

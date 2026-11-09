@@ -185,3 +185,36 @@ test("a wave's review on a branch-only feature runs no reviewer", async () => {
   expect(sessions.subSessions.ofParent(parent.id)).toEqual([]);
   expect(claude.sent).toHaveLength(sent);
 });
+
+test.each([
+  {
+    error: /`reviewed`/,
+    input: { base: "abc123", head: "def456", reviewed: "wave two" },
+    name: "a `reviewed` neither the branch nor a wave",
+  },
+  {
+    error: /`base`/,
+    input: { base: "abc123 --all", head: "def456", reviewed: "branch" },
+    name: "a `base` of two words",
+  },
+  {
+    error: /`head`/,
+    input: { base: "abc123", head: "def456\nmain", reviewed: "branch" },
+    name: "a `head` of two lines",
+  },
+  {
+    error: /`head`/,
+    input: { base: "abc123", head: "HEAD: x", reviewed: "branch" },
+    name: "a `head` with a colon",
+  },
+])("a review asked with $name is refused before any reviewer runs", async ({ error, input }) => {
+  const coderabbit = fakeCoderabbit();
+  const { claude, parent, review, sessions } = await reviewing(REVIEWERS);
+  const sent = claude.sent.length;
+
+  await expect(review(input)).rejects.toThrow(error);
+
+  expect(sessions.subSessions.ofParent(parent.id)).toEqual([]);
+  expect(claude.sent).toHaveLength(sent);
+  expect(coderabbit.started()).toBe(false);
+});

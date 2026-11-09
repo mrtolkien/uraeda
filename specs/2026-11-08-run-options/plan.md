@@ -1022,7 +1022,8 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
     On a feature whose depth is `branch` and a `reviewed` other than `branch`, it answers "No
     review: this feature's reviews run on the branch only." and runs nothing. Otherwise it runs
     every reviewer of the feature's resolved options at once and answers with the path and text of
-    the `findings-NN.md` it committed.
+    the `findings-NN.md` it committed. Before any reviewer runs, it refuses a `reviewed` other than
+    `branch` or `wave <N>`, and a `base` or a `head` that is not one word without a colon (R29).
   - `class Reviews { review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
     reached as `Sessions.reviews`, and `reviewTool(reviews: Reviews): McpTool`, pushed into the
     server's `mcp.tools`; a review is counted as the parent's call (`SubSessions.counted`), so its
