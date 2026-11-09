@@ -1,6 +1,6 @@
 import { working } from "./activity.ts";
 import type { Outgoing } from "./adapter.ts";
-import type { Trigger, TurnKind, TurnState } from "./events.ts";
+import type { Limit, Trigger, TurnKind, TurnState } from "./events.ts";
 import { recheckQueued } from "./send-input.ts";
 import {
   IDLE_CLOSE_MS,
@@ -10,6 +10,7 @@ import {
   type Queued,
   RESUMED,
   runtimeOf,
+  SERVER_STOPPED,
   type Running,
   type Sent,
   type SessionContext,
@@ -195,7 +196,8 @@ export class Turns {
 
   /**
    * Records the end of a turn, running or queued, and reports it to the continuer, then to the step
-   * chain. The end is published once the continuer decided, or the chain sent the next step's run,
+   * chain. A running turn that failed or stopped, but by a usage limit or the server's stop, stops
+   * the session's sub-sessions: nothing waits for their answers any more. The end is published once the continuer decided, or the chain sent the next step's run,
    * so a run that waits to continue, or goes on with its next step, never reads as asking.
    */
   end(live: Live, id: number, end: { reason?: string; state: TurnState }) {
@@ -223,6 +225,9 @@ export class Turns {
         (this.#context.continuer.ended(live, row, limit) ?? this.#context.chain.ended(live, row));
     } catch (error) {
       failed(error);
+    }
+    if (running && endsSubSessions(end, limit)) {
+      this.#context.subSessions.stopAll(live.id);
     }
     this.#forget(live, id);
     if (deciding) {
@@ -368,4 +373,15 @@ export class Turns {
       live.turn.terminate.forEach(clearTimeout);
     }
   }
+}
+
+/**
+ * Whether a running turn's end stops its session's sub-sessions: a failure, but a usage limit's,
+ * or a stop, but the server's, whose runs continue after it (R21).
+ */
+function endsSubSessions(end: { reason?: string; state: TurnState }, limit: Limit | undefined) {
+  return (
+    (end.state === "failed" && limit === undefined) ||
+    (end.state === "stopped" && end.reason !== SERVER_STOPPED)
+  );
 }

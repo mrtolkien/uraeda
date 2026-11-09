@@ -33,7 +33,10 @@ async function until(done: () => boolean) {
   await vi.waitFor(() => expect(done()).toBe(true), { interval: 5, timeout: 5000 });
 }
 
-/** A step that holds the turn until the test opens its gate, kept by name. */
+/**
+ * A step that holds the turn until the test opens its gate, kept by name, or fails it: the step
+ * throws, which ends the process, as a crash.
+ */
 function gates() {
   const all = new Map<string, PromiseWithResolvers<void>>();
   const of = (name: string) => {
@@ -45,7 +48,11 @@ function gates() {
     (name: string): FakeStep =>
     () =>
       of(name).promise;
-  return { hold, open: (name: string) => of(name).resolve() };
+  return {
+    fail: (name: string) => of(name).reject(new Error("crashed")),
+    hold,
+    open: (name: string) => of(name).resolve(),
+  };
 }
 
 /** The session's latest turn. */
@@ -204,12 +211,23 @@ test("a sub-session's continue after its limit starts while its parent works", a
   expect(latest(cache, sub.id)?.state).toBe("done");
 });
 
-test("Stop on a parent stops its sub-sessions", async () => {
-  const { cache, call, gate, other, parent, repo, sessions } = await building();
+test.each([
+  {
+    end: ({ parent, repo, sessions }: Awaited<ReturnType<typeof building>>) =>
+      sessions.stop(repo, parent.id),
+    name: "Stop on a parent",
+  },
+  {
+    end: ({ gate }: Awaited<ReturnType<typeof building>>) => gate.fail("parent"),
+    name: "A parent's turn that fails",
+  },
+])("$name stops its sub-sessions", async ({ end }) => {
+  const setup = await building();
+  const { cache, call, gate, other, parent, sessions } = setup;
   const calls = [4, 5].map((task) => call(task));
   await until(() => allRunning(sessions, cache, parent.id, 2));
 
-  sessions.stop(repo, parent.id);
+  end(setup);
 
   for (const answer of calls) {
     await expect(answer).rejects.toThrow(/stopped/);

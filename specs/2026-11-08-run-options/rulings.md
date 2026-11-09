@@ -261,13 +261,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sub-sessions' cuts are decided first. The worktrees `run_agent` accepts are the linked worktrees
   the core's `gitPage` lists, not missing, compared by real path, but those with a `folder`, a
   change's or a feature's, which have its branch: the parent's own, another one's, and so every
-  workflow session's working directory. No new core or binding function.
+  workflow session's working directory. No new core or binding function. A parent's running turn
+  that fails, but by a usage limit, or stops, but by the server's stop, stops its working
+  sub-sessions too, as Stop on the parent does: halted by its watchdog, or its process crashed,
+  nothing waits for their answers. One that ends done leaves them: its agent may ask again in its
+  next turn.
 - **Rationale**: a limit's continue may wait hours, past the call's 2-hour limit (R20); the parent
   asks again once it continues, as the plan's repeated call already answers. `gitPage` lists the
   worktrees through gix, as `git worktree list` does, and a call of `run_agent` is rare enough for
   its other reads.
 - **If wrong**: `SubSessions.#idle` and `#worktree` in `packages/server/src/runner/sub-sessions.ts`,
-  and `Continuer.fire` in `continuer.ts` and `ParentHolds` in `parent-holds.ts`.
+  `endsSubSessions` in `turns.ts`, and `Continuer.fire` in `continuer.ts` and `ParentHolds` in
+  `parent-holds.ts`.
 - **Where**: task 8.
 
 ## R22: A parent's watchdog waits for its sub-sessions
