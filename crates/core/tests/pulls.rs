@@ -542,3 +542,26 @@ fn behind_reads_once_per_pair_of_tips() {
     assert_eq!(code_again, code);
     assert_eq!(behind::diffs(), before + 2);
 }
+
+/// Review: a diff git could not read reads as not behind, and is read again next time, not kept.
+#[test]
+fn a_diff_git_cannot_read_is_not_kept() {
+    let repo = TestRepo::new();
+    branch(&repo);
+    gain(&repo, "2026-10-10-x", Gain::Code);
+    let tree = repo.git(&["rev-parse", "main:src"]).trim().to_string();
+    let object = repo
+        .path()
+        .join(".git/objects")
+        .join(&tree[..2])
+        .join(&tree[2..]);
+    let hidden = repo.path().join("hidden-object");
+    std::fs::rename(&object, &hidden).unwrap();
+
+    let unreadable = behind::catch_up(&Git::discover(repo.path()).unwrap(), "2026-10-10-x");
+    std::fs::rename(&hidden, &object).unwrap();
+    let readable = behind::catch_up(&Git::discover(repo.path()).unwrap(), "2026-10-10-x");
+
+    assert_eq!(unreadable, None);
+    assert!(readable.is_some());
+}
