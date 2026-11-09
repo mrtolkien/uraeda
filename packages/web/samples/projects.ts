@@ -14,6 +14,7 @@ import {
   initRepository,
   previewDecision,
   STORY_FEATURE,
+  temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS, addChanges } from "./changes.ts";
 import {
@@ -24,7 +25,7 @@ import {
   dated,
   proposal,
 } from "./features.ts";
-import { ROUND_MOCKUPS } from "./folders.ts";
+import { FEATURE_PAGES, ROUND_MOCKUPS } from "./folders.ts";
 import { addRealistic } from "./realistic.ts";
 import { addStepFeatures, FEATURE_FOLDERS, FEATURE_STEPS } from "./steps.ts";
 
@@ -86,7 +87,24 @@ function buildSample(repo: string) {
     copyFileSync(fixture(`realistic/decisions/${name}`), join(repo, "specs/decisions", name));
   }
   commitAll(repo, "docs: code-quality and testing decisions");
+  // The pull requests waiting on review hold main's tip; those at `catch-up` lack the decisions.
+  updateBranch(repo, FEATURE_PAGES.pullRequest);
+  updateBranch(repo, `change/${CHANGE_FOLDERS["pull-request"]}`);
   addOrigin(repo);
+}
+
+/**
+ * Merges `main` into `branch`, as GitHub's "Update branch" does: its pull request then holds
+ * main's tip, and waits on review rather than a catch-up.
+ */
+function updateBranch(repo: string, branch: string) {
+  const worktree = join(temporaryFolder("uraeda-branch"), "worktree");
+  git(repo, "worktree", "add", "--quiet", worktree, branch);
+  try {
+    git(worktree, "merge", "--quiet", "--no-verify", "--no-edit", "main");
+  } finally {
+    git(repo, "worktree", "remove", "--force", worktree);
+  }
 }
 
 /** The line of `specs/PRIORITIES.md` the sample's own commit and its `origin`'s both change. */

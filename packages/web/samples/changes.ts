@@ -1,5 +1,5 @@
 // The sample project's changes, one at each state a change's step reads: at work, a round waiting,
-// its draft pull request, its pull request open, changes requested on it, and merged.
+// its draft pull request, its pull request open, behind main, changes requested on it, and merged.
 import { readFileSync } from "node:fs";
 import { addChange, fixture, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { proposal } from "./features.ts";
@@ -7,6 +7,8 @@ import { FEATURE_PAGES } from "./folders.ts";
 
 /** The folder of each state's sample change. */
 export const CHANGE_FOLDERS = {
+  /** Its pull request, #38, open, its branch lacking main's decisions: the agent catches up. */
+  "catch-up": "2026-10-18-retry-button",
   /** At its `change` step: the agent investigates and fixes. */
   change: "2026-10-19-sort-order",
   /** Done: merged by rebase, the feature page's. */
@@ -34,6 +36,7 @@ export function addChanges(repo: string) {
   });
   addChange(repo, CHANGE_FOLDERS.finish, { "proposal.md": proposal("Loading state") });
   addChange(repo, CHANGE_FOLDERS["pull-request"], { "proposal.md": proposal("Empty state") });
+  addChange(repo, CHANGE_FOLDERS["catch-up"], { "proposal.md": proposal("Retry button") });
   addChange(repo, CHANGE_FOLDERS["pull-request-changes"], {
     "proposal.md": proposal("Error copy"),
   });

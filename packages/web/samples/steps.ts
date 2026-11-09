@@ -35,6 +35,7 @@ export const FEATURE_STEPS = [
   "implementation",
   "final-review",
   "pull-request",
+  "catch-up",
   "pull-request-changes",
   "finish",
   "done",
@@ -47,6 +48,8 @@ export type FeatureStep = (typeof FEATURE_STEPS)[number];
 export const FEATURE_FOLDERS: Record<FeatureStep, string> = {
   approval: "2026-10-19-tags",
   blocked: FEATURE_PAGES.blocked,
+  // Its branch lacks main's decisions: its pull request catches up before review.
+  "catch-up": "2026-10-18-bulk-edit",
   discovery: "2026-10-19-dark-mode",
   done: FEATURE_PAGES.done,
   "final-review": "2026-10-18-archive",
@@ -67,6 +70,7 @@ export const FEATURE_FOLDERS: Record<FeatureStep, string> = {
 /** The titles of the features this file builds, by folder. */
 const TITLES: Record<string, string> = {
   "2026-10-18-archive": "Archive",
+  "2026-10-18-bulk-edit": "Bulk edit",
   "2026-10-18-offline": "Offline mode",
   "2026-10-18-themes": "Themes",
   "2026-10-19-csv-export": "CSV export",
@@ -145,6 +149,7 @@ function commitsUpTo(folder: string, step: FeatureStep): Array<DatedCommit> {
     "spec-revision": [proposed, round, specOf("changes-requested", "18 12:11")],
   };
   stages.finish = stages["final-review"];
+  stages["catch-up"] = stages["final-review"];
   stages["pull-request-changes"] = stages["final-review"];
   return stages[step]!;
 }
@@ -160,6 +165,7 @@ const BUILT: Array<FeatureStep> = [
   "plan-revision",
   "final-review",
   "finish",
+  "catch-up",
   "pull-request-changes",
 ];
 
@@ -184,15 +190,18 @@ function pullRequest(
 }
 
 /**
- * The pull requests `gh` lists for the sample: the feature page's #31 open, the finished feature's
- * draft, the one with changes requested, and the changes': open, draft, and changes requested.
+ * The pull requests `gh` lists for the sample: the feature page's #31 open, the one behind main,
+ * the finished feature's draft, the one with changes requested, and the changes': open, behind
+ * main, draft, and changes requested.
  */
 export function samplePullRequests(): Array<FakePullRequest> {
   return [
     pullRequest(FEATURE_FOLDERS["pull-request"], 31, false, ""),
+    pullRequest(FEATURE_FOLDERS["catch-up"], 32, false, ""),
     pullRequest(FEATURE_FOLDERS.finish, 33, true, ""),
     pullRequest(FEATURE_FOLDERS["pull-request-changes"], 34, false, "CHANGES_REQUESTED"),
     pullRequest(`change/${CHANGE_FOLDERS["pull-request"]}`, 35, false, ""),
+    pullRequest(`change/${CHANGE_FOLDERS["catch-up"]}`, 38, false, ""),
     pullRequest(`change/${CHANGE_FOLDERS.finish}`, 36, true, ""),
     pullRequest(`change/${CHANGE_FOLDERS["pull-request-changes"]}`, 37, false, "CHANGES_REQUESTED"),
   ];
