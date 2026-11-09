@@ -25,6 +25,8 @@ const CATCH_UP: PastLastTask = {
   pullRequest: "behind",
   waitsOn: "agent",
 };
+/** The pull request ready for review, main not moved. */
+const READY: PastLastTask = { name: "pull-request", waitsOn: "human" };
 /** The pull request's state `gh` has not told yet. */
 const UNKNOWN: PastLastTask = { name: "pull-request-unknown", waitsOn: "human" };
 
@@ -110,7 +112,7 @@ async function start(using: Binding, config: string) {
   /** The session's catch-up turns. */
   const catchUps = () =>
     cache.turns(session.id).filter((row) => row.step === "catch-up" && row.trigger === "catch-up");
-  return { catchUps, repo, server };
+  return { adapter, catchUps, server };
 }
 
 /** A config folder, its switch on when `on`. */
@@ -137,4 +139,58 @@ test("a refresh of the pull requests that moves a feature to Catch up catches it
   release(true);
 
   await expect.poll(() => catchUps().length, POLL).toBe(1);
+});
+
+/** A burst of the watcher: main moved under the feature's branch. */
+const MOVED: Changes = {
+  branchDecisions: [],
+  decisions: false,
+  features: [AGENT],
+  files: [],
+  git: true,
+  inbox: false,
+  priorities: false,
+  workspace: false,
+};
+
+/** US2 more 1, through the server. Catches: the settings' changes not reaching the catcher. */
+test("turning the switch on in the settings catches up a feature at Catch up", async () => {
+  const { using } = faked(CATCH_UP);
+  const dir = config(false);
+  const { catchUps } = await start(using, dir);
+  expect(catchUps()).toHaveLength(0);
+
+  writeFileSync(join(dir, "config.toml"), SWITCH_ON);
+
+  await expect.poll(() => catchUps().length, POLL).toBe(1);
+});
+
+/** US2 1, SC-001, through the server. Catches: the watcher's bursts not reaching the catcher. */
+test("a watcher burst moving main catches up the feature", async () => {
+  const { fake, using } = faked(READY);
+  const { catchUps } = await start(using, config(true));
+  // Main moves as the burst's refresh runs, the snapshot unchanged: only the burst settles.
+  fake.refresh = async () => {
+    fake.step = CATCH_UP;
+    return false;
+  };
+
+  fake.burst(MOVED);
+
+  await expect.poll(() => catchUps().length, POLL).toBe(1);
+});
+
+/** Review: the server stopped. Catches: a trigger left running the catcher after the stop. */
+test("a stopped server catches up nothing", async () => {
+  const { fake, using } = faked(READY);
+  const dir = config(true);
+  const { adapter, server } = await start(using, dir);
+  await server.stop();
+
+  fake.step = CATCH_UP;
+  fake.burst(MOVED);
+  writeFileSync(join(dir, "config.toml"), `${SWITCH_ON}\n`);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  expect(adapter.sent).toHaveLength(0);
 });
