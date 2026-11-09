@@ -437,10 +437,19 @@ const limit = (value: string) => ({
   noOpen: false,
 });
 
+/** The switch typed in `URAEDA_CATCH_UP_PULL_REQUESTS`. */
+const catchUp = (value: string) => ({
+  catchUpPullRequests: { name: "URAEDA_CATCH_UP_PULL_REQUESTS" as const, value },
+  noOpen: false,
+});
+
 /** R13 */
 test("a given switch's variable reads true or false, and stops the start otherwise", async () => {
   await expect(opened(temporaryFolder("uraeda-config"), limit("yes"))).rejects.toThrow(
     /^URAEDA_CONTINUE_AFTER_LIMIT is true or false\.$/,
+  );
+  await expect(opened(temporaryFolder("uraeda-config"), catchUp("yes"))).rejects.toThrow(
+    /^URAEDA_CATCH_UP_PULL_REQUESTS is true or false\.$/,
   );
   const settings = await opened(temporaryFolder("uraeda-config"), limit(" false "));
   expect(settings.runs().continueAfterLimit).toEqual({

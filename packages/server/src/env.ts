@@ -17,7 +17,10 @@ export type RestartName = "--no-continue-after-restart" | "URAEDA_CONTINUE_AFTER
 /** The flag and the variable turning off the continue after a usage limit's reset. */
 export type LimitName = "--no-continue-after-limit" | "URAEDA_CONTINUE_AFTER_LIMIT";
 
-/** The flag and the variable turning on the catch-up of open pull requests behind the default branch. */
+/**
+ * The flag and the variable turning on the catch-up of open pull requests behind the default
+ * branch.
+ */
 export type CatchUpName = "--catch-up-pull-requests" | "URAEDA_CATCH_UP_PULL_REQUESTS";
 
 /** The flag and the variable giving the automatic continues in a row. */
@@ -25,8 +28,8 @@ export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUE
 
 /**
  * A switch given for one run: a `--no-…` flag's `false`, `--catch-up-pull-requests`'s `true`, or
- * its variable as typed, which the
- * settings unit checks with the port, after `--help` and `--version` (R13).
+ * its variable as typed, which the settings unit checks with the port, after `--help` and
+ * `--version` (R13).
  */
 export type Switch<N extends string> = Given<boolean | string, N>;
 

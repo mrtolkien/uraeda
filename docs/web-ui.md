@@ -121,8 +121,9 @@ They apply at once. Each continue's switch comes from its flag, `--no-continue-a
 `--no-continue-after-limit`, else from its environment variable, `URAEDA_CONTINUE_AFTER_RESTART` or
 `URAEDA_CONTINUE_AFTER_LIMIT`, set to `true` or `false`, else the file, else its default. The
 continues in a row come from `--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else
-the file, else 3. The catch-up of open pull requests is off unless `--catch-up-pull-requests` turns
-it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file.
+the file, else 3. The catch-up of open pull requests comes from `--catch-up-pull-requests`, which
+turns it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file, else
+off.
 
 The page shows them under Runs: a switch for each kind of continue, the continues in a row, saved on
 Enter or when you leave the field, a number outside 1 to 10 refused, and the switch "Catch up open

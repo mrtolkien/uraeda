@@ -177,8 +177,9 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, no
- * catch-up of open pull requests, and the build in a fresh session, the single-key shortcuts on, and Vim off without commands, which
- * have no flag or variable. `file` is null when there is none, or it cannot be read.
+ * catch-up of open pull requests, and the build in a fresh session, the single-key shortcuts on,
+ * and Vim off without commands, which have no flag or variable. `file` is null when there is none,
+ * or it cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
