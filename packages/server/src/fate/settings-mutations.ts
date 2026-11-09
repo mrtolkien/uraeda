@@ -55,11 +55,6 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.setAutomaticContinues(dir, input.continues)),
     type: "Settings",
   },
-  "settings.setBuildInFreshSession": {
-    resolve: ({ input, ...call }: ListResolver<{ fresh: boolean }>) =>
-      settingsChanged(call, (dir) => call.ctx.binding.setBuildInFreshSession(dir, input.fresh)),
-    type: "Settings",
-  },
   "settings.setContinue": {
     resolve: ({
       input,

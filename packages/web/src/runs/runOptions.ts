@@ -11,8 +11,10 @@ import {
   STEPS,
   type StepId,
   toMap,
+  toStored,
   withCut as withCutBy,
 } from "uraeda-server/run-options";
+import type { Settings } from "uraeda-server/fate";
 import type { IconName } from "../keys/store.ts";
 import type { PickerRuntime, SessionPick } from "../SessionPicker.tsx";
 
@@ -174,10 +176,23 @@ export function differences(
   return parts.length === 0 ? "defaults" : parts.join(", ");
 }
 
+/** Run options as the settings file and a feature keep them: only what they set. */
+export type StoredOptions = Settings["runs"]["options"];
+
+/** Stored options as the map edits them, a step that names no agent on `runtime`. */
+export function fromStored(stored: StoredOptions, runtime: string): RunOptions {
+  return toMap(stored, runtime);
+}
+
+/** What the map's `options` store over `defaults`: only what differs from them. */
+export function toSaved(options: RunOptions, defaults: RunOptions): StoredOptions {
+  return toStored(options, defaults);
+}
+
 /**
  * Today's behaviour as options, on the agent `runtime` and its defaults: discovery and spec share a
  * session, a clean one starts at the plan, one reviewer, reviews after each wave.
  */
 export function todayOptions(runtime: string): RunOptions {
-  return toMap({ steps: [] }, runtime);
+  return fromStored({ steps: [] }, runtime);
 }

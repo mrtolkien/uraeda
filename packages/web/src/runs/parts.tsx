@@ -265,14 +265,16 @@ export function Joint({
   onPress: () => void;
   pos: string;
 }) {
+  // A switch, cut or joined, so that Space is its own, as a switch's is, and not the leader's.
   return (
     // oxlint-disable-next-line react/forbid-elements -- a joint of the run map, a glyph or a line between two tiles pressed as one, which Astryx's Button does not draw (an Astryx gap)
     <button
+      aria-checked={isCut}
       aria-disabled={isForced}
       aria-label={label}
-      aria-pressed={isCut}
       data-pos={pos}
       onClick={isForced ? undefined : onPress}
+      role="switch"
       tabIndex={isPicked ? 0 : -1}
       type="button"
       {...stylex.props(

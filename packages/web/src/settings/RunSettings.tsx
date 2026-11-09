@@ -1,13 +1,16 @@
-// The Runs section: whether the run after a spec's approval starts in a fresh session, the default
-// the approval's own switch starts from; whether Uraeda continues a run by itself after a restart
-// or a usage limit, and how many times in a row; whether it catches up open pull requests behind
-// the default branch; then the run settings later features bring.
+// The Runs section: how each step runs, the run map over the settings' run options, which every
+// feature starts from; whether Uraeda continues a run by itself after a restart or a usage limit,
+// and how many times in a row; whether it catches up open pull requests behind the default branch.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { useMemo } from "react";
 import { EditableLine } from "../EditableLine.tsx";
+import { RunMap } from "../runs/RunMap.tsx";
+import { fromStored, todayOptions, toSaved } from "../runs/runOptions.ts";
+import type { PickerRuntime } from "../SessionPicker.tsx";
 import { type Category, settingOf } from "./categories.ts";
 import { CONTINUE_SETTINGS, type ContinueKey } from "./optimistic.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
@@ -33,25 +36,49 @@ const CATCH_UP = { key: "catch-up", label: "Catch up open pull requests" } as co
 const CAP = "Automatic continues in a row";
 const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10.";
 
-/** Building in a fresh session, saved at once, with its refusal under it. */
-function BuildFresh({ actions, category, values }: RowProps) {
-  const setting = settingOf(category, "Build in a fresh session");
+const STEP_RUNS = "How each step runs";
+
+/**
+ * How each step runs: the run map over the saved options, on the agents `runtimes`, a step that
+ * names none on the first; each change saved at once, with its refusal, and the Claude Code effort
+ * the server's environment forces, under it.
+ */
+function StepRuns({
+  actions,
+  category,
+  runtimes,
+  values,
+}: RowProps & { runtimes: ReadonlyArray<PickerRuntime> }) {
+  const setting = settingOf(category, STEP_RUNS);
   const [refused, setRefused] = useRefusal(setting.label);
+  const runtime = runtimes[0]?.kind ?? "claude";
+  const defaults = useMemo(() => todayOptions(runtime), [runtime]);
+  const value = useMemo(() => fromStored(values.runs.options, runtime), [runtime, values]);
+  const effort = values.runs.claudeEffortFromEnv;
   return (
     <SettingRow
+      isUnderWide
       notes={refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
       setting={setting}
-    >
-      <Switch
-        isLabelHidden
-        label={setting.label}
-        onChange={async (fresh: boolean) => {
-          setRefused(undefined);
-          setRefused(await actions.setBuildInFreshSession(fresh));
-        }}
-        value={values.runs.buildInFreshSession.saved ?? values.runs.buildInFreshSession.inForce}
-      />
-    </SettingRow>
+      under={
+        <VStack gap={3}>
+          <RunMap
+            defaults={defaults}
+            onChange={async (next) => {
+              setRefused(undefined);
+              setRefused(await actions.setRunOptions(toSaved(next, defaults)));
+            }}
+            runtimes={runtimes}
+            value={value}
+          />
+          {effort !== undefined && (
+            <Text color="accent">
+              CLAUDE_CODE_EFFORT_LEVEL is set to {effort}: every Claude Code effort follows it.
+            </Text>
+          )}
+        </VStack>
+      }
+    />
   );
 }
 
@@ -117,15 +144,15 @@ function AutomaticContinues({ actions, category, values }: RowProps) {
 
 /**
  * The Runs section's rows that `shows` keeps, then, when it keeps a continue's, that a change
- * applies at once, then the settings to come; the file's problem in place of its controls when the
- * file cannot be read.
+ * applies at once; the file's problem in place of its controls when the file cannot be read.
  */
 export function RunSettings({
   actions,
   category,
+  runtimes,
   shows,
   values,
-}: RowProps & { shows: (label: string) => boolean }) {
+}: RowProps & { runtimes: ReadonlyArray<PickerRuntime>; shows: (label: string) => boolean }) {
   const props = { actions, category, values };
   const kinds = CONTINUES.filter((kind) => shows(kind.label));
   const isContinuing = !values.problem && (kinds.length > 0 || shows(CAP));
@@ -133,7 +160,7 @@ export function RunSettings({
     <VStack>
       {values.problem && <FileProblem problem={values.problem} />}
       <SettingRows>
-        {!values.problem && shows("Build in a fresh session") && <BuildFresh {...props} />}
+        {!values.problem && shows(STEP_RUNS) && <StepRuns {...props} runtimes={runtimes} />}
         {!values.problem &&
           kinds.map((kind) => <ContinueSwitch key={kind.key} {...props} kind={kind} />)}
         {!values.problem && shows(CAP) && <AutomaticContinues {...props} />}

@@ -33,6 +33,12 @@ export const stepAfterJoint = (index: number) => (index + 1) / 2;
 /** A position's key, as its button's `data-pos`. */
 export const posKey = (pos: Pos) => `${pos.row}-${pos.index}`;
 
+/** The position a button's `data-pos` names, else `undefined`. */
+export function posOf(key: string | undefined): Pos | undefined {
+  const match = /^(track|below)-(\d+)$/.exec(key ?? "");
+  return match ? { index: Number(match[2]), row: match[1] as Pos["row"] } : undefined;
+}
+
 /** `index` kept between 0 and `end`. */
 const clamp = (index: number, end: number) => Math.max(0, Math.min(end, index));
 

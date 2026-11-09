@@ -43,14 +43,12 @@ export type ServerSettingsView = {
 };
 
 /**
- * How the workflow's runs start and go on: the default of the run after a spec's approval, the
- * switch of each kind of automatic continue, the automatic continues in a row, the switch of the
- * catch-up of open pull requests, and each step's, the implementers', and the reviewers' run
- * options.
+ * How the workflow's runs start and go on: the switch of each kind of automatic continue, the
+ * automatic continues in a row, the switch of the catch-up of open pull requests, and each step's,
+ * the implementers', and the reviewers' run options.
  */
 export type RunSettingsView = {
   automaticContinues: Setting<number>;
-  buildInFreshSession: Setting<boolean>;
   catchUpPullRequests: Setting<boolean>;
   /**
    * `CLAUDE_CODE_EFFORT_LEVEL` from the server's environment when set, which every Claude Code
@@ -188,10 +186,9 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, no
- * catch-up of open pull requests, and the build in a fresh session, the single-key shortcuts on,
- * and Vim off without commands, which have no flag or variable, and the run options the file holds.
- * `file` is null when there is none, or it cannot be read. `environment` gives the Claude Code
- * effort it sets, when it does.
+ * catch-up of open pull requests, the single-key shortcuts on and Vim off without commands, which
+ * have no flag or variable, and the run options the file holds. `file` is null when there is none,
+ * or it cannot be read. `environment` gives the Claude Code effort it sets, when it does.
  */
 export function inForce(
   options: RunValues,
@@ -214,7 +211,6 @@ export function inForce(
         runs.automaticContinues,
         DEFAULT_AUTOMATIC_CONTINUES,
       ),
-      buildInFreshSession: setting(undefined, runs.buildInFreshSession, true),
       catchUpPullRequests: setting(options.catchUpPullRequests, runs.catchUpPullRequests, false),
       ...(claudeEffort && { claudeEffortFromEnv: claudeEffort }),
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),

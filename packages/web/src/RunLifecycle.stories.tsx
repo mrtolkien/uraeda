@@ -212,7 +212,7 @@ function SwitchRow({ help, label }: { help: string; label: string }) {
   );
 }
 
-/** The Runs section's new rows, under "Build in a fresh session". */
+/** The Runs section's new rows, under the one before them. */
 function RunsSettings() {
   const [cap, setCap] = useState<number | null | undefined>(3);
   return (

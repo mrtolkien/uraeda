@@ -155,15 +155,18 @@ fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
 /// The `[runs]` table's values.
 fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
     let mut settings = RunSettings::default();
+    // The old setting, read only to migrate it into the plan's `new_session`: the next write of
+    // the run options removes it.
+    let mut fresh = None;
     if let Some((key, item)) = runs.get_key_value("build_in_fresh_session") {
-        let fresh = item.as_bool().ok_or_else(|| {
+        let value = item.as_bool().ok_or_else(|| {
             (
                 offset(key, item),
                 "build_in_fresh_session".into(),
                 "Building in a fresh session is true or false.".to_owned(),
             )
         })?;
-        settings.build_in_fresh_session = Some(fresh);
+        fresh = Some(value);
     }
     settings.continue_after_restart = switch(
         runs,
@@ -190,7 +193,7 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
                 .map_err(|problem| (offset(key, item), "automatic_continues".into(), problem))?,
         );
     }
-    settings.options = super::runs::parse(runs, settings.build_in_fresh_session)?;
+    settings.options = super::runs::parse(runs, fresh)?;
     Ok(settings)
 }
 

@@ -53,13 +53,11 @@ const keyboardDefaults = {
 };
 
 /**
- * The runs' defaults: the build after a spec's approval starts in a fresh session, every automatic
- * continue is on, 3 in a row, open pull requests are not caught up by themselves, and no run option
- * is set.
+ * The runs' defaults: every automatic continue is on, 3 in a row, open pull requests are not caught
+ * up by themselves, and no run option is set.
  */
 const runDefaults = {
   automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
-  buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
   catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
@@ -109,7 +107,6 @@ test("each change answers the record with its value", async () => {
   const removed = await change(opened, "removeHost", { name: "laptop.tail1234.ts.net" });
   const port = await change(opened, "setPort", { port: " 4400 " });
   const open = await change(opened, "setOpenBrowser", { open: false });
-  const fresh = await change(opened, "setBuildInFreshSession", { fresh: false });
   const limit = await change(opened, "setContinue", { key: "limit", on: false });
   const continues = await change(opened, "setAutomaticContinues", { continues: "4" });
   const tooMany = await change(opened, "setAutomaticContinues", { continues: "11" });
@@ -118,11 +115,6 @@ test("each change answers the record with its value", async () => {
   expect(removed.data.server.allowedHosts.saved).toEqual([]);
   expect(port.data.server.port).toEqual({ inForce: 4400, saved: 4400, source: { kind: "file" } });
   expect(open.data.server.openBrowser).toEqual({
-    inForce: false,
-    saved: false,
-    source: { kind: "file" },
-  });
-  expect(fresh.data.runs.buildInFreshSession).toEqual({
     inForce: false,
     saved: false,
     source: { kind: "file" },
@@ -143,10 +135,8 @@ test("each change answers the record with its value", async () => {
   });
   expect((await binding.readSettings(opened.configDir)).runs).toEqual({
     automaticContinues: 4,
-    buildInFreshSession: false,
     continueAfterLimit: false,
-    // The old switch reads as the plan's table until the settings' Runs section writes it away.
-    options: { steps: [{ newSession: false, step: "plan" }] },
+    options: { steps: [] },
   });
 });
 
@@ -280,7 +270,7 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "removeHost", { name: MAC }),
     change(opened, "setPort", { port: "4400" }),
     change(opened, "setOpenBrowser", { open: false }),
-    change(opened, "setBuildInFreshSession", { fresh: false }),
+    change(opened, "setRunOptions", { options: { steps: [] } }),
     change(opened, "setSingleKeyShortcuts", { on: false }),
     change(opened, "setContinue", { key: "restart", on: false }),
     change(opened, "setAutomaticContinues", { continues: "4" }),

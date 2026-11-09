@@ -3,9 +3,10 @@
 // to the build's implementers and the reviewers under the track and back. Enter on a step, the
 // implementers, or a reviewer opens the app's key picker, the agent and model, then the effort;
 // Enter or Space on a joint cuts it, starting a clean session there, or joins it; `r` puts the
-// selection back to the default; `a` adds a reviewer and `d` removes the one selected. The hints
-// under the map say the keys of what is selected. The settings' Runs section draws it on the
-// defaults, a feature's page on the feature's own options, with its history in place of the
+// selection back to the default; `a` adds a reviewer and `d` removes the one selected. The bar
+// under the map says what the place selected can do, each by its key and by a press; the keys are
+// the registry's, a selection's while the map holds the focus. The settings' Runs section draws it
+// on the defaults, a feature's page on the feature's own options, with its history in place of the
 // timeline: there a step that started, and every joint before it, keeps what it ran on, and a
 // merged feature's map only reads.
 import { HStack } from "@astryxdesign/core/HStack";
@@ -13,8 +14,11 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type FocusEvent, useEffect, useRef, useState } from "react";
 import { KeyCap } from "../keys/KeyCap.tsx";
+import { type Binding, useKeys } from "../keys/registry.tsx";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { type BarAction, RowBar } from "../lists/RowBar.tsx";
 import { PickSteps, type PickerRuntime, type SessionPick } from "../SessionPicker.tsx";
 import {
   type Below,
@@ -22,6 +26,7 @@ import {
   moved,
   type Pos,
   posKey,
+  posOf,
   stepAfterJoint,
   stepAt,
 } from "./runCursor.ts";
@@ -94,49 +99,108 @@ function isEditable(place: ReturnType<typeof placeOf>, stages: FeatureStages | u
   return isOpen(stages, "review");
 }
 
-/** The hints of the place selected: its keys, then the moves. */
-function hintsOf(
+/** What the map's presses do at the place selected: pick, cut or join, add, or switch; reset; remove. */
+type Does = { act: () => void; remove: () => void; reset: () => void };
+
+/**
+ * What the place selected can do, each by its key and by a press of the bar under the map: pick,
+ * cut or join, add a reviewer, or switch where reviews happen; put back the default; remove a
+ * reviewer. The bar's icons are the phone's, where the press on a place does its Enter.
+ */
+function actionsOf(
   place: ReturnType<typeof placeOf>,
   value: RunOptions,
   isFixed: boolean,
-): Array<[string, string]> {
+  does: Does,
+): Array<BarAction> {
   if (isFixed) {
-    return [
-      ["← →", "move"],
-      ["↑ ↓", "below"],
-    ];
+    return [];
   }
   if (typeof place === "object" && "joint" in place) {
-    return [
-      ["⏎", value.cuts.includes(place.joint) ? "join" : "cut"],
-      ["← →", "move"],
-    ];
+    return [{ keys: "⏎", label: value.cuts.includes(place.joint) ? "join" : "cut", run: does.act }];
   }
-  if (place === "add") {
+  if (place === "add" || place === "depth") {
     return [
-      ["⏎", "add a reviewer"],
-      ["↑", "review"],
-    ];
-  }
-  if (place === "depth") {
-    return [
-      ["⏎", "waves or branch"],
-      ["↑", "review"],
+      { keys: "⏎", label: place === "add" ? "add a reviewer" : "waves or branch", run: does.act },
     ];
   }
   const isReviewer = typeof place === "object" && "reviewer" in place;
   return [
-    ["⏎", "pick"],
-    ["r", "reset"],
-    ...(isReviewer ? ([["d", "remove"]] as Array<[string, string]>) : []),
+    { keys: "⏎", label: "pick", run: does.act },
+    { icon: "uraeda:history", keys: "r", label: "reset", run: does.reset },
+    ...(isReviewer
+      ? [{ icon: "uraeda:trash", keys: "d", label: "remove", run: does.remove } as const]
+      : []),
+  ];
+}
+
+/** The moves' hints at the place selected: along the track, and down or back up. */
+function movesOf(place: ReturnType<typeof placeOf>): Array<[string, string]> {
+  if (typeof place === "object" && "joint" in place) {
+    return [["← →", "move"]];
+  }
+  if (place === "add" || place === "depth") {
+    return [["↑", "review"]];
+  }
+  return [
     ["← →", "move"],
     ["↑ ↓", "below"],
   ];
 }
 
-/** What the map's keys and presses do: pick, cut or join, reset, add, and remove, then move. */
+/**
+ * Under the map, what the place selected can do, its keys and presses, then the moves' keys. On the
+ * phone, where keys are no help, only the presses, floating at the screen's bottom while the map
+ * holds the focus, as a row's bar does.
+ */
+function MapBar({
+  actions,
+  holds,
+  moves,
+}: {
+  actions: ReadonlyArray<BarAction>;
+  holds: boolean;
+  moves: ReadonlyArray<[string, string]>;
+}) {
+  if (isNarrow(useWidthClass())) {
+    return holds ? <RowBar actions={actions} /> : null;
+  }
+  return (
+    <HStack align="center" wrap="wrap" xstyle={styles.hints}>
+      {actions.length > 0 && <RowBar actions={actions} />}
+      {moves.map(([keys, label]) => (
+        <Text color="secondary" key={label} type="supporting">
+          <KeyCap>{keys}</KeyCap> {label}
+        </Text>
+      ))}
+    </HStack>
+  );
+}
+
+/** The keys that move the cursor, each with the words the key map lists it under. */
+const MOVES: ReadonlyArray<[keys: string, label: string]> = [
+  ["ArrowLeft", "Previous step or joint"],
+  ["h", "Previous step or joint"],
+  ["ArrowRight", "Next step or joint"],
+  ["l", "Next step or joint"],
+  ["ArrowDown", "Down to the implementers or the reviewers"],
+  ["j", "Down to the implementers or the reviewers"],
+  ["ArrowUp", "Back up to the step"],
+  ["k", "Back up to the step"],
+];
+
+const NO_KEYS: ReadonlyArray<Binding> = [];
+
+/**
+ * What the map's keys and presses do: pick, cut or join, reset, add, and remove, then move. The
+ * keys are the registry's, declared as a selection's while the map holds the focus, so they run
+ * before the page's and never mean two things with its `j` `k`: a key that does nothing here, as
+ * `j` on a step with nothing under it, goes on to the page's. Space on a joint is the joint's own,
+ * a switch's.
+ */
 function useMapKeys({
   defaults,
+  holds,
   onChange,
   place,
   pos,
@@ -148,6 +212,7 @@ function useMapKeys({
   value,
 }: {
   defaults: RunOptions;
+  holds: boolean;
   onChange: (value: RunOptions) => void;
   place: ReturnType<typeof placeOf>;
   pos: Pos;
@@ -178,7 +243,7 @@ function useMapKeys({
   };
   const reset = () => {
     if (!isEditable(place, stages)) {
-      return;
+      return false;
     }
     if (typeof place === "object" && "joint" in place) {
       const isDefault = defaults.cuts.includes(place.joint) === value.cuts.includes(place.joint);
@@ -186,36 +251,77 @@ function useMapKeys({
     } else if (target !== undefined) {
       const fallback = target === "implementers" ? defaults.implementers : pickOf(defaults, target);
       onChange(withPick(value, target, fallback));
-    }
-  };
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      act(pos);
-    } else if (event.key === "r") {
-      reset();
-    } else if (event.key === "a" && isEditable("add", stages)) {
-      act({ index: value.reviewers.length + 1, row: "below" });
-    } else if (
-      event.key === "d" &&
-      typeof place === "object" &&
-      "reviewer" in place &&
-      isEditable(place, stages)
-    ) {
-      onChange({
-        ...value,
-        reviewers: value.reviewers.filter((_, index) => index !== place.reviewer),
-      });
-      setPos({ index: Math.max(1, pos.index - 1), row: "below" });
     } else {
-      const next = moved(pos, event.key, value.reviewers.length, stages?.shown);
-      if (next === pos) {
-        return;
-      }
-      setPos(next);
+      return false;
     }
-    event.preventDefault();
+    return undefined;
   };
-  return { act, onKeyDown };
+  const remove = () => {
+    if (!(typeof place === "object" && "reviewer" in place && isEditable(place, stages))) {
+      return false;
+    }
+    onChange({
+      ...value,
+      reviewers: value.reviewers.filter((_, index) => index !== place.reviewer),
+    });
+    setPos({ index: Math.max(1, pos.index - 1), row: "below" });
+    return undefined;
+  };
+  const bindings: Array<Binding> = [
+    { keys: "Enter", label: "Pick, or cut or join", run: () => act(pos) },
+    { keys: "r", label: "Back to the default", run: reset },
+    {
+      keys: "a",
+      label: "Add a reviewer",
+      run: () =>
+        isEditable("add", stages)
+          ? act({ index: value.reviewers.length + 1, row: "below" })
+          : false,
+    },
+    { keys: "d", label: "Remove the reviewer", run: remove },
+    ...MOVES.map(([keys, label]) => ({
+      keys,
+      label,
+      run: () => {
+        const next = moved(pos, keys, value.reviewers.length, stages?.shown);
+        if (posKey(next) === posKey(pos)) {
+          return false;
+        }
+        setPos(next);
+        return undefined;
+      },
+    })),
+  ];
+  useKeys(holds ? bindings : NO_KEYS, "selection");
+  return { act, remove, reset };
+}
+
+/**
+ * Whether the map holds the focus, `holds`, where its keys are the ones that act, and the focus and
+ * the cursor as one: the keys' cursor takes the focus where it lands while the map holds it, and a
+ * place focused otherwise, as by a screen reader, is where the cursor goes.
+ */
+function useMapFocus(pos: Pos, setPos: (pos: Pos) => void) {
+  const [holds, setHolds] = useState(false);
+  const map = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = map.current;
+    if (element?.contains(document.activeElement)) {
+      element.querySelector<HTMLElement>(`[data-pos="${posKey(pos)}"]`)?.focus();
+    }
+  }, [pos]);
+  return {
+    holds,
+    map,
+    onBlur: (event: FocusEvent) => setHolds(map.current?.contains(event.relatedTarget) ?? false),
+    onFocus: (event: FocusEvent) => {
+      setHolds(true);
+      const at = posOf((event.target as HTMLElement).dataset?.pos);
+      if (at !== undefined && posKey(at) !== posKey(pos)) {
+        setPos(at);
+      }
+    },
+  };
 }
 
 /**
@@ -242,21 +348,15 @@ export function RunMap({
 }) {
   const [pos, setPos] = useState<Pos>(start);
   const [picking, setPicking] = useState<"model" | "effort" | undefined>(opened);
-  const map = useRef<HTMLDivElement>(null);
+  const { holds, map, onBlur, onFocus } = useMapFocus(pos, setPos);
   const place = placeOf(value, pos);
   const target: Target | undefined =
     place === "implementers" || (typeof place === "object" && !("joint" in place))
       ? place
       : undefined;
-  // The keys' cursor takes the focus where it lands, while the map holds it.
-  useEffect(() => {
-    const element = map.current;
-    if (element?.contains(document.activeElement)) {
-      element.querySelector<HTMLElement>(`[data-pos="${posKey(pos)}"]`)?.focus();
-    }
-  }, [pos]);
-  const { act, onKeyDown } = useMapKeys({
+  const { act, remove, reset } = useMapKeys({
     defaults,
+    holds,
     onChange,
     place,
     pos,
@@ -268,11 +368,17 @@ export function RunMap({
     value,
   });
   const isFixed = !isEditable(place, stages);
+  const does: Does = {
+    act: () => act(pos),
+    remove: () => void remove(),
+    reset: () => void reset(),
+  };
   return (
     <VStack gap={3}>
       <div
         aria-label="How each step runs"
-        onKeyDown={onKeyDown}
+        onBlur={onBlur}
+        onFocus={onFocus}
         ref={map}
         role="group"
         {...stylex.props(styles.map)}
@@ -289,13 +395,11 @@ export function RunMap({
           value={value}
         />
       </div>
-      <HStack wrap="wrap" xstyle={styles.hints}>
-        {hintsOf(place, value, isFixed).map(([keys, label]) => (
-          <Text color="secondary" key={label} size="sm">
-            <KeyCap>{keys}</KeyCap> {label}
-          </Text>
-        ))}
-      </HStack>
+      <MapBar
+        actions={actionsOf(place, value, isFixed, does)}
+        holds={holds}
+        moves={movesOf(place)}
+      />
       {target !== undefined && !isFixed && (
         <PickSteps
           onChange={(pick) => onChange(withPick(value, target, pick))}

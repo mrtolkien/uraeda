@@ -21,7 +21,6 @@ export const SettingsRecordView = view<Settings>()({
   problem: true,
   runs: {
     automaticContinues: SettingSelection,
-    buildInFreshSession: SettingSelection,
     catchUpPullRequests: SettingSelection,
     claudeEffortFromEnv: true,
     continueAfterLimit: SettingSelection,

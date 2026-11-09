@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { atMostWidth, PHONE } from "../../.storybook/widthClass.ts";
 import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
+import { KeysProvider } from "../keys/registry.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { CLAUDE, CODEX } from "../sampleRuntimes.ts";
@@ -113,6 +114,14 @@ function Start({ isChange = false, value }: { isChange?: boolean; value: RunOpti
 const meta = {
   args: { value: DEFAULTS },
   component: Map,
+  // The map's keys are the registry's, which the app's shell holds.
+  decorators: [
+    (Story) => (
+      <KeysProvider>
+        <Story />
+      </KeysProvider>
+    ),
+  ],
   parameters: { layout: "padded" },
   title: "Run options",
 } satisfies Meta<typeof Map>;

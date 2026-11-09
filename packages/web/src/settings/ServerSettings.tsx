@@ -13,6 +13,7 @@ import type { Settings } from "uraeda-server/fate";
 import { EditableLine, LineField } from "../EditableLine.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { type Category, settingOf } from "./categories.ts";
+import type { StoredOptions } from "../runs/runOptions.ts";
 import type { ContinueKey } from "./optimistic.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
@@ -31,10 +32,10 @@ export type ServerActions = {
   editHost: (from: string, to: string) => Promise<string | undefined>;
   removeHost: (name: string) => Promise<string | undefined>;
   setAutomaticContinues: (continues: string) => Promise<string | undefined>;
-  setBuildInFreshSession: (fresh: boolean) => Promise<string | undefined>;
   setContinue: (key: ContinueKey, on: boolean) => Promise<string | undefined>;
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
+  setRunOptions: (options: StoredOptions) => Promise<string | undefined>;
   setSingleKeyShortcuts: (on: boolean) => Promise<string | undefined>;
   setVimCommands: (lines: Array<string>) => Promise<string | undefined>;
   setVimMode: (on: boolean) => Promise<string | undefined>;

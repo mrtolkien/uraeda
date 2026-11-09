@@ -34,10 +34,6 @@ export function optimisticSettings({ id, keyboard, runs, server }: Values) {
         },
       },
     }),
-    setBuildInFreshSession: (fresh: boolean) => ({
-      id,
-      runs: { ...runs, buildInFreshSession: { ...runs.buildInFreshSession, saved: fresh } },
-    }),
     setContinue: (key: ContinueKey, on: boolean) => {
       const name = CONTINUE_SETTINGS[key];
       return { id, runs: { ...runs, [name]: { ...runs[name], saved: on } } };
@@ -46,6 +42,8 @@ export function optimisticSettings({ id, keyboard, runs, server }: Values) {
       id,
       server: { ...server, openBrowser: { ...openBrowser, saved: open } },
     }),
+    // The run options have no flag or variable: what is written is what is in force.
+    setRunOptions: (options: Settings["runs"]["options"]) => ({ id, runs: { ...runs, options } }),
     setSingleKeyShortcuts: (on: boolean) => ({
       id,
       keyboard: { ...keyboard, singleKeyShortcuts: { ...keyboard.singleKeyShortcuts, saved: on } },

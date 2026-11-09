@@ -1,11 +1,12 @@
 // The settings page's states, as the spec's mockups: the form, with values a flag or a variable
-// overrides, with a file that cannot be read, opened at its Runs or Keyboard section, the keyboard
-// switch off, and searched, with a match and without one; and the Extensions section, at rest and
-// with extensions that need you.
+// overrides, with a file that cannot be read, opened at its Runs section, on the defaults and
+// changed, or at its Keyboard section, the keyboard switch off, and searched, with a match and
+// without one; and the Extensions section, at rest and with extensions that need you.
 // The Server values are records as the server's settings source gives them, passed in, as
 // `SettingsPage` passes the one it reads, and so are the themes; Sign-in is the real one.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RepositoryPathContext } from "../routes.tsx";
+import { CLAUDE, CODEX } from "../sampleRuntimes.ts";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 import type { ExtensionActions } from "./ExtensionSettings.tsx";
@@ -28,7 +29,6 @@ const server: ServerValues = {
   problem: null,
   runs: {
     automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
-    buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
     catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
     continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
     continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
@@ -51,10 +51,10 @@ const serverActions: ServerActions = {
   editHost: async () => undefined,
   removeHost: async () => undefined,
   setAutomaticContinues: async () => undefined,
-  setBuildInFreshSession: async () => undefined,
   setContinue: async () => undefined,
   setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
+  setRunOptions: async () => undefined,
   setSingleKeyShortcuts: async () => undefined,
   setVimCommands: async () => undefined,
   setVimMode: async () => undefined,
@@ -67,7 +67,13 @@ const extensionActions: ExtensionActions = {
 };
 
 const meta = {
-  args: { category: undefined, server, serverActions, themes: sampleThemes(true) },
+  args: {
+    category: undefined,
+    runtimes: [CLAUDE, CODEX],
+    server,
+    serverActions,
+    themes: sampleThemes(true),
+  },
   component: SettingsView,
   // The lines edited in place keep their unsaved text under the repository's path.
   decorators: [
@@ -134,8 +140,32 @@ export const Unreadable: Story = {
   },
 };
 
-/** Opened at `/settings/runs`: the form, scrolled to its Runs section. */
+/** Opened at `/settings/runs`: the form, scrolled to its Runs section and its run map. */
 export const Runs: Story = { args: { category: "runs" } };
+
+/** Run options saved, and Claude Code's effort forced by the server's environment. */
+export const RunsChanged: Story = {
+  args: {
+    category: "runs",
+    server: {
+      ...server,
+      runs: {
+        ...server.runs,
+        claudeEffortFromEnv: "high",
+        options: {
+          reviewers: [
+            { agent: "claude", effort: "high", model: "opus" },
+            { command: "make check" },
+          ],
+          steps: [
+            { effort: "high", model: "opus", step: "spec" },
+            { model: "sonnet", step: "build" },
+          ],
+        },
+      },
+    },
+  },
+};
 
 /** Opened at `/settings/keyboard`: the Keyboard section, its switch on, as the mockup draws it. */
 export const Keyboard: Story = { args: { category: "keyboard" } };

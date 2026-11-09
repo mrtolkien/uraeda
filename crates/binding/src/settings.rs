@@ -80,12 +80,6 @@ pub fn set_open_browser(dir: String, open: bool) -> AsyncTask<Job<Settings>> {
     job(move || settings::set_open_browser(Path::new(&dir), open))
 }
 
-/// Sets whether the run after a spec's approval starts in a new agent session.
-#[napi(ts_return_type = "Promise<Settings>")]
-pub fn set_build_in_fresh_session(dir: String, fresh: bool) -> AsyncTask<Job<Settings>> {
-    job(move || settings::set_build_in_fresh_session(Path::new(&dir), fresh))
-}
-
 /// Replaces the run options of the settings file with `options`, writing only the values set, and
 /// removes the old `build_in_fresh_session`. Rejects with `refused: ` the options `checkRunOptions`
 /// refuses.

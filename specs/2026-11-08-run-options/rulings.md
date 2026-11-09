@@ -308,3 +308,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   read "Needs attention" while its implementers worked.
 - **If wrong**: `readStatus` in `packages/server/src/fate/feature-status.ts`.
 - **Where**: task 8's review.
+
+## R25: Space on a joint is the joint's own, a switch's, and the map's presses are a row's bar
+
+- **Decision**: a joint of the run map is a switch (`role="switch"`, `aria-checked` when cut), so
+  Space toggles it as Space toggles any switch, and the registry declares no Space for the map. The
+  map's other keys are the registry's, a selection's while the map holds the focus; a move with
+  nowhere to go returns `false`, so the page's `j` `k` run instead. Under the map, the place's
+  actions are the app's row bar (`RowBar`): framed presses with their keys on wider screens, and on
+  the phone, while the map holds the focus, the floating bar with Reset and Remove.
+- **Rationale**: Space is the leader, which a binding of Space alone would clash with; the registry
+  already leaves Space to switches (`keys/fields.ts`). Reset and remove had no tap, which US1 and
+  the Keyboard decision ask for, and the decision hides key hints on narrow screens.
+- **If wrong**: `Joint` in `packages/web/src/runs/parts.tsx`, and `MapBar` and `useMapKeys` in
+  `packages/web/src/runs/RunMap.tsx`.
+- **Where**: task 10.

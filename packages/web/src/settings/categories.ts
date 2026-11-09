@@ -148,9 +148,10 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     label: "Runs",
     settings: [
       {
-        help: "When a spec is approved, the plan and the build start in a new agent session instead of continuing the one that wrote the spec. Each approval can change it for its run. A change applies at once.",
+        help: "Each step's agent, model, and effort, where a clean session starts, the build's implementers, and the reviewers. A feature starts from these, and can change its own. A change applies to the next run.",
         icon: "uraeda:terminal",
-        label: "Build in a fresh session",
+        label: "How each step runs",
+        terms: ["fresh session", "new session", "reviewers", "implementers", "agents", "models"],
       },
       {
         help: "A run the server stopped while it worked continues by itself when the server starts again, if it stopped less than 6 hours before.",

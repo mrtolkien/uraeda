@@ -466,11 +466,6 @@ const mutations = {
     FateAPI['mutations']['settings.setAutomaticContinues']['input'],
     FateAPI['mutations']['settings.setAutomaticContinues']['output']
   >('Settings'),
-  'settings.setBuildInFreshSession': mutation<
-    Settings,
-    FateAPI['mutations']['settings.setBuildInFreshSession']['input'],
-    FateAPI['mutations']['settings.setBuildInFreshSession']['output']
-  >('Settings'),
   'settings.setContinue': mutation<
     Settings,
     FateAPI['mutations']['settings.setContinue']['input'],

@@ -21,6 +21,8 @@ import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";
 import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
+import { useRuntimesOn } from "../runtimes.ts";
+import { type PickerRuntime, pickerRuntimes } from "../SessionPicker.tsx";
 import { useThemes } from "../useThemes.ts";
 import type { AppearanceThemes } from "./AppearanceSettings.tsx";
 import type { ExtensionActions, ExtensionsValues } from "./ExtensionSettings.tsx";
@@ -111,8 +113,19 @@ function useExtensionsSection(repository: Client): {
   };
 }
 
-/** The page, on the record the global client reads. */
-function OnSettings({ category, repository }: { category?: string; repository: Client }) {
+/**
+ * The page, on the record the global client reads; `runtimes`, the agents on in the repository, are
+ * what the Runs section's map picks from.
+ */
+function OnSettings({
+  category,
+  repository,
+  runtimes,
+}: {
+  category?: string;
+  repository: Client;
+  runtimes: ReadonlyArray<PickerRuntime>;
+}) {
   const fate = useFateClient();
   const extensions = useExtensionsSection(repository);
   const settings = useSettings();
@@ -139,14 +152,6 @@ function OnSettings({ category, repository }: { category?: string; repository: C
     // Typed in a field, as the port is.
     setAutomaticContinues: (continues) =>
       run(() => change.setAutomaticContinues({ input: { continues }, view })),
-    setBuildInFreshSession: (fresh) =>
-      run(() =>
-        change.setBuildInFreshSession({
-          input: { fresh },
-          optimistic: shown.setBuildInFreshSession(fresh),
-          view,
-        }),
-      ),
     setContinue: (key, on) =>
       run(() =>
         change.setContinue({ input: { key, on }, optimistic: shown.setContinue(key, on), view }),
@@ -157,6 +162,14 @@ function OnSettings({ category, repository }: { category?: string; repository: C
       ),
     // The port and a host name's edit are typed in a field, which shows them as typed until saved.
     setPort: (port) => run(() => change.setPort({ input: { port }, view })),
+    setRunOptions: (options) =>
+      run(() =>
+        change.setRunOptions({
+          input: { options },
+          optimistic: shown.setRunOptions(options),
+          view,
+        }),
+      ),
     setSingleKeyShortcuts: (on) =>
       run(() =>
         change.setSingleKeyShortcuts({
@@ -181,6 +194,7 @@ function OnSettings({ category, repository }: { category?: string; repository: C
       category={category === undefined ? undefined : categoryOf(category)?.id}
       extensionActions={extensions.actions}
       extensions={extensions.values}
+      runtimes={runtimes}
       server={settings}
       serverActions={actions}
       themes={themes}
@@ -194,9 +208,11 @@ function OnSettings({ category, repository }: { category?: string; repository: C
  */
 export function SettingsPage({ category }: { category?: string }) {
   const repository = useFateClient();
+  const on = useRuntimesOn();
+  const runtimes = useMemo(() => pickerRuntimes(on), [on]);
   return (
     <OnListClient>
-      <OnSettings category={category} repository={repository} />
+      <OnSettings category={category} repository={repository} runtimes={runtimes} />
     </OnListClient>
   );
 }

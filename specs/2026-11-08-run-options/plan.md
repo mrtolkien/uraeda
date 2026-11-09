@@ -1087,8 +1087,10 @@ git commit -m "feat(run-options): reviewers run at once, their findings committe
 
 - Consumes: `settings.setRunOptions`, `runs.options`, `claudeEffortFromEnv` (Task 4); `toMap`,
   `toStored` (Task 5).
-- Produces: `RunMap`'s keys declared with `useKeys`: ← → h l, ↓ ↑ j k, Enter, Space, `r`, `a`, `d`,
-  on the map's selection, so they never clash with a page's `j`/`k`.
+- Produces: `RunMap`'s keys declared with `useKeys`: ← → h l, ↓ ↑ j k, Enter, `r`, `a`, `d`, on the
+  map's selection, so they never clash with a page's `j`/`k`; Space on a joint is the joint's own, a
+  switch's
+  ([R25](rulings.md#r25-space-on-a-joint-is-the-joints-own-a-switchs-and-the-maps-presses-are-a-rows-bar)).
 
 - [x] **Step 1: Split `views.ts` before it changes**
 
@@ -1102,24 +1104,24 @@ git add packages/web/src/views.ts packages/web/src/settings/settingsViews.ts
 git commit -m "refactor(run-options): the settings' views in their own file"
 ```
 
-- [ ] **Step 2: Wire the map to the settings, and its keys to the registry**
+- [x] **Step 2: Wire the map to the settings, and its keys to the registry**
 
 The Runs section shows the map over the settings' options, saving each change with
 `settings.setRunOptions`, optimistically; under the map, the keys, and when `claudeEffortFromEnv` is
 set: "CLAUDE_CODE_EFFORT_LEVEL is set to high: every Claude Code effort follows it." The rows'
 labels, the category's terms, and the stories follow.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS but `keys-structural.test.ts` for `RunStrip.tsx` alone, which Task 11 fixes
 
-- [ ] **Step 4: Review it in the sandbox**
+- [x] **Step 4: Review it in the sandbox**
 
 Run `vp run sandbox`, open Settings, Runs: both themes, at a phone's and a desktop's width. Change a
 step, cut a joint, add a reviewer, by keyboard and by tap.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

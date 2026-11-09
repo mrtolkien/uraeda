@@ -49,8 +49,6 @@ pub struct ServerSettings {
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RunSettings {
-    /// Whether the run after a spec's approval starts in a new agent session.
-    pub build_in_fresh_session: Option<bool>,
     /// Whether a run the server's restart cut continues by itself: `true` when unset.
     pub continue_after_restart: Option<bool>,
     /// Whether a run a session limit stopped continues at its reset: `true` when unset.
@@ -201,14 +199,6 @@ pub fn set_port(dir: &Path, typed: &str) -> Result<Settings, ApiError> {
 pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
     change(dir, |server| {
         set(server, "open_browser", Value::from(open));
-        Ok(())
-    })
-}
-
-/// Sets whether the run after a spec's approval starts in a new agent session, in `[runs]`.
-pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, ApiError> {
-    change_table(dir, "runs", |runs| {
-        set(runs, "build_in_fresh_session", Value::from(fresh));
         Ok(())
     })
 }

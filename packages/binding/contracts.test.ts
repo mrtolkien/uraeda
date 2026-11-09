@@ -62,7 +62,6 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
     keyboard: {},
     runs: {
       automaticContinues: 3,
-      buildInFreshSession: true,
       catchUpPullRequests: true,
       continueAfterLimit: true,
       continueAfterRestart: false,

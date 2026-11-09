@@ -675,9 +675,6 @@ export declare function saveText(repo: string, path: string, text: string, previ
 /** Sets the automatic continues in a row, from the text typed. */
 export declare function setAutomaticContinues(dir: string, continues: string): Promise<Settings>
 
-/** Sets whether the run after a spec's approval starts in a new agent session. */
-export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
-
 /**
  * Sets whether a kind of automatic run is on: the continue after a restart or after a usage
  * limit, or the catch-up of open pull requests.
@@ -2231,8 +2228,6 @@ export interface RunPick {
 
 /** The `[runs]` table: how the workflow's runs start. */
 export interface RunSettings {
-  /** Whether the run after a spec's approval starts in a new agent session. */
-  buildInFreshSession?: boolean
   /** Whether a run the server's restart cut continues by itself: `true` when unset. */
   continueAfterRestart?: boolean
   /** Whether a run a session limit stopped continues at its reset: `true` when unset. */

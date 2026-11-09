@@ -253,19 +253,6 @@ test.each<{
   ).toMatchObject(view);
 });
 
-test("the build starts in a fresh session by default, and the file's value turns it off", () => {
-  expect(inForce(none, null).runs.buildInFreshSession).toEqual({
-    inForce: true,
-    saved: null,
-    source: { kind: "default" },
-  });
-  expect(inForce(none, file).runs.buildInFreshSession.inForce).toBe(true);
-  expect(
-    inForce(none, { ...file, runs: { buildInFreshSession: false, options: { steps: [] } } }).runs
-      .buildInFreshSession,
-  ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
-});
-
 test("single-key shortcuts are on by default, and the file's value turns them off", () => {
   expect(inForce(none, null).keyboard.singleKeyShortcuts).toEqual({
     inForce: true,
