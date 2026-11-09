@@ -3,7 +3,7 @@
 // files, its gates. A step that started keeps what it ran on; the steps ahead stay editable. The
 // map draws the feature's options as its record carries them, merged over the settings' by the
 // core, and saves what differs from the settings' as the feature's, from its next run on.
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useSettings } from "../data.ts";
 import { refusal } from "../errors.ts";
@@ -70,24 +70,37 @@ type RunsFeature = StagesFeature & {
 };
 
 /**
- * The saves of `feature`'s options: each edit's map is shown until its save answers. Gives the map
- * shown while a save goes, `pending`, the save's refusal, and `save`.
+ * The saves of `feature`'s options, one after the other: each edit's map is shown until the last
+ * save answers, a later edit's answer winning over an earlier one's, and an edit made while
+ * another saves is saved once that one answered, when no later edit replaced it. Gives the map
+ * shown while saves go, `pending`, the last save's refusal, and `save`.
  */
 function useSaves(feature: RunsFeature) {
   const fate = useFateClient();
   const [pending, setPending] = useState<RunOptions>();
   const [refused, setRefused] = useState<string>();
-  const save = async (next: RunOptions, options: StoredOptions) => {
+  const queue = useRef(Promise.resolve());
+  const latest = useRef(0);
+  const save = (next: RunOptions, options: StoredOptions) => {
+    const edit = ++latest.current;
     setPending(next);
     setRefused(undefined);
-    const result = await fate.mutations.feature.setRunOptions({
-      input: { folder: feature.folder, options },
-      view: FeatureView,
+    queue.current = queue.current.then(async () => {
+      if (edit !== latest.current) {
+        return;
+      }
+      const result = await fate.mutations.feature.setRunOptions({
+        input: { folder: feature.folder, options },
+        view: FeatureView,
+      });
+      if (edit !== latest.current) {
+        return;
+      }
+      setPending(undefined);
+      if (result.error) {
+        setRefused(refusal(result.error).message);
+      }
     });
-    setPending(undefined);
-    if (result.error) {
-      setRefused(refusal(result.error).message);
-    }
   };
   return { pending, refused, save };
 }
@@ -119,7 +132,7 @@ function SavedRuns({ feature, history }: { feature: RunsFeature; history: Stages
       defaults={defaults}
       feature={feature}
       history={history}
-      onChange={(next) => void save(next, toSaved(next, defaults))}
+      onChange={(next) => save(next, toSaved(next, defaults))}
       refused={refused}
       runtimes={runtimes}
       value={pending ?? merged}

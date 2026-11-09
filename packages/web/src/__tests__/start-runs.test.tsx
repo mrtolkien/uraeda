@@ -1,7 +1,7 @@
 // The start dialogs' run strip (spec of Run options, US5 and SC-001): Tab reaches it, the map's keys
 // move along it and open the picker, and the start keeps as the feature's own options only what the
 // strip changed, so every value left alone follows the settings at each run. And the feature page's
-// map: drawn once the settings are read, without holding the page.
+// map: drawn once the settings are read, without holding the page, and saved in the edits' order.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { FakeAdapter } from "uraeda-server/testing";
@@ -60,12 +60,12 @@ async function pickRow(label: string, name: string) {
   await waitFor(() => expect(screen.queryByRole("combobox", { name: label })).toBeNull());
 }
 
-/** The feature's own run options, as the server's record of it holds them. */
-async function ownOptions(fetch: typeof globalThis.fetch, name: string) {
+/** The own run options of the feature `folder`, as the server's record of it holds them. */
+async function ownOptions(fetch: typeof globalThis.fetch, name: string, folder = FOLDER) {
   const response = await fetch(`/r/${encodeURIComponent(name)}/fate`, {
     body: JSON.stringify({
       operations: [
-        { id: "0", ids: [FOLDER], kind: "byId", select: ["runOptions"], type: "Feature" },
+        { id: "0", ids: [folder], kind: "byId", select: ["runOptions"], type: "Feature" },
       ],
       version: 1,
     }),
@@ -149,6 +149,9 @@ function holding(fetch: typeof globalThis.fetch, holds: (body: string) => boolea
 /** The feature page's map of `2026-10-12-cli-tuis`, at its plan. */
 const PLANNING = "2026-10-12-cli-tuis";
 
+/** The joint of the map named `name`, "Build to Review". */
+const joint = (name: string) => screen.getByRole("switch", { name: new RegExp(`^${name}:`) });
+
 test("the feature page draws its map once the settings are read, the page drawn meanwhile", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
@@ -160,4 +163,30 @@ test("the feature page draws its map once the settings are read, the page drawn 
 
   settings.release();
   await screen.findByRole("group", { name: "How each step runs" });
+});
+
+test("the feature page's map saves its edits in order: the last one stays", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const server = serverFetch(repo, fake.sessions);
+  let saves = 0;
+  // The first save is held before the server reads it, as a slow request would be.
+  const first = holding(server, (body) => body.includes("feature.setRunOptions") && saves++ === 0);
+  const { name } = await renderPage(`/f/${PLANNING}`, repo, { agent: fake, fetch: first.fetch });
+  await screen.findByRole("group", { name: "How each step runs" });
+
+  await click(joint("Build to Review"));
+  await click(joint("Review to Comments"));
+  first.release();
+
+  await waitFor(async () =>
+    expect(await ownOptions(server, name, PLANNING)).toEqual({
+      steps: [
+        { newSession: true, step: "review" },
+        { newSession: true, step: "comments" },
+      ],
+    }),
+  );
+  await waitFor(() => expect(joint("Build to Review").getAttribute("aria-checked")).toBe("true"));
+  expect(joint("Review to Comments").getAttribute("aria-checked")).toBe("true");
 });

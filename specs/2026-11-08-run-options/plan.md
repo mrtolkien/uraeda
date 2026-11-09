@@ -1243,9 +1243,10 @@ list, or leave them out of it, and refresh a feature's sub-sessions with their p
 Built: the list and search leave sub-sessions out; a feature's change refreshes its sessions'
 sub-sessions, and a sub-session's change its parent's record. A sub-session's state follows the
 runner's rule, `subSessionsWork`'s (R32). The map draws the record's `runOptions.merged`, the core's
-merge, and saves what differs from the settings' map (R12). The stories read sub-sessions
-Storybook's server keeps, `samples/subSessions.ts`; `FeatureRunMap` is the map without the server,
-for the stories.
+merge, and saves what differs from the settings' map (R12), one save after the other, a later edit's
+answer winning; it waits for the settings in its own Suspense boundary. The stories read
+sub-sessions Storybook's server keeps, `samples/subSessions.ts`; `FeatureRunMap` is the map without
+the server, for the stories.
 
 - [x] **Step 2: Run the task's validation**
 
