@@ -78,7 +78,7 @@ const styles = stylex.create({
     paddingInline: "var(--page-inset)",
   },
   // On the phone, while its comment is typed in: the header scrolls with its card, and the room
-  // above the keyboard goes to the text (T3).
+  // above the keyboard goes to the text (Tolki on the phone).
   let: {
     position: "static",
   },

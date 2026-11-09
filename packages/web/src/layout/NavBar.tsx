@@ -94,7 +94,9 @@ const styles = stylex.create({
   // One or two tiles: no glass between them, and the page under it takes the taps.
   buttons: {
     alignItems: "flex-end",
-    paddingBlockEnd: spacingVars["--spacing-1"],
+    // Above the home indicator by its safe area alone, which the status line pads by: the small
+    // room under them only where the screen has none.
+    paddingBlockEnd: `max(0px, calc(${spacingVars["--spacing-1"]} - ${safeAreaVars["--safe-area-bottom"]}))`,
     pointerEvents: "none",
   },
   // One tile: at the bottom right.

@@ -1,4 +1,4 @@
-// T3, on an iPhone from the home screen: what is typed, and the button that sends it, stay above
+// Tolki on the phone, from the home screen: what is typed, and the button that sends it, stay above
 // the keyboard; the priorities are one column there; its sidebar copies no tab; and a card is a
 // head line over its text. Its toast's button, which hints no key there, is in `undo-toast`.
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

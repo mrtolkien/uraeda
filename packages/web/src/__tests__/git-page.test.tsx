@@ -283,7 +283,7 @@ test("a working tree's diff reads the file afresh, open and opened again", async
 /** Commit, once it commits the one file staged. */
 const commitOne = () => screen.findByRole("button", { name: "Commit 1 file" });
 
-// Break: the Enter key's icon on Commit on a phone, which hints no key, Commit being the tap (T3).
+// Break: the Enter key's icon on Commit on a phone, which hints no key, Commit being the tap (Tolki on the phone).
 test("on the phone, Commit hints no key", async () => {
   const repo = fixtureRepo();
   write(repo, "specs/PRIORITIES.md", `${read(repo)}\n- Global undo\n`);

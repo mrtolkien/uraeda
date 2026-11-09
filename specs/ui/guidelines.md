@@ -230,10 +230,10 @@ tooltips][nn-g-tooltips]
 
 **Nothing important sits under the rounded corners, the notch, or the home indicator.** Check: the
 page sets `viewport-fit=cover` in its viewport meta, and every bar pads by
-`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)` (34 pt at the bottom of an iPhone 13);
-in a screenshot of the home-screen app, no tile's corner or text is clipped by the screen's curve.
-[WebKit, designing for iPhone X][webkit-designing-for-iphone-x], [MDN, env()][mdn-env], [Apple HIG,
-layout][apple-hig-layout]
+`env(safe-area-inset-top)` and `env(safe-area-inset-bottom)` (34 pt at the bottom of an iPhone 18
+Pro Max), and by nothing more on top; in a screenshot of the home-screen app, no tile's corner or
+text is clipped by the screen's curve. [WebKit, designing for iPhone
+X][webkit-designing-for-iphone-x], [MDN, env()][mdn-env], [Apple HIG, layout][apple-hig-layout]
 
 **Design for the home-screen app, not only the browser tab.** Opened from the home screen, the page
 has no browser toolbar, so no Back button and no address bar. Check: in `display-mode: standalone`,
@@ -348,14 +348,17 @@ indicators][progress-indicators]
 
 ## Per persona
 
-- **Tolki, the keyboard on a desktop**: keyboard and focus first, all of it; focus never hidden;
-  keys learned where the action is; one key, one meaning; answers within 400 ms.
+- **Tolki at the desk, the keyboard**: keyboard and focus first, all of it, a new view or action
+  shipping with its keys; focus never hidden; keys learned where the action is; one key, one
+  meaning; answers within 400 ms.
+- **Tolki on the phone, an iPhone 18 Pro Max from the home screen**: safe areas and rounded corners,
+  padded by the inset and no more; a way back without the browser's; the field above the keyboard,
+  at 16 px; a selection and what was typed survive scrolls and dropped connections; 44 pt targets
+  with room between them; actions in the thumb's reach; dynamic viewport heights; sheets that do not
+  scroll the page; still whole at 390 pt.
 - **Lolly, the mouse on a desktop**: what can be pressed looks pressable; 24 px targets at least,
   bigger for primary actions; icons with words or tooltips; labels that say what happens; the
   human's words, no Vim or git jargon; empty states that say what to do; prefer undo to questions.
-- **T3, an iPhone 13 from the home screen**: safe areas and rounded corners; a way back without the
-  browser's; the field above the keyboard, at 16 px; 44 pt targets with room between them; actions
-  in the thumb's reach; dynamic viewport heights; sheets that do not scroll the page.
 
 ## Where this differed from our guides
 

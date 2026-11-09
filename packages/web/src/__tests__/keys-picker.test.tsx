@@ -167,7 +167,7 @@ test("at a phone's width the picker is a sheet showing the list alone (US4 more 
     expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
   );
   expect(screen.queryByRole("region", { name: "Preview" })).toBeNull();
-  // No keys hinted under the list: the phone hints none (T3).
+  // No keys hinted under the list: the phone hints none (Tolki on the phone).
   expect(screen.queryByText("Navigate")).toBeNull();
 });
 

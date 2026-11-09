@@ -54,8 +54,8 @@ When two conflict, the higher one wins.
 
 - [Guidelines](guidelines.md): what books, design systems, and WCAG say, as rules with a check each,
   and where they differ from these guides.
-- [Personas](personas.md): the humans the UI is built for, Tolki on the keyboard, Lolly with the
-  mouse, and T3 on an iPhone, one of whom each persona walkthrough plays.
+- [Personas](personas.md): the humans the UI is built for, Tolki at the desk on the keyboard and
+  away on an iPhone, and Lolly with the mouse, one of whom each persona walkthrough plays.
 - [Reading](reading.md): fonts, line lengths, hierarchy, lists, tables, and what not to put in text.
 - [Keyboard](keyboard.md): the keymap's habits, selection, focus, and which keys show as hints.
 - [Surfaces](surfaces.md): when to edit in place, use a row's bar, a picker, the leader menu, a

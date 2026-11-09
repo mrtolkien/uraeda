@@ -1,7 +1,9 @@
 # The phone
 
 Narrow screens, under 768 px. The phone gets the same product, reshaped for a thumb and one column:
-not a desktop squeezed down, and not a lesser version.
+not a desktop squeezed down, and not a lesser version. Its reference is
+[Tolki on the phone](personas.md#tolki-on-the-phone-away-from-the-desk): an iPhone 18 Pro Max, 440 ×
+956 pt, from the home screen; 390 pt is the narrowest every view must still work at.
 
 ## The frame
 
@@ -47,7 +49,8 @@ not a desktop squeezed down, and not a lesser version.
   areas (`layout/safeArea.stylex.ts`): the tabs below the status bar, the bottom bar's tiles, a
   sheet's buttons, and the sidebar's end above the home indicator, so no control sits where the
   system takes the swipe home, and the bottom bar's glass goes on under it, as an iPhone's tab bar
-  does. A page's end scrolls clear of it too.
+  does. A page's end scrolls clear of it too. A bar's bottom room is the safe area's inset alone,
+  never a margin added on top of it: the home indicator needs no more.
 
 ## The bottom bar
 

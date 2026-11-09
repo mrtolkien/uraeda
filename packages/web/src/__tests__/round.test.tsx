@@ -254,7 +254,7 @@ function stickyHead(id: string) {
 }
 
 // Break: on the phone, a question's header stuck over the comment being typed, which the keyboard
-// leaves a third of the screen to (T3).
+// leaves a third of the screen to (Tolki on the phone).
 test("on the phone, a question's header lets go while its comment is typed in", async () => {
   atWidth(402);
   try {

@@ -519,7 +519,7 @@ test("d on a comment under a list item gives the cursor back to the item", async
 /**
  * On a wide screen, the comment quotes the start of its block; on the phone, the block shows, marked,
  * right above the comment's sheet, and a copy of it in the sheet pushed Add comment out of sight.
- * Break: the quote back in the phone's sheet (T3).
+ * Break: the quote back in the phone's sheet (Tolki on the phone).
  */
 test("on the phone, a block's comment quotes nothing: the block shows above it", async () => {
   const r = repo();

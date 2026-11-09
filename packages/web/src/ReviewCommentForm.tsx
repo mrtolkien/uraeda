@@ -147,7 +147,7 @@ function ReviewForm({
   }
   // The selected lines' first block, quoted in the comment field: a decision's lines quote none of
   // the file's blocks. Not on the phone, where the block shows, marked, right above the sheet: its
-  // copy there pushed the sheet's Add comment out of sight (T3).
+  // copy there pushed the sheet's Add comment out of sight (Tolki on the phone).
   const first =
     wide &&
     selection &&

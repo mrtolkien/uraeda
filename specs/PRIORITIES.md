@@ -15,7 +15,6 @@
 
 Human reviews:
 
-- Review and improve personas: describe workflows, habits, ...
 - Review the UI guidelines properly
 
 ## Next

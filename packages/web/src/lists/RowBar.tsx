@@ -88,7 +88,9 @@ const styles = stylex.create({
     animationTimingFunction: "cubic-bezier(0.25, 1, 0.5, 1)",
     borderRadius: 0,
     display: "flex",
-    insetBlockEnd: `calc(env(safe-area-inset-bottom, 0px) + ${spacingVars["--spacing-4"]})`,
+    // Above the home indicator by its safe area alone, no margin on top of it: the room under it
+    // only where the screen has no safe area, as a browser tab's.
+    insetBlockEnd: `max(env(safe-area-inset-bottom, 0px), ${spacingVars["--spacing-4"]})`,
     insetInline: 0,
     marginInline: "auto",
     maxWidth: `calc(100% - 2 * ${spacingVars["--spacing-4"]})`,

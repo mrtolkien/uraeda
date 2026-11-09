@@ -27,7 +27,7 @@ const isLayout = (value: string | null): value is WorkLayout =>
 /**
  * How the list shows, as columns until the human picks the list, kept in the browser. On the phone,
  * one column of content, the list, until the human picks the columns there: four columns scrolled
- * sideways hid Next and Later past the screen's edge (T3).
+ * sideways hid Next and Later past the screen's edge (Tolki on the phone).
  */
 function useListLayout(): [WorkLayout, (layout: WorkLayout) => void] {
   const unpicked: WorkLayout = isNarrow(useWidthClass()) ? "stack" : "columns";
