@@ -120,7 +120,11 @@ async function reviewing(options: RunOptions, { hosted = false }: { hosted?: boo
   const tool = reviewTool(sessions.reviews);
   const review = (input: Record<string, string>, signal = new AbortController().signal) =>
     tool.call(parent.id, input, signal);
-  return { ...setup, claude, codex, off, parent, parentGate, review };
+  // A range of the feature's worktree: its branch's start, and its last commit.
+  const worktree = await workDir(repo, AGENT);
+  const id = (revision: string) => git(worktree, "rev-parse", revision).trim();
+  const range = { base: id("HEAD~1"), head: id("HEAD") };
+  return { ...setup, claude, codex, id, off, parent, parentGate, range, review, worktree };
 }
 
 /** The reviewers of US4: Claude Code at High, Codex, CodeRabbit, and a failing lint. */
@@ -166,7 +170,9 @@ test.each([
   },
 ])("a review runs every reviewer at once and commits a section for each$name", async (row) => {
   const coderabbit = fakeCoderabbit();
-  const { cache, claude, codex, off, parent, review, sessions } = await reviewing(REVIEWERS, row);
+  const setup = await reviewing(REVIEWERS, row);
+  const { cache, claude, codex, off, parent, range, review, sessions } = setup;
+  const commits = `${range.base}..${range.head}`;
   if (row.off) {
     off.add("codex");
   }
@@ -175,7 +181,7 @@ test.each([
   claude.script(claudeTurn.steps);
   codex.script(codexTurn.steps);
 
-  const answer = review({ base: "abc123", head: "def456", reviewed: "branch" });
+  const answer = review({ base: range.base.slice(0, 7), head: "HEAD", reviewed: "branch" });
   // Every reviewer works at once: the agents hold their turns while the command runs.
   const agents = row.off ? 1 : 2;
   await until(() => {
@@ -190,11 +196,11 @@ test.each([
   expect(sessions.subSessions.busy(parent.id)).toBe(true);
   const subs = sessions.subSessions.ofParent(parent.id);
   expect(subs.every((sub) => sub.role === "reviewer")).toBe(true);
-  expect(claude.sent.at(-1)?.text).toMatch(/^\/code-review high abc123\.\.def456/);
+  expect(claude.sent.at(-1)?.text).toMatch(new RegExp(`^/code-review high ${commits}`));
   if (!row.off) {
     const codexMessage = codex.sent.at(-1);
     expect(codexMessage?.review).toBe(true);
-    expect(codexMessage?.text).toContain("abc123..def456");
+    expect(codexMessage?.text).toContain(commits);
     expect(codexMessage?.text).toContain("Look at the error handling.");
   }
   claudeTurn.open();
@@ -212,7 +218,7 @@ test.each([
   const file = readFileSync(path, "utf8");
   expect(said.slice(path.length).trim()).toBe(file.trim());
   expect(file).toMatch(/reviewed: branch/);
-  expect(file).toMatch(/commits: abc123\.\.def456/);
+  expect(file).toContain(`commits: ${commits}`);
   expect(sectionsOf(file)).toEqual([
     ["Claude Code · Fake Big", "- [P1] The parser drops the last line."],
     row.codex,
@@ -223,13 +229,13 @@ test.each([
 });
 
 test("a wave's review on a branch-only feature runs no reviewer", async () => {
-  const { claude, parent, review, sessions } = await reviewing({
+  const { claude, parent, range, review, sessions } = await reviewing({
     ...REVIEWERS,
     reviewDepth: "branch",
   });
   const sent = claude.sent.length;
 
-  const said = await review({ base: "abc123", head: "def456", reviewed: "wave 2" });
+  const said = await review({ ...range, reviewed: "wave 2" });
 
   expect(said).toBe("No review: this feature's reviews run on the branch only.");
   expect(sessions.subSessions.ofParent(parent.id)).toEqual([]);
@@ -256,6 +262,11 @@ test.each([
     error: /`head`/,
     input: { base: "abc123", head: "HEAD: x", reviewed: "branch" },
     name: "a `head` with a colon",
+  },
+  {
+    error: /no commit abc123/,
+    input: { base: "abc123", head: "HEAD", reviewed: "branch" },
+    name: "a `base` that names no commit",
   },
 ])("a review asked with $name is refused before any reviewer runs", async ({ error, input }) => {
   const coderabbit = fakeCoderabbit();
@@ -296,7 +307,7 @@ test.each([
     { mode: 0o755 },
   );
   writeFileSync(refuse, "");
-  const input = { base: "abc123", head: "def456", reviewed: "wave 1" };
+  const input = { base: "HEAD~1", head: "HEAD", reviewed: "wave 1" };
   const worktree = await workDir(repo, AGENT);
   const path = join(worktree, "specs", AGENT, "findings-01.md");
 
@@ -316,6 +327,24 @@ test.each([
   // The reviewers ran once: the call committed the findings the first one gave.
   expect(readFileSync(runs, "utf8")).toBe("run\n");
   expect(existsSync(path.replace("findings-01", "findings-02"))).toBe(false);
+});
+
+test("a review asked again by the same names after a new commit runs its agent reviewers again", async () => {
+  const { claude, parent, review, sessions, worktree } = await reviewing({
+    reviewers: [{ agent: "claude", model: "fake-big" }],
+    steps: [],
+  });
+  const input = { base: "HEAD~1", head: "HEAD", reviewed: "branch" };
+  claude.script([{ text: "- [P1] The first finding.", type: "text" }]);
+  const first = await review(input);
+  expect(first).toContain("The first finding.");
+
+  git(worktree, "commit", "--quiet", "--allow-empty", "-m", "fix: the first finding");
+  claude.script([{ text: "- [P2] The second finding.", type: "text" }]);
+  const second = await review(input);
+
+  expect(second).toContain("The second finding.");
+  expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(2);
 });
 
 type Reviewing = Awaited<ReturnType<typeof reviewing>>;
@@ -346,10 +375,10 @@ test.each([
     ],
     steps: [],
   });
-  const { cache, claude, parent, repo, review, sessions } = setup;
+  const { cache, claude, parent, range, repo, review, sessions } = setup;
   claude.script(held("- [P1] Never given.").steps);
   const controller = new AbortController();
-  const answer = review({ base: "abc123", head: "def456", reviewed: "branch" }, controller.signal);
+  const answer = review({ ...range, reviewed: "branch" }, controller.signal);
   answer.catch(() => {});
   await until(
     () =>

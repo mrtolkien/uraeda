@@ -83,16 +83,21 @@ export class Reviews {
     if (map.depth === "branch" && asked.reviewed !== "branch") {
       return BRANCH_ONLY;
     }
-    const commits = `${asked.base}..${asked.head}`;
-    const key = findingsKey(row.repo, folder, asked.reviewed, commits);
     try {
       const cwd = await binding.workDir(row.repo, folder);
+      // Each commit by its full ID, as the worktree has it now: a name, like `HEAD`, asked again
+      // after a new commit is another range, whose reviewers run again.
+      const [base, head] = await Promise.all(
+        [asked.base, asked.head].map((revision) => binding.resolveCommit(cwd, revision)),
+      );
+      const commits = `${base}..${head}`;
+      const key = findingsKey(row.repo, folder, asked.reviewed, commits);
       const place = { cwd, folder, repo: row.repo };
       const unsaved = this.#unsaved.get(key);
       if (unsaved !== undefined) {
         return await this.#save(key, place, unsaved);
       }
-      const review: Review = { ...asked, cwd, parent: row, signal };
+      const review: Review = { ...asked, base, cwd, head, parent: row, signal };
       const names = map.reviewers.map((reviewer) => this.#name(reviewer));
       const sections = await Promise.all(
         map.reviewers.map((reviewer, index) =>
@@ -312,7 +317,7 @@ const COMMIT = /^[^\s:]+$/;
 /**
  * The input of `review`, each field a text that is not blank, `context` optional: else refused.
  * `reviewed` is `branch` or `wave <N>`, and `base` and `head` each a commit, one word without a
- * colon: checked before any reviewer runs.
+ * colon, which `review` then resolves in the feature's worktree: checked before any reviewer runs.
  */
 function reviewInput(input: unknown): ReviewInput {
   const fields = (typeof input === "object" && input !== null ? input : {}) as Record<

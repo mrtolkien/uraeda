@@ -38,6 +38,13 @@ pub fn git_commit(repo: String, id: String) -> AsyncTask<Job<GitCommitView>> {
     job(move || api::git_commit(Path::new(&repo), &id))
 }
 
+/// The full ID of the commit `revision` names in the working tree at `dir`, a feature's worktree:
+/// `HEAD`, a branch, or a short ID. Rejects with `refused: ` when it names no commit.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn resolve_commit(dir: String, revision: String) -> AsyncTask<Job<String>> {
+    job(move || api::resolve_commit(Path::new(&dir), &revision))
+}
+
 /// The page of the main checkout's history after the commit `after`.
 #[napi(ts_return_type = "Promise<GitHistoryPageView>")]
 pub fn git_history(repo: String, after: String) -> AsyncTask<Job<GitHistoryPageView>> {

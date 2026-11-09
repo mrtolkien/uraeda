@@ -1027,13 +1027,15 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
     review: this feature's reviews run on the branch only." and runs nothing. Otherwise it runs
     every reviewer of the feature's resolved options at once and answers with the path and text of
     the `findings-NN.md` it committed. Before any reviewer runs, it refuses a `reviewed` other than
-    `branch` or `wave <N>`, and a `base` or a `head` that is not one word without a colon (R29). In
-    a repository the server hosts, the findings are written and committed through the repository's
-    write queue (`WriteQueue.commitLanded`, the feature's keys), and the answer waits for the commit
-    to land. Findings a hook refuses to commit are kept: it answers "not committed: <the hook's
-    output>", after their path when the file is left written, and the same `reviewed`, `base`, and
-    `head` asked again commit them, writing the file again when the queue put it back, else with
-    `retryCommit`, running no reviewer (R30).
+    `branch` or `wave <N>`, and a `base` or a `head` that is not one word without a colon, then
+    resolves both to full commit IDs in the feature's worktree with the binding's
+    `resolveCommit(dir: string, revision: string): Promise<string>`, refusing one that names no
+    commit (R29). In a repository the server hosts, the findings are written and committed through
+    the repository's write queue (`WriteQueue.commitLanded`, the feature's keys), and the answer
+    waits for the commit to land. Findings a hook refuses to commit are kept: it answers "not
+    committed: <the hook's output>", after their path when the file is left written, and the same
+    `reviewed`, `base`, and `head` asked again commit them, writing the file again when the queue
+    put it back, else with `retryCommit`, running no reviewer (R30).
   - `class Reviews { review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
     reached as `Sessions.reviews`, and `reviewTool(reviews: Reviews): McpTool`, pushed into the
     server's `mcp.tools`; a review is counted as the parent's call (`SubSessions.counted`), so its

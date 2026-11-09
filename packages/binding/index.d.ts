@@ -622,6 +622,12 @@ export declare function renameCategory(repo: string, from: string, to: string, p
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
 
 /**
+ * The full ID of the commit `revision` names in the working tree at `dir`, a feature's worktree:
+ * `HEAD`, a branch, or a short ID. Rejects with `refused: ` when it names no commit.
+ */
+export declare function resolveCommit(dir: string, revision: string): Promise<string>
+
+/**
  * Commits again what a hook refused to commit: a submitted round, a review's findings, or a
  * verdict.
  */

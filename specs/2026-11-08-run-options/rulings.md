@@ -403,20 +403,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   in `reviews.ts`.
 - **Where**: task 9, checked with `validate:claude --review` and `validate:codex --review`.
 
-## R29: A review's input is checked before any reviewer runs, its commits as one word
+## R29: A review's input is checked before any reviewer runs, its commits resolved to their IDs
 
 - **Decision**: `review` refuses, before any reviewer runs, a `reviewed` other than `branch` or
-  `wave <N>`, and a `base` or a `head` that is not one word without a colon. The commits are not
-  resolved with `git rev-parse --verify` in the feature's worktree: no function of the core or the
-  binding resolves a revision there (`gitCommit` takes a hex ID in the main checkout only), and the
-  plan adds none for it.
+  `wave <N>`, and a `base` or a `head` that is not one word without a colon. It then resolves each
+  in the feature's worktree to its full commit ID, with the binding's `resolveCommit(dir, revision)`
+  over the core's `Git::resolve`, refusing one that names no commit: the reviewers' messages, their
+  sub-sessions' titles, the findings' `commits`, and the key of findings a hook refused all hold the
+  IDs, so the same names asked again after a new commit are another range, whose reviewers run
+  again.
 - **Rationale**: the review found a wrong `reviewed` refused only by `writeFindings`, after every
   reviewer ran, and a `base` with a space or a newline passed on into the reviewers' messages and
-  the findings' `commits`. A commit that does not resolve still fails each reviewer, which says so
-  in its section.
-- **If wrong**: `reviewInput` in `packages/server/src/runner/reviews.ts`, with a binding function
-  over the core's `Git::resolve` to resolve the commits in the feature's worktree.
-- **Where**: task 9's review.
+  the findings' `commits`. The final review found `main..HEAD` asked again after a fix reusing the
+  reviewers' earlier answers, as the key held the names as typed.
+- **If wrong**: `reviewInput` and `Reviews.#review` in `packages/server/src/runner/reviews.ts`, and
+  `resolve_commit` in `crates/core/src/api/git_page.rs`.
+- **Where**: task 9's review, and the final review.
 
 ## R30: Findings a hook refused are committed by the same review asked again
 

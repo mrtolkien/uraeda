@@ -75,6 +75,7 @@ pub use git_page::{
     ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
     GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
     WorktreeView, conflict_file, git_commit, git_diff, git_history, git_page, git_summary,
+    resolve_commit,
 };
 pub use git_writes::{
     clean_feature, git_abort, git_commit_staged, git_continue, git_discard, git_fetch, git_merge,

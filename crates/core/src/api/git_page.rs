@@ -202,6 +202,15 @@ pub fn git_commit(repo: &Path, id: &str) -> Result<GitCommitView> {
     })
 }
 
+/// The full ID of the commit `revision` names in the working tree at `dir`, as a feature's
+/// worktree reads it: `HEAD`, a branch, or a short ID. Refused when it names no commit.
+pub fn resolve_commit(dir: &Path, revision: &str) -> Result<String> {
+    Git::discover(dir)?
+        .resolve(revision)
+        .map(|id| id.to_string())
+        .ok_or_else(|| refused(format!("no commit {revision}")))
+}
+
 /// The page of the main checkout's history after the commit `after`.
 pub fn git_history(repo: &Path, after: &str) -> Result<GitHistoryPageView> {
     let main = Git::open(&Git::discover(repo)?.main_root())?;
