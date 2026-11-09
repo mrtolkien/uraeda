@@ -348,14 +348,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `feature.startText` and `change.start` take `options`, only what the strip changed,
   kept as the feature's own: a feature's once planned, before a message can make its session, and
   removed if the start is refused; a change's once it landed, before its first run, after its build
-  step's pick was checked as a new session's before anything is committed. `change.start` no longer
-  takes `runtime`, `model`, and `effort`. A session made without a pick while its folder's start is
-  still in the write queue takes the pick of the run step the start begins with (Discovery for a
-  feature, Build for a change), as the folder cannot be read yet. A feature's record says what such
-  a session runs on, `newPick`, which the composer's picker shows until the human picks; a composer
-  that makes a feature's session sends no pick then, so the server makes it on its step's.
+  step's pick was checked as a new session's before anything is committed; a change's options that
+  cannot be kept are logged, and its first run is still sent, on that build step's pick.
+  `change.start` no longer takes `runtime`, `model`, and `effort`. A session made without a pick
+  while its folder's start is still in the write queue takes the pick of the run step the start
+  begins with (Discovery for a feature, Build for a change), as the folder cannot be read yet. A
+  feature's record says what such a session runs on, `newPick`, which the composer's picker shows
+  until the human picks; a composer that makes a feature's session sends no pick then, so the server
+  makes it on its step's.
 - **Rationale**: the composer sent the first runtime on as a pick, which R18 uses as given: a
   discovery set on another agent or model in the strip would never run there.
 - **If wrong**: `useComposerRuntime` in `packages/web/src/ComposerPicker.tsx`, `newPickOf` and
-  `stepPickOf` in `packages/server/src/runner/run-session.ts`, `StartMessages.open`.
+  `stepPickOf` in `packages/server/src/runner/run-session.ts`, `StartMessages.open`, and
+  `keptOptions` in `packages/server/src/fate/change-starts.ts`.
 - **Where**: task 11.

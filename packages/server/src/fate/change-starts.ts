@@ -6,7 +6,7 @@ import type { RunOptions } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
 import { toMap } from "../run-options.ts";
 import type { ChatImage } from "../runner/images.ts";
-import { newSessionPick } from "../runner/picks.ts";
+import { newSessionPick, type SessionPick } from "../runner/picks.ts";
 import { runtimeState } from "../runner/runtimes.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -32,14 +32,18 @@ export async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>)
 /**
  * Sends a started change's first run to its session, through the queue a running turn would hold
  * it in (R3), with the agent available and its workflow message written: the session's ID, or
- * `null` when no run was sent. A session made for it runs on its build step's pick, from its own
- * options over the settings' (R18).
+ * `null` when no run was sent. A session made for it runs on `pick`, else on its build step's pick,
+ * from its own options over the settings' (R18).
  */
-async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | null> {
+async function sendFirstRun(
+  ctx: RepoContext,
+  folder: string,
+  pick?: SessionPick,
+): Promise<string | null> {
   // Without the agent, or a run to start, the change's page offers its message unsent.
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const latest = ctx.sessions.cache.latestSession(root, folder);
-  const runtime = ctx.sessions.stepPick(root, folder, "build")?.runtime;
+  const runtime = pick?.runtime ?? ctx.sessions.stepPick(root, folder, "build")?.runtime;
   const message = runtimeState(ctx.sessions.runtimes, root, latest, runtime).available
     ? await readWorkflowMessage(ctx, `${folder}:start`)
     : undefined;
@@ -47,7 +51,7 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
     return null;
   }
   // The change's latest session: its only one, made now, unless a session moved to it.
-  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder));
+  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder, pick));
   const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );
@@ -55,9 +59,32 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
 }
 
 /**
+ * Keeps the started change's own run options: `undefined` once kept, else, logged, the build
+ * step's pick they resolve to, which `checkOptions` already checked, for the first run.
+ */
+async function keptOptions(
+  ctx: RepoContext,
+  folder: string,
+  options: RunOptions,
+): Promise<SessionPick | undefined> {
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  try {
+    ctx.featureOptions.set(root, folder, options);
+    return undefined;
+  } catch (error) {
+    process.stderr.write(
+      `uraeda: ${folder} started, but its run options were not kept: ${reasonOf(error)}\n`,
+    );
+    const fallback = ctx.sessions.runtimes.defaultFor(root) ?? "";
+    return toMap(ctx.featureOptions.over(options), fallback).steps.build;
+  }
+}
+
+/**
  * Sends the started change's first run, its own run options kept first: whether one was sent. Once
  * the change exists, options that could not be kept, or a run that could not be sent, are logged,
- * not refused (R12): the change's page offers the run unsent.
+ * not refused (R12): options not kept still send the first run, on their build step's pick, and the
+ * change's page offers a run not sent.
  */
 async function firstRunSent(
   ctx: RepoContext,
@@ -65,10 +92,8 @@ async function firstRunSent(
   options?: RunOptions,
 ): Promise<boolean> {
   try {
-    if (options !== undefined) {
-      ctx.featureOptions.set(await ctx.sessions.mainRoot(ctx.repo), folder, options);
-    }
-    return (await sendFirstRun(ctx, folder)) !== null;
+    const pick = options === undefined ? undefined : await keptOptions(ctx, folder, options);
+    return (await sendFirstRun(ctx, folder, pick)) !== null;
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its first run was not sent: ${reasonOf(error)}\n`,

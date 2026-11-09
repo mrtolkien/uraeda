@@ -426,6 +426,36 @@ test("change.start sends the change's first run on its options' build step, kept
   expect(server.adapter.opens).toEqual([]);
 });
 
+test("change.start sends the first run on its build step's pick when its options could not be kept", async () => {
+  const server = await testServer();
+  const durable = new FakeAdapter();
+  durable.fallback = () => [];
+  server.sessions.runtimes.register("pi-durable", durable);
+  await server.sessions.check();
+  await server.sessions.runtimes.refreshModels();
+  vi.spyOn(server.featureOptions, "set").mockImplementation(() => {
+    throw new Error("disk full");
+  });
+  const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  const build = { agent: "pi-durable", model: "fake-big", step: "build" };
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { options: { steps: [build] }, slug: "home-icon", text: "Another home icon" },
+    ["folder", "session"],
+  );
+
+  expect(started.error).toBeUndefined();
+  const { session } = started.data as { session: string | null };
+  expect(session).not.toBeNull();
+  expect(server.sessions.cache.session(session ?? "")).toMatchObject({
+    agent: "pi-durable",
+    model: "fake-big",
+  });
+  expect(String(stderr.mock.calls[0]?.[0])).toContain("disk full");
+});
+
 test.each<[string, Record<string, unknown>, string]>([
   ["a model its agent does not list", { model: "fake-huge" }, "has no model fake-huge"],
   ["an effort its model does not take", { effort: "high", model: "fake-small" }, "takes no High"],
