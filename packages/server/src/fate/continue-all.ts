@@ -6,7 +6,7 @@ import { reasonOf, REFUSAL_CODE } from "../reason.ts";
 import type { Trigger } from "../runner/events.ts";
 import { recommendedMessage } from "../runner/message.ts";
 import { runtimeState } from "../runner/runtimes.ts";
-import { continuedByAll } from "../runner/status.ts";
+import { CATCH_UP, continuable, continuedByAll } from "../runner/status.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { featureStatuses } from "./feature-status.ts";
@@ -50,6 +50,21 @@ export async function continueOne(
 }
 
 /**
+ * Whether the feature at `catch-up` already had its catch-up for the tip it reads: a conflict
+ * dismissed reads idle, and Continue all would send it again. A run that asks, as one the human
+ * stopped, is continued all the same. Spec: Continue all includes
+ * the pull requests at "Catch up" with no run.
+ */
+function ranFor(ctx: RepoContext, root: string, feature: FeatureView): boolean {
+  const { catchUp, name } = feature.step;
+  return (
+    name === CATCH_UP &&
+    catchUp !== undefined &&
+    ctx.sessions.cache.caughtUp(root, feature.folder, catchUp.commit)
+  );
+}
+
+/**
  * Sends each feature `continuedByAll` picks its step's message, in its latest session, which goes
  * on: a feature at a gate, blocked, or at work is skipped, and so is one whose step has no message.
  * One refused, as while another session of its worktree works, is left as it was, and returned
@@ -64,7 +79,11 @@ async function continueAll(ctx: RepoContext): Promise<Array<RefusedRun>> {
   }
   const refused: Array<RefusedRun> = [];
   for (const { feature, status } of await featureStatuses(ctx)) {
-    if (!continuedByAll({ status, step: feature.step }) || status.session === null) {
+    if (
+      !continuedByAll({ status, step: feature.step }) ||
+      status.session === null ||
+      (!continuable(status) && ranFor(ctx, root, feature))
+    ) {
       continue;
     }
     try {
