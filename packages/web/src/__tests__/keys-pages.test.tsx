@@ -147,6 +147,20 @@ test("US3 2: `i` in a session focuses the composer, and Escape leaves it keeping
   expect(fieldText(field)).toBe("hello");
 });
 
+// Break: `m` bound on one page only, or typed into the composer instead of opening the picker.
+test.each([
+  ["the New page", "/new"],
+  ["a session's page", `/f/${FOLDER}/session`],
+])("on %s, `m` opens the model picker, as its button does", async (_, path) => {
+  await renderPage(path, fixtureRepo(), { agent: await fakeAgent() });
+  await composer();
+  expect(screen.queryByRole("dialog", { name: "Pick the model" })).toBeNull();
+
+  await press("m");
+
+  expect(await screen.findByRole("dialog", { name: "Pick the model" })).toBeTruthy();
+});
+
 // Break: a card's plain line gone, or no longer read as the card's description.
 test("each New card says in a short plain line what it is for, read as its description", async () => {
   await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
