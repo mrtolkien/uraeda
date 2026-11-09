@@ -13,7 +13,8 @@ import { RunStrip } from "./RunStrip.tsx";
 /**
  * The strip of a start dialog, a change's with `isChange`, and `options`, what the start sends: the
  * options changed on the strip that differ from the settings', or undefined while nothing was
- * changed, or no runtime is on, when the strip is not drawn.
+ * changed, or no runtime is on or the settings have not loaded, when the strip is not drawn: a
+ * change is only ever made, and diffed, over the settings as they are.
  */
 export function useStartRuns(isChange = false): {
   options: StoredOptions | undefined;
@@ -23,10 +24,10 @@ export function useStartRuns(isChange = false): {
   const saved = useSettings()?.runs.options;
   const fallback = runtimes[0]?.kind;
   const defaults = useMemo<RunOptions | undefined>(
-    () => (fallback === undefined ? undefined : toMap(saved ?? { steps: [] }, fallback)),
+    () => (fallback === undefined || saved === undefined ? undefined : toMap(saved, fallback)),
     [fallback, saved],
   );
-  // Unset until the strip changes something: the defaults follow the settings as they load.
+  // Unset until the strip changes something: the defaults follow the settings as they change.
   const [changed, setChanged] = useState<RunOptions>();
   if (defaults === undefined) {
     return { options: undefined, strip: null };
