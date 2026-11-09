@@ -565,3 +565,28 @@ fn a_diff_git_cannot_read_is_not_kept() {
     assert_eq!(unreadable, None);
     assert!(readable.is_some());
 }
+
+/// Review: a `proposal.md` is the default branch's own only in a started folder, a feature's or a
+/// change's, which the start renames from `specs/proposals/`; not in another folder of `specs/`.
+#[test]
+fn only_a_started_folders_proposal_is_the_default_branchs_own() {
+    let rows = [
+        ("a feature's", "specs/2026-10-11-y/proposal.md", true),
+        ("a change's", "specs/changes/2026-10-11-y/proposal.md", true),
+        ("in the decisions", "specs/decisions/proposal.md", false),
+        ("in the UI guides", "specs/ui/proposal.md", false),
+        (
+            "an undated folder's change",
+            "specs/changes/y/proposal.md",
+            false,
+        ),
+        (
+            "in a feature's subfolder",
+            "specs/2026-10-11-y/x/proposal.md",
+            false,
+        ),
+    ];
+    for (name, path, own) in rows {
+        assert_eq!(behind::default_branch_own(path), own, "{name}");
+    }
+}
