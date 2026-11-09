@@ -1,8 +1,9 @@
+import { renameSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the catcher's import in a cycle.
 import { atCatchUp, binding, fixtureRepo, testDataDir, testServer } from "./helpers.ts";
-import { type CatchUps, startCatchUps } from "../catch-ups.ts";
+import { type CatchUps, catcher as serverCatcher, startCatchUps } from "../catch-ups.ts";
 import type { Binding, RepoContext } from "../fate/context.ts";
 import { onTurnDone } from "../live.ts";
 import type { TurnRow } from "../runner/cache.ts";
@@ -212,4 +213,44 @@ test("the switch off starts nothing when main moves", async () => {
   await catchUps.runAll();
 
   expect(added(server, session)).toHaveLength(0);
+});
+
+/**
+ * Review: a turn's end names the session's repository, a burst the host's path. Catches: runs
+ * serialized by the path given, two triggers at once on paths of one repository sending twice.
+ */
+test("two triggers on paths of one repository start one catch-up", async () => {
+  const using = atCatchUp(binding, AGENT, CATCH_UP);
+  const server = await testServer(undefined, { binding: using });
+  const { session } = await endedRun(server, AGENT);
+  const catchUps = catcher(server, using, () => true);
+  server.adapter.script([]);
+  server.adapter.script([]);
+
+  await Promise.all([catchUps.run(server.repo), catchUps.run(join(server.repo, "specs"))]);
+
+  expect(added(server, session)).toHaveLength(1);
+  await settle(server, session);
+});
+
+/** Review: a listed folder moved away. Catches: the catcher reading it, and failing, each time. */
+test("the server's catcher leaves a missing repository alone", async () => {
+  const using = atCatchUp(binding, AGENT, CATCH_UP);
+  const server = await testServer(undefined, { binding: using });
+  renameSync(server.repo, `${server.repo}-away`);
+  await server.hosts.current(server.name);
+  expect(server.hosts.get(server.name)?.missing).toBe(true);
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  // The switch on: the catcher reads every listed repository at once.
+  vi.spyOn(server.settings, "runs").mockReturnValue({
+    ...server.settings.runs(),
+    catchUpPullRequests: { inForce: true },
+  } as ReturnType<typeof server.settings.runs>);
+
+  const caught = serverCatcher({ ...server, binding: using });
+  await caught.runAll();
+  caught.stop();
+
+  expect(log.mock.calls.map(([text]) => String(text)).join("")).not.toContain("catch-ups");
+  log.mockRestore();
 });
