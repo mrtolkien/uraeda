@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Run options
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Changes requested on 2026-11-09: 2 comments in spec-review.md.
 >
 > - You approve a diagram of the six steps, in the settings and in every start dialog. Each step
 >   gets its agent, model, effort, and session, with implementers and reviewers of your choice.
