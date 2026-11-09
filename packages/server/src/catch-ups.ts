@@ -46,10 +46,47 @@ function due(
 }
 
 /**
+ * Runs `work` under `key` once the run there ends: one asked while another waits joins it, so
+ * triggers at once run once after the current run.
+ */
+function serially(runs: Map<string, Runs>, key: string, work: () => Promise<void>): Promise<void> {
+  let at = runs.get(key);
+  if (at === undefined) {
+    at = {};
+    runs.set(key, at);
+  }
+  const of = at;
+  if (of.next !== undefined) {
+    return of.next;
+  }
+  const start = () => {
+    // A failed run leaves the next one to run.
+    const running = work().finally(() => {
+      if (of.running === running) {
+        of.running = undefined;
+      }
+    });
+    of.running = running;
+    return running;
+  };
+  if (of.running === undefined) {
+    return start();
+  }
+  const next = of.running
+    .catch(() => {})
+    .then(() => {
+      of.next = undefined;
+      return start();
+    });
+  of.next = next;
+  return next;
+}
+
+/**
  * Starts the catcher. A run reads the repository's features, a fresh `context` each time, and,
  * while `enabled()`, sends each one due its catch-up's message, with the line saying why, in its
- * latest session. A repository's runs go one at a time: a run asked meanwhile runs once after it,
- * so two triggers at once start one catch-up. A refusal leaves the feature, printed once per
+ * latest session. A repository's runs, by its main checkout, go one at a time: a run asked
+ * meanwhile runs once after it, so two triggers at once start one catch-up. A refusal leaves the feature, printed once per
  * feature and commit; the next trigger tries again.
  */
 export function startCatchUps(options: {
@@ -60,12 +97,11 @@ export function startCatchUps(options: {
   let stopped = false;
   const on = () => !stopped && options.enabled();
   const printed = new Set<string>();
-  const once = async (repo: string) => {
+  const once = async (repo: string, root: string) => {
     if (!on()) {
       return;
     }
     const ctx = options.context(repo);
-    const root = await ctx.sessions.mainRoot(repo);
     for (const read of await featureStatuses(ctx)) {
       const catching = due(ctx, root, read);
       // The switch turned off, or the server stopping, during the run starts no other.
@@ -92,39 +128,15 @@ export function startCatchUps(options: {
       }
     }
   };
-  const safely = (repo: string) =>
-    once(repo).catch((error: unknown) => {
-      process.stderr.write(`uraeda: the catch-ups of ${repo} stopped: ${reasonOf(error)}\n`);
-    });
   const runs = new Map<string, Runs>();
-  const run = (repo: string): Promise<void> => {
-    let at = runs.get(repo);
-    if (at === undefined) {
-      at = {};
-      runs.set(repo, at);
+  // By the repository's main checkout: a turn's end and a burst may name it by other paths.
+  const run = async (repo: string): Promise<void> => {
+    try {
+      const root = await options.context(repo).sessions.mainRoot(repo);
+      await serially(runs, root, () => once(repo, root));
+    } catch (error) {
+      process.stderr.write(`uraeda: the catch-ups of ${repo} stopped: ${reasonOf(error)}\n`);
     }
-    const of = at;
-    if (of.next !== undefined) {
-      return of.next;
-    }
-    const start = () => {
-      const running = safely(repo).finally(() => {
-        if (of.running === running) {
-          of.running = undefined;
-        }
-      });
-      of.running = running;
-      return running;
-    };
-    if (of.running === undefined) {
-      return start();
-    }
-    const next = of.running.then(() => {
-      of.next = undefined;
-      return start();
-    });
-    of.next = next;
-    return next;
   };
   return {
     run,
@@ -147,7 +159,7 @@ export function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
   const catchUps = startCatchUps({
     context: (repo) => ({ ...shared, repo }),
     enabled: () => settings.runs().catchUpPullRequests.inForce,
-    repos: () => hosts.all().map((host) => host.path),
+    repos: () => hosts.all().flatMap((host) => (host.missing ? [] : [host.path])),
   });
   const unsubscribe = [
     onTurnDone(sessions, (repo) => void catchUps.run(repo)),
