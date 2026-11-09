@@ -11,6 +11,7 @@
 - [Spec comments: suggestion vs change needed](/specs/changes/2026-11-09-spec-comments/proposal.md)
 - [Scheduled jobs: agent runs on a schedule, like a daily dependencies upgrade and performance pass](/specs/changes/2026-11-09-scheduled-jobs/proposal.md)
 - [In all pages where we can change model/effort level, `m` should open the model…](/specs/changes/2026-11-09-all-pages/proposal.md)
+- [Postpone a feature from its menu](/specs/changes/2026-11-09-postpone-feature/proposal.md)
 
 Human reviews:
 
