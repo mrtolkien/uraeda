@@ -847,7 +847,8 @@ git commit -m "feat(run-options): each step its own run, chained to the next"
     Codex's catalog in the session's working directory with every model's `multi_agent_version`
     `"disabled"` (`CodexCatalogs` in `codex-catalog.ts`, R20): `codex debug models` runs without
     blocking the server, once for the sessions of a folder opening together, and the process starts
-    once it ended. The project's trust stays.
+    once it ended. A catalog that cannot be written leaves Codex's own, the session saying its
+    sub-agents may run (`catalogNotice`). The project's trust stays.
 
 - [x] **Step 1: Split `codex.ts` before it changes**
 

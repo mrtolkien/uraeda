@@ -223,8 +223,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   written afresh at each such open, about 40 ms, so a new Codex version or catalog is never missed:
   asynchronously, the process started once it is written, and once for the sessions of one directory
   opening together (`CodexCatalogs`), which share its run. When it cannot be written, the process
-  starts on Codex's own catalog and the server prints why on stderr; `validate:codex` then fails, as
-  it reads `spawn_agent` calls from the thread's rollout.
+  starts on Codex's own catalog, the server prints why on stderr, and the session shows a system
+  line saying Codex's own sub-agents may run in it; `validate:codex` then fails, as it reads
+  `spawn_agent` calls from the thread's rollout.
 - **Rationale**: a process's arguments are readable by every user of the machine, its environment
   only by its own; the server's own limit leaves the user's other servers' limits as they are, and
   holds past SC-003's 60 minutes, as progress does not extend it. Codex 0.163.0 has no

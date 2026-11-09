@@ -40,6 +40,10 @@ export function catalogPath(folder: string, cwd: string): string {
 /** The catalog a session runs on, its file's path, or why it could not be written. */
 export type Catalog = { path: string } | { problem: string };
 
+/** What a session shows when it runs on Codex's own catalog, `problem` saying why. */
+export const catalogNotice = (problem: string) =>
+  `Codex's own sub-agents may run in this session: its model catalog without them could not be written (${problem}).`;
+
 /** Codex's model catalog in `cwd`, as `command debug models` prints it there. */
 function debugModels(command: string, cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -18,7 +18,7 @@ import {
   MODELS_TIMEOUT_MS,
   spawnGrouped,
 } from "./child.ts";
-import { CodexCatalogs } from "./codex-catalog.ts";
+import { type Catalog, catalogNotice, CodexCatalogs } from "./codex-catalog.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { hasRollout } from "./codex-rollouts.ts";
@@ -308,18 +308,29 @@ export class CodexAdapter implements Adapter {
 
   /**
    * The catalog without sub-agents a workflow session or a sub-session runs on, written afresh as
-   * it opens: none for a chat, or without a catalog folder, or when it could not be written.
+   * it opens, or why it could not be written: none for a chat.
    */
-  async #catalog(options: OpenOptions): Promise<string | undefined> {
+  async #catalog(options: OpenOptions): Promise<Catalog | undefined> {
     if (options.tools === undefined) {
       return undefined;
     }
     if (this.#catalogs === undefined) {
       process.stderr.write("Codex's sub-agents stay on in this session: no catalog folder\n");
-      return undefined;
+      return { problem: "no catalog folder" };
     }
-    const catalog = await this.#catalogs.write(options.cwd);
-    return "path" in catalog ? catalog.path : undefined;
+    return this.#catalogs.write(options.cwd);
+  }
+
+  /**
+   * The arguments of the session's process, once its catalog is known: one that could not be
+   * written says so in the session, as Codex's own sub-agents may then run.
+   */
+  async #serverArgs(options: OpenOptions, push: (event: AgentEvent) => void) {
+    const catalog = await this.#catalog(options);
+    if (catalog !== undefined && "problem" in catalog) {
+      push({ text: catalogNotice(catalog.problem), type: "notice" });
+    }
+    return codexServerArgs(options.tools, catalog && "path" in catalog ? catalog.path : undefined);
   }
 
   /** The skill folders Codex reads besides its own: Uraeda's, then the extensions'. */
@@ -357,7 +368,7 @@ export class CodexAdapter implements Adapter {
         events.end();
       },
       {
-        args: this.#catalog(options).then((catalog) => codexServerArgs(options.tools, catalog)),
+        args: this.#serverArgs(options, push),
         env: toolsEnv(options.tools),
       },
     );

@@ -72,6 +72,32 @@ test("sessions opening together share one catalog of their folder's, never holdi
   ]);
 });
 
+test("a session whose catalog cannot be written says Codex's sub-agents may run in it", async () => {
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  try {
+    const dir = temporaryFolder("uraeda-codex");
+    const agent = new CodexAdapter({
+      catalogDir: join(dir, "catalog"),
+      command: appServer(dir, { catalogFails: true }),
+      pluginDir: "/p",
+    }).open({ ...open, cwd: dir });
+    const events = agent.events[Symbol.asyncIterator]();
+    agent.send(message("m1", "Hi"));
+    const read = await until(events, "result");
+    expect(read).toContainEqual({
+      text: expect.stringContaining("Codex's own sub-agents may run in this session"),
+      type: "notice",
+    });
+    expect(read.at(-1)).toMatchObject({ ok: true, type: "result" });
+    agent.close();
+    await until(events, "exit");
+    expect(linesOf(dir, "argv")).toEqual([JSON.stringify(["app-server"])]);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("Codex's sub-agents stay on"));
+  } finally {
+    log.mockRestore();
+  }
+});
+
 test("a catalog that cannot be put in place leaves no temporary file", async () => {
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   try {
