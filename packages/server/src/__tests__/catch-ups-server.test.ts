@@ -47,18 +47,25 @@ afterEach(async () => {
 
 /**
  * The core's binding with the feature at `fake.step`, the pull requests' refresh `fake.refresh`,
- * and the watcher's bursts sent by `fake.burst`.
+ * and the watcher's bursts sent by `fake.burst`. Its reads of a feature's next step, counted in
+ * `fake.reads`, wait for `fake.hold`.
  */
 function faked(step: PastLastTask) {
   const fake = {
     burst: (_: Changes) => {},
+    hold: Promise.resolve(),
+    reads: 0,
     refresh: async () => false,
     step,
   };
   const at = () => atStep(binding, AGENT, fake.step);
   const using: Binding = {
     ...binding,
-    nextStep: (repo, folder) => at().nextStep(repo, folder),
+    nextStep: async (repo, folder) => {
+      fake.reads += 1;
+      await fake.hold;
+      return at().nextStep(repo, folder);
+    },
     readFeature: (repo, folder) => at().readFeature(repo, folder),
     readWorkspace: (repo) => at().readWorkspace(repo),
     refreshPullRequests: () => fake.refresh(),
@@ -193,4 +200,31 @@ test("a stopped server catches up nothing", async () => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   expect(adapter.sent).toHaveLength(0);
+});
+
+/**
+ * Review: a run in flight as the server stops, reading the feature's next step before its send.
+ * Catches: a stop resolving while the catcher still reads the repository, which a test's end
+ * removes, or a send after the sessions stopped, left running.
+ */
+test("a server's stop waits for its catcher's run", async () => {
+  const { fake, using } = faked(READY);
+  const { catchUps, server } = await start(using, config(true));
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  fake.hold = held;
+  fake.step = CATCH_UP;
+  fake.burst(MOVED);
+  await expect.poll(() => fake.reads, POLL).toBeGreaterThan(0);
+
+  let stopped = false;
+  const stopping = server.stop().then(() => {
+    stopped = true;
+  });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const early = stopped;
+  release();
+  await stopping;
+
+  expect(early).toBe(false);
+  expect(catchUps().filter((row) => row.state === "running" || row.state === "queued")).toEqual([]);
 });

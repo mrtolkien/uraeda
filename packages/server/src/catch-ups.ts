@@ -17,7 +17,8 @@ export type CatchUps = {
   run(repo: string): Promise<void>;
   /** Catches up every hosted repository: the switch changed. */
   runAll(): Promise<void>;
-  stop(): void;
+  /** Starts no other send, and resolves once the runs in flight end. */
+  stop(): Promise<void>;
 };
 
 /** A repository's runs: the one running, and the one asked meanwhile, which runs once after it. */
@@ -130,22 +131,30 @@ export function startCatchUps(options: {
     }
   };
   const runs = new Map<string, Runs>();
+  // The runs in flight, which the stop waits for: none reads the repository once it resolves.
+  const flying = new Set<Promise<void>>();
   // By the repository's main checkout: a turn's end and a burst may name it by other paths.
-  const run = async (repo: string): Promise<void> => {
-    try {
-      const root = await options.context(repo).sessions.mainRoot(repo);
-      await serially(runs, root, () => once(repo, root));
-    } catch (error) {
-      process.stderr.write(`uraeda: the catch-ups of ${repo} stopped: ${reasonOf(error)}\n`);
-    }
+  const run = (repo: string): Promise<void> => {
+    const running = (async () => {
+      try {
+        const root = await options.context(repo).sessions.mainRoot(repo);
+        await serially(runs, root, () => once(repo, root));
+      } catch (error) {
+        process.stderr.write(`uraeda: the catch-ups of ${repo} stopped: ${reasonOf(error)}\n`);
+      }
+    })();
+    flying.add(running);
+    void running.finally(() => flying.delete(running));
+    return running;
   };
   return {
     run,
     runAll: async () => {
       await Promise.all(options.repos().map(run));
     },
-    stop: () => {
+    stop: async () => {
       stopped = true;
+      await Promise.all(flying);
     },
   };
 }
@@ -171,7 +180,7 @@ export function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
     ...catchUps,
     stop: () => {
       unsubscribe.forEach((stop) => stop());
-      catchUps.stop();
+      return catchUps.stop();
     },
   };
 }

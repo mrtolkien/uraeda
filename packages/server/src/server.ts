@@ -444,11 +444,14 @@ async function startOpened(
     stop: () => {
       stopping ??= (async () => {
         clearInterval(sweeping);
-        caught.stop();
+        // Its runs in flight end before the sessions stop: a send the stop did not prevent is
+        // stopped with the others.
+        const catching = caught.stop();
         signIn?.links.close();
         opened.close();
         options.settings.close();
         options.themes.close();
+        await catching;
         // The sessions stop before the extensions unload: an unloaded runtime checks nothing.
         await Promise.all([sessions.stop().then(() => extensions.close()), previews.stopAll()]);
       })();
