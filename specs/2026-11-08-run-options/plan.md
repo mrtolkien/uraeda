@@ -489,9 +489,12 @@ git commit -m "feat(run-options): findings files, and each step's run step"
 **Files:**
 
 - Create: `packages/server/src/mcp/endpoint.ts`, `packages/server/src/mcp/tokens.ts`
-- Modify: `packages/server/src/app.ts` (the route), `packages/server/src/server.ts` and
-  `packages/server/src/main.ts` (the address reaches the session manager)
-- Test: `packages/server/src/__tests__/mcp.test.ts`
+- Modify: `packages/server/src/app.ts` (the route), `packages/server/src/server-paths.ts` and
+  `packages/server/src/sign-in/check.ts` (`/mcp` passes the session check),
+  `packages/server/src/server.ts`, `packages/server/src/live.ts`, and
+  `packages/server/src/runner/sessions.ts` (the address and the tokens reach the session manager)
+- Test: `packages/server/src/__tests__/mcp.test.ts`, its app's `mcp` option in
+  `packages/server/src/__tests__/helpers.ts`
 
 **Interfaces:**
 
@@ -505,8 +508,11 @@ git commit -m "feat(run-options): findings files, and each step's run step"
     000 by default, until the tool answers. A tool that throws answers `isError: true` with its
     message. A dropped connection aborts the call's signal.
   - `ServerAddress = { url: string }` (`http://127.0.0.1:<port>`) given to the session manager.
+  - `createApp`'s `mcp?: { tokens, tools }`, the session manager's `mcp?: { address, tokens }`
+    (`SessionsOptions`, `createSessions`, `startSessions`), and `Server.mcp`, with `tools` an array
+    the server reads at each request, empty until Task 8 pushes its tools.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `mcp.test.ts`, over `createApp` with a tool the test controls:
 
@@ -517,24 +523,28 @@ git commit -m "feat(run-options): findings files, and each step's run step"
   token rows; each 401 with the same body, and the tool never runs. Break: a revoked token still
   accepted.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/mcp.test.ts`
-- Expected: FAIL, `Cannot find module '../mcp/endpoint.ts'`
+- Expected: FAIL, `Cannot find module '../mcp/tokens.ts'` (the endpoint's import is a type's)
 
-- [ ] **Step 3: Implement the endpoint and the tokens**
+- [x] **Step 3: Implement the endpoint and the tokens**
 
-`/mcp` stays out of `SERVER_PATHS`: its token is its sign-in, and the host guard still applies.
+`/mcp` is one of `SERVER_PATHS`, and the session check lets it through: its token is its sign-in,
+and the host guard still applies
+([R6](rulings.md#r6-mcp-is-one-of-the-servers-paths-let-through-by-the-session-check)). The server
+makes the endpoint's tokens and its tool list, empty until Task 8 adds to it, in `server.ts`, from
+the port `startServer` already takes: `main.ts` needs no change.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/mcp packages/server/src/app.ts packages/server/src/server.ts packages/server/src/main.ts packages/server/src/__tests__/mcp.test.ts
+git add packages/server/src specs/2026-11-08-run-options
 git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool"
 ```
 

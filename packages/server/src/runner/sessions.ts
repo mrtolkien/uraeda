@@ -1,4 +1,6 @@
 import type { Binding } from "../fate/context.ts";
+import type { ServerAddress } from "../mcp/endpoint.ts";
+import type { McpTokens } from "../mcp/tokens.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
@@ -50,6 +52,11 @@ type SessionsOptions = {
   binding: Binding;
   cache: SessionCache;
   hosted?: (root: string) => boolean;
+  /**
+   * Where the agents' processes reach the server's MCP endpoint, and its tokens, one issued to each
+   * workflow process: none in tests that run no workflow.
+   */
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   onChange: (change: SessionChange) => void;
   runs?: () => ContinueSettings;
   runtimes: Runtimes;

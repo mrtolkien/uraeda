@@ -14,6 +14,8 @@ import { GIT_ID } from "./fate/views-git.ts";
 import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
+import type { ServerAddress } from "./mcp/endpoint.ts";
+import type { McpTokens } from "./mcp/tokens.ts";
 import type { SessionCache } from "./runner/cache.ts";
 import type { Runtimes } from "./runner/runtimes.ts";
 import { type ContinueSettings, type SessionChange, Sessions } from "./runner/sessions.ts";
@@ -323,6 +325,7 @@ export function createSessions(options: {
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   runs?: () => ContinueSettings;
   runtimes: Runtimes;
 }): Sessions {

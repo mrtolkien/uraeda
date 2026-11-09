@@ -61,3 +61,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: every workflow file has a title its check reads; the data model puts findings in
   "the feature's or change's folder"; a method cannot disagree with the step's name.
 - **Where**: task 2.
+
+## R8: `/mcp` is one of the server's paths, let through by the session check
+
+- **Decision**: `/mcp` is in `SERVER_PATHS`, and the session check lets exactly `/mcp` through, as
+  it lets `/open` through with the host token; the endpoint checks its own tokens. A session holds
+  one MCP token at a time: issuing its next process's token revokes the one before.
+- **Rationale**: the plan kept `/mcp` out of `SERVER_PATHS`, but two tests require every route of
+  the app to be one of them, so that a new route is closed by default. Naming the exception in the
+  session check keeps that rule, and `vp dev` forwards `/mcp` to the server like its other paths.
+- **Where**: task 3.

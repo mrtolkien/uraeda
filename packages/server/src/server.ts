@@ -20,6 +20,8 @@ import {
 } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import { guardCheck } from "./guard.ts";
+import type { McpTool, ServerAddress } from "./mcp/endpoint.ts";
+import { McpTokens } from "./mcp/tokens.ts";
 import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
@@ -56,6 +58,7 @@ export async function startSessions(options: {
   binding: Binding;
   dataDir: string;
   hosts: HostsOf;
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   runtimes: Runtimes;
   settings: ServerSettings;
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
@@ -100,6 +103,8 @@ export type Server = {
   hosts: Hosts;
   /** The access key, when this start made it: shown once, then never again. */
   key?: string;
+  /** The MCP endpoint the agents reach Uraeda's tools at, and its tokens. */
+  mcp: McpServer;
   /** Makes a new access key and returns it, signing every device out; throws without sign-in. */
   newKey: () => string;
   previews: Previews;
@@ -294,6 +299,18 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 }
 
 /**
+ * The server's MCP endpoint: its address, its tokens, and its tools, which the app serves at `/mcp`
+ * and the session manager gives the agents' processes. The tools are read at each request: they
+ * start empty, and are added once the parts they reach are open.
+ */
+type McpServer = { address: ServerAddress; tokens: McpTokens; tools: Array<McpTool> };
+
+/** The MCP endpoint of a server on `port`, without tools yet. */
+function mcpServer(port: number): McpServer {
+  return { address: { url: `http://127.0.0.1:${port}` }, tokens: new McpTokens(), tools: [] };
+}
+
+/**
  * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
  * of the listed repositories, whose changes the extensions turn into events. Each watcher burst of
  * a repository, once the refresh of its pull requests it asks ended, and each refresh that changed
@@ -302,6 +319,7 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 async function openParts(
   options: StartOptions,
   previews: Previews,
+  mcp: McpServer,
   settled: (repo: string) => void,
 ) {
   const { binding, dataDir } = options;
@@ -320,6 +338,7 @@ async function openParts(
       binding,
       dataDir,
       hosts: () => hosts,
+      mcp,
       runtimes: extensions.runtimes,
       settings: options.settings,
     });
@@ -342,6 +361,20 @@ async function openParts(
     throw error;
   }
   return { extensions, hosts, sessions };
+}
+
+/** The server's upgrades: WebSockets to the Storybooks, through the guard's rule. */
+function upgrades(options: StartOptions, frames: FrameSecret, previews: Previews) {
+  return previewUpgrade({
+    check: guardCheck({
+      allowedHosts: () => options.settings.allowedHosts(),
+      allowOrigins: options.allowOrigins,
+      isFrame: (path) => frames.allows(path),
+      port: options.port,
+    }),
+    frames,
+    previews,
+  });
 }
 
 /**
@@ -385,9 +418,10 @@ async function startOpened(
   const { binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   const { frames, previews } = startPreviews(dataDir);
+  const mcp = mcpServer(options.port);
   // The catcher starts once everything it reads is open: a burst before it catches up nothing.
   const started: { catchUps?: CatchUps } = {};
-  const parts = await openParts(options, previews, (repo) => void started.catchUps?.run(repo));
+  const parts = await openParts(options, previews, mcp, (repo) => void started.catchUps?.run(repo));
   const { extensions, hosts: opened, sessions } = parts;
   const shared = {
     ...options,
@@ -419,6 +453,7 @@ async function startOpened(
       extensions,
       frames,
       hosts: opened,
+      mcp,
       previews,
       sessions: sessions.sessions,
       signIn,
@@ -427,6 +462,7 @@ async function startOpened(
     frames,
     hosts: opened,
     ...(key !== undefined && { key }),
+    mcp,
     newKey: () => {
       if (!signIn) {
         throw new Error("this server has no sign-in");
@@ -457,16 +493,7 @@ async function startOpened(
       })();
       return stopping;
     },
-    upgrade: previewUpgrade({
-      check: guardCheck({
-        allowedHosts: () => options.settings.allowedHosts(),
-        allowOrigins: options.allowOrigins,
-        isFrame: (path) => frames.allows(path),
-        port: options.port,
-      }),
-      frames,
-      previews,
-    }),
+    upgrade: upgrades(options, frames, previews),
     url,
   };
 }

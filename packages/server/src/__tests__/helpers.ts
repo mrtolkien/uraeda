@@ -19,6 +19,7 @@ import type { Previews } from "../preview/runner.ts";
 import { type Host, Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
+import type { McpOptions } from "../mcp/endpoint.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
@@ -150,8 +151,8 @@ export async function queueWhen(
   }
 }
 
-/** The options of `createApp` a test may add: sign-in and the built UI. */
-type Extra = { signIn?: SignInOptions; webRoot?: string };
+/** The options of `createApp` a test may add: the MCP endpoint's, sign-in, and the built UI. */
+type Extra = { mcp?: McpOptions; signIn?: SignInOptions; webRoot?: string };
 
 /**
  * The settings and the themes of a test's app on a new config folder, its own, closed after the
@@ -256,6 +257,7 @@ export async function testApp<SignedIn extends boolean = false>(
     binding: using = binding,
     hostToken,
     lockedList,
+    mcp,
     previewOptions,
     signIn,
     webRoot,
@@ -265,6 +267,7 @@ export async function testApp<SignedIn extends boolean = false>(
     /** The host token `/open` and `/session/key` accept, with `signIn`. */
     hostToken?: string;
     lockedList?: boolean;
+    mcp?: McpOptions;
     previewOptions?: PreviewOptions;
     /** Whether the app checks sessions: see `TestSignIn`. */
     signIn?: SignedIn;
@@ -282,6 +285,7 @@ export async function testApp<SignedIn extends boolean = false>(
   const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
   const configured = await appSettings(allowedHosts);
   const created = app(configured, opened, using, previewOptions, lockedList, {
+    mcp,
     signIn: signedIn?.options,
     webRoot,
   });

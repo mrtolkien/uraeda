@@ -9,6 +9,8 @@ import type { ExtensionsHost } from "./extensions/server.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
+import { type McpOptions, mcpRoutes } from "./mcp/endpoint.ts";
+import { McpTokens } from "./mcp/tokens.ts";
 import { announceSettings, announceThemes, onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
 import { previewRoutes } from "./preview/proxy.ts";
@@ -44,6 +46,11 @@ type AppOptions = {
   hosts: Hosts;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
+  /**
+   * The MCP endpoint's tokens and tools, which the agents' processes reach at `/mcp`: without them,
+   * as in most tests, no token is ever issued, so every call is refused.
+   */
+  mcp?: McpOptions;
   /** The port the server listens on, the only one its own host names take. */
   port: number;
   /** The server's Storybooks, which `/r/<name>/preview/<secret>/<folder>/` forwards to. */
@@ -155,7 +162,7 @@ const timed = async (context: Context, next: Next) => {
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
  * opened repository's; `/r/<name>/preview/<secret>/<folder>/`, each checkout's Storybook; `POST
- * /open`, a second start's handoff; and with `signIn`, the session routes, every other route behind
+ * /open`, a second start's handoff; `/mcp`, the agents' tools, behind its own tokens; and with `signIn`, the session routes, every other route behind
  * the session check but frame paths with the frame secret, which every ended session replaces.
  * Answers but mockups' and Storybooks' refuse other sites' frames.
  */
@@ -227,6 +234,8 @@ export function createApp(options: AppOptions) {
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
   app.route("/", openRoute(signIn));
+  // The session check lets `/mcp` through: an agent's process signs in with its own token.
+  app.route("/mcp", mcpRoutes(options.mcp ?? { tokens: new McpTokens(), tools: [] }));
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));
