@@ -1,0 +1,219 @@
+// The rule of a run's sessions, shared by the server, which picks the session each run goes to, and
+// the web UI, whose run map draws it: the workflow's six steps, each on an agent, a model, and an
+// effort; the joints between two steps, where a clean session starts; the build's implementers; the
+// reviewers; and where reviews happen. A step on another agent or model than the step before it
+// always starts a clean session: its cut is forced. Free of Node's modules, so the UI can import it.
+import type { ReviewerOptions, RunOptions, RunPick, StepOptions } from "uraeda-binding";
+
+/** The workflow's steps, in their order. */
+export const STEPS = ["discovery", "spec", "plan", "build", "review", "comments"] as const;
+
+export type StepId = (typeof STEPS)[number];
+
+/** Where reviews happen: after each wave and on the branch, or on the branch only. */
+export type Depth = "waves" | "branch";
+
+/** What a step or a role runs on: a model or an effort left out is the agent's own default. */
+export type StepPick = { effort?: string; model?: string; runtime: string };
+
+/** A reviewer: an agent on its pick, through the agent's own review, or a command. */
+export type Reviewer =
+  | { instructions?: string; kind: "agent"; pick: StepPick }
+  | { command: string; kind: "command" };
+
+/** A feature's or the settings' run options, as the run map edits them. */
+export type MapOptions = {
+  /** The joints, by the index of the step after them, where the human starts a clean session. */
+  cuts: ReadonlyArray<number>;
+  depth: Depth;
+  implementers: StepPick;
+  reviewers: ReadonlyArray<Reviewer>;
+  steps: Record<StepId, StepPick>;
+};
+
+/**
+ * How a pick's defaults resolve: the runtime a pick runs on, the one chosen when it is on, else the
+ * first runtime on; and the model a runtime runs when none is picked.
+ */
+export type Agents = {
+  defaultModel(runtime: string): string | undefined;
+  runtime(chosen?: string): string | undefined;
+};
+
+/** Whether two picks run on the same agent and model, defaults resolved. */
+export function samePick(agents: Agents, a: StepPick, b: StepPick): boolean {
+  const runtime = agents.runtime(a.runtime);
+  if (runtime !== agents.runtime(b.runtime)) {
+    return false;
+  }
+  const model = (pick: StepPick) =>
+    pick.model ?? (runtime === undefined ? undefined : agents.defaultModel(runtime));
+  return model(a) === model(b);
+}
+
+/** Whether the joint before step `index` must cut: its two steps run on different models. */
+export function isForced(agents: Agents, options: MapOptions, index: number): boolean {
+  const before = options.steps[STEPS[index - 1]!];
+  const after = options.steps[STEPS[index]!];
+  return !samePick(agents, before, after);
+}
+
+/** Whether the joint before step `index` cuts: by the human's choice, or forced. */
+export function jointCuts(agents: Agents, options: MapOptions, index: number): boolean {
+  return options.cuts.includes(index) || isForced(agents, options, index);
+}
+
+/** The sessions a feature runs in: each a span of steps, from `first` to `last`, by their index. */
+export function sessionSpans(
+  agents: Agents,
+  options: MapOptions,
+): Array<{ first: number; last: number }> {
+  const spans = [{ first: 0, last: 0 }];
+  for (let index = 1; index < STEPS.length; index++) {
+    if (jointCuts(agents, options, index)) {
+      spans.push({ first: index, last: index });
+    } else {
+      spans.at(-1)!.last = index;
+    }
+  }
+  return spans;
+}
+
+/**
+ * Whether a run of `to` goes to the session that ran `from`: both steps in one span, `from` not
+ * after `to`, so a step's own runs share its session.
+ */
+export function stepSession(agents: Agents, options: MapOptions, from: StepId, to: StepId) {
+  const first = STEPS.indexOf(from);
+  const last = STEPS.indexOf(to);
+  if (first > last) {
+    return false;
+  }
+  for (let index = first + 1; index <= last; index++) {
+    if (jointCuts(agents, options, index)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** The options with the joint before `step` cut, or joined when it was cut. */
+export function withCut<Options extends MapOptions>(value: Options, step: number): Options {
+  const cuts = value.cuts.includes(step)
+    ? value.cuts.filter((each) => each !== step)
+    : [...value.cuts, step];
+  return { ...value, cuts };
+}
+
+/** A stored pick on `fallback` when it names no agent. */
+function pickOf(stored: RunPick | undefined, fallback: string): StepPick {
+  return {
+    ...(stored?.effort === undefined ? {} : { effort: stored.effort }),
+    ...(stored?.model === undefined ? {} : { model: stored.model }),
+    runtime: stored?.agent ?? fallback,
+  };
+}
+
+/** A stored reviewer as the map holds it: a table without `command` is an agent's. */
+function reviewerOf(stored: ReviewerOptions, fallback: string): Reviewer {
+  if (stored.command !== undefined) {
+    return { command: stored.command, kind: "command" };
+  }
+  return {
+    ...(stored.instructions === undefined ? {} : { instructions: stored.instructions }),
+    kind: "agent",
+    pick: pickOf(stored, fallback),
+  };
+}
+
+/**
+ * Stored options as the map edits them, a step naming no agent on `fallbackRuntime`: the plan's
+ * `new_session` is `true` when unset, the implementers' agent the build's, and no reviewers one
+ * agent reviewer on the review step's pick.
+ */
+export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions {
+  const stored = (step: StepId) => options.steps.find((each) => each.step === step);
+  const steps = Object.fromEntries(
+    STEPS.map((step) => [step, pickOf(stored(step), fallbackRuntime)]),
+  ) as Record<StepId, StepPick>;
+  const cuts = STEPS.flatMap((step, index) =>
+    index > 0 && (stored(step)?.newSession ?? step === "plan") ? [index] : [],
+  );
+  const reviewers = options.reviewers?.length
+    ? options.reviewers.map((each) => reviewerOf(each, steps.review.runtime))
+    : [{ kind: "agent" as const, pick: steps.review }];
+  return {
+    cuts,
+    depth: options.reviewDepth === "branch" ? "branch" : "waves",
+    implementers: pickOf(options.implementers, steps.build.runtime),
+    reviewers,
+    steps,
+  };
+}
+
+/** The fields of `pick` that differ from `fallback`'s, as a stored pick. */
+function storedPick(pick: StepPick, fallback: StepPick): RunPick {
+  const differs = (key: keyof StepPick) => pick[key] !== undefined && pick[key] !== fallback[key];
+  return {
+    ...(pick.runtime === fallback.runtime ? {} : { agent: pick.runtime }),
+    ...(differs("model") ? { model: pick.model } : {}),
+    ...(differs("effort") ? { effort: pick.effort } : {}),
+  };
+}
+
+/** A reviewer as stored, its agent named. */
+function storedReviewer(reviewer: Reviewer): ReviewerOptions {
+  if (reviewer.kind === "command") {
+    return { command: reviewer.command };
+  }
+  const { effort, model, runtime } = reviewer.pick;
+  return {
+    agent: runtime,
+    ...(model === undefined ? {} : { model }),
+    ...(effort === undefined ? {} : { effort }),
+    ...(reviewer.instructions === undefined ? {} : { instructions: reviewer.instructions }),
+  };
+}
+
+/** The steps of `map` that differ from `defaults`, as stored. */
+function storedSteps(map: MapOptions, defaults: MapOptions): Array<StepOptions> {
+  return STEPS.flatMap((step, index) => {
+    const cut = map.cuts.includes(index);
+    const newSession =
+      index > 0 && cut !== defaults.cuts.includes(index) ? { newSession: cut } : {};
+    const options = { ...storedPick(map.steps[step], defaults.steps[step]), ...newSession };
+    return Object.keys(options).length === 0 ? [] : [{ step, ...options }];
+  });
+}
+
+/** Whether the reviewers are the one agent reviewer on the review step's pick, as when unset. */
+function onReviewStep(options: MapOptions): boolean {
+  const [reviewer, ...more] = options.reviewers;
+  return (
+    more.length === 0 &&
+    reviewer?.kind === "agent" &&
+    reviewer.instructions === undefined &&
+    JSON.stringify(storedReviewer(reviewer)) ===
+      JSON.stringify(storedReviewer({ kind: "agent", pick: options.steps.review }))
+  );
+}
+
+/**
+ * The options of `map` to store over `defaults`: only the fields that differ, and the whole list of
+ * reviewers when it differs. A value the map leaves to the agent's default, where `defaults` set
+ * one, cannot be stored: the stored options only add values over the defaults. Reviewers left to
+ * follow the review step stay unset.
+ */
+export function toStored(map: MapOptions, defaults: MapOptions): RunOptions {
+  const implementers = storedPick(map.implementers, defaults.implementers);
+  const reviewers = map.reviewers.map(storedReviewer);
+  const sameReviewers =
+    (onReviewStep(map) && onReviewStep(defaults)) ||
+    JSON.stringify(reviewers) === JSON.stringify(defaults.reviewers.map(storedReviewer));
+  return {
+    steps: storedSteps(map, defaults),
+    ...(Object.keys(implementers).length === 0 ? {} : { implementers }),
+    ...(sameReviewers ? {} : { reviewers }),
+    ...(map.depth === defaults.depth ? {} : { reviewDepth: map.depth }),
+  };
+}

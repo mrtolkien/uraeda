@@ -634,25 +634,32 @@ git commit -m "feat(run-options): a feature's own options, and the settings' run
 
 - Consumes: Task 1's binding `RunOptions` type.
 - Produces, in `run-options.ts`:
-  - `STEPS`, `StepId`, `Depth`, `Pick = { runtime?: string; model?: string; effort?: string }`,
-    `Reviewer = { kind: "agent"; pick: Pick; instructions?: string } | { kind: "command"; command: string }`,
+  - `STEPS`, `StepId`, `Depth`, `StepPick = { runtime: string; model?: string; effort?: string }`
+    (R10: not `Pick`, as R6; its runtime always set, since `toMap` fills it),
+    `Reviewer = { kind: "agent"; pick: StepPick; instructions?: string } | { kind: "command"; command: string }`,
     and
-    `MapOptions = { cuts: ReadonlyArray<number>; depth: Depth; implementers: Pick; reviewers: ReadonlyArray<Reviewer>; steps: Record<StepId, Pick> }`,
-    the shape the map edits: the web's `RunOptions` becomes this type.
+    `MapOptions = { cuts: ReadonlyArray<number>; depth: Depth; implementers: StepPick; reviewers: ReadonlyArray<Reviewer>; steps: Record<StepId, StepPick> }`,
+    the shape the map edits: the web's `RunOptions` becomes this type, its reviewers keeping the
+    map's own `ownReview` mark.
   - `type Agents = { runtime(chosen?: string): string | undefined; defaultModel(runtime: string): string | undefined }`,
-    how a pick's defaults resolve, from the server's `Runtimes` or the web's `PickerRuntime` list.
+    how a pick's defaults resolve, from the server's `Runtimes` or the web's `PickerRuntime` list
+    (`pickerAgents(runtimes)` in the web's `runOptions.ts`).
   - `samePick(agents, a, b)`, `isForced(agents, options, index)`,
     `jointCuts(agents, options, index)`, `sessionSpans(agents, options)`, and
     `withCut(options, index)`, moved from the web with their behaviour: a joint cuts where the human
     cut, or where its two steps run on another agent or model; `discovery` always starts a session.
+    The web keeps its own `samePick`, `isForced`, `jointCuts`, and `sessionSpans` on the picker's
+    runtimes, calling these.
   - `toMap(options: RunOptions, fallbackRuntime: string): MapOptions` (the plan's `new_session`
-    defaulting to `true`, reviewers defaulting to one agent reviewer on the review step's pick) and
+    defaulting to `true`, the implementers' agent to the build's, reviewers defaulting to one agent
+    reviewer on the review step's pick) and
     `toStored(map: MapOptions, defaults: MapOptions): RunOptions`, only the fields that differ from
-    `defaults`, the whole reviewers' list when it differs.
+    `defaults`, the whole reviewers' list when it differs, none while both follow their review step.
   - `stepSession(agents, options: MapOptions, from: StepId, to: StepId): boolean`, whether `to` runs
-    in the session that ran `from`: true only when both are in one span and `from` comes first.
+    in the session that ran `from`: true only when both are in one span and `from` is not after
+    `to`, so a step's own runs share its session.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `run-options.test.ts`, one table test of the joints over two agents' model lists, rows: "defaults"
 (spans `[0,1]`, `[2,5]`), "a step on another model" (Spec on Opus: a forced cut before and after
@@ -662,23 +669,23 @@ same pick as none). And one table of `toStored(toMap(x))` round trips: the defau
 `{steps: []}`; one change stores that field alone. Break: comparing raw picks, so "Default" and the
 default model's name cut.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/run-options.test.ts`
 - Expected: FAIL, `Cannot find module '../run-options.ts'`
 
-- [ ] **Step 3: Implement the module, and make the web's `runOptions.ts` import it**
+- [x] **Step 3: Implement the module, and make the web's `runOptions.ts` import it**
 
 The web's stories keep compiling on the same names: `todayOptions` becomes
 `toMap({steps: []}, runtime)`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS but `keys-structural.test.ts`, failing before this branch's tasks (Tasks 10 and 11
   fix it)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/run-options.ts packages/server/package.json packages/server/src/__tests__/run-options.test.ts packages/web/src/runs/runOptions.ts

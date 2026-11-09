@@ -14,6 +14,7 @@
     "./request-fixture": "./src/__tests__/request-fixture.ts",
     "./hrefs": "./src/hrefs.ts",
     "./limits": "./src/limits.ts",
+    "./run-options": "./src/run-options.ts",
     "./paths": "./src/paths.ts",
     "./round-messages": "./src/runner/round-messages.ts",
     "./instructions": "./src/runner/instructions.ts",

@@ -85,3 +85,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   repository than the one the endpoint serves; `promoteChange` moves the change in place, and
   `session-moves.ts` moves no session.
 - **Where**: task 4.
+
+## R10: The map's pick is `StepPick`, its runtime always set
+
+- **Decision**: `run-options.ts` names its pick `StepPick`, with `runtime` required, and `toMap`
+  fills each pick's runtime from the stored agent or its fallback. A run of a step goes to the
+  session of a step before it or of the same step (`stepSession(spec, spec)` is true).
+- **Rationale**: `Pick` would hide TypeScript's `Pick<T, K>`, as R6 found; a required runtime keeps
+  the web's `SessionPick` the same type, so the map's components compile unchanged; a revision or a
+  continue of a step runs in that step's session.
+- **If wrong**: `StepPick`'s `runtime` becomes optional and `Agents.runtime` resolves it, already
+  written for it.
+- **Where**: task 5.

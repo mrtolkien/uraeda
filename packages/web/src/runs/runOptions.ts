@@ -1,14 +1,21 @@
-// Run options, as the run map draws them (spec of Run options): the workflow's six steps, each on
-// an agent, a model, and an effort; the joints between two steps, where a clean session starts; the
-// build's implementers; the reviewers, each an agent or a command; and where reviews happen. A step
-// on another agent or model than the step before it always starts a clean session: its cut is forced.
+// Run options, as the run map draws them (spec of Run options). The rule of the sessions' joints is
+// the server's `uraeda-server/run-options`, shared with the runs it starts: here it reads the
+// agents from the picker's runtimes, beside the view's own helpers.
+import {
+  type Agents,
+  isForced as isForcedBy,
+  jointCuts as jointCutsBy,
+  type MapOptions,
+  samePick as samePickBy,
+  sessionSpans as sessionSpansBy,
+  STEPS,
+  type StepId,
+  toMap,
+} from "uraeda-server/run-options";
 import type { IconName } from "../keys/store.ts";
 import type { PickerRuntime, SessionPick } from "../SessionPicker.tsx";
 
-/** The workflow's steps, in their order. */
-export const STEPS = ["discovery", "spec", "plan", "build", "review", "comments"] as const;
-
-export type StepId = (typeof STEPS)[number];
+export { type Depth, STEPS, type StepId, withCut } from "uraeda-server/run-options";
 
 /** Each step's name and icon, as the feature page's steps draw them. */
 export const STEP_LOOKS: Record<StepId, { icon: IconName; name: string }> = {
@@ -20,26 +27,27 @@ export const STEP_LOOKS: Record<StepId, { icon: IconName; name: string }> = {
   spec: { icon: "uraeda:step-spec", name: "Spec" },
 };
 
-/** A reviewer: an agent on its pick, using the agent's own review when it has one, or a command. */
+/**
+ * A reviewer: an agent on its pick, using the agent's own review when it has one, or a command.
+ * `ownReview` marks, on the map, an agent with a review of its own.
+ */
 export type Reviewer =
-  | { kind: "agent"; ownReview?: boolean; pick: SessionPick }
+  | { instructions?: string; kind: "agent"; ownReview?: boolean; pick: SessionPick }
   | { command: string; kind: "command" };
 
-/** Where reviews happen: after each wave and on the branch, or on the branch only. */
-export type Depth = "waves" | "branch";
-
-/** A feature's or the settings' run options. */
-export type RunOptions = {
-  /** The joints, by the index of the step after them, where the human starts a clean session. */
-  cuts: ReadonlyArray<number>;
-  depth: Depth;
-  implementers: SessionPick;
-  reviewers: ReadonlyArray<Reviewer>;
-  steps: Record<StepId, SessionPick>;
-};
+/** A feature's or the settings' run options, as the map edits them. */
+export type RunOptions = Omit<MapOptions, "reviewers"> & { reviewers: ReadonlyArray<Reviewer> };
 
 /** The efforts a meter draws, in their order: Ultra fills it, outlined. */
 export const METER = ["low", "medium", "high", "xhigh", "max"] as const;
+
+/** The agents on, from the picker's runtimes: a runtime not on runs on the first one. */
+export function pickerAgents(runtimes: ReadonlyArray<PickerRuntime>): Agents {
+  return {
+    defaultModel: (runtime) => runtimes.find((each) => each.kind === runtime)?.defaults.model,
+    runtime: (chosen) => (runtimes.find((each) => each.kind === chosen) ?? runtimes[0])?.kind,
+  };
+}
 
 /** Whether two picks run on the same agent and model, defaults resolved. */
 export function samePick(
@@ -47,7 +55,7 @@ export function samePick(
   a: SessionPick,
   b: SessionPick,
 ): boolean {
-  return a.runtime === b.runtime && resolved(runtimes, a).model === resolved(runtimes, b).model;
+  return samePickBy(pickerAgents(runtimes), a, b);
 }
 
 /** Whether the joint before step `index` cuts: by the human's choice, or forced. */
@@ -55,8 +63,8 @@ export function jointCuts(
   runtimes: ReadonlyArray<PickerRuntime>,
   options: RunOptions,
   index: number,
-) {
-  return options.cuts.includes(index) || isForced(runtimes, options, index);
+): boolean {
+  return jointCutsBy(pickerAgents(runtimes), options, index);
 }
 
 /** Whether the joint before step `index` must cut: its two steps run on different models. */
@@ -65,9 +73,7 @@ export function isForced(
   options: RunOptions,
   index: number,
 ): boolean {
-  const before = options.steps[STEPS[index - 1]!];
-  const after = options.steps[STEPS[index]!];
-  return !samePick(runtimes, before, after);
+  return isForcedBy(pickerAgents(runtimes), options, index);
 }
 
 /** The sessions a feature runs in: each a span of steps, from `first` to `last`, by their index. */
@@ -75,15 +81,7 @@ export function sessionSpans(
   runtimes: ReadonlyArray<PickerRuntime>,
   options: RunOptions,
 ): Array<{ first: number; last: number }> {
-  const spans = [{ first: 0, last: 0 }];
-  for (let index = 1; index < STEPS.length; index++) {
-    if (jointCuts(runtimes, options, index)) {
-      spans.push({ first: index, last: index });
-    } else {
-      spans.at(-1)!.last = index;
-    }
-  }
-  return spans;
+  return sessionSpansBy(pickerAgents(runtimes), options);
 }
 
 /** The runtime a pick names, else the first one. */
@@ -166,32 +164,10 @@ export function differences(
   return parts.length === 0 ? "defaults" : parts.join(", ");
 }
 
-/** The options with the joint before `step` cut, or joined when it was cut. */
-export function withCut(value: RunOptions, step: number): RunOptions {
-  const cuts = value.cuts.includes(step)
-    ? value.cuts.filter((each) => each !== step)
-    : [...value.cuts, step];
-  return { ...value, cuts };
-}
-
 /**
  * Today's behaviour as options, on the agent `runtime` and its defaults: discovery and spec share a
  * session, a clean one starts at the plan, one reviewer, reviews after each wave.
  */
 export function todayOptions(runtime: string): RunOptions {
-  const pick: SessionPick = { runtime };
-  return {
-    cuts: [STEPS.indexOf("plan")],
-    depth: "waves",
-    implementers: pick,
-    reviewers: [{ kind: "agent", pick }],
-    steps: {
-      build: pick,
-      comments: pick,
-      discovery: pick,
-      plan: pick,
-      review: pick,
-      spec: pick,
-    },
-  };
+  return toMap({ steps: [] }, runtime);
 }
