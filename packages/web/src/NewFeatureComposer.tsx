@@ -1,8 +1,9 @@
 // The New page's feature part: a composer that starts a feature from the page's draft, its text and
 // images. Ctrl+Enter asks for the feature's slug, which the core proposes for the text, its
-// research effort, High first, and how its steps run, on the strip; Enter starts it, and its session opens as soon as the start is
-// planned, the discovery's message in its composer, unsent, while the write queue commits it. The
-// draft goes once the start landed: a refused start leaves it in the composer.
+// research effort, High first, and how its steps run, on the strip; Enter starts it, and its
+// session opens as soon as the start is planned, the discovery's message in its composer, unsent,
+// while the write queue commits it. The draft goes once the start landed: a refused start leaves it
+// in the composer.
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -30,9 +31,10 @@ type Asking = { images: ReadonlyArray<DraftImage>; resolve: (sent: boolean) => v
 
 /**
  * Starts the feature from the text and images sent, under the slug and effort asked, on its own run
- * options, what the strip changed: the refusal to show in the dialog, or nothing once planned and its session opened. The first line of Now the
- * draft was filled from is replaced by the feature's link in the start commit; the other entries
- * leave their files, and the draft goes, once it landed.
+ * options, what the strip changed: the refusal to show in the dialog, or nothing once planned and
+ * its session opened. The first line of Now the draft was filled from is replaced by the feature's
+ * link in the start commit; the other entries leave their files, and the draft goes, once it
+ * landed.
  */
 function useFeatureStart(draft: NewDraft) {
   const fate = useFateClient();
