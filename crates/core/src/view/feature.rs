@@ -5,7 +5,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
-use super::{ProblemView, kebab, title};
+use super::{CatchUpView, ProblemView, kebab, title};
 use crate::actions::start::StartProgress;
 use crate::files::frontmatter;
 use crate::pulls::{PullRequestState, PullRequestView};
@@ -32,6 +32,8 @@ pub struct StepView {
     pub implemented: bool,
     /// Its position in the workflow, from the proposal's gate, 0, to `none`, 14.
     pub order: u32,
+    /// The default branch's commit to catch up with, at `catch-up`.
+    pub catch_up: Option<CatchUpView>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -172,6 +174,7 @@ impl From<&Step> for StepView {
             progress: step.progress.clone(),
             implemented: step.implemented,
             order: step.order(),
+            catch_up: step.catch_up.as_ref().map(CatchUpView::from),
         }
     }
 }

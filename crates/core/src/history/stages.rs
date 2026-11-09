@@ -117,6 +117,7 @@ pub(crate) fn current(step: &Step, stages: &[Stage], starts: &[Option<i64>]) -> 
         StepName::Change => Some(Stage::Fix),
         StepName::Finish
         | StepName::Push
+        | StepName::CatchUp
         | StepName::PullRequest
         | StepName::PullRequestChanges
         | StepName::PullRequestUnknown => Some(Stage::PullRequest),
@@ -166,6 +167,7 @@ mod tests {
             (step(StepName::PullRequestChanges, None), "pull-request"),
             (step(StepName::PullRequestUnknown, None), "pull-request"),
             (step(StepName::Push, None), "pull-request"),
+            (step(StepName::CatchUp, None), "pull-request"),
         ];
         for (step, stage) in cases {
             let index = current(&step, &feature, &none) as usize;

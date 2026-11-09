@@ -23,6 +23,8 @@ pub enum StepName {
     PullRequestChanges,
     /// An open pull request lacks the branch's latest commits: push them.
     Push,
+    /// An open pull request's branch lacks changes of the default branch: catch it up with them.
+    CatchUp,
     PullRequest,
     /// Past its last task, while `gh` cannot tell its pull request's state.
     PullRequestUnknown,
@@ -49,6 +51,7 @@ impl StepName {
             StepName::FinalReview => "final-review",
             StepName::PullRequestChanges => "pull-request-changes",
             StepName::Push => "push",
+            StepName::CatchUp => "catch-up",
             StepName::PullRequest => "pull-request",
             StepName::PullRequestUnknown => "pull-request-unknown",
             StepName::Finish => "finish",
@@ -76,6 +79,9 @@ pub enum PullRequest {
     Open,
     /// Open, its head lacking the branch's latest commit.
     Unpushed,
+    /// Open, ready or unpushed, its branch lacking changes of the default branch beyond its own
+    /// files, as [`crate::behind`] decides.
+    Behind,
     /// Open as a draft: the final review is done, and the feature is being finished.
     Draft,
     ChangesRequested,
@@ -106,6 +112,19 @@ pub struct Step {
     /// The approved spec's `plan-review`, for the steps before the plan is approved: whether the
     /// plan waits for the human's review.
     pub plan_review: Option<bool>,
+    /// The default branch's commit to catch up with, at `catch-up` only.
+    pub catch_up: Option<CatchUp>,
+}
+
+/// What a branch behind the default branch catches up with.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CatchUp {
+    /// The default branch's name, like `main`.
+    pub branch: String,
+    /// The full hash of the default branch's tip to catch up with.
+    pub commit: String,
+    /// That commit's subject line.
+    pub subject: String,
 }
 
 /// The plan's progress during the implementation: the tasks done, and the first task left.
@@ -134,6 +153,7 @@ impl Step {
             implemented: false,
             pull_request: None,
             plan_review: None,
+            catch_up: None,
         }
     }
 
@@ -186,7 +206,10 @@ impl Step {
             StepName::FinalReview => 9,
             StepName::Finish => 10,
             StepName::PullRequestChanges => 11,
-            StepName::Push | StepName::PullRequest | StepName::PullRequestUnknown => 12,
+            StepName::Push
+            | StepName::CatchUp
+            | StepName::PullRequest
+            | StepName::PullRequestUnknown => 12,
             StepName::Done => 13,
             StepName::None => 14,
         }
@@ -219,6 +242,7 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
         PullRequest::Unpushed => Step::agent(StepName::Push, changes),
+        PullRequest::Behind => Step::agent(StepName::CatchUp, changes),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, "finish"),
     };
     Step {
@@ -339,6 +363,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
         PullRequest::Unpushed => Step::agent(StepName::Push, reference),
+        PullRequest::Behind => Step::agent(StepName::CatchUp, reference),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, reference),
     };
     Step {

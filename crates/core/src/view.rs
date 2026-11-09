@@ -12,7 +12,7 @@ use crate::files::document::{Document, Span};
 use crate::files::items::{Items, ReviewItems};
 use crate::files::markdown;
 use crate::files::stories::{MockupEmbed, StoryLink};
-use crate::steps::{Step, TaskProgress};
+use crate::steps::{CatchUp, Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
 mod feature;
@@ -221,11 +221,36 @@ pub struct NextStepView {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
-    /// `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
-    /// on it.
+    /// `open`, `unpushed`, `behind`, `draft`, `changes-requested`, `none`, or `unknown`, when the
+    /// step depends on it.
     pub pull_request: Option<String>,
     /// Whether the plan waits for the human's review, for the steps before it is approved.
     pub plan_review: Option<bool>,
+    /// The default branch's commit to catch up with, at `catch-up`.
+    pub catch_up: Option<CatchUpView>,
+}
+
+/// What a branch behind the default branch catches up with, at the step `catch-up`.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatchUpView {
+    /// The default branch's name, like `main`.
+    pub branch: String,
+    /// The full hash of the default branch's tip to catch up with.
+    pub commit: String,
+    /// That commit's subject line.
+    pub subject: String,
+}
+
+impl From<&CatchUp> for CatchUpView {
+    fn from(catch_up: &CatchUp) -> CatchUpView {
+        CatchUpView {
+            branch: catch_up.branch.clone(),
+            commit: catch_up.commit.clone(),
+            subject: catch_up.subject.clone(),
+        }
+    }
 }
 
 impl From<&Step> for NextStepView {
@@ -239,6 +264,7 @@ impl From<&Step> for NextStepView {
             progress: step.progress.clone(),
             pull_request: step.pull_request.as_ref().map(kebab),
             plan_review: step.plan_review,
+            catch_up: step.catch_up.as_ref().map(CatchUpView::from),
         }
     }
 }

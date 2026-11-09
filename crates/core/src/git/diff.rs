@@ -139,6 +139,50 @@ impl Git {
         })
     }
 
+    /// The paths of the files that differ between the commits `from` and `to`, from the top level:
+    /// a renamed file's old path and new one, no folder.
+    pub fn changed_paths(&self, from: ObjectId, to: ObjectId) -> Result<Vec<String>, GitError> {
+        let what = to.to_hex_with_len(7).to_string();
+        let changes = self
+            .repo
+            .diff_tree_to_tree(
+                Some(&self.tree(from)?),
+                Some(&self.tree(to)?),
+                gix::diff::Options::default(),
+            )
+            .map_err(read_error(what.as_str()))?;
+        let mut paths = Vec::new();
+        for change in &changes {
+            if change.entry_mode().is_tree() {
+                continue;
+            }
+            if let ChangeDetached::Rewrite {
+                source_location, ..
+            } = change
+            {
+                paths.push(source_location.to_string());
+            }
+            paths.push(change.location().to_string());
+        }
+        Ok(paths)
+    }
+
+    /// The first line of the commit `id`'s message, trimmed.
+    pub fn subject(&self, id: ObjectId) -> Result<String, GitError> {
+        let what = id.to_hex_with_len(7).to_string();
+        let commit = self
+            .repo
+            .find_commit(id)
+            .map_err(read_error(what.as_str()))?;
+        let message = String::from_utf8_lossy(commit.message_raw_sloppy());
+        Ok(message
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_string())
+    }
+
     /// A file of a tree's change with its counts, `None` for a folder or a submodule.
     fn changed_file(&self, change: &ChangeDetached) -> Result<Option<ChangedFile>, GitError> {
         if !change.entry_mode().is_blob_or_symlink() {
