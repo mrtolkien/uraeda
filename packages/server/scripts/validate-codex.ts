@@ -26,8 +26,7 @@ import type { AgentModel, AgentProcess, ModelList, Outgoing } from "../src/runne
 import { CodexAdapter } from "../src/runner/codex.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { layout } from "../src/paths.ts";
-import { reviewCheck } from "./validate-reviews.ts";
-import { toolsCheck } from "./validate-tools.ts";
+import { lastChecks, lastOnly } from "./validate-reviews.ts";
 
 /** A turn that has not ended after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 240_000;
@@ -338,8 +337,7 @@ const configBefore = existsSync(configPath) ? readFileSync(configPath) : undefin
 try {
   const version = await adapter.version();
   report(`version() returns a version (${version})`, version !== undefined, version);
-  const reviewOnly = process.argv.includes("--review");
-  const toolsOnly = process.argv.includes("--tools") || reviewOnly;
+  const toolsOnly = lastOnly(process.argv);
   const pick = await modelChecks();
   if (!toolsOnly) {
     await commitChecks(pick);
@@ -353,17 +351,12 @@ try {
     await interruptCheck(chat, plain);
     await imageCheck(chat, plain);
   }
-  if (!reviewOnly) {
-    await toolsCheck(adapter, { cwd: chat, pick: plain, report, settings: configPath, spawned });
-  }
-  if (reviewOnly || !process.argv.includes("--tools")) {
-    await reviewCheck(adapter, {
-      ...(plain.effort ? { effort: plain.effort } : {}),
-      pick: plain,
-      report,
-      reviewedOn,
-    });
-  }
+  await lastChecks(
+    adapter,
+    process.argv,
+    { cwd: chat, pick: plain, report, settings: configPath, spawned },
+    { ...(plain.effort ? { effort: plain.effort } : {}), pick: plain, report, reviewedOn },
+  );
 } finally {
   rmSync(root, { force: true, recursive: true });
   const configAfter = existsSync(configPath) ? readFileSync(configPath) : undefined;

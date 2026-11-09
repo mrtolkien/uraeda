@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Adapter, OpenOptions } from "../src/runner/adapter.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
+import { toolsCheck } from "./validate-tools.ts";
 
 /** A review that has not ended after this long is stopped, and its check fails. */
 const REVIEW_TIMEOUT_MS = 600_000;
@@ -37,6 +38,29 @@ function buggyRepo(): { base: string; cwd: string; head: string } {
   );
   git(cwd, "commit", "-q", "-am", "mul multiplies two numbers");
   return { base, cwd, head: git(cwd, "rev-parse", "HEAD") };
+}
+
+/** Whether only the last checks run: with `--tools` or `--review`. */
+export const lastOnly = (argv: ReadonlyArray<string>) =>
+  argv.includes("--tools") || argv.includes("--review");
+
+/**
+ * The checks every validation ends with, as `argv` asks: the check of Uraeda's tool, `toolsCheck`,
+ * but with `--review`, then the review's, `reviewCheck`, but with `--tools` alone.
+ */
+export async function lastChecks(
+  adapter: Adapter,
+  argv: ReadonlyArray<string>,
+  tools: Parameters<typeof toolsCheck>[1],
+  review: Parameters<typeof reviewCheck>[1],
+) {
+  const reviewOnly = argv.includes("--review");
+  if (!reviewOnly) {
+    await toolsCheck(adapter, tools);
+  }
+  if (reviewOnly || !argv.includes("--tools")) {
+    await reviewCheck(adapter, review);
+  }
 }
 
 /**

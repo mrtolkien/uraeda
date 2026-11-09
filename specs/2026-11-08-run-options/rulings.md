@@ -378,6 +378,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   moved to another agent, as a step is: its section says it did not review. A review is counted as
   its parent's call, so the parent's watchdog waits for its commands too. A reviewer's sub-session
   is titled `<its name> on <base>..<head>`, so the same range asked again answers its first review.
+  That key ignores `reviewed` and the call's `context`: a single-wave feature's branch review, on
+  the wave's range, reuses the wave's agent answers, and only its command reviewers run again.
 - **Rationale**: checked on Claude Code 2.1.319 and Codex 0.163.0. `/code-review` reads all the text
   after its level as its target, newlines joined, and its review read the range and followed the
   instructions there; without a level it reuses the one the human last typed. It runs as its own

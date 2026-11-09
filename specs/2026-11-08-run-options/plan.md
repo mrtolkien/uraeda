@@ -1005,6 +1005,9 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
 **Files:**
 
 - Create: `packages/server/src/runner/reviews.ts`, `packages/server/scripts/validate-reviews.ts`
+  (`reviewCheck`, and `lastChecks`, the tool's and the review's checks every validation ends with),
+  `packages/server/scripts/validate-claude-stdin.ts` (the stdin checks, moved out of
+  `validate-claude.ts` to keep it under 500 lines)
 - Modify: `runner/adapter.ts` (`Outgoing.review`, `Adapter.reviewMessage`), `runner/claude.ts`
   (`claudeReview`), `runner/codex-thread.ts` (`codexReview`, `codexReviewParams`, a new thread's
   effort), `runner/codex-turns.ts` (a review turn starts `review/start`), `runner/codex.ts`,

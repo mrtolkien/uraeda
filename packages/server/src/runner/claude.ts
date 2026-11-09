@@ -250,10 +250,6 @@ export function messageContent(text: string, images: Array<{ path: string }>): s
   return text === "" ? lines : `${text}\n\n${lines}`;
 }
 
-/**
- * Claude Code, run through its installed `claude` command, in print mode, its stdin kept open for
- * the session's messages.
- */
 /** The levels `/code-review` takes, the names of Claude Code's efforts. */
 const REVIEW_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
@@ -269,6 +265,10 @@ export function claudeReview({ base, effort, head, instructions }: ReviewAsk): R
   return { text: instructions ? `${command}\n\n${instructions}` : command };
 }
 
+/**
+ * Claude Code, run through its installed `claude` command, in print mode, its stdin kept open for
+ * the session's messages.
+ */
 export class ClaudeAdapter implements Adapter {
   readonly icon = "uraeda:harness-claude";
   readonly kind = "claude";
