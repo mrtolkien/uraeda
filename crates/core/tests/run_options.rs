@@ -374,3 +374,25 @@ fn refuses_to_write_options_that_do_not_pass_the_check() {
     );
     assert_eq!(text(dir.path()), "# mine\n");
 }
+
+#[test]
+fn a_write_keeps_the_unknown_keys_and_comments() {
+    let dir = tempdir();
+    let rows: [(&str, RunOptions, &str); 1] = [(
+        "# my spec\n[runs.steps.spec]\nagent = \"claude\"\nnotes = \"keep\"\n\n[runs.implementers]\nagent = \"codex\"\nnotes = \"keep too\"\n",
+        RunOptions::default(),
+        "# my spec\n[runs.steps.spec]\nnotes = \"keep\"\n\n[runs.implementers]\nnotes = \"keep too\"\n",
+    )];
+    for (before, options, after) in rows {
+        write(dir.path(), before);
+
+        settings::set_run_options(dir.path(), &options).unwrap();
+
+        assert_eq!(text(dir.path()), after, "for {before:?}");
+        assert_eq!(
+            settings::read(dir.path()).unwrap().runs.options,
+            options,
+            "for {before:?}"
+        );
+    }
+}

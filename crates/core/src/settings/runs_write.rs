@@ -47,8 +47,8 @@ fn put_pick(
     put(table, "effort", effort.as_deref());
 }
 
-/// Replaces `[runs.steps]` with `steps`: a step's table kept where it was and edited, a step not
-/// listed or without a value removed.
+/// Replaces `[runs.steps]` with `steps`: a step's table kept where it was and edited, the options
+/// of a step not listed removed, and a table left empty removed. Unknown keys stay.
 fn write_steps(
     dir: &Path,
     runs: &mut dyn TableLike,
@@ -64,15 +64,16 @@ fn write_steps(
         runs.insert("steps", Item::Table(created));
     }
     let table = nested(dir, runs, &["steps"])?;
-    let gone: Vec<String> = table
+    let gone: Vec<StepOptions> = table
         .iter()
         .map(|(name, _)| name.to_owned())
         .filter(|name| !steps.iter().any(|step| step.step == *name))
+        .map(|step| StepOptions {
+            step,
+            ..StepOptions::default()
+        })
         .collect();
-    for name in gone {
-        table.remove(&name);
-    }
-    for step in steps {
+    for step in gone.iter().chain(steps) {
         let inner = nested(dir, table, &[&step.step])?;
         put_pick(inner, &step.agent, &step.model, &step.effort);
         match step.new_session {
@@ -91,16 +92,16 @@ fn write_steps(
     Ok(())
 }
 
-/// Replaces `[runs.implementers]` with `pick`, removed when unset or without a value.
+/// Replaces `[runs.implementers]` with `pick`, its unknown keys kept, removed when left empty.
 fn write_implementers(
     dir: &Path,
     runs: &mut dyn TableLike,
     pick: Option<&RunPick>,
 ) -> Result<(), ApiError> {
-    let Some(pick) = pick else {
-        runs.remove("implementers");
+    if pick.is_none() && !runs.contains_key("implementers") {
         return Ok(());
-    };
+    }
+    let pick = pick.cloned().unwrap_or_default();
     let table = nested(dir, runs, &["implementers"])?;
     put_pick(table, &pick.agent, &pick.model, &pick.effort);
     if table.is_empty() {
