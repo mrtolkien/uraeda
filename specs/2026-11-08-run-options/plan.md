@@ -948,8 +948,9 @@ git commit -m "feat(run-options): workflow sessions call Uraeda's sub-agents, ne
     `subSessionsWork(context, parent): boolean`, which the continuer reads;
     `implementerPick(context, root, folder): Picked` in `run-session.ts`.
   - The tool `run_agent`, input `{ task: string; prompt: string; worktree: string }`: refused when
-    `worktree` is not a worktree of the parent's repository, or its main checkout; else starts an
-    implementer on the feature's resolved `implementers` pick (the build's agent when unset).
+    `worktree` is not a worktree of the parent's repository, or is its main checkout, or the
+    worktree of a change or a feature, its own or another (R21); else starts an implementer on the
+    feature's resolved `implementers` pick (the build's agent when unset).
   - `SessionRow.parent`, `role` set on sub-sessions; their turns' `step` is the parent's.
 
 - [x] **Step 1: Write the failing tests**

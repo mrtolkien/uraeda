@@ -150,7 +150,8 @@ export class SubSessions {
 
   /**
    * The worktree `given` names, by its real path: refused unless it is a linked worktree of the
-   * repository whose main checkout is `root`, there now, as `git worktree list` gives them.
+   * repository whose main checkout is `root`, there now, as `git worktree list` gives them, and not
+   * the worktree of a change or a feature, which has its branch: the parent's own, or another's.
    */
   async #worktree(root: string, given: string): Promise<string> {
     const refuse = (why: string) =>
@@ -163,11 +164,20 @@ export class SubSessions {
       throw refuse("is the main checkout, not a worktree of a task");
     }
     const { worktrees } = await this.#context.binding.gitPage(root);
-    const listed = worktrees
-      .filter((worktree) => worktree.state !== "missing")
-      .map((worktree) => realpath(resolve(root, worktree.path)).catch(() => undefined));
-    if (!(await Promise.all(listed)).includes(real)) {
+    const listed = await Promise.all(
+      worktrees
+        .filter((worktree) => worktree.state !== "missing")
+        .map(async (worktree) => ({
+          folder: worktree.folder,
+          real: await realpath(resolve(root, worktree.path)).catch(() => undefined),
+        })),
+    );
+    const found = listed.find((worktree) => worktree.real === real);
+    if (found === undefined) {
       throw refuse("is not a worktree of this repository");
+    }
+    if (found.folder !== undefined) {
+      throw refuse(`is the worktree of ${found.folder}, not of a task`);
     }
     return real;
   }

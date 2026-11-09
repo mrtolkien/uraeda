@@ -2,6 +2,7 @@
 // starts each task in a sub-session of the feature, in the task's worktree, on the implementers'
 // pick, and answers with its last message. Sub-sessions work at once, never become their feature's
 // latest session, stop with their parent, and continue before it after a restart.
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import type { RunOptions } from "uraeda-binding";
@@ -155,14 +156,26 @@ test("run_agent runs each task in its own sub-session at once, on the role's pic
   expect(cache.latestSession(root, AGENT)?.id).toBe(parent.id);
 });
 
+/** What a refused worktree is made of: the main checkout, the feature's, and the tasks'. */
+type Places = { feature: string; root: string; worktrees: Record<number, string> };
+
 test.each([
   { name: "a folder no worktree of the repository", worktree: () => "/tmp" },
-  { name: "the main checkout", worktree: (root: string) => root },
-  { name: "a folder that is not there", worktree: (root: string) => join(root, "gone") },
+  { name: "the main checkout", worktree: ({ root }: Places) => root },
+  { name: "a folder that is not there", worktree: ({ root }: Places) => join(root, "gone") },
+  { name: "the feature's own worktree", worktree: ({ feature }: Places) => feature },
+  {
+    name: "a folder in a task's worktree",
+    worktree: ({ worktrees }: Places) => join(worktrees[4], "src"),
+  },
 ])("run_agent refuses $name as the task's worktree", async ({ worktree }) => {
-  const { other, parent, root, sessions, signal, tool } = await building();
+  const { fake, other, parent, root, sessions, signal, tool, worktrees } = await building();
+  mkdirSync(join(worktrees[4], "src"));
+  const feature = fake.opens[0].cwd;
+  expect(feature).not.toBe(root);
 
-  const input = { prompt: "Implement task 4", task: "Task 4", worktree: worktree(root) };
+  const given = worktree({ feature, root, worktrees });
+  const input = { prompt: "Implement task 4", task: "Task 4", worktree: given };
   await expect(tool.call(parent.id, input, signal)).rejects.toThrow(/worktree/);
   expect(other.opens).toHaveLength(0);
   expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(0);
