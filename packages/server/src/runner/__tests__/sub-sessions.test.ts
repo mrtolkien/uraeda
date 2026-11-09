@@ -5,7 +5,7 @@
 import { mkdirSync, symlinkSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import type { RunOptions } from "uraeda-binding";
+import { type RunOptions, workDir } from "uraeda-binding";
 import { git } from "uraeda-binding/test-utils";
 import type { McpTool } from "../../mcp/endpoint.ts";
 import { McpTokens } from "../../mcp/tokens.ts";
@@ -91,10 +91,12 @@ async function building({
   });
   const { repo, sessions } = setup;
   const root = await sessions.mainRoot(repo);
+  // Each task on a branch made from the feature's, named after it, as the skill makes them.
+  const branch = git(await workDir(repo, AGENT), "branch", "--show-current").trim();
   const worktrees = Object.fromEntries(
     [4, 5, 6].map((task) => {
       const path = join(root, ".worktrees", `task-${task}`);
-      git(root, "worktree", "add", "--quiet", "-b", `task-${task}`, path);
+      git(root, "worktree", "add", "--quiet", "-b", `${branch}-task-${task}`, path, branch);
       return [task, path];
     }),
   ) as Record<number, string>;
@@ -202,6 +204,14 @@ test.each([
   },
   { name: "a folder that is not there", worktree: ({ root }: Places) => join(root, "gone") },
   { name: "the feature's own worktree", worktree: ({ feature }: Places) => feature },
+  {
+    name: "a task's worktree of another feature",
+    worktree: ({ root }: Places) => {
+      const path = join(root, ".worktrees", "other-task");
+      git(root, "worktree", "add", "--quiet", "-b", "2026-10-01-other-task-1", path);
+      return path;
+    },
+  },
   {
     name: "a folder in a task's worktree",
     worktree: ({ worktrees }: Places) => join(worktrees[4], "src"),

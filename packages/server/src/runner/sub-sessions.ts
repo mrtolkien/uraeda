@@ -187,7 +187,7 @@ export class SubSessions {
       if (found) {
         return await this.#run(found, { review: false, text: prompt }, signal);
       }
-      const cwd = await this.#worktree(row.repo, worktree);
+      const cwd = await this.#worktree(row.repo, row.folder, worktree);
       const pick = implementerPick(this.#context, row.repo, row.folder);
       return await this.start(
         parent,
@@ -204,9 +204,11 @@ export class SubSessions {
    * The worktree `given` names, by its real path: refused unless it is the absolute path of a
    * linked worktree of the repository whose main checkout is `root`, there now, as `git worktree
    * list` gives them, and not the worktree of a change or a feature, which has its branch: the
-   * parent's own, or another's. A relative path would be read from the server's own directory.
+   * parent's own, or another's. Its branch is one made from the feature `folder`'s, named after
+   * it, as `<feature-branch>-task-N`: another feature's task is refused. A relative path would be
+   * read from the server's own directory.
    */
-  async #worktree(root: string, given: string): Promise<string> {
+  async #worktree(root: string, folder: string, given: string): Promise<string> {
     const refuse = (why: string) =>
       new Error(`${given} ${why}: give the path of the task's worktree, from git worktree list.`);
     if (!isAbsolute(given)) {
@@ -224,7 +226,7 @@ export class SubSessions {
       worktrees
         .filter((worktree) => worktree.state !== "missing")
         .map(async (worktree) => ({
-          folder: worktree.folder,
+          ...worktree,
           real: await realpath(resolve(root, worktree.path)).catch(() => undefined),
         })),
     );
@@ -234,6 +236,10 @@ export class SubSessions {
     }
     if (found.folder !== undefined) {
       throw refuse(`is the worktree of ${found.folder}, not of a task`);
+    }
+    const feature = listed.find((worktree) => worktree.folder === folder)?.branch;
+    if (feature === undefined || !found.branch?.startsWith(`${feature}-`)) {
+      throw refuse(`is not on a task branch of ${feature ?? folder}, named after it`);
     }
     return real;
   }
@@ -422,7 +428,8 @@ export function runAgentTool(subSessions: SubSessions): McpTool {
         task: { description: "The task's name, as the plan gives it: `Task 4`.", type: "string" },
         worktree: {
           description:
-            "The absolute path of the task's worktree, one of the repository's linked worktrees.",
+            "The absolute path of the task's worktree, one of the repository's linked worktrees, " +
+            "on a branch named after the feature's: `<feature-branch>-task-4`.",
           type: "string",
         },
       },

@@ -200,13 +200,14 @@ to the tasks, and flags what the tasks grew, not sizes that were already there
 Its findings, in its committed `findings-NN.md`, are [graded](#grade-the-findings) like the final
 review's: the critical and important ones are fixed, with the minor ones worth fixing. Once the
 review ends, fix them at the next point between two waves, after a wave is merged and before the
-next one starts. Give them to a fresh implementer, on a branch made from the feature branch, in a
-worktree made like a task's, and merge it like one. Each behaviour fix comes with a test that fails
-first, in its own commit. With `run_agent`, each round of fixes takes a new task name, like
-`Fixes of wave 2`: a name that already ran gets its first answer again. After the last wave, fix
-them as soon as the review ends. The next review checks those fix commits with its wave. Structural
-fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
-still open after two reviews is ruled on, in `rulings.md`.
+next one starts. Give them to a fresh implementer, on a branch made from the feature branch and
+named after it, like `<feature-branch>-fixes-2`, in a worktree made like a task's, and merge it like
+one. Each behaviour fix comes with a test that fails first, in its own commit. With `run_agent`,
+each round of fixes takes a new task name, like `Fixes of wave 2`: a name that already ran gets its
+first answer again. After the last wave, fix them as soon as the review ends. The next review checks
+those fix commits with its wave. Structural fixes must keep behavioural tests passing and satisfy
+explicit architectural constraints. A finding still open after two reviews is ruled on, in
+`rulings.md`.
 
 ### Rulings
 
