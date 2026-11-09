@@ -325,6 +325,8 @@ enum Gain {
     /// The code commit, pushed, merged into the branch, then a line of `specs/PRIORITIES.md`,
     /// pushed.
     CodeMergedThenOwn,
+    /// `README.md` renamed to a note, in a commit `chore: note`, pushed.
+    RenamedIntoNotes,
 }
 
 /// Makes `main` gain `gain` after `branch` started from it.
@@ -340,6 +342,11 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
         Gain::Decision => {
             repo.write("specs/decisions/x.md", "# X\n");
             repo.commit("decision: x");
+        }
+        Gain::RenamedIntoNotes => {
+            repo.remove("README.md");
+            repo.write("specs/notes/readme/note.md", "# Test\n");
+            repo.commit("chore: note");
         }
         _ => {
             repo.write("src/a.rs", "fn a() {}\n");
@@ -381,16 +388,21 @@ fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
     }
 }
 
-/// US1 1 and 3, more 1 and 2; review focus 1 and 2; the edge cases without a remote and with a
-/// local merge not pushed: an open pull request whose branch lacks the default branch's tip, and
-/// whose missing commits change more than the default branch's own files, catches up; its step
-/// names the commit to catch up with.
-#[test]
-fn a_pull_request_behind_the_default_branch_catches_up() {
+/// A row of the behind rule's table: its name, whether the branch is a change's, what main gains,
+/// the pull request's head, with `{b}` for the branch, and the catch-up's reference and subject
+/// when it catches up.
+type BehindRow = (
+    &'static str,
+    bool,
+    Gain,
+    &'static str,
+    Option<(&'static str, &'static str)>,
+);
+
+/// The rows of [`a_pull_request_behind_the_default_branch_catches_up`].
+fn behind_rows() -> [BehindRow; 11] {
     let code = Some(("implementation", "feat: code"));
-    // (name, the branch of a change, what main gains, the pull request's head, `{b}` for the
-    // branch, the catch-up's reference and subject when it catches up)
-    let rows = [
+    [
         ("main gained code", false, Gain::Code, "{b}", code),
         (
             "only priorities and a started proposal",
@@ -449,8 +461,23 @@ fn a_pull_request_behind_the_default_branch_catches_up() {
             "{b}",
             None,
         ),
-    ];
-    for (name, is_change, moved, head, catches_up) in rows {
+        (
+            "a file not main's own renamed into specs/notes/",
+            false,
+            Gain::RenamedIntoNotes,
+            "{b}",
+            Some(("implementation", "chore: note")),
+        ),
+    ]
+}
+
+/// US1 1 and 3, more 1 and 2; review focus 1 and 2; the edge cases without a remote and with a
+/// local merge not pushed: an open pull request whose branch lacks the default branch's tip, and
+/// whose missing commits change more than the default branch's own files, catches up; its step
+/// names the commit to catch up with.
+#[test]
+fn a_pull_request_behind_the_default_branch_catches_up() {
+    for (name, is_change, moved, head, catches_up) in behind_rows() {
         let repo = TestRepo::new();
         repo.write("specs/proposals/y.md", "# Y\n\nWhy y.\n");
         repo.commit("proposal(y): add");

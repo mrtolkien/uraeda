@@ -140,7 +140,8 @@ impl Git {
     }
 
     /// The paths of the files that differ between the commits `from` and `to`, from the top level:
-    /// a renamed file's old path and new one, no folder.
+    /// a renamed file's old path and new one, a copy's new path alone, its source unchanged, no
+    /// folder.
     pub fn changed_paths(&self, from: ObjectId, to: ObjectId) -> Result<Vec<String>, GitError> {
         let what = to.to_hex_with_len(7).to_string();
         let changes = self
@@ -157,7 +158,9 @@ impl Git {
                 continue;
             }
             if let ChangeDetached::Rewrite {
-                source_location, ..
+                source_location,
+                copy: false,
+                ..
             } = change
             {
                 paths.push(source_location.to_string());
