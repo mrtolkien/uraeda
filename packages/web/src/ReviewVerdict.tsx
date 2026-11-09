@@ -69,7 +69,7 @@ export function useRefusals() {
  * them, and the human picks by whether they change the file now or can wait for the next step.
  */
 function weighing(kind: File["kind"]) {
-  const [next, file] = kind === "spec" ? ["the plan", "spec"] : ["the code", "plan"];
+  const [next, file] = kind === "spec" ? ["the plan", "spec"] : ["the implementation", "plan"];
   return `With comments, Approve leaves them to ${next}; Request changes revises the ${file} first.`;
 }
 
@@ -257,16 +257,9 @@ export function ReviewVerdict({
       {message && !hides?.(message) && (
         <StatusText tone={message.ok ? "saved" : "error"}>{message.text}</StatusText>
       )}
-      {comments === 0 && (
-        <Text color="secondary" type="supporting">
-          Request changes: Add a comment first
-        </Text>
-      )}
-      {comments > 0 && (
-        <Text color="secondary" type="supporting">
-          {weighing(file.kind)}
-        </Text>
-      )}
+      <Text color="secondary" type="supporting">
+        {comments === 0 ? "Request changes: Add a comment first" : weighing(file.kind)}
+      </Text>
     </>
   );
 }

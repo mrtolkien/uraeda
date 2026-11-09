@@ -58,8 +58,8 @@ whose answers either continue the implementation or revise the spec.
   summary: "the only one that matters is the general comment."
 - **The verdict is the human's**: Approve, or Request changes, which needs a comment. "Approving or
   not depends on me." Either is accepted with comments anywhere, on a part or general: an approval
-  leaves them to the next step, the plan or the code, which carries them out. Once there is a
-  comment, one line under the buttons says so, "With comments, Approve leaves them to the plan;
+  leaves them to the next step, the plan or the implementation, which carries them out. Once there
+  is a comment, one line under the buttons says so, "With comments, Approve leaves them to the plan;
   Request changes revises the spec first.", so the human requests changes when a comment changes
   what the file says, without a warning or a held button. Both commit and open the session
   prefilled. The verdict's buttons are at the review's end only, never repeated in a sheet or a
