@@ -3,7 +3,6 @@
 - Adding notes on mobile is clunky. I clicked “add a category” by mistake the first time I navigated
   there. It’s the inbox: it should imo be accessible in one click, or one click then a clear modal
   at most
-- in the global picker, in-progress and needs-you should be first
 - [codex-runtime] Decisions are too specific/constraining: for example the agents decisions focus
   too much on Claude Code and its behaviour and not general rules.
 - Tapping a session composer on mobile does not open the virtual keyboard

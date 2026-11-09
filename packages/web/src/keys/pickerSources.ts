@@ -16,7 +16,7 @@ import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
 import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView } from "../views.ts";
-import { type Row, rowOf, sessionCard, toCard } from "../sidebar/cards.ts";
+import { needsYou, type Row, rowOf, sessionCard, toCard } from "../sidebar/cards.ts";
 import { statusLabel } from "../wait.ts";
 import type { CardItem } from "../sidebar/ItemCard.tsx";
 import { IsOnContext } from "../extensions/useContributions.ts";
@@ -288,6 +288,16 @@ function sessionItems(
   );
 }
 
+/**
+ * The items with what needs the human first, then what an agent is at work on, each kind's order
+ * kept within them and for the rest: the cards a glance looks for come up before any search.
+ */
+export function activeFirst(items: ReadonlyArray<PickerItem>): Array<PickerItem> {
+  const rank = ({ card }: PickerItem) =>
+    card === undefined ? 2 : needsYou(card.status) ? 0 : card.status.status === "working" ? 1 : 2;
+  return items.toSorted((a, b) => rank(a) - rank(b));
+}
+
 /** The kinds a built-in extension owns, by its name: off, it finds none. */
 const KINDS_OWNED: ReadonlyArray<readonly [PickerKind, string]> = [
   ["decisions", "decisions"],
@@ -307,7 +317,8 @@ export type PickerRead = {
 };
 
 /**
- * The items of a kind, or of every kind, in the order the kinds are named, once `isEnabled`:
+ * The items of a kind, or of every kind, in the order the kinds are named, what needs the human
+ * and what is at work first (`activeFirst`), once `isEnabled`:
  * nothing is read before, and never by suspending, so the picker's dialog shows while the one
  * request, which holds what the kind needs and nothing else, is under way. Empty until it ends.
  */
@@ -356,7 +367,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
     : [];
   const proposals = useProposals(folders);
   const features = featureItems(workspace, proposals, sessionList?.rows ?? []);
-  const items = [
+  const items = activeFirst([
     ...features.filter((item) => item.kind === "features" && is("features")),
     ...features.filter((item) => item.kind === "changes" && is("changes")),
     ...(is("sessions") ? sessionItems(sessionList?.rows ?? [], workspace) : []),
@@ -395,7 +406,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
           title: proposal.text,
         })),
     ),
-  ];
+  ]);
   return {
     error: state.error,
     isReady: state.status === "ready",
