@@ -435,7 +435,7 @@ git commit -m "feat(run-options): run options in the settings file"
 - Produces:
   - `FileKind::Findings`, serialised `findings`, with its round.
   - `Step::run_step(&self) -> Option<&'static str>`
-    ([R6](rulings.md#r6-a-findings-files-title-and-its-place-in-a-change)), `runStep` on the
+    ([R7](rulings.md#r7-a-findings-files-title-and-its-place-in-a-change)), `runStep` on the
     binding's `NextView.step`: the run step a workflow step belongs to. `discovery` → `discovery`;
     `spec`, `spec-revision` → `spec`; `approval`, `plan`, `plan-revision` → `plan`;
     `implementation`, `change` → `build`; `final-review`, `finish`, `pull-request-unknown` →
@@ -532,7 +532,7 @@ git commit -m "feat(run-options): findings files, and each step's run step"
 
 `/mcp` is one of `SERVER_PATHS`, and the session check lets it through: its token is its sign-in,
 and the host guard still applies
-([R6](rulings.md#r6-mcp-is-one-of-the-servers-paths-let-through-by-the-session-check)). The server
+([R8](rulings.md#r8-mcp-is-one-of-the-servers-paths-let-through-by-the-session-check)). The server
 makes the endpoint's tokens and its tool list, empty until Task 8 adds to it, in `server.ts`, from
 the port `startServer` already takes: `main.ts` needs no change.
 
