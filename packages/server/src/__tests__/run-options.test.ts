@@ -1,4 +1,5 @@
 import type { RunOptions } from "uraeda-binding";
+import { mergeRunOptions } from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
 import {
   type Agents,
@@ -123,7 +124,7 @@ test.each<{ from: StepId; options: RunOptions; same: boolean; to: StepId }>([
   expect(stepSession(AGENTS, toMap(options, "claude"), from, to)).toBe(same);
 });
 
-test.each<{ name: string; options: RunOptions }>([
+test.each<{ defaults?: RunOptions; name: string; options: RunOptions }>([
   { name: "the defaults", options: { steps: [] } },
   { name: "a step's model", options: { steps: [{ model: "opus", step: "spec" }] } },
   { name: "a joint", options: { steps: [{ newSession: false, step: "plan" }] } },
@@ -133,6 +134,17 @@ test.each<{ name: string; options: RunOptions }>([
     options: { steps: [{ agent: "codex", effort: "high", step: "review" }] },
   },
   { name: "the implementers", options: { implementers: { agent: "codex" }, steps: [] } },
+  { name: "the build's agent", options: { steps: [{ agent: "codex", step: "build" }] } },
+  {
+    defaults: { steps: [{ agent: "codex", step: "build" }] },
+    name: "the build's agent over the settings' build",
+    options: { steps: [{ agent: "claude", step: "build" }] },
+  },
+  {
+    defaults: { steps: [{ agent: "codex", step: "build" }] },
+    name: "the implementers' model over the settings' build",
+    options: { implementers: { model: "gpt-6-astra" }, steps: [] },
+  },
   { name: "the depth", options: { reviewDepth: "branch", steps: [] } },
   {
     name: "the reviewers",
@@ -144,9 +156,9 @@ test.each<{ name: string; options: RunOptions }>([
       steps: [],
     },
   },
-])("stores only what differs: $name", ({ options }) => {
-  const defaults = toMap({ steps: [] }, "claude");
-  expect(toStored(toMap(options, "claude"), defaults)).toEqual(options);
+])("stores only what differs: $name", ({ defaults = { steps: [] }, options }) => {
+  const map = toMap(mergeRunOptions(defaults, options), "claude");
+  expect(toStored(map, toMap(defaults, "claude"))).toEqual(options);
 });
 
 test("the defaults' reviewer is one agent on the review step's agent and its defaults", () => {

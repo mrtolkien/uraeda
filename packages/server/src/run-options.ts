@@ -191,6 +191,23 @@ function storedSteps(map: MapOptions, defaults: MapOptions): Array<StepOptions> 
   });
 }
 
+/** Whether the implementers follow the build: on its agent, on that agent's defaults. */
+function followBuild(options: MapOptions): boolean {
+  const { effort, model, runtime } = options.implementers;
+  return runtime === options.steps.build.runtime && model === undefined && effort === undefined;
+}
+
+/**
+ * The implementers to store over `defaults`: none while both follow their build, and, while only
+ * the defaults follow theirs, what differs from following the map's own build.
+ */
+function storedImplementers(map: MapOptions, defaults: MapOptions): RunPick {
+  if (!followBuild(defaults)) {
+    return storedPick(map.implementers, defaults.implementers);
+  }
+  return followBuild(map) ? {} : storedPick(map.implementers, { runtime: map.steps.build.runtime });
+}
+
 /** Whether the reviewers are the one agent reviewer on the review step's agent, as when unset. */
 function onReviewStep(options: MapOptions): boolean {
   const [reviewer, ...more] = options.reviewers;
@@ -210,7 +227,7 @@ function onReviewStep(options: MapOptions): boolean {
  * follow the review step stay unset.
  */
 export function toStored(map: MapOptions, defaults: MapOptions): RunOptions {
-  const implementers = storedPick(map.implementers, defaults.implementers);
+  const implementers = storedImplementers(map, defaults);
   const reviewers = map.reviewers.map(storedReviewer);
   const sameReviewers =
     (onReviewStep(map) && onReviewStep(defaults)) ||
