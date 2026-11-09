@@ -7,8 +7,8 @@ decisions. None binds future work: those are decisions.
 
 - **Decision**: once a review has a comment, one supporting line under the verdict's buttons says
   what each does with it: "With comments, Approve leaves them to the plan; Request changes revises
-  the spec first." A plan's says "the code" and "the plan". Nothing shows before the first comment,
-  and neither button is held back or confirmed.
+  the spec first." A plan's says "the implementation" and "the plan". Nothing shows before the first
+  comment, and neither button is held back or confirmed.
 - **Rationale**: the proposal asks for the human to understand when to request a revision, "but
   don't be too ham-fisted about it". The line appears at the moment of the choice, states what each
   button does rather than warning, and sits where "Request changes: Add a comment first" already
