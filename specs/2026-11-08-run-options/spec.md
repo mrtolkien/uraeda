@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Run options
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 15 minutes.
+> Approved on 2026-11-09.
 >
 > - You approve a diagram of the six steps, in the settings, every start dialog, and now the feature
 >   page. Each step gets its agent, model, effort, and session, with implementers and reviewers of
