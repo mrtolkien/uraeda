@@ -155,7 +155,8 @@ Do these only when a human asks.
 - **Postpone or block**: the feature or the change leaves the workflow, and only a proposal stays. A
   change's folder is `specs/changes/YYYY-MM-DD-<slug>/`, on its branch `change/YYYY-MM-DD-<slug>`.
   Stop first when its worktree, or its folder on the default branch, has uncommitted changes, since
-  they would be lost.
+  they would be lost. An agent working in its worktree writes the default branch where it is checked
+  out, the main checkout, with `git -C <main checkout>`.
   1. On its branch, remove its dated folder, and commit with `chore(<slug>): close for postponing`:
      a branch without its folder is no longer a feature or a change, so no tool resumes it in place
      of the new proposal. Its previous commit keeps every file.
@@ -166,7 +167,8 @@ Do these only when a human asks.
      as a question or an option. It ends with what is still open or unverified, and where the
      earlier work lives: the branch, the commit before the one that closed it, and the paths of its
      rounds, its spec, and its rulings, read with `git show <commit>:<path>`. It links no file of
-     the folder. A change's proposal is started again as a change.
+     the folder. A change's proposal ends its **What** saying it was a change, to start again as
+     one.
   3. In the same commit, remove the dated folder from the default branch, and move its line in
      `PRIORITIES.md` to the section the human names, **Later** for one not scheduled, after what it
      needs when it is blocked, linked to the new proposal file. Commit these files alone,
@@ -178,8 +180,9 @@ Do these only when a human asks.
      `ura check --fix`. Commit them alone, `fix(<slug>): repair the links to moved files`.
 
   The branch is never merged: its code and its edits to the decisions never reach the default
-  branch. Remove the worktree and keep the branch, as **Drop** says below. An agent running in that
-  worktree removes it last.
+  branch. Remove the worktree and keep the branch, as **Drop** says below. The worktree an agent
+  works in stays, and the human gets `git worktree remove <path>`: its sessions keep their folder
+  until then.
 
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
