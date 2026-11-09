@@ -65,7 +65,8 @@ export async function allowAll(context: SessionContext, live: Live): Promise<{ t
 /**
  * The one path that allows: refuses while a turn runs or waits, reopens the process with the
  * rules, which throws before anything is marked, begins the retry turn, then marks each denial
- * allowed. The rules go once each, in the order first seen.
+ * allowed. The rules go once each, in the order first seen. The retry keeps the allowed turn's
+ * catch-up commit, and no step: nothing else reads it as a workflow turn.
  */
 async function allowDenials(
   context: SessionContext,
@@ -83,8 +84,11 @@ async function allowDenials(
   // Every blocked action is asked again, though some share a rule: a blocked Write and Edit of a
   // file both allow with Edit(file).
   const text = retryMessage(denials);
+  // A retry of a catch-up catches up with the same commit: its stop reads as the catch-up's (R18).
+  const caughtUpTo = cache.turn(turn)?.caughtUpTo ?? null;
   const started = turns.begin(live, {
     allowed: rules.join("\n"),
+    caughtUpTo,
     item: { id, kind: "message", origin: "human", state: "pending", text },
     kind: "allow",
     message: { id, images: [], text, when: "queue" },

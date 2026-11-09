@@ -152,6 +152,15 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Needs attention", reason: "conflict", status: "attention" },
   ],
   [
+    "an allowed retry of a catch-up ended at Catch up for the same tip (R18)",
+    {
+      ...atCatchUp("x"),
+      latest: { ...ended("done"), caughtUpTo: "x", kind: "allow", step: null },
+      seenAt: "2026-10-13T11:00",
+    },
+    { label: "Needs attention", reason: "conflict", status: "attention" },
+  ],
+  [
     "a catch-up turn ended at Catch up in an older session of the folder (R11)",
     {
       ...atCatchUp("x"),

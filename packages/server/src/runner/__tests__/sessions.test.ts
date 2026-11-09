@@ -681,6 +681,45 @@ test("a catch-up queued behind a chat turn keeps its commit and its line", async
   expect(cache.turn(chat.turn)).toMatchObject({ caughtUpTo: null });
 });
 
+/**
+ * R18: catches a retry of a refused catch-up, or its automatic continue, that forgets its commit,
+ * whose stop then reads idle.
+ */
+test("allowing a catch-up's blocked action retries it for the same commit", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: catchingUp,
+    runs: () => ({ afterLimit: true, afterRestart: true, cap: 3 }),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([
+    done({ denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }] }),
+  ]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { line: CATCH_UP_LINE, step: "catch-up", trigger: "catch-up" },
+  });
+  await sessions.settled(turn);
+  const [denial] = cache.itemsOf(turn, "denial");
+  const limit = { kind: "session", text: "You've hit your session limit" } as const;
+  adapter.script([
+    { limit, type: "limit" },
+    { denials: [], errors: [limit.text], interrupted: false, ok: false, type: "result" },
+  ]);
+
+  const allowed = await sessions.allow(repo, session.id, turn, denial!.seq);
+  await sessions.settled(allowed.turn);
+
+  expect(cache.turn(allowed.turn)).toMatchObject({
+    caughtUpTo: TIP.commit,
+    kind: "allow",
+    step: null,
+  });
+  adapter.script([]);
+  await vi.runOnlyPendingTimersAsync();
+  await vi.waitFor(() => expect(cache.turns(session.id)).toHaveLength(3));
+  expect(cache.turns(session.id).at(-1)).toMatchObject({ caughtUpTo: TIP.commit, kind: "chat" });
+});
+
 /** R8: catches a continued catch-up that forgets its commit, which the catcher would run again. */
 test("an automatic continue of a stopped catch-up catches up with the same commit", async () => {
   const { adapter, cache, repo, sessions } = await testSessions(undefined, {

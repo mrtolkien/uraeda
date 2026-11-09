@@ -203,3 +203,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   read Catch up again (R7).
 - **Where**: `crates/core/src/behind.rs` `newest`, the skill's "Catch up an open pull request";
   found in review.
+
+## R18: A catch-up's allowed retry catches up with the same commit
+
+- **Decision**: the `allow` turn that retries a refused action records the allowed turn's
+  `caught_up_to`, and keeps no step, as before; an automatic continue of it, a chat, keeps the
+  commit too. The conflict rule reads any done turn whose `caught_up_to` is the step's current
+  `catchUp.commit`, not only one sent at `catch-up`: only a catch-up turn, its continue, or its
+  retry records it.
+- **Rationale**: a retry of a refused catch-up that ended still behind the same tip stopped on a
+  conflict, but read idle: the conflict rule asked for the step `catch-up`, the halted rule skips
+  `catch-up`, and the catcher, which has a turn for that tip, never starts another. The stop was
+  silent.
+- **Alternatives considered**: sending the retry at the step `catch-up`: the needs-you key and the
+  turn's view read a turn's step as a workflow run's, which a retry is not.
+- **Where**: `runner/allow.ts` `allowDenials`, `runner/send.ts`, `runner/status.ts` `sessionStatus`;
+  found in review.

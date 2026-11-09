@@ -124,9 +124,9 @@ export function sessionStatus(input: {
   }
   // A catch-up that ended still behind the tip it caught up with stopped on a conflict, which asks
   // for the human's choice. Behind a newer tip, main moved again: the next catch-up goes on (R12).
+  // Only a catch-up turn, or the retry of one allowed an action, records its tip (R18).
   const conflict =
     latest?.state === "done" &&
-    latest.step === CATCH_UP &&
     stepName === CATCH_UP &&
     latest.caughtUpTo != null &&
     latest.caughtUpTo === input.catchUpCommit &&
