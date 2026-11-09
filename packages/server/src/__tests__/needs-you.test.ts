@@ -7,6 +7,7 @@ import { publish } from "../live.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import {
   appSettings,
+  atStep,
   byIdAt,
   type Data,
   fateAt,
@@ -14,6 +15,7 @@ import {
   port,
   testHosts,
   testPreviews,
+  testServer,
 } from "./helpers.ts";
 
 const binding = await import("uraeda-binding");
@@ -223,4 +225,41 @@ test("a chat turn that ends blocked is heard on the global bus", async () => {
 
   expect(update).toHaveBeenCalledWith("NeedsYouList", NEEDS_YOU_ID, expect.anything());
   update.mockRestore();
+});
+
+/** US2 2, review focus 3: a catch-up ending at the pull request does not notify again. */
+test("a catch-up ending at the pull request does not notify again", async () => {
+  const folder = "2026-10-12-cli-tuis";
+  const at = { name: "pull-request", waitsOn: "human" };
+  const server = await testServer(undefined, { binding: atStep(binding, folder, at) });
+  const { cache } = server.sessions;
+  const repo = await server.sessions.mainRoot(server.repo);
+  const session = cache.createSession({ agent: "fake", folder, nativeId: "n", repo, title: null });
+  /** Ends a workflow turn of the session sent at `step`. */
+  const ended = (step: string) => {
+    const turn = cache.addTurn({
+      allowed: null,
+      kind: "workflow",
+      sessionId: session.id,
+      state: "running",
+      step,
+      trigger: "manual",
+    });
+    cache.endTurn(turn, { state: "done" });
+  };
+  const key = async () => {
+    const [list] = await byIdAt(server.app, null, "NeedsYouList", [NEEDS_YOU_ID], ["rows"]);
+    const rows = list!.rows as Array<Record<string, string>>;
+    return rows.find((row) => row.folder === folder)?.key;
+  };
+  ended("final-review");
+  const before = await key();
+  expect(before).toBeDefined();
+
+  ended("catch-up");
+  expect(await key()).toBe(before);
+
+  // Any other run that ends at the pull request is a new ask, which notifies.
+  ended("pull-request-changes");
+  expect(await key()).not.toBe(before);
 });

@@ -416,10 +416,16 @@ export class ExtensionsHost implements Registry {
     }
   }
 
-  /** Sends `turn-ended` for a change that ends a turn. */
-  #turnEnded(change: { folder: string | null; repo: string; session: string; state?: string }) {
+  /** Sends `turn-ended` for a change that ends a turn: a dismissal ended none. */
+  #turnEnded(change: {
+    dismissed?: true;
+    folder: string | null;
+    repo: string;
+    session: string;
+    state?: string;
+  }) {
     const { state } = change;
-    if (state !== "done" && state !== "failed" && state !== "stopped") {
+    if (change.dismissed || (state !== "done" && state !== "failed" && state !== "stopped")) {
       return;
     }
     const repository = this.#hosts?.byPath(change.repo)?.name;

@@ -9,6 +9,7 @@ export const PULL_REQUESTS_EVERY_MS = 60_000;
 
 /** The steps whose pull request's state decides the next one. */
 const PAST_LAST_TASK = new Set([
+  "catch-up",
   "final-review",
   "finish",
   "pull-request",

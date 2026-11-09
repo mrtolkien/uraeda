@@ -89,3 +89,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one, of the same commit; a turn retyped as a chat caught up with nothing, and would keep the
   catcher from catching up with that tip.
 - **Where**: task 4, `packages/server/src/runner/send.ts` and `cache.ts`.
+
+## R9: A dismissal ends no turn
+
+- **Decision**: `dismiss` sends its change with `dismissed: true`, and `onTurnDone` and the
+  extensions' `turn-ended` skip such a change.
+- **Rationale**: a done catch-up stopped on a conflict is the first done turn a dismissal sends. Its
+  state `done` would reach `onTurnDone`, which the catcher listens to, and warm the feature's
+  Storybook: a dismissed run would start work by itself, which the run lifecycle forbids.
+- **Alternatives considered**: a change without the turn's state: the turn's record, the session's
+  list, and what needs the human would not be sent at once.
+- **Where**: `runner/session-state.ts` (`SessionChange`), `runner/session-edits.ts`, `live.ts`,
+  `extensions/server.ts`; task 5.
+
+## R10: Only a step's ask skips the catch-up's turn in its key
+
+- **Decision**: the notification's key holds the followed session's latest turn not sent at
+  `catch-up` only when the status's reason is `step`, as a ready pull request's. Any other ask, a
+  conflict, a failed or a refused catch-up, keys on the status's own turn.
+- **Rationale**: a catch-up that ended at the pull request only brought back the review asked
+  before, but a second conflict, after the first was dismissed, is a new ask: keyed on the turn
+  before the catch-ups, it would not notify.
+- **Where**: `fate/needs-you.ts` `askedBy`; task 5.
+
+## R11: A conflict reads in the folder's latest session, and dismissed reads idle
+
+- **Decision**: the conflict rule holds only in the folder's latest session, as `halted` does, and a
+  dismissed conflict reads "Idle", not "New reply", as a dismissed failure does.
+- **Rationale**: the folder's runs go to its latest session, so an older one's catch-up stopped
+  nothing now; a dismissal says the human has seen it.
+- **Where**: `runner/status.ts` `sessionStatus`; task 5.

@@ -3,10 +3,11 @@
 // the human, from the statuses the sidebar shows, with what it asks and where to answer it.
 import { dataView } from "@nkzw/fate/server";
 import type { FeatureView } from "uraeda-binding";
-import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import { TAKEN_BACK } from "../runner/session-state.ts";
+import { CATCH_UP, type SessionStatus, type StatusReason } from "../runner/status.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { itemLooks } from "./items.ts";
-import { featureStatuses } from "./feature-status.ts";
+import { type FeatureStatus, featureStatuses } from "./feature-status.ts";
 import { chatStatuses } from "./sessions.ts";
 
 /** Why an item needs the human, in the order a notification picks it. */
@@ -71,6 +72,7 @@ const REFUSED = "The agent was refused an action";
 /** What a run that needs attention tells, by why: one halted before a gate, by default. */
 const ATTENTION: Partial<Record<StatusReason, string>> = {
   capped: "The agent keeps stopping",
+  conflict: "The catch-up stopped on a conflict",
   failed: "The run failed",
   interrupted: "The server stopped the run",
   stopped: "You stopped the run",
@@ -133,6 +135,23 @@ async function rowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow
   return [...(await featureRowsOf(ctx, name)), ...(await chatRowsOf(ctx, name))];
 }
 
+/**
+ * The turn a feature's ask follows, for its key: its status's, but when its step asks, the followed
+ * session's latest turn not sent at `catch-up`. A catch-up that ended at the pull request only
+ * brought back the review it asked before (review focus 3); one that stopped or was refused asks.
+ */
+function askedBy(ctx: RepoContext, status: FeatureStatus): string {
+  if (status.reason !== "step" || status.session === null) {
+    return status.turn ?? "";
+  }
+  const turn = ctx.sessions.cache
+    .turns(status.session)
+    .findLast(
+      (each) => each.step !== CATCH_UP && (each.state !== "stopped" || each.reason !== TAKEN_BACK),
+    );
+  return turn === undefined ? "" : String(turn.id);
+}
+
 async function featureRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {
   const looks = itemLooks(ctx);
   return (await featureStatuses(ctx)).flatMap(({ feature, status }) => {
@@ -145,14 +164,15 @@ async function featureRowsOf(ctx: RepoContext, name: string): Promise<Array<Need
       return [];
     }
     const id = `${name}/${feature.folder}`;
-    // The turn the status follows: a run that ends at the same gate notifies again (R5).
+    // The turn the status follows: a run that ends at the same gate notifies again (R5), but a
+    // catch-up's, which only brought it back.
     const ask = `${reason}:${feature.step.name}:${feature.step.file ?? ""}:${status.reason ?? ""}`;
     return [
       {
         folder: feature.folder,
         href: hrefOf(name, feature, reason),
         id,
-        key: `${id}:${ask}:${status.turn ?? ""}`,
+        key: `${id}:${ask}:${askedBy(ctx, status)}`,
         label: looks(feature.folder).label ?? feature.slug,
         message: messageOf(feature, reason, status.reason),
         reason,

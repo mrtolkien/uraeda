@@ -31,6 +31,7 @@ const GATES: Record<string, { kind: StepKind; label: string; working?: string }>
 /** Each step's short label on a card, by the core's step name. */
 const SHORT: Record<string, string> = {
   approval: "Approving",
+  "catch-up": "Catch up",
   change: "Changing",
   discovery: "Discovery",
   done: "Done",
@@ -50,6 +51,7 @@ const SHORT: Record<string, string> = {
 /** Each step's icon, by the core's step name. */
 const KINDS: Record<string, StepKind> = {
   approval: "spec",
+  "catch-up": "pull-request",
   change: "change",
   discovery: "discovery",
   done: "done",

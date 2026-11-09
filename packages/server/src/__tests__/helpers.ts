@@ -10,6 +10,7 @@ import {
   git,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
+import type { CatchUpView, FeatureView, NextStepView } from "uraeda-binding";
 import { createApp } from "../app.ts";
 import { WRITE_QUEUE_ID } from "../fate/write-queue.ts";
 import type { Binding, RepoContext } from "../fate/context.ts";
@@ -457,4 +458,62 @@ export function repoContext(parts: {
 }): RepoContext {
   const { dataDir, frames, hosts, previews, repo, sessions, settings, themes } = parts;
   return { binding, dataDir, frames, hosts, previews, repo, sessions, settings, themes };
+}
+
+/** The open pull request a feature that `atStep` or `atCatchUp` wraps reads: #116. */
+export const PULL_REQUEST = {
+  head: "",
+  number: 116,
+  state: "open",
+  url: "https://github.com/mrtolkien/uraeda/pull/116",
+} as const;
+
+/** A step past the last task, as `atStep` puts a feature at it. */
+export type PastLastTask = Pick<NextStepView, "catchUp" | "name" | "pullRequest" | "waitsOn">;
+
+/**
+ * Wraps the binding so the folder's feature, from `readWorkspace`, `readFeature`, and `nextStep`,
+ * reads at `step`, past its last task, with the open pull request #116: the others read as theirs.
+ */
+export function atStep(using: Binding, folder: string, step: PastLastTask): Binding {
+  const { catchUp, name, pullRequest, waitsOn } = step;
+  const extra = catchUp ? { catchUp } : {};
+  const feature = (read: FeatureView): FeatureView =>
+    read.folder === folder
+      ? {
+          ...read,
+          pullRequest: PULL_REQUEST,
+          step: { implemented: true, name, order: 12, waitsOn, ...extra },
+        }
+      : read;
+  return {
+    ...using,
+    nextStep: async (repo, at) => {
+      const next = await using.nextStep(repo, at);
+      if (at !== folder) {
+        return next;
+      }
+      const reference = "skills/uraeda/references/implementation.md";
+      const nextStep: NextStepView = { name, reference, waitsOn, ...extra };
+      return { ...next, step: pullRequest ? { ...nextStep, pullRequest } : nextStep };
+    },
+    readFeature: async (repo, at) => feature(await using.readFeature(repo, at)),
+    readWorkspace: async (repo) => {
+      const workspace = await using.readWorkspace(repo);
+      return { ...workspace, features: workspace.features.map(feature) };
+    },
+  };
+}
+
+/**
+ * Wraps the binding so the folder's feature, from `readWorkspace`, `readFeature`, and `nextStep`,
+ * reads at `catch-up`, with the open pull request #116 behind `catchUp`'s commit.
+ */
+export function atCatchUp(using: Binding, folder: string, catchUp: CatchUpView): Binding {
+  return atStep(using, folder, {
+    catchUp,
+    name: "catch-up",
+    pullRequest: "behind",
+    waitsOn: "agent",
+  });
 }

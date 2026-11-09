@@ -90,8 +90,16 @@ function dismissedStatus(feature: { status: Status; step: { waitsOn?: string | n
     : { label: "Idle", reason: null, session, status: "idle", turn };
 }
 
-/** Why a run asks until dismissed: it failed, or the human or the server stopped it. */
-const DISMISSABLE: ReadonlySet<StatusReason> = new Set(["failed", "interrupted", "stopped"]);
+/**
+ * Why a run asks until dismissed: it failed, the human or the server stopped it, or a catch-up
+ * stopped on a conflict.
+ */
+const DISMISSABLE: ReadonlySet<StatusReason> = new Set([
+  "conflict",
+  "failed",
+  "interrupted",
+  "stopped",
+]);
 
 /**
  * Whether a status asks until the human dismisses it, which Dismiss shows for. A run past the cap

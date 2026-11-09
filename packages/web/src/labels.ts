@@ -2,6 +2,7 @@ import type { FeatureView, StepView, TaskProgress } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
   approval: "Approval",
+  "catch-up": "Catch up",
   change: "Change",
   discovery: "Discovery",
   done: "Done",
@@ -25,6 +26,7 @@ export function stepLabel(name: string) {
 /** What the agent does at each of its steps, as a feature page's "Next" says it. */
 const AGENT_NEXT: Record<string, string> = {
   approval: "The agent applies your approval",
+  "catch-up": "The agent catches the branch up with main",
   change: "The agent makes the change",
   discovery: "The agent investigates and asks",
   "final-review": "The agent reviews the feature",

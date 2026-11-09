@@ -76,9 +76,10 @@ export function seen(context: SessionContext, onChange: OnChange, row: SessionRo
 }
 
 /**
- * Dismisses a failed or stopped turn of the session's: it no longer asks for the human. Refused
- * while the turn runs or waits, and for a message taken back, which the status skips (`latestOf`);
- * a turn dismissed already, or done, is left as it is.
+ * Dismisses a failed or stopped turn of the session's, or a done one sent at `catch-up`: it no
+ * longer asks for the human. Refused while the turn runs or waits, and for a message taken back,
+ * which the status skips (`latestOf`); a turn dismissed already, or another done one, is left as
+ * it is.
  */
 export function dismiss(
   context: SessionContext,
@@ -95,9 +96,10 @@ export function dismiss(
   // A decision of its continue under way is dropped too.
   context.continuer.takenOver(session.id);
   if (context.cache.dismiss(turn.id)) {
-    // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,
-    // and what needs the human, and never reaches `onTurnDone`, which takes done turns only.
+    // Its state sends it at once, with the list, the feature, the workspace, and what needs the
+    // human; `dismissed` keeps a done catch-up's from `onTurnDone` and `turn-ended`: it ended before.
     onChange({
+      dismissed: true,
       folder: session.folder,
       repo: session.repo,
       session: session.id,

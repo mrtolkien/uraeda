@@ -95,10 +95,20 @@ export const CLEARED = "Started a new session: the agent cleared the turns above
 /** The line a turn shows when it reopened: its agent went on after it ended. */
 export const RESUMED = "The agent went on by itself: a background task reported back.";
 
-/** What changed: the agent's availability, or a session, with the turn and its new state. */
+/**
+ * What changed: the agent's availability, or a session, with the turn and its new state, or its
+ * state still, `dismissed`, as the human dismissed it: it did not end then.
+ */
 export type SessionChange =
   | { agent: true }
-  | { folder: string | null; repo: string; session: string; state?: TurnState; turn?: number };
+  | {
+      dismissed?: true;
+      folder: string | null;
+      repo: string;
+      session: string;
+      state?: TurnState;
+      turn?: number;
+    };
 
 export type Timer = ReturnType<typeof setTimeout>;
 export type Message = Extract<Item, { kind: "message" }>;

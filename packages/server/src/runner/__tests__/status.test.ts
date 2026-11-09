@@ -135,6 +135,61 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Needs attention", reason: "halted", status: "attention" },
   ],
   [
+    "a catch-up turn ended at Catch up (US3 2)",
+    { latest: { ...ended("done"), step: "catch-up" }, stepName: "catch-up", waitsOnAgent: true },
+    { label: "Needs attention", reason: "conflict", status: "attention" },
+  ],
+  [
+    "a catch-up turn dismissed",
+    {
+      latest: { ...ended("done", "workflow", dismissed), step: "catch-up" },
+      seenAt: "2026-10-13T11:00",
+      stepName: "catch-up",
+      waitsOnAgent: true,
+    },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a catch-up turn dismissed, ended after it was seen",
+    {
+      latest: { ...ended("done", "workflow", dismissed), step: "catch-up" },
+      seenAt: "2026-10-13T09:00",
+      stepName: "catch-up",
+      waitsOnAgent: true,
+    },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a catch-up turn ended back at the pull request (US2 2)",
+    {
+      latest: { ...ended("done"), step: "catch-up" },
+      seenAt: "2026-10-13T09:00",
+      stepName: "pull-request",
+      waitsOnHuman: true,
+    },
+    { label: "Needs you", reason: "step", status: "needs-you" },
+  ],
+  [
+    "an earlier turn at Catch up",
+    {
+      latest: { ...ended("done"), step: "pull-request-changes" },
+      seenAt: "2026-10-13T11:00",
+      stepName: "catch-up",
+      waitsOnAgent: true,
+    },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "an earlier turn at Catch up, ended after it was seen",
+    {
+      latest: { ...ended("done"), step: "pull-request" },
+      seenAt: "2026-10-13T09:00",
+      stepName: "catch-up",
+      waitsOnAgent: true,
+    },
+    { label: "New reply", status: "unread" },
+  ],
+  [
     "a chat turn that ended while the step waits on the agent",
     { latest: ended("done", "chat"), seenAt: "2026-10-13T09:00", waitsOnAgent: true },
     { label: "Needs attention", reason: "halted", status: "attention" },
