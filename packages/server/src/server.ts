@@ -296,8 +296,8 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 /**
  * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
  * of the listed repositories, whose changes the extensions turn into events. Each watcher burst of
- * a repository, and each refresh of its pull requests that changed them, calls `settled` with its
- * path: all closed again when one fails to open.
+ * a repository, once the refresh of its pull requests it asks ended, and each refresh that changed
+ * them, calls `settled` with its path: all closed again when one fails to open.
  */
 async function openParts(
   options: StartOptions,
@@ -325,10 +325,7 @@ async function openParts(
     });
     hosts = await Hosts.open({
       binding,
-      changed: (host, changes) => {
-        extensions.changes(host, changes);
-        settled(host.path);
-      },
+      changed: (host, changes) => extensions.changes(host, changes),
       dataDir,
       sessions: sessions.sessions,
       settled: (host) => settled(host.path),

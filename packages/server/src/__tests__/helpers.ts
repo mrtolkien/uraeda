@@ -82,7 +82,7 @@ const names = new WeakMap<App, string>();
 /**
  * Hosts on a temporary data folder holding the repositories, added through the binding in order,
  * with a fake session manager whose changes reach them, its cache in memory or in the file
- * `cache`. Closed after the test.
+ * `cache`, and `settled` told as the server's catcher is. Closed after the test.
  */
 export async function testHosts(
   repos: Array<string>,
@@ -90,7 +90,13 @@ export async function testHosts(
     binding: using = binding,
     cache,
     installed = true,
-  }: { binding?: Binding; cache?: string; installed?: boolean } = {},
+    settled,
+  }: {
+    binding?: Binding;
+    cache?: string;
+    installed?: boolean;
+    settled?: (host: Host) => void;
+  } = {},
 ) {
   const dataDir = temporaryFolder("uraeda-data");
   const added = [];
@@ -106,7 +112,12 @@ export async function testHosts(
     installed,
   });
   managers.push(sessions);
-  const hosts = await Hosts.open({ binding: using, dataDir, sessions });
+  const hosts = await Hosts.open({
+    binding: using,
+    dataDir,
+    sessions,
+    ...(settled && { settled }),
+  });
   opening.hosts = hosts;
   opened.push(hosts);
   return { adapter, dataDir, hosts, names: added, sessions };

@@ -10,7 +10,7 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
-import type { WatchHandle } from "uraeda-binding";
+import type { Changes, WatchHandle } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { live } from "../fate.ts";
 import { homePath } from "../folders.ts";
@@ -35,6 +35,18 @@ import { createApp } from "../app.ts";
 const binding = await import("uraeda-binding");
 
 const FOLDER = "2026-10-14-dark-mode";
+
+/** A watcher's burst with nothing changed. */
+const NO_CHANGES: Changes = {
+  branchDecisions: [],
+  decisions: false,
+  features: [],
+  files: [],
+  git: false,
+  inbox: false,
+  priorities: false,
+  workspace: false,
+};
 
 /** A fixture repository whose main branch holds a feature folder, its proposal titled `title`. */
 function repoWithFeature(title: string) {
@@ -634,4 +646,39 @@ test("item.settings names a feature in its repository only, and updates only its
   const [plain] = await byIdAt(app, names[1], "Feature", [FOLDER], ["label"]);
   expect([named.label, plain.label]).toEqual(["Sidebar", null]);
   expect(other.mock.calls.filter(([type]) => type === "Feature")).toEqual([]);
+});
+
+/**
+ * Review: GitHub merges a pull request before `gh` says so, and the fetch's burst comes first: a
+ * catcher run on it would read the pull request still open, behind main. Catches: a burst settling
+ * before the refresh of the pull requests it started ends.
+ */
+test("a burst settles once the refresh of the pull requests it started ends", async () => {
+  const { promise: held, resolve: release } = Promise.withResolvers<boolean>();
+  const refreshes: Array<Promise<boolean>> = [];
+  const bursts: Array<(changes: Changes) => void> = [];
+  const using = {
+    ...binding,
+    refreshPullRequests: () => {
+      // The first, at start, answers at once; the burst's waits.
+      const refresh = refreshes.length === 0 ? Promise.resolve(false) : held;
+      refreshes.push(refresh);
+      return refresh;
+    },
+    watch: (_: string, callback: (changes: Changes) => void) => {
+      bursts.push(callback);
+      return { close: () => {} } as WatchHandle;
+    },
+  };
+  const settled = vi.fn();
+  await testHosts([fixtureRepo()], { binding: using, settled });
+  await refreshes[0];
+
+  bursts[0]({ ...NO_CHANGES, features: [FOLDER], git: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  expect(refreshes).toHaveLength(2);
+  expect(settled).not.toHaveBeenCalled();
+
+  release(false);
+  await expect.poll(() => settled.mock.calls.length).toBe(1);
 });
