@@ -20,15 +20,19 @@ const PAST_LAST_TASK = new Set([
 ]);
 
 export type PullRequests = {
-  /** A watcher's burst: a branch moved, or a feature, branch, or worktree came or went. */
-  onChanges(changes: Changes): void;
+  /**
+   * A watcher's burst: a branch moved, or a feature, branch, or worktree came or went. The refresh
+   * it asks, done once it ends, or undefined when it asks none.
+   */
+  onChanges(changes: Changes): Promise<void> | undefined;
   stop(): void;
 };
 
 /**
  * Keeps the pull requests of the repository at `path` fresh. `changed` gets the repository's
- * features' folders when a refresh changed the snapshot. Refreshes run one at a time: one asked
- * meanwhile runs once the current one ends. A failure is logged once, until a refresh succeeds.
+ * features' folders when a refresh changed the snapshot. Refreshes run one at a time: those asked
+ * meanwhile run once, after the current one ends. A failure is logged once, until a refresh
+ * succeeds.
  */
 export function startPullRequests(
   path: string,
@@ -36,18 +40,10 @@ export function startPullRequests(
   changed: (folders: Array<string>) => void,
 ): PullRequests {
   let stopped = false;
-  let running = false;
-  let again = false;
   let failing = false;
-  const refresh = async (): Promise<void> => {
-    if (stopped) {
-      return;
-    }
-    if (running) {
-      again = true;
-      return;
-    }
-    running = true;
+  let running: Promise<void> | undefined;
+  let next: Promise<void> | undefined;
+  const once = async (): Promise<void> => {
     try {
       if ((await binding.refreshPullRequests(path)) && !stopped) {
         changed((await binding.readWorkspace(path)).features.map((feature) => feature.folder));
@@ -58,13 +54,33 @@ export function startPullRequests(
         process.stderr.write(`uraeda-server: pull requests of ${path}: ${String(error)}\n`);
       }
       failing = true;
-    } finally {
-      running = false;
-      if (again) {
-        again = false;
-        void refresh();
-      }
     }
+  };
+  const start = (): Promise<void> => {
+    const current = once().finally(() => {
+      if (running === current) {
+        running = undefined;
+      }
+    });
+    running = current;
+    return current;
+  };
+  const refresh = (): Promise<void> => {
+    if (stopped) {
+      return Promise.resolve();
+    }
+    if (next !== undefined) {
+      return next;
+    }
+    if (running === undefined) {
+      return start();
+    }
+    const queued = running.then(() => {
+      next = undefined;
+      return stopped ? undefined : start();
+    });
+    next = queued;
+    return queued;
   };
   const tick = async () => {
     try {
@@ -81,9 +97,7 @@ export function startPullRequests(
   timer.unref?.();
   return {
     onChanges(changes) {
-      if (changes.features.length > 0 || changes.workspace) {
-        void refresh();
-      }
+      return changes.features.length > 0 || changes.workspace ? refresh() : undefined;
     },
     stop() {
       stopped = true;

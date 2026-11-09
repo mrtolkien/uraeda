@@ -172,3 +172,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   asking `gh`.
 - **Where**: `crates/core/src/behind.rs` `compute`, the skill's "Catch up an open pull request";
   found in the final review.
+
+## R16: A watcher's burst runs the catcher once the refresh it asks has ended
+
+- **Decision**: the hosts tell the server a burst settled only once the refresh of the pull requests
+  that burst asks has ended, and also after each refresh that changed the snapshot. The server runs
+  the catcher on that, not on the burst itself. A burst asking no refresh settles at once.
+- **Rationale**: a squash merge on GitHub leaves no ancestry for the behind rule to see (R15), and
+  the fetch moves `origin/main` before `gh` reports the merge: a catcher run on the burst read the
+  pull request still open, and caught up merged work. The refresh is what knows the merge, and only
+  `gh` sees a draft made ready or a state known at start, which must reach the catcher too.
+- **Alternatives considered**: the catcher awaiting any refresh under way: it would need the
+  refresher's state from every trigger, where only the burst races with the refresh it starts.
+- **If wrong**: a turn's end or a settings change during the refresh still reads the snapshot as it
+  is, a merged pull request at worst caught up once.
+- **Where**: `packages/server/src/pulls.ts` `onChanges`, `repositories.ts` `settled`, `server.ts`
+  `openParts`; found in the final review.

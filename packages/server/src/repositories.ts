@@ -60,8 +60,9 @@ type HostsOptions = {
   dataDir: string;
   sessions: Sessions;
   /**
-   * Told when a host's features may have moved to another step: after each refresh of its pull
-   * requests that changed them, which only `gh` sees, like a draft made ready.
+   * Told when a host's features may have moved to another step: after each watcher burst, once the
+   * refresh of the pull requests it asks ended, and after each refresh that changed them, which only
+   * `gh` sees, like a draft made ready.
    */
   settled?: (host: Host) => void;
   /** Told of each host started, a missing folder's too. */
@@ -269,13 +270,16 @@ export class Hosts {
       entry.host.fetcher = startFetcher(path, binding, queue, () => publishGit(live));
       entry.pulls = startPullRequests(path, binding, (features) => {
         publish({ ...NO_CHANGES, features, workspace: true }, entry.host, sessions);
-        this.#options.settled?.(entry.host);
+        this.#settle(entry.host);
       });
       try {
         entry.watch = binding.watch(path, (changes) => {
           publish(changes, entry.host, sessions);
-          entry.pulls?.onChanges(changes);
+          // A burst read before the refresh it asks ends would see a pull request merged on GitHub
+          // still open, the fetch having moved the default branch first.
+          const refreshing = entry.pulls?.onChanges(changes) ?? Promise.resolve();
           this.#options.changed?.(entry.host, changes);
+          void refreshing.then(() => this.#settle(entry.host));
         });
       } catch (error) {
         // The host still serves its files: its pages read them again when shown.
@@ -286,6 +290,13 @@ export class Hosts {
     }
     this.#entries.set(name, entry);
     this.#options.started?.(entry.host);
+  }
+
+  /** Tells `settled` of the host, unless closed or no longer listed meanwhile. */
+  #settle(host: Host): void {
+    if (!this.#closed && this.get(host.name) === host) {
+      this.#options.settled?.(host);
+    }
   }
 
   /**
