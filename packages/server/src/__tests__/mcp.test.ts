@@ -11,10 +11,15 @@ afterEach(() => {
 
 /** A tool the test answers: its calls are counted, and each waits for `answer`. */
 function heldTool() {
-  const held = { answer: (_text: string) => {}, calls: 0 };
+  const held = {
+    answer: (_text: string) => {},
+    calls: 0,
+    signal: undefined as AbortSignal | undefined,
+  };
   const tool: McpTool = {
-    call: () => {
+    call: (_session, _input, signal) => {
       held.calls += 1;
+      held.signal = signal;
       return new Promise<string>((resolve) => {
         held.answer = resolve;
       });
@@ -162,4 +167,33 @@ test.each([
       result: { content: [{ text: "No such feature.", type: "text" }], isError: true },
     },
   ]);
+});
+
+// Wave 1 review. Break caught: a client's cancellation ignored, its tool left running.
+test.each([
+  ["a dropped connection", (response: Response) => response.body?.cancel()],
+  [
+    "a cancellation",
+    async (call: Response, app: Awaited<ReturnType<typeof testApp>>["app"], token: string) => {
+      const cancelled = { method: "notifications/cancelled", params: { requestId: 7 } };
+      const response = await app.request(url, post(`Bearer ${token}`, cancelled));
+      expect(response.status).toBe(202);
+      // The call's stream ends without a result: a cancelled request is never answered.
+      expect(messages(await call.text())).toEqual([]);
+    },
+  ],
+] as const)("%s aborts the tool's signal", async (_, stop) => {
+  const tokens = new McpTokens();
+  const { held, tool } = heldTool();
+  const { app } = await testApp(undefined, { mcp: { tokens, tools: [tool] }, signIn: true });
+  const token = tokens.issue("session-1");
+  const response = await app.request(url, call(`Bearer ${token}`));
+  // Another session's call of the same id is not this one.
+  const cancelled = { method: "notifications/cancelled", params: { requestId: 7 } };
+  await app.request(url, post(`Bearer ${tokens.issue("session-2")}`, cancelled));
+  expect(held.signal?.aborted).toBe(false);
+
+  await stop(response, app, token);
+
+  expect(held.signal?.aborted).toBe(true);
 });

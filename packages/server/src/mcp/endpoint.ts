@@ -66,21 +66,31 @@ async function answer(tool: McpTool, session: string, input: unknown, signal: Ab
 /**
  * A call answered as an event stream: a progress notification every `every` milliseconds with the
  * client's progress token, a comment without one, so the connection never goes silent, then the
- * result. A dropped connection aborts the tool's signal.
+ * result. A dropped connection aborts the tool's signal, as `aborted` does, which ends the stream
+ * without a result; `done` runs once the call is over, either way.
  */
 function callStream(
   id: Id,
   call: { input: unknown; progressToken: unknown; session: string; tool: McpTool },
-  every: number,
+  { aborted, done, every }: { aborted: AbortController; done: () => void; every: number },
 ): Response {
-  const aborted = new AbortController();
   let timer: ReturnType<typeof setInterval> | undefined;
+  let closed = false;
   const body = new ReadableStream<Uint8Array>({
     cancel() {
-      clearInterval(timer);
+      closed = true;
       aborted.abort();
     },
     start(out) {
+      const close = () => {
+        clearInterval(timer);
+        done();
+        if (!closed) {
+          closed = true;
+          out.close();
+        }
+      };
+      aborted.signal.addEventListener("abort", close);
       let progress = 0;
       timer = setInterval(() => {
         const { progressToken } = call;
@@ -96,11 +106,10 @@ function callStream(
         );
       }, every);
       void answer(call.tool, call.session, call.input, aborted.signal).then((value) => {
-        clearInterval(timer);
         if (!aborted.signal.aborted) {
           out.enqueue(event(result(id, value)));
-          out.close();
         }
+        close();
       });
     },
   });
@@ -109,12 +118,19 @@ function callStream(
   });
 }
 
+/** The key of a call in the running ones: its session's, as two sessions' ids may be the same. */
+const callKey = (session: string, id: Id) => JSON.stringify([session, id]);
+
 /** The answer to one request, a JSON-RPC message, or the stream of a call. */
 function respond(
   context: Context,
   message: Message & { id: Id },
   session: string,
-  { every, tools }: { every: number; tools: ReadonlyArray<McpTool> },
+  {
+    every,
+    running,
+    tools,
+  }: { every: number; running: Map<string, AbortController>; tools: ReadonlyArray<McpTool> },
 ): Response {
   const { id } = message;
   // Params absent, null, or not an object are read as none: a missing name answers its error.
@@ -155,7 +171,15 @@ function respond(
         session,
         tool,
       };
-      return callStream(id, call, every);
+      const key = callKey(session, id);
+      const aborted = new AbortController();
+      running.set(key, aborted);
+      const done = () => {
+        if (running.get(key) === aborted) {
+          running.delete(key);
+        }
+      };
+      return callStream(id, call, { aborted, done, every });
     }
     default:
       return context.json(failure(id, -32_601, `Unknown method: ${String(message.method)}`));
@@ -167,8 +191,9 @@ function respond(
  * `initialize`, `ping`, `tools/list`, and `tools/call`, the last answered as an event stream with
  * progress every `every` milliseconds, 30 seconds by default, until the tool answers. Every request
  * needs `Authorization: Bearer <token>` of a process `tokens` issued, or gets 401, saying nothing
- * of why; the tool runs for that token's session. Notifications are accepted with 202, a `GET`'s
- * stream is refused with 405, and a batch with an error.
+ * of why; the tool runs for that token's session. Notifications are accepted with 202, and a
+ * `notifications/cancelled` of a call of the same session aborts it; a `GET`'s stream is refused
+ * with 405, and a batch with an error.
  */
 export function mcpRoutes({
   every = PROGRESS_EVERY_MS,
@@ -176,6 +201,7 @@ export function mcpRoutes({
   tools,
 }: McpOptions & { every?: number }) {
   const routes = new Hono<{ Variables: { mcpSession: string } }>();
+  const running = new Map<string, AbortController>();
   routes.use(async (context, next) => {
     const session = tokens.sessionOf(context.req.header("authorization"));
     if (session === undefined) {
@@ -194,13 +220,20 @@ export function mcpRoutes({
     if (!isObject(message)) {
       return context.json(failure(null, -32_600, "Invalid request"), 400);
     }
-    const { id } = message as Message;
+    const { id, method, params } = message as Message;
+    const session = context.get("mcpSession");
     if (typeof id !== "string" && typeof id !== "number") {
       // A notification, or a response to the server, which never asks: nothing to answer.
+      const requestId = isObject(params) ? params.requestId : undefined;
+      if (
+        method === "notifications/cancelled" &&
+        (typeof requestId === "string" || typeof requestId === "number")
+      ) {
+        running.get(callKey(session, requestId))?.abort();
+      }
       return context.body(null, 202);
     }
-    const session = context.get("mcpSession");
-    return respond(context, { ...(message as Message), id }, session, { every, tools });
+    return respond(context, { ...(message as Message), id }, session, { every, running, tools });
   });
   routes.all("/", (context) => context.text("Method Not Allowed", 405, { allow: "POST" }));
   return routes;
