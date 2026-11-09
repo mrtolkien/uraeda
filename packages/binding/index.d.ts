@@ -134,6 +134,13 @@ export declare function checkedPort(typed: string): number
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
+/**
+ * Throws `refused: ` and the problem when `options` holds a step not of the workflow's, a step
+ * twice, a depth not `waves` or `branch`, or a reviewer without exactly one of an agent and a
+ * command. It reads nothing, so it returns at once.
+ */
+export declare function checkRunOptions(options: RunOptions): void
+
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
 
@@ -380,6 +387,12 @@ export declare function land(repo: string, id: string, onOutput: (line: string) 
 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
+
+/**
+ * A feature's run options over the settings' defaults: each value the feature sets wins, and its
+ * reviewers replace the defaults' list whole. It reads nothing, so it returns at once.
+ */
+export declare function mergeRunOptions(defaults: RunOptions, feature: RunOptions): RunOptions
 
 /** Moves a note to the end of a category, or of the notes without one. */
 export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null, undo?: string | undefined | null): Promise<Inbox>
@@ -687,6 +700,13 @@ export declare function setOpenBrowser(dir: string, open: boolean): Promise<Sett
 
 /** Sets the port, from the text typed. */
 export declare function setPort(dir: string, port: string): Promise<Settings>
+
+/**
+ * Replaces the run options of the settings file with `options`, writing only the values set, and
+ * removes the old `build_in_fresh_session`. Rejects with `refused: ` the options `checkRunOptions`
+ * refuses.
+ */
+export declare function setRunOptions(dir: string, options: RunOptions): Promise<Settings>
 
 /** Sets whether the keys of one printable character act in the web UI. */
 export declare function setSingleKeyShortcuts(dir: string, on: boolean): Promise<Settings>
@@ -2055,6 +2075,18 @@ export interface ReviewAnswer {
   block: number
 }
 
+/** A reviewer, a table of `[[runs.reviewers]]`: an agent, or a command the human wrote. */
+export interface ReviewerOptions {
+  /** An agent reviewer's runtime; absent on a command reviewer. */
+  agent?: string
+  model?: string
+  effort?: string
+  /** Text added to the review's prompt. */
+  instructions?: string
+  /** A command reviewer's shell command, run in the feature's worktree. */
+  command?: string
+}
+
 export interface ReviewItems {
   verdict: string
   commit: string
@@ -2129,6 +2161,31 @@ export interface RunningFeature {
   step: StepView
 }
 
+/**
+ * The run options a settings file or a feature holds, every value optional: what was picked,
+ * nothing resolved.
+ */
+export interface RunOptions {
+  /** The steps with an option set, in the workflow's order. */
+  steps: Array<StepOptions>
+  /** The agent, model, and effort of the build's implementers. */
+  implementers?: RunPick
+  /**
+   * The reviewers, in the order they run: one agent reviewer on the review step's pick when
+   * unset or empty.
+   */
+  reviewers?: Array<ReviewerOptions>
+  /** `waves`, each wave and the branch, or `branch`: `waves` when unset. */
+  reviewDepth?: string
+}
+
+/** An agent, a model, and an effort picked for a role, like the implementers'. */
+export interface RunPick {
+  agent?: string
+  model?: string
+  effort?: string
+}
+
 /** The `[runs]` table: how the workflow's runs start. */
 export interface RunSettings {
   /** Whether the run after a spec's approval starts in a new agent session. */
@@ -2144,6 +2201,11 @@ export interface RunSettings {
    * when unset.
    */
   catchUpPullRequests?: boolean
+  /**
+   * Each step's agent, model, effort, and session, the implementers, and the reviewers: the
+   * `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
+   */
+  options: RunOptions
 }
 
 export interface Scenario {
@@ -2411,6 +2473,23 @@ export interface StartStepView {
 export interface StepItem {
   block: number
   checked: boolean
+}
+
+/** One step's options, a table `[runs.steps.<step>]`. */
+export interface StepOptions {
+  /** The step: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`. */
+  step: string
+  /** The agent's runtime, like `claude` or `codex`. */
+  agent?: string
+  /** A model the agent lists. */
+  model?: string
+  /** An effort the model takes. */
+  effort?: string
+  /**
+   * Whether the step starts a clean session: `true` for `plan` when unset, ignored on
+   * `discovery`.
+   */
+  newSession?: boolean
 }
 
 export interface StepView {

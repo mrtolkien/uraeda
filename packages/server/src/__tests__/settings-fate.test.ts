@@ -138,6 +138,8 @@ test("each change answers the record with its value", async () => {
     automaticContinues: 4,
     buildInFreshSession: false,
     continueAfterLimit: false,
+    // The old switch reads as the plan's table until the settings' Runs section writes it away.
+    options: { steps: [{ newSession: false, step: "plan" }] },
   });
 });
 

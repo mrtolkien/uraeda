@@ -346,10 +346,12 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
 **Interfaces:**
 
 - Produces, in `uraeda_core::settings` and on the binding in camelCase:
-  - `pub struct RunOptions { steps: Vec<StepOptions>, implementers: Option<Pick>, reviewers: Option<Vec<ReviewerOptions>>, review_depth: Option<String> }`,
+  - `pub struct RunOptions { steps: Vec<StepOptions>, implementers: Option<RunPick>, reviewers: Option<Vec<ReviewerOptions>>, review_depth: Option<String> }`,
     every field optional: what the file or a feature holds, nothing resolved.
   - `pub struct StepOptions { step: String, agent: Option<String>, model: Option<String>, effort: Option<String>, new_session: Option<bool> }`;
-    `pub struct Pick { agent, model, effort }`, each `Option<String>`;
+    `pub struct RunPick { agent, model, effort }`, each `Option<String>` (not `Pick`, which would
+    hide TypeScript's own in the binding's types: see
+    [R6](rulings.md#r6-the-cores-pick-is-runpick));
     `pub struct ReviewerOptions { agent, model, effort, instructions, command }`, each
     `Option<String>`.
   - `RunSettings.options: RunOptions`, beside `build_in_fresh_session` until Task 10. Reading
@@ -367,7 +369,7 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
     reviewers replace the defaults' list whole. Binding: `mergeRunOptions(defaults, feature)`.
   - Parsing errors follow the file's: `line 4, runs.steps.spec.effort: The effort is a name.`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/run_options.rs`, in the style of `tests/settings.rs`:
 
@@ -388,25 +390,25 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
 In `contracts.test.ts`, the existing "settings cross the binding in camelCase" also checks
 `runs.options.steps[0].newSession`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test run_options`
 - Expected: FAIL to compile, `cannot find function set_run_options in module settings`
 
-- [ ] **Step 3: Implement `runs.rs`, its parsing, writing, check, and merge**
+- [x] **Step 3: Implement `runs.rs`, its parsing, writing, check, and merge**
 
 `parse_runs` calls the new module for `steps`, `implementers`, `reviewers`, and `review_depth`.
 `set_run_options` edits through `change_path`, so the write keeps the file's comments and refuses an
 unreadable file. `build_in_fresh_session`, its field, and `set_build_in_fresh_session` stay until
 Task 10 removes their last caller, so every wave leaves the project working.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS but `keys-structural.test.ts`, failing before this branch's tasks (Tasks 10 and 11
   fix it)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/settings.rs crates/core/src/settings crates/binding/src/settings.rs crates/core/tests packages/binding

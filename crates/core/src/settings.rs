@@ -13,8 +13,13 @@ use crate::api::ApiError;
 mod file;
 mod list;
 mod rules;
+mod runs;
 
 pub(crate) use file::{line, load as load_text};
+pub use runs::{
+    ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
+    set_run_options,
+};
 
 /// The start of a file the first write creates.
 const HEADER: &str =
@@ -54,6 +59,9 @@ pub struct RunSettings {
     /// Whether an open pull request behind the default branch is caught up by itself: `false`
     /// when unset.
     pub catch_up_pull_requests: Option<bool>,
+    /// Each step's agent, model, effort, and session, the implementers, and the reviewers: the
+    /// `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
+    pub options: RunOptions,
 }
 
 /// A kind of automatic run, each with its switch in `[runs]`.

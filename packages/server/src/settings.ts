@@ -1,6 +1,6 @@
 // The server's settings in force: each from its flag, its variable, the settings file, then its
 // default, the file read through the core and watched while the server runs.
-import type { Settings } from "uraeda-binding";
+import type { RunSettings, Settings } from "uraeda-binding";
 import type {
   CatchUpName,
   ContinuesName,
@@ -183,7 +183,7 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
-  const runs = file?.runs ?? {};
+  const runs: Partial<RunSettings> = file?.runs ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
   return {
     keyboard: {

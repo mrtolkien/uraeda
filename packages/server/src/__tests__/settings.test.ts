@@ -21,7 +21,7 @@ const LAPTOP = "laptop.tail1234.ts.net";
 /** A file holding every server setting. */
 const file: Settings = {
   keyboard: {},
-  runs: {},
+  runs: { options: { steps: [] } },
   server: { allowedHosts: [MAC], openBrowser: true, port: 4310 },
 };
 
@@ -46,7 +46,7 @@ test.each<{
     },
   },
   {
-    file: { keyboard: {}, runs: {}, server: {} },
+    file: { keyboard: {}, runs: { options: { steps: [] } }, server: {} },
     name: "the defaults, for keys the file does not hold",
     options: none,
     view: {
@@ -58,7 +58,7 @@ test.each<{
   {
     file: {
       keyboard: {},
-      runs: {},
+      runs: { options: { steps: [] } },
       server: { allowedHosts: [MAC], openBrowser: false, port: 4400 },
     },
     name: "the file over the defaults",
@@ -135,7 +135,7 @@ test.each<{
 
 /** US2.1 to US2.5 for the continues' settings: each source over the ones after it. */
 test.each<{
-  file: Settings["runs"] | null;
+  file: Omit<Settings["runs"], "options"> | null;
   name: string;
   options: Parameters<typeof inForce>[0];
   runs: Partial<RunSettingsView>;
@@ -248,7 +248,9 @@ test.each<{
     },
   },
 ])("$name", ({ file: runs, options, runs: view }) => {
-  expect(inForce(options, runs && { ...file, runs }).runs).toMatchObject(view);
+  expect(
+    inForce(options, runs && { ...file, runs: { ...runs, options: { steps: [] } } }).runs,
+  ).toMatchObject(view);
 });
 
 test("the build starts in a fresh session by default, and the file's value turns it off", () => {
@@ -259,7 +261,8 @@ test("the build starts in a fresh session by default, and the file's value turns
   });
   expect(inForce(none, file).runs.buildInFreshSession.inForce).toBe(true);
   expect(
-    inForce(none, { ...file, runs: { buildInFreshSession: false } }).runs.buildInFreshSession,
+    inForce(none, { ...file, runs: { buildInFreshSession: false, options: { steps: [] } } }).runs
+      .buildInFreshSession,
   ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
 });
 

@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, applyChange, approve, attachImage, attachNoteImages, branchChanges, bufferFolder, cacheStats, checkedAutomaticContinues, checkedPort, checkoutCommit, cleanFeature, codeVersion, commitPriorities, committedSince, commitText, compileModule, configDir, conflictFile, dataDir, deferCommits, discardPriorities, discoveryLevels, dismissTriage, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, extensionApi, extensionRepositorySettings, extensionSettings, extensionsFolder, fixLinks, gitAbort, gitCommit, gitCommitStaged, gitContinue, gitDiff, gitDiscard, gitFetch, gitHistory, gitMerge, gitPage, gitPull, gitPush, gitRemoveWorktree, gitResolve, gitStage, gitSummary, gitUnstage, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readBuffer, readDecision, readExtensions, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readThemes, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, retryCommit, retryRound, saveAnswer, saveBuffer, saveConflictFile, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setAutomaticContinues, setBuildInFreshSession, setContinue, setDiscovery, setExtensionOn, setExtensionSetting, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, setVimCommands, setVimMode, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeChange, takeDeferred, themesFolder, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
+const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, applyChange, approve, attachImage, attachNoteImages, branchChanges, bufferFolder, cacheStats, checkedAutomaticContinues, checkedPort, checkoutCommit, checkRunOptions, cleanFeature, codeVersion, commitPriorities, committedSince, commitText, compileModule, configDir, conflictFile, dataDir, deferCommits, discardPriorities, discoveryLevels, dismissTriage, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, extensionApi, extensionRepositorySettings, extensionSettings, extensionsFolder, fixLinks, gitAbort, gitCommit, gitCommitStaged, gitContinue, gitDiff, gitDiscard, gitFetch, gitHistory, gitMerge, gitPage, gitPull, gitPush, gitRemoveWorktree, gitResolve, gitStage, gitSummary, gitUnstage, land, mainRoot, mergeRunOptions, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readBuffer, readDecision, readExtensions, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readThemes, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, retryCommit, retryRound, saveAnswer, saveBuffer, saveConflictFile, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setAutomaticContinues, setBuildInFreshSession, setContinue, setDiscovery, setExtensionOn, setExtensionSetting, setItemSettings, setOpenBrowser, setPort, setRunOptions, setSingleKeyShortcuts, settingsFile, setVimCommands, setVimMode, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeChange, takeDeferred, themesFolder, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addCategory }
@@ -737,6 +737,7 @@ export { cacheStats }
 export { checkedAutomaticContinues }
 export { checkedPort }
 export { checkoutCommit }
+export { checkRunOptions }
 export { cleanFeature }
 export { codeVersion }
 export { commitPriorities }
@@ -784,6 +785,7 @@ export { gitSummary }
 export { gitUnstage }
 export { land }
 export { mainRoot }
+export { mergeRunOptions }
 export { moveNoteToCategory }
 export { moveProposal }
 export { nextStep }
@@ -851,6 +853,7 @@ export { setExtensionSetting }
 export { setItemSettings }
 export { setOpenBrowser }
 export { setPort }
+export { setRunOptions }
 export { setSingleKeyShortcuts }
 export { settingsFile }
 export { setVimCommands }

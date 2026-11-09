@@ -43,3 +43,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the Run lifecycle decision counts automatic continues toward a cap; a chained run
   is no continue, and its trigger keeps them apart in the cache and the transcript.
 - **Where**: task 6.
+
+## R6: The core's pick is `RunPick`
+
+- **Decision**: the struct of an agent, a model, and an effort is `RunPick` in the core and on the
+  binding, not `Pick`.
+- **Rationale**: the binding's generated `index.d.ts` names its interfaces after the core's structs,
+  and an interface `Pick` would hide TypeScript's own `Pick<T, K>` in every file that imports it.
+- **Where**: task 1.

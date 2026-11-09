@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
 use uraeda_core::api::ApiError;
-use uraeda_core::settings::{self, KeyboardSettings, RunSettings, ServerSettings, Settings};
+use uraeda_core::settings::{
+    self, KeyboardSettings, RunOptions, RunSettings, ServerSettings, Settings, StepOptions,
+};
 
 const HOST_PROBLEM: &str =
     "is not a host name: use letters, digits, hyphens, and dots, like mac.tail1234.ts.net.";
@@ -73,6 +75,14 @@ fn reads_each_file() {
             continue_after_limit: Some(true),
             automatic_continues: Some(4),
             catch_up_pull_requests: Some(true),
+            options: RunOptions {
+                steps: vec![StepOptions {
+                    step: "plan".into(),
+                    new_session: Some(false),
+                    ..StepOptions::default()
+                }],
+                ..RunOptions::default()
+            },
         },
         ..Settings::default()
     };
