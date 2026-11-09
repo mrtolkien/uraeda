@@ -8,13 +8,17 @@ import { useTurn } from "./sessionData.ts";
 import { isDismissable, useDismiss } from "./useDismiss.ts";
 import { waitTime } from "./wait.ts";
 
-/** What a banner's text reads: the session's item, a feature or a change, and its continues. */
-type Of = { continues: number; item: string };
+/**
+ * What a banner's text reads: the session's item, a feature or a change, its continues, and its
+ * pull request's number, when it has one.
+ */
+type Of = { continues: number; item: string; pullRequest?: number | undefined };
 
 /**
  * What a session that needs attention tells the human, by why it needs it, its item named as a
- * feature or a change. A failed, stopped, or interrupted run asks until dismissed: its text says
- * so, and the banner has Dismiss. A run past the cap on automatic continues says how many it had.
+ * feature or a change. A failed, stopped, or interrupted run, and a catch-up stopped on a conflict,
+ * ask until dismissed: the text says so, and the banner has Dismiss. A run past the cap on automatic
+ * continues says how many it had.
  */
 const ATTENTION: Partial<
   Record<
@@ -27,6 +31,12 @@ const ATTENTION: Partial<
     text: ({ continues }) =>
       `Uraeda continued it ${continues} times in a row without a commit or a message from you, and stops there. Read its last message, then tell it how to go on, or dismiss this.`,
     title: "The agent keeps stopping.",
+  },
+  conflict: {
+    status: "warning",
+    text: ({ pullRequest }) =>
+      `It left the branch as it was, and asked on ${pullRequest === undefined ? "the pull request" : `pull request #${pullRequest}`} how to settle a conflict. Answer there by requesting changes, or dismiss this.`,
+    title: "The catch-up stopped on a conflict.",
   },
   failed: {
     status: "error",
@@ -173,14 +183,15 @@ function AttentionBanner({
   why?: string | undefined;
 }) {
   const workspace = useWorkspace();
-  const item = workspace?.features.find((feature) => feature.folder === folder)?.kind ?? "feature";
+  const feature = workspace?.features.find((each) => each.folder === folder);
   const turn = session.statusTurn;
   const reason = session.statusReason!;
   return (
     <RunBanner
       continues={session.automaticContinues ?? 0}
       error={dismissal.error}
-      item={item}
+      item={feature?.kind ?? "feature"}
+      pullRequest={feature?.pullRequest?.number}
       reason={reason}
       why={why}
       {...(turn !== null && isDismissable({ reason, status: session.status, turnState })
@@ -192,14 +203,15 @@ function AttentionBanner({
 
 /**
  * The banner of a run that needs attention, by `reason`, its item named as `item`, `why` before
- * its text, a capped run's automatic `continues` counted; with Dismiss when `onDismiss` is given,
- * and why the server refused it, `error`, under it.
+ * its text, a capped run's automatic `continues` counted, a conflict's `pullRequest` named; with
+ * Dismiss when `onDismiss` is given, and why the server refused it, `error`, under it.
  */
 export function RunBanner({
   continues = 0,
   error,
   item = "feature",
   onDismiss,
+  pullRequest,
   reason,
   why,
 }: {
@@ -207,6 +219,7 @@ export function RunBanner({
   error?: string | undefined;
   item?: string;
   onDismiss?: () => void;
+  pullRequest?: number | undefined;
   reason: StatusReason;
   why?: string | undefined;
 }) {
@@ -215,7 +228,9 @@ export function RunBanner({
     return null;
   }
   const text =
-    typeof attention.text === "string" ? attention.text : attention.text({ continues, item });
+    typeof attention.text === "string"
+      ? attention.text
+      : attention.text({ continues, item, pullRequest });
   return (
     <>
       <AnnouncedBanner

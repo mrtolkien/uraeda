@@ -82,6 +82,13 @@ test.each<[string, Feature, Status, string]>([
   ["a pull request at rest", at("pull-request", NEEDS_YOU), NEEDS_YOU, "PR ready"],
   ["a pull request an agent works on", at("pull-request", WORKING), WORKING, "PR"],
   [
+    "a pull request behind main, at rest",
+    at("catch-up", { label: "Idle", status: "idle" }),
+    { label: "Idle", status: "idle" },
+    "Catch up",
+  ],
+  ["a pull request an agent catches up", at("catch-up", WORKING), WORKING, "Catch up"],
+  [
     "commits to push",
     at("push", { label: "Idle", status: "idle" }),
     { label: "Idle", status: "idle" },

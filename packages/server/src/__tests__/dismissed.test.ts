@@ -1,9 +1,19 @@
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { live as globalLive } from "../fate.ts";
+import { onTurnDone } from "../live.ts";
 import { TAKEN_BACK } from "../runner/session-state.ts";
 import { REFUSALS, SERVER_STOPPED } from "../runner/sessions.ts";
-import { byId, type Data, fixtureRepo, mutate, testDataDir, testServer } from "./helpers.ts";
+import {
+  atCatchUp,
+  binding,
+  byId,
+  type Data,
+  fixtureRepo,
+  mutate,
+  testDataDir,
+  testServer,
+} from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -106,6 +116,37 @@ test("a dismissed run stops asking, across a restart, and a new failure asks aga
     status: "attention",
     statusReason: "failed",
   });
+});
+
+/** US3 2 and the edge case of a dismissed catch-up: it stops asking, and nothing goes on by itself. */
+test("a catch-up stopped on a conflict asks until dismissed, which ends no turn", async () => {
+  const catchUp = { branch: "main", commit: "a".repeat(40), subject: "Main moved" };
+  const server = await testServer(fixtureRepo(), { binding: atCatchUp(binding, AGENT, catchUp) });
+  const { cache } = server.sessions;
+  // An earlier run, done at `plan`, then the catch-up's, done while the step is still `catch-up`.
+  const { session, turn: earlier } = await runningTurn(server, AGENT);
+  cache.endTurn(earlier, { state: "done" });
+  const conflict = cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session,
+    state: "running",
+    step: "catch-up",
+    trigger: "manual",
+  });
+  cache.endTurn(conflict, { state: "done" });
+  expect(await rowOf(server, session)).toEqual({ status: "attention", statusReason: "conflict" });
+  const done = vi.fn();
+  onTurnDone(server.sessions, done);
+
+  // A done run sent at another step asks nothing: Dismiss leaves it.
+  expect((await dismiss(server, earlier)).error).toBeUndefined();
+  expect(cache.turn(earlier)?.dismissedAt).toBeNull();
+  const dismissed = await dismiss(server, conflict);
+
+  expect(dismissed.data).toEqual({ id: session, status: "idle", statusReason: null });
+  // A dismissal ended no turn: what listens for a turn's end, as the catcher, starts nothing.
+  expect(done).not.toHaveBeenCalled();
 });
 
 test("a dismissal sends the session's list, feature, workspace, and what needs the human", async () => {

@@ -8,8 +8,9 @@ export type SessionStatus = "working" | "needs-you" | "attention" | "unread" | "
 /**
  * Why a session needs the human: an action to allow, a step that waits on them, or a latest turn
  * that failed, that they stopped, that the server stopped, that ran the workflow and ended before a
- * human gate, or whose automatic continues reached their cap. Or why it works with no turn
- * running: its latest turn waits to continue by itself.
+ * human gate, that caught up with the default branch and ended still behind it, on a conflict, or
+ * whose automatic continues reached their cap. Or why it works with no turn running: its latest
+ * turn waits to continue by itself.
  */
 export type StatusReason =
   | "blocked"
@@ -18,8 +19,12 @@ export type StatusReason =
   | "stopped"
   | "interrupted"
   | "halted"
+  | "conflict"
   | "capped"
   | "waiting";
+
+/** The step of an open pull request behind the default branch, which its agent catches up. */
+export const CATCH_UP = "catch-up";
 
 /** When a waiting run continues by itself, in ISO 8601, and why. */
 export type Wait = { at: string; reason: ContinueReason };
@@ -36,15 +41,18 @@ export function continuable(status: {
 }
 
 /**
- * Whether Continue all continues the feature: its run asks and a message can continue it, and its
- * step waits on the agent, which has a message to send. A run that failed at a human gate asks
- * too, but the gate is the human's (R19).
+ * Whether Continue all continues the feature: its step waits on the agent, which has a message to
+ * send, and its run asks and a message can continue it, or, at `catch-up`, nothing ran it yet: it
+ * reads idle or with a new reply. A run that failed at a human gate asks too, but the gate is the
+ * human's (R19); a catch-up stopped on a conflict asks for the human's choice.
  */
 export function continuedByAll(feature: {
   status: Parameters<typeof continuable>[0];
-  step: { waitsOn?: string | null };
+  step: { name?: string; waitsOn?: string | null };
 }): boolean {
-  return continuable(feature.status) && feature.step.waitsOn === "agent";
+  const { status, step } = feature;
+  const idle = status.status === "idle" || status.status === "unread";
+  return step.waitsOn === "agent" && (continuable(status) || (step.name === CATCH_UP && idle));
 }
 
 /** The wait of the turn, when it waits to continue by itself. */
@@ -66,17 +74,19 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a latest turn
  * waiting to continue by itself, a blocked action not allowed, a latest turn that failed or was
- * stopped, until the human dismisses it, as capped when it would have continued, a step that
- * waits on the human, a dismissed turn as idle, a latest turn that ended while the step still waits
- * on the agent, in its folder's latest session, as waiting while its process waits for a wakeup
- * the agent set, a latest turn that ended after the human last saw the session, and otherwise idle.
+ * stopped, until the human dismisses it, as capped when it would have continued, a catch-up turn
+ * that ended while the step is still `catch-up`, in its folder's latest session, until dismissed,
+ * a step that waits on the human, a dismissed turn as idle, a latest turn that ended while the step
+ * still waits on the agent, in its folder's latest session, but at `catch-up`, as waiting while its
+ * process waits for a wakeup the agent set, a latest turn that ended after the human last saw the
+ * session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
   latest?: Pick<
     TurnRow,
     "continueAt" | "continueReason" | "dismissedAt" | "endedAt" | "kind" | "reason" | "state"
-  >;
+  > & { step?: string | null };
   /**
    * Whether the session is its change's or feature's latest: an older one's run halted nothing, as
    * the folder's runs go to the latest.
@@ -109,10 +119,16 @@ export function sessionStatus(input: {
     const stopped = latest.reason === SERVER_STOPPED ? "interrupted" : failed;
     return { label: "Needs attention", reason: capped ? "capped" : stopped, status: "attention" };
   }
+  // A catch-up that ended still behind stopped on a conflict, which asks for the human's choice.
+  const conflict =
+    latest?.state === "done" && latest.step === CATCH_UP && stepName === CATCH_UP && latestSession;
+  if (conflict && latest.dismissedAt === null) {
+    return { label: "Needs attention", reason: "conflict", status: "attention" };
+  }
   if (waitsOnHuman) {
     return { label: "Needs you", reason: "step", status: "needs-you" };
   }
-  if (failed) {
+  if (failed || conflict) {
     return { label: "Idle", status: "idle" };
   }
   const unseen =
@@ -122,7 +138,9 @@ export function sessionStatus(input: {
     latest?.state === "done" &&
     (latest.kind !== "chat" || unseen) &&
     waitsOnAgent &&
-    stepName !== "pull-request-unknown"
+    stepName !== "pull-request-unknown" &&
+    // A turn before the catch-up halted nothing: the pull request it left was ready.
+    stepName !== CATCH_UP
   ) {
     // The agent waits by its own wakeup: its run halted nothing yet (US6).
     if (input.wakeup === true) {

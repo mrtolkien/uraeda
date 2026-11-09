@@ -629,10 +629,12 @@ git commit -m "feat(agents-fix): a catch-up turn records the commit it catches u
   latest turn's `step`), `fate/needs-you.ts` (the conflict's message, the key),
   `packages/server/src/pulls.ts` (`PAST_LAST_TASK`), `packages/web/src/labels.ts`,
   `packages/web/src/sidebar/cards.ts`, `packages/web/src/SessionAttention.tsx`,
-  `packages/web/src/useDismiss.ts`
+  `packages/web/src/useDismiss.ts`; `runner/session-state.ts` (`SessionChange.dismissed`),
+  `runner/session-edits.ts`, `live.ts`, `extensions/server.ts` (R9)
 - Test: `packages/server/src/runner/__tests__/status.test.ts`,
   `packages/server/src/__tests__/needs-you.test.ts`,
-  `packages/server/src/__tests__/continue-all.test.ts`, `packages/server/src/__tests__/helpers.ts`
+  `packages/server/src/__tests__/continue-all.test.ts`, `packages/server/src/__tests__/helpers.ts`,
+  `packages/server/src/__tests__/dismissed.test.ts`, `packages/web/src/__tests__/cards.test.ts`
 
 **Interfaces:**
 
@@ -643,13 +645,17 @@ git commit -m "feat(agents-fix): a catch-up turn records the commit it catches u
     leaves it.
   - At `catch-up`, any other done turn reads as the rules after `halted` do (idle, or a new reply),
     never `halted`.
-  - `dismiss` also takes a done turn whose step is `catch-up`.
+  - `dismiss` also takes a done turn whose step is `catch-up`; its change carries `dismissed`, so it
+    never reaches `onTurnDone` (R9).
   - `continuedByAll` is also true for a feature at `catch-up` whose status is `idle` or `unread`.
   - The test helper `atCatchUp(binding: Binding, folder: string, catchUp: CatchUpView): Binding`,
     which wraps the binding so the folder's feature, from `readWorkspace`, `readFeature`, and
-    `nextStep`, reads at `catch-up` with an open pull request #116. Task 6 uses it.
+    `nextStep`, reads at `catch-up` with an open pull request #116. Task 6 uses it. It is built on
+    `atStep(binding: Binding, folder: string, step: PastLastTask): Binding`, which puts the folder
+    at any step past the last task with #116 (`PULL_REQUEST`), as the notification's test does at
+    `pull-request`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // runner/__tests__/status.test.ts: rows of the existing table
@@ -693,27 +699,27 @@ The break each test catches: a catch-up stop reading `halted` (wrong banner) or 
 dismissed one still asking; a turn sent before the catch-up asking at `catch-up`; Continue all
 skipping idle features; the key moving with every turn.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/status.test.ts packages/server/src/__tests__/needs-you.test.ts packages/server/src/__tests__/continue-all.test.ts`
 - Expected: FAIL, `expected 'halted' to be 'conflict'`.
 
-- [ ] **Step 3: Implement.** `sessionStatus`'s `latest` gains `step`; the conflict rule goes right
+- [x] **Step 3: Implement.** `sessionStatus`'s `latest` gains `step`; the conflict rule goes right
       after the failed or stopped rule, and dismissal works as for those. `needs-you.ts`: the
       conflict's message is "The catch-up stopped on a conflict"; the key's turn is the followed
-      session's latest turn not sent at `catch-up`. `PAST_LAST_TASK` gains `catch-up`. Web: step
-      label "Catch up" in `STEPS` and `SHORT`, icon `pull-request`, "Next" heading "The agent
-      catches the branch up with main"; the banner `conflict` with the spec's title and text, the
-      pull request's number from the feature, "the pull request" without one; `DISMISSABLE` gains
-      `conflict`.
+      session's latest turn not sent at `catch-up`, when the step asks (R10). `PAST_LAST_TASK` gains
+      `catch-up`. Web: step label "Catch up" in `STEPS` and `SHORT`, icon `pull-request`, "Next"
+      heading "The agent catches the branch up with main"; the banner `conflict` with the spec's
+      title and text, the pull request's number from the feature, "the pull request" without one;
+      `DISMISSABLE` gains `conflict`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/web/src

@@ -343,7 +343,12 @@ export function createSessions(options: {
           process.stderr.write(`uraeda: ${(error as Error).message}\n`);
         }
       }
-      if ("agent" in change || change.state !== "done" || change.folder === null) {
+      if (
+        "agent" in change ||
+        change.state !== "done" ||
+        change.dismissed ||
+        change.folder === null
+      ) {
         return;
       }
       const { folder, repo } = change;
