@@ -249,7 +249,7 @@ test("the server's catcher leaves a missing repository alone", async () => {
 
   const caught = serverCatcher({ ...server, binding: using });
   await caught.runAll();
-  caught.stop();
+  await caught.stop();
 
   expect(log.mock.calls.map(([text]) => String(text)).join("")).not.toContain("catch-ups");
   log.mockRestore();
