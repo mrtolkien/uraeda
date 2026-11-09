@@ -79,7 +79,7 @@ fn reads_each_file() {
         ..Settings::default()
     };
     let list = "The allowed host names are a list, like [\"mac.tail1234.ts.net\"].";
-    let rows: [(Option<&str>, Result<Settings, String>); 14] = [
+    let rows: [(Option<&str>, Result<Settings, String>); 15] = [
         (None, Ok(Settings::default())),
         (Some(""), Ok(Settings::default())),
         (
@@ -124,6 +124,13 @@ fn reads_each_file() {
         (
             Some("[server]\nopen_browser = \"yes\"\n"),
             Err("line 2, open_browser: Opening a browser at start is true or false.".into()),
+        ),
+        (
+            Some("[runs]\nbuild_in_fresh_session = 1\n"),
+            Err(
+                "line 2, build_in_fresh_session: Building in a fresh session is true or false."
+                    .into(),
+            ),
         ),
         (
             Some("runs = true\n"),
