@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
+import { type CatchUps, startCatchUps } from "./catch-ups.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
 import { keptBases, startWaiting, warmPreview } from "./fate/preview-waiting.ts";
 import { ExtensionsHost } from "./extensions/server.ts";
@@ -15,6 +16,7 @@ import {
   createSessions,
   type HostsOf,
   livePreviews,
+  onTurnDone,
   renewPreviews,
 } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
@@ -240,6 +242,32 @@ function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
   };
 }
 
+/**
+ * Starts the catcher on the listed repositories, each one's context the one a request there gets:
+ * it runs at each feature's turn that ends done, at each change of the settings, which may turn its
+ * switch on, and once now. Its stop stops its triggers too. The hosts' watcher bursts run it too.
+ */
+function catcher(shared: Omit<RepoContext, "repo">): CatchUps {
+  const { hosts, sessions, settings } = shared;
+  const catchUps = startCatchUps({
+    context: (repo) => ({ ...shared, repo }),
+    enabled: () => settings.runs().catchUpPullRequests.inForce,
+    repos: () => hosts.all().map((host) => host.path),
+  });
+  const unsubscribe = [
+    onTurnDone(sessions, (repo) => void catchUps.run(repo)),
+    settings.onChange(() => void catchUps.runAll()),
+  ];
+  void catchUps.runAll();
+  return {
+    ...catchUps,
+    stop: () => {
+      unsubscribe.forEach((stop) => stop());
+      catchUps.stop();
+    },
+  };
+}
+
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
   /**
@@ -294,10 +322,10 @@ function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previe
 
 /**
  * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
- * of the listed repositories, whose changes the extensions turn into events: all closed again when
- * one fails to open.
+ * of the listed repositories, whose changes the extensions turn into events, and each of whose
+ * watcher bursts calls `burst` with the repository's path: all closed again when one fails to open.
  */
-async function openParts(options: StartOptions, previews: Previews) {
+async function openParts(options: StartOptions, previews: Previews, burst: (repo: string) => void) {
   const { binding, dataDir } = options;
   const extensions = await ExtensionsHost.open({
     agents: options.agents,
@@ -319,7 +347,10 @@ async function openParts(options: StartOptions, previews: Previews) {
     });
     hosts = await Hosts.open({
       binding,
-      changed: (host, changes) => extensions.changes(host, changes),
+      changed: (host, changes) => {
+        extensions.changes(host, changes);
+        burst(host.path);
+      },
       dataDir,
       sessions: sessions.sessions,
       started: (host) => extensions.seed(host),
@@ -338,6 +369,35 @@ async function openParts(options: StartOptions, previews: Previews) {
 }
 
 /**
+ * Starts the extensions on the open hosts and sessions, a turn's end warming its folder's
+ * Storybook: the hosts, the sessions, `stopSessions`, and the extensions closed again when they
+ * fail.
+ */
+async function startExtensions(
+  shared: Omit<RepoContext, "repo"> & { extensions: ExtensionsHost },
+  stopSessions: () => Promise<void>,
+) {
+  const { extensions, hosts, sessions } = shared;
+  try {
+    await extensions.start({
+      hosts,
+      sessions,
+      warm: (repository, folder) => {
+        const host = hosts.get(repository);
+        if (host) {
+          warmPreview({ ...shared, repo: host.path }, folder).catch(() => {});
+        }
+      },
+    });
+  } catch (error) {
+    hosts.close();
+    await stopSessions();
+    extensions.close();
+    throw error;
+  }
+}
+
+/**
  * Starts the server once its sign-in and its themes are open, `key` the access key when this start
  * made it.
  */
@@ -349,7 +409,10 @@ async function startOpened(
   const { binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   const { frames, previews } = startPreviews(dataDir);
-  const { extensions, hosts: opened, sessions } = await openParts(options, previews);
+  // The catcher starts once everything it reads is open: a burst before it catches up nothing.
+  const started: { catchUps?: CatchUps } = {};
+  const parts = await openParts(options, previews, (repo) => void started.catchUps?.run(repo));
+  const { extensions, hosts: opened, sessions } = parts;
   const shared = {
     ...options,
     extensions,
@@ -358,26 +421,12 @@ async function startOpened(
     previews,
     sessions: sessions.sessions,
   };
-  try {
-    await extensions.start({
-      hosts: opened,
-      sessions: sessions.sessions,
-      warm: (repository, folder) => {
-        const host = opened.get(repository);
-        if (host) {
-          warmPreview({ ...shared, repo: host.path }, folder).catch(() => {});
-        }
-      },
-    });
-  } catch (error) {
-    opened.close();
-    await sessions.stop();
-    extensions.close();
-    throw error;
-  }
+  await startExtensions(shared, sessions.stop);
   // Once the repositories and the runtimes are there: a run of one no longer listed does not go on
   // after a restart.
   await sessions.sessions.startContinues();
+  const caught = catcher(shared);
+  started.catchUps = caught;
   const sweepPreviews = waitingPreviews(shared);
   const sweeping = setInterval(() => {
     sweepPreviews();
@@ -419,6 +468,7 @@ async function startOpened(
     stop: () => {
       stopping ??= (async () => {
         clearInterval(sweeping);
+        caught.stop();
         signIn?.links.close();
         opened.close();
         options.settings.close();

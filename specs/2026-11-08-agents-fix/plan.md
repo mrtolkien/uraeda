@@ -737,8 +737,9 @@ git commit -m "feat(agents-fix): Catch up reads idle, and a stopped catch-up ask
 **Files:**
 
 - Create: `packages/server/src/catch-ups.ts`
-- Modify: `packages/server/src/fate/continue-all.ts` (export `continueOne`, with an optional trigger
-  and line), `packages/server/src/server.ts` (start it, its triggers, its stop)
+- Modify: `packages/server/src/fate/continue-all.ts` (export `continueOne`, with an optional
+  automatic run, `Automatic`: its trigger, its line, and the step it is sent at only, R14),
+  `packages/server/src/server.ts` (start it, its triggers, its stop), `docs/web-ui.md` (the line)
 - Test: `packages/server/src/__tests__/catch-ups.test.ts`
 
 **Interfaces:**
@@ -763,7 +764,7 @@ export function startCatchUps(options: {
 }): CatchUps;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/catch-ups.test.ts, on testServer with atCatchUp(binding, AGENT, CATCH_UP)
@@ -779,10 +780,11 @@ test("a feature at Catch up gets its run, with the line saying why", async () =>
 
 /** US2 3, SC-002, US2 more 3; review focus 5. */
 test("one catch-up per tip, across a restart", async () => {
-  // A turn sent with Continue at catch-up (trigger manual) ended done. run(repo): no new turn. A new
-  // catcher on the same cache file (a restart): no new turn. The commit becomes "d".repeat(40):
-  // the done turn, of an older commit, reads idle, not a conflict (R12): one new turn, caughtUpTo
-  // "ddd…".
+  // A turn sent with Continue at catch-up (trigger manual) the human stopped and dismissed: it
+  // reads idle (R14). run(repo): no new turn. A new server and catcher on the same cache file (a
+  // restart): no new turn. The commit becomes "d".repeat(40): one new turn, caughtUpTo "ddd…". It
+  // ends done: a conflict, no new turn. The commit becomes "e".repeat(40): the done turn, of an
+  // older commit, reads idle, not a conflict (R12): one more turn, caughtUpTo "eee…".
 });
 
 /** US2 more 2. */
@@ -801,12 +803,12 @@ The break each test catches: no line, or a line on the agent's message; a second
 triggers; the record read by trigger only; a restart forgetting the record; a send into a working
 session; anything sent with the switch off.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/catch-ups.test.ts`
 - Expected: FAIL, `Failed to load url ../catch-ups.ts`.
 
-- [ ] **Step 3: Implement.** A run reads `featureStatuses(context(repo))`, and, when `enabled()`,
+- [x] **Step 3: Implement.** A run reads `featureStatuses(context(repo))`, and, when `enabled()`,
       sends `continueOne` with trigger `catch-up` and `catchUpLine(step.catchUp)` to each feature
       whose step is `catch-up` with a `catchUp`, whose status is `idle` or `unread` with a session
       (R3), and for which `caughtUp(root, folder, commit)` is false. Runs of one repository go one
@@ -816,14 +818,14 @@ session; anything sent with the switch off.
       `onTurnDone`; `runAll()` from `settings.onChange`, and once at start; `stop()` with the
       server. `enabled` reads `settings.runs().catchUpPullRequests.inForce` (R6).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src
+git add packages/server/src docs/web-ui.md specs/2026-11-08-agents-fix
 git commit -m "feat(agents-fix): Uraeda catches up open pull requests by itself, once turned on"
 ```
