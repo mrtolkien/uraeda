@@ -423,17 +423,20 @@ place, in the same commit, as [the comments pass](#comments-on-the-pull-request)
 record changed, write the pull request's body from it again, as
 [finish](finish.md#changes-asked-on-the-pull-request) says: the body is the record's text.
 
-Two cases stop the catch-up differently from the final review, without a round of questions. One is
-a decision or an amendment on the default branch that conflicts with the branch. The other is a
-conflict whose resolution needs a choice the spec and the decisions do not settle. Either can come
-at any of the final review's steps 2 to 5: before the rebase, during it, or after it. The human
-reviews the pull request, so the question goes there:
+Three cases stop the catch-up differently from the final review, without a round of questions. One
+is a decision or an amendment on the default branch that conflicts with the branch. Another is a
+conflict whose resolution needs a choice the spec and the decisions do not settle. The last is a
+complete validation that fails, at step 5, in a way you cannot fix within the spec and the
+decisions: the branch and the default branch conflict there too, without a conflicting line. Any of
+them can come at the final review's steps 2 to 5: before the rebase, during it, or after it. The
+session then reads "The catch-up stopped on a conflict.". The human reviews the pull request, so the
+question goes there:
 
 1. **Leave the branch as it was**: abort a rebase in progress with `git rebase --abort`, then go
    back to the noted tip with `git reset --keep <tip>`, which drops the commits the catch-up made.
    Push nothing, so the branch's local and remote tips stay where they were.
-2. **Comment on the pull request** with `gh pr comment <number>`: the conflicting files, or the
-   decision, the choice it needs, and your recommendation with its reason.
+2. **Comment on the pull request** with `gh pr comment <number>`: the conflicting files, the
+   decision, or the failing checks, the choice it needs, and your recommendation with its reason.
 3. **End the run.** The step stays `catch-up`. The human answers by requesting changes, which
    [the comments pass](#comments-on-the-pull-request) handles.
 

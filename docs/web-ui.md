@@ -499,8 +499,11 @@ the agent to push. Once main moves past its branch, it reads "Catch up", for the
 validate, and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch
 up open pull requests", under Runs in Settings, starts that run by itself, once per commit of main,
 in the feature's latest session, once no turn runs there. Its session opens with the line "Catching
-up with main, which moved to “<subject of the commit>”." A catch-up you stopped or dismissed is not
-started again until main moves again.
+up with main, which moved to “<subject of the commit>”." A catch-up that meets a conflict with main,
+one needing your choice, asks on the pull request: the feature reads "Needs attention", and its
+session's banner says "The catch-up stopped on a conflict." until you answer by requesting changes,
+or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until main
+moves again.
 
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
@@ -511,11 +514,12 @@ commit or a message from you, the run reads "The agent keeps stopping." and asks
 
 On Home, Needs you has "Continue all" in its border while a run there failed, was stopped, or ended
 early, at a step where the agent works. It sends each such run its step's message, in its own
-session, as continuing the step does, and leaves the features waiting for you at a gate alone. Under
-the pointer or focused, it tints the runs it continues and dims every other row; on a touch screen,
-the first tap shows this and the second sends. A run it could not continue, as while another session
-of its feature works, stays as it was, and a toast says why. A run waiting for a usage limit's reset
-reads in In progress, with the time it goes on.
+session, as continuing the step does, and leaves the features waiting for you at a gate alone. It
+also catches up each feature reading "Catch up" whose catch-up has not run yet for main's current
+commit. Under the pointer or focused, it tints the runs it continues and dims every other row; on a
+touch screen, the first tap shows this and the second sends. A run it could not continue, as while
+another session of its feature works, stays as it was, and a toast says why. A run waiting for a
+usage limit's reset reads in In progress, with the time it goes on.
 
 When you ask a session on the main checkout for a code change, the agent offers it as a change, in a
 card holding its proposal: edit the proposal and its slug, then start it, and the session goes on in
