@@ -31,6 +31,7 @@ function SessionEffort({ agent, id }: { agent: string; id: string }) {
   }
   return (
     <SessionPicker
+      hasPageKey
       isStarted
       onChange={(next) => {
         const effort = next.effort ?? null;
@@ -73,7 +74,7 @@ export function useComposerRuntime({ agent, blocked, onSend, session }: Composer
   return {
     agent: choice.runtime,
     picker: makes ? (
-      <SessionPicker onChange={setPick} runtimes={pickerRuntimes(on)} value={pick} />
+      <SessionPicker hasPageKey onChange={setPick} runtimes={pickerRuntimes(on)} value={pick} />
     ) : (
       effort
     ),
