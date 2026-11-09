@@ -14,12 +14,13 @@ mod file;
 mod list;
 mod rules;
 mod runs;
+mod runs_write;
 
 pub(crate) use file::{line, load as load_text};
 pub use runs::{
     ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
-    set_run_options,
 };
+pub use runs_write::set_run_options;
 
 /// The start of a file the first write creates.
 const HEADER: &str =
