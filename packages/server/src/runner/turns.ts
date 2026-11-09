@@ -50,29 +50,38 @@ export class Turns {
     live: Live,
     turn: {
       allowed: string | null;
+      /** A catch-up's commit of the default branch. */
+      caughtUpTo?: string | null;
       item: Message;
       kind: TurnKind;
-      /** The system line it opens with, when its process started a new agent session. */
-      line?: string;
+      /**
+       * The system lines it opens with: its process's, when it started a new agent session, and
+       * its workflow message's, as a catch-up's.
+       */
+      lines?: Array<string>;
       message: Outgoing;
       step: string | null;
       trigger: Trigger | null;
     },
   ): number {
     const { cache } = this.#context;
-    const id = cache.addTurn({
-      allowed: turn.allowed,
-      kind: turn.kind,
-      sessionId: live.id,
-      state: "running",
-      step: turn.step,
-      trigger: turn.trigger,
+    // The turn, its lines, and its message are written as one, or not at all.
+    const { id, seq } = cache.atomically(() => {
+      const id = cache.addTurn({
+        allowed: turn.allowed,
+        caughtUpTo: turn.caughtUpTo ?? null,
+        kind: turn.kind,
+        sessionId: live.id,
+        state: "running",
+        step: turn.step,
+        trigger: turn.trigger,
+      });
+      for (const text of turn.lines ?? []) {
+        cache.appendItem(id, { kind: "system", text });
+      }
+      return { id, seq: cache.appendItem(id, turn.item) };
     });
     this.track(id);
-    if (turn.line !== undefined) {
-      cache.appendItem(id, { kind: "system", text: turn.line });
-    }
-    const seq = cache.appendItem(id, turn.item);
     live.messages.set(turn.message.id, { item: turn.item, seq, turn: id, written: true });
     this.#run(live, id, turn.message);
     return id;

@@ -83,7 +83,7 @@ async function deliver(
   context: SessionContext,
   live: Live,
   { held, opening: given, paths, text, workflow: sent }: Checked,
-  { asChat, branch, step }: Place,
+  { asChat, branch, caughtUpTo, step }: Place,
   behind: boolean,
 ): Promise<{ session: string; turn: number }> {
   const { binding, cache, changed, processes, turns } = context;
@@ -140,17 +140,21 @@ async function deliver(
     when: "queue",
   };
   const kind: TurnKind = workflow ? "workflow" : "chat";
-  const turn = { allowed: null, kind, step, trigger: workflow?.trigger ?? null };
+  const turn = { allowed: null, caughtUpTo: caughtUpTo ?? null, kind, step };
+  const trigger = workflow?.trigger ?? null;
+  const line = workflow?.line;
 
   // A busy session queues the turn: Uraeda writes its message once the running turn ends, or once
   // the other session of its folder is idle, which wakes it. Checked with the push, at once.
   if (busy()) {
-    const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
+    const lines = { after: asChat, before: line };
+    const { queued, seq } = addQueued(
+      context,
+      { ...turn, sessionId: live.id, trigger },
+      item,
+      lines,
+    );
     turns.track(queued);
-    const seq = cache.appendItem(queued, item);
-    if (asChat !== undefined) {
-      cache.appendItem(queued, { kind: "system", text: asChat });
-    }
     live.messages.set(id, { item, seq, turn: queued, written: false });
     // Checked again as it starts: the running turn may move its step on.
     live.queue.push({ id: queued, message, ...(workflow ? { workflow } : {}) });
@@ -160,8 +164,9 @@ async function deliver(
 
   live.starting = true;
   try {
-    const { line } = await processes.open(live);
-    const started = turns.begin(live, { ...turn, item, line, message });
+    const { line: opened } = await processes.open(live);
+    const lines = [opened, line].filter((text) => text !== undefined);
+    const started = turns.begin(live, { ...turn, item, lines, message, trigger });
     if (asChat !== undefined) {
       cache.appendItem(started, { kind: "system", text: asChat });
     }
@@ -173,6 +178,29 @@ async function deliver(
       turns.wake(live);
     }
   }
+}
+
+/**
+ * Adds a queued turn, its message, and its system lines before and after the message, as one, or
+ * not at all; returns the turn and its message's seq.
+ */
+function addQueued(
+  { cache }: SessionContext,
+  turn: Omit<Parameters<SessionContext["cache"]["addTurn"]>[0], "state">,
+  item: Message,
+  lines: { after: string | undefined; before: string | undefined },
+): { queued: number; seq: number } {
+  return cache.atomically(() => {
+    const queued = cache.addTurn({ ...turn, state: "queued" });
+    if (lines.before !== undefined) {
+      cache.appendItem(queued, { kind: "system", text: lines.before });
+    }
+    const seq = cache.appendItem(queued, item);
+    if (lines.after !== undefined) {
+      cache.appendItem(queued, { kind: "system", text: lines.after });
+    }
+    return { queued, seq };
+  });
 }
 
 /**
@@ -196,6 +224,8 @@ export function deliverContinue(
   const { queued, seq } = cache.atomically(() => {
     const queued = cache.addTurn({
       allowed: null,
+      // A continued catch-up catches up with the same commit (R1).
+      caughtUpTo: chat ? null : stopped.caughtUpTo,
       kind: chat ? "chat" : stopped.kind,
       sessionId: live.id,
       state: "queued",

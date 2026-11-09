@@ -623,6 +623,57 @@ test("a session made before the feature reads on the agent's defaults", () => {
   });
 });
 
+/** SC-002's record: a turn keeps the commit it caught up with, across a reopened cache. */
+test("a catch-up turn records its commit, and the folder reads caught up", () => {
+  const path = tempPath();
+  const first = SessionCache.open(path);
+  const earlier = first.createSession(feature);
+  const caughtUp = first.addTurn({
+    ...workflowTurn,
+    caughtUpTo: "abc",
+    sessionId: earlier.id,
+    step: "catch-up",
+    trigger: "catch-up",
+  });
+  first.endTurn(caughtUp, { state: "done" });
+  // A later session of the folder: the record is the folder's, not its latest session's.
+  const later = first.createSession(feature);
+  first.addTurn({ ...workflowTurn, sessionId: later.id });
+  const other = first.createSession({ ...feature, folder: "2026-10-13-other" });
+  first.addTurn({ ...workflowTurn, sessionId: other.id });
+
+  const cache = SessionCache.open(path);
+
+  expect(cache.turn(caughtUp)).toMatchObject({ caughtUpTo: "abc", trigger: "catch-up" });
+  expect(cache.caughtUp(REPO, FOLDER, "abc")).toBe(true);
+  expect(cache.caughtUp(REPO, FOLDER, "def")).toBe(false);
+  expect(cache.caughtUp(REPO, "2026-10-13-other", "abc")).toBe(false);
+  expect(cache.caughtUp("/repo/b", FOLDER, "abc")).toBe(false);
+});
+
+test("migration 11 adds the turns' catch-up commit, null for older turns", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  for (const migration of migrations.slice(0, 10)) {
+    if (typeof migration === "string") {
+      old.exec(migration);
+    } else {
+      migration(old);
+    }
+  }
+  old.exec("PRAGMA user_version = 10");
+  old.exec(`INSERT INTO sessions (id, repo, folder, agent, native_id, created_at, updated_at)
+    VALUES ('s', '${REPO}', '${FOLDER}', 'claude', '3f2c', '2026-11-08', '2026-11-08');
+    INSERT INTO turns (id, session_id, kind, trigger, step, state)
+    VALUES (1, 's', 'workflow', 'manual', 'catch-up', 'done');`);
+  old.close();
+
+  const cache = SessionCache.open(path);
+
+  expect(cache.turn(1)).toMatchObject({ caughtUpTo: null, step: "catch-up" });
+  expect(cache.caughtUp(REPO, FOLDER, "abc")).toBe(false);
+});
+
 test("what a session runs on is stored", () => {
   const cache = SessionCache.open(":memory:");
   const row = cache.createSession({ ...chat, effort: "high", model: "gpt-6-astra" });
@@ -761,6 +812,7 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
     {
       allowed: null,
       // A cache an older server made gains the columns, empty.
+      caughtUpTo: null,
       continueAt: null,
       continueReason: null,
       dismissedAt: null,

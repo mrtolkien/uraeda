@@ -341,6 +341,7 @@ export async function readWorkflowMessage(
       step: step.name,
       trigger: trigger as Trigger,
       ...(step.planReview === undefined ? {} : { planReview: step.planReview }),
+      ...(step.catchUp === undefined ? {} : { catchUp: step.catchUp }),
     }),
   };
 }

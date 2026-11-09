@@ -78,3 +78,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the remote tip alone: a catch-up committed but not pushed yet would
   read Catch up again.
 - **Where**: `crates/core/src/behind.rs`, found in review.
+
+## R8: A catch-up's commit follows its turn, continued or retyped
+
+- **Decision**: an automatic continue of a stopped catch-up records the stopped turn's
+  `caught_up_to`, and a queued catch-up that starts as a chat, its step gone, drops it.
+  `turns.begin` takes its system lines as `lines`, the process's then the workflow message's,
+  written with the turn and its message in one transaction.
+- **Rationale**: R1 says every workflow turn at `catch-up` records its commit, and a continue is
+  one, of the same commit; a turn retyped as a chat caught up with nothing, and would keep the
+  catcher from catching up with that tip.
+- **Where**: task 4, `packages/server/src/runner/send.ts` and `cache.ts`.

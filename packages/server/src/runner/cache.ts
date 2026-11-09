@@ -264,9 +264,13 @@ export class SessionCache {
     return rows.map(toSession);
   }
 
-  /** Adds a turn to the session, and returns its ID. A running turn starts now. */
+  /**
+   * Adds a turn to the session, and returns its ID. A running turn starts now. A catch-up's,
+   * `caughtUpTo`, records the default branch's commit it started for.
+   */
   addTurn(row: {
     allowed: string | null;
+    caughtUpTo?: string | null;
     kind: TurnKind;
     sessionId: string;
     state: "queued" | "running";
@@ -277,8 +281,9 @@ export class SessionCache {
       const at = now();
       const { lastInsertRowid } = this.db
         .prepare(
-          `INSERT INTO turns (session_id, kind, trigger, step, allowed, state, started_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO turns (session_id, kind, trigger, step, allowed, state, started_at,
+             caught_up_to)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           row.sessionId,
@@ -288,10 +293,26 @@ export class SessionCache {
           row.allowed,
           row.state,
           row.state === "running" ? at : null,
+          row.caughtUpTo ?? null,
         );
       touch(this.db, row.sessionId, at);
       return Number(lastInsertRowid);
     });
+  }
+
+  /**
+   * Whether a turn of any session of the folder caught up with the default branch's `commit`: a
+   * catch-up runs once per tip.
+   */
+  caughtUp(repo: string, folder: string, commit: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `SELECT 1 FROM turns t JOIN sessions s ON s.id = t.session_id
+           WHERE s.repo = ? AND s.folder = ? AND t.caught_up_to = ? LIMIT 1`,
+        )
+        .get(repo, folder, commit) !== undefined
+    );
   }
 
   /** Starts a queued turn. */
@@ -299,10 +320,13 @@ export class SessionCache {
     startTurn(this.db, id);
   }
 
-  /** Changes a queued turn's kind, step, and trigger: a workflow run that starts as a chat. */
+  /**
+   * Changes a queued turn's kind, step, and trigger: a workflow run that starts as a chat, which
+   * catches up with nothing.
+   */
   retypeTurn(id: number, as: { kind: TurnKind; step: string | null; trigger: Trigger | null }) {
     this.db
-      .prepare("UPDATE turns SET kind = ?, step = ?, trigger = ? WHERE id = ?")
+      .prepare("UPDATE turns SET kind = ?, step = ?, trigger = ?, caught_up_to = NULL WHERE id = ?")
       .run(as.kind, as.step, as.trigger, id);
   }
 

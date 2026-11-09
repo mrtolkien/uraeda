@@ -541,9 +541,12 @@ git commit -m "feat(agents-fix): the skill catches up an open pull request"
 - Modify: `packages/server/src/runner/events.ts` (`Trigger`), `runner/message.ts` (`goal`,
   `runMessage`, `recommendedMessage`), `runner/migrations.ts`, `runner/cache.ts` (`TurnRow`,
   `addTurn`, a read of the record), `runner/send-input.ts` (`SendInput.workflow.line`),
-  `runner/send.ts` (`deliver`, `sendPlace`'s use)
+  `runner/send.ts` (`deliver`, `deliverContinue`, `sendPlace`'s use), `runner/turns.ts` (`begin`
+  takes `lines` and `caughtUpTo`), `runner/allow.ts` (`begin`'s `lines`), `runner/cache-rows.ts`
+  (`TurnRow`), `fate/sessions.ts` (the workflow message's `catchUp`)
 - Test: `packages/server/src/runner/__tests__/recommended.test.ts`,
-  `packages/server/src/runner/__tests__/cache.test.ts`
+  `packages/server/src/runner/__tests__/cache.test.ts`,
+  `packages/server/src/runner/__tests__/sessions.test.ts`
 
 **Interfaces:**
 
@@ -562,16 +565,17 @@ git commit -m "feat(agents-fix): the skill catches up an open pull request"
   - `SendInput.workflow.line?: string`: a system line the turn shows before its message, as an
     automatic continue's.
   - `deliver` records `caughtUpTo = next.step.catchUp.commit` on every workflow turn whose step is
-    `catch-up`, whatever its trigger (R1).
+    `catch-up`, whatever its trigger (R1), read by `sendPlace` as it sends; an automatic continue
+    keeps its stopped turn's, and a queued turn retyped as a chat drops it (R8).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // runner/__tests__/recommended.test.ts
 /** US1 2: the catch-up's message. */
 test("the catch-up step recommends catching up with main", () => {
   const message = recommendedMessage(
-    input({ catchUp: CATCH_UP, pullRequest: "behind", step: "catch-up" }),
+    behind(CATCH_UP), // the feature's pull request open, the step's `pullRequest` "behind"
   );
   expect(message).toMatchObject({ name: "Continue, catch up with main" });
   expect("text" in message && message.text).toBe(
@@ -594,22 +598,22 @@ test("a catch-up turn records its commit, and the folder reads caught up", () =>
 The break each test catches: a `goal` falling to "Finish it"; a column not migrated, or a record
 read from the session rather than the folder.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/recommended.test.ts packages/server/src/runner/__tests__/cache.test.ts`
 - Expected: FAIL, `expected 'Continue, finish it' to be 'Continue, catch up with main'`.
 
-- [ ] **Step 3: Implement** as the Interfaces say. `line` is written as a `system` item before the
+- [x] **Step 3: Implement** as the Interfaces say. `line` is written as a `system` item before the
       message, in the same transaction as the turn, in both the queued and the started branch of
       `deliver`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner

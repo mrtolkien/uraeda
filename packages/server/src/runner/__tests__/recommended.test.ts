@@ -1,13 +1,21 @@
-import type { FeatureView, NextView, PullRequestState } from "uraeda-binding";
+import type { CatchUpView, FeatureView, NextView, PullRequestState } from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
-import { recommendedMessage, runMessage } from "../message.ts";
+import { catchUpLine, recommendedMessage, runMessage } from "../message.ts";
 
 const branch = "2026-10-11-web-ui";
 const feature = { kind: "feature", path: `specs/${branch}` };
 const IMPLEMENTATION = "skills/uraeda/references/implementation.md";
 
+/** The default branch's tip a branch behind it catches up with. */
+const CATCH_UP: CatchUpView = {
+  branch: "main",
+  commit: "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+  subject: "feat(web): the board's columns",
+};
+
 /** Where each step waits, and its reference, as the core's step table gives them. */
 const STEPS: Record<string, { reference?: string; waitsOn: string }> = {
+  "catch-up": { reference: IMPLEMENTATION, waitsOn: "agent" },
   change: { reference: "skills/uraeda/references/change.md", waitsOn: "agent" },
   done: { waitsOn: "nobody" },
   finish: { reference: "skills/uraeda/references/finish.md", waitsOn: "agent" },
@@ -23,6 +31,7 @@ const STEPS: Record<string, { reference?: string; waitsOn: string }> = {
 /** What `recommendedMessage` reads of a feature: its step, its pull request, and its agent. */
 function input({
   available = true,
+  catchUp,
   gate,
   kind = "feature",
   merged = false,
@@ -30,6 +39,7 @@ function input({
   step = "human-gate",
 }: {
   available?: boolean;
+  catchUp?: CatchUpView;
   gate?: string;
   kind?: string;
   merged?: boolean;
@@ -60,9 +70,21 @@ function input({
       ...STEPS[step],
       ...(gate === undefined ? {} : { file: gate }),
       ...(pullRequest === undefined ? {} : { pullRequest }),
+      ...(catchUp === undefined ? {} : { catchUp }),
     },
   };
   return { agent: { available, name: "Claude Code" }, feature: view, next };
+}
+
+/** A feature whose open pull request is behind the default branch, at `catch-up`. */
+function behind(catchUp?: CatchUpView) {
+  const given = input({
+    ...(catchUp === undefined ? {} : { catchUp }),
+    pullRequest: "open",
+    step: "catch-up",
+  });
+  given.next.step.pullRequest = "behind";
+  return given;
 }
 
 const WAITS = { reason: "No recommended message: the feature waits on you" };
@@ -93,6 +115,34 @@ test("the push step recommends pushing the branch's commits", () => {
     `/uraeda Continue the feature specs/${branch}/ on branch ${branch}: ` +
       `Push the branch's commits to its pull request, starting with ${IMPLEMENTATION}.\n` +
       "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
+  );
+});
+
+/** US1 2: the catch-up's message. */
+test("the catch-up step recommends catching up with main", () => {
+  const message = recommendedMessage(behind(CATCH_UP));
+  expect(message).toMatchObject({ name: "Continue, catch up with main", step: "catch-up" });
+  expect("text" in message && message.text).toBe(
+    `/uraeda Continue the feature specs/${branch}/ on branch ${branch}: ` +
+      `Catch up with main, starting with ${IMPLEMENTATION}.\n` +
+      "Stop when the pull request is ready for review again, and earlier only if you need a decision from me.\n",
+  );
+});
+
+/** Catches a work line that names `main` though the default branch is another. */
+test("the catch-up names the default branch it catches up with", () => {
+  const trunk = recommendedMessage(behind({ ...CATCH_UP, branch: "trunk" }));
+  expect(trunk).toMatchObject({ name: "Continue, catch up with trunk" });
+  // Without the commit read, it still says what it does.
+  expect(recommendedMessage(behind())).toMatchObject({
+    name: "Continue, catch up with the default branch",
+  });
+});
+
+/** US2 1: the line a catch-up's session shows, which says why it ran. */
+test("the catch-up's session line names the commit main moved to", () => {
+  expect(catchUpLine(CATCH_UP)).toBe(
+    "Catching up with main, which moved to “feat(web): the board's columns”.",
   );
 });
 
