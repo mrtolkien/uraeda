@@ -140,6 +140,7 @@ function useMapKeys({
   onChange,
   place,
   pos,
+  runtimes,
   setPicking,
   setPos,
   stages,
@@ -150,6 +151,7 @@ function useMapKeys({
   onChange: (value: RunOptions) => void;
   place: ReturnType<typeof placeOf>;
   pos: Pos;
+  runtimes: ReadonlyArray<PickerRuntime>;
   setPicking: (step: "model" | "effort" | undefined) => void;
   setPos: (pos: Pos) => void;
   stages: FeatureStages | undefined;
@@ -162,7 +164,7 @@ function useMapKeys({
       return;
     }
     if (typeof here === "object" && "joint" in here) {
-      onChange(withCut(value, here.joint));
+      onChange(withCut(runtimes, value, here.joint));
     } else if (here === "depth") {
       onChange({ ...value, depth: value.depth === "waves" ? "branch" : "waves" });
     } else if (here === "add") {
@@ -180,7 +182,7 @@ function useMapKeys({
     }
     if (typeof place === "object" && "joint" in place) {
       const isDefault = defaults.cuts.includes(place.joint) === value.cuts.includes(place.joint);
-      onChange(isDefault ? value : withCut(value, place.joint));
+      onChange(isDefault ? value : withCut(runtimes, value, place.joint));
     } else if (target !== undefined) {
       const fallback = target === "implementers" ? defaults.implementers : pickOf(defaults, target);
       onChange(withPick(value, target, fallback));
@@ -258,6 +260,7 @@ export function RunMap({
     onChange,
     place,
     pos,
+    runtimes,
     setPicking,
     setPos,
     stages,

@@ -97,8 +97,19 @@ export function stepSession(agents: Agents, options: MapOptions, from: StepId, t
   return true;
 }
 
-/** The options with the joint before `step` cut, or joined when it was cut. */
-export function withCut<Options extends MapOptions>(value: Options, step: number): Options {
+/**
+ * The options with the joint before `step` cut, or joined when it was cut. A forced joint keeps
+ * its options unchanged: it cuts whatever the human chooses, and a choice there would be stored
+ * where no one sees it.
+ */
+export function withCut<Options extends MapOptions>(
+  agents: Agents,
+  value: Options,
+  step: number,
+): Options {
+  if (isForced(agents, value, step)) {
+    return value;
+  }
   const cuts = value.cuts.includes(step)
     ? value.cuts.filter((each) => each !== step)
     : [...value.cuts, step];

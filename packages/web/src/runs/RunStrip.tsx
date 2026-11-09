@@ -179,7 +179,7 @@ export function RunStrip({
       setCursor(Math.max(0, Math.min(last, cursor + step)));
     } else if (event.key === "Enter" || event.key === " ") {
       if (cursor % 2 === 1 && !isChange) {
-        onChange(withCut(value, (cursor + 1) / 2));
+        onChange(withCut(runtimes, value, (cursor + 1) / 2));
       } else {
         setPicking("model");
       }
@@ -211,7 +211,7 @@ export function RunStrip({
                   isCut={jointCuts(runtimes, value, step)}
                   isPicked={cursor === index * 2 - 1}
                   label={`${STEP_LOOKS[STEPS[step - 1]!].name} to ${STEP_LOOKS[id].name}`}
-                  onPress={() => onChange(withCut(value, step))}
+                  onPress={() => onChange(withCut(runtimes, value, step))}
                 />
               )}
               <Square

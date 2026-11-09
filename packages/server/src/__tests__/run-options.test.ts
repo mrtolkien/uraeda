@@ -89,8 +89,11 @@ test.each<{
   },
 ])("the joints: $name", ({ cut, forced, options, spans }) => {
   const map = toMap(options, "claude");
-  const value = cut === undefined ? map : withCut(map, at(cut));
+  const value = cut === undefined ? map : withCut(AGENTS, map, at(cut));
   expect(sessionSpans(AGENTS, value).map(({ first, last }) => [first, last])).toEqual(spans);
+  // A forced joint takes no cut of the human's: none is stored.
+  const defaults = toMap({ steps: [] }, "claude");
+  expect(toStored(value, defaults)).toEqual(toStored(map, defaults));
   for (let index = 1; index < STEPS.length; index++) {
     const isLocked = forced.includes(STEPS[index]!);
     expect(isForced(AGENTS, value, index)).toBe(isLocked);

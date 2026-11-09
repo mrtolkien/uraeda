@@ -11,11 +11,12 @@ import {
   STEPS,
   type StepId,
   toMap,
+  withCut as withCutBy,
 } from "uraeda-server/run-options";
 import type { IconName } from "../keys/store.ts";
 import type { PickerRuntime, SessionPick } from "../SessionPicker.tsx";
 
-export { type Depth, STEPS, type StepId, withCut } from "uraeda-server/run-options";
+export { type Depth, STEPS, type StepId } from "uraeda-server/run-options";
 
 /** Each step's name and icon, as the feature page's steps draw them. */
 export const STEP_LOOKS: Record<StepId, { icon: IconName; name: string }> = {
@@ -74,6 +75,15 @@ export function isForced(
   index: number,
 ): boolean {
   return isForcedBy(pickerAgents(runtimes), options, index);
+}
+
+/** The options with the joint before `step` cut, or joined when it was cut; a forced one kept. */
+export function withCut(
+  runtimes: ReadonlyArray<PickerRuntime>,
+  options: RunOptions,
+  step: number,
+): RunOptions {
+  return withCutBy(pickerAgents(runtimes), options, step);
 }
 
 /** The sessions a feature runs in: each a span of steps, from `first` to `last`, by their index. */
