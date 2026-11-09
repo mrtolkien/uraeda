@@ -133,3 +133,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a catch-up that stopped on a conflict, with main moving again before the human sees
   it, reads idle and is caught up again for the new tip, stopping on the conflict once more.
 - **Where**: `runner/status.ts` `sessionStatus`, `fate/session-reads.ts` `statusOf`; task 5.
+
+## R13: A queued workflow turn retyped as a chat swaps its line for the chat's
+
+- **Decision**: when `recheckQueued` starts a queued workflow turn as a chat, the message moves into
+  the seq of the workflow's line before it, as "Catching up with main…", and the line saying it runs
+  as a chat takes the message's seq, after it. The turn keeps its items' seqs without a gap.
+- **Rationale**: a chat catches up nothing, so the line would say a run that never happens. The
+  cache has no item deletion, and a gap in a turn's seqs would be the only one.
+- **Alternatives considered**: deleting the line's item: a new cache write for one case, and a turn
+  whose first seq is not 0.
+- **Where**: `runner/send-input.ts` `recheckQueued`.

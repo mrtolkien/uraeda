@@ -736,6 +736,39 @@ test("a queued catch-up whose step moved before it starts runs as a chat, with n
   expect(cache.caughtUp(repo, AGENT, TIP.commit)).toBe(false);
 });
 
+/** Catches a catch-up's line kept on a message that runs as a chat, which catches up nothing. */
+test.each([
+  { name: "sent", queued: false },
+  { name: "queued, then started", queued: true },
+])("a catch-up $name as a chat shows no catching-up line", async ({ queued }) => {
+  let step: object = CATCH_UP_STEP;
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: stepping(() => step),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  const chat = queued ? await sessions.send(repo, session.id, { text: "What is left?" }) : null;
+  if (!queued) {
+    step = { name: "pull-request", pullRequest: "open", waitsOn: "human" };
+  }
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { fresh: false, line: CATCH_UP_LINE, step: "catch-up", trigger: "catch-up" },
+  });
+  if (chat) {
+    step = { name: "pull-request", pullRequest: "open", waitsOn: "human" };
+    adapter.emit(done());
+    await sessions.settled(chat.turn);
+  }
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat" });
+  const items = cache.items(turn, 0, 10);
+  expect(items.filter((item) => item.kind === "system" && item.text === CATCH_UP_LINE)).toEqual([]);
+  expect(items[0]).toMatchObject({ kind: "message", origin: "human" });
+  expect(items[1]).toMatchObject({ kind: "system" });
+});
+
 test("US2.5: a workflow message during a chat turn is queued, and starts after it", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
