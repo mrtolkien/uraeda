@@ -394,27 +394,42 @@ branch is behind the default branch. Uraeda names this step `catch-up`, and it w
 [push](#push), since the catch-up pushes too. The default branch moves under an open pull request
 when another one merges: the human would then review code that is not what merges.
 
-A branch is **behind** when it lacks the tip of `origin/<default>`, or of the local default branch
-without a remote, and the commits it lacks change any file but the default branch's own. Those are
-`PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`, `DECISIONS-CHECK.md`, `decisions-check/`,
-`proposals/`, `notes/`, and a started folder's `proposal.md`, all under `specs/`. They never reach a
-branch. With `ura`, `ura next` names the step. By hand, after `git fetch`, the branch lacks the tip
-when `git merge-base --is-ancestor origin/<default> <branch>` fails. Then
-`git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks change.
+A branch is **behind** when neither it nor `origin/<branch>` holds the tip of `origin/<default>`, or
+of the local default branch without a remote, and the commits it lacks change any file but the
+default branch's own. Those are `PRIORITIES.md`, `INBOX.md`, `INBOX-TRIAGE.md`,
+`DECISIONS-CHECK.md`, `decisions-check/`, `proposals/`, `notes/`, and a started folder's
+`proposal.md`, all under `specs/`: a branch never changes them. With `ura`, `ura next` names the
+step. By hand, after `git fetch`, the branch lacks the tip when
+`git merge-base --is-ancestor origin/<default> <branch>` fails, and fails for `origin/<branch>` too.
+Then `git diff --name-only <merge-base> origin/<default>` lists the files the commits it lacks
+change. Without a remote, use `<default>` for `origin/<default>`.
 
-1. **Catch up** as [the final review](#catch-up-with-the-default-branch) does, its steps 1 to 5: the
+1. **Sync with the remote branch**: `git fetch`, then `git pull --rebase origin <branch>`, so no
+   commit pushed to it is lost.
+2. **Note the tip**, `git rev-parse HEAD`: a stop goes back to it.
+3. **Catch up** as [the final review](#catch-up-with-the-default-branch) does, its steps 1 to 5: the
    new rules, the rebase, the moved links, and the complete validation.
-2. **Push** as [the push](#push) does, with `--force-with-lease` after the rebase.
-3. **Leave the pull request as it is.** Once it holds the caught-up branch, it waits for the human's
+4. **Push** as [the push](#push) does, with `--force-with-lease` after the rebase.
+5. **Leave the pull request as it is.** Once it holds the caught-up branch, it waits for the human's
    review again: a human gate.
+
+The pull request is open, so the [finish](finish.md) step has most likely replaced the folder with
+its record, `specs/done/<folder>.md`: `rulings.md` and the plan are gone. A ruling the catch-up
+needs, such as how the branch meets a new decision, is a line under the record's **Changes after
+approval**. A fix that changes behaviour also updates the record's **Behaviour** or **Design** in
+place, in the same commit, as [the comments pass](#comments-on-the-pull-request) does. When the
+record changed, write the pull request's body from it again, as
+[finish](finish.md#changes-asked-on-the-pull-request) says: the body is the record's text.
 
 Two cases stop the catch-up differently from the final review, without a round of questions. One is
 a decision or an amendment on the default branch that conflicts with the branch. The other is a
-conflict whose resolution needs a choice the spec and the decisions do not settle. The human reviews
-the pull request, so the question goes there:
+conflict whose resolution needs a choice the spec and the decisions do not settle. Either can come
+at any of the final review's steps 2 to 5: before the rebase, during it, or after it. The human
+reviews the pull request, so the question goes there:
 
-1. **Leave the branch as it was**: abort a rebase in progress with `git rebase --abort`, and push
-   nothing, so its local and remote tips do not move.
+1. **Leave the branch as it was**: abort a rebase in progress with `git rebase --abort`, then go
+   back to the noted tip with `git reset --keep <tip>`, which drops the commits the catch-up made.
+   Push nothing, so the branch's local and remote tips stay where they were.
 2. **Comment on the pull request** with `gh pr comment <number>`: the conflicting files, or the
    decision, the choice it needs, and your recommendation with its reason.
 3. **End the run.** The step stays `catch-up`. The human answers by requesting changes, which
@@ -464,8 +479,12 @@ A reviewer bot's comment is handled like a person's: the human chose when to sen
 the bot wrote is part of what they asked.
 
 **A branch behind the default branch is caught up first**, as
-[the catch-up](#catch-up-an-open-pull-request) says, before the comments are handled. A comment
-settling a conflict's choice, asked by a catch-up that stopped, is followed as its resolution.
+[the catch-up](#catch-up-an-open-pull-request) says, before the comments are handled. When that
+catch-up needs a choice, the catch-up's stop wins over bringing the folder back for a round: it
+leaves the branch as it was, comments on the pull request, and ends the run, the other comments left
+for the next pass. A comment settling a conflict's choice, asked by a catch-up that stopped, is
+followed as its resolution. The catch-up's own comment asking it is context for that pass, not a
+comment to handle.
 
 **What to do with each comment**:
 
