@@ -126,10 +126,15 @@ function reviewerOf(stored: ReviewerOptions, fallback: string): Reviewer {
   };
 }
 
+/** The reviewer when none is set: the review step's agent, on its own model and effort. */
+function defaultReviewer(steps: Record<StepId, StepPick>): Reviewer {
+  return { kind: "agent", pick: { runtime: steps.review.runtime } };
+}
+
 /**
  * Stored options as the map edits them, a step naming no agent on `fallbackRuntime`: the plan's
  * `new_session` is `true` when unset, the implementers' agent the build's, and no reviewers one
- * agent reviewer on the review step's pick.
+ * agent reviewer on the review step's agent and that agent's defaults.
  */
 export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions {
   const stored = (step: StepId) => options.steps.find((each) => each.step === step);
@@ -141,7 +146,7 @@ export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions 
   );
   const reviewers = options.reviewers?.length
     ? options.reviewers.map((each) => reviewerOf(each, steps.review.runtime))
-    : [{ kind: "agent" as const, pick: steps.review }];
+    : [defaultReviewer(steps)];
   return {
     cuts,
     depth: options.reviewDepth === "branch" ? "branch" : "waves",
@@ -186,7 +191,7 @@ function storedSteps(map: MapOptions, defaults: MapOptions): Array<StepOptions> 
   });
 }
 
-/** Whether the reviewers are the one agent reviewer on the review step's pick, as when unset. */
+/** Whether the reviewers are the one agent reviewer on the review step's agent, as when unset. */
 function onReviewStep(options: MapOptions): boolean {
   const [reviewer, ...more] = options.reviewers;
   return (
@@ -194,7 +199,7 @@ function onReviewStep(options: MapOptions): boolean {
     reviewer?.kind === "agent" &&
     reviewer.instructions === undefined &&
     JSON.stringify(storedReviewer(reviewer)) ===
-      JSON.stringify(storedReviewer({ kind: "agent", pick: options.steps.review }))
+      JSON.stringify(storedReviewer(defaultReviewer(options.steps)))
   );
 }
 

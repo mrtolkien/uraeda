@@ -25,8 +25,8 @@ pub struct RunOptions {
     pub steps: Vec<StepOptions>,
     /// The agent, model, and effort of the build's implementers.
     pub implementers: Option<RunPick>,
-    /// The reviewers, in the order they run: one agent reviewer on the review step's pick when
-    /// unset or empty.
+    /// The reviewers, in the order they run: one agent reviewer on the review step's agent, on
+    /// its defaults, when unset or empty.
     pub reviewers: Option<Vec<ReviewerOptions>>,
     /// `waves`, each wave and the branch, or `branch`: `waves` when unset.
     pub review_depth: Option<String>,

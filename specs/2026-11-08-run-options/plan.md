@@ -652,7 +652,7 @@ git commit -m "feat(run-options): a feature's own options, and the settings' run
     runtimes, calling these.
   - `toMap(options: RunOptions, fallbackRuntime: string): MapOptions` (the plan's `new_session`
     defaulting to `true`, the implementers' agent to the build's, reviewers defaulting to one agent
-    reviewer on the review step's pick) and
+    reviewer on the review step's agent and that agent's defaults) and
     `toStored(map: MapOptions, defaults: MapOptions): RunOptions`, only the fields that differ from
     `defaults`, the whole reviewers' list when it differs, none while both follow their review step.
   - `stepSession(agents, options: MapOptions, from: StepId, to: StepId): boolean`, whether `to` runs

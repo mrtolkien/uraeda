@@ -149,13 +149,13 @@ test.each<{ name: string; options: RunOptions }>([
   expect(toStored(toMap(options, "claude"), defaults)).toEqual(options);
 });
 
-test("the defaults' reviewer is one agent on the review step's pick", () => {
-  const map = toMap(
-    { steps: [{ agent: "codex", model: "gpt-6-astra", step: "review" }] },
-    "claude",
-  );
-  expect(map.reviewers).toEqual([
-    { kind: "agent", pick: { model: "gpt-6-astra", runtime: "codex" } },
-  ]);
+test("the defaults' reviewer is one agent on the review step's agent and its defaults", () => {
+  const options: RunOptions = {
+    steps: [{ agent: "codex", effort: "high", model: "gpt-6-astra", step: "review" }],
+  };
+  const map = toMap(options, "claude");
+  expect(map.reviewers).toEqual([{ kind: "agent", pick: { runtime: "codex" } }]);
   expect(map.implementers).toEqual({ runtime: "claude" });
+  // Left to the default, the reviewer stays unset.
+  expect(toStored(map, toMap({ steps: [] }, "claude")).reviewers).toBeUndefined();
 });
