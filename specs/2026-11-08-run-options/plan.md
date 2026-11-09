@@ -1206,6 +1206,11 @@ the sub-session's page, read only, with Stop while it works and a link to its pa
 sessions pane nests sub-sessions under their parent, in the `sub-agent` colour. A chat's pane keeps
 the agent's own sub-agents.
 
+Left by Task 8's review: the sessions list, `SessionCache.sessions` (read by `fate/sessions.ts`),
+lists sub-sessions flat beside the workflow sessions, and the live refresh in `live.ts`, on a
+feature's change, updates `folderSessions` alone, which leaves sub-sessions out. Nest them in the
+list, or leave them out of it, and refresh a feature's sub-sessions with their parents.
+
 - [ ] **Step 2: Run the task's validation**
 
 - Run: `vp run fast`
