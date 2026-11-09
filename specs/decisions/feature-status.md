@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: activity
 ---
 
@@ -24,17 +24,18 @@ with it.
 - A run waiting to continue by itself MUST read as in progress, with when it goes on. Checked by the
   server's tests.
 - A pull request MUST read as ready for the human's review only when it holds the branch's latest
-  commit. Checked by the core's tests.
+  commit, and the branch holds every change of the default branch beyond its priorities, inbox,
+  proposals, and notes. Checked by the core's tests.
 - A branch's step SHOULD be read from its latest commit, or from a write of the human's that Uraeda
   is still committing. Checked by the core's workspace tests.
 
 ## Why
 
 The human spends their attention where the status points. A status that hides a running agent, keeps
-an old crash, or calls unfinished work ready wastes it, and copies of the rule in each view drifted
-apart. Commits keep the state recoverable from the repository. A write of the human's that is
-landing is no guess, and a refused commit puts it back. History:
-[Feature state pass](../done/2026-10-30-feature-state.md).
+an old crash, or calls unfinished work ready wastes it, as does a pull request never checked against
+the default branch it merges into. Copies of the rule in each view drifted apart. Commits keep the
+state recoverable from the repository. A write of the human's that is landing is no guess, and a
+refused commit puts it back. History: [Feature state pass](../done/2026-10-30-feature-state.md).
 
 ## Alternatives considered
 
@@ -48,7 +49,8 @@ landing is no guess, and a refused commit puts it back. History:
   by hand.
 - A run that waits to continue by itself never notifies: the human learns of it only if it fails, or
   stops continuing.
-- The workflow has a step for the agent to push the commits an open pull request lacks.
+- The workflow has a step for the agent to push the commits an open pull request lacks, and one to
+  catch the branch up with the default branch.
 
 ## Applies to
 
