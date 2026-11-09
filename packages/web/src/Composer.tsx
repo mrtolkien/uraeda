@@ -320,7 +320,7 @@ export function Composer(given: ComposerProps) {
   const input = given.inputRef ?? own;
   const { edit, insert, props } = useInserted(given, input);
   const { workflow } = props;
-  const { agent, picker, sent, unavailable } = useComposerRuntime(given);
+  const { agent, offer, picker, reader, sent, unavailable } = useComposerRuntime(props);
   const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
@@ -363,7 +363,8 @@ export function Composer(given: ComposerProps) {
     working,
   });
   const attach = attachOf(given, agent, unavailable, attaching.addFiles);
-  const footing = { insert, picker, unavailable };
+  // The recommended message is a workflow message: offered while one can be sent.
+  const footing = { insert, picker, unavailable: offer };
   return (
     <>
       <DropHint hint={drop.hint} ref={place}>
@@ -404,6 +405,7 @@ export function Composer(given: ComposerProps) {
         />
       </DropHint>
       <AttachStatus status={attaching.status} />
+      {reader}
     </>
   );
 }

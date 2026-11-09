@@ -100,22 +100,57 @@ function FeaturePicker({
 }
 
 /**
+ * Reads the agent of `folder`'s next step, as a session of it made without a pick runs on, and
+ * tells it `onStepRuntime`: draws nothing.
+ */
+function StepRuntime({
+  folder,
+  onStepRuntime,
+}: {
+  folder: string;
+  onStepRuntime: (runtime: string | undefined) => void;
+}) {
+  const { feature } = useRequest({ feature: { id: folder, view: FeaturePickView } });
+  const runtime = useLiveView(FeaturePickView, feature)?.newPick?.runtime;
+  useEffect(() => onStepRuntime(runtime), [onStepRuntime, runtime]);
+  return null;
+}
+
+/**
  * The runtime the composer's message goes to: the session's, by the name it stored, or for a
  * message that makes its session, to a feature without one or a new chat, the one picked, with its
  * `picker`, and `sent`, what the message's input sends of the pick: a feature's, never picked, its
- * next step's agent, as its picker shows. In a running session, `picker` is its effort's.
+ * next step's agent, as its picker shows. In a running session, `picker` is its effort's. A
+ * workflow message in a session of a feature goes where the server runs its step: its next step's
+ * agent, the session's when it is the same, else a new session on the step's pick (`runSession`).
  * `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off, gone, or
- * not on this machine. A message sent elsewhere, `onSend`, needs no runtime.
+ * not on this machine; `offer` says it of a workflow message, which the recommended message would
+ * be. `reader` reads the next step's agent, drawn by the composer. A message sent elsewhere,
+ * `onSend`, needs no runtime.
  */
-export function useComposerRuntime({ agent, blocked, folder, onSend, session }: ComposerProps) {
+export function useComposerRuntime({
+  agent,
+  blocked,
+  folder,
+  onSend,
+  session,
+  workflow,
+}: ComposerProps) {
   const makes = session === undefined && !onSend;
   const { pick, sent, setPick } = useSessionPick();
   const on = useRuntimesOn();
-  // A feature's next step's agent, once its picker read it: the server makes a session sent no
-  // pick on it, so the message goes there, and waits while it is off.
+  // A feature's next step's agent, once read: the server makes a session sent no pick on it, and
+  // runs a workflow message of a session on it, so the message goes there, and waits while it is off.
   const [stepRuntime, setStepRuntime] = useState<string>();
   const unpicked = pick === undefined && folder !== undefined ? stepRuntime : undefined;
   const choice = useRuntime(makes ? unpicked : agent, pick?.runtime);
+  const step = useRuntime(makes ? unpicked : (stepRuntime ?? agent), pick?.runtime);
+  const reads = !makes && !onSend && folder !== undefined;
+  const reader = reads && (
+    <Suspense fallback={null}>
+      <StepRuntime folder={folder} onStepRuntime={setStepRuntime} />
+    </Suspense>
+  );
   const effort = session !== undefined && !onSend && agent !== undefined && (
     // Read on its own: the composer draws before the session's pick.
     <Suspense fallback={null}>
@@ -125,8 +160,11 @@ export function useComposerRuntime({ agent, blocked, folder, onSend, session }: 
   const plain = (
     <SessionPicker hasPageKey onChange={setPick} runtimes={pickerRuntimes(on)} value={pick} />
   );
+  const chatUnavailable = runtimeRefusal(choice) ?? blocked;
+  const workflowUnavailable = runtimeRefusal(step) ?? blocked;
   return {
-    agent: choice.runtime,
+    agent: (workflow ? step : choice).runtime,
+    offer: onSend ? blocked : workflowUnavailable,
     picker: !makes ? (
       effort
     ) : folder === undefined ? (
@@ -144,7 +182,8 @@ export function useComposerRuntime({ agent, blocked, folder, onSend, session }: 
     ),
     // What the picker shows: a pick turned off since is never sent. A feature's, never picked,
     // sends nothing: the server makes its session on its next step's pick.
+    reader,
     sent: makes && (pick !== undefined || folder === undefined) ? sent : {},
-    unavailable: onSend ? blocked : (runtimeRefusal(choice) ?? blocked),
+    unavailable: onSend ? blocked : workflow ? workflowUnavailable : chatUnavailable,
   };
 }
