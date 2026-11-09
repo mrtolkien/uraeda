@@ -135,7 +135,10 @@ test.each<{ from: StepId; options: RunOptions; same: boolean; to: StepId }>([
 
 test.each<{ defaults?: RunOptions; name: string; options: RunOptions }>([
   { name: "the defaults", options: { steps: [] } },
-  { name: "a step's model", options: { steps: [{ model: "opus", step: "spec" }] } },
+  {
+    name: "a step's model, on the first agent",
+    options: { steps: [{ agent: "claude", model: "opus", step: "spec" }] },
+  },
   { name: "a joint", options: { steps: [{ newSession: false, step: "plan" }] } },
   { name: "a cut", options: { steps: [{ newSession: true, step: "build" }] } },
   {
@@ -152,7 +155,7 @@ test.each<{ defaults?: RunOptions; name: string; options: RunOptions }>([
   {
     defaults: { steps: [{ agent: "codex", step: "build" }] },
     name: "the implementers' model over the settings' build",
-    options: { implementers: { model: "gpt-6-astra" }, steps: [] },
+    options: { implementers: { agent: "codex", model: "gpt-6-astra" }, steps: [] },
   },
   { name: "the depth", options: { reviewDepth: "branch", steps: [] } },
   {

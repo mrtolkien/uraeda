@@ -168,11 +168,15 @@ export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions 
   };
 }
 
-/** The fields of `pick` that differ from `fallback`'s, as a stored pick. */
+/**
+ * The fields of `pick` that differ from `fallback`'s, as a stored pick: its agent named whenever
+ * it differs or a model or an effort is stored, as a stored model never goes without its agent.
+ */
 function storedPick(pick: StepPick, fallback: StepPick): RunPick {
   const differs = (key: keyof StepPick) => pick[key] !== undefined && pick[key] !== fallback[key];
+  const tuned = differs("model") || differs("effort");
   return {
-    ...(pick.runtime === fallback.runtime ? {} : { agent: pick.runtime }),
+    ...(pick.runtime === fallback.runtime && !tuned ? {} : { agent: pick.runtime }),
     ...(differs("model") ? { model: pick.model } : {}),
     ...(differs("effort") ? { effort: pick.effort } : {}),
   };
