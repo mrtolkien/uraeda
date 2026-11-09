@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Agents catch up open pull requests with main
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-11-09.
 >
 > - You approve a new step, "Catch up", for open pull requests behind main. With a switch in
 >   Settings › Runs, off by default, Uraeda runs it by itself: rebase, validate, push.
