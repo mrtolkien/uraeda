@@ -45,6 +45,8 @@ export class SubSessions {
   #context: SessionContext;
   /** How many tool calls of each parent wait for their sub-session, by the parent. */
   #calls = new Map<string, number>();
+  /** The halts of each parent's counted calls, which `stopAll` aborts. */
+  #halts = new Map<string, Set<AbortController>>();
 
   constructor(context: SessionContext) {
     this.#context = context;
@@ -119,12 +121,23 @@ export class SubSessions {
     return (this.#calls.get(parent) ?? 0) > 0 || subSessionsWork(this.#context, parent);
   }
 
-  /** Runs `call`, a tool call of `parent`, counted while it waits: `busy` holds meanwhile. */
-  async counted<T>(parent: string, call: () => Promise<T>): Promise<T> {
+  /**
+   * Runs `call`, a tool call of `parent`, counted while it waits: `busy` holds meanwhile. The
+   * signal `call` is given is aborted by `stopAll`, as the parent's turn halts, even when the
+   * agent never cancels the call.
+   */
+  async counted<T>(parent: string, call: (halted: AbortSignal) => Promise<T>): Promise<T> {
     this.#calls.set(parent, (this.#calls.get(parent) ?? 0) + 1);
+    const halt = new AbortController();
+    const halts = this.#halts.get(parent) ?? new Set();
+    this.#halts.set(parent, halts.add(halt));
     try {
-      return await call();
+      return await call(halt.signal);
     } finally {
+      halts.delete(halt);
+      if (halts.size === 0) {
+        this.#halts.delete(parent);
+      }
       const left = (this.#calls.get(parent) ?? 1) - 1;
       if (left === 0) {
         this.#calls.delete(parent);
@@ -134,8 +147,14 @@ export class SubSessions {
     }
   }
 
-  /** Stops the parent's sub-sessions that work or wait to continue: their calls answer an error. */
+  /**
+   * Stops the parent's sub-sessions that work or wait to continue, whatever their role: their calls
+   * answer an error. The parent's counted calls are halted too.
+   */
   stopAll(parent: string): void {
+    for (const halt of this.#halts.get(parent) ?? []) {
+      halt.abort();
+    }
     for (const row of this.ofParent(parent)) {
       stopRun(this.#context, this.#context.live.of(row));
     }

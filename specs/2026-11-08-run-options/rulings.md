@@ -422,3 +422,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Reviews.#commitAgain` and `#lastFindings` in
   `packages/server/src/runner/reviews.ts`.
 - **Where**: task 9's review.
+
+## R31: A review ends as its parent's turn halts
+
+- **Decision**: `SubSessions.counted` gives each counted call a signal that `stopAll` aborts, and
+  `Reviews.review` ties it to the call's own: Stop on the parent, or its running turn failing or
+  stopping as R21 says, ends the review's command reviewers, whose process group gets SIGTERM, stops
+  its reviewers' sub-sessions as any of the parent's, and writes no findings, even when the agent
+  never cancels the call. `run_agent` leaves the signal unused: its sub-sessions' stop already
+  answers its calls. A review has no time or output limit of its own: a limit people would notice is
+  the human's call, raised in the pull request.
+- **Rationale**: the review found a command reviewer running on after Stop on its parent, until it
+  ended on its own, and its findings then committed with the stopped reviewers' sections.
+- **If wrong**: `SubSessions.counted` and `stopAll` in `packages/server/src/runner/sub-sessions.ts`,
+  and `Reviews.review` in `reviews.ts`.
+- **Where**: task 9's review.

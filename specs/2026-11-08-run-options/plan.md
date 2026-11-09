@@ -1030,7 +1030,10 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
   - `class Reviews { review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
     reached as `Sessions.reviews`, and `reviewTool(reviews: Reviews): McpTool`, pushed into the
     server's `mcp.tools`; a review is counted as the parent's call (`SubSessions.counted`), so its
-    watchdog waits meanwhile.
+    watchdog waits meanwhile. `counted(parent, call: (halted: AbortSignal) => Promise<T>)` gives the
+    call a signal `stopAll` aborts: a review whose call is cancelled, or whose parent's turn is
+    stopped or fails as R21 says, ends its command reviewers and its reviewers' sub-sessions, and
+    writes no findings (R31). It adds no time or output limit of its own.
   - An agent reviewer is a sub-session with `role` `reviewer` in the feature's worktree, on its pick
     (`reviewerPick`), titled `<its name> on <base>..<head>`, given its agent's
     `Adapter.reviewMessage({ base, head, effort, instructions })`: on Claude Code

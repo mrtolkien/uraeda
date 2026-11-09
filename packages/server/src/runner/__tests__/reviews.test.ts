@@ -60,11 +60,14 @@ function fakeCoderabbit() {
   return { go: () => writeFileSync(go, ""), started: () => existsSync(started) };
 }
 
-/** Steps that hold an agent reviewer's turn until the test opens it, then give its finding. */
+/**
+ * Steps that hold an agent's turn until the test opens it, then give its finding, or fails it: the
+ * step throws, which ends the process, as a crash.
+ */
 function held(finding: string) {
   const gate = Promise.withResolvers<void>();
   const steps: Array<FakeStep> = [() => gate.promise, { text: finding, type: "text" }];
-  return { open: () => gate.resolve(), steps };
+  return { fail: () => gate.reject(new Error("crashed")), open: () => gate.resolve(), steps };
 }
 
 /**
@@ -93,7 +96,7 @@ async function reviewing(options: RunOptions) {
   const tool = reviewTool(sessions.reviews);
   const review = (input: Record<string, string>, signal = new AbortController().signal) =>
     tool.call(parent.id, input, signal);
-  return { ...setup, claude, codex, off, parent, review };
+  return { ...setup, claude, codex, off, parent, parentGate, review };
 }
 
 /** The reviewers of US4: Claude Code at High, Codex, CodeRabbit, and a failing lint. */
@@ -270,22 +273,60 @@ test("findings a hook refuses are written, and the same review asked again commi
   expect(existsSync(path.replace("findings-01", "findings-02"))).toBe(false);
 });
 
-test("a review whose call is cancelled ends its command reviewers and writes no findings", async () => {
+type Reviewing = Awaited<ReturnType<typeof reviewing>>;
+
+test.each([
+  {
+    end: (_: Reviewing, controller: AbortController) => controller.abort(),
+    error: /cancelled/,
+    name: "whose call is cancelled",
+  },
+  {
+    end: ({ parent, repo, sessions }: Reviewing) => sessions.stop(repo, parent.id),
+    error: /cancelled/,
+    name: "whose parent is stopped",
+  },
+  {
+    end: ({ parentGate }: Reviewing) => parentGate.fail(),
+    error: /cancelled/,
+    name: "whose parent's turn fails",
+  },
+])("a review $name ends its reviewers and writes no findings", async ({ end, error }) => {
   const dir = temporaryFolder("uraeda-reviews");
   const pidFile = join(dir, "pid");
-  const { repo, review } = await reviewing({
-    reviewers: [{ command: `echo $$ > '${pidFile}'; exec sleep 1000` }],
+  const setup = await reviewing({
+    reviewers: [
+      { agent: "claude", model: "fake-big" },
+      { command: `echo $$ > '${pidFile}'; exec sleep 1000` },
+    ],
     steps: [],
   });
+  const { cache, claude, parent, repo, review, sessions } = setup;
+  claude.script(held("- [P1] Never given.").steps);
   const controller = new AbortController();
   const answer = review({ base: "abc123", head: "def456", reviewed: "branch" }, controller.signal);
-  await until(() => existsSync(pidFile) && readFileSync(pidFile, "utf8").trim() !== "");
+  answer.catch(() => {});
+  await until(
+    () =>
+      existsSync(pidFile) &&
+      readFileSync(pidFile, "utf8").trim() !== "" &&
+      sessions.subSessions
+        .ofParent(parent.id)
+        .some((sub) => cache.turns(sub.id).at(-1)?.state === "running"),
+  );
   const pid = Number(readFileSync(pidFile, "utf8"));
 
-  controller.abort();
+  await end(setup, controller);
 
-  await expect(answer).rejects.toThrow(/cancelled/);
+  await expect(answer).rejects.toThrow(error);
   expect(alive(pid)).toBe(false);
   const folder = join(await workDir(repo, AGENT), "specs", AGENT);
   expect(readdirSync(folder).filter((name) => name.startsWith("findings-"))).toEqual([]);
+  if (!controller.signal.aborted) {
+    // The parent's end stops its reviewers' sub-sessions too.
+    for (const sub of sessions.subSessions.ofParent(parent.id)) {
+      expect(sub.role).toBe("reviewer");
+      expect(cache.turns(sub.id).at(-1)?.state).toBe("stopped");
+    }
+  }
 });

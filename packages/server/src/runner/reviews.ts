@@ -44,10 +44,17 @@ export class Reviews {
    * Runs `review` for the workflow session `parent`: on a feature whose reviews run on the branch
    * only, a wave's review runs nothing; else every reviewer at once, each giving its section, a
    * reviewer that fails saying why, then the findings committed. Answers with the file's path and
-   * its text. Counted as the parent's call: its watchdog waits meanwhile.
+   * its text. Counted as the parent's call: its watchdog waits meanwhile. It ends its reviewers and
+   * writes nothing once `signal` aborts or the parent's turn halts, as Stop on it does (`stopAll`).
    */
   review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
-    return this.#context.subSessions.counted(parent, () => this.#review(parent, input, signal));
+    return this.#context.subSessions.counted(parent, (halted) =>
+      this.#review(
+        parent,
+        input,
+        signal === undefined ? halted : AbortSignal.any([signal, halted]),
+      ),
+    );
   }
 
   async #review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> {
