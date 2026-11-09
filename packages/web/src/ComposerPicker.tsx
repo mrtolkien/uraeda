@@ -1,7 +1,7 @@
 // What the composer's message runs on: for a message that makes its session, the session picker,
 // agent, model, and effort, a feature's showing its next step's pick until the human picks; in a
 // running session, its effort alone, changed from its next turn on.
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useFateClient, useLiveView, useRequest, view } from "react-fate";
 import type { Feature } from "uraeda-server/fate";
 import type { ComposerProps } from "./Composer.tsx";
@@ -68,21 +68,25 @@ const FeaturePickView = view<Feature>()({
 
 /**
  * The picker of a feature's new session: what the human picked, else what a session made without a
- * pick runs on, its next step's pick from the feature's run options, as the server says.
+ * pick runs on, its next step's pick from the feature's run options, as the server says, whose
+ * agent it tells `onStepRuntime`.
  */
 function FeaturePicker({
   folder,
   onChange,
+  onStepRuntime,
   runtimes,
   value,
 }: {
   folder: string;
   onChange: (pick: SessionPick) => void;
+  onStepRuntime: (runtime: string | undefined) => void;
   runtimes: ReadonlyArray<PickerRuntime>;
   value: SessionPick | undefined;
 }) {
   const { feature } = useRequest({ feature: { id: folder, view: FeaturePickView } });
   const step = useLiveView(FeaturePickView, feature)?.newPick;
+  useEffect(() => onStepRuntime(step?.runtime), [onStepRuntime, step?.runtime]);
   const shown =
     value ??
     (step
@@ -98,15 +102,20 @@ function FeaturePicker({
 /**
  * The runtime the composer's message goes to: the session's, by the name it stored, or for a
  * message that makes its session, to a feature without one or a new chat, the one picked, with its
- * `picker`, and `sent`, what the message's input sends of the pick. In a running session, `picker`
- * is its effort's. `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime
- * off, gone, or not on this machine. A message sent elsewhere, `onSend`, needs no runtime.
+ * `picker`, and `sent`, what the message's input sends of the pick: a feature's, never picked, its
+ * next step's agent, as its picker shows. In a running session, `picker` is its effort's.
+ * `unavailable` says why nothing can be sent: the page's `blocked`, or the runtime off, gone, or
+ * not on this machine. A message sent elsewhere, `onSend`, needs no runtime.
  */
 export function useComposerRuntime({ agent, blocked, folder, onSend, session }: ComposerProps) {
   const makes = session === undefined && !onSend;
   const { pick, sent, setPick } = useSessionPick();
   const on = useRuntimesOn();
-  const choice = useRuntime(makes ? undefined : agent, pick?.runtime);
+  // A feature's next step's agent, once its picker read it: the server makes a session sent no
+  // pick on it, so the message goes there, and waits while it is off.
+  const [stepRuntime, setStepRuntime] = useState<string>();
+  const unpicked = pick === undefined && folder !== undefined ? stepRuntime : undefined;
+  const choice = useRuntime(makes ? unpicked : agent, pick?.runtime);
   const effort = session !== undefined && !onSend && agent !== undefined && (
     // Read on its own: the composer draws before the session's pick.
     <Suspense fallback={null}>
@@ -127,6 +136,7 @@ export function useComposerRuntime({ agent, blocked, folder, onSend, session }: 
         <FeaturePicker
           folder={folder}
           onChange={setPick}
+          onStepRuntime={setStepRuntime}
           runtimes={pickerRuntimes(on)}
           value={pick}
         />
