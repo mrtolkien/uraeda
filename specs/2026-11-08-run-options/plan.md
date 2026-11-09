@@ -16,11 +16,11 @@ sessions of the feature.
   `config.toml`, migrating `build_in_fresh_session`, checking a set of options, merging a feature's
   options over the settings, mapping each workflow step to its run step, and writing and committing
   `findings-NN.md`. Everything crosses the binding as plain objects.
-- **The server owns runs**: a feature's options in its cache database, which session each run goes
-  to and on which pick (`runner/run-session.ts`), and the step chain that starts the next step's run
-  when one ends before a gate (`runner/chain.ts`). The rule of which joints cut is one TypeScript
-  module, `packages/server/src/run-options.ts`, exported as `uraeda-server/run-options`: the server
-  and the web UI both use it, replacing the two copies of `FRESH_STEPS`.
+- **The server owns runs**: a feature's options in their own database file, which session each run
+  goes to and on which pick (`runner/run-session.ts`), and the step chain that starts the next
+  step's run when one ends before a gate (`runner/chain.ts`). The rule of which joints cut is one
+  TypeScript module, `packages/server/src/run-options.ts`, exported as `uraeda-server/run-options`:
+  the server and the web UI both use it, replacing the two copies of `FRESH_STEPS`.
 - **The sub-agent tool** is an MCP endpoint of the server at `/mcp`, with a token per agent process.
   It has two tools: `run_agent` starts an implementer's sub-session in its task's worktree; `review`
   runs every reviewer at once and commits their findings. Sub-sessions are sessions with a `parent`
@@ -550,12 +550,12 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
 
 ## Task 4: A feature's options and the settings' run options on the server
 
-**Risky:** a new stored table, and the cache's migration.
+**Risky:** a new stored file of the human's choices, and the cache's migration.
 
 **Files:**
 
 - Create: `packages/server/src/runner/feature-options.ts`
-- Modify: `packages/server/src/runner/migrations.ts` (migration 11),
+- Modify: `packages/server/src/runner/migrations.ts` (migration 11, the sessions' columns),
   `packages/server/src/runner/cache-rows.ts`, `cache-sessions.ts`, `cache.ts` (session columns),
   `packages/server/src/settings.ts` (`RunSettingsView`),
   `packages/server/src/fate/settings-mutations.ts` (`settings.setRunOptions`), a fate mutation
@@ -566,20 +566,26 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
 
 - Consumes: Task 1's binding `RunOptions`, `setRunOptions`, `checkRunOptions`, `mergeRunOptions`.
 - Produces:
-  - Migration 11: table
-    `feature_options (repo TEXT, folder TEXT, options TEXT, updated_at TEXT, PRIMARY KEY (repo, folder))`,
-    and the sessions' columns `step`, `parent`, `role`, `worktree`, each `TEXT` and null by default.
-    `SessionRow` and `NewSession` gain `step`, `parent`, `role`, `worktree`, each `string | null`.
-  - `class FeatureOptions { own(repo, folder): RunOptions; set(repo, folder, options: RunOptions): void; resolved(repo, folder): RunOptions }`:
-    `own` is what the feature changed, `{steps: []}` when none; `set` checks with `checkRunOptions`
-    and stores what it is given, deleting the row for empty options; `resolved` merges the feature's
-    over the settings' as they are now.
+  - `run-options.sqlite` (`FEATURE_OPTIONS_FILE`) in Uraeda's data folder, its own database, never
+    the cache's (R13), with its own migration to `user_version` 1: table
+    `feature_options (repo TEXT, folder TEXT, options TEXT, updated_at TEXT, PRIMARY KEY (repo, folder))`.
+  - Migration 11 of the cache: the sessions' columns `step`, `parent`, `role`, `worktree`, each
+    `TEXT` and null by default. `SessionRow` and `NewSession` gain `step`, `parent`, `role`,
+    `worktree`, each `string | null`.
+  - `class FeatureOptions { own(repo, folder): RunOptions; set(repo, folder, options: RunOptions): void; resolved(repo, folder): RunOptions; close(): void }`,
+    built on `{ binding, defaults: () => RunOptions, path, timeout? }`: `own` is what the feature
+    changed, `{steps: []}` when none or while the file cannot be read; `set` checks with
+    `checkRunOptions` and stores what it is given, deleting the row for empty options, and throws
+    `refused: ` while the file is locked or unreadable, never keeping them in memory instead;
+    `resolved` merges the feature's over the settings' as they are now.
   - `ctx.settings.runs().options`, the settings' run options, and `claudeEffortFromEnv?: string`,
     `CLAUDE_CODE_EFFORT_LEVEL` when set.
   - Fate mutations `settings.setRunOptions({ options })` and, on a repository's endpoint,
     `feature.setRunOptions({ folder, options })`, refused with the core's message (R9).
-  - `ctx.featureOptions`, made by `featureOptionsOf({ binding, sessions, settings })`, keyed by the
-    repository's main checkout, as the sessions are (R9).
+  - `ctx.featureOptions`, made by `featureOptionsOf({ binding, dataDir, settings })` (exported by
+    `uraeda-server`), keyed by the repository's main checkout, as the sessions are (R9).
+    `AppOptions.featureOptions` is required: the server builds the one store, and closes it as it
+    stops.
   - The feature's record gains `runOptions: RunOptions`, its own options only: the defaults are the
     settings' record's `runs.options`, which stays live as the settings change (R12).
 
@@ -605,8 +611,9 @@ git commit -m "feat(run-options): an MCP endpoint for the agents' sub-agent tool
 
 - [x] **Step 3: Implement the migration, the store, the settings' view, and the mutations**
 
-The migration's comment says the table is never cleared with the cache's sessions. A change promoted
-to a feature keeps its folder's name, and its sessions theirs: its row needs no move (R9).
+The store's file is its own, never the cache's, which is replaced when it cannot be read (R13). A
+change promoted to a feature keeps its folder's name, and its sessions theirs: its row needs no move
+(R9).
 
 - [x] **Step 4: Run the task's validation**
 

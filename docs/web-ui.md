@@ -562,5 +562,7 @@ asking it for a change to Uraeda gives you an extension.
 ## The data folder
 
 Sessions are kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder,
-`~/.local/share/uraeda/` on Linux. There, a running server keeps the files that only live while it
-runs, like its host token and its Storybooks' records, in `run/`.
+`~/.local/share/uraeda/` on Linux, and each feature's own run options in `run-options.sqlite` beside
+it: a cache that cannot be read starts empty, but never takes the features' options with it. There,
+a running server keeps the files that only live while it runs, like its host token and its
+Storybooks' records, in `run/`.

@@ -1,34 +1,36 @@
-// A feature's own run options, kept in the data folder's database: only what the feature changed,
-// over the settings as they are at each run, and the migration that adds them.
+// A feature's own run options, kept in their own database in the data folder: only what the
+// feature changed, over the settings as they are at each run, never cleared with the cache; and the
+// cache's migration that places the sessions in their runs.
 import { DatabaseSync } from "node:sqlite";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, onTestFinished, test } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { testSettings } from "../../testing.ts";
 import { migrations, SessionCache } from "../cache.ts";
-import { FeatureOptions } from "../feature-options.ts";
+import { FEATURE_OPTIONS_FILE, featureOptionsOf } from "../feature-options.ts";
 
 const binding = await import("uraeda-binding");
 
 const REPO = "/repo/a";
 const FOLDER = "2026-11-08-run-options";
 
-/** A feature options store on a new cache, over the settings of a new config folder. */
+/**
+ * A feature options store in a new data folder, over the settings of a new config folder, beside
+ * a cache in memory.
+ */
 async function opened() {
   const settings = await testSettings();
   onTestFinished(() => settings.close());
-  const cache = SessionCache.open(":memory:");
-  const options = new FeatureOptions({
-    binding,
-    db: cache.db,
-    defaults: () => settings.runs().options,
-  });
+  const dataDir = temporaryFolder("uraeda-data");
+  const options = featureOptionsOf({ binding, dataDir, settings });
+  onTestFinished(() => options.close());
   /** Writes the settings' run options, and reads the file again, as a change of the page does. */
   const setDefaults = async (runs: Parameters<typeof binding.setRunOptions>[1]) => {
     await binding.setRunOptions(settings.dir, runs);
     await settings.reload();
   };
-  return { cache, options, setDefaults };
+  return { cache: SessionCache.open(":memory:"), dataDir, options, setDefaults };
 }
 
 test("a feature runs on the settings for every value it never changed", async () => {
@@ -73,17 +75,43 @@ test("a feature's change applies to its next run", async () => {
 });
 
 test("a feature without options reads none, and options set back to none leave no row", async () => {
-  const { cache, options } = await opened();
+  const { dataDir, options } = await opened();
 
   expect(options.own(REPO, FOLDER)).toEqual({ steps: [] });
   options.set(REPO, FOLDER, { reviewDepth: "branch", steps: [] });
   options.set(REPO, FOLDER, { steps: [] });
 
   expect(options.own(REPO, FOLDER)).toEqual({ steps: [] });
-  expect(cache.db.prepare("SELECT COUNT(*) AS rows FROM feature_options").get()).toEqual({
-    rows: 0,
-  });
+  const file = new DatabaseSync(join(dataDir, FEATURE_OPTIONS_FILE));
+  onTestFinished(() => file.close());
+  expect(file.prepare("SELECT COUNT(*) AS rows FROM feature_options").get()).toEqual({ rows: 0 });
   expect(() => options.set(REPO, FOLDER, { reviewDepth: "deep", steps: [] })).toThrow(/^refused: /);
+});
+
+test("a feature's options outlive the cache, and a file that cannot be read is kept", async () => {
+  const { dataDir, options } = await opened();
+  const own = { steps: [{ model: "opus", step: "spec" }] };
+  options.set(REPO, FOLDER, own);
+  options.close();
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => log.mockRestore());
+  // A cache that cannot be read starts empty.
+  const runner = join(dataDir, "runner.sqlite");
+  writeFileSync(runner, "not a database");
+  SessionCache.open(runner).db.close();
+
+  expect(options.own(REPO, FOLDER)).toEqual(own);
+
+  // A file of options that cannot be read refuses new ones, and is kept as it was.
+  const elsewhere = temporaryFolder("uraeda-data");
+  const file = join(elsewhere, FEATURE_OPTIONS_FILE);
+  writeFileSync(file, "not a database");
+  const settings = { runs: () => ({ options: { steps: [] } }) };
+  const broken = featureOptionsOf({ binding, dataDir: elsewhere, settings });
+
+  expect(() => broken.set(REPO, FOLDER, own)).toThrow(/^refused: The run options could not be/);
+  expect(broken.own(REPO, FOLDER)).toEqual({ steps: [] });
+  expect(readFileSync(file, "utf8")).toBe("not a database");
 });
 
 test("migration 11 keeps every session, with no step, parent, role, or worktree", () => {

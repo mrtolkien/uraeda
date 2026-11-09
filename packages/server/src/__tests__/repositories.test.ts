@@ -17,7 +17,7 @@ import { homePath } from "../folders.ts";
 import { Hosts } from "../repositories.ts";
 import { fakeSessions } from "../testing.ts";
 import {
-  appSettings,
+  appParts,
   byIdAt,
   fateAt,
   fixtureRepo,
@@ -73,7 +73,7 @@ async function twoRepositories() {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    ...(await appSettings()),
+    ...(await appParts(opened.dataDir)),
   });
   return { app, ...opened };
 }
@@ -439,7 +439,7 @@ test("opening a repository moves it first", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    ...(await appSettings()),
+    ...(await appParts(opened.dataDir)),
   });
   const last = opened.hosts.rows().at(-1)!.name;
 
@@ -618,7 +618,7 @@ test("an old raw link without any repository is not found", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    ...(await appSettings()),
+    ...(await appParts(opened.dataDir)),
   });
 
   const response = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md`);

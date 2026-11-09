@@ -169,7 +169,9 @@ test("the run options are written whole, and refused with the core's message", a
 });
 
 test("a feature's record holds its own run options, the settings' left to their record", async () => {
-  const opened = await testApp();
+  // A linked worktree's endpoint keys the options by the main checkout, as the sessions are.
+  const main = "/checkouts/main";
+  const opened = await testApp(undefined, { binding: { ...binding, mainRoot: async () => main } });
   const defaults = { steps: [{ model: "opus", step: "review" }] };
   await change(opened, "setRunOptions", { options: defaults });
   const set = (folder: string, options: unknown) =>
@@ -192,6 +194,8 @@ test("a feature's record holds its own run options, the settings' left to their 
   expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
   expect(unknown.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
   expect(read.runOptions).toEqual(own);
+  expect(opened.featureOptions.own(main, FEATURE)).toEqual(own);
+  expect(opened.featureOptions.own(opened.repo, FEATURE)).toEqual({ steps: [] });
 });
 
 /** US5 1 */

@@ -13,7 +13,7 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
-import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
+import { createApp, featureOptionsOf, Hosts, livePreviews, type Previews } from "uraeda-server";
 import {
   fakeSessions,
   testExtensions,
@@ -343,12 +343,15 @@ function serverApp(
     : Promise.resolve(undefined);
   settled.push(host.then((opened) => ({ close: () => opened?.close() })));
   const created = Promise.all([hosts, settings, themes, host]).then(
-    ([hosts, settings, themes, extensions]) =>
-      createApp({
+    ([hosts, settings, themes, extensions]) => {
+      const featureOptions = featureOptionsOf({ binding, dataDir, settings });
+      settled.push(Promise.resolve(featureOptions));
+      return createApp({
         allowOrigins: [],
         binding,
         dataDir,
         extensions,
+        featureOptions,
         hosts,
         port,
         previews,
@@ -356,7 +359,8 @@ function serverApp(
         settings,
         signIn,
         themes,
-      }),
+      });
+    },
   );
   return { added, created };
 }

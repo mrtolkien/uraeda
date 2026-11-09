@@ -118,3 +118,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   settings change, since nothing announces the features then; the settings' record is announced on
   every change.
 - **Where**: task 4, from the review of wave 2.
+
+## R13: A feature's options have their own database file
+
+- **Decision**: the features' options are in `run-options.sqlite` in Uraeda's data folder, a
+  database of their own with its own migration, opened by `FeatureOptions` at its first use; the
+  cache's migration 11 adds only the sessions' columns. While the file is locked or cannot be read,
+  `set` refuses with `refused: ` and the file's path, and `own` reads none, so the feature runs on
+  the settings', and the server prints why. The file is never replaced, nor kept in memory in its
+  place. This supersedes the plan's "cache database" for Task 4.
+- **Rationale**: the data model says a feature's options are never cleared with the cache, but the
+  cache's file is removed when it cannot be read, and kept in memory while it is locked: options in
+  it would be lost, or saved where no other server and no restart sees them.
+- **If wrong**: `featureOptionsOf` in `packages/server/src/runner/feature-options.ts` names the
+  file.
+- **Where**: task 4, from the review of wave 2.

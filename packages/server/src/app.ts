@@ -23,9 +23,10 @@ import { FrameSecret } from "./sign-in/frames.ts";
 import { signInRoutes } from "./sign-in/routes.ts";
 
 export { Hosts } from "./repositories.ts";
+export { featureOptionsOf } from "./runner/feature-options.ts";
 export { Previews } from "./preview/runner.ts";
 export { livePreviews } from "./live.ts";
-import { type FeatureOptions, featureOptionsOf } from "./runner/feature-options.ts";
+import type { FeatureOptions } from "./runner/feature-options.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
@@ -42,8 +43,8 @@ type AppOptions = {
    * ends done still starts its Storybook, which the `previews` built-in does otherwise.
    */
   extensions?: ExtensionsHost;
-  /** The features' own run options: a store of the sessions' cache by default. */
-  featureOptions?: FeatureOptions;
+  /** The features' own run options, in their own file of the data folder: `featureOptionsOf`. */
+  featureOptions: FeatureOptions;
   /** The frame secret of preview and mockup paths: a new one by default. */
   frames?: FrameSecret;
   hosts: Hosts;
@@ -177,7 +178,7 @@ export function createApp(options: AppOptions) {
   const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
-  const featureOptions = options.featureOptions ?? featureOptionsOf(options);
+  const { featureOptions } = options;
   // The settings' and the themes' changes reach every endpoint's views until they close, as the
   // server stops.
   announceSettings(settings, hosts);

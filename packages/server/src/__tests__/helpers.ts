@@ -18,7 +18,7 @@ import { livePreviews } from "../live.ts";
 import type { Previews } from "../preview/runner.ts";
 import { type Host, Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
-import { featureOptionsOf } from "../runner/feature-options.ts";
+import { type FeatureOptions, featureOptionsOf } from "../runner/feature-options.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { McpOptions } from "../mcp/endpoint.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
@@ -155,6 +155,23 @@ export async function queueWhen(
 /** The options of `createApp` a test may add: the MCP endpoint's, sign-in, and the built UI. */
 type Extra = { mcp?: McpOptions; signIn?: SignInOptions; webRoot?: string };
 
+/** The features' options of a test's data folder, over its settings, closed after the test. */
+export function testFeatureOptions(
+  dataDir: string,
+  settings: ServerSettings,
+  using: Binding = binding,
+): FeatureOptions {
+  const featureOptions = featureOptionsOf({ binding: using, dataDir, settings });
+  settled.push(featureOptions);
+  return featureOptions;
+}
+
+/** A test app's settings, themes, and the features' options of its data folder `dataDir`. */
+export async function appParts(dataDir: string) {
+  const configured = await appSettings();
+  return { ...configured, featureOptions: testFeatureOptions(dataDir, configured.settings) };
+}
+
 /**
  * The settings and the themes of a test's app on a new config folder, its own, closed after the
  * test: the host names of `--allowed-hosts` given when `allowedHosts` is, and the server's
@@ -179,10 +196,12 @@ function app(
 ) {
   const previews = testPreviews(options);
   const frames = new FrameSecret();
+  const featureOptions = testFeatureOptions(dataDir, settings, using);
   const created = createApp({
     allowOrigins: ["http://localhost:5173"],
     binding: using,
     dataDir,
+    featureOptions,
     frames,
     hosts,
     lockedList,
@@ -194,7 +213,7 @@ function app(
     ...extra,
   });
   names.set(created, name);
-  return { app: created, frames, previews };
+  return { app: created, featureOptions, frames, previews };
 }
 
 /**
@@ -477,7 +496,7 @@ export function repoContext(parts: {
   themes: ServerThemes;
 }): RepoContext {
   const { dataDir, frames, hosts, previews, repo, sessions, settings, themes } = parts;
-  const featureOptions = featureOptionsOf({ binding, sessions, settings });
+  const featureOptions = featureOptionsOf({ binding, dataDir, settings });
   return {
     binding,
     dataDir,

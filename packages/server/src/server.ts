@@ -427,7 +427,7 @@ async function startOpened(
   const shared = {
     ...options,
     extensions,
-    featureOptions: featureOptionsOf({ ...options, sessions: sessions.sessions }),
+    featureOptions: featureOptionsOf(options),
     frames,
     hosts: opened,
     previews,
@@ -493,6 +493,7 @@ async function startOpened(
         await catching;
         // The sessions stop before the extensions unload: an unloaded runtime checks nothing.
         await Promise.all([sessions.stop().then(() => extensions.close()), previews.stopAll()]);
+        shared.featureOptions.close();
       })();
       return stopping;
     },
