@@ -614,23 +614,27 @@ test("a comments run carries its trigger", async () => {
 const TIP = { branch: "main", commit: "4b825dc6", subject: "feat(web): the board's columns" };
 const CATCH_UP_LINE = "Catching up with main, which moved to “feat(web): the board's columns”.";
 
+const CATCH_UP_STEP = {
+  catchUp: TIP,
+  name: "catch-up",
+  pullRequest: "behind",
+  reference: "skills/uraeda/references/implementation.md",
+  waitsOn: "agent",
+};
+
+/** A binding whose feature `AGENT`'s next step is `step()`, read at each call. */
+function stepping(step: () => object) {
+  return {
+    ...binding,
+    nextStep: async (...args: Parameters<typeof binding.nextStep>) => ({
+      ...(await binding.nextStep(...args)),
+      step: step(),
+    }),
+  } as typeof binding;
+}
+
 /** A binding whose feature `AGENT` is at `catch-up`, its open pull request behind `TIP`. */
-const catchingUp = {
-  ...binding,
-  nextStep: async (...args: Parameters<typeof binding.nextStep>) => {
-    const next = await binding.nextStep(...args);
-    return {
-      ...next,
-      step: {
-        catchUp: TIP,
-        name: "catch-up",
-        pullRequest: "behind",
-        reference: "skills/uraeda/references/implementation.md",
-        waitsOn: "agent",
-      },
-    };
-  },
-} as typeof binding;
+const catchingUp = stepping(() => CATCH_UP_STEP);
 
 /** R1: catches a catch-up sent by hand that records no commit, or its line after the message. */
 test("a workflow turn at the catch-up records the commit read as it is sent, after its line", async () => {
@@ -675,6 +679,61 @@ test("a catch-up queued behind a chat turn keeps its commit and its line", async
   expect(message).toMatchObject({ kind: "message", origin: "workflow" });
   // A chat at the catch-up catches up with nothing.
   expect(cache.turn(chat.turn)).toMatchObject({ caughtUpTo: null });
+});
+
+/** R8: catches a continued catch-up that forgets its commit, which the catcher would run again. */
+test("an automatic continue of a stopped catch-up catches up with the same commit", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: catchingUp,
+    runs: () => ({ afterLimit: true, afterRestart: true, cap: 3 }),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  const limit = { kind: "session", text: "You've hit your session limit" } as const;
+  adapter.script([
+    { limit, type: "limit" },
+    { denials: [], errors: [limit.text], interrupted: false, ok: false, type: "result" },
+  ]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { line: CATCH_UP_LINE, step: "catch-up", trigger: "catch-up" },
+  });
+  await sessions.settled(turn);
+  expect(cache.turn(turn)).toMatchObject({ caughtUpTo: TIP.commit, continueReason: "limit" });
+
+  adapter.script([]);
+  await vi.runOnlyPendingTimersAsync();
+  await vi.waitFor(() => expect(cache.turns(session.id)).toHaveLength(2));
+
+  expect(cache.turns(session.id).at(-1)).toMatchObject({
+    caughtUpTo: TIP.commit,
+    step: "catch-up",
+    trigger: "catch-up",
+  });
+});
+
+/** R8: catches a catch-up retyped as a chat that keeps its commit, so no catch-up runs for it. */
+test("a queued catch-up whose step moved before it starts runs as a chat, with no commit", async () => {
+  let step: object = CATCH_UP_STEP;
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: stepping(() => step),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Catch up with main",
+    workflow: { fresh: false, line: CATCH_UP_LINE, step: "catch-up", trigger: "catch-up" },
+  });
+  expect(cache.turn(turn)).toMatchObject({ caughtUpTo: TIP.commit, state: "queued" });
+
+  // The chat turn caught the branch up: the pull request waits on the human again.
+  step = { name: "pull-request", pullRequest: "open", waitsOn: "human" };
+  adapter.script([]);
+  adapter.emit(done());
+  await sessions.settled(chat.turn);
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ caughtUpTo: null, kind: "chat", step: null });
+  expect(cache.caughtUp(repo, AGENT, TIP.commit)).toBe(false);
 });
 
 test("US2.5: a workflow message during a chat turn is queued, and starts after it", async () => {
