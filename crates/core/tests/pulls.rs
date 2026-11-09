@@ -4,9 +4,10 @@ use std::collections::BTreeMap;
 
 use common::repo::TestRepo;
 use common::texts::{clarifications, plan, proposal, record, spec};
+use uraeda_core::behind;
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
-use uraeda_core::steps::StepName;
+use uraeda_core::steps::{CatchUp, StepName};
 use uraeda_core::workspace::{Feature, Kind};
 
 /// A row of `gh pr list --json headRefName,headRefOid,number,url,isDraft,reviewDecision`, its head
@@ -300,4 +301,181 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
 
         assert_eq!(feature.step.name, expected, "{name}");
     }
+}
+
+/// What the default branch gains after the test feature's branch started from it.
+#[derive(Clone, Copy)]
+enum Gain {
+    /// `src/a.rs`, in a commit `feat: code`, pushed to `origin/main`.
+    Code,
+    /// A line of `specs/PRIORITIES.md`, and `specs/proposals/y.md` renamed to a started folder's
+    /// `proposal.md`, as `chore(<slug>): start` does, pushed.
+    OwnFiles,
+    /// `specs/decisions/x.md`, in a commit `decision: x`, pushed.
+    Decision,
+    /// The code commit, pushed, then the branch rebased on it.
+    CodeRebased,
+    /// The code commit on the local `main` only, `origin/main` at the commit before.
+    CodeLocalOnly,
+    /// The code commit, the repository without `origin/main`.
+    CodeNoRemote,
+}
+
+/// Makes `main` gain `gain` after `branch` started from it.
+fn gain(repo: &TestRepo, branch: &str, gain: Gain) {
+    let before = repo.git(&["rev-parse", "main"]).trim().to_string();
+    match gain {
+        Gain::OwnFiles => {
+            repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n- Y\n");
+            repo.remove("specs/proposals/y.md");
+            repo.write("specs/2026-10-11-y/proposal.md", "# Y\n\nWhy y.\n");
+            repo.commit("chore(y): start");
+        }
+        Gain::Decision => {
+            repo.write("specs/decisions/x.md", "# X\n");
+            repo.commit("decision: x");
+        }
+        _ => {
+            repo.write("src/a.rs", "fn a() {}\n");
+            repo.commit("feat: code");
+        }
+    }
+    match gain {
+        Gain::CodeLocalOnly => {
+            repo.git(&["update-ref", "refs/remotes/origin/main", &before]);
+        }
+        Gain::CodeNoRemote => {}
+        _ => {
+            repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
+        }
+    }
+    if let Gain::CodeRebased = gain {
+        repo.git(&["rebase", "--quiet", "main", branch]);
+        repo.switch("main");
+    }
+}
+
+/// US1 1 and 3, more 1 and 2; review focus 1 and 2; the edge cases without a remote and with a
+/// local merge not pushed: an open pull request whose branch lacks the default branch's tip, and
+/// whose missing commits change more than the default branch's own files, catches up; its step
+/// names the commit to catch up with.
+#[test]
+fn a_pull_request_behind_the_default_branch_catches_up() {
+    let code = Some(("implementation", "feat: code"));
+    // (name, the branch of a change, what main gains, the head at the branch's tip, the catch-up's
+    // reference and subject when it catches up)
+    let rows = [
+        ("main gained code", false, Gain::Code, true, code),
+        (
+            "only priorities and a started proposal",
+            false,
+            Gain::OwnFiles,
+            true,
+            None,
+        ),
+        (
+            "a decision",
+            false,
+            Gain::Decision,
+            true,
+            Some(("implementation", "decision: x")),
+        ),
+        (
+            "the branch holds main's tip",
+            false,
+            Gain::CodeRebased,
+            true,
+            None,
+        ),
+        (
+            "only the local default branch moved",
+            false,
+            Gain::CodeLocalOnly,
+            true,
+            None,
+        ),
+        ("no remote", false, Gain::CodeNoRemote, true, code),
+        (
+            "a change's branch",
+            true,
+            Gain::Code,
+            true,
+            Some(("change", "feat: code")),
+        ),
+        (
+            "behind and ahead of its pull request",
+            false,
+            Gain::Code,
+            false,
+            code,
+        ),
+    ];
+    for (name, is_change, moved, at_tip, catches_up) in rows {
+        let repo = TestRepo::new();
+        repo.write("specs/proposals/y.md", "# Y\n\nWhy y.\n");
+        repo.commit("proposal(y): add");
+        let branch = if is_change {
+            "change/2026-10-10-x"
+        } else {
+            "2026-10-10-x"
+        };
+        branch_named(&repo, branch);
+        gain(&repo, branch, moved);
+        let rev = |revision: &str| repo.git(&["rev-parse", revision]).trim().to_string();
+        let mut view = view(31, PullRequestState::Open);
+        view.head = rev(&if at_tip {
+            branch.to_string()
+        } else {
+            format!("{branch}~1")
+        });
+        let mut feature = if is_change {
+            let texts = BTreeMap::from([("proposal.md".to_string(), proposal())]);
+            Feature::from_texts(Kind::Change, "2026-10-10-x", texts)
+        } else {
+            Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X"))
+        };
+        let git = Git::discover(repo.path()).unwrap();
+
+        PullRequests::open([(branch.to_string(), view)]).apply(&mut feature, &git);
+
+        let expected = match catches_up {
+            Some(_) => StepName::CatchUp,
+            None => StepName::PullRequest,
+        };
+        assert_eq!(feature.step.name, expected, "{name}");
+        if let Some((reference, _)) = catches_up {
+            let reference = format!("skills/uraeda/references/{reference}.md");
+            assert_eq!(feature.step.reference, Some(reference), "{name}");
+        }
+        let catch_up = catches_up.map(|(_, subject)| CatchUp {
+            branch: "main".to_string(),
+            commit: rev("main"),
+            subject: subject.to_string(),
+        });
+        assert_eq!(feature.step.catch_up, catch_up, "{name}");
+    }
+}
+
+/// SC-005: reading again with the same branch tip and default branch's tip computes no diff; a new
+/// default tip is read anew.
+#[test]
+fn behind_reads_once_per_pair_of_tips() {
+    let repo = TestRepo::new();
+    branch(&repo);
+    repo.write("specs/PRIORITIES.md", "# Priorities\n");
+    repo.commit("chore: prioritize");
+    repo.git(&["update-ref", "refs/remotes/origin/main", "main"]);
+    let git = Git::discover(repo.path()).unwrap();
+    let before = behind::diffs();
+
+    let own = behind::catch_up(&git, "2026-10-10-x");
+    let own_again = behind::catch_up(&git, "2026-10-10-x");
+    gain(&repo, "2026-10-10-x", Gain::Code);
+    let code = behind::catch_up(&git, "2026-10-10-x");
+    let code_again = behind::catch_up(&git, "2026-10-10-x");
+
+    assert_eq!((own, own_again), (None, None));
+    assert!(code.is_some());
+    assert_eq!(code_again, code);
+    assert_eq!(behind::diffs(), before + 2);
 }

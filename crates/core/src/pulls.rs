@@ -10,10 +10,10 @@ use std::time::{Duration, SystemTime};
 use napi_derive::napi;
 use serde::Serialize;
 
-use crate::cache;
 use crate::git::{Git, process};
-use crate::steps::{PullRequest, Step};
+use crate::steps::{CatchUp, PullRequest, Step, StepName};
 use crate::workspace::Feature;
+use crate::{behind, cache};
 
 /// An open pull request's state.
 #[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
@@ -63,23 +63,30 @@ impl PullRequests {
     /// its head lacks the branch's latest commit, in `git`. A head the repository does not have
     /// is ready: nothing proves the branch holds commits it lacks (R2). A branch at its remote tip
     /// is pushed: `gh`'s head is older than the push, until the next fetch of the pull requests.
-    fn state(&self, branch: &str, git: &Git) -> PullRequest {
+    /// An open one whose branch is behind the default branch is `Behind`, with what it catches up
+    /// with, even unpushed: the catch-up pushes.
+    fn state(&self, branch: &str, git: &Git) -> (PullRequest, Option<CatchUp>) {
         let PullRequests::Known { open, .. } = self else {
-            return PullRequest::Unknown;
+            return (PullRequest::Unknown, None);
         };
         let Some(view) = open.get(branch) else {
-            return PullRequest::NoPullRequest;
+            return (PullRequest::NoPullRequest, None);
         };
-        match view.state {
+        let state = match view.state {
             PullRequestState::Draft => PullRequest::Draft,
-            PullRequestState::Open
-                if holds_tip(git, branch, &view.head) == Some(false) && !pushed(git, branch) =>
-            {
-                PullRequest::Unpushed
-            }
-            PullRequestState::Open => PullRequest::Open,
             PullRequestState::ChangesRequested => PullRequest::ChangesRequested,
-        }
+            PullRequestState::Open => {
+                if let Some(catch_up) = behind::catch_up(git, branch) {
+                    return (PullRequest::Behind, Some(catch_up));
+                }
+                if holds_tip(git, branch, &view.head) == Some(false) && !pushed(git, branch) {
+                    PullRequest::Unpushed
+                } else {
+                    PullRequest::Open
+                }
+            }
+        };
+        (state, None)
     }
 
     /// Whether `branch`'s latest merged pull request holds its latest commit, with no open one:
@@ -97,7 +104,8 @@ impl PullRequests {
 
     /// Gives a feature or a change its branch's open pull request, and recomputes its step when
     /// the pull request decides it: done once a merged pull request holds the branch's latest
-    /// commit. A merged item has no branch, and keeps its step.
+    /// commit, and gives the step `catch-up` the commit to catch up with. A merged item has no
+    /// branch, and keeps its step.
     pub fn apply(&self, feature: &mut Feature, git: &Git) {
         let Some(branch) = feature.branch.clone() else {
             return;
@@ -112,7 +120,11 @@ impl PullRequests {
         if self.merged(&branch, git) {
             feature.step = Step::done();
         } else {
-            feature.with_pull_request(self.state(&branch, git));
+            let (state, catch_up) = self.state(&branch, git);
+            feature.with_pull_request(state);
+            if feature.step.name == StepName::CatchUp {
+                feature.step.catch_up = catch_up;
+            }
         }
     }
 }

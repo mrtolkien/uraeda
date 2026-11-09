@@ -316,6 +316,7 @@ fn step_at(name: StepName, file: Option<&str>) -> Step {
         implemented: false,
         pull_request: None,
         plan_review: None,
+        catch_up: None,
     }
 }
 
@@ -343,6 +344,7 @@ fn order_follows_the_workflow() {
         (agent(StepName::PullRequest), 12),
         (agent(StepName::PullRequestUnknown), 12),
         (agent(StepName::Push), 12),
+        (agent(StepName::CatchUp), 12),
         (agent(StepName::Done), 13),
         (agent(StepName::None), 14),
     ];
@@ -750,6 +752,62 @@ fn finished_record(kind: Kind) -> Feature {
         Kind::Change => record("change", "X"),
     };
     Feature::from_record(kind, "2026-10-10-x", text)
+}
+
+/// Review: behind main, only a ready pull request catches up, a record's as a checked feature's;
+/// changes requested and a draft keep their steps.
+#[test]
+fn behind_main_rows() {
+    let repo = TestRepo::new();
+    let heads = heads(&repo);
+    repo.write("src/a.rs", "fn a() {}\n");
+    repo.commit("feat: code");
+    let git = Git::discover(repo.path()).unwrap();
+    let open = PullRequests::open([(
+        "2026-10-10-x".to_string(),
+        pull_request(PullRequestState::Open, &heads.tip),
+    )]);
+    let rows: Vec<FinishingRow> = vec![
+        (
+            "open, behind main",
+            feature(Kind::Feature, &finished()),
+            open.clone(),
+            StepName::CatchUp,
+            WaitsOn::Agent,
+        ),
+        (
+            "changes requested, behind main",
+            feature(Kind::Feature, &finished()),
+            snapshot(Some(PullRequestState::ChangesRequested)),
+            StepName::PullRequestChanges,
+            WaitsOn::Agent,
+        ),
+        (
+            "draft, behind main",
+            feature(Kind::Feature, &finished()),
+            snapshot(Some(PullRequestState::Draft)),
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "record, ready, behind main",
+            finished_record(Kind::Feature),
+            open,
+            StepName::CatchUp,
+            WaitsOn::Agent,
+        ),
+    ];
+    for (name, mut feature, pull_requests, expected, waits_on) in rows {
+        pull_requests.apply(&mut feature, &git);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+        assert_eq!(feature.step.waits_on, waits_on, "{name}");
+        assert_eq!(
+            feature.step.catch_up.is_some(),
+            expected == StepName::CatchUp,
+            "{name}"
+        );
+    }
 }
 
 /// A finished item's row: its name, the item, the snapshot, and the expected step and waits on.

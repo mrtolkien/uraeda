@@ -282,7 +282,9 @@ of git on every workspace read.
 - Modify: `crates/core/src/lib.rs` (`pub mod behind;`), `crates/core/src/steps.rs` (`StepName`,
   `PullRequest`, `Step`, `finished_step`, `after_the_last_step`, `order`),
   `crates/core/src/pulls.rs` (`state`, `apply`), `crates/core/src/git/diff.rs` (a diff of two
-  commits' paths), `crates/core/src/view.rs` (`NextStepView`, `StepView`),
+  commits' paths, and a commit's subject), `crates/core/src/view.rs` (`NextStepView`,
+  `CatchUpView`), `crates/core/src/view/feature.rs` (`StepView`),
+  `crates/core/src/history/stages.rs` (`catch-up` in the pull request's stage),
   `packages/binding/index.d.ts` (generated)
 - Test: `crates/core/tests/pulls.rs`, `crates/core/tests/steps.rs`
 
@@ -299,13 +301,13 @@ of git on every workspace read.
     subject line; `Step.catch_up: Option<CatchUp>`, set only at `catch-up`.
   - `behind::catch_up(git: &Git, branch: &str) -> Option<CatchUp>`, and
     `behind::default_branch_own(path: &str) -> bool`.
-  - `Git::changed_paths(&self, from: ObjectId, to: ObjectId) -> Result<Vec<String>, GitError>`, in
-    `git/diff.rs`.
+  - `Git::changed_paths(&self, from: ObjectId, to: ObjectId) -> Result<Vec<String>, GitError>`, and
+    `Git::subject(&self, id: ObjectId) -> Result<String, GitError>`, in `git/diff.rs`.
   - In the binding: `NextStepView.catchUp?: CatchUpView` and `StepView.catchUp?: CatchUpView`, with
     `CatchUpView { branch: string; commit: string; subject: string }`; `pullRequest` may read
     `behind`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/pulls.rs
@@ -328,21 +330,27 @@ fn a_pull_request_behind_the_default_branch_catches_up() {
     // - "behind and ahead of its pull request": the head lacks the branch's tip -> CatchUp
 }
 
-/// SC-005: a second read with the same branch tip and default tip computes no diff.
+/// SC-005: a second read with the same branch tip and default tip computes no diff; a new default
+/// tip is read anew.
 #[test]
-fn behind_reads_once_per_pair_of_tips() { /* behind::diffs() before and after two reads: +1 */ }
+fn behind_reads_once_per_pair_of_tips() {
+    /* main gains only priorities, two reads: none; main gains code, two reads: behind;
+       behind::diffs() before and after: +2 */
+}
 ```
 
 ```rust
-// crates/core/tests/steps.rs: rows added to `pull_request_rows` and `finishing_rows`
+// crates/core/tests/steps.rs: a table of its own, `behind_main_rows`, on a repository whose main
+// gained code after the branch (R5)
 // "open, behind main"                -> CatchUp, WaitsOn::Agent
 // "changes requested, behind main"   -> PullRequestChanges (unchanged)
 // "draft, behind main"               -> Finish (unchanged)
 // "record, ready, behind main"       -> CatchUp
 ```
 
-These step-table rows build the step from `steps::step(feature, PullRequest::Behind)` where the
-tests feed a state, as the other rows do.
+These step-table rows apply a snapshot to the item, as `pull_request_rows` and `finishing_rows` do,
+on a repository whose `main` moved past the branch, so changes requested and a draft are checked
+behind main for real (R5).
 
 The break each test catches:
 
@@ -354,16 +362,16 @@ The break each test catches:
 - "only the local default branch moved": using `git.tip(default)`, which prefers the local branch.
 - "no remote": a rule that gives up without `origin`.
 - "behind and ahead": `Unpushed` winning over `Behind`.
-- SC-005: a memo keyed by the branch alone, or none.
+- SC-005: a memo keyed by the branch alone, or by its tip without the default branch's, or none.
 - The step rows: `Behind` mapped for an open pull request but leaking into changes requested or a
   draft.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test pulls --test steps`
 - Expected: FAIL to compile, `no variant named CatchUp` / `no variant named Behind`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `behind.rs` owns the rule. The target is `origin/<default>`'s tip, `git.remote_tip(default)`, or,
 when the repository has no `refs/remotes/origin/<default>`, the local default branch's tip. The
@@ -377,18 +385,19 @@ The answer is kept in a process-wide map by `(branch tip, target)`, like `pulls`
 counter of the diffs computed, `pub fn diffs() -> u64`, for SC-005's test. The subject is read only
 when behind.
 
-`PullRequests::state` turns `Open` and `Unpushed` into `Behind` when `catch_up` returns a target;
-`apply` sets `feature.step.catch_up` to it once the step is `catch-up`. `steps.rs` maps `Behind` to
-`Step::agent(StepName::CatchUp, <the changes reference>)` in `finished_step` and
-`after_the_last_step` (a change's `change_step` passes through the latter). Rebuild the binding.
+`PullRequests::state` turns `Open` and `Unpushed` into `Behind` when `catch_up` returns a target,
+and returns it beside the state; `apply` sets `feature.step.catch_up` to it once the step is
+`catch-up`. `steps.rs` maps `Behind` to `Step::agent(StepName::CatchUp, <the changes reference>)` in
+`finished_step` and `after_the_last_step` (a change's `change_step` passes through the latter).
+Rebuild the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run --filter uraeda-binding build && nix develop -c vp run fast`
 - Expected: PASS. The benchmark of workspace reads, if `fast` runs it, no slower than its baseline:
   only branches with an open, ready pull request compute anything.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core packages/binding/index.d.ts

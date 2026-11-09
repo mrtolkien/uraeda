@@ -42,3 +42,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   than 20,000, asking to move what most steps do not need. Only the spec step and `ura answer` read
   how follow-ups are answered.
 - **Where**: task 3.
+
+## R5: The step rows behind main get a table of their own
+
+- **Decision**: the rows "open, behind main", "changes requested, behind main", "draft, behind
+  main", and "record, ready, behind main" live in `behind_main_rows` in
+  [`steps.rs` tests](/crates/core/tests/steps.rs), on a repository whose `main` gained code after
+  the branch, and apply a snapshot as the other rows do, not `steps::step(feature, Behind)`.
+- **Rationale**: `pull_request_rows` and `finishing_rows` share one repository where `main` never
+  moves, and a state fed by hand never reaches changes requested or a draft: only a real `main`
+  ahead checks that `Behind` does not leak into them.
+- **Alternatives considered**: a column for whether `main` moved in both tables: every existing row
+  grows a field that only four rows use.
+- **Where**: task 1.

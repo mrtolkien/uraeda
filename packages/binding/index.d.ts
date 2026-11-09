@@ -896,6 +896,16 @@ export interface Candidate {
   change: DecisionChange
 }
 
+/** What a branch behind the default branch catches up with, at the step `catch-up`. */
+export interface CatchUpView {
+  /** The default branch's name, like `main`. */
+  branch: string
+  /** The full hash of the default branch's tip to catch up with. */
+  commit: string
+  /** That commit's subject line. */
+  subject: string
+}
+
 /** A file changed on a feature's branch, from the default branch's merge base to its tip. */
 export interface ChangedFile {
   /** From the repository's top level; the new path of a renamed file. */
@@ -1733,12 +1743,14 @@ export interface NextStepView {
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
   /**
-   * `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
-   * on it.
+   * `open`, `unpushed`, `behind`, `draft`, `changes-requested`, `none`, or `unknown`, when the
+   * step depends on it.
    */
   pullRequest?: string
   /** Whether the plan waits for the human's review, for the steps before it is approved. */
   planReview?: boolean
+  /** The default branch's commit to catch up with, at `catch-up`. */
+  catchUp?: CatchUpView
 }
 
 /** A feature, its branch, and its next step, with the main checkout's path. */
@@ -2410,6 +2422,8 @@ export interface StepView {
   implemented: boolean
   /** Its position in the workflow, from the proposal's gate, 0, to `none`, 14. */
   order: number
+  /** The default branch's commit to catch up with, at `catch-up`. */
+  catchUp?: CatchUpView
 }
 
 /** The operation the main checkout stopped in, its sides named by branch. */
