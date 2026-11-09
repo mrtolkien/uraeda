@@ -1,9 +1,11 @@
+import type { RunOptions } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
 import type { ServerAddress } from "../mcp/endpoint.ts";
 import type { McpTokens } from "../mcp/tokens.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
+import { Chain } from "./chain.ts";
 import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
@@ -47,6 +49,8 @@ export {
  * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
  * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
  * says whether the server lists a main checkout: the restart's continues skip the others.
+ * `runOptions` gives a feature's run options as its next run starts on them: the defaults when
+ * left out.
  */
 type SessionsOptions = {
   binding: Binding;
@@ -58,6 +62,7 @@ type SessionsOptions = {
    */
   mcp?: { address: ServerAddress; tokens: McpTokens };
   onChange: (change: SessionChange) => void;
+  runOptions?: (repo: string, folder: string) => RunOptions;
   runs?: () => ContinueSettings;
   runtimes: Runtimes;
 };
@@ -101,11 +106,13 @@ export class Sessions {
         });
       },
       live: new LiveSessions(),
+      runOptions: options.runOptions ?? (() => ({ steps: [] })),
       runtimes: options.runtimes,
     } as SessionContext;
     context.processes = new Processes(context);
     context.turns = new Turns(context);
     context.transcript = new Transcript(context);
+    context.chain = new Chain(context);
     const { runtimes } = options;
     context.continuer = new Continuer(context, {
       available: (row) => runsOn(runtimes, row),
@@ -260,8 +267,8 @@ export class Sessions {
    * steered into it, and the workflow's is queued after it. A workflow message that no longer
    * applies, as `sentAsChat` decides, runs as a chat, with the line saying so. A message may be
    * images alone, at most 10, to an agent that declares images; the workflow's message takes none.
-   * A run that starts fresh goes to a new session of the change or the feature, which it returns;
-   * another session of it working refuses a message.
+   * A workflow run goes to the session its step's options give, maybe a new session of the change
+   * or the feature, which it returns; another session of it working refuses a message.
    */
   async send(
     repo: string,

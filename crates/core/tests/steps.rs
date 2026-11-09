@@ -355,8 +355,8 @@ fn order_follows_the_workflow() {
     }
 }
 
-/// The run step each workflow step belongs to, as the binding's `NextView.step.runStep` gives it:
-/// a step outside every run, as a gate, belongs to none.
+/// The run step each workflow step belongs to, as the binding's `NextView.step.runStep` gives it,
+/// and `runStepOf` by the step's name: a step outside every run, as a gate, belongs to none.
 #[test]
 fn each_step_belongs_to_its_run_step() {
     let rows = [
@@ -383,12 +383,19 @@ fn each_step_belongs_to_its_run_step() {
 
         assert_eq!(step.run_step(), expected, "{}", name.as_str());
         assert_eq!(
+            StepName::parse(name.as_str()).and_then(|parsed| parsed.run_step()),
+            expected,
+            "{}",
+            name.as_str()
+        );
+        assert_eq!(
             NextStepView::from(&step).run_step.as_deref(),
             expected,
             "{}",
             name.as_str()
         );
     }
+    assert_eq!(StepName::parse("assess"), None);
 }
 
 #[test]

@@ -90,23 +90,33 @@ test("a new session runs on the first runtime on in its repository", async () =>
   expect(session.agent).toBe("pi-durable");
 });
 
-test("a fresh run keeps the runtime, model, and effort of the session it was sent to, not the first one on's (R20)", async () => {
+test("a new session runs on its step's pick, not on the session's it was sent to (R20)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
-  const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
-  const pick = { effort: "high", model: "fake-big", runtime: "pi-durable" };
-  const session = await sessions.featureSession(repo, AGENT, pick);
-  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+  await runtimes.refreshModels();
+  const plan = { agent: "pi-durable", effort: "high", model: "fake-big", step: "plan" };
+  const { cache, repo, sessions } = await testSessions(undefined, {
+    runOptions: () => ({ steps: [plan] }),
+    runtimes,
+  });
+  const session = await sessions.featureSession(repo, AGENT, { runtime: "claude" });
+  const workflow = { step: "plan", trigger: "manual" } as const;
+  const first = await sessions.send(repo, session.id, { text: "Write the plan", workflow });
+  await sessions.settled(first.turn);
+  expect(first.session).toBe(session.id);
 
-  const workflow = { fresh: true, step: "plan", trigger: "manual" } as const;
   const { turn } = await sessions.send(repo, session.id, { text: "Again", workflow });
   await sessions.settled(turn);
 
-  const fresh = cache.session(cache.turn(turn)!.sessionId)!;
-  expect(fresh.id).not.toBe(session.id);
-  expect(fresh).toMatchObject({ agent: "pi-durable", effort: "high", model: "fake-big" });
-  expect(durable.opens).toHaveLength(2);
-  expect(durable.opens[1]).toMatchObject({ effort: "high", model: "fake-big", resume: false });
-  expect(claude.opens).toHaveLength(0);
+  const next = cache.session(cache.turn(turn)!.sessionId)!;
+  expect(next.id).not.toBe(session.id);
+  expect(next).toMatchObject({
+    agent: "pi-durable",
+    effort: "high",
+    model: "fake-big",
+    step: "plan",
+  });
+  expect(durable.opens).toEqual([expect.objectContaining({ effort: "high", model: "fake-big" })]);
+  expect(claude.opens).toHaveLength(1);
 });
 
 test("a new session runs on the pick, and records what its agent reported", async () => {

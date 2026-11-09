@@ -193,8 +193,9 @@ export class Turns {
   }
 
   /**
-   * Records the end of a turn, running or queued, and reports it to the continuer. The end is
-   * published once the continuer decided, so a run that waits to continue never reads as asking.
+   * Records the end of a turn, running or queued, and reports it to the continuer, then to the step
+   * chain. The end is published once the continuer decided, or the chain sent the next step's run,
+   * so a run that waits to continue, or goes on with its next step, never reads as asking.
    */
   end(live: Live, id: number, end: { reason?: string; state: TurnState }) {
     const running = live.turn?.id === id ? live.turn : undefined;
@@ -216,7 +217,9 @@ export class Turns {
     try {
       this.#context.cache.endTurn(id, end);
       const row = this.#context.cache.turn(id);
-      deciding = row && this.#context.continuer.ended(live, row, limit);
+      deciding =
+        row &&
+        (this.#context.continuer.ended(live, row, limit) ?? this.#context.chain.ended(live, row));
     } catch (error) {
       failed(error);
     }

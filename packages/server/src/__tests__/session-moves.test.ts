@@ -241,8 +241,12 @@ test("a failed attach leaves the session without a workflow", async () => {
   expect(server.adapter.opens.at(-1)?.cwd).toBe(server.repo);
 });
 
-/** US4.1: the same session goes on with the feature's next step. */
-test("promote runs the next step in the session", async () => {
+/**
+ * US4.1: the feature's next step runs once promoted. The run options decision joins steps only
+ * forward, where the human joined them: the change's build never joins the feature's first step,
+ * which runs in a new session of the feature (R15).
+ */
+test("promote runs the next step in a session of its own", async () => {
   const server = await testServer();
   const chat = await chatThatEdited(server);
   const moved = await toChange(server, chat);
@@ -252,9 +256,12 @@ test("promote runs the next step in the session", async () => {
   const promoted = await mutate(server.app, "feature.promote", { folder }, FEATURE_FIELDS);
 
   expect(promoted.error).toBeUndefined();
-  expect(promoted.data).toMatchObject({ folder, kind: "feature", session: chat });
+  expect(promoted.data).toMatchObject({ folder, kind: "feature" });
+  const session = promoted.data.session as string;
+  expect(session).not.toBe(chat);
+  expect(server.sessions.cache.session(chat)?.folder).toBe(folder);
   expect(branches(server, folder).trim()).toBe(folder);
-  const turn = server.sessions.cache.turns(chat).at(-1)!;
+  const turn = server.sessions.cache.turns(session).at(-1)!;
   await server.sessions.settled(turn.id);
   expect(turn).toMatchObject({ kind: "workflow", trigger: "manual" });
   expect(server.adapter.sent.at(-1)?.text).toContain(

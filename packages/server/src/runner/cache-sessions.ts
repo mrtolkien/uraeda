@@ -28,7 +28,7 @@ export type NewSession = {
 export type SessionFields = Partial<
   Pick<
     SessionRow,
-    "nativeId" | "title" | "seenAt" | "archivedAt" | "effort" | "ranModel" | "ranEffort"
+    "nativeId" | "title" | "seenAt" | "archivedAt" | "effort" | "ranModel" | "ranEffort" | "step"
   >
 >;
 
@@ -40,6 +40,7 @@ const sessionColumns = {
   ranEffort: "ran_effort",
   ranModel: "ran_model",
   seenAt: "seen_at",
+  step: "step",
   title: "title",
 } as const;
 

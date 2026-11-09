@@ -60,6 +60,48 @@ impl StepName {
             StepName::None => "none",
         }
     }
+
+    /// The step of this name, as `as_str` writes it: none for a name no step has.
+    pub fn parse(name: &str) -> Option<StepName> {
+        StepName::ALL.into_iter().find(|step| step.as_str() == name)
+    }
+
+    /// The run step this workflow step belongs to: see `Step::run_step`.
+    pub fn run_step(&self) -> Option<&'static str> {
+        match self {
+            StepName::Discovery => Some("discovery"),
+            StepName::Spec | StepName::SpecRevision => Some("spec"),
+            StepName::Approval | StepName::Plan | StepName::PlanRevision => Some("plan"),
+            StepName::Implementation | StepName::Change => Some("build"),
+            StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => {
+                Some("review")
+            }
+            StepName::PullRequestChanges | StepName::Push | StepName::CatchUp => Some("comments"),
+            StepName::HumanGate | StepName::PullRequest | StepName::Done | StepName::None => None,
+        }
+    }
+
+    /// Every step, in the enum's order.
+    const ALL: [StepName; 18] = [
+        StepName::HumanGate,
+        StepName::Discovery,
+        StepName::Spec,
+        StepName::SpecRevision,
+        StepName::Approval,
+        StepName::Plan,
+        StepName::PlanRevision,
+        StepName::Implementation,
+        StepName::FinalReview,
+        StepName::PullRequestChanges,
+        StepName::Push,
+        StepName::CatchUp,
+        StepName::PullRequest,
+        StepName::PullRequestUnknown,
+        StepName::Finish,
+        StepName::Change,
+        StepName::Done,
+        StepName::None,
+    ];
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -187,17 +229,7 @@ impl Step {
     /// on: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`. A step no agent runs, as a
     /// gate, an open pull request, or the end, belongs to none.
     pub fn run_step(&self) -> Option<&'static str> {
-        match self.name {
-            StepName::Discovery => Some("discovery"),
-            StepName::Spec | StepName::SpecRevision => Some("spec"),
-            StepName::Approval | StepName::Plan | StepName::PlanRevision => Some("plan"),
-            StepName::Implementation | StepName::Change => Some("build"),
-            StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => {
-                Some("review")
-            }
-            StepName::PullRequestChanges | StepName::Push | StepName::CatchUp => Some("comments"),
-            StepName::HumanGate | StepName::PullRequest | StepName::Done | StepName::None => None,
-        }
+        self.name.run_step()
     }
 
     /// Whether the pull request's state decides this step.

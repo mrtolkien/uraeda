@@ -34,7 +34,7 @@ import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
-import { featureOptionsOf } from "./runner/feature-options.ts";
+import { type FeatureOptions, featureOptionsOf } from "./runner/feature-options.ts";
 import type { ServerSettings } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
@@ -58,6 +58,8 @@ export const SWEEP_EVERY_MS = 60_000;
 export async function startSessions(options: {
   binding: Binding;
   dataDir: string;
+  /** The features' own run options, which each run starts on: the settings' alone when left out. */
+  featureOptions?: FeatureOptions;
   hosts: HostsOf;
   mcp?: { address: ServerAddress; tokens: McpTokens };
   runtimes: Runtimes;
@@ -72,7 +74,13 @@ export async function startSessions(options: {
   } catch (error) {
     process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
   }
-  const sessions = createSessions({ ...options, cache, runs: continueSettings(options.settings) });
+  const { featureOptions, settings } = options;
+  const sessions = createSessions({
+    ...options,
+    cache,
+    runOptions: (repo, folder) => featureOptions?.resolved(repo, folder) ?? settings.runs().options,
+    runs: continueSettings(settings),
+  });
   await sessions.check();
   // Every runtime's model list, asked once at start, which the pickers read: not awaited, as an
   // agent slow to list never holds the server's start.
@@ -312,10 +320,11 @@ function mcpServer(port: number): McpServer {
 }
 
 /**
- * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
- * of the listed repositories, whose changes the extensions turn into events. Each watcher burst of
- * a repository, once the refresh of its pull requests it asks ended, and each refresh that changed
- * them, calls `settled` with its path: all closed again when one fails to open.
+ * The extensions, their built-ins' runtimes registered, the features' run options, the session
+ * manager on them, and the hosts of the listed repositories, whose changes the extensions turn into
+ * events. Each watcher burst of a repository, once the refresh of its pull requests it asks ended,
+ * and each refresh that changed them, calls `settled` with its path: all closed again when one
+ * fails to open.
  */
 async function openParts(
   options: StartOptions,
@@ -324,6 +333,7 @@ async function openParts(
   settled: (repo: string) => void,
 ) {
   const { binding, dataDir } = options;
+  const featureOptions = featureOptionsOf(options);
   const extensions = await ExtensionsHost.open({
     agents: options.agents,
     binding,
@@ -338,6 +348,7 @@ async function openParts(
     sessions = await startSessions({
       binding,
       dataDir,
+      featureOptions,
       hosts: () => hosts,
       mcp,
       runtimes: extensions.runtimes,
@@ -361,7 +372,7 @@ async function openParts(
     extensions.close();
     throw error;
   }
-  return { extensions, hosts, sessions };
+  return { extensions, featureOptions, hosts, sessions };
 }
 
 /** The server's upgrades: WebSockets to the Storybooks, through the guard's rule. */
@@ -423,11 +434,11 @@ async function startOpened(
   // The catcher starts once everything it reads is open: a burst before it catches up nothing.
   const started: { catchUps?: CatchUps } = {};
   const parts = await openParts(options, previews, mcp, (repo) => void started.catchUps?.run(repo));
-  const { extensions, hosts: opened, sessions } = parts;
+  const { extensions, featureOptions, hosts: opened, sessions } = parts;
   const shared = {
     ...options,
     extensions,
-    featureOptions: featureOptionsOf(options),
+    featureOptions,
     frames,
     hosts: opened,
     previews,

@@ -1,7 +1,9 @@
+import type { RunOptions } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
 import { IMAGE_REFUSALS, RUNTIME_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
+import type { Chain } from "./chain.ts";
 import type { Continuer } from "./continuer.ts";
 import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
@@ -242,6 +244,8 @@ export type SessionContext = {
   agentChanged: () => void;
   binding: Binding;
   cache: SessionCache;
+  /** Their step chain: the next step's run, started as a step's run ends before a gate. */
+  chain: Chain;
   /** Reports a change of the session, with its turn and that turn's new state. */
   changed: (live: Live, turn?: number, state?: TurnState) => void;
   /** Their automatic continues: decided as turns end, armed, cancelled, and sent. */
@@ -250,6 +254,11 @@ export type SessionContext = {
   live: LiveSessions;
   /** Their processes: opened, closed, and read. */
   processes: Processes;
+  /**
+   * The run options a feature's next run starts on, by its repository's main checkout and its
+   * folder: its own over the settings', as they are now.
+   */
+  runOptions: (repo: string, folder: string) => RunOptions;
   /** The runtimes sessions run on, each found by the session's stored `agent`. */
   runtimes: Runtimes;
   /** Their events, recorded as items. */

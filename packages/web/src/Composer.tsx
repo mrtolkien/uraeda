@@ -22,7 +22,6 @@ import type { Runtime } from "./runtimes.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
 import { useSend } from "./useComposerSend.ts";
@@ -221,19 +220,14 @@ function composerStatus(
  * Kept by the page's draft with its text, it holds in every composer drawing that draft. `props`
  * are the composer's, with that workflow; `edit` is the field's change, and `insert` puts the
  * message before what was typed, giving `input` the focus.
- * After a spec's approval, the run builds in a fresh session as the setting says, with the
- * hand-over's switch: `reader` reads the setting once a message is inserted.
  */
 function useInserted(given: ComposerProps, input: RefObject<EditorHandle | null>) {
   const [own, setOwn] = useState<DraftRun>();
   const inserted = given.onRun ? given.run : own;
   const setInserted = given.onRun ?? setOwn;
-  // Each insert keys its fresh session switch, which starts from the setting (the agents decision).
   const [inserts, setInserts] = useState(0);
-  const fresh = useFreshRun(`inserted:${inserts}`);
-  const run = inserted === undefined ? undefined : fresh.handing(workflowOf(inserted));
-  const workflow = given.workflow ?? run?.workflow;
-  const options = given.workflow ? given.options : run?.options;
+  const workflow = given.workflow ?? (inserted === undefined ? undefined : workflowOf(inserted));
+  const options = given.workflow ? given.options : undefined;
   // The button goes once inserted: the field takes the focus.
   useEffect(() => {
     if (inserts > 0) {
@@ -264,13 +258,6 @@ function useInserted(given: ComposerProps, input: RefObject<EditorHandle | null>
       setInserts(inserts + 1);
     },
     props,
-    // Read once inserted: the session page draws without waiting for the settings.
-    reader: inserted && !given.workflow && (
-      <FreshDefault
-        onRead={(byDefault) => fresh.read(byDefault === undefined ? {} : { fresh: byDefault })}
-        step={inserted.step ?? ""}
-      />
-    ),
   };
 }
 
@@ -335,7 +322,7 @@ export function Composer(given: ComposerProps) {
   const { images, onSend, value, working = false } = given;
   const own = useRef<EditorHandle>(null);
   const input = given.inputRef ?? own;
-  const { edit, insert, props, reader } = useInserted(given, input);
+  const { edit, insert, props } = useInserted(given, input);
   const { workflow } = props;
   const { agent, picker, sent, unavailable } = useComposerRuntime(given);
   const wide = !isNarrow(useWidthClass());
@@ -421,7 +408,6 @@ export function Composer(given: ComposerProps) {
         />
       </DropHint>
       <AttachStatus status={attaching.status} />
-      {reader}
     </>
   );
 }

@@ -192,7 +192,8 @@ export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
 /**
  * What started a workflow turn, which its message tells the agent: `comments` runs the comments
  * message on the feature's pull request; `catch-up`, the catcher's, catches up an open pull
- * request behind the default branch.
+ * request behind the default branch; `next-step` is the run Uraeda started itself once the step
+ * before ended, which is no automatic continue.
  */
 export type Trigger =
   | "answers"
@@ -202,7 +203,8 @@ export type Trigger =
   | "comments"
   | "proposal"
   | "start"
-  | "manual";
+  | "manual"
+  | "next-step";
 
 /** A background task of the agent's run, by the tool call that started it. */
 export type BackgroundTask = { kind: "subagent" | "command"; tool: string };

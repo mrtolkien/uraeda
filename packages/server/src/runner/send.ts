@@ -3,6 +3,7 @@ import type { Outgoing } from "./adapter.ts";
 import type { TurnRow } from "./cache.ts";
 import type { ContinueReason, TurnKind } from "./events.ts";
 import { chatTitle, continueMessage } from "./message.ts";
+import { isStepId, runSession } from "./run-session.ts";
 import { type checkSend, messageItem, openingOf, sendPlace } from "./send-input.ts";
 import {
   type Live,
@@ -15,18 +16,15 @@ import {
   type SessionContext,
 } from "./session-state.ts";
 
-/** The steps whose run starts a fresh agent session by default: the first after a spec's approval. */
-const FRESH_STEPS = new Set(["approval", "plan"]);
-
 type Checked = ReturnType<typeof checkSend>;
 type Place = Awaited<ReturnType<typeof sendPlace>>;
 
 /**
  * Sends a checked message to the session, under its lock, and returns the session it went to and
- * its turn. A run that starts a fresh agent session goes to a new session of the change or the
- * feature, which becomes its latest: queued there while the session it was sent to works.
- * `available` refuses once the agent is gone. A session of a dropped change or feature is refused:
- * its worktree is gone, and stays gone.
+ * its turn. A workflow run goes to the session `runSession` gives its run step: a new session of
+ * the change or the feature becomes its latest, queued there while the session it was sent to
+ * works. `available` refuses once the agent is gone. A session of a dropped change or feature is
+ * refused: its worktree is gone, and stays gone.
  */
 export async function sendTo(
   context: SessionContext,
@@ -40,37 +38,14 @@ export async function sendTo(
   const place = await sendPlace(context.binding, live, checked.workflow);
   available();
   const workflow = place.asChat === undefined ? checked.workflow : undefined;
-  // The run after a spec's approval follows the setting unless the message says (the agents
-  // decision): a composer may send it before it read the setting.
-  const fresh =
-    workflow?.fresh ??
-    (place.step !== null && FRESH_STEPS.has(place.step) && (workflow?.freshByDefault ?? true));
-  // A session that never ran is as new as a new one.
-  if (!fresh || live.folder === null || context.cache.turns(live.id).length === 0) {
+  if (workflow === undefined || live.folder === null || !isStepId(place.runStep)) {
     return deliver(context, live, checked, place, false);
   }
-  const { binding, cache } = context;
   const behind = live.turn !== undefined || live.queue.length > 0;
-  // Refused before the new session exists: a refused run leaves no empty session as the latest.
-  if (context.live.moving(live)) {
-    throw refused(REFUSALS.agentWorking);
+  const next = await runSession(context, live, place.runStep, workflow.fresh);
+  if (next === live) {
+    return deliver(context, live, checked, place, false);
   }
-  if (!behind && context.live.otherWorking(live, { queued: true })) {
-    const { kind } = await binding.readFeature(live.repo, live.folder);
-    throw refused(REFUSALS.otherWorking(kind));
-  }
-  // The new session runs on the runtime, the model, and the effort of the one the run was sent to.
-  const { agent, effort, model } = rowOf(cache, live);
-  const row = cache.createSession({
-    agent,
-    effort,
-    folder: live.folder,
-    model,
-    nativeId: randomUUID(),
-    repo: live.repo,
-    title: null,
-  });
-  const next = context.live.of(row);
   return context.live.serial(next, () => deliver(context, next, checked, place, behind));
 }
 

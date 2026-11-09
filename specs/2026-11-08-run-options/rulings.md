@@ -143,3 +143,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changes nothing); a toggle there stored a `new_session` no one sees, which came back as a cut when
   the steps later ran on one model.
 - **Where**: task 5, from the review of wave 2.
+
+## R15: A session without a run step takes the run, and a promoted feature starts anew
+
+- **Decision**: a feature's latest session that ran no workflow turn, as a chat moved to a change,
+  takes the next workflow run, and starts for its step. A change promoted to a feature runs the
+  feature's first step in a new session: the change's Build is never joined to a step before it.
+- **Rationale**: a chat's turns hold the context the human gave, and no step ran there to cut from;
+  the run options decision lets steps share a session only where the human joined them, forward. The
+  session moves' test "promote runs the next step in the session" now expects a new session.
+- **If wrong**: `runSession` in `packages/server/src/runner/run-session.ts`.
+- **Where**: task 6.
+
+## R16: A joined step's effort, a chained run refused, and a legacy session's step
+
+- **Decision**: a run joined to a session sets its effort only when the step picks one: a step on
+  the agent's default keeps the session's effort. A chained run that is refused, as on a model gone,
+  leaves its reason as the ended turn's last line. A legacy session's run step is read by the core's
+  `runStepOf`, a new function of the binding.
+- **Rationale**: an effort the human set on the session is not undone by a step that picks none; the
+  human reads why the next step did not start; TypeScript reaches the core's step mapping only
+  through the binding.
+- **Where**: task 6.
+
+## R17: US2 2's test joins Spec and Plan
+
+- **Decision**: the test of US2 2 joins Spec, at High, and Plan, at Medium, and sends the plan's run
+  after the spec's approval; a spec's revision is the Spec step's own run, on the Spec's effort.
+- **Rationale**: `spec-revision` belongs to the Spec run step (R1), so the revision cannot have an
+  effort of its own; joining two steps tests the same rule, a joined step's own effort.
+- **Where**: task 6.

@@ -1,4 +1,5 @@
 import { vi } from "vite-plus/test";
+import type { RunOptions } from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { Binding } from "../../fate/context.ts";
 import { SessionCache } from "../cache.ts";
@@ -21,18 +22,21 @@ export function flush() {
  * Its timers are fake: a test moves them with `vi.advanceTimersByTime`. `binding` replaces the real
  * one, as to hold a call. Its automatic continues are off, unless `runs` turns them on (R4);
  * `onChange` sees each change as it is published, with the cache as it is then. Its fake adapter is
- * the runtime `fake`, unless `runtimes` gives others.
+ * the runtime `fake`, unless `runtimes` gives others. `runOptions` gives each feature's run options,
+ * the defaults when left out.
  */
 export async function testSessions(
   repo = fixtureRepo(),
   {
     binding: through = binding,
     onChange,
+    runOptions,
     runs = () => CONTINUES_OFF,
     runtimes,
   }: {
     binding?: Binding;
     onChange?: (change: SessionChange, cache: SessionCache) => void;
+    runOptions?: (repo: string, folder: string) => RunOptions;
     runs?: () => ContinueSettings;
     runtimes?: Runtimes;
   } = {},
@@ -48,6 +52,7 @@ export async function testSessions(
       changes.push(change);
       onChange?.(change, cache);
     },
+    ...(runOptions === undefined ? {} : { runOptions }),
     runs,
     runtimes: runtimes ?? runtimesOf({ fake: adapter }),
   });

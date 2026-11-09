@@ -27,21 +27,23 @@ function subject({ kind, path }: Subject): string {
 
 const READY = "the pull request is ready for review";
 
-/** What a run does from a step, where it stops, and its name: its work, without what follows. */
-type Goal = { name?: string; stop: string; work: string };
+/** What a run does from a step, and where it stops. */
+type Goal = { stop: string; work: string };
 
 /** The comments message's goal: the pull request's comments, until it waits for review again. */
 const COMMENTS: Goal = { stop: `${READY} again`, work: "Address the comments on its pull request" };
 
 /**
- * What a run does from a step, and where it stops: the next human gate, which the step and the
- * spec's `plan-review` decide. A catch-up names the default branch, `catchUp.branch`.
+ * What a run does from a step, and where it stops: the end of its step, as each step is a run of
+ * its own, which Uraeda follows with the next step's run (the run options decision). The plan's
+ * run stops at its review when the spec's `plan-review` asks for one, else once it is committed.
+ * A catch-up names the default branch, `catchUp.branch`.
  */
 function goal(step: string, planReview?: boolean, catchUp?: Pick<CatchUpView, "branch">): Goal {
-  const plan = (first: string): Goal =>
-    planReview
-      ? { stop: "the plan waits for my review", work: first }
-      : { name: first, stop: READY, work: `${first}, then implement it` };
+  const plan = (work: string): Goal => ({
+    stop: planReview ? "the plan waits for my review" : "the plan is committed",
+    work,
+  });
   switch (step) {
     case "discovery":
       return {
@@ -59,7 +61,7 @@ function goal(step: string, planReview?: boolean, catchUp?: Pick<CatchUpView, "b
     case "plan-revision":
       return plan("Revise the plan");
     case "implementation":
-      return { stop: READY, work: "Implement the plan" };
+      return { stop: "every task of the plan is checked", work: "Implement the plan" };
     case "final-review":
       return { stop: READY, work: "Review the implementation" };
     case "pull-request-changes":
@@ -175,10 +177,9 @@ export function recommendedMessage({
     if (step.name === "pull-request-changes") {
       return comments(step.reference);
     }
-    const { name, work } = goal(step.name, step.planReview, step.catchUp);
-    const words = name ?? work;
+    const { work } = goal(step.name, step.planReview, step.catchUp);
     return {
-      name: `Continue, ${words.charAt(0).toLowerCase()}${words.slice(1)}`,
+      name: `Continue, ${work.charAt(0).toLowerCase()}${work.slice(1)}`,
       step: step.name,
       text: message(step.reference),
       trigger: "manual",

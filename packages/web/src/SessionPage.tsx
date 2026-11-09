@@ -4,7 +4,7 @@ import { featureRequest, useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
 import type { SessionItem } from "./dropItem.ts";
-import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
+import { type ReadMessage, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
 import {
@@ -52,7 +52,6 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   // The refusal read for an address: shown only while the address asks for that message.
   const [refusal, setRefusal] = useState<{ search: string; text: string }>();
   const refused = refusal?.search === search ? refusal.text : undefined;
-  const fresh = useFreshRun(search);
   // The draft takes the address's message once: coming back to the address keeps what it holds.
   useEffect(() => {
     if (workflow === undefined && ask !== undefined) {
@@ -80,7 +79,6 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   };
   const read = (message: ReadMessage) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
-    fresh.read(message);
     if (message.refusal !== null) {
       refuse(search);
     } else if (workflow) {
@@ -96,7 +94,7 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
     redirect(here(given === undefined ? sessionPath(folder) : sessionIdPath(given)));
   const handing: Handing = workflow
     ? refused === undefined
-      ? { ...fresh.handing(workflow), onSent: sent }
+      ? { onSent: sent, workflow }
       : { notice: refused, onSent: sent, recommended: true }
     : { recommended: true, ...(ask === undefined ? {} : { onSent: sent }) };
   return (

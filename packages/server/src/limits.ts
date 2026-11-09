@@ -46,6 +46,12 @@ export const RUNTIME_REFUSALS = {
   noModel: (runtime: string, model: string) => `${runtime} has no model ${model}: pick another`,
   /** An effort the model does not take: the model and the effort by their names for people. */
   noEffort: (model: string, effort: string) => `${model} takes no ${effort} effort: pick another`,
+  /**
+   * A step's run on a model its agent no longer lists: the step, the model as stored, and the agent
+   * by their names for people.
+   */
+  stepModelGone: (step: string, model: string, agent: string) =>
+    `${step} runs on ${model}, which ${agent} no longer lists.`,
   /** A pick's field that is no ID, as fate's inputs are not typed when they run. */
   notName: (field: "agent" | "effort" | "model") => `The ${field} is not a name: pick another`,
 };

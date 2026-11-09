@@ -271,10 +271,10 @@ scenarios and 3 high edge cases).
 | US1 more 2 (`build_in_fresh_session = false` read, then replaced)    | 1     | `crates/core/tests/run_options.rs` `migrates_the_old_switch` (rewrites the replaced settings test)                                                |
 | Review focus 9 (old switch with a plan table)                        | 1     | `migrates_the_old_switch`, its second row                                                                                                         |
 | US2 1 (plan committed, run ends, Sonnet build starts)                | 6     | `runner/__tests__/chain.test.ts` "a plan run that ends at the build starts the build's run in a new session on its pick"                          |
-| US2 2 (joined revision continues, effort Medium)                     | 6     | `chain.test.ts` "a revision joined to its spec runs in the spec's session, on its own effort"                                                     |
+| US2 2 (joined revision continues, effort Medium)                     | 6     | `chain.test.ts` "a step joined to the one before runs in its session, on its own effort" (R17)                                                    |
 | US2 3 (no plan, no build; asks for you)                              | 6     | `chain.test.ts` "a run whose step did not move on starts nothing" (status `halted` stays owned by `status.test.ts`)                               |
 | Review focus 5, 6 (no count, no chain after Stop; no loop)           | 6     | rows of the three `chain.test.ts` tests                                                                                                           |
-| Review focus 7 (legacy session)                                      | 6     | row of "a revision joined to its spec…"                                                                                                           |
+| Review focus 7 (legacy session)                                      | 6     | row of "a step joined to the one before…"                                                                                                         |
 | US2 more 1 (limit continues in the build's session)                  | none  | the continuer's existing tests own it: a continue goes to its turn's session                                                                      |
 | US2 more 2 (Continue all sends to the build's session)               | 6     | `continue-all.test.ts`'s existing test, now through `run-session.ts`; no new test                                                                 |
 | US3 1 (3 Codex implementers at once, their answers back)             | 8     | `runner/__tests__/sub-sessions.test.ts` "run_agent runs each task in its own sub-session at once, on the role's pick"                             |
@@ -744,9 +744,14 @@ share, and concurrency with the continuer.
     continuer: for a workflow turn of a feature's session, not a sub-session, ended `done`, it reads
     the next step; when it waits on the agent and its `runStep` differs from the turn's, it sends
     the recommended message with trigger `next-step`, as `continueOne` does, holding the end's
-    publication until sent. It sends nothing otherwise, so the status stays `halted` as today.
+    publication until sent. It sends nothing otherwise, so the status stays `halted` as today. A
+    refused chained run leaves its reason as the turn's last line (R16).
+  - `runStepOf(step: string): string | null` on the binding, the core's `StepName::parse` and
+    `run_step`: the run step of a legacy session's last workflow turn (R16).
+  - `Sessions` takes `runOptions(repo, folder)`, the server's `FeatureOptions.resolved`, given by
+    `startSessions`; the session context holds it and the chain.
 
-- [ ] **Step 1: Write the failing tests, and rewrite the replaced ones**
+- [x] **Step 1: Write the failing tests, and rewrite the replaced ones**
 
 `chain.test.ts`, on the session manager with the fake agent and two runtimes:
 
@@ -756,36 +761,38 @@ share, and concurrency with the continuer.
   continues count stays 0. Rows: a step's model gone refuses with the exact text; a build agent off
   runs on the first runtime on; a turn the human stopped chains nothing. Break: chaining from
   `stopped`, or counting the chain as a continue.
-- "a revision joined to its spec runs in the spec's session, on its own effort": spec at High,
-  revision step at Medium in the same span; a revision run sent after a review goes to the spec's
-  session with effort Medium. Row: a legacy session without `step` whose last workflow turn was
-  `spec` is joined the same way. Break: a new session per run, or the session's effort unchanged.
+- "a step joined to the one before runs in its session, on its own effort": Spec at High, Plan at
+  Medium, joined; the plan's run sent after the spec's approval goes to the spec's session with
+  effort Medium (a spec revision is the Spec step's own run, R17). Row: a legacy session without
+  `step` whose last workflow turn was `spec` is joined the same way. Break: a new session per run,
+  or the session's effort unchanged.
 - "a run whose step did not move on starts nothing": the plan turn ends with the step still `plan`;
   no new turn anywhere. Break: a loop of plan runs.
 
 Rewrite `message.test.ts`'s plan messages, the R20 test to "a new session runs on its step's pick",
 and remove the fresh session's tests the spec lists.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/runner/__tests__/chain.test.ts packages/server/src/runner/__tests__/message.test.ts`
-- Expected: FAIL, `Cannot find module '../chain.ts'`, and the message tests on "Write the plan, then
-  implement it"
+- Expected: FAIL, the chain's tests on their assertions (no session chained, no effort taken; the
+  tests reach the chain through the session manager, so no import fails), and the message tests on
+  "Write the plan, then implement it"
 
-- [ ] **Step 3: Implement the session choice, the goals, and the chain**
+- [x] **Step 3: Implement the session choice, the goals, and the chain**
 
 `sendTo` asks `runSession` for a workflow message with a step, and keeps today's path for a chat.
 Continue all, the hand-over, applying answers, and approvals all reach it through `sessions.send`,
 so each lands in its step's session. The chain is a member of the session context like the
 continuer, created in the same place.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS but `keys-structural.test.ts`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src packages/web/src

@@ -1,4 +1,4 @@
-import type { Changes } from "uraeda-binding";
+import type { Changes, RunOptions } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
@@ -319,13 +319,14 @@ export function onSessionChange(
 /**
  * A session manager whose changes are sent as live updates, to the hosts of their repositories, and
  * whose features' turns that end done reach `onTurnDone`'s listeners. `runs` gives the continues'
- * settings in force.
+ * settings in force, and `runOptions` a feature's run options as its next run starts on them.
  */
 export function createSessions(options: {
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
   mcp?: { address: ServerAddress; tokens: McpTokens };
+  runOptions?: (repo: string, folder: string) => RunOptions;
   runs?: () => ContinueSettings;
   runtimes: Runtimes;
 }): Sessions {

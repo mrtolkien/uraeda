@@ -630,6 +630,12 @@ export declare function retryCommit(repo: string, folder: string, name: string):
 /** Commits the answered round `id` again, after a hook refused its submit. */
 export declare function retryRound(repo: string, id: string): Promise<FileView>
 
+/**
+ * The run step a workflow step belongs to, by the step's name, as `NextView.step.runStep` gives
+ * it: none for a step outside every run, or a name no step has.
+ */
+export declare function runStepOf(step: string): string | null
+
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
 

@@ -1370,7 +1370,7 @@ test("a fresh run's session is the latest", async () => {
   adapter.script([]);
   const sent = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
-    workflow: { freshByDefault: true, trigger: "manual" },
+    workflow: { fresh: true, trigger: "manual" },
   });
   await sessions.settled(sent.turn);
 
@@ -1582,25 +1582,6 @@ test("a workflow run that is not fresh continues the agent session", async () =>
   expect(cache.items(turn, 0, 1)).toEqual([
     expect.objectContaining({ kind: "message", origin: "workflow" }),
   ]);
-});
-
-/** The agents decision: a run after a spec's approval sent without `fresh` follows the setting. */
-test("a workflow run at the plan step sent without fresh follows the setting", async () => {
-  for (const on of [true, false]) {
-    const { adapter, repo, sessions } = await testSessions();
-    const session = await sessions.featureSession(repo, AGENT);
-    adapter.script([]);
-    await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
-
-    adapter.script([]);
-    const { turn } = await sessions.send(repo, session.id, {
-      text: "Continue the feature.",
-      workflow: { freshByDefault: on, trigger: "manual" },
-    });
-    await sessions.settled(turn);
-
-    expect(adapter.opens.map((open) => open.resume)).toEqual(on ? [false, false] : [false]);
-  }
 });
 
 test("a fresh first run opens the session's own agent session, with no line", async () => {

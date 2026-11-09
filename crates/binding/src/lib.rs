@@ -183,6 +183,15 @@ pub fn next_step(repo: String, folder: String) -> AsyncTask<Job<NextView>> {
     job(move || api::next_step(Path::new(&repo), &folder))
 }
 
+/// The run step a workflow step belongs to, by the step's name, as `NextView.step.runStep` gives
+/// it: none for a step outside every run, or a name no step has.
+#[napi]
+pub fn run_step_of(step: String) -> Option<String> {
+    uraeda_core::steps::StepName::parse(&step)
+        .and_then(|name| name.run_step())
+        .map(String::from)
+}
+
 /// Asks `gh` for the repository's open pull requests, once, for every read that follows: whether
 /// they changed since the last refresh.
 #[napi(ts_return_type = "Promise<boolean>")]

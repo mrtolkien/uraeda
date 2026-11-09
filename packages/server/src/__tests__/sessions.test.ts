@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
@@ -434,30 +434,6 @@ test("session.send with a fresh workflow message answers with the new session it
   expect(server.adapter.opens).toHaveLength(2);
   expect(server.adapter.opens[1]?.resume).toBe(false);
   expect(server.adapter.opens[1]?.nativeId).not.toBe(server.adapter.opens[0]?.nativeId);
-});
-
-/** The agents decision: a run after a spec's approval sent without `fresh` follows the setting. */
-test("session.send of the plan's message without fresh follows the build_in_fresh_session setting", async () => {
-  for (const on of [true, false]) {
-    const server = await testServer();
-    writeFileSync(
-      join(server.configDir, "config.toml"),
-      `[runs]\nbuild_in_fresh_session = ${on}\n`,
-    );
-    await server.settings.reload();
-    server.adapter.script([]);
-    await settle(server, await send(server, { folder: AGENT, text: "Hello" }));
-    server.adapter.script([]);
-
-    const session = await send(server, {
-      folder: AGENT,
-      text: "/uraeda Continue.",
-      workflow: { trigger: "manual" },
-    });
-    await settle(server, session);
-
-    expect(server.adapter.opens.map((open) => open.resume)).toEqual(on ? [false, false] : [false]);
-  }
 });
 
 test("US3.3: session.seen turns a chat's Needs attention into Idle", async () => {
