@@ -152,32 +152,34 @@ Do these only when a human asks.
 - **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
   It keeps its code and its worktree. With `ura`, `ura start <change> --feature`. By hand, as
   [Upgrading](change.md#upgrading) says.
-- **Postpone or block**: the feature leaves the workflow, and only a proposal stays. Stop first when
-  its worktree, or its folder on the default branch, has uncommitted changes, since they would be
-  lost.
-  1. On the feature's branch, remove its dated folder, and commit with
-     `chore(<slug>): close for postponing`: a branch without its folder is no longer a feature, so
-     no tool resumes it in place of the new proposal. Its previous commit keeps every file.
-  2. On the default branch, write the feature's current state, read on its branch, as a new proposal
-     file, `specs/proposals/<slug>.md`, without its date. It keeps the proposal's `discovery` level,
-     its `# Title`, a **What** and a **Why**, and the human's words wherever they still hold. What
-     their answers, notes, and reviews settled becomes part of the request, said as they decided it,
-     never as a question or an option. It ends with what is still open or unverified, and where the
+- **Postpone or block**: the feature or the change leaves the workflow, and only a proposal stays. A
+  change's folder is `specs/changes/YYYY-MM-DD-<slug>/`, on its branch `change/YYYY-MM-DD-<slug>`.
+  Stop first when its worktree, or its folder on the default branch, has uncommitted changes, since
+  they would be lost.
+  1. On its branch, remove its dated folder, and commit with `chore(<slug>): close for postponing`:
+     a branch without its folder is no longer a feature or a change, so no tool resumes it in place
+     of the new proposal. Its previous commit keeps every file.
+  2. On the default branch, write its current state, read on its branch, as a new proposal file,
+     `specs/proposals/<slug>.md`, without its date. It keeps the proposal's `discovery` level, its
+     `# Title`, a **What** and a **Why**, and the human's words wherever they still hold. What their
+     answers, notes, and reviews settled becomes part of the request, said as they decided it, never
+     as a question or an option. It ends with what is still open or unverified, and where the
      earlier work lives: the branch, the commit before the one that closed it, and the paths of its
-     discovery rounds, questions, and spec, read with `git show <commit>:<path>`. It links no file
-     of the folder.
-  3. In the same commit, remove the dated folder from the default branch, and move the feature's
-     line in `PRIORITIES.md` to the section the human names, **Later** for one not scheduled, after
-     what it needs when it is blocked, linked to the new proposal file. Commit these files alone,
-     `chore(<slug>): postpone <feature name>`, only when `PRIORITIES.md` had no other changes:
-     otherwise they stay uncommitted, beside the human's edits.
+     rounds, its spec, and its rulings, read with `git show <commit>:<path>`. It links no file of
+     the folder. A change's proposal is started again as a change.
+  3. In the same commit, remove the dated folder from the default branch, and move its line in
+     `PRIORITIES.md` to the section the human names, **Later** for one not scheduled, after what it
+     needs when it is blocked, linked to the new proposal file. Commit these files alone,
+     `chore(<slug>): postpone <name>`, only when `PRIORITIES.md` had no other changes: otherwise
+     they stay uncommitted, beside the human's edits.
   4. Repair the links into the removed folder, as
      [the catch-up](implementation.md#where-a-moved-link-points) says: a link to its `proposal.md`
      points at the new proposal file, and every other one becomes its words. With `ura`,
      `ura check --fix`. Commit them alone, `fix(<slug>): repair the links to moved files`.
 
   The branch is never merged: its code and its edits to the decisions never reach the default
-  branch. Remove the worktree and keep the branch, as **Drop** says below.
+  branch. Remove the worktree and keep the branch, as **Drop** says below. An agent running in that
+  worktree removes it last.
 
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default

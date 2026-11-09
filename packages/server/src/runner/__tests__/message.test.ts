@@ -5,6 +5,7 @@ import {
   chatOpening,
   chatTitle,
   ORGANIZE_INBOX,
+  postponeMessage,
   retryMessage,
   RUN_DECISIONS_CHECK,
   runMessage,
@@ -156,4 +157,24 @@ test("the decisions check's messages", () => {
   expect(APPLY_DECISIONS_CHECK).toBe(
     "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following references/decisions-check.md.",
   );
+});
+
+/** The menu's Postpone: the skill's "Postpone or block" answers it, for a feature or a change. */
+test("the postpone message names the item, its branch, and the step", () => {
+  expect(
+    postponeMessage({
+      branch: "2026-10-12-cli-tuis",
+      kind: "feature",
+      path: "specs/2026-10-12-cli-tuis",
+    }),
+  ).toBe(
+    '/uraeda Postpone the feature specs/2026-10-12-cli-tuis/ on branch 2026-10-12-cli-tuis, following "Postpone or block" in skills/uraeda/references/projects.md: write its proposal, and move its line to Later.\nStop when it is postponed, and earlier only if you need a decision from me.\n',
+  );
+  expect(
+    postponeMessage({
+      branch: "change/2026-10-16-centred-x",
+      kind: "change",
+      path: "specs/changes/2026-10-16-centred-x",
+    }),
+  ).toContain("Postpone the change specs/changes/2026-10-16-centred-x/ on branch change/");
 });
