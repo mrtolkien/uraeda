@@ -166,9 +166,10 @@ const timed = async (context: Context, next: Next) => {
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
  * opened repository's; `/r/<name>/preview/<secret>/<folder>/`, each checkout's Storybook; `POST
- * /open`, a second start's handoff; `/mcp`, the agents' tools, behind its own tokens; and with `signIn`, the session routes, every other route behind
- * the session check but frame paths with the frame secret, which every ended session replaces.
- * Answers but mockups' and Storybooks' refuse other sites' frames.
+ * /open`, a second start's handoff; `/mcp`, the agents' tools, behind its own tokens; and with
+ * `signIn`, the session routes, every other route behind the session check but frame paths with
+ * the frame secret, which every ended session replaces. Answers but mockups' and Storybooks'
+ * refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
   const { allowOrigins, binding, dataDir, extensions, hosts, lockedList, port } = options;

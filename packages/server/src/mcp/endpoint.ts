@@ -20,7 +20,10 @@ export type ServerAddress = { url: string };
 /** The endpoint's tokens and tools: tools are read at each request, so they may be added later. */
 export type McpOptions = { tokens: McpTokens; tools: ReadonlyArray<McpTool> };
 
-/** The protocol versions the endpoint speaks, the latest first: a client's own is answered back. */
+/**
+ * The protocol versions the endpoint speaks, the latest first: a client's own is answered back.
+ * 2025-03-26 stays for older clients, though its JSON-RPC batches are refused with an error.
+ */
 const VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"];
 
 /** How often a running call reports progress: an agent drops a call silent for long. */

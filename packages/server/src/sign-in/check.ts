@@ -122,10 +122,10 @@ const TOKEN_PATHS = new Set(["/mcp"]);
 /**
  * The session check, Hono middleware after the guard. A path that is not the server's is the
  * built UI's, and passes; so do a frame path that `frames` allows, `/open` and `/session/key` with
- * `Authorization: Bearer <host token>`, `/mcp`, behind its own tokens, and the `/session` routes. Every other request needs the
- * cookie of a session the store finds, or gets 401. A found session is set on the context as
- * `device`, on the open routes too; one used for the first time in a day sets its cookie again,
- * unless the request ended it.
+ * `Authorization: Bearer <host token>`, `/mcp`, behind its own tokens, and the `/session` routes.
+ * Every other request needs the cookie of a session the store finds, or gets 401. A found session
+ * is set on the context as `device`, on the open routes too; one used for the first time in a day
+ * sets its cookie again, unless the request ended it.
  */
 export function sessionCheck(
   options: SignInOptions & {
