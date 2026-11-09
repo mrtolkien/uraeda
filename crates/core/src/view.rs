@@ -228,6 +228,9 @@ pub struct NextStepView {
     pub plan_review: Option<bool>,
     /// The default branch's commit to catch up with, at `catch-up`.
     pub catch_up: Option<CatchUpView>,
+    /// The run step it belongs to, `discovery`, `spec`, `plan`, `build`, `review`, or `comments`:
+    /// absent for a step no agent runs, as a gate.
+    pub run_step: Option<String>,
 }
 
 /// What a branch behind the default branch catches up with, at the step `catch-up`.
@@ -265,6 +268,7 @@ impl From<&Step> for NextStepView {
             pull_request: step.pull_request.as_ref().map(kebab),
             plan_review: step.plan_review,
             catch_up: step.catch_up.as_ref().map(CatchUpView::from),
+            run_step: step.run_step().map(String::from),
         }
     }
 }

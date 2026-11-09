@@ -183,6 +183,23 @@ impl Step {
         }
     }
 
+    /// The run step this workflow step belongs to, whose agent, model, effort, and session it runs
+    /// on: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`. A step no agent runs, as a
+    /// gate, an open pull request, or the end, belongs to none.
+    pub fn run_step(&self) -> Option<&'static str> {
+        match self.name {
+            StepName::Discovery => Some("discovery"),
+            StepName::Spec | StepName::SpecRevision => Some("spec"),
+            StepName::Approval | StepName::Plan | StepName::PlanRevision => Some("plan"),
+            StepName::Implementation | StepName::Change => Some("build"),
+            StepName::FinalReview | StepName::Finish | StepName::PullRequestUnknown => {
+                Some("review")
+            }
+            StepName::PullRequestChanges | StepName::Push | StepName::CatchUp => Some("comments"),
+            StepName::HumanGate | StepName::PullRequest | StepName::Done | StepName::None => None,
+        }
+    }
+
     /// Whether the pull request's state decides this step.
     pub fn depends_on_pull_request(&self) -> bool {
         self.pull_request.is_some()

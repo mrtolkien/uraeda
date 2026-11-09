@@ -804,6 +804,13 @@ export declare function watch(repo: string, onChange: (changes: Changes) => void
 export declare function workDir(repo: string, folder: string): Promise<string>
 
 /**
+ * Writes the next `findings-NN.md` in the folder of the feature's worktree, and commits it alone,
+ * as `review(<slug>): findings NN`: other changes of the worktree stay out of the commit. Resolves
+ * to its path from the repository's top level.
+ */
+export declare function writeFindings(repo: string, folder: string, findings: Findings): Promise<string>
+
+/**
  * Whether "Add and commit" committed its file: `reason` is `other-changes` when the file had
  * uncommitted changes before the add, or `hook-failed`, with `message` the hook's first line.
  */
@@ -1431,6 +1438,25 @@ export interface FileView {
 }
 
 /**
+ * The findings of one review: what was reviewed, `wave 2` or `branch`, the range of commits
+ * reviewed, `<base>..<head>`, and each reviewer's section, in the order they ran.
+ */
+export interface Findings {
+  reviewed: string
+  commits: string
+  sections: Array<FindingsSection>
+}
+
+/**
+ * A reviewer's section: its name, as the run map shows it, "Codex · GPT-6.1-Sol", and its findings
+ * as it wrote them, a markdown list.
+ */
+export interface FindingsSection {
+  reviewer: string
+  text: string
+}
+
+/**
  * What a diff is of: a commit of the main checkout's history, else a group's working tree, the
  * main checkout's for no folder.
  */
@@ -1774,6 +1800,11 @@ export interface NextStepView {
   planReview?: boolean
   /** The default branch's commit to catch up with, at `catch-up`. */
   catchUp?: CatchUpView
+  /**
+   * The run step it belongs to, `discovery`, `spec`, `plan`, `build`, `review`, or `comments`:
+   * absent for a step no agent runs, as a gate.
+   */
+  runStep?: string
 }
 
 /** A feature, its branch, and its next step, with the main checkout's path. */

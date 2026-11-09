@@ -13,6 +13,7 @@ pub mod deferred;
 pub mod drop;
 pub mod edited;
 pub mod expand;
+pub mod findings;
 pub mod images;
 pub mod inbox;
 pub mod init;

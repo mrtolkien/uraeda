@@ -71,13 +71,16 @@ pub enum FileKind {
     Rulings,
     DataModel,
     Review,
+    /// A review's findings, `findings-NN.md`, one per review of the branch or of a wave.
+    Findings,
     /// The record of a finished feature or change, `specs/done/<folder>.md`: decided by its folder,
     /// never by `FileKind::of`.
     Record,
 }
 
 impl FileKind {
-    /// The kind of a file of a feature folder, and its round for discovery and clarifications.
+    /// The kind of a file of a feature folder, and its round for discovery, clarifications, and
+    /// findings.
     pub fn of(name: &str) -> Option<(FileKind, Option<u32>)> {
         let fixed = match name {
             "proposal.md" => Some(FileKind::Proposal),
@@ -94,6 +97,7 @@ impl FileKind {
         for (prefix, kind) in [
             ("discovery-", FileKind::Discovery),
             ("clarifications-", FileKind::Clarifications),
+            ("findings-", FileKind::Findings),
         ] {
             if let Some(round) = name
                 .strip_prefix(prefix)

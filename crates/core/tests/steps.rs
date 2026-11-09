@@ -7,7 +7,7 @@ use common::texts::*;
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::steps::{PullRequest, Step, StepName, TaskProgress, WaitsOn};
-use uraeda_core::view::StepView;
+use uraeda_core::view::{NextStepView, StepView};
 use uraeda_core::workspace::{Feature, Kind, Workspace};
 
 /// A feature's files: names and texts.
@@ -352,6 +352,42 @@ fn order_follows_the_workflow() {
         let name = format!("{} {:?}", step.name.as_str(), step.file);
 
         assert_eq!(StepView::from(&step).order, expected, "{name}");
+    }
+}
+
+/// The run step each workflow step belongs to, as the binding's `NextView.step.runStep` gives it:
+/// a step outside every run, as a gate, belongs to none.
+#[test]
+fn each_step_belongs_to_its_run_step() {
+    let rows = [
+        (StepName::HumanGate, None),
+        (StepName::Discovery, Some("discovery")),
+        (StepName::Spec, Some("spec")),
+        (StepName::SpecRevision, Some("spec")),
+        (StepName::Approval, Some("plan")),
+        (StepName::Plan, Some("plan")),
+        (StepName::PlanRevision, Some("plan")),
+        (StepName::Implementation, Some("build")),
+        (StepName::Change, Some("build")),
+        (StepName::FinalReview, Some("review")),
+        (StepName::Finish, Some("review")),
+        (StepName::PullRequestUnknown, Some("review")),
+        (StepName::PullRequestChanges, Some("comments")),
+        (StepName::Push, Some("comments")),
+        (StepName::PullRequest, None),
+        (StepName::Done, None),
+        (StepName::None, None),
+    ];
+    for (name, expected) in rows {
+        let step = step_at(name, None);
+
+        assert_eq!(step.run_step(), expected, "{}", name.as_str());
+        assert_eq!(
+            NextStepView::from(&step).run_step.as_deref(),
+            expected,
+            "{}",
+            name.as_str()
+        );
     }
 }
 

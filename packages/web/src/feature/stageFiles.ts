@@ -42,6 +42,9 @@ function wanted(file: { kind: string; name: string }, stages: ReadonlyArray<stri
     case "rulings":
       // A change has no Plan: its notes on the fix are its Fix stage's.
       return stages.includes("plan") ? "plan" : "fix";
+    case "findings":
+      // A review's findings, of a wave or of the branch, are the build's: a change's, its fix's.
+      return stages.includes("build") ? "build" : "fix";
     case "record":
       return "merged";
     default:
@@ -73,6 +76,8 @@ function labelOf(file: File): string {
       return `Discovery${round}`;
     case "clarifications":
       return `Questions${round}`;
+    case "findings":
+      return `Findings${round}`;
     case "review":
       return file.name.startsWith("plan") ? "Plan review" : "Spec review";
     default:

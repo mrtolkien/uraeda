@@ -434,19 +434,21 @@ git commit -m "feat(run-options): run options in the settings file"
 
 - Produces:
   - `FileKind::Findings`, serialised `findings`, with its round.
-  - `Step.run_step: Option<&'static str>`, `runStep` on the binding's `NextView.step`: the run step
-    a workflow step belongs to. `discovery` → `discovery`; `spec`, `spec-revision` → `spec`;
-    `approval`, `plan`, `plan-revision` → `plan`; `implementation`, `change` → `build`;
-    `final-review`, `finish`, `pull-request-unknown` → `review`; `pull-request-changes`, `push` →
-    `comments`; every other step → `None`.
-  - `pub fn write_findings(repo: &Path, folder: &str, findings: &Findings) -> Result<String, ApiError>`
+  - `Step::run_step(&self) -> Option<&'static str>`
+    ([R6](rulings.md#r6-a-findings-files-title-and-its-place-in-a-change)), `runStep` on the
+    binding's `NextView.step`: the run step a workflow step belongs to. `discovery` → `discovery`;
+    `spec`, `spec-revision` → `spec`; `approval`, `plan`, `plan-revision` → `plan`;
+    `implementation`, `change` → `build`; `final-review`, `finish`, `pull-request-unknown` →
+    `review`; `pull-request-changes`, `push` → `comments`; every other step → `None`.
+  - `api::write_findings(repo: &Path, folder: &str, findings: &Findings) -> Result<String, ApiError>`
     with `pub struct Findings { reviewed: String, commits: String, sections: Vec<FindingsSection> }`
     and `pub struct FindingsSection { reviewer: String, text: String }`: writes the next
-    `findings-NN.md` in the folder of the feature's worktree, commits only that file with
-    `review(<slug>): findings NN`, and returns its path from the repository's root. Binding:
+    `findings-NN.md` in the folder of the feature's worktree, titled `# Findings: <title>, wave 2`,
+    commits only that file with `review(<slug>): findings NN`, and returns its path from the
+    repository's root. `retry_commit` commits it again after a hook's refusal. Binding:
     `writeFindings(repo, folder, findings)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `crates/core/tests/findings.rs` `writes_and_commits_only_the_findings`: in a feature's worktree
   with `findings-01.md` and an unrelated modified file, writing findings for `wave 2` and `abc..def`
@@ -457,23 +459,23 @@ git commit -m "feat(run-options): run options in the settings file"
 - The steps' table gains a row per mapping above. Break: `change` mapped to nothing, so a change
   never chains its picks.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core findings steps`
 - Expected: FAIL to compile, `cannot find function write_findings`
 
-- [ ] **Step 3: Implement the kind, its checks, `run_step`, and `write_findings`**
+- [x] **Step 3: Implement the kind, its checks, `run_step`, and `write_findings`**
 
 The commit goes through the core's git module, as every write does. The template and the example
 follow the data model; the example holds one section per reviewer of a wave of recurring tasks,
 graded as the implementation reference grades findings.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates skills/uraeda/assets packages/binding packages/web/src/feature/stageFiles.ts

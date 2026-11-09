@@ -51,3 +51,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the binding's generated `index.d.ts` names its interfaces after the core's structs,
   and an interface `Pick` would hide TypeScript's own `Pick<T, K>` in every file that imports it.
 - **Where**: task 1.
+
+## R7: A findings file's title, and its place in a change
+
+- **Decision**: `write_findings` writes the title `# Findings: <feature's title>, wave 2`, or
+  `, the branch`, which `ura check` requires from the template, and a change's folder may hold
+  `findings-NN.md`. The run step is a method, `Step::run_step()`, and a field of `NextStepView`, so
+  every `Step` built elsewhere keeps its fields.
+- **Rationale**: every workflow file has a title its check reads; the data model puts findings in
+  "the feature's or change's folder"; a method cannot disagree with the step's name.
+- **Where**: task 2.

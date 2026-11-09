@@ -4,6 +4,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::actions::findings::subject as findings_subject;
+pub use crate::actions::findings::{Findings, FindingsSection};
 use crate::actions::review;
 use crate::actions::{answer, place, priorities as edits};
 use crate::cache;
@@ -32,6 +34,7 @@ mod drop;
 mod drop_at;
 mod error;
 mod files;
+mod findings;
 mod git_page;
 mod git_writes;
 mod history;
@@ -67,6 +70,7 @@ pub use drop_at::DropAt;
 pub use error::ApiError;
 use error::refused;
 pub use files::{attach_image, encode_image, read_image, read_raw};
+pub use findings::write_findings;
 pub use git_page::{
     ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
     GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
@@ -408,8 +412,8 @@ pub fn main_root(repo: &Path) -> Result<String> {
         .into_owned())
 }
 
-/// Commits again what a hook refused to commit, its files left written: a submitted round, or a
-/// verdict on a spec or a plan, with its review file; with the images the
+/// Commits again what a hook refused to commit, its files left written: a submitted round, a
+/// review's findings, or a verdict on a spec or a plan, with its review file; with the images the
 /// feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
     let _lock = write_lock(repo);
@@ -423,6 +427,9 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
     let (subject, mut paths) = match (FileKind::of(name), status.as_deref()) {
         (Some((FileKind::Clarifications, Some(round))), Some("answered")) => {
             (answer::subject(&feature.slug, round), vec![path])
+        }
+        (Some((FileKind::Findings, Some(round))), _) => {
+            (findings_subject(&feature.slug, round), vec![path])
         }
         (Some((FileKind::Spec | FileKind::Plan, _)), Some(verdict))
             if verdict == "approved" || verdict == "changes-requested" =>
