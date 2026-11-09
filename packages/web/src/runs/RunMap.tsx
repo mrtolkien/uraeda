@@ -5,7 +5,9 @@
 // Enter or Space on a joint cuts it, starting a clean session there, or joins it; `r` puts the
 // selection back to the default; `a` adds a reviewer and `d` removes the one selected. The hints
 // under the map say the keys of what is selected. The settings' Runs section draws it on the
-// defaults, a feature's page on the feature's own options.
+// defaults, a feature's page on the feature's own options, with its history in place of the
+// timeline: there a step that started, and every joint before it, keeps what it ran on, and a
+// merged feature's map only reads.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -23,6 +25,7 @@ import {
   stepAfterJoint,
   stepAt,
 } from "./runCursor.ts";
+import { type FeatureStages, isOpen } from "./featureStages.ts";
 import { type RunOptions, STEPS, withCut } from "./runOptions.ts";
 import { RunTrack } from "./RunTrack.tsx";
 
@@ -74,8 +77,35 @@ function placeOf(value: RunOptions, pos: Pos): Target | { joint: number } | Belo
   return item;
 }
 
+/** Whether the place can still change: the step, or the step after the joint, has not started. */
+function isEditable(place: ReturnType<typeof placeOf>, stages: FeatureStages | undefined): boolean {
+  if (stages === undefined) {
+    return true;
+  }
+  if (typeof place === "object" && "step" in place) {
+    return isOpen(stages, STEPS[place.step]!);
+  }
+  if (typeof place === "object" && "joint" in place) {
+    return isOpen(stages, STEPS[place.joint]!);
+  }
+  if (place === "implementers") {
+    return isOpen(stages, "build");
+  }
+  return isOpen(stages, "review");
+}
+
 /** The hints of the place selected: its keys, then the moves. */
-function hintsOf(place: ReturnType<typeof placeOf>, value: RunOptions): Array<[string, string]> {
+function hintsOf(
+  place: ReturnType<typeof placeOf>,
+  value: RunOptions,
+  isFixed: boolean,
+): Array<[string, string]> {
+  if (isFixed) {
+    return [
+      ["← →", "move"],
+      ["↑ ↓", "below"],
+    ];
+  }
   if (typeof place === "object" && "joint" in place) {
     return [
       ["⏎", value.cuts.includes(place.joint) ? "join" : "cut"],
@@ -112,6 +142,7 @@ function useMapKeys({
   pos,
   setPicking,
   setPos,
+  stages,
   target,
   value,
 }: {
@@ -121,11 +152,15 @@ function useMapKeys({
   pos: Pos;
   setPicking: (step: "model" | "effort" | undefined) => void;
   setPos: (pos: Pos) => void;
+  stages: FeatureStages | undefined;
   target: Target | undefined;
   value: RunOptions;
 }) {
   const act = (at: Pos) => {
     const here = placeOf(value, at);
+    if (!isEditable(here, stages)) {
+      return;
+    }
     if (typeof here === "object" && "joint" in here) {
       onChange(withCut(value, here.joint));
     } else if (here === "depth") {
@@ -140,6 +175,9 @@ function useMapKeys({
     }
   };
   const reset = () => {
+    if (!isEditable(place, stages)) {
+      return;
+    }
     if (typeof place === "object" && "joint" in place) {
       const isDefault = defaults.cuts.includes(place.joint) === value.cuts.includes(place.joint);
       onChange(isDefault ? value : withCut(value, place.joint));
@@ -153,16 +191,21 @@ function useMapKeys({
       act(pos);
     } else if (event.key === "r") {
       reset();
-    } else if (event.key === "a") {
+    } else if (event.key === "a" && isEditable("add", stages)) {
       act({ index: value.reviewers.length + 1, row: "below" });
-    } else if (event.key === "d" && typeof place === "object" && "reviewer" in place) {
+    } else if (
+      event.key === "d" &&
+      typeof place === "object" &&
+      "reviewer" in place &&
+      isEditable(place, stages)
+    ) {
       onChange({
         ...value,
         reviewers: value.reviewers.filter((_, index) => index !== place.reviewer),
       });
       setPos({ index: Math.max(1, pos.index - 1), row: "below" });
     } else {
-      const next = moved(pos, event.key, value.reviewers.length);
+      const next = moved(pos, event.key, value.reviewers.length, stages?.shown);
       if (next === pos) {
         return;
       }
@@ -178,19 +221,20 @@ function useMapKeys({
  * `opened` opens the picker there, as a story does.
  */
 export function RunMap({
-  current,
   defaults,
   onChange,
   opened,
   runtimes,
+  stages,
   start = { index: 0, row: "track" },
   value,
 }: {
-  current?: number;
   defaults: RunOptions;
   onChange: (value: RunOptions) => void;
   opened?: "model" | "effort";
   runtimes: ReadonlyArray<PickerRuntime>;
+  /** A feature's history, on its page. */
+  stages?: FeatureStages | undefined;
   start?: Pos;
   value: RunOptions;
 }) {
@@ -216,9 +260,11 @@ export function RunMap({
     pos,
     setPicking,
     setPos,
+    stages,
     target,
     value,
   });
+  const isFixed = !isEditable(place, stages);
   return (
     <VStack gap={3}>
       <div
@@ -229,7 +275,6 @@ export function RunMap({
         {...stylex.props(styles.map)}
       >
         <RunTrack
-          current={current}
           defaults={defaults}
           onPress={(at) => {
             setPos(at);
@@ -237,17 +282,18 @@ export function RunMap({
           }}
           pos={pos}
           runtimes={runtimes}
+          stages={stages}
           value={value}
         />
       </div>
       <HStack wrap="wrap" xstyle={styles.hints}>
-        {hintsOf(place, value).map(([keys, label]) => (
+        {hintsOf(place, value, isFixed).map(([keys, label]) => (
           <Text color="secondary" key={label} size="sm">
             <KeyCap>{keys}</KeyCap> {label}
           </Text>
         ))}
       </HStack>
-      {target !== undefined && (
+      {target !== undefined && !isFixed && (
         <PickSteps
           onChange={(pick) => onChange(withPick(value, target, pick))}
           onStep={setPicking}

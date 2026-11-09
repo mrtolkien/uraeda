@@ -2,7 +2,7 @@
 // joint after it, by ← → (h l); down from Build to its implementers and from Review to its reviewers
 // by ↓ (j), and back up by ↑ (k). The row under the track holds the implementers, each reviewer,
 // the reviewer to add, and where reviews happen, in that order.
-import { STEPS } from "./runOptions.ts";
+import { STEPS, type StepId } from "./runOptions.ts";
 
 /** A place on the map: the track's `index`, even for a tile and odd for a joint, or the row under. */
 export type Pos = { index: number; row: "track" } | { index: number; row: "below" };
@@ -36,8 +36,36 @@ export const posKey = (pos: Pos) => `${pos.row}-${pos.index}`;
 /** `index` kept between 0 and `end`. */
 const clamp = (index: number, end: number) => Math.max(0, Math.min(end, index));
 
-/** Where `key` moves the cursor from `pos`, or `pos` itself when it goes nowhere. */
-export function moved(pos: Pos, key: string, reviewers: number): Pos {
+/** Whether a track's place is shown: a shown step's tile, or the joint before one, not the first. */
+function isShown(index: number, shown: ReadonlyArray<StepId>): boolean {
+  const step = stepAt(index) ?? stepAfterJoint(index);
+  const at = shown.indexOf(STEPS[step]!);
+  return at >= 0 && (stepAt(index) !== undefined || at > 0);
+}
+
+/**
+ * Where `key` moves the cursor from `pos`, or `pos` itself when it goes nowhere; along a change's
+ * track, over the steps it shows only.
+ */
+export function moved(
+  pos: Pos,
+  key: string,
+  reviewers: number,
+  shown: ReadonlyArray<StepId> = STEPS,
+): Pos {
+  let next = movedOnce(pos, key, reviewers);
+  // Over a hidden place, keep going the same way; at the end of the track, stay.
+  while (next.row === "track" && !isShown(next.index, shown)) {
+    const further = movedOnce(next, key, reviewers);
+    if (posKey(further) === posKey(next)) {
+      return pos;
+    }
+    next = further;
+  }
+  return next;
+}
+
+function movedOnce(pos: Pos, key: string, reviewers: number): Pos {
   const below = belowItems(reviewers);
   if (pos.row === "track") {
     switch (key) {

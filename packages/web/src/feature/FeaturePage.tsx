@@ -33,8 +33,8 @@ import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
 import { Record } from "./Record.tsx";
+import { FeatureRuns } from "../runs/FeatureRuns.tsx";
 import { SessionsPane } from "./SessionsPane.tsx";
-import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 import { Missing } from "../layout/Missing.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
@@ -360,7 +360,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         />
         <LeftBanner feature={feature} />
         {/* Read along with the feature and its history: drawn with the page, it never pushes the
-            sessions and the timeline down once they are there. */}
+            sessions and the steps down once they are there. */}
         <NextStep feature={feature} history={history} onRun={onNextRun} />
         {/* Before the sessions' keys, as "Next" comes before them. */}
         <NextKey hasNext={hasNext} run={nextRun} />
@@ -369,7 +369,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
           progress={feature.step.progress}
           sessions={feature.sessions}
         />
-        <Timeline feature={feature} history={history} progress={feature.step.progress} />
+        <FeatureRuns feature={feature} history={history} />
         <RecordPart feature={feature} history={history} keys={keys} />
         <FeatureNotes feature={feature} />
       </VStack>

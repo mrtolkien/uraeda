@@ -1,11 +1,14 @@
 // Run options' mockups (spec of Run options): the run map in the settings' Runs section, on the
 // defaults and changed; the picker open on a step; a joint selected, cut, and a cut the models
-// force; the strip in a feature's and a change's start dialog; a feature's page, its build at work;
-// and the settings on the phone. Built from the real components over the runtimes Claude Code and
+// force; the strip in a feature's and a change's start dialog; a feature's page, in place of its
+// timeline, its build at work, on the phone, merged, and a change's; and the settings on the phone. Built from the real components over the runtimes Claude Code and
 // Codex listed on 2026-11-08, with no server: the stories show the look and the keys.
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { atMostWidth, PHONE } from "../../.storybook/widthClass.ts";
+import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
+import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { CLAUDE, CODEX } from "../sampleRuntimes.ts";
 import { StartDialog } from "../StartDialog.tsx";
@@ -13,6 +16,8 @@ import type { Pos } from "./runCursor.ts";
 import { RunMap } from "./RunMap.tsx";
 import type { RunOptions } from "./runOptions.ts";
 import { RunStrip } from "./RunStrip.tsx";
+import { FeatureRuns } from "./FeatureRuns.tsx";
+import { BUILDING, CHANGE, MERGED } from "./sampleStages.ts";
 
 const RUNTIMES = [CLAUDE, CODEX];
 
@@ -63,30 +68,32 @@ const CUSTOM: RunOptions = {
 
 /** The map holding its options, as the Runs section holds the saved ones. */
 function Map({
-  current,
   opened,
   start,
   value,
 }: {
-  current?: number;
   opened?: "model" | "effort";
   start?: Pos;
   value: RunOptions;
 }) {
   const [options, setOptions] = useState(value);
   return (
-    <Pane title={current === undefined ? "How each step runs" : "Recurring tasks · how it runs"}>
+    <Pane title="How each step runs">
       <RunMap
         defaults={DEFAULTS}
         onChange={setOptions}
         runtimes={RUNTIMES}
         value={options}
-        {...(current === undefined ? {} : { current })}
         {...(opened ? { opened } : {})}
         {...(start ? { start } : {})}
       />
     </Pane>
   );
+}
+
+/** A feature's page's map, in the page's measure, as it stands where the timeline was. */
+function OnPage({ children }: { children: ReactNode }) {
+  return <Page kind="rows">{children}</Page>;
 }
 
 /** The strip in the start dialog, holding its options. */
@@ -153,8 +160,41 @@ export const ReviewerSelected: Story = {
   args: { start: { index: 2, row: "below" }, value: CUSTOM },
 };
 
-/** A feature's page: the build at work, the steps before it done. */
-export const FeaturePage: Story = { args: { current: 3, value: CUSTOM } };
+/**
+ * A feature's page, its build at work on task 4 of 9: the proposal and the steps before it done,
+ * timed, their files linked, the gates passed; the steps ahead still editable.
+ */
+export const FeaturePage: Story = {
+  decorators: [inRepositoryFolder],
+  render: () => (
+    <OnPage>
+      <FeatureRuns defaults={DEFAULTS} options={CUSTOM} runtimes={RUNTIMES} {...BUILDING} />
+    </OnPage>
+  ),
+};
+
+/** The same page on the phone: the column, its ends at the top and the bottom. */
+export const FeaturePagePhone: Story = { ...FeaturePage, beforeEach: atMostWidth(PHONE) };
+
+/** A merged feature: every step done, the merge at the end, nothing to edit. */
+export const FeatureDone: Story = {
+  decorators: [inRepositoryFolder],
+  render: () => (
+    <OnPage>
+      <FeatureRuns defaults={DEFAULTS} options={CUSTOM} runtimes={RUNTIMES} {...MERGED} />
+    </OnPage>
+  ),
+};
+
+/** A change's page: its questions, its fix waiting on your review of its pull request. */
+export const FeatureChange: Story = {
+  decorators: [inRepositoryFolder],
+  render: () => (
+    <OnPage>
+      <FeatureRuns defaults={DEFAULTS} options={DEFAULTS} runtimes={RUNTIMES} {...CHANGE} />
+    </OnPage>
+  ),
+};
 
 /** The settings on the phone: the track stands as a column. */
 export const Phone: Story = { args: { value: CUSTOM }, beforeEach: atMostWidth(PHONE) };

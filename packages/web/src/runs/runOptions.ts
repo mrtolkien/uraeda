@@ -173,3 +173,25 @@ export function withCut(value: RunOptions, step: number): RunOptions {
     : [...value.cuts, step];
   return { ...value, cuts };
 }
+
+/**
+ * Today's behaviour as options, on the agent `runtime` and its defaults: discovery and spec share a
+ * session, a clean one starts at the plan, one reviewer, reviews after each wave.
+ */
+export function todayOptions(runtime: string): RunOptions {
+  const pick: SessionPick = { runtime };
+  return {
+    cuts: [STEPS.indexOf("plan")],
+    depth: "waves",
+    implementers: pick,
+    reviewers: [{ kind: "agent", pick }],
+    steps: {
+      build: pick,
+      comments: pick,
+      discovery: pick,
+      plan: pick,
+      review: pick,
+      spec: pick,
+    },
+  };
+}

@@ -1,7 +1,7 @@
 ---
 status: proposed
 approved-by:
-icon: route
+icon: workflow
 ---
 
 # Run options

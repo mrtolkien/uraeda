@@ -2,10 +2,13 @@
 // now, and how long it has run, ticking each second. A sub-agent's own sub-agents are rows of its
 // group in the Activity, not here. The server lists the running ones alone: the panel keeps the
 // rows it drew while its tab is open, and marks those gone from the list "Done", their time frozen
-// (ruling R10).
+// (ruling R10). Once Uraeda runs a workflow's sub-agents as sessions of their own (spec of Run
+// options), the pane lists those sub-sessions instead: each with its role, what it works on, its
+// agent, model, effort, state, time, and usage, a link to its read-only page.
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import type { Session } from "uraeda-server/fate";
 import { useSession } from "../sessionData.ts";
@@ -15,6 +18,8 @@ import { useNow } from "../useNow.ts";
 import { Section } from "./Section.tsx";
 import { subagentText } from "./stretches.ts";
 import { Empty } from "../layout/Empty.tsx";
+import { SubSessionRow } from "../runs/SubSessionRow.tsx";
+import type { SubSession } from "../runs/subSessions.ts";
 
 /** A running sub-agent, as the session's record lists it. */
 type Subagent = Session["subagents"][number];
@@ -106,8 +111,38 @@ function Subagents({ session }: { session: string }) {
   );
 }
 
-/** The Sub-agents of the session `session`, or, before it exists, that none runs. */
-export function SubagentsPanel({ session }: { session?: string | undefined }) {
+/** The sub-sessions a workflow session started, the working ones first, each a link to its page. */
+function SubSessions({ subs }: { subs: ReadonlyArray<SubSession> }) {
+  const working = subs.filter((sub) => sub.state === "working");
+  const ended = subs.filter((sub) => sub.state !== "working");
+  return (
+    <VStack gap={1}>
+      {[...working, ...ended].map((sub) => (
+        <SubSessionRow key={sub.id} sub={sub} />
+      ))}
+    </VStack>
+  );
+}
+
+/**
+ * The Sub-agents of the session `session`, or, before it exists, that none runs; with `subSessions`,
+ * the sub-sessions Uraeda started for it. TEMPORARY: given by the stories until the server lists
+ * them (spec of Run options).
+ */
+export function SubagentsPanel({
+  session,
+  subSessions,
+}: {
+  session?: string | undefined;
+  subSessions?: ReadonlyArray<SubSession>;
+}) {
+  if (subSessions !== undefined && subSessions.length > 0) {
+    return (
+      <Section>
+        <SubSessions subs={subSessions} />
+      </Section>
+    );
+  }
   if (session === undefined) {
     return <Empty>No sub-agent running.</Empty>;
   }

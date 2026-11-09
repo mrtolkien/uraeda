@@ -15,7 +15,10 @@ import { HarnessMark } from "../HarnessMark.tsx";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { pickedStyles } from "../layout/picked.ts";
 import type { PickerRuntime, SessionPick } from "../SessionPicker.tsx";
+import type { Gate } from "./featureStages.ts";
 import { Lock, Scissors } from "./glyphs.tsx";
+import { runVars } from "./runVars.stylex.ts";
+import { GateMark } from "./StageDetail.tsx";
 import { changes, METER, resolved, type Reviewer } from "./runOptions.ts";
 
 /** Each session's colour, in turn: a role apart from the accent, which marks a change. */
@@ -50,7 +53,8 @@ export const partStyles = stylex.create({
     borderWidth: borderVars["--border-width"],
     inlineSize: spacingVars["--spacing-1-5"],
   },
-  dim: { opacity: 0.45 },
+  // A step done reads second, but stays readable: its files are links the human follows.
+  dim: { opacity: 0.7 },
   filled: { backgroundColor: "currentColor" },
   joint: {
     alignItems: "center",
@@ -61,15 +65,37 @@ export const partStyles = stylex.create({
     minInlineSize: spacingVars["--spacing-6"],
     position: "relative",
   },
-  // On the phone, a joint inside a session sits on the session's bar.
-  jointDown: { justifyContent: "flex-start" },
-  // On the phone, the line runs down the column, along the session's bar.
+  // In a row, the joint stands as tall as a tile's pick, so its line and its scissors sit on the
+  // axis of the tiles' faces, however much a feature's page puts under them.
+  jointAcross: { alignSelf: "start", blockSize: runVars.faceHeight },
+  // On the phone, the line runs down the column, on the same axis as the scissors: the middle.
   lineDown: {
-    blockSize: spacingVars["--spacing-3"],
+    blockSize: spacingVars["--spacing-4"],
     borderBlockStartWidth: 0,
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: borderVars["--border-width"],
     inlineSize: 0,
+  },
+  // A gate's mark, under the joint's axis in a row, before it in a column, so the scissors and the
+  // line keep the middle.
+  gateAcross: {
+    insetBlockEnd: 0,
+    insetInlineStart: "50%",
+    position: "absolute",
+    transform: "translateX(-50%)",
+  },
+  gateDown: {
+    insetBlockStart: "50%",
+    insetInlineEnd: "100%",
+    marginInlineEnd: spacingVars["--spacing-1"],
+    position: "absolute",
+    transform: "translateY(-50%)",
+  },
+  lockDown: {
+    insetBlockStart: "50%",
+    insetInlineStart: "100%",
+    position: "absolute",
+    transform: "translateY(-50%)",
   },
   // The line of a joint inside one session, in that session's colour.
   code: { fontFamily: typographyVars["--font-family-code"] },
@@ -218,6 +244,7 @@ export function Tile({
  */
 export function Joint({
   colour,
+  gate,
   isCut,
   isDown = false,
   isForced,
@@ -227,6 +254,8 @@ export function Joint({
   pos,
 }: {
   colour: string;
+  /** Where the workflow waits for the human, on a feature's page. */
+  gate?: Gate | undefined;
   isCut: boolean;
   /** On the phone: the joint's line runs down the column. */
   isDown?: boolean;
@@ -249,7 +278,7 @@ export function Joint({
       {...stylex.props(
         bareButtonStyles.bare,
         partStyles.joint,
-        isDown && !isCut && partStyles.jointDown,
+        !isDown && partStyles.jointAcross,
         isPicked && pickedStyles.picked,
       )}
     >
@@ -257,7 +286,7 @@ export function Joint({
         <>
           <Icon color={isForced ? "secondary" : "primary"} icon={Scissors} size="sm" />
           {isForced && (
-            <span {...stylex.props(partStyles.lock)}>
+            <span {...stylex.props(isDown ? partStyles.lockDown : partStyles.lock)}>
               <Icon color="secondary" icon={Lock} size="xsm" />
             </span>
           )}
@@ -266,6 +295,11 @@ export function Joint({
         <span
           {...stylex.props(partStyles.line, isDown && partStyles.lineDown, drawn.border(colour))}
         />
+      )}
+      {gate && (
+        <span {...stylex.props(isDown ? partStyles.gateDown : partStyles.gateAcross)}>
+          <GateMark gate={gate} />
+        </span>
       )}
     </button>
   );
