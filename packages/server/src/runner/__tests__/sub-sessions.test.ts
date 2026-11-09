@@ -120,7 +120,7 @@ function allRunning(sessions: Sessions, cache: SessionCache, parent: string, cou
 }
 
 test("run_agent runs each task in its own sub-session at once, on the role's pick", async () => {
-  const { cache, call, fake, gate, other, parent, root, sessions, signal, tool, worktrees } =
+  const { cache, call, fake, gate, other, parent, repo, root, sessions, signal, tool, worktrees } =
     await building();
 
   const calls = [4, 5, 6].map((task) => call(task));
@@ -147,6 +147,9 @@ test("run_agent runs each task in its own sub-session at once, on the role's pic
     expect(latest(cache, sub.id)).toMatchObject({ kind: "workflow", step: "plan" });
   }
   expect(subs.map((sub) => sub.title).toSorted()).toEqual(["Task 4", "Task 5", "Task 6"]);
+  // A sub-session keeps its task's name: a repeated call finds it by it.
+  expect(() => sessions.rename(repo, subs[0].id, "Another task")).toThrow(/task/);
+  expect(cache.session(subs[0].id)?.title).toBe(subs[0].title);
   expect(other.opens.map((open) => open.cwd).toSorted()).toEqual(Object.values(worktrees));
   expect(other.opens.every((open) => open.tools === "none")).toBe(true);
   expect(fake.opens[0].tools).toEqual({ token: expect.any(String), url: `${SERVER}/mcp` });

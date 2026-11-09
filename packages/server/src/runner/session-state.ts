@@ -51,6 +51,8 @@ export const REFUSALS = {
   read: "The agent already read it.",
   /** A message with no text. */
   blank: "The message is empty.",
+  /** A rename of a sub-session, which its parent's calls find by its task. */
+  subSessionName: "A sub-agent's session keeps its task's name.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
   /** An "Allow all" with no blocked action of the latest turn that has a rule. */

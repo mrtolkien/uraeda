@@ -24,13 +24,19 @@ function report(onChange: OnChange, row: SessionRow) {
   onChange({ folder: row.folder, repo: row.repo, session: row.id });
 }
 
-/** Renames a session, by the title's first line that is not blank, cut at 80 characters. */
+/**
+ * Renames a session, by the title's first line that is not blank, cut at 80 characters. A
+ * sub-session keeps its task's name, which its parent's calls find it by.
+ */
 export function rename(
   context: SessionContext,
   onChange: OnChange,
   row: SessionRow,
   title: string,
 ): void {
+  if (row.parent !== null) {
+    throw refused(REFUSALS.subSessionName);
+  }
   if (title.trim() === "") {
     throw refused(REFUSALS.blank);
   }
