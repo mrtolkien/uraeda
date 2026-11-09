@@ -144,8 +144,9 @@ function defaultReviewer(steps: Record<StepId, StepPick>): Reviewer {
 
 /**
  * Stored options as the map edits them, a step naming no agent on `fallbackRuntime`: the plan's
- * `new_session` is `true` when unset, the implementers' agent the build's, and no reviewers one
- * agent reviewer on the review step's agent and that agent's defaults.
+ * `new_session` is `true` when unset, the implementers by default on the build's agent, on that
+ * agent's defaults, and no reviewers one agent reviewer on the review step's agent and that agent's
+ * defaults.
  */
 export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions {
   const stored = (step: StepId) => options.steps.find((each) => each.step === step);
@@ -219,16 +220,27 @@ function storedImplementers(map: MapOptions, defaults: MapOptions): RunPick {
   return followBuild(map) ? {} : storedPick(map.implementers, { runtime: map.steps.build.runtime });
 }
 
+/** Whether two reviewers are the same, field by field. */
+function sameReviewer(a: Reviewer, b: Reviewer): boolean {
+  if (a.kind === "command" || b.kind === "command") {
+    return a.kind === "command" && b.kind === "command" && a.command === b.command;
+  }
+  return (
+    a.instructions === b.instructions &&
+    a.pick.runtime === b.pick.runtime &&
+    a.pick.model === b.pick.model &&
+    a.pick.effort === b.pick.effort
+  );
+}
+
+/** Whether two lists hold the same reviewers, in the same order. */
+function sameReviewers(a: ReadonlyArray<Reviewer>, b: ReadonlyArray<Reviewer>): boolean {
+  return a.length === b.length && a.every((reviewer, index) => sameReviewer(reviewer, b[index]!));
+}
+
 /** Whether the reviewers are the one agent reviewer on the review step's agent, as when unset. */
 function onReviewStep(options: MapOptions): boolean {
-  const [reviewer, ...more] = options.reviewers;
-  return (
-    more.length === 0 &&
-    reviewer?.kind === "agent" &&
-    reviewer.instructions === undefined &&
-    JSON.stringify(storedReviewer(reviewer)) ===
-      JSON.stringify(storedReviewer(defaultReviewer(options.steps)))
-  );
+  return sameReviewers(options.reviewers, [defaultReviewer(options.steps)]);
 }
 
 /**
@@ -239,14 +251,13 @@ function onReviewStep(options: MapOptions): boolean {
  */
 export function toStored(map: MapOptions, defaults: MapOptions): RunOptions {
   const implementers = storedImplementers(map, defaults);
-  const reviewers = map.reviewers.map(storedReviewer);
-  const sameReviewers =
+  const keepsReviewers =
     (onReviewStep(map) && onReviewStep(defaults)) ||
-    JSON.stringify(reviewers) === JSON.stringify(defaults.reviewers.map(storedReviewer));
+    sameReviewers(map.reviewers, defaults.reviewers);
   return {
     steps: storedSteps(map, defaults),
     ...(Object.keys(implementers).length === 0 ? {} : { implementers }),
-    ...(sameReviewers ? {} : { reviewers }),
+    ...(keepsReviewers ? {} : { reviewers: map.reviewers.map(storedReviewer) }),
     ...(map.depth === defaults.depth ? {} : { reviewDepth: map.depth }),
   };
 }

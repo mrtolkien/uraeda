@@ -118,6 +118,12 @@ test.each<{ from: StepId; options: RunOptions; same: boolean; to: StepId }>([
   { from: "plan", options: { steps: [] }, same: true, to: "comments" },
   { from: "build", options: { steps: [] }, same: false, to: "plan" },
   {
+    from: "discovery",
+    options: { steps: [{ model: "opus", step: "spec" }] },
+    same: false,
+    to: "spec",
+  },
+  {
     from: "spec",
     options: { steps: [{ newSession: false, step: "plan" }] },
     same: true,

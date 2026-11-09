@@ -14,30 +14,15 @@ import { CLAUDE, CODEX } from "../sampleRuntimes.ts";
 import { StartDialog } from "../StartDialog.tsx";
 import type { Pos } from "./runCursor.ts";
 import { RunMap } from "./RunMap.tsx";
-import type { RunOptions } from "./runOptions.ts";
+import { type RunOptions, todayOptions } from "./runOptions.ts";
 import { RunStrip } from "./RunStrip.tsx";
 import { FeatureRuns } from "./FeatureRuns.tsx";
 import { BUILDING, CHANGE, MERGED } from "./sampleStages.ts";
 
 const RUNTIMES = [CLAUDE, CODEX];
 
-const CLAUDE_DEFAULT = { runtime: "claude" };
-
 /** Today's behaviour as defaults: one session to the spec, a clean one for the build on. */
-const DEFAULTS: RunOptions = {
-  cuts: [2],
-  depth: "waves",
-  implementers: CLAUDE_DEFAULT,
-  reviewers: [{ kind: "agent", pick: CLAUDE_DEFAULT }],
-  steps: {
-    build: CLAUDE_DEFAULT,
-    comments: CLAUDE_DEFAULT,
-    discovery: CLAUDE_DEFAULT,
-    plan: CLAUDE_DEFAULT,
-    review: CLAUDE_DEFAULT,
-    spec: CLAUDE_DEFAULT,
-  },
-};
+const DEFAULTS: RunOptions = todayOptions("claude");
 
 const OPUS_HIGH = { effort: "high", model: "opus", runtime: "claude" };
 const SONNET = { effort: "medium", model: "sonnet", runtime: "claude" };
