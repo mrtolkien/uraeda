@@ -204,8 +204,8 @@ export async function readTurnLog(
 
 /**
  * The sidebar's rows of the sessions, what needs the human first, then the last updated. A
- * feature's session leaves the list with its feature, as when it was finished into its record. A
- * sub-session is left out: its parent's views list it.
+ * feature's session leaves the list with its feature, as when it was finished into its record. The
+ * cache leaves sub-sessions out: their parent's views list them.
  */
 async function rows(
   ctx: RepoContext,
@@ -216,7 +216,7 @@ async function rows(
   );
   const { cache } = ctx.sessions;
   return sessions
-    .filter((row) => row.parent === null && (row.folder === null || features.has(row.folder)))
+    .filter((row) => row.folder === null || features.has(row.folder))
     .map((row) => {
       const feature = row.folder === null ? undefined : features.get(row.folder);
       const read = { ...turnsOf(cache, row.id), wakeup: ctx.sessions.wakeup(row.id) };

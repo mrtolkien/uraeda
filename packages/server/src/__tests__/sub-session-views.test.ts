@@ -10,14 +10,14 @@ const AGENT = "2026-10-12-cli-tuis";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 
-/** A session of the feature, its runs' parent. */
-async function featureSession(server: Server) {
+/** A session of the feature, its runs' parent, titled `title`. */
+async function featureSession(server: Server, title: string | null = null) {
   return server.sessions.cache.createSession({
     agent: "fake",
     folder: AGENT,
     nativeId: "n",
     repo: await server.sessions.mainRoot(server.repo),
-    title: null,
+    title,
   });
 }
 
@@ -110,17 +110,20 @@ test("a session's record lists its sub-sessions, with what each runs on and wher
 /** The IDs of a list's rows. */
 const ids = (rows: Data) => (rows as Array<{ id: string }>).map((row) => row.id);
 
-test("the sessions' list and search leave the sub-sessions out", async () => {
+test("the sessions' list and search leave the sub-sessions out, past the search's limit too", async () => {
   const server = await testServer();
-  const parent = await featureSession(server);
+  const parent = await featureSession(server, "Task 4 and its waves");
   turn(server, parent.id, "done");
-  const sub = subSession(server, parent, { about: "Task 4", role: "implementer" });
-  turn(server, sub.id, "running");
+  // More sub-sessions match than the search keeps, each updated after the parent.
+  const subs = Array.from({ length: 51 }, (_, n) =>
+    subSession(server, parent, { about: `Task 4.${n}`, role: "implementer" }),
+  );
+  turn(server, subs[0]!.id, "running");
 
   const [listed] = await byId(server.app, "SessionList", ["all"], ["id", "rows"]);
   const [found] = await byId(server.app, "SessionSearch", ["task 4"], ["id", "rows"]);
 
   expect(ids(listed!.rows)).toContain(parent.id);
-  expect(ids(listed!.rows)).not.toContain(sub.id);
-  expect(ids(found!.rows)).not.toContain(sub.id);
+  expect(ids(listed!.rows)).not.toContain(subs[0]!.id);
+  expect(ids(found!.rows)).toEqual([parent.id]);
 });

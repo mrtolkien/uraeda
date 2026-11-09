@@ -247,8 +247,8 @@ export class SessionCache {
   }
 
   /**
-   * The repository's sessions, the last updated first. A query keeps those whose title, folder,
-   * messages, or text hold it, ignoring case.
+   * The repository's sessions, the last updated first, sub-sessions left out: their parents list
+   * them. A query keeps those whose title, folder, messages, or text hold it, ignoring case.
    */
   sessions(
     repo: string,
@@ -257,7 +257,7 @@ export class SessionCache {
     const rows = query
       ? (this.db
           .prepare(
-            `SELECT * FROM sessions s WHERE repo = ?1 AND (
+            `SELECT * FROM sessions s WHERE repo = ?1 AND parent IS NULL AND (
                lower(s.title) LIKE lower(?2) ESCAPE '\\'
                OR lower(s.folder) LIKE lower(?2) ESCAPE '\\'
                OR EXISTS (
@@ -269,7 +269,8 @@ export class SessionCache {
           .all(repo, contains(query), limit) as Array<Row>)
       : (this.db
           .prepare(
-            "SELECT * FROM sessions WHERE repo = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?",
+            `SELECT * FROM sessions WHERE repo = ? AND parent IS NULL
+             ORDER BY updated_at DESC, rowid DESC LIMIT ?`,
           )
           .all(repo, limit) as Array<Row>);
     return rows.map(toSession);
