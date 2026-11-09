@@ -51,12 +51,15 @@ pub fn catch_up(git: &Git, branch: &str) -> Option<CatchUp> {
 }
 
 /// Whether the commit `tip` lacks `target`, and the changes it lacks touch any file but the default
-/// branch's own: answered once per pair of commits.
+/// branch's own: answered once per pair of commits. A read git failed is not behind, and is not
+/// kept: the next read tries again.
 fn behind(git: &Git, tip: ObjectId, target: ObjectId) -> bool {
     if let Some(known) = answers().get(&(tip, target)) {
         return *known;
     }
-    let answer = compute(git, tip, target);
+    let Some(answer) = compute(git, tip, target) else {
+        return false;
+    };
     let mut answers = answers();
     if answers.len() >= KEPT {
         answers.clear();
@@ -66,17 +69,18 @@ fn behind(git: &Git, tip: ObjectId, target: ObjectId) -> bool {
 }
 
 /// The behind rule, without the memo: `tip` does not hold `target`, their histories meet, and the
-/// diff from where they meet to `target` changes a file the default branch does not own.
-fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> bool {
+/// diff from where they meet to `target` changes a file the default branch does not own. `None`
+/// when git fails to read the histories or the diff.
+fn compute(git: &Git, tip: ObjectId, target: ObjectId) -> Option<bool> {
     if git.is_ancestor(target, tip) {
-        return false;
+        return Some(false);
     }
-    let Ok(Some(base)) = git.merge_base(tip, target) else {
-        return false;
+    let Some(base) = git.merge_base(tip, target).ok()? else {
+        return Some(false);
     };
     DIFFS.with(|diffs| diffs.set(diffs.get() + 1));
-    git.changed_paths(base, target)
-        .is_ok_and(|paths| paths.iter().any(|path| !default_branch_own(path)))
+    let paths = git.changed_paths(base, target).ok()?;
+    Some(paths.iter().any(|path| !default_branch_own(path)))
 }
 
 /// Whether the default branch alone writes the file at `path`, from the top level, so a branch
