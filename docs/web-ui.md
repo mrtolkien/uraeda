@@ -150,8 +150,8 @@ second one, every step on the first agent on and its defaults. `new_session` is 
 `discovery`, which always starts a session, and is forced on a step whose agent or model differs
 from the step before. Without `[[runs.reviewers]]`, one agent reviewer runs on the review step's
 agent and its defaults. A reviewer holds `agent` or `command`, never both. The old
-`build_in_fresh_session = false` is read once, as the plan joined to the spec's session, and the
-next write replaces it with `[runs.steps.plan]` `new_session = false`.
+`build_in_fresh_session = false` still reads as the plan joined to the spec's session, until a
+change to the run options replaces it with `[runs.steps.plan]` `new_session = false`.
 
 They apply at once. Each continue's switch comes from its flag, `--no-continue-after-restart` or
 `--no-continue-after-limit`, else from its environment variable, `URAEDA_CONTINUE_AFTER_RESTART` or
@@ -161,17 +161,17 @@ the file, else 3. The catch-up of open pull requests comes from `--catch-up-pull
 turns it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file, else
 off.
 
-The page shows them under Runs. "How each step runs" draws the run map: the six steps in a row, each
-tile with its agent's mark, its model, and its effort as a 5-cell meter, and between two tiles a
-line where they share a session, or scissors where a clean one starts, locked where the steps run on
-different agents or models. Bands under the tiles name the sessions. Under Build, the Implementers
-tile; under Review, the reviewers, an agent or a command each, and "Waves" or "Branch". ← → (or h l)
-move along the tiles and the joints, ↓ ↑ (or j k) go to the implementers or the reviewers and back.
-Enter on a tile opens the agent and model picker, then the effort; Enter or Space on a joint cuts or
-joins it; `r` puts the selection back to its default; `a` adds a reviewer and `d` removes the one
-selected. Each is also a tap, and each change is saved at once. When `CLAUDE_CODE_EFFORT_LEVEL` is
-set in the server's environment, every Claude Code effort follows it, and the page says so under the
-map.
+The page shows them under Runs. "How each step runs" draws the run map: the six steps in a row. Each
+tile shows its agent's mark, its model, and its effort as a 5-cell meter. Between two tiles, a line
+means they share a session, and scissors mean a clean one starts. The scissors lock where the steps
+run on different agents or models. Bands under the tiles name the sessions. Under Build is the
+Implementers tile. Under Review are the reviewers, an agent or a command each, and "Waves" or
+"Branch". ← → (or h l) move along the tiles and the joints, ↓ ↑ (or j k) go to the implementers or
+the reviewers and back. Enter on a tile opens the agent and model picker, then the effort; Enter or
+Space on a joint cuts or joins it; `r` puts the selection back to its default; `a` adds a reviewer
+and `d` removes the one selected. Each is also a tap, and each change is saved at once. When
+`CLAUDE_CODE_EFFORT_LEVEL` is set in the server's environment, every Claude Code effort follows it,
+and the page says so under the map.
 
 Then a switch for each kind of continue, the continues in a row, saved on Enter or when you leave
 the field, a number outside 1 to 10 refused, and the switch "Catch up open pull requests". Turning a
@@ -523,16 +523,18 @@ change or a feature. Its three cards share one text, kept until it starts. A fea
 and its research effort, then opens its session. The feature's and the change's start dialogs show
 the run map as a strip: six tiny tiles and their joints, then what differs from your settings,
 "defaults" or "Spec on Opus · High". A change's strip shows its one step and its reviewers. Tab
-reaches it, and the map's keys work there: what you change is the feature's own, and the rest
-follows your settings. It starts with no proposal file: the text's first line is the title, and the
-research effort goes in the proposal's `discovery` field. A change starts from a typed request, an
-inbox note, or a priorities line. A line of **Now** it was filled from is replaced by the new link
-in the start commit. "Drop the change…" and "Drop the feature…", in a session's actions, drop it.
-"Postpone the change" and "Postpone the feature", in its page's actions, send its latest session, or
-a new one, the message that makes it a proposal again, in **Later**, and open that session. A line's
-Start, on the priorities, puts the line in that text, in place of what it held, which `u` brings
-back. A change or a feature holds one or more sessions, in its worktree, where the workflow's runs
-and your messages follow each other.
+reaches it. ← → (or h l) move along the steps and the joints, Enter on a step opens the picker,
+Enter or Space on a joint cuts or joins it, and `r` puts the selection back to its default. A
+change's strip also takes `a` to add a reviewer and `d` to remove the one selected. What you change
+is the feature's own, and the rest follows your settings. It starts with no proposal file: the
+text's first line is the title, and the research effort goes in the proposal's `discovery` field. A
+change starts from a typed request, an inbox note, or a priorities line. A line of **Now** it was
+filled from is replaced by the new link in the start commit. "Drop the change…" and "Drop the
+feature…", in a session's actions, drop it. "Postpone the change" and "Postpone the feature", in its
+page's actions, send its latest session, or a new one, the message that makes it a proposal again,
+in **Later**, and open that session. A line's Start, on the priorities, puts the line in that text,
+in place of what it held, which `u` brings back. A change or a feature holds one or more sessions,
+in its worktree, where the workflow's runs and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open the session of its next step with the workflow's message in the
@@ -640,13 +642,12 @@ escalates each git write and network command, and the transcript shows the revie
 runs the reviewers and commits their findings. Its token is in the process's environment,
 `URAEDA_MCP_TOKEN`, and holds only while that process runs. Claude Code's `Agent`, `Task`,
 `Workflow`, and `TeamCreate` tools are disallowed there. Codex runs on a copy of its model catalog
-with every model's sub-agents disabled, written to `codex-catalog/` in the data folder as the
-session opens, which leaves your Codex home untouched; when it cannot be written, Codex runs on its
-own catalog, and the session says its own sub-agents may run. Each extension of yours on in the
+with every model's sub-agents disabled. The copy is written to `codex-catalog/` in the data folder
+as the session opens, and your Codex home stays untouched. When it cannot be written, Codex runs on
+its own catalog, and the session says its own sub-agents may run. Each extension of yours on in the
 repository adds its `skills/` folder the same way, as one more plugin, `ext-<name>`, for Claude
-Code. The skill holds the workflow for any agent, and never describes the web UI: it names only
-Uraeda's two tools, and the run's message that says where to stop. The server adds the web UI's own
-instructions to every session, in
+Code. The skill holds the workflow for any agent, and names Uraeda's tools and the run's stop, never
+the web UI. The server adds the web UI's own instructions to every session, in
 [`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
 shows of the agent's messages, and where your extensions folder and their documentation are. A
 session may write in your extensions folder, Codex's after its reviewer approves each write, so

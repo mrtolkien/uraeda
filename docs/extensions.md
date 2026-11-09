@@ -261,13 +261,14 @@ a scripted one.
 A runtime that runs workflow steps takes Uraeda's tools, and turns its agent's own sub-agents off,
 as the [run options](../specs/decisions/run-options.md) decision requires: every sub-agent of a
 workflow run is a session Uraeda starts, on its role's runtime, model, and effort. `open` gets
-`tools`: for a workflow session, `{ url, token }`, Uraeda's MCP endpoint and the process's token, to
-give the agent as the MCP server `uraeda`, with its tools `run_agent` and `review`, sent as
-`Authorization: Bearer <token>`; for a sub-session, `"none"`, and no sub-agents at all; for a chat,
-nothing, and the agent's own sub-agents stay. A runtime whose agent has a review of its own offers
-`reviewMessage(ask)`, the message that reviews the commits `<base>..<head>` its agent's way, at the
-reviewer's effort, with the reviewer's instructions; without it, a reviewer on that runtime is asked
-to review in plain words.
+`tools`. For a workflow session, it is `{ url, token }`: Uraeda's MCP endpoint and the process's
+token. Give the agent the endpoint as the MCP server `uraeda`, with its tools `run_agent` and
+`review`, sending `Authorization: Bearer <token>`. Pass the token in the agent's environment, never
+its arguments, which every user of the machine can read. For a sub-session, `tools` is `"none"`: no
+sub-agents at all. A chat gets none, and the agent's own sub-agents stay. A runtime whose agent has
+a review of its own offers `reviewMessage(ask)`, the message that reviews the commits
+`<base>..<head>` its agent's way, at the reviewer's effort, with the reviewer's instructions;
+without it, a reviewer on that runtime is asked to review in plain words.
 
 A runtime reloads only once its sessions' turns end: until then the settings page says
 `Wiki reloads when the turn of “…” ends`, with the session's title.

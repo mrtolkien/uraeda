@@ -94,6 +94,10 @@ the notes, starting with that point's bold subject:
 `- **Undoing a completion**: Keep the undo, but say what it restored.` Its further lines are
 indented by two spaces.
 
+```markdown
+- **Undoing a completion**: Keep the undo, but say what it restored.
+```
+
 ### The block
 
 9. **The first line counts, in digits, and gives the time.** "7 questions and 1 follow-up, about 35

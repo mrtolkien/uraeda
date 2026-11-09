@@ -77,9 +77,9 @@ The plan's **Waves** group the tasks that can be built without seeing each other
 is built on what the earlier waves made, so it starts once the previous wave is merged, not once it
 is reviewed: the review of a wave runs while the next one is built.
 
-1. **Build its tasks at the same time.** Give each task of the wave to a fresh implementer, with
-   [its brief](#the-implementers-brief) but not your session's history, all at once: through
-   `run_agent`, or your harness's own agents, as
+1. **Build its tasks at the same time.** When you can hand out tasks, through `run_agent` or your
+   harness's own agents, give each task of the wave to a fresh implementer, with
+   [its brief](#the-implementers-brief) but not your session's history, all at once, as
    [implementers and reviewers](#implementers-and-reviewers) says. Each works in its own worktree,
    on a task branch made from the feature branch as it is now, `<feature-branch>-task-N`, and
    follows [each task](#each-task). Task branches stay local: they are never pushed. Otherwise,
@@ -181,17 +181,18 @@ with a blank line before and after, as a [story link](conventions.md#markdown).
 
 ### Review the waves
 
-Review each wave once it is merged, with `review` or a fresh reviewer agent of your harness, so its
-problems are fixed while their context is fresh, not all at the final review. The review covers
+Review each wave once it is merged, with `review`, or a fresh reviewer agent when your harness can
+run one, so its problems are fixed while their context is fresh, not all at the final review.
+Without either, the [review of the branch](#review-the-branch) covers the waves. The review covers
 every task the wave merged, on the diff of their commits, with the fix commits merged since the last
 review; a risky task, one that changes security, the format of stored data or its migration,
 concurrency, or a rule several callers share, gets a reviewer of its own, at the same time; with
-`review`, the context names it for the reviewers to check first. The review runs in the background
-while the next wave is built: call `review` in the same turn as the next wave's `run_agent` calls.
-Give the reviewer the tasks' text, the spec's sections they implement and its approval comments, the
-global constraints, and the diff, or, with `review`, the paths and headings where they are. It
-derives expected behaviour from the approved requirements before checking the implementation and
-tests, then reviews the changed responsibilities and their callers. It gives two verdicts, spec
+`review`, the context names it for the reviewers to check first. The review runs while the next wave
+is built, in the background, or with `review`, in the same turn as the next wave's `run_agent`
+calls. Give the reviewer the tasks' text, the spec's sections they implement and its approval
+comments, the global constraints, and the diff, or, with `review`, the paths and headings where they
+are. It derives expected behaviour from the approved requirements before checking the implementation
+and tests, then reviews the changed responsibilities and their callers. It gives two verdicts, spec
 compliance first, then quality, with the criteria of [Review the branch](#review-the-branch) scaled
 to the tasks, and flags what the tasks grew, not sizes that were already there
 ([extract, don't grow](code-quality.md#extract-dont-grow)).
@@ -199,13 +200,13 @@ to the tasks, and flags what the tasks grew, not sizes that were already there
 Its findings, in its committed `findings-NN.md`, are [graded](#grade-the-findings) like the final
 review's: the critical and important ones are fixed, with the minor ones worth fixing. Once the
 review ends, fix them at the next point between two waves, after a wave is merged and before the
-next one starts: give them to a fresh implementer on the feature branch, each behaviour fix with a
-test that fails first, in its own commit. With `run_agent`, which never works in the feature's own
-worktree, the fixes are a task of their own, `Fixes of wave 2`, in a worktree and branch made like a
-task's, and merged like one. After the last wave, fix them as soon as the review ends. The next
-review checks those fix commits with its wave. Structural fixes must keep behavioural tests passing
-and satisfy explicit architectural constraints. A finding still open after two reviews is ruled on,
-in `rulings.md`.
+next one starts. Give them to a fresh implementer, on a branch made from the feature branch, in a
+worktree made like a task's, and merge it like one. Each behaviour fix comes with a test that fails
+first, in its own commit. With `run_agent`, each round of fixes takes a new task name, like
+`Fixes of wave 2`: a name that already ran gets its first answer again. After the last wave, fix
+them as soon as the review ends. The next review checks those fix commits with its wave. Structural
+fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
+still open after two reviews is ruled on, in `rulings.md`.
 
 ### Rulings
 
