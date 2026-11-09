@@ -45,6 +45,7 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
       "continue_after_restart = false",
       "continue_after_limit = true",
       "automatic_continues = 3",
+      "catch_up_pull_requests = true",
       "",
     ].join("\n"),
   );
@@ -54,6 +55,7 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
     runs: {
       automaticContinues: 3,
       buildInFreshSession: true,
+      catchUpPullRequests: true,
       continueAfterLimit: true,
       continueAfterRestart: false,
     },

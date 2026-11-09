@@ -29,6 +29,7 @@ const server: ServerValues = {
   runs: {
     automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
     buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
+    catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
     continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
     continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
   },

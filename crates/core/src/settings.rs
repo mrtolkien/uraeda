@@ -51,15 +51,20 @@ pub struct RunSettings {
     pub continue_after_limit: Option<bool>,
     /// Automatic continues in a row before the run asks, 1 to 10: 3 when unset.
     pub automatic_continues: Option<i64>,
+    /// Whether an open pull request behind the default branch is caught up by itself: `false`
+    /// when unset.
+    pub catch_up_pull_requests: Option<bool>,
 }
 
-/// A kind of automatic continue, each with its switch in `[runs]`.
+/// A kind of automatic run, each with its switch in `[runs]`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ContinueKey {
     /// `continue_after_restart`.
     Restart,
     /// `continue_after_limit`.
     Limit,
+    /// `catch_up_pull_requests`.
+    CatchUp,
 }
 
 impl ContinueKey {
@@ -68,6 +73,7 @@ impl ContinueKey {
         match self {
             Self::Restart => "continue_after_restart",
             Self::Limit => "continue_after_limit",
+            Self::CatchUp => "catch_up_pull_requests",
         }
     }
 }
@@ -198,7 +204,7 @@ pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, A
     })
 }
 
-/// Sets whether the kind of automatic continue `key` is on, in `[runs]`.
+/// Sets whether the kind of automatic run `key` is on, in `[runs]`.
 pub fn set_continue(dir: &Path, key: ContinueKey, on: bool) -> Result<Settings, ApiError> {
     change_table(dir, "runs", |runs| {
         set(runs, key.key(), Value::from(on));

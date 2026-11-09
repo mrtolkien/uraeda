@@ -409,6 +409,7 @@ export const SettingsRecordView = view<Settings>()({
   runs: {
     automaticContinues: SettingSelection,
     buildInFreshSession: SettingSelection,
+    catchUpPullRequests: SettingSelection,
     continueAfterLimit: SettingSelection,
     continueAfterRestart: SettingSelection,
   },

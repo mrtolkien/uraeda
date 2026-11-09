@@ -28,6 +28,7 @@ Starts Uraeda's web UI for the repository of the current folder.
   --no-open                    do not open the browser
   --no-continue-after-restart  do not continue a run a restart cut (URAEDA_CONTINUE_AFTER_RESTART)
   --no-continue-after-limit    do not continue a run at its usage limit's reset (URAEDA_CONTINUE_AFTER_LIMIT)
+  --catch-up-pull-requests     catch up open pull requests behind the default branch (URAEDA_CATCH_UP_PULL_REQUESTS)
   --automatic-continues <n>    automatic continues in a row, 1 to 10, 3 by default (URAEDA_AUTOMATIC_CONTINUES)
   --new-key                    make a new access key and sign every device out
   --version                    print the version
@@ -53,6 +54,9 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
     ...(continues !== undefined && {
       automaticContinues: { name: "--automatic-continues", value: continues },
     }),
+    ...(values["catch-up-pull-requests"] && {
+      catchUpPullRequests: { name: "--catch-up-pull-requests", value: true },
+    }),
     ...(values["no-continue-after-limit"] && {
       continueAfterLimit: { name: "--no-continue-after-limit", value: false },
     }),
@@ -77,6 +81,7 @@ function parse(argv: Array<string>) {
         "allow-origin": { default: [], multiple: true, type: "string" },
         "allowed-hosts": { type: "string" },
         "automatic-continues": { type: "string" },
+        "catch-up-pull-requests": { type: "boolean" },
         help: { type: "boolean" },
         "new-key": { type: "boolean" },
         "no-continue-after-limit": { type: "boolean" },

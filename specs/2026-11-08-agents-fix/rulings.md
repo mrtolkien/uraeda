@@ -55,3 +55,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a column for whether `main` moved in both tables: every existing row
   grows a field that only four rows use.
 - **Where**: task 1.
+
+## R6: The server reads the switch from `settings.runs()`
+
+- **Decision**: the switch in force is `settings.runs().catchUpPullRequests.inForce`, as
+  `continueSettings` in `live.ts` reads the continues', not `settings.values().runs…`.
+- **Rationale**: `ServerSettings` has no `values()`: it gives each table through its own method,
+  `view()`, `runs()`, and `keyboard()`.
+- **Where**: tasks 2 and 6.

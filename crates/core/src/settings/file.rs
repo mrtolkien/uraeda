@@ -175,6 +175,11 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
         "continue_after_limit",
         "Continue after a usage limit is true or false.",
     )?;
+    settings.catch_up_pull_requests = switch(
+        runs,
+        "catch_up_pull_requests",
+        "Catching up open pull requests is true or false.",
+    )?;
     if let Some((key, item)) = runs.get_key_value("automatic_continues") {
         let continues = item
             .as_integer()

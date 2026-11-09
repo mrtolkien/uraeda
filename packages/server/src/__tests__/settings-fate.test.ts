@@ -51,12 +51,13 @@ const keyboardDefaults = {
 };
 
 /**
- * The runs' defaults: the build after a spec's approval starts in a fresh session, and every
- * automatic continue is on, 3 in a row.
+ * The runs' defaults: the build after a spec's approval starts in a fresh session, every automatic
+ * continue is on, 3 in a row, and open pull requests are not caught up by themselves.
  */
 const runDefaults = {
   automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
   buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
+  catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
 };
@@ -195,14 +196,14 @@ test("a port that is not one is refused with the core's message", async () => {
   expect((await record(opened)).server.port).toEqual(defaults.port);
 });
 
-test("an unknown kind of continue is refused as a bad request", async () => {
+test("an unknown kind of automatic run is refused as a bad request", async () => {
   const opened = await testApp();
 
   const result = await change(opened, "setContinue", { key: "sleep", on: false });
 
   expect(result.error).toEqual({
     code: "BAD_REQUEST",
-    message: "refused: sleep is not a kind of continue: restart or limit.",
+    message: "refused: sleep is not a kind of automatic run: restart, limit, or catch-up.",
   });
 });
 

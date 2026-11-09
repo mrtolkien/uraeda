@@ -201,6 +201,52 @@ test.each<{
       },
     },
   },
+  {
+    file: null,
+    name: "the catch-up of open pull requests off, without a value",
+    options: none,
+    runs: {
+      catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
+    },
+  },
+  {
+    file: { catchUpPullRequests: true },
+    name: "the file's catch-up of open pull requests over its default",
+    options: none,
+    runs: {
+      catchUpPullRequests: { inForce: true, saved: true, source: { kind: "file" } },
+    },
+  },
+  {
+    file: { catchUpPullRequests: true },
+    name: "the catch-up's variable over the file",
+    options: {
+      catchUpPullRequests: { name: "URAEDA_CATCH_UP_PULL_REQUESTS", value: false },
+      noOpen: false,
+    },
+    runs: {
+      catchUpPullRequests: {
+        inForce: false,
+        saved: true,
+        source: { kind: "environment", name: "URAEDA_CATCH_UP_PULL_REQUESTS" },
+      },
+    },
+  },
+  {
+    file: { catchUpPullRequests: false },
+    name: "the catch-up's flag over the file",
+    options: {
+      catchUpPullRequests: { name: "--catch-up-pull-requests", value: true },
+      noOpen: false,
+    },
+    runs: {
+      catchUpPullRequests: {
+        inForce: true,
+        saved: false,
+        source: { kind: "flag", name: "--catch-up-pull-requests" },
+      },
+    },
+  },
 ])("$name", ({ file: runs, options, runs: view }) => {
   expect(inForce(options, runs && { ...file, runs }).runs).toMatchObject(view);
 });

@@ -34,6 +34,8 @@ cargo run -p uraeda-cli -- status
 - `URAEDA_CONTINUE_AFTER_RESTART` and `URAEDA_CONTINUE_AFTER_LIMIT`, `true` or `false`, turn each
   automatic continue on or off, and `URAEDA_AUTOMATIC_CONTINUES` caps the continues in a row, 1
   to 10.
+- `URAEDA_CATCH_UP_PULL_REQUESTS`, `true` or `false`, turns on or off the catch-up of open pull
+  requests behind the default branch.
 
 Vite checks host names and takes its port before the settings file is read. So under `vp dev`, they
 come from these variables only. The server listens on 127.0.0.1 only: `tailscale serve --bg 4310`

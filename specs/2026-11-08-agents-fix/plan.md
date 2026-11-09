@@ -413,9 +413,13 @@ git commit -m "feat(agents-fix): an open pull request behind main reads Catch up
   `packages/server/src/settings.ts`, `packages/server/src/env.ts`, `packages/server/src/options.ts`,
   `packages/server/src/fate/settings-mutations.ts` (the key's input type),
   `packages/web/src/settings/RunSettings.tsx`, `packages/web/src/settings/optimistic.ts`,
-  `packages/web/src/settings/categories.ts` (the row's label, icon, help), `docs/web-ui.md`
-- Test: `crates/core/tests/settings.rs`, `crates/core/tests/settings_writes.rs`,
-  `packages/server/src/__tests__/settings.test.ts`
+  `packages/web/src/settings/categories.ts` (the row's label, icon, help), `docs/web-ui.md`,
+  `packages/web/src/views.ts` (the record's selection), `crates/binding/src/settings.rs` (the key),
+  `.env.example`, `CONTRIBUTING.md`
+- Test: `crates/core/tests/settings.rs` (the read and the write: `set_continue`'s test lives there),
+  `packages/server/src/__tests__/settings.test.ts`, `packages/server/src/__tests__/env.test.ts` (the
+  flag over the variable), `packages/server/src/__tests__/settings-fate.test.ts`,
+  `packages/binding/contracts.test.ts`
 
 **Interfaces:**
 
@@ -424,11 +428,11 @@ git commit -m "feat(agents-fix): an open pull request behind main reads Catch up
   - `RunSettings.catch_up_pull_requests: Option<bool>`, `false` when unset.
   - `ContinueKey::CatchUp`, `key() == "catch_up_pull_requests"`; the binding's
     `setContinue(dir, "catch-up", on)`.
-  - The server's `values().runs.catchUpPullRequests: Setting<boolean>`, its `inForce` resolved from
-    `--catch-up-pull-requests` (sets `true`), then `URAEDA_CATCH_UP_PULL_REQUESTS`, then the file,
-    then `false`.
+  - The server's `settings.runs().catchUpPullRequests: Setting<boolean>` (R6), its `inForce`
+    resolved from `--catch-up-pull-requests` (sets `true`), then `URAEDA_CATCH_UP_PULL_REQUESTS`,
+    then the file, then `false`.
 
-- [ ] **Step 1: Write the failing tests**: a row in the core's `[runs]` read test (unset reads
+- [x] **Step 1: Write the failing tests**: a row in the core's `[runs]` read test (unset reads
       `None`, `true` reads `Some(true)`, a string is a problem as for its neighbours); a row in the
       write test (`set_continue(dir, ContinueKey::CatchUp, true)` keeps comments and order); a row
       in the server's precedence test (flag over variable over file).
@@ -436,23 +440,23 @@ git commit -m "feat(agents-fix): an open pull request behind main reads Catch up
 The break each test catches: a key read under another name; a write that drops comments; a flag
 written into the file, or a variable losing to the file.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test settings --test settings_writes`
 - Expected: FAIL to compile, `no variant named CatchUp`.
 
-- [ ] **Step 3: Implement**, following `continue_after_limit` at every layer. The web row reads
+- [x] **Step 3: Implement**, following `continue_after_limit` at every layer. The web row reads
       "Catch up open pull requests", icon `uraeda:workflow`, with the help text of the `RunsSection`
       story, after the continues' switches. `docs/web-ui.md` gains the key in the `[runs]` block,
       `catch_up_pull_requests = false  # catch up open pull requests behind the default branch`, and
       its flag and variable in the paragraph after it.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run --filter uraeda-binding build && nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core packages/binding/index.d.ts packages/server packages/web docs/web-ui.md
@@ -792,7 +796,7 @@ session; anything sent with the switch off.
       commit, and leaves it. In `server.ts`, start it once the hosts, sessions, and settings exist;
       call `run(host.path)` from the hosts' `changed` callback (beside the extensions'), and from
       `onTurnDone`; `runAll()` from `settings.onChange`, and once at start; `stop()` with the
-      server. `enabled` reads `settings.values().runs.catchUpPullRequests.inForce`.
+      server. `enabled` reads `settings.runs().catchUpPullRequests.inForce` (R6).
 
 - [ ] **Step 4: Run the task's validation**
 

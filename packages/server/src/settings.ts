@@ -2,6 +2,7 @@
 // default, the file read through the core and watched while the server runs.
 import type { Settings } from "uraeda-binding";
 import type {
+  CatchUpName,
   ContinuesName,
   Given,
   GivenName,
@@ -43,11 +44,13 @@ export type ServerSettingsView = {
 
 /**
  * How the workflow's runs start and go on: the default of the run after a spec's approval, the
- * switch of each kind of automatic continue, and the automatic continues in a row.
+ * switch of each kind of automatic continue, the automatic continues in a row, and the switch of
+ * the catch-up of open pull requests.
  */
 export type RunSettingsView = {
   automaticContinues: Setting<number>;
   buildInFreshSession: Setting<boolean>;
+  catchUpPullRequests: Setting<boolean>;
   continueAfterLimit: Setting<boolean>;
   continueAfterRestart: Setting<boolean>;
 };
@@ -99,6 +102,7 @@ export type GivenValues = Pick<
   Options,
   | "allowedHosts"
   | "automaticContinues"
+  | "catchUpPullRequests"
   | "continueAfterLimit"
   | "continueAfterRestart"
   | "noOpen"
@@ -108,9 +112,14 @@ export type GivenValues = Pick<
 /** The values given for this run, the port, the automatic continues, and the switches checked. */
 export type RunValues = Omit<
   GivenValues,
-  "automaticContinues" | "continueAfterLimit" | "continueAfterRestart" | "port"
+  | "automaticContinues"
+  | "catchUpPullRequests"
+  | "continueAfterLimit"
+  | "continueAfterRestart"
+  | "port"
 > & {
   automaticContinues?: Given<number, ContinuesName>;
+  catchUpPullRequests?: Given<boolean, CatchUpName>;
   continueAfterLimit?: Given<boolean, LimitName>;
   continueAfterRestart?: Given<boolean, RestartName>;
   port?: Given<number, PortName>;
@@ -123,7 +132,7 @@ export type Checks = {
 };
 
 /**
- * A switch given for this run: a flag's `false`, or its variable's `true` or `false`, trimmed;
+ * A switch given for this run: a flag's value, or its variable's `true` or `false`, trimmed;
  * throws `<name> is true or false.` for a variable that is neither (R13).
  */
 function checkedSwitch<N extends string>(
@@ -146,11 +155,13 @@ function checkedSwitch<N extends string>(
  */
 export function checked(given: GivenValues, checks: Checks): RunValues {
   const { automaticContinues, port, ...rest } = given;
-  const { continueAfterLimit, continueAfterRestart, ...others } = rest;
+  const { catchUpPullRequests, continueAfterLimit, continueAfterRestart, ...others } = rest;
+  const catchUp = checkedSwitch(catchUpPullRequests);
   const limit = checkedSwitch(continueAfterLimit);
   const restart = checkedSwitch(continueAfterRestart);
   return {
     ...others,
+    ...(catchUp && { catchUpPullRequests: catchUp }),
     ...(limit && { continueAfterLimit: limit }),
     ...(restart && { continueAfterRestart: restart }),
     ...(port && { port: { ...port, value: checks.checkedPort(port.value) } }),
@@ -165,8 +176,8 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
 
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
- * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, and
- * the build in a fresh session, the single-key shortcuts on, and Vim off without commands, which
+ * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, no
+ * catch-up of open pull requests, and the build in a fresh session, the single-key shortcuts on, and Vim off without commands, which
  * have no flag or variable. `file` is null when there is none, or it cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
@@ -186,6 +197,7 @@ export function inForce(options: RunValues, file: Settings | null): SettingsView
         DEFAULT_AUTOMATIC_CONTINUES,
       ),
       buildInFreshSession: setting(undefined, runs.buildInFreshSession, true),
+      catchUpPullRequests: setting(options.catchUpPullRequests, runs.catchUpPullRequests, false),
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
       continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
     },
