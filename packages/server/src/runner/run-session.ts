@@ -13,6 +13,7 @@ import {
   toMap,
 } from "../run-options.ts";
 import type { SessionRow } from "./cache.ts";
+import type { SessionFields } from "./cache-sessions.ts";
 import { checkEffort, type Picked } from "./picks.ts";
 import { checkAvailable, type Runtimes } from "./runtimes.ts";
 import { type Live, REFUSALS, refused, rowOf, type SessionContext } from "./session-state.ts";
@@ -88,48 +89,55 @@ function newPicked(context: SessionContext, step: StepId, pick: StepPick): Picke
   return { agent: pick.runtime, effort, model };
 }
 
-/** Sets the session's effort to the step's for its next turn, when the step picks one. */
-function takeEffort(context: SessionContext, live: Live, row: SessionRow, pick: StepPick): void {
-  if (pick.effort === undefined || pick.effort === row.effort) {
-    return;
+/**
+ * The effort a joined step runs on: its own, or the agent's default, null, when it picks none.
+ * Refused when the session's model does not take it.
+ */
+function joinedEffort(context: SessionContext, row: SessionRow, pick: StepPick): SessionFields {
+  const effort = pick.effort ?? null;
+  if (effort === row.effort) {
+    return {};
   }
-  checkEffort(context.runtimes, row.agent, row.model, pick.effort);
-  context.cache.updateSession(row.id, { effort: pick.effort });
-  context.changed(live);
+  checkEffort(context.runtimes, row.agent, row.model, effort);
+  return { effort };
 }
+
+/**
+ * Where a workflow run goes: the session, and the fields it takes, written once the run is
+ * delivered there, so a refused run changes nothing.
+ */
+export type RunPlace = { fields: SessionFields; live: Live };
 
 /**
  * The session a workflow run of `runStep` goes to, from the feature's latest session `live`: that
  * one when it never ran, which then starts for `runStep` on the step's pick; that one when it runs
  * `runStep` already, whatever its pick; that one too when it runs on the step's agent and model,
- * and ran no workflow, which then starts for `runStep`, or its step's joint joins `runStep`, its
- * effort set to the step's for the next turn; else a new session of the feature on the step's pick,
- * which becomes its latest. `fresh` always starts a new one, once `live` ran. A step whose agent is off runs on the
- * first runtime on, on its defaults; a model its agent no longer lists is refused. A new session is
- * refused, before it exists, while a move holds `live`, or another session of its folder works and
- * `live` does not.
+ * and ran no workflow, which then starts for `runStep`, or its step's joint joins `runStep`, on the
+ * step's effort, the agent's default when it picks none; else a new session of the feature on the
+ * step's pick, which becomes its latest. `fresh` always starts a new one, once `live` ran. A step
+ * whose agent is off runs on the first runtime on, on its defaults; a model its agent no longer
+ * lists is refused. A new session is refused, before it exists, while a move holds `live`, or
+ * another session of its folder works and `live` does not.
  */
 export async function runSession(
   context: SessionContext,
   live: Live,
   runStep: StepId,
   fresh?: boolean,
-): Promise<Live> {
+): Promise<RunPlace> {
   const { cache, runtimes } = context;
   const row = rowOf(cache, live);
   const folder = live.folder as string;
   const ran = sessionStep(context, row);
   if (fresh !== true && ran === runStep) {
-    return live;
+    return { fields: {}, live };
   }
   const agents = agentsOf(runtimes, live.repo);
   const map = toMap(context.runOptions(live.repo, folder), agents.runtime() ?? row.agent);
   const pick = runningPick(context, live.repo, map.steps[runStep]);
   if (cache.turns(live.id).length === 0) {
     // It never started: it starts on the step's pick.
-    cache.updateSession(row.id, { ...newPicked(context, runStep, pick), step: runStep });
-    context.changed(live);
-    return live;
+    return { fields: { ...newPicked(context, runStep, pick), step: runStep }, live };
   }
   const current = { runtime: row.agent, ...(row.model === null ? {} : { model: row.model }) };
   const onPick = row.agent === pick.runtime && samePick(agents, current, pick);
@@ -139,11 +147,8 @@ export async function runSession(
     onPick &&
     (ran === undefined || (isStepId(ran) && stepSession(agents, map, ran, runStep)));
   if (joined) {
-    takeEffort(context, live, row, pick);
-    if (row.step === null) {
-      cache.updateSession(row.id, { step: runStep });
-    }
-    return live;
+    const step = row.step === null ? { step: runStep } : {};
+    return { fields: { ...joinedEffort(context, row, pick), ...step }, live };
   }
   const picked = newPicked(context, runStep, pick);
   if (context.live.moving(live)) {
@@ -162,5 +167,5 @@ export async function runSession(
     step: runStep,
     title: null,
   });
-  return context.live.of(created);
+  return { fields: {}, live: context.live.of(created) };
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Outgoing } from "./adapter.ts";
 import type { TurnRow } from "./cache.ts";
+import type { SessionFields } from "./cache-sessions.ts";
 import type { ContinueReason, TurnKind } from "./events.ts";
 import { chatTitle, continueMessage } from "./message.ts";
 import { isStepId, runSession } from "./run-session.ts";
@@ -40,28 +41,31 @@ export async function sendTo(
   const workflow = place.asChat === undefined ? checked.workflow : undefined;
   if (workflow === undefined || live.folder === null || !isStepId(place.runStep)) {
     readySession(context.runtimes, rowOf(context.cache, live));
-    return deliver(context, live, checked, place, false);
+    return deliver(context, live, checked, place, { behind: false, fields: {} });
   }
   const behind = live.turn !== undefined || live.queue.length > 0;
-  const next = await runSession(context, live, place.runStep, workflow.fresh);
-  readySession(context.runtimes, rowOf(context.cache, next));
+  const { fields, live: next } = await runSession(context, live, place.runStep, workflow.fresh);
+  readySession(context.runtimes, { ...rowOf(context.cache, next), ...fields });
   if (next === live) {
-    return deliver(context, live, checked, place, false);
+    return deliver(context, live, checked, place, { behind: false, fields });
   }
-  return context.live.serial(next, () => deliver(context, next, checked, place, behind));
+  return context.live.serial(next, () =>
+    deliver(context, next, checked, place, { behind, fields }),
+  );
 }
 
 /**
  * Sends the message in this session: steered into its turn, queued after it, or starting one. A
  * session whose change or feature works in another session is refused, or, `behind` it, queued;
- * one that a move or a drop holds, or that a drop archived, is refused.
+ * one that a move or a drop holds, or that a drop archived, is refused. The session takes
+ * `fields`, a workflow run's pick, once no refusal is left, before its turn queues or starts.
  */
 async function deliver(
   context: SessionContext,
   live: Live,
   { held, opening: given, paths, text, workflow: sent }: Checked,
   { asChat, branch, caughtUpTo, step }: Place,
-  behind: boolean,
+  { behind, fields }: { behind: boolean; fields: SessionFields },
 ): Promise<{ session: string; turn: number }> {
   const { binding, cache, changed, processes, turns } = context;
   const workflow = asChat === undefined ? sent : undefined;
@@ -105,6 +109,10 @@ async function deliver(
 
   const opening = given ?? (workflow ? undefined : await openingOf(context, live, branch));
   unmoved();
+  if (Object.keys(fields).length > 0) {
+    cache.updateSession(live.id, fields);
+    changed(live);
+  }
   const item: Message = {
     ...messageItem(id, origin, text),
     ...(opening === undefined ? {} : { opening }),

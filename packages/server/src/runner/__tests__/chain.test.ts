@@ -195,16 +195,22 @@ test("a model gone refuses the step's run with its name, the model, and the agen
   sessions.close();
 });
 
-test.each(["with its step", "legacy, without a step"])(
+test.each<[string, string | undefined]>([
+  ["with its step", "medium"],
+  ["legacy, without a step", "medium"],
+  ["on the agent's default", undefined],
+  ["refused while another session works", "medium"],
+])(
   "a step joined to the one before runs in its session, on its own effort (%s)",
-  async (row) => {
+  async (row, effort) => {
     const { fake, runtimes } = await twoRuntimes();
     const { state, through } = stepped();
-    // Spec and Plan joined on Fake Big, at High then Medium.
+    // Spec and Plan joined on Fake Big, at High then `effort`.
+    const plan = { model: "fake-big", newSession: false, step: "plan" };
     const options: RunOptions = {
       steps: [
         { effort: "high", model: "fake-big", step: "spec" },
-        { effort: "medium", model: "fake-big", newSession: false, step: "plan" },
+        effort === undefined ? plan : { ...plan, effort },
       ],
     };
     const { cache, repo, sessions } = await testSessions(undefined, {
@@ -219,19 +225,31 @@ test.each(["with its step", "legacy, without a step"])(
     const first = await sessions.send(repo, spec.id, { text: "Write the spec", workflow: specRun });
     await sessions.settled(first.turn);
     expect(cache.session(spec.id)?.step).toBe("spec");
-    if (row !== "with its step") {
+    if (row === "legacy, without a step") {
       cache.db.prepare("UPDATE sessions SET step = NULL WHERE id = ?").run(spec.id);
     }
 
     // The human approves the spec: the plan's run goes to the spec's session.
     state.at = STEPS.approval;
     const approval = { step: "approval", trigger: "approval" } as const;
-    const sent = await sessions.send(repo, spec.id, { text: "Write the plan", workflow: approval });
+    const input = { text: "Write the plan", workflow: approval };
+    if (row === "refused while another session works") {
+      const other = await sessions.newSession(repo, AGENT);
+      fake.script([() => new Promise<void>(() => {})]);
+      const chat = await sessions.send(repo, other.id, { text: "Why?" });
+      await vi.waitFor(() => expect(cache.turn(chat.turn)?.state).toBe("running"));
+      await expect(sessions.send(repo, spec.id, input)).rejects.toThrow("refused: ");
+      // The run never went: the session keeps the spec's effort.
+      expect(cache.session(spec.id)?.effort).toBe("high");
+      sessions.close();
+      return;
+    }
+    const sent = await sessions.send(repo, spec.id, input);
     await sessions.settled(sent.turn);
 
     expect(sent.session).toBe(spec.id);
-    expect(cache.session(spec.id)?.effort).toBe("medium");
-    expect(fake.efforts.at(-1)).toBe("medium");
+    expect(cache.session(spec.id)?.effort).toBe(effort ?? null);
+    expect(fake.efforts.at(-1)).toBe(effort);
     expect(cache.folderSessions(await sessions.mainRoot(repo), AGENT)).toHaveLength(1);
     sessions.close();
   },

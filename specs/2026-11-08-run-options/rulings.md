@@ -159,15 +159,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R16: A joined step's effort, a chained run refused, and a legacy session's step
 
-- **Decision**: a run joined to a session sets its effort only when the step picks one: a step on
-  the agent's default keeps the session's effort. A chained run that is refused, as on a model gone,
-  leaves its reason as the ended turn's last line. A workflow run checks the agent of the session it
-  goes to, never the agent of the session it was sent from: a chained run, Continue all, or a
-  workflow message runs while the ended session's agent is gone. A legacy session's run step is read
-  by the core's `runStepOf`, a new function of the binding.
-- **Rationale**: an effort the human set on the session is not undone by a step that picks none; the
-  human reads why the next step did not start; TypeScript reaches the core's step mapping only
-  through the binding.
+- **Decision**: a run joined to a session runs on its step's effort, and a step that picks none on
+  the agent's default: the session's effort is set back to none. The session takes the effort, as a
+  session that never ran takes the step's pick, only once the run is delivered, never before a
+  refusal. A chained run that is refused, as on a model gone, leaves its reason as the ended turn's
+  last line. A workflow run checks the agent of the session it goes to, never the agent of the
+  session it was sent from: a chained run, Continue all, or a workflow message runs while the ended
+  session's agent is gone. A legacy session's run step is read by the core's `runStepOf`, a new
+  function of the binding.
+- **Rationale**: each step runs on its own options, wherever its session started, as the run options
+  decision says; a refused run leaves the session as it was; the human reads why the next step did
+  not start; TypeScript reaches the core's step mapping only through the binding.
 - **Where**: task 6.
 
 ## R17: US2 2's test joins Spec and Plan

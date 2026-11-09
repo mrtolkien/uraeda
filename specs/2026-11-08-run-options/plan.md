@@ -727,16 +727,18 @@ share, and concurrency with the continuer.
 - Consumes: `NextView.step.runStep` (Task 2); `FeatureOptions.resolved` and the sessions' `step`
   column (Task 4); `toMap`, `stepSession` (Task 5).
 - Produces:
-  - `runSession(context, live, runStep: StepId, fresh?: boolean): Promise<Live>` in
+  - `runSession(context, live, runStep: StepId, fresh?: boolean): Promise<RunPlace>` in
     `run-session.ts`: the session a run of `runStep` goes to. The latest session when it never ran,
     which takes the step's pick (R18), or when it runs `runStep` already, whatever its pick (R18);
     else the latest when it runs on the step's agent and model, and `stepSession` joins its step to
-    `runStep` or it ran no workflow (R15), its effort set to the step's for the next turn; else a
-    new session on the step's pick, `step` set. `fresh: true` always starts a new one. A session
+    `runStep` or it ran no workflow (R15), on the step's effort, none when it picks none (R16); else
+    a new session on the step's pick, `step` set. `fresh: true` always starts a new one. A session
     without `step` reads as the run step of its latest workflow turn. A step whose agent is off runs
     on the first runtime on, without its model and effort. A step whose model the agent no longer
     lists is refused with `RUNTIME_REFUSALS.stepModelGone(step, model, agent)`: "Spec runs on Opus
-    4.1, which Claude Code no longer lists."
+    4.1, which Claude Code no longer lists." `RunPlace` is `{ live, fields }`: the session, and the
+    fields it takes, its pick, effort, or step, which `sendTo` writes only once the run is delivered
+    there (R16).
   - `goal(step, planReview)` stops each run at its step: approval, plan, and plan revision "Write
     the plan" (or "Record the approved decisions and write the plan"), stopping when "the plan is
     committed" without plan review; implementation stopping when "every task of the plan is
@@ -772,8 +774,9 @@ share, and concurrency with the continuer.
 - "a step joined to the one before runs in its session, on its own effort": Spec at High, Plan at
   Medium, joined; the plan's run sent after the spec's approval goes to the spec's session with
   effort Medium (a spec revision is the Spec step's own run, R17). Row: a legacy session without
-  `step` whose last workflow turn was `spec` is joined the same way. Break: a new session per run,
-  or the session's effort unchanged.
+  `step` whose last workflow turn was `spec` is joined the same way; a Plan on the agent's default
+  runs on no effort, not High; a run refused while another session works leaves High. Break: a new
+  session per run, or the session's effort unchanged.
 - "a run whose step did not move on starts nothing": the plan turn ends with the step still `plan`;
   no new turn anywhere. Break: a loop of plan runs.
 
