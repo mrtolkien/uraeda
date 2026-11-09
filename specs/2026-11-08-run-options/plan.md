@@ -1024,6 +1024,9 @@ git commit -m "feat(run-options): implementers run as sub-sessions Uraeda starts
     every reviewer of the feature's resolved options at once and answers with the path and text of
     the `findings-NN.md` it committed. Before any reviewer runs, it refuses a `reviewed` other than
     `branch` or `wave <N>`, and a `base` or a `head` that is not one word without a colon (R29).
+    Findings a hook refuses to commit stay written: it answers with their path and "written, not
+    committed: <the hook's output>", and the same `reviewed`, `base`, and `head` asked again commit
+    them with `retryCommit`, running no reviewer (R30).
   - `class Reviews { review(parent: string, input: unknown, signal?: AbortSignal): Promise<string> }`,
     reached as `Sessions.reviews`, and `reviewTool(reviews: Reviews): McpTool`, pushed into the
     server's `mcp.tools`; a review is counted as the parent's call (`SubSessions.counted`), so its

@@ -1,11 +1,12 @@
 // The reviewers of a feature (US4 of the run options): the `review` tool runs every reviewer of the
 // feature at once, agents through their own review in sub-sessions, commands in the feature's
 // worktree, and commits a section for each in `findings-NN.md`, before the build fixes them.
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import type { RunOptions } from "uraeda-binding";
+import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { McpTokens } from "../../mcp/tokens.ts";
 import { claudeReview } from "../claude.ts";
 import { codexReview } from "../codex-thread.ts";
@@ -217,4 +218,40 @@ test.each([
   expect(sessions.subSessions.ofParent(parent.id)).toEqual([]);
   expect(claude.sent).toHaveLength(sent);
   expect(coderabbit.started()).toBe(false);
+});
+
+test("findings a hook refuses are written, and the same review asked again commits them", async () => {
+  const dir = temporaryFolder("uraeda-reviews");
+  const runs = join(dir, "runs");
+  const { repo, review, sessions } = await reviewing({
+    reviewers: [{ command: `echo run >> '${runs}'; echo "- [P2] A finding."` }],
+    steps: [],
+  });
+  const refuse = join(dir, "refuse");
+  const hook = join(await sessions.mainRoot(repo), ".git/hooks/pre-commit");
+  mkdirSync(dirname(hook), { recursive: true });
+  writeFileSync(
+    hook,
+    `#!/bin/sh\nif [ -e '${refuse}' ]; then echo "lint: 1 problem"; exit 1; fi\n`,
+    { mode: 0o755 },
+  );
+  writeFileSync(refuse, "");
+  const input = { base: "abc123", head: "def456", reviewed: "wave 1" };
+
+  const refused = await review(input);
+  const [path, said] = refused.split("\n\n");
+  expect(path).toMatch(/findings-01\.md$/);
+  expect(said).toMatch(/^written, not committed: /);
+  expect(said).toContain("lint: 1 problem");
+  expect(readFileSync(path, "utf8")).toContain("A finding.");
+  const worktree = dirname(dirname(dirname(path)));
+  expect(git(worktree, "log", "-1", "--format=%s").trim()).not.toMatch(/findings/);
+
+  rmSync(refuse);
+  const committed = await review(input);
+  expect(committed.split("\n")[0]).toBe(path);
+  expect(git(worktree, "log", "-1", "--format=%s").trim()).toBe("review(cli-tuis): findings 01");
+  // The reviewers ran once: the call committed the file the first one wrote.
+  expect(readFileSync(runs, "utf8")).toBe("run\n");
+  expect(existsSync(path.replace("findings-01", "findings-02"))).toBe(false);
 });

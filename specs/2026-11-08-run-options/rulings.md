@@ -406,3 +406,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `reviewInput` in `packages/server/src/runner/reviews.ts`, with a binding function
   over the core's `Git::resolve` to resolve the commits in the feature's worktree.
 - **Where**: task 9's review.
+
+## R30: Findings a hook refused are committed by the same review asked again
+
+- **Decision**: when a hook refuses the findings' commit, `review` answers with the file's path and
+  "written, not committed: " with the hook's output, and keeps, in memory, the file under its
+  feature, `reviewed`, and commits. The same review asked again commits that file with
+  `retryCommit`, running no reviewer and writing no next `findings-NN.md`; refused again, it answers
+  the same way. The file is found as the feature's last `findings-NN.md` in its worktree, as
+  `writeFindings` gives no path when it fails. After a restart, the same review asked again runs its
+  reviewers and writes the next file.
+- **Rationale**: the review found a refused commit answered as a failed review, the file left
+  uncommitted, and the agent's next call running every reviewer again into the next file. Keeping it
+  in memory needs no new core or binding function: a restart within a review's retry is rare.
+- **If wrong**: `Reviews.#commitAgain` and `#lastFindings` in
+  `packages/server/src/runner/reviews.ts`.
+- **Where**: task 9's review.

@@ -1,8 +1,8 @@
 // The reviews of a feature (the run options decision): every reviewer of a review runs at once, an
 // agent through its own review in a sub-session of the feature, a command the human wrote in the
 // feature's worktree, and their findings are committed in `findings-NN.md` before they are fixed.
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import { basename, join } from "node:path";
 import type { McpTool } from "../mcp/endpoint.ts";
 import { reasonOf } from "../reason.ts";
 import { type Reviewer, type StepPick, toMap } from "../run-options.ts";
@@ -30,6 +30,11 @@ type Review = ReviewInput & { cwd: string; parent: SessionRow; signal: AbortSign
  */
 export class Reviews {
   #context: SessionContext;
+  /**
+   * The findings a hook refused to commit, written in their worktree, by `findingsKey`: the same
+   * review asked again commits them instead of running its reviewers again.
+   */
+  #unsaved = new Map<string, string>();
 
   constructor(context: SessionContext) {
     this.#context = context;
@@ -60,8 +65,14 @@ export class Reviews {
     if (map.depth === "branch" && asked.reviewed !== "branch") {
       return BRANCH_ONLY;
     }
+    const commits = `${asked.base}..${asked.head}`;
+    const key = findingsKey(row.repo, folder, asked.reviewed, commits);
     try {
       const cwd = await binding.workDir(row.repo, folder);
+      const unsaved = this.#unsaved.get(key);
+      if (unsaved !== undefined) {
+        return await this.#commitAgain(key, row.repo, folder, join(cwd, unsaved));
+      }
       const review: Review = { ...asked, cwd, parent: row, signal };
       const names = map.reviewers.map((reviewer) => this.#name(reviewer));
       const sections = await Promise.all(
@@ -72,17 +83,58 @@ export class Reviews {
       if (signal?.aborted) {
         throw new Error("The call was cancelled.");
       }
-      const commits = `${asked.base}..${asked.head}`;
-      const path = await binding.writeFindings(row.repo, folder, {
-        commits,
-        reviewed: asked.reviewed,
-        sections,
-      });
-      const file = join(cwd, path);
-      return `${file}\n\n${await readFile(file, "utf8")}`;
+      const findings = { commits, reviewed: asked.reviewed, sections };
+      try {
+        return await answerOf(join(cwd, await binding.writeFindings(row.repo, folder, findings)));
+      } catch (error) {
+        if (!isHookRefusal(error)) {
+          throw error;
+        }
+        const path = await this.#lastFindings(row.repo, folder);
+        this.#unsaved.set(key, path);
+        return notCommitted(join(cwd, path), error);
+      }
     } catch (error) {
       throw new Error(reasonOf(error), { cause: error });
     }
+  }
+
+  /**
+   * Commits again the findings a hook refused, at `file`, `key`'s: answers as a review does once
+   * committed, else again that they are written, not committed.
+   */
+  async #commitAgain(key: string, repo: string, folder: string, file: string): Promise<string> {
+    try {
+      await this.#context.binding.retryCommit(repo, folder, basename(file));
+    } catch (error) {
+      if (isHookRefusal(error)) {
+        return notCommitted(file, error);
+      }
+      this.#unsaved.delete(key);
+      throw error;
+    }
+    this.#unsaved.delete(key);
+    return answerOf(file);
+  }
+
+  /**
+   * The path, from the top level, of the feature's last findings in its worktree: the ones just
+   * written, which a hook refused to commit.
+   */
+  async #lastFindings(repo: string, folder: string): Promise<string> {
+    const { binding } = this.#context;
+    const [feature, cwd] = await Promise.all([
+      binding.readFeature(repo, folder),
+      binding.workDir(repo, folder),
+    ]);
+    const names = (await readdir(join(cwd, feature.path))).filter((name) =>
+      /^findings-\d+\.md$/.test(name),
+    );
+    const last = names.sort((one, other) => roundOf(one) - roundOf(other)).at(-1);
+    if (last === undefined) {
+      throw new Error("The findings a hook refused to commit are not in the worktree.");
+    }
+    return `${feature.path}/${last}`;
   }
 
   /**
@@ -150,6 +202,27 @@ export class Reviews {
       review.signal,
     );
   }
+}
+
+/** The key of a review's findings: its feature, what it reviewed, and its commits. */
+const findingsKey = (repo: string, folder: string, reviewed: string, commits: string) =>
+  [repo, folder, reviewed, commits].join("\0");
+
+/** Whether the binding's error is a hook's refusal of a commit. */
+const isHookRefusal = (error: unknown) =>
+  error instanceof Error && error.message.startsWith("hook: ");
+
+/** The round of a findings file, from its name. */
+const roundOf = (name: string) => Number(/\d+/.exec(name)?.[0] ?? 0);
+
+/** The answer of a review whose findings are committed: their file's path, then their text. */
+async function answerOf(file: string): Promise<string> {
+  return `${file}\n\n${await readFile(file, "utf8")}`;
+}
+
+/** The answer of a review whose findings a hook refused: their file's path, and the hook's output. */
+function notCommitted(file: string, error: unknown): string {
+  return `${file}\n\nwritten, not committed: ${reasonOf(error)}`;
 }
 
 /** The name of the reviewer at `index`, numbered after the first reviewer of the same name. */
@@ -241,7 +314,10 @@ export function reviewTool(reviews: Reviews): McpTool {
       "Reviews the feature's commits `base..head` with every reviewer of the feature at once, " +
       "each an agent's own review in its own session or a command, then commits their findings " +
       "in the feature's folder as the next findings-NN.md. Answers with the file's path and its " +
-      "text, a section per reviewer. Call it once per review: after a wave is merged, with " +
+      "text, a section per reviewer. When a hook refuses the commit, it answers with the file's " +
+      "path and `written, not committed:` with the hook's output: fix what the hook says, then " +
+      "call it again with the same `reviewed`, `base`, and `head`, which commits the file and " +
+      "runs no reviewer. Call it once per review: after a wave is merged, with " +
       "`reviewed` `wave <N>`, and on the whole branch, with `reviewed` `branch`.",
     inputSchema: {
       properties: {
