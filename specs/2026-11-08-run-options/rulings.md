@@ -264,5 +264,5 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   worktrees through gix, as `git worktree list` does, and a call of `run_agent` is rare enough for
   its other reads.
 - **If wrong**: `SubSessions.#idle` and `#worktree` in `packages/server/src/runner/sub-sessions.ts`,
-  and `Continuer.fire` and `#subEnded` in `continuer.ts`.
+  and `Continuer.fire` in `continuer.ts` and `ParentHolds` in `parent-holds.ts`.
 - **Where**: task 8.
