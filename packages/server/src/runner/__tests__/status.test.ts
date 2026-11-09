@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 import type { ContinueReason } from "../events.ts";
 import { SERVER_STOPPED } from "../sessions.ts";
-import { sessionStatus } from "../status.ts";
+import { CATCH_UP, sessionStatus } from "../status.ts";
 
 type Input = Parameters<typeof sessionStatus>[0];
 const base: Input = { blocked: false, queued: false, seenAt: null, waitsOnHuman: false };
@@ -29,6 +29,18 @@ const ended = (
   state,
 });
 const dismissed = { dismissedAt: "2026-10-13T10:30" };
+/** The turn, sent at `catch-up` for the default branch's tip `commit`. */
+const caughtUpTo = (commit: string, turn: ReturnType<typeof ended>) => ({
+  ...turn,
+  caughtUpTo: commit,
+  step: CATCH_UP,
+});
+/** A feature at `catch-up`, behind the default branch's tip `commit`. */
+const atCatchUp = (commit: string) => ({
+  catchUpCommit: commit,
+  stepName: CATCH_UP,
+  waitsOnAgent: true,
+});
 const running = {
   continueAt: null,
   continueReason: null,
@@ -135,34 +147,52 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Needs attention", reason: "halted", status: "attention" },
   ],
   [
-    "a catch-up turn ended at Catch up (US3 2)",
-    { latest: { ...ended("done"), step: "catch-up" }, stepName: "catch-up", waitsOnAgent: true },
+    "a catch-up turn ended at Catch up for the same tip (US3 2)",
+    { ...atCatchUp("x"), latest: caughtUpTo("x", ended("done")) },
     { label: "Needs attention", reason: "conflict", status: "attention" },
+  ],
+  [
+    "a catch-up turn ended at Catch up in an older session of the folder (R11)",
+    {
+      ...atCatchUp("x"),
+      latest: caughtUpTo("x", ended("done")),
+      latestSession: false,
+      seenAt: "2026-10-13T11:00",
+    },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a catch-up turn ended at Catch up for an older tip, seen: main moved again (R12)",
+    { ...atCatchUp("y"), latest: caughtUpTo("x", ended("done")), seenAt: "2026-10-13T11:00" },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a catch-up turn ended at Catch up for an older tip, not seen (R12)",
+    { ...atCatchUp("y"), latest: caughtUpTo("x", ended("done")), seenAt: "2026-10-13T09:00" },
+    { label: "New reply", status: "unread" },
   ],
   [
     "a catch-up turn dismissed",
     {
-      latest: { ...ended("done", "workflow", dismissed), step: "catch-up" },
+      ...atCatchUp("x"),
+      latest: caughtUpTo("x", ended("done", "workflow", dismissed)),
       seenAt: "2026-10-13T11:00",
-      stepName: "catch-up",
-      waitsOnAgent: true,
     },
     { label: "Idle", status: "idle" },
   ],
   [
     "a catch-up turn dismissed, ended after it was seen",
     {
-      latest: { ...ended("done", "workflow", dismissed), step: "catch-up" },
+      ...atCatchUp("x"),
+      latest: caughtUpTo("x", ended("done", "workflow", dismissed)),
       seenAt: "2026-10-13T09:00",
-      stepName: "catch-up",
-      waitsOnAgent: true,
     },
     { label: "Idle", status: "idle" },
   ],
   [
     "a catch-up turn ended back at the pull request (US2 2)",
     {
-      latest: { ...ended("done"), step: "catch-up" },
+      latest: caughtUpTo("x", ended("done")),
       seenAt: "2026-10-13T09:00",
       stepName: "pull-request",
       waitsOnHuman: true,

@@ -128,6 +128,7 @@ test("a catch-up stopped on a conflict asks until dismissed, which ends no turn"
   cache.endTurn(earlier, { state: "done" });
   const conflict = cache.addTurn({
     allowed: null,
+    caughtUpTo: catchUp.commit,
     kind: "workflow",
     sessionId: session,
     state: "running",

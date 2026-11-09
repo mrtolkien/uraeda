@@ -75,7 +75,8 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
  * A session's status, from the first rule that matches: a running or queued turn, a latest turn
  * waiting to continue by itself, a blocked action not allowed, a latest turn that failed or was
  * stopped, until the human dismisses it, as capped when it would have continued, a catch-up turn
- * that ended while the step is still `catch-up`, in its folder's latest session, until dismissed,
+ * that ended while the step is still `catch-up` for the same tip, in its folder's latest session,
+ * until dismissed,
  * a step that waits on the human, a dismissed turn as idle, a latest turn that ended while the step
  * still waits on the agent, in its folder's latest session, but at `catch-up`, as waiting while its
  * process waits for a wakeup the agent set, a latest turn that ended after the human last saw the
@@ -83,10 +84,12 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
  */
 export function sessionStatus(input: {
   blocked: boolean;
+  /** At `catch-up`, the default branch's tip the feature's branch is behind. */
+  catchUpCommit?: string;
   latest?: Pick<
     TurnRow,
     "continueAt" | "continueReason" | "dismissedAt" | "endedAt" | "kind" | "reason" | "state"
-  > & { step?: string | null };
+  > & { caughtUpTo?: string | null; step?: string | null };
   /**
    * Whether the session is its change's or feature's latest: an older one's run halted nothing, as
    * the folder's runs go to the latest.
@@ -119,9 +122,15 @@ export function sessionStatus(input: {
     const stopped = latest.reason === SERVER_STOPPED ? "interrupted" : failed;
     return { label: "Needs attention", reason: capped ? "capped" : stopped, status: "attention" };
   }
-  // A catch-up that ended still behind stopped on a conflict, which asks for the human's choice.
+  // A catch-up that ended still behind the tip it caught up with stopped on a conflict, which asks
+  // for the human's choice. Behind a newer tip, main moved again: the next catch-up goes on (R12).
   const conflict =
-    latest?.state === "done" && latest.step === CATCH_UP && stepName === CATCH_UP && latestSession;
+    latest?.state === "done" &&
+    latest.step === CATCH_UP &&
+    stepName === CATCH_UP &&
+    latest.caughtUpTo != null &&
+    latest.caughtUpTo === input.catchUpCommit &&
+    latestSession;
   if (conflict && latest.dismissedAt === null) {
     return { label: "Needs attention", reason: "conflict", status: "attention" };
   }

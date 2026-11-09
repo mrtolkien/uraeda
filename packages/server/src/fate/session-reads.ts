@@ -75,6 +75,7 @@ export function statusOf(
     queued: read.queued,
     seenAt: row.seenAt,
     ...(feature ? { stepName: feature.step.name } : {}),
+    ...(feature?.step.catchUp ? { catchUpCommit: feature.step.catchUp.commit } : {}),
     waitsOnAgent: feature?.step.waitsOn === "agent",
     waitsOnHuman: feature?.step.waitsOn === "human",
     wakeup: read.wakeup === true,
