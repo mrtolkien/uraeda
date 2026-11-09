@@ -267,7 +267,7 @@ scenarios and 3 high edge cases).
 | US1 1 (the defaults' sessions)                                       | 5     | `server/src/__tests__/run-options.test.ts`, the joints table, row "defaults"                                                                      |
 | US1 2 (Spec on Opus High, written to `[runs.steps.spec]`, cut locks) | 1, 5  | `crates/core/tests/run_options.rs` `writes_a_step_in_its_own_table`; the joints table, row "a step on another model"                              |
 | US1 3 (Space cuts a joint, `new_session = true`)                     | 1     | `writes_a_step_in_its_own_table` also writes `new_session`                                                                                        |
-| US1 more 1 (a lock: Space changes nothing)                           | 5     | the joints table, row "forced": `withCut` of a forced joint still cuts                                                                            |
+| US1 more 1 (a lock: Space changes nothing)                           | 5     | the joints table, row "forced": `withCut` of a forced joint still cuts, and stores nothing (R14)                                                  |
 | US1 more 2 (`build_in_fresh_session = false` read, then replaced)    | 1     | `crates/core/tests/run_options.rs` `migrates_the_old_switch` (rewrites the replaced settings test)                                                |
 | Review focus 9 (old switch with a plan table)                        | 1     | `migrates_the_old_switch`, its second row                                                                                                         |
 | US2 1 (plan committed, run ends, Sonnet build starts)                | 6     | `runner/__tests__/chain.test.ts` "a plan run that ends at the build starts the build's run in a new session on its pick"                          |
@@ -655,15 +655,18 @@ git commit -m "feat(run-options): a feature's own options, and the settings' run
     (`pickerAgents(runtimes)` in the web's `runOptions.ts`).
   - `samePick(agents, a, b)`, `isForced(agents, options, index)`,
     `jointCuts(agents, options, index)`, `sessionSpans(agents, options)`, and
-    `withCut(options, index)`, moved from the web with their behaviour: a joint cuts where the human
-    cut, or where its two steps run on another agent or model; `discovery` always starts a session.
-    The web keeps its own `samePick`, `isForced`, `jointCuts`, and `sessionSpans` on the picker's
-    runtimes, calling these.
+    `withCut(agents, options, index)`, moved from the web with their behaviour: a joint cuts where
+    the human cut, or where its two steps run on another agent or model; `discovery` always starts a
+    session. `withCut` leaves the options unchanged on a forced joint (R14). The web keeps its own
+    `samePick`, `isForced`, `jointCuts`, `sessionSpans`, and `withCut` on the picker's runtimes,
+    calling these.
   - `toMap(options: RunOptions, fallbackRuntime: string): MapOptions` (the plan's `new_session`
     defaulting to `true`, the implementers' agent to the build's, reviewers defaulting to one agent
     reviewer on the review step's agent and that agent's defaults) and
     `toStored(map: MapOptions, defaults: MapOptions): RunOptions`, only the fields that differ from
-    `defaults`, the whole reviewers' list when it differs, none while both follow their review step.
+    `defaults`, the whole reviewers' list when it differs, none while both follow their review step;
+    no implementers while both follow their build (its agent, on its defaults), and, while only
+    `defaults` follow theirs, what differs from following the map's own build.
   - `stepSession(agents, options: MapOptions, from: StepId, to: StepId): boolean`, whether `to` runs
     in the session that ran `from`: true only when both are in one span and `from` is not after
     `to`, so a step's own runs share its session.

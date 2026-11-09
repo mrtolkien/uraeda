@@ -133,3 +133,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `featureOptionsOf` in `packages/server/src/runner/feature-options.ts` names the
   file.
 - **Where**: task 4, from the review of wave 2.
+
+## R14: A forced joint takes no cut of the human's
+
+- **Decision**: `withCut(agents, options, index)` takes the agents, and gives the options unchanged
+  when the joint is forced; the web's `withCut(runtimes, options, index)` calls it, in the map and
+  the strip.
+- **Rationale**: a forced joint cuts whatever the human chooses, as the spec's lock says (Space
+  changes nothing); a toggle there stored a `new_session` no one sees, which came back as a cut when
+  the steps later ran on one model.
+- **Where**: task 5, from the review of wave 2.
