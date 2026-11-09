@@ -16,8 +16,8 @@ import type {
   WorkspaceView,
 } from "uraeda-binding";
 import type { EditedFile, SubagentRow } from "../runner/cache.ts";
-import type { Item, Trigger, TurnActivity, TurnKind, TurnState } from "../runner/events.ts";
 import type { RuntimeRecord } from "../runner/runtimes.ts";
+import type { Role } from "../runner/sub-sessions.ts";
 import type { SessionStatus, StatusReason, Wait } from "../runner/status.ts";
 import type { FeatureStatus } from "./feature-status.ts";
 import type { ItemLook } from "./items.ts";
@@ -44,13 +44,20 @@ import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 import { type WorkflowMessageRecord, workflowMessageDataView } from "./views-workflow-message.ts";
+import type { SubSessionRecord } from "./sub-session-views.ts";
+import {
+  type TurnLogRecord,
+  turnDataView,
+  turnLogDataView,
+  type TurnRecord,
+} from "./views-turns.ts";
 
 export type Record_<T> = { [Key in keyof T]: T[Key] };
 
 export { proposalFileDataView, proposalHintsDataView, slugProposalDataView };
 export type { ProposalFileRecord, ProposalHintsRecord, SlugProposalRecord };
-export { workflowMessageDataView };
-export type { WorkflowMessageRecord };
+export { turnDataView, turnLogDataView, workflowMessageDataView };
+export type { TurnLogRecord, TurnRecord, WorkflowMessageRecord };
 
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
@@ -203,12 +210,16 @@ export type SessionRecord = {
    * started in a change or a feature, whose `title` is its feature's.
    */
   name: string | null;
+  /** The session that started it, a sub-session's: null for every other session. */
+  parent: string | null;
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
   /** The effort its agent last reported running on, by its name for people: null for none. */
   ranEffort: string | null;
   /** The model its agent last reported running on, by its name for people: null before it did. */
   ranModel: string | null;
+  /** A sub-session's role in its parent's run: null for every other session. */
+  role: Role | null;
   /** When it started, which its place in a feature's sessions follows. */
   startedAt: string;
   status: SessionStatus;
@@ -220,6 +231,8 @@ export type SessionRecord = {
   statusTurn: string | null;
   /** The sub-agents of its running turn that have not ended. */
   subagents: Array<SubagentRecord>;
+  /** The sub-sessions Uraeda started for its runs, the first started first. */
+  subSessions: Array<SubSessionRecord>;
   /** A chat's title, "New session" before its first message, or its feature's title. */
   title: string;
   /** Its turns' IDs, oldest first. */
@@ -231,38 +244,6 @@ export type SessionRecord = {
   unseen: boolean;
   /** When its run continues by itself, while it waits; null otherwise. */
   wait: Wait | null;
-};
-
-/** A turn of a session, without its items. */
-export type TurnRecord = {
-  /** What it does now while it runs, "Thinking" or "Writing spec.md", and since when. */
-  activity: TurnActivity | null;
-  /** An allow turn's rule. */
-  allowed: string | null;
-  endedAt: string | null;
-  id: string;
-  kind: TurnKind;
-  /** The count of its item pages, of 100 items each. */
-  pages: number;
-  /** Why it failed or stopped. */
-  reason: string | null;
-  session: string;
-  startedAt: string | null;
-  state: TurnState;
-  /** A workflow turn's step when it started. */
-  step: string | null;
-  trigger: Trigger | null;
-};
-
-/**
- * A page of 100 items of a turn, `<turn>:<page>`, from page 0, by their `seq`. Messages taken
- * back are left out: they leave the transcript.
- */
-export type TurnLogRecord = {
-  id: string;
-  items: Array<Item & { seq: number }>;
-  page: number;
-  turn: string;
 };
 
 /** A session's row in the sidebar. */
@@ -409,41 +390,22 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   id: true,
   model: true,
   name: true,
+  parent: true,
   place: true,
   ranEffort: true,
   ranModel: true,
+  role: true,
   startedAt: true,
   status: true,
   statusLabel: true,
   statusReason: true,
   statusTurn: true,
   subagents: true,
+  subSessions: true,
   title: true,
   turns: true,
   unseen: true,
   wait: true,
-});
-
-export const turnDataView = dataView<TurnRecord>("Turn")({
-  activity: true,
-  allowed: true,
-  endedAt: true,
-  id: true,
-  kind: true,
-  pages: true,
-  reason: true,
-  session: true,
-  startedAt: true,
-  state: true,
-  step: true,
-  trigger: true,
-});
-
-export const turnLogDataView = dataView<TurnLogRecord>("TurnLog")({
-  id: true,
-  items: true,
-  page: true,
-  turn: true,
 });
 
 export const sessionListDataView = dataView<SessionListRecord>("SessionList")({

@@ -265,3 +265,50 @@ export function toStored(map: MapOptions, defaults: MapOptions): RunOptions {
     ...(map.depth === defaults.depth ? {} : { reviewDepth: map.depth }),
   };
 }
+
+/**
+ * A stored pick over the map's `fallback`, value by value; one on another agent drops the
+ * fallback's model and effort, as a model belongs to its agent (R11).
+ */
+function pickOver(fallback: StepPick, stored: RunPick | undefined): StepPick {
+  if (stored === undefined) {
+    return fallback;
+  }
+  if (stored.agent !== undefined && stored.agent !== fallback.runtime) {
+    return pickOf(stored, stored.agent);
+  }
+  const effort = stored.effort ?? fallback.effort;
+  const model = stored.model ?? fallback.model;
+  return {
+    ...(effort === undefined ? {} : { effort }),
+    ...(model === undefined ? {} : { model }),
+    runtime: fallback.runtime,
+  };
+}
+
+/**
+ * A feature's own stored options over the settings' map `defaults`, as the map edits them: the
+ * map of the core's merge, read where only the map of the settings is at hand, and what `toStored`
+ * gives back. Implementers and reviewers that follow the build and the review step in `defaults`
+ * follow the feature's.
+ */
+export function overStored(defaults: MapOptions, own: RunOptions): MapOptions {
+  const stored = (step: StepId) => own.steps.find((each) => each.step === step);
+  const steps = Object.fromEntries(
+    STEPS.map((step) => [step, pickOver(defaults.steps[step], stored(step))]),
+  ) as Record<StepId, StepPick>;
+  const cuts = STEPS.flatMap((step, index) =>
+    index > 0 && (stored(step)?.newSession ?? defaults.cuts.includes(index)) ? [index] : [],
+  );
+  const implementers = pickOver(
+    followBuild(defaults) ? { runtime: steps.build.runtime } : defaults.implementers,
+    own.implementers,
+  );
+  const reviewers = own.reviewers?.length
+    ? own.reviewers.map((each) => reviewerOf(each, steps.review.runtime))
+    : onReviewStep(defaults)
+      ? [defaultReviewer(steps)]
+      : defaults.reviewers;
+  const depth = own.reviewDepth === undefined ? defaults.depth : own.reviewDepth;
+  return { cuts, depth: depth === "branch" ? "branch" : "waves", implementers, reviewers, steps };
+}

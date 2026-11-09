@@ -1225,7 +1225,7 @@ git commit -m "feat(run-options): the start dialogs' run strip"
   `usage`); `SessionRecord.parent` and `role`. Every `TEMPORARY` marker of `runs/`, `SessionsPane`,
   `SubagentsPanel`, and `SessionView` goes.
 
-- [ ] **Step 1: Serve the sub-sessions, and draw them**
+- [x] **Step 1: Serve the sub-sessions, and draw them**
 
 The feature page's map reads the feature's own options, its record's `runOptions`, and the settings'
 defaults, the settings record's `runs.options` (R12), and saves a change with
@@ -1239,17 +1239,22 @@ lists sub-sessions flat beside the workflow sessions, and the live refresh in `l
 feature's change, updates `folderSessions` alone, which leaves sub-sessions out. Nest them in the
 list, or leave them out of it, and refresh a feature's sub-sessions with their parents.
 
-- [ ] **Step 2: Run the task's validation**
+Built: the list and search leave sub-sessions out; a feature's change refreshes its sessions'
+sub-sessions, and a sub-session's change its parent's record. The map reads `overStored`, a
+feature's options over the settings' map (R32). The stories read sub-sessions Storybook's server
+keeps, `samples/subSessions.ts`; `FeatureRunMap` is the map without the server, for the stories.
+
+- [x] **Step 2: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 3: Review it in the sandbox**
+- [x] **Step 3: Review it in the sandbox**
 
 The feature page at Build with sub-sessions working, a finished feature, a change's page, the
 Sub-agents pane, a sub-session's page: both themes, phone and desktop, by keyboard and by tap.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/server/src packages/web/src

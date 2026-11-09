@@ -14,6 +14,7 @@ import { checkoutDir, hasPreview } from "./preview.ts";
 import { agentTime } from "./agentTime.ts";
 import { featureStatusOf } from "./feature-status.ts";
 import { statusOf, turnsOf, workspaceOf } from "./session-reads.ts";
+import { subSessionFields } from "./sub-session-views.ts";
 import { featureTokens } from "./tokens.ts";
 import { messageStep, readMessage } from "./workflow-step.ts";
 import {
@@ -145,6 +146,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     place: await placeOf(ctx, row, feature),
     statusTurn: read.latest ? String(read.latest.id) : null,
     subagents: read.subagents,
+    ...subSessionFields(ctx, row),
     turns: read.turns.map((turn) => String(turn.id)),
     unseen: unseen(row, read),
   };
@@ -202,7 +204,8 @@ export async function readTurnLog(
 
 /**
  * The sidebar's rows of the sessions, what needs the human first, then the last updated. A
- * feature's session leaves the list with its feature, as when it was finished into its record.
+ * feature's session leaves the list with its feature, as when it was finished into its record. A
+ * sub-session is left out: its parent's views list it.
  */
 async function rows(
   ctx: RepoContext,
@@ -213,7 +216,7 @@ async function rows(
   );
   const { cache } = ctx.sessions;
   return sessions
-    .filter((row) => row.folder === null || features.has(row.folder))
+    .filter((row) => row.parent === null && (row.folder === null || features.has(row.folder)))
     .map((row) => {
       const feature = row.folder === null ? undefined : features.get(row.folder);
       const read = { ...turnsOf(cache, row.id), wakeup: ctx.sessions.wakeup(row.id) };

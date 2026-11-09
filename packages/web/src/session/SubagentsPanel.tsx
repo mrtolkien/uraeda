@@ -2,9 +2,9 @@
 // now, and how long it has run, ticking each second. A sub-agent's own sub-agents are rows of its
 // group in the Activity, not here. The server lists the running ones alone: the panel keeps the
 // rows it drew while its tab is open, and marks those gone from the list "Done", their time frozen
-// (ruling R10). Once Uraeda runs a workflow's sub-agents as sessions of their own (spec of Run
-// options), the pane lists those sub-sessions instead: each with its role, what it works on, its
-// agent, model, effort, state, time, and usage, a link to its read-only page.
+// (ruling R10). A workflow session's sub-agents are sessions Uraeda runs (spec of Run options): the
+// pane lists those sub-sessions instead, each with its role, what it works on, its agent, model,
+// effort, state, time, and usage, a link to its read-only page. A chat keeps its agent's own.
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
@@ -94,11 +94,18 @@ function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Ro
   );
 }
 
-/** The session `session`'s sub-agents, from its record, read here. */
+/**
+ * The session `session`'s sub-agents, from its record, read here: the sub-sessions Uraeda started
+ * for its runs, when it has any, else its agent's own.
+ */
 function Subagents({ session }: { session: string }) {
   const record = useSession(session);
   const now = useNow(1000);
   const rows = useKeptRows(topLevel(record?.subagents ?? []), now);
+  const subs = record?.subSessions ?? [];
+  if (subs.length > 0) {
+    return <SubSessions subs={subs} />;
+  }
   if (rows.length === 0) {
     return <Empty>No sub-agent running.</Empty>;
   }
@@ -124,25 +131,8 @@ function SubSessions({ subs }: { subs: ReadonlyArray<SubSession> }) {
   );
 }
 
-/**
- * The Sub-agents of the session `session`, or, before it exists, that none runs; with `subSessions`,
- * the sub-sessions Uraeda started for it. TEMPORARY: given by the stories until the server lists
- * them (spec of Run options).
- */
-export function SubagentsPanel({
-  session,
-  subSessions,
-}: {
-  session?: string | undefined;
-  subSessions?: ReadonlyArray<SubSession>;
-}) {
-  if (subSessions !== undefined && subSessions.length > 0) {
-    return (
-      <Section>
-        <SubSessions subs={subSessions} />
-      </Section>
-    );
-  }
+/** The Sub-agents of the session `session`, or, before it exists, that none runs. */
+export function SubagentsPanel({ session }: { session?: string | undefined }) {
   if (session === undefined) {
     return <Empty>No sub-agent running.</Empty>;
   }

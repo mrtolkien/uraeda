@@ -39,6 +39,7 @@ import {
   dated,
   listPullRequest,
   recordFeatureRuns,
+  recordSubSessionRuns,
   ROUND_MOCKUPS,
 } from "../samples/index.ts";
 import { CHECKOUTS } from "./checkouts.ts";
@@ -223,6 +224,7 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     }
     const dataDir = temporaryFolder("uraeda-storybook-data");
     recordFeatureRuns(dataDir, repo);
+    recordSubSessionRuns(dataDir, repo);
     return { configDir: temporaryFolder("uraeda-storybook-config"), dataDir, repo };
   });
 }

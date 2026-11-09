@@ -18,7 +18,6 @@ import { useFateClient, useView } from "react-fate";
 import type { Session, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { SubSessionBar } from "./runs/SubSessionBar.tsx";
-import type { SubSession } from "./runs/subSessions.ts";
 import { Crumbs } from "./Crumbs.tsx";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
@@ -360,11 +359,6 @@ type SessionPaneProps = {
   onSent?: (session: string) => void;
   /** Its feature's start, drawn where the transcript will be. */
   starting?: ReactNode;
-  /**
-   * A sub-session's page: its bar in place of the composer, as the human only reads it (spec of
-   * Run options). TEMPORARY: given by the stories until the server lists sub-sessions.
-   */
-  subSession?: { parentTitle: string; sub: SubSession };
   /** The title before the session exists. */
   title?: string;
 };
@@ -388,7 +382,6 @@ export function SessionPane({
   item,
   onSent,
   starting,
-  subSession,
   title,
 }: SessionPaneProps) {
   const wide = !isNarrow(useWidthClass());
@@ -447,8 +440,9 @@ export function SessionPane({
           isBoxed && styles.boxedComposer,
         )}
       >
-        {subSession ? (
-          <SubSessionBar parentTitle={subSession.parentTitle} sub={subSession.sub} />
+        {/* A sub-session's page: its bar in place of the composer, as the human only reads it. */}
+        {id !== undefined && session?.parent ? (
+          <SubSessionBar id={id} parent={session.parent} />
         ) : (
           <>
             {returned.element}

@@ -70,16 +70,8 @@ function LastRun({ id }: { id: string }) {
   );
 }
 
-/**
- * What the row of a session reads beside its session: with `subSessions`, the sub-sessions it
- * started. TEMPORARY: given by the stories until the server lists them (spec of Run options).
- */
-type RowProps = {
-  folder: string;
-  latest: boolean;
-  progress?: TaskProgress | null;
-  subSessions?: ReadonlyArray<SubSession> | undefined;
-};
+/** What the row of a session reads beside its session. */
+type RowProps = { folder: string; latest: boolean; progress?: TaskProgress | null };
 
 /** A session's sub-sessions, nested under it: "Sub-sessions · 5", then each one's row. */
 function SubSessionList({ subs }: { subs: ReadonlyArray<SubSession> }) {
@@ -97,7 +89,7 @@ function SubSessionList({ subs }: { subs: ReadonlyArray<SubSession> }) {
 
 /**
  * A session's row: its link with its status, title, and start, the latest's to the feature's
- * session and an earlier one's to its own page, its running sub-agents under it,
+ * session and an earlier one's to its own page, its sub-sessions and running sub-agents under it,
  * then, for the latest, the task while it works and its last run, and Stop while it works.
  */
 function Row({
@@ -105,7 +97,6 @@ function Row({
   latest,
   progress,
   session,
-  subSessions,
   title,
 }: RowProps & { session: SessionData; title: string }) {
   const here = useRepoPath();
@@ -128,7 +119,7 @@ function Row({
         label={title}
         name={`${label} ${title} ${started}`}
       />
-      {subSessions && subSessions.length > 0 && <SubSessionList subs={subSessions} />}
+      {session.subSessions.length > 0 && <SubSessionList subs={session.subSessions} />}
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
           <StatusMark isSubagent label="Working" small status="working" />
@@ -254,13 +245,10 @@ export function SessionsPane({
   folder,
   progress,
   sessions,
-  subSessionsOf,
 }: {
   folder: string;
   progress?: TaskProgress | null;
   sessions: ReadonlyArray<string>;
-  /** The sub-sessions each session started, by its ID and place: TEMPORARY, as `RowProps` says. */
-  subSessionsOf?: (session: string, index: number) => ReadonlyArray<SubSession>;
 }) {
   const runtimes = useRuntimesAvailable();
   const here = useRepoPath();
@@ -274,13 +262,7 @@ export function SessionsPane({
         {sessions.length === 0 && <Empty>No session yet.</Empty>}
         {sessions.map((id, index) => (
           <Suspense fallback={null} key={id}>
-            <SessionItem
-              folder={folder}
-              id={id}
-              latest={index === 0}
-              progress={progress}
-              subSessions={subSessionsOf?.(id, index)}
-            />
+            <SessionItem folder={folder} id={id} latest={index === 0} progress={progress} />
           </Suspense>
         ))}
         {canStart && (

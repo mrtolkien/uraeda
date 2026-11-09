@@ -9,11 +9,12 @@ import { Text } from "@astryxdesign/core/Text";
 import { borderVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
 import { refusal } from "../errors.ts";
 import { HarnessMark } from "../HarnessMark.tsx";
 import { sessionIdPath, useRepoPath } from "../routes.tsx";
+import { useSession } from "../sessionData.ts";
 import { SessionView } from "../views.ts";
 import { SubSessionMark } from "./SubSessionRow.tsx";
 import { roleName, runsOnText, STATE_NAMES, type SubSession, usageText } from "./subSessions.ts";
@@ -48,7 +49,7 @@ function useStop(id: string) {
  * The bar of the sub-session `sub`, started by the session titled `parentTitle`: the way back to it,
  * what the sub-session is, and Stop while it works.
  */
-export function SubSessionBar({ parentTitle, sub }: { parentTitle: string; sub: SubSession }) {
+function Bar({ parentTitle, sub }: { parentTitle: string; sub: SubSession }) {
   const here = useRepoPath();
   const { error, stop } = useStop(sub.id);
   const usage = usageText(sub);
@@ -76,5 +77,27 @@ export function SubSessionBar({ parentTitle, sub }: { parentTitle: string; sub: 
         </Text>
       )}
     </VStack>
+  );
+}
+
+/** The bar of the sub-session `id`, as its parent `parent`'s record lists it, under its title. */
+function ParentBar({ id, parent }: { id: string; parent: string }) {
+  const record = useSession(parent);
+  const sub = record?.subSessions.find((each) => each.id === id);
+  if (!record || !sub) {
+    return null;
+  }
+  return <Bar parentTitle={record.name ?? record.title} sub={sub} />;
+}
+
+/**
+ * The bar of the sub-session `id`, started by the session `parent`: nothing until the parent is
+ * read.
+ */
+export function SubSessionBar({ id, parent }: { id: string; parent: string }) {
+  return (
+    <Suspense fallback={null}>
+      <ParentBar id={id} parent={parent} />
+    </Suspense>
   );
 }

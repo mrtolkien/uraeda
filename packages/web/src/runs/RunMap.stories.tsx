@@ -17,8 +17,10 @@ import type { Pos } from "./runCursor.ts";
 import { RunMap } from "./RunMap.tsx";
 import { type RunOptions, todayOptions } from "./runOptions.ts";
 import { RunStrip } from "./RunStrip.tsx";
-import { FeatureRuns } from "./FeatureRuns.tsx";
+import { FeatureRunMap } from "./FeatureRuns.tsx";
 import { BUILDING, CHANGE, MERGED } from "./sampleStages.ts";
+import type { StagesFeature } from "./featureStages.ts";
+import type { StagesHistory } from "../feature/timeline.ts";
 
 const RUNTIMES = [CLAUDE, CODEX];
 
@@ -80,6 +82,31 @@ function Map({
 /** A feature's page's map, in the page's measure, as it stands where the timeline was. */
 function OnPage({ children }: { children: ReactNode }) {
   return <Page kind="rows">{children}</Page>;
+}
+
+/** A feature's page's map over `feature` and its `history`, holding its options `value`. */
+function FeatureMap({
+  feature,
+  history,
+  value,
+}: {
+  feature: StagesFeature;
+  history: StagesHistory;
+  value: RunOptions;
+}) {
+  const [options, setOptions] = useState(value);
+  return (
+    <OnPage>
+      <FeatureRunMap
+        defaults={DEFAULTS}
+        feature={feature}
+        history={history}
+        onChange={setOptions}
+        runtimes={RUNTIMES}
+        value={options}
+      />
+    </OnPage>
+  );
 }
 
 /** The strip in the start dialog, holding its options. */
@@ -160,11 +187,7 @@ export const ReviewerSelected: Story = {
  */
 export const FeaturePage: Story = {
   decorators: [inRepositoryFolder],
-  render: () => (
-    <OnPage>
-      <FeatureRuns defaults={DEFAULTS} options={CUSTOM} runtimes={RUNTIMES} {...BUILDING} />
-    </OnPage>
-  ),
+  render: () => <FeatureMap value={CUSTOM} {...BUILDING} />,
 };
 
 /** The same page on the phone: the column, its ends at the top and the bottom. */
@@ -173,21 +196,13 @@ export const FeaturePagePhone: Story = { ...FeaturePage, beforeEach: atMostWidth
 /** A merged feature: every step done, the merge at the end, nothing to edit. */
 export const FeatureDone: Story = {
   decorators: [inRepositoryFolder],
-  render: () => (
-    <OnPage>
-      <FeatureRuns defaults={DEFAULTS} options={CUSTOM} runtimes={RUNTIMES} {...MERGED} />
-    </OnPage>
-  ),
+  render: () => <FeatureMap value={CUSTOM} {...MERGED} />,
 };
 
 /** A change's page: its questions, its fix waiting on your review of its pull request. */
 export const FeatureChange: Story = {
   decorators: [inRepositoryFolder],
-  render: () => (
-    <OnPage>
-      <FeatureRuns defaults={DEFAULTS} options={DEFAULTS} runtimes={RUNTIMES} {...CHANGE} />
-    </OnPage>
-  ),
+  render: () => <FeatureMap value={DEFAULTS} {...CHANGE} />,
 };
 
 /** The settings on the phone: the track stands as a column. */

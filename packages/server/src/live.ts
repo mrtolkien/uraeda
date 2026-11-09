@@ -104,10 +104,14 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
-    // The host's path is the main checkout, which keys its sessions. Each reads the step.
+    // The host's path is the main checkout, which keys its sessions. Each reads the step, its
+    // sub-sessions too.
+    const { cache } = sessions;
     for (const folder of changes.features) {
-      for (const session of sessions.cache.folderSessions(host.path, folder)) {
-        live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
+      for (const parent of cache.folderSessions(host.path, folder)) {
+        for (const session of [parent, ...cache.subSessionsOf(parent.id)]) {
+          live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
+        }
       }
     }
   }
@@ -176,13 +180,23 @@ function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
   }
 }
 
+/** Sends the session's record, and, for a sub-session, its parent's, which lists it with its state. */
+function sendSession(cache: SessionCache, update: ReturnType<typeof sender>, session: string) {
+  update("Session", session);
+  const parent = cache.session(session)?.parent;
+  if (parent) {
+    update("Session", parent);
+  }
+}
+
 /**
  * Sends the live updates of the session manager's changes. A session's record, its changed turns,
  * and their last two item pages, where a tool call may finish, go out at most every 250 ms while
  * items change, with the sidebar's list when a sub-agent starts or ends. A turn's state change,
- * and any other change of the session, go out at once, with the list, the session's feature, and
- * the workspace's working folders. A change of the agent's availability goes with every feature's
- * recommended message, which reads it; a commit's goes with the feature's, through `publish`.
+ * and any other change of the session, go out at once, with the list, the session's feature, the
+ * workspace's working folders, and a sub-session's parent. A change of the agent's availability
+ * goes with every feature's recommended message, which reads it; a commit's goes with the
+ * feature's, through `publish`.
  */
 export function sessionPublisher(
   cache: SessionCache,
@@ -245,7 +259,7 @@ export function sessionPublisher(
         return;
       }
       const update = sender(bus);
-      update("Session", session);
+      sendSession(cache, update, session);
       if (change.turn !== undefined) {
         turn(update, change.turn);
       }

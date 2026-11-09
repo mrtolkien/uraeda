@@ -62,8 +62,8 @@ function RunsOn({ sub }: { sub: SubSession }) {
 /** The row of `sub`, a link to its page. */
 export function SubSessionRow({ sub }: { sub: SubSession }) {
   const here = useRepoPath();
-  const now = useNow(sub.endedAt === undefined ? 1000 : null);
-  const end = sub.endedAt === undefined ? now : Date.parse(sub.endedAt);
+  const now = useNow(sub.endedAt === null ? 1000 : null);
+  const end = sub.endedAt === null ? now : Date.parse(sub.endedAt);
   const time = elapsed(Math.max(end - Date.parse(sub.startedAt), 0));
   const usage = usageText(sub);
   return (

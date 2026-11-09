@@ -165,6 +165,15 @@ test("a feature's change updates every session of it", async () => {
     repo: await sessions.mainRoot(repo),
     title: null,
   });
+  const sub = sessions.cache.createSession({
+    agent: "fake",
+    folder: "2026-10-12-cli-tuis",
+    nativeId: "s",
+    parent: latest.id,
+    repo: latest.repo,
+    role: "implementer",
+    title: "Task 4",
+  });
   const sent = published(hosts.get(names[0])!.live);
 
   watcher!({
@@ -180,6 +189,8 @@ test("a feature's change updates every session of it", async () => {
   await vi.waitFor(() => expect(sent()).toContain(`Session ${latest.id}`));
 
   expect(sent()).toContain(`Session ${older.id}`);
+  // A sub-session reads its feature's step too.
+  expect(sent()).toContain(`Session ${sub.id}`);
 });
 
 /** A session with a running turn holding `items` text items, in a cache in memory. */
@@ -251,6 +262,28 @@ test("a session's status change is published at once, with the list, its feature
     "GitPage git",
     "GitSummary git",
   ]);
+});
+
+/** US6: the parent's record lists its sub-sessions' states, which change with their turns. */
+test("a sub-session's status change is published with its parent's record", () => {
+  const { cache, session: parent } = sessionWithItems(0);
+  const sub = cache.createSession({
+    agent: "fake",
+    folder: "2026-10-12-cli-tuis",
+    nativeId: "s",
+    parent,
+    repo: "/repo",
+    role: "reviewer",
+    title: "Wave 1",
+  });
+  const host = hostAt("/repo");
+  const sent = published(host.live);
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
+
+  publish({ folder: "2026-10-12-cli-tuis", repo: "/repo", session: sub.id });
+
+  expect(sent()).toContain(`Session ${sub.id}`);
+  expect(sent()).toContain(`Session ${parent}`);
 });
 
 test("two changes published in one millisecond have different event IDs", () => {

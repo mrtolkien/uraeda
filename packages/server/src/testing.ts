@@ -183,3 +183,73 @@ export function recordRun(
     cache.db.close();
   }
 }
+
+/** A sub-session `recordSubSessions` writes: none of `run` is one at work, before its first turn. */
+export type RecordedSubSession = {
+  about: string;
+  agent: string;
+  /** Its effort and model by their names for people, as its agent reported them. */
+  effort?: string;
+  model?: string;
+  role: "implementer" | "reviewer";
+  run?: {
+    at: string;
+    ended: string;
+    state: "done" | "failed" | "stopped";
+    /** What its agent wrote, its transcript. */
+    text: string;
+    tokens?: TokenCounts;
+  };
+};
+
+/**
+ * Writes `subs` in the cache of `dataDir`, sub-sessions of the latest session of `folder`, which
+ * `recordRun` wrote: each a workflow run of the build, ended, or at work before its first turn,
+ * started as the cache is written.
+ */
+export function recordSubSessions(
+  dataDir: string,
+  repo: string,
+  folder: string,
+  subs: ReadonlyArray<RecordedSubSession>,
+) {
+  const cache = SessionCache.open(join(dataDir, "runner.sqlite"));
+  try {
+    const parent = cache.latestSession(realpathSync(repo), folder)!;
+    for (const { about, agent, effort, model, role, run } of subs) {
+      const session = cache.createSession({
+        agent,
+        folder,
+        nativeId: randomUUID(),
+        parent: parent.id,
+        repo: parent.repo,
+        role,
+        step: "build",
+        title: about,
+      });
+      cache.updateSession(session.id, { ranEffort: effort ?? null, ranModel: model ?? null });
+      if (run === undefined) {
+        continue;
+      }
+      const turn = cache.addTurn({
+        allowed: null,
+        kind: "workflow",
+        sessionId: session.id,
+        state: "running",
+        step: "implementation",
+        trigger: "manual",
+      });
+      cache.appendItem(turn, { kind: "text", streaming: false, text: run.text });
+      if (run.tokens) {
+        cache.addTurnTokens(turn, run.tokens);
+      }
+      cache.endTurn(turn, { state: run.state });
+      cache.db
+        .prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?")
+        .run(run.at, run.ended, turn);
+      cache.db.prepare("UPDATE sessions SET created_at = ? WHERE id = ?").run(run.at, session.id);
+    }
+  } finally {
+    cache.db.close();
+  }
+}
