@@ -9,6 +9,7 @@ use crate::devices::{Devices, DevicesRename, DevicesRevoke};
 use crate::features;
 use crate::typescript::Types;
 use crate::workspace;
+use crate::writing;
 
 /// What crosses the protocol: read from JSON, written as JSON, and typed for the client.
 pub trait Wire: Serialize + DeserializeOwned + TS + Send + 'static {}
@@ -197,4 +198,32 @@ pub fn catalog() -> Catalog {
         .action::<features::ProposalsMove>()
         .action::<features::ProposalsOutline>()
         .action::<features::ProposalsRemove>()
+        // Writing.
+        .record::<writing::Buffer>()
+        .record::<writing::WriteQueue>()
+        .action::<writing::AnswerSave>()
+        .action::<writing::AnswersSubmit>()
+        .action::<writing::BufferSave>()
+        .action::<writing::CommitRetry>()
+        .action::<writing::DefaultRoundAnswer>()
+        .action::<writing::DefaultRoundDismiss>()
+        .action::<writing::DefaultRoundNotes>()
+        .action::<writing::DefaultRoundRetry>()
+        .action::<writing::DefaultRoundSubmit>()
+        .action::<writing::NotesSave>()
+        .action::<writing::ReviewApprove>()
+        .action::<writing::ReviewComment>()
+        .action::<writing::ReviewEdit>()
+        .action::<writing::ReviewRemove>()
+        .action::<writing::ReviewRequestChanges>()
+        .action::<writing::ReviewStartOver>()
+        .action::<writing::SettledComment>()
+        .action::<writing::SettledEdit>()
+        .action::<writing::SettledRemove>()
+        .action::<writing::TextCommit>()
+        .action::<writing::TextDiscovery>()
+        .action::<writing::TextSave>()
+        .action::<writing::UndoApply>()
+        .action::<writing::UndoCommitted>()
+        .action::<writing::WritesDismiss>()
 }

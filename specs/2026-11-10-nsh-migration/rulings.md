@@ -1160,3 +1160,92 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the store is `records/features/options.rs`: `own` and `set` are its whole surface.
 - **Where**: task 8, `crates/server/src/records/features/options.rs`, and the test
   `a_features_run_options_are_stored_and_survive_a_restart`. Task 15, whose runs read them.
+
+## R63: What writing's actions answer, and `Undo` is no record
+
+- **Decision**: an action of writing answers only what its caller cannot read in a record.
+  - An undoable write answers `Recorded { change }`: the change it made, an `UndoChange`, for the
+    client's undo stack. `review.comment`, `review.edit`, `review.remove`, `review.startOver`, and
+    `settled.remove` do.
+  - A save whose next save takes a hash answers `Saved { hash }`: `buffer.save`, `text.save`,
+    `text.discovery`, `defaultRound.answer`, and `defaultRound.notes`.
+  - `undo.apply` answers `UndoApplied { commit }`, and `undo.committed` a boolean. `Undo` is not a
+    record: fate's `Undo` was the type of those two answers, and nothing read it.
+  - Every other action answers nothing. The file it wrote reaches its record's subscribers as a
+    change.
+  - Every record and action names its repository, `repo`, by its name in the list. An action that
+    commits takes `write`, `{ href, label }`, the name the write queue shows its commit under.
+  - `QueuedWrite` has no `queued` and no `steps`, and `WriteFailure` no `unsent`: nothing sets them
+    before starts and kept messages are ported. A new field keeps the protocol's version.
+- **Rationale**: fate answered a mutation with its whole record, which was how a page saw its own
+  write. Here the subscription brings it, so an answer that repeated it would send a spec twice. The
+  hash and the change are what a client must hold before the record's change arrives: the next save
+  takes the first, and the undo stack the second.
+- **If wrong**: an output is one type of `crates/protocol/src/writing.rs`. The inbox's and the
+  priorities' undoable writes, built at the same time, need the same `UndoChange`: the join gives it
+  one home.
+- **Where**: task 9, `crates/protocol/src/writing.rs`. Tasks 20, 23, 42, 47, and 50.
+
+## R64: The write queue is one function, a turn per repository, and a thread that lands
+
+- **Decision**: every write to a repository runs through `records::writing::write`.
+  - **The entry point**: `write(&Shared, repository, Write, run) -> Result<T, Fault>`. `repository`
+    is the name in the list. `run` gets the main checkout, and calls the core. `Write::saving()` is
+    a write that commits nothing. `Write::of_feature(folder)` and `Write::of_lists()` are writes
+    that commit, with `.file(name)` for the record, and `.named(input.write)` for the client's name.
+  - **A turn**: writes of one repository run one at a time, in the order their handlers reached the
+    queue. A committing write first waits for the queued commits of what it commits, a feature's
+    folder or the lists, since the core would not defer a second commit of a file whose first has
+    not landed. A turn's end takes the commits the write deferred, even when it failed, and queues
+    them under its name.
+  - **Landing**: each repository has one thread, which lands its commits in order, with the hooks. A
+    refused one stays in the record until `writes.dismiss`, as `hook` or `failed`, and does not stop
+    the next.
+  - **Deferral**: the core defers a repository's commits from the first write through its queue,
+    until the server stops. Stopping waits for the commit that runs, and lands no other.
+  - **What it says**: `WriteQueue` at each change of the record, each printed line included, and
+    every `Buffer` somebody holds after each write. The engine's pace of 16 ms replaces the Node
+    queue's 100 ms throttle.
+- **Rationale**: handlers are plain functions on blocking threads, so the turn is a lock with
+  tickets and a condition variable, and needs no runtime. One function serves saves and commits: a
+  save defers nothing, so nothing is queued for it.
+- **How it was checked**: three breaks, each run on `two_writes_on_one_repository_land_in_order`.
+  - Two threads landing one repository's commits: failed, the second write read `running` while the
+    first still ran.
+  - No wait for the queued commits of a write's keys: failed, "the lists' second commit ran before
+    their first landed".
+  - No turn between calls: passed. The core's own write lock keeps two calls apart, so the turn only
+    decides which write a deferred commit is taken for, and in what order waiting writes go. A test
+    cannot hold a call between its write and its take through the protocol.
+  - Deferral left on at the stop: failed `a_stopped_server_defers_no_commit_any_more`.
+- **If wrong**:
+  - The queue keeps the order writes reach it in, not the order a client sent them in. The engine
+    starts each call on a task of its own, so two calls sent back to back may reach the queue in
+    either order. A client that needs an order waits for the first answer, as a save's hash already
+    makes it. Else the engine takes a ticket as it reads a call.
+  - `cargo fmt` does not see a module declared inside `domains! { }`: the files of `records/` are
+    formatted with `rustfmt --edition 2024 crates/server/src/records/<domain>.rs`.
+  - Git and the hooks the core runs get the server process's environment, without the config
+    folder's `.env`: the core starts them itself.
+- **Where**: task 9, `crates/server/src/records/writing/queue.rs` and `queue/repository.rs`. The
+  join of wave 6, and tasks 8, 10, 15, and 16.
+
+## R65: What the write queue leaves to the tasks that need it
+
+- **Decision**: the parts of the Node server's queue that nothing calls yet are not ported, since
+  unused code fails the lint.
+  - **The refusal while an agent works** (`writable` in `fate/sessions.ts`): task 15 owns the
+    sessions. Each handler of writing knows the folder or the path it writes, so the refusal is one
+    check before its `write`.
+  - **A landing of its own, and its steps** (`add`, `enqueue`, `update`, `free`, `inTurn`): a
+    start's write. An entry holds the id of a deferred commit: it becomes a closure.
+  - **Kept messages** (`unsent`, `waits`, `settled`, and `queued` on a write): sessions.
+  - **Git's own writes** (`arrive`, `background`, and `landed`): task 10's actions and the fetcher.
+  - **A repository leaving the list**: its queue stays open until the server stops.
+  - **The other domains' records**: a write here says `Buffer` and `WriteQueue` only. `Feature`,
+    `WorkflowFile`, `ProposalFile`, the inbox, the priorities, and the Git page are told by the
+    join, from the action's own input and from the watcher.
+- **Rationale**: each is a few lines beside the code that calls it, and a seam nobody calls cannot
+  be tested.
+- **Where**: `crates/server/src/records/writing/queue/repository.rs`. The join of wave 6, and tasks
+  8, 10, and 15.

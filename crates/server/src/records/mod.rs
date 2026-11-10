@@ -56,4 +56,5 @@ macro_rules! domains {
 domains! {
     mod workspace;
     mod features;
+    mod writing;
 }

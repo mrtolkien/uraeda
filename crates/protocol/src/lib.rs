@@ -11,6 +11,7 @@ mod message;
 mod registry;
 mod typescript;
 mod workspace;
+mod writing;
 
 pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
@@ -20,3 +21,12 @@ pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, Si
 pub use registry::{Action, Catalog, Record, Wire, catalog};
 pub use typescript::typescript;
 pub use workspace::*;
+pub use writing::{
+    AnswerSave, AnswersSubmit, Buffer, BufferArgs, BufferSave, CommitRetry, DefaultRoundAnswer,
+    DefaultRoundDismiss, DefaultRoundNotes, DefaultRoundRetry, DefaultRoundSubmit, NotesSave,
+    QueuedWrite, Recorded, ReviewApprove, ReviewComment, ReviewDecision, ReviewEdit, ReviewRemove,
+    ReviewRequestChanges, ReviewStartOver, Saved, SettledComment, SettledEdit, SettledRemove,
+    TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply, UndoChange, UndoCommitted,
+    UndoDirection, UndoFile, WriteFailure, WriteName, WriteQueue, WriteQueueArgs, WriteState,
+    WritesDismiss,
+};

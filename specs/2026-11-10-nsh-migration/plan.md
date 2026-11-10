@@ -795,12 +795,24 @@ Follows [what every records task does](#what-every-records-task-does).
 
 Follows [what every records task does](#what-every-records-task-does).
 
-- **Files:** `crates/server/src/records/writing.rs`, and its test in `crates/server/tests/`
-- **Records:** Buffer, Undo, WriteQueue
+- **Files:** `crates/server/src/records/writing.rs` and the folder beside it (`queue`,
+  `queue/repository`, `review`, `rounds`, `text`, `buffer`, `undo`),
+  `crates/protocol/src/writing.rs`, and its tests in `crates/server/tests/writing.rs`
+- **Records:** Buffer, WriteQueue. `Undo` is no record: it is what `undo.apply` and `undo.committed`
+  answer (ruling R63).
 - **Actions:** `review.*`, `settled.*`, `defaultRound.*`, `answer.save`, `answers.submit`,
   `notes.save`, `text.*`, `buffer.save`, `commit.retry`, `undo.*`, `writes.dismiss`
 - **Its own rule:** this task owns the write queue: one writer per repository, in order, as the Node
   server has it. Its test `two writes on one repository land in order` guards that.
+- **Produces**, for every domain that writes to a repository (ruling R64):
+  `records::writing::write(&Shared, repository, Write, run) -> Result<T, Fault>`, where `run` is
+  `FnOnce(&Path) -> Result<T, Fault>` on the repository's main checkout, and `Write` is
+  `Write::saving()`, `Write::of_feature(folder)`, or `Write::of_lists()`, with `.file(name)` and
+  `.named(Option<WriteName>)`. It also produces `files_changed(&Bus, repository, &Changes)`, for the
+  one watcher.
+- **Left to later tasks** (ruling R65): the refusal of a feature's write while its agent works, for
+  task 15, and the parts of the Node queue that only starts, sessions, and git use.
+- [x] **Done**: `feat(nsh-migration): records of writing`
 
 ## Task 10: Records: git
 
