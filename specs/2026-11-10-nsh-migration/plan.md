@@ -136,9 +136,9 @@ in `app/.nsh/`, which `vp check` reads.
 
 Tasks 7 to 10 each port the records and mutations of one domain from
 [`packages/server/src/fate/`](/packages/server/src/fate/), keeping their names, and call the core
-function the binding wraps today. Each adds its one line, `mod <domain>;`, to the list in
-`records/mod.rs`, and removes its names from `NOT_BUILT` in `crates/server/tests/live.rs` if they
-are there.
+function the binding wraps today. Each adds its line `mod <domain>;` and its line in `DOMAINS` to
+`records/mod.rs` (ruling T99.3), and removes its names from `NOT_BUILT` in
+`crates/server/tests/live.rs` if they are there.
 
 - Consumes: `Registry`, `Bus`, `Fault`, `Call` (task 6, whose section and
   [`live/mod.rs`](/crates/server/src/live/mod.rs) show a whole domain); the core's functions.
@@ -715,8 +715,9 @@ fallback written under it, and later tasks build on the fallback.
     text's length in bytes before it grew.
   - The `Registry` and the `Bus` are `shared.get::<Registry>()` and `shared.get::<Bus>()`, for every
     domain mounted after `live::mount`, the first of `DOMAINS`.
-  - `records/mod.rs`: the list of the domains that are only records and actions, one line each,
-    `mod <domain>;`, for a file with `register(&Shared, &Registry) -> Result<(), Failure>`.
+  - `records/mod.rs`: the list of the domains that are only records and actions, each a line
+    `mod <domain>;` and a line in `DOMAINS`, for a file with
+    `register(&Shared, &Registry) -> Result<(), Failure>` (ruling T99.3).
   - `Connection`, a client's side of the engine with no socket, for a test that sets the clock.
   - Sequence numbers per record, shared by its subscribers, and `Resume`.
   - Updates of one record are sent at most once per 16 ms; the latest wins.

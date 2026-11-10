@@ -11,8 +11,9 @@
 //! }
 //! ```
 //!
-//! and its one line in the list below, `mod workspace;`. Each record and action is declared in
-//! the protocol's crate first, with its line in `catalog()`: the test
+//! its line among the modules below, `mod workspace;`, and its line in [`DOMAINS`]: a domain
+//! missing from the list fails the lint, its `register` being called by nothing. Each record and
+//! action is declared in the protocol's crate first, with its line in `catalog()`: the test
 //! `every_declared_record_and_action_is_served_and_no_other` compares the two lists.
 //!
 //! What every domain needs of another is here too:
@@ -25,7 +26,12 @@
 //!   file watcher: `FILES_CHANGED` for a repository's files, `CONFIG_CHANGED` for the config
 //!   folder's.
 
+mod features;
+mod git;
+mod previews;
 mod watch;
+mod workspace;
+mod writing;
 
 pub(crate) use workspace::repositories;
 #[expect(
@@ -38,25 +44,23 @@ use crate::Failure;
 use crate::live::Registry;
 use crate::shared::Shared;
 
-/// The domains: each line declares a domain's module, and registers it as the server starts, in
-/// this order.
-macro_rules! domains {
-    ($(mod $domain:ident;)*) => {
-        $(mod $domain;)*
+/// How a domain registers its records and actions.
+type Register = fn(&Shared, &Registry) -> Result<(), Failure>;
 
-        /// Registers every domain's records and actions, then starts the one file watcher.
-        pub(crate) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
-            let _ = (shared, registry);
-            $($domain::register(shared, registry)?;)*
-            watch::start(shared)
-        }
-    };
-}
+/// The domains, in the order they register as the server starts: one line each. They are plain
+/// `mod` lines above, and not a macro's, so that `cargo fmt` formats their files.
+const DOMAINS: &[Register] = &[
+    workspace::register,
+    features::register,
+    writing::register,
+    git::register,
+    previews::register,
+];
 
-domains! {
-    mod workspace;
-    mod features;
-    mod writing;
-    mod git;
-    mod previews;
+/// Registers every domain's records and actions, then starts the one file watcher.
+pub(crate) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
+    DOMAINS
+        .iter()
+        .try_for_each(|register| register(shared, registry))?;
+    watch::start(shared)
 }

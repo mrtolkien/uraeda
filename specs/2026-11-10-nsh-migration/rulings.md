@@ -870,8 +870,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - `live::mount` is the first of `DOMAINS`: every domain mounted after it finds the `Registry` and
     the `Bus`, and registers in its own `mount`, as sign-in for its devices.
   - A domain that is only records and actions is a file of `crates/server/src/records/`, with a
-    function `register(&Shared, &Registry) -> Result<(), Failure>` and one line, `mod <domain>;`, in
-    the list of `records/mod.rs`, which declares the module and calls it.
+    function `register(&Shared, &Registry) -> Result<(), Failure>`, its line `mod <domain>;` in
+    `records/mod.rs`, and its line in `DOMAINS` there, which calls it (T99.3).
   - `every_declared_record_and_action_is_served_and_no_other` compares `catalog()` with the
     `Registry` of a started server, both ways. A name declared before its handler exists goes in the
     test's `NOT_BUILT`, empty today. The test fails for a name that is there and served, so the list
@@ -1219,8 +1219,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     starts each call on a task of its own, so two calls sent back to back may reach the queue in
     either order. A client that needs an order waits for the first answer, as a save's hash already
     makes it. Else the engine takes a ticket as it reads a call.
-  - `cargo fmt` does not see a module declared inside `domains! { }`: the files of `records/` are
-    formatted with `rustfmt --edition 2024 crates/server/src/records/<domain>.rs`.
+  - `cargo fmt` did not see a module declared inside `domains! { }`: the join made them plain `mod`
+    lines (T99.3).
   - Git and the hooks the core runs get the server process's environment, without the config
     folder's `.env`: the core starts them itself.
 - **Where**: task 9, `crates/server/src/records/writing/queue.rs` and `queue/repository.rs`. The
@@ -1739,3 +1739,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `records/{features,writing,git}/`, `files/repository.rs`, and `preview/checkout.rs`. The tests
   `a_repository_that_is_not_listed_or_is_gone_serves_no_file` and
   `a_repository_the_list_lacks_is_refused` expect the one text.
+
+## T99.3: The records' domains are plain `mod` lines and a list, so `cargo fmt` formats them
+
+- **Decision**: `records/mod.rs` declares each domain with a plain `mod <domain>;` and names its
+  `register` in the list `DOMAINS`, in the order they register. The macro `domains! { }`, which did
+  both from one line, is gone.
+- **Rationale**: rustfmt does not expand a macro, so it never found the files of a module declared
+  inside one, and `vp check` passed whatever their formatting. Two lines per domain is the price: a
+  domain left out of `DOMAINS` fails the lint, since nothing calls its `register`.
+- **Where**: `crates/server/src/records/mod.rs`. Tasks 15, 17, and 20, which add a domain.
