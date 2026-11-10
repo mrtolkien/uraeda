@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { pickAccount } from "../account-pick.ts";
 import { ClaudeAccounts, claudeFolders, claudeUsageWindows } from "../claude-accounts.ts";
@@ -10,6 +13,14 @@ test.each([
     [],
   ],
   ["~/.claude reads default", ["~/.claude"], [["/home/u/.claude", "default"]], []],
+  ["a line of ~ alone is the home folder", ["~"], [["/home/u", "u"]], []],
+  ["a line of ~/ is the home folder too", ["~/"], [["/home/u", "u"]], []],
+  [
+    "a line that starts with ~ and a name is no home folder",
+    ["~b"],
+    [],
+    ["account folder ~b is not an absolute path"],
+  ],
   [
     "a line that is no absolute path is left out",
     ["docs", "/srv/claude-work"],
@@ -83,6 +94,7 @@ test("each account is asked at most once a minute, and once at a time", async ()
       return folder.endsWith("-b") ? { state: "signed-out" } : { state: "ready", windows: [] };
     },
     home: "/home/u",
+    isFolder: () => true,
     lines: ["~/.claude", "~/.claude-b"],
     now: () => now,
   });
@@ -110,6 +122,7 @@ test("review focus 2: a caller that comes while an ask is under way waits for th
       };
     },
     home: "/home/u",
+    isFolder: () => true,
     lines: ["~/.claude-b"],
     now: () => 0,
   });
@@ -137,6 +150,7 @@ test("an account whose usage cannot be read is picked after every account whose 
       return { state: "ready", windows: five(0.42) };
     },
     home: "/home/u",
+    isFolder: () => true,
     lines: ["~/.claude-b", "~/.claude-c"],
     now: () => now,
   });
@@ -162,6 +176,7 @@ test("an account whose usage cannot be read is picked after every account whose 
       return { state: "ready", windows: five(folder.endsWith("-b") ? 0 : 0.42) };
     },
     home: "/home/u",
+    isFolder: () => true,
     lines: ["~/.claude-b", "~/.claude-c"],
     now: () => now,
   });
@@ -172,4 +187,46 @@ test("an account whose usage cannot be read is picked after every account whose 
   expect(rejecting.list()[0]?.askedAt).toBeNull();
   expect(rejecting.list()[0]?.windows).toEqual(five(0));
   expect(pickAccount(rejecting.list())?.name).toBe("c");
+});
+
+test("a folder that is no directory is missing at once, before any ask answers", async () => {
+  const root = mkdtempSync(join(tmpdir(), "uraeda-accounts-"));
+  try {
+    const gone = join(root, ".claude-gone");
+    const file = join(root, ".claude-file");
+    const folder = join(root, ".claude-ok");
+    writeFileSync(file, "{}");
+    mkdirSync(folder);
+    const asked: Array<string> = [];
+    const accounts = new ClaudeAccounts({
+      // An ask that never answers.
+      ask: (path) => {
+        asked.push(path);
+        return new Promise(() => {});
+      },
+      lines: [gone, file, folder],
+    });
+    const states = () => accounts.list().map((account) => account.state);
+    // As built: a path that is gone, and a regular file, are no account folder.
+    expect(states()).toEqual(["missing", "missing", "ready"]);
+    expect(accounts.problems()).toEqual([
+      `account gone has no folder at ${gone}`,
+      `account file has no folder at ${file}`,
+    ]);
+
+    // They are not asked, and a folder that appears is an account again at the next refresh.
+    void accounts.refresh(0);
+    expect(asked).toEqual([folder]);
+    mkdirSync(gone);
+    void accounts.refresh(0);
+    expect(states()).toEqual(["ready", "missing", "ready"]);
+    expect(asked).toEqual([folder, gone]);
+
+    // And one that goes is missing at the next refresh, with its ask under way.
+    rmSync(folder, { recursive: true });
+    void accounts.refresh(0);
+    expect(states()).toEqual(["ready", "missing", "missing"]);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
 });

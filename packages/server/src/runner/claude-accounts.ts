@@ -4,7 +4,7 @@
  * of a folder is opened here: Claude Code reads its own.
  */
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, normalize } from "node:path";
 import type { Account, AccountState, Accounts, AccountWindow } from "./adapter.ts";
@@ -95,8 +95,8 @@ function nameByRule(id: string): string {
 }
 
 /**
- * The folders of the `accounts` setting's lines: a leading `~/` is `home`; a line that is then no
- * absolute path is left out, with its problem, and a folder already listed. A second folder of a
+ * The folders of the `accounts` setting's lines: a leading `~/`, or `~` alone, is `home`; a line
+ * that is then no absolute path is left out, with its problem, and a folder already listed. A second folder of a
  * name already taken reads its path.
  */
 export function claudeFolders(
@@ -110,7 +110,8 @@ export function claudeFolders(
     if (listed === "") {
       continue;
     }
-    const expanded = listed.startsWith("~/") ? join(home, listed.slice(2)) : listed;
+    const expanded =
+      listed === "~" ? home : listed.startsWith("~/") ? join(home, listed.slice(2)) : listed;
     if (!isAbsolute(expanded)) {
       problems.push(`account folder ${listed} is not an absolute path`);
       continue;
@@ -195,15 +196,11 @@ function signedOut(command: string, folder: string): Promise<boolean> {
 }
 
 /**
- * The ask of a folder: `missing` when it does not exist, `signed-out` when `claude auth status`
- * says so, else `ready`, with the windows of a `get_usage` request when it answers. Run from the
+ * The ask of a folder, which exists: `signed-out` when `claude auth status` says so, else `ready`, with the windows of a `get_usage` request when it answers. Run from the
  * home folder, as `models()` is, with `CLAUDE_CONFIG_DIR` the folder.
  */
 export function claudeAsk(command: string): ClaudeAsk {
   return async (folder) => {
-    if (!existsSync(folder)) {
-      return { state: "missing" };
-    }
     if (await signedOut(command, folder)) {
       return { state: "signed-out" };
     }
@@ -226,32 +223,45 @@ export function claudeAsk(command: string): ClaudeAsk {
 /** What `ClaudeAccounts` keeps of a folder. */
 type Entry = { account: Account; folder: ClaudeFolder; inflight?: Promise<void>; tried?: number };
 
+/** Whether `path` is a directory: a stat of the folder itself, which opens no file of it. */
+function isDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Claude Code's accounts, the folders of the `accounts` setting's lines, each as last asked. An
- * account never asked is `ready`, its usage unknown.
+ * account never asked is `ready`, its usage unknown, unless its folder is no directory: it is
+ * `missing`, checked as the accounts are built and at each refresh, before any ask.
  */
 export class ClaudeAccounts implements Accounts {
-  readonly folders: ReadonlyArray<ClaudeFolder>;
   readonly #entries: Array<Entry>;
   readonly #ask: ClaudeAsk;
+  readonly #isFolder: (path: string) => boolean;
   readonly #now: () => number;
   readonly #problems: ReadonlyArray<string>;
 
   constructor(options: {
     ask: ClaudeAsk;
     home?: string;
+    /** Whether a path is a directory: a test's own. */
+    isFolder?: (path: string) => boolean;
     lines: ReadonlyArray<string>;
     now?: () => number;
   }) {
     const read = claudeFolders(options.lines, options.home ?? homedir());
-    this.folders = read.folders;
     this.#problems = read.problems;
     this.#ask = options.ask;
+    this.#isFolder = options.isFolder ?? isDirectory;
     this.#now = options.now ?? Date.now;
     this.#entries = read.folders.map((folder) => ({
       account: { askedAt: null, id: folder.id, name: folder.name, state: "ready", windows: [] },
       folder,
     }));
+    this.#entries.forEach((entry) => this.#check(entry));
   }
 
   list(): ReadonlyArray<Account> {
@@ -259,7 +269,7 @@ export class ClaudeAccounts implements Accounts {
   }
 
   nameOf(id: string): string {
-    return this.folders.find((folder) => folder.id === id)?.name ?? nameByRule(id);
+    return this.#entries.find(({ folder }) => folder.id === id)?.folder.name ?? nameByRule(id);
   }
 
   problems(): ReadonlyArray<string> {
@@ -279,16 +289,34 @@ export class ClaudeAccounts implements Accounts {
   }
 
   async refresh(maxAgeMs: number): Promise<void> {
+    // The folders first, so a pick that stops waiting knows which are gone.
+    this.#entries.forEach((entry) => this.#check(entry));
     await Promise.all(this.#entries.map((entry) => this.#refreshOne(entry, maxAgeMs)));
   }
 
-  /** The ask under way, shared; else a new one when the last, answered or not, is old enough. */
+  /** Marks the account `missing` when its folder is no directory, and `ready` again once it is. */
+  #check(entry: Entry) {
+    const missing = !this.#isFolder(entry.folder.id);
+    if (missing && entry.account.state !== "missing") {
+      entry.account = { ...entry.account, askedAt: null, state: "missing" };
+    } else if (!missing && entry.account.state === "missing") {
+      entry.account = { ...entry.account, state: "ready" };
+    }
+  }
+
+  /**
+   * The ask under way, shared; else a new one when the folder is a directory and the last ask,
+   * answered or not, is old enough.
+   */
   #refreshOne(entry: Entry, maxAgeMs: number): Promise<void> | undefined {
     if (entry.inflight !== undefined) {
       return entry.inflight;
     }
     const now = this.#now();
-    if (entry.tried !== undefined && now - entry.tried < maxAgeMs) {
+    if (
+      entry.account.state === "missing" ||
+      (entry.tried !== undefined && now - entry.tried < maxAgeMs)
+    ) {
       return undefined;
     }
     entry.tried = now;
@@ -300,6 +328,8 @@ export class ClaudeAccounts implements Accounts {
             windows === undefined
               ? { ...entry.account, askedAt: null, state }
               : { ...entry.account, askedAt: this.#now(), state, windows };
+          // A folder that went while it was asked is missing still.
+          this.#check(entry);
         },
         // A rejected ask keeps the windows, and is unknown too.
         () => {
