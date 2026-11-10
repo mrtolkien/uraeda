@@ -148,6 +148,7 @@ specs/
     clarifications-01.md       # agent: questions; you: answers
     spec.md                    # agent: decisions, stories, architecture; you: approval
     plan.md                    # agent: implementation tasks and tests
+    findings-01.md             # reviewers: one review's findings, committed before they are fixed
     images/                    # your screenshots, linked from your files
 ```
 
@@ -174,7 +175,9 @@ When your answers raise new questions, a second round follows, `discovery-02.md`
 Bug fixes and small changes take a lighter flow, a change. You type the request under Change on the
 web UI's New page, or accept the change the agent offers in a session. Its agent works in its own
 branch and worktree. It investigates and asks only what you must decide. It makes the change with
-tests that fail first, has a fresh reviewer check it, and opens a pull request.
+tests that fail first, has it reviewed by the reviewers you set in the web UI's settings, or by a
+fresh reviewer without the web UI, and opens a pull request. The review's findings are committed in
+the change's folder, `findings-NN.md`, before they are fixed.
 
 There is no spec and no plan, and often nothing to answer before the review. A change that turns out
 too big is offered to you as a feature, and becomes one in place, its code kept.

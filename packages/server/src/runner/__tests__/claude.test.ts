@@ -21,6 +21,7 @@ import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
+import { TOKEN_VARIABLE, toolsEnv } from "../uraeda-tools.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
 
@@ -234,6 +235,61 @@ test("the model and effort picked are arguments; none skips permissions", () => 
     const mode = args.indexOf("--permission-mode");
     expect(args.slice(mode, mode + 2)).toEqual(["--permission-mode", "auto"]);
   }
+  // A chat keeps the agent's own sub-agents, and gets no Uraeda tool.
+  expect(defaults).not.toContain("--disallowedTools");
+  expect(defaults).not.toContain("--mcp-config");
+});
+
+/** The values of a variadic option: the arguments after it, up to the next option. */
+function valuesOf(args: Array<string>, option: string): Array<string> {
+  const at = args.indexOf(option);
+  if (at < 0) {
+    return [];
+  }
+  const next = args.findIndex((arg, index) => index > at && arg.startsWith("--"));
+  return args.slice(at + 1, next < 0 ? undefined : next);
+}
+
+test("a workflow session gets Uraeda's tools and none of its own sub-agents; a sub-session neither", () => {
+  const tools = { token: "secret-token", url: "http://127.0.0.1:4000/mcp" };
+  const workflow = claudeArgs(
+    { ...open, allowed: ["Edit(src/a.ts)"], resume: true, tools },
+    "/plugin",
+    "/data/images",
+  );
+  expect(valuesOf(workflow, "--disallowedTools")).toEqual([
+    "Agent",
+    "Task",
+    "Workflow",
+    "TeamCreate",
+  ]);
+  const configs = valuesOf(workflow, "--mcp-config");
+  expect(configs).toHaveLength(1);
+  const server = JSON.parse(configs[0]!).mcpServers.uraeda;
+  expect(server).toMatchObject({
+    headers: { Authorization: `Bearer \${${TOKEN_VARIABLE}}` },
+    type: "http",
+    url: "http://127.0.0.1:4000/mcp",
+  });
+  expect(server.timeout).toBeGreaterThanOrEqual(60 * 60 * 1000);
+  // The token is in the process's environment only: any user on the machine reads its arguments.
+  expect(workflow.join(" ")).not.toContain("secret-token");
+  expect(toolsEnv(tools)).toEqual({ [TOKEN_VARIABLE]: "secret-token" });
+  // The user's own servers stay.
+  expect(workflow).not.toContain("--strict-mcp-config");
+  expect(valuesOf(workflow, "--allowedTools")).toEqual([
+    "Edit(src/a.ts)",
+    "mcp__uraeda__run_agent",
+    "mcp__uraeda__review",
+  ]);
+  // Every option still reads its own values: the prompt follows the variadic options.
+  expect(workflow[workflow.indexOf("--append-system-prompt") + 1]).toBe(webUiInstructions());
+  const sub = claudeArgs({ ...open, resume: false, tools: "none" }, "/plugin", "/data/images");
+  expect(valuesOf(sub, "--disallowedTools")).toEqual(["Agent", "Task", "Workflow", "TeamCreate"]);
+  expect(sub).not.toContain("--mcp-config");
+  expect(sub.join(" ")).not.toContain("mcp__uraeda__");
+  expect(toolsEnv("none")).toBeUndefined();
+  expect(toolsEnv(undefined)).toBeUndefined();
 });
 
 /** Claude Code 2.1.319's answer to `list_models`, some of its rows. */

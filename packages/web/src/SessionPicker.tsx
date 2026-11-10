@@ -262,6 +262,35 @@ export function SessionPicker({
         size="sm"
         variant="ghost"
       />
+      <PickSteps onChange={onChange} onStep={setStep} pick={pick} runtimes={runtimes} step={step} />
+    </>
+  );
+}
+
+/**
+ * The picker's two steps over `runtimes`, opened at `step`: the model, then the effort, as the
+ * button opens them, and as the run map opens them on a step, an implementer, or a reviewer.
+ */
+export function PickSteps({
+  onChange,
+  onStep: setStep,
+  pick,
+  runtimes,
+  step,
+}: {
+  onChange: (pick: SessionPick) => void;
+  onStep: (step: "model" | "effort" | undefined) => void;
+  pick: SessionPick;
+  runtimes: ReadonlyArray<PickerRuntime>;
+  step: "model" | "effort" | undefined;
+}) {
+  const runtime = runtimes.find((each) => each.kind === pick.runtime) ?? runtimes[0];
+  if (!runtime) {
+    return null;
+  }
+  const model = modelRun(runtime, pick);
+  return (
+    <>
       <KeyPicker
         isOpen={step === "model"}
         items={modelItems(runtimes, pick)}

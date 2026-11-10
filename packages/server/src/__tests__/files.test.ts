@@ -5,7 +5,7 @@ import { expect, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
 import {
-  appSettings,
+  appParts,
   binding,
   fixture,
   fixtureRepo,
@@ -95,7 +95,7 @@ test("a file that cannot be read for another reason than its absence is a server
     port,
     previews: testPreviews(),
     sessions,
-    ...(await appSettings()),
+    ...(await appParts(dataDir)),
   });
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 

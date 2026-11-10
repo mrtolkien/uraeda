@@ -1,9 +1,10 @@
 // The New page's change part: a composer that starts a change from a typed text and its images,
 // then sends its first run. Ctrl+Enter asks for the change's slug, which the core proposes for the
-// text: the page has no field for it.
+// text, and how its build and its reviews run, on the strip: the page has no field for them.
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
+import type { RunOptions } from "uraeda-binding";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
@@ -17,8 +18,7 @@ import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { SLUG_LABEL } from "./SlugField.tsx";
-import { type PickSent, pickSent, useRuntimes } from "./runtimes.ts";
-import type { SessionPick } from "./SessionPicker.tsx";
+import { useStartRuns } from "./runs/StartRuns.tsx";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -59,14 +59,15 @@ function useStart({ sent: clear, sources }: NewDraft) {
     sent: string,
     images: ReadonlyArray<DraftImage>,
     slug: string,
-    pick: PickSent = {},
+    options?: RunOptions,
   ): Promise<Started> => {
     const line = nowLine(sources);
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
         ...(line ? { line: line.text } : {}),
-        ...pick,
+        // Its first run's session runs on its build step's pick, from them.
+        ...(options === undefined ? {} : { options }),
         // Never empty: the dialog starts nothing while its field is.
         slug,
         text: sent,
@@ -108,27 +109,23 @@ function SlugQuestion({
 }: {
   asking: Asking;
   onCancel: () => void;
-  onConfirm: (slug: string, level?: string, pick?: PickSent) => Promise<string | undefined>;
+  onConfirm: (slug: string, options: RunOptions | undefined) => Promise<string | undefined>;
 }) {
   const proposed = useSlugProposal(asking.text);
-  const runtimes = useRuntimes();
+  const { options, strip } = useStartRuns(true);
   return (
     <StartDialog
-      // The change's first run starts as it does: its session runs on what was picked, as the
-      // picker shows it, never a pick turned off since.
-      hasRuntime
       initial={proposed}
       isOpen
       onCancel={onCancel}
-      onConfirm={(slug, level, pick?: SessionPick) =>
-        onConfirm(slug, level, pickSent(runtimes, pick))
-      }
+      onConfirm={(slug) => onConfirm(slug, options)}
       question={{
         confirm: "Start the change",
         description: "Two words at most: it names the folder and the branch.",
         label: SLUG_LABEL,
         title: "Name the change",
       }}
+      runs={strip}
     />
   );
 }
@@ -151,11 +148,11 @@ export function ChangeComposer({
     asking?.resolve(sent);
     setAsking(undefined);
   };
-  const confirm = async (slug: string, _level?: string, pick?: PickSent) => {
+  const confirm = async (slug: string, options: RunOptions | undefined) => {
     if (!asking) {
       return undefined;
     }
-    const result = await start(asking.text, asking.images, slug, pick);
+    const result = await start(asking.text, asking.images, slug, options);
     if (!result.ok) {
       return result.message;
     }

@@ -10,7 +10,7 @@ import { reasonOf } from "../reason.ts";
 export type Kept = { input: SendInput; made: boolean; session: string };
 
 /**
- * Sends `kept` in order, each taken before it is sent: a run that starts fresh goes to a new
+ * Sends `kept` in order, each taken before it is sent: a run its step starts anew goes to a new
  * session, which the next messages to the same session follow. A refusal returns the rest.
  */
 export async function sendKept(ctx: RepoContext, folder: string, kept: Array<Kept>): Promise<void> {

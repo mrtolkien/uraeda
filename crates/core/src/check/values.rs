@@ -22,6 +22,7 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
         )),
         Checked::Workflow(FileKind::Plan) => Some((&["status", "spec-revision"], &[])),
         Checked::Workflow(FileKind::Review) => Some((&["verdict", "commit"], &[])),
+        Checked::Workflow(FileKind::Findings) => Some((&["reviewed", "commits"], &[])),
         Checked::Decision => Some((&["status", "approved-by"], &["icon"])),
         Checked::PreviewDecision => Some((
             &["status", "approved-by"],

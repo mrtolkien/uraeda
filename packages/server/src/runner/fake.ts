@@ -5,6 +5,8 @@ import type {
   ModelList,
   OpenOptions,
   Outgoing,
+  ReviewAsk,
+  ReviewMessage,
 } from "./adapter.ts";
 import { allowRule } from "./claude-events.ts";
 import { effortName } from "./efforts.ts";
@@ -251,6 +253,8 @@ export class FakeAdapter implements Adapter {
    * that message; with none, such a message plays nothing.
    */
   fallback: ((message: Outgoing) => Array<FakeStep>) | undefined;
+  /** The agent's own review, which a test sets: Claude Code's or Codex's. None by default. */
+  reviewMessage?: (ask: ReviewAsk) => ReviewMessage;
   #scripts: Array<Array<FakeStep>> = [];
   #current: FakeProcess | undefined;
 

@@ -90,23 +90,39 @@ test("a new session runs on the first runtime on in its repository", async () =>
   expect(session.agent).toBe("pi-durable");
 });
 
-test("a fresh run keeps the runtime, model, and effort of the session it was sent to, not the first one on's (R20)", async () => {
+test("a session made without a pick runs on its step's, one picked keeps it, and a run of its step stays there (R18)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
-  const { cache, repo, sessions } = await testSessions(undefined, { runtimes });
-  const pick = { effort: "high", model: "fake-big", runtime: "pi-durable" };
-  const session = await sessions.featureSession(repo, AGENT, pick);
-  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+  await runtimes.refreshModels();
+  const plan = { agent: "pi-durable", effort: "high", model: "fake-big", step: "plan" };
+  const { cache, repo, sessions } = await testSessions(undefined, {
+    runOptions: () => ({ steps: [plan] }),
+    runtimes,
+  });
+  // Made where the feature starts, with no pick: on the pick of its next step's run step.
+  expect(await sessions.featureSession(repo, AGENT)).toMatchObject({
+    agent: "pi-durable",
+    effort: "high",
+    model: "fake-big",
+  });
+  // Made on the human's pick: its first run keeps it, and a run of its step again stays there.
+  const session = await sessions.newSession(repo, AGENT, { runtime: "claude" });
+  const workflow = { step: "plan", trigger: "manual" } as const;
+  const first = await sessions.send(repo, session.id, { text: "Write the plan", workflow });
+  await sessions.settled(first.turn);
+  expect(first.session).toBe(session.id);
 
-  const workflow = { fresh: true, step: "plan", trigger: "manual" } as const;
-  const { turn } = await sessions.send(repo, session.id, { text: "Again", workflow });
-  await sessions.settled(turn);
+  const again = await sessions.send(repo, session.id, { text: "Again", workflow });
+  await sessions.settled(again.turn);
 
-  const fresh = cache.session(cache.turn(turn)!.sessionId)!;
-  expect(fresh.id).not.toBe(session.id);
-  expect(fresh).toMatchObject({ agent: "pi-durable", effort: "high", model: "fake-big" });
-  expect(durable.opens).toHaveLength(2);
-  expect(durable.opens[1]).toMatchObject({ effort: "high", model: "fake-big", resume: false });
-  expect(claude.opens).toHaveLength(0);
+  expect(again.session).toBe(session.id);
+  expect(cache.session(session.id)).toMatchObject({
+    agent: "claude",
+    effort: null,
+    model: null,
+    step: "plan",
+  });
+  expect(claude.opens).toHaveLength(1);
+  expect(durable.opens).toHaveLength(0);
 });
 
 test("a new session runs on the pick, and records what its agent reported", async () => {
@@ -319,7 +335,11 @@ test("a queued turn of a runtime turned off fails, never opening it again", asyn
 
 test("turning a runtime on within the restart window continues the runs a restart cut on it", async () => {
   const { durable, on, runtimes } = twoRuntimes();
-  const { cache, repo, sessions } = await testSessions(fixtureRepo(), { runs, runtimes });
+  const { cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    runOptions: () => ({ steps: [{ agent: "pi-durable", step: "plan" }] }),
+    runs,
+    runtimes,
+  });
   let now = Date.now();
   vi.spyOn(Date, "now").mockImplementation(() => now);
   const later = async (ms: number) => {
@@ -377,35 +397,63 @@ test("a runtime picked that is off is refused, making no session", async () => {
   expect(JSON.stringify(made.error)).toContain(OFF);
 });
 
-test("change.start sends the change's first run on the runtime, model, and effort picked (R20)", async () => {
+test("change.start sends the change's first run on its options' build step, kept as its own (R20)", async () => {
   const server = await testServer();
   const durable = new FakeAdapter();
   durable.fallback = () => [];
   server.sessions.runtimes.register("pi-durable", durable);
   await server.sessions.check();
   await server.sessions.runtimes.refreshModels();
+  const build = { agent: "pi-durable", effort: "high", model: "fake-big", step: "build" };
 
   const started = await mutate(
     server.app,
     "change.start",
-    {
-      effort: "high",
-      model: "fake-big",
-      runtime: "pi-durable",
-      slug: "home-icon",
-      text: "Another home icon",
-    },
+    { options: { steps: [build] }, slug: "home-icon", text: "Another home icon" },
     ["folder", "session"],
   );
 
   expect(started.error).toBeUndefined();
-  const session = (started.data as { session: string }).session;
+  const { folder, session } = started.data as { folder: string; session: string };
   expect(server.sessions.cache.session(session)).toMatchObject({
     agent: "pi-durable",
     effort: "high",
     model: "fake-big",
   });
+  expect(server.featureOptions.own(await server.sessions.mainRoot(server.repo), folder)).toEqual({
+    steps: [build],
+  });
   expect(server.adapter.opens).toEqual([]);
+});
+
+test("change.start sends the first run on its build step's pick when its options could not be kept", async () => {
+  const server = await testServer();
+  const durable = new FakeAdapter();
+  durable.fallback = () => [];
+  server.sessions.runtimes.register("pi-durable", durable);
+  await server.sessions.check();
+  await server.sessions.runtimes.refreshModels();
+  vi.spyOn(server.featureOptions, "set").mockImplementation(() => {
+    throw new Error("disk full");
+  });
+  const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  const build = { agent: "pi-durable", model: "fake-big", step: "build" };
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { options: { steps: [build] }, slug: "home-icon", text: "Another home icon" },
+    ["folder", "session"],
+  );
+
+  expect(started.error).toBeUndefined();
+  const { session } = started.data as { session: string | null };
+  expect(session).not.toBeNull();
+  expect(server.sessions.cache.session(session ?? "")).toMatchObject({
+    agent: "pi-durable",
+    model: "fake-big",
+  });
+  expect(String(stderr.mock.calls[0]?.[0])).toContain("disk full");
 });
 
 test.each<[string, Record<string, unknown>, string]>([
@@ -421,7 +469,11 @@ test.each<[string, Record<string, unknown>, string]>([
   const started = await mutate(
     server.app,
     "change.start",
-    { ...pick, slug: "home-icon", text: "Another home icon" },
+    {
+      options: { steps: [{ ...pick, step: "build" }] },
+      slug: "home-icon",
+      text: "Another home icon",
+    },
     ["folder", "session"],
   );
 

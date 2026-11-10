@@ -118,7 +118,8 @@ pub fn submit_answers(
     })
 }
 
-/// Commits again what a hook refused to commit: a submitted round, or a verdict.
+/// Commits again what a hook refused to commit: a submitted round, a review's findings, or a
+/// verdict.
 #[napi(ts_return_type = "Promise<CommitView>")]
 pub fn retry_commit(repo: String, folder: String, name: String) -> AsyncTask<Job<CommitView>> {
     job(move || api::retry_commit(Path::new(&repo), &folder, &name))

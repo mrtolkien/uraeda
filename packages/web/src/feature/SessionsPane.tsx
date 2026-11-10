@@ -2,12 +2,13 @@
 // with its status, its running sub-agents, and when it started; the latest's task and last run;
 // and "New session", which opens a new session's page, the session created with its first message.
 // A working one stops from its own page. `s` opens its session, or a picker of them when there are
-// several, and `S` opens a new one.
+// several, and `S` opens a new one. Under a session, the sub-sessions it started, Uraeda's
+// implementers and reviewers (spec of Run options), nested in the sub-agents' colour.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useState } from "react";
@@ -27,9 +28,20 @@ import { CardRow } from "../sidebar/CardRow.tsx";
 import { Empty } from "../layout/Empty.tsx";
 import { statusLabel } from "../wait.ts";
 import { useRuntimesAvailable } from "../runtimes.ts";
+import { SubSessionRow } from "../runs/SubSessionRow.tsx";
+import type { SubSession } from "../runs/subSessions.ts";
 
 const styles = stylex.create({
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
+  // The sub-sessions under their parent: indented, along a bar in the sub-agents' colour.
+  subs: {
+    borderInlineStartColor: "var(--role-sub-agent)",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: borderVars["--border-width"],
+    marginInlineStart: spacingVars["--spacing-3"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+  },
+  subsTitle: { color: "var(--role-sub-agent)" },
 });
 
 type SessionData = NonNullable<ReturnType<typeof useSession>>;
@@ -61,9 +73,23 @@ function LastRun({ id }: { id: string }) {
 /** What the row of a session reads beside its session. */
 type RowProps = { folder: string; latest: boolean; progress?: TaskProgress | null };
 
+/** A session's sub-sessions, nested under it: "Sub-sessions · 5", then each one's row. */
+function SubSessionList({ subs }: { subs: ReadonlyArray<SubSession> }) {
+  return (
+    <VStack gap={1} xstyle={styles.subs}>
+      <Text type="supporting" weight="bold">
+        <span {...stylex.props(styles.subsTitle)}>{`Sub-sessions · ${subs.length}`}</span>
+      </Text>
+      {subs.map((sub) => (
+        <SubSessionRow key={sub.id} sub={sub} />
+      ))}
+    </VStack>
+  );
+}
+
 /**
  * A session's row: its link with its status, title, and start, the latest's to the feature's
- * session and an earlier one's to its own page, its running sub-agents under it,
+ * session and an earlier one's to its own page, its sub-sessions and running sub-agents under it,
  * then, for the latest, the task while it works and its last run, and Stop while it works.
  */
 function Row({
@@ -93,6 +119,7 @@ function Row({
         label={title}
         name={`${label} ${title} ${started}`}
       />
+      {session.subSessions.length > 0 && <SubSessionList subs={session.subSessions} />}
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
           <StatusMark isSubagent label="Working" small status="working" />

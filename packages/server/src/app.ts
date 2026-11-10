@@ -9,6 +9,8 @@ import type { ExtensionsHost } from "./extensions/server.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
+import { type McpOptions, mcpRoutes } from "./mcp/endpoint.ts";
+import { McpTokens } from "./mcp/tokens.ts";
 import { announceSettings, announceThemes, onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
 import { previewRoutes } from "./preview/proxy.ts";
@@ -21,8 +23,10 @@ import { FrameSecret } from "./sign-in/frames.ts";
 import { signInRoutes } from "./sign-in/routes.ts";
 
 export { Hosts } from "./repositories.ts";
+export { featureOptionsOf } from "./runner/feature-options.ts";
 export { Previews } from "./preview/runner.ts";
 export { livePreviews } from "./live.ts";
+import type { FeatureOptions } from "./runner/feature-options.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
@@ -39,11 +43,18 @@ type AppOptions = {
    * ends done still starts its Storybook, which the `previews` built-in does otherwise.
    */
   extensions?: ExtensionsHost;
+  /** The features' own run options, in their own file of the data folder: `featureOptionsOf`. */
+  featureOptions: FeatureOptions;
   /** The frame secret of preview and mockup paths: a new one by default. */
   frames?: FrameSecret;
   hosts: Hosts;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
+  /**
+   * The MCP endpoint's tokens and tools, which the agents' processes reach at `/mcp`: without them,
+   * as in most tests, no token is ever issued, so every call is refused.
+   */
+  mcp?: McpOptions;
   /** The port the server listens on, the only one its own host names take. */
   port: number;
   /** The server's Storybooks, which `/r/<name>/preview/<secret>/<folder>/` forwards to. */
@@ -78,7 +89,7 @@ function hostedRoutes(
     settings,
     themes,
   }: AppOptions,
-  frames: FrameSecret,
+  { featureOptions, frames }: { featureOptions: FeatureOptions; frames: FrameSecret },
 ) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
@@ -93,6 +104,7 @@ function hostedRoutes(
       binding,
       dataDir,
       extensions,
+      featureOptions,
       frames,
       hosts,
       lockedList,
@@ -155,9 +167,10 @@ const timed = async (context: Context, next: Next) => {
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
  * opened repository's; `/r/<name>/preview/<secret>/<folder>/`, each checkout's Storybook; `POST
- * /open`, a second start's handoff; and with `signIn`, the session routes, every other route behind
- * the session check but frame paths with the frame secret, which every ended session replaces.
- * Answers but mockups' and Storybooks' refuse other sites' frames.
+ * /open`, a second start's handoff; `/mcp`, the agents' tools, behind its own tokens; and with
+ * `signIn`, the session routes, every other route behind the session check but frame paths with
+ * the frame secret, which every ended session replaces. Answers but mockups' and Storybooks'
+ * refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
   const { allowOrigins, binding, dataDir, extensions, hosts, lockedList, port } = options;
@@ -165,9 +178,10 @@ export function createApp(options: AppOptions) {
   const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
+  const { featureOptions } = options;
   // The settings' and the themes' changes reach every endpoint's views until they close, as the
   // server stops.
-  announceSettings(settings, hosts);
+  announceSettings(settings, hosts, binding);
   announceThemes(themes, hosts);
   const app: App = new Hono<{ Variables: FateVariables }>();
   for (const path of ["/fate", "/r/:name/fate"]) {
@@ -190,6 +204,7 @@ export function createApp(options: AppOptions) {
       binding,
       dataDir,
       extensions,
+      featureOptions,
       frames,
       hosts,
       lockedList,
@@ -201,15 +216,15 @@ export function createApp(options: AppOptions) {
     });
     await next();
   });
-  hostedRoutes(app, options, frames);
+  hostedRoutes(app, options, { featureOptions, frames });
   fateRoutes(app, hosts);
   if (extensions) {
     extensionRoutes(app, extensions, hosts);
   } else {
     // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
     onTurnDone(sessions, (repo, folder) => {
-      const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions };
-      warmPreview({ ...ctx, settings, themes }, folder).catch(() => {});
+      const ctx = { binding, dataDir, featureOptions, frames, hosts, lockedList, previews, repo };
+      warmPreview({ ...ctx, sessions, settings, themes }, folder).catch(() => {});
     });
   }
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */
@@ -227,6 +242,8 @@ export function createApp(options: AppOptions) {
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
   app.route("/", openRoute(signIn));
+  // The session check lets `/mcp` through: an agent's process signs in with its own token.
+  app.route("/mcp", mcpRoutes(options.mcp ?? { tokens: new McpTokens(), tools: [] }));
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));

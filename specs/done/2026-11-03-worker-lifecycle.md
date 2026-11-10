@@ -3,7 +3,7 @@ kind: feature
 finished: 2026-11-04
 pull-request: https://github.com/mrtolkien/uraeda/pull/91
 supersedes: [2026-10-13-chat-in-the-web-ui, 2026-10-30-feature-state]
-superseded-by: [2026-11-08-agents-fix]
+superseded-by: [2026-11-08-agents-fix, 2026-11-08-run-options]
 ---
 
 # Record: Worker lifecycle
@@ -15,6 +15,8 @@ superseded-by: [2026-11-08-agents-fix]
 > in git: `git log -- specs/2026-11-03-worker-lifecycle/`.
 >
 > Superseded in part by [2026-11-08-agents-fix](2026-11-08-agents-fix.md).
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

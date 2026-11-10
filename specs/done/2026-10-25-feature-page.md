@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-26
 pull-request: https://github.com/mrtolkien/uraeda/pull/59
-superseded-by: [2026-10-30-phone-bottom]
+superseded-by: [2026-10-30-phone-bottom, 2026-11-08-run-options]
 ---
 
 # Record: Feature page in the terminal look
@@ -14,6 +14,8 @@ superseded-by: [2026-10-30-phone-bottom]
 > in git: `git log -- specs/2026-10-25-feature-page/`.
 >
 > Superseded in part by [2026-10-30-phone-bottom](2026-10-30-phone-bottom.md).
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

@@ -973,7 +973,7 @@ fn a_changes_folder_holds_only_its_files() {
             vec![]
         } else {
             vec![format!(
-                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
+                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/, and screenshots/."
             )]
         };
         assert_eq!(flagged, expected, "{path}");
@@ -1033,7 +1033,7 @@ fn a_change_file_alone_is_checked_against_its_folder() {
             vec![]
         } else {
             vec![format!(
-                "{file}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
+                "{file}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/, and screenshots/."
             )]
         };
         let flagged = |problems: Vec<Problem>| -> Vec<String> {

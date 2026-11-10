@@ -17,6 +17,7 @@ import {
 import { useFateClient, useView } from "react-fate";
 import type { Session, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
+import { SubSessionBar } from "./runs/SubSessionBar.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
@@ -91,8 +92,6 @@ const styles = stylex.create({
 export type Handing = {
   notice?: string;
   onSent?: (session: string) => void;
-  /** The controls of the workflow's run, like building in a fresh session. */
-  options?: ReactNode;
   /** Whether the composer offers the feature's recommended message. */
   recommended?: boolean;
   workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
@@ -441,24 +440,31 @@ export function SessionPane({
           isBoxed && styles.boxedComposer,
         )}
       >
-        {returned.element}
-        <Composer
-          {...(folder === undefined ? {} : { folder })}
-          {...composerDraft(draft)}
-          {...(id === undefined ? { isNewSession } : { session: id })}
-          {...(session?.agent === undefined ? {} : { agent: session.agent })}
-          sendsOnEnter
-          // A hand-over's message waits for Enter: on a keyboard, the field has the focus.
-          takesFocus={wide && !isBoxed && handing.workflow !== undefined}
-          working={session?.status === "working"}
-          {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
-          {...returned.handing}
-          {...(blocked === undefined ? {} : { blocked })}
-          onSent={(created) => {
-            onSent?.(created);
-            returned.handing.onSent(created);
-          }}
-        />
+        {/* A sub-session's page: its bar in place of the composer, as the human only reads it. */}
+        {id !== undefined && session?.parent ? (
+          <SubSessionBar id={id} parent={session.parent} />
+        ) : (
+          <>
+            {returned.element}
+            <Composer
+              {...(folder === undefined ? {} : { folder })}
+              {...composerDraft(draft)}
+              {...(id === undefined ? { isNewSession } : { session: id })}
+              {...(session?.agent === undefined ? {} : { agent: session.agent })}
+              sendsOnEnter
+              // A hand-over's message waits for Enter: on a keyboard, the field has the focus.
+              takesFocus={wide && !isBoxed && handing.workflow !== undefined}
+              working={session?.status === "working"}
+              {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
+              {...returned.handing}
+              {...(blocked === undefined ? {} : { blocked })}
+              onSent={(created) => {
+                onSent?.(created);
+                returned.handing.onSent(created);
+              }}
+            />
+          </>
+        )}
       </div>
     </Framed>
   );

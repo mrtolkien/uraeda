@@ -6,7 +6,7 @@ import { needsYouReason, NEEDS_YOU_ID } from "../fate/needs-you.ts";
 import { publish } from "../live.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import {
-  appSettings,
+  appParts,
   atStep,
   byIdAt,
   type Data,
@@ -35,7 +35,7 @@ async function twoRepositories({ installed = false } = {}) {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
-    ...(await appSettings()),
+    ...(await appParts(opened.dataDir)),
   });
   const rows = async () =>
     (await byIdAt(app, null, "NeedsYouList", [NEEDS_YOU_ID], ["rows"]))[0]!.rows as Array<

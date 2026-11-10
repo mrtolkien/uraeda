@@ -111,6 +111,11 @@ const mutations = {
     FateAPI['mutations']['feature.promote']['input'],
     FateAPI['mutations']['feature.promote']['output']
   >('Feature'),
+  'feature.setRunOptions': mutation<
+    Feature,
+    FateAPI['mutations']['feature.setRunOptions']['input'],
+    FateAPI['mutations']['feature.setRunOptions']['output']
+  >('Feature'),
   'feature.start': mutation<
     StartPlan,
     FateAPI['mutations']['feature.start']['input'],
@@ -461,11 +466,6 @@ const mutations = {
     FateAPI['mutations']['settings.setAutomaticContinues']['input'],
     FateAPI['mutations']['settings.setAutomaticContinues']['output']
   >('Settings'),
-  'settings.setBuildInFreshSession': mutation<
-    Settings,
-    FateAPI['mutations']['settings.setBuildInFreshSession']['input'],
-    FateAPI['mutations']['settings.setBuildInFreshSession']['output']
-  >('Settings'),
   'settings.setContinue': mutation<
     Settings,
     FateAPI['mutations']['settings.setContinue']['input'],
@@ -480,6 +480,11 @@ const mutations = {
     Settings,
     FateAPI['mutations']['settings.setPort']['input'],
     FateAPI['mutations']['settings.setPort']['output']
+  >('Settings'),
+  'settings.setRunOptions': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setRunOptions']['input'],
+    FateAPI['mutations']['settings.setRunOptions']['output']
   >('Settings'),
   'settings.setSingleKeyShortcuts': mutation<
     Settings,

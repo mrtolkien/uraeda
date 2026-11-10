@@ -108,7 +108,7 @@ fn table<T: Default>(
         .ok_or_else(|| {
             (
                 offset(key, item),
-                name,
+                name.to_owned(),
                 format!("[{name}] is a table of settings."),
             )
         })
@@ -116,10 +116,10 @@ fn table<T: Default>(
 }
 
 /// A problem: where it is, as an offset in the text, the key, and the problem.
-type Problem = (Option<usize>, &'static str, String);
+pub(super) type Problem = (Option<usize>, String, String);
 
 /// Where a key is, or its value when the key has no place.
-fn offset(key: &Key, item: &Item) -> Option<usize> {
+pub(super) fn offset(key: &Key, item: &Item) -> Option<usize> {
     key.span().or_else(|| item.span()).map(|span| span.start)
 }
 
@@ -129,7 +129,7 @@ fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
     if let Some((key, item)) = server.get_key_value("allowed_hosts") {
         settings.allowed_hosts = Some(allowed_hosts(item).map_err(|(span, problem)| {
             let start = span.map(|span| span.start).or_else(|| offset(key, item));
-            (start, "allowed_hosts", problem)
+            (start, "allowed_hosts".into(), problem)
         })?);
     }
     if let Some((key, item)) = server.get_key_value("port") {
@@ -137,13 +137,13 @@ fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
             .as_integer()
             .ok_or_else(|| rules::PORT_PROBLEM.to_owned())
             .and_then(rules::port_number);
-        settings.port = Some(port.map_err(|problem| (offset(key, item), "port", problem))?);
+        settings.port = Some(port.map_err(|problem| (offset(key, item), "port".into(), problem))?);
     }
     if let Some((key, item)) = server.get_key_value("open_browser") {
         let open = item.as_bool().ok_or_else(|| {
             (
                 offset(key, item),
-                "open_browser",
+                "open_browser".into(),
                 "Opening a browser at start is true or false.".to_owned(),
             )
         })?;
@@ -155,15 +155,18 @@ fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
 /// The `[runs]` table's values.
 fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
     let mut settings = RunSettings::default();
+    // The old setting, read only to migrate it into the plan's `new_session`: the next write of
+    // the run options removes it.
+    let mut fresh = None;
     if let Some((key, item)) = runs.get_key_value("build_in_fresh_session") {
-        let fresh = item.as_bool().ok_or_else(|| {
+        let value = item.as_bool().ok_or_else(|| {
             (
                 offset(key, item),
-                "build_in_fresh_session",
+                "build_in_fresh_session".into(),
                 "Building in a fresh session is true or false.".to_owned(),
             )
         })?;
-        settings.build_in_fresh_session = Some(fresh);
+        fresh = Some(value);
     }
     settings.continue_after_restart = switch(
         runs,
@@ -185,9 +188,12 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
             .as_integer()
             .ok_or_else(|| rules::CONTINUES_PROBLEM.to_owned())
             .and_then(rules::automatic_continues_number);
-        settings.automatic_continues =
-            Some(continues.map_err(|problem| (offset(key, item), "automatic_continues", problem))?);
+        settings.automatic_continues = Some(
+            continues
+                .map_err(|problem| (offset(key, item), "automatic_continues".into(), problem))?,
+        );
     }
+    settings.options = super::runs::parse(runs, fresh)?;
     Ok(settings)
 }
 
@@ -201,7 +207,7 @@ fn switch(
         .get_key_value(name)
         .map(|(key, item)| {
             item.as_bool()
-                .ok_or_else(|| (offset(key, item), name, problem.to_owned()))
+                .ok_or_else(|| (offset(key, item), name.to_owned(), problem.to_owned()))
         })
         .transpose()
 }
@@ -213,7 +219,7 @@ fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem>
         let on = item.as_bool().ok_or_else(|| {
             (
                 offset(key, item),
-                "single_key_shortcuts",
+                "single_key_shortcuts".into(),
                 "Single-key shortcuts is true or false.".to_owned(),
             )
         })?;
@@ -223,7 +229,7 @@ fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem>
         let on = item.as_bool().ok_or_else(|| {
             (
                 offset(key, item),
-                "vim_mode",
+                "vim_mode".into(),
                 "Vim mode is true or false.".to_owned(),
             )
         })?;
@@ -241,7 +247,7 @@ fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem>
             .ok_or_else(|| {
                 (
                     offset(key, item),
-                    "vim_commands",
+                    "vim_commands".into(),
                     "Vim commands are a list of lines, like [\"imap jj <Esc>\"].".to_owned(),
                 )
             })?;

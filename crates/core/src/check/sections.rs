@@ -22,6 +22,7 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::Plan) => "YYYY-MM-DD-feature-slug/plan.md",
         Checked::Workflow(FileKind::Rulings) => "YYYY-MM-DD-feature-slug/rulings.md",
         Checked::Workflow(FileKind::DataModel) => "YYYY-MM-DD-feature-slug/data-model.md",
+        Checked::Workflow(FileKind::Findings) => "YYYY-MM-DD-feature-slug/findings-01.md",
         Checked::Decision | Checked::PreviewDecision => "decisions/decision-topic.md",
         Checked::Record => "done/YYYY-MM-DD-feature-slug.md",
         Checked::DefaultRound(round) => round.file_name(),

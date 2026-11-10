@@ -229,6 +229,26 @@ fn an_unreadable_worktree_or_an_unknown_commit_fails_no_read() {
     assert_eq!(page.worktrees[0].state, "changes");
 }
 
+/// A review's commits resolve in the feature's worktree: `HEAD` there, a branch, a short ID, each
+/// to its full ID; a revision naming no commit is refused. Break caught: a name kept as typed,
+/// which a review asked again after a new commit reads as the same range.
+#[test]
+fn a_revision_resolves_to_its_full_commit_id_in_a_worktree() {
+    let repo = repo();
+    let dir = std::path::PathBuf::from(api::work_dir(repo.path(), FOLDER).unwrap());
+    let id = |revision: &str| repo.git(&["rev-parse", revision]).trim().to_string();
+    let head = id(FOLDER);
+    assert_ne!(head, id("main"));
+
+    assert_eq!(api::resolve_commit(&dir, "HEAD").unwrap(), head);
+    assert_eq!(api::resolve_commit(&dir, "main").unwrap(), id("main"));
+    assert_eq!(api::resolve_commit(&dir, &head[..7]).unwrap(), head);
+    assert_eq!(
+        refused(api::resolve_commit(&dir, "nowhere")),
+        "no commit nowhere"
+    );
+}
+
 fn refused<T: std::fmt::Debug>(result: Result<T, api::ApiError>) -> String {
     match result {
         Err(error) if error.code == "refused" => error.message,

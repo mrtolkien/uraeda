@@ -2,7 +2,7 @@
  * The settings' changes, which every endpoint serves, the global one too: each written by the core,
  * then read again by `ServerSettings`, which sends the record's live update, then answered.
  */
-import type { Settings } from "uraeda-binding";
+import type { RunOptions, Settings } from "uraeda-binding";
 import { refusable } from "./errors.ts";
 import type { ListResolver } from "./list-mutations.ts";
 import { settingsDataView, settingsRecord } from "./settings.ts";
@@ -55,11 +55,6 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.setAutomaticContinues(dir, input.continues)),
     type: "Settings",
   },
-  "settings.setBuildInFreshSession": {
-    resolve: ({ input, ...call }: ListResolver<{ fresh: boolean }>) =>
-      settingsChanged(call, (dir) => call.ctx.binding.setBuildInFreshSession(dir, input.fresh)),
-    type: "Settings",
-  },
   "settings.setContinue": {
     resolve: ({
       input,
@@ -76,6 +71,11 @@ export const settingsMutations = {
   "settings.setPort": {
     resolve: ({ input, ...call }: ListResolver<{ port: string }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setPort(dir, input.port)),
+    type: "Settings",
+  },
+  "settings.setRunOptions": {
+    resolve: ({ input, ...call }: ListResolver<{ options: RunOptions }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setRunOptions(dir, input.options)),
     type: "Settings",
   },
   "settings.setSingleKeyShortcuts": {

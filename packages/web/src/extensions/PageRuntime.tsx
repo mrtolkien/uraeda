@@ -5,7 +5,7 @@
 import { useEffect, useMemo } from "react";
 import { useFateClient } from "react-fate";
 import { useServerFetch } from "../attach/ServerFetch.tsx";
-import { ExtensionsRecordView } from "../views.ts";
+import { ExtensionsRecordView } from "../settings/settingsViews.ts";
 import { type PageRow, syncPages } from "./runtime.ts";
 import { registry } from "./useContributions.ts";
 

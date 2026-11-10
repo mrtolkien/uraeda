@@ -3,6 +3,7 @@
 // no step's message, and is left alone (R7). Its answer names the runs it could not continue.
 import type { FeatureView } from "uraeda-binding";
 import { reasonOf, REFUSAL_CODE } from "../reason.ts";
+import { ANY_AGENT } from "../runner/chain.ts";
 import type { Trigger } from "../runner/events.ts";
 import { recommendedMessage } from "../runner/message.ts";
 import { runtimeState } from "../runner/runtimes.ts";
@@ -20,26 +21,25 @@ import { continuedAllDataView, type RefusedRun } from "./views-continued-all.ts"
 export type Automatic = { commit?: string; line: string; step: string; trigger: Trigger };
 
 /**
- * Sends the feature its step's message in `session`, which goes on there, as its run did: none
- * when its step has no message, as at a gate. An automatic run, `automatic`, sends it with its own
- * trigger and line, and only while the feature is still at its step, catching up with its commit:
- * the default branch moved since, the next trigger catches up with the new tip.
+ * Sends the feature its step's message from `session`, which goes on there, or in the session its
+ * step's options give, whose agent the send checks: none when its step has no message, as at a
+ * gate. An automatic run, `automatic`, sends it with its own trigger and line, and only while the
+ * feature is still at its step, catching up with its commit: the default branch moved since, the
+ * next trigger catches up with the new tip.
  */
 export async function continueOne(
   ctx: RepoContext,
-  root: string,
   feature: FeatureView,
   session: string,
   automatic?: Automatic,
 ) {
   const next = await ctx.binding.nextStep(ctx.repo, feature.folder);
-  const agent = runtimeState(ctx.sessions.runtimes, root, ctx.sessions.cache.session(session));
-  const message = recommendedMessage({ agent, feature, next });
+  const message = recommendedMessage({ agent: ANY_AGENT, feature, next });
   if ("reason" in message) {
     return;
   }
   if (automatic === undefined) {
-    const workflow = { fresh: false, step: message.step, trigger: message.trigger };
+    const workflow = { step: message.step, trigger: message.trigger };
     await ctx.sessions.send(ctx.repo, session, { text: message.text, workflow });
   } else if (
     message.step === automatic.step &&
@@ -48,7 +48,7 @@ export async function continueOne(
     const { line, step, trigger } = automatic;
     await ctx.sessions.send(ctx.repo, session, {
       text: message.text,
-      workflow: { fresh: false, line, step, trigger },
+      workflow: { line, step, trigger },
     });
   }
 }
@@ -91,7 +91,7 @@ async function continueAll(ctx: RepoContext): Promise<Array<RefusedRun>> {
       continue;
     }
     try {
-      await continueOne(ctx, root, feature, status.session);
+      await continueOne(ctx, feature, status.session);
     } catch (error) {
       // A refusal leaves the feature as it was, still asking: the others go on.
       if (!REFUSAL_CODE.test(error instanceof Error ? error.message : String(error))) {

@@ -8,30 +8,26 @@ import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import { type CatchUps, catcher } from "./catch-ups.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
-import { keptBases, startWaiting, warmPreview } from "./fate/preview-waiting.ts";
+import { warmPreview } from "./fate/preview-waiting.ts";
 import { ExtensionsHost } from "./extensions/server.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import {
-  continueSettings,
-  createSessions,
-  type HostsOf,
-  livePreviews,
-  renewPreviews,
-} from "./live.ts";
+import { continueSettings, createSessions, type HostsOf } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
-import { guardCheck } from "./guard.ts";
-import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
-import { previewUpgrade } from "./preview/proxy.ts";
+import type { McpTool, ServerAddress } from "./mcp/endpoint.ts";
+import { McpTokens } from "./mcp/tokens.ts";
+import { reviewTool } from "./runner/reviews.ts";
+import { runAgentTool } from "./runner/sub-sessions.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
-import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
 import type { Runtimes } from "./runner/runtimes.ts";
 import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
-import { FrameSecret } from "./sign-in/frames.ts";
+import type { FrameSecret } from "./sign-in/frames.ts";
+import { startPreviews, upgrades, waitingPreviews } from "./server-previews.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
+import { type FeatureOptions, featureOptionsOf } from "./runner/feature-options.ts";
 import type { ServerSettings } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
@@ -55,7 +51,10 @@ export const SWEEP_EVERY_MS = 60_000;
 export async function startSessions(options: {
   binding: Binding;
   dataDir: string;
+  /** The features' own run options, which each run starts on: the settings' alone when left out. */
+  featureOptions?: FeatureOptions;
   hosts: HostsOf;
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   runtimes: Runtimes;
   settings: ServerSettings;
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
@@ -68,7 +67,13 @@ export async function startSessions(options: {
   } catch (error) {
     process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
   }
-  const sessions = createSessions({ ...options, cache, runs: continueSettings(options.settings) });
+  const { featureOptions, settings } = options;
+  const sessions = createSessions({
+    ...options,
+    cache,
+    runOptions: (repo, folder) => featureOptions?.resolved(repo, folder) ?? settings.runs().options,
+    runs: continueSettings(settings),
+  });
   await sessions.check();
   // Every runtime's model list, asked once at start, which the pickers read: not awaited, as an
   // agent slow to list never holds the server's start.
@@ -100,6 +105,8 @@ export type Server = {
   hosts: Hosts;
   /** The access key, when this start made it: shown once, then never again. */
   key?: string;
+  /** The MCP endpoint the agents reach Uraeda's tools at, and its tokens. */
+  mcp: McpServer;
   /** Makes a new access key and returns it, signing every device out; throws without sign-in. */
   newKey: () => string;
   previews: Previews;
@@ -216,31 +223,6 @@ export async function startServer(options: StartOptions): Promise<Server> {
   }
 }
 
-/**
- * Starts the Storybooks of the folders waiting for the human, one after the other, and returns the
- * runner's sweep, which keeps them: a tick while the last one still reads them is skipped, and one
- * whose read fails keeps none. Each listed repository's context is the one a turn's end gives
- * `warmPreview`.
- */
-function waitingPreviews(shared: Omit<RepoContext, "repo">): () => void {
-  const { hosts, previews } = shared;
-  const contexts = () => hosts.all().map((host) => ({ ...shared, repo: host.path }));
-  startWaiting(contexts()).catch(() => {});
-  let sweeping = false;
-  return () => {
-    if (sweeping) {
-      return;
-    }
-    sweeping = true;
-    void keptBases(contexts())
-      .catch(() => new Set<string>())
-      .then((kept) => previews.sweep(kept))
-      .finally(() => {
-        sweeping = false;
-      });
-  };
-}
-
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
   /**
@@ -277,34 +259,32 @@ type StartOptions = {
 };
 
 /**
- * The server's Storybook runner and its frame secret. The Storybooks a killed server left run no
- * more: their record's groups are killed first, an earlier version's in the data folder's root too,
- * before its running files there are removed.
+ * The server's MCP endpoint: its address, its tokens, and its tools, which the app serves at `/mcp`
+ * and the session manager gives the agents' processes. The tools are read at each request: they
+ * start empty, and are added once the parts they reach are open.
  */
-function startPreviews(dataDir: string): { frames: FrameSecret; previews: Previews } {
-  const record = groupsFolder(dataDir);
-  killLeftGroups(record);
-  killLeftGroups(oldGroupsFolder(dataDir));
-  removeOldRunFiles(dataDir);
-  const previews = livePreviews({ record: new GroupRecord(record) });
-  // One frame secret for the server: each replacement restarts its Storybooks under the new base.
-  const frames = new FrameSecret();
-  frames.onReplace(() => renewPreviews(previews));
-  return { frames, previews };
+type McpServer = { address: ServerAddress; tokens: McpTokens; tools: Array<McpTool> };
+
+/** The MCP endpoint of a server on `port`, without tools yet. */
+function mcpServer(port: number): McpServer {
+  return { address: { url: `http://127.0.0.1:${port}` }, tokens: new McpTokens(), tools: [] };
 }
 
 /**
- * The extensions, their built-ins' runtimes registered, the session manager on them, and the hosts
- * of the listed repositories, whose changes the extensions turn into events. Each watcher burst of
- * a repository, once the refresh of its pull requests it asks ended, and each refresh that changed
- * them, calls `settled` with its path: all closed again when one fails to open.
+ * The extensions, their built-ins' runtimes registered, the features' run options, the session
+ * manager on them, and the hosts of the listed repositories, whose changes the extensions turn into
+ * events. Each watcher burst of a repository, once the refresh of its pull requests it asks ended,
+ * and each refresh that changed them, calls `settled` with its path: all closed again when one
+ * fails to open.
  */
 async function openParts(
   options: StartOptions,
   previews: Previews,
+  mcp: McpServer,
   settled: (repo: string) => void,
 ) {
   const { binding, dataDir } = options;
+  const featureOptions = featureOptionsOf(options);
   const extensions = await ExtensionsHost.open({
     agents: options.agents,
     binding,
@@ -319,10 +299,17 @@ async function openParts(
     sessions = await startSessions({
       binding,
       dataDir,
+      featureOptions,
       hosts: () => hosts,
+      mcp,
       runtimes: extensions.runtimes,
       settings: options.settings,
     });
+    // The workflow sessions start their implementers, and run their reviews, through the endpoint.
+    mcp.tools.push(
+      runAgentTool(sessions.sessions.subSessions),
+      reviewTool(sessions.sessions.reviews),
+    );
     hosts = await Hosts.open({
       binding,
       changed: (host, changes) => extensions.changes(host, changes),
@@ -341,7 +328,7 @@ async function openParts(
     extensions.close();
     throw error;
   }
-  return { extensions, hosts, sessions };
+  return { extensions, featureOptions, hosts, sessions };
 }
 
 /**
@@ -385,13 +372,15 @@ async function startOpened(
   const { binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   const { frames, previews } = startPreviews(dataDir);
+  const mcp = mcpServer(options.port);
   // The catcher starts once everything it reads is open: a burst before it catches up nothing.
   const started: { catchUps?: CatchUps } = {};
-  const parts = await openParts(options, previews, (repo) => void started.catchUps?.run(repo));
-  const { extensions, hosts: opened, sessions } = parts;
+  const parts = await openParts(options, previews, mcp, (repo) => void started.catchUps?.run(repo));
+  const { extensions, featureOptions, hosts: opened, sessions } = parts;
   const shared = {
     ...options,
     extensions,
+    featureOptions,
     frames,
     hosts: opened,
     previews,
@@ -417,8 +406,10 @@ async function startOpened(
       binding,
       dataDir,
       extensions,
+      featureOptions: shared.featureOptions,
       frames,
       hosts: opened,
+      mcp,
       previews,
       sessions: sessions.sessions,
       signIn,
@@ -427,6 +418,7 @@ async function startOpened(
     frames,
     hosts: opened,
     ...(key !== undefined && { key }),
+    mcp,
     newKey: () => {
       if (!signIn) {
         throw new Error("this server has no sign-in");
@@ -454,19 +446,11 @@ async function startOpened(
         await catching;
         // The sessions stop before the extensions unload: an unloaded runtime checks nothing.
         await Promise.all([sessions.stop().then(() => extensions.close()), previews.stopAll()]);
+        shared.featureOptions.close();
       })();
       return stopping;
     },
-    upgrade: previewUpgrade({
-      check: guardCheck({
-        allowedHosts: () => options.settings.allowedHosts(),
-        allowOrigins: options.allowOrigins,
-        isFrame: (path) => frames.allows(path),
-        port: options.port,
-      }),
-      frames,
-      previews,
-    }),
+    upgrade: upgrades(options, frames, previews),
     url,
   };
 }

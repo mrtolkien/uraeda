@@ -11,13 +11,12 @@ import { CATCH_UP } from "./status.ts";
 export type SentImage = ChatImage & { path: string };
 
 /**
- * A message to send: its text, its chat images, and for the workflow's, what started it, whether
- * its run starts a new agent session, `fresh`, the step its message was read at, `step`, and a
- * system line its turn shows before the message, `line`, as an automatic continue's.
- * Without `fresh`, the run after a spec's approval starts one as the `build_in_fresh_session`
- * setting says, `freshByDefault`, on by default. A run that starts a new agent session goes to a
- * new session of its change or feature. `opening` is a line the server puts before the message,
- * as the one telling a session moved to a change where it works now.
+ * A message to send: its text, its chat images, and for the workflow's, what started it, the step
+ * its message was read at, `step`, and a system line its turn shows before the message, `line`, as
+ * an automatic continue's. A workflow run goes to the session its run step's options give,
+ * `runSession`; `fresh: true` always starts a new session of its change or feature. `opening` is a
+ * line the server puts before the message, as the one telling a session moved to a change where it
+ * works now.
  */
 export type SendInput = {
   images?: Array<SentImage>;
@@ -26,7 +25,6 @@ export type SendInput = {
   workflow?: {
     file?: string;
     fresh?: boolean;
-    freshByDefault?: boolean;
     line?: string;
     step?: string;
     trigger: Trigger;
@@ -37,7 +35,7 @@ export type SendInput = {
  * A message checked before any session work: text, or images alone, as `checkImages` allows
  * them. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
  */
-export function checkSend(input: SendInput, capabilities: Capabilities) {
+export function checkSend(input: SendInput, capabilities: Pick<Capabilities, "images">) {
   const images = input.images ?? [];
   const blank = input.text.trim() === "";
   if (blank && images.length === 0) {
@@ -91,14 +89,21 @@ export function messageItem(
 
 /**
  * Where a message goes: its feature's branch, refused once merged, and for the workflow's, the
- * step its run starts, or the line saying it runs as a chat, `asChat`, as `sentAsChat` decides.
- * At `catch-up`, `caughtUpTo` is the default branch's commit it catches up with, read now (R1).
+ * step its run starts and that step's run step, `runStep`, or the line saying it runs as a chat,
+ * `asChat`, as `sentAsChat` decides. At `catch-up`, `caughtUpTo` is the default branch's commit it
+ * catches up with, read now (R1).
  */
 export async function sendPlace(
   binding: Binding,
   live: { folder: string | null; repo: string },
   workflow: SendInput["workflow"],
-): Promise<{ asChat?: string; branch?: string; caughtUpTo?: string; step: string | null }> {
+): Promise<{
+  asChat?: string;
+  branch?: string;
+  caughtUpTo?: string;
+  runStep?: string;
+  step: string | null;
+}> {
   const { folder, repo } = live;
   if (folder === null) {
     if (workflow) {
@@ -119,8 +124,14 @@ export async function sendPlace(
   if (asChat !== undefined) {
     return { asChat, branch, step: null };
   }
-  const caughtUpTo = next.step.name === CATCH_UP ? next.step.catchUp?.commit : undefined;
-  return { branch, ...(caughtUpTo === undefined ? {} : { caughtUpTo }), step: next.step.name };
+  const { name, runStep } = next.step;
+  const caughtUpTo = name === CATCH_UP ? next.step.catchUp?.commit : undefined;
+  return {
+    branch,
+    ...(caughtUpTo === undefined ? {} : { caughtUpTo }),
+    step: name,
+    ...(runStep === undefined ? {} : { runStep }),
+  };
 }
 
 /**

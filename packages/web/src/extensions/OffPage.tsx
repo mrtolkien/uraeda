@@ -10,7 +10,7 @@ import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { useRepository } from "../routes.tsx";
 import { withOn } from "../settings/extensions.ts";
 import { useExtensionsRecord } from "../settings/useExtensionsRecord.ts";
-import { ExtensionsRecordView } from "../views.ts";
+import { ExtensionsRecordView } from "../settings/settingsViews.ts";
 
 /** The page of the built-in `name`, off in this repository. */
 export function OffPage({ name }: { name: string }) {

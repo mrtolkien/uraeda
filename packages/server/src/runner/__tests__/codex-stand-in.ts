@@ -67,11 +67,14 @@ export const APPLIED = {
 
 /**
  * How a stand-in differs from Codex: the permissions its thread's answers say it applied, whether
- * a turn completes before `turn/start` is answered, a method it never answers, one it refuses, and
- * whether it outlives SIGTERM and the end of its stdin, writing its pid to `<dir>/pid`.
+ * `debug models` fails, how long it takes, whether a turn completes before `turn/start` is
+ * answered, a method it never answers, one it refuses, and whether it outlives SIGTERM and the end
+ * of its stdin, writing its pid to `<dir>/pid`.
  */
 export type StandIn = {
   applied?: Record<string, unknown>;
+  catalogFails?: boolean;
+  catalogMs?: number;
   completesFirst?: boolean;
   hang?: string;
   refuse?: string;
@@ -82,8 +85,11 @@ export type StandIn = {
  * A stand-in for `codex app-server`, which runs no agent: it answers the requests a session makes
  * as Codex 0.163.0 does, from `PAGES` and `CONFIG`. A turn whose text says `ask` sends the client
  * a question and completes once answered; one that says `wait` completes when steered, failed if
- * it says `fail on steer`, the steer then refused; any other completes at once. It writes what it read to `<dir>/stdin`. Its thread's answers say it applied
- * the permissions Uraeda asks for, or what `options.applied` says.
+ * it says `fail on steer`, the steer then refused; any other completes at once. A review,
+ * `review/start`, runs as a turn on its target's instructions. It writes what it
+ * read to `<dir>/stdin`, and its arguments to `<dir>/argv`. Its thread's answers say it applied
+ * the permissions Uraeda asks for, or what `options.applied` says. As `codex debug models`, it
+ * writes its working directory to `<dir>/debug` and prints a one-model catalog.
  */
 export function appServer(dir: string, options: StandIn = {}): string {
   const agent = join(dir, "agent.cjs");
@@ -93,6 +99,18 @@ export function appServer(dir: string, options: StandIn = {}): string {
 const pages = ${JSON.stringify(PAGES)};
 const config = ${JSON.stringify(CONFIG)};
 const applied = ${JSON.stringify({ ...APPLIED, ...options.applied })};
+if (process.argv[2] === "debug") {
+  appendFileSync(${JSON.stringify(join(dir, "debug"))}, process.cwd() + "\\n");
+  setTimeout(() => {
+    if (${options.catalogFails === true}) {
+      process.stderr.write("signed out");
+      process.exit(1);
+    }
+    process.stdout.write(JSON.stringify({ models: [{ multi_agent_version: "v2", slug: "gpt-6-luna" }] }));
+  }, ${options.catalogMs ?? 0});
+  return;
+}
+appendFileSync(${JSON.stringify(join(dir, "argv"))}, JSON.stringify(process.argv.slice(2)) + "\\n");
 if (${options.stubborn === true}) {
   require("node:fs").writeFileSync(${JSON.stringify(join(dir, "pid"))}, String(process.pid));
   process.on("SIGTERM", () => {});
@@ -122,6 +140,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
     case "thread/resume":
       threadId = params.threadId;
       return ok({ ...applied, model: "gpt-6-luna", reasoningEffort: "xhigh", thread: { id: threadId } });
+    case "review/start":
     case "turn/start": {
       const id = "turn-" + ++turns;
       if (${options.completesFirst === true}) {
@@ -131,7 +150,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
       }
       ok({ turn: { id } });
       note("turn/started", { threadId, turn: { id } });
-      const text = params.input[0].text;
+      const text = params.input ? params.input[0].text : params.target.instructions;
       waiting = id;
       waitingText = text;
       if (text.includes("ask")) return out({ id: "ask-1", method: "item/tool/requestUserInput", params: {} });

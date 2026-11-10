@@ -157,10 +157,10 @@ commit.
    what is asked, and an honest time: "Pull request to review, about 20 minutes." Then the points
    needing attention, one line each: a ruling that changes behaviour, the plan's text edited during
    the work, a test removed by ruling, a new dependency, a function or file past a limit, a failure
-   that was already there, a final review done without a fresh reviewer, a second reviewer, how a
-   review comment was carried out, and, for a change, the points settled without asking, where the
-   human checks the reading of the proposal. Its last line: "Once merged, run `ura clean` to remove
-   the worktree, the branch, and the line in the priorities."
+   that was already there, a final review done without a fresh reviewer, the reviewers when there
+   were several, how a review comment was carried out, and, for a change, the points settled without
+   asking, where the human checks the reading of the proposal. Its last line: "Once merged, run
+   `ura clean` to remove the worktree, the branch, and the line in the priorities."
 2. **The record's text**, from its title, without its frontmatter, and with its links made absolute
    at the finishing commit: a relative link or one from the repository root becomes
    `https://<forge>/<owner>/<repo>/blob/<finishing commit>/<path>`, its anchor kept. The body

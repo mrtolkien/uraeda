@@ -2,7 +2,14 @@ import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the catcher's import in a cycle.
-import { atCatchUp, binding, fixtureRepo, testDataDir, testServer } from "./helpers.ts";
+import {
+  atCatchUp,
+  binding,
+  fixtureRepo,
+  testDataDir,
+  testFeatureOptions,
+  testServer,
+} from "./helpers.ts";
 import { type CatchUps, catcher as serverCatcher, startCatchUps } from "../catch-ups.ts";
 import type { Binding, RepoContext } from "../fate/context.ts";
 import { onTurnDone } from "../live.ts";
@@ -30,6 +37,7 @@ function catcher(server: Server, using: Binding, enabled: () => boolean): CatchU
   const context = (repo: string): RepoContext => ({
     binding: using,
     dataDir: server.dataDir,
+    featureOptions: testFeatureOptions(server.dataDir, server.settings, using),
     frames: server.frames,
     hosts: server.hosts,
     previews: server.previews,

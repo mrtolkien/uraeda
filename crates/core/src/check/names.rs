@@ -172,7 +172,8 @@ pub(super) fn check_candidates(root: &Path, dir: &Path, problems: &mut Vec<Probl
 }
 
 /// Whether a change's folder, `specs/changes/<folder>/`, holds an entry of this name: its proposal,
-/// its rounds, its rulings, and its `images/`, `mockups/`, and `screenshots/` folders. The one home
+/// its rounds, its rulings, its reviews' findings, and its `images/`, `mockups/`, and
+/// `screenshots/` folders. The one home
 /// of the rule, for `ura check` and for `ura start --change`.
 pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
     if is_dir {
@@ -181,6 +182,7 @@ pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
         entry == "proposal.md"
             || entry == "rulings.md"
             || (entry.starts_with("clarifications-") && entry.ends_with(".md"))
+            || (entry.starts_with("findings-") && entry.ends_with(".md"))
     }
 }
 
@@ -200,7 +202,8 @@ fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
         rule: "names.change-file".into(),
         message: format!(
             "\"{entry}\" has no place in a change: its folder holds proposal.md, \
-             clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
+             clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/, and \
+             screenshots/."
         ),
         severity: Severity::Error,
         fixable: false,
@@ -241,10 +244,10 @@ pub(super) fn check_change_file(root: &Path, path: &Path, problems: &mut Vec<Pro
     }
 }
 
-/// Checks that discovery and clarifications rounds have two digits.
+/// Checks that discovery, clarifications, and findings rounds have two digits.
 pub(super) fn check_rounds(root: &Path, dir: &Path, names: &[String], problems: &mut Vec<Problem>) {
     for file in names {
-        for prefix in ["discovery-", "clarifications-"] {
+        for prefix in ["discovery-", "clarifications-", "findings-"] {
             let Some(round) = file
                 .strip_prefix(prefix)
                 .and_then(|r| r.strip_suffix(".md"))

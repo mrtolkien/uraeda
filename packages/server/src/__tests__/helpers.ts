@@ -18,11 +18,13 @@ import { livePreviews } from "../live.ts";
 import type { Previews } from "../preview/runner.ts";
 import { type Host, Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
+import { type FeatureOptions, featureOptionsOf } from "../runner/feature-options.ts";
 import type { Sessions } from "../runner/sessions.ts";
+import type { McpOptions } from "../mcp/endpoint.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
-import type { ServerSettings } from "../settings.ts";
+import type { ServerSettings, SettingsEnvironment } from "../settings.ts";
 import type { ServerThemes } from "../themes.ts";
 import { OneTimeLinks } from "../sign-in/links.ts";
 import { SignInStore } from "../sign-in/store.ts";
@@ -105,11 +107,14 @@ export async function testHosts(
   }
   // The session manager may read the hosts while they open: undefined until then.
   const opening: { hosts?: Hosts } = {};
+  // The features' options, once a test's app opened them: the settings' alone until then.
+  const runOptions: { of?: FeatureOptions } = {};
   const { adapter, sessions } = fakeSessions({
     binding: using,
     ...(cache === undefined ? {} : { cache }),
     hosts: () => opening.hosts,
     installed,
+    runOptions: (root, folder) => runOptions.of?.resolved(root, folder) ?? { steps: [] },
   });
   managers.push(sessions);
   const hosts = await Hosts.open({
@@ -120,7 +125,7 @@ export async function testHosts(
   });
   opening.hosts = hosts;
   opened.push(hosts);
-  return { adapter, dataDir, hosts, names: added, sessions };
+  return { adapter, dataDir, hosts, names: added, runOptions, sessions };
 }
 
 /**
@@ -150,16 +155,34 @@ export async function queueWhen(
   }
 }
 
-/** The options of `createApp` a test may add: sign-in and the built UI. */
-type Extra = { signIn?: SignInOptions; webRoot?: string };
+/** The options of `createApp` a test may add: the MCP endpoint's, sign-in, and the built UI. */
+type Extra = { mcp?: McpOptions; signIn?: SignInOptions; webRoot?: string };
+
+/** The features' options of a test's data folder, over its settings, closed after the test. */
+export function testFeatureOptions(
+  dataDir: string,
+  settings: ServerSettings,
+  using: Binding = binding,
+): FeatureOptions {
+  const featureOptions = featureOptionsOf({ binding: using, dataDir, settings });
+  settled.push(featureOptions);
+  return featureOptions;
+}
+
+/** A test app's settings, themes, and the features' options of its data folder `dataDir`. */
+export async function appParts(dataDir: string) {
+  const configured = await appSettings();
+  return { ...configured, featureOptions: testFeatureOptions(dataDir, configured.settings) };
+}
 
 /**
  * The settings and the themes of a test's app on a new config folder, its own, closed after the
- * test: the host names of `--allowed-hosts` given when `allowedHosts` is.
+ * test: the host names of `--allowed-hosts` given when `allowedHosts` is, and the server's
+ * variables of `environment`.
  */
-export async function appSettings(allowedHosts?: Array<string>) {
+export async function appSettings(allowedHosts?: Array<string>, environment?: SettingsEnvironment) {
   const configDir = temporaryFolder("uraeda-config");
-  const settings = await testSettings({ allowedHosts, dir: configDir });
+  const settings = await testSettings({ allowedHosts, dir: configDir, environment });
   settled.push(settings);
   const themes = await testThemes(configDir);
   settled.push(themes);
@@ -168,7 +191,7 @@ export async function appSettings(allowedHosts?: Array<string>) {
 
 function app(
   { settings, themes }: { settings: ServerSettings; themes: ServerThemes },
-  { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
+  { dataDir, hosts, names: [name], runOptions, sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
   lockedList = false,
@@ -176,10 +199,14 @@ function app(
 ) {
   const previews = testPreviews(options);
   const frames = new FrameSecret();
+  const featureOptions = testFeatureOptions(dataDir, settings, using);
+  // Each run starts on its feature's options, as the server's sessions do.
+  runOptions.of = featureOptions;
   const created = createApp({
     allowOrigins: ["http://localhost:5173"],
     binding: using,
     dataDir,
+    featureOptions,
     frames,
     hosts,
     lockedList,
@@ -191,7 +218,7 @@ function app(
     ...extra,
   });
   names.set(created, name);
-  return { app: created, frames, previews };
+  return { app: created, featureOptions, frames, previews };
 }
 
 /**
@@ -254,17 +281,22 @@ export async function testApp<SignedIn extends boolean = false>(
   {
     allowedHosts,
     binding: using = binding,
+    environment,
     hostToken,
     lockedList,
+    mcp,
     previewOptions,
     signIn,
     webRoot,
   }: {
     allowedHosts?: Array<string>;
     binding?: Binding;
+    /** The server's variables the settings read, none by default. */
+    environment?: SettingsEnvironment;
     /** The host token `/open` and `/session/key` accept, with `signIn`. */
     hostToken?: string;
     lockedList?: boolean;
+    mcp?: McpOptions;
     previewOptions?: PreviewOptions;
     /** Whether the app checks sessions: see `TestSignIn`. */
     signIn?: SignedIn;
@@ -280,8 +312,9 @@ export async function testApp<SignedIn extends boolean = false>(
 > {
   const opened = await testHosts([repo], { binding: using, installed: false });
   const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
-  const configured = await appSettings(allowedHosts);
+  const configured = await appSettings(allowedHosts, environment);
   const created = app(configured, opened, using, previewOptions, lockedList, {
+    mcp,
     signIn: signedIn?.options,
     webRoot,
   });
@@ -468,7 +501,19 @@ export function repoContext(parts: {
   themes: ServerThemes;
 }): RepoContext {
   const { dataDir, frames, hosts, previews, repo, sessions, settings, themes } = parts;
-  return { binding, dataDir, frames, hosts, previews, repo, sessions, settings, themes };
+  const featureOptions = featureOptionsOf({ binding, dataDir, settings });
+  return {
+    binding,
+    dataDir,
+    featureOptions,
+    frames,
+    hosts,
+    previews,
+    repo,
+    sessions,
+    settings,
+    themes,
+  };
 }
 
 /** The open pull request a feature that `atStep` or `atCatchUp` wraps reads: #116. */

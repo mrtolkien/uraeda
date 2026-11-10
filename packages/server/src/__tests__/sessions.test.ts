@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
@@ -434,30 +434,6 @@ test("session.send with a fresh workflow message answers with the new session it
   expect(server.adapter.opens).toHaveLength(2);
   expect(server.adapter.opens[1]?.resume).toBe(false);
   expect(server.adapter.opens[1]?.nativeId).not.toBe(server.adapter.opens[0]?.nativeId);
-});
-
-/** The agents decision: a run after a spec's approval sent without `fresh` follows the setting. */
-test("session.send of the plan's message without fresh follows the build_in_fresh_session setting", async () => {
-  for (const on of [true, false]) {
-    const server = await testServer();
-    writeFileSync(
-      join(server.configDir, "config.toml"),
-      `[runs]\nbuild_in_fresh_session = ${on}\n`,
-    );
-    await server.settings.reload();
-    server.adapter.script([]);
-    await settle(server, await send(server, { folder: AGENT, text: "Hello" }));
-    server.adapter.script([]);
-
-    const session = await send(server, {
-      folder: AGENT,
-      text: "/uraeda Continue.",
-      workflow: { trigger: "manual" },
-    });
-    await settle(server, session);
-
-    expect(server.adapter.opens.map((open) => open.resume)).toEqual(on ? [false, false] : [false]);
-  }
 });
 
 test("US3.3: session.seen turns a chat's Needs attention into Idle", async () => {
@@ -1537,8 +1513,28 @@ test("a running session makes its feature Working everywhere, then it follows it
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
 
-  // Its run ends: the feature follows its latest session, which asks until dismissed.
+  // Its run ends while a sub-session of the latest works: Working, from the latest.
   server.sessions.cache.endTurn(running, { state: "done" });
+  const sub = server.sessions.cache.createSession({
+    agent: "fake",
+    folder: AGENT,
+    nativeId: "s",
+    parent: latest.id,
+    repo: latest.repo,
+    role: "implementer",
+    title: "Task 4",
+  });
+  const implementing = doneTurn(server, sub.id, { kind: "workflow", state: "running" });
+  expect(await statusesOf(server, AGENT)).toMatchObject({
+    label: "Working",
+    session: latest.id,
+    status: "working",
+    turn: String(stopped),
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+
+  // It ends: the feature follows its latest session, which asks until dismissed.
+  server.sessions.cache.endTurn(implementing, { state: "done" });
 
   expect(await statusesOf(server, AGENT)).toMatchObject({
     reason: "interrupted",
@@ -1707,17 +1703,27 @@ test("a feature lists no archived session", async () => {
   expect(feature).toEqual({ id: AGENT, sessions: [older.id] });
 });
 
-test("a feature's tokens count every session", async () => {
+test("a feature's tokens count every session, its sub-sessions too", async () => {
   const server = await testServer();
   const counts = { cacheRead: 100, cacheWrite: 20, input: 3, output: 40 };
   const older = await folderSession(server, AGENT);
   doneTurn(server, older.id, { tokens: counts });
   const latest = await folderSession(server, AGENT);
   doneTurn(server, latest.id, { tokens: counts });
+  const sub = server.sessions.cache.createSession({
+    agent: "fake",
+    folder: AGENT,
+    nativeId: "s",
+    parent: latest.id,
+    repo: latest.repo,
+    role: "implementer",
+    title: "Task 1",
+  });
+  doneTurn(server, sub.id, { kind: "workflow", tokens: counts });
 
   const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "tokens"]);
 
-  expect(feature.tokens).toMatchObject({ input: 46, output: 80, partial: false });
+  expect(feature.tokens).toMatchObject({ input: 69, output: 120, partial: false });
 });
 
 test("US3.5: a search for a feature finds every session of it", async () => {

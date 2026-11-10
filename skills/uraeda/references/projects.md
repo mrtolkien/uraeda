@@ -129,8 +129,9 @@ Do these only when a human asks.
   3. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
      `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it.
      Every later step writes on the branch.
-  4. Then run the next step in the same session when you can: [Discovery](discovery.md), round 01,
-     for a proposal alone, or the first matching row of
+  4. Then run the next step in the same session when you can, as
+     [continue to the next human gate](../SKILL.md#finding-the-next-step) says:
+     [Discovery](discovery.md), round 01, for a proposal alone, or the first matching row of
      [the table](../SKILL.md#finding-the-next-step) for a folder. A round left waiting for answers
      stays at its gate. When the human asks for fresh research, start a new round instead, following
      [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).

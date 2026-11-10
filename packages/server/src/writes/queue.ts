@@ -115,30 +115,74 @@ export class WriteQueue {
    * are written: the commits land behind it, and `onQueued` is given whether they all land. Its
    * commits are queued even when it fails after deferring one.
    */
-  async commit<T>(
+  commit<T>(
     keys: Array<string>,
     write: Partial<NewWrite> | undefined,
     call: () => Promise<T>,
     onQueued?: (landed: Promise<boolean>) => void,
   ): Promise<T> {
+    return this.#commit(keys, write, call, (added) => {
+      // A refusal stays in the record: the call answered already.
+      const landed = Promise.allSettled(added.map(({ landed }) => landed)).then((all) =>
+        all.every(({ status }) => status === "fulfilled"),
+      );
+      onQueued?.(landed);
+    });
+  }
+
+  /**
+   * `commit`, answering once the commits `call` deferred landed: it rejects with the first one's
+   * refusal, whose record it removes, as the call answers with it. A call that fails rejects at
+   * once, its commits landing behind it.
+   */
+  async commitLanded<T>(
+    keys: Array<string>,
+    write: Partial<NewWrite> | undefined,
+    call: () => Promise<T>,
+  ): Promise<T> {
+    let added: Array<{ id: string; landed: Promise<unknown> }> = [];
+    const answer = await this.#commit(keys, write, call, (queued) => (added = queued));
+    const all = await Promise.allSettled(added.map(({ landed }) => landed));
+    const refused = all.flatMap((result, index) =>
+      result.status === "rejected" ? [{ id: added[index].id, reason: result.reason }] : [],
+    );
+    for (const { id } of refused) {
+      this.dismiss(id);
+    }
+    if (refused.length > 0) {
+      throw refused[0].reason;
+    }
+    return answer;
+  }
+
+  /**
+   * Runs `call` in its turn, after the queued commits of `keys`, then queues the commits it
+   * deferred, even when it fails, and gives them to `queued`.
+   */
+  async #commit<T>(
+    keys: Array<string>,
+    write: Partial<NewWrite> | undefined,
+    call: () => Promise<T>,
+    queued: (added: Array<{ id: string; landed: Promise<unknown> }>) => void,
+  ): Promise<T> {
     const release = await this.#turn(keys);
     try {
       return await call();
     } finally {
-      const landings = this.#core
+      const added = this.#core
         .takeDeferred()
         .map((deferred) =>
-          this.enqueue(
+          this.add(
             { href: "", label: deferred.subject, ...write },
             (onOutput) => this.#core.land(deferred.id, onOutput),
             keys,
           ),
         );
-      // A refusal stays in the record: the call answered already.
-      const landed = Promise.allSettled(landings).then((all) =>
-        all.every(({ status }) => status === "fulfilled"),
-      );
-      onQueued?.(landed);
+      // A refusal nobody waits for stays in the record.
+      for (const { landed } of added) {
+        landed.catch(() => {});
+      }
+      queued(added);
       release();
     }
   }

@@ -18,12 +18,14 @@ test("every kind of file goes to one stage", () => {
     [{ kind: "plan", name: "plan.md" }, "plan"],
     [{ kind: "review", name: "plan-review.md" }, "plan"],
     [{ kind: "rulings", name: "rulings.md" }, "plan"],
+    [{ kind: "findings", name: "findings-01.md" }, "build"],
     [{ kind: "record", name: "record.md" }, "merged"],
   ] as const;
   for (const [file, stage] of files) {
     expect(stageOf(file, FEATURE), file.name).toBe(stage);
   }
   expect(stageOf({ kind: "rulings", name: "rulings.md" }, CHANGE)).toBe("fix");
+  expect(stageOf({ kind: "findings", name: "findings-01.md" }, CHANGE)).toBe("fix");
 });
 
 /** Review focus 1 */

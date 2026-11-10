@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Outgoing } from "./adapter.ts";
 import type { TurnRow } from "./cache.ts";
+import type { SessionFields } from "./cache-sessions.ts";
 import type { ContinueReason, TurnKind } from "./events.ts";
 import { chatTitle, continueMessage } from "./message.ts";
+import { isStepId, runSession } from "./run-session.ts";
+import { readySession } from "./runtimes.ts";
 import { type checkSend, messageItem, openingOf, sendPlace } from "./send-input.ts";
 import {
   type Live,
@@ -15,76 +18,54 @@ import {
   type SessionContext,
 } from "./session-state.ts";
 
-/** The steps whose run starts a fresh agent session by default: the first after a spec's approval. */
-const FRESH_STEPS = new Set(["approval", "plan"]);
-
 type Checked = ReturnType<typeof checkSend>;
 type Place = Awaited<ReturnType<typeof sendPlace>>;
 
 /**
  * Sends a checked message to the session, under its lock, and returns the session it went to and
- * its turn. A run that starts a fresh agent session goes to a new session of the change or the
- * feature, which becomes its latest: queued there while the session it was sent to works.
- * `available` refuses once the agent is gone. A session of a dropped change or feature is refused:
- * its worktree is gone, and stays gone.
+ * its turn. A workflow run goes to the session `runSession` gives its run step: a new session of
+ * the change or the feature becomes its latest, queued there while the session it was sent to
+ * works. The session the message goes to is refused while its agent is off or gone: a workflow
+ * run's, not the one it was sent to. A session of a dropped change or feature is refused: its
+ * worktree is gone, and stays gone.
  */
 export async function sendTo(
   context: SessionContext,
   live: Live,
   checked: Checked,
-  available: () => void,
 ): Promise<{ session: string; turn: number }> {
   if (ofDropped(rowOf(context.cache, live))) {
     throw refused(REFUSALS.dropped);
   }
   const place = await sendPlace(context.binding, live, checked.workflow);
-  available();
   const workflow = place.asChat === undefined ? checked.workflow : undefined;
-  // The run after a spec's approval follows the setting unless the message says (the agents
-  // decision): a composer may send it before it read the setting.
-  const fresh =
-    workflow?.fresh ??
-    (place.step !== null && FRESH_STEPS.has(place.step) && (workflow?.freshByDefault ?? true));
-  // A session that never ran is as new as a new one.
-  if (!fresh || live.folder === null || context.cache.turns(live.id).length === 0) {
-    return deliver(context, live, checked, place, false);
+  if (workflow === undefined || live.folder === null || !isStepId(place.runStep)) {
+    readySession(context.runtimes, rowOf(context.cache, live));
+    return deliver(context, live, checked, place, { behind: false, fields: {} });
   }
-  const { binding, cache } = context;
   const behind = live.turn !== undefined || live.queue.length > 0;
-  // Refused before the new session exists: a refused run leaves no empty session as the latest.
-  if (context.live.moving(live)) {
-    throw refused(REFUSALS.agentWorking);
+  const { fields, live: next } = await runSession(context, live, place.runStep, workflow.fresh);
+  readySession(context.runtimes, { ...rowOf(context.cache, next), ...fields });
+  if (next === live) {
+    return deliver(context, live, checked, place, { behind: false, fields });
   }
-  if (!behind && context.live.otherWorking(live, { queued: true })) {
-    const { kind } = await binding.readFeature(live.repo, live.folder);
-    throw refused(REFUSALS.otherWorking(kind));
-  }
-  // The new session runs on the runtime, the model, and the effort of the one the run was sent to.
-  const { agent, effort, model } = rowOf(cache, live);
-  const row = cache.createSession({
-    agent,
-    effort,
-    folder: live.folder,
-    model,
-    nativeId: randomUUID(),
-    repo: live.repo,
-    title: null,
-  });
-  const next = context.live.of(row);
-  return context.live.serial(next, () => deliver(context, next, checked, place, behind));
+  return context.live.serial(next, () =>
+    deliver(context, next, checked, place, { behind, fields }),
+  );
 }
 
 /**
  * Sends the message in this session: steered into its turn, queued after it, or starting one. A
  * session whose change or feature works in another session is refused, or, `behind` it, queued;
- * one that a move or a drop holds, or that a drop archived, is refused.
+ * one that a move or a drop holds, or that a drop archived, is refused. The session takes
+ * `fields`, a workflow run's pick, once no refusal is left, before its turn queues or starts.
  */
 async function deliver(
   context: SessionContext,
   live: Live,
   { held, opening: given, paths, text, workflow: sent }: Checked,
   { asChat, branch, caughtUpTo, step }: Place,
-  behind: boolean,
+  { behind, fields }: { behind: boolean; fields: SessionFields },
 ): Promise<{ session: string; turn: number }> {
   const { binding, cache, changed, processes, turns } = context;
   const workflow = asChat === undefined ? sent : undefined;
@@ -106,14 +87,7 @@ async function deliver(
     const { kind } = await binding.readFeature(live.repo, live.folder as string);
     throw refused(REFUSALS.otherWorking(kind));
   }
-  const row = rowOf(cache, live);
-  if (row.folder === null && row.title === null) {
-    cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
-  }
-  // An archived chat comes back with a message: a dropped change's session was refused above.
-  if (row.archivedAt !== null) {
-    cache.updateSession(row.id, { archivedAt: null });
-  }
+  reopened(cache, live, text, paths.length > 0);
   const id = randomUUID();
   const origin = workflow ? "workflow" : "human";
   // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
@@ -128,6 +102,10 @@ async function deliver(
 
   const opening = given ?? (workflow ? undefined : await openingOf(context, live, branch));
   unmoved();
+  if (Object.keys(fields).length > 0) {
+    cache.updateSession(live.id, fields);
+    changed(live);
+  }
   const item: Message = {
     ...messageItem(id, origin, text),
     ...(opening === undefined ? {} : { opening }),
@@ -177,6 +155,25 @@ async function deliver(
     if (live.turn === undefined) {
       turns.wake(live);
     }
+  }
+}
+
+/**
+ * Titles a chat without a title by its message, `text`, sent with images when `withImages`, and
+ * brings an archived session back: a dropped change's session was refused before.
+ */
+function reopened(
+  cache: SessionContext["cache"],
+  live: Live,
+  text: string,
+  withImages: boolean,
+): void {
+  const row = rowOf(cache, live);
+  if (row.folder === null && row.title === null) {
+    cache.updateSession(row.id, { title: chatTitle(text, withImages) });
+  }
+  if (row.archivedAt !== null) {
+    cache.updateSession(row.id, { archivedAt: null });
   }
 }
 

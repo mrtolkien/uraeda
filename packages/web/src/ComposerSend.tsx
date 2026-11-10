@@ -132,12 +132,12 @@ export function sendButtons({
 }
 
 /**
- * The composer's footer: the controls of the workflow's run while it holds its message, else the
- * paperclip, `attach`, and the recommended message, unless the composer is unavailable; and, for a
- * message that makes its session, the runtime `picker` first.
+ * The composer's footer: while it holds the workflow's message, only the runtime `picker` of a
+ * message that makes its session; else the paperclip, `attach`, and the recommended message,
+ * unless the composer is unavailable, after the `picker`.
  */
 export function footerActions(
-  { folder, options, recommended, workflow }: ComposerProps,
+  { folder, recommended, workflow }: ComposerProps,
   attach: ReactNode,
   {
     insert,
@@ -146,14 +146,7 @@ export function footerActions(
   }: { insert: (message: Inserted) => void; picker?: ReactNode; unavailable?: string },
 ) {
   if (workflow) {
-    return picker ? (
-      <HStack align="center" gap={2} wrap="wrap">
-        {picker}
-        {options}
-      </HStack>
-    ) : (
-      options
-    );
+    return picker;
   }
   // Read on its own: the composer draws before the recommendation.
   const offer = recommended && folder !== undefined && !unavailable && (

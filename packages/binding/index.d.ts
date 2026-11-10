@@ -134,6 +134,13 @@ export declare function checkedPort(typed: string): number
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
+/**
+ * Throws `refused: ` and the problem when `options` holds a step not of the workflow's, a step
+ * twice, a depth not `waves` or `branch`, an empty agent, or a reviewer without exactly one of an
+ * agent and a command, or with an empty command. It reads nothing, so it returns at once.
+ */
+export declare function checkRunOptions(options: RunOptions): void
+
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
 
@@ -381,6 +388,13 @@ export declare function land(repo: string, id: string, onOutput: (line: string) 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
 
+/**
+ * A feature's run options over the settings' defaults: each value the feature sets wins, but for
+ * the defaults' model and effort, dropped where the feature picks another agent, and its reviewers,
+ * when it lists any, replace the defaults' list whole. It reads nothing, so it returns at once.
+ */
+export declare function mergeRunOptions(defaults: RunOptions, feature: RunOptions): RunOptions
+
 /** Moves a note to the end of a category, or of the notes without one. */
 export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null, undo?: string | undefined | null): Promise<Inbox>
 
@@ -607,11 +621,26 @@ export declare function renameCategory(repo: string, from: string, to: string, p
 /** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
 
-/** Commits again what a hook refused to commit: a submitted round, or a verdict. */
+/**
+ * The full ID of the commit `revision` names in the working tree at `dir`, a feature's worktree:
+ * `HEAD`, a branch, or a short ID. Rejects with `refused: ` when it names no commit.
+ */
+export declare function resolveCommit(dir: string, revision: string): Promise<string>
+
+/**
+ * Commits again what a hook refused to commit: a submitted round, a review's findings, or a
+ * verdict.
+ */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
 
 /** Commits the answered round `id` again, after a hook refused its submit. */
 export declare function retryRound(repo: string, id: string): Promise<FileView>
+
+/**
+ * The run step a workflow step belongs to, by the step's name, as `NextView.step.runStep` gives
+ * it: none for a step outside every run, or a name no step has.
+ */
+export declare function runStepOf(step: string): string | null
 
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
@@ -652,9 +681,6 @@ export declare function saveText(repo: string, path: string, text: string, previ
 /** Sets the automatic continues in a row, from the text typed. */
 export declare function setAutomaticContinues(dir: string, continues: string): Promise<Settings>
 
-/** Sets whether the run after a spec's approval starts in a new agent session. */
-export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
-
 /**
  * Sets whether a kind of automatic run is on: the continue after a restart or after a usage
  * limit, or the catch-up of open pull requests.
@@ -687,6 +713,13 @@ export declare function setOpenBrowser(dir: string, open: boolean): Promise<Sett
 
 /** Sets the port, from the text typed. */
 export declare function setPort(dir: string, port: string): Promise<Settings>
+
+/**
+ * Replaces the run options of the settings file with `options`, writing only the values set, and
+ * removes the old `build_in_fresh_session`. Rejects with `refused: ` the options `checkRunOptions`
+ * refuses.
+ */
+export declare function setRunOptions(dir: string, options: RunOptions): Promise<Settings>
 
 /** Sets whether the keys of one printable character act in the web UI. */
 export declare function setSingleKeyShortcuts(dir: string, on: boolean): Promise<Settings>
@@ -782,6 +815,15 @@ export declare function watch(repo: string, onChange: (changes: Changes) => void
 
 /** The directory an agent works on a feature in, its worktree created when none has its branch. */
 export declare function workDir(repo: string, folder: string): Promise<string>
+
+/**
+ * Writes the next `findings-NN.md` in the folder of the feature's worktree, and commits it alone,
+ * as `review(<slug>): findings NN`: other changes of the worktree stay out of the commit. Resolves
+ * to its path from the repository's top level. Rejects with `refused: ` findings without a
+ * section, a `reviewed` not `branch` or `wave <N>`, or `commits` not two commit IDs. A hook's
+ * refusal leaves the file written, to be committed with `retryCommit(repo, folder, name)`.
+ */
+export declare function writeFindings(repo: string, folder: string, findings: Findings): Promise<string>
 
 /**
  * Whether "Add and commit" committed its file: `reason` is `other-changes` when the file had
@@ -1411,6 +1453,25 @@ export interface FileView {
 }
 
 /**
+ * The findings of one review: what was reviewed, `wave 2` or `branch`, the range of commits
+ * reviewed, `<base>..<head>` by their IDs, and each reviewer's section, in the order they ran.
+ */
+export interface Findings {
+  reviewed: string
+  commits: string
+  sections: Array<FindingsSection>
+}
+
+/**
+ * A reviewer's section: its name, as the run map shows it, "Codex · GPT-6.1-Sol", and its findings
+ * as it wrote them, a markdown list.
+ */
+export interface FindingsSection {
+  reviewer: string
+  text: string
+}
+
+/**
  * What a diff is of: a commit of the main checkout's history, else a group's working tree, the
  * main checkout's for no folder.
  */
@@ -1754,6 +1815,11 @@ export interface NextStepView {
   planReview?: boolean
   /** The default branch's commit to catch up with, at `catch-up`. */
   catchUp?: CatchUpView
+  /**
+   * The run step it belongs to, `discovery`, `spec`, `plan`, `build`, `review`, or `comments`:
+   * absent for a step no agent runs, as a gate.
+   */
+  runStep?: string
 }
 
 /** A feature, its branch, and its next step, with the main checkout's path. */
@@ -2055,6 +2121,18 @@ export interface ReviewAnswer {
   block: number
 }
 
+/** A reviewer, a table of `[[runs.reviewers]]`: an agent, or a command the human wrote. */
+export interface ReviewerOptions {
+  /** An agent reviewer's runtime; absent on a command reviewer. */
+  agent?: string
+  model?: string
+  effort?: string
+  /** Text added to the review's prompt. */
+  instructions?: string
+  /** A command reviewer's shell command, run in the feature's worktree. */
+  command?: string
+}
+
 export interface ReviewItems {
   verdict: string
   commit: string
@@ -2129,10 +2207,33 @@ export interface RunningFeature {
   step: StepView
 }
 
+/**
+ * The run options a settings file or a feature holds, every value optional: what was picked,
+ * nothing resolved.
+ */
+export interface RunOptions {
+  /** The steps with an option set, in the workflow's order. */
+  steps: Array<StepOptions>
+  /** The agent, model, and effort of the build's implementers. */
+  implementers?: RunPick
+  /**
+   * The reviewers, in the order they run: one agent reviewer on the review step's agent, on
+   * its defaults, when unset or empty.
+   */
+  reviewers?: Array<ReviewerOptions>
+  /** `waves`, each wave and the branch, or `branch`: `waves` when unset. */
+  reviewDepth?: string
+}
+
+/** An agent, a model, and an effort picked for a role, like the implementers'. */
+export interface RunPick {
+  agent?: string
+  model?: string
+  effort?: string
+}
+
 /** The `[runs]` table: how the workflow's runs start. */
 export interface RunSettings {
-  /** Whether the run after a spec's approval starts in a new agent session. */
-  buildInFreshSession?: boolean
   /** Whether a run the server's restart cut continues by itself: `true` when unset. */
   continueAfterRestart?: boolean
   /** Whether a run a session limit stopped continues at its reset: `true` when unset. */
@@ -2144,6 +2245,11 @@ export interface RunSettings {
    * when unset.
    */
   catchUpPullRequests?: boolean
+  /**
+   * Each step's agent, model, effort, and session, the implementers, and the reviewers: the
+   * `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
+   */
+  options: RunOptions
 }
 
 export interface Scenario {
@@ -2411,6 +2517,23 @@ export interface StartStepView {
 export interface StepItem {
   block: number
   checked: boolean
+}
+
+/** One step's options, a table `[runs.steps.<step>]`. */
+export interface StepOptions {
+  /** The step: `discovery`, `spec`, `plan`, `build`, `review`, or `comments`. */
+  step: string
+  /** The agent's runtime, like `claude` or `codex`. */
+  agent?: string
+  /** A model the agent lists. */
+  model?: string
+  /** An effort the model takes. */
+  effort?: string
+  /**
+   * Whether the step starts a clean session: `true` for `plan` when unset, ignored on
+   * `discovery`.
+   */
+  newSession?: boolean
 }
 
 export interface StepView {

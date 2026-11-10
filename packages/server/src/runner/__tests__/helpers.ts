@@ -1,12 +1,16 @@
 import { vi } from "vite-plus/test";
+import type { RunOptions } from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { Binding } from "../../fate/context.ts";
+import type { ServerAddress } from "../../mcp/endpoint.ts";
+import type { McpTokens } from "../../mcp/tokens.ts";
 import { SessionCache } from "../cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
 import type { Denial, Limit } from "../events.ts";
 import { FakeAdapter } from "../fake.ts";
 import { type Runtimes, runtimesOf } from "../runtimes.ts";
 import { type SessionChange, Sessions } from "../sessions.ts";
+import type { WriteQueue } from "../../writes/queue.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -21,18 +25,26 @@ export function flush() {
  * Its timers are fake: a test moves them with `vi.advanceTimersByTime`. `binding` replaces the real
  * one, as to hold a call. Its automatic continues are off, unless `runs` turns them on (R4);
  * `onChange` sees each change as it is published, with the cache as it is then. Its fake adapter is
- * the runtime `fake`, unless `runtimes` gives others.
+ * the runtime `fake`, unless `runtimes` gives others. `runOptions` gives each feature's run options,
+ * the defaults when left out. `mcp` gives its workflow processes Uraeda's tools. `queue` gives a
+ * repository's write queue, as for a repository the server hosts.
  */
 export async function testSessions(
   repo = fixtureRepo(),
   {
     binding: through = binding,
+    mcp,
     onChange,
+    queue,
+    runOptions,
     runs = () => CONTINUES_OFF,
     runtimes,
   }: {
     binding?: Binding;
+    mcp?: { address: ServerAddress; tokens: McpTokens };
     onChange?: (change: SessionChange, cache: SessionCache) => void;
+    queue?: (repo: string) => WriteQueue | undefined;
+    runOptions?: (repo: string, folder: string) => RunOptions;
     runs?: () => ContinueSettings;
     runtimes?: Runtimes;
   } = {},
@@ -44,10 +56,13 @@ export async function testSessions(
   const sessions = new Sessions({
     binding: through,
     cache,
+    ...(mcp === undefined ? {} : { mcp }),
     onChange: (change) => {
       changes.push(change);
       onChange?.(change, cache);
     },
+    ...(queue === undefined ? {} : { queue }),
+    ...(runOptions === undefined ? {} : { runOptions }),
     runs,
     runtimes: runtimes ?? runtimesOf({ fake: adapter }),
   });

@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-19
 pull-request: https://github.com/mrtolkien/uraeda/pull/42
+superseded-by: [2026-11-08-run-options]
 ---
 
 # Record: Redesign feature and change pages
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/42
 > The record of a merged feature, not instructions to follow. Started on 2026-10-18, finished on
 > 2026-10-19, in [its pull request](https://github.com/mrtolkien/uraeda/pull/42). Its full files are
 > in git: `git log -- specs/2026-10-18-redesign-feature/`.
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

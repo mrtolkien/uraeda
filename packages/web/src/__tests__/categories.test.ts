@@ -5,7 +5,9 @@ import { CATEGORIES, shownLabels } from "../settings/categories.ts";
 
 test.each([
   ["host", [["Allowed host names", "Server"]]],
-  ["FRESH", [["Build in a fresh session", "Runs"]]],
+  // The run map's row, by the old setting's words and by what it sets.
+  ["FRESH", [["How each step runs", "Runs"]]],
+  ["reviewer", [["How each step runs", "Runs"]]],
   // The continues' switches and their cap, under Runs.
   [
     "Continue",

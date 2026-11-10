@@ -4,13 +4,14 @@ import { expect, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { OpenOptions } from "../adapter.ts";
 import { MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
+import { CodexAdapter, codexModels } from "../codex.ts";
 import {
-  CodexAdapter,
   codexInstructions,
-  codexModels,
+  codexServerArgs,
   codexThreadParams,
   codexTurnParams,
-} from "../codex.ts";
+} from "../codex-thread.ts";
+import { TOKEN_VARIABLE, TOOL_TIMEOUT_MS } from "../uraeda-tools.ts";
 import {
   alive,
   APPLIED,
@@ -43,6 +44,40 @@ test("a thread's permissions", () => {
     projects: { "/w": { trust_level: "untrusted" } },
   });
   expect(JSON.stringify(params)).not.toMatch(/danger|"never"/i);
+  // A workflow session gets Uraeda's tools, approved and parallel, and none of its sub-agents.
+  const tools = { token: "secret-token", url: "http://127.0.0.1:4000/mcp" };
+  const workflow = codexThreadParams({ ...open, tools }, "instructions", "trusted");
+  expect(workflow.config).toEqual({
+    mcp_servers: {
+      uraeda: {
+        bearer_token_env_var: TOKEN_VARIABLE,
+        default_tools_approval_mode: "approve",
+        supports_parallel_tool_calls: true,
+        tool_timeout_sec: TOOL_TIMEOUT_MS / 1000,
+        url: "http://127.0.0.1:4000/mcp",
+      },
+    },
+    projects: { "/w": { trust_level: "trusted" } },
+  });
+  expect(TOOL_TIMEOUT_MS).toBeGreaterThanOrEqual(60 * 60 * 1000);
+  // The token reaches Codex through its environment, never its configuration.
+  expect(JSON.stringify(workflow)).not.toContain("secret-token");
+  // Its sub-agents are off through the catalog the process runs on: a chat keeps Codex's own.
+  const catalog = ["app-server", "-c", 'model_catalog_json="/data/codex-catalog/models.json"'];
+  expect(codexServerArgs(tools, "/data/codex-catalog/models.json")).toEqual(catalog);
+  expect(codexServerArgs("none", "/data/codex-catalog/models.json")).toEqual(catalog);
+  expect(codexServerArgs(undefined, "/data/codex-catalog/models.json")).toEqual(["app-server"]);
+  // A sub-session gets no Uraeda tool; the permissions stay either way.
+  const sub = codexThreadParams({ ...open, tools: "none" }, "instructions");
+  expect(sub).not.toHaveProperty("config");
+  for (const each of [workflow, sub]) {
+    expect(each).toMatchObject({
+      approvalPolicy: "on-request",
+      approvalsReviewer: "auto_review",
+      sandbox: "workspace-write",
+    });
+    expect(JSON.stringify(each)).not.toMatch(/danger|"never"/i);
+  }
   const resumed = codexThreadParams({ ...open, resume: true }, "instructions");
   expect(resumed).toMatchObject({ excludeTurns: true, threadId: "id" });
   expect(resumed).not.toHaveProperty("model");
@@ -250,6 +285,33 @@ test("a resumed thread on the default effort is given it, as it may keep another
   agent.close();
   await until(events, "exit");
   expect(turnEfforts(dir)).toEqual(["high"]);
+});
+
+test("a review starts review/start on a custom target, on the effort its new thread starts on", async () => {
+  const dir = temporaryFolder("uraeda-codex");
+  const adapter = new CodexAdapter({ command: appServer(dir), pluginDir: "/p" });
+  const agent = adapter.open({ ...open, cwd: dir, effort: "low" });
+  const events = agent.events[Symbol.asyncIterator]();
+  const review = adapter.reviewMessage({
+    base: "abc",
+    head: "def",
+    instructions: "Look at errors.",
+  });
+  agent.send({ ...message("m1", review.text), review: review.review });
+  expect(await until(events, "result")).toContainEqual({ id: "m1", type: "accepted" });
+  agent.close();
+  await until(events, "exit");
+
+  const requests = written(dir).filter((line) => line.method !== undefined);
+  const thread = requests.find((line) => line.method === "thread/start");
+  expect(thread?.params).toMatchObject({ config: { model_reasoning_effort: "low" } });
+  const reviews = requests.filter((line) => line.method === "review/start");
+  expect(reviews.map((line) => line.params)).toEqual([
+    { target: { instructions: review.text, type: "custom" }, threadId: "t-1" },
+  ]);
+  expect(review.text).toContain("abc..def");
+  expect(review.text).toContain("Look at errors.");
+  expect(requests.some((line) => line.method === "turn/start")).toBe(false);
 });
 
 test("a turn that completes before its start is answered still accepts its message", async () => {

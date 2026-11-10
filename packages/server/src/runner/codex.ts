@@ -9,7 +9,8 @@ import type {
   Capabilities,
   ModelList,
   OpenOptions,
-  Outgoing,
+  ReviewAsk,
+  ReviewMessage,
 } from "./adapter.ts";
 import {
   type Child,
@@ -19,14 +20,25 @@ import {
   MODELS_TIMEOUT_MS,
   spawnGrouped,
 } from "./child.ts";
+import { type Catalog, catalogNotice, CodexCatalogs } from "./codex-catalog.ts";
 import { CodexEvents, type CodexNotification } from "./codex-events.ts";
 import { appliedProblem, codexTrust, gitMainRoot } from "./codex-permissions.ts";
 import { hasRollout } from "./codex-rollouts.ts";
 import { CodexRpc } from "./codex-rpc.ts";
 import { CodexTurns } from "./codex-turns.ts";
 import { effortName } from "./efforts.ts";
+import { toolsEnv } from "./uraeda-tools.ts";
 import type { AgentEvent } from "./events.ts";
-import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
+import type { ExtensionPaths } from "./instructions.ts";
+import {
+  codexInput,
+  codexInstructions,
+  codexReview,
+  codexReviewParams,
+  codexServerArgs,
+  codexThreadParams,
+  codexTurnParams,
+} from "./codex-thread.ts";
 
 /**
  * Codex, run through its installed `codex` command's `app-server`, its own JSON-RPC protocol over
@@ -47,81 +59,6 @@ const isJson = (value: unknown): value is Json =>
 const textOf = (value: unknown): string | undefined =>
   typeof value === "string" && value !== "" ? value : undefined;
 const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-/**
- * The sandbox's section of the instructions: what Codex cannot do without escalating, so it asks
- * its reviewer instead of failing, or working around the sandbox. The extensions folder is not
- * writable: Uraeda runs what it holds, so each write there is reviewed first (R22).
- */
-function sandboxSection(extensions: string | undefined): string {
-  const folder =
-    extensions === undefined
-      ? ""
-      : ` Writing in \`${extensions}\`, your extensions folder, needs escalated permissions too, from its first try.`;
-  return `
-# Sandbox
-
-Your commands run in a sandbox: you write in the working directory only, git's own folder is read-only, and the network is off. So run every git command that writes, as \`git add\`, \`git commit\`, \`git mv\`, and \`git worktree add\`, and every command that uses the network, as \`git push\` and \`gh\`, with escalated permissions from its first try (\`sandbox_permissions: "require_escalated"\`, with a one-line justification): a reviewer approves each before it runs, and you are allowed to ask.${folder} Never work around the sandbox, and never stop at a git command the sandbox refused: run it again with escalated permissions.
-`;
-}
-
-/** The developer instructions of every thread: the web UI's, then the sandbox's. */
-export function codexInstructions(extensions?: ExtensionPaths): string {
-  return `${webUiInstructions(extensions)}${sandboxSection(extensions?.folder)}`;
-}
-
-/**
- * The parameters of a session's `thread/start`, or `thread/resume` when resuming: the model when
- * picked, the session's directory, and Codex's permissions, its `workspace-write` sandbox, its
- * approvals on request, reviewed by its automatic reviewer. The one configuration override is the
- * trust of the session's directory, when known, the level Codex would apply itself: without it,
- * Codex writes it to the user's settings (R24). Never another, which could widen the permissions.
- */
-export function codexThreadParams(options: OpenOptions, instructions: string, trust?: string) {
-  return {
-    approvalPolicy: "on-request",
-    approvalsReviewer: "auto_review",
-    ...(trust === undefined
-      ? {}
-      : { config: { projects: { [options.cwd]: { trust_level: trust } } } }),
-    cwd: options.cwd,
-    developerInstructions: instructions,
-    sandbox: "workspace-write",
-    ...(options.model === undefined ? {} : { model: options.model }),
-    // A resumed thread's turns stay unread: the transcript has them.
-    ...(options.resume ? { excludeTurns: true, threadId: options.nativeId } : {}),
-  };
-}
-
-/** A message's input items: its text, then its images by their paths. */
-export function codexInput({ images, text }: Pick<Outgoing, "images" | "text">) {
-  return [
-    ...(text === "" ? [] : [{ text, text_elements: [], type: "text" }]),
-    ...images.map(({ path }) => ({ path, type: "localImage" })),
-  ];
-}
-
-/** A turn to start: its thread, its message, and the effort when set. */
-export type CodexTurn = Pick<Outgoing, "images" | "text"> & { effort?: string; threadId: string };
-
-/**
- * The parameters of a `turn/start`: the message, the effort when set, and the sandbox's policy,
- * which writes only the session's directory, the network off: no other writable root (R22).
- */
-export function codexTurnParams({ effort, threadId, ...message }: CodexTurn) {
-  return {
-    input: codexInput(message),
-    sandboxPolicy: {
-      excludeSlashTmp: false,
-      excludeTmpdirEnvVar: false,
-      networkAccess: false,
-      type: "workspaceWrite",
-      writableRoots: [],
-    },
-    threadId,
-    ...(effort === undefined ? {} : { effort }),
-  };
-}
 
 /** The rows of `model/list` pages offered in a picker: each but the hidden ones. */
 function shownRows(rows: unknown): Array<Json & { model: string }> {
@@ -193,25 +130,50 @@ async function listAndConfig(rpc: CodexRpc): Promise<{ config: unknown; rows: Ar
   return { config, rows };
 }
 
-/** A running `codex app-server`, its channel, and its lines read as they come. */
-type AppServer = Child & { rpc: CodexRpc; started: Promise<unknown> };
+/** A `codex app-server`, its channel, and its lines read as they come, once it started. */
+type AppServer = {
+  /** Closes its stdin. */
+  endInput(): void;
+  rpc: CodexRpc;
+  /** Signals its process group. */
+  signal(name: NodeJS.Signals): void;
+  /** The process, once it started. */
+  spawned: Promise<Child>;
+  started: Promise<unknown>;
+};
 
 /**
  * Starts `codex app-server` in `cwd`, in a process group of its own, and introduces the client:
  * `initialize`, asking for the experimental API, then `initialized`. Each notification goes to
- * `heard`, and `ended` runs once its output closed, with the exit event.
+ * `heard`, and `ended` runs once its output closed, with the exit event. It runs with `args`,
+ * `app-server` by default, once they are known, and `env` added to its environment: what is
+ * written or signalled before waits for its start.
  */
 function appServer(
   command: string,
   cwd: string,
   heard: (notification: CodexNotification) => void,
   ended: (exit: Extract<AgentEvent, { type: "exit" }>) => void,
+  {
+    args = ["app-server"],
+    env,
+  }: { args?: Array<string> | Promise<Array<string>>; env?: Record<string, string> } = {},
 ): AppServer {
-  const child = spawnGrouped(command, ["app-server"], cwd);
-  const rpc = new CodexRpc(child.write);
+  let child: Child | undefined;
+  const waiting: Array<(child: Child) => void> = [];
+  const once = (act: (child: Child) => void) => (child ? act(child) : waiting.push(act));
+  const rpc = new CodexRpc((value) => once((running) => running.write(value)));
+  const spawned = (async () => {
+    child = spawnGrouped(command, await args, cwd, env);
+    for (const act of waiting.splice(0)) {
+      act(child);
+    }
+    return child;
+  })();
   void (async () => {
+    const { child: output, exited } = await spawned;
     try {
-      for await (const line of lines(child.child.stdout)) {
+      for await (const line of lines(output.stdout)) {
         const notification = rpc.read(line);
         if (notification !== undefined) {
           heard(notification);
@@ -220,7 +182,7 @@ function appServer(
     } catch {
       // A process that failed to start has no output.
     }
-    const exit = await child.exited;
+    const exit = await exited;
     rpc.end(exit.missing ? `Codex is not available: ${exit.stderr}` : "Codex exited");
     ended(exit);
   })();
@@ -232,10 +194,22 @@ function appServer(
     .then(() => rpc.notify("initialized"));
   // A failure shows where the start is awaited.
   started.catch(() => {});
-  return { ...child, rpc, started };
+  return {
+    endInput: () => once((running) => running.child.stdin.end()),
+    rpc,
+    signal: (name) => once((running) => running.signal(name)),
+    spawned,
+    started,
+  };
 }
 
 export type CodexAdapterOptions = {
+  /**
+   * The folder of Codex's model catalog without its sub-agents, which workflow sessions and
+   * sub-sessions run on, `<data folder>/codex-catalog`: never in Codex's home. Without it, they run
+   * on Codex's own catalog.
+   */
+  catalogDir?: string;
   /** Codex's home folder, where it keeps its threads: `$CODEX_HOME`, else `~/.codex`. */
   codexHome?: string;
   /** The command to run, `codex` from the `PATH` by default. */
@@ -264,6 +238,7 @@ export class CodexAdapter implements Adapter {
     subagents: false,
     takeBack: true,
   };
+  #catalogs: CodexCatalogs | undefined;
   #command: string;
   #codexHome: string;
   #extensions: ExtensionPaths | undefined;
@@ -271,12 +246,14 @@ export class CodexAdapter implements Adapter {
   #startTimeoutMs: number;
 
   constructor({
+    catalogDir,
     codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex"),
     command = "codex",
     extensions,
     pluginDir,
     startTimeoutMs = START_TIMEOUT_MS,
   }: CodexAdapterOptions) {
+    this.#catalogs = catalogDir === undefined ? undefined : new CodexCatalogs(command, catalogDir);
     this.#codexHome = codexHome;
     this.#command = command;
     this.#extensions = extensions;
@@ -329,13 +306,44 @@ export class CodexAdapter implements Adapter {
       return codexModels(rows, config);
     } finally {
       clearTimeout(timer);
-      endShortProcess(server);
+      void server.spawned.then(endShortProcess);
     }
+  }
+
+  /**
+   * The catalog without sub-agents a workflow session or a sub-session runs on, written afresh as
+   * it opens, or why it could not be written: none for a chat.
+   */
+  async #catalog(options: OpenOptions): Promise<Catalog | undefined> {
+    if (options.tools === undefined) {
+      return undefined;
+    }
+    if (this.#catalogs === undefined) {
+      process.stderr.write("Codex's sub-agents stay on in this session: no catalog folder\n");
+      return { problem: "no catalog folder" };
+    }
+    return this.#catalogs.write(options.cwd);
+  }
+
+  /**
+   * The arguments of the session's process, once its catalog is known: one that could not be
+   * written says so in the session, as Codex's own sub-agents may then run.
+   */
+  async #serverArgs(options: OpenOptions, push: (event: AgentEvent) => void) {
+    const catalog = await this.#catalog(options);
+    if (catalog !== undefined && "problem" in catalog) {
+      push({ text: catalogNotice(catalog.problem), type: "notice" });
+    }
+    return codexServerArgs(options.tools, catalog && "path" in catalog ? catalog.path : undefined);
   }
 
   /** The skill folders Codex reads besides its own: Uraeda's, then the extensions'. */
   #skillRoots(options: OpenOptions): Array<string> {
     return [join(this.#pluginDir, "skills"), ...options.skills];
+  }
+
+  reviewMessage(ask: ReviewAsk): ReviewMessage {
+    return codexReview(ask);
   }
 
   open(options: OpenOptions): AgentProcess {
@@ -367,6 +375,10 @@ export class CodexAdapter implements Adapter {
         events.push(exit);
         events.end();
       },
+      {
+        args: this.#serverArgs(options, push),
+        env: toolsEnv(options.tools),
+      },
     );
     let closing = false;
     const thread = this.#bounded(server, this.#begin(server, options, names)).then(
@@ -391,9 +403,10 @@ export class CodexAdapter implements Adapter {
     );
     const turns = new CodexTurns(
       {
-        endInput: () => server.child.stdin.end(),
+        endInput: server.endInput,
         input: codexInput,
         push,
+        reviewParams: codexReviewParams,
         rpc: server.rpc,
         thread,
         turnParams: (message, threadId, effort) =>

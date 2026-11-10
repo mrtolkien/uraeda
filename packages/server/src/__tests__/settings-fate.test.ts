@@ -1,5 +1,7 @@
-// The `Settings` record and its eleven changes, on every endpoint: the values in force, the file's,
-// and their sources; the core's refusals; and the live update each change sends (review focus 2).
+// The `Settings` record and its changes, on every endpoint: the values in force, the file's, and
+// their sources; the core's refusals; and the live update each change sends (review focus 2). And a
+// feature's own run options, which its record shows with the core's merge over the settings', sent
+// again as the settings change.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
@@ -7,6 +9,7 @@ import { live } from "../fate.ts";
 import { binding, byIdAt, fateAt, testApp } from "./helpers.ts";
 
 const MAC = "mac.tail1234.ts.net";
+const FEATURE = "2026-10-12-cli-tuis";
 const SELECT = ["id", "file", "problem", "keyboard", "runs", "server"];
 
 type Opened = Awaited<ReturnType<typeof testApp>>;
@@ -25,8 +28,8 @@ async function change(opened: Opened, mutation: string, input: unknown) {
   return result;
 }
 
-/** The `Settings` updates a bus's `update` gets from now on. */
-function heard(bus: { update: (...args: Array<never>) => void }) {
+/** The updates of records of `type`, `Settings` by default, a bus's `update` gets from now on. */
+function heard(bus: { update: (...args: Array<never>) => void }, type = "Settings") {
   const update = vi.spyOn(bus, "update");
   // The global bus's spy is shared by the tests of this file: its earlier calls are not heard.
   const from = update.mock.calls.length;
@@ -34,7 +37,7 @@ function heard(bus: { update: (...args: Array<never>) => void }) {
     update.mock.calls
       .slice(from)
       .map(([type, id]) => `${String(type)} ${String(id)}`)
-      .filter((call) => call.startsWith("Settings "));
+      .filter((call) => call.startsWith(`${type} `));
 }
 
 const defaults = {
@@ -51,15 +54,15 @@ const keyboardDefaults = {
 };
 
 /**
- * The runs' defaults: the build after a spec's approval starts in a fresh session, every automatic
- * continue is on, 3 in a row, and open pull requests are not caught up by themselves.
+ * The runs' defaults: every automatic continue is on, 3 in a row, open pull requests are not caught
+ * up by themselves, and no run option is set.
  */
 const runDefaults = {
   automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
-  buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
   catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+  options: { steps: [] },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
@@ -77,6 +80,9 @@ test("the record of an empty config folder is read on the global endpoint and a 
     server: defaults,
   });
   expect(hosted).toEqual(global);
+
+  const effort = await testApp(undefined, { environment: { CLAUDE_CODE_EFFORT_LEVEL: "high" } });
+  expect((await record(effort)).runs).toEqual({ ...runDefaults, claudeEffortFromEnv: "high" });
 });
 
 /** US1.1 */
@@ -102,7 +108,6 @@ test("each change answers the record with its value", async () => {
   const removed = await change(opened, "removeHost", { name: "laptop.tail1234.ts.net" });
   const port = await change(opened, "setPort", { port: " 4400 " });
   const open = await change(opened, "setOpenBrowser", { open: false });
-  const fresh = await change(opened, "setBuildInFreshSession", { fresh: false });
   const limit = await change(opened, "setContinue", { key: "limit", on: false });
   const continues = await change(opened, "setAutomaticContinues", { continues: "4" });
   const tooMany = await change(opened, "setAutomaticContinues", { continues: "11" });
@@ -111,11 +116,6 @@ test("each change answers the record with its value", async () => {
   expect(removed.data.server.allowedHosts.saved).toEqual([]);
   expect(port.data.server.port).toEqual({ inForce: 4400, saved: 4400, source: { kind: "file" } });
   expect(open.data.server.openBrowser).toEqual({
-    inForce: false,
-    saved: false,
-    source: { kind: "file" },
-  });
-  expect(fresh.data.runs.buildInFreshSession).toEqual({
     inForce: false,
     saved: false,
     source: { kind: "file" },
@@ -136,9 +136,69 @@ test("each change answers the record with its value", async () => {
   });
   expect((await binding.readSettings(opened.configDir)).runs).toEqual({
     automaticContinues: 4,
-    buildInFreshSession: false,
     continueAfterLimit: false,
+    options: { steps: [] },
   });
+});
+
+test("the run options are written whole, and refused with the core's message", async () => {
+  const opened = await testApp();
+  const options = {
+    reviewDepth: "branch",
+    steps: [{ agent: "claude", effort: "high", model: "opus", step: "spec" }],
+  };
+
+  const result = await change(opened, "setRunOptions", { options });
+  const refused = await change(opened, "setRunOptions", {
+    options: { steps: [{ step: "deploy" }] },
+  });
+
+  expect(result.data.runs.options).toEqual(options);
+  expect((await binding.readSettings(opened.configDir)).runs.options).toEqual(options);
+  expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect((await record(opened)).runs.options).toEqual(options);
+});
+
+test("a feature's record holds its own run options, and the core's merge over the settings'", async () => {
+  // A linked worktree's endpoint keys the options by the main checkout, as the sessions are.
+  const main = "/checkouts/main";
+  const opened = await testApp(undefined, { binding: { ...binding, mainRoot: async () => main } });
+  const defaults = { steps: [{ model: "opus", step: "review" }] };
+  await change(opened, "setRunOptions", { options: defaults });
+  const set = (folder: string, options: unknown) =>
+    fateAt(opened.app, opened.name, [
+      {
+        input: { folder, options },
+        kind: "mutation",
+        name: "feature.setRunOptions",
+        select: ["id", "runOptions"],
+      },
+    ]);
+  const read = async () =>
+    (await byIdAt(opened.app, opened.name, "Feature", [FEATURE], ["id", "runOptions"]))[0];
+
+  const [result] = await set(FEATURE, { steps: [{ effort: "high", step: "spec" }] });
+  const [refused] = await set(FEATURE, { steps: [{ step: "deploy" }] });
+  const [unknown] = await set("2026-01-01-nothing", { steps: [] });
+
+  const own = { steps: [{ effort: "high", step: "spec" }] };
+  const runOptions = { merged: binding.mergeRunOptions(defaults, own), own };
+  expect(result.data.runOptions).toEqual(runOptions);
+  expect(refused.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect(unknown.error).toMatchObject({ code: "BAD_REQUEST", message: /^refused: / });
+  expect((await read()).runOptions).toEqual(runOptions);
+  expect(opened.featureOptions.own(main, FEATURE)).toEqual(own);
+  expect(opened.featureOptions.own(opened.repo, FEATURE)).toEqual({ steps: [] });
+
+  // The settings' change sends the feature's record again, with the new merge.
+  const features = heard(opened.hosts.all()[0]!.live, "Feature");
+  const later = { steps: [{ model: "sonnet", step: "review" }] };
+  await change(opened, "setRunOptions", { options: later });
+  await vi.waitFor(() => expect(features()).toContain(`Feature ${FEATURE}`), {
+    interval: 10,
+    timeout: 10_000,
+  });
+  expect((await read()).runOptions).toEqual({ merged: binding.mergeRunOptions(later, own), own });
 });
 
 /** US5 1 */
@@ -223,7 +283,7 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "removeHost", { name: MAC }),
     change(opened, "setPort", { port: "4400" }),
     change(opened, "setOpenBrowser", { open: false }),
-    change(opened, "setBuildInFreshSession", { fresh: false }),
+    change(opened, "setRunOptions", { options: { steps: [] } }),
     change(opened, "setSingleKeyShortcuts", { on: false }),
     change(opened, "setContinue", { key: "restart", on: false }),
     change(opened, "setAutomaticContinues", { continues: "4" }),

@@ -33,6 +33,10 @@ import { type ServerActions, ServerSettings, type ServerValues } from "./ServerS
 import { Empty } from "../layout/Empty.tsx";
 import { TextLine } from "../fields/TextLine.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import type { PickerRuntime } from "../SessionPicker.tsx";
+
+/** No agent to pick from, as most stories have. */
+const NO_RUNTIMES: ReadonlyArray<PickerRuntime> = [];
 
 const styles = stylex.create({
   // The title and the search, which stay in view as the sections scroll under them: on a phone,
@@ -57,12 +61,14 @@ const jumpStyles = stylex.create({
 /** One section's rows, those `shows` keeps. */
 function Rows({
   category,
+  runtimes,
   server,
   serverActions,
   shows,
   themes,
 }: {
   category: Category;
+  runtimes: ReadonlyArray<PickerRuntime>;
   server: ServerValues;
   serverActions: ServerActions;
   shows: (label: string) => boolean;
@@ -81,7 +87,7 @@ function Rows({
     case "sign-in":
       return <SignInSettings category={category} shows={shows} />;
     case "runs":
-      return <RunSettings {...props} />;
+      return <RunSettings {...props} runtimes={runtimes} />;
     case "extensions":
       // Drawn by `ExtensionSettings` itself, in its own panes.
       return null;
@@ -157,6 +163,7 @@ export function SettingsView({
   extensionActions,
   extensions,
   initialSearch = "",
+  runtimes = NO_RUNTIMES,
   server,
   serverActions,
   themes,
@@ -168,6 +175,8 @@ export function SettingsView({
   extensions?: ExtensionsValues;
   /** The search's text when the page opens, for the stories; empty by default. */
   initialSearch?: string;
+  /** The agents the Runs section's map picks from, the first one a step's when it names none. */
+  runtimes?: ReadonlyArray<PickerRuntime>;
   server: ServerValues;
   serverActions: ServerActions;
   /** The colour themes, as the server serves them. */
@@ -207,6 +216,7 @@ export function SettingsView({
         >
           <Rows
             category={category}
+            runtimes={runtimes}
             server={server}
             serverActions={serverActions}
             shows={(label) => shown.has(label)}

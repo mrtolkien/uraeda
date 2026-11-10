@@ -1,4 +1,4 @@
-import type { Changes } from "uraeda-binding";
+import type { Changes, RunOptions } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
@@ -14,6 +14,8 @@ import { GIT_ID } from "./fate/views-git.ts";
 import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
+import type { ServerAddress } from "./mcp/endpoint.ts";
+import type { McpTokens } from "./mcp/tokens.ts";
 import type { SessionCache } from "./runner/cache.ts";
 import type { Runtimes } from "./runner/runtimes.ts";
 import { type ContinueSettings, type SessionChange, Sessions } from "./runner/sessions.ts";
@@ -102,10 +104,14 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
-    // The host's path is the main checkout, which keys its sessions. Each reads the step.
+    // The host's path is the main checkout, which keys its sessions. Each reads the step, its
+    // sub-sessions too.
+    const { cache } = sessions;
     for (const folder of changes.features) {
-      for (const session of sessions.cache.folderSessions(host.path, folder)) {
-        live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
+      for (const parent of cache.folderSessions(host.path, folder)) {
+        for (const session of [parent, ...cache.subSessionsOf(parent.id)]) {
+          live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
+        }
       }
     }
   }
@@ -162,11 +168,20 @@ function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
   for (const bus of [globalLive, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
     sender(bus)("Agent", AGENT_ID);
   }
-  for (const host of hosts()?.all() ?? []) {
+  sendEachFeature(binding, hosts()?.all() ?? [], "RecommendedMessage");
+}
+
+/** Sends the record of `type` of each feature of each host, on its bus. */
+function sendEachFeature(
+  binding: Pick<Binding, "readWorkspace">,
+  hosts: ReadonlyArray<Pick<Host, "live" | "path">>,
+  type: string,
+) {
+  for (const host of hosts) {
     void binding.readWorkspace(host.path).then(
       ({ features }) => {
         const update = sender(host.live);
-        features.forEach(({ folder }) => update("RecommendedMessage", folder));
+        features.forEach(({ folder }) => update(type, folder));
       },
       // A repository the core cannot read has no feature to update.
       () => undefined,
@@ -175,12 +190,69 @@ function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
 }
 
 /**
+ * Sends the session's record, and, for a sub-session, its parent's, which lists it with its state
+ * and its usage: the parent's list follows a sub-session's usage as its state changes. Gives
+ * whether it is a sub-session, which the sidebar's list leaves out.
+ */
+function sendSession(
+  cache: SessionCache,
+  update: ReturnType<typeof sender>,
+  session: string,
+): boolean {
+  update("Session", session);
+  const parent = cache.session(session)?.parent;
+  if (parent) {
+    update("Session", parent);
+  }
+  return Boolean(parent);
+}
+
+/** Sends a turn's record and its last two item pages, where a tool call may finish. */
+function sendTurn(cache: SessionCache, update: ReturnType<typeof sender>, id: number) {
+  update("Turn", String(id));
+  const count = pages(cache, id);
+  for (const page of [count - 2, count - 1].filter((page) => page >= 0)) {
+    update("TurnLog", `${id}:${page}`);
+  }
+}
+
+/**
+ * Sends a session's change at once on `bus`: its record, a sub-session's parent's, its turn, the
+ * list but for a sub-session, its feature, the workspace, and, as a turn starts or ends, the Git
+ * page, whose writes it refuses or lets.
+ */
+function publishAtOnce(
+  cache: SessionCache,
+  bus: LiveBus,
+  change: Exclude<SessionChange, { agent: true }>,
+) {
+  const update = sender(bus);
+  const sub = sendSession(cache, update, change.session);
+  if (change.turn !== undefined) {
+    sendTurn(cache, update, change.turn);
+  }
+  if (!sub) {
+    update("SessionList", SESSION_LIST_ID);
+  }
+  if (change.folder !== null) {
+    update("Feature", change.folder);
+  }
+  update("Workspace", WORKSPACE_ID);
+  if (change.state !== undefined) {
+    publishGit(bus);
+  }
+}
+
+/**
  * Sends the live updates of the session manager's changes. A session's record, its changed turns,
  * and their last two item pages, where a tool call may finish, go out at most every 250 ms while
  * items change, with the sidebar's list when a sub-agent starts or ends. A turn's state change,
- * and any other change of the session, go out at once, with the list, the session's feature, and
- * the workspace's working folders. A change of the agent's availability goes with every feature's
- * recommended message, which reads it; a commit's goes with the feature's, through `publish`.
+ * and any other change of the session, go out at once, with the list, the session's feature, the
+ * workspace's working folders, and a sub-session's parent, whose record lists its usage: the
+ * parent's list updates a sub-session's usage as its state changes, not with each of its items.
+ * The list, which leaves sub-sessions out, is not sent for theirs. A change of the agent's
+ * availability goes with every feature's recommended message, which reads it; a commit's goes with
+ * the feature's, through `publish`.
  */
 export function sessionPublisher(
   cache: SessionCache,
@@ -192,13 +264,7 @@ export function sessionPublisher(
     string,
     { last: number; repo: string; subagents: string; timer?: Timer; turns: Set<number> }
   >();
-  const turn = (update: ReturnType<typeof sender>, id: number) => {
-    update("Turn", String(id));
-    const count = pages(cache, id);
-    for (const page of [count - 2, count - 1].filter((page) => page >= 0)) {
-      update("TurnLog", `${id}:${page}`);
-    }
-  };
+  const turn = (update: ReturnType<typeof sender>, id: number) => sendTurn(cache, update, id);
   /** The sub-agents running in the turns, which the sidebar lists: the cache's `subagentsOf`. */
   const subagents = (turns: Iterable<number>) =>
     [...turns].flatMap((id) => cache.subagentsOf(id).map((subagent) => subagent.id)).join(" ");
@@ -225,7 +291,10 @@ export function sessionPublisher(
     const running = subagents(turns);
     if (running !== entry.subagents) {
       entry.subagents = running;
-      update("SessionList", SESSION_LIST_ID);
+      // The list, which leaves sub-sessions out, lists none of theirs.
+      if (!cache.session(session)?.parent) {
+        update("SessionList", SESSION_LIST_ID);
+      }
     }
   };
   return (change) => {
@@ -242,20 +311,7 @@ export function sessionPublisher(
       if (!bus) {
         return;
       }
-      const update = sender(bus);
-      update("Session", session);
-      if (change.turn !== undefined) {
-        turn(update, change.turn);
-      }
-      update("SessionList", SESSION_LIST_ID);
-      if (change.folder !== null) {
-        update("Feature", change.folder);
-      }
-      update("Workspace", WORKSPACE_ID);
-      // A turn's start or end refuses or lets the Git page's writes.
-      if (change.state !== undefined) {
-        publishGit(bus);
-      }
+      publishAtOnce(cache, bus, change);
       return;
     }
     let entry = sessions.get(session);
@@ -317,12 +373,14 @@ export function onSessionChange(
 /**
  * A session manager whose changes are sent as live updates, to the hosts of their repositories, and
  * whose features' turns that end done reach `onTurnDone`'s listeners. `runs` gives the continues'
- * settings in force.
+ * settings in force, and `runOptions` a feature's run options as its next run starts on them.
  */
 export function createSessions(options: {
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
+  mcp?: { address: ServerAddress; tokens: McpTokens };
+  runOptions?: (repo: string, folder: string) => RunOptions;
   runs?: () => ContinueSettings;
   runtimes: Runtimes;
 }): Sessions {
@@ -354,6 +412,7 @@ export function createSessions(options: {
       const { folder, repo } = change;
       turnDone.get(sessions)?.forEach((listener) => listener(repo, folder));
     },
+    queue: (root) => options.hosts()?.byPath(root)?.queue,
   });
   return sessions;
 }
@@ -372,13 +431,24 @@ export function continueSettings(settings: ServerSettings): () => ContinueSettin
 
 /**
  * Sends the `Settings` record's live update on the global bus and every host's, each time the
- * settings in force or their problem change, once per change: returns its removal, which
- * `settings.close()`, as the server stops, makes too.
+ * settings in force or their problem change, once per change, with every host's `Feature` records
+ * when the run options change, as each holds its options merged over them: returns its removal,
+ * which `settings.close()`, as the server stops, makes too.
  */
-export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "all">): () => void {
+export function announceSettings(
+  settings: ServerSettings,
+  hosts: Pick<Hosts, "all">,
+  binding: Pick<Binding, "readWorkspace">,
+): () => void {
+  let options = JSON.stringify(settings.runs().options);
   return settings.onChange(() => {
     for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
       sender(bus)("Settings", SETTINGS_ID);
+    }
+    const now = JSON.stringify(settings.runs().options);
+    if (now !== options) {
+      options = now;
+      sendEachFeature(binding, hosts.all(), "Feature");
     }
   });
 }

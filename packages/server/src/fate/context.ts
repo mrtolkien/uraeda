@@ -1,6 +1,7 @@
 import type { ExtensionsHost } from "../extensions/server.ts";
 import type { Previews } from "../preview/runner.ts";
 import type { Hosts } from "../repositories.ts";
+import type { FeatureOptions } from "../runner/feature-options.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { ServerSettings } from "../settings.ts";
 import type { FrameSecret } from "../sign-in/frames.ts";
@@ -12,16 +13,17 @@ export type Binding = typeof import("uraeda-binding");
 
 /**
  * fate's request context: the repository the server reads and writes, through the binding, null on
- * the global endpoint; the session manager that talks to agents about its features; the hosts of
- * every listed repository; the data folder holding their list; the server's Storybooks; and the
- * frame secret their paths carry; the settings in force; the colour themes; and the extensions,
- * absent in tests' apps made without them. `lockedList` locks
- * the list, as Uraeda's own Storybook does: see `unlockedList`.
+ * the global endpoint; the session manager that talks to agents about its features; the features'
+ * own run options, in its cache; the hosts of every listed repository; the data folder holding
+ * their list; the server's Storybooks; and the frame secret their paths carry; the settings in
+ * force; the colour themes; and the extensions, absent in tests' apps made without them.
+ * `lockedList` locks the list, as Uraeda's own Storybook does: see `unlockedList`.
  */
 export type Context = {
   binding: Binding;
   dataDir: string;
   extensions?: ExtensionsHost;
+  featureOptions: FeatureOptions;
   frames: FrameSecret;
   hosts: Hosts;
   lockedList?: boolean;

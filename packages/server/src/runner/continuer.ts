@@ -5,6 +5,7 @@ import type { SessionRow, TurnRow } from "./cache.ts";
 import { limitContinueAt, MINUTE_MS, worktreeCommit } from "./continue-reads.ts";
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
+import { ParentHolds } from "./parent-holds.ts";
 import { deliverContinue } from "./send.ts";
 import {
   type Live,
@@ -78,6 +79,8 @@ export class Continuer {
   #closed = false;
   /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
   #decidedAt = new Map<string, string>();
+  /** The parents' continues that wait for their sub-sessions to end. */
+  #holds: ParentHolds;
 
   constructor(
     context: SessionContext,
@@ -91,6 +94,7 @@ export class Continuer {
     this.#available = options.available;
     this.#hosted = options.hosted;
     this.#runs = options.runs;
+    this.#holds = new ParentHolds(context, (turn) => this.fire(turn));
   }
 
   /**
@@ -107,8 +111,17 @@ export class Continuer {
     }
     const taken = this.#taken(turn.sessionId);
     if (turn.state === "failed" && limit?.kind === "session") {
-      return this.#decide(turn, "limit", () => limitContinueAt(this.#context.cache, limit), taken);
+      const deciding = this.#decide(
+        turn,
+        "limit",
+        () => limitContinueAt(this.#context.cache, limit),
+        taken,
+      );
+      return live.parent === null
+        ? deciding
+        : deciding.then(() => this.#holds.subEnded(live.parent));
     }
+    this.#holds.subEnded(live.parent);
     return undefined;
   }
 
@@ -117,7 +130,17 @@ export class Continuer {
    * message, or `stopped`, their Stop, which leaves the turn stopped.
    */
   cancel(session: string, { stopped }: { stopped: boolean }): Array<number> {
-    return this.#cancel(session, { stopped }).map((turn) => turn.id);
+    const cancelled = this.#cancel(session, { stopped }).map((turn) => turn.id);
+    this.#left(session);
+    return cancelled;
+  }
+
+  /**
+   * The session's pending continue left, cancelled, dropped, or refused: when it is a
+   * sub-session's, its parent's held continue goes once none of its sub-sessions works.
+   */
+  #left(session: string) {
+    this.#holds.subEnded(this.#context.cache.session(session)?.parent ?? null);
   }
 
   /**
@@ -158,6 +181,14 @@ export class Continuer {
     return { restore, turns: cancelled.map((turn) => turn.id) };
   }
 
+  /**
+   * How many times the session's run was taken over, by a message, Allow, Stop, or a dismiss: a
+   * read under way compares it after, as the step chain does before it sends.
+   */
+  takeovers(session: string): number {
+    return this.#taken(session);
+  }
+
   /** Drops the decisions of the session's continue under way: the run was taken over. */
   takenOver(session: string): void {
     this.#takenOver.set(session, this.#taken(session) + 1);
@@ -167,6 +198,7 @@ export class Continuer {
   #cancel(session: string, { stopped }: { stopped: boolean }): Array<TurnRow> {
     const { cache } = this.#context;
     this.takenOver(session);
+    this.#holds.drop(session);
     if (stopped) {
       this.#stops.set(session, this.#taken(session));
     }
@@ -186,6 +218,11 @@ export class Continuer {
   fire(turn: number): void {
     this.#timers.delete(turn);
     const { cache, changed, live: sessions } = this.#context;
+    // A parent goes on once its sub-sessions answered: their calls would be made again before.
+    const parent = cache.turn(turn)?.sessionId;
+    if (parent !== undefined && this.#holds.hold(parent, turn)) {
+      return;
+    }
     const claimed = cache.takeContinue(turn);
     const reason = claimed?.continueReason;
     const row = claimed && cache.session(claimed.sessionId);
@@ -196,6 +233,7 @@ export class Continuer {
     const refuse = () => {
       cache.cancelContinue(claimed.id, { stopped: false });
       changed(live, claimed.id, claimed.state);
+      this.#left(row.id);
     };
     try {
       if (this.#refused(claimed, row, live)) {
@@ -274,7 +312,11 @@ export class Continuer {
     }
     const { cache, runtimes } = this.#context;
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
-    for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
+    // Sub-sessions first: their parents wait for them.
+    const cuts = cache.serverCuts(SERVER_STOPPED, since);
+    const parentOf = (turn: TurnRow) => cache.session(turn.sessionId)?.parent ?? null;
+    const subs = cuts.filter((turn) => parentOf(turn) !== null);
+    for (const turn of [...subs, ...cuts.filter((turn) => parentOf(turn) === null)]) {
       const session = cache.session(turn.sessionId);
       if (
         session &&
@@ -299,6 +341,7 @@ export class Continuer {
       for (const turn of cache.dropContinues(reason)) {
         this.#clear(turn.id);
         this.#publish(turn);
+        this.#left(turn.sessionId);
       }
     }
   }
@@ -388,13 +431,17 @@ export class Continuer {
     return this.#takenOver.get(session) ?? 0;
   }
 
-  /** Whether the session's runs continue: a chat, or its folder's latest session, not archived. */
+  /**
+   * Whether the session's runs continue: a chat, a sub-session, or its folder's latest session, not
+   * archived.
+   */
   #current(session: SessionRow): boolean {
     if (session.archivedAt !== null) {
       return false;
     }
     return (
       session.folder === null ||
+      session.parent !== null ||
       this.#context.cache.latestSession(session.repo, session.folder)?.id === session.id
     );
   }

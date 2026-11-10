@@ -32,7 +32,12 @@ async function watched(dir: string) {
     },
     settingsFile: binding.settingsFile,
   };
-  const settings = await ServerSettings.open({ binding: counted, dir, options: { noOpen: false } });
+  const settings = await ServerSettings.open({
+    binding: counted,
+    dir,
+    environment: {},
+    options: { noOpen: false },
+  });
   onTestFinished(() => settings.close());
   return { counted, settings };
 }

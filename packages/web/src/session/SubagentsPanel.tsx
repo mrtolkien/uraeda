@@ -2,10 +2,13 @@
 // now, and how long it has run, ticking each second. A sub-agent's own sub-agents are rows of its
 // group in the Activity, not here. The server lists the running ones alone: the panel keeps the
 // rows it drew while its tab is open, and marks those gone from the list "Done", their time frozen
-// (ruling R10).
+// (ruling R10). A workflow session's sub-agents are sessions Uraeda runs (spec of Run options): the
+// pane lists those sub-sessions instead, each with its role, what it works on, its agent, model,
+// effort, state, time, and usage, a link to its read-only page. A chat keeps its agent's own.
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import type { Session } from "uraeda-server/fate";
 import { useSession } from "../sessionData.ts";
@@ -15,6 +18,8 @@ import { useNow } from "../useNow.ts";
 import { Section } from "./Section.tsx";
 import { subagentText } from "./stretches.ts";
 import { Empty } from "../layout/Empty.tsx";
+import { SubSessionRow } from "../runs/SubSessionRow.tsx";
+import type { SubSession } from "../runs/subSessions.ts";
 
 /** A running sub-agent, as the session's record lists it. */
 type Subagent = Session["subagents"][number];
@@ -89,11 +94,21 @@ function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Ro
   );
 }
 
-/** The session `session`'s sub-agents, from its record, read here. */
+/**
+ * The session `session`'s sub-agents, from its record, read here: the sub-sessions Uraeda started
+ * for its runs, when it has any, else its agent's own.
+ */
 function Subagents({ session }: { session: string }) {
   const record = useSession(session);
   const now = useNow(1000);
   const rows = useKeptRows(topLevel(record?.subagents ?? []), now);
+  const subs = record?.subSessions ?? [];
+  // Once the session has sub-sessions, its agent's own sub-agents are not drawn: sub-sessions come
+  // from workflow runs, which take the agent's own sub-agents away and run their implementers and
+  // reviewers as sub-sessions instead, so the pane lists one kind, never both mixed.
+  if (subs.length > 0) {
+    return <SubSessions subs={subs} />;
+  }
   if (rows.length === 0) {
     return <Empty>No sub-agent running.</Empty>;
   }
@@ -103,6 +118,19 @@ function Subagents({ session }: { session: string }) {
         <SubagentRow key={row.subagent.id} now={now} row={row} />
       ))}
     </List>
+  );
+}
+
+/** The sub-sessions a workflow session started, the working ones first, each a link to its page. */
+function SubSessions({ subs }: { subs: ReadonlyArray<SubSession> }) {
+  const working = subs.filter((sub) => sub.state === "working");
+  const ended = subs.filter((sub) => sub.state !== "working");
+  return (
+    <VStack gap={1}>
+      {[...working, ...ended].map((sub) => (
+        <SubSessionRow key={sub.id} sub={sub} />
+      ))}
+    </VStack>
   );
 }
 

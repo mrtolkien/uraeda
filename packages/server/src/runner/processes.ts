@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import type { OpenOptions } from "./adapter.ts";
+import type { SessionRow } from "./cache.ts";
 import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
 import { sessionRuntime } from "./runtimes.ts";
 import {
@@ -121,9 +123,13 @@ export class Processes {
     if (!cache.claimSession(live.id)) {
       throw refused(REFUSALS.working);
     }
+    let token: string | undefined;
     try {
-      const cwd = live.folder === null ? live.repo : await binding.workDir(live.repo, live.folder);
       const row = rowOf(cache, live);
+      // A sub-session works in its task's worktree.
+      const cwd =
+        row.worktree ??
+        (live.folder === null ? live.repo : await binding.workDir(live.repo, live.folder));
       // The session's own runtime, never another: one unregistered or turned off since leaves it
       // read-only.
       const adapter = sessionRuntime(runtimes, row);
@@ -137,11 +143,14 @@ export class Processes {
       if (replaced) {
         cache.updateSession(live.id, { nativeId });
       }
+      const tools = this.#tools(row);
+      token = typeof tools === "object" ? tools.token : undefined;
       const agent = adapter.open({
         cwd,
         nativeId,
         resume,
         skills: runtimes.skills(live.repo),
+        ...(tools === undefined ? {} : { tools }),
         ...(allowed === undefined ? {} : { allowed }),
         ...(row.model === null ? {} : { model: row.model }),
         ...(row.effort === null ? {} : { effort: row.effort }),
@@ -157,6 +166,7 @@ export class Processes {
         kind: row.agent,
         runtime: adapter,
         terminate: [],
+        ...(token === undefined ? {} : { token }),
       };
       live.proc = proc;
       // A resumed agent session reports its earlier turns' tokens again.
@@ -164,9 +174,29 @@ export class Processes {
       proc.done = this.#consume(live, proc);
       return { proc, ...(line === undefined ? {} : { line }) };
     } catch (error) {
+      if (token !== undefined) {
+        this.#context.mcp?.tokens.revoke(token);
+      }
       cache.releaseSession(live.id);
       throw error;
     }
+  }
+
+  /**
+   * Uraeda's tools for the session's new process: a workflow session's, of a change or a feature,
+   * gets the MCP endpoint with a token of its own, which revokes its earlier process's; a
+   * sub-session gets `"none"`, neither its agent's own sub-agents nor Uraeda's; a chat keeps its
+   * agent's own. None while the server gives no tools.
+   */
+  #tools(row: SessionRow): OpenOptions["tools"] {
+    const { mcp } = this.#context;
+    if (row.parent !== null) {
+      return "none";
+    }
+    if (row.folder === null || mcp === undefined) {
+      return undefined;
+    }
+    return { token: mcp.tokens.issue(row.id), url: `${mcp.address.url}/mcp` };
   }
 
   /**
@@ -271,6 +301,9 @@ export class Processes {
       this.#usageChanged();
     }
     proc.terminate.forEach(clearTimeout);
+    if (proc.token !== undefined) {
+      this.#context.mcp?.tokens.revoke(proc.token);
+    }
     if (live.proc !== proc) {
       return;
     }

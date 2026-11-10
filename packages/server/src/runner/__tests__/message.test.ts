@@ -43,8 +43,8 @@ const PLAN = {
 test("the message names the skill, the goal, the reference, and where to stop", () => {
   expect(runMessage({ ...PLAN, planReview: false })).toBe(
     "/uraeda Continue the feature specs/2026-10-12-cli-tuis/ on branch 2026-10-12-cli-tuis: " +
-      "Write the plan, then implement it, starting with skills/uraeda/references/plan.md.\n" +
-      "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
+      "Write the plan, starting with skills/uraeda/references/plan.md.\n" +
+      "Stop when the plan is committed, and earlier only if you need a decision from me.\n",
   );
 });
 
@@ -54,9 +54,9 @@ test("a plan the human reviews stops at its review", () => {
   );
 });
 
-test("a spec without plan-review runs through the implementation", () => {
+test("a spec without plan-review stops when its plan is committed: the build is a run of its own", () => {
   expect(runMessage({ ...PLAN, step: "approval" })).toMatch(
-    /: Record the approved decisions and write the plan, then implement it, .*\nStop when the pull request is ready for review, /,
+    /: Record the approved decisions and write the plan, starting .*\nStop when the plan is committed, /,
   );
 });
 
@@ -64,7 +64,7 @@ test.each<[string, string]>([
   ["discovery", "the questions wait for my answers"],
   ["spec", "the spec waits for my review"],
   ["spec-revision", "the spec waits for my review again"],
-  ["implementation", "the pull request is ready for review"],
+  ["implementation", "every task of the plan is checked"],
   ["pull-request-changes", "the pull request is ready for review again"],
   ["change", "the pull request is ready for review"],
 ])("the run of %s stops when %s", (step, stop) =>

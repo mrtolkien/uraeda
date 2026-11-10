@@ -15,6 +15,8 @@ export type TurnsDeps = {
   /** The input items of a message, as `turn/start` and `turn/steer` take them. */
   input: (message: Outgoing) => unknown;
   push: (event: AgentEvent) => void;
+  /** The parameters of the `review/start` of a review message, `Outgoing.review`. */
+  reviewParams: (message: Outgoing, thread: string) => unknown;
   rpc: CodexRpc;
   /** The thread and its default effort, once started; undefined when it failed to. */
   thread: Promise<{ defaultEffort?: string; id: string } | undefined>;
@@ -58,7 +60,8 @@ export class CodexTurns {
   constructor(deps: TurnsDeps, effort: string | undefined, resumed = false) {
     this.#deps = deps;
     this.#effort = effort;
-    this.#overridden = resumed;
+    // A new thread on an effort starts on it (`codexThreadParams`).
+    this.#overridden = resumed || effort !== undefined;
     void deps.thread.then((thread) => (this.#thread = thread));
   }
 
@@ -152,8 +155,11 @@ export class CodexTurns {
       }
       return;
     }
-    const params = this.#deps.turnParams(message, thread.id, this.#turnEffort());
-    this.#deps.rpc.request("turn/start", params).then(
+    // A review runs on the thread's effort, which the thread started on.
+    const [method, params] = message.review
+      ? ["review/start", this.#deps.reviewParams(message, thread.id)]
+      : ["turn/start", this.#deps.turnParams(message, thread.id, this.#turnEffort())];
+    this.#deps.rpc.request(method, params).then(
       (answer) => {
         if (started !== this.#started) {
           return;
@@ -181,7 +187,9 @@ export class CodexTurns {
         }
         this.#deps.push({
           denials: [],
-          errors: [`Codex did not start the turn: ${reason(error)}`],
+          errors: [
+            `Codex did not start the ${message.review ? "review" : "turn"}: ${reason(error)}`,
+          ],
           interrupted: false,
           ok: false,
           type: "result",

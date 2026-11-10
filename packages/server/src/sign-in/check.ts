@@ -116,13 +116,16 @@ const OPEN_PATHS = /^\/session(\/(?!key$)[^/]+)?$/;
 /** The routes the host's own `uraeda` calls with the host token. */
 const HOST_PATHS = new Set(["/open", "/session/key"]);
 
+/** The routes that check a token of their own instead of a session: the agents' MCP endpoint. */
+const TOKEN_PATHS = new Set(["/mcp"]);
+
 /**
  * The session check, Hono middleware after the guard. A path that is not the server's is the
  * built UI's, and passes; so do a frame path that `frames` allows, `/open` and `/session/key` with
- * `Authorization: Bearer <host token>`, and the `/session` routes. Every other request needs the
- * cookie of a session the store finds, or gets 401. A found session is set on the context as
- * `device`, on the open routes too; one used for the first time in a day sets its cookie again,
- * unless the request ended it.
+ * `Authorization: Bearer <host token>`, `/mcp`, behind its own tokens, and the `/session` routes.
+ * Every other request needs the cookie of a session the store finds, or gets 401. A found session
+ * is set on the context as `device`, on the open routes too; one used for the first time in a day
+ * sets its cookie again, unless the request ended it.
  */
 export function sessionCheck(
   options: SignInOptions & {
@@ -135,7 +138,12 @@ export function sessionCheck(
     HOST_PATHS.has(path) && fromHost(context, hostToken);
   return createMiddleware(async (context: DeviceContext, next) => {
     const path = context.req.path;
-    if (!SERVER_PATHS.test(path) || frames?.allows(path) || byHost(context, path)) {
+    if (
+      !SERVER_PATHS.test(path) ||
+      TOKEN_PATHS.has(path) ||
+      frames?.allows(path) ||
+      byHost(context, path)
+    ) {
       await next();
       return;
     }

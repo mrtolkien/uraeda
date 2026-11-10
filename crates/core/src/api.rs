@@ -4,6 +4,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::actions::findings::subject as findings_subject;
+pub use crate::actions::findings::{Findings, FindingsSection};
 use crate::actions::review;
 use crate::actions::{answer, place, priorities as edits};
 use crate::cache;
@@ -32,6 +34,7 @@ mod drop;
 mod drop_at;
 mod error;
 mod files;
+mod findings;
 mod git_page;
 mod git_writes;
 mod history;
@@ -67,10 +70,12 @@ pub use drop_at::DropAt;
 pub use error::ApiError;
 use error::refused;
 pub use files::{attach_image, encode_image, read_image, read_raw};
+pub use findings::write_findings;
 pub use git_page::{
     ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
     GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
     WorktreeView, conflict_file, git_commit, git_diff, git_history, git_page, git_summary,
+    resolve_commit,
 };
 pub use git_writes::{
     clean_feature, git_abort, git_commit_staged, git_continue, git_discard, git_fetch, git_merge,
@@ -408,9 +413,9 @@ pub fn main_root(repo: &Path) -> Result<String> {
         .into_owned())
 }
 
-/// Commits again what a hook refused to commit, its files left written: a submitted round, or a
-/// verdict on a spec or a plan, with its review file; with the images the
-/// feature's folder links.
+/// Commits again what a hook refused to commit, its files left written: a submitted round, a
+/// review's findings, alone, or a verdict on a spec or a plan, with its review file; but for the
+/// findings, with the images the feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
     let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
@@ -423,6 +428,9 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
     let (subject, mut paths) = match (FileKind::of(name), status.as_deref()) {
         (Some((FileKind::Clarifications, Some(round))), Some("answered")) => {
             (answer::subject(&feature.slug, round), vec![path])
+        }
+        (Some((FileKind::Findings, Some(round))), _) => {
+            (findings_subject(&feature.slug, round), vec![path])
         }
         (Some((FileKind::Spec | FileKind::Plan, _)), Some(verdict))
             if verdict == "approved" || verdict == "changes-requested" =>
@@ -446,10 +454,13 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
         }
         _ => return Err(refused(format!("{name} has nothing to commit again"))),
     };
-    paths.extend(crate::actions::images::linked_images(
-        &place,
-        &feature.path,
-    )?);
+    // Findings were committed alone, so they are again; a human's file takes its images.
+    if !matches!(FileKind::of(name), Some((FileKind::Findings, _))) {
+        paths.extend(crate::actions::images::linked_images(
+            &place,
+            &feature.path,
+        )?);
+    }
     paths.sort();
     let change = crate::actions::Change {
         paths,

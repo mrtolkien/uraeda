@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SessionRow } from "./cache.ts";
 import { transaction } from "./migrations.ts";
-import { newSessionPick, type SessionPick } from "./picks.ts";
+import { newSessionPick, type Picked, type SessionPick } from "./picks.ts";
 import {
   ofDropped,
   REFUSALS,
@@ -21,17 +21,20 @@ type OnChange = (change: SessionChange) => void;
 const now = () => new Date().toISOString();
 
 /**
- * A new session in `root`, of `folder` or a chat, on what `pick` says, as `newSessionPick` rules:
- * refused with no runtime on, or a model or an effort its runtime does not offer.
+ * What a new session runs on: `Picked` as given, or what a `SessionPick` says, as `newSessionPick`
+ * rules it, refused with no runtime on, or a model or an effort its runtime does not offer.
  */
+export type NewPick = SessionPick | (() => Picked);
+
+/** A new session in `root`, of `folder` or a chat, on `pick`. */
 function create(
   context: SessionContext,
   root: string,
   folder: string | null,
-  pick?: SessionPick,
+  pick?: NewPick,
 ): SessionRow {
   return context.cache.createSession({
-    ...newSessionPick(context.runtimes, root, pick),
+    ...(typeof pick === "function" ? pick() : newSessionPick(context.runtimes, root, pick)),
     folder,
     nativeId: randomUUID(),
     repo: root,
@@ -54,7 +57,7 @@ export function featureSession(
   context: SessionContext,
   root: string,
   folder: string,
-  pick?: SessionPick,
+  pick?: NewPick,
 ): SessionRow {
   const { cache } = context;
   // One transaction: another server cannot create a first session between the read and the write.
@@ -73,7 +76,7 @@ export function newSession(
   context: SessionContext,
   onChange: OnChange,
   root: string,
-  { folder, pick }: { folder: string; pick?: SessionPick },
+  { folder, pick }: { folder: string; pick?: NewPick },
 ): SessionRow {
   refuseDropped(context.cache.latestSession(root, folder));
   const row = create(context, root, folder, pick);
@@ -112,14 +115,21 @@ export async function attach(
   });
 }
 
-/** Archives every session of a dropped change or feature, and closes their processes. */
+/**
+ * Archives every session of a dropped change or feature, their sub-sessions too, and closes their
+ * processes.
+ */
 export function archiveFolder(
   context: SessionContext,
   onChange: OnChange,
   root: string,
   folder: string,
 ): void {
-  for (const row of context.cache.folderSessions(root, folder)) {
+  const { cache } = context;
+  const rows = cache
+    .folderSessions(root, folder)
+    .flatMap((row) => [row, ...cache.subSessionsOf(row.id)]);
+  for (const row of rows) {
     const proc = context.live.get(row.id)?.proc;
     if (proc) {
       context.processes.close(proc);

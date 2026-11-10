@@ -66,9 +66,9 @@ export const sendMutations = {
       session?: string;
       text: string;
       /**
-       * The workflow's message, which starts the feature's step: in a new session of the feature
-       * when `fresh`, which answers. `step` is the step it was read at: once the feature moved on,
-       * it runs as a chat.
+       * The workflow's message, which starts the feature's step: in the session its step's options
+       * give, or a new session of the feature when `fresh`, which answers. `step` is the step it
+       * was read at: once the feature moved on, it runs as a chat.
        */
       workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
     }>) => {
@@ -88,7 +88,6 @@ export const sendMutations = {
                 trigger: workflow.trigger,
                 ...(workflow.file === undefined ? {} : { file: workflow.file }),
                 ...(workflow.fresh === undefined ? {} : { fresh: workflow.fresh }),
-                freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
                 ...(workflow.step === undefined ? {} : { step: workflow.step }),
               },
             }),
@@ -123,7 +122,7 @@ export const sendMutations = {
           ? (await ctx.sessions.newSession(ctx.repo, input.folder, pick)).id
           : (await ctx.sessions.featureSession(ctx.repo, input.folder, pick)).id;
       });
-      // A run that starts fresh went to a new session: the one it went to answers.
+      // A run may go to a new session of its step: the one it went to answers.
       const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));
       return session(ctx, sent.session, select);
     },

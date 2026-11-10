@@ -5,9 +5,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import {
+  checkRunOptions,
   checkedPort,
+  mergeRunOptions,
   readSettings,
   setPort,
+  setRunOptions,
   setSingleKeyShortcuts,
   setVimCommands,
   setVimMode,
@@ -46,6 +49,11 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
       "continue_after_limit = true",
       "automatic_continues = 3",
       "catch_up_pull_requests = true",
+      'review_depth = "branch"',
+      "",
+      "[runs.steps.spec]",
+      'model = "opus"',
+      "new_session = true",
       "",
     ].join("\n"),
   );
@@ -54,12 +62,37 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
     keyboard: {},
     runs: {
       automaticContinues: 3,
-      buildInFreshSession: true,
       catchUpPullRequests: true,
       continueAfterLimit: true,
       continueAfterRestart: false,
+      options: {
+        reviewDepth: "branch",
+        steps: [{ model: "opus", newSession: true, step: "spec" }],
+      },
     },
     server: { allowedHosts: ["box.ts.net"], openBrowser: false },
+  });
+});
+
+test("run options cross the binding: written in their tables, checked, and merged", async () => {
+  const dir = configWith("# mine\n[runs]\nbuild_in_fresh_session = false\n");
+  const options = {
+    reviewers: [{ command: "make check" }],
+    steps: [{ agent: "codex", newSession: false, step: "plan" }],
+  };
+
+  const written = await setRunOptions(dir, options);
+
+  expect(written.runs.options).toEqual(options);
+  expect(read(dir)).toBe(
+    '# mine\n[runs]\n\n[runs.steps.plan]\nagent = "codex"\nnew_session = false\n\n[[runs.reviewers]]\ncommand = "make check"\n',
+  );
+  expect(() => checkRunOptions({ reviewDepth: "deep", steps: [] })).toThrow(
+    "refused: deep is not a review depth: waves or branch.",
+  );
+  expect(mergeRunOptions(options, { steps: [{ model: "gpt", step: "plan" }] })).toEqual({
+    reviewers: [{ command: "make check" }],
+    steps: [{ agent: "codex", model: "gpt", newSession: false, step: "plan" }],
   });
 });
 
@@ -68,7 +101,11 @@ test("a write is read back by a new read, keeping the human's comment and order"
 
   const written = await setPort(dir, " 4400 ");
 
-  expect(written).toEqual({ keyboard: {}, runs: {}, server: { openBrowser: true, port: 4400 } });
+  expect(written).toEqual({
+    keyboard: {},
+    runs: { options: { steps: [] } },
+    server: { openBrowser: true, port: 4400 },
+  });
   expect(read(dir)).toBe("# mine\n[server]\nopen_browser = true # keep\nport = 4400\n");
   expect(await readSettings(dir)).toEqual(written);
 });
@@ -78,7 +115,7 @@ test("the keyboard table crosses the binding, and a write keeps the human's comm
 
   expect(await readSettings(dir)).toEqual({
     keyboard: { singleKeyShortcuts: false },
-    runs: {},
+    runs: { options: { steps: [] } },
     server: {},
   });
   const written = await setSingleKeyShortcuts(dir, true);

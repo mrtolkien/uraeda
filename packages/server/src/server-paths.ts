@@ -3,9 +3,10 @@
 
 /**
  * The paths the server answers, a repository's and the global ones, the handoff, `/open`, and
- * signing in and out, `/session` and `/sessions`; the extensions' page bundles, `/extensions`, and
- * their routes, `/x`, globally and under a repository; the built UI, or Vite, serves everything else. A
- * repository's images, uploads, and Storybooks are only under its prefix.
+ * signing in and out, `/session` and `/sessions`; the agents' tools, `/mcp`; the extensions' page
+ * bundles, `/extensions`, and their routes, `/x`, globally and under a repository; the built UI, or
+ * Vite, serves everything else. A repository's images, uploads, and Storybooks are only under its
+ * prefix.
  */
 export const SERVER_PATHS =
-  /^\/(open|sessions?|extensions|(r\/[^/?]+\/)?(fate|raw|mockups|x)|r\/[^/?]+\/(attach|images|chat-images|inbox\/note-image|preview))(\/|\?|$)/;
+  /^\/(open|sessions?|extensions|mcp|(r\/[^/?]+\/)?(fate|raw|mockups|x)|r\/[^/?]+\/(attach|images|chat-images|inbox\/note-image|preview))(\/|\?|$)/;

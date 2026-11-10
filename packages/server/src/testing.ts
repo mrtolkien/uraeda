@@ -1,6 +1,7 @@
 // What the server's and the UI's tests use: the session manager on the fake adapter, with a cache in
 // memory, sign-in on a test's data folder, and settings and themes on a test's config folder.
 import { randomUUID } from "node:crypto";
+import type { RunOptions } from "uraeda-binding";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
@@ -14,7 +15,8 @@ import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import { runtimesOf } from "./runner/runtimes.ts";
 import type { Sessions } from "./runner/sessions.ts";
-import { ServerSettings } from "./settings.ts";
+import { TAKEN_BACK } from "./runner/session-state.ts";
+import { ServerSettings, type SettingsEnvironment } from "./settings.ts";
 import { ServerThemes } from "./themes.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { OneTimeLinks } from "./sign-in/links.ts";
@@ -38,6 +40,7 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   cache = ":memory:",
   hosts = () => undefined,
   installed = true,
+  runOptions,
   runs = () => CONTINUES_OFF,
 }: {
   adapter?: T;
@@ -45,6 +48,8 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   cache?: string;
   hosts?: HostsOf;
   installed?: boolean;
+  /** A feature's run options as its next run starts on them: none, the defaults, when left out. */
+  runOptions?: (repo: string, folder: string) => RunOptions;
   runs?: () => ContinueSettings;
 } = {}): {
   adapter: T;
@@ -55,6 +60,7 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
     binding: using,
     cache: SessionCache.open(cache),
     hosts,
+    ...(runOptions && { runOptions }),
     runs,
     runtimes: runtimesOf({ fake: adapter }),
   });
@@ -78,16 +84,22 @@ export function testSignIn(dataDir: string): { key: string; options: SignInOptio
 
 /**
  * The settings of a test's server, on `dir`, a new empty config folder by default: the host names
- * of `--allowed-hosts` given for the run when `allowedHosts` is, else the file's. The caller
- * closes them, as `startServer`'s `stop` does.
+ * of `--allowed-hosts` given for the run when `allowedHosts` is, else the file's, and the variables
+ * of `environment`, none by default, not the developer's. The caller closes them, as `startServer`'s `stop` does.
  */
 export function testSettings({
   allowedHosts,
   dir = temporaryFolder("uraeda-config"),
-}: { allowedHosts?: Array<string>; dir?: string } = {}): Promise<ServerSettings> {
+  environment = {},
+}: {
+  allowedHosts?: Array<string>;
+  dir?: string;
+  environment?: SettingsEnvironment;
+} = {}): Promise<ServerSettings> {
   return ServerSettings.open({
     binding,
     dir,
+    environment,
     options: {
       ...(allowedHosts && { allowedHosts: { name: "--allowed-hosts", value: allowedHosts } }),
       noOpen: false,
@@ -168,6 +180,84 @@ export function recordRun(
     cache.db
       .prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?")
       .run(at, ended, id);
+  } finally {
+    cache.db.close();
+  }
+}
+
+/**
+ * A sub-session `recordSubSessions` writes: none of `run` is one stopped before its first turn; a
+ * run failed at its agent's limit that `continues` is at work, waiting to continue then.
+ */
+export type RecordedSubSession = {
+  about: string;
+  agent: string;
+  /** Its effort and model by their names for people, as its agent reported them. */
+  effort?: string;
+  model?: string;
+  role: "implementer" | "reviewer";
+  run?: {
+    at: string;
+    /** When a run failed at its agent's limit continues, an ISO 8601 time. */
+    continues?: string;
+    ended: string;
+    state: "done" | "failed" | "stopped";
+    /** What its agent wrote, its transcript. */
+    text: string;
+    tokens?: TokenCounts;
+  };
+};
+
+/**
+ * Writes `subs` in the cache of `dataDir`, sub-sessions of the latest session of `folder`, which
+ * `recordRun` wrote: each a workflow run of the build, ended, waiting to continue, or stopped
+ * before its first turn, started as the cache is written.
+ */
+export function recordSubSessions(
+  dataDir: string,
+  repo: string,
+  folder: string,
+  subs: ReadonlyArray<RecordedSubSession>,
+) {
+  const cache = SessionCache.open(join(dataDir, "runner.sqlite"));
+  try {
+    const parent = cache.latestSession(realpathSync(repo), folder)!;
+    for (const { about, agent, effort, model, role, run } of subs) {
+      const session = cache.createSession({
+        agent,
+        folder,
+        nativeId: randomUUID(),
+        parent: parent.id,
+        repo: parent.repo,
+        role,
+        step: "build",
+        title: about,
+      });
+      cache.updateSession(session.id, { ranEffort: effort ?? null, ranModel: model ?? null });
+      if (run === undefined) {
+        continue;
+      }
+      const turn = cache.addTurn({
+        allowed: null,
+        kind: "workflow",
+        sessionId: session.id,
+        state: "running",
+        step: "implementation",
+        trigger: "manual",
+      });
+      cache.appendItem(turn, { kind: "text", streaming: false, text: run.text });
+      if (run.tokens) {
+        cache.addTurnTokens(turn, run.tokens);
+      }
+      cache.endTurn(turn, { state: run.state });
+      if (run.continues !== undefined) {
+        cache.scheduleContinue(turn, Date.parse(run.continues), "limit", TAKEN_BACK);
+      }
+      cache.db
+        .prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?")
+        .run(run.at, run.ended, turn);
+      cache.db.prepare("UPDATE sessions SET created_at = ? WHERE id = ?").run(run.at, session.id);
+    }
   } finally {
     cache.db.close();
   }

@@ -13,8 +13,14 @@ use crate::api::ApiError;
 mod file;
 mod list;
 mod rules;
+mod runs;
+mod runs_write;
 
 pub(crate) use file::{line, load as load_text};
+pub use runs::{
+    ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
+};
+pub use runs_write::set_run_options;
 
 /// The start of a file the first write creates.
 const HEADER: &str =
@@ -43,8 +49,6 @@ pub struct ServerSettings {
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RunSettings {
-    /// Whether the run after a spec's approval starts in a new agent session.
-    pub build_in_fresh_session: Option<bool>,
     /// Whether a run the server's restart cut continues by itself: `true` when unset.
     pub continue_after_restart: Option<bool>,
     /// Whether a run a session limit stopped continues at its reset: `true` when unset.
@@ -54,6 +58,9 @@ pub struct RunSettings {
     /// Whether an open pull request behind the default branch is caught up by itself: `false`
     /// when unset.
     pub catch_up_pull_requests: Option<bool>,
+    /// Each step's agent, model, effort, and session, the implementers, and the reviewers: the
+    /// `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
+    pub options: RunOptions,
 }
 
 /// A kind of automatic run, each with its switch in `[runs]`.
@@ -192,14 +199,6 @@ pub fn set_port(dir: &Path, typed: &str) -> Result<Settings, ApiError> {
 pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
     change(dir, |server| {
         set(server, "open_browser", Value::from(open));
-        Ok(())
-    })
-}
-
-/// Sets whether the run after a spec's approval starts in a new agent session, in `[runs]`.
-pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, ApiError> {
-    change_table(dir, "runs", |runs| {
-        set(runs, "build_in_fresh_session", Value::from(fresh));
         Ok(())
     })
 }

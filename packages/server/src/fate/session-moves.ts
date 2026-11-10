@@ -79,10 +79,7 @@ async function sendRun(
     await ctx.sessions.send(ctx.repo, session, {
       text: message.text,
       ...(run.opening === undefined ? {} : { opening: run.opening }),
-      workflow: {
-        freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
-        trigger: run.trigger,
-      },
+      workflow: { trigger: run.trigger },
     });
   } catch (error) {
     const reason = reasonOf(error);

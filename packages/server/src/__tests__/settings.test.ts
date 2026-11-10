@@ -21,7 +21,7 @@ const LAPTOP = "laptop.tail1234.ts.net";
 /** A file holding every server setting. */
 const file: Settings = {
   keyboard: {},
-  runs: {},
+  runs: { options: { steps: [] } },
   server: { allowedHosts: [MAC], openBrowser: true, port: 4310 },
 };
 
@@ -46,7 +46,7 @@ test.each<{
     },
   },
   {
-    file: { keyboard: {}, runs: {}, server: {} },
+    file: { keyboard: {}, runs: { options: { steps: [] } }, server: {} },
     name: "the defaults, for keys the file does not hold",
     options: none,
     view: {
@@ -58,7 +58,7 @@ test.each<{
   {
     file: {
       keyboard: {},
-      runs: {},
+      runs: { options: { steps: [] } },
       server: { allowedHosts: [MAC], openBrowser: false, port: 4400 },
     },
     name: "the file over the defaults",
@@ -135,7 +135,7 @@ test.each<{
 
 /** US2.1 to US2.5 for the continues' settings: each source over the ones after it. */
 test.each<{
-  file: Settings["runs"] | null;
+  file: Omit<Settings["runs"], "options"> | null;
   name: string;
   options: Parameters<typeof inForce>[0];
   runs: Partial<RunSettingsView>;
@@ -248,19 +248,9 @@ test.each<{
     },
   },
 ])("$name", ({ file: runs, options, runs: view }) => {
-  expect(inForce(options, runs && { ...file, runs }).runs).toMatchObject(view);
-});
-
-test("the build starts in a fresh session by default, and the file's value turns it off", () => {
-  expect(inForce(none, null).runs.buildInFreshSession).toEqual({
-    inForce: true,
-    saved: null,
-    source: { kind: "default" },
-  });
-  expect(inForce(none, file).runs.buildInFreshSession.inForce).toBe(true);
   expect(
-    inForce(none, { ...file, runs: { buildInFreshSession: false } }).runs.buildInFreshSession,
-  ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
+    inForce(options, runs && { ...file, runs: { ...runs, options: { steps: [] } } }).runs,
+  ).toMatchObject(view);
 });
 
 test("single-key shortcuts are on by default, and the file's value turns them off", () => {
@@ -293,9 +283,9 @@ test("Vim is off and without commands by default, and the file's values turn it 
   });
 });
 
-/** Opens the settings of `dir`, closed after the test. */
+/** Opens the settings of `dir`, without the server's environment, closed after the test. */
 async function opened(dir: string, options: GivenValues = none) {
-  const settings = await ServerSettings.open({ binding, dir, options });
+  const settings = await ServerSettings.open({ binding, dir, environment: {}, options });
   onTestFinished(() => settings.close());
   return settings;
 }

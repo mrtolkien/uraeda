@@ -1,27 +1,30 @@
-import type { Binding } from "../fate/context.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
+import { Chain } from "./chain.ts";
+import { CONTINUES_ON, Continuer } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
 import { Processes } from "./processes.ts";
-import { checkAvailable, readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
+import { readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { newPickOf, stepPickOf } from "./run-session.ts";
 import type { SessionPick } from "./picks.ts";
-import { archive, dismiss, rename, seen, setEffort } from "./session-edits.ts";
+import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-edits.ts";
 import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
+import { Reviews } from "./reviews.ts";
+import { SubSessions } from "./sub-sessions.ts";
 import {
   type Live,
   REFUSALS,
   commandCount,
   refused,
   SERVER_STOPPED,
-  type SessionChange,
   type SessionContext,
+  type SessionsOptions,
   wakeupPending,
 } from "./session-state.ts";
 import { Transcript } from "./transcript.ts";
@@ -42,20 +45,6 @@ export {
 } from "./session-state.ts";
 
 /**
- * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
- * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
- * says whether the server lists a main checkout: the restart's continues skip the others.
- */
-type SessionsOptions = {
-  binding: Binding;
-  cache: SessionCache;
-  hosted?: (root: string) => boolean;
-  onChange: (change: SessionChange) => void;
-  runs?: () => ContinueSettings;
-  runtimes: Runtimes;
-};
-
-/**
  * Sessions of turns with agents: at most one process and one turn per session, and one working
  * session per change or feature, whose sessions work in its worktree; a chat in the main checkout.
  * Turns and their items go to the cache, and every change to `onChange`.
@@ -71,6 +60,10 @@ export class Sessions {
   #context: SessionContext;
   /** The messages sent to features whose start is still in the write queue. */
   readonly starts: StartMessages;
+  /** The sessions Uraeda starts for its workflow runs' sub-agents. */
+  readonly subSessions: SubSessions;
+  /** The reviews its workflow sessions run, each reviewer at once. */
+  readonly reviews: Reviews;
 
   constructor(options: SessionsOptions) {
     this.#options = options;
@@ -94,11 +87,15 @@ export class Sessions {
         });
       },
       live: new LiveSessions(),
+      ...(options.mcp === undefined ? {} : { mcp: options.mcp }),
+      queue: options.queue ?? (() => undefined),
+      runOptions: options.runOptions ?? (() => ({ steps: [] })),
       runtimes: options.runtimes,
     } as SessionContext;
     context.processes = new Processes(context);
     context.turns = new Turns(context);
     context.transcript = new Transcript(context);
+    context.chain = new Chain(context);
     const { runtimes } = options;
     context.continuer = new Continuer(context, {
       available: (row) => runsOn(runtimes, row),
@@ -106,6 +103,9 @@ export class Sessions {
       runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;
+    this.subSessions = new SubSessions(context);
+    context.subSessions = this.subSessions;
+    this.reviews = new Reviews(context);
     // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
     // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {
@@ -195,15 +195,32 @@ export class Sessions {
     return wakeupPending(this.#context.live.get(session)?.proc);
   }
 
-  /** The latest session of a change or a feature, made on `pick` with none: `featureSession`. */
+  /**
+   * The latest session of a change or a feature, made with none on `pick`, else on its next step's:
+   * `featureSession`.
+   */
   async featureSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
-    return featureSession(this.#context, await this.mainRoot(repo), folder, pick);
+    const root = await this.mainRoot(repo);
+    const made = this.#context.cache.latestSession(root, folder) === undefined;
+    const starting = this.starts.runStep(root, folder);
+    const picked = made ? await newPickOf(this.#context, root, folder, pick, starting) : pick;
+    return featureSession(this.#context, root, folder, picked);
   }
 
-  /** A new session of a change or a feature, on `pick`, which becomes its latest: `newSession`. */
+  /**
+   * A new session of a change or a feature, on `pick`, else on its next step's, which becomes its
+   * latest: `newSession`.
+   */
   async newSession(repo: string, folder: string, pick?: SessionPick): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
-    return newSession(this.#context, this.#options.onChange, root, { folder, pick });
+    const starting = this.starts.runStep(root, folder);
+    const picked = await newPickOf(this.#context, root, folder, pick, starting);
+    return newSession(this.#context, this.#options.onChange, root, { folder, pick: picked });
+  }
+
+  /** What a session of `folder` in `root`, made without a pick for `runStep`, runs on. */
+  stepPick(root: string, folder: string, runStep: string | null | undefined) {
+    return stepPickOf(this.#context, root, folder, runStep);
   }
 
   /** Moves a session without a workflow to the change it became, between turns: `attach`. */
@@ -253,8 +270,8 @@ export class Sessions {
    * steered into it, and the workflow's is queued after it. A workflow message that no longer
    * applies, as `sentAsChat` decides, runs as a chat, with the line saying so. A message may be
    * images alone, at most 10, to an agent that declares images; the workflow's message takes none.
-   * A run that starts fresh goes to a new session of the change or the feature, which it returns;
-   * another session of it working refuses a message.
+   * A workflow run goes to the session its step's options give, maybe a new session of the change
+   * or the feature, which it returns; another session of it working refuses a message.
    */
   async send(
     repo: string,
@@ -262,12 +279,15 @@ export class Sessions {
     input: SendInput,
   ): Promise<{ session: string; turn: number }> {
     const row = await this.#own(repo, session);
-    const message = checkSend(input, sessionRuntime(this.runtimes, row).capabilities);
-    const available = () => checkAvailable(this.runtimes, row.agent);
-    available();
+    // A workflow message takes no images, and its run's session, maybe another, checks its agent.
+    const capabilities =
+      input.workflow === undefined
+        ? sessionRuntime(this.runtimes, readySession(this.runtimes, row)).capabilities
+        : { images: false };
+    const message = checkSend(input, capabilities);
     const live = this.#context.live.of(row);
     return this.#context.live.serial(live, () =>
-      this.#asHuman(live, () => sendTo(this.#context, live, message, available)),
+      this.#asHuman(live, () => sendTo(this.#context, live, message)),
     );
   }
 
@@ -286,22 +306,11 @@ export class Sessions {
 
   /**
    * Stops the running turn, which keeps the session, and the turns queued after it, or the run's
-   * wait to continue, or its agent's own wakeup, for good.
+   * wait to continue, or its agent's own wakeup, for good: `stopRun`. Its sub-sessions stop too.
    */
   stop(repo: string, session: string): void {
-    const { changed, continuer, turns } = this.#context;
-    const live = this.#context.live.of(this.#ownNow(repo, session));
-    for (const queued of live.queue.splice(0)) {
-      turns.end(live, queued.id, { state: "stopped" });
-    }
-    if (live.turn) {
-      turns.halt(live, live.turn, { state: "stopped" });
-    }
-    turns.stopWakeup(live);
-    for (const turn of continuer.cancel(live.id, { stopped: true })) {
-      changed(live, turn, "stopped");
-    }
-    this.#context.live.prune(live);
+    stopRun(this.#context, this.#context.live.of(this.#ownNow(repo, session)));
+    this.subSessions.stopAll(session);
   }
 
   /**

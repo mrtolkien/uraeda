@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-12
 pull-request: https://github.com/mrtolkien/uraeda/pull/5
+superseded-by: [2026-11-08-run-options]
 ---
 
 # Record: Claude Code runner (triggered manually)
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/5
 > The record of a merged feature, not instructions to follow. Started on 2026-10-12, finished on
 > 2026-10-12, in [its pull request](https://github.com/mrtolkien/uraeda/pull/5). Its full files are
 > in git: `git log -- specs/2026-10-12-claude-code-runner-triggered-manually-https-code/`.
+>
+> Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
 
 ## What and why
 

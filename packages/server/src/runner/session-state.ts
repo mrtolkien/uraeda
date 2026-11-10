@@ -1,12 +1,18 @@
+import type { RunOptions } from "uraeda-binding";
 import type { Binding } from "../fate/context.ts";
+import type { ServerAddress } from "../mcp/endpoint.ts";
+import type { McpTokens } from "../mcp/tokens.ts";
 import { IMAGE_REFUSALS, RUNTIME_REFUSALS } from "../limits.ts";
+import type { WriteQueue } from "../writes/queue.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { Continuer } from "./continuer.ts";
+import type { Chain } from "./chain.ts";
+import type { ContinueSettings, Continuer } from "./continuer.ts";
 import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Runtimes } from "./runtimes.ts";
+import type { SubSessions } from "./sub-sessions.ts";
 import type { Transcript } from "./transcript.ts";
 import type { Turns } from "./turns.ts";
 
@@ -46,6 +52,8 @@ export const REFUSALS = {
   read: "The agent already read it.",
   /** A message with no text. */
   blank: "The message is empty.",
+  /** A rename of a sub-session, which its parent's calls find by its task. */
+  subSessionName: "A sub-agent's session keeps its task's name.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
   /** An "Allow all" with no blocked action of the latest turn that has a rule. */
@@ -153,6 +161,8 @@ export type Proc = {
   runtime: Adapter;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
+  /** Its token of the MCP endpoint, for a workflow session's process: revoked as it exits. */
+  token?: string;
   /**
    * The latest one-shot wakeup the agent set, in epoch milliseconds: the idle timer waits a minute
    * past it, for the agent to go on by itself.
@@ -225,6 +235,8 @@ export type Live = {
   /** Sends and turn starts, one after another. */
   lock: Promise<unknown>;
   messages: Map<string, Sent>;
+  /** The session whose run started it, for a sub-session: null for every other session. */
+  parent: string | null;
   proc?: Proc;
   queue: Array<Queued>;
   repo: string;
@@ -242,20 +254,63 @@ export type SessionContext = {
   agentChanged: () => void;
   binding: Binding;
   cache: SessionCache;
+  /** Their step chain: the next step's run, started as a step's run ends before a gate. */
+  chain: Chain;
   /** Reports a change of the session, with its turn and that turn's new state. */
   changed: (live: Live, turn?: number, state?: TurnState) => void;
   /** Their automatic continues: decided as turns end, armed, cancelled, and sent. */
   continuer: Continuer;
   /** The sessions kept in memory. */
   live: LiveSessions;
+  /**
+   * Where the agents' processes reach the server's MCP endpoint, and its tokens: none when the
+   * server gives no tools.
+   */
+  mcp?: { address: ServerAddress; tokens: McpTokens };
   /** Their processes: opened, closed, and read. */
   processes: Processes;
+  /**
+   * The write queue of a repository the server hosts, by its main checkout: none in tests, whose
+   * repositories commit within each call.
+   */
+  queue: (repo: string) => WriteQueue | undefined;
+  /**
+   * The run options a feature's next run starts on, by its repository's main checkout and its
+   * folder: its own over the settings', as they are now.
+   */
+  runOptions: (repo: string, folder: string) => RunOptions;
   /** The runtimes sessions run on, each found by the session's stored `agent`. */
   runtimes: Runtimes;
+  /** The sessions Uraeda starts for its workflow runs' sub-agents, and the calls that start them. */
+  subSessions: SubSessions;
   /** Their events, recorded as items. */
   transcript: Transcript;
   /** Their turns: started, queued, halted, and ended. */
   turns: Turns;
+};
+
+/**
+ * What the session manager works with: its runtimes, binding, and cache, where it reports a change,
+ * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
+ * says whether the server lists a main checkout: the restart's continues skip the others.
+ * `runOptions` gives a feature's run options as its next run starts on them: the defaults when
+ * left out.
+ */
+export type SessionsOptions = {
+  binding: Binding;
+  cache: SessionCache;
+  hosted?: (root: string) => boolean;
+  /**
+   * Where the agents' processes reach the server's MCP endpoint, and its tokens, one issued to each
+   * workflow process: none in tests that run no workflow.
+   */
+  mcp?: { address: ServerAddress; tokens: McpTokens };
+  onChange: (change: SessionChange) => void;
+  /** The write queue of a repository the server hosts, by its main checkout. */
+  queue?: (repo: string) => WriteQueue | undefined;
+  runOptions?: (repo: string, folder: string) => RunOptions;
+  runs?: () => ContinueSettings;
+  runtimes: Runtimes;
 };
 
 /** Whether the process is open, and waits for a wakeup the agent set: it goes on by itself then. */

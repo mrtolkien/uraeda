@@ -14,6 +14,7 @@ import { checkoutDir, hasPreview } from "./preview.ts";
 import { agentTime } from "./agentTime.ts";
 import { featureStatusOf } from "./feature-status.ts";
 import { statusOf, turnsOf, workspaceOf } from "./session-reads.ts";
+import { subSessionFields } from "./sub-session-views.ts";
 import { featureTokens } from "./tokens.ts";
 import { messageStep, readMessage } from "./workflow-step.ts";
 import {
@@ -145,6 +146,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     place: await placeOf(ctx, row, feature),
     statusTurn: read.latest ? String(read.latest.id) : null,
     subagents: read.subagents,
+    ...subSessionFields(ctx, row),
     turns: read.turns.map((turn) => String(turn.id)),
     unseen: unseen(row, read),
   };
@@ -202,7 +204,8 @@ export async function readTurnLog(
 
 /**
  * The sidebar's rows of the sessions, what needs the human first, then the last updated. A
- * feature's session leaves the list with its feature, as when it was finished into its record.
+ * feature's session leaves the list with its feature, as when it was finished into its record. The
+ * cache leaves sub-sessions out: their parent's views list them.
  */
 async function rows(
   ctx: RepoContext,
@@ -346,9 +349,38 @@ export async function readWorkflowMessage(
   };
 }
 
+/** What a session of `feature` made without a pick runs on: `FeatureRecord.newPick`. */
+function newPickOf(ctx: RepoContext, root: string, feature: FeatureView) {
+  try {
+    const runStep = ctx.binding.runStepOf(feature.step.name);
+    const pick = ctx.sessions.stepPick(root, feature.folder, runStep);
+    return pick
+      ? { effort: pick.effort ?? null, model: pick.model ?? null, runtime: pick.runtime }
+      : null;
+  } catch {
+    // No runtime on: the composer says so.
+    return null;
+  }
+}
+
+/**
+ * The run options of `folder`: its own, read with the main checkout `root` as its sessions are, none
+ * outside git; and the core's merge of them over the settings'.
+ */
+function runOptionsOf(ctx: RepoContext, root: string | undefined, folder: string) {
+  const own = root === undefined ? { steps: [] } : ctx.featureOptions.own(root, folder);
+  return { merged: ctx.featureOptions.over(own), own };
+}
+
+/** `turns`, the turns of `sessions`, with their sub-sessions', in the order they were added. */
+function withSubSessions(cache: SessionCache, sessions: Array<SessionRow>, turns: Array<TurnRow>) {
+  const subs = sessions.flatMap((row) => cache.subSessionsOf(row.id));
+  return [...turns, ...subs.flatMap((row) => cache.turns(row.id))].sort((a, b) => a.id - b.id);
+}
+
 /**
  * A feature's record: its view, with its sessions' IDs, latest first and not archived, their
- * tokens, and whether it has a preview.
+ * tokens and their sub-sessions', and whether it has a preview.
  */
 export async function featureRecord(
   ctx: RepoContext,
@@ -372,14 +404,16 @@ export async function featureRecord(
     // Said, not left out: a client that read the folder missing before its start landed keeps the
     // fields a record leaves out.
     missing: false,
+    newPick: root === undefined ? null : newPickOf(ctx, root, feature),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
+    runOptions: runOptionsOf(ctx, root, feature.folder),
     runtime: sessions[0]?.agent ?? null,
     session: sessions[0]?.id ?? null,
     status: await featureStatusOf(ctx, feature),
     // An archived session, of a dropped change, leaves the lists.
     sessions: sessions.filter((row) => row.archivedAt === null).map((row) => row.id),
     step: sentStep(feature.step),
-    tokens: featureTokens(turns),
+    tokens: featureTokens(withSubSessions(cache, sessions, turns)),
   };
 }
 

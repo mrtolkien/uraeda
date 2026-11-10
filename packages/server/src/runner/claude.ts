@@ -13,7 +13,15 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import type { Adapter, AgentProcess, Capabilities, ModelList, OpenOptions } from "./adapter.ts";
+import type {
+  Adapter,
+  AgentProcess,
+  Capabilities,
+  ModelList,
+  OpenOptions,
+  ReviewAsk,
+  ReviewMessage,
+} from "./adapter.ts";
 import {
   type Child,
   endShortProcess,
@@ -26,6 +34,13 @@ import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
+import {
+  TOKEN_VARIABLE,
+  TOOL_NAMES,
+  TOOL_TIMEOUT_MS,
+  TOOLS_SERVER,
+  toolsEnv,
+} from "./uraeda-tools.ts";
 
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
@@ -124,6 +139,37 @@ export function prunePlugins(plugins: string, extensions: string): void {
   }
 }
 
+/** Claude Code's tools that start its own sub-agents: `Task` is `Agent`'s older name. */
+const SUB_AGENT_TOOLS = ["Agent", "Task", "Workflow", "TeamCreate"];
+
+/**
+ * The arguments that give a process Uraeda's tools and take its own sub-agents away: Uraeda's MCP
+ * server over HTTP, its token read from the environment, as the arguments are readable by every
+ * user, and its calls given up only after `TOOL_TIMEOUT_MS`, as progress does not extend a call.
+ * The user's own servers stay. With `"none"`, only the sub-agents are taken away; a chat keeps
+ * them. Both options take several values, so they come before an option that takes one.
+ */
+function toolsArgs(tools: OpenOptions["tools"]): Array<string> {
+  if (tools === undefined) {
+    return [];
+  }
+  const disallowed = ["--disallowedTools", ...SUB_AGENT_TOOLS];
+  if (tools === "none") {
+    return disallowed;
+  }
+  const server = {
+    headers: { Authorization: `Bearer \${${TOKEN_VARIABLE}}` },
+    timeout: TOOL_TIMEOUT_MS,
+    type: "http",
+    url: tools.url,
+  };
+  return [
+    "--mcp-config",
+    JSON.stringify({ mcpServers: { [TOOLS_SERVER]: server } }),
+    ...disallowed,
+  ];
+}
+
 /**
  * The arguments of a session's process: print mode, stream-json both ways, `auto` mode, the skill,
  * the web UI's instructions, appended to the system prompt on every start, and the chat images'
@@ -131,7 +177,8 @@ export function prunePlugins(plugins: string, extensions: string): void {
  * Only that folder is added, never the whole data folder: `auto` mode lets the agent write to added
  * folders. With `extensions`, the extensions folder is added too, so the agent writes extensions
  * there, the instructions say so, and each extension of `options.skills` gives one more plugin
- * folder, after Uraeda's own (`extensionPlugins` makes them).
+ * folder, after Uraeda's own (`extensionPlugins` makes them). With `options.tools`, Uraeda's tools
+ * are given and allowed, and the agent's own sub-agents taken away (`toolsArgs`).
  */
 export function claudeArgs(
   options: OpenOptions,
@@ -143,6 +190,11 @@ export function claudeArgs(
     extensions === undefined
       ? []
       : options.skills.map((skills) => pluginOf(skills, extensions.plugins));
+  const tools = typeof options.tools === "object";
+  const allowed = [
+    ...(options.allowed ?? []),
+    ...(tools ? TOOL_NAMES.map((name) => `mcp__${TOOLS_SERVER}__${name}`) : []),
+  ];
   return [
     "-p",
     "--input-format",
@@ -161,11 +213,12 @@ export function claudeArgs(
     "--add-dir",
     imagesDir,
     ...(extensions === undefined ? [] : ["--add-dir", extensions.folder]),
+    ...toolsArgs(options.tools),
     "--append-system-prompt",
     webUiInstructions(extensions && { docs: extensions.docs, folder: extensions.folder }),
     options.resume ? "--resume" : "--session-id",
     options.nativeId,
-    ...(options.allowed === undefined ? [] : ["--allowedTools", ...options.allowed]),
+    ...(allowed.length === 0 ? [] : ["--allowedTools", ...allowed]),
   ];
 }
 
@@ -195,6 +248,21 @@ export function messageContent(text: string, images: Array<{ path: string }>): s
     return text;
   }
   return text === "" ? lines : `${text}\n\n${lines}`;
+}
+
+/** The levels `/code-review` takes, the names of Claude Code's efforts. */
+const REVIEW_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+/**
+ * Claude Code's own review of the commits `<base>..<head>`: `/code-review` at the level of the
+ * reviewer's effort, `medium` for an effort it does not name, never left out, which would reuse the
+ * level the human last typed. `/code-review` reads all the text after its level as its target: the
+ * instructions follow the range there, and the review reads them.
+ */
+export function claudeReview({ base, effort, head, instructions }: ReviewAsk): ReviewMessage {
+  const level = effort !== undefined && REVIEW_LEVELS.has(effort) ? effort : "medium";
+  const command = `/code-review ${level} ${base}..${head}`;
+  return { text: instructions ? `${command}\n\n${instructions}` : command };
 }
 
 /**
@@ -277,7 +345,7 @@ export class ClaudeAdapter implements Adapter {
       extensionPlugins(options.skills, extensions.plugins);
     }
     const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);
-    return spawnGrouped(this.#command, args, options.cwd);
+    return spawnGrouped(this.#command, args, options.cwd, toolsEnv(options.tools));
   }
 
   /**
@@ -315,6 +383,10 @@ export class ClaudeAdapter implements Adapter {
       clearTimeout(timer);
       endShortProcess(short);
     }
+  }
+
+  reviewMessage(ask: ReviewAsk): ReviewMessage {
+    return claudeReview(ask);
   }
 
   open(options: OpenOptions): AgentProcess {

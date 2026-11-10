@@ -60,17 +60,23 @@ type Of = { folder?: string | undefined; session?: string | undefined };
 
 /**
  * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab;
- * then, while the main agent runs `running` sub-agents or the address's tab, `asked`, is theirs,
- * the Sub-agents over the Changes, its tab counting them. On the phone, `isSplit` false, each its
- * own panel, as the bottom bar has a tile for each.
+ * then, while the session has sub-sessions, while `running` sub-agents or sub-sessions work, or
+ * while the address's tab, `asked`, is theirs, the Sub-agents over the Changes, its tab counting
+ * them. On the phone, `isSplit` false, each its own panel, as the bottom bar has a tile for each.
  */
 function sessionPanels({
   asked = null,
   folder,
+  hasSubSessions = false,
   isSplit,
   running = 0,
   session,
-}: Of & { asked?: string | null; isSplit: boolean; running?: number }): Array<ColumnPanel> {
+}: Of & {
+  asked?: string | null;
+  hasSubSessions?: boolean;
+  isSplit: boolean;
+  running?: number;
+}): Array<ColumnPanel> {
   const activity: ColumnPanel = {
     // Before its first message, the session has no call.
     content: session === undefined ? <NoCall /> : <ActivityPanel session={session} />,
@@ -89,7 +95,7 @@ function sessionPanels({
     key: CHANGES,
     label: "Changes",
   };
-  const hasSubagents = running > 0 || asked === SUBAGENTS;
+  const hasSubagents = running > 0 || hasSubSessions || asked === SUBAGENTS;
   if (!isSplit) {
     return hasSubagents
       ? [activity, changes, subagentsPanel(session, running)]
@@ -327,11 +333,15 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
   const record = useSessionRecord(session);
   const latest = record?.turns.at(-1);
   const first = useFirstLatest(latest);
+  const subSessions = record?.subSessions ?? [];
   const panels = sessionPanels({
     asked: useAskedTab(),
     folder,
+    hasSubSessions: subSessions.length > 0,
     isSplit: wide,
-    running: topLevel(record?.subagents ?? []).length,
+    running:
+      topLevel(record?.subagents ?? []).length +
+      subSessions.filter((sub) => sub.state === "working").length,
     session,
   });
   return (

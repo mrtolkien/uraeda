@@ -85,7 +85,7 @@ specs/
   ui/                       # the project's UI guides, free form: read before designing a view
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
-                            # clarifications-NN.md, rulings.md, images/, mockups/
+                            # clarifications-NN.md, rulings.md, findings-NN.md, images/, mockups/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
@@ -97,6 +97,7 @@ specs/
     plan.md                 # agent: tasks with files and steps, checked off as built
     plan-review.md          # human: comments on the plan, when it is reviewed with comments
     rulings.md              # agent: low-impact choices made while planning and building
+    findings-NN.md          # reviewers: a review's findings, before its fixes
     data-model.md           # agent, with the spec: the stored data or file formats it changes
     contracts/              # agent, when needed
     mockups/                # agent: HTML mockups, or the stories of a mockups Storybook;
@@ -169,11 +170,11 @@ opened before [Finish](references/finish.md) existed.
    request's comments runs
    [Implementation](references/implementation.md#comments-on-the-pull-request)'s comments pass,
    whatever the table says.
-4. **Continue to the next human gate.** A run stops only at a human gate, or for a reason to stop
-   that the step's reference names, such as a new round of questions. If the step did not end at
-   one, find and run the next step in the same session: an auto-approved plan goes straight on to
-   the implementation. Do not stop between steps to report or to check in. If you cannot go on, say
-   why in your last message: the next run finds the step with this same table.
+4. **Continue to the next human gate.** A run stops at a human gate, where its message says to stop,
+   or for a reason its step's reference names, like a new round of questions. Otherwise, run the
+   next step in the same session without reporting: an auto-approved plan goes on to the
+   implementation. If you cannot go on, say why in your last message. Uraeda's runs start the next
+   step themselves.
 
 **A file in an old format** is rewritten from its template before the step runs: see
 [Conventions](references/conventions.md#a-file-in-an-old-format).

@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
 use uraeda_core::api::ApiError;
-use uraeda_core::settings::{self, KeyboardSettings, RunSettings, ServerSettings, Settings};
+use uraeda_core::settings::{
+    self, KeyboardSettings, RunOptions, RunSettings, ServerSettings, Settings,
+};
 
 const HOST_PROBLEM: &str =
     "is not a host name: use letters, digits, hyphens, and dots, like mac.tail1234.ts.net.";
@@ -68,11 +70,11 @@ fn reads_each_file() {
             open_browser: Some(false),
         },
         runs: RunSettings {
-            build_in_fresh_session: Some(false),
             continue_after_restart: Some(false),
             continue_after_limit: Some(true),
             automatic_continues: Some(4),
             catch_up_pull_requests: Some(true),
+            options: RunOptions::default(),
         },
         ..Settings::default()
     };
@@ -82,7 +84,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\n",
             ),
             Ok(full),
         ),
@@ -333,26 +335,6 @@ fn edits_and_removes_a_name() {
     let removed = settings::remove_allowed_host(dir.path(), "laptop.tail1234.ts.net");
     assert_eq!(removed, Ok(hosts(&[])));
     assert_eq!(text(dir.path()), "[server]\nallowed_hosts = []\n");
-}
-
-#[test]
-fn sets_building_in_a_fresh_session_in_its_own_table() {
-    let dir = tempdir();
-    write(dir.path(), "# mine\n[server]\nport = 4400\n");
-
-    let saved = settings::set_build_in_fresh_session(dir.path(), false).unwrap();
-
-    assert_eq!(saved.runs.build_in_fresh_session, Some(false));
-    assert_eq!(saved.server.port, Some(4400));
-    assert_eq!(
-        text(dir.path()),
-        "# mine\n[server]\nport = 4400\n\n[runs]\nbuild_in_fresh_session = false\n"
-    );
-    settings::set_build_in_fresh_session(dir.path(), true).unwrap();
-    assert_eq!(
-        text(dir.path()),
-        "# mine\n[server]\nport = 4400\n\n[runs]\nbuild_in_fresh_session = true\n"
-    );
 }
 
 #[test]

@@ -21,7 +21,7 @@ import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
 import { addStoryFeature, STORIES_FILE, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
-import { listPullRequest, recordFeatureRuns } from "../samples/index.ts";
+import { listPullRequest, recordFeatureRuns, recordSubSessionRuns } from "../samples/index.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
@@ -79,6 +79,7 @@ async function main() {
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   // Their runs' tokens, and the open pull request a `gh` lists (R100).
   recordFeatureRuns(data, repo);
+  recordSubSessionRuns(data, repo);
   listPullRequest();
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;

@@ -2,12 +2,17 @@
  * Checks the Codex integration against this machine's `codex`, signed in: its model list and
  * defaults, a turn that commits a file in a git worktree, the commit landing after Codex's
  * automatic review, a message steered into a running turn, an interrupt, the model a session runs
- * on, an image sent by its path, and that the user's `config.toml` is left as it was (R24).
+ * on, an image sent by its path, a session given a stand-in of Uraeda's tool calling it, and that
+ * the user's `config.toml` is left as it was (R24).
  *
  * Run it by hand, with `vp run validate:codex`, after a Codex upgrade, or when runs break. It is
  * not part of `vp test` or `vp run ready`: it runs the real `codex`, which spends a little of the
  * account's plan, on the cheapest listed model at its lowest effort, in throwaway repositories
  * under a temporary folder. `URAEDA_CODEX_MODEL` picks another model.
+ *
+ * With `--tools`, only the check of Uraeda's tool runs. Then the check of a reviewer: Codex's own
+ * review of a commit that adds a bug, on the model and effort picked; with `--review`, only it
+ * runs.
  *
  * It prints one line per check, `PASS` or `FAIL` with what it got, and exits 1 on any failure.
  */
@@ -21,6 +26,7 @@ import type { AgentModel, AgentProcess, ModelList, Outgoing } from "../src/runne
 import { CodexAdapter } from "../src/runner/codex.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { layout } from "../src/paths.ts";
+import { lastChecks, lastOnly } from "./validate-reviews.ts";
 
 /** A turn that has not ended after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 240_000;
@@ -29,9 +35,13 @@ const INTERRUPT_MS = 15_000;
 
 const codexHome = process.env.CODEX_HOME ?? join(homedir(), ".codex");
 const configPath = join(codexHome, "config.toml");
-const adapter = new CodexAdapter({ codexHome, pluginDir: layout().plugin });
-/** The throwaway repositories, an image, and nothing else. */
+/** The throwaway repositories, an image, the catalog without sub-agents, and nothing else. */
 const root = mkdtempSync(join(tmpdir(), "uraeda-codex-"));
+const adapter = new CodexAdapter({
+  catalogDir: join(root, "codex-catalog"),
+  codexHome,
+  pluginDir: layout().plugin,
+});
 let failed = false;
 
 function report(name: string, ok: boolean, got: unknown) {
@@ -284,19 +294,69 @@ async function imageCheck(cwd: string, pick: { effort?: string; model?: string }
   });
 }
 
+/**
+ * The sub-agents a thread started, from its rollout: Codex's events show no call of its
+ * `spawn_agent` in the collaboration tools of a model on multi-agent v2.
+ */
+function spawned(threadId: string): Array<unknown> {
+  const found = execFileSync(
+    "find",
+    [join(codexHome, "sessions"), "-name", `*-${threadId}.jsonl`],
+    {
+      encoding: "utf8",
+    },
+  ).split("\n")[0];
+  if (!found) {
+    return [`no rollout for ${threadId}`];
+  }
+  return readFileSync(found, "utf8")
+    .split("\n")
+    .filter((line) => line.includes('"name":"spawn_agent"'));
+}
+
+/**
+ * What the review of a thread ran on, from the rollout of its review thread, whose parent the
+ * thread is: the model and the effort of its turn's context.
+ */
+function reviewedOn(threadId: string): { effort?: string; model?: string } | undefined {
+  const found = execFileSync(
+    "grep",
+    ["-rl", "--include=*.jsonl", `"parent_thread_id":"${threadId}"`, join(codexHome, "sessions")],
+    { encoding: "utf8" },
+  ).split("\n")[0];
+  const context = found
+    ? readFileSync(found, "utf8")
+        .split("\n")
+        .find((line) => line.includes('"type":"turn_context"'))
+    : undefined;
+  const payload = context === undefined ? undefined : JSON.parse(context).payload;
+  return payload && { effort: payload.effort ?? undefined, model: payload.model ?? undefined };
+}
+
 const configBefore = existsSync(configPath) ? readFileSync(configPath) : undefined;
 try {
   const version = await adapter.version();
   report(`version() returns a version (${version})`, version !== undefined, version);
+  const toolsOnly = lastOnly(process.argv);
   const pick = await modelChecks();
-  await commitChecks(pick);
+  if (!toolsOnly) {
+    await commitChecks(pick);
+  }
   const chat = join(root, "chat");
   mkdirSync(chat);
   git(chat, "init", "-q");
   const plain = { ...(pick.effort ? { effort: pick.effort } : {}), model: pick.model?.id };
-  await steerCheck(chat, plain);
-  await interruptCheck(chat, plain);
-  await imageCheck(chat, plain);
+  if (!toolsOnly) {
+    await steerCheck(chat, plain);
+    await interruptCheck(chat, plain);
+    await imageCheck(chat, plain);
+  }
+  await lastChecks(
+    adapter,
+    process.argv,
+    { cwd: chat, pick: plain, report, settings: configPath, spawned },
+    { ...(plain.effort ? { effort: plain.effort } : {}), pick: plain, report, reviewedOn },
+  );
 } finally {
   rmSync(root, { force: true, recursive: true });
   const configAfter = existsSync(configPath) ? readFileSync(configPath) : undefined;

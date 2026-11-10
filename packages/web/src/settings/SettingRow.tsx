@@ -75,15 +75,18 @@ export function SettingRows({ children }: { children: ReactNode }) {
 /**
  * A setting's row: its icon, its name as a heading under its section's, its help under it, then
  * `notes`, what the page says of its value, and `children`, its control; then `under`, what the
- * row holds below its line and its control, like an extension's settings, level with its text.
+ * row holds below its line and its control, like an extension's settings, level with its text,
+ * and as wide as the text's column unless `isUnderWide`, as a diagram that needs the row's width.
  */
 export function SettingRow({
   children,
+  isUnderWide = false,
   notes,
   setting: { help, icon, label },
   under,
 }: {
   children?: ReactNode;
+  isUnderWide?: boolean;
   notes?: ReactNode;
   setting: Pick<Setting, "help" | "icon" | "label">;
   under?: ReactNode;
@@ -127,7 +130,7 @@ export function SettingRow({
   return (
     <VStack as="li" gap={3} xstyle={styles.row}>
       {line}
-      <VStack xstyle={!narrow && [styles.under, styles.column]}>{under}</VStack>
+      <VStack xstyle={!narrow && [styles.under, !isUnderWide && styles.column]}>{under}</VStack>
     </VStack>
   );
 }
