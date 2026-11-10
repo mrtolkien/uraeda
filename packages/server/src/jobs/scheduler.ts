@@ -10,6 +10,7 @@ import { refused } from "../runner/session-state.ts";
 import { type Runs, serially } from "../serially.ts";
 import { Busy } from "./busy.ts";
 import { agentOf, openFolders, works } from "./guards.ts";
+import { impossible } from "./problem.ts";
 import { startRun } from "./run.ts";
 import { sleep } from "./sleep.ts";
 import { dueAt, MISSED_AFTER_MS, nextAfter } from "./times.ts";
@@ -421,8 +422,16 @@ class JobScheduler implements Scheduler {
     const { jobs, problem } = await this.#options.jobs();
     const job = jobs.find((one) => one.name === name);
     const repo = this.#options.repos().find((one) => one.name === repository);
-    if (problem !== undefined || job === undefined || job.problem !== undefined) {
-      throw refused(problem ?? job?.problem ?? `There is no job named “${name}”.`);
+    if (problem !== undefined) {
+      throw refused(problem);
+    }
+    if (job === undefined) {
+      throw refused(`There is no job named “${name}”.`);
+    }
+    // A run by hand reads no schedule: only what makes a run impossible refuses it.
+    const why = impossible(jobs, job);
+    if (why !== undefined) {
+      throw refused(why);
     }
     if (repo === undefined || !job.repositories.includes(repository)) {
       throw refused(`“${name}” does not run in ${repository}.`);

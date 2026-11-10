@@ -366,3 +366,33 @@ test("the record is announced when the repository list, a runtime, or the worksp
   publish({ ...NO_CHANGES, git: true }, host, server.sessions);
   expect(heard()).toBe(before);
 });
+
+/**
+ * Finding 9; R13. Catches: "Run now" refused for a schedule that is not understood, which a run by
+ * hand does not read, so the human cannot test the prompt until it is mended; and a run by hand of a
+ * job that cannot run at all, refused with a fragment instead of the card's words.
+ */
+test("Run now is refused only while the run works, or for a problem that makes a run impossible", async () => {
+  const run = await setup(
+    (name) =>
+      `${table("Quality", [name]).replace("daily 03:00", "dayly 06:00")}\n` +
+      `${table("Silent", [name]).replace(PROMPT, "")}\n` +
+      `${table("Twin", [name])}\n${table("Twin", [name])}\n` +
+      `${table("Lost", ["nowhere"])}`,
+  );
+  const { server } = run;
+  const runNow = (name: string) => run.mutate("jobs.runNow", { name }, ["session"]);
+
+  // A schedule that is not understood does not stop a run by hand.
+  server.adapter.script([]);
+  const ran = await runNow("Quality");
+  expect(ran.ok).toBe(true);
+  expect(systemLines(server, ran.data.session)).toContain(
+    "Started by “Run now” of the job “Quality”.",
+  );
+
+  // What makes a run impossible is refused, in the words of the card.
+  expect((await runNow("Silent")).error?.message).toBe("refused: A job has no prompt.");
+  expect((await runNow("Twin")).error?.message).toBe("refused: Two jobs are named “Twin”.");
+  expect((await runNow("Lost")).ok).toBe(false);
+});

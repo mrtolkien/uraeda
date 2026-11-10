@@ -330,3 +330,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: announcing on every `publish`, which a file's save in any checkout
   sends: a burst with no feature or branch changed (a git-only one) asks nothing of the jobs.
 - **Where**: task 6.
+
+## R23: "Run now" is refused for what makes a run impossible, not for a bad schedule
+
+- **Decision**: besides the job's run working there
+  ([R18](#r18-an-acceptance-in-flight-is-the-job-busy-and-the-guards-are-read-right-before-a-start)
+  adds an acceptance in flight), "Run now" is refused for a job with no prompt, no name, a name
+  another job has, or any problem it has apart from its schedule, with the text the card shows
+  ([R13](#r13-a-jobs-problem-is-a-fragment-or-a-sentence-and-the-records-answers-are-two-types)): “A
+  job has no prompt.”, “Two jobs are named “<name>”.”. A schedule that is not understood does not
+  refuse it. `coreProblem` and the check live in `jobs/problem.ts`.
+- **Rationale**: the spec refuses it only while the job's run works there, and a run by hand reads
+  no schedule: a job with `schedule = "dayly 06:00"` could not be tried until its schedule was
+  mended, and was refused with a fragment (“the schedule … is not understood”) without the card's
+  prefix. The core stops at the first problem it finds, in the order name, duplicate, repository,
+  schedule, prompt, so a bad schedule hides an empty prompt: the server reads the prompt itself.
+- **If wrong**: a job whose only problem is one the core lists after the schedule that is not an
+  empty prompt would run by hand; none exists today.
+- **Where**: tasks 4 and 6.

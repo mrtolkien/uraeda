@@ -4,6 +4,7 @@
 import { dataView } from "@nkzw/fate/server";
 import type { Job, Schedule } from "uraeda-binding";
 import { openFolders } from "../jobs/guards.ts";
+import { coreProblem } from "../jobs/problem.ts";
 import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
 import { fileSource } from "./source.ts";
@@ -73,13 +74,6 @@ export const jobsRunDataView = dataView<JobsRunRecord>("JobsRun")({
   problem: true,
   session: true,
 });
-
-/**
- * The core's problem of a job in the card's words: a fragment, as the schedule's, follows "Not
- * running: "; a sentence stands alone, as "Two jobs are named “Dependencies”." does.
- */
-const coreProblem = (problem: string) =>
-  problem.endsWith(".") ? problem : `Not running: ${problem}`;
 
 /**
  * Why the job does not run in the repository, from what only the server knows: a repository it
