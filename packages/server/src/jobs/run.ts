@@ -6,7 +6,9 @@ import type { RepoContext } from "../fate/context.ts";
 import { jobMessage, runNowLine, scheduleLine } from "../runner/message.ts";
 
 /**
- * Starts the run of `job` in the repository of `ctx`: records its row, opens a chat on the job's
+ * Starts the run of `job` in the repository of `ctx`, whose main checkout is `root`, which the caller
+ * has read: nothing is awaited before the row, so what a caller read last (the switch, the guards)
+ * holds when it is written (R53). Records its row, opens a chat on the job's
  * agent, model, and effort, titled by the job's name, and sends it the job's message, which says
  * why it ran, from the workflow. Returns undefined when its time is recorded already: it starts
  * once. A chat that does not start removes the row, so its time is not marked run, and throws.
@@ -15,17 +17,17 @@ export async function startRun(
   ctx: RepoContext,
   job: Job,
   run: { at: number; due: number | null; trigger: "manual" | "schedule" },
+  root: string,
 ): Promise<{ session: string } | undefined> {
   const { repo, sessions } = ctx;
   const { cache } = sessions;
-  const repository = await sessions.mainRoot(repo);
   const row = cache.jobs.add({
     at: run.at,
     due: run.due,
     job: job.name,
     outcome: "started",
     reason: null,
-    repository,
+    repository: root,
     session: null,
     trigger: run.trigger,
   });

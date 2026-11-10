@@ -112,7 +112,12 @@ async function setup(extensions?: ExtensionsHost) {
       if (then) {
         server.adapter.script(then);
       }
-      const run = await startRun(ctx, started, { at: Date.now(), due: ++due, trigger: "schedule" });
+      const run = await startRun(
+        ctx,
+        started,
+        { at: Date.now(), due: ++due, trigger: "schedule" },
+        await server.sessions.mainRoot(ctx.repo),
+      );
       const session = run!.session;
       await ended(server, session);
       await accepting.settled();
@@ -290,7 +295,12 @@ test.each(["starts a turn", "lands in the ended turn"])(
     const gate = Promise.withResolvers<void>();
     state.gate = gate.promise;
     server.adapter.script([{ text: OFFER, type: "text" }]);
-    const started = await startRun(ctx, job(), { at: Date.now(), due: 1, trigger: "schedule" });
+    const started = await startRun(
+      ctx,
+      job(),
+      { at: Date.now(), due: 1, trigger: "schedule" },
+      await server.sessions.mainRoot(ctx.repo),
+    );
     const session = started!.session;
     await ended(server, session);
     // The turn ended and the acceptance waits for the settings: the human writes now.
@@ -372,7 +382,12 @@ test.each(["starts the change", "finds the job report only"])(
     const gate = Promise.withResolvers<void>();
     state.gate = gate.promise;
     server.adapter.script([{ text: OFFER, type: "text" }]);
-    const started = await startRun(ctx, job(), { at: Date.now(), due: 1, trigger: "schedule" });
+    const started = await startRun(
+      ctx,
+      job(),
+      { at: Date.now(), due: 1, trigger: "schedule" },
+      await server.sessions.mainRoot(ctx.repo),
+    );
     const session = started!.session;
     await ended(server, session);
     // The turn ended and the acceptance waits for the settings: the job is busy meanwhile.
@@ -539,7 +554,12 @@ test.each(["the Jobs extension is turned off", "the job stops naming it", "it le
     const gate = Promise.withResolvers<void>();
     state.gate = gate.promise;
     server.adapter.script([{ text: OFFER, type: "text" }]);
-    const started = await startRun(ctx, job(), { at: Date.now(), due: 1, trigger: "schedule" });
+    const started = await startRun(
+      ctx,
+      job(),
+      { at: Date.now(), due: 1, trigger: "schedule" },
+      await server.sessions.mainRoot(ctx.repo),
+    );
     const session = started!.session;
     await ended(server, session);
     if (how === "the Jobs extension is turned off") {

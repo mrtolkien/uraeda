@@ -1213,3 +1213,40 @@ test("a change opened during a start's workspace read is open for it", async () 
   });
   expect(run.created.filter((row) => row.id !== opened.id)).toHaveLength(1);
 });
+
+/**
+ * Review 08, C7 and X2. Catches: an await between the start's last guard, the switch, and the row
+ * that reserves the time, as `startRun` awaiting the repository's root: a pause, the switch turned
+ * off, or an acceptance entering `busy` in that await did not stop the start. Not an elapsed time:
+ * a microtask queued when the switch is read runs before any continuation of an await after it, so
+ * it has not run yet at the row's write only when nothing was awaited.
+ */
+test("nothing is awaited between the switch's last read and the start's row", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  let sinceSwitch = "read now";
+  Object.defineProperty(run.state, "enabled", {
+    get() {
+      sinceSwitch = "read now";
+      queueMicrotask(() => (sinceSwitch = "an await passed"));
+      return true;
+    },
+  });
+  const { jobs } = run.server.sessions.cache;
+  const add = jobs.add.bind(jobs);
+  const rows: Array<string> = [];
+  const spy = vi.spyOn(jobs, "add").mockImplementation((row) => {
+    if (row.outcome === "started") {
+      rows.push(sinceSwitch);
+    }
+    return add(row);
+  });
+
+  await run.at("11T02:59:00");
+  await run.at("11T03:00:10");
+
+  spy.mockRestore();
+  expect(rows).toEqual(["read now"]);
+});

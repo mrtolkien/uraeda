@@ -846,3 +846,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a folder new to the runs that the workspace lists as merged skips a time it could
   have run; the next time runs.
 - **Where**: the second pass's fix 3, task 4.
+
+## R53: The start's row is written with nothing awaited after the last guard
+
+- **Decision**: `startRun` takes the repository's main checkout as an argument, as `#run` and the
+  run by hand already hold it, instead of awaiting `sessions.mainRoot` before its row. The last
+  guard (the switch, `skipNow`, the reservation) and the row that reserves the time are one
+  synchronous stretch. This corrects
+  [R49](#r49-one-repositorys-failure-does-not-stop-the-others-and-a-start-reads-the-switch-last)'s
+  "If wrong" (2): a pause made between the last read and the start now stops it, nothing can come
+  between, where before it held only while the root was cached.
+- **Rationale**: the comment and R49 said nothing was awaited between the last guard and the row,
+  but `startRun` awaited `mainRoot` first. It held only because the root was cached: a cache keyed
+  differently, or invalidated, would have made it git I/O in the window R49 closed.
+- **Alternatives considered**: a test that holds `mainRoot` and turns the switch off: it depends on
+  which call of `mainRoot` is held. The test reads the switch with a microtask queued, which has not
+  run at the row's write only when nothing was awaited since.
+- **If wrong**: none known: the callers read the root first, as before.
+- **Where**: the second pass's fix 4, task 4.

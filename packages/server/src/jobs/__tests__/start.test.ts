@@ -64,11 +64,12 @@ test("the stop waits for an acceptance in flight", async () => {
   const gate = Promise.withResolvers<void>();
   state.gate = gate.promise;
   server.adapter.script([{ text: OFFER, type: "text" }]);
-  const run = await startRun({ ...shared, repo: server.repo }, job, {
-    at: Date.now(),
-    due: 1,
-    trigger: "schedule",
-  });
+  const run = await startRun(
+    { ...shared, repo: server.repo },
+    job,
+    { at: Date.now(), due: 1, trigger: "schedule" },
+    await server.sessions.mainRoot(server.repo),
+  );
   const session = run!.session;
   for (const turn of server.sessions.cache.turns(session)) {
     await server.sessions.settled(turn.id);

@@ -55,7 +55,7 @@ export async function runNow(
   starts.reserve(key);
   try {
     const run = { at: parts.now().getTime(), due: null, trigger: "manual" } as const;
-    const started = await startRun(ctx, job, run);
+    const started = await startRun(ctx, job, run, root);
     if (started === undefined) {
       throw new Error("a run by hand is recorded without a time");
     }

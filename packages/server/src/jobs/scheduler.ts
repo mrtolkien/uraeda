@@ -391,7 +391,8 @@ class JobScheduler implements Scheduler {
         return false;
       }
       // What the minute and the reads let change: right before the start, holding the reservation,
-      // the last run may work again, or a change may be open (SC-003). Nothing is awaited from here.
+      // the last run may work again, or a change may be open (SC-003). Nothing is awaited from here to
+      // the start's row: `startRun` is given the root already read, and writes its row first (R53).
       const again = this.#starts.skipNow(ctx, now, root, read);
       if (again !== undefined) {
         this.#skip(ctx, job.name, root, due, again);
@@ -402,7 +403,7 @@ class JobScheduler implements Scheduler {
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
       try {
-        return (await startRun(ctx, now, run)) !== undefined;
+        return (await startRun(ctx, now, run, root)) !== undefined;
       } catch (error) {
         // A start that failed is recorded once, so the time is not tried again and the history says
         // why: `startRun` removed its own row (R45).
