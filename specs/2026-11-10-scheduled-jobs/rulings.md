@@ -683,8 +683,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   scheduled, and started a change from an offer that was not the run's last act. Two readings of
   "works" also let the scheduler skip a time as working while the acceptance moved the session.
 - **Alternatives considered**: the acceptance reading `sessions.wakeup` beside `sessionWorking`: a
-  second place that has to agree with the first. A background command of the agent's is not read:
-  the sessions expose no reading of it, and its turn is not ended while it holds one.
+  second place that has to agree with the first. A background command of the agent's is not read,
+  though `sessions.backgroundCommands` counts them: no status of the app reads a session as working
+  for one, and the start from the offer's card closes the process the same way.
 - **If wrong**: a wakeup set far ahead (up to a day) holds the run's offer, and the job's next
   times, until it passes; the offer's card is the way.
 - **Where**: the final review's fix 4, tasks 4 and 5.
