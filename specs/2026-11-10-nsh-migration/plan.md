@@ -473,7 +473,7 @@ Nothing here is a screen of the app.
       them broke two builds in the spike.
 - [x] **Step 3: Add the three tasks to `vite.tasks.ts`**, with their inputs, and to `ready`. The
       toolchain configuration's test must name them.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS, with the new tasks listed. It ran with the new
+- [x] **Step 4: Run `vp run ready`**. Expected: PASS, with the new tasks listed. It ran with the new
       tasks, and every check passed but one test of `ts:test`, which failed before this task:
       `each decision of this repository has a drawn icon`, since the frozen web UI draws no `cable`
       icon for the new protocol decision.

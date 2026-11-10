@@ -205,3 +205,16 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   differs only as text.
 - **Where**: task 1, `crates/core/src/extensions.rs`. Tasks 7 to 20, which port records whose tests
   compare JSON.
+
+## R20: One test of the frozen UI fails until the UI goes
+
+- **Decision**: `vp run ready` counts as passing while its only failure is the React UI's test
+  `each decision of this repository has a drawn icon`. A step that expects `ready` to pass is
+  checked on that result.
+- **Rationale**: the test fails since the branch added the [protocol](../decisions/protocol.md)
+  decision, before task 1: the React UI draws no icon for it. The plan freezes `packages/web/`, and
+  task 61 removes it with this test. The new app draws the decision's icon from its own library.
+- **Alternatives considered**: adding the icon to the React UI: a change to frozen code, for a view
+  that is about to go.
+- **If wrong**: the icon is one line of the React UI's icon table.
+- **Where**: every task that runs `vp run ready`, until task 61. The pull request names the failure.
