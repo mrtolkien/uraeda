@@ -229,10 +229,11 @@ test("an account's usage is the freshest of its ask and its processes' reports",
       .map(({ name }) => name),
   ).toEqual(["b"]);
 
-  // Its exit drops the report, and the ask's usage stays.
+  // Its exit keeps the report: it is the freshest read of b until a newer ask answers, and the next
+  // session must not start on what the turn just burned.
   adapter.exit();
   await flush();
-  expect(accountOf(sessions, "b")?.windows.map((window) => window.used)).toEqual([0, 0.3]);
+  expect(accountOf(sessions, "b")?.windows.map((window) => window.used)).toEqual([0.3, 0.3]);
 
   // The same process, reopened, reports again: and an ask after the report replaces it.
   adapter.script([]);
@@ -336,4 +337,56 @@ test("a refresh that asked nothing announces nothing", async () => {
   await flush();
   await flush();
   expect(announced()).toBe(before + 1);
+});
+
+test("a closed process's report stays until a newer ask, and the pick reads it", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts(); // b at 0, asked
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "First" })).turn); // b
+  // The ask read b at 0; its turn reports 0.9 and ends, within the minute that nothing is asked.
+  await vi.advanceTimersByTimeAsync(1000);
+  adapter.emit(report(0.9, at(1)));
+  adapter.exit();
+  await flush();
+  expect(accountOf(sessions, "b")?.windows[0]?.used).toBe(0.9);
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("default");
+  const second = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, second.id, { text: "Second" })).turn);
+  expect(adapter.opens.at(-1)?.account).toBe(folder("default"));
+});
+
+test("an expired report of an account still counts as read, as unused", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  adapter.accounts.accounts = [account("default", 0.1), account("b", 0.5), account("c", 0.4)];
+  vi.spyOn(adapter.accounts, "refresh").mockResolvedValue(); // the asks answer nothing
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "First" })).turn);
+  expect(adapter.opens.at(-1)?.account).toBe(folder("default"));
+  // Its next ask could not read it: default is unknown, and c is the next.
+  adapter.accounts.accounts = adapter.accounts.accounts.map((one) =>
+    one.name === "default" ? { ...one, known: false } : one,
+  );
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("c");
+  // Its process reports default's five hours, nearly full, resetting in an hour: known again.
+  await vi.advanceTimersByTimeAsync(1000);
+  adapter.emit(report(0.9, at(1)));
+  await flush();
+  expect(accountOf(sessions, "default")?.windows[0]?.used).toBe(0.9);
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("c");
+  // The reset passes with no event: it reads unused, not unknown, so default is the next again.
+  await vi.advanceTimersByTimeAsync(1.5 * 3_600_000);
+  expect(accountOf(sessions, "default")?.windows[0]).toEqual({
+    id: "five_hour",
+    label: "5h",
+    resetsAt: null,
+    used: 0,
+  });
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("default");
 });

@@ -97,3 +97,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the one the pick wants least.
 - **Where**: task 1 of the plan, `Account` in `runner/adapter.ts`; `ClaudeAccounts`, `FakeAccounts`,
   `pickAccount`, `docs/extensions.md`.
+
+## R8: The merge works window by window, on the ask's windows, and a closed process's report stays
+
+- **Decision**: `accountUsage` takes, for each window the ask gave, the freshest of the ask (at the
+  account's `askedAt`, even after a failed ask) and the account's reports (at their `at`; a tie goes
+  to the ask). A report never adds a window: the first window is always the five hours, and an
+  account whose ask never read windows stays unknown, its reports set aside. The account is `known`
+  when its ask's usage is, or when a report of its first window is newer than its windows. The
+  expiry (`{ used: 0, resetsAt: null }`) is applied in the merge, so `Processes` keeps an account's
+  report once expired, and keeps each account's latest report of each window after its process
+  closed, until an ask newer than it makes it moot, dropped as `reports()` reads (also when the
+  account is no longer listed). Reports of no account keep today's rules: unexpired, dropped as
+  their process closes.
+- **Rationale**: findings 1, 2, 3 of wave 3 and the Codex findings 1 and 2: a report-only account's
+  week sat at the first index and was read as its five hours; a failed ask lost the time of its
+  windows, so any older report overrode it; an exiting process dropped the usage its turn had just
+  burned, and nothing asked again within the minute; an expired report was deleted before it could
+  count as read.
+- **Alternatives considered**: reports adding windows to an account never read, which was the
+  report-only index bug's source, and a report-only usage is no basis for a pick that must know the
+  week.
+- **Where**: tasks 1 and 4 of the plan, `accountUsage` in `runner/account-usage.ts` and
+  `Processes.reports` in `runner/processes.ts`.
