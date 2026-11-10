@@ -244,3 +244,5 @@ Why it matters: it decides what the human reviews before the plan.
 - The human added, while the plan was written: "iOS and MacOS are _not_ part of this plan. The plan
   stops after the web app being ready."
 - On iOS, later: "we should use native widgets, which are glassy".
+- After the plan was written: "it's really ok to break compatibility, no one really uses the tool
+  atm". The session import can be removed after the port, and the extension API stays version 1.

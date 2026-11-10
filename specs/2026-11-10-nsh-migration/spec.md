@@ -16,10 +16,10 @@ plan-review: true
 >   server, on Linux and the web.
 > - Eleven decisions change, and one is new: see [Decisions](#decisions). The plan drafts their
 >   text, and stops until you approve it.
-> - The extension API changes to version 2: every extension written for version 1 stops loading
->   until it is rewritten.
+> - Compatibility breaks, on purpose: the extension API is rewritten in place, and today's
+>   extensions stop loading.
 > - Two design gates stop the build: the design language, then the component gallery.
-> - Session history is imported once from the Node server's store. The two servers never share it.
+> - Session history is imported once, by a tool removed after the port.
 > - Three outside behaviours are not verified: signed extension packages, diagrams, and pacing at
 >   120 frames a second.
 > - The risk tier is high: sign-in, stored data, and the agents' runs are all rewritten.
@@ -127,7 +127,7 @@ and the owner can revoke it.
 - The Node server and its tests go, with [`packages/server/`](/packages/server/).
 - The Node binding and the npm package go, with [`packages/binding/`](/packages/binding/),
   [`crates/binding/`](/crates/binding/), and `packages/uraeda/`.
-- Version 1 of the extension API goes: its tests are rewritten for version 2.
+- Today's extension API goes, rewritten in place under the same version: its tests are rewritten.
 - CodeMirror's Vim engine goes: its behaviour tests are replaced by the Vim layer's.
 
 ## Architecture
@@ -166,11 +166,9 @@ The [plan](plan.md) holds the details, and the measurements behind each choice.
 | ---------- | ------------------------------------------------- | ------------------------------------------------------------ |
 | High       | The connection drops while a reply streams        | The client reconnects and resumes from what it has.          |
 | High       | A client and a server of different versions meet  | The client says which side to update, and does nothing else. |
-| High       | An extension written for version 1 is found       | It does not load, and settings say it needs a rewrite.       |
 | High       | A device's token is revoked while it is connected | Its connection closes, and it shows the pairing screen.      |
 | Normal     | The server stops while the app is open            | The app says so, and starts or waits for a server.           |
 | Normal     | A diagram cannot be drawn                         | Its source shows, as today.                                  |
-| Niche      | The session import runs twice                     | The second run changes nothing.                              |
 
 ## Success criteria
 

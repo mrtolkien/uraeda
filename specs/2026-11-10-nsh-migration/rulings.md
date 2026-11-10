@@ -21,13 +21,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   session. An import, in place of a shared file, keeps two servers from writing one store.
 - **Alternatives considered**: reading `runner.sqlite` in place: two writers while both servers
   exist, and a schema shaped by `node:sqlite`'s use.
-- **If wrong**: the importer can be run again from the old file, which is never changed.
+- **If wrong**: the importer can be run again from the old file, which is never changed. It is a
+  one-time tool: an inbox note asks for its removal after the port.
 - **Where**: tasks 12 and 62.
 
 ## R3: The Rust server has its own port and data folder until the end
 
 - **Decision**: until task 62, `ura serve` uses a default port and a data folder apart from the Node
-  server's. Both read the same config folder. Each loads only the extensions of its API version.
+  server's. Both read the same config folder: the frozen Node server reports a rewritten extension
+  as broken, and goes on.
 - **Rationale**: the React UI is frozen, not removed, so the human keeps a working Uraeda while the
   new one is built.
 - **Where**: tasks 5, 18, and 62.

@@ -104,6 +104,9 @@ Set by this plan, from the human's answers on 2026-11-10:
 - **No screen draws a raw primitive with its own colours.** Colours, radii, blur, and glow come from
   tokens, through `app/ui/`.
 - **A long reply is drawn as blocks**, each its own row or text, never as one growing Markdown text.
+- **Compatibility may break.** The human is the only user, at a very early stage. Prefer the simpler
+  design: no second API version, no upgrade path, and no migration code beyond the one-time session
+  import.
 - **NSH stays pinned.** An upgrade is its own commit, with the gallery's screenshots compared.
 - **A fix to NSH goes upstream** as a pull request, and the pin moves once it is released. Until
   then the workaround names the pull request in a comment.
@@ -210,7 +213,7 @@ New code, and what each part owns:
 | `app/store/`       | The client's connection, records as signals, actions, and per-device storage.              |
 | `app/gallery/`     | The gallery app: every component in its states, both themes, three widths.                 |
 | `app/screens/`     | The screens, one folder per place. They use `app/ui/` and `app/store/` only.               |
-| `app/extensions/`  | The page API of version 2, and the built-in extensions' pages.                             |
+| `app/extensions/`  | The page API, and the built-in extensions' pages.                                          |
 | `crates/cli/`      | `ura`, which gains `serve`, `pair`, and `import-sessions`.                                 |
 
 `crates/server/` modules: `http` (routes, guard, static files), `sign_in`, `live` (subscriptions and
@@ -345,11 +348,9 @@ testing decision asks.
 | US5: a device pairs and is revoked                 | 6      | `a paired device signs in until it is revoked`          |
 | Edge: the connection drops mid-reply               | 24     | `a reconnect resumes a reply without a gap`             |
 | Edge: versions differ                              | 5      | `an older client is refused with the side to update`    |
-| Edge: a version 1 extension                        | 18     | `a version 1 extension is listed as needing a rewrite`  |
 | Edge: a token revoked while connected              | 6      | a row of `a paired device signs in until it is revoked` |
 | Edge: the server stops                             | 37     | a row of `the app starts a server when none runs`       |
 | Edge: a diagram fails                              | 32     | `a diagram that fails shows its source`                 |
-| Edge: the import runs twice                        | 12     | `importing twice changes nothing`                       |
 | Success: every route has a screen                  | 56     | `every old route is mapped or dropped`                  |
 | Success: 8.3 ms a frame at the 99th percentile     | 54     | the frame benchmark, on demand                          |
 | Success: 100 ms navigation                         | 54     | the navigation benchmark, on demand                     |
@@ -432,8 +433,8 @@ Nothing here is a screen of the app.
     the gallery's build join `ready`.
   - **Extensions**: Uraeda builds and signs pages; a page runs in a view of its own with limits; a
     server part runs as TypeScript in the server's VM; built-in agent runtimes are Rust on the same
-    contract, each one able to be turned off; the API is version 2. "No build step" stays as the
-    owner sees it: Uraeda builds on save.
+    contract, each one able to be turned off; the API stays version 1, rewritten in place. "No build
+    step" stays as the owner sees it: Uraeda builds on save.
   - **Sign-in**: a device pairs with a one-time code, gets a token of its own, and the owner can
     list and revoke devices. Loopback only stays.
   - **Text editing**: Vim's keys come from Uraeda's Vim layer; the subset is the list of task 23.
@@ -702,15 +703,14 @@ Follows [what every records task does](#what-every-records-task-does).
     `Store::log(turn_id, from: u64)`.
   - `enum Event`, the agent-neutral transcript events of
     [`events.ts`](/packages/server/src/runner/events.ts), unchanged in meaning.
-  - `ura import-sessions [--from DIR]`, which copies sessions and transcripts from the Node server's
-    `runner.sqlite`.
+  - `ura import-sessions [--from DIR]`, a one-time tool, removed after the port (an inbox note asks
+    for it), which copies sessions and transcripts from the Node server's `runner.sqlite`.
 
 - [ ] **Step 1: Write the failing tests**
   - `a transcript reads back as it was written`, across a close and an open.
   - `an old store imports with every session and event`, on a fixture written by the Node server.
-  - `importing twice changes nothing`.
   - `a store of a newer schema is refused, untouched`.
-  - Breaks to make: lose the order of events in a turn; import a session twice.
+  - Break to make: lose the order of events in a turn.
 - [ ] **Step 2: Run them**. Expected: FAIL, `Store` not found.
 - [ ] **Step 3: Implement**, with `rusqlite` and a numbered schema. A transcript is an append-only
       log per turn, so `Bus::append` and `Store::log(from)` serve a resume without a full read. See
@@ -842,20 +842,20 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - Consumes: `Registry`, `Bus` (7); `Runtime` (13); `compileModule` in
   [`crates/compile/`](/crates/compile/).
 - Produces:
-  - Version 2 of the server API, for `server.ts`: `record`, `action`, `route`, `on`, `runtime`,
-    `settings`, `repositories`, `log`, as today, and `uraeda:process`, `uraeda:fs`, `fetch` in place
-    of `node:` imports.
+  - The server API, for `server.ts`: `record`, `action`, `route`, `on`, `runtime`, `settings`,
+    `repositories`, `log`, as today, and `uraeda:process`, `uraeda:fs`, `fetch` in place of `node:`
+    imports.
   - Records Extensions, ExtensionRecord, ExtensionAction; actions `extensions.act`, `setOn`,
     `setSetting`, `reportPageProblem`.
-  - `extension.toml` with `api = 2`. A folder with `api = 1` is listed, off, with the reason
-    `needs-rewrite`.
+  - `extension.toml` keeps `api = 1`: the API is rewritten in place, with no second version and no
+    path from the old one. An extension written for the Node server fails to load, as any broken
+    extension does.
 
 - [ ] **Step 1: Write the failing tests**
   - `an extension's record and action answer through the protocol`.
   - `a saved server.ts replaces the running one, without a restart`.
   - `an extension that throws at load leaves the others running`, and one
     `that never returns is cut off`: within 2 s at activation, 10 s in a call, as today.
-  - `a version 1 extension is listed as needing a rewrite`.
   - `stopping the server leaves no VM work behind`: no timer, child process, or thread of a VM
     remains.
   - Breaks to make: let a VM's panic unwind into the server; forget a VM's child process on unload.
@@ -1280,7 +1280,7 @@ A human gate: the first of the two design gates.
 - Produces:
   - The native component `uraeda.extension`, which holds a view of its own per page, with NSH's
     limits and no rights beyond the host's functions.
-  - `uraeda/page`, version 2: `place`, `homePane`, `newSection`, `statusItem`, `itemRenderer`,
+  - `uraeda/page`: `place`, `homePane`, `newSection`, `statusItem`, `itemRenderer`,
     `settingsSection`, `key`, `onUnload`, `useRecord`, `useAction`, `useExtensionSettings`,
     `useRepository`, as [`docs/extensions.md`](/docs/extensions.md) names them today.
   - A page talks to the app only through NSH's host channel: the app answers `record`, `call`, and
@@ -1561,9 +1561,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Its own rules:** each built-in place is declared through the same page API as the owner's, and
   can be turned off. A built-in's screen is the app's own code, linked in: only its declaration goes
   through the API. See the ruling on built-ins.
-- **Extra step:** rewrite `docs/extensions.md` for version 2: the folder, `extension.toml`, the
-  server API, the page API, what a page may import, limits, and how to move an extension from
-  version 1. A session must be able to write an extension from it alone.
+- **Extra step:** rewrite `docs/extensions.md` for the new API: the folder, `extension.toml`, the
+  server API, the page API, what a page may import, and limits. A session must be able to write an
+  extension from it alone.
 - **Tests:** `turning a built-in off removes its place, and the app goes on`.
 
 ## Task 53: The sandbox, and a walk through the app
@@ -1775,7 +1775,7 @@ here: iOS and macOS are the human's, later.
 
 ## Task 62: Remove the React UI and the Node server
 
-**Risky:** it deletes the code users run today, and moves their data.
+**Risky:** it deletes the code that runs Uraeda today.
 
 **Files:**
 
@@ -1790,21 +1790,15 @@ here: iOS and macOS are the human's, later.
 **Interfaces:**
 
 - Consumes: everything.
-- Produces: a repository that builds, tests, and releases without Node, and an upgrade path for an
-  installation of the Node server.
+- Produces: a repository that builds, tests, and releases without Node.
 
-- [ ] **Step 1: Write the failing test**
-      `an installation of the Node server upgrades in one     command`: on a data folder written by
-      the Node server, `ura serve` at its first start offers `ura import-sessions`, and after it the
-      sessions, repositories, sign-in key, and settings are all there.
-- [ ] **Step 2: Run it**. Expected: FAIL.
-- [ ] **Step 3: Delete the old code**, as the spec's
-      [replaced behaviour](spec.md#replaced-behaviour) lists it, with its tests. Then make the
-      upgrade path work. Breaks to make: import into a folder that already has sessions; run the
-      import while the Node server still runs. Both must be refused, with the reason.
-- [ ] **Step 4: Update every page a reader meets**: what Uraeda is, how to install it, how to build
+- [ ] **Step 1: Import the human's sessions once**, with `ura import-sessions`, while the Node
+      server is stopped. Nothing more is built for upgrades: the human is the only user.
+- [ ] **Step 2: Delete the old code**, as the spec's
+      [replaced behaviour](spec.md#replaced-behaviour) lists it, with its tests.
+- [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or
       the browser.
-- [ ] **Step 5: Run `vp run ready`, and a release to a test tag.** Expected: PASS, and artifacts
+- [ ] **Step 4: Run `vp run ready`, and a release to a test tag.** Expected: PASS, and artifacts
       with no Node in them.
-- [ ] **Step 6: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.
+- [ ] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.
