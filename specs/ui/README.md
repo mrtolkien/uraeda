@@ -30,6 +30,9 @@ name is met, in the terminal's own way where one exists, like a hit area grown u
 rather than a rounded button. Where no terminal way meets the need, or where meeting it would make
 the view generic, the conflict is the human's to arbitrate, proposed with each side's cost.
 
+The Native Shell app's look is the [design language](design-language.md): a terminal, lit, with
+heights, glass, and light that each mean one thing.
+
 ## The principles, by priority
 
 When two conflict, the higher one wins.

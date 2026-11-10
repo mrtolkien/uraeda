@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: wrench
 ---
 
@@ -8,8 +8,8 @@ icon: wrench
 
 A fast check gives focused feedback after every task, and names the broader checks it leaves to
 `vp run ready`, the full check run before a push. Ready reruns only what a change can affect, and CI
-runs the same checks uncached. Tools are pinned, a test is run again only when the machine was
-saturated, and React Compiler optimizes the web UI.
+runs the same checks uncached. Tools are pinned, and a test is run again only when the machine was
+saturated.
 
 ## Rules
 
@@ -30,16 +30,14 @@ saturated, and React Compiler optimizes the web UI.
   except one that failed on a saturated machine: it is run again, at most twice, once the machine is
   quiet, or by its runner when it draws on a real display, and never hunted by loading the machine
   or looping the test. The toolchain configuration's test checks that no other runner retries.
-- The web UI MUST be compiled by React Compiler.
-- New code SHOULD NOT memoize by hand for speed.
 
 ## Why
 
 Agents check their own work, and one command they cannot forget a part of keeps them honest. Running
 it after every task cost minutes, so a focused check takes that place and the full one guards the
 push. Retries hide real races, but a saturated shared machine fails tests alone. An instrumented
-second run once failed `main` after every check passed, so coverage is optional. React Compiler
-fixed typing lag on every page. History: [Fix testing](../done/2026-10-19-fix-testing.md).
+second run once failed `main` after every check passed, so coverage is optional. History:
+[Fix testing](../done/2026-10-19-fix-testing.md).
 
 ## Alternatives considered
 
@@ -54,11 +52,10 @@ fixed typing lag on every page. History: [Fix testing](../done/2026-10-19-fix-te
   locally, caught only by CI.
 - Coverage is collected on demand only, outside `ready` and CI, and a drop fails no check: it can
   drop unnoticed.
-- A component that breaks the Rules of React is silently left uncompiled.
 
 ## Applies to
 
 - [`package.json`](/package.json), [`vite.config.ts`](/vite.config.ts), [`flake.nix`](/flake.nix),
-  [`rust-toolchain.toml`](/rust-toolchain.toml), [`scripts/`](/scripts/),
+  `app/nsh.json`, [`rust-toolchain.toml`](/rust-toolchain.toml), [`scripts/`](/scripts/),
   [`.github/workflows/`](/.github/workflows/), and every feature that adds a package, a crate, a
   tool, or a test reading files outside its own package

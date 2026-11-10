@@ -11,13 +11,17 @@ spec-revision: 1
 >
 > - Beyond the spec: four behaviours get a test the spec does not name, see
 >   [review focus](#review-focus).
-> - Three human gates stop the build: the decisions' text (task 1), the design language (task 26),
->   and the gallery (task 36).
-> - Task 3 checks what the spikes did not verify. If a check fails, the build stops and comes back
->   to you.
+> - The eleven changed decisions and the new one are written on this branch: approving the spec
+>   approves them. The [design language](/specs/ui/design-language.md) is written too.
+> - No human gate stops the build: it runs from task 1 to task 61 without you. Where an earlier
+>   draft stopped, a task now takes a named fallback, and records it in [rulings](rulings.md).
+> - Task 2 checks what the spikes did not verify. A check that fails takes its fallback: none stops
+>   the build.
+> - The design's four open choices are taken as the design language proposes them, each behind one
+>   token: see ruling R13.
 > - New dependencies: NSH 0.4, `axum`, `tokio`, `rusqlite`, `rquickjs`, and a newer Rust toolchain.
-> - The riskiest tasks come early: sign-in (6), the session store (12), and the extension VM (18).
-> - The plan has 62 tasks in three phases: core, the Linux app, then the web build.
+> - The riskiest tasks come early: sign-in (5), the session store (11), and the extension VM (17).
+> - The plan has 61 tasks in three phases: core, the Linux app, then the web build.
 
 **Goal:** Uraeda runs as a Rust server inside `ura`, with one TSX client on Native Shell that ships
 as a Linux app and a web build, on a component library of its own.
@@ -27,9 +31,9 @@ the layout, and the contracts are under [code read](#code-read). The tasks come 
 
 | Phase         | Tasks | Ends with                                          |
 | ------------- | ----- | -------------------------------------------------- |
-| 0, core       | 1–36  | A Rust server, a client core, and a gallery        |
-| 1, Linux, GTK | 37–56 | The Linux app, packaged, at parity                 |
-| 2, web        | 57–62 | The web build, and the React and Node code removed |
+| 0, core       | 1–35  | A Rust server, a client core, and a gallery        |
+| 1, Linux, GTK | 36–55 | The Linux app, packaged, at parity                 |
+| 2, web        | 56–61 | The web build, and the React and Node code removed |
 
 iOS and macOS are not in this plan. Nothing here may close them off: see
 [global constraints](#global-constraints).
@@ -42,30 +46,30 @@ The most consequential conditions the spec implies but does not name. Each gets 
 that owns the code.
 
 1. **A change arrives for a subscription the client just dropped.** The client ignores it, and the
-   store's count of subscriptions stays right. Task 24.
+   store's count of subscriptions stays right. Task 23.
 2. **Two clients send an action on one record at once.** Both get a result, and both end with the
-   same value. Task 7.
+   same value. Task 6.
 3. **The server stops while an extension's VM is in a call.** The VM is stopped, and no process or
-   timer of it is left. Task 18.
+   timer of it is left. Task 17.
 4. **A paired device's clock is wrong.** Pairing and sign-in do not depend on the device's time.
-   Task 6.
+   Task 5.
 
 ## Global constraints
 
 Every task's requirements include these.
 
-Kept from the active decisions, word for word, until task 1's revisions are approved:
+From the decisions, as this branch changes them, word for word:
 
 From [Stack](../decisions/stack.md):
 
 - Workflow logic, parsing, validation, and states MUST live in the Rust core.
-- The web UI MUST draw workflow files from the core's document tree, never parsing their markdown.
+- The UI MUST hold no workflow logic: what it shows, and what it may do, come from the server.
 - The server MUST stop every preview command it runs when it stops.
 
 From [Extensions](../decisions/extensions.md):
 
 - Extensions MUST load only from the config folder, never from a repository.
-- A broken extension MUST NOT stop Uraeda or another extension from running.
+- A broken extension MUST NOT stop Uraeda or another extension.
 - Extensions MUST NOT depend on each other: they use only the contracts Uraeda owns, like a
   runtime's, its events, and its data records.
 - Extensions MUST NOT add instructions to the agent's runs.
@@ -93,10 +97,18 @@ From [Testing](../decisions/testing.md):
 
 Set by this plan, from the human's answers on 2026-11-10:
 
+- **No task waits for the human.** A task that cannot do what it says takes the fallback it names,
+  or the simplest design that keeps its tests, writes a ruling, and goes on. It never asks, and
+  never leaves the build stopped.
+- **No window opens on the human's display.** Every run of the app, the gallery, or a test that
+  draws uses an invisible display.
+- **Nothing outside the worktree changes.** No task installs a tool on the machine, touches the
+  human's config or data folders, or stops a server it did not start: tools come from the Nix dev
+  shell, and data from temporary folders and the sandbox.
 - **The React UI and the Node server are frozen.** No task changes `packages/web/` or
-  `packages/server/`, except task 62, which removes them. A critical fix there is a separate change.
+  `packages/server/`, except task 61, which removes them. A critical fix there is a separate change.
 - **The two servers never share runtime data.** The Rust server has its own data folder and its own
-  default port, until task 62.
+  default port, until task 61.
 - **Nothing may close off iOS and macOS.** No screen calls a GTK or web API directly: platform
   differences live behind a component of `app/ui/` or a native component of `crates/app/`.
 - **Screens are TSX. Heavy logic is Rust.** A screen holds no parsing, diffing, or key state
@@ -121,12 +133,12 @@ push.
 
 ### What every records task does
 
-Tasks 8 to 11 each port the records and mutations of one domain from
+Tasks 7 to 10 each port the records and mutations of one domain from
 [`packages/server/src/fate/`](/packages/server/src/fate/), keeping their names, and call the core
 function the binding wraps today. Each adds its lines to `records/mod.rs`.
 
-- Consumes: `Registry`, `Bus` (task 7); the core's functions.
-- Produces: its records and actions, typed in `crates/protocol/`, and their rows in task 21's list.
+- Consumes: `Registry`, `Bus` (task 6); the core's functions.
+- Produces: its records and actions, typed in `crates/protocol/`, and their rows in task 20's list.
 
 - [ ] **Step 1: Write the failing contract tests**: one test per record,
       `<Record> answers its     shape`, on the fixtures in [`fixtures/`](/fixtures/); and one per
@@ -140,13 +152,13 @@ function the binding wraps today. Each adds its lines to `records/mod.rs`.
 
 ### What every screen task does
 
-Tasks 38 to 52 each port one area of the React UI. They share one shape, so each task below lists
+Tasks 37 to 51 each port one area of the React UI. They share one shape, so each task below lists
 only what differs: its files, the old code to read, its records and actions, and its own rules.
 
 **Shared interfaces:**
 
-- Consumes: `app/ui/` (tasks 27 to 34), `record`, `call`, `text` (task 24), `route` and `navigate`
-  (task 25), `registerKey` (task 33), and the records and actions of its area (tasks 8 to 19).
+- Consumes: `app/ui/` (tasks 26 to 33), `record`, `call`, `text` (task 23), `route` and `navigate`
+  (task 24), `registerKey` (task 32), and the records and actions of its area (tasks 7 to 18).
 - Produces: its screens, registered for their routes in `app/screens/routes.tsx`, each adding its
   own lines there.
 
@@ -233,7 +245,7 @@ Who owns what state:
 
 ### The protocol, in short
 
-Task 4 writes the contract in `contracts/protocol.md`. Its shape, which every task assumes:
+Task 3 writes the contract in `contracts/protocol.md`. Its shape, which every task assumes:
 
 - One WebSocket, at `/live`. The first message is `hello`, with the protocol version and the
   sign-in. The server answers `welcome`, or `refused` with a reason.
@@ -303,7 +315,7 @@ the layer keeps Vim's keys.
 NSH moves fast: read the page again before building on it. Start from
 [`llms.txt`](https://nsh.dev/llms.txt), which lists every page, and from the NSH section of
 [`AGENTS.md`](/AGENTS.md), which says where the documentation and the source are. Paths below are
-under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.x; task 2 records the exact
+under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.x; task 1 records the exact
 version and commit.
 
 | Subject                           | Page                                                                                                                                                                                                                         |
@@ -333,8 +345,8 @@ version and commit.
 | ------------------------- | ---------------------------- | ---------------------------- | -------------------------------- | --------------------- |
 | ✅                        | ✅                           | ✅                           | ⚠️                               | ✅                    |
 
-- IV: this plan is long to review. It is split by phase so each file can be reviewed alone, and its
-  three gates put the human's time where a wrong choice costs most.
+- IV: this plan is long to review. Nothing in it waits for the human, at their request: the
+  decisions are approved with the spec, and the design's open choices are one token each.
 
 ## Complexity tracking
 
@@ -359,66 +371,64 @@ testing decision asks.
 
 | Spec item                                          | Task   | Test                                                    |
 | -------------------------------------------------- | ------ | ------------------------------------------------------- |
-| US1.1: the app starts the server                   | 37     | `the app starts a server when none runs`                |
-| US1.2: a reply streams and the transcript follows  | 44     | `a streaming reply stays in view`                       |
-| US1.3: `d2w` deletes two words                     | 23     | `d2w deletes two words`, a row of the Vim table         |
-| US2.1: an address opens its page, and Back returns | 58     | `a feature's address opens it, and Back returns`        |
-| US2.2: the phone keyboard stays open               | 58     | `a touch in a field keeps the focus`                    |
-| US3.1: a saved page reloads                        | 35     | `a saved page shows without a restart`                  |
-| US3.2: a broken extension is contained and named   | 35     | `a page that never stops is cut off and named`          |
-| US4: one library, approved twice                   | 26, 36 | none: the human's two gates                             |
-| US5: a device pairs and is revoked                 | 6      | `a paired device signs in until it is revoked`          |
-| Edge: the connection drops mid-reply               | 24     | `a reconnect resumes a reply without a gap`             |
-| Edge: versions differ                              | 5      | `an older client is refused with the side to update`    |
-| Edge: a token revoked while connected              | 6      | a row of `a paired device signs in until it is revoked` |
-| Edge: the server stops                             | 37     | a row of `the app starts a server when none runs`       |
-| Edge: a diagram fails                              | 32     | `a diagram that fails shows its source`                 |
-| Success: every route has a screen                  | 56     | `every old route is mapped or dropped`                  |
-| Success: 8.3 ms a frame at the 99th percentile     | 54     | the frame benchmark, on demand                          |
-| Success: 100 ms navigation                         | 54     | the navigation benchmark, on demand                     |
-| Success: builds without Node                       | 62     | the release workflow                                    |
-| Review focus: a change after an unsubscribe        | 24     | a row of `a reconnect resumes a reply without a gap`    |
-| Review focus: two clients, one record              | 7      | `two clients acting at once end equal`                  |
-| Review focus: the server stops during a VM call    | 18     | `stopping the server leaves no VM work behind`          |
-| Review focus: a wrong clock on a device            | 6      | a row of `a paired device signs in until it is revoked` |
+| US1.1: the app starts the server                   | 36     | `the app starts a server when none runs`                |
+| US1.2: a reply streams and the transcript follows  | 43     | `a streaming reply stays in view`                       |
+| US1.3: `d2w` deletes two words                     | 22     | `d2w deletes two words`, a row of the Vim table         |
+| US2.1: an address opens its page, and Back returns | 57     | `a feature's address opens it, and Back returns`        |
+| US2.2: the phone keyboard stays open               | 57     | `a touch in a field keeps the focus`                    |
+| US3.1: a saved page reloads                        | 34     | `a saved page shows without a restart`                  |
+| US3.2: a broken extension is contained and named   | 34     | `a page that never stops is cut off and named`          |
+| US4: one library, on the design language           | 25, 35 | none: pictures, reviewed after the build                |
+| US5: a device pairs and is revoked                 | 5      | `a paired device signs in until it is revoked`          |
+| Edge: the connection drops mid-reply               | 23     | `a reconnect resumes a reply without a gap`             |
+| Edge: versions differ                              | 4      | `an older client is refused with the side to update`    |
+| Edge: a token revoked while connected              | 5      | a row of `a paired device signs in until it is revoked` |
+| Edge: the server stops                             | 36     | a row of `the app starts a server when none runs`       |
+| Edge: a diagram fails                              | 31     | `a diagram that fails shows its source`                 |
+| Success: every route has a screen                  | 55     | `every old route is mapped or dropped`                  |
+| Success: 8.3 ms a frame at the 99th percentile     | 53     | the frame benchmark, on demand                          |
+| Success: 100 ms navigation                         | 53     | the navigation benchmark, on demand                     |
+| Success: builds without Node                       | 61     | the release workflow                                    |
+| Review focus: a change after an unsubscribe        | 23     | a row of `a reconnect resumes a reply without a gap`    |
+| Review focus: two clients, one record              | 6      | `two clients acting at once end equal`                  |
+| Review focus: the server stops during a VM call    | 17     | `stopping the server leaves no VM work behind`          |
+| Review focus: a wrong clock on a device            | 5      | a row of `a paired device signs in until it is revoked` |
 
 ## Waves
 
-Tasks 1, 26, and 36 each end at a human gate: the build stops there, with the file to review named
-in the task. Phase 1 starts once task 36's gate is approved, and phase 2 once task 56 is done. The
-risky tasks, each reviewed on its own, are 6, 12, 18, 20, and 62.
+No task ends at a human gate. Phase 1 starts once task 35 is done, and phase 2 once task 55 is done.
+The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 
-1. Task 1, alone: a human gate.
-2. Task 2, alone: every later task builds in what it creates.
-3. Task 3, alone: it can stop the build.
-4. Tasks 4, 22, 23: the protocol, the native module, and the Vim layer share no file.
-5. Task 5, alone.
-6. Tasks 6, 7: sign-in and the live engine, in separate modules.
-7. Tasks 8, 9, 10, 11, 12, 17, 19: one module each, each adding its lines to the record registry.
-8. Task 13, alone: the runtimes and the extension VM implement its contract.
-9. Tasks 14, 15, 18: two runtimes and the extension VM.
-10. Tasks 16, 20.
-11. Task 21, alone: the store's tests and every screen's review run on its sandbox.
-12. Tasks 24, 25, 26: the client store, its routes, and the design language, a human gate.
-13. Task 27, alone: every component reads its tokens.
-14. Tasks 28, 33: surfaces and keys.
-15. Task 29, alone: lists, the text field, and the shell use its controls.
-16. Tasks 30, 31, 34: each adds its own folder to `app/ui/`.
-17. Tasks 32, 35.
-18. Task 36, alone: a human gate.
-19. Task 37, alone: every screen lives in its shell.
-20. Tasks 38, 40, 41, 46, 47, 49: areas with no screen in common, each adding its lines to the
+1. Task 1, alone: every later task builds in what it creates.
+2. Task 2, alone: later tasks read its results.
+3. Tasks 3, 21, 22: the protocol, the native module, and the Vim layer share no file.
+4. Task 4, alone.
+5. Tasks 5, 6: sign-in and the live engine, in separate modules.
+6. Tasks 7, 8, 9, 10, 11, 16, 18: one module each, each adding its lines to the record registry.
+7. Task 12, alone: the runtimes and the extension VM implement its contract.
+8. Tasks 13, 14, 17: two runtimes and the extension VM.
+9. Tasks 15, 19.
+10. Task 20, alone: the store's tests and every screen's review run on its sandbox.
+11. Tasks 23, 24, 25: the client store, its routes, and the design language's samples.
+12. Task 26, alone: every component reads its tokens.
+13. Tasks 27, 32: surfaces and keys.
+14. Task 28, alone: lists, the text field, and the shell use its controls.
+15. Tasks 29, 30, 33: each adds its own folder to `app/ui/`.
+16. Tasks 31, 34.
+17. Task 35, alone: it measures every component together.
+18. Task 36, alone: every screen lives in its shell.
+19. Tasks 37, 39, 40, 45, 46, 48: areas with no screen in common, each adding its lines to the
     routes.
-21. Tasks 39, 42, 44, 48, 50.
-22. Tasks 43, 45, 51.
-23. Task 52.
-24. Tasks 53, 54.
-25. Task 55.
+20. Tasks 38, 41, 43, 47, 49.
+21. Tasks 42, 44, 50.
+22. Task 51.
+23. Tasks 52, 53.
+24. Task 54.
+25. Task 55, alone.
 26. Task 56, alone.
-27. Task 57, alone.
-28. Tasks 58, 59: browser behaviour, and extension pages, in separate files.
-29. Tasks 60, 61.
-30. Task 62, alone.
+27. Tasks 57, 58: browser behaviour, and extension pages, in separate files.
+28. Tasks 59, 60.
+29. Task 61, alone.
 
 ---
 
@@ -427,61 +437,7 @@ The settled small choices are in [rulings.md](rulings.md).
 **Phase 0: core.** The Rust server, the client core, and the component library with its gallery.
 Nothing here is a screen of the app.
 
-## Task 1: The decisions' new text
-
-**Files:**
-
-- Modify: `specs/decisions/stack.md`, `distribution.md`, `toolchain.md`, `extensions.md`,
-  `sign-in.md`, `text-editing.md`, `ui-components.md`, `ui-look.md`, `colour-themes.md`,
-  `preview.md`, `performance.md`
-- Modify: `specs/decisions/protocol.md`, drafted with the spec, `status: proposed`
-
-**Interfaces:**
-
-- Produces: the decisions every later task follows. Until the human approves them, no later task
-  starts.
-
-- [ ] **Step 1: Write each decision's new text**, following
-      [writing a decision](/skills/uraeda/references/writing.md#a-decision), from the
-      [spec's list](spec.md#decisions). Keep every rule the migration does not touch, word for word.
-      Each changed decision keeps `status: active`; the new one stays `status: proposed`. What each
-      must say:
-  - **Stack**: the server is Rust, inside `ura`; the UI is TSX on NSH over Rust modules; the UI
-    reaches the server only through the protocol; fate and the binding are gone. The document-tree
-    rule stays.
-  - **Distribution**: `ura` holds the CLI and the server; the Linux app ships as a tarball and an
-    AppImage; the web build is served by `ura serve`; one tag, one version, as today.
-  - **Toolchain**: the React Compiler rule and the memoization rule go; NSH's check, its tests, and
-    the gallery's build join `ready`.
-  - **Extensions**: Uraeda builds and signs pages; a page runs in a view of its own with limits; a
-    server part runs as TypeScript in the server's VM; built-in agent runtimes are Rust on the same
-    contract, each one able to be turned off; the API stays version 1, rewritten in place. "No build
-    step" stays as the owner sees it: Uraeda builds on save.
-  - **Sign-in**: a device pairs with a one-time code, gets a token of its own, and the owner can
-    list and revoke devices. Loopback only stays.
-  - **Text editing**: Vim's keys come from Uraeda's Vim layer; the subset is the list of task 23.
-  - **UI components**, **UI look**, **Colour themes**: the library is Uraeda's own; glass, blur, and
-    glow join the look; themes gain their roles. Leave the exact visual rules to task 26's gate, and
-    say so.
-  - **Preview**: native clients draw previews in a web view; the gallery replaces the app's own
-    Storybook; a user project's Storybook is still shown.
-  - **Performance**: add the frame budget, 8.3 ms at the 99th percentile for scrolling and
-    streaming.
-  - **Protocol**: one versioned protocol; a record arrives whole, then as changes; a client and a
-    server of different versions refuse each other with a reason.
-
-- [ ] **Step 2: Run `ura check specs/decisions`**. Expected: no error, no warning.
-
-- [ ] **Step 3: Commit, and stop for the human**
-
-```bash
-git add specs/decisions
-git commit -m "decision(nsh-migration): propose the migration's decisions"
-```
-
-The human approves by setting `protocol.md` to `active`, or asks for changes in the files.
-
-## Task 2: Scaffolding and toolchain
+## Task 1: Scaffolding and toolchain
 
 **Files:**
 
@@ -499,19 +455,19 @@ The human approves by setting `protocol.md` to `active`, or asks for changes in 
 - [ ] **Step 1: Raise the Rust toolchain** to the first stable release that builds NSH 0.4 (1.96
       does not: the spike used 1.99.1). Run `cargo nextest run` on the whole workspace. Expected:
       PASS, as before the change.
-- [ ] **Step 2: Add the four crates and the `app/` project.** `App.tsx` mounts a text. Add NSH's CLI
-      and GTK 4.14 to the Nix dev shell, pinned. Pin `rolldown` and its sibling crates to one
-      version in every lockfile NSH generates: version drift between them broke two builds in the
-      spike.
+- [ ] **Step 2: Add the four crates and the `app/` project.** `App.tsx` mounts a text. Add NSH's
+      CLI, GTK 4.14, and an invisible display server to the Nix dev shell, pinned. Pin `rolldown`
+      and its sibling crates to one version in every lockfile NSH generates: version drift between
+      them broke two builds in the spike.
 - [ ] **Step 3: Add the three tasks to `vite.tasks.ts`**, with their inputs, and to `ready`. The
       toolchain configuration's test must name them.
 - [ ] **Step 4: Run `vp run ready`**. Expected: PASS, with the new tasks listed.
 - [ ] **Step 5: Commit**: `chore(nsh-migration): scaffold the server, the app, and their checks`.
 
-## Task 3: Check what the spikes did not verify
+## Task 2: Check what the spikes did not verify
 
-Each check is a test through the real library. If one fails, stop: write a new round of questions,
-as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-human) says.
+Each check is a test through the real library. None stops the build: a check that fails takes the
+fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
@@ -520,26 +476,31 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 **Interfaces:**
 
 - Produces: `crates/app/tests/outside.rs`, kept as the guard of each assumption. Its findings, in
-  [rulings.md](rulings.md).
+  [rulings.md](rulings.md): for each check, "holds" or "fallback taken".
 
 - [ ] **Step 1: Write the five checks**
   1. **A signed package loads in an embedded view on GTK.** Build a page, sign it with a key made
      for the test, and load it in an `AppView` that trusts that key. An unsigned or re-signed
-     package is refused. See the signed-packages pages.
+     package is refused. See the signed-packages pages. **Fallback:** the server sends the page's
+     compiled source over the signed-in connection, with its hash, as the spike loaded it; the
+     client checks the hash. Tasks 19 and 34 then build that, and name signing as future work.
   2. **A broken page is reported to the host.** The spike's log showed the error; the host got no
-     callback on GTK. Find a way to learn of it (a callback, the engine's error channel), or record
-     that an upstream change is needed and open it.
+     callback on GTK. Look for a callback or the engine's error channel. **Fallback:** the host
+     pings each page over its host channel, and names a page broken when it does not answer within 2
+     seconds or never sends its first "ready".
   3. **A web view shows a local page on GTK**, with the `webview` feature, and gets keys.
+     **Fallback:** on Linux a preview opens in the system's browser, from a link in its place.
   4. **A diagram draws without a browser.** Run the diagram library in NSH's VM, or in Rust, to
-     produce a picture NSH can draw. If neither works, record it: diagrams then show their source on
-     Linux, as the spec's assumptions allow.
-  5. **A system notification can be sent on Linux** from the app.
-- [ ] **Step 2: Run them**: `cargo nextest run -p uraeda-app --test outside`. Expected: PASS, or a
-      named failure that stops the build.
+     produce a picture NSH can draw. **Fallback:** diagrams show their source on Linux, as the
+     spec's assumptions allow.
+  5. **A system notification can be sent on Linux** from the app. **Fallback:** notifications are
+     toasts inside the app only.
+- [ ] **Step 2: Run them**: `cargo nextest run -p uraeda-app --test outside`. Expected: PASS. A
+      check whose fallback is taken is rewritten to test the fallback, and marked so.
 - [ ] **Step 3: Write each result as a ruling**, with what later tasks must do.
 - [ ] **Step 4: Commit**: `test(nsh-migration): check NSH's unverified behaviours`.
 
-## Task 4: The protocol
+## Task 3: The protocol
 
 **Files:**
 
@@ -574,7 +535,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the protocol's messages and changes`.
 
-## Task 5: `ura serve`, the server's skeleton
+## Task 4: `ura serve`, the server's skeleton
 
 **Files:**
 
@@ -583,7 +544,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 
 **Interfaces:**
 
-- Consumes: `ClientMessage`, `ServerMessage`, `PROTOCOL` (task 4).
+- Consumes: `ClientMessage`, `ServerMessage`, `PROTOCOL` (task 3).
 - Produces:
   - `ura serve [--port N] [--data-dir DIR]`. Its default port differs from the Node server's.
   - `pub struct Server`, `Server::start(Options) -> Server`, `Server::stop(self)`.
@@ -598,14 +559,17 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
   - `a request with another site's Origin is refused`: the break is DNS rebinding, guarded today by
     `guard.ts`.
   - `a second start hands over to the first`.
+  - `secrets come from the config folder's .env only`: a `.env` in a project or in the folder the
+    server runs in is never read; the config folder's joins the server's environment, and so reaches
+    the agents it runs.
 - [ ] **Step 2: Run them**. Expected: FAIL, `Server` not found.
 - [ ] **Step 3: Implement.** `axum` on `tokio`, loopback only. `/live` upgrades to a WebSocket and
-      handles `Hello` only; other messages get `Error { code: "not-signed-in" }` until task 6. Port
+      handles `Hello` only; other messages get `Error { code: "not-signed-in" }` until task 5. Port
       `guard.ts`'s rules as they are.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): ura serve, with its handshake and guard`.
 
-## Task 6: Sign-in and device pairing
+## Task 5: Sign-in and device pairing
 
 **Risky:** it decides who reaches a server that runs code as the owner.
 
@@ -617,7 +581,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 
 **Interfaces:**
 
-- Consumes: `Server`, `TestServer` (task 5).
+- Consumes: `Server`, `TestServer` (task 4).
 - Produces:
   - HTTP: `GET|POST|DELETE /session`, `DELETE /sessions`, `GET /session/:token`, as today.
   - `POST /pair { code } -> { token }`, and `ura pair`, which prints a one-time code and a QR code.
@@ -641,7 +605,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): sign-in, and pairing a device`.
 
-## Task 7: The live engine
+## Task 6: The live engine
 
 **Files:**
 
@@ -650,7 +614,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 
 **Interfaces:**
 
-- Consumes: `Record`, `Action`, `diff`, `Op` (task 4); `require` (task 6).
+- Consumes: `Record`, `Action`, `diff`, `Op` (task 3); `require` (task 5).
 - Produces:
   - `Registry::record::<R>()`, `Registry::action::<A>()`: how a domain registers itself.
   - `Bus::changed(record_name, key)`: a domain says a record changed; the engine reads it again,
@@ -671,7 +635,7 @@ as [the plan step](/skills/uraeda/references/plan.md#stopping-to-go-back-to-the-
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): subscriptions and changes`.
 
-## Task 8: Records: workspace
+## Task 7: Records: workspace
 
 Follows [what every records task does](#what-every-records-task-does).
 
@@ -680,7 +644,7 @@ Follows [what every records task does](#what-every-records-task-does).
   Settings
 - **Actions:** `repositories.*`, `settings.*`
 
-## Task 9: Records: features
+## Task 8: Records: features
 
 Follows [what every records task does](#what-every-records-task-does).
 
@@ -690,7 +654,7 @@ Follows [what every records task does](#what-every-records-task-does).
   RecommendedMessage, ContinuedAll
 - **Actions:** `inbox.*`, `proposals.*`, `priorities.*`, `feature.*`, `change.*`, `item.settings`
 
-## Task 10: Records: writing
+## Task 9: Records: writing
 
 Follows [what every records task does](#what-every-records-task-does).
 
@@ -701,7 +665,7 @@ Follows [what every records task does](#what-every-records-task-does).
 - **Its own rule:** this task owns the write queue: one writer per repository, in order, as the Node
   server has it. Its test `two writes on one repository land in order` guards that.
 
-## Task 11: Records: git
+## Task 10: Records: git
 
 Follows [what every records task does](#what-every-records-task-does).
 
@@ -709,7 +673,7 @@ Follows [what every records task does](#what-every-records-task-does).
 - **Records:** GitPage, GitSummary, GitDiff, GitCommit, GitHistoryPage, ConflictFile
 - **Actions:** `git.*`
 
-## Task 12: The session store, and its import
+## Task 11: The session store, and its import
 
 **Risky:** it changes the format of stored session data, and reads the old one.
 
@@ -741,7 +705,7 @@ Follows [what every records task does](#what-every-records-task-does).
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the session store and its import`.
 
-## Task 13: The runtime contract, and the fake runtime
+## Task 12: The runtime contract, and the fake runtime
 
 **Files:**
 
@@ -750,12 +714,12 @@ Follows [what every records task does](#what-every-records-task-does).
 
 **Interfaces:**
 
-- Consumes: `Event` (task 12).
+- Consumes: `Event` (task 11).
 - Produces: `trait Runtime` with `name`, `capabilities`, `open(Options) -> Box<dyn AgentProcess>`,
   `has_session`, `allow_rule`, `version`, `models`; and `trait AgentProcess` with `events`, `send`,
   `interrupt`, `kill`, `take_back`, `set_effort`, `close`. These mirror the adapter of
   [`extension-api.ts`](/packages/server/src/extension-api.ts), so a VM extension can implement the
-  same contract in task 18. The fake runtime plays a script of events, for tests and the sandbox.
+  same contract in task 17. The fake runtime plays a script of events, for tests and the sandbox.
 
 - [ ] **Step 1: Write the failing test** `the fake runtime plays its script, and stops when told`.
 - [ ] **Step 2: Run it**. Expected: FAIL.
@@ -763,18 +727,18 @@ Follows [what every records task does](#what-every-records-task-does).
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the runtime contract and a fake runtime`.
 
-## Task 14: The Claude runtime
+## Task 13: The Claude runtime
 
 **Files:**
 
-- Create: `crates/server/src/runtimes/claude.rs` (task 14), `crates/server/src/runtimes/codex.rs`
-  and `codex_rpc.rs` (task 15)
+- Create: `crates/server/src/runtimes/claude.rs` (task 13), `crates/server/src/runtimes/codex.rs`
+  and `codex_rpc.rs` (task 14)
 - Test: `crates/server/tests/claude.rs`, `crates/server/tests/codex.rs`, with recorded streams in
   `fixtures/runtimes/`
 
 **Interfaces:**
 
-- Consumes: `Runtime`, `AgentProcess` (task 13).
+- Consumes: `Runtime`, `AgentProcess` (task 12).
 - Produces: `runtimes::claude()`, `runtimes::codex()`, each registered as a built-in the owner can
   turn off.
 
@@ -790,21 +754,21 @@ Follows [what every records task does](#what-every-records-task-does).
       commit's body. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the claude runtime`, or `the codex runtime`.
 
-## Task 15: The Codex runtime
+## Task 14: The Codex runtime
 
-As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`, tested in
+As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`, tested in
 `crates/server/tests/codex.rs` on recorded streams. It ports
 [`codex.ts`](/packages/server/src/runner/codex.ts) and `codex-rpc.ts`, and produces
-`runtimes::codex()`. Its steps and tests are task 14's, with Codex's streams.
+`runtimes::codex()`. Its steps and tests are task 13's, with Codex's streams.
 
-- [ ] **Step 1: Write the failing tests**, as task 14's.
+- [ ] **Step 1: Write the failing tests**, as task 13's.
 - [ ] **Step 2: Run them**. Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the task's validation**, then one manual run against the real CLI. Expected:
       PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the codex runtime`.
 
-## Task 16: Sessions
+## Task 15: Sessions
 
 **Files:**
 
@@ -814,7 +778,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: `Store` (12), `Runtime` (13), `Bus` (7).
+- Consumes: `Store` (11), `Runtime` (12), `Bus` (6).
 - Produces: records Agent, Session, SessionList, SessionSearch, Turn, TurnLog; actions `session.*`
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
@@ -830,7 +794,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): sessions and their turns`.
 
-## Task 17: Files, uploads, and the agents' MCP endpoint
+## Task 16: Files, uploads, and the agents' MCP endpoint
 
 **Files:**
 
@@ -850,7 +814,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): files, uploads, and the MCP endpoint`.
 
-## Task 18: The VM for extensions' server parts
+## Task 17: The VM for extensions' server parts
 
 **Risky:** it runs the owner's code inside the server, and must never take the server down.
 
@@ -862,7 +826,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: `Registry`, `Bus` (7); `Runtime` (13); `compileModule` in
+- Consumes: `Registry`, `Bus` (6); `Runtime` (12); `compileModule` in
   [`crates/compile/`](/crates/compile/).
 - Produces:
   - The server API, for `server.ts`: `record`, `action`, `route`, `on`, `runtime`, `settings`,
@@ -889,7 +853,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): extensions' server parts, in a VM`.
 
-## Task 19: Previews
+## Task 18: Previews
 
 **Files:**
 
@@ -910,7 +874,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): previews and their proxy`.
 
-## Task 20: Extension pages: built, signed, served
+## Task 19: Extension pages: built, signed, served
 
 **Risky:** a client runs what this task signs.
 
@@ -921,7 +885,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: the loader and watcher (task 18); the result of task 3's first check.
+- Consumes: the loader and watcher (task 17); the result of task 2's first check.
 - Produces:
   - `GET /extensions/:name/page`: the page as a signed NSH package, and its version.
   - The record Extensions carries each page's `pageVersion`, which changes on every build.
@@ -940,7 +904,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): build, sign, and serve extension pages`.
 
-## Task 21: The parity list, and the server's sandbox
+## Task 20: The parity list, and the server's sandbox
 
 **Files:**
 
@@ -950,7 +914,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: every record and action of tasks 8 to 20.
+- Consumes: every record and action of tasks 7 to 19.
 - Produces:
   - `parity.toml`: each of the Node server's record types, mutations, and routes, with the name it
     has now, or `dropped` and why.
@@ -968,7 +932,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
       that answers `Workspace`.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the parity list and the sandbox`.
 
-## Task 22: The native module
+## Task 21: The native module
 
 **Files:**
 
@@ -978,8 +942,8 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 **Interfaces:**
 
 - Produces: the NSH native module `uraeda/native`, which TSX imports. It starts with `version()`.
-  Later tasks add to it: the Vim layer's bridge (31), highlighting and diagrams (32), the app's
-  native components (35, 37). See NSH's Rust-modules pages.
+  Later tasks add to it: the Vim layer's bridge (30), highlighting and diagrams (31), the app's
+  native components (34, 36). See NSH's Rust-modules pages.
 
 - [ ] **Step 1: Write the failing test** `TSX calls a function of the module`, through `nsh test`.
 - [ ] **Step 2: Run it**. Expected: FAIL, module not found.
@@ -987,7 +951,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the app's native module`.
 
-## Task 23: The Vim layer
+## Task 22: The Vim layer
 
 **Files:**
 
@@ -1022,7 +986,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the Vim layer`.
 
-## Task 24: The client store
+## Task 23: The client store
 
 **Files:**
 
@@ -1031,7 +995,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: `app/store/protocol.d.ts` (task 4); `ura sandbox` (task 21) for its tests.
+- Consumes: `app/store/protocol.d.ts` (task 3); `ura sandbox` (task 20) for its tests.
 - Produces:
   - `connect(options): Connection`, with `status: Signal<"connecting"|"live"|"offline"|"refused">`.
   - `record<N>(name: N, args): Signal<Value<N> | undefined>`: subscribes while something reads it,
@@ -1052,7 +1016,7 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the client store`.
 
-## Task 25: Routes and per-device storage
+## Task 24: Routes and per-device storage
 
 **Files:**
 
@@ -1071,44 +1035,45 @@ As task 14, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - [ ] **Step 1: Write the failing test** `every old path parses to its route and back`, on the paths
       of the old route table's tests.
 - [ ] **Step 2: Run it**. Expected: FAIL.
-- [ ] **Step 3: Implement.** No browser API here: task 58 binds the history to the browser's.
+- [ ] **Step 3: Implement.** No browser API here: task 57 binds the history to the browser's.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): routes and per-device storage`.
 
-## Task 26: The design language
-
-A human gate: the first of the two design gates.
+## Task 25: The design language's samples
 
 **Files:**
 
-- Create: `specs/ui/design-language.md`, `app/gallery/samples/` (six rendered samples)
+- Create: `app/gallery/samples/` (eight rendered samples)
+- Modify: [`specs/ui/design-language.md`](/specs/ui/design-language.md), where a sample proves a
+  value wrong
 
 **Interfaces:**
 
-- Produces: the rules tasks 27 to 34 follow. Until the human approves it, they do not start.
+- Consumes: the [design language](/specs/ui/design-language.md), written with the spec from a study
+  of LazyVim, Zed, Hyprland, and Linux desktop setups, and its
+  [browser mockup](mockups/design-language.html), which is the reference for how each sample should
+  look. Its values were tuned in a browser, not on GTK.
+- Produces: the same language, with its values proven on GTK, which tasks 26 to 33 follow.
 
-- [ ] **Step 1: Write `design-language.md`**, short enough to review in 15 minutes. It decides:
-  - the heights: at least `recessed` (a well, a field, a code block), `standard` (the page and its
-    panes), `raised` (a card, a bar that stays), and `overlay` (a menu, a dialog, a sheet, a toast).
-    For each height: its fill, its border, its shadow, whether it is glass, and how far it glows;
-  - what a height means inside another, such as a field in a dialog;
-  - where glass goes, how strong its blur and tint are, and where it never goes (behind long prose);
-  - neon light: which roles glow, how far, and when it moves;
-  - corners, borders, and the titled pane, kept or changed from
-    [look and feel](/specs/ui/look-and-feel.md);
-  - type: the font of each role, and the scale;
-  - motion: what animates, and for how long, from [space and motion](/specs/ui/space-and-motion.md);
-  - colour roles added for glass and glow, and the contrast floors kept from the UI look decision.
+- [ ] **Step 1: Render eight samples** in a throwaway gallery page, in both themes: every height
+      nested in every other; a pane at rest beside a focused one, each with its border round its
+      title; a glass bar over a scrolling transcript; buttons and keycaps in every state; a dialog
+      over a dimmed page; a list with a selected row and its bar; the status line; and a session
+      with an agent running. Take their pictures on GTK, on an invisible display, with the
+      screenshot script of the spike's `tools/`.
+- [ ] **Step 2: Check each against the language's own tests**: text over glass meets the contrast
+      floor over the busiest page; the glass bar over the scrolling transcript costs under 8.3 ms a
+      frame at the 99th percentile; nothing in a sample moves unless a state just changed, but a
+      view's one main action.
+- [ ] **Step 3: Compare each picture with the mockup, and correct the language's values** where a
+      sample fails a test or drifts from the mockup. Say which in the commit. Change a value, never
+      a rule: where a rule cannot be drawn on GTK, keep the nearest look that passes the tests, and
+      write a ruling.
+- [ ] **Step 4: Take the open choices as written**, each behind its token, as ruling R13 says.
+- [ ] **Step 5: Commit**: `docs(nsh-migration): the design language's samples`. Keep the pictures in
+      `target/shots/samples/`, for the pull request, never in the repository.
 
-  Where it changes a guide of [`specs/ui/`](/specs/ui/), it says which line.
-
-- [ ] **Step 2: Render six samples** in a throwaway gallery page: a pane, a glass panel over text, a
-      button row, a dialog, a list with a selected row, and a status line, in both themes. Take
-      their pictures on GTK, with the screenshot script of the spike's `tools/`.
-- [ ] **Step 3: Commit, and stop for the human**, with the samples' pictures in the pull request,
-      never in the repository: `docs(nsh-migration): propose the design language`.
-
-## Task 27: Tokens, themes, and fonts
+## Task 26: Tokens, themes, and fonts
 
 **Files:**
 
@@ -1118,7 +1083,7 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: the approved design language (task 26); the record Themes (task 8).
+- Consumes: the design language (task 25); the record Themes (task 7).
 - Produces: `applyTheme(theme)`, which maps a theme's roles onto NSH's tokens; the roles for glass
   and glow; bundled fonts, with no file loaded from another host; `tokens`, the only source of
   colours, radii, blur, and glow for `app/ui/`; `tokens.height[name]`, one set per height: fill,
@@ -1133,7 +1098,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): tokens, themes, and fonts`.
 
-## Task 28: Surfaces
+## Task 27: Surfaces
 
 **Files:**
 
@@ -1143,7 +1108,7 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: `tokens` (task 27).
+- Consumes: `tokens` (task 26).
 - Produces: the components named above.
   - `Surface` takes `height: "recessed" | "standard" | "raised" | "overlay"`, and draws that
     height's fill, border, shadow, glass, and glow from `tokens.height`. It is the only component
@@ -1154,10 +1119,12 @@ A human gate: the first of the two design gates.
     on GTK today. No caller knows which. A later iOS client maps a height to the system's material
     here, and nowhere else.
 
-- [ ] **Step 1: Build `Glass` first, and measure it.** Start from the spike's shader, with a
-      smoother blur. Put it over the spike's scrolling transcript: the frame cost must stay under
-      8.3 ms at the 99th percentile on GTK. If it does not, lower the blur's samples, not the
-      budget.
+- [ ] **Step 1: Build `Glass` first, and measure it.** Write the shader from the design language's
+      [glass recipe](/specs/ui/design-language.md#glass), reading the sources it links first: the
+      frost from one shared quarter-size copy, the bent edge, the colour fringe, the rim, and the
+      care it asks for square corners. The spike's shader is the starting file. Put it over the
+      spike's scrolling transcript: the frame cost must stay under 8.3 ms at the 99th percentile on
+      GTK. If it does not, drop parts in the order the recipe gives, not the budget.
 - [ ] **Step 2: Build `Surface`, then the others on it**, each following
       [surfaces](/specs/ui/surfaces.md) and the design language. `Well` is the recessed one, `Pane`
       the standard one, and every overlay sits at `overlay`. A sheet rises from the bottom on a
@@ -1167,7 +1134,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 4: Run the task's validation**: `vp run app:check`. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): surfaces, with glass and glow`.
 
-## Task 29: Controls
+## Task 28: Controls
 
 **Files:**
 
@@ -1177,18 +1144,21 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: `tokens` (27), surfaces (28).
+- Consumes: `tokens` (26), surfaces (27).
 - Produces: one component for each Astryx component the React UI imports, listed in
   [`packages/web/`](/packages/web/)'s imports of `@astryxdesign/core`, built on `nsh/base`'s
   unstyled parts where one exists.
 
 - [ ] **Step 1: Build each control**, with its keyboard behaviour and its 44-point touch target on a
-      narrow window. Icons are Lucide, and Codicons for harness marks, as today.
+      narrow window. Buttons and keys follow the design language's
+      [buttons and keys](/specs/ui/design-language.md#buttons-and-keys): a lamp, tubes, and chips,
+      with their variants behind `key.look` and `button.main.look`. `Kbd` is the one key. Icons are
+      Lucide, and Codicons for harness marks, as today.
 - [ ] **Step 2: Add each to the gallery**, in every state: rest, hover, focus, pressed, disabled.
 - [ ] **Step 3: Run the task's validation**. Expected: PASS.
 - [ ] **Step 4: Commit**: `feat(nsh-migration): controls`.
 
-## Task 30: Lists, cards, tables, and trees
+## Task 29: Lists, cards, tables, and trees
 
 **Files:**
 
@@ -1208,7 +1178,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 3: Run the task's validation**. Expected: PASS.
 - [ ] **Step 4: Commit**: `feat(nsh-migration): lists, cards, tables, and trees`.
 
-## Task 31: The text field
+## Task 30: The text field
 
 **Files:**
 
@@ -1218,7 +1188,7 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: `Vim` (task 23); `uraeda/native` (22); `device` storage (25); the setting for Vim.
+- Consumes: `Vim` (task 22); `uraeda/native` (21); `device` storage (24); the setting for Vim.
 - Produces: `TextField`, the one editor of every text field, as the text-editing decision asks: it
   highlights Markdown, wraps, never scrolls sideways, and runs Vim when the setting is on.
   `vimStatus: Signal<Status>` for the status line. Unsaved text kept per device, as
@@ -1231,11 +1201,13 @@ A human gate: the first of the two design gates.
 - [ ] **Step 3: Implement**, on NSH's `Editor`. Keys go to `Vim::key` in Rust, in one call per key;
       its edits are applied as one editor transaction. Bind keys only while the field has the focus.
       On a real GTK window a field gets no focus by itself: focus it when it mounts, where the
-      screen asks.
+      screen asks. The caret's trail is a `<Shader>` over the field, fed the caret's box before and
+      after a move from the editor's `caret_bounds`, as the design language's
+      [motion](/specs/ui/design-language.md#motion-means-a-change-of-state) says.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the shared text field, with Vim`.
 
-## Task 32: The document renderer
+## Task 31: The document renderer
 
 **Files:**
 
@@ -1245,7 +1217,7 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: the core's document tree, from the record WorkflowFile; the result of task 3's diagram
+- Consumes: the core's document tree, from the record WorkflowFile; the result of task 2's diagram
   check.
 - Produces: `Document`, which draws a document tree and never parses Markdown, as the stack decision
   asks. `Reply`, which draws a streamed reply as blocks: finished blocks never redraw while the last
@@ -1261,7 +1233,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the document renderer`.
 
-## Task 33: Keys
+## Task 32: Keys
 
 **Files:**
 
@@ -1282,7 +1254,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the key registry and the leader menu`.
 
-## Task 34: The layout shell
+## Task 33: The layout shell
 
 **Files:**
 
@@ -1290,7 +1262,7 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: surfaces, controls, `route` (25).
+- Consumes: surfaces, controls, `route` (24).
 - Produces: the app's frame at the three width classes of the UI layout decision: narrow below 768,
   semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`.
 
@@ -1302,7 +1274,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 3: Run the task's validation**. Expected: PASS.
 - [ ] **Step 4: Commit**: `feat(nsh-migration): the layout shell`.
 
-## Task 35: Extension pages in the client
+## Task 34: Extension pages in the client
 
 **Files:**
 
@@ -1312,8 +1284,8 @@ A human gate: the first of the two design gates.
 
 **Interfaces:**
 
-- Consumes: `/extensions/:name/page` and its key (task 20); the record Extensions (18); the result
-  of task 3's first two checks.
+- Consumes: `/extensions/:name/page` and its key (task 19); the record Extensions (17); the result
+  of task 2's first two checks.
 - Produces:
   - The native component `uraeda.extension`, which holds a view of its own per page, with NSH's
     limits and no rights beyond the host's functions.
@@ -1336,9 +1308,7 @@ A human gate: the first of the two design gates.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): extension pages in the client`.
 
-## Task 36: The gallery
-
-A human gate: the second design gate.
+## Task 35: The gallery
 
 **Files:**
 
@@ -1347,7 +1317,7 @@ A human gate: the second design gate.
 
 **Interfaces:**
 
-- Consumes: every component of tasks 27 to 35.
+- Consumes: every component of tasks 26 to 34.
 - Produces: `vp run gallery` (the gallery on GTK); `vp run gallery:shots` (a picture of every
   component, in both themes, at three widths, on an invisible display); `vp run frames` (the frame
   cost of a named scene, as median, 95th, 99th percentile, and worst).
@@ -1358,14 +1328,16 @@ A human gate: the second design gate.
       never open a window on the human's display.
 - [ ] **Step 3: Run `vp run frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
       percentile. Record the numbers in the commit's body.
-- [ ] **Step 4: Review every picture yourself**, against the design language, and fix what drifts.
-- [ ] **Step 5: Commit, and stop for the human**, with the pictures in the pull request:
-      `feat(nsh-migration): the component gallery`.
+- [ ] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
+      what drifts. Then ask a second reviewer, with no part in building the library, to compare the
+      pictures with the design language, and fix what it finds.
+- [ ] **Step 5: Commit**: `feat(nsh-migration): the component gallery`. Keep the pictures in
+      `target/shots/gallery/`, for the pull request.
 
 **Phase 1: the Linux app.** Every screen, on the component library, as a Linux app on GTK, then its
-package. It starts once the gallery's gate (task 36) is approved.
+package. It starts once the gallery (task 35) is done.
 
-## Task 37: The app's shell
+## Task 36: The app's shell
 
 **Files:**
 
@@ -1377,7 +1349,7 @@ package. It starts once the gallery's gate (task 36) is approved.
 
 **Interfaces:**
 
-- Consumes: the layout shell (34), the store (24), routes (25), `ura serve` and pairing (5, 6).
+- Consumes: the layout shell (33), the store (23), routes (24), `ura serve` and pairing (4, 5).
 - Produces:
   - The `uraeda` app: a GTK window that finds a running server through its status file, or starts
     `ura serve` and waits for it.
@@ -1400,7 +1372,7 @@ package. It starts once the gallery's gate (task 36) is approved.
 - [ ] **Step 5: Run the task's validation**. Expected: PASS.
 - [ ] **Step 6: Commit**: `feat(nsh-migration): the app's shell and its server start`.
 
-## Task 38: Home and priorities
+## Task 37: Home and priorities
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1414,7 +1386,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   drag, by long press, and by keys.
 - **Tests:** `a reorder is saved once, in the order shown`.
 
-## Task 39: Proposals, and starting work
+## Task 38: Proposals, and starting work
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1426,7 +1398,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Routes:** `/priorities/<key>` as an overlay or a page, `/new?kind=session|change|feature`
 - **Tests:** `leaving an edited proposal asks first, and keeps the text`.
 
-## Task 40: Inbox and triage
+## Task 39: Inbox and triage
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1438,7 +1410,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `POST /r/:name/inbox/note-image`.
 - **Tests:** none: using the screen shows every behaviour.
 
-## Task 41: The feature page
+## Task 40: The feature page
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1449,7 +1421,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Routes:** `/f/<folder>`, `/f/<folder>/runs/<id>`
 - **Tests:** none.
 
-## Task 42: Workflow files
+## Task 41: Workflow files
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1458,12 +1430,12 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `decisions/BranchDecision.tsx`
 - **Records and actions:** WorkflowFile, BranchDecision, BranchChanges
 - **Routes:** `/f/<folder>/<file>`, `/f/<folder>/decisions/<name>`
-- **Consumes also:** `Document` (task 32).
+- **Consumes also:** `Document` (task 31).
 - **Its own rules:** a file is drawn from the core's document tree. The spec page keeps its review
   tab, its decision cards, its history, and what changed since the last review.
 - **Tests:** none.
 
-## Task 43: Rounds and reviews
+## Task 42: Rounds and reviews
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1477,7 +1449,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Tests:** `an answer typed and not submitted is there after a restart`;
   `submitting sends every answer once`.
 
-## Task 44: Sessions
+## Task 43: Sessions
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1486,7 +1458,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `Composer*` files, `session/`
 - **Records and actions:** SessionList, SessionSearch, Session, Turn, TurnLog, Agent; `session.*`
 - **Routes:** `/sessions`, `/sessions/<id>`, `/f/<folder>/session`
-- **Consumes also:** `Reply` (32), `VirtualList` (30), `TextField` (31), `text()` (24).
+- **Consumes also:** `Reply` (31), `VirtualList` (29), `TextField` (30), `text()` (23).
 - **Its own rules:** the transcript opens at its newest message and follows it while a reply
   streams, unless the reader scrolled away. Each message has its own signal. A reply is drawn as
   blocks. Images are attached through `POST /r/:name/attach`.
@@ -1495,7 +1467,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Extra step, before the commit:** run `vp run frames session` on a session of 20,000 messages.
   Expected: at most 8.3 ms at the 99th percentile, streaming and scrolling.
 
-## Task 45: Session panels and runs
+## Task 44: Session panels and runs
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1506,7 +1478,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `session.allowAll`, `session.toChange`
 - **Tests:** none.
 
-## Task 46: Decisions
+## Task 45: Decisions
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1518,7 +1490,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   device.
 - **Tests:** none.
 
-## Task 47: Git
+## Task 46: Git
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1531,7 +1503,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `app/ui/`.
 - **Tests:** `a commit holds exactly the staged files`.
 
-## Task 48: Editors
+## Task 47: Editors
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1541,7 +1513,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Routes:** `/edit/<path>`, `/buffer/<path>`
 - **Tests:** `a file changed on disk while it is edited is not overwritten silently`.
 
-## Task 49: Settings
+## Task 48: Settings
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1556,7 +1528,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   paired devices, and revokes one.
 - **Tests:** none.
 
-## Task 50: Previews
+## Task 49: Previews
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1565,12 +1537,12 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Read:** `LiveFrame.tsx`, `LiveWindow`, `StoryFrames.tsx`, `StoryEmbed.tsx`, `MockupPage.tsx`
 - **Records and actions:** Preview, Story, StoryHref; `preview.restart`
 - **Routes:** `/f/<folder>/mockups/<name>`, `/f/<folder>/storybook`, `/storybook`
-- **Consumes also:** the result of task 3's web-view check.
+- **Consumes also:** the result of task 2's web-view check.
 - **Its own rules:** `WebFrame` is the only component that shows a web page: a web view on GTK, a
   frame on the web. A preview's address carries its frame secret.
 - **Tests:** none.
 
-## Task 51: Notifications, undo, and writes
+## Task 50: Notifications, undo, and writes
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1579,13 +1551,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `fields/LeaveGuard`
 - **Records and actions:** NeedsYouList, Undo, WriteQueue; `undo.*`, `writes.dismiss`,
   `commit.retry`
-- **Consumes also:** the result of task 3's notification check.
+- **Consumes also:** the result of task 2's notification check.
 - **Its own rules:** the app asks for notifications only after saying why, and never again after a
   refusal. `u` and `Ctrl+Z` undo, `U` and `Ctrl+Shift+Z` redo, on a stack of the last 50 actions. An
   undoable action never asks to confirm.
 - **Tests:** `undo puts back what the action changed`.
 
-## Task 52: Built-in extensions, and extension places
+## Task 51: Built-in extensions, and extension places
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
@@ -1594,7 +1566,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Read:** [`extensions/builtins/`](/packages/web/src/extensions/builtins/),
   `extensions/routes.tsx`, [`docs/extensions.md`](/docs/extensions.md)
 - **Routes:** `/e/<name>/<rest>`
-- **Consumes also:** the page API and `uraeda.extension` (task 35).
+- **Consumes also:** the page API and `uraeda.extension` (task 34).
 - **Its own rules:** each built-in place is declared through the same page API as the owner's, and
   can be turned off. A built-in's screen is the app's own code, linked in: only its declaration goes
   through the API. See the ruling on built-ins.
@@ -1603,7 +1575,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   extension from it alone.
 - **Tests:** `turning a built-in off removes its place, and the app goes on`.
 
-## Task 53: The sandbox, and a walk through the app
+## Task 52: The sandbox, and a walk through the app
 
 **Files:**
 
@@ -1624,7 +1596,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): what a walk through the app found`.
 
-## Task 54: Performance
+## Task 53: Performance
 
 **Files:**
 
@@ -1647,7 +1619,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [ ] **Step 4: Run them again, and record the numbers** in the commit's body.
 - [ ] **Step 5: Commit**: `perf(nsh-migration): meet the navigation and frame targets`.
 
-## Task 55: Packaging and release
+## Task 54: Packaging and release
 
 **Files:**
 
@@ -1669,7 +1641,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       Expected: the home page.
 - [ ] **Step 5: Commit**: `build(nsh-migration): package the Linux app and ura serve`.
 
-## Task 56: Parity
+## Task 55: Parity
 
 **Files:**
 
@@ -1695,7 +1667,7 @@ the React UI and the Node server. Read NSH's web pages before each task:
 [`docs/dev/web.md`](https://github.com/longbridge/nsh/blob/main/docs/dev/web.md). The plan ends
 here: iOS and macOS are the human's, later.
 
-## Task 57: The web build, served by `ura serve`
+## Task 56: The web build, served by `ura serve`
 
 **Files:**
 
@@ -1705,7 +1677,7 @@ here: iOS and macOS are the human's, later.
 
 **Interfaces:**
 
-- Consumes: the app (phase 1); `sign_in` (task 6).
+- Consumes: the app (phase 1); `sign_in` (task 5).
 - Produces: `vp run web:build`, which packages the app for the web; `ura serve` serving it at `/`,
   with any unknown path answering the app's page; the sign-in cookie for the browser, as today.
 
@@ -1722,7 +1694,7 @@ here: iOS and macOS are the human's, later.
       Expected: PASS, and the home page.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the web build, served by ura serve`.
 
-## Task 58: Browser behaviour
+## Task 57: Browser behaviour
 
 **Files:**
 
@@ -1733,7 +1705,7 @@ here: iOS and macOS are the human's, later.
 
 **Interfaces:**
 
-- Consumes: `route`, `navigate`, `back` (task 25).
+- Consumes: `route`, `navigate`, `back` (task 24).
 - Produces: the browser's address and history bound to the app's routes; `Glass` drawn with the
   browser's backdrop blur; `WebFrame` as a frame; browser notifications; the page's title with the
   count of what needs the owner; the web app manifest.
@@ -1751,7 +1723,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): addresses, history, and browser behaviour`.
 
-## Task 59: Extension pages in the browser
+## Task 58: Extension pages in the browser
 
 **Files:**
 
@@ -1760,11 +1732,11 @@ here: iOS and macOS are the human's, later.
 
 **Interfaces:**
 
-- Consumes: the page API and its host channel (task 35); `/extensions/:name/page` (task 20).
+- Consumes: the page API and its host channel (task 34); `/extensions/:name/page` (task 19).
 - Produces: the web form of `uraeda.extension`: each page runs in NSH's player, in a frame of its
   own, with the same page API and the same theme.
 
-- [ ] **Step 1: Write the failing tests**: the four tests of task 35, run in a headless browser.
+- [ ] **Step 1: Write the failing tests**: the four tests of task 34, run in a headless browser.
 - [ ] **Step 2: Run them**. Expected: FAIL.
 - [ ] **Step 3: Implement.** Read NSH's web page on players first. What the spike found: a page in a
       frame without an origin runs one app, and is loaded again to run another; the frame's files
@@ -1773,7 +1745,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): extension pages in the browser`.
 
-## Task 60: The phone
+## Task 59: The phone
 
 **Files:**
 
@@ -1792,7 +1764,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): the app on a phone`.
 
-## Task 61: Web performance
+## Task 60: Web performance
 
 **Files:**
 
@@ -1800,7 +1772,7 @@ here: iOS and macOS are the human's, later.
 
 **Interfaces:**
 
-- Produces: the two benchmarks of task 54, run in a headless browser, at a phone's size with the
+- Produces: the two benchmarks of task 53, run in a headless browser, at a phone's size with the
   processor slowed four times.
 
 - [ ] **Step 1: Run both benchmarks** on the sandbox, and on a session with a very long reply.
@@ -1810,7 +1782,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
 - [ ] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
 
-## Task 62: Remove the React UI and the Node server
+## Task 61: Remove the React UI and the Node server
 
 **Risky:** it deletes the code that runs Uraeda today.
 
@@ -1829,8 +1801,9 @@ here: iOS and macOS are the human's, later.
 - Consumes: everything.
 - Produces: a repository that builds, tests, and releases without Node.
 
-- [ ] **Step 1: Import the human's sessions once**, with `ura import-sessions`, while the Node
-      server is stopped. Nothing more is built for upgrades: the human is the only user.
+- [ ] **Step 1: Leave the human's data alone.** `ura import-sessions` is theirs to run once, after
+      the build: say how in `INSTALL.md`. Nothing more is built for upgrades: the human is the only
+      user.
 - [ ] **Step 2: Delete the old code**, as the spec's
       [replaced behaviour](spec.md#replaced-behaviour) lists it, with its tests.
 - [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build

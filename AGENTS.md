@@ -107,8 +107,8 @@ spikes measured.
 What the spikes learned, which no page says plainly:
 
 - TSX runs in an interpreter with no JIT: put parsing, diffing, and per-key logic in Rust.
-- On Linux the app ships on GTK. GPUI is a development host: `nsh package` refuses it, and it draws
-  no blur and no shader.
+- On Linux the app ships on GTK. GPUI is NSH's backend for embedding in a GPUI app: `nsh package`
+  refuses it, and it draws no backdrop blur.
 - `backdropFilter` draws nothing on GTK: glass there is a `<Shader>` that samples what is behind it.
 - Only TSX has WebSockets and streamed `fetch`. Rust gets whole responses.
 - There is no error boundary, and a view embedded on GTK reports no error to its host.

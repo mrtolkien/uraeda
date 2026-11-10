@@ -14,11 +14,12 @@ plan-review: true
 >
 > - You approve replacing the React web UI and the Node server with Native Shell clients and a Rust
 >   server, on Linux and the web.
-> - Eleven decisions change, and one is new: see [Decisions](#decisions). The plan drafts their
->   text, and stops until you approve it.
+> - Eleven decisions change, and one is new: see [Decisions](#decisions). Their new text is on this
+>   branch, so approving this spec approves them.
 > - Compatibility breaks, on purpose: the extension API is rewritten in place, and today's
 >   extensions stop loading.
-> - Two design gates stop the build: the design language, then the component gallery.
+> - No human gate stops the build. The [design language](../ui/design-language.md) is written, with
+>   a [mockup](mockups/design-language.html): it reverses "no pulse on a running session".
 > - Session history is imported once, by a tool removed after the port.
 > - Three outside behaviours are not verified: signed extension packages, diagrams, and pacing at
 >   120 frames a second.
@@ -114,8 +115,9 @@ Key scenarios:
 ### US4: A coherent, glassy look (P2)
 
 Every screen is built from one component library, with glass surfaces, blur, and neon light, in a
-terminal style. Every surface has a height, which decides its shadow, its glass, and its glow. The
-owner approves its design language, then its gallery, before screens are built.
+terminal style. Every surface has a height, which decides its shadow, its glass, and its glow. It
+follows the [design language](../ui/design-language.md), and the owner reviews its gallery once the
+app is built.
 
 ### US5: A remote device (P2)
 

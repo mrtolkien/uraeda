@@ -251,3 +251,31 @@ Why it matters: it decides what the human reviews before the plan.
   answer stands.
 - "Components in our system should have a concept of 'height'. We have recessed surface, standard
   surface, and overlays, at least."
+- "I don't like that the decisions new text is a step in itself and needs a human gate. Let's do the
+  decisions here directly." The decisions are written on the branch, and the plan's first task is
+  gone.
+- On the design language: "be BOLD and do research: lazyvim, zed, hyprland, unixporn", "in the
+  _vein_ of the existing one", and "do the research work for step 26 yourself". It is written in
+  `specs/ui/design-language.md`; the plan's task renders its samples.
+- On the plan's gates, replacing the answer to question 9: "the plan should NOT have a single human
+  gate. I'll start the implementation and will leave for the night. Ideally I'll come back to a
+  finished native app." Each former stop has a fallback: rulings R12 and R13.
+- From the spec's review, in progress: the stack decision drops the document-tree rule ("the idea is
+  just that logic should stay on the server"); the distribution decision names no Linux format, and
+  allows "a .env for secrets, but in the conf folder".
+- On the first mockup: "I prefer the 'running light' to be steady. Movement should be meaningful
+  (state transition)"; "I like the idea of having the active pane emit 'light'"; "'Needs you' should
+  not have steady light if not focused"; the title "fights the glow"; buttons and row actions look
+  "boring", "let's be a bit bold"; glass is "decent but not _great_ just yet", "look at Apple-like
+  shaders". The second mockup and the design language answer each.
+- The human showed their terminal's cursor shader, a trail behind the cursor: "Could we have
+  something like that?" It is the caret's trail in the design language.
+- On the second mockup: the tab "wastes too much space", "what about having the border go around the
+  title, and glow too?"; "remove the chevrons on the focused pane"; "recessed looks too recessed,
+  and the hard shadow on raised looks weird"; the main button's "white border might be too much";
+  row actions are "a bit too heavy", "maybe remove the border? Make the letter glow? We're allowed
+  to have text glow a bit". The third mockup takes each, with variants where they were unsure.
+- On the third mockup, picking among its variants: "I like border around it, but the top border
+  needs to go ~2px up"; keys: "chip but with a slightly darker background, for readability"; "Main
+  button -> lamp"; "lips for the heights"; "The glass should be a bit darker", "contrast is
+  important".

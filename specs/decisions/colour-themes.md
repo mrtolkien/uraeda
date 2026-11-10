@@ -1,19 +1,19 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: swatch-book
 ---
 
 # Colour themes
 
-The web UI's colours come from a colour theme, picked per device, one for light mode and one for
-dark mode. Views ask for a colour by what it means, never by its hue, so each theme gives every
-meaning a look of its own. Catppuccin stays the default, with the look it has today.
+The UI's colours come from a colour theme, picked per device, one for light mode and one for dark
+mode. Views ask for a colour by what it means, never by its hue, so each theme gives every meaning a
+look of its own. Catppuccin stays the default, with the look it has today.
 
 ## Rules
 
 - A view MUST ask for a colour by its role, named for where it draws or what it means, never by a
-  hue. Checked by lint.
+  hue.
 - A theme MUST map its own private palette onto the roles, inheriting every role it leaves out from
   the theme it extends.
 - Shipped themes and the user's themes MUST share one format, a TOML file per theme. Checked by the
@@ -22,6 +22,8 @@ meaning a look of its own. Catppuccin stays the default, with the look it has to
   brings a colour to the contrast floor. Checked by a test of the shipped themes.
 - A theme of the user's MUST apply as written, the settings page naming each colour under the
   contrast floor.
+- Each height's tint and each glow's colour MUST be roles, which a theme sets or inherits as any
+  other.
 - A broken theme MUST NOT stop any other theme or setting from applying.
 - Headings SHOULD take a colour per level, from their own roles.
 - The picked themes SHOULD be kept per device, as the fonts are.
@@ -48,5 +50,5 @@ read at the floor; a user's own colours are their choice. History:
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/): its theme, its views, and every feature that draws a colour
+- `app/`: its tokens, its views, and every feature that draws a colour
 - [`crates/core/`](/crates/core/): reading and checking theme files
