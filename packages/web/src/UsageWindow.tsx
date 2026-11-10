@@ -78,7 +78,7 @@ export function UsageWindow({
           color="secondary"
           hasTabularNumbers
           type="supporting"
-          {...(remaining === 0 ? { xstyle: styles.error } : {})}
+          {...(left === 0 ? { xstyle: styles.error } : {})}
         >
           {isCompact ? `${name} ${left}%` : `${name} ${left}% left`}
           {at !== null && window.resetsAt !== null && (
