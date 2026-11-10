@@ -43,11 +43,15 @@ export function blockedOf(cache: SessionCache, turn: TurnRow | undefined): boole
 
 /**
  * Why the change a job's run offered could not start, while the turn that offer ended is the
- * session's latest (R1): a later turn of the session asks nothing of it.
+ * session's latest (R1): a later turn of the session asks nothing of it, nor does a session that
+ * belongs to a change or a feature now (R20).
  */
 function refusalOf(cache: SessionCache, session: string, latest: TurnRow | undefined) {
   const run = latest === undefined ? undefined : cache.jobs.ofSession(session);
-  return run?.refusal != null && run.refusedTurn === latest?.id ? run.refusal : null;
+  if (run?.refusal == null || run.refusedTurn !== latest?.id) {
+    return null;
+  }
+  return cache.session(session)?.folder == null ? run.refusal : null;
 }
 
 /** What a session's status and its sidebar row read of its turns. */

@@ -829,8 +829,9 @@ web UI's existing tests of offers keep passing unchanged.
   (`jobs/busy.ts`, shared with the scheduler, [ruling R18](rulings.md)).
 - `startJobs` starts it, and its stop joins the scheduler's.
 - The status rule gains one case, before "waits on the human": the session's latest turn is the
-  refused turn, `done`, and not dismissed. It reads "Needs attention", reason `change-refused`. The
-  session's view carries the refusal's text.
+  refused turn, `done`, and not dismissed, in a session without a folder. It reads "Needs
+  attention", reason `change-refused`. The session's view carries the refusal's text. `toChange`
+  clears the refusal once the session moved ([ruling R20](rulings.md)).
 - `SessionAttention.tsx` gains its entry: a warning, the title "The change could not start by
   itself.", and the text of the refusal, then "Start it from the offer's card above, or dismiss
   this.", with Dismiss.

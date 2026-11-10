@@ -154,6 +154,12 @@ export async function toChange(
     folder,
     worktree: await ctx.binding.workDir(ctx.repo, folder),
   });
+  // The session belongs to the change now: what a job's run could not start is the past (R20).
+  const refused = ctx.sessions.cache.jobs.ofSession(row.id);
+  if (refused?.refusal != null) {
+    ctx.sessions.cache.jobs.setRefusal(refused.id, null);
+    ctx.sessions.announce(ctx.repo, row.id);
+  }
   await sendRun(ctx, folder, { opening, session: row.id, trigger: "start" });
   return folder;
 }

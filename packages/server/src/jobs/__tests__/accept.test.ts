@@ -3,6 +3,7 @@ import { expect, onTestFinished, test } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the acceptance's imports in a cycle.
 import { binding, git, testFeatureOptions, testServer } from "../../__tests__/helpers.ts";
 import type { Binding, RepoContext } from "../../fate/context.ts";
+import { toChange } from "../../fate/session-moves.ts";
 import { readSession } from "../../fate/sessions.ts";
 import type { AgentEvent } from "../../runner/events.ts";
 import type { FakeStep } from "../../runner/fake.ts";
@@ -375,3 +376,32 @@ test.each(["starts the change", "finds the job report only"])(
     await ended(server, session);
   },
 );
+
+/**
+ * Finding 10. Catches: a session that belongs to a change reading "The change could not start by
+ * itself." for good, when the human started the change from the card and no turn followed: the
+ * refusal is cleared where the session moves, and the status ignores it once the session has a folder.
+ */
+test("a refused offer is forgotten once its session moves into a change", async () => {
+  const { ctx, run, server } = await setup();
+  server.adapter.fallback = () => [];
+  const { cache } = server.sessions;
+  await run([{ text: OFFER, type: "text" }], job(), []);
+
+  // The human starts the change from the card, with another title: the refusal goes.
+  const second = await run([{ text: OFFER, type: "text" }]);
+  expect(await readSession(ctx, second)).toMatchObject({ statusReason: "change-refused" });
+  await toChange(ctx, { session: second, text: "# Another proposal\n\nBody." });
+  expect(cache.jobs.ofSession(second)).toMatchObject({ refusal: null, refusedTurn: null });
+  const moved = await readSession(ctx, second);
+  expect(moved?.changeRefusal).toBeNull();
+  expect(moved?.statusReason).not.toBe("change-refused");
+
+  // A session that moved some other way, with the refusal still stored, ignores it too.
+  const third = await run([{ text: OFFER, type: "text" }]);
+  expect(await readSession(ctx, third)).toMatchObject({ statusReason: "change-refused" });
+  cache.attach(third, "2026-10-12-cli-tuis");
+  const attached = await readSession(ctx, third);
+  expect(attached?.changeRefusal).toBeNull();
+  expect(attached?.statusReason).not.toBe("change-refused");
+});

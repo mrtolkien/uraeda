@@ -290,3 +290,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a refusal caused by a passing state (the agent working) that the human did not
   notice leaves the run's later offer to the card.
 - **Where**: task 5.
+
+## R20: A session in a change no longer reads its refusal
+
+- **Decision**: `toChange` clears the run's refusal (`setRefusal(id, null)`) once the session moved,
+  and announces the session; and the refusal the session's view reads, hence its status, is null
+  while the session has a folder, whatever the row stores.
+- **Rationale**: when the human started the change from the card and no turn followed (the agent
+  unavailable, or no workflow message to send), the session's latest turn was still the refused one:
+  it kept reading "Needs attention: The change could not start by itself.", and after Dismiss read
+  idle before the change's own statuses.
+- **Alternatives considered**: the status guard alone: the row would keep a refusal that no longer
+  holds. Clearing alone: a session attached another way would keep reading it.
+- **Where**: task 5.
