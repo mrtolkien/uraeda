@@ -520,11 +520,11 @@ The break each test catches:
   local time that happens twice is its first, but an hourly schedule runs in each real hour
   ([ruling R10](rulings.md)).
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
-  [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)`, an
-  index with no condition: SQLite counts each null `due` as distinct, and the reads of a job and
-  repository use it. `add` prunes its job and repository to the 50 latest rows, the latest started
-  one with a session, and each started one whose session is in a change or a feature
-  ([rulings R8 and R15](rulings.md)).
+  [ruling R1](rulings.md), `refusal` and `refused_turn`, and, in a step of its own, `blocked_by`
+  ([ruling R36](rulings.md)), unique on `(job, repository, due)`, an index with no condition: SQLite
+  counts each null `due` as distinct, and the reads of a job and repository use it. `add` prunes its
+  job and repository to the 50 latest rows, the latest started one with a session, and each started
+  one whose session is in a change or a feature ([rulings R8 and R15](rulings.md)).
 - `cache.ts` has 5 lines left: add the `jobs` property and nothing else there.
 - The switch follows `catchUpPullRequests` through `options.ts`, `env.ts`, and `settings.ts`, but on
   by default: `--no-scheduled-jobs` turns it off, as `--no-continue-after-restart` does, and
@@ -883,6 +883,7 @@ git commit -m "feat(scheduled-jobs): a job's run starts the change it offers"
 ```ts
 export type JobRunView = {
   at: string;
+  blockedBy: { folder: string; title: string } | null; // the open change that blocked a skipped time, by the workspace's title (R36)
   due: string | null;
   folder: string | null;
   id: string;
@@ -962,7 +963,9 @@ file, or "Run now" held by the pause.
   comes from `Scheduler.nextRun`, given the workspace's open folders, read once for the whole record
   ([ruling R21](rulings.md)), its `why` the code it answers (`problem`, `paused`, `off`,
   `agent-off`, `change-open`), and `history` from `JobRuns.history`, each run with its session's
-  folder and title when it has them. `enabled` is the switch for all jobs.
+  folder and title when it has them, and a time skipped as `change-open` with the open change that
+  blocked it, by the workspace's title ([ruling R36](rulings.md)). `enabled` is the switch for all
+  jobs.
 - The mutations write through the binding, as `extension-mutations.ts` does, a file that cannot be
   read refused with its problem. A `jobs.update` that changes the name also renames the runs.
 - The record is announced, on every repository's endpoint, when the settings file is read (a hand
@@ -1110,8 +1113,9 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
   session.
 - The history lists this repository's rows, newest first: each run's time, then its session's or its
   change's card, as the sidebar draws it, or the line of a skipped time, in the texts of the global
-  constraints, or "Its session is gone." for a started run whose change and session are in neither
-  list (`jobs/runCards.ts` decides it before the card's element is made). A run by "Run now" says so
+  constraints, naming the change the record says was open ([ruling R36](rulings.md)), or "Its
+  session is gone." for a started run whose change and session are in neither list
+  (`jobs/runCards.ts` decides it before the card's element is made). A run by "Run now" says so
   under its card.
 - A name that no job has reads as the app's page for a missing item.
 - Built as: `JobPageView` and `NewJobPageView` take the job, the repositories, the agents on here,

@@ -300,28 +300,35 @@ class JobScheduler implements Scheduler {
     job: Job,
     root: string,
     open?: ReadonlySet<string>,
-  ): Promise<Skipped | undefined> {
+  ): Promise<{ folder?: string; reason: Skipped } | undefined> {
     const { jobs } = ctx.sessions.cache;
     // Any run of the job that started a change still open, not only the latest run.
     const folders = jobs.changeFolders(job.name, root);
     const opened = folders.length === 0 ? undefined : (open ?? (await openFolders(ctx)));
     const last = jobs.latestStarted(job.name, root);
     if (this.#busy.has(job.name, root) || (last?.session && works(ctx, last.session))) {
-      return "working";
+      return { reason: "working" };
     }
-    return opened !== undefined && folders.some((folder) => opened.has(folder))
-      ? "change-open"
-      : undefined;
+    // The open change of the latest run that started one: the one a person looks for (R36).
+    const folder = opened === undefined ? undefined : folders.find((one) => opened.has(one));
+    return folder === undefined ? undefined : { folder, reason: "change-open" };
   }
 
   /** Records a time skipped, once: the unique row of the time is what keeps it from a second. */
-  #skip(ctx: RepoContext, job: string, root: string, due: number, reason: Skipped): void {
+  #skip(
+    ctx: RepoContext,
+    job: string,
+    root: string,
+    due: number,
+    why: { folder?: string; reason: Skipped },
+  ): void {
     ctx.sessions.cache.jobs.add({
       at: this.#now().getTime(),
+      blockedBy: why.folder ?? null,
       due,
       job,
       outcome: "skipped",
-      reason,
+      reason: why.reason,
       repository: root,
       session: null,
       trigger: "schedule",
@@ -363,9 +370,9 @@ class JobScheduler implements Scheduler {
       if (runs.recorded(job.name, root, due)) {
         return false;
       }
-      const reason = taken ? "working" : await this.#skipOf(ctx, job, root);
-      if (reason !== undefined) {
-        this.#skip(ctx, job.name, root, due, reason);
+      const why = taken ? ({ reason: "working" } as const) : await this.#skipOf(ctx, job, root);
+      if (why !== undefined) {
+        this.#skip(ctx, job.name, root, due, why);
         return false;
       }
       // A start comes a minute after the one before it, and the job may have changed meanwhile.
@@ -378,7 +385,7 @@ class JobScheduler implements Scheduler {
         // Reserved again as the wait ends, with nothing awaited between: a run by hand that took
         // the job meanwhile has its own start to finish.
         if (this.#starting.has(key)) {
-          this.#skip(ctx, job.name, root, due, "working");
+          this.#skip(ctx, job.name, root, due, { reason: "working" });
           return false;
         }
         this.#starting.add(key);
@@ -426,7 +433,7 @@ class JobScheduler implements Scheduler {
       if (!agentOf(ctx, job, root)?.available) {
         return { why: "agent-off" };
       }
-      if ((await this.#skipOf(ctx, job, root, open)) === "change-open") {
+      if ((await this.#skipOf(ctx, job, root, open))?.reason === "change-open") {
         return { why: "change-open" };
       }
     }

@@ -545,3 +545,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the picker lists the off agent beside the ones on here, with no models, until the
   page is left.
 - **Where**: task 8.
+
+## R36: A skipped time records the change that blocked it
+
+- **Decision**: a time skipped as `change-open` stores the folder of the open change that blocked
+  it, in a column `blocked_by` that a step of its own adds to `job_runs` (an earlier step is never
+  edited). When several changes the job's runs started are open, it is the change of the latest run.
+  The record's `JobRunView.blockedBy` is `{ folder, title }`, the title being the workspace's for
+  that change, never the session's, and null for any other row, a row from before the column, and a
+  change the workspace no longer lists; the history then says "Skipped: a change it started is still
+  open." The record reads the workspace once, as it does for the cards, when a job started a change
+  or has such a row.
+- **Rationale**: the page named the latest earlier run that had a folder, which is not the open
+  change when "Run now" started another one that was merged, and it printed the session's title, the
+  job's name, which attaching a session to a change does not change.
+- **Alternatives considered**: resolving the change in the record from the open changes: two open
+  changes of one job, or one that closed after the skip, would read as the wrong one.
+- **If wrong**: a row skipped before the column reads the generic line.
+- **Where**: tasks 3, 6, and 8.

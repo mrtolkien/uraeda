@@ -195,6 +195,9 @@ export const migrations: Array<Migration> = [
   // applied that version gets the plain index here, and a new one recreates what it has.
   `DROP INDEX job_runs_due;
   CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);`,
+  // The folder of the change that blocked a skipped time (ruling R36), null for a row made before
+  // and for every row that is no skip for an open change.
+  "ALTER TABLE job_runs ADD COLUMN blocked_by TEXT;",
 ];
 
 /**

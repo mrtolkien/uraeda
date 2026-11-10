@@ -228,6 +228,7 @@ test("a new job is added with its form as written, and a refusal shows under its
 
 const RUN = {
   at: new Date(2026, 10, 10, 3).toISOString(),
+  blockedBy: null,
   due: new Date(2026, 10, 10, 3).toISOString(),
   folder: "2026-11-10-upgrade-three",
   id: "1",
@@ -243,6 +244,7 @@ test("the history says each time, its card, and what a skipped time was for", ()
     {
       ...RUN,
       at: new Date(2026, 10, 11, 3).toISOString(),
+      blockedBy: { folder: "2026-11-10-upgrade-three", title: "Upgrade three dependencies" },
       folder: null,
       id: "3",
       outcome: "skipped" as const,
@@ -294,13 +296,18 @@ test("the history says each time, its card, and what a skipped time was for", ()
   expect(within(items[3]).queryByText("Started by “Run now”.")).toBeNull();
 });
 
-test("a skipped time names the change of the run before it, or says a change is open", () => {
+test("a skipped time names the change the record says blocked it, or says a change is open", () => {
   const skipped = { ...RUN, outcome: "skipped" as const, reason: "change-open" as const };
-  expect(skippedWords(skipped, [RUN])).toBe(
-    "Skipped: the change “Upgrade three dependencies” is still open.",
-  );
-  expect(skippedWords(skipped, [])).toBe("Skipped: a change it started is still open.");
-  expect(skippedWords({ ...skipped, reason: "working" }, [RUN])).toBe(
+  // The change's own title, not the run's session's, and no run's folder is read for it.
+  expect(
+    skippedWords({
+      ...skipped,
+      blockedBy: { folder: "2026-11-09-other", title: "Upgrade three dependencies" },
+      title: "Dependencies",
+    }),
+  ).toBe("Skipped: the change “Upgrade three dependencies” is still open.");
+  expect(skippedWords(skipped)).toBe("Skipped: a change it started is still open.");
+  expect(skippedWords({ ...skipped, reason: "working" })).toBe(
     "Skipped: its last run still works.",
   );
 });

@@ -31,6 +31,7 @@ Leave out an upgrade that needs a design choice, and say which.`;
 const HISTORY: ReadonlyArray<JobRunView> = [
   {
     at: at(11, 3),
+    blockedBy: { folder: "2026-11-10-upgrade-three", title: "Upgrade three dependencies" },
     due: at(11, 3),
     folder: null,
     id: "3",
@@ -42,6 +43,7 @@ const HISTORY: ReadonlyArray<JobRunView> = [
   },
   {
     at: at(10, 3),
+    blockedBy: null,
     due: at(10, 3),
     folder: "2026-11-10-upgrade-three",
     id: "2",
@@ -53,6 +55,7 @@ const HISTORY: ReadonlyArray<JobRunView> = [
   },
   {
     at: at(9, 17, 42),
+    blockedBy: null,
     due: null,
     folder: null,
     id: "1",

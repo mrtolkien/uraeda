@@ -17,23 +17,22 @@ const styles = stylex.create({
 });
 
 /**
- * Why a time was skipped, in words. `older` are the runs before it, newest first: the change that
- * is open is the one the latest of them started.
+ * Why a time was skipped, in words: the change the record says blocked it, by its own title, or
+ * that a change it started is open when the record has no title for it (R36).
  */
-export function skippedWords(run: JobRunView, older: ReadonlyArray<JobRunView>): string {
+export function skippedWords(run: JobRunView): string {
   if (run.reason === "working") {
     return "Skipped: its last run still works.";
   }
-  const title = older.find((each) => each.outcome === "started" && each.folder !== null)?.title;
-  return title == null
+  return run.blockedBy === null
     ? "Skipped: a change it started is still open."
-    : `Skipped: the change “${title}” is still open.`;
+    : `Skipped: the change “${run.blockedBy.title}” is still open.`;
 }
 
 /** What a run says in place of its card, a skipped time's reason or a session that is gone. */
-function lineOf(run: JobRunView, older: ReadonlyArray<JobRunView>): string {
+function lineOf(run: JobRunView): string {
   if (run.outcome === "skipped") {
-    return skippedWords(run, older);
+    return skippedWords(run);
   }
   return run.title === null ? "Its session is gone." : `“${run.title}”: its session is gone.`;
 }
@@ -59,7 +58,7 @@ export function JobHistory({
         <Text color="secondary">It has not run here yet.</Text>
       ) : (
         <VStack as="ul" gap={2} xstyle={styles.list}>
-          {runs.map((run, index) => {
+          {runs.map((run) => {
             const card = run.outcome === "started" ? renderCard(run) : null;
             return (
               <VStack as="li" gap={1} key={run.id}>
@@ -68,7 +67,7 @@ export function JobHistory({
                 </Text>
                 {card ?? (
                   <Text color="secondary" xstyle={styles.note}>
-                    {lineOf(run, runs.slice(index + 1))}
+                    {lineOf(run)}
                   </Text>
                 )}
                 {card && run.trigger === "manual" && (

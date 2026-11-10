@@ -50,6 +50,7 @@ const BASE: Pick<JobRow, "agent" | "effort" | "model" | "prompt" | "repositories
 /** A started run, as the history lists it. */
 const started = (id: string, when: string, session: string, title: string, folder?: string) => ({
   at: when,
+  blockedBy: null,
   due: when,
   folder: folder ?? null,
   id,

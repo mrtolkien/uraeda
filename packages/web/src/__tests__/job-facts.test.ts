@@ -66,6 +66,7 @@ test("a job's problem shows beneath its next run when the job still runs here", 
 
 const run = (folder: string | null) => ({
   at: new Date(2026, 10, 12, 3).toISOString(),
+  blockedBy: null,
   due: null,
   folder,
   id: "1",

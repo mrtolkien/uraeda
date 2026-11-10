@@ -35,15 +35,26 @@ export function works(ctx: RepoContext, session: string): boolean {
   return statusOf(row, read).status === "working";
 }
 
+/** What the workspace says of the changes: which are open, and each one's title. */
+export type Changes = { open: ReadonlySet<string>; titles: ReadonlyMap<string, string> };
+
 /**
- * The folders of the changes and features the workspace still lists as not merged: read once, then
- * asked of each job, so a record of many jobs reads the workspace once.
+ * The changes and features of the workspace, read once: the folders it still lists as not merged,
+ * asked of each job, so a record of many jobs reads the workspace once, and every folder's title.
  */
-export async function openFolders(ctx: RepoContext): Promise<ReadonlySet<string>> {
+export async function readChanges(ctx: RepoContext): Promise<Changes> {
   const { features } = await ctx.binding.readWorkspace(ctx.repo);
-  return new Set(
-    features
-      .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
-      .map((feature) => feature.folder),
-  );
+  return {
+    open: new Set(
+      features
+        .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
+        .map((feature) => feature.folder),
+    ),
+    titles: new Map(features.map((feature) => [feature.folder, feature.title])),
+  };
+}
+
+/** The folders of the changes and features the workspace still lists as not merged. */
+export async function openFolders(ctx: RepoContext): Promise<ReadonlySet<string>> {
+  return (await readChanges(ctx)).open;
 }

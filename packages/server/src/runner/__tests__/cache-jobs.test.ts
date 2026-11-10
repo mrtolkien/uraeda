@@ -8,10 +8,13 @@ import type { JobRunRow } from "../cache-jobs.ts";
 
 const ROOT = "/repo/a";
 
+/** What `add` takes: a run's fields but those the record decides. */
+type NewRun = Omit<JobRunRow, "blockedBy" | "id" | "refusal" | "refusedTurn"> & {
+  blockedBy?: string | null;
+};
+
 /** A started run of "Dependencies" in `ROOT`, due at 1000 unless given another time. */
-function run(
-  fields: Partial<Omit<JobRunRow, "id" | "refusal" | "refusedTurn">> = {},
-): Omit<JobRunRow, "id" | "refusal" | "refusedTurn"> {
+function run(fields: Partial<NewRun> = {}): NewRun {
   return {
     at: 1,
     due: 1000,
@@ -77,10 +80,20 @@ test("a row reads back as written, with no refusal", () => {
   const added = jobs.add(run({ at: 5, session: "s1" }));
   expect(added).toEqual({
     ...run({ at: 5, session: "s1" }),
+    blockedBy: null,
     id: added?.id,
     refusal: null,
     refusedTurn: null,
   });
+});
+
+test("a skipped time keeps the folder of the change that blocked it", () => {
+  const jobs = opened();
+  const added = jobs.add(
+    run({ blockedBy: "2026-11-10-upgrade", outcome: "skipped", reason: "change-open" }),
+  );
+  expect(added?.blockedBy).toBe("2026-11-10-upgrade");
+  expect(jobs.history("Dependencies", ROOT)[0]?.blockedBy).toBe("2026-11-10-upgrade");
 });
 
 test("the latest started run skips the skipped ones, and a session finds its run", () => {

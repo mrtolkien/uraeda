@@ -46,6 +46,7 @@ const withIndexes = (jobs: ReadonlyArray<Omit<JobRow, "index">>): ReadonlyArray<
 
 const RUN = {
   at: at(12, 3),
+  blockedBy: null,
   due: at(12, 3),
   folder: "2026-11-12-upgrade",
   id: "1",

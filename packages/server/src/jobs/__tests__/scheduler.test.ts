@@ -410,6 +410,45 @@ test("a time is skipped while the last run works or its change is open", async (
   await startedOnce(run, name);
 });
 
+/**
+ * Review 06, finding 9. Catches: a skipped time that does not say which change blocked it: a run
+ * by hand started a change that is merged, after the scheduled run's change that is still open, and
+ * the open one is what the row names.
+ */
+test("a time skipped for an open change records the change that is open", async () => {
+  const MERGED = "2026-10-13-merged-change";
+  const using = {
+    ...binding,
+    readWorkspace: async (repo: string) => {
+      const workspace = await binding.readWorkspace(repo);
+      const [first] = workspace.features;
+      const merged = { ...first, folder: MERGED, step: { ...first.step, name: "done" } };
+      return { ...workspace, features: [...workspace.features, merged] };
+    },
+  } as Binding;
+  const run = await setup(using);
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  await run.at("09T02:59:00");
+  await run.at("09T03:00:10");
+  const [first] = run.created;
+  await ends(run.server, first.id);
+  run.server.sessions.cache.attach(first.id, CHANGE);
+  // A run by hand, later, in a change that is merged.
+  run.server.adapter.script([]);
+  const manual = await run.scheduler.runNow(name, "Dependencies");
+  await ends(run.server, manual.session);
+  run.server.sessions.cache.attach(manual.session, MERGED);
+  await run.at("10T02:59:00");
+  await run.at("10T03:00:10");
+  expect((await run.history("Dependencies"))[0]).toMatchObject({
+    blockedBy: CHANGE,
+    outcome: "skipped",
+    reason: "change-open",
+  });
+});
+
 /** US3's note: a report-only job's run changes no file, and its offer waits for the human. */
 test("a job's message says what to do with a needed change", () => {
   const { name, prompt } = job("Dependencies", []);

@@ -498,3 +498,39 @@ test("Run now is refused only while the run works, or for a problem that makes a
   expect((await runNow("Twin")).error?.message).toBe("refused: Two jobs are named “Twin”.");
   expect((await runNow("Lost")).ok).toBe(false);
 });
+
+/**
+ * Review 06, finding 9 (and Codex P2). Catches: a skipped time that names the title of the session
+ * of an older run, which is its job's name, or of a change that is not the one open: the row carries
+ * the open change's folder and its own title, from the workspace.
+ */
+test("a skipped time names the change that blocked it, by the change's title", async () => {
+  const run = await setup((name) => table("Dependencies", [name]));
+  const { cache } = run.server.sessions;
+  const root = await run.server.sessions.mainRoot(run.server.repo);
+  const folder = "2026-10-12-cli-tuis";
+  const title = (await binding.readWorkspace(run.server.repo)).features.find(
+    (one) => one.folder === folder,
+  )?.title;
+  expect(title).toBeTruthy();
+  const add = (due: number, blockedBy: string | null) =>
+    cache.jobs.add({
+      at: due,
+      blockedBy,
+      due,
+      job: "Dependencies",
+      outcome: "skipped",
+      reason: "change-open",
+      repository: root,
+      session: null,
+      trigger: "schedule",
+    });
+  add(1, folder);
+  add(2, null);
+  add(3, "2026-01-01-gone");
+  const [gone, unknown, named] = job(await run.read(), "Dependencies").history as Array<Data>;
+  expect(named.blockedBy).toEqual({ folder, title });
+  expect(unknown.blockedBy).toBeNull();
+  // A folder no workspace lists any more has no title to say.
+  expect(gone.blockedBy).toBeNull();
+});

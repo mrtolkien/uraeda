@@ -3,7 +3,7 @@
 // announced when a job, a run, or a run's session changes; and the answer of "Run now".
 import { dataView } from "@nkzw/fate/server";
 import type { Job, Schedule } from "uraeda-binding";
-import { openFolders } from "../jobs/guards.ts";
+import { type Changes, readChanges } from "../jobs/guards.ts";
 import { coreProblem } from "../jobs/problem.ts";
 import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
@@ -16,6 +16,11 @@ export const JOBS_ID = "jobs";
 export type JobRunView = {
   /** When it started, or was skipped, as an ISO time. */
   at: string;
+  /**
+   * The change that blocked a time skipped as `change-open`, by the workspace's title for it (R36);
+   * null for every other row, and when the workspace no longer lists the change.
+   */
+  blockedBy: { folder: string; title: string } | null;
   /** The scheduled time it answers; null for "Run now". */
   due: string | null;
   /** The folder of the change its session became, when it did. */
@@ -118,11 +123,14 @@ function agentWords(ctx: RepoContext, job: Job, root: string): string {
 const iso = (ms: number) => new Date(ms).toISOString();
 
 /** A run of the job as the history lists it, with its session's folder and title. */
-function viewOf(ctx: RepoContext, run: JobRunRow): JobRunView {
+function viewOf(ctx: RepoContext, run: JobRunRow, changes: Changes | undefined): JobRunView {
   const { cache } = ctx.sessions;
   const session = run.session === null ? undefined : cache.session(run.session);
+  const title = run.blockedBy === null ? undefined : changes?.titles.get(run.blockedBy);
   return {
     at: iso(run.at),
+    blockedBy:
+      run.blockedBy === null || title === undefined ? null : { folder: run.blockedBy, title },
     due: run.due === null ? null : iso(run.due),
     folder: session?.folder ?? null,
     id: String(run.id),
@@ -134,28 +142,27 @@ function viewOf(ctx: RepoContext, run: JobRunRow): JobRunView {
   };
 }
 
-/** The runs of the job in the repository, each with its session's folder and title. */
-const historyOf = (ctx: RepoContext, job: string, root: string): Array<JobRunView> =>
-  ctx.sessions.cache.jobs.history(job, root).map((run) => viewOf(ctx, run));
-
 /** The job's latest run that started a session in the repository, or null. */
 function lastOf(ctx: RepoContext, job: string, root: string): JobRunView | null {
   const run = ctx.sessions.cache.jobs.latestStarted(job, root);
-  return run === undefined ? null : viewOf(ctx, run);
+  return run === undefined ? null : viewOf(ctx, run, undefined);
 }
 
 /** The job as the repository lists it: `name` is the repository's name in the list. */
 async function rowOf(
   ctx: RepoContext,
   job: Job,
-  place: { index: number; name: string; open: ReadonlySet<string>; root: string },
+  place: { changes: Changes | undefined; index: number; name: string; root: string },
 ): Promise<JobRow> {
-  const { index, name, open, root } = place;
-  const next = ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name, open);
+  const { changes, index, name, root } = place;
+  const next =
+    ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name, changes?.open);
   return {
     agent: job.agent ?? null,
     effort: job.effort ?? null,
-    history: historyOf(ctx, job.name, root),
+    history: ctx.sessions.cache.jobs
+      .history(job.name, root)
+      .map((run) => viewOf(ctx, run, changes)),
     index,
     last: lastOf(ctx, job.name, root),
     model: job.model ?? null,
@@ -189,16 +196,20 @@ export async function jobsRecord(ctx: RepoContext): Promise<JobsRecord> {
   const here = jobs
     .map((job, index) => ({ index, job }))
     .filter(({ job }) => name !== undefined && job.repositories.includes(name));
-  // The workspace is read once for the record, and only when a job started a change to look at.
+  // The workspace is read once for the record, and only when a job started a change to look at, or
+  // skipped a time for one, whose title the history says.
+  const { jobs: runs } = ctx.sessions.cache;
   const started = here.some(
-    ({ job }) => ctx.sessions.cache.jobs.changeFolders(job.name, root).length > 0,
+    ({ job }) =>
+      runs.changeFolders(job.name, root).length > 0 ||
+      runs.history(job.name, root).some((run) => run.blockedBy !== null),
   );
-  const open = started ? await openFolders(ctx) : new Set<string>();
+  const changes = started ? await readChanges(ctx) : undefined;
   return {
     enabled: ctx.settings.runs().scheduledJobs.inForce,
     id: JOBS_ID,
     jobs: await Promise.all(
-      here.map(({ index, job }) => rowOf(ctx, job, { index, name: name!, open, root })),
+      here.map(({ index, job }) => rowOf(ctx, job, { changes, index, name: name!, root })),
     ),
     problem: problem ?? null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,

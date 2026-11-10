@@ -6,6 +6,7 @@ import type { Feature, Row } from "../sidebar/cards.ts";
 
 const run = (session: string | null, folder: string | null) => ({
   at: "2026-11-10T03:00:00.000Z",
+  blockedBy: null,
   due: null,
   folder,
   id: "1",

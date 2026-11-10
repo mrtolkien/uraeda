@@ -11,6 +11,8 @@ const KEPT = 50;
 export type JobRunRow = {
   /** When it started, or was skipped, in ms since the epoch. */
   at: number;
+  /** The folder of the open change that blocked a time skipped as `change-open` (R36). */
+  blockedBy: string | null;
   /** The scheduled time it answers, in ms since the epoch: null for "Run now". */
   due: number | null;
   id: number;
@@ -32,6 +34,7 @@ export type JobRunRow = {
 /** A row as the table stores it. */
 type Stored = {
   at: number;
+  blocked_by: string | null;
   due: number | null;
   id: number;
   job: string;
@@ -44,13 +47,13 @@ type Stored = {
   trigger: JobRunRow["trigger"];
 };
 
-function toRow({ refused_turn: refusedTurn, ...row }: Stored): JobRunRow {
-  return { ...row, refusedTurn };
+function toRow({ blocked_by: blockedBy, refused_turn: refusedTurn, ...row }: Stored): JobRunRow {
+  return { ...row, blockedBy, refusedTurn };
 }
 
 /** The table's columns, as `SELECT` lists them. */
 const COLUMNS =
-  "id, job, repository, due, at, trigger, outcome, reason, session, refusal, refused_turn";
+  "id, job, repository, due, at, trigger, outcome, reason, session, refusal, refused_turn, blocked_by";
 
 /** The record of runs: made by `SessionCache`, which owns the database. */
 export class JobRuns {
@@ -76,13 +79,17 @@ export class JobRuns {
    * started one. Returns the row, or undefined when its `due` time is recorded already for that job
    * and repository.
    */
-  add(row: Omit<JobRunRow, "id" | "refusal" | "refusedTurn">): JobRunRow | undefined {
+  add(
+    row: Omit<JobRunRow, "blockedBy" | "id" | "refusal" | "refusedTurn"> & {
+      blockedBy?: string | null;
+    },
+  ): JobRunRow | undefined {
     const added = transaction(this.#db, () => {
       const stored = this.#db
         .prepare(
           `INSERT INTO job_runs
-             (job, repository, due, at, trigger, outcome, reason, session)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             (job, repository, due, at, trigger, outcome, reason, session, blocked_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (job, repository, due) DO NOTHING RETURNING ${COLUMNS}`,
         )
         .get(
@@ -94,6 +101,7 @@ export class JobRuns {
           row.outcome,
           row.reason,
           row.session,
+          row.blockedBy ?? null,
         ) as Stored | undefined;
       if (stored === undefined) {
         return undefined;
@@ -161,13 +169,17 @@ export class JobRuns {
     return row && toRow(row);
   }
 
-  /** The folders of the changes and features the sessions of the job's runs in the repository are in. */
+  /**
+   * The folders of the changes and features the sessions of the job's runs in the repository are in,
+   * the one of the latest run first.
+   */
   changeFolders(job: string, repository: string): Array<string> {
     const rows = this.#db
       .prepare(
-        `SELECT DISTINCT sessions.folder FROM job_runs JOIN sessions ON sessions.id = job_runs.session
+        `SELECT sessions.folder FROM job_runs JOIN sessions ON sessions.id = job_runs.session
          WHERE job_runs.job = ? AND job_runs.repository = ? AND job_runs.outcome = 'started'
-           AND sessions.folder IS NOT NULL`,
+           AND sessions.folder IS NOT NULL
+         GROUP BY sessions.folder ORDER BY MAX(job_runs.id) DESC`,
       )
       .all(job, repository) as Array<{ folder: string }>;
     return rows.map(({ folder }) => folder);
