@@ -3,16 +3,12 @@
  * it is signed in, and its usage, which Claude Code's `get_usage` control request answers. Nothing
  * of a folder is opened here: Claude Code reads its own.
  */
-import { execFile } from "node:child_process";
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, normalize } from "node:path";
 import type { Account, AccountState, Accounts, AccountWindow } from "./adapter.ts";
 import { endShortProcess, lines, MODELS_TIMEOUT_MS, spawnGrouped } from "./child.ts";
 import { Controls } from "./claude-control.ts";
-
-/** `claude auth status` gives up after this long. */
-const AUTH_TIMEOUT_MS = 10_000;
 
 /**
  * The arguments of a short process: print mode and stream-json, as a session's, in `auto` mode,
@@ -169,54 +165,88 @@ export type ClaudeAsk = (
   folder: string,
 ) => Promise<{ state: AccountState; windows?: Array<AccountWindow> }>;
 
-/** Whether `claude auth status` says the folder is signed out: rejected when it says nothing. */
-function signedOut(command: string, folder: string): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      command,
-      ["auth", "status", "--json"],
-      {
-        encoding: "utf8",
-        env: { ...process.env, CLAUDE_CONFIG_DIR: folder },
-        timeout: AUTH_TIMEOUT_MS,
-      },
-      (error, stdout) => {
-        // A signed-out folder exits 1, with its answer on stdout.
-        let status: unknown;
-        try {
-          status = JSON.parse(stdout);
-        } catch {
-          reject(error ?? new Error("Claude Code gave no authentication status"));
-          return;
-        }
-        resolve(isJson(status) && status.loggedIn === false);
-      },
+/**
+ * Whether `claude auth status` says the folder is signed out: rejected when it says nothing. A
+ * short process, as the others: from the home folder, ended with `endShortProcess`, given up after
+ * `MODELS_TIMEOUT_MS`.
+ */
+async function signedOut(command: string, folder: string): Promise<boolean> {
+  const short = spawnGrouped(command, ["auth", "status", "--json"], homedir(), {
+    CLAUDE_CONFIG_DIR: folder,
+  });
+  let stdout = "";
+  short.child.stdout.setEncoding("utf8");
+  short.child.stdout.on("data", (data: string) => {
+    stdout += data;
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `Claude Code did not give its authentication status within ${MODELS_TIMEOUT_MS / 1000} seconds`,
+          ),
+        ),
+      MODELS_TIMEOUT_MS,
     );
   });
+  try {
+    // A signed-out folder exits 1, with its answer on stdout, which is whole once the process closed.
+    const { stderr } = await Promise.race([short.exited, late]);
+    let status: unknown;
+    try {
+      status = JSON.parse(stdout);
+    } catch {
+      throw new Error(stderr || "Claude Code gave no authentication status");
+    }
+    return isJson(status) && status.loggedIn === false;
+  } finally {
+    clearTimeout(timer);
+    endShortProcess(short);
+  }
+}
+
+/** The windows `get_usage` gives, or undefined when it gives none or does not answer. */
+async function usageOf(command: string, folder: string): Promise<Array<AccountWindow> | undefined> {
+  try {
+    const [answer] = await askShort(
+      command,
+      homedir(),
+      { CLAUDE_CONFIG_DIR: folder },
+      [{ subtype: "get_usage" }],
+      { did: "give its usage", exited: "giving its usage" },
+    );
+    return claudeUsageWindows(answer);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
- * The ask of a folder, which exists: `signed-out` when `claude auth status` says so, else `ready`, with the windows of a `get_usage` request when it answers. Run from the
- * home folder, as `models()` is, with `CLAUDE_CONFIG_DIR` the folder.
+ * The ask of a folder, which is a directory: its `claude auth status` and its `get_usage` request
+ * run at once, from the home folder, as `models()` is, with `CLAUDE_CONFIG_DIR` the folder. Signed
+ * out wins; else `ready`, with the windows when the usage was read. A status that says nothing and
+ * a usage that gives no windows reject: the account stays as it was.
  */
 export function claudeAsk(command: string): ClaudeAsk {
   return async (folder) => {
-    if (await signedOut(command, folder)) {
+    const [signed, windows] = await Promise.allSettled([
+      signedOut(command, folder),
+      usageOf(command, folder),
+    ]);
+    if (signed.status === "fulfilled" && signed.value) {
       return { state: "signed-out" };
     }
-    try {
-      const [answer] = await askShort(
-        command,
-        homedir(),
-        { CLAUDE_CONFIG_DIR: folder },
-        [{ subtype: "get_usage" }],
-        { did: "give its usage", exited: "giving its usage" },
-      );
-      const windows = claudeUsageWindows(answer);
-      return windows === undefined ? { state: "ready" } : { state: "ready", windows };
-    } catch {
-      return { state: "ready" };
+    const read = windows.status === "fulfilled" ? windows.value : undefined;
+    if (read !== undefined) {
+      // A usage with a five-hour window is a signed-in account's, whatever the status said.
+      return { state: "ready", windows: read };
     }
+    if (signed.status === "rejected") {
+      throw signed.reason;
+    }
+    return { state: "ready" };
   };
 }
 

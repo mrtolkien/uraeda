@@ -1,9 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { pickAccount } from "../account-pick.ts";
-import { ClaudeAccounts, claudeFolders, claudeUsageWindows } from "../claude-accounts.ts";
+import {
+  ClaudeAccounts,
+  claudeAsk,
+  claudeFolders,
+  claudeUsageWindows,
+} from "../claude-accounts.ts";
 
 test.each([
   [
@@ -228,5 +233,84 @@ test("a folder that is no directory is missing at once, before any ask answers",
     expect(states()).toEqual(["ready", "missing", "missing"]);
   } finally {
     rmSync(root, { force: true, recursive: true });
+  }
+});
+
+/** A `get_usage` answer of a five-hour window, or of a signed-out folder. */
+const usageAnswer = (five: number | null) =>
+  five === null
+    ? { rate_limits: null, rate_limits_available: false }
+    : {
+        rate_limits: { five_hour: { resets_at: null, utilization: five } },
+        rate_limits_available: true,
+      };
+
+/**
+ * A stand-in for `claude` that behaves by the name of its `CLAUDE_CONFIG_DIR`: `ok` is signed in,
+ * and its `auth status` answers only once the usage process has started, so it says signed out
+ * when the two run one after the other; `out` is signed out; `unsure` gives no status, and a usage
+ * read; `blind` gives neither. It writes where `auth status` ran to `<dir>/cwd`.
+ */
+function claudeStandIn(dir: string): string {
+  const agent = join(dir, "agent.cjs");
+  writeFileSync(
+    agent,
+    `const fs = require("node:fs");
+const name = require("node:path").basename(process.env.CLAUDE_CONFIG_DIR ?? "");
+const marker = ${JSON.stringify(join(dir, "usage-started"))};
+if (process.argv[2] === "auth") {
+  fs.writeFileSync(${JSON.stringify(join(dir, "cwd"))}, process.cwd());
+  const say = (status, code) => { process.stdout.write(status); process.exit(code); };
+  if (name === "out") say('{"loggedIn":false}', 1);
+  else if (name === "unsure" || name === "blind") say("an update is available", 1);
+  else {
+    const end = Date.now() + 3000;
+    const tick = () => {
+      if (fs.existsSync(marker)) say('{"loggedIn":true}', 0);
+      else if (Date.now() > end) say('{"loggedIn":false}', 1);
+      else setTimeout(tick, 20);
+    };
+    tick();
+  }
+} else {
+  fs.writeFileSync(marker, "");
+  const usage = ${JSON.stringify({ blind: usageAnswer(null), ok: usageAnswer(10), out: usageAnswer(null), unsure: usageAnswer(20) })}[name];
+  require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
+    const { request_id } = JSON.parse(line);
+    process.stdout.write(JSON.stringify({ response: { request_id, response: usage, subtype: "success" }, type: "control_response" }) + "\\n");
+  });
+}
+`,
+  );
+  const command = join(dir, "claude");
+  writeFileSync(command, `#!/bin/sh\nexec "${process.execPath}" "${agent}" "$@"\n`, {
+    mode: 0o755,
+  });
+  return command;
+}
+
+test("an ask runs auth status and the usage at once, from home, and combines them", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-ask-"));
+  try {
+    const ask = claudeAsk(claudeStandIn(dir));
+    const folder = (name: string) => join(dir, name);
+    // Signed in: its auth status waits for the usage process, which only runs at the same time.
+    expect(await ask(folder("ok"))).toEqual({
+      state: "ready",
+      windows: [{ id: "five_hour", label: "5h", resetsAt: null, used: 0.1 }],
+    });
+    // Like the other short processes, `auth status` runs from the home folder.
+    expect(readFileSync(join(dir, "cwd"), "utf8")).toBe(realpathSync(homedir()));
+    // Signed out wins.
+    expect(await ask(folder("out"))).toEqual({ state: "signed-out" });
+    // No status, but a usage read: ready with its windows.
+    expect(await ask(folder("unsure"))).toEqual({
+      state: "ready",
+      windows: [{ id: "five_hour", label: "5h", resetsAt: null, used: 0.2 }],
+    });
+    // Neither says anything: the ask is rejected, and the account stays as it was.
+    await expect(ask(folder("blind"))).rejects.toThrow();
+  } finally {
+    rmSync(dir, { force: true, recursive: true });
   }
 });
