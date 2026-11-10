@@ -40,8 +40,18 @@ impl Folders {
 
     /// `ura serve` in a folder, on this test's config and data folders.
     fn serve(&self, dir: &Path, args: &[&str]) -> Command {
+        self.ura("serve", dir, args)
+    }
+
+    /// `ura pair` in a folder, with the server of this test's data folder.
+    fn pair(&self, dir: &Path) -> Command {
+        self.ura("pair", dir, &[])
+    }
+
+    /// A command of `ura` that takes `--data-dir`, on this test's config and data folders.
+    fn ura(&self, name: &str, dir: &Path, args: &[&str]) -> Command {
         let data = self.data();
-        let mut all = vec!["serve", "--data-dir", &data];
+        let mut all = vec![name, "--data-dir", &data];
         all.extend_from_slice(args);
         let mut command = command(dir, &all);
         command
@@ -50,6 +60,42 @@ impl Folders {
             .env_remove("URAEDA_ALLOWED_HOSTS");
         command
     }
+}
+
+/// The status and the body of the answer to a `POST` of JSON sent to the server on `port`.
+fn post(port: u16, path: &str, body: &serde_json::Value) -> (u16, String) {
+    let body = body.to_string();
+    let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    write!(
+        stream,
+        "POST {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\n\
+         Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    )
+    .unwrap();
+    let mut answer = String::new();
+    stream.read_to_string(&mut answer).unwrap();
+    let status = answer.split_whitespace().nth(1).unwrap().parse().unwrap();
+    let body = answer.split_once("\r\n\r\n").map_or("", |(_, body)| body);
+    (status, body.to_owned())
+}
+
+/// The first lines `ura serve` prints, as many as asked, and the port its first line names.
+fn started(server: &mut Running, lines: usize) -> (u16, Vec<String>) {
+    let mut output = BufReader::new(server.0.stdout.take().unwrap());
+    let mut printed = Vec::new();
+    for _ in 0..lines {
+        let mut line = String::new();
+        output.read_line(&mut line).unwrap();
+        printed.push(line.trim_end().to_owned());
+    }
+    let address = printed[0]
+        .strip_prefix("Uraeda server on ")
+        .expect(&printed[0]);
+    (
+        address.rsplit(':').next().unwrap().parse().unwrap(),
+        printed,
+    )
 }
 
 /// The status of the answer to a `GET` sent to the server on `port`, under a `Host`.
@@ -132,4 +178,60 @@ fn serve_runs_until_it_is_stopped_and_a_second_start_hands_over() {
     assert!(killed.success());
     assert_eq!(first.0.wait().unwrap().code(), Some(0));
     assert!(!status_file.exists());
+}
+
+// The contract between `ura pair` and the server: the code it prints is one the server takes,
+// once.
+#[test]
+fn pair_shows_a_code_that_pairs_one_device() {
+    let folders = Folders::new();
+    let folder = tempfile::TempDir::new().unwrap();
+
+    // Without a server, there is nothing to pair with.
+    let none = folders.pair(folder.path()).output().unwrap();
+    let no_server = format!(
+        "ura: no server runs on {}: start one with `ura serve`\n",
+        folders.data()
+    );
+    assert_eq!(String::from_utf8(none.stderr).unwrap(), no_server);
+    assert_eq!(none.status.code(), Some(1));
+
+    let mut serve = folders.serve(folder.path(), &["--port", "0"]);
+    let mut server = Running(serve.stdout(Stdio::piped()).spawn().unwrap());
+    let (port, printed) = started(&mut server, 3);
+    // A first start shows the access key, once.
+    let key = printed[1].strip_prefix("Access key, shown once: ura_");
+    assert_eq!(key.map(str::len), Some(43), "{printed:?}");
+
+    let shown = folders.pair(folder.path()).output().unwrap();
+
+    assert_eq!(shown.status.code(), Some(0));
+    let shown = String::from_utf8(shown.stdout).unwrap();
+    let (text, picture) = shown.split_once("\n\n").expect(&shown);
+    let lines: Vec<&str> = text.lines().collect();
+    let code = lines[0].strip_prefix("Pairing code: ").expect(&shown);
+    let groups: Vec<&str> = code.split('-').collect();
+    let symbols = |group: &&str| group.len() == 4 && group.chars().all(char::is_alphanumeric);
+    assert!(groups.len() == 3 && groups.iter().all(symbols), "{code}");
+    let rest = [
+        "It pairs one device, once, within 10 minutes.".to_owned(),
+        format!("On the device, scan this, or enter the code at http://127.0.0.1:{port}"),
+    ];
+    assert_eq!(lines[1..], rest);
+    // The QR code: a square of modules, two to a character's height, in its light margin.
+    let rows: Vec<Vec<char>> = picture.lines().map(|row| row.chars().collect()).collect();
+    let width = rows[0].len();
+    assert!(
+        width >= 21 + 8 && rows.len() == width.div_ceil(2),
+        "{picture}"
+    );
+    let modules = |row: &Vec<char>| row.len() == width && row.iter().all(|c| " ▀▄█".contains(*c));
+    assert!(rows.iter().all(modules), "{picture}");
+    assert!(rows[..2].iter().all(|row| row.iter().all(|c| *c == ' ')));
+
+    let pair = serde_json::json!({ "code": code, "name": "Phone" });
+    let (paired, token) = post(port, "/pair", &pair);
+    let (again, _) = post(port, "/pair", &pair);
+    assert_eq!((paired, again), (200, 401), "{token}");
+    assert!(token.contains("\"token\":"), "{token}");
 }

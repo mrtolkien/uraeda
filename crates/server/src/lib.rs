@@ -24,6 +24,7 @@ mod http;
 mod run;
 pub mod secret;
 mod shared;
+pub mod sign_in;
 mod start;
 pub mod status;
 mod stop;
@@ -57,7 +58,7 @@ type Mount = fn(&Shared, &mut Routes) -> Result<(), Failure>;
 
 /// The server's domains, in the order they start, and the reverse of the order they stop in. A
 /// domain may use what the ones before it provide.
-const DOMAINS: &[Mount] = &[http::open::mount, http::socket::mount];
+const DOMAINS: &[Mount] = &[sign_in::mount, http::open::mount, http::socket::mount];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with
 /// `-next` after its name, as `~/.local/share/uraeda-next`.

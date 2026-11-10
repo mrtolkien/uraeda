@@ -28,6 +28,7 @@ the current branch's feature, or the only one waiting for that action.
 | `ura add [folder]`                                                                        | Adds the repository holding a folder to the list of repositories the server serves                                                     |
 | `ura extension add <folder, URL, or name>`, `--all`, `--here`; `update`, `remove`, `list` | Links or clones an extension into the config folder, pinned to a commit, and says where it is on, too                                  |
 | `ura serve`, `--port`, `--data-dir`                                                       | Runs the server on this machine until it is stopped; a second start hands its folder to the first                                      |
+| `ura pair`, `--data-dir`                                                                  | Prints a one-time code, with its QR code, that pairs another device with the running server                                            |
 
 `ura next` and `ura status` read the open pull requests with `gh`. An open, ready pull request whose
 branch is behind the default branch names the step `catch-up`, whose reference is

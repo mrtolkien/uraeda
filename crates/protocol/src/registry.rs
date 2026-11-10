@@ -5,6 +5,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ts_rs::TS;
 
+use crate::devices::{Devices, DevicesRename, DevicesRevoke};
 use crate::typescript::Types;
 
 /// What crosses the protocol: read from JSON, written as JSON, and typed for the client.
@@ -120,4 +121,7 @@ fn add(kind: &str, entries: &mut Vec<Entry>, entry: Entry) {
 #[must_use]
 pub fn catalog() -> Catalog {
     Catalog::new()
+        .record::<Devices>()
+        .action::<DevicesRename>()
+        .action::<DevicesRevoke>()
 }

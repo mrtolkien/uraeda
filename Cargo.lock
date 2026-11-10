@@ -6116,6 +6116,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
+name = "qrcodegen"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4339fc7a1021c9c1621d87f5e3505f2805c8c105420ba2f2a4df86814590c142"
+
+[[package]]
 name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8499,6 +8505,7 @@ version = "1.4.0"
 dependencies = [
  "clap",
  "clap_complete",
+ "qrcodegen",
  "ratatui",
  "serde",
  "serde_json",
@@ -8583,6 +8590,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "nsh-bundler",
+ "percent-encoding",
  "rolldown_devtools",
  "rolldown_devtools_action",
  "rolldown_fs",

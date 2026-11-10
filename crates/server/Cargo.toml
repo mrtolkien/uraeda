@@ -19,6 +19,7 @@ http-body-util.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
 nsh-bundler.workspace = true
+percent-encoding.workspace = true
 # rolldown's crates that nothing else holds at rolldown's version: see the workspace's manifest.
 rolldown_devtools.workspace = true
 rolldown_devtools_action.workspace = true

@@ -33,7 +33,8 @@ The first message of a connection is the client's `hello`: its version, and how 
 ```
 
 - `cookie` signs in with the session cookie of the request that opened the connection, as a browser
-  does. `token` signs in with a paired device's token.
+  does. `token` signs in with a paired device's token. [Signing in](#signing-in) says where each
+  comes from.
 - The server answers `welcome`, and the connection is open:
 
 ```json
@@ -267,19 +268,46 @@ start of a message.
 - A removed or renamed message, field, or operation, or a new one an older side must understand,
   raises it. There is one version at a time: an older client is refused, and updated.
 
+## Signing in
+
+Every route answers 401, with `{ "error": "Sign in to Uraeda." }`, to a request that carries neither
+of these:
+
+- **A browser's session cookie.** `POST /session` with `{ "key": "ura_…" }`, the server's access
+  key, sets it and answers 204. So does a one-time link, `GET /session/<token>?to=<path>`, which the
+  host makes, and which redirects to its path. A browser then sends the cookie by itself, on routes
+  and on the request that opens `/live`.
+- **A paired device's token.** `POST /pair` with `{ "code": "7KQ2-M9XA-0TBD", "name": "Phone" }`
+  answers `{ "token": "<id>.<secret>", "id": "<id>" }`, once: the code is the one `ura pair` shows
+  on the host, good for one device, for 10 minutes. The device keeps the token, gives it in its
+  `hello`, and sends it on a route as `Authorization: Bearer <token>`. Its `id` is the part before
+  the dot, and names it in the record `Devices`.
+
+The routes open without either are the ones that sign in: `/live`, which checks its `hello`,
+`/session`, `/session/<token>`, and `/pair`. A path that is no route answers the client's own files.
+
+- A wrong key or code is answered 401 a second later, and never locks anyone out.
+- `GET /session` answers 204 when the request is signed in, and 401 when it is not.
+- `DELETE /session` signs the browser out, or unpairs the device that sends it. `DELETE /sessions`
+  ends every session and every device.
+- A session or a device ends after 30 days without use. An open connection is a use.
+- Nothing a device sends holds a time: a code, a cookie, and a token last by the server's clock.
+
 ## The HTTP routes
 
 A client reaches the server through `/live` and these routes only. Each task that adds a route adds
-its line. `POST /open` is not a client's: the host's own `ura` calls it, with the host token of the
-server's status file.
+its line. The routes marked "host" are not a client's: the host's own `ura` and app call them, with
+the host token of the server's status file, as `Authorization: Bearer <token>`.
 
 | Route                                                           | For                              | Task |
 | --------------------------------------------------------------- | -------------------------------- | ---- |
 | `GET /live`                                                     | The WebSocket of this contract   | 4    |
-| `POST /open`                                                    | A second start's folder          | 4    |
+| `POST /open`                                                    | Host: a second start's folder    | 4    |
 | `GET`, `POST`, `DELETE /session`, `DELETE /sessions`            | Signing in and out with the key  | 5    |
 | `GET /session/:token`                                           | Signing in from a link           | 5    |
 | `POST /pair`                                                    | Pairing a device, for its token  | 5    |
+| `POST /pair/code`                                               | Host: a pairing code             | 5    |
+| `POST /session/key`                                             | Host: a new access key           | 5    |
 | `/r/:name/raw/*`, `/mockups/*`, `/images/*`, `/chat-images/:id` | Files and images, as bytes       | 16   |
 | `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`        | Uploads                          | 16   |
 | `/mcp`                                                          | The agents' MCP endpoint         | 16   |

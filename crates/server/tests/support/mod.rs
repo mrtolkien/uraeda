@@ -27,8 +27,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use serde_json::json;
 use tempfile::TempDir;
-use uraeda_server::{Clock, Options, Server, Shared, status};
+use uraeda_protocol::SignIn;
+use uraeda_server::{Clock, Options, Server, Shared, sign_in, status};
 
 pub use client::TestClient;
 pub use repo::TestRepo;
@@ -111,12 +113,14 @@ impl Setup {
         let server = Server::start(options.clone())
             .await
             .expect("the server starts");
+        let key = sign_in::first_key(server.shared()).expect("a first start shows its key");
         TestServer {
             server,
             options,
             clock,
-            _config: self.config,
-            _data: self.data,
+            key,
+            config: self.config,
+            data: self.data,
         }
     }
 }
@@ -126,8 +130,9 @@ pub struct TestServer {
     server: Server,
     options: Options,
     clock: Clock,
-    _config: TempDir,
-    _data: TempDir,
+    key: String,
+    config: TempDir,
+    data: TempDir,
 }
 
 impl TestServer {
@@ -183,16 +188,68 @@ impl TestServer {
             .token
     }
 
-    /// A WebSocket at `/live` that said `hello` and was welcomed.
+    /// The access key, which the server showed once, as it first started.
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    /// Signs a browser in with the access key: its cookie, `uraeda=<id>.<secret>`.
+    pub async fn sign_in(&self) -> String {
+        let answer = self
+            .post("/session")
+            .json(&json!({ "key": self.key }))
+            .send()
+            .await;
+        assert_eq!(answer.status, 204, "the key signs in: {}", answer.text());
+        answer.cookie().expect("a signed-in answer sets its cookie")
+    }
+
+    /// A pairing code, as the host's own `ura pair` asks for one.
+    pub async fn pairing_code(&self) -> String {
+        let answer = self
+            .post("/pair/code")
+            .bearer(&self.host_token())
+            .send()
+            .await;
+        assert_eq!(
+            answer.status,
+            200,
+            "the host gets a code: {}",
+            answer.text()
+        );
+        answer.json()["code"].as_str().expect("a code").to_owned()
+    }
+
+    /// Pairs a device named `name`: its token.
+    pub async fn pair(&self, name: &str) -> String {
+        let code = self.pairing_code().await;
+        let answer = self
+            .post("/pair")
+            .json(&json!({ "code": code, "name": name }))
+            .send()
+            .await;
+        assert_eq!(answer.status, 200, "the code pairs: {}", answer.text());
+        answer.json()["token"].as_str().expect("a token").to_owned()
+    }
+
+    /// A WebSocket at `/live` that said `hello` and was welcomed: a device paired for it.
     pub async fn connect(&self) -> TestClient {
+        let token = self.pair("A test's device").await;
         let mut client = self.socket().await;
+        client.sign_in(SignIn::Token(token));
         client.hello().await;
         client
     }
 
-    /// A WebSocket at `/live` that said nothing yet.
+    /// A WebSocket at `/live` that said nothing yet. Its `hello` signs in with no session.
     pub async fn socket(&self) -> TestClient {
-        TestClient::open(self.port()).await
+        TestClient::open(self.port(), None).await
+    }
+
+    /// A WebSocket at `/live` opened by a browser's request, with its cookie, that said nothing
+    /// yet.
+    pub async fn browser_socket(&self, cookie: &str) -> TestClient {
+        TestClient::open(self.port(), Some(cookie)).await
     }
 
     /// A `GET` of a path, to send.
@@ -213,5 +270,15 @@ impl TestServer {
     /// Stops the server, as `ura serve` does on a signal.
     pub async fn stop(self) {
         self.server.stop().await;
+    }
+
+    /// Stops the server, and starts it again on the same folders and the same clock: a first
+    /// start no more, so it shows no key.
+    pub async fn restart(self) -> TestServer {
+        self.server.stop().await;
+        let server = Server::start(self.options.clone())
+            .await
+            .expect("the server starts again");
+        TestServer { server, ..self }
     }
 }

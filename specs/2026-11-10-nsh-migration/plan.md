@@ -630,35 +630,54 @@ fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
-- Create: `crates/server/src/sign_in/{mod,store,cookie,pairing,devices}.rs`,
-  `crates/cli/src/pair.rs`
-- Test: `crates/server/tests/sign_in.rs`
+- Create:
+  `crates/server/src/sign_in/{mod,check,store,listeners,cookie,date,once,routes,pairing,devices}.rs`,
+  `crates/protocol/src/devices.rs`, `crates/cli/src/pair.rs`
+- Test: `crates/server/tests/sign_in.rs`, and `pair_shows_a_code_that_pairs_one_device` in
+  `crates/cli/tests/serve.rs`
 
 **Interfaces:**
 
 - Consumes: `Server`, `TestServer` (task 4).
 - Produces:
-  - HTTP: `GET|POST|DELETE /session`, `DELETE /sessions`, `GET /session/:token`, as today.
-  - `POST /pair { code } -> { token }`, and `ura pair`, which prints a one-time code and a QR code.
-  - `Hello { sign_in: Cookie | Token(String) }` checked by `sign_in::check`.
-  - Records `Devices`; actions `devices.revoke`, `devices.rename`.
-  - `fn require(request) -> Result<Identity, Refusal>`: the one check every route and the WebSocket
-    call.
+  - HTTP: `GET|POST|DELETE /session`, `DELETE /sessions`, `GET /session/{token}`, as today, and
+    `POST /session/key` for the host.
+  - `POST /pair { code, name } -> { token, id }`; `POST /pair/code` for the host; and `ura pair`,
+    which prints a one-time code and a QR code (ruling R43).
+  - `sign_in::check(&Shared, &HeaderMap, &SignIn) -> Result<Identity, Refusal>`: the check of a
+    `hello`, by the cookie of the request that opened the connection, or by the token it gives.
+  - `sign_in::require(&Shared, &HeaderMap) -> Result<Identity, Refusal>`: the check of a request, by
+    its cookie, or by a device's token as `Authorization: Bearer <token>`. A layer over every route
+    calls it, so a handler takes `Identity` as an argument and never calls it itself (ruling R39).
+  - `Identity`, with `kind()`, `id()`, `has_ended()`, and `ended().await`, which a connection awaits
+    beside its messages: it ends when the session signs out or the device is revoked.
+  - `sign_in::OPEN`: the one list of the routes open without a session. Every other route answers
+    401, so a new route is closed until it is listed there.
+  - The record `Devices` and the actions `devices.revoke` and `devices.rename`, typed in
+    `crates/protocol/`, with their logic in `sign_in::devices`: `list`, `revoke`, `rename`, and
+    `on_change`. The live engine registers them once it exists (ruling R44).
+  - `secret::Hashed`, the only form a secret is kept in, and `sign_in::link`, `sweep`, `on_ended`,
+    and `first_key` (rulings R40 to R42).
+  - In the tests' support: `TestServer::connect` pairs a device and signs in with its token, and
+    `key`, `sign_in`, `pair`, `pairing_code`, `browser_socket`, and `restart` are there for the
+    rest.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a paired device signs in until it is revoked`, with rows: a code works once; a second use is
     refused; the token signs in over the WebSocket; a revoked token's open connection closes; a
     device whose clock is a year off still pairs and signs in.
   - `every route but the open ones refuses a request without a session`: walks the router's routes,
     so a new route is closed by default.
   - `a wrong key is slowed, never locked out`.
+  - The cases of the Node server's sign-in tests, as five more tests: the key and signing out, 30
+    days without use, a one-time link, a new key, and what the sign-in file holds.
   - Breaks to make, since the task is risky: skip the check on `/live`; compare tokens without
     constant time; store a token unhashed. Each must fail a test.
-- [ ] **Step 2: Run them**. Expected: FAIL, `/pair` answers 404.
-- [ ] **Step 3: Implement.** Keep `sign-in.json`'s present fields and add `devices`. A pairing code
+- [x] **Step 2: Run them**. Expected: FAIL, `/pair` answers 404.
+- [x] **Step 3: Implement.** Keep `sign-in.json`'s present fields and add `devices`. A pairing code
       lives 10 minutes, in memory. Tokens are 32 random bytes, stored as hashes.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): sign-in, and pairing a device`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): sign-in, and pairing a device`.
 
 ## Task 6: The live engine
 

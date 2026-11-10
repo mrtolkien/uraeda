@@ -2,6 +2,7 @@
 
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use axum::http::HeaderMap;
 use axum::response::Response;
 use axum::routing::get;
 use uraeda_protocol::{ClientMessage, ErrorCode, PROTOCOL, ServerMessage, handshake};
@@ -9,6 +10,7 @@ use uraeda_protocol::{ClientMessage, ErrorCode, PROTOCOL, ServerMessage, handsha
 use crate::Failure;
 use crate::http::Routes;
 use crate::shared::Shared;
+use crate::sign_in::{self, Identity};
 
 /// Mounts `GET /live`.
 pub(crate) fn mount(_: &Shared, routes: &mut Routes) -> Result<(), Failure> {
@@ -17,44 +19,60 @@ pub(crate) fn mount(_: &Shared, routes: &mut Routes) -> Result<(), Failure> {
 }
 
 /// Upgrades a request the guard let through to a connection.
-async fn upgrade(State(shared): State<Shared>, socket: WebSocketUpgrade) -> Response {
-    socket.on_upgrade(move |socket| connection(shared, socket))
+async fn upgrade(
+    State(shared): State<Shared>,
+    headers: HeaderMap,
+    socket: WebSocketUpgrade,
+) -> Response {
+    socket.on_upgrade(move |socket| connection(shared, headers, socket))
 }
 
-/// One connection, from its `hello` to its end: the client's, or the server's stop.
-async fn connection(shared: Shared, mut socket: WebSocket) {
-    if welcomed(&shared, &mut socket).await {
-        while let Some(text) = next(&shared, &mut socket).await {
-            if let Some(answer) = answer(&text)
-                && !send(&mut socket, &answer).await
-            {
-                break;
-            }
+/// One connection, from its `hello` to its end: the client's, the server's stop, or the end of
+/// its sign-in, as a session signed out or a device revoked.
+async fn connection(shared: Shared, headers: HeaderMap, mut socket: WebSocket) {
+    if let Some(identity) = welcomed(&shared, &headers, &mut socket).await {
+        tokio::select! {
+            () = messages(&shared, &mut socket) => {}
+            () = identity.ended() => {}
         }
     }
     // The close frame: a client that is gone already gets none.
     let _ = socket.send(Message::Close(None)).await;
 }
 
-/// The handshake: whether the connection's first message was a `hello` the server welcomed.
-/// Anything else is answered with the refusal, and the connection closes.
-async fn welcomed(shared: &Shared, socket: &mut WebSocket) -> bool {
-    let Some(first) = next(shared, socket).await else {
-        return false;
-    };
-    match handshake(&first) {
-        // TEMPORARY: every sign-in is welcomed, and nothing is served, until sign-in checks it
-        // (task 5).
-        Ok(_sign_in) => {
+/// A welcomed connection's messages, each answered, until the client or the server ends it.
+async fn messages(shared: &Shared, socket: &mut WebSocket) {
+    while let Some(text) = next(shared, socket).await {
+        if let Some(answer) = answer(&text)
+            && !send(socket, &answer).await
+        {
+            break;
+        }
+    }
+}
+
+/// The handshake: who the connection is, when its first message was a `hello` of this version
+/// whose sign-in the server knows. Anything else is answered with the refusal, and the connection
+/// closes. `headers` are those of the request that opened the connection, with a browser's cookie.
+async fn welcomed(
+    shared: &Shared,
+    headers: &HeaderMap,
+    socket: &mut WebSocket,
+) -> Option<Identity> {
+    let first = next(shared, socket).await?;
+    let checked =
+        handshake(&first).and_then(|sign_in| Ok(sign_in::check(shared, headers, &sign_in)?));
+    match checked {
+        Ok(identity) => {
             let welcome = ServerMessage::Welcome {
                 protocol: PROTOCOL,
                 epoch: shared.epoch().to_owned(),
             };
-            send(socket, &welcome).await
+            send(socket, &welcome).await.then_some(identity)
         }
         Err(refusal) => {
             send(socket, &refusal).await;
-            false
+            None
         }
     }
 }

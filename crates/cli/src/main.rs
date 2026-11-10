@@ -14,6 +14,7 @@ mod install;
 mod next;
 mod note;
 mod output;
+mod pair;
 mod picker;
 mod review;
 mod serve;
@@ -202,6 +203,12 @@ enum Command {
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
     },
+    /// Show a one-time code, and its QR code, that pairs another device with the running server
+    Pair {
+        /// The data folder of the server to pair with
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -261,6 +268,7 @@ fn main() -> ExitCode {
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
         Command::Serve { port, data_dir } => serve::run(port, data_dir),
+        Command::Pair { data_dir } => pair::run(data_dir),
         Command::Review {
             target,
             comment,

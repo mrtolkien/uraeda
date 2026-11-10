@@ -50,10 +50,12 @@ pub(crate) async fn hand_over(port: u16, token: Option<&str>, folder: Option<&Pa
     }
 }
 
-/// Whether a page of the answer is a path on the server: it starts with `/`, never `//` or `/\`,
-/// which a browser may take for another site.
-fn on_server(path: &str) -> bool {
-    path.starts_with('/') && !path[1..].starts_with(['/', '\\'])
+/// Whether a page is a path on the server, safe to open or to redirect to: it starts with one
+/// `/`, and holds no `\`, which a browser reads as a `/`, and no blank or control character,
+/// which a browser drops. `//evil.com`, `/\evil.com`, and a full address lead to another site.
+pub(crate) fn on_server(path: &str) -> bool {
+    let visible = path.bytes().all(|byte| byte.is_ascii_graphic());
+    visible && path.starts_with('/') && !path[1..].starts_with('/') && !path.contains('\\')
 }
 
 /// A `POST` of a JSON body to a route of the server on 127.0.0.1:`port`, with the host token, as

@@ -13,6 +13,58 @@ export type Protocol = 1;
 export type ClientMessage = { "type": "hello", protocol: number, signIn: SignIn, } | { "type": "sub", id: number, record: string, args: JsonValue, } | { "type": "unsub", id: number, } | { "type": "call", id: number, action: string, input: JsonValue, } | { "type": "resume", id: number, record: string, args: JsonValue, epoch: string, seq: number, };
 
 /**
+ * A paired device.
+ */
+export type Device = { 
+/**
+ * What names the device: the part of its token before the dot, which is no secret.
+ */
+id: string, 
+/**
+ * The name it gave as it paired, or the owner gave it since.
+ */
+name: string, 
+/**
+ * When it paired, in RFC 3339, as `2026-11-10T09:00:00Z`.
+ */
+created: string, 
+/**
+ * The day it last signed in, in RFC 3339: a use is recorded once a day at most.
+ */
+used: string, };
+
+/**
+ * The devices paired with the server, each signing in with a token of its own.
+ */
+export type Devices = { 
+/**
+ * The oldest pairing first.
+ */
+devices: Array<Device>, };
+
+/**
+ * Renames a device.
+ */
+export type DevicesRename = { 
+/**
+ * The device's `id`.
+ */
+id: string, 
+/**
+ * Its new name: the blanks around it go, and it holds a letter at least.
+ */
+name: string, };
+
+/**
+ * Revokes a device: its token signs in nowhere any more, and its open connections close.
+ */
+export type DevicesRevoke = { 
+/**
+ * The device's `id`.
+ */
+id: string, };
+
+/**
  * What an `error` is about.
  */
 export type ErrorCode = "not-signed-in" | "bad-message" | "unknown-record" | "unknown-action" | "bad-args" | "bad-input" | "refused" | "conflict" | "hook" | "internal";
@@ -44,8 +96,11 @@ export type SignIn = { "by": "cookie" } | { "by": "token", "token": string };
 
 /** Every record, by the name a `sub` gives: its arguments, and its whole value. */
 export type Records = {
+  Devices: { args: null; value: Devices };
 };
 
 /** Every action, by the name a `call` gives: its input, and its output. */
 export type Actions = {
+  "devices.rename": { input: DevicesRename; output: null };
+  "devices.revoke": { input: DevicesRevoke; output: null };
 };

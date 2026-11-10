@@ -44,6 +44,11 @@ impl TestRequest {
         self.header("authorization", &format!("Bearer {token}"))
     }
 
+    /// Sets the `Cookie` header, as a browser sends the cookie it was set: `name=value`.
+    pub fn cookie(self, cookie: &str) -> Self {
+        self.header("cookie", cookie)
+    }
+
     /// Sets the body to a JSON value.
     pub fn json(mut self, value: &Value) -> Self {
         self.headers
@@ -104,5 +109,12 @@ impl TestResponse {
     /// A header's value, or none.
     pub fn header(&self, name: &str) -> Option<&str> {
         self.headers.get(name)?.to_str().ok()
+    }
+
+    /// The cookie the answer sets, as a browser sends it back, `name=value`: none when it sets
+    /// none.
+    pub fn cookie(&self) -> Option<String> {
+        let set = self.header("set-cookie")?;
+        Some(set.split(';').next()?.to_owned())
     }
 }

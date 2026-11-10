@@ -5,6 +5,7 @@ use std::time::Duration;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use uraeda_protocol::{ClientMessage, PROTOCOL, ServerMessage, SignIn};
 
@@ -14,29 +15,50 @@ const PATIENCE: Duration = Duration::from_secs(10);
 /// One connection to `/live`.
 pub struct TestClient {
     socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    sign_in: SignIn,
     epoch: Option<String>,
 }
 
 impl TestClient {
-    /// Opens a connection to the server on `port`, and says nothing.
-    pub(super) async fn open(port: u16) -> TestClient {
-        let (socket, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}/live"))
+    /// Opens a connection to the server on `port`, with a browser's cookie if any, and says
+    /// nothing.
+    pub(super) async fn open(port: u16, cookie: Option<&str>) -> TestClient {
+        let mut request = format!("ws://127.0.0.1:{port}/live")
+            .into_client_request()
+            .expect("a WebSocket's request");
+        if let Some(cookie) = cookie {
+            let cookie = cookie.parse().expect("a cookie");
+            request.headers_mut().insert("cookie", cookie);
+        }
+        let (socket, _) = tokio_tungstenite::connect_async(request)
             .await
             .expect("the WebSocket opens");
         TestClient {
             socket,
+            sign_in: SignIn::Cookie,
             epoch: None,
         }
     }
 
-    /// Says `hello` at the server's version, and expects its `welcome`.
-    pub async fn hello(&mut self) {
+    /// How this client's `hello` signs in: with the cookie of its request, until a test gives a
+    /// device's token.
+    pub fn sign_in(&mut self, sign_in: SignIn) {
+        self.sign_in = sign_in;
+    }
+
+    /// Says `hello` at the server's version, and gives the server's answer.
+    pub async fn say_hello(&mut self) -> ServerMessage {
         self.send(&ClientMessage::Hello {
             protocol: PROTOCOL,
-            sign_in: SignIn::Cookie,
+            sign_in: self.sign_in.clone(),
         })
         .await;
-        match self.next().await {
+        self.next().await
+    }
+
+    /// Says `hello` at the server's version, and expects its `welcome`.
+    pub async fn hello(&mut self) {
+        match self.say_hello().await {
             ServerMessage::Welcome { epoch, .. } => self.epoch = Some(epoch),
             other => panic!("expected a welcome, got {other:?}"),
         }

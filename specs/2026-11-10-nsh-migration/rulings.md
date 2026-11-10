@@ -640,3 +640,131 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the earlier figure is the main checkout's build of 2026-11-10, not a build of this
   branch's parent, so the difference may hold a little of tasks 1 to 3.
 - **Where**: task 4, `crates/cli/Cargo.toml`, `vite.tasks.ts`. Task 19.
+
+## R38: A device's token is `<id>.<secret>`, and a pairing code is 12 symbols
+
+- **Decision**: what a device holds, and what pairs it.
+  - A token is `<id>.<secret>`, 16 and 32 random bytes in base64url, as a session's cookie is. The
+    `id` is public: it names the device in the record `Devices`, and `POST /pair` answers it beside
+    the token.
+  - A device gives its token in its `hello`, and on a route as `Authorization: Bearer <token>`.
+  - A pairing code is 12 symbols of 5 random bits, shown in three groups: `7KQ2-M9XA-0TBD`. A person
+    may type it in small letters, without its dashes, and with `O`, `I`, or `L` for the digits they
+    look like.
+  - A device ends after 30 days without use, as a session does. The server ends them every hour, and
+    never one with a connection open: an open connection is a use, recorded once a day.
+- **Rationale**: the store then has one rule for both kinds. 60 bits cannot be guessed in 10 minutes
+  at a second a guess, and a person can still read them aloud. Without the connection rule, an app
+  left open for a month would be signed out while it is used.
+- **If wrong**: the code's length and symbols are two constants of `sign_in/pairing.rs`.
+- **Where**: task 5, `crates/server/src/sign_in/{store,pairing}.rs`. Tasks 23, 36, and 59.
+
+## R39: Every route is closed by a layer, and the open ones are one list of mounted paths
+
+- **Decision**: the session check is a layer of `http::router`, after the guard. It reads the path a
+  request matched, as its route was mounted, and answers 401 unless the request is signed in or the
+  path is in `sign_in::OPEN`.
+  - `OPEN` has two kinds. `Open::Anyone`: `/live`, `/session`, `/session/{token}`, `/pair`, each
+    checking what it is given. `Open::Host`: `/open`, `/session/key`, `/pair/code`, which pass with
+    the host token only, signed in or not.
+  - A path that matched no route passes: it answers `Not found` now, and the client's own files from
+    task 56.
+  - The layer puts the `Identity` in the request, so a handler takes it as an argument:
+    `async fn read(identity: Identity, ..)`. On an open route, `Result<Identity, Refusal>` says
+    whether there is one.
+  - A WebSocket's connection is welcomed by `sign_in::check`, then runs its messages in a `select!`
+    with `identity.ended()`, and closes when that ends first.
+- **Rationale**: the router and the check read the same matched path, so they cannot disagree on
+  what a request asks for, where the Node server tested the path's text against a pattern. A route
+  nobody listed is closed without anyone thinking of it.
+- **If wrong**: the connection's messages are dropped where they wait when the sign-in ends. A live
+  engine that must run something after its last message moves `identity.ended()` into its own loop.
+- **Where**: task 5, `crates/server/src/sign_in/check.rs`, `http.rs`, `http/socket.rs`, and the test
+  `every_route_but_the_open_ones_refuses_a_request_without_a_session`. It needs axum's feature
+  `matched-path`. Tasks 6, 16, 18, and 19: a preview's path with the frame secret, and `/mcp` with
+  its own tokens, are additions to `OPEN` and to the sign-in decision.
+
+## R40: The sign-in file has one writer, and is read once
+
+- **Decision**: the store reads `sign-in.json` as the server starts, and writes it at each change.
+  It no longer reads it again when it changed on disk, as the Node server did for two servers on one
+  data folder.
+  - A file it cannot read stops the start, and is left as it is. To replace a lost key, the owner
+    stops the server and deletes the file: the next start makes a key and shows it.
+  - A key that a start made and never showed is forgotten when that server stops, with its file.
+  - A write that fails still ends what ended, for this run of the server. A new key whose file
+    cannot be written is dropped, and the old key stays.
+  - Dates are written to the second, `2026-11-10T09:00:00Z`.
+- **Rationale**: R34 gives a data folder one server, and `ura pair` asks that server instead of
+  opening the file. It removes the signature of the file, the second read, and the broken state.
+- **If wrong**: a file edited while the server runs is overwritten at the next change.
+- **Where**: task 5, `crates/server/src/sign_in/store.rs`, and the test
+  `the_sign_in_file_holds_only_hashes`.
+
+## R41: A new key and "sign out everywhere" end the devices too
+
+- **Decision**: `POST /session/key` and `DELETE /sessions` end every session and every paired
+  device. `DELETE /session` from a device unpairs that device.
+- **Rationale**: the decision says a new key "signs every device out", and names no case where a
+  token outlives it. Ending more is the safe reading for an owner who thinks a key leaked.
+- **If wrong**: a device then needs a code from the host's shell again. Keeping the devices is one
+  closure of `store.rs`.
+- **Where**: task 5, `crates/server/src/sign_in/{store,routes}.rs`. Nothing calls
+  `POST /session/key` yet: `ura` has no command for it, and the app may take one (task 48).
+
+## R42: A stored secret is a `Hashed`, which has no `==`
+
+- **Decision**: the key, a session's secret, a device's token, a pairing code, and a one-time link
+  are kept as `secret::Hashed`, in the file and in memory. It gives no text, and implements no
+  comparison: `Hashed::is(secret)`, over `secret::same`, is the only way to compare one.
+- **Rationale**: "compared in constant time" is then what the types allow, not what a reader
+  remembers. A timing test would be slow and unreliable.
+- **How it was checked**: `a_stored_secret_is_compared_in_constant_time_only` no longer compiles
+  when `Hashed` gains `PartialEq`, `Hash`, `PartialOrd`, `AsRef<str>`, or `Display`. A session's or
+  a device's `id` is public, and is found with `==`.
+- **If wrong**: the test cannot see a secret kept as a plain text beside it. The format test,
+  `the_sign_in_file_holds_only_hashes`, sees one that reaches the file.
+- **Where**: task 5, `crates/server/src/secret.rs`, `sign_in/{store,once}.rs`.
+
+## R43: `ura pair` asks the running server, and draws its QR code with `qrcodegen`
+
+- **Decision**: `ura pair [--data-dir DIR]` reads the status file, and asks its server for a code
+  with the host token: `POST /pair/code` answers `{ code, minutes, address }`. It prints the code,
+  the address, and a QR code of `<address>/pair#<code>`.
+  - `address` is the owner's first allowed host name, as `https://<name>`, or else the server's own
+    address on the machine.
+  - The QR code is drawn with half blocks, black on white on a terminal with colours.
+  - The crate is `qrcodegen` 1.8.0, new in the lockfile: one file, with no dependency. No QR crate
+    was there already. `percent-encoding`, which was, reads and writes a link's `to`.
+- **Rationale**: codes live in the server's memory, so only the server makes one. The code is after
+  `#`, which a browser never sends, so a proxy's log never holds it.
+- **If wrong**: what the QR code holds is one function of `crates/cli/src/pair.rs`. Task 36 or 59,
+  which reads it, may want another form.
+- **Where**: task 5, `crates/cli/src/pair.rs`, `crates/server/src/sign_in/pairing.rs`, and the test
+  `pair_shows_a_code_that_pairs_one_device`.
+
+## R44: `Devices` and its actions are typed and written, and not registered yet
+
+- **Decision**: the record `Devices` and the actions `devices.revoke` and `devices.rename` are
+  declared in `crates/protocol/src/devices.rs`, in `catalog()`, and in the client's types. Their
+  logic is `sign_in::devices::{list, revoke, rename}`, tested as functions. Nothing serves them over
+  `/live` until the live engine's `Registry` exists.
+  - To register: `list(&Shared) -> Devices` as the record's value; `revoke(&Shared, &DevicesRevoke)`
+    and `rename(&Shared, &DevicesRename)`, which return `Result<(), devices::Problem>`, a code and a
+    message for the `error`; and `on_change(&Shared, listener)`, called with a closure that tells
+    the engine `Devices` changed.
+- **Rationale**: task 6 builds the `Registry` at the same time, in another worktree.
+- **Where**: task 5, `crates/server/src/sign_in/devices.rs`. The task that merges tasks 5 and 6, or
+  task 7.
+
+## R45: One-time links are made by the server alone, with no page on disk
+
+- **Decision**: `sign_in::link(&Shared, to)` makes a link, `/session/<token>?to=<to>`, good once,
+  for 5 minutes. `POST /open` with `"signIn": true` answers one as `signIn`, to the page it opens.
+  The Node server's page in `run/sign-in-links/`, which led a browser to the link, is not ported.
+- **Rationale**: that page kept the link off a command line, where every user of the machine reads
+  it. Nothing opens a browser from `ura` yet, so nothing needs it.
+- **If wrong**: the task that opens the host's browser (36 or 56) writes that page, or hands the
+  link over another way that is not a command line.
+- **Where**: task 5, `crates/server/src/sign_in/{mod,routes}.rs`, `http/open.rs`, and the test
+  `a_one_time_link_signs_in_once_and_never_leaves_the_server`.

@@ -4,10 +4,11 @@ use std::io;
 
 use tokio::signal::unix::{Signal, SignalKind, signal};
 
-use crate::{NotStarted, Options, Server};
+use crate::{NotStarted, Options, Server, sign_in};
 
 /// Runs a server until the process gets SIGHUP, as from a closed terminal, SIGINT, or SIGTERM,
-/// then stops it. It prints its address once it listens.
+/// then stops it. It prints its address once it listens, and the access key when this start made
+/// it, the only time it is shown.
 ///
 /// # Errors
 ///
@@ -22,7 +23,10 @@ pub fn run(options: Options) -> Result<(), NotStarted> {
         // Heard from before the start: a signal during it stops the server once it has started.
         let mut signals = Signals::listen().map_err(failed)?;
         let server = Server::start(options).await?;
-        println!("Uraeda server on {}", server.address());
+        // In one write: whoever reads the address gets the key with it, and may stop reading.
+        let key = sign_in::first_key(server.shared());
+        let key = key.map(|key| sign_in::key_lines(&key)).unwrap_or_default();
+        print!("Uraeda server on {}\n{key}", server.address());
         signals.next().await;
         // A second signal does not wait for the work that stops.
         tokio::spawn(async move {

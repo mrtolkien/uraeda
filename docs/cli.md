@@ -27,6 +27,7 @@ ura inbox                                  # every note, agents' notes included;
 ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
 ura serve                                  # the new server, on this machine, until you stop it
+ura pair                                   # a one-time code, and its QR code, to pair a device with it
 ```
 
 `ura next` and `ura status` read your pull requests with `gh`. An open pull request, not a draft and
@@ -63,6 +64,15 @@ nothing but your config folder.
 - Run in a repository, it adds that repository to its list. A second `ura serve` on the same data
   folder starts nothing: it hands its folder to the first, prints its address, and exits.
 - Ctrl-C, or closing its terminal, stops it, and everything it runs.
+- Its first start prints an access key, once: keep it in a password manager. A browser signs in with
+  it. To replace a lost key, stop the server, delete `sign-in.json` in its data folder, and start it
+  again: every browser and device is signed out.
+
+`ura pair` pairs another device with the running server, a phone or another computer. It prints a
+code, good for one device, for 10 minutes, the address the device reaches the server at, and a QR
+code holding both. The device scans it, or you enter the code there. It then signs in with a token
+of its own, which you can revoke alone. `--data-dir` names the server's data folder when `ura serve`
+was given one.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
 code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder, a

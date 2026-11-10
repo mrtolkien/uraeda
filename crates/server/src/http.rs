@@ -9,8 +9,8 @@ use axum::middleware;
 use axum::routing::MethodRouter;
 use tokio::net::TcpListener;
 
-use crate::guard;
 use crate::shared::Shared;
+use crate::{guard, sign_in};
 
 /// The routes of the server, as its domains mount them.
 #[derive(Default)]
@@ -34,11 +34,16 @@ impl Routes {
 }
 
 /// The server's router: the mounted routes, and no other path, behind the rules every request
-/// passes, the guard first. A rule for every request is a layer here, the last one outermost.
+/// passes, the guard first, then the session check. A rule for every request is a layer here, the
+/// last one outermost.
 pub(crate) fn router(shared: &Shared, routes: Routes) -> Router {
     routes
         .router
         .fallback(|| async { (StatusCode::NOT_FOUND, "Not found") })
+        .layer(middleware::from_fn_with_state(
+            shared.clone(),
+            sign_in::layer,
+        ))
         .layer(middleware::from_fn_with_state(shared.clone(), guard::layer))
         .with_state(shared.clone())
 }

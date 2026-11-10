@@ -27,7 +27,13 @@ rust-version = "1.97"
 
 [workspace.dependencies]
 # The server's HTTP and WebSockets, with only what it serves: HTTP/1 on tokio, JSON, and upgrades.
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "json",
+  "matched-path",
+  "tokio",
+  "ws",
+] }
 base64 = "0.23.1"
 clap = { version = "4.6.7", features = ["derive"] }
 # Exact: its dynamic completion, `unstable-dynamic`, is exempt from semver.
@@ -72,7 +78,10 @@ oxc_semantic = "=0.152.0"
 oxc_span = "=0.152.0"
 oxc_syntax = "=0.152.0"
 oxc_transformer = "=0.152.0"
+percent-encoding = "2"
 pulldown-cmark = { version = "0.13.4", default-features = false }
+# The QR code `ura pair` draws in the terminal: no dependency of its own.
+qrcodegen = "1.8.0"
 # rolldown's crates, at the version NSH's bundler holds rolldown itself at. NSH names four of them,
 # and those hold the ones that depend on them: these five depend on none, so a new release moved
 # them alone, and rolldown no longer built. A crate that takes `nsh-bundler` takes these too.
