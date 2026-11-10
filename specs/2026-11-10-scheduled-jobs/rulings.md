@@ -563,3 +563,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changes of one job, or one that closed after the skip, would read as the wrong one.
 - **If wrong**: a row skipped before the column reads the generic line.
 - **Where**: tasks 3, 6, and 8.
+
+## R37: Unticking the page's own repository leaves a page with the way back
+
+- **Decision**: when a save of the job's page leaves its own repository out of the job's
+  repositories while another stays, which it was in, the page stops showing the form and says
+  "“<name>” no longer runs in <repository>.", with "Run it here again", which ticks the repository
+  again and brings the form back, and a link "Open Jobs". The page stays at its address, so no note
+  has to cross to the list.
+- **Rationale**: the save succeeds and the record stops listing the job in this repository, so the
+  page turned into "No job “<name>” here." with no word on what happened and no undo, though the
+  human did exactly what the form offered.
+- **Alternatives considered**: going to the list with a note: the list has no place for a note that
+  came with a navigation, and its undo would need the job's former values carried across.
+- **If wrong**: the way back appends the repository at the end of the job's list, not where it was.
+- **Where**: task 8.

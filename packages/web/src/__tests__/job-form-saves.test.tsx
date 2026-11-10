@@ -6,7 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { NewJobPageView } from "../jobs/JobPage.tsx";
 import { atWidth, fieldText, type } from "./helpers.tsx";
-import { around, common, INPUT, open } from "./job-page-fixtures.tsx";
+import { around, common, INPUT, JOB, open } from "./job-page-fixtures.tsx";
 
 beforeEach(() => atWidth(1440));
 afterEach(() => {
@@ -141,4 +141,29 @@ test("a refusal that names the schedule shows under the schedule, not over the b
     block = block.parentElement as HTMLElement;
   }
   expect(within(block).queryByRole("button", { name: "Add the job" })).toBeNull();
+});
+
+test("unticking the page's own repository says so, and offers the way back", async () => {
+  const onSave = vi.fn(async (_input: unknown, _name: string) => undefined);
+  open(onSave);
+  fireEvent.click(screen.getByRole("checkbox", { name: "uraeda" }));
+  expect(await screen.findByText("“Dependencies” no longer runs in uraeda.")).toBeTruthy();
+  expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, repositories: ["notes"] }, "Dependencies");
+  expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Open Jobs" })).toBeTruthy();
+  // The way back ticks the repository again, and the form returns.
+  fireEvent.click(screen.getByRole("button", { name: "Run it here again" }));
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy());
+  expect(onSave).toHaveBeenLastCalledWith(
+    { ...INPUT, repositories: ["notes", "uraeda"] },
+    "Dependencies",
+  );
+});
+
+test("a job that never ran here, saved with another change, is not said to have left", async () => {
+  const onSave = vi.fn(async (_input: unknown, _name: string) => undefined);
+  open(onSave, { ...JOB, repositories: ["notes"] });
+  fireEvent.click(screen.getByRole("switch", { name: "Report only" }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(/no longer runs in/)).toBeNull();
 });

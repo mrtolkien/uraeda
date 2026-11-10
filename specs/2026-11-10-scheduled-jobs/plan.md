@@ -1121,10 +1121,12 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
 - Built as: `JobPageView` and `NewJobPageView` take the job, the repositories, the agents on here,
   and their writes, so the stories and the tests draw them over fixed jobs; `JobPage` and
   `NewJobPage` read the `Jobs` record and send the writes. A rename moves the page to the new name's
-  address. A refusal of the core shows under its row by its words (a name, a repository, a time, the
-  schedule), and a new job's other refusal over its button. On the phone the schedule's kind and day
-  are selectors, not segments ([ruling R25](rulings.md#r25-the-phones-schedule-is-two-selectors)).
-  Its tests are `__tests__/job-page.test.tsx`: the form over fixed jobs, with no server.
+  address. Unticking the page's own repository, while another stays, leaves a page that says the job
+  no longer runs here, with "Run it here again" ([ruling R37](rulings.md)). A refusal of the core
+  shows under its row by its words (a name, a repository, a time, the schedule), and a new job's
+  other refusal over its button. On the phone the schedule's kind and day are selectors, not
+  segments ([ruling R25](rulings.md#r25-the-phones-schedule-is-two-selectors)). Its tests are
+  `__tests__/job-page.test.tsx`: the form over fixed jobs, with no server.
 
 - [x] **Step 2: Review it in the sandbox**
 
