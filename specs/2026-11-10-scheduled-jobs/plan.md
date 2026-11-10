@@ -1096,8 +1096,10 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
 
 - The form's rows are the mockup's: Name, Prompt, Schedule, Repositories, Agent, and Report only.
   The schedule's control writes one of the data model's four forms, its time padded to two digits
-  for the hour ("9:30" is sent as "09:30"). The agent's row opens the picker a new session uses, and
-  "Default" removes the job's three keys.
+  for the hour ("9:30" is sent as "09:30"). The agent's row opens the picker a new session uses,
+  shows the job's three keys as the file holds them (an agent that is not on here as that agent,
+  with the record's words for it, a model or an effort with no agent on the default one,
+  [ruling R35](rulings.md)), and "Default" removes them.
 - An existing job saves each field as it is left, or on Enter for a line, through `update`. A
   refusal shows under its field, with the server's text, and the file keeps its value. The controls
   move at once and go back on a refusal, and a change made while a save is in flight is queued as a

@@ -529,3 +529,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a hand edit of `config.toml` that lands between two queued saves is written over by
   the second, which is built on the job as the first wrote it.
 - **Where**: task 8.
+
+## R35: The agent row shows what the file holds
+
+- **Decision**: the page's Agent row shows the job's three keys as the file holds them. An agent the
+  job names that is not on here shows as that agent, by its ID, with the job's model and effort as
+  written, and a note in the error colour with the record's words, `next.text` ("Not running here:
+  Claude Code is off in this repository."), else "Off in this repository." when the job's reason is
+  another one, as a pause. A `model` or an `effort` with no `agent` shows on the default agent, the
+  first on here, which is the one a run starts on. "Default" shows while any of the three keys is
+  set, and clears them.
+- **Rationale**: the picker fell back to the first agent on here when the job's was not among them,
+  so it showed an agent the file does not hold, with nothing to say why the job did not run, and hid
+  the model and the effort of a job with no `agent`, which "Default" could then not clear.
+- **If wrong**: the picker lists the off agent beside the ones on here, with no models, until the
+  page is left.
+- **Where**: task 8.

@@ -10,6 +10,7 @@ import { ConfirmHost } from "../fields/Confirm.tsx";
 import { JobPageView } from "../jobs/JobPage.tsx";
 import { KeysProvider } from "../keys/registry.tsx";
 import { RepositoryContext } from "../routes.tsx";
+import type { PickerRuntime } from "../SessionPicker.tsx";
 
 /** Thursday 12 November 2026, 10:30. */
 export const NOW = new Date(2026, 10, 12, 10, 30);
@@ -92,6 +93,7 @@ export const common = {
 export function open(
   onSave = vi.fn(async (_input: unknown, _name: string): Promise<string | undefined> => undefined),
   job: JobRow = JOB,
+  runtimes: ReadonlyArray<PickerRuntime> = RUNTIMES,
 ) {
   const onRun = vi.fn(async (): Promise<string | undefined> => undefined);
   const view = (shown: JobRow | undefined) =>
@@ -102,6 +104,7 @@ export function open(
         job={shown}
         name="Dependencies"
         renderCard={() => null}
+        runtimes={runtimes}
       />,
     );
   const { rerender } = render(view(job));

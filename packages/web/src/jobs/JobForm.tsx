@@ -138,7 +138,38 @@ function Schedule({ form }: { form: Pick<Form, "leave" | "text" | "type" | "valu
   );
 }
 
-/** The agent's row: the picker a new session uses, and "Default" while the job has an agent. */
+/**
+ * The agent a job names that is not on here, as the picker lists it: the agent by its ID, with the
+ * model and the effort the job names, so the row says what the file holds.
+ */
+function offRuntime(agent: string, model?: string, effort?: string): PickerRuntime {
+  return {
+    defaults: {},
+    icon: "uraeda:bot",
+    kind: agent,
+    models:
+      model === undefined
+        ? []
+        : [
+            {
+              efforts: effort === undefined ? [] : [{ id: effort, name: effort }],
+              id: model,
+              name: model,
+            },
+          ],
+    name: agent,
+  };
+}
+
+/** Whether the job's agent is named and is not one of the agents on here. */
+const isOffHere = (agent: string | undefined, runtimes: ReadonlyArray<PickerRuntime>) =>
+  agent !== undefined && !runtimes.some((each) => each.kind === agent);
+
+/**
+ * The agent's row: the picker a new session uses, and "Default" while the job holds any of its
+ * three keys. An agent that is not on here shows as that agent; a model or an effort with no agent
+ * shows on the default one, the first on here, as the run uses them.
+ */
 function AgentPick({
   form,
   runtimes,
@@ -147,11 +178,17 @@ function AgentPick({
   runtimes: ReadonlyArray<PickerRuntime>;
 }) {
   const { agent, effort, model } = form.values;
+  const isSet = agent !== undefined || model !== undefined || effort !== undefined;
+  const listed =
+    agent !== undefined && isOffHere(agent, runtimes)
+      ? [...runtimes, offRuntime(agent, model, effort)]
+      : runtimes;
+  const runtime = agent ?? listed[0]?.kind;
   const value: SessionPick | undefined =
-    agent === undefined
+    !isSet || runtime === undefined
       ? undefined
       : {
-          runtime: agent,
+          runtime,
           ...(model === undefined ? {} : { model }),
           ...(effort === undefined ? {} : { effort }),
         };
@@ -165,10 +202,10 @@ function AgentPick({
             model: pick.model,
           })
         }
-        runtimes={runtimes}
+        runtimes={listed}
         value={value}
       />
-      {agent !== undefined && (
+      {isSet && (
         <Button
           label="Default"
           onClick={() =>
@@ -265,10 +302,13 @@ function WhenRows({
 /** The rows of the choices: the repositories, the agent, and "Report only". */
 function ChoiceRows({
   form,
+  offWords,
   repositories,
   runtimes,
 }: {
   form: Form;
+  /** Why the agent does not run the job here, in the record's words. */
+  offWords: string;
   repositories: ReadonlyArray<string>;
   runtimes: ReadonlyArray<PickerRuntime>;
 }) {
@@ -300,8 +340,14 @@ function ChoiceRows({
       </SettingRow>
       <SettingRow
         notes={
-          values.agent === undefined && (
-            <Text color="secondary">Default: what a new session runs on.</Text>
+          isOffHere(values.agent, runtimes) ? (
+            <Text xstyle={styles.problem}>{offWords}</Text>
+          ) : (
+            values.agent === undefined &&
+            values.model === undefined &&
+            values.effort === undefined && (
+              <Text color="secondary">Default: what a new session runs on.</Text>
+            )
           )
         }
         setting={{
@@ -364,7 +410,12 @@ export function JobForm({
       <VStack gap={3}>
         <SettingRows>
           <WhenRows form={form} job={job} now={now} zone={zone} />
-          <ChoiceRows form={form} repositories={repositories} runtimes={runtimes} />
+          <ChoiceRows
+            form={form}
+            offWords={job?.next.text ?? "Off in this repository."}
+            repositories={repositories}
+            runtimes={runtimes}
+          />
         </SettingRows>
         {job === undefined && (
           <VStack gap={2}>
