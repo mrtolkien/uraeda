@@ -8,6 +8,9 @@
 - Tapping a session composer on mobile does not open the virtual keyboard
 - [scheduled-jobs]
   [This should be a much bigger view, it's super hard to read Should be the same as settings pretty much.](notes/this-should-be-a-much-bigger-view-it-s-super-hard/note.md)
+- [nsh-migration] Remove `ura import-sessions` and its importer once the port to the Rust server is
+  done: it is a one-time tool.
+- [Subagent sidebar should have start time, at least. Likely nicer cards. Also remove the commit hash from review agents titles.](notes/subagent-sidebar-should-have-start-time-at-least/note.md)
 
 ## Bugfix
 
