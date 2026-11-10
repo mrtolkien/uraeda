@@ -176,8 +176,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R11: The model list waits for the accounts' ask
 
 - **Decision**: `ClaudeAdapter.models()` awaits the accounts' `refresh(USAGE_MAX_AGE_MS)`, at most
-  `PICK_WAIT_MS` (the helper `refreshedWithin` the pick uses), then runs in the first listed `ready`
-  account, else the first listed.
+  `MODELS_ACCOUNTS_WAIT_MS` (4 seconds: `MODELS_REFRESH_TIMEOUT_MS` less the 10 seconds of its own
+  short process, less a second, in `runner/runtimes.ts`; the helper `refreshedWithin` the pick uses
+  takes the wait), then runs in the first listed `ready` account, else the first listed. (Amended by
+  the branch review, finding 4: the wait was the pick's 10 seconds, so a slow account let the whole
+  call take up to 20, past the runtime's 15-second refresh, which then dropped the list.)
 - **Rationale**: finding 9 of wave 3: the list is asked at registration, when every existing folder
   is still `ready` by default, so a signed-out first folder ran `list_models` and kept a bad list.
   At registration `Sessions` asks the accounts first, and `models()` shares that ask.
@@ -185,7 +188,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   path from the accounts to the runtimes, for a list that is asked again at each start and each
   opening of the picker.
 - **If wrong**: an ask that `models()` starts itself, when it comes before any page's read, answers
-  its accounts with no announce until the next one.
+  its accounts with no announce until the next one. Review finding 9 (a second ask path beside
+  R10's) is accepted as that: R10's refresher announces for the pages and the pick, and `models()`
+  only reads its answer. A slow account whose status has not come in 4 seconds leaves the list asked
+  in a folder that looks ready by default.
 - **Where**: task 3 of the plan, `ClaudeAdapter.models` in `runner/claude.ts`.
 
 ## R12: A missing folder reads "no folder", a signed-out account "signed out"

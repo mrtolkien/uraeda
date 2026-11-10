@@ -17,6 +17,7 @@ import { lines, MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
 import { allowRule, type Blocks, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
 import { ClaudeAdapter, claudeArgs, claudeEnv, extensionPlugins, prunePlugins } from "../claude.ts";
+import { MODELS_ACCOUNTS_WAIT_MS, MODELS_REFRESH_TIMEOUT_MS } from "../runtimes.ts";
 import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
@@ -1595,9 +1596,11 @@ function accountsAgent(dir: string): string {
     `const { writeFileSync } = require("node:fs");
 const folder = process.env.CLAUDE_CONFIG_DIR ?? "";
 if (process.argv[2] === "auth") {
+  // A slow folder answers once \`<dir>/release\` exists, which a test writes when it is done.
   const out = folder.endsWith("-old");
-  process.stdout.write(JSON.stringify({ loggedIn: !out }));
-  process.exit(out ? 1 : 0);
+  const say = () => { process.stdout.write(JSON.stringify({ loggedIn: !out })); process.exit(out ? 1 : 0); };
+  if (folder.endsWith("-slow")) setInterval(() => { if (require("node:fs").existsSync(${JSON.stringify(join(dir, "release"))})) say(); }, 20);
+  else say();
 }
 const out = (response) => process.stdout.write(JSON.stringify({ response, type: "control_response" }) + "\\n");
 require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
@@ -1630,6 +1633,33 @@ test("models() waits for the accounts' ask, so it runs in an account that is sig
   await adapter.models();
   expect(adapter.accounts.list().map(({ state }) => state)).toEqual(["signed-out", "ready"]);
   expect(readFileSync(join(dir, "config"), "utf8")).toBe(fine);
+});
+
+test("models() waits for the accounts' ask only as long as its whole call fits the refresh", async () => {
+  // The refresh gives up at 15 seconds, and the list's own short process takes up to 10: the wait
+  // for the accounts' ask leaves it that, and a second.
+  expect(MODELS_ACCOUNTS_WAIT_MS + MODELS_TIMEOUT_MS).toBeLessThan(MODELS_REFRESH_TIMEOUT_MS);
+  const dir = temporaryFolder("uraeda-claude");
+  const slow = join(dir, ".claude-slow");
+  mkdirSync(slow);
+  const adapter = new ClaudeAdapter({
+    accounts: [slow],
+    command: accountsAgent(dir),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const listing = adapter.models();
+    // The status of the account stays unanswered: the wait ends first, and the list is asked in
+    // the account, as known by default.
+    await vi.advanceTimersByTimeAsync(MODELS_REFRESH_TIMEOUT_MS - MODELS_TIMEOUT_MS - 1000);
+    await expect(listing).resolves.toBeDefined();
+    expect(readFileSync(join(dir, "config"), "utf8")).toBe(slow);
+  } finally {
+    vi.useRealTimers();
+    writeFileSync(join(dir, "release"), "");
+  }
 });
 
 test("models() rejects when the agent refuses, or exits before answering", async () => {
