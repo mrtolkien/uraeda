@@ -8,12 +8,14 @@ const NOW = new Date(2026, 10, 12, 10, 30);
 /** The zone `NOW` is local to, which the times read in. */
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const job = (next: { at: string | null; why: string | null }, rest = {}) => ({
+const job = (next: { at: string | null; text?: string | null; why: string | null }, rest = {}) => ({
   agent: null,
-  next,
+  next: { text: null, ...next },
   problem: null,
   ...rest,
 });
+
+const MISSING = "“notes” is not in Uraeda's list.";
 
 test.each([
   [job({ at: new Date(2026, 10, 13, 3).toISOString(), why: null }), "Tomorrow at 3:00", "quiet"],
@@ -25,19 +27,42 @@ test.each([
     "Two jobs are named “A”.",
     "problem",
   ],
+  // The agent's words are the server's, its title and its reason included.
   [
-    job({ at: null, why: "agent-off" }),
-    "Not running here: no agent is on in this repository.",
+    job({ at: null, text: "Not running here: Codex is off in this repository.", why: "agent-off" }),
+    "Not running here: Codex is off in this repository.",
     "problem",
   ],
+  // The scheduler's order of reasons: a pause stands over an agent that is off, which the server
+  // gives no words for then; the card says "Paused" (US4 2).
+  [job({ at: null, why: "paused" }, { agent: "codex" }), "Paused", "quiet"],
+  // A problem that is not why the job does not run does not replace what the card says.
+  [job({ at: null, why: "paused" }, { problem: MISSING }), "Paused", "quiet"],
   [
-    job({ at: null, why: "agent-off" }, { agent: "codex" }),
-    "Not running here: codex is not available.",
-    "problem",
+    job({ at: new Date(2026, 10, 13, 3).toISOString(), why: null }, { problem: MISSING }),
+    "Tomorrow at 3:00",
+    "quiet",
   ],
 ])("nextFact(%j) says %s", (given, text, tone) =>
   expect(nextFact(given, NOW, ZONE)).toMatchObject({ text, tone }),
 );
+
+/** US4, edge cases: a job that runs here and names a repository that is not listed shows both. */
+test("a job's problem shows beneath its next run when the job still runs here", () => {
+  const ahead = new Date(2026, 10, 13, 3).toISOString();
+  expect(nextFact(job({ at: ahead, why: null }, { problem: MISSING }), NOW, ZONE)).toMatchObject({
+    note: MISSING,
+  });
+  expect(nextFact(job({ at: null, why: "paused" }, { problem: MISSING }), NOW, ZONE)).toMatchObject(
+    { note: MISSING },
+  );
+  // The problem that is the reason is said once, as the reason.
+  expect(
+    nextFact(job({ at: null, why: "problem" }, { problem: "A job has no prompt." }), NOW, ZONE)
+      .note,
+  ).toBeUndefined();
+  expect(nextFact(job({ at: ahead, why: null }), NOW, ZONE).note).toBeUndefined();
+});
 
 const run = (folder: string | null) => ({
   at: new Date(2026, 10, 12, 3).toISOString(),

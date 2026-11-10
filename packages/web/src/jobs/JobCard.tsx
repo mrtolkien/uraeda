@@ -99,6 +99,14 @@ function FactOf({ fact, label }: { fact: Fact; label: string }) {
         </Text>
         <Text xstyle={[styles.text, fact.tone === "problem" && tones.problem]}>{fact.text}</Text>
       </HStack>
+      {fact.note !== undefined && (
+        <HStack align="start" gap={2}>
+          <Text xstyle={tones.problem}>
+            <Icon icon="uraeda:triangle-alert" size="sm" />
+          </Text>
+          <Text xstyle={[styles.text, tones.problem]}>{fact.note}</Text>
+        </HStack>
+      )}
     </VStack>
   );
 }

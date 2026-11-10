@@ -33,7 +33,7 @@ const JOB: JobRow = {
   history: [],
   model: "opus",
   name: "Dependencies",
-  next: { at: new Date(2026, 10, 13, 3).toISOString(), why: null },
+  next: { at: new Date(2026, 10, 13, 3).toISOString(), text: null, why: null },
   on: true,
   problem: null,
   prompt: "Upgrade the dependencies.",

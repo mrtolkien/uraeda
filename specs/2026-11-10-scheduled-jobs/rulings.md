@@ -221,11 +221,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: (1) "Last run" reads the latest _started_ row of the job's history, not the latest
   row: a skipped time is no run, and has no session to ask anything. A job with only skipped rows
   reads "Never ran". The skipped rows stay in the job's page, task 8. (2) The words of a job's card
-  live in `jobs/facts.ts` (`nextFact`, `lastFact`), beside `words.ts`. A reason of `agent-off` with
-  no problem reads "Not running here: no agent is on in this repository." for a job with no agent,
-  and "Not running here: <agent> is not available." for one that names its agent, and `off` reads
-  "Scheduled jobs are off". (3) The built-in `jobs` has order 6, after Git; previews and
-  notifications moved to 7 and 8. (4) `/jobs`, `/jobs/<name>`, and `/jobs/new` are routes of the
+  live in `jobs/facts.ts` (`nextFact`, `lastFact`), beside `words.ts`. A reason of `agent-off` reads
+  the server's words, `next.text`
+  ([R27](#r27-the-cards-next-run-follows-the-schedulers-order-and-a-problem-shows-beside-the-time)),
+  and `off` reads "Scheduled jobs are off". (3) The built-in `jobs` has order 6, after Git; previews
+  and notifications moved to 7 and 8. (4) `/jobs`, `/jobs/<name>`, and `/jobs/new` are routes of the
   UI's table (`routeTable.ts`), owned by `jobs` in `extensions/routes.tsx`, so a turned-off Jobs
   place says so on all three; the two of a job's page draw the app's page for a missing item until
   task 8. (5) The card's mark stays the mockup's `uraeda:history`, and the place's icon is the new
@@ -393,3 +393,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a human who wants times in their own zone gets the server's until a setting asks for
   the browser's.
 - **Where**: tasks 6, 7, and 8.
+
+## R27: The card's Next run follows the scheduler's order, and a problem shows beside the time
+
+- **Decision**: (1) the card's Next run reads `next.why` in the scheduler's order, `problem`,
+  `paused`, `off`, `agent-off`, `change-open`, else the time: a paused job reads "Paused" even when
+  its agent is off. (2) A `problem` of the job that is not that reason, as a repository it names
+  that is not listed while it still runs in this one, shows beneath the Next run in the error
+  colour, and beneath "Paused" too: it is true whatever the job does. A job's problem that _is_ the
+  reason, the core's, is said once, as the reason. The job's page adds it to its schedule note. (3)
+  The record's `problem` no longer holds "Not running here: <agent> is off in this repository.";
+  `next.text` holds the server's own words for an `agent-off` reason, so the web UI re-words
+  nothing: "Not running here: <title> is off in this repository." for a named agent that is not on
+  or not registered, "Not running here: <title> is not available on this machine." for one that is
+  on and not available (named, or the default one), and "Not running here: no agent is on in this
+  repository." when none is on. The title is the runtime's, as its other refusals say it.
+- **Rationale**: the card tested the job's `problem` before `why`, so a paused job whose agent was
+  off read the agent's problem, never "Paused" (US4 scenario 2), and a job that ran here with
+  another repository missing read only the time, never the problem the spec gives a card text for.
+  The fallback for `agent-off` printed the agent's id and said no agent was on for an agent that was
+  on and not installed or signed out. The server knows the title and the cause; R16's fallback words
+  are replaced.
+- **Alternatives considered**: keeping the agent's text in `problem`: a paused job would read it
+  beside "Paused", which is no longer true of what it does.
+- **If wrong**: a job that is paused with its agent off shows no word of the agent until it is
+  resumed.
+- **Where**: tasks 6 and 7. It replaces R16 (2)'s words for `agent-off`.

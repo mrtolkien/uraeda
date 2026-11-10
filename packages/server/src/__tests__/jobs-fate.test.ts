@@ -111,7 +111,7 @@ test("the jobs' record and its writes", async () => {
   expect(job(record, "Code quality").problem).toBe(
     "Not running: the schedule “dayly 06:00” is not understood",
   );
-  expect(job(record, "Code quality").next).toEqual({ at: null, why: "problem" });
+  expect(job(record, "Code quality").next).toEqual({ at: null, text: null, why: "problem" });
   expect(job(record, "Dependencies")).toMatchObject({
     agent: "fake",
     history: [],
@@ -127,7 +127,7 @@ test("the jobs' record and its writes", async () => {
 
   // A pause is written in the job's table, answered by the record, and shown as the reason.
   const paused = await run.mutate("jobs.setOn", { name: "Dependencies", on: false });
-  expect(job(paused.data, "Dependencies").next).toEqual({ at: null, why: "paused" });
+  expect(job(paused.data, "Dependencies").next).toEqual({ at: null, text: null, why: "paused" });
   expect(run.configText()).toContain("on = false");
   expect(run.configText()).toContain("# my jobs");
 
@@ -221,12 +221,34 @@ test("a job is added, edited, renamed, and removed through the record", async ()
   ).not.toEqual([]);
 });
 
-/** The edge cases of a job in a repository: a named agent that is off, and a switch for all. */
-test("a job's problem names the agent that is off here, and `enabled` is the switch", async () => {
-  const run = await setup((name) => table("Ghost", [name]).replace('"fake"', '"ghost"'));
+/**
+ * The edge cases of a job in a repository: the words of an agent that is off or not available are
+ * the server's, titled as its other refusals are (review 05, finding 6); and `enabled` is the switch.
+ */
+test("a job's next run says why its agent does not run it, in the server's words, and `enabled` is the switch", async () => {
+  const run = await setup(
+    (name) =>
+      `${table("Ghost", [name]).replace('"fake"', '"ghost"')}\n${table("Named", [name])}\n` +
+      table("Default", [name]).replace('agent = "fake"\nmodel = "fake-small"\n', ""),
+  );
+  const { server } = run;
   const record = await run.read();
-  expect(job(record, "Ghost").problem).toBe("Not running here: ghost is off in this repository.");
-  expect(job(record, "Ghost").next).toEqual({ at: null, why: "agent-off" });
+  // A named agent that is not on here: its title, or its name when it is not registered.
+  expect(job(record, "Ghost").problem).toBeNull();
+  expect(job(record, "Ghost").next).toEqual({
+    at: null,
+    text: "Not running here: ghost is off in this repository.",
+    why: "agent-off",
+  });
+
+  // An agent that is on and not available, named or by default: its title, not its id.
+  server.adapter.installed = false;
+  await server.sessions.check();
+  const title = server.sessions.runtimes.title("fake");
+  const unavailable = `Not running here: ${title} is not available on this machine.`;
+  const after = await run.read();
+  expect(job(after, "Named").next).toEqual({ at: null, text: unavailable, why: "agent-off" });
+  expect(job(after, "Default").next).toEqual({ at: null, text: unavailable, why: "agent-off" });
 
   writeFileSync(run.path, `[runs]\nscheduled_jobs = false\n${table("Ghost", [run.server.name])}`);
   await run.server.settings.reload();

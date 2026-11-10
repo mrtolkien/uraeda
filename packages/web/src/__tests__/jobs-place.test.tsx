@@ -53,7 +53,7 @@ const JOBS: ReadonlyArray<JobRow> = [
       },
     ],
     name: "Dependencies",
-    next: { at: null, why: "change-open" },
+    next: { at: null, text: null, why: "change-open" },
     on: true,
     problem: null,
     reportOnly: false,
@@ -63,7 +63,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     name: "Persona walkthrough",
-    next: { at: null, why: "paused" },
+    next: { at: null, text: null, why: "paused" },
     on: false,
     problem: null,
     reportOnly: true,
@@ -73,7 +73,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     name: "Code quality",
-    next: { at: null, why: "problem" },
+    next: { at: null, text: null, why: "problem" },
     on: true,
     problem: "Not running: the schedule “dayly 06:00” is not understood",
     reportOnly: false,
@@ -83,7 +83,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     name: "Performance pass",
-    next: { at: at(16, 4), why: null },
+    next: { at: at(16, 4), text: null, why: null },
     on: true,
     problem: null,
     reportOnly: false,
@@ -166,6 +166,21 @@ test("each card names its schedule, its next run, and its last run, in words", (
   ).toBeTruthy();
   expect(within(card("Performance pass")).getByText("Monday 16 November at 4:00")).toBeTruthy();
   expect(selected()).toBe("Dependencies");
+});
+
+test("a card shows the problem of a job that still runs here beneath its next run (review 05, 3)", () => {
+  const [, paused, , ahead] = JOBS;
+  const missing = "“notes” is not in Uraeda's list.";
+  show(spies(), undefined, [
+    { ...ahead, problem: missing },
+    { ...paused, problem: missing },
+  ]);
+  const running = card("Performance pass");
+  expect(within(running).getByText("Monday 16 November at 4:00")).toBeTruthy();
+  expect(within(running).getByText(missing)).toBeTruthy();
+  const stopped = card("Persona walkthrough");
+  expect(within(stopped).getByText("Paused")).toBeTruthy();
+  expect(within(stopped).getByText(missing)).toBeTruthy();
 });
 
 test("j and k move the selection, and the bar shows under the selected card", () => {

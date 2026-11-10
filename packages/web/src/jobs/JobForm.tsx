@@ -33,6 +33,9 @@ const styles = stylex.create({
 
 type Form = ReturnType<typeof useJobForm>;
 
+/** A sentence of the server's ends with its own full stop. */
+const full = (text: string) => (text.endsWith(".") ? text : `${text}.`);
+
 /** The next run's words after the schedule's, for an existing job. */
 function ScheduleNotes({ job, now, zone }: { job: JobRow; now: Date; zone: string }) {
   const next = nextFact(job, now, zone);
@@ -45,7 +48,8 @@ function ScheduleNotes({ job, now, zone }: { job: JobRow; now: Date; zone: strin
         : `Next run ${next.text.charAt(0).toLowerCase()}${next.text.slice(1)}`;
   return (
     <Text color="secondary">
-      {first} <Text xstyle={next.tone === "problem" && styles.problem}>{sentence}.</Text>
+      {first} <Text xstyle={next.tone === "problem" && styles.problem}>{full(sentence)}</Text>
+      {next.note !== undefined && <Text xstyle={styles.problem}> {full(next.note)}</Text>}
     </Text>
   );
 }

@@ -92,7 +92,7 @@ const JOB: JobRow = {
   history: [...HISTORY],
   model: "opus",
   name: "Dependencies",
-  next: { at: at(13, 3), why: null },
+  next: { at: at(13, 3), text: null, why: null },
   on: true,
   problem: null,
   prompt: PROMPT,

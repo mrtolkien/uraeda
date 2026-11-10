@@ -13,8 +13,11 @@ type IconName = ComponentProps<typeof Icon>["icon"];
 /** The colour of a fact's icon: the role it has for the human. */
 export type Tone = "needsYou" | "problem" | "quiet" | "unread" | "working";
 
-/** A fact of a job's card: its icon in its tone's colour, and its words. */
-export type Fact = { icon: IconName; text: string; tone: Tone };
+/**
+ * A fact of a job's card: its icon in its tone's colour, and its words. `note` is a problem the job
+ * has beside the fact, shown beneath it in the error colour.
+ */
+export type Fact = { icon: IconName; note?: string; text: string; tone: Tone };
 
 /**
  * What the sidebar's card says of a run's session: its status and its label, and, for a change or a
@@ -36,42 +39,43 @@ const WHY = {
 } as const;
 
 /**
- * When the job runs next, or why it does not: the time in words, "Paused", its problem in the error
- * colour, "Waits for that change to close", or, for an agent that is off here, the agent's words.
+ * When the job runs next, or why it does not, by the scheduler's order of reasons: its problem in
+ * the error colour, "Paused", "Scheduled jobs are off", the server's words for an agent that does not
+ * run it, "Waits for that change to close", else the time in words. A problem of the job that is not
+ * the reason, as a repository it names that is not listed while it runs in this one, is the fact's
+ * `note` (R27).
  */
-export function nextFact(
-  job: Pick<JobRow, "agent" | "next" | "problem">,
-  now: Date,
-  zone: string,
-): Fact {
-  const { at, why } = job.next;
-  if (at !== null) {
-    return { icon: "uraeda:hourglass", text: whenWords(new Date(at), now, zone), tone: "quiet" };
+export function nextFact(job: Pick<JobRow, "next" | "problem">, now: Date, zone: string): Fact {
+  const { at, text, why } = job.next;
+  const note = why !== "problem" && job.problem !== null ? { note: job.problem } : {};
+  switch (why) {
+    case "problem":
+      return {
+        icon: "uraeda:triangle-alert",
+        text: job.problem ?? "Not running: the job has a problem.",
+        tone: "problem",
+      };
+    case "paused":
+      return { icon: "uraeda:square", text: WHY.paused, tone: "quiet", ...note };
+    case "off":
+      return { icon: "uraeda:square", text: WHY.off, tone: "quiet", ...note };
+    case "agent-off":
+      return {
+        icon: "uraeda:triangle-alert",
+        text: text ?? "Not running here: its agent is not available.",
+        tone: "problem",
+        ...note,
+      };
+    case "change-open":
+      return { icon: "uraeda:hourglass", text: WHY["change-open"], tone: "quiet", ...note };
+    default:
+      return {
+        icon: "uraeda:hourglass",
+        text: at === null ? WHY.off : whenWords(new Date(at), now, zone),
+        tone: "quiet",
+        ...note,
+      };
   }
-  if (why === "problem" || job.problem !== null) {
-    return {
-      icon: "uraeda:triangle-alert",
-      text: job.problem ?? "Not running: the job has a problem.",
-      tone: "problem",
-    };
-  }
-  if (why === "paused") {
-    return { icon: "uraeda:square", text: WHY.paused, tone: "quiet" };
-  }
-  if (why === "agent-off") {
-    return {
-      icon: "uraeda:triangle-alert",
-      text:
-        job.agent === null
-          ? "Not running here: no agent is on in this repository."
-          : `Not running here: ${job.agent} is not available.`,
-      tone: "problem",
-    };
-  }
-  if (why === "change-open") {
-    return { icon: "uraeda:hourglass", text: WHY["change-open"], tone: "quiet" };
-  }
-  return { icon: "uraeda:square", text: WHY.off, tone: "quiet" };
 }
 
 /** The icon and tone of a session's status, as the sidebar's card reads it. */

@@ -894,7 +894,7 @@ export type JobRow = {
   history: Array<JobRunView>;
   model: string | null;
   name: string;
-  next: { at: string | null; why: string | null };
+  next: { at: string | null; text: string | null; why: string | null }; // `text`: the server's words for `agent-off` (R27)
   on: boolean;
   problem: string | null;
   prompt: string;
@@ -951,9 +951,10 @@ file, or "Run now" held by the pause.
 - The record lists the jobs that name the endpoint's repository, in the file's order. A job's
   `problem` is the core's, a fragment (the schedule's) prefixed "Not running: " and a sentence ("Two
   jobs are named “…”.") as it is ([ruling R13](rulings.md)), else the first repository it names that
-  is not listed, else that its named agent is off here, in the texts of the global constraints.
-  `next` comes from `Scheduler.nextRun`, given the workspace's open folders, read once for the whole
-  record ([ruling R21](rulings.md)), its `why` the code it answers (`problem`, `paused`, `off`,
+  is not listed, in the text of the global constraints. An agent that does not run the job here is
+  `next.why = "agent-off"` with `next.text`, the server's words ([ruling R27](rulings.md)). `next`
+  comes from `Scheduler.nextRun`, given the workspace's open folders, read once for the whole record
+  ([ruling R21](rulings.md)), its `why` the code it answers (`problem`, `paused`, `off`,
   `agent-off`, `change-open`), and `history` from `JobRuns.history`, each run with its session's
   folder and title when it has them. `enabled` is the switch for all jobs.
 - The mutations write through the binding, as `extension-mutations.ts` does, a file that cannot be
@@ -1025,8 +1026,10 @@ export function whenWords(at: Date, now: Date, timeZone: string): string; // "To
   switch; then "Next run" and "Last run" under their labels, each with its icon in its role's
   colour. The stories then import the real components (`JobsPlace`, which the story `JobsFrame`
   draws in the app's frame), over fixed `JobRow`s, so the spec's links hold.
-- Next run reads, from `next`: the time in words; `Paused`; the job's problem, in the error colour;
-  or "Waits for that change to close" (`jobs/facts.ts`, with the words of `off` and `agent-off`).
+- Next run reads, from `next`, in the scheduler's order ([ruling R27](rulings.md)): the job's
+  problem, in the error colour; `Paused`; "Scheduled jobs are off"; the server's words for an agent
+  that does not run it (`next.text`); "Waits for that change to close"; else the time in words
+  (`jobs/facts.ts`). A problem of the job that is not the reason shows beneath, in the error colour.
   Last run reads the latest started row of the history ([ruling R16](rulings.md)): its time, then
   what its session or its change asks, as the sidebar's card names it, or "Never ran".
 - The keys, in the registry, each also on the selected card's bar and by tap: Enter opens the job's

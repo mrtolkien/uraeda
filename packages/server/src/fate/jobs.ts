@@ -36,8 +36,11 @@ export type JobRow = {
   history: Array<JobRunView>;
   model: string | null;
   name: string;
-  /** When it runs next, or the reason it does not: see `NextRun`. */
-  next: { at: string | null; why: string | null };
+  /**
+   * When it runs next, or the reason it does not: see `NextRun`. `text` is the server's own words
+   * for an `agent-off` reason, null for the others.
+   */
+  next: { at: string | null; text: string | null; why: string | null };
   on: boolean;
   /** Why it does not run here, in the card's words, or null. */
   problem: string | null;
@@ -81,18 +84,28 @@ export const jobsRunDataView = dataView<JobsRunRecord>("JobsRun")({
 
 /**
  * Why the job does not run in the repository, from what only the server knows: a repository it
- * names that is not in the list, else its named agent being off here. Null when neither holds.
+ * names that is not in the list. Null when none is missing.
  */
-function localProblem(ctx: RepoContext, job: Job, root: string): string | null {
+function localProblem(ctx: RepoContext, job: Job): string | null {
   const missing = job.repositories.find((name) => ctx.hosts.get(name) === undefined);
-  if (missing !== undefined) {
-    return `“${missing}” is not in Uraeda's list.`;
-  }
+  return missing === undefined ? null : `“${missing}” is not in Uraeda's list.`;
+}
+
+/**
+ * The words for a job whose agent does not run it in the repository: no agent on there, the named
+ * one off or unknown, or the one it runs on not available. The runtime's title is its name for
+ * people, as its other refusals say it.
+ */
+function agentWords(ctx: RepoContext, job: Job, root: string): string {
   const { runtimes } = ctx.sessions;
-  if (job.agent !== undefined && (!runtimes.get(job.agent) || !runtimes.isOn(job.agent, root))) {
-    return `Not running here: ${runtimes.title(job.agent)} is off in this repository.`;
+  const name = job.agent ?? runtimes.defaultFor(root);
+  if (name === undefined) {
+    return "Not running here: no agent is on in this repository.";
   }
-  return null;
+  if (!runtimes.get(name) || !runtimes.isOn(name, root)) {
+    return `Not running here: ${runtimes.title(name)} is off in this repository.`;
+  }
+  return `Not running here: ${runtimes.title(name)} is not available on this machine.`;
 }
 
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -132,12 +145,16 @@ async function rowOf(
     name: job.name,
     next:
       next === undefined
-        ? { at: null, why: null }
+        ? { at: null, text: null, why: null }
         : "at" in next
-          ? { at: next.at.toISOString(), why: null }
-          : { at: null, why: next.why },
+          ? { at: next.at.toISOString(), text: null, why: null }
+          : {
+              at: null,
+              text: next.why === "agent-off" ? agentWords(ctx, job, root) : null,
+              why: next.why,
+            },
     on: job.on,
-    problem: job.problem === undefined ? localProblem(ctx, job, root) : coreProblem(job.problem),
+    problem: job.problem === undefined ? localProblem(ctx, job) : coreProblem(job.problem),
     prompt: job.prompt,
     reportOnly: job.reportOnly,
     repositories: job.repositories,
