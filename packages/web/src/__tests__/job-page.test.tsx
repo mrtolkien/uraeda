@@ -4,120 +4,17 @@
 // 03:00 and this repository ticked; a name no job has reads as the app's missing page. The real
 // components over fixed jobs, in the key registry, with no server: the data is the Jobs record's.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { FateClient } from "react-fate";
-import type { JobRow } from "uraeda-server/fate";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { fateClients } from "../clients.ts";
-import { ConfirmHost } from "../fields/Confirm.tsx";
 import { JobHistory, skippedWords } from "../jobs/JobHistory.tsx";
 import { JobPageView, NewJobPageView } from "../jobs/JobPage.tsx";
-import { KeysProvider } from "../keys/registry.tsx";
-import { RepositoryContext } from "../routes.tsx";
 import { atWidth, fieldText, type } from "./helpers.tsx";
+import { around, common, INPUT, JOB, NOW, open, ZONE } from "./job-page-fixtures.tsx";
 
 beforeEach(() => atWidth(1440));
 afterEach(() => {
   cleanup();
   document.body.replaceChildren();
 });
-
-/** Thursday 12 November 2026, 10:30. */
-const NOW = new Date(2026, 10, 12, 10, 30);
-/** The zone `NOW` is local to, which the times read in. */
-const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-const JOB: JobRow = {
-  agent: "claude",
-  effort: "high",
-  history: [],
-  index: 0,
-  last: null,
-  model: "opus",
-  name: "Dependencies",
-  next: { at: new Date(2026, 10, 13, 3).toISOString(), text: null, why: null },
-  on: true,
-  problem: null,
-  prompt: "Upgrade the dependencies.",
-  reportOnly: false,
-  repositories: ["uraeda", "notes"],
-  schedule: { hour: 3, kind: "daily", minute: 0 },
-  scheduleText: "daily 03:00",
-};
-
-const RUNTIMES = [
-  {
-    defaults: { effort: "high", model: "opus" },
-    icon: "uraeda:harness-claude" as const,
-    kind: "claude",
-    models: [
-      {
-        efforts: [
-          { id: "high", name: "High" },
-          { id: "low", name: "Low" },
-        ],
-        id: "opus",
-        name: "Opus",
-      },
-    ],
-    name: "Claude Code",
-  },
-];
-
-/** What a job writes: the form's input for the job as the file holds it. */
-const INPUT = {
-  agent: "claude",
-  effort: "high",
-  model: "opus",
-  name: "Dependencies",
-  prompt: "Upgrade the dependencies.",
-  reportOnly: false,
-  repositories: ["uraeda", "notes"],
-  schedule: "daily 03:00",
-};
-
-/** The agent picker reads the fate client, which only its open steps ask anything of. */
-const client = fateClients({ fetch: async () => new Response("{}") })("uraeda");
-
-function around(children: ReactNode) {
-  return (
-    <RepositoryContext.Provider value="uraeda">
-      <FateClient client={client}>
-        <KeysProvider>
-          <ConfirmHost>{children}</ConfirmHost>
-        </KeysProvider>
-      </FateClient>
-    </RepositoryContext.Provider>
-  );
-}
-
-const common = {
-  now: NOW,
-  repositories: ["uraeda", "notes", "dotfiles"],
-  repository: "uraeda",
-  runtimes: RUNTIMES,
-  zone: ZONE,
-};
-
-/** An open job's page over `job`, its writes spied; `rerender` shows it again with another job. */
-function open(
-  onSave = vi.fn(async (_input: unknown): Promise<string | undefined> => undefined),
-  job: JobRow = JOB,
-) {
-  const onRun = vi.fn(async (): Promise<string | undefined> => undefined);
-  const view = (shown: JobRow | undefined) =>
-    around(
-      <JobPageView
-        {...common}
-        handlers={{ onRun, onSave }}
-        job={shown}
-        name="Dependencies"
-        renderCard={() => null}
-      />,
-    );
-  const { rerender } = render(view(job));
-  return { onRun, onSave, rerender: (next: JobRow) => rerender(view(next)) };
-}
 
 const field = (name: string) => screen.getByRole("textbox", { name });
 
