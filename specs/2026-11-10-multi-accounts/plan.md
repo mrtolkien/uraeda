@@ -633,24 +633,28 @@ reaching the process.
 
 - [x] **Step 3: Implement `claude-accounts.ts`**
 
-`claudeFolders` expands a leading `~/` with `home`, leaves out a line that is not then absolute,
-with the problem `account folder <line> is not an absolute path`, and a folder already listed. A
-name is the folder's last segment without its leading dot and without a leading `claude-`; a segment
-that is `claude` alone reads `default`; a name already taken reads the folder's id.
+`claudeFolders` expands a leading `~/`, or `~` alone, with `home`, leaves out a line that is not
+then absolute, with the problem `account folder <line> is not an absolute path`, and a folder
+already listed. A name is the folder's last segment without its leading dot and without a leading
+`claude-`; a segment that is `claude` alone reads `default`; a name already taken reads the folder's
+id.
 
 `ClaudeAccounts` keeps each account as last asked: `missing`, `signed-out`, or `ready`, with its
 windows and `askedAt` only when the ask gave windows. `refresh(maxAgeMs)` asks the accounts whose
 last ask, answered or not, is older than `maxAgeMs`, all at once, and shares an ask under way with a
-second caller. A rejected ask keeps the account as it was. `problems()` gives the folders' problems,
-then `account <name> is signed out, in <listed>` and `account <name> has no folder at <listed>`.
-`nameOf` gives the listed name, else the name rule's.
+second caller. A rejected ask keeps the account as it was. A folder that is not a directory, gone or
+a regular file, is `missing` without an ask: `ClaudeAccounts` checks it with a stat of the folder
+itself, which opens no file, as it is built and at each `refresh`, before the asks start, so a pick
+that stops waiting knows it. The folders are held once, in its entries. `problems()` gives the
+folders' problems, then `account <name> is signed out, in <listed>` and
+`account <name> has no folder at <listed>`. `nameOf` gives the listed name, else the name rule's.
 
-`claudeAsk(command)`: a folder that does not exist is `missing`, checked by its existence alone.
-Else `claude auth status`, with `CLAUDE_CONFIG_DIR` set to the folder, whose JSON `loggedIn` false
-is `signed-out`. Else `ready`, with the windows of a `get_usage` control request, sent as `models()`
-sends `list_models`: a short process with `MODELS_ARGS`, the folder in its environment, ended with
-`endShortProcess`, given up after `MODELS_TIMEOUT_MS`. A usage that cannot be read is `ready`
-without windows. Nothing else of the folder is read.
+`claudeAsk(command)` asks a folder that is a directory: `claude auth status`, with
+`CLAUDE_CONFIG_DIR` set to the folder, whose JSON `loggedIn` false is `signed-out`. Else `ready`,
+with the windows of a `get_usage` control request, sent as `models()` sends `list_models`: a short
+process with `MODELS_ARGS`, the folder in its environment, ended with `endShortProcess`, given up
+after `MODELS_TIMEOUT_MS`. A usage that cannot be read is `ready` without windows. Nothing else of
+the folder is read.
 
 - [x] **Step 4: Give the account to Claude Code**
 

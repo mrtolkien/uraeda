@@ -360,7 +360,7 @@ export class ClaudeAdapter implements Adapter {
    * accounts, it runs in the first listed account's folder.
    */
   async models(): Promise<ModelList> {
-    const folder = this.accounts?.folders[0]?.id;
+    const folder = this.accounts?.list()[0]?.id;
     const [list, settings] = await askShort(
       this.#command,
       homedir(),
