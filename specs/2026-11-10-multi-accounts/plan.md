@@ -709,6 +709,7 @@ git commit -m "feat(multi-accounts): Claude Code's accounts, from its configurat
 **Files:**
 
 - Create: `packages/server/src/runner/account-usage.ts`
+- Create: `packages/server/src/runner/account-records.ts` (`accountRecords`, `AccountRefresh`: R5)
 - Modify: `packages/server/src/runner/processes.ts` (`#limits`, `#report`, `usage`, a new `reports`)
 - Modify: `packages/server/src/runner/account-pick.ts` (`accountFor`)
 - Modify: `packages/server/src/runner/runtimes.ts` (`RuntimeRecord`, `records`)
@@ -717,6 +718,7 @@ git commit -m "feat(multi-accounts): Claude Code's accounts, from its configurat
 - Modify: `packages/server/src/fate/views.ts` (`SessionRecord`)
 - Modify: `packages/server/src/extensions/server.ts` (`#state`)
 - Test: `packages/server/src/runner/__tests__/usage.test.ts`,
+  `packages/server/src/runner/__tests__/account-usage.test.ts` (the merge's rows),
   `packages/server/src/extensions/__tests__/runtimes.test.ts`
 
 **Interfaces:**
@@ -748,6 +750,7 @@ export type AccountRecord = {
   windows: Array<AccountWindow>;
 };
 // RuntimeRecord gains  accounts: Array<AccountRecord>;   empty with none listed
+// Runtimes.records(repo, { accounts, usage })  takes both readers
 // RuntimeRecord.usage  is empty while accounts are listed
 ```
 
@@ -757,7 +760,7 @@ export type AccountRecord = {
   `accountFor` gains a third parameter, `reports: () => ReadonlyArray<UsageReport>`, and picks from
   `accountUsage`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // usage.test.ts
@@ -787,13 +790,13 @@ The break each test catches: a stale report kept after its process exits; an ask
 a report; an expired window still counted; a problem that never reaches the settings; an announce on
 every read.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/usage.test.ts packages/server/src/extensions/__tests__/runtimes.test.ts`
 - Expected: FAIL, `sessions.accounts is not a function`.
 
-- [ ] **Step 3: Keep reports by account, and merge**
+- [x] **Step 3: Keep reports by account, and merge**
 
 `Processes` keeps each report with its process's account and the time it came. `usage(runtime)`
 gives the windows of the processes without an account, as today; `reports(runtime)` gives every open
@@ -801,23 +804,25 @@ process's latest report of each window. `accountUsage` gives, for each account a
 freshest of the ask (`askedAt`) and the account's reports (`at`); a window whose reset is at or
 before `now` reads `{ used: 0, resetsAt: null }`; an account never asked takes its reports alone.
 
-- [ ] **Step 4: The records, the asks, and the settings**
+- [x] **Step 4: The records, the asks, and the settings**
 
-`Sessions.accounts(runtime)` maps the merged accounts to records, `isNext` on the pick's. `records`
+`Sessions.accounts(runtime)` maps the merged accounts to records, `isNext` on the pick's
+(`accountRecords`, in `account-records.ts`, which keeps `sessions.ts` under its limit). `records`
 gives each runtime its accounts, and an empty `usage` while it has some. `sessionRecord` gives
 `account`, by `accounts.nameOf`, else the stored folder's last segment, else null.
-`refreshAccounts()` calls `refresh(USAGE_MAX_AGE_MS)` on each runtime with accounts, and calls
-`runtimes.changed()` only when an account's record changed. It runs as the sessions start, on each
-change of the runtimes, and from `agentRecord`, which every page reads. In `extensions/server.ts`, a
-built-in runtime's state adds each of `accounts.problems()` as a problem with an empty file, and the
-host announces the `Extensions` record on the runtimes' changes, if it does not already.
+`refreshAccounts()` (the `AccountRefresh` class) calls `refresh(USAGE_MAX_AGE_MS)` on each runtime's
+accounts not being asked already, and calls `runtimes.changed()` only when the runtime's account
+records differ from before the ask. It runs as the sessions start, on each change of the runtimes,
+and from `agentRecord`, which every page reads. In `extensions/server.ts`, a built-in runtime's
+state adds each of `accounts.problems()` as a problem with an empty file, and the host announces the
+`Extensions` record on the runtimes' changes, if it does not already.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src

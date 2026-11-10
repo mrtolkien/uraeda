@@ -7,6 +7,9 @@ import { MODELS_REFRESH_MS, MODELS_REFRESH_TIMEOUT_MS, Runtimes } from "../runti
 import { flush, restart, testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
+/** The records of runtimes with no accounts and no open process. */
+const NO_USAGE = { accounts: () => [], usage: () => [] };
+
 const AGENT = "2026-10-12-cli-tuis";
 
 const OFF = "pi-durable is off: turn it on to continue this session";
@@ -223,7 +226,7 @@ test("a model list is asked for at most once a minute, and one that fails keeps 
   let changes = 0;
   runtimes.onChange(() => changes++);
   expect(runtimes.models("fake")).toEqual(fakeModels());
-  expect(runtimes.records(null, () => [])[0]?.models).toEqual(fakeModels());
+  expect(runtimes.records(null, NO_USAGE)[0]?.models).toEqual(fakeModels());
 
   const small = { defaults: {}, models: [fakeModels().models[1]!] };
   fake.modelList = small;
@@ -291,7 +294,7 @@ test("a runtime without a model list has none", async () => {
   runtimes.register("fake", fake);
   await runtimes.refreshModels();
 
-  expect(runtimes.records(null, () => [])[0]?.models).toBeNull();
+  expect(runtimes.records(null, NO_USAGE)[0]?.models).toBeNull();
 });
 
 test("each runtime's usage is its own, for windows of the same ID", async () => {

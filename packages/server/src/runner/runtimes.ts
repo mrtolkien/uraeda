@@ -1,4 +1,4 @@
-import type { Adapter, Capabilities, ModelList } from "./adapter.ts";
+import type { AccountState, AccountWindow, Adapter, Capabilities, ModelList } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
 import type { UsageWindow } from "./events.ts";
 import { REFUSALS, refused } from "./session-state.ts";
@@ -15,8 +15,21 @@ export type IsOn = (name: string, repo: string | null) => boolean;
 /** Whether a runtime worked at its last check, and its version: unchecked, it is not available. */
 export type RuntimeStatus = { available: boolean; version: string | null };
 
+/** An account, for the UI. `isNext`: a new session would start on it now. */
+export type AccountRecord = {
+  /** What a session stores: for Claude Code, its folder. */
+  id: string;
+  isNext: boolean;
+  name: string;
+  state: AccountState;
+  /** Shortest first, each the freshest read of an ask or of a running process. */
+  windows: Array<AccountWindow>;
+};
+
 /** A runtime, for the UI: what its sessions show, what it can do, and its usage. */
 export type RuntimeRecord = {
+  /** Its accounts, in the listed order: none when it lists none. */
+  accounts: Array<AccountRecord>;
   available: boolean;
   capabilities: Capabilities;
   icon: string;
@@ -30,9 +43,18 @@ export type RuntimeRecord = {
   name: string;
   /** Its extension's title, which its refusals name it by: its `kind` without one. */
   title: string;
-  /** Its windows, each from the freshest report of an open process: none before one. */
+  /**
+   * Its windows, each from the freshest report of an open process: none before one, and none while
+   * it lists accounts, whose windows are theirs.
+   */
   usage: Array<UsageWindow>;
   version: string | null;
+};
+
+/** What each runtime's record reads: its accounts, and the usage of its open processes. */
+export type UsageOf = {
+  accounts: (name: string) => Array<AccountRecord>;
+  usage: (name: string) => Array<UsageWindow>;
 };
 
 const UNCHECKED: RuntimeStatus = { available: false, version: null };
@@ -237,18 +259,22 @@ export class Runtimes {
   }
 
   /** Each runtime, for the UI, its `isOn` in `repo`. */
-  records(repo: string | null, usage: (name: string) => Array<UsageWindow>): Array<RuntimeRecord> {
-    return [...this.#entries].map(([kind, { models, runtime, status }]) => ({
-      ...status,
-      capabilities: { ...runtime.capabilities },
-      icon: runtime.icon,
-      isOn: this.isOn(kind, repo),
-      kind,
-      models: models ?? null,
-      name: runtime.name,
-      title: this.title(kind),
-      usage: usage(kind),
-    }));
+  records(repo: string | null, { accounts, usage }: UsageOf): Array<RuntimeRecord> {
+    return [...this.#entries].map(([kind, { models, runtime, status }]) => {
+      const listed = accounts(kind);
+      return {
+        ...status,
+        accounts: listed,
+        capabilities: { ...runtime.capabilities },
+        icon: runtime.icon,
+        isOn: this.isOn(kind, repo),
+        kind,
+        models: models ?? null,
+        name: runtime.name,
+        title: this.title(kind),
+        usage: listed.length > 0 ? [] : usage(kind),
+      };
+    });
   }
 
   #onIn(repo: string | null): Array<string> {

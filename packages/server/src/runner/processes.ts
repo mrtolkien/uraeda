@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { accountFor } from "./account-pick.ts";
+import type { UsageReport } from "./account-usage.ts";
 import type { Adapter, OpenOptions } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
 import { hasStartedTurn } from "./cache-turns.ts";
@@ -31,11 +32,12 @@ type Exit = Extract<AgentEvent, { type: "exit" }>;
 export class Processes {
   #context: SessionContext;
   /**
-   * Each runtime's windows' reports, by the runtime's name and the window's ID, in report order:
-   * the newest open process's report wins, even when usage decreased. A report without a window
-   * keeps that window's last report. A runtime's windows keep the order they first came in.
+   * Each runtime's windows' reports, by the runtime's name and the window's ID, in report order,
+   * each with when it came: the newest open process's report wins, even when usage decreased. A
+   * report without a window keeps that window's last report. A runtime's windows keep the order
+   * they first came in.
    */
-  #limits = new Map<string, Map<Proc, UsageWindow>>();
+  #limits = new Map<string, Map<Proc, { at: number; window: UsageWindow }>>();
   #expiry: ReturnType<typeof setTimeout> | undefined;
   /** Each process's agent session total so far, which its next report's own work is counted from. */
   #baselines = new WeakMap<Proc, TokenCounts>();
@@ -45,17 +47,36 @@ export class Processes {
   }
 
   /**
-   * The runtime's windows, each the freshest unexpired report of it from an open process, across
-   * repositories.
+   * The runtime's windows, each the freshest unexpired report of it from an open process running
+   * on no account, across repositories: the account of a process is in `reports`.
    */
   usage(runtime: string): Array<UsageWindow> {
     const now = Date.now();
     return [...this.#limits].flatMap(([key, reports]) => {
       const fresh = key.startsWith(`${runtime}\0`)
-        ? [...reports.values()].filter((window) => Date.parse(window.resetsAt) > now).at(-1)
+        ? [...reports]
+            .filter(
+              ([proc, { window }]) => proc.account === null && Date.parse(window.resetsAt) > now,
+            )
+            .at(-1)
         : undefined;
-      return fresh ? [fresh] : [];
+      return fresh ? [fresh[1].window] : [];
     });
+  }
+
+  /**
+   * Every open process's latest report of each window of the runtime, unexpired, with the
+   * process's account and when the report came: `accountUsage` merges them with the asks.
+   */
+  reports(runtime: string): Array<UsageReport> {
+    const now = Date.now();
+    return [...this.#limits].flatMap(([key, reports]) =>
+      key.startsWith(`${runtime}\0`)
+        ? [...reports]
+            .filter(([, { window }]) => Date.parse(window.resetsAt) > now)
+            .map(([proc, { at, window }]) => ({ account: proc.account, at, window }))
+        : [],
+    );
   }
 
   /** Drops the process's reports of every window: whether it had any. */
@@ -65,12 +86,13 @@ export class Processes {
 
   /** Keeps a report's windows as the process's newest, each in report order. */
   #report(proc: Proc, event: Extract<AgentEvent, { type: "usage" }>) {
+    const at = Date.now();
     for (const window of event.windows) {
       const key = `${proc.kind}\0${window.id}`;
-      const reports = this.#limits.get(key) ?? new Map<Proc, UsageWindow>();
+      const reports = this.#limits.get(key) ?? new Map<Proc, { at: number; window: UsageWindow }>();
       this.#limits.set(key, reports);
       reports.delete(proc);
-      reports.set(proc, window);
+      reports.set(proc, { at, window });
     }
     this.#usageChanged();
   }
@@ -81,7 +103,7 @@ export class Processes {
     const now = Date.now();
     const resets: Array<number> = [];
     for (const reports of this.#limits.values()) {
-      for (const [proc, window] of reports) {
+      for (const [proc, { window }] of reports) {
         const reset = Date.parse(window.resetsAt);
         if (reset <= now) {
           reports.delete(proc);
@@ -140,7 +162,7 @@ export class Processes {
       // listed or not: one that ran with none ran before accounts, or with none listed, and stays
       // on the server's own login. A first turn that never started, taken back or failed to open,
       // fixed nothing: the pick is made again, on the usage of that moment.
-      const account = ran ? row.account : await this.#pick(live, adapter, row.account);
+      const account = ran ? row.account : await this.#pick(row, adapter);
       const resume = adapter.hasSession(row.nativeId, account ?? undefined);
       // A session that ran before has lost its transcript: Claude Code deletes old ones. A line
       // held from a replacement the process opened on is carried, resuming that new session.
@@ -196,12 +218,12 @@ export class Processes {
    * of its runtime's listed accounts. When the runtime lists none, the one it had, which is none
    * for a session that never had one.
    */
-  async #pick(live: Live, adapter: Adapter, had: string | null): Promise<string | null> {
+  async #pick(row: SessionRow, adapter: Adapter): Promise<string | null> {
     if (!adapter.accounts?.list().length) {
-      return had;
+      return row.account;
     }
-    const account = await accountFor(adapter.accounts, adapter.name);
-    this.#context.cache.updateSession(live.id, { account });
+    const account = await accountFor(adapter.accounts, adapter.name, () => this.reports(row.agent));
+    this.#context.cache.updateSession(row.id, { account });
     return account;
   }
 

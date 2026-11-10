@@ -934,6 +934,7 @@ test("Agent reads each runtime's name, mark, availability, version, capabilities
     id: "agent",
     runtimes: [
       {
+        accounts: [],
         available: true,
         capabilities: {
           approvals: false,

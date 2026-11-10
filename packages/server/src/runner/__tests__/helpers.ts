@@ -7,7 +7,8 @@ import type { McpTokens } from "../../mcp/tokens.ts";
 import { SessionCache } from "../cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
 import type { Denial, Limit } from "../events.ts";
-import { FakeAdapter } from "../fake.ts";
+import type { Account } from "../adapter.ts";
+import { FakeAccounts, FakeAdapter } from "../fake.ts";
 import { type Runtimes, runtimesOf } from "../runtimes.ts";
 import { type SessionChange, Sessions } from "../sessions.ts";
 import type { WriteQueue } from "../../writes/queue.ts";
@@ -111,4 +112,33 @@ export function limitTurn(adapter: FakeAdapter, limit: Limit, denials: Array<Den
       type: "result",
     },
   ]);
+}
+
+/** The accounts the runner's tests list: a folder's name, its windows, its state. */
+export const HOUR = 3_600_000;
+/** A time `hours` from now, as a window gives it: the usage merge reads a past reset as unused. */
+export const at = (hours: number) => new Date(Date.now() + hours * HOUR).toISOString();
+export const folder = (name: string) => `/home/u/.claude-${name}`;
+
+export const account = (
+  name: string,
+  five: number,
+  more: Partial<Account> & { week?: number } = {},
+): Account => ({
+  askedAt: 1,
+  id: folder(name),
+  name,
+  state: "ready",
+  windows: [
+    { id: "five_hour", label: "5h", resetsAt: at(2), used: five },
+    { id: "seven_day", label: "Week", resetsAt: at(72), used: more.week ?? 0.3 },
+  ],
+  ...more,
+});
+
+/** Three accounts: `default` at 0.42 of its five hours, `b` at 0, `c` at 0.88. */
+export function fakeAccounts() {
+  const accounts = new FakeAccounts();
+  accounts.accounts = [account("default", 0.42), account("b", 0), account("c", 0.88)];
+  return accounts;
 }

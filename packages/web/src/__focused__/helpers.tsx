@@ -70,6 +70,7 @@ function agentRecord(): AgentRecord {
     id: AGENT_ID,
     runtimes: [
       {
+        accounts: [],
         available: true,
         capabilities: {
           approvals: true,
@@ -95,6 +96,7 @@ function agentRecord(): AgentRecord {
 /** An idle chat session, as the server sends one. */
 export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}): SessionRecord {
   return {
+    account: null,
     agent: "fake",
     allowable: 0,
     archived: false,
