@@ -223,3 +223,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an extension runtime that reports its five hours under another ID shows no sidebar
   line; it names the window `five_hour`.
 - **Where**: task 5 of the plan, `UsageWindow.tsx` and `sidebar/Allowance.tsx`.
+
+## R15: A sidebar line wraps before its share, never before its reset
+
+- **Decision**: in the sidebar's line, what is left and the reset form one unbreakable unit: a name
+  too long for the column, "default 5h 58% · 19:27" at the column's 240 px, wraps as "default 5h"
+  and "58% · 19:27", never leaving "· 19:27" alone on a line.
+- **Rationale**: the sandbox review of wave 4: only the reset was kept whole, so the separator
+  opened the second line. The sandbox's samples gain a missing folder (`d`) and an unused account
+  (`e`, five hours with no reset), which no sample showed.
+- **Where**: task 5 of the plan, `UsageWindow.tsx` and `sandbox/accounts.ts`.
