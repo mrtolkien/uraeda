@@ -20,6 +20,12 @@ pub use write::{add, remove, set_on, update};
 /// Why `jobs` is not read: a value that is not a list of tables.
 const NOT_A_LIST: &str = "jobs is a list of [[jobs]] tables.";
 
+/// Why `repositories` is not read: a value that is not a list of names.
+const NOT_NAMES: &str = "repositories is a list of names.";
+
+/// The rule a job with no repository fails.
+const NO_REPOSITORY: &str = "A job runs in one repository at least.";
+
 /// A job, as the settings file describes it.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -153,17 +159,18 @@ fn job(table: &dyn TableLike, duplicate: bool) -> Job {
     let (on, report_only) = (flag("on", true), flag("report_only", false));
     let repositories: Vec<String> = match table.get("repositories") {
         None => Vec::new(),
-        Some(item) => item
-            .as_array()
-            .map(|list| {
-                list.iter()
-                    .filter_map(|name| name.as_str().map(str::to_owned))
-                    .collect()
-            })
-            .unwrap_or_else(|| {
-                types.push("repositories is a list of names.".to_owned());
-                Vec::new()
-            }),
+        Some(item) => {
+            let list = item.as_array();
+            let names: Vec<String> = list
+                .into_iter()
+                .flatten()
+                .filter_map(|name| name.as_str().map(str::to_owned))
+                .collect();
+            if list.is_none_or(|list| list.len() != names.len()) {
+                types.push(NOT_NAMES.to_owned());
+            }
+            names
+        }
     };
     let mut job = Job {
         name: text_of(table, "name").unwrap_or_default().to_owned(),
@@ -190,6 +197,10 @@ fn job(table: &dyn TableLike, duplicate: bool) -> Job {
             job.schedule = Some(schedule);
             job.problem = types.into_iter().next();
         }
+        // A list that is not names is the problem to fix, before the one it causes.
+        Err(problem) if problem == NO_REPOSITORY && types.iter().any(|kind| kind == NOT_NAMES) => {
+            job.problem = Some(NOT_NAMES.to_owned());
+        }
         Err(problem) => job.problem = Some(problem),
     }
     job
@@ -212,7 +223,7 @@ fn check(
         return Err(format!("Two jobs are named “{name}”."));
     }
     if repositories.is_empty() {
-        return Err("A job runs in one repository at least.".to_owned());
+        return Err(NO_REPOSITORY.to_owned());
     }
     let schedule = schedule(schedule_text)?;
     if prompt.trim().is_empty() {

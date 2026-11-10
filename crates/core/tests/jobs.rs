@@ -676,3 +676,24 @@ fn a_first_job_lands_at_the_end_of_the_file_whatever_the_top_level_holds() {
         );
     }
 }
+
+#[test]
+fn a_repository_that_is_not_a_name_is_the_jobs_problem() {
+    let dir = tempdir();
+    let text = [
+        table("Mixed", "\"a\", 3", "hourly", "\"x\""),
+        table("Numbers", "3", "hourly", "\"x\""),
+        table("Fine", "\"a\"", "hourly", "\"x\""),
+    ]
+    .join("\n");
+    write(dir.path(), &text);
+
+    let jobs = jobs::read(dir.path());
+
+    assert_eq!(problem(&jobs, "Mixed"), "repositories is a list of names.");
+    assert_eq!(
+        problem(&jobs, "Numbers"),
+        "repositories is a list of names."
+    );
+    assert_eq!(by_name(&jobs, "Fine", 0).problem, None);
+}
