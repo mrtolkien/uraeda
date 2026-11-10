@@ -193,3 +193,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   folder that does not exist. US3 only says the panes "say so" for both problems.
 - **Alternatives considered**: one text for both, "needs you": it hides which of the two to fix.
 - **Where**: task 5 of the plan, `UsageWindow.tsx`.
+
+## R13: The rail's bar follows the session in view, and shows nothing for one it cannot place
+
+- **Decision**: with accounts listed, the closed rail's bar falls back to the account a new session
+  would start on only when no session (and no feature's latest session) is in view. A session in
+  view whose account is not among the listed ones, or has none, shows no bar. With the account, the
+  bar's label and title name it: "b 5h: 58% left".
+- **Rationale**: findings 3 and 6 of wave 4 and Codex's finding 2: the bar showed another account's
+  five hours for a session that keeps its own account (US2: the bar follows the session in view),
+  and two pages' bars read alike while naming different accounts.
+- **Alternatives considered**: showing the runtime's server login for a session with no account: it
+  has no usage of its own to show while accounts are listed.
+- **Where**: task 5 of the plan, `sidebar/Allowance.tsx`.
