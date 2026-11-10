@@ -1707,3 +1707,19 @@ test("the plugin folder holds the skill", () => {
   });
   expect(existsSync(join(plugin, "skills", "uraeda", "SKILL.md"))).toBe(true);
 });
+
+test("a setting of lines gives accounts, even when none is a folder, so its problems show", () => {
+  const options = { imagesDir: "/data/images", pluginDir: "/plugin" };
+  expect(new ClaudeAdapter(options).accounts).toBeUndefined();
+  expect(new ClaudeAdapter({ ...options, accounts: [] }).accounts).toBeUndefined();
+  expect(new ClaudeAdapter({ ...options, accounts: ["", "  "] }).accounts).toBeUndefined();
+
+  // Only an invalid line: no account to pick, so sessions stay on the server's login.
+  const invalid = new ClaudeAdapter({ ...options, accounts: ["docs"] }).accounts;
+  expect(invalid?.list()).toEqual([]);
+  expect(invalid?.problems()).toEqual(["account folder docs is not an absolute path"]);
+
+  expect(
+    new ClaudeAdapter({ ...options, accounts: ["docs", "/srv/.claude-b"] }).accounts?.list(),
+  ).toHaveLength(1);
+});

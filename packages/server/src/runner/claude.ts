@@ -214,8 +214,9 @@ export function claudeEnv(options: OpenOptions): Record<string, string> | undefi
 
 export type ClaudeAdapterOptions = {
   /**
-   * The `accounts` setting's lines, the configuration folders new sessions pick between: none, or
-   * none that is a folder, gives the adapter no accounts.
+   * The `accounts` setting's lines, the configuration folders new sessions pick between: no line
+   * gives the adapter no accounts. Lines of which none is a folder give accounts with no account,
+   * for their problems to show, and sessions stay on the server's login.
    */
   accounts?: ReadonlyArray<string>;
   /** The command to run, `claude` from the `PATH` by default. */
@@ -268,7 +269,7 @@ export class ClaudeAdapter implements Adapter {
   readonly icon = "uraeda:harness-claude";
   readonly kind = "claude";
   readonly name = "Claude Code";
-  /** The listed folders, when the setting gives one. */
+  /** The listed folders, when the setting has a line, valid or not. */
   readonly accounts: ClaudeAccounts | undefined;
   /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */
   readonly capabilities: Capabilities = {
@@ -295,8 +296,9 @@ export class ClaudeAdapter implements Adapter {
   }: ClaudeAdapterOptions) {
     this.#extensions = extensions;
     this.#command = command;
-    const listed = new ClaudeAccounts({ ask: claudeAsk(command), lines: accounts ?? [] });
-    this.accounts = listed.folders.length > 0 ? listed : undefined;
+    this.accounts = accounts?.some((line) => line.trim() !== "")
+      ? new ClaudeAccounts({ ask: claudeAsk(command), lines: accounts })
+      : undefined;
     this.#configDir = configDir;
     this.#pluginDir = pluginDir;
     this.#imagesDir = imagesDir;
