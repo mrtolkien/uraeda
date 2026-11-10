@@ -170,12 +170,23 @@ fn names(root: &dyn TableLike) -> Result<Vec<String>, ApiError> {
         .collect())
 }
 
-/// Where the first job `name` is in the list, as written.
+/// Where the job `name` is in the list, as written. A name that more than one table has is
+/// refused: a write by name could not tell which job it is for, and the human renames one by hand.
 fn place(root: &dyn TableLike, name: &str) -> Result<usize, ApiError> {
-    names(root)?
+    let listed = names(root)?;
+    let mut found = listed
         .iter()
-        .position(|listed| listed == name.trim())
-        .ok_or_else(|| refused(format!("There is no job named “{name}”.")))
+        .enumerate()
+        .filter(|(_, listed)| *listed == name.trim())
+        .map(|(place, _)| place);
+    match (found.next(), found.next()) {
+        (Some(_), Some(_)) => Err(refused(format!(
+            "Two jobs are named “{}”. Rename one in config.toml.",
+            name.trim()
+        ))),
+        (Some(place), None) => Ok(place),
+        _ => Err(refused(format!("There is no job named “{name}”."))),
+    }
 }
 
 /// The table of the job at `place`.

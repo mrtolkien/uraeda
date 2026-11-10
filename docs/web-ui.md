@@ -219,8 +219,10 @@ back, it runs in the repeated hour too. A table that breaks a rule above is a jo
 the Jobs place lists it with the problem, and it does not run. A job that names no repository of
 Uraeda's list, whether it has no `repositories`, a value that is not a list of names, or a name that
 is misspelt, runs nowhere, so the Jobs place of every repository lists it, to be found and fixed. Of
-two jobs with one name, the second has the problem. A `jobs` that is not a list of tables is the
-jobs' own problem, and never makes the rest of the settings unreadable.
+two jobs with one name, the second has the problem, and every write by that name (a change on the
+page, `p`, `d`) is refused with "Two jobs are named “<name>”. Rename one in config.toml.", so the
+healthy one is never changed by the other's card: rename one by hand. A `jobs` that is not a list of
+tables is the jobs' own problem, and never makes the rest of the settings unreadable.
 
 Its `[keyboard]` table holds the keys' settings, each applied at once:
 
@@ -809,13 +811,14 @@ understood", "Not running here: Claude Code is off in this repository.", "Not ru
 Code is not available on this machine.", or "Two jobs are named “Dependencies”.". A problem of the
 job itself comes first, then a pause: a paused job reads "Paused" whatever its agent. A problem that
 does not stop the job here, like “notes” is not in Uraeda's list. for a job that runs in this
-repository too, shows beneath the time. Of two jobs with one name, each has its card. "Last run"
-says what the last run left for you, however many skipped times follow it. The keys act on the
-selected card, each also on its bar and by tap: `j` and `k` move the selection, Enter opens the
-job's page, `r` runs it now, `p` pauses or resumes it, `d` deletes it after "Delete the job
-“<name>”? Its prompt leaves config.toml, and its sessions stay.", and `a` adds a job. A refusal
-shows under its card until you dismiss it. Jobs is a built-in extension, turned off like the others:
-its place is gone in the repositories it is off in, and no job starts there.
+repository too, shows beneath the time. Of two jobs with one name, each has its card, and a key on
+either is refused with the words above until one is renamed in `config.toml`. "Last run" says what
+the last run left for you, however many skipped times follow it. The keys act on the selected card,
+each also on its bar and by tap: `j` and `k` move the selection, Enter opens the job's page, `r`
+runs it now, `p` pauses or resumes it, `d` deletes it after "Delete the job “<name>”? Its prompt
+leaves config.toml, and its sessions stay.", and `a` adds a job. A refusal shows under its card
+until you dismiss it. Jobs is a built-in extension, turned off like the others: its place is gone in
+the repositories it is off in, and no job starts there.
 
 A job's page, `/jobs/<name>`, is its form (a name the address cannot carry, as `new`, `.`, `..`, or
 one that starts with `~`, is written with a `~` before it): the name, the prompt, the schedule, the

@@ -619,3 +619,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `removeEmpty` and `announce` as functions the jobs call themselves:
   they need the context and `onChange`, which `Sessions` keeps private.
 - **Where**: the catch-up with the default branch, before the final review.
+
+## R41: A write by a name two jobs have is refused
+
+- **Decision**: the core's `update`, `set_on`, and `remove` refuse every write by a name that more
+  than one table has, with `Two jobs are named “<name>”. Rename one in config.toml.`, and write
+  nothing. A name only one table has is written as before. This replaces R30's "a write by that name
+  is the core's to refuse or to apply to the first": it is refused. A job's page still reads the
+  first job of its name.
+- **Rationale**: a write is by name, and the card of the second job of a name, which the record
+  lists in its own right, sent the name of both. `d` on it deleted the first, healthy job, and a
+  rename on its page copied the second's values over the first.
+- **Alternatives considered**: writes by `index`, the job's place in the file: the file may change
+  between a read and the write, so a place would land on another job, which a name does not.
+- **If wrong**: a human who wants the second removed edits `config.toml` by hand, as R30's "If
+  wrong" already said of its page.
+- **Where**: the final review's fix 1, task 1 and the Jobs place.

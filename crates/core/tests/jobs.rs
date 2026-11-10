@@ -729,8 +729,48 @@ fn names_are_trimmed_so_two_cannot_differ_by_spaces() {
         jobs.jobs[1].problem.as_deref(),
         Some("Two jobs are named “A”.")
     );
-    jobs::set_on(dir.path(), "A", false).unwrap();
-    assert!(!jobs::read(dir.path()).jobs[0].on);
+}
+
+/// Review 07, finding 1. Catches: a write by a name two jobs have acted on the first of them, so the
+/// card or page of the duplicate deleted, paused, or overwrote the other, healthy job.
+#[test]
+fn a_write_by_a_name_two_jobs_have_is_refused_and_writes_nothing() {
+    let dir = tempdir();
+    let twins = [
+        table("Deps", "\"uraeda\"", "hourly", "\"first\""),
+        table(" Deps ", "\"notes\"", "daily 03:00", "\"second\""),
+        table("Other", "\"uraeda\"", "hourly", "\"x\""),
+    ]
+    .join("\n");
+    write(dir.path(), &twins);
+    let message = "Two jobs are named “Deps”. Rename one in config.toml.";
+
+    assert_eq!(refusal(jobs::remove(dir.path(), "Deps")), message);
+    assert_eq!(refusal(jobs::set_on(dir.path(), "Deps", false)), message);
+    assert_eq!(
+        refusal(jobs::update(
+            dir.path(),
+            "Deps",
+            &input("Renamed", "hourly", "x")
+        )),
+        message
+    );
+    assert_eq!(text(dir.path()), twins);
+
+    // A job whose name only one table has is written as before, beside the twins.
+    jobs::set_on(dir.path(), "Other", false).unwrap();
+    assert!(!by_name(&jobs::read(dir.path()), "Other", 0).on);
+    // Once the human renames one by hand, the other is written again.
+    write(dir.path(), &twins.replacen(" Deps ", "Notes deps", 1));
+    jobs::remove(dir.path(), "Deps").unwrap();
+    let left = jobs::read(dir.path());
+    assert_eq!(
+        left.jobs
+            .iter()
+            .map(|job| job.name.as_str())
+            .collect::<Vec<_>>(),
+        ["Notes deps", "Other"]
+    );
 }
 
 #[test]

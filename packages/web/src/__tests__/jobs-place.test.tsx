@@ -318,6 +318,23 @@ test("d asks the shared confirmation, and deletes only on a yes (US4 more 1)", a
   await waitFor(() => expect(handlers.onRemove).toHaveBeenCalledWith("Dependencies"));
 });
 
+/**
+ * Review 07, finding 1. Catches: the core's refusal of a delete by a name two jobs have not showing
+ * under the card, as the refusal of `p` does.
+ */
+test("a refused delete shows its text under the card", async () => {
+  const handlers = spies();
+  const text = "Two jobs are named “Dependencies”. Rename one in config.toml.";
+  handlers.onRemove.mockResolvedValueOnce(text);
+  show(handlers);
+  press("d");
+  const dialog = await screen.findByRole("dialog", { name: "Delete the job “Dependencies”?" });
+  await act(async () => {
+    fireEvent.click(within(dialog).getByRole("button", { name: /Delete/ }));
+  });
+  await waitFor(() => expect(within(card("Dependencies")).getByText(text)).toBeTruthy());
+});
+
 test("with every job off, the banner says so, over the same cards", () => {
   show(spies(), undefined, JOBS, false);
   expect(screen.getByText("Scheduled jobs are off.")).toBeTruthy();

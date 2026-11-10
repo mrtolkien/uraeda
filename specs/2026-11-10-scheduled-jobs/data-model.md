@@ -45,7 +45,9 @@ A schedule is one of four forms, in lower case, its time on 24 hours:
 | `<day> HH:MM`    | `monday 04:00`   | that day of every week, `monday` to `sunday` |
 
 A table that fails a rule above is a job with a problem: it is listed with the problem, and does not
-run. Of two jobs with one name, the second has the problem.
+run. Of two jobs with one name, the second has the problem, and no write by that name is made: the
+write is refused with "Two jobs are named “<name>”. Rename one in config.toml." until one is renamed
+by hand.
 
 ## The `[runs]` table
 
