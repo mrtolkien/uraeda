@@ -30,12 +30,8 @@ export function works(ctx: RepoContext, session: string): boolean {
   }
   const { cache } = sessions;
   const { latest, queued } = turnsOf(cache, session);
-  const read = {
-    blocked: blockedOf(cache, latest),
-    latest,
-    queued,
-    wakeup: sessions.wakeup(session),
-  };
+  // A wakeup pending returned above: the status does not need it.
+  const read = { blocked: blockedOf(cache, latest), latest, queued };
   return statusOf(row, read).status === "working";
 }
 

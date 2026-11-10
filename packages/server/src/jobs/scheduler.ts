@@ -360,9 +360,12 @@ class JobScheduler implements Scheduler {
       if (runs.recorded(job.name, root, due)) {
         return false;
       }
+      // The workspace is read here when the start is not spaced, and kept for its last guards: the
+      // folders it names and the runs' are compared right before the start (R52).
+      let read = taken ? undefined : await this.#starts.openFor(ctx, job.name, root);
       const why = taken
         ? ({ reason: "working" } as const)
-        : await this.#starts.skipOf(ctx, job, root);
+        : this.#starts.skipNow(ctx, job, root, read);
       if (why !== undefined) {
         this.#skip(ctx, job.name, root, due, why);
         return false;
@@ -383,9 +386,11 @@ class JobScheduler implements Scheduler {
         this.#starts.reserve(key);
         holding = true;
       }
-      // The workspace is read first, which awaits, and the job after it: a pause, or the switch
-      // turned off during the read, stops the start (R49).
-      const read = await this.#starts.openFor(ctx, job.name, root);
+      // The workspace is read before the job, which awaits: a pause, or the switch turned off during
+      // the read, stops the start (R49). After the minute's wait it is read again.
+      if (spaced) {
+        read = await this.#starts.openFor(ctx, job.name, root);
+      }
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {
         return false;

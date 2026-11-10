@@ -1132,15 +1132,15 @@ test.each([
   // The run's change is merged: the next time reads the workspace, and finds nothing open.
   run.server.sessions.cache.attach(first.id, CHANGE);
 
-  // The second read of the workspace for the next time is held, and the change made during it.
+  // The read of the workspace for the next time is held, and the change made during it.
   const gate = Promise.withResolvers<void>();
   reads.gate = gate.promise;
   reads.held = 0;
-  reads.target = 2;
+  reads.target = 1;
   await run.at("12T02:59:00");
   run.state.clock = new Date("2026-11-12T03:00:10");
   await run.scheduler.tick();
-  while (reads.held < 2) {
+  while (reads.held < 1) {
     await turns(1);
   }
   change(run);
@@ -1182,11 +1182,11 @@ test("a change opened during a start's workspace read is open for it", async () 
   const gate = Promise.withResolvers<void>();
   reads.gate = gate.promise;
   reads.held = 0;
-  reads.target = 2;
+  reads.target = 1;
   await run.at("12T02:59:00");
   run.state.clock = new Date("2026-11-12T03:00:10");
   await run.scheduler.tick();
-  while (reads.held < 2) {
+  while (reads.held < 1) {
     await turns(1);
   }
   // The acceptance of the last run's offer ends meanwhile: its session is in a new change, which
