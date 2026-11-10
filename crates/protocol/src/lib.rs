@@ -41,6 +41,6 @@ pub use writing::{
     DefaultRoundDismiss, DefaultRoundNotes, DefaultRoundRetry, DefaultRoundSubmit, NotesSave,
     QueuedWrite, Recorded, ReviewApprove, ReviewComment, ReviewDecision, ReviewEdit, ReviewRemove,
     ReviewRequestChanges, ReviewStartOver, Saved, SettledAddComment, SettledEdit, SettledRemove,
-    TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply, UndoCommitted, UndoDirection,
-    WriteFailure, WriteQueue, WriteState, WritesDismiss,
+    StartStep, StepState, TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply,
+    UndoCommitted, UndoDirection, WriteFailure, WriteQueue, WriteState, WritesDismiss,
 };

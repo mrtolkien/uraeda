@@ -13,7 +13,7 @@ use super::{changed, options, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories::{self, Repository};
 use crate::records::workspace::status;
-use crate::records::writing::{Write, write};
+use crate::records::writing::{Write, land, write};
 use crate::shared::Shared;
 
 /// Registers the record `Feature`, and the actions on a feature that start no run.
@@ -116,9 +116,16 @@ fn drop(call: &Call, input: FeatureDrop) -> Result<Dropped, Fault> {
 fn promote(call: &Call, input: FeaturePromote) -> Result<PromotedView, Fault> {
     // TASK 15: `feature.promote` moves the change's sessions to the feature, refused while an
     // agent works on it, then sends the feature's first run.
-    let promote = Write::of_lists().and_feature(&input.folder);
-    let promoted = write(call.shared(), &input.repo, promote, |root| {
-        Ok(api::promote_change(root, &input.folder)?)
+    // Its commits, on the default branch and the change's, are made within its landing: they
+    // never run while another commit lands, and the priorities' wait for them.
+    let folder = input.folder;
+    let promote = Write::of_lists()
+        .and_feature(&folder)
+        .named(input.write)
+        .or_named(format!("Making the change {folder} a feature"), "");
+    let promoting = land(call.shared(), &input.repo, promote, move |root, _| {
+        Ok(api::promote_change(root, &folder)?)
     })?;
-    views::sent(&promoted)
+    // A refusal is the call's alone: it leaves the queue's record.
+    views::sent(&promoting.answered()?)
 }

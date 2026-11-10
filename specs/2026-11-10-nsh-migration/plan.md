@@ -785,6 +785,8 @@ Follows [what every records task does](#what-every-records-task-does).
   - A write of the lists answers `ListWritten { hash, change }`, `NoteMoved { change }`, or
     `FileWritten { path, change }`: the hash to write over next, the proposal file to open, and the
     change an undo writes back, an `UndoChange`.
+  - A feature's start answers `StartPlan` once planned, and lands as a write of the queue, with its
+    steps; a change's answers `ChangeStarted` once it landed (ruling T99.8).
   - `Trigger`, what starts a workflow turn, and the workflow's message text,
     `records/features/messages/text.rs`, which the sessions' runs use.
   - A feature's own run options, `records/features/options.rs`, kept in `run-options.json` of the
@@ -811,8 +813,9 @@ Follows [what every records task does](#what-every-records-task-does).
   `Write::saving()`, `Write::of_feature(folder)`, or `Write::of_lists()`, with `.file(name)` and
   `.named(Option<WriteName>)`. It also produces `files_changed(&Bus, repository, &Changes)`, for the
   one watcher.
-- **Left to later tasks** (ruling R65): the refusal of a feature's write while its agent works, for
-  task 15, and the parts of the Node queue that only starts, sessions, and git use.
+- **Left to later tasks** (ruling R65): the refusal of a feature's write while its agent works, and
+  the messages kept for a write, for task 15. The join built what starts and git use of the queue
+  (rulings T99.6 to T99.8).
 - [x] **Done**: `feat(nsh-migration): records of writing`
 
 ## Task 10: Records: git
@@ -826,9 +829,8 @@ Follows [what every records task does](#what-every-records-task-does).
 - **As built** (rulings R66 to R68): every record and action takes `repo`, the repository's name; a
   diff is asked with `{ repo, folder, commit, path, whole }`; the items of the page's lists carry an
   `id`; an action answers nothing but `git.saveConflict`; the fetcher runs as the server starts and
-  every 5 minutes. A write takes its repository's turn in `git/queue.rs`, which stands in for task
-  9's write queue. Nobody works in a checkout until task 15 answers `git/working.rs`'s two
-  functions, marked `TEMPORARY:`.
+  every 5 minutes. A write lands in the write queue, under its `write` (ruling T99.7). Nobody works
+  in a checkout until task 15 answers `git/working.rs`'s two functions, marked `TEMPORARY:`.
 - [x] **Done**: `feat(nsh-migration): records of git`
 
 ## Task 11: The session store, and its import

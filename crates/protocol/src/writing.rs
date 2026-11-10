@@ -83,6 +83,38 @@ pub struct QueuedWrite {
     pub failure: Option<WriteFailure>,
     /// What git and the hooks printed: as it comes, then the refusal's whole message.
     pub output: Option<String>,
+    /// For a start, its steps, in order: none for any other write.
+    pub steps: Option<Vec<StartStep>>,
+}
+
+/// A step of a start, and where it is.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct StartStep {
+    /// What it does, as "Commit the proposal on main, running your hooks".
+    pub label: String,
+    pub state: StepState,
+    /// When it started to run, in milliseconds since 1970: a client counts its seconds from
+    /// there while it runs.
+    pub started_at: Option<u64>,
+    /// The seconds it took, once it ended.
+    pub seconds: Option<u32>,
+    /// What the commit and its hooks printed, for the commit's step, or why it was refused.
+    pub output: Option<String>,
+}
+
+/// Where a step of a start is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum StepState {
+    /// Behind another step.
+    Waiting,
+    /// It runs.
+    Running,
+    /// It ended well.
+    Done,
+    /// It refused the start: the steps after it never ran.
+    Refused,
 }
 
 /// Where a queued write is.

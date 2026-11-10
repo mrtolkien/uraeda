@@ -32,6 +32,7 @@ use crate::shared::Shared;
 /// Registers the features' records and actions.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
     shared.provide(options::Store::new(shared.data_dir()));
+    shared.provide(starts::Starts::default());
     feature::register(registry);
     files::register(registry);
     priorities::register(registry);

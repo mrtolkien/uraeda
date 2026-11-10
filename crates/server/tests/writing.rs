@@ -118,6 +118,7 @@ async fn write_queue_answers_its_shape() {
         "state": "running",
         "failure": null,
         "output": null,
+        "steps": null,
     });
     assert_eq!(running.await, json!({ "writes": [write] }));
     hook.release();

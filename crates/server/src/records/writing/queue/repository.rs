@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 
 use uraeda_core::api::{self, ApiError};
-use uraeda_protocol::{ErrorCode, QueuedWrite, WriteFailure, WriteQueue, WriteState};
+use uraeda_protocol::{ErrorCode, QueuedWrite, StartStep, WriteFailure, WriteQueue, WriteState};
 
 use super::{Key, Write};
 use crate::live::{Bus, Fault};
@@ -122,8 +122,12 @@ impl Queue {
         state.queued += 1;
         let id = format!("write-{}", state.queued);
         let label = by.label.clone().unwrap_or_default();
+        let write = QueuedWrite {
+            steps: by.steps.clone(),
+            ..by.queued(id.clone(), label)
+        };
         state.entries.push(Entry {
-            write: by.queued(id.clone(), label),
+            write,
             keys: by.keys.clone(),
             work: Work::Own(Some(land)),
             by,
@@ -233,6 +237,23 @@ impl Queue {
         state.entries.retain(|entry| !waiting(entry));
         drop(state);
         self.moved.notify_all();
+    }
+
+    /// Lets the writes of the lists stop waiting for a write still landing: a start whose commit
+    /// landed lets them go while it makes its branch.
+    fn free_lists(&self, id: &str) {
+        if let Some(entry) = self.state().entry(id) {
+            entry.keys.retain(|key| *key != Key::Lists);
+        }
+        self.moved.notify_all();
+    }
+
+    /// Replaces a start's steps in the record.
+    fn set_steps(&self, id: &str, steps: Vec<StartStep>) {
+        if let Some(entry) = self.state().entry(id) {
+            entry.write.steps = Some(steps);
+        }
+        self.changed();
     }
 
     /// Says the record changed.
@@ -380,6 +401,17 @@ impl Landing<'_> {
     /// Adds a line git or a hook printed to the write's output.
     pub(crate) fn printed(&self, line: &str) {
         self.queue.printed(self.id, line);
+    }
+
+    /// Shows a start's steps as they are now.
+    pub(crate) fn steps(&self, steps: Vec<StartStep>) {
+        self.queue.set_steps(self.id, steps);
+    }
+
+    /// Lets the lists' writes stop waiting for this one, which goes on: a start whose commit
+    /// landed, as it makes its branch.
+    pub(crate) fn free_lists(&self) {
+        self.queue.free_lists(self.id);
     }
 }
 

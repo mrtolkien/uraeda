@@ -27,7 +27,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::JoinHandle;
 
 use uraeda_core::api;
-use uraeda_protocol::{QueuedWrite, WriteName, WriteQueue, WriteState, WritesDismiss};
+use uraeda_protocol::{QueuedWrite, StartStep, WriteName, WriteQueue, WriteState, WritesDismiss};
 
 pub(crate) use repository::Landing;
 use repository::{Landed, Queue};
@@ -62,6 +62,8 @@ pub(crate) struct Write {
     file: Option<String>,
     /// Whether the record shows it: the server's own fetch lands unseen.
     seen: bool,
+    /// For a start, its steps as it is queued.
+    steps: Option<Vec<StartStep>>,
 }
 
 impl Default for Write {
@@ -74,6 +76,7 @@ impl Default for Write {
             folder: None,
             file: None,
             seen: true,
+            steps: None,
         }
     }
 }
@@ -151,6 +154,13 @@ impl Write {
         self
     }
 
+    /// The steps of a start, which its write shows from the moment it is queued: its landing
+    /// moves them with [`Landing::steps`].
+    pub(crate) fn steps(mut self, steps: Vec<StartStep>) -> Write {
+        self.steps = Some(steps);
+        self
+    }
+
     /// The write, or one of its commits, as the record shows it, waiting: `subject` names it
     /// when the client did not.
     fn queued(&self, id: String, subject: String) -> QueuedWrite {
@@ -167,6 +177,7 @@ impl Write {
             state: WriteState::Waiting,
             failure: None,
             output: None,
+            steps: None,
         }
     }
 }

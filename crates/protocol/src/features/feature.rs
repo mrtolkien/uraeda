@@ -133,11 +133,14 @@ action!(FeatureDrop, "feature.drop", Dropped);
 /// `specs/`, and **Now** links it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(optional_fields = nullable)]
 pub struct FeaturePromote {
     /// The repository's name in the list.
     pub repo: String,
     /// The feature's or the change's folder.
     pub folder: String,
+    /// The name the write queue shows the move under while it lands.
+    pub write: Option<WriteName>,
 }
 
 action!(FeaturePromote, "feature.promote", PromotedView);

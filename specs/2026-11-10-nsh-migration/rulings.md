@@ -1131,7 +1131,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     and lacks `agent` and `tokens`. Its status is the step's alone, as the workspace's.
   - `RecommendedMessage` takes an agent as available.
   - The starts keep and send no message, and the `change.*` starts answer `session: null`: the
-    change's page offers its message unsent. `feature.drop` and `feature.promote` hold, archive, and
+    change's page offers its message unsent. Since the join a start is a write of the queue, and a
+    feature's answers once planned (T99.8). `feature.drop` and `feature.promote` hold, archive, and
     move no session, and no write is refused while an agent works.
   - A typed start with images is refused: the uploads (task 16) keep an image's bytes, and
     `starts.rs` has the one function that reads them, marked `// JOIN(wave 6): chat images`.
@@ -1172,8 +1173,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     change.
   - Every record and action names its repository, `repo`, by its name in the list. An action that
     commits takes `write`, `{ href, label }`, the name the write queue shows its commit under.
-  - `QueuedWrite` has no `queued` and no `steps`, and `WriteFailure` no `unsent`: nothing sets them
-    before starts and kept messages are ported. A new field keeps the protocol's version.
+  - `QueuedWrite` has no `queued`, and `WriteFailure` no `unsent`: nothing sets them before kept
+    messages are ported (task 15). `steps` came with the starts, at the join (T99.8). A new field
+    keeps the protocol's version.
 - **Rationale**: fate answered a mutation with its whole record, which was how a page saw its own
   write. Here the subscription brings it, so an answer that repeated it would send a spec twice. The
   hash and the change are what a client must hold before the record's change arrives: the next save
@@ -1235,9 +1237,10 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     sessions. Each handler of writing knows the folder or the path it writes, so the refusal is one
     check before its `write`.
   - **A landing of its own, and its steps** (`add`, `enqueue`, `update`, `free`, `inTurn`): a
-    start's write. An entry holds the id of a deferred commit: it becomes a closure.
+    start's write. Built at the join, as `writing::land` (T99.7) and the starts (T99.8).
   - **Kept messages** (`unsent`, `waits`, `settled`, and `queued` on a write): sessions.
   - **Git's own writes** (`arrive`, `background`, and `landed`): task 10's actions and the fetcher.
+    Built at the join (T99.7); `arrive` is the order of a connection's calls (T99.9).
   - **A repository leaving the list**: its queue stays open until the server stops.
   - **The other domains' records**: a write here said `Buffer` and `WriteQueue` only. Since the
     join, the queue tells every domain after each write and each landing (T99.6).
@@ -1854,3 +1857,47 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   runs, hooks included: a stage behind a slow commit waits for it.
 - **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs}`,
   `records/git/{writes,fetcher}.rs`, `crates/protocol/src/git.rs`. Tasks 15 and 46.
+
+## T99.8: A start is a write of the queue, with its steps, and a feature's answers once planned
+
+- **Decision**: the starts run as the Node server's did, in place of R60's stand-in.
+  - **A feature's start answers once planned.** `feature.start` and `feature.startText` plan the
+    start, queue it, and answer `StartPlan`. The start lands behind the answer, as a write of the
+    queue named `Starting the feature <title>`, or by the client's `write`. A refusal stays in the
+    record until dismissed, with the page it opens: none for a proposal file, and
+    `/new?kind=feature` for a typed one, whose composer still holds the text. A typed feature's run
+    options, kept for its planned folder, are dropped again when its start is refused.
+  - **One plan at a time for a repository**, and a start holds its folder and its slug while it is
+    in the queue: a second start planned for either is refused in the core's own words for a taken
+    slug, before anything is queued.
+  - **A change's start answers once it landed.** `change.start`, `change.startProposal`, and
+    `change.fromNote` queue the start as `Starting a change`, and wait for it: they answer its
+    folder, which only the start knows. A refusal is the call's alone, and leaves the record.
+    `change.fromNote` then takes the note out of the inbox, in a commit of the lists' queue.
+  - **Its steps** are in its write, `QueuedWrite.steps`:
+    `Commit the proposal on <default branch>, running your hooks`, then
+    `Make the branch <branch> and its worktree`, each a `StartStep` with its `state`, `waiting`,
+    `running`, `done`, or `refused`, and the commit's with what the hooks printed, or the refusal.
+    The Node server's third step, the agent's, comes with the first run (task 15).
+  - **A step's time**: `startedAt`, in milliseconds since 1970, while it runs, and `seconds` once it
+    ended. The Node server counted a running step's seconds itself, and sent the record every
+    second. A client counts from `startedAt`, so a start that runs sends nothing but its steps.
+  - **The lists go free at the branch**: the writes of the lists wait for a start until its commit
+    landed, and its feature's until it ended.
+  - **`feature.promote`** lands as a write of its own too, named
+    `Making the change <folder> a feature` or by its `write`, and answers once it landed. Its
+    refusal is the call's alone.
+- **Rationale**: R60 named the cost of answering once landed, a caller blocked for as long as the
+  repository's hooks run, and why it could not answer earlier, no record to say a late refusal in.
+  The queue's record is that place.
+- **How it was checked**: `a_start_answers_once_planned_and_lands_in_the_queue_with_its_steps` got
+  no answer while a commit's hooks ran. It asserts the plan answered behind a running commit, the
+  start's two steps, a second start of the folder refused, the feature once it landed, and a start a
+  hook refused left in the record with its refused step, its output, and no feature.
+  `starting_a_proposal_file_makes_its_feature_on_a_branch_of_its_own` and the typed feature's test
+  now wait for the queue to be idle before they read git.
+- **If wrong**: a client that wants a start's outcome in the call's answer waits for its write to
+  leave the queue, or to be refused there.
+- **Where**: `crates/server/src/records/features/{starts.rs,starts/queued.rs,starts/steps.rs}`,
+  `records/features/feature.rs`, `crates/protocol/src/{writing.rs,features/starts.rs}`. Tasks 15,
+  38, and 50.

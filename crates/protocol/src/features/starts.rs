@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::shared::{ChatImage, RunOptions};
+use crate::shared::{ChatImage, RunOptions, WriteName};
 
 /// What a start makes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -15,7 +15,8 @@ pub enum StartKind {
     Change,
 }
 
-/// A feature started: what its session page opens with.
+/// A feature whose start is planned and queued: what its session page opens with. The start
+/// lands behind this answer, as a write of the queue, where its steps and a refusal show.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StartPlan {
@@ -38,7 +39,8 @@ pub struct ChangeStarted {
     pub session: Option<String>,
 }
 
-/// Starts a proposal file as a feature, or as a change, in its own worktree.
+/// Starts a proposal file as a feature, or as a change, in its own worktree. It answers once the
+/// start is planned: the write queue shows it land.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(optional_fields = nullable)]
@@ -51,6 +53,8 @@ pub struct FeatureStart {
     pub slug: Option<String>,
     /// A feature when none is given.
     pub kind: Option<StartKind>,
+    /// The name the write queue shows the start under while it lands.
+    pub write: Option<WriteName>,
 }
 
 action!(FeatureStart, "feature.start", StartPlan);
@@ -74,6 +78,8 @@ pub struct FeatureStartText {
     pub discovery: Option<String>,
     /// Its own run options, only what differs from the settings'.
     pub options: Option<RunOptions>,
+    /// The name the write queue shows the start under while it lands.
+    pub write: Option<WriteName>,
 }
 
 action!(FeatureStartText, "feature.startText", StartPlan);

@@ -868,7 +868,11 @@ repo: string,
 /**
  * The feature's or the change's folder.
  */
-folder: string, };
+folder: string, 
+/**
+ * The name the write queue shows the move under while it lands.
+ */
+write?: WriteName | null, };
 
 /**
  * Keeps a feature's own run options, only what differs from the settings': they apply from its
@@ -889,7 +893,8 @@ folder: string,
 options: RunOptions, };
 
 /**
- * Starts a proposal file as a feature, or as a change, in its own worktree.
+ * Starts a proposal file as a feature, or as a change, in its own worktree. It answers once the
+ * start is planned: the write queue shows it land.
  */
 export type FeatureStart = { 
 /**
@@ -907,7 +912,11 @@ slug?: string | null,
 /**
  * A feature when none is given.
  */
-kind?: StartKind | null, };
+kind?: StartKind | null, 
+/**
+ * The name the write queue shows the start under while it lands.
+ */
+write?: WriteName | null, };
 
 /**
  * Starts a feature typed as a text: its first written line is its title.
@@ -940,7 +949,11 @@ discovery?: string | null,
 /**
  * Its own run options, only what differs from the settings'.
  */
-options?: RunOptions | null, };
+options?: RunOptions | null, 
+/**
+ * The name the write queue shows the start under while it lands.
+ */
+write?: WriteName | null, };
 
 /**
  * A feature's status, decided in one place from its step and its sessions: every view and the
@@ -3212,7 +3225,11 @@ failure: WriteFailure | null,
 /**
  * What git and the hooks printed: as it comes, then the refusal's whole message.
  */
-output: string | null, };
+output: string | null, 
+/**
+ * For a start, its steps, in order: none for any other write.
+ */
+steps: Array<StartStep> | null, };
 
 /**
  * The one workflow message that applies to a feature now, by its folder, which its session's
@@ -4164,7 +4181,8 @@ started: string | null, };
 export type StartKind = "feature" | "change";
 
 /**
- * A feature started: what its session page opens with.
+ * A feature whose start is planned and queued: what its session page opens with. The start
+ * lands behind this answer, as a write of the queue, where its steps and a refusal show.
  */
 export type StartPlan = { 
 /**
@@ -4179,6 +4197,28 @@ title: string,
  * The workflow's message of its first step, which its session's composer holds.
  */
 message: string, };
+
+/**
+ * A step of a start, and where it is.
+ */
+export type StartStep = { 
+/**
+ * What it does, as "Commit the proposal on main, running your hooks".
+ */
+label: string, state: StepState, 
+/**
+ * When it started to run, in milliseconds since 1970: a client counts its seconds from
+ * there while it runs.
+ */
+startedAt: number | null, 
+/**
+ * The seconds it took, once it ended.
+ */
+seconds: number | null, 
+/**
+ * What the commit and its hooks printed, for the commit's step, or why it was refused.
+ */
+output: string | null, };
 
 /**
  * Why a status needs the human, or works with no turn running.
@@ -4211,6 +4251,11 @@ effort: string | null,
  * Whether the step starts a clean session.
  */
 newSession: boolean | null, };
+
+/**
+ * Where a step of a start is.
+ */
+export type StepState = "waiting" | "running" | "done" | "refused";
 
 /**
  * A feature's step in the workflow.

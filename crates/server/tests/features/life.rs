@@ -6,8 +6,8 @@ use serde_json::{Value, json};
 use uraeda_protocol::ErrorCode;
 
 use super::{
-    HUMAN, Held, REPO, call, done, fixture_repo, hash_of, idle, of_item, of_repo, served, serving,
-    subjects,
+    HUMAN, Held, Hook, REPO, call, done, fixture_repo, hash_of, idle, of_item, of_repo, served,
+    serving, subjects, writes,
 };
 
 const LISTENER: &str = "specs/proposals/git-listener.md";
@@ -32,6 +32,8 @@ async fn starting_a_proposal_file_makes_its_feature_on_a_branch_of_its_own() {
     let (repo, server) = served().await;
 
     let plan = done(&server, "feature.start", json!({ "proposal": LISTENER })).await;
+    // It answers once planned: the start lands behind its answer.
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
 
     let folder = plan["folder"].as_str().expect("the folder");
     assert!(folder.ends_with("-git-listener"), "{folder}");
@@ -58,6 +60,64 @@ async fn starting_a_proposal_file_makes_its_feature_on_a_branch_of_its_own() {
     );
 }
 
+// The break it catches: a start that answers only once it landed, hooks included, with nothing
+// to show while it runs; a second start planned for a folder whose first is still queued; and a
+// refusal that is its call's alone, lost with the dialog that made it.
+#[tokio::test]
+async fn a_start_answers_once_planned_and_lands_in_the_queue_with_its_steps() {
+    let (repo, server) = served().await;
+    let hook = Hook::held(&repo);
+    let mut queue = Held::open(&server, "WriteQueue", json!({ "repo": REPO })).await;
+    let hash = hash_of(&server, "Priorities").await;
+    let added = json!({ "section": "next", "text": "Pair a phone", "hash": hash });
+    done(&server, "proposals.add", added).await;
+    done(&server, "priorities.commit", json!({})).await;
+
+    // Behind a commit whose hooks run, the start answers its plan, and waits in the queue.
+    let start = json!({ "proposal": LISTENER });
+    let plan = done(&server, "feature.start", start.clone()).await;
+    let folder = plan["folder"].as_str().expect("the folder");
+    let title = "Starting the feature Git listener process";
+    let waiting = |queue: &Value| writes(queue).last() == Some(&format!("{title} waiting"));
+    let write = queue.until("the start to wait", waiting).await["writes"][1].clone();
+    let labels: Vec<&Value> = write["steps"].as_array().expect("steps").iter().collect();
+    let labels: Vec<&Value> = labels.iter().map(|step| &step["label"]).collect();
+    let branching = format!("Make the branch {folder} and its worktree");
+    let committing = "Commit the proposal on main, running your hooks";
+    assert_eq!(labels, [&json!(committing), &json!(branching)]);
+    assert_eq!(write["folder"], folder);
+    // Its folder is taken from then on: a second start of it is refused.
+    let mut again = start;
+    again["repo"] = json!(REPO);
+    let (code, taken) = call(&server, "feature.start", again).await.unwrap_err();
+    assert_eq!(code, ErrorCode::Refused);
+    assert!(taken.contains("exists already"), "{taken}");
+
+    hook.release();
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
+    assert_eq!(of_item(&server, "Feature", folder).await["branch"], folder);
+
+    // A start a hook refuses answered its plan already: it stays in the record, with the step
+    // that refused it and what the hook printed, and made no feature.
+    hook.refusing(true);
+    let typed = json!({ "text": "Pair a phone\n\nFrom a code.", "slug": "pair-a-phone" });
+    let plan = done(&server, "feature.startText", typed).await;
+    let refused = |queue: &Value| writes(queue) == ["Starting the feature Pair a phone refused"];
+    let write = queue.until("the start to be refused", refused).await["writes"][0].clone();
+    assert_eq!(
+        (&write["failure"], &write["href"]),
+        (&json!("hook"), &json!("/new?kind=feature"))
+    );
+    let step = &write["steps"][0];
+    assert_eq!(step["state"], "refused");
+    assert!(
+        step["output"].as_str().unwrap().contains("lint: 1 problem"),
+        "{step}"
+    );
+    let folder = plan["folder"].as_str().expect("the folder");
+    assert_eq!(of_item(&server, "Feature", folder).await, Value::Null);
+}
+
 #[tokio::test]
 async fn a_start_the_core_refuses_writes_nothing() {
     let (repo, server) = served().await;
@@ -82,6 +142,7 @@ async fn starting_a_typed_feature_writes_its_proposal_and_keeps_its_run_options(
     let input =
         json!({ "text": text, "slug": "pair-a-phone", "discovery": "low", "options": options });
     let plan = done(&server, "feature.startText", input).await;
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
 
     let folder = plan["folder"].as_str().expect("the folder");
     assert!(folder.ends_with("-pair-a-phone"), "{folder}");
