@@ -37,6 +37,8 @@ pub const OPEN: &[(&str, Open)] = &[
     ("/session/{token}", Open::Anyone),
     // Pairing a device, with a one-time code.
     ("/pair", Open::Anyone),
+    // The agents' tools: an agent's process signs in with the token the server issued it.
+    ("/mcp", Open::Anyone),
     // The host's own: a second start's folder, a new key, a pairing code.
     ("/open", Open::Host),
     ("/session/key", Open::Host),

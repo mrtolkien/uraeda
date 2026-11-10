@@ -1490,3 +1490,100 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/cli/tests/import_sessions.rs`; `fixtures/runner/`; and the command's lines in
   `docs/cli.md` and `skills/uraeda/references/cli.md`.
 - **Where**: task 61.
+
+## R75: `/mcp` is open to the session check, and closed by a process's own token
+
+- **Decision**: `/mcp` is in `sign_in::OPEN`, as `Open::Anyone`, and a layer of its own route
+  answers 401 `Unauthorized`, before the body is read and whatever the method, to a request without
+  the token of an agent's process. A session's cookie, a device's token, and the host token open
+  nothing there.
+  - A token is 32 random bytes, `secret::random(32)`, made by `Mcp::issue(session)` and ended by
+    `Mcp::revoke(token)`. A session holds one at a time: its next process's token ends the one
+    before.
+  - It is kept as a `secret::Hashed`, in memory only, and compared with `Hashed::is`, every token
+    each time. The runtime gives it to its process in the environment (tasks 13 to 15), never in a
+    file and never in the arguments.
+- **Rationale**: it is the Node server's rule, `TOKEN_PATHS` of `sign-in/check.ts`. An agent's
+  process has no cookie, and a token per process ends with the process, where a session's would give
+  an agent everything its owner reaches.
+- **If wrong**: the sign-in decision's first rule lists the open routes, and `/mcp` is not among
+  them, on the Node server either. Only a human amends a decision: the line to add is "and the
+  agents' MCP endpoint, which takes the token of an agent's process".
+- **Where**: task 16, `crates/server/src/mcp/{mod,tokens}.rs`, `sign_in/check.rs`, and the tests
+  `the_mcp_endpoint_refuses_a_wrong_token` and
+  `every_route_but_the_open_ones_refuses_a_request_without_a_session`. Tasks 13 to 15.
+
+## R76: The endpoint declares the tools, and the sessions run them through `mcp::Runner`
+
+- **Decision**: `run_agent` and `review`, the only tools the Node server has, both run agents, so
+  neither is served by the core alone. `crates/server/src/mcp/tools.rs` holds what an agent reads of
+  each, its description and its arguments' schema, and the check of the arguments. What they do is
+  the trait `mcp::Runner`, which task 15 gives with `shared.get::<Mcp>().serve(runner)`:
+  - `fn run_agent(&self, session: &str, input: RunAgent) -> Answer`, with
+    `RunAgent { task, prompt, worktree }`;
+  - `fn review(&self, session: &str, input: Review) -> Answer`, with
+    `Review { reviewed, base, head, context: Option<String> }`;
+  - `Answer` is a boxed future of `Result<String, String>`: the tool's text, or its refusal, which
+    the agent reads as the tool's error (`isError`).
+  - Until `serve` is called, `tools/list` lists both, and a call answers the tool's error
+    `` `run_agent` is not available: this server runs no agent yet. ``
+  - **A call stops by being dropped.** The call's stream holds the `Answer`. A
+    `notifications/cancelled` of the same session and id, and a connection that drops, drop it,
+    where the Node server aborted a signal. What must stop with a call stops in a `Drop`.
+  - Progress is sent every 30 seconds: a `notifications/progress` with the client's token, or a
+    comment without one.
+- **Rationale**: a trait with both methods fails to compile when one tool is forgotten, and the
+  arguments reach the sessions typed and checked. A dropped future cannot be left running by a tool
+  that forgot to look at a signal.
+- **If wrong**: a tool that must do something that awaits as it stops needs a task of its own,
+  started from its `Drop`.
+- **Where**: task 16, `crates/server/src/mcp/{tools,endpoint}.rs`, and the tests
+  `a_tool_the_sessions_have_not_filled_answers_a_clear_error`,
+  `a_long_call_reports_progress_every_30_seconds`, and
+  `a_cancellation_or_a_dropped_connection_stops_the_tool`. Task 15.
+
+## R77: A mockup's path holds no frame secret yet, and the links without a repository are gone
+
+- **Decision**: what of the Node server's file routes is not ported as it was.
+  - `GET /r/:name/mockups/<path>` serves the file at `<path>`, to a signed-in request only. The Node
+    server's path starts with the frame secret, and a path without it is sent to its path under it
+    with 303. Task 18 owns the secret: the comment `TASK 18: frame secret`, in `files/raw.rs`, is
+    where its check and the redirect go. Until then, a sandboxed frame, which sends `Origin: null`,
+    gets the guard's 404 on a mockup.
+  - `GET /raw/*` and `GET /mockups/*` without `/r/:name`, which sent a link from before repositories
+    had names to the most recently opened one, are not ported: compatibility may break.
+  - `DELETE /r/:name/chat-images/:id` deletes an image without asking whether a sent message holds
+    it: the session store answers that (task 11), through `files::images::in_a_message`, marked
+    `JOIN(wave 6)`. So does the refusal of an upload to a feature an agent works on,
+    `files::attach::writable`. No session exists on this server before task 15.
+  - What a path may read is the core's rule alone, `api::read_raw` and `api::read_image`: nothing
+    outside the repository, hidden, untracked, or behind a symlink. The server opens no file of a
+    repository itself.
+- **Rationale**: R36 says the guard's frame check waits for task 18, and both tasks are built at the
+  same time. One home for the containment rule is what `ura lsp` and the server share.
+- **If wrong**: the Node server answered every route but mockups' and previews' with
+  `X-Frame-Options: SAMEORIGIN`. The Rust server has no such layer yet: it belongs in
+  `http::router`, with the frame paths of task 18.
+- **Where**: task 16, `crates/server/src/files/`, and the tests
+  `a_raw_path_cannot_leave_its_repository` and
+  `a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder`. Tasks 11, 15, and 18.
+
+## R78: Uploads are read with axum's `multipart`, after the refusals that need no body
+
+- **Decision**: `axum` gains the features `multipart` and `query`. Three crates are new in the
+  lockfile: `multer` and its `spin`, and `serde_urlencoded`.
+  - A body that declares more than 21 MiB, the core's 20 MB and room for the multipart around it, is
+    refused before it is read, with the core's text, naming the file from the query string. A body
+    without a declared size is counted as it is read, and refused past the limit as 21 MB.
+  - The other refusals that need no image come before the body is read too.
+  - An upload's answer carries the change its write made, `{ commit, files }` with each file's two
+    sides in base64, as the Node binding's `takeChange` gave it: the core's `undo::recorded` gives
+    it with the write, so no token names it.
+- **Rationale**: a hand-written multipart parser is where uploads break. `multer` is the parser axum
+  itself uses.
+- **If wrong**: the change's form for a client is `files/change.rs`, marked `JOIN(wave 6)`: the
+  undo's actions (task 9) own it.
+- **Where**: task 16, `Cargo.toml`, `crates/server/src/files/{attach,change}.rs`, and the tests
+  `an_upload_comes_back_as_the_image_it_was`,
+  `an_upload_over_the_limit_is_refused_without_reading_it`, and
+  `a_refused_upload_says_why_and_writes_nothing`. Task 9.

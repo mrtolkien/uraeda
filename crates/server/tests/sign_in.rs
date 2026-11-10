@@ -294,7 +294,7 @@ async fn every_route_but_the_open_ones_refuses_a_request_without_a_session() {
     let server = support::server().await;
     // Open to anyone the guard lets through: each checks what it is given. `/live` checks its
     // `hello`.
-    let open = ["/live", "/session", "/session/{token}", "/pair"];
+    let open = ["/live", "/session", "/session/{token}", "/pair", "/mcp"];
     // Open to the host's own `ura` and app, with the host token of the status file.
     let host = ["/open", "/session/key", "/pair/code"];
     let cookie = server.sign_in().await;

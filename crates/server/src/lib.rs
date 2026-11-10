@@ -21,10 +21,12 @@
 
 mod clock;
 mod env;
+mod files;
 pub mod guard;
 mod handoff;
 mod http;
 pub mod live;
+pub mod mcp;
 mod records;
 mod run;
 pub mod runner;
@@ -70,6 +72,8 @@ const DOMAINS: &[Mount] = &[
     runner::mount,
     http::open::mount,
     http::socket::mount,
+    files::mount,
+    mcp::mount,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with

@@ -957,7 +957,22 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: `Store` (11), `Runtime` (12), `Bus` (6).
+- Consumes: `Store` (11), `Runtime` (12), `Bus` (6), and the MCP endpoint's `Mcp` (16).
+- Fills what task 16 left to the sessions (ruling R76):
+  - The tools `run_agent` and `review`: `shared.get::<Mcp>().serve(runner)`, with an
+    `Arc<dyn mcp::Runner>`, whose `run_agent(&self, session: &str, input: RunAgent) -> Answer` and
+    `review(&self, session: &str, input: Review) -> Answer` do what
+    [`sub-sessions.ts`](/packages/server/src/runner/sub-sessions.ts) and
+    [`reviews.ts`](/packages/server/src/runner/reviews.ts) do. The endpoint has checked the
+    arguments, and drops the `Answer` when the call is cancelled or its connection drops.
+  - A process's token: `Mcp::issue(session)` as its process starts, given to it with `mcp::url`, and
+    `Mcp::revoke(token)` as it closes.
+  - `files::images::in_a_message`, which keeps `DELETE /r/:name/chat-images/:id` from deleting an
+    image a sent message holds, and `files::attach::writable`, which refuses an upload to a feature
+    an agent works on. Both are marked `JOIN(wave 6)`.
+  - The cleanup of the chat images no message holds, a day after they were written, as
+    `ChatImages.clean` does as the Node server starts: `files::chat_images` has no such function
+    yet.
 - Produces: records Agent, Session, SessionList, SessionSearch, Turn, TurnLog; actions `session.*`
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
@@ -990,21 +1005,27 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/server/src/files.rs`, `crates/server/src/mcp.rs`
+- Create: `crates/server/src/files/{mod,repository,raw,images,chat_images,attach,change}.rs`,
+  `crates/server/src/mcp/{mod,tokens,tools,endpoint}.rs`
 - Test: `crates/server/tests/files.rs`, `crates/server/tests/mcp.rs`
 
 **Interfaces:**
 
-- Produces: `/r/:name/raw/*`, `/mockups/*`, `/images/*`, `/chat-images/:id`, `POST /r/:name/attach`,
-  `POST /r/:name/inbox/note-image`, and `/mcp` with its per-process token, as
-  [`files.ts`](/packages/server/src/files.ts), `attach.ts`, and `mcp/` have them.
+- Produces, under `/r/:name`, each closed: `GET /raw/*`, `GET /mockups/*`, `GET /images/*`, `GET`
+  and `DELETE /chat-images/:id`, `POST /attach`, `POST /inbox/note-image`, as
+  [`files.ts`](/packages/server/src/files.ts) and `attach.ts` have them. A mockup's path holds no
+  frame secret until task 18 (ruling R77).
+- Produces `/mcp`, open to the session check and closed by its own per-process tokens, as `mcp/` has
+  it (ruling R75): `shared.get::<Mcp>()` with `issue(session)`, `revoke(token)`, and
+  `serve(runner)`, the trait `mcp::Runner` for the tools `run_agent` and `review`, which task 15
+  fills, and `mcp::url(&shared)` (ruling R76).
 
-- [ ] **Step 1: Write the failing tests**: `a raw path cannot leave its repository`;
+- [x] **Step 1: Write the failing tests**: `a raw path cannot leave its repository`;
       `an upload     comes back as the image it was`; `the MCP endpoint refuses a wrong token`.
-- [ ] **Step 2: Run them**. Expected: FAIL, 404.
-- [ ] **Step 3: Implement**, porting each route and its checks.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): files, uploads, and the MCP endpoint`.
+- [x] **Step 2: Run them**. Expected: FAIL, 404.
+- [x] **Step 3: Implement**, porting each route and its checks.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): files, uploads, and the MCP endpoint`.
 
 ## Task 17: The VM for extensions' server parts
 

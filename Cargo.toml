@@ -31,6 +31,8 @@ axum = { version = "0.8", default-features = false, features = [
   "http1",
   "json",
   "matched-path",
+  "multipart",
+  "query",
   "tokio",
   "ws",
 ] }

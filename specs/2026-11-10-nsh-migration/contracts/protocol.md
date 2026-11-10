@@ -284,7 +284,8 @@ of these:
   the dot, and names it in the record `Devices`.
 
 The routes open without either are the ones that sign in: `/live`, which checks its `hello`,
-`/session`, `/session/<token>`, and `/pair`. A path that is no route answers the client's own files.
+`/session`, `/session/<token>`, and `/pair`. So is `/mcp`, which is no client's: an agent's process
+gives the token the server issued it. A path that is no route answers the client's own files.
 
 - A wrong key or code is answered 401 a second later, and never locks anyone out.
 - `GET /session` answers 204 when the request is signed in, and 401 when it is not.
@@ -309,6 +310,7 @@ the host token of the server's status file, as `Authorization: Bearer <token>`.
 | `POST /pair/code`                                               | Host: a pairing code             | 5    |
 | `POST /session/key`                                             | Host: a new access key           | 5    |
 | `/r/:name/raw/*`, `/mockups/*`, `/images/*`, `/chat-images/:id` | Files and images, as bytes       | 16   |
+| `DELETE /r/:name/chat-images/:id`                               | A chat's image, taken back       | 16   |
 | `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`        | Uploads                          | 16   |
 | `/mcp`                                                          | The agents' MCP endpoint         | 16   |
 | Preview paths, with the frame secret                            | Previews, proxied                | 18   |
