@@ -22,14 +22,16 @@ const inHours = (hours: number) => new Date(Date.now() + hours * 3_600_000).toIS
 
 type Window = Runtime["usage"][number];
 type Account = Runtime["accounts"][number];
+type AccountWindow = Account["windows"][number];
 
-const five = (used: number, hours: number): Window => ({
+/** The five hours, `hours` from their reset: none while unused, as Claude Code reports. */
+const five = (used: number, hours: number | null): AccountWindow => ({
   id: "five_hour",
   label: "5h",
-  resetsAt: inHours(hours),
+  resetsAt: hours === null ? null : inHours(hours),
   used,
 });
-const week = (used: number, hours: number): Window => ({
+const week = (used: number, hours: number): AccountWindow => ({
   id: "seven_day",
   label: "Week",
   resetsAt: inHours(hours),
@@ -37,7 +39,7 @@ const week = (used: number, hours: number): Window => ({
 });
 
 /** An account signed in, with its windows. */
-const ready = (name: string, windows: Array<Window>, isNext = false): Account => ({
+const ready = (name: string, windows: Array<AccountWindow>, isNext = false): Account => ({
   id: `/home/gary/.claude-${name}`,
   isNext,
   name,
@@ -82,15 +84,23 @@ const runtime = (
 });
 
 /** Codex's one login, under the accounts, as today. */
-const CODEX = runtime("codex", "Codex", [], [five(0.25, 3), week(0.4, 100)]);
+const CODEX = runtime(
+  "codex",
+  "Codex",
+  [],
+  [
+    { id: "five_hour", label: "5h", resetsAt: inHours(3), used: 0.25 },
+    { id: "seven_day", label: "Week", resetsAt: inHours(100), used: 0.4 },
+  ],
+);
 
-/** Three accounts: one in use, one fresh, one with its five hours nearly gone. */
+/** Three accounts: one in use, one fresh and next, one with its five hours nearly gone. */
 const THREE = runtime(
   "claude",
   "Claude Code",
   [
-    ready("default", [five(0.42, 2.5), week(0.34, 80)], true),
-    ready("b", [five(0, 5), week(0.12, 120)]),
+    ready("default", [five(0.42, 2.5), week(0.34, 80)]),
+    ready("b", [five(0, null), week(0.12, 120)], true),
     ready("c", [five(0.88, 1), week(0.61, 30)]),
   ],
   [],
