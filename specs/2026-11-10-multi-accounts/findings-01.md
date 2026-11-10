@@ -123,10 +123,10 @@ Full review comments:
   /home/tolki/Development/ai/uraeda/.worktrees/2026-11-10-multi-accounts/packages/server/src/runner/account-pick.ts:35-36
   If an account previously reported 0% usage but its next usage read fails, its non-null `askedAt`
   still ranks it ahead of a successfully refreshed account at 42%. The
-  [spec's edge case](specs/2026-11-10-multi-accounts/spec.md#edge-cases) requires an account whose
-  usage cannot be read to come after accounts whose usage is known, while retaining its last
-  windows. The contract currently cannot distinguish that failure from a successful read; expose
-  usage availability separately from the last successful timestamp and use it in the ranking.
+  [spec's edge case](spec.md#edge-cases) requires an account whose usage cannot be read to come
+  after accounts whose usage is known, while retaining its last windows. The contract currently
+  cannot distinguish that failure from a successful read; expose usage availability separately from
+  the last successful timestamp and use it in the ranking.
 
 - [P2] Preserve unread usage when the fake refresh hangs —
   /home/tolki/Development/ai/uraeda/.worktrees/2026-11-10-multi-accounts/packages/server/src/runner/fake.ts:82-85
