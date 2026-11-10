@@ -449,3 +449,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   encoded.
 - **If wrong**: a link typed as `/jobs/~new` by a human who meant a job named `~new` opens `new`.
 - **Where**: tasks 7 and 8.
+
+## R30: A card is a job's place in the file, not its name
+
+- **Decision**: each `JobRow` has `index`, the job's position in `config.toml`'s list of jobs (so
+  the jobs of another repository leave gaps). The Jobs place keys its cards, its selection, the
+  list's keys, and the refusals under the cards by `index`. Writes stay by name, as the core's are:
+  the second of two jobs of one name shows "Two jobs are named “<name>”." on its card, and a write
+  by that name is the core's to refuse or to apply to the first. A job's page is by name and reads
+  the first job of that name.
+- **Rationale**: the record lists both jobs of a duplicate name, and the spec gives their card a
+  text, but the place shared one React key, one selection, and one refusal between them, so the
+  second could not be selected or reached by `j` and `k`, and `r`, `p`, and `d` on it acted on the
+  first.
+- **If wrong**: a page cannot be opened for the second of two jobs of one name; the human renames it
+  in `config.toml`, as its card says.
+- **Where**: tasks 6 and 7.

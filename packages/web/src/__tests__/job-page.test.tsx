@@ -31,6 +31,7 @@ const JOB: JobRow = {
   agent: "claude",
   effort: "high",
   history: [],
+  index: 0,
   last: null,
   model: "opus",
   name: "Dependencies",

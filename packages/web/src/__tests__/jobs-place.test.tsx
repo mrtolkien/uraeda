@@ -40,6 +40,10 @@ const BASE: Pick<
   repositories: ["uraeda"],
 };
 
+/** The jobs as the record lists them, each with its place in the file. */
+const withIndexes = (jobs: ReadonlyArray<Omit<JobRow, "index">>): ReadonlyArray<JobRow> =>
+  jobs.map((job, index) => ({ ...job, index }));
+
 const RUN = {
   at: at(12, 3),
   due: at(12, 3),
@@ -52,7 +56,7 @@ const RUN = {
   trigger: "schedule" as const,
 };
 
-const JOBS: ReadonlyArray<JobRow> = [
+const JOBS: ReadonlyArray<JobRow> = withIndexes([
   {
     ...BASE,
     history: [RUN],
@@ -95,7 +99,7 @@ const JOBS: ReadonlyArray<JobRow> = [
     schedule: { day: 1, hour: 4, kind: "weekly", minute: 0 },
     scheduleText: "monday 04:00",
   },
-];
+]);
 
 const SESSIONS: ReadonlyMap<string, RunSession> = new Map([
   [
@@ -144,12 +148,16 @@ function show(handlers: Spies, extra?: ReactNode, jobs = JOBS, enabled = true) {
 
 const press = (key: string) => fireEvent.keyDown(document.body, { key });
 
-/** The card of the job, its list item. */
-const card = (name: string) => document.querySelector<HTMLElement>(`[data-row-key="${name}"]`)!;
+/** The `nth` card of the job of that name, its list item. */
+const card = (name: string, nth = 0) =>
+  [...document.querySelectorAll<HTMLElement>("[data-row-key]")].filter(
+    (one) => one.querySelector("h3")?.textContent === name,
+  )[nth]!;
 
 /** The selected card's name. */
 const selected = () =>
-  document.querySelector<HTMLElement>("[data-row-key][aria-current='true']")?.dataset.rowKey;
+  document.querySelector<HTMLElement>("[data-row-key][aria-current='true']")?.querySelector("h3")
+    ?.textContent;
 
 test("each card names its schedule, its next run, and its last run, in words", () => {
   show(spies());
@@ -197,6 +205,44 @@ test("the last run is the record's, though 50 skipped times have pushed it out o
       "Today at 3:00 · started “Upgrade three dependencies”, PR ready",
     ),
   ).toBeTruthy();
+});
+
+/**
+ * Review 05, finding 2. Catches: two jobs of one name, which `config.toml` may hold and the card has
+ * a text for, sharing a key, a selection, the keys' target, and a refusal: each card is its own.
+ */
+test("two jobs of one name are two cards: each selects, acts, and refuses on its own", async () => {
+  const [deps] = JOBS;
+  const twin = { ...deps, problem: "Two jobs are named “Dependencies”." };
+  const handlers = spies();
+  handlers.onSetOn.mockResolvedValueOnce("Refused for the second.");
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  show(handlers, undefined, [
+    { ...deps, index: 0 },
+    { ...deps, index: 1, name: "Other" },
+    { ...twin, index: 2 },
+  ]);
+  // No two children shared a key.
+  expect(errors.mock.calls.flat().join(" ")).not.toContain("same key");
+  errors.mockRestore();
+  expect(document.querySelectorAll("[data-row-key]")).toHaveLength(3);
+  expect(selected()).toBe("Dependencies");
+  const second = card("Dependencies", 1);
+  expect(within(second).getByText("Two jobs are named “Dependencies”.")).toBeTruthy();
+
+  // A tap selects the second card, not the first, and j and k reach it.
+  fireEvent.click(second);
+  expect(second.getAttribute("aria-current")).toBe("true");
+  expect(card("Dependencies", 0).getAttribute("aria-current")).toBeNull();
+  press("k");
+  expect(selected()).toBe("Other");
+  press("j");
+  expect(second.getAttribute("aria-current")).toBe("true");
+
+  // `p` on the second shows its refusal under the second only.
+  press("p");
+  await waitFor(() => expect(within(second).getByText("Refused for the second.")).toBeTruthy());
+  expect(within(card("Dependencies", 0)).queryByText("Refused for the second.")).toBeNull();
 });
 
 test("j and k move the selection, and the bar shows under the selected card", () => {

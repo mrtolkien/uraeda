@@ -892,6 +892,7 @@ export type JobRow = {
   agent: string | null;
   effort: string | null;
   history: Array<JobRunView>;
+  index: number; // the job's place in the file: two jobs may share a name (R30)
   last: JobRunView | null; // the latest started run, beyond the 50 rows of `history` (R28)
   model: string | null;
   name: string;

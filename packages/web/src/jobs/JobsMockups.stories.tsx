@@ -74,6 +74,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     history: [DEPS_RUN],
+    index: 0,
     last: DEPS_RUN,
     name: "Dependencies",
     next: { at: null, text: null, why: "change-open" },
@@ -86,6 +87,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     history: [PERF_RUN],
+    index: 1,
     last: PERF_RUN,
     name: "Performance pass",
     next: { at: at(10, 16, 4), text: null, why: null },
@@ -98,6 +100,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     history: [PERSONA_RUN],
+    index: 2,
     last: PERSONA_RUN,
     name: "Persona walkthrough",
     next: { at: null, text: null, why: "paused" },
@@ -110,6 +113,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     history: [],
+    index: 3,
     last: null,
     name: "Code quality",
     next: { at: null, text: null, why: "problem" },

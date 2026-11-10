@@ -34,6 +34,8 @@ export type JobRow = {
   agent: string | null;
   effort: string | null;
   history: Array<JobRunView>;
+  /** The job's place in the file, which tells two jobs of one name apart. */
+  index: number;
   /**
    * The latest run that started a session here, apart from `history`, which holds the 50 newest rows
    * and may hold none of the started ones.
@@ -146,14 +148,15 @@ function lastOf(ctx: RepoContext, job: string, root: string): JobRunView | null 
 async function rowOf(
   ctx: RepoContext,
   job: Job,
-  place: { name: string; open: ReadonlySet<string>; root: string },
+  place: { index: number; name: string; open: ReadonlySet<string>; root: string },
 ): Promise<JobRow> {
-  const { name, open, root } = place;
+  const { index, name, open, root } = place;
   const next = ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name, open);
   return {
     agent: job.agent ?? null,
     effort: job.effort ?? null,
     history: historyOf(ctx, job.name, root),
+    index,
     last: lastOf(ctx, job.name, root),
     model: job.model ?? null,
     name: job.name,
@@ -182,16 +185,21 @@ export async function jobsRecord(ctx: RepoContext): Promise<JobsRecord> {
   const { jobs, problem } = await ctx.binding.readJobs(ctx.settings.dir);
   const name = ctx.hosts.byPath(ctx.repo)?.name;
   const root = await ctx.sessions.mainRoot(ctx.repo);
-  const here = name === undefined ? [] : jobs.filter((job) => job.repositories.includes(name));
+  // Each job here with its place in the file, which the jobs of another repository leave gaps in.
+  const here = jobs
+    .map((job, index) => ({ index, job }))
+    .filter(({ job }) => name !== undefined && job.repositories.includes(name));
   // The workspace is read once for the record, and only when a job started a change to look at.
   const started = here.some(
-    (job) => ctx.sessions.cache.jobs.changeFolders(job.name, root).length > 0,
+    ({ job }) => ctx.sessions.cache.jobs.changeFolders(job.name, root).length > 0,
   );
   const open = started ? await openFolders(ctx) : new Set<string>();
   return {
     enabled: ctx.settings.runs().scheduledJobs.inForce,
     id: JOBS_ID,
-    jobs: await Promise.all(here.map((job) => rowOf(ctx, job, { name: name!, open, root }))),
+    jobs: await Promise.all(
+      here.map(({ index, job }) => rowOf(ctx, job, { index, name: name!, open, root })),
+    ),
     problem: problem ?? null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };

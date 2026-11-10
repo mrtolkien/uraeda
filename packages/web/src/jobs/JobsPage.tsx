@@ -72,16 +72,20 @@ function factsOf(
  */
 function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
   const confirm = useConfirm();
-  // The job a page named on arrival, as a new job's page does once it added it.
-  const [name, setName] = useState<string | undefined>(() => currentEntry().select);
+  // The job selected, by its place in the file: two jobs may share a name. A page names the job it
+  // arrives on by its name, as a new job's page does once it added it.
+  const [place, setPlace] = useState<number | undefined>(() => {
+    const { select } = currentEntry();
+    return jobs.find((job) => job.name === select)?.index;
+  });
   const [isBarred, setBarred] = useState(true);
-  const [refusals, setRefusals] = useState<ReadonlyMap<string, string>>(new Map());
-  const selected = jobs.find((job) => job.name === name) ?? jobs[0];
-  const pick = (picked: string) => {
-    setName(picked);
+  const [refusals, setRefusals] = useState<ReadonlyMap<number, string>>(new Map());
+  const selected = jobs.find((job) => job.index === place) ?? jobs[0];
+  const pick = (picked: number) => {
+    setPlace(picked);
     setBarred(true);
   };
-  const refuse = (job: string, text: string | undefined) =>
+  const refuse = (job: number, text: string | undefined) =>
     setRefusals((then) => {
       const next = new Map(then);
       if (text === undefined) {
@@ -92,13 +96,13 @@ function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
       return next;
     });
   /** Sends a write of the job, clears the last refusal, and shows the new one under its card. */
-  const send = async (job: string, write: () => Promise<string | undefined>) => {
-    refuse(job, undefined);
-    refuse(job, await write());
+  const send = async (job: JobRow, write: () => Promise<string | undefined>) => {
+    refuse(job.index, undefined);
+    refuse(job.index, await write());
   };
-  const remove = async (job: string) => {
-    if (await confirm(deleteQuestion(job))) {
-      await send(job, () => handlers.onRemove(job));
+  const remove = async (job: JobRow) => {
+    if (await confirm(deleteQuestion(job.name))) {
+      await send(job, () => handlers.onRemove(job.name));
     }
   };
   const actionsOf = (job: JobRow): ReadonlyArray<BarAction> => [
@@ -107,14 +111,14 @@ function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
       icon: "uraeda:play",
       keys: "r",
       label: "run now",
-      run: () => void send(job.name, () => handlers.onRun(job.name)),
+      run: () => void send(job, () => handlers.onRun(job.name)),
     },
     {
       keys: "p",
       label: job.on ? "pause" : "resume",
-      run: () => void send(job.name, () => handlers.onSetOn(job.name, !job.on)),
+      run: () => void send(job, () => handlers.onSetOn(job.name, !job.on)),
     },
-    { icon: "uraeda:trash", keys: "d", label: "delete", run: () => void remove(job.name) },
+    { icon: "uraeda:trash", keys: "d", label: "delete", run: () => void remove(job) },
   ];
   const act = (row: number, key: string) =>
     actionsOf(jobs[row])
@@ -122,7 +126,7 @@ function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
       ?.run();
   const { ref } = useListKeys({
     escapeLabel: null,
-    keys: jobs.map((job) => job.name),
+    keys: jobs.map((job) => String(job.index)),
     onClose: () => false,
     onEdit: () => {
       if (selected === undefined) {
@@ -131,7 +135,7 @@ function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
       handlers.onOpen(selected.name);
       return true;
     },
-    onSelect: (row) => pick(jobs[row].name),
+    onSelect: (row) => pick(jobs[row].index),
     rowKeys: [
       { keys: "r", label: "run now", run: (row) => act(row, "r") },
       { keys: "p", label: "pause or resume", run: (row) => act(row, "p") },
@@ -142,13 +146,13 @@ function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
   useKeys([{ hint: "a", keys: "a", label: "add a job", run: handlers.onAdd }]);
   return {
     actionsOf,
-    dismiss: (job: string) => refuse(job, undefined),
+    dismiss: (job: JobRow) => refuse(job.index, undefined),
     isBarred,
     pick,
     ref,
     refusals,
     selected,
-    sendSwitch: (job: string, on: boolean) => void send(job, () => handlers.onSetOn(job, on)),
+    sendSwitch: (job: JobRow, on: boolean) => void send(job, () => handlers.onSetOn(job.name, on)),
     unbar: () => setBarred(false),
   };
 }
@@ -220,12 +224,12 @@ export function JobsPlace({
                     isBarred={list.isBarred && job === selected}
                     isSelected={job === selected}
                     job={job}
-                    key={job.name}
+                    key={job.index}
                     onAway={list.unbar}
-                    onDismiss={() => list.dismiss(job.name)}
-                    onPick={() => list.pick(job.name)}
-                    onSwitch={(on) => list.sendSwitch(job.name, on)}
-                    refusal={list.refusals.get(job.name)}
+                    onDismiss={() => list.dismiss(job)}
+                    onPick={() => list.pick(job.index)}
+                    onSwitch={(on) => list.sendSwitch(job, on)}
+                    refusal={list.refusals.get(job.index)}
                     {...factsOf(job, sessions, now, zone)}
                   />
                 ))}

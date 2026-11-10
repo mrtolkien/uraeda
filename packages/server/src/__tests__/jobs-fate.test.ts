@@ -373,6 +373,29 @@ test("the record gives the latest started run beyond the history's 50 rows", asy
   expect(hourly.last).toMatchObject({ outcome: "started", session: chat.id });
 });
 
+/**
+ * Review 05, finding 2. Catches: two jobs of one name, which the file may hold and the card says,
+ * indistinguishable to a reader of the record: each row carries its place in the file.
+ */
+test("each job of the record carries its place in the file, two of one name too", async () => {
+  const run = await setup(
+    (name) =>
+      `${table("Elsewhere", ["elsewhere"])}\n${table("Twin", [name])}\n${table("Other", [name])}\n` +
+      table("Twin", [name]),
+  );
+  const record = await run.read();
+  expect(record.jobs.map((one: Data) => [one.index, one.name])).toEqual([
+    [1, "Twin"],
+    [2, "Other"],
+    [3, "Twin"],
+  ]);
+  expect(record.jobs.map((one: Data) => one.problem)).toEqual([
+    null,
+    null,
+    "Two jobs are named “Twin”.",
+  ]);
+});
+
 /** A watcher's burst with nothing changed. */
 const NO_CHANGES = {
   branchDecisions: [],

@@ -90,6 +90,7 @@ const JOB: JobRow = {
   agent: "claude",
   effort: "high",
   history: [...HISTORY],
+  index: 0,
   last: HISTORY.find((run) => run.outcome === "started") ?? null,
   model: "opus",
   name: "Dependencies",

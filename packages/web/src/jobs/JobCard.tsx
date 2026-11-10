@@ -168,7 +168,7 @@ export function JobCard({
   href: string;
   isBarred: boolean;
   isSelected: boolean;
-  job: Pick<JobRow, "name" | "on" | "reportOnly" | "schedule" | "scheduleText">;
+  job: Pick<JobRow, "index" | "name" | "on" | "reportOnly" | "schedule" | "scheduleText">;
   last: Fact;
   next: Fact;
   onAway: () => void;
@@ -190,7 +190,7 @@ export function JobCard({
       aria-current={isSelected ? "true" : undefined}
       as="li"
       data-row=""
-      data-row-key={job.name}
+      data-row-key={job.index}
       gap={1}
       onClick={onPick}
     >
