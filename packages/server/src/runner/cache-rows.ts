@@ -2,6 +2,11 @@ import type { ContinueReason, TokenCounts, Trigger, TurnKind, TurnState } from "
 
 /** A session, as the cache keeps it. */
 export type SessionRow = {
+  /**
+   * The account it runs on, by its runtime's ID for it (a folder), picked at its first turn and
+   * never changed: null for a session started with no account listed, or made before accounts.
+   */
+  account: string | null;
   /** The agent's kind: `claude`. */
   agent: string;
   archivedAt: string | null;
@@ -77,6 +82,7 @@ export type TurnRow = {
 export type Row = Record<string, string | number | null>;
 
 export const toSession = (row: Row): SessionRow => ({
+  account: row.account as string | null,
   agent: String(row.agent),
   archivedAt: row.archived_at as string | null,
   automaticContinues: Number(row.automatic_continues),

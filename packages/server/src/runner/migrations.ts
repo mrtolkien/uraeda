@@ -166,6 +166,9 @@ export const migrations: Array<Migration> = [
   ALTER TABLE sessions ADD COLUMN parent TEXT;
   ALTER TABLE sessions ADD COLUMN role TEXT;
   ALTER TABLE sessions ADD COLUMN worktree TEXT;`,
+  // The account a session started on, a folder the runtime lists: null for every session made
+  // before, and for one started with no account listed, which runs on the server's own login.
+  "ALTER TABLE sessions ADD COLUMN account TEXT;",
 ];
 
 /**

@@ -321,7 +321,7 @@ export class Continuer {
       if (
         session &&
         this.#available(session) &&
-        runtimes.get(session.agent)?.hasSession(session.nativeId)
+        runtimes.get(session.agent)?.hasSession(session.nativeId, session.account ?? undefined)
       ) {
         await this.#decide(turn, "restart", Date.now, this.#taken(session.id));
       }

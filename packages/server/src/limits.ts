@@ -44,6 +44,9 @@ export const RUNTIME_REFUSALS = {
   runtimeOff: (title: string) => `${title} is off: turn it on to continue this session`,
   /** A model its runtime's list does not hold: the runtime by its name for people. */
   noModel: (runtime: string, model: string) => `${runtime} has no model ${model}: pick another`,
+  /** A new session of a runtime that lists accounts, none of them signed in: the runtime's name. */
+  noAccount: (runtime: string) =>
+    `No ${runtime} account is signed in: sign one in, or empty Accounts in Settings, Extensions`,
   /** An effort the model does not take: the model and the effort by their names for people. */
   noEffort: (model: string, effort: string) => `${model} takes no ${effort} effort: pick another`,
   /**

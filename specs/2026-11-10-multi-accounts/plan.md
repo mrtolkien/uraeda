@@ -389,7 +389,7 @@ git commit -m "feat(multi-accounts): accounts in the runtime's contract, and the
   `account-pick.ts`, `accountFor(accounts: Accounts, name: string): Promise<string>`, the id of the
   picked account, which refreshes, waits, picks, and throws the `noAccount` refusal with none.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // accounts.test.ts: three accounts on the fake, as in Task 1's test, at 0.42, 0, and 0.88
@@ -440,20 +440,20 @@ The breaks to make, as the task is risky: remove the `ran` guard, and the sessio
 server's login must fail the test; pick on every open, and the kept account must fail it; drop the
 race with the wait, and the third test must hang.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/accounts.test.ts packages/server/src/runner/__tests__/cache.test.ts`
 - Expected: FAIL, `expected undefined to be '/home/u/.claude-b'`, and `account` missing from the
   created session.
 
-- [ ] **Step 3: Add the column and the row's field**
+- [x] **Step 3: Add the column and the row's field**
 
 One migration step, `ALTER TABLE sessions ADD COLUMN account TEXT;`, with a comment as its
 neighbours have: null for every session made before, and for one started with no account listed.
 `account` joins `SessionRow`, `toSession`, `SessionFields`, and `sessionColumns`.
 
-- [ ] **Step 4: Pick in `Processes.open`, and keep**
+- [x] **Step 4: Pick in `Processes.open`, and keep**
 
 In `open`, after the adapter is known and `ran` is read: when the row has no account, no turn of the
 session ever started, and `adapter.accounts?.list()` is not empty, the session's account is
@@ -464,12 +464,12 @@ then picks. A session with an account always opens on it, listed or not. The acc
 A refusal releases the session, as the existing `catch` does. In `continuer.ts`, line 324 passes the
 session's account to `hasSession`, in place.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner packages/server/src/limits.ts
