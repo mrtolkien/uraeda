@@ -62,7 +62,8 @@ const styles = stylex.create({
 /**
  * The window the rail's bar shows: with accounts, the first of the account `account` names, none
  * when the session's account is not listed or it has none; `undefined` is no session in view, which
- * shows the account a new session would start on. Without accounts, the runtime's first.
+ * shows the account a new session would start on, and the window is labelled by the account's name.
+ * Without accounts, the runtime's first.
  */
 function barWindow(agent: Runtime | undefined, account: string | null | undefined) {
   if (agent === undefined || agent.accounts.length === 0) {
@@ -72,7 +73,8 @@ function barWindow(agent: Runtime | undefined, account: string | null | undefine
     account === undefined
       ? agent.accounts.find((each) => each.isNext)
       : agent.accounts.find((each) => each.name === account);
-  return shown?.state === "ready" ? shown.windows[0] : undefined;
+  const [first] = shown?.state === "ready" ? shown.windows : [];
+  return first && { ...first, label: `${shown?.name} ${first.label}` };
 }
 
 /** The sidebar's Usage pane: one line per login, its first window alone; the stories draw it too. */
