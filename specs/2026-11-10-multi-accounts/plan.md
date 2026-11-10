@@ -223,10 +223,12 @@ export type AccountWindow = { id: string; label: string; resetsAt: string | null
 export type AccountState = "ready" | "signed-out" | "missing";
 /** An account a runtime offers. `windows` are shortest first: Claude's five hours, then its week. */
 export type Account = {
-  /** When its usage was last read, epoch ms: null while it never was. */
+  /** When its windows were last read, epoch ms: null while never; kept after a failed ask. */
   askedAt: number | null;
   /** What a session stores: for Claude Code, its folder as an absolute path. */
   id: string;
+  /** Whether its usage is known: false while never read, and while its last ask could not read it. */
+  known: boolean;
   name: string;
   state: AccountState;
   windows: ReadonlyArray<AccountWindow>;
@@ -338,9 +340,9 @@ pick; a signed-out account picked.
 
 `pickAccount` is pure. An account is eligible when it is `ready` and no window after its first is
 used up (`used >= 1`). Among the eligible: the least `used` of the first window, an account with no
-`askedAt` after every other; then the earliest `resetsAt` of the first window, a null one last; then
+`known` after every other; then the earliest `resetsAt` of the first window, a null one last; then
 the listed order. With none eligible, the first `ready` one listed. With none `ready`, undefined. An
-account with `askedAt` and no first window counts as unused.
+account that is `known` and has no first window counts as unused.
 
 - [x] **Step 4: Document the contract in `docs/extensions.md`**
 
@@ -645,8 +647,9 @@ already listed. A name is the folder's last segment without its leading dot and 
 id.
 
 `ClaudeAccounts` keeps each account as last asked: `missing`, `signed-out`, or `ready`, with its
-windows and `askedAt` only when the ask gave windows. `refresh(maxAgeMs)` asks the accounts whose
-last ask, answered or not, is older than `maxAgeMs`, all at once, and shares an ask under way with a
+windows, `askedAt` and `known` set only when the ask gave windows: an ask that did not keeps the
+windows and their `askedAt`, and clears `known`. `refresh(maxAgeMs)` asks the accounts whose last
+ask, answered or not, is older than `maxAgeMs`, all at once, and shares an ask under way with a
 second caller. A rejected ask keeps the account as it was. A folder that is not a directory, gone or
 a regular file, is `missing` without an ask: `ClaudeAccounts` checks it with a stat of the folder
 itself, which opens no file, as it is built and at each `refresh`, before the asks start, so a pick

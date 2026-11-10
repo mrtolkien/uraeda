@@ -11,6 +11,7 @@ const account = (
 ): Account => ({
   askedAt: 1,
   id: `/home/u/.claude-${name}`,
+  known: true,
   name,
   state: "ready",
   windows: [
@@ -75,7 +76,12 @@ test.each([
   ],
   [
     "an account whose usage was never read comes last",
-    [account("default", 0, { askedAt: null, windows: [] }), account("b", 0.9)],
+    [account("default", 0, { askedAt: null, known: false, windows: [] }), account("b", 0.9)],
+    "b",
+  ],
+  [
+    "an account whose last ask could not read it comes last, though it was read once",
+    [account("default", 0.1, { askedAt: 5, known: false }), account("b", 0.9)],
     "b",
   ],
   [

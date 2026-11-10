@@ -49,12 +49,17 @@ export type AccountState = "ready" | "signed-out" | "missing";
 /** An account a runtime offers. `windows` are shortest first: Claude's five hours, then its week. */
 export type Account = {
   /**
-   * When its usage was last read, epoch ms: null while it never was, or while its last ask could not
-   * read it. `windows` keep the last windows read either way, for the panes.
+   * When its windows were last read, epoch ms: null while they never were. Kept after an ask that
+   * could not read them, as `windows` are: the merge with a running process's reports needs it.
    */
   askedAt: number | null;
   /** What a session stores: for Claude Code, its folder as an absolute path. */
   id: string;
+  /**
+   * Whether its usage is known: false while it was never read, and while its last ask could not
+   * read it. The pick ranks an account that is not known after every one that is.
+   */
+  known: boolean;
   name: string;
   state: AccountState;
   windows: ReadonlyArray<AccountWindow>;

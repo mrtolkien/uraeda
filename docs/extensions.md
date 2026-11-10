@@ -251,23 +251,24 @@ A runtime may also offer models, all optional:
 A runtime may also offer several accounts of its agent, as `accounts`, with four methods:
 
 - `list()` gives the accounts, in the order the human listed them, each
-  `{ id, name, state, windows, askedAt }`: `id` is what a session stores, `state` is `ready`,
+  `{ id, name, state, windows, askedAt, known }`: `id` is what a session stores, `state` is `ready`,
   `signed-out`, or `missing`, `windows` are its usage windows, shortest first, each
-  `{ id, label, used, resetsAt }`, and `askedAt` is when they were last read, in epoch milliseconds:
-  null while they never were, or while the last ask could not read them. The windows keep the last
-  ones read either way.
+  `{ id, label, used, resetsAt }`, `askedAt` is when they were last read, in epoch milliseconds,
+  null while they never were, and `known` says whether the usage is known: false while it never was
+  read, and while the last ask could not read it. The windows and `askedAt` stay as last read after
+  such an ask.
 - `nameOf(id)` gives the name of an account, listed or not.
 - `problems()` gives what needs the human, in your words, such as
   `account b is signed out, in ~/.claude-b`.
 - `refresh(maxAgeMs)` asks again each account whose last ask, answered or not, is older than
-  `maxAgeMs`, and settles once they answered. Keep that time yourself: `askedAt` is null for an ask
-  that could not read the usage.
+  `maxAgeMs`, and settles once they answered. Keep that time yourself: an ask that could not read
+  the usage sets `known` to false, and leaves `windows` and `askedAt`.
 
 A new session then starts on one account, picked among those that are `ready` and whose longer
 windows, every one after the first, are not used up. Among them, the pick takes:
 
-1. an account whose usage is known before one whose usage is not: `askedAt` null, never read or not
-   readable, ranks last;
+1. an account whose usage is known before one whose usage is not: `known` false, never read or its
+   last ask not readable, ranks last;
 2. the one with the most of its first, shortest window left;
 3. on a tie, the one whose first window resets first, a window not open (`resetsAt` null) last;
 4. then the first one listed.

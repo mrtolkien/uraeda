@@ -288,7 +288,14 @@ export class ClaudeAccounts implements Accounts {
     this.#isFolder = options.isFolder ?? isDirectory;
     this.#now = options.now ?? Date.now;
     this.#entries = read.folders.map((folder) => ({
-      account: { askedAt: null, id: folder.id, name: folder.name, state: "ready", windows: [] },
+      account: {
+        askedAt: null,
+        id: folder.id,
+        known: false,
+        name: folder.name,
+        state: "ready",
+        windows: [],
+      },
       folder,
     }));
     this.#entries.forEach((entry) => this.#check(entry));
@@ -328,7 +335,7 @@ export class ClaudeAccounts implements Accounts {
   #check(entry: Entry) {
     const missing = !this.#isFolder(entry.folder.id);
     if (missing && entry.account.state !== "missing") {
-      entry.account = { ...entry.account, askedAt: null, state: "missing" };
+      entry.account = { ...entry.account, known: false, state: "missing" };
     } else if (!missing && entry.account.state === "missing") {
       entry.account = { ...entry.account, state: "ready" };
     }
@@ -353,17 +360,18 @@ export class ClaudeAccounts implements Accounts {
     entry.inflight = this.#ask(entry.folder.id)
       .then(
         ({ state, windows }) => {
-          // A usage that was not read keeps the windows last read, and is unknown again.
+          // A usage that was not read keeps the windows last read and the time they were, and is
+          // unknown again.
           entry.account =
             windows === undefined
-              ? { ...entry.account, askedAt: null, state }
-              : { ...entry.account, askedAt: this.#now(), state, windows };
+              ? { ...entry.account, known: false, state }
+              : { ...entry.account, askedAt: this.#now(), known: true, state, windows };
           // A folder that went while it was asked is missing still.
           this.#check(entry);
         },
         // A rejected ask keeps the windows, and is unknown too.
         () => {
-          entry.account = { ...entry.account, askedAt: null };
+          entry.account = { ...entry.account, known: false };
         },
       )
       .finally(() => {

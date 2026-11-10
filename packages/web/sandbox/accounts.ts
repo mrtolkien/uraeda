@@ -20,6 +20,7 @@ const account = (
 ): Account => ({
   askedAt: Date.now(),
   id: `/sandbox/.claude${name === "default" ? "" : `-${name}`}`,
+  known: windows.length > 0,
   name,
   state,
   windows,

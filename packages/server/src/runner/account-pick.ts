@@ -33,8 +33,8 @@ const eligible = (account: Account) =>
 /**
  * The account a new session starts on: among the signed-in accounts whose longer windows are not
  * used up, the one with the most of its first window left; on a tie, the one whose first window
- * resets first; then the first one listed. An account whose usage is not known, never read or not
- * readable, comes after every other; a share or a reset that is no number counts as the last. When
+ * resets first; then the first one listed. An account whose usage is not known, never read or its
+ * last ask not readable, comes after every other; a share or a reset that is no number counts as the last. When
  * every signed-in account is used up, the first signed-in one listed; with none signed in, none.
  */
 export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefined {
@@ -43,7 +43,7 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
     .filter(({ account }) => eligible(account))
     .toSorted(
       (a, b) =>
-        compare(Number(a.account.askedAt === null), Number(b.account.askedAt === null)) ||
+        compare(Number(!a.account.known), Number(!b.account.known)) ||
         compare(shortUsed(a.account), shortUsed(b.account)) ||
         compare(shortReset(a.account), shortReset(b.account)) ||
         a.index - b.index,
