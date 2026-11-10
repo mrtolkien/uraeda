@@ -138,16 +138,29 @@ export class JobRuns {
   }
 
   /**
-   * Moves the rows of the job `from` to the job `to`. A time `to` has recorded already stays as
-   * it is, and its twin under `from` goes.
+   * Moves the rows of the job `from` to the job `to`, and prunes the merged history. A time both
+   * have recorded keeps the row of `from`: it is the live job's, and holds its session.
    */
   rename(from: string, to: string): void {
     if (from === to) {
       return;
     }
     transaction(this.#db, () => {
-      this.#db.prepare("UPDATE OR IGNORE job_runs SET job = ? WHERE job = ?").run(to, from);
-      this.#db.prepare("DELETE FROM job_runs WHERE job = ?").run(from);
+      this.#db
+        .prepare(
+          `DELETE FROM job_runs WHERE job = ?2 AND due IS NOT NULL AND EXISTS
+             (SELECT 1 FROM job_runs AS live
+              WHERE live.job = ?1 AND live.repository = job_runs.repository
+                AND live.due = job_runs.due)`,
+        )
+        .run(from, to);
+      this.#db.prepare("UPDATE job_runs SET job = ? WHERE job = ?").run(to, from);
+      const repositories = this.#db
+        .prepare("SELECT DISTINCT repository FROM job_runs WHERE job = ?")
+        .all(to) as Array<{ repository: string }>;
+      for (const { repository } of repositories) {
+        this.#prune(to, repository);
+      }
     });
   }
 

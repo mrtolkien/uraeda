@@ -104,6 +104,35 @@ test("renaming a job to its own name changes nothing", () => {
   expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
 });
 
+test("on a rename onto a name with rows, the renamed job's rows win", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000, job: "Upgrades", session: "stale" }));
+  jobs.add(run({ due: 2000, job: "Upgrades", session: "stale-2" }));
+  jobs.add(run({ due: 1000, session: "live" }));
+  jobs.rename("Dependencies", "Upgrades");
+  expect(jobs.history("Dependencies", ROOT)).toEqual([]);
+  expect(jobs.history("Upgrades", ROOT).map(({ due, session }) => [due, session])).toEqual([
+    [1000, "live"],
+    [2000, "stale-2"],
+  ]);
+  expect(jobs.ofSession("live")?.job).toBe("Upgrades");
+});
+
+test("the history merged by a rename is pruned", () => {
+  const jobs = opened();
+  for (let due = 1000; due < 1050; due += 1) {
+    jobs.add(run({ due, job: "Upgrades", session: `old-${due}` }));
+  }
+  for (let due = 1025; due < 1075; due += 1) {
+    jobs.add(run({ due, session: `new-${due}` }));
+  }
+  jobs.rename("Dependencies", "Upgrades");
+  expect(jobs.history("Upgrades", ROOT)).toHaveLength(50);
+  // 25 stale rows without a twin and the 50 renamed ones are 75: the oldest 25 are gone, not hidden.
+  expect(jobs.ofSession("old-1000")).toBeUndefined();
+  expect(jobs.ofSession("new-1074")).toBeDefined();
+});
+
 test("a refusal is set with its turn, and cleared", () => {
   const jobs = opened();
   const added = jobs.add(run({ session: "s1" }));
