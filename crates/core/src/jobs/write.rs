@@ -209,7 +209,13 @@ fn apply(table: &mut dyn TableLike, job: &JobInput) {
         let list: Array = job.repositories.iter().map(String::as_str).collect();
         set(table, "repositories", Value::Array(list));
     }
-    put(table, "schedule", Some(&job.schedule));
+    // The schedule is its words, one space apart, and an option left empty is unset.
+    let schedule = job
+        .schedule
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    put(table, "schedule", Some(&schedule));
     match job.report_only {
         true if table.get("report_only").and_then(Item::as_bool) != Some(true) => {
             set(table, "report_only", Value::from(true));
@@ -219,10 +225,18 @@ fn apply(table: &mut dyn TableLike, job: &JobInput) {
             table.remove("report_only");
         }
     }
-    put(table, "agent", job.agent.as_deref());
-    put(table, "model", job.model.as_deref());
-    put(table, "effort", job.effort.as_deref());
+    put(table, "agent", text(&job.agent));
+    put(table, "model", text(&job.model));
+    put(table, "effort", text(&job.effort));
     put(table, "prompt", Some(&job.prompt));
+}
+
+/// An option's text, trimmed, `None` when it is unset or empty.
+fn text(option: &Option<String>) -> Option<&str> {
+    option
+        .as_deref()
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
 }
 
 /// Sets `key` to the text `value`, or removes it when `None`; unchanged when it holds that text.

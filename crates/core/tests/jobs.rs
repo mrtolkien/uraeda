@@ -732,3 +732,33 @@ fn names_are_trimmed_so_two_cannot_differ_by_spaces() {
     jobs::set_on(dir.path(), "A", false).unwrap();
     assert!(!jobs::read(dir.path()).jobs[0].on);
 }
+
+#[test]
+fn an_empty_option_is_unset_and_the_schedule_is_written_normalised() {
+    let dir = tempdir();
+    let mut job = input("A", "  daily   03:00 ", "x");
+    job.agent = Some(String::new());
+    job.model = Some("  ".to_owned());
+    job.effort = Some("high".to_owned());
+
+    jobs::add(dir.path(), &job).unwrap();
+
+    let after = text(dir.path());
+    assert!(after.contains("schedule = \"daily 03:00\"\n"), "{after}");
+    assert!(
+        !after.contains("agent") && !after.contains("model"),
+        "{after}"
+    );
+    let read = jobs::read(dir.path());
+    let read = &read.jobs[0];
+    assert_eq!(read.schedule_text, "daily 03:00");
+    assert_eq!((&read.agent, &read.model), (&None, &None));
+    assert_eq!(read.effort.as_deref(), Some("high"));
+
+    // An update to an empty option removes the key it had.
+    job.agent = Some("claude".to_owned());
+    jobs::update(dir.path(), "A", &job).unwrap();
+    job.agent = Some(String::new());
+    jobs::update(dir.path(), "A", &job).unwrap();
+    assert!(!text(dir.path()).contains("agent"), "{}", text(dir.path()));
+}
