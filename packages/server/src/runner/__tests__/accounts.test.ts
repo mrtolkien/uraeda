@@ -71,6 +71,8 @@ test("a session picks its account at its first turn, and keeps it", async () => 
   adapter.script([]);
   await send(again, repo, chat.id, "more");
   expect(adapter.opens.at(-1)?.account).toBe(folder("b"));
+  // The restart looked for its transcript in that account.
+  expect(adapter.hasSessionAccounts.at(-1)).toBe(folder("b"));
   adapter.script([]);
   await send(again, repo, none.id, "more");
   expect(adapter.opens.at(-1)?.account).toBeUndefined(); // it ran on the server's own login
@@ -158,4 +160,42 @@ test("a pick waits 10 seconds for an ask, then goes on", async () => {
   expect(adapter.opens).toHaveLength(1);
   expect(adapter.opens[0]?.account).toBe(folder("b"));
   expect(cache.session(chat.id)?.account).toBe(folder("b"));
+});
+
+test("a pick on an ask that hangs ranks an account never read last, and two sessions share the ask", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  adapter.accounts = new FakeAccounts();
+  adapter.accounts.accounts = [
+    account("default", 0, { askedAt: null, windows: [] }),
+    account("b", 0.9),
+  ];
+  adapter.accounts.hangs = true;
+  adapter.script([]);
+  adapter.script([]);
+  const first = await sessions.newChat(repo);
+  const second = await sessions.newChat(repo);
+  const sendingFirst = sessions.send(repo, first.id, { text: "hello" });
+  const sendingSecond = sessions.send(repo, second.id, { text: "hello" });
+  await flush();
+  expect(adapter.opens).toHaveLength(0);
+
+  await vi.advanceTimersByTimeAsync(PICK_WAIT_MS);
+  await sessions.settled((await sendingFirst).turn);
+  await sessions.settled((await sendingSecond).turn);
+  // Nothing was marked read while the ask hung: `b` is the only account whose usage is known.
+  expect(adapter.opens.map((open) => open.account)).toEqual([folder("b"), folder("b")]);
+  expect(adapter.accounts.asks).toBe(1);
+  expect(adapter.accounts.list().map((one) => one.askedAt)).toEqual([null, 1]);
+});
+
+test("an ask that answers marks the accounts read, and is not repeated within the age", async () => {
+  vi.spyOn(Date, "now").mockReturnValue(5000);
+  const accounts = new FakeAccounts();
+  accounts.accounts = [account("default", 0, { askedAt: null, windows: [] })];
+  const original = accounts.accounts[0];
+  await accounts.refresh(60_000);
+  await accounts.refresh(60_000);
+  expect(accounts.asks).toBe(1);
+  expect(accounts.list()[0]?.askedAt).toBe(5000);
+  expect(original?.askedAt).toBeNull(); // the test's own account is not changed in place
 });

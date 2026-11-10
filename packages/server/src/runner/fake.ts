@@ -46,8 +46,10 @@ export function fakeModels(): ModelList {
 }
 
 /**
- * The fake's accounts, which a test fills and reads. `refresh` counts an ask only when it asks:
- * some account was never asked, or was asked more than `maxAgeMs` ago, and marks them all asked.
+ * The fake's accounts, which a test fills and reads. `refresh` keeps its own last-ask time, and
+ * counts an ask only when it asks: never asked, or asked `maxAgeMs` ago. An ask that answers marks
+ * the accounts read, with new objects; one that hangs marks nothing, and every caller gets its one
+ * pending promise.
  */
 export class FakeAccounts implements Accounts {
   accounts: Array<Account> = [];
@@ -57,6 +59,8 @@ export class FakeAccounts implements Accounts {
   hangs = false;
   /** What `problems` gives, which a test may change. */
   problemList: Array<string> = [];
+  #lastAsk: number | undefined;
+  #pending: Promise<void> | undefined;
 
   list(): ReadonlyArray<Account> {
     return this.accounts;
@@ -71,18 +75,21 @@ export class FakeAccounts implements Accounts {
   }
 
   refresh(maxAgeMs: number): Promise<void> {
+    if (this.hangs && this.#pending !== undefined) {
+      return this.#pending;
+    }
     const now = Date.now();
-    const stale = this.accounts.some(
-      (account) => account.askedAt === null || now - account.askedAt > maxAgeMs,
-    );
-    if (!stale) {
+    if (this.#lastAsk !== undefined && now - this.#lastAsk < maxAgeMs) {
       return Promise.resolve();
     }
+    this.#lastAsk = now;
     this.asks++;
-    for (const account of this.accounts) {
-      account.askedAt = now;
+    if (this.hangs) {
+      this.#pending = new Promise<void>(() => {});
+      return this.#pending;
     }
-    return this.hangs ? new Promise<void>(() => {}) : Promise.resolve();
+    this.accounts = this.accounts.map((account) => ({ ...account, askedAt: now }));
+    return Promise.resolve();
   }
 }
 
@@ -277,6 +284,8 @@ export class FakeAdapter implements Adapter {
   installed = true;
   /** The sessions that have a transcript. */
   sessions = new Set<string>();
+  /** The account of each `hasSession` call, in order: undefined for the agent's own. */
+  hasSessionAccounts: Array<string | undefined> = [];
   /** Keeps a turn going after the interrupt and SIGINT, as a stuck process would. */
   ignoreInterrupt = false;
   /** Keeps a process running after its close, as one that ignores its stdin's end would. */
@@ -315,7 +324,8 @@ export class FakeAdapter implements Adapter {
   }
 
   /** Whether the session has a transcript: in any account. */
-  hasSession(nativeId: string, _account?: string) {
+  hasSession(nativeId: string, account?: string) {
+    this.hasSessionAccounts.push(account);
     return this.sessions.has(nativeId);
   }
 
