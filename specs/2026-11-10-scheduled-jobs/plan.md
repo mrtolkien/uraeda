@@ -522,8 +522,9 @@ The break each test catches:
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
   [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)`, an
   index with no condition: SQLite counts each null `due` as distinct, and the reads of a job and
-  repository use it. `add` prunes its job and repository to the 50 latest rows, and the latest
-  started one ([ruling R8](rulings.md)).
+  repository use it. `add` prunes its job and repository to the 50 latest rows, the latest started
+  one with a session, and each started one whose session is in a change or a feature
+  ([rulings R8 and R15](rulings.md)).
 - `cache.ts` has 5 lines left: add the `jobs` property and nothing else there.
 - The switch follows `catchUpPullRequests` through `options.ts`, `env.ts`, and `settings.ts`, but on
   by default: `--no-scheduled-jobs` turns it off, as `--no-continue-after-restart` does, and
@@ -588,8 +589,9 @@ export type NextRun =
 export type Scheduler = {
   nextRun(job: Job, repo: string): Promise<NextRun>;
   runNow(repo: string, name: string): Promise<{ session: string }>; // refused: “<name>” still runs here.
+  settled(): Promise<void>; // the times queued are started, skipped, or dropped
   stop(): Promise<void>;
-  tick(): Promise<void>;
+  tick(): Promise<void>; // looks for the times due, and queues them
 };
 export function startScheduler(options: {
   context: (repo: string) => RepoContext;
@@ -664,25 +666,33 @@ already. It then opens a chat with `newChat` on the job's agent, model, and effo
 the job's name, sends `jobMessage` with its line and the origin `workflow`, and sets the row's
 session with `JobRuns.setSession`, before the first turn starts, so the turn's end finds the row by
 its session ([ruling R11](rulings.md)). When the chat does not start, it removes the row with
-`JobRuns.remove` and rethrows, so the time is not marked run ([ruling R9](rulings.md)). `jobMessage`
-is the prompt, then a rule, then Uraeda's note. The note says the session was started by the
-scheduled job, by name, and that nobody follows it. For a job that is not report only, it says to
-offer a needed code change once, as a change, then stop, since Uraeda starts it and the next message
-continues in its worktree. For a report-only job, it says to change no file, and that an offer waits
-for the human. Both say to answer in one line when nothing needs doing.
+`JobRuns.remove`, removes the chat it made through the session manager, which reports it to the
+clients, and rethrows, so the time is not marked run ([rulings R9 and R14](rulings.md)).
+`jobMessage` is the prompt, then a rule, then Uraeda's note. The note says the session was started
+by the scheduled job, by name, and that nobody follows it. For a job that is not report only, it
+says to offer a needed code change once, as a change, then stop, since Uraeda starts it and the next
+message continues in its worktree. For a report-only job, it says to change no file, and that an
+offer waits for the human. Both say to answer in one line when nothing needs doing.
 
 - [x] **Step 4: Implement the scheduler and wire it**
 
 - A tick reads the jobs, and for each job that is on and has no problem, each repository it names
   that is listed, where the `jobs` extension is on and the job's agent is available: take
   `dueAt(schedule, now)`. Start it only when it is later than the moment this scheduler first saw
-  the job on, in memory, and at most `MISSED_AFTER_MS` past ([ruling R2](rulings.md)). Turning the
-  job on, or the switch for all jobs, sets that moment to now.
-- Before a start: when the latest started run's session works, record a skip, `working`. When that
-  session belongs to a change or a feature the workspace still lists as not merged, record a skip,
-  `change-open`. A skip is recorded once per time, by the same unique row.
-- The starts of one tick go one after another: the first at once, each next after `wait(60_000)`.
-  Ticks never overlap: one asked while another runs joins it, as `serially` does in `catch-ups.ts`.
+  the job on with its schedule, in memory, and at most `MISSED_AFTER_MS` past
+  ([ruling R2](rulings.md)). Turning the job on, editing its schedule, or turning on the switch for
+  all jobs, sets that moment to now.
+- A job's start in a repository is reserved first, by the names, before anything is awaited, and
+  held until the start ends: a tick and a "Run now" never start two ([ruling R14](rulings.md)).
+- Before a start: when the latest started run's session works, record a skip, `working`. When any
+  started run of the job has a session in a change or a feature the workspace still lists as not
+  merged, record a skip, `change-open` ([ruling R15](rulings.md)). A skip is recorded once per time,
+  by the same unique row.
+- A tick only queues the times due, none twice, and the queue starts them one after another: the
+  first at once, each next after `wait(60_000)` from the last start, while the ticks go on; a time
+  skipped or recorded waits for nothing. Right before a start the job is read again, and the time is
+  dropped, recording nothing, when it no longer holds ([ruling R14](rulings.md)). Ticks never
+  overlap: one asked while another runs joins it, as `serially` does in `catch-ups.ts`.
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there.
 - `nextRun` gives `nextAfter` for a job that will run, else why not, in the order of `NextRun`.

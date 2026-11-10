@@ -167,3 +167,49 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a new core problem written as a fragment is shown with the prefix, one written as a
   sentence without it; the reader of the core's texts must keep to that rule.
 - **Where**: task 6.
+
+## R14: A job's start is one exclusion, and a queued time is checked again
+
+- **Decision**: (1) a job's start in a repository, by the job's and the repository's names, is
+  reserved before anything is awaited, for a scheduled time and for "Run now" alike, and held until
+  the start ends: a "Run now" that finds it taken is refused with “<name>” still runs here., and a
+  scheduled time that finds it taken is skipped `working`. (2) A tick only looks, and queues the
+  times due, none twice; a drain starts them one after another, a minute after the last _start_,
+  while the ticks go on. A time skipped or already recorded waits for nothing. `Scheduler.tick()`
+  resolves once the times are queued, and `settled()` once the queue is empty. (3) Right before each
+  start the job is read again: it must exist, be on, have no problem, keep its schedule, be in the
+  repository with its extension and its agent on and available, the switch on, and its time at most
+  5 minutes past; otherwise the time is dropped and records nothing, as a missed one. The run starts
+  with the job as it reads then. (4) The moment the server first saw a job in a repository belongs
+  to the schedule it was seen with: an edited schedule is a job added (R2). (5) `startRun` removes a
+  chat whose send failed through the session manager, which reports it to the clients.
+- **Rationale**: (1) the open-change check awaits a workspace read, and the check and the key were
+  apart; (2) the waits were inside the serialised tick, so times that fell due meanwhile were seen
+  after their 5 minutes, and a minute was waited even before a skip; (3) a pause, a deletion, an
+  edit, or an extension turned off stands for the starts still queued, and a machine that sleeps
+  during a wait must not start hours-old times; (4) a schedule edited to a time just past would run
+  at once, which R2 forbids for a job added just after its time; (5) the chat is shown in the
+  sidebar from its creation, so its removal must reach it.
+- **If wrong**: (1) a "Run now" during a queued start's minute is refused as “still runs here”,
+  although the run has not started; (3) a job edited in its prompt only runs with the new prompt,
+  not the one it was due with.
+- **Where**: task 4.
+
+## R15: An open change is found by the job's runs, not by its latest run
+
+- **Decision**: a time is skipped `change-open` while any started run of the job in the repository
+  has a session in a change or a feature the workspace lists as not merged. `JobRuns.changeFolders`
+  gives those folders, in one query. Pruning keeps, besides the 50 latest rows, the latest started
+  row that has a session, and every started row whose session has a folder. `latestStarted` is the
+  latest started row with a session. "Run now" still starts with an open change, as the plan says.
+- **Rationale**: the guard read only the latest started run, so a run by hand that opened no change
+  hid the change an earlier run left open, and a second pull request touched the same files
+  (SC-003). The latest started row _with a session_ is the one pruning keeps, so the row of a start
+  in flight, which a failed start removes (R9), never displaces the previous one. Keeping the
+  folders' rows in the record needs no second source for open changes.
+- **Alternatives considered**: asking the workspace for the open changes whose sessions a job
+  started, which has no row to name the job once pruned; keeping only the newest 50 such rows, which
+  leaves a change open for longer than 50 later runs unguarded.
+- **If wrong**: a job whose runs each opened a change keeps one small row per change in the cache
+  for good, not shown in the history, which lists 50.
+- **Where**: tasks 3 and 4.
