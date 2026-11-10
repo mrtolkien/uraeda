@@ -287,6 +287,12 @@ The routes open without either are the ones that sign in: `/live`, which checks 
 `/session`, `/session/<token>`, and `/pair`. So is `/mcp`, which is no client's: an agent's process
 gives the token the server issued it. A path that is no route answers the client's own files.
 
+A preview's path is open with the frame secret, since a sandboxed frame and a web view send no
+cookie: `/r/<name>/preview/<secret>/<folder>/`. A client never builds one. It shows the path a
+record gives it, `Preview.base` or `Story.frame`, on the server's own address. The secret changes
+whenever a session or a device ends: the records then change, and name the new path. A path with
+another secret answers 404 to a frame and to who is signed in, and 401 to anyone else.
+
 - A wrong key or code is answered 401 a second later, and never locks anyone out.
 - `GET /session` answers 204 when the request is signed in, and 401 when it is not.
 - `DELETE /session` signs the browser out, or unpairs the device that sends it. `DELETE /sessions`
@@ -313,7 +319,7 @@ the host token of the server's status file, as `Authorization: Bearer <token>`.
 | `DELETE /r/:name/chat-images/:id`                               | A chat's image, taken back       | 16   |
 | `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`        | Uploads                          | 16   |
 | `/mcp`                                                          | The agents' MCP endpoint         | 16   |
-| Preview paths, with the frame secret                            | Previews, proxied                | 18   |
+| `GET /r/:name/preview/:secret/:folder/*`, and its WebSockets    | Previews, proxied                | 18   |
 | `GET /extensions/:name/page`, `GET /extensions/key`             | Extension pages, as signed bytes | 19   |
 | The web build's files                                           | The client itself, in a browser  | 56   |
 

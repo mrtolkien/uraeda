@@ -1587,3 +1587,110 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `an_upload_comes_back_as_the_image_it_was`,
   `an_upload_over_the_limit_is_refused_without_reading_it`, and
   `a_refused_upload_says_why_and_writes_nothing`. Task 9.
+
+## R79: The frame secret is the previews', and opens a route as `Open::Frame`
+
+- **Decision**: the frame secret lives in `crates/server/src/preview/frames.rs`, with the previews
+  that carry it, and the guard and sign-in ask the previews.
+  - `preview::frame_secret(&Shared)` gives the current secret, for an address given to a signed-in
+    client. `preview::is_frame(&Shared, path)` says whether a path is a preview's or a mockup's with
+    it, read with `guard::frame_secret`, and compared with `secret::same`.
+  - The guard's `frame` is `is_frame`: its `TEMPORARY:` mark of R36 is gone.
+  - `sign_in::OPEN` gains a third kind, `Open::Frame`: the route passes signed in, or on a path with
+    the current secret. The proxy's three paths are listed with it. The proxy then answers 404 to a
+    signed-in request whose path has another secret, as to a frame.
+  - The proxy mounts three paths, the base without its slash, with it, and what is under it: axum's
+    `{*rest}` matches no empty rest.
+  - The secret is replaced in sign-in's `on_ended` listener itself, so the old one opens nothing
+    from that call on. It changes when a paired device ends too, not only a session.
+- **Rationale**: one secret serves previews and mockups, as the sign-in decision says, and the
+  guard, the session check, and the proxy must read it alike. With `Open::Anyone`, the route would
+  have answered 404 where every other closed route answers 401.
+- **If wrong**: task 16 built mockups at the same time, without this. At the join, its mockup route
+  is listed in `OPEN` as `Open::Frame`, and reads the secret from `preview::frame_secret`.
+- **Where**: task 18, `crates/server/src/preview/{mod,frames}.rs`, `guard.rs`, `sign_in/check.rs`,
+  and the test `a_preview_path_without_its_secret_is_refused`. Tasks 16 and 49.
+
+## R80: A preview's records name their repository, and give whole addresses
+
+- **Decision**: the shapes of the previews' records, in `crates/protocol/src/previews.rs`.
+  - `Preview` takes `{ repository, folder }`, `Story` takes `{ repository, id }`, and
+    `preview.restart` takes `{ repository, folder }` and answers the `Preview`. `repository` is the
+    repository's name in the list, the `<name>` of `/r/<name>/`. `StoryHref` takes `{ href }` alone:
+    the core's rule reads no repository.
+  - A value has no `id`: its arguments are its key. States are `none`, `starting`, `ready`,
+    `failed`, and `missing` for a story.
+  - `Preview.base` and `Story.frame` are paths on the server, with the frame secret. A client puts
+    the server's address before one, and builds none itself. `Story.storybook` is a route of the
+    app.
+- **Rationale**: fate was served under `/r/<name>/fate`, so a record's repository was its address.
+  One WebSocket serves every repository, so the arguments name it.
+- **If wrong**: the other domains of wave 6 chose their own name for that argument at the same time.
+  The join gives it one name.
+- **Where**: task 18, `crates/protocol/src/previews.rs`, `crates/server/src/records/previews.rs`.
+  Task 49.
+
+## R81: A read is a view, and three things read a preview's records again
+
+- **Decision**: reading `Preview` or `Story` starts the checkout's command, and counts as its last
+  view. The records somebody holds are read again:
+  - at each change of the preview's state, and as each story's compile ends;
+  - when the frame secret is replaced: every command stops, and the records, read again, start
+    theirs under the new address;
+  - when `preview::files_changed(&Shared, repository)` is called, for the repository's running
+    previews: a commit outside `specs/` then starts one again at the new code. The join's watcher
+    calls it. A commit under `specs/` keeps it.
+  - A preview stopped for 30 minutes without a view tells nobody: a read would start it again. Its
+    frame then answers 503, and `preview.restart` starts it. A held subscription is not a view.
+  - A preview whose folder's file waits for the human, and embeds a story, is kept up, as today.
+- **Rationale**: fate read a record again at each page load, and the engine reads one only when
+  told. Without the watcher's call, a preview would stay at the old code until its page is opened
+  again.
+- **If wrong**: each watcher event of a repository reads its running previews' records, a few small
+  git reads each.
+- **Where**: task 18, `crates/server/src/preview/{mod,runner,checkout}.rs`, and the tests
+  `a_preview_follows_its_reads_and_its_checkouts_code` and
+  `a_preview_path_without_its_secret_is_refused`. Task 49, and the join of wave 6.
+
+## R82: The server waits for every command it started, and records their groups in one file
+
+- **Decision**: how "the server MUST stop every preview command it runs when it stops" is kept.
+  - A command is `sh -c <command>`, made with `shared.environment().command("sh")`, leading a
+    process group of its own. It gets `URAEDA_PREVIEW_BASE`, and its port in place of `{port}`.
+  - Stopping one sends its group `SIGTERM`, then `SIGKILL` after 5 seconds. A command that exits by
+    itself has its group killed at once.
+  - The runner keeps every command it started until it ended, whatever became of its preview. Its
+    stop work, `shared.on_stop("previews", ..)`, stops each and waits for its end, and no command
+    starts after it began.
+  - The groups are recorded in the data folder's `run/previews.json`, as
+    `{ "groups": [{ "pid", "started" }] }`, where `started` is what `ps -o lstart=` prints in the C
+    locale and in UTC. A start stops the groups the file names whose leader still has that start
+    time: a killed server's. The Node server kept one file per server: R34 gives a data folder one
+    server.
+- **Rationale**: a restart or an idle stop only asks a command to end, without waiting. If the
+  server then stopped within the 5 seconds, a command that ignores `SIGTERM` would outlive it. The
+  start time as the machine's locale prints it differed between a shell and the server's own
+  environment.
+- **How it was checked**: without the stop work, the shell, the preview, and its child stayed; with
+  the signal sent to the leader alone, the preview and its child stayed.
+- **Where**: task 18, `crates/server/src/preview/{command,groups,runner}.rs`, and the tests
+  `the_server_stops_every_preview_command_when_it_stops` and
+  `a_killed_servers_preview_commands_are_stopped_by_the_next_start`.
+
+## R83: What of the Node server's previews is not ported here
+
+- **Decision**: two rules of [`preview-waiting.ts`](/packages/server/src/fate/preview-waiting.ts)
+  wait for the sessions: starting the previews of the folders that wait for the human as the server
+  starts, and starting a feature's preview as its turn ends done, once its preview folder has its
+  `node_modules`. Both compile the linked stories ahead.
+  - Whether a workspace or a feature has a preview, `hasPreview`, is a field of the workspace's and
+    the features' records: tasks 7 and 8 read it with the core's `api::preview`.
+  - The sentences a failed preview shows still name Storybook, as the Node server's do.
+  - The server's crate takes `regex`, which the lockfile held already, for the warmer's scan of a
+    page's scripts and a module's imports, `libc` for a group's signal, and tokio's `process` and
+    `io-util`.
+- **Rationale**: a turn's end is task 15's, and the built-in that listens to it is task 51's.
+  Neither changes a record or a route of this task.
+- **If wrong**: a story is then compiled when it is first read, so its first frame waits as long as
+  the compile takes. `Runner::view` and `Runner::compiled` are what a warm-up calls.
+- **Where**: tasks 15 and 51.

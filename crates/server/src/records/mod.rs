@@ -58,4 +58,5 @@ domains! {
     mod features;
     mod writing;
     mod git;
+    mod previews;
 }

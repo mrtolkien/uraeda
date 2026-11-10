@@ -287,8 +287,9 @@ fn concrete(route: &str) -> String {
 }
 
 // The sign-in decision: every request carries a valid session or device token, except the
-// sign-in and pairing routes. A route a later task mounts is one of the server's routes, so it
-// is closed here until it is listed below, and in the decision.
+// sign-in and pairing routes, and the preview paths that carry the current frame secret. A route
+// a later task mounts is one of the server's routes, so it is closed here until it is listed
+// below, and in the decision.
 #[tokio::test]
 async fn every_route_but_the_open_ones_refuses_a_request_without_a_session() {
     let server = support::server().await;
@@ -297,6 +298,8 @@ async fn every_route_but_the_open_ones_refuses_a_request_without_a_session() {
     let open = ["/live", "/session", "/session/{token}", "/pair", "/mcp"];
     // Open to the host's own `ura` and app, with the host token of the status file.
     let host = ["/open", "/session/key", "/pair/code"];
+    // A preview's path is open with the current frame secret only: with `x` in its place it is
+    // closed, as every route below, and `a_preview_path_without_its_secret_is_refused` opens it.
     let cookie = server.sign_in().await;
     let token = server.pair("Phone").await;
     let host_token = server.host_token();

@@ -27,6 +27,7 @@ mod handoff;
 mod http;
 pub mod live;
 pub mod mcp;
+pub mod preview;
 mod records;
 mod run;
 pub mod runner;
@@ -74,6 +75,7 @@ const DOMAINS: &[Mount] = &[
     http::socket::mount,
     files::mount,
     mcp::mount,
+    preview::mount,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with

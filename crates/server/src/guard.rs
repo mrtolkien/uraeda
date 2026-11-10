@@ -161,8 +161,7 @@ fn check(shared: &Shared, request: &Request) -> Option<Refusal> {
         port: shared.port(),
         hosts: &hosts,
         origins: shared.allow_origins(),
-        // TEMPORARY: no path is a frame's until the previews bring the frame secret (task 18).
-        frame: &|_| false,
+        frame: &|path| crate::preview::is_frame(shared, path),
     };
     let asked = Asked {
         host: &host,

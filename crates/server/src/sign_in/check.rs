@@ -24,6 +24,9 @@ pub enum Open {
     Anyone,
     /// The host's own `ura` and app, with the host token of the server's status file.
     Host,
+    /// A sandboxed frame, which sends no cookie: only a path that carries the current frame
+    /// secret, a preview's or a mockup's.
+    Frame,
 }
 
 /// The routes a request without a session reaches, by their path as mounted: the sign-in
@@ -43,6 +46,10 @@ pub const OPEN: &[(&str, Open)] = &[
     ("/open", Open::Host),
     ("/session/key", Open::Host),
     ("/pair/code", Open::Host),
+    // The previews, proxied: with the frame secret only.
+    (crate::preview::proxy::PATHS[0], Open::Frame),
+    (crate::preview::proxy::PATHS[1], Open::Frame),
+    (crate::preview::proxy::PATHS[2], Open::Frame),
 ];
 
 /// Who a request or a connection is: a browser's session or a paired device, signed in.
@@ -181,6 +188,9 @@ fn passes(shared: &Shared, request: &Request, signed_in: bool) -> bool {
     match OPEN.iter().find(|(path, _)| *path == route.as_str()) {
         Some((_, Open::Anyone)) => true,
         Some((_, Open::Host)) => shared.from_host(request.headers()),
+        Some((_, Open::Frame)) => {
+            signed_in || crate::preview::is_frame(shared, request.uri().path())
+        }
         None => signed_in,
     }
 }

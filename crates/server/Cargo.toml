@@ -19,9 +19,11 @@ getrandom.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
+libc.workspace = true
 nsh-bundler.workspace = true
 notify.workspace = true
 percent-encoding.workspace = true
+regex.workspace = true
 # rolldown's crates that nothing else holds at rolldown's version: see the workspace's manifest.
 rolldown_devtools.workspace = true
 rolldown_devtools_action.workspace = true
@@ -33,7 +35,8 @@ serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
+# The previews: a command's output, and a WebSocket piped to it.
+tokio = { workspace = true, features = ["io-util", "process"] }
 uraeda-core.workspace = true
 uraeda-protocol.workspace = true
 

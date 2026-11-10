@@ -12,6 +12,7 @@ use crate::git::{
     GitFetch, GitHistoryPage, GitMerge, GitPage, GitPull, GitPush, GitRemoveWorktree, GitResolve,
     GitSaveConflict, GitStage, GitSummary, GitUnstage,
 };
+use crate::previews::{Preview, PreviewRestart, Story, StoryHref};
 use crate::typescript::Types;
 use crate::workspace;
 use crate::writing;
@@ -252,4 +253,9 @@ pub fn catalog() -> Catalog {
         .action::<GitSaveConflict>()
         .action::<GitStage>()
         .action::<GitUnstage>()
+        // Previews.
+        .record::<Preview>()
+        .record::<Story>()
+        .record::<StoryHref>()
+        .action::<PreviewRestart>()
 }

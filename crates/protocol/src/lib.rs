@@ -9,6 +9,7 @@ mod diff;
 mod features;
 mod git;
 mod message;
+mod previews;
 mod registry;
 mod typescript;
 mod workspace;
@@ -26,6 +27,10 @@ pub use git::{
     GitSummary, GitUnstage, GitWorktree,
 };
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
+pub use previews::{
+    Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryHrefArgs,
+    StoryState,
+};
 pub use registry::{Action, Catalog, Record, Wire, catalog};
 pub use typescript::typescript;
 pub use workspace::*;

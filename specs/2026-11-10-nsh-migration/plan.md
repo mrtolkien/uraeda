@@ -1070,22 +1070,33 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/server/src/preview/{mod,command,proxy}.rs`,
-  `crates/server/src/records/previews.rs`
-- Test: `crates/server/tests/preview.rs`
+- Create:
+  `crates/server/src/preview/{mod,frames,checkout,runner,ports,command,groups,index,warm,upstream,proxy}.rs`,
+  `crates/server/src/records/previews.rs`, `crates/protocol/src/previews.rs`
+- Test: `crates/server/tests/preview.rs`, on the fake Storybook of
+  [`fixtures/preview/serve.mjs`](/fixtures/preview/serve.mjs)
 
 **Interfaces:**
 
-- Produces: records Preview, Story, StoryHref; action `preview.restart`; the proxy at
-  `/r/:name/preview/<secret>/<folder>/*`, HTTP and WebSocket, as
-  [`preview/proxy.ts`](/packages/server/src/preview/proxy.ts) has it.
+- Produces (rulings R79 to R83):
+  - Records `Preview { repository, folder }`, `Story { repository, id }`, and `StoryHref { href }`;
+    action `preview.restart { repository, folder }`, which answers the `Preview`. `folder` is a
+    feature's or a change's folder, or `main`; a story's `id` is `<folder>:<path>#<export>`.
+  - The proxy at `/r/:name/preview/<secret>/<folder>/*`, HTTP and WebSocket, as
+    [`preview/proxy.ts`](/packages/server/src/preview/proxy.ts) has it. A client shows the path a
+    record gives it, `Preview.base` or `Story.frame`, on the server's address: it never builds one.
+  - The frame secret: `preview::frame_secret(&Shared)` and `preview::is_frame(&Shared, path)`, for
+    previews and mockups alike, and `Open::Frame` in `sign_in::OPEN`, for a route open with it.
+  - `preview::files_changed(&Shared, repository)`, for the one watcher to call;
+    `preview::repository_removed(&Shared, name)`, for the action that removes a repository; and
+    `preview::sweep(&Shared)`.
 
-- [ ] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
+- [x] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
       (the stack decision's rule); `a preview path without its secret is refused`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, porting the runner's rules.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): previews and their proxy`.
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement**, porting the runner's rules.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): previews and their proxy`.
 
 ## Task 19: Extension pages: built, signed, served
 
