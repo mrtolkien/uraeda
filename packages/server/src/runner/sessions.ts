@@ -449,6 +449,7 @@ export class Sessions {
   /** Clears every timer, and stops following the runtimes. */
   close(): void {
     this.#unsubscribe();
+    this.#accountRefresh.close();
     this.#context.continuer.close();
     for (const live of this.#context.live.values()) {
       clearTimeout(live.idle);

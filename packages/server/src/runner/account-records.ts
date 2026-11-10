@@ -42,6 +42,8 @@ async function ask(accounts: Accounts): Promise<void> {
 export class AccountRefresh {
   /** The accounts being asked: a runtime reloaded has new ones, asked at once. */
   #asking = new Set<Accounts>();
+  /** Fires at the earliest reset of an account's window, which the records then read as open. */
+  #reset: ReturnType<typeof setTimeout> | undefined;
   readonly #changed: () => void;
   readonly #records: (runtime: string) => Array<AccountRecord>;
   readonly #runtimes: Runtimes;
@@ -56,7 +58,35 @@ export class AccountRefresh {
     this.#changed = changed;
   }
 
+  /**
+   * Arms the one timer at the earliest future reset among the accounts' windows, which announces
+   * the records when it fires, and arms the next. Called at each announce and each read, so that a
+   * change of the windows moves it. The records read a window past its reset as open, whatever
+   * announced it: an ask's window announces itself here, as a report's does in `Processes`.
+   */
+  arm(): void {
+    clearTimeout(this.#reset);
+    const now = Date.now();
+    const next = Math.min(
+      ...this.#runtimes
+        .names()
+        .flatMap((name) => this.#records(name))
+        .flatMap(({ windows }) => windows.map(({ resetsAt }) => Date.parse(resetsAt ?? "")))
+        .filter((reset) => reset > now),
+    );
+    this.#reset = Number.isFinite(next)
+      ? setTimeout(() => this.#changed(), Math.min(next - now, 2_147_483_647))
+      : undefined;
+    this.#reset?.unref();
+  }
+
+  /** Stops the timer, as the server stops. */
+  close(): void {
+    clearTimeout(this.#reset);
+  }
+
   run(): void {
+    this.arm();
     for (const name of this.#runtimes.names()) {
       const accounts = this.#runtimes.get(name)?.accounts;
       if (accounts === undefined || this.#asking.has(accounts)) {
