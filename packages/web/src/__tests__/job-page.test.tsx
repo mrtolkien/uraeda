@@ -41,7 +41,9 @@ test("a name is saved as it is left, the rest of the job as the file holds it", 
   await type(field("Name"), "Upgrades");
   expect(onSave).not.toHaveBeenCalled();
   await leave(field("Name"));
-  await waitFor(() => expect(onSave).toHaveBeenCalledWith({ ...INPUT, name: "Upgrades" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({ ...INPUT, name: "Upgrades" }, "Dependencies"),
+  );
 });
 
 test("a time is saved on Enter, and a field left unchanged saves nothing", async () => {
@@ -50,7 +52,9 @@ test("a time is saved on Enter, and a field left unchanged saves nothing", async
   expect(onSave).not.toHaveBeenCalled();
   await type(field("Time"), "04:30");
   await act(async () => void fireEvent.keyDown(field("Time"), { key: "Enter" }));
-  await waitFor(() => expect(onSave).toHaveBeenCalledWith({ ...INPUT, schedule: "daily 04:30" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({ ...INPUT, schedule: "daily 04:30" }, "Dependencies"),
+  );
 });
 
 test("a refusal shows under its field with the typed text, and clears as it is edited", async () => {
@@ -64,11 +68,11 @@ test("a refusal shows under its field with the typed text, and clears as it is e
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });
 
-test("picking Weekly writes the first day, then Monday and 04:00 write the schedule", async () => {
+test("picking Weekly writes the first day, then Wednesday and 04:00 write the schedule", async () => {
   const { onSave, rerender } = open();
   fireEvent.click(screen.getByRole("radio", { name: "Weekly" }));
   await waitFor(() =>
-    expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "monday 03:00" }),
+    expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "monday 03:00" }, "Dependencies"),
   );
   // The file now holds it: the day's picker shows, and the time is typed.
   rerender({
@@ -78,26 +82,41 @@ test("picking Weekly writes the first day, then Monday and 04:00 write the sched
   });
   fireEvent.click(await screen.findByRole("radio", { name: "Wed" }));
   await waitFor(() =>
-    expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "wednesday 03:00" }),
+    expect(onSave).toHaveBeenLastCalledWith(
+      { ...INPUT, schedule: "wednesday 03:00" },
+      "Dependencies",
+    ),
   );
+  rerender({
+    ...JOB,
+    schedule: { day: 3, hour: 3, kind: "weekly", minute: 0 },
+    scheduleText: "wednesday 03:00",
+  });
   await type(field("Time"), "04:00");
   await leave(field("Time"));
   await waitFor(() =>
-    expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "monday 04:00" }),
+    expect(onSave).toHaveBeenLastCalledWith(
+      { ...INPUT, schedule: "wednesday 04:00" },
+      "Dependencies",
+    ),
   );
 });
 
 test("Hourly has no time, and writes `hourly`", async () => {
   const { onSave } = open();
   fireEvent.click(screen.getByRole("radio", { name: "Hourly" }));
-  await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "hourly" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "hourly" }, "Dependencies"),
+  );
 });
 
 test("unticking the last repository is refused under the repositories", async () => {
   const onSave = vi.fn(async () => "A job runs in one repository at least.");
   open(onSave, { ...JOB, repositories: ["uraeda"] });
   fireEvent.click(screen.getByRole("checkbox", { name: "uraeda" }));
-  await waitFor(() => expect(onSave).toHaveBeenCalledWith({ ...INPUT, repositories: [] }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({ ...INPUT, repositories: [] }, "Dependencies"),
+  );
   expect(await screen.findByText("A job runs in one repository at least.")).toBeTruthy();
   // The file keeps its value: the box is ticked again.
   expect((screen.getByRole("checkbox", { name: "uraeda" }) as HTMLInputElement).checked).toBe(true);
@@ -106,14 +125,16 @@ test("unticking the last repository is refused under the repositories", async ()
 test("Report only is saved at once", async () => {
   const { onSave } = open();
   fireEvent.click(screen.getByRole("switch", { name: "Report only" }));
-  await waitFor(() => expect(onSave).toHaveBeenCalledWith({ ...INPUT, reportOnly: true }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({ ...INPUT, reportOnly: true }, "Dependencies"),
+  );
 });
 
 test("Default takes the agent, the model, and the effort off the job", async () => {
   const { onSave } = open();
   fireEvent.click(screen.getByRole("button", { name: "Default" }));
   await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-  const [saved] = onSave.mock.calls[0] as [Record<string, unknown>];
+  const saved = onSave.mock.calls[0]?.[0] as Record<string, unknown>;
   expect(saved).toEqual({
     name: "Dependencies",
     prompt: "Upgrade the dependencies.",
@@ -156,7 +177,9 @@ test("a name that no job has reads as the app's missing page", () => {
 });
 
 /** A new job's page, its add spied. */
-function added(onSave = vi.fn(async (_input: unknown): Promise<string | undefined> => undefined)) {
+function added(
+  onSave = vi.fn(async (_input: unknown, _was: string): Promise<string | undefined> => undefined),
+) {
   render(around(<NewJobPageView {...common} onSave={onSave} />));
   return onSave;
 }
@@ -178,20 +201,25 @@ test("a new job starts Daily at 03:00 in this repository, and needs a name and a
 });
 
 test("a new job is added with its form as written, and a refusal shows under its field", async () => {
-  const onSave = vi.fn(async (_input: unknown) => "A job named “Dependencies” exists already.");
+  const onSave = vi.fn(
+    async (_input: unknown, _was: string) => "A job named “Dependencies” exists already.",
+  );
   added(onSave);
   await type(field("Name"), "Dependencies");
   await type(field("Prompt"), "Upgrade the dependencies.");
   fireEvent.click(screen.getByRole("checkbox", { name: "notes" }));
   fireEvent.click(addButton());
   await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith({
-      name: "Dependencies",
-      prompt: "Upgrade the dependencies.",
-      reportOnly: false,
-      repositories: ["uraeda", "notes"],
-      schedule: "daily 03:00",
-    }),
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        name: "Dependencies",
+        prompt: "Upgrade the dependencies.",
+        reportOnly: false,
+        repositories: ["uraeda", "notes"],
+        schedule: "daily 03:00",
+      },
+      "",
+    ),
   );
   expect(await screen.findByText("A job named “Dependencies” exists already.")).toBeTruthy();
   // The form keeps what was typed.

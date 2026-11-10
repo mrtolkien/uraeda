@@ -347,7 +347,8 @@ export function JobForm({
 }: {
   job?: JobRow | undefined;
   now: Date;
-  onSave: (input: JobInput) => Promise<string | undefined>;
+  /** Saves the job, `was` the name it has in the file: a new job's is empty. */
+  onSave: (input: JobInput, was: string) => Promise<string | undefined>;
   repositories: ReadonlyArray<string>;
   repository: string;
   runtimes: ReadonlyArray<PickerRuntime>;

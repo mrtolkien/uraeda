@@ -1,7 +1,7 @@
 // A job's form state: what the form holds, how it reads a job as the file holds it, and how it
 // writes one back as the mutations take it, and the hook that saves a field as it is left (an
 // existing job) or keeps the values until the job is added (a new one).
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JobInput } from "uraeda-binding";
 import type { JobRow } from "uraeda-server/fate";
 
@@ -133,47 +133,102 @@ function rowOf(refusal: string): Row | "button" {
 /** The text a line holds while it is typed in: not saved yet. */
 type Drafts = { name?: string; prompt?: string; time?: string };
 
+/** A change of the job: what it sets, given the job as it stands when the change is applied. */
+type Patch = (values: Values) => Partial<Values>;
+
+/** What the form shows beyond the file's job, and what its saves read. */
+type Settled = {
+  /** The job as the latest accepted save wrote it, until the record shows it. */
+  accepted: Values | undefined;
+  /** The changes sent or waiting, which the controls already show. */
+  pending: ReadonlyArray<{ id: number; patch: Patch }>;
+};
+
+const apply = (values: Values, patch: Patch): Values => ({ ...values, ...patch(values) });
+
 /**
- * The form's state. For an existing `job`, the values are the file's, live, and each change is
- * sent through `onSave` at once, a text when it is left; the text typed stays in a draft until it
- * is saved, and a refusal stays under its row until the row is changed again. For a new job, the
- * values are the form's own, and `add` sends them whole.
+ * The saves of an existing `job`: each change is a patch, shown at once on the file's values and
+ * saved after the ones before it, applied on the job as the latest accepted save wrote it and sent
+ * through `onSave` with the name the job has then. `shown` are the values with the changes still
+ * being saved, so a control moves at once and a refusal puts it back; `enqueue` gives the refusal.
  */
-export function useJobForm({
-  job,
-  onSave,
-  repository,
-}: {
-  job: JobRow | undefined;
-  onSave: (input: JobInput) => Promise<string | undefined>;
-  repository: string;
-}) {
-  const [own, setOwn] = useState(() => newValues(repository));
-  const [drafts, setDrafts] = useState<Drafts>({});
-  const [refusals, setRefusals] = useState<Partial<Record<Row | "button", string>>>({});
-  // A save under way: leaving a line right after its Enter saves it once.
-  const saving = useRef(new Set<keyof Drafts | Row>());
-  const values = job === undefined ? own : valuesOf(job);
-
-  const refuse = (row: Row | "button", text: string | undefined) =>
-    setRefusals((then) => ({ ...then, [row]: text }));
-
-  /** Sends the job with `patch` applied, or for a new job, keeps it; the refusal shows under `row`. */
-  const change = async (row: Row, patch: Partial<Values>) => {
-    refuse(row, undefined);
-    if (job === undefined) {
-      setOwn((then) => ({ ...then, ...patch }));
-      return false;
-    }
-    if (saving.current.has(row)) {
-      return false;
-    }
-    saving.current.add(row);
-    const refusal = await onSave(inputOf({ ...values, ...patch }));
-    saving.current.delete(row);
-    refuse(row, refusal);
-    return refusal === undefined;
+function useSaves(
+  job: JobRow | undefined,
+  onSave: (input: JobInput, was: string) => Promise<string | undefined>,
+) {
+  const [settled, setSettled] = useState<Settled>({ accepted: undefined, pending: [] });
+  // What a queued save reads: the settled state and the job, as of now.
+  const latest = useRef({ job, settled });
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const count = useRef(0);
+  const commit = (next: Settled) => {
+    latest.current.settled = next;
+    setSettled(next);
   };
+  useEffect(() => {
+    latest.current.job = job;
+    // Idle, the record shows what the saves wrote.
+    if (latest.current.settled.pending.length === 0 && latest.current.settled.accepted) {
+      commit({ accepted: undefined, pending: [] });
+    }
+  }, [job]);
+
+  const save = async (id: number, patch: Patch) => {
+    const { job: current, settled: now } = latest.current;
+    if (current === undefined) {
+      return "The job is gone.";
+    }
+    const base = now.accepted ?? valuesOf(current);
+    const next = apply(base, patch);
+    const refusal = await onSave(inputOf(next), base.name);
+    const then = latest.current.settled;
+    commit({
+      accepted: refusal === undefined ? { ...next, name: next.name.trim() } : then.accepted,
+      pending: then.pending.filter((one) => one.id !== id),
+    });
+    return refusal;
+  };
+
+  const enqueue = (patch: Patch) => {
+    const id = ++count.current;
+    const { settled: now } = latest.current;
+    commit({ ...now, pending: [...now.pending, { id, patch }] });
+    const saved = queue.current.then(() => save(id, patch));
+    queue.current = saved.catch(() => undefined);
+    return saved;
+  };
+
+  const shown =
+    job === undefined
+      ? undefined
+      : settled.pending.reduce(
+          (then, { patch }) => apply(then, patch),
+          settled.accepted ?? valuesOf(job),
+        );
+  return { enqueue, shown };
+}
+
+/**
+ * The lines of an existing job while they are typed: a text stays in its draft until a save of
+ * exactly that text is accepted, so text typed after an Enter is not wiped by that Enter's answer.
+ * A new job's lines go straight to its own values (`setOwn`).
+ */
+function useDrafts({
+  change,
+  job,
+  refuse,
+  setOwn,
+  values,
+}: {
+  change: (row: Row, patch: Patch | Partial<Values>) => Promise<boolean>;
+  job: JobRow | undefined;
+  refuse: (row: Row, text: string | undefined) => void;
+  setOwn: (update: (then: Values) => Values) => void;
+  values: Values;
+}) {
+  const [drafts, setDrafts] = useState<Drafts>({});
+  // The text of each line sent and not answered yet: leaving the line after its Enter sends it once.
+  const sending = useRef<Drafts>({});
 
   const text = (key: keyof Drafts) => {
     const draft = drafts[key];
@@ -182,8 +237,7 @@ export function useJobForm({
 
   /** A line typed in. */
   const type = (key: keyof Drafts, value: string) => {
-    const row = key === "time" ? "schedule" : key;
-    refuse(row, undefined);
+    refuse(key === "time" ? "schedule" : key, undefined);
     if (job === undefined) {
       setOwn((then) =>
         key === "time"
@@ -195,34 +249,90 @@ export function useJobForm({
     }
   };
 
-  /** A line left, or its Enter: saved when it differs from the file's. */
+  /**
+   * A line left, or its Enter: sent when it differs from the job's, and cleared from the drafts once
+   * the save of that very text is accepted: text typed meanwhile stays.
+   */
   const leave = async (key: keyof Drafts) => {
     const draft = drafts[key];
-    if (job === undefined || draft === undefined) {
+    if (job === undefined || draft === undefined || sending.current[key] === draft) {
       return;
     }
     const was = key === "time" ? values.when.time : values[key];
-    const saved =
-      draft === was ||
-      (await change(
+    let saved = draft === was;
+    if (!saved) {
+      sending.current[key] = draft;
+      saved = await change(
         key === "time" ? "schedule" : key,
-        key === "time" ? { when: { ...values.when, time: draft } } : { [key]: draft },
-      ));
+        key === "time" ? (then) => ({ when: { ...then.when, time: draft } }) : { [key]: draft },
+      );
+      if (sending.current[key] === draft) {
+        delete sending.current[key];
+      }
+    }
     if (saved) {
-      setDrafts(({ [key]: _, ...rest }) => rest);
+      setDrafts((then) => {
+        const { [key]: now, ...rest } = then;
+        return now === draft ? rest : then;
+      });
     }
   };
 
+  return { drafts, leave, text, type };
+}
+
+/**
+ * The form's state. For an existing `job`, the values are the file's with the changes still being
+ * saved on them (`useSaves`). A text is sent when it is left, and stays in a draft until a save of
+ * exactly that text is accepted; a refusal stays under its row until the row is changed again. For
+ * a new job, the values are the form's own, and `add` sends them whole.
+ */
+export function useJobForm({
+  job,
+  onSave,
+  repository,
+}: {
+  job: JobRow | undefined;
+  onSave: (input: JobInput, was: string) => Promise<string | undefined>;
+  repository: string;
+}) {
+  const [own, setOwn] = useState(() => newValues(repository));
+  const [refusals, setRefusals] = useState<Partial<Record<Row | "button", string>>>({});
+  const { enqueue, shown } = useSaves(job, onSave);
+  const values = shown ?? own;
+
+  const refuse = (row: Row | "button", text: string | undefined) =>
+    setRefusals((then) => ({ ...then, [row]: text }));
+
+  /**
+   * Applies `patch` to the job, shown at once and saved after the saves before it, or for a new job
+   * keeps it. The refusal shows under `row`. Gives whether the job was saved.
+   */
+  const change = async (row: Row, patch: Patch | Partial<Values>) => {
+    refuse(row, undefined);
+    const make: Patch = typeof patch === "function" ? patch : () => patch;
+    if (job === undefined) {
+      setOwn((then) => apply(then, make));
+      return false;
+    }
+    const refusal = await enqueue(make);
+    refuse(row, refusal);
+    return refusal === undefined;
+  };
+  const { drafts, leave, text, type } = useDrafts({ change, job, refuse, setOwn, values });
+
   /** The schedule's kind or day picked: written with the time typed, if any. */
-  const when = (next: Partial<When>) =>
-    void change("schedule", {
-      when: { ...values.when, time: drafts.time ?? values.when.time, ...next },
-    });
+  const when = (next: Partial<When>) => {
+    const typed = drafts.time;
+    void change("schedule", (then) => ({
+      when: { ...then.when, time: typed ?? then.when.time, ...next },
+    }));
+  };
 
   /** The new job, as it is. */
   const add = async () => {
     refuse("button", undefined);
-    const refusal = await onSave(inputOf(own));
+    const refusal = await onSave(inputOf(own), "");
     if (refusal !== undefined) {
       refuse(rowOf(refusal), refusal);
     }

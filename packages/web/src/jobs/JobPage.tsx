@@ -43,8 +43,8 @@ type Around = {
   zone: string;
 };
 
-/** A write: its refusal in words, or nothing. */
-type Write = (input: JobInput) => Promise<string | undefined>;
+/** A write of a job, `was` the name it has in the file: its refusal in words, or nothing. */
+type Write = (input: JobInput, was: string) => Promise<string | undefined>;
 
 /** The page's title, with "Run now" beside it on wider screens. */
 function Title({ children, onRun }: { children: ReactNode; onRun?: () => void }) {
@@ -178,10 +178,10 @@ export function JobPage({ name }: { name: string }) {
           }
           return result.refused;
         },
-        onSave: async (input) => {
-          const refusal = await actions.update(name, input);
+        onSave: async (input, was) => {
+          const refusal = await actions.update(was, input);
           // A rename moved the page's address.
-          if (refusal === undefined && input.name.trim() !== name) {
+          if (refusal === undefined && input.name.trim() !== was) {
             navigate(here(jobPath(input.name.trim())));
           }
           return refusal;

@@ -90,7 +90,7 @@ export const common = {
 
 /** An open job's page over `job`, its writes spied; `rerender` shows it again with another job. */
 export function open(
-  onSave = vi.fn(async (_input: unknown): Promise<string | undefined> => undefined),
+  onSave = vi.fn(async (_input: unknown, _name: string): Promise<string | undefined> => undefined),
   job: JobRow = JOB,
 ) {
   const onRun = vi.fn(async (): Promise<string | undefined> => undefined);

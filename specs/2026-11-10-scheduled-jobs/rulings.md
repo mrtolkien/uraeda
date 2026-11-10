@@ -508,3 +508,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a change a job's run did not start, whose step moves what a card says, is not heard
   until the next announcement: the card reads `change-open` only for changes a job's run started.
 - **Where**: task 6. It amends R22.
+
+## R34: A form's changes are patches, queued and shown at once
+
+- **Decision**: an existing job's form turns each change of a field into a patch, a function of the
+  job as it stands when it is applied. The controls show the file's values with the pending patches
+  on them at once, so they move before the server answers. The saves run one after another: each
+  applies its patch on the job as the latest accepted save wrote it, and goes to the name the job
+  has then (`onSave(input, was)`), so a rename is followed by saves to the new name. A refusal drops
+  its patch, the control goes back, and the refusal shows under its field. A change to a row whose
+  save is in flight is queued, not dropped. A text stays in its draft until a save of exactly that
+  text is accepted: a text typed after an Enter stays, and leaving the line after its Enter sends it
+  once.
+- **Rationale**: every save sent the whole job as last rendered, so a second save started while the
+  first was in flight wrote the first field's old value back (and was refused after a rename), a
+  second change of a row was dropped, the accepted save wiped the newer draft, and the controls
+  moved only when the server answered, against the optimistic writes of `specs/ui/`.
+- **Alternatives considered**: sending only the changed key: the core's `update` takes a whole job,
+  and a patch on the accepted job is the same thing, built in one place.
+- **If wrong**: a hand edit of `config.toml` that lands between two queued saves is written over by
+  the second, which is built on the job as the first wrote it.
+- **Where**: task 8.

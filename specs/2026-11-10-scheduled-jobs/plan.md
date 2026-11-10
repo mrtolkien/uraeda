@@ -1098,9 +1098,11 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
   The schedule's control writes one of the data model's four forms. The agent's row opens the picker
   a new session uses, and "Default" removes the job's three keys.
 - An existing job saves each field as it is left, or on Enter for a line, through `update`. A
-  refusal shows under its field, with the server's text, and the file keeps its value. A new job is
-  added by "Add the job", enabled once its name and prompt are filled, with Daily at 03:00 and the
-  current repository ticked. The human then lands on the list, the new job selected.
+  refusal shows under its field, with the server's text, and the file keeps its value. The controls
+  move at once and go back on a refusal, and a change made while a save is in flight is queued as a
+  patch on the latest accepted job, under the name it has then ([ruling R34](rulings.md)). A new job
+  is added by "Add the job", enabled once its name and prompt are filled, with Daily at 03:00 and
+  the current repository ticked. The human then lands on the list, the new job selected.
 - "Run now" sits by the title, and is the phone's bottom bar's one action. It opens the run's
   session.
 - The history lists this repository's rows, newest first: each run's time, then its session's or its
