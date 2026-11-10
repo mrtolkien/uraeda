@@ -51,6 +51,19 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");
 }
 
+/** Waits for `refresh`, however it settles, and at most `PICK_WAIT_MS`: it never rejects. */
+export async function refreshedWithin(refresh: () => Promise<void>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wait = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, PICK_WAIT_MS);
+  });
+  try {
+    await Promise.race([refresh().catch(() => {}), wait]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * The id of the account a new session starts on: asks the usage that is stale, waits at most
  * `PICK_WAIT_MS` for the answers, then picks on what is known: each account's freshest usage, an
@@ -65,15 +78,7 @@ export async function accountFor(
   reports: () => ReadonlyArray<UsageReport>,
   refresh: () => Promise<void>,
 ): Promise<string> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const wait = new Promise<void>((resolve) => {
-    timer = setTimeout(resolve, PICK_WAIT_MS);
-  });
-  try {
-    await Promise.race([refresh().catch(() => {}), wait]);
-  } finally {
-    clearTimeout(timer);
-  }
+  await refreshedWithin(refresh);
   const picked = pickAccount(accountUsage(accounts.list(), reports(), Date.now()));
   if (!picked) {
     throw refused(RUNTIME_REFUSALS.noAccount(name));

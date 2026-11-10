@@ -1530,7 +1530,7 @@ test("models() runs in the first listed account that is ready, else the first li
   const adapter = (accounts: Array<string>) =>
     new ClaudeAdapter({
       accounts,
-      command: controlAgent(dir),
+      command: accountsAgent(dir),
       imagesDir: images(),
       pluginDir: "/p",
     });
@@ -1540,6 +1540,55 @@ test("models() runs in the first listed account that is ready, else the first li
   // None is ready: the first listed.
   await adapter([gone, file]).models();
   expect(readFileSync(join(dir, "config"), "utf8")).toBe(gone);
+});
+
+/**
+ * A stand-in for `claude` whose `auth status` says the `-old` folder is signed out and the others
+ * signed in, and whose control requests answer `list_models` and `get_settings`, writing the folder
+ * of each `list_models` to `<dir>/config`.
+ */
+function accountsAgent(dir: string): string {
+  const agent = join(dir, "agent.cjs");
+  writeFileSync(
+    agent,
+    `const { writeFileSync } = require("node:fs");
+const folder = process.env.CLAUDE_CONFIG_DIR ?? "";
+if (process.argv[2] === "auth") {
+  const out = folder.endsWith("-old");
+  process.stdout.write(JSON.stringify({ loggedIn: !out }));
+  process.exit(out ? 1 : 0);
+}
+const out = (response) => process.stdout.write(JSON.stringify({ response, type: "control_response" }) + "\\n");
+require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
+  const { request, request_id } = JSON.parse(line);
+  const ok = (response) => out({ request_id, subtype: "success", response });
+  if (request.subtype === "list_models") { writeFileSync(${JSON.stringify(join(dir, "config"))}, folder); ok(${JSON.stringify(LIST_MODELS)}); }
+  else if (request.subtype === "get_settings") ok({ applied: { model: "claude-opus-5-5" }, effective: { model: "opus" } });
+  else out({ error: "Unsupported", request_id, subtype: "error" });
+});
+`,
+  );
+  return script(`exec "${process.execPath}" "${agent}" "$@"`);
+}
+
+test("models() waits for the accounts' ask, so it runs in an account that is signed in", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const old = join(dir, ".claude-old");
+  const fine = join(dir, ".claude-b");
+  mkdirSync(old);
+  mkdirSync(fine);
+  const adapter = new ClaudeAdapter({
+    accounts: [old, fine],
+    command: accountsAgent(dir),
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  // Both folders exist, and nothing was asked yet: until `claude auth status` answers, the first
+  // looks ready. The models are asked after it.
+  expect(adapter.accounts.list().map(({ state }) => state)).toEqual(["ready", "ready"]);
+  await adapter.models();
+  expect(adapter.accounts.list().map(({ state }) => state)).toEqual(["signed-out", "ready"]);
+  expect(readFileSync(join(dir, "config"), "utf8")).toBe(fine);
 });
 
 test("models() rejects when the agent refuses, or exits before answering", async () => {

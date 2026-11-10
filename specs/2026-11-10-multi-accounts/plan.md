@@ -673,9 +673,11 @@ windows, rejects the ask. Nothing else of the folder is read.
 `models()` and the usage ask share: `models()` uses it, so `MODELS_ARGS` moved there as
 `SHORT_ARGS`. `claudeEnv` merges `toolsEnv(options.tools)` with `CLAUDE_CONFIG_DIR` when
 `options.account` is set; `#spawn` uses it. `hasSession(nativeId, account)` looks under `account`,
-else under the adapter's own folder. `models()` runs in the folder of the first listed account last
-known `ready`, else of the first listed, when accounts are listed. The built-in passes the
-`accounts` setting's lines, a list of strings, else none. The manifest gains:
+else under the adapter's own folder. `models()` first awaits the accounts'
+`refresh(USAGE_MAX_AGE_MS)`, at most `PICK_WAIT_MS` (`refreshedWithin`, in `account-pick.ts`), then
+runs in the folder of the first listed `ready` account, else of the first listed, when accounts are
+listed. The built-in passes the `accounts` setting's lines, a list of strings, else none. The
+manifest gains:
 
 ```toml
 [settings.accounts]

@@ -164,3 +164,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 4 of the plan; `AccountRefresh` in `runner/account-records.ts`,
   `Runtimes.onAccounts` in `runner/runtimes.ts`, `ExtensionsHost.start` in `extensions/server.ts`,
   `Processes.#pick`.
+
+## R11: The model list waits for the accounts' ask
+
+- **Decision**: `ClaudeAdapter.models()` awaits the accounts' `refresh(USAGE_MAX_AGE_MS)`, at most
+  `PICK_WAIT_MS` (the helper `refreshedWithin` the pick uses), then runs in the first listed `ready`
+  account, else the first listed.
+- **Rationale**: finding 9 of wave 3: the list is asked at registration, when every existing folder
+  is still `ready` by default, so a signed-out first folder ran `list_models` and kept a bad list.
+  At registration `Sessions` asks the accounts first, and `models()` shares that ask.
+- **Alternatives considered**: asking the models again when an account's state changes: a second
+  path from the accounts to the runtimes, for a list that is asked again at each start and each
+  opening of the picker.
+- **If wrong**: an ask that `models()` starts itself, when it comes before any page's read, answers
+  its accounts with no announce until the next one.
+- **Where**: task 3 of the plan, `ClaudeAdapter.models` in `runner/claude.ts`.
