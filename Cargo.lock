@@ -3608,7 +3608,7 @@ checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
 
 [[package]]
 name = "uraeda-binding"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "base64",
  "napi",
@@ -3620,7 +3620,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-cli"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "clap",
  "clap_complete",
@@ -3634,7 +3634,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-compile"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
@@ -3650,7 +3650,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-core"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "gif",
  "gix",
@@ -3674,7 +3674,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-lsp"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",

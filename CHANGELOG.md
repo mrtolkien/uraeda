@@ -1,5 +1,88 @@
 # Changelog
 
+## 1.3.0 - model options per step
+
+Released on 2026-11-10.
+
+### Features
+
+- **[Agents catch up open pull requests with main](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-agents-fix.md)**
+  ([#119](https://github.com/mrtolkien/uraeda/pull/119)): Merging one pull request left the other
+  open ones behind main, and the human restarted each one's agent by hand: "I start 4 features
+  before going to sleep, then have to restart 3 after merging the first." An open pull request
+  behind main now has a step of its own, "Catch up", whose run rebases the branch on main, validates
+  it, and pushes it, then waits for review again. With a switch the human turns on, Uraeda starts
+  that run by itself as soon as it sees main move, without a pull, and a conflict that needs the
+  human's choice stops it with a comment on the pull request.
+- **[Codex runtime + model settings](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-codex-runtime.md)**
+  ([#114](https://github.com/mrtolkien/uraeda/pull/114)): Uraeda gets a second agent, Codex, run
+  through the user's installed `codex` as Claude Code is through `claude`, so a feature runs on
+  whichever agent fits it or still has usage left. Every session also starts on a model and an
+  effort picked where it starts: "pick the harness, pick the model". Uraeda needs to support more
+  harnesses, and the model is the control every comparable product has.
+- **[Extensions system](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-extensions-system.md)**
+  ([#113](https://github.com/mrtolkien/uraeda/pull/113)): Uraeda takes extensions: TypeScript
+  folders in the owner's config folder that add to or replace any part of its server and web UI. An
+  agent runtime, a place with its keys, a data record, a route, code run on an event, and agent
+  skills are all extensions, and Uraeda's own places and Claude Code became built-in ones the owner
+  can turn off. The human's reason: "With LLMs, it's trivial to extend software. So software should
+  be expandable." The codebase was growing too monolithic to add an extension system later, and
+  extensions let other people adapt Uraeda without forking it. Creating a local extension had to be
+  trivial, "Build should be simple/handled by us directly", with hot reload, since most extensions
+  are written on the spot. Workflows as extensions were asked for, then moved to the priorities'
+  Later: the workflow stays Uraeda's own.
+- **[Run options](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-run-options.md)**
+  ([#120](https://github.com/mrtolkien/uraeda/pull/120)): The human sets how each workflow step
+  runs: its agent, model, and effort, whether it shares a session with the step before, the build's
+  implementers, and the reviewers, each an agent or a command. Defaults live in the settings, and a
+  feature or a change overrides any of them where it starts or on its page, by keyboard or by tap,
+  through one diagram of the steps. Every step ran the same way before, while some need a stronger
+  model or a clean context and others a cheaper one; it waited for Codex, so two agents made the
+  choice real. The human asked for "full control in Uraeda": sub-agents are sessions Uraeda starts
+  on their role's pick, never the agents' own.
+
+### Changes
+
+- **[Postponing a feature makes a proposal](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-postpone-proposal.md)**
+  ([#111](https://github.com/mrtolkien/uraeda/pull/111)): Postponing a feature moved its whole
+  folder to `specs/proposals/<slug>/`, merged its branch, and reverted its decision edits. The web
+  UI shows only the folder's `proposal.md`, so the discovery, answers, and spec kept beside it were
+  invisible, and the reverted decisions read as lost work. A postponed feature is now only a
+  proposal: the agent writes the feature's current state as a new proposal file, and the feature's
+  folder leaves the default branch.
+- **[Pressing Enter on a settled point focuses its comment](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-pressing-enter.md)**
+  ([#110](https://github.com/mrtolkien/uraeda/pull/110)): On a round of questions, Enter on a
+  settled point held by the keyboard's cursor opened its comment form, but left the focus on the
+  point: the human had to press Tab or click before typing. The field now takes the focus at once,
+  and `i` brings the human back to it, as on every other editable selection.
+- **[Dismiss an inbox triage for a new one](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-08-triage.md)**
+  ([#112](https://github.com/mrtolkien/uraeda/pull/112)): An inbox triage could only be answered and
+  applied. A stale triage, or one asked for too early, blocked "Organize with AI" until someone
+  deleted `specs/INBOX-TRIAGE.md` by hand. The human can now dismiss a triage, answered or not, and
+  ask for a new one.
+- **[`m` opens the model picker](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-09-all-pages.md)**
+  ([#117](https://github.com/mrtolkien/uraeda/pull/117)): On the pages where the human picks what a
+  session runs on, the New page and a session's page, `m` opens the model picker. Before this
+  change, only the composer's button and `Space a`, a two-key sequence, opened it.
+- **[Postpone a feature or a change from its menu](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-09-postpone-feature.md)**
+  ([#116](https://github.com/mrtolkien/uraeda/pull/116)): Postponing existed only as a step of the
+  skill, run when the human asked an agent for it: the feature's menu had Rename and Drop alone.
+  Postponing needs an agent, which writes the new proposal from the feature's state, so the menu's
+  "Postpone" sends that request to the feature's latest session and opens it, for a feature or a
+  change.
+- **[Spec comments: suggestion vs change needed](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-09-spec-comments.md)**
+  ([#115](https://github.com/mrtolkien/uraeda/pull/115)): A comment on a part of a spec held its
+  Approve back in the web UI, so a human with a mere suggestion had to request a revision or move it
+  to the general comment. Comments are now accepted with either verdict, anywhere in the file: a
+  comment that only guides the next step goes with an approval, and one that needs the spec changed
+  goes with Request changes. One quiet line tells the two apart, without a warning or a held button.
+- **[When there's table in a message, they look small](https://github.com/mrtolkien/uraeda/blob/v1.3.0/specs/done/2026-11-09-when-there.md)**
+  ([#118](https://github.com/mrtolkien/uraeda/pull/118)): A table in an agent's message was held to
+  the message's width, at the reading measure, and cut at its border, scrolling inside it, while a
+  wide screen had empty room beside the session. The human asked for tables to spread to the right,
+  the message's border growing around them, and for scrolling to move a table's left side out of the
+  pane too, so a widescreen shows the whole table while it still starts left-aligned with the text.
+
 ## 1.2.0 - Themes + UI coherence pass
 
 Released on 2026-11-08.
