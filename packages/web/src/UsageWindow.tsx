@@ -106,6 +106,9 @@ export function useReportedRuntimes(): ReadonlyArray<Runtime> {
 /** Whether an account can show windows: signed in. A signed-out or missing one shows none. */
 const isReady = (account: Account) => account.state === "ready";
 
+/** What a signed-out or missing account's line says after its name. */
+const trouble = (account: Account) => (account.state === "missing" ? "no folder" : "signed out");
+
 /** An account's line, its name alone beside its harness's mark, in the sidebar's text. */
 function AccountLine({ kind, text }: { kind: string; text: string }) {
   return (
@@ -123,7 +126,7 @@ function AccountWindowsFull({ account, kind }: { account: Account; kind: string 
   return (
     <VStack gap={2}>
       <Text type="supporting" weight="semibold">
-        {isReady(account) ? account.name : `${account.name} · signed out`}
+        {isReady(account) ? account.name : `${account.name} · ${trouble(account)}`}
       </Text>
       {isReady(account) &&
         account.windows.map((window) => (
@@ -137,7 +140,7 @@ function AccountWindowsFull({ account, kind }: { account: Account; kind: string 
 function AccountWindowCompact({ account, kind }: { account: Account; kind: string }) {
   const [first] = account.windows;
   if (!isReady(account)) {
-    return <AccountLine kind={kind} text={`${account.name} signed out`} />;
+    return <AccountLine kind={kind} text={`${account.name} ${trouble(account)}`} />;
   }
   if (first === undefined) {
     return <AccountLine kind={kind} text={account.name} />;

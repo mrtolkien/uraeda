@@ -182,3 +182,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an ask that `models()` starts itself, when it comes before any page's read, answers
   its accounts with no announce until the next one.
 - **Where**: task 3 of the plan, `ClaudeAdapter.models` in `runner/claude.ts`.
+
+## R12: A missing folder reads "no folder", a signed-out account "signed out"
+
+- **Decision**: Home reads "c · no folder" and the sidebar "c no folder" for an account whose folder
+  is `missing`; "b · signed out" and "b signed out" stay for a `signed-out` one. Neither shows a
+  window.
+- **Rationale**: finding 2 of wave 4: the settings banner says "account c has no folder at
+  ~/.claude-c", and the panes read "signed out", which sends the human to `claude auth login` for a
+  folder that does not exist. US3 only says the panes "say so" for both problems.
+- **Alternatives considered**: one text for both, "needs you": it hides which of the two to fix.
+- **Where**: task 5 of the plan, `UsageWindow.tsx`.
