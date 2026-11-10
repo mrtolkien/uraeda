@@ -817,3 +817,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job with a wrong type and a bad schedule shows the type's problem first, and its
   schedule's only once the type is mended.
 - **Where**: the second pass's fix 1, tasks 1, 4, and 5.
+
+## R51: A change starts only where the job still runs
+
+- **Decision**: right before `toChange`, with the other checks made after the wait, the acceptance
+  reads where the job runs, by the names the scheduler uses: the repository's name in Uraeda's list
+  for the session's path, that the Jobs extension is on there (`extensions.isOn("jobs", name)`;
+  without the extensions' host, as in tests, it is on), and that the job still names it
+  (`job.repositories.includes(name)`). A repository no longer in the list, or missing, starts
+  nothing. The offer then waits on its card, with nothing said. This completes
+  [R42](#r42-run-now-is-refused-where-the-jobs-extension-is-off), which gated only `runNow`.
+- **Rationale**: a human who turns Jobs off for a repository, or takes the repository out of the
+  job, while a run works there has taken their yes back, as a pause would: the spec says that with
+  the extension off no job starts there, and the change is a start.
+- **If wrong**: a change the human wanted is left to its card, which starts it with one click.
+- **Where**: the second pass's fix 2, task 5.

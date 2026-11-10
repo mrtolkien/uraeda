@@ -45,11 +45,11 @@ function humanWrote(cache: SessionCache, session: string): boolean {
 
 /**
  * Starts the change the run's turn offered, when the run, the job, and the session allow it. The
- * checks of what the human may have done meanwhile come after the only wait, the read of the jobs,
- * so nothing but `toChange`'s own hold separates them from the start.
+ * checks of what the human may have done meanwhile, the job's place included (R51), come after the
+ * only wait, the read of the jobs, so nothing but `toChange`'s own hold separates them from the start.
  */
 async function accept(shared: Omit<RepoContext, "repo">, session: string, turn: number) {
-  const { binding, sessions, settings } = shared;
+  const { binding, extensions, hosts, sessions, settings } = shared;
   const { cache } = sessions;
   const run = cache.jobs.ofSession(session);
   const proposal = run && proposalOf(lastWord(cache.items(turn, 0, cache.itemCount(turn))) ?? "");
@@ -60,12 +60,21 @@ async function accept(shared: Omit<RepoContext, "repo">, session: string, turn: 
   const job = problem === undefined ? jobs.find((one) => one.name === run.job) : undefined;
   const row = cache.session(session);
   const ended = cache.turns(session).at(-1);
+  // Where the job runs, by the names the scheduler uses: the repository in Uraeda's list for the
+  // session's path (R51).
+  const host = row && hosts.byPath(row.repo);
   if (
     job === undefined ||
     // The rule "Run now" uses (R23): a schedule not understood after the run started, or when it was
     // run by hand, does not take back the human's yes; any other problem does.
     impossible(jobs, job) !== undefined ||
     job.reportOnly ||
+    // The job still runs here, as the scheduler reads it: a human who turned the Jobs extension off
+    // for the repository, took it out of the job, or removed it from the list took their yes back.
+    host === undefined ||
+    host.missing ||
+    !job.repositories.includes(host.name) ||
+    !(extensions?.isOn("jobs", host.name) ?? true) ||
     // The run's row is the session's own repository's, and the turn is the session's last.
     row === undefined ||
     row.repo !== run.repository ||

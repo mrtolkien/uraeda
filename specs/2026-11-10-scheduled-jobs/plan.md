@@ -842,8 +842,10 @@ unwraps the sample's own fence first.
 - `acceptOffers` listens to the sessions' changes, as `onSessionChange` gives them. It acts on a
   turn that ended `done`, in a session without a folder, that a run's row names for the same
   repository. The job, read now by its name, must exist, not be report only, and not be impossible
-  by the rule "Run now" uses, `impossible` ([ruling R43](rulings.md)). The session must not work by
-  the scheduler's own reading, `works` in `jobs/guards.ts`, which counts a wakeup the agent set
+  by the rule "Run now" uses, `impossible` ([ruling R43](rulings.md), [R50](rulings.md)); the job
+  must still run in the session's repository: it is in Uraeda's list, the job names it, and the Jobs
+  extension is on there ([ruling R51](rulings.md)). The session must not work by the scheduler's own
+  reading, `works` in `jobs/guards.ts`, which counts a wakeup the agent set
   ([ruling R44](rulings.md)), must hold no message of the origin `human`, the turn must be its
   latest, and the run's row must hold no refusal: a run's offer is accepted at most once
   ([ruling R19](rulings.md)). The turn's last text, after its last call, must end on a `change`

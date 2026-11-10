@@ -10,7 +10,7 @@ const NAME = "Dependencies";
 
 const OFFER = "```uraeda-offer change\n# Upgrade three dependencies\n\nUpgrade a, b, and c.\n```\n";
 
-const job: Job = {
+const base: Job = {
   agent: "fake",
   name: NAME,
   on: true,
@@ -34,7 +34,7 @@ async function turns(count: number) {
  * so the server stops its sessions and unloads its extensions under a change being created.
  */
 test("the stop waits for an acceptance in flight", async () => {
-  const state: { gate?: Promise<void>; jobs: Jobs } = { jobs: { jobs: [job] } };
+  const state: { gate?: Promise<void>; jobs: Jobs } = { jobs: { jobs: [] } };
   const using: Binding = {
     ...binding,
     readJobs: async () => {
@@ -43,6 +43,9 @@ test("the stop waits for an acceptance in flight", async () => {
     },
   };
   const server = await testServer(undefined, { binding: using });
+  // The job names the repository by its name in Uraeda's list.
+  const job = { ...base, repositories: [server.name] };
+  state.jobs = { jobs: [job] };
   const shared = {
     binding: using,
     dataDir: server.dataDir,
@@ -119,7 +122,7 @@ test("a job written just before its time runs at it", async () => {
 
   // Saved at 02:59:45: the file's read sees it, 15 seconds before its time.
   state.clock = new Date("2026-11-11T02:59:45");
-  state.jobs = { jobs: [{ ...job, repositories: [server.name] }] };
+  state.jobs = { jobs: [{ ...base, repositories: [server.name] }] };
   await server.settings.reload();
   await turns(50);
   // The timer's next look, after 03:00: the time starts, once.
@@ -132,7 +135,7 @@ test("a job written just before its time runs at it", async () => {
   ).toHaveLength(1);
 
   // A job added after its time still waits for the next one.
-  state.jobs = { jobs: [{ ...job, name: "Late", repositories: [server.name] }] };
+  state.jobs = { jobs: [{ ...base, name: "Late", repositories: [server.name] }] };
   state.clock = new Date("2026-11-12T03:00:20");
   await server.settings.reload();
   await turns(50);

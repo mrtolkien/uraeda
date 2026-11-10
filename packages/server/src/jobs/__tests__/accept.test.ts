@@ -4,6 +4,7 @@ import type { Job, Jobs } from "uraeda-binding";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the acceptance's imports in a cycle.
 import { binding, git, testFeatureOptions, testServer } from "../../__tests__/helpers.ts";
+import type { ExtensionsHost } from "../../extensions/server.ts";
 import type { Binding, RepoContext } from "../../fate/context.ts";
 import { toChange } from "../../fate/session-moves.ts";
 import { readSession } from "../../fate/sessions.ts";
@@ -66,7 +67,7 @@ function job(over: Partial<Job> = {}): Job {
  * The acceptance over the server's repository, on a binding whose jobs are the test's, `state.jobs`,
  * and which a test may hold at `state.gate`, as a settings file read slowly.
  */
-async function setup() {
+async function setup(extensions?: ExtensionsHost) {
   // `file`: the jobs are the core's reading of the settings file, as in the app, not the test's.
   const state: { file?: boolean; gate?: Promise<void>; jobs: Jobs } = {
     jobs: { jobs: [job()] },
@@ -80,9 +81,11 @@ async function setup() {
   };
   const server = await testServer(undefined, { binding: using });
   repository.name = server.name;
+  state.jobs = { jobs: [job()] };
   const shared = {
     binding: using,
     dataDir: server.dataDir,
+    ...(extensions && { extensions }),
     featureOptions: testFeatureOptions(server.dataDir, server.settings, using),
     frames: server.frames,
     hosts: server.hosts,
@@ -518,3 +521,39 @@ test("an offer at the end of a turn that left a wakeup pending starts nothing, a
   await ended(server, session);
   expect(folderOf(server, session)).toMatch(/^\d{4}-\d{2}-\d{2}-/);
 });
+
+/**
+ * Review 08, C2 (R42). Catches: a change started where no job runs any more: the human turned the
+ * Jobs extension off for the repository, took it out of the job, or removed it from the list while
+ * the run worked. Each takes their yes back: the offer waits on its card.
+ */
+test.each(["the Jobs extension is turned off", "the job stops naming it", "it leaves the list"])(
+  "a run's offer waits when, while it works, %s",
+  async (how) => {
+    const on = { jobs: true };
+    const { accepting, ctx, server, state } = await setup({
+      isOn: (name: string) => name !== "jobs" || on.jobs,
+    } as unknown as ExtensionsHost);
+    server.adapter.fallback = () => [];
+    const before = history(server);
+    const gate = Promise.withResolvers<void>();
+    state.gate = gate.promise;
+    server.adapter.script([{ text: OFFER, type: "text" }]);
+    const started = await startRun(ctx, job(), { at: Date.now(), due: 1, trigger: "schedule" });
+    const session = started!.session;
+    await ended(server, session);
+    if (how === "the Jobs extension is turned off") {
+      on.jobs = false;
+    } else if (how === "the job stops naming it") {
+      state.jobs = { jobs: [job({ repositories: ["notes"] })] };
+    } else {
+      await binding.removeRepository(server.dataDir, server.name);
+      await server.hosts.reload();
+    }
+    gate.resolve();
+    await accepting.settled();
+    expect(folderOf(server, session)).toBeNull();
+    expect(server.sessions.cache.jobs.ofSession(session)?.refusal ?? null).toBeNull();
+    expect(history(server)).toEqual(before);
+  },
+);
