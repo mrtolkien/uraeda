@@ -643,3 +643,36 @@ fn removing_the_first_table_of_the_file_leaves_no_blank_line_above() {
         assert_eq!(text(dir.path()), after);
     }
 }
+
+#[test]
+fn a_first_job_lands_at_the_end_of_the_file_whatever_the_top_level_holds() {
+    for before in [
+        "server.port = 1\n# tail\n",
+        "[server]\nport = 1\n\n# [runs]\n# x = 1\n",
+        "[server]\nport = 1\n",
+        "foo = 1\n\n[server]\nport = 1\n# tail",
+    ] {
+        let dir = tempdir();
+        write(dir.path(), before);
+
+        jobs::add(dir.path(), &input("A", "hourly", "x")).unwrap();
+
+        let after = text(dir.path());
+        let comments = before.trim_end().to_owned();
+        assert!(after.starts_with(&comments), "{after}");
+        assert!(after[comments.len()..].starts_with("\n"), "{after}");
+        assert!(
+            after[comments.len()..]
+                .trim_start()
+                .starts_with("[[jobs]]\nname = \"A\""),
+            "{after}"
+        );
+        assert_eq!(jobs::read(dir.path()).jobs.len(), 1);
+        jobs::remove(dir.path(), "A").unwrap();
+        assert!(
+            text(dir.path()).starts_with(&comments),
+            "{}",
+            text(dir.path())
+        );
+    }
+}

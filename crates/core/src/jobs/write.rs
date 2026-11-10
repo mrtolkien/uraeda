@@ -19,9 +19,9 @@ pub fn add(config_dir: &Path, job: &JobInput) -> Result<(), ApiError> {
         if names(root)?.contains(&job.name) {
             return Err(taken(&job.name));
         }
-        // With no table in the file yet, its comments are the document's trailing text, which a
-        // first table would end up above: they go above the table instead, as the header does.
-        let first = root.iter().all(|(_, item)| item.is_value()) && root.get("jobs").is_none();
+        // The comments after the file's last table or value are the document's trailing text, which
+        // a first table would end up above: they go above the table instead, as the header does.
+        let first = root.get("jobs").is_none();
         let mut table = Table::new();
         apply(&mut table, job);
         match root.get_mut("jobs") {
