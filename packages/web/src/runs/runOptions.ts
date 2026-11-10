@@ -47,6 +47,7 @@ export const METER = ["low", "medium", "high", "xhigh", "max"] as const;
 /** The agents on, from the picker's runtimes: a runtime not on runs on the first one. */
 export function pickerAgents(runtimes: ReadonlyArray<PickerRuntime>): Agents {
   return {
+    defaultEffort: (runtime) => runtimes.find((each) => each.kind === runtime)?.defaults.effort,
     defaultModel: (runtime) => runtimes.find((each) => each.kind === runtime)?.defaults.model,
     runtime: (chosen) => (runtimes.find((each) => each.kind === chosen) ?? runtimes[0])?.kind,
   };
@@ -204,9 +205,16 @@ export function fromStored(stored: StoredOptions, runtime: string): RunOptions {
   return toMap(stored, runtime);
 }
 
-/** What the map's `options` store over `defaults`: only what differs from them. */
-export function toSaved(options: RunOptions, defaults: RunOptions): StoredOptions {
-  return toStored(options, defaults);
+/**
+ * What the map's `options` store over `defaults`: only what differs from them, an agent's default
+ * picked over a value of `defaults` stored as what `runtimes` say it is.
+ */
+export function toSaved(
+  runtimes: ReadonlyArray<PickerRuntime>,
+  options: RunOptions,
+  defaults: RunOptions,
+): StoredOptions {
+  return toStored(options, defaults, pickerAgents(runtimes));
 }
 
 /**

@@ -26,11 +26,12 @@ export function isStepId(step: string | null | undefined): step is StepId {
 
 /**
  * How the runtimes of the main checkout `root` resolve a pick's defaults: the runtime picked while
- * it is registered and on there, else the first one on; and the model its last list says it runs
- * when none is picked.
+ * it is registered and on there, else the first one on; and the model and the effort its last list
+ * says it runs when none is picked.
  */
 export function agentsOf(runtimes: Runtimes, root: string): Agents {
   return {
+    defaultEffort: (runtime) => runtimes.models(runtime)?.defaults.effort,
     defaultModel: (runtime) => runtimes.models(runtime)?.defaults.model,
     runtime: (chosen) =>
       chosen !== undefined && runtimes.get(chosen) !== undefined && runtimes.isOn(chosen, root)

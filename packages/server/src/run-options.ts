@@ -33,9 +33,10 @@ export type MapOptions = {
 
 /**
  * How a pick's defaults resolve: the runtime a pick runs on, the one chosen when it is on, else the
- * first runtime on; and the model a runtime runs when none is picked.
+ * first runtime on; and the model and the effort a runtime runs when none is picked.
  */
 export type Agents = {
+  defaultEffort(runtime: string): string | undefined;
   defaultModel(runtime: string): string | undefined;
   runtime(chosen?: string): string | undefined;
 };
@@ -173,17 +174,29 @@ export function toMap(options: RunOptions, fallbackRuntime: string): MapOptions 
  * it differs or a model or an effort is stored, as a stored model never goes without its agent.
  * With its agent named, its model and effort are stored whenever set: the core's merge drops the
  * fallback's under an agent other than the one the fallback stored, which may be none.
+ * A model or an effort the pick leaves to the agent's default, where the fallback set one on the
+ * same agent, is stored as what `agents` says that default is now: stored options only add values
+ * over the fallback's, so the default left unset would run on the fallback's. It stays unset, and
+ * runs on the fallback's, while the agent does not say its default.
  */
-function storedPick(pick: StepPick, fallback: StepPick): RunPick {
-  const differs = (key: keyof StepPick) => pick[key] !== undefined && pick[key] !== fallback[key];
-  const named = pick.runtime !== fallback.runtime || differs("model") || differs("effort");
-  if (!named) {
+function storedPick(pick: StepPick, fallback: StepPick, agents: Agents): RunPick {
+  const sameAgent = pick.runtime === fallback.runtime;
+  const own = (key: "effort" | "model") =>
+    pick[key] ??
+    (sameAgent && fallback[key] !== undefined
+      ? (key === "model" ? agents.defaultModel : agents.defaultEffort)(pick.runtime)
+      : undefined);
+  const model = own("model");
+  const effort = own("effort");
+  const differs = (value: string | undefined, key: "effort" | "model") =>
+    value !== undefined && value !== fallback[key];
+  if (sameAgent && !differs(model, "model") && !differs(effort, "effort")) {
     return {};
   }
   return {
     agent: pick.runtime,
-    ...(pick.model === undefined ? {} : { model: pick.model }),
-    ...(pick.effort === undefined ? {} : { effort: pick.effort }),
+    ...(model === undefined ? {} : { model }),
+    ...(effort === undefined ? {} : { effort }),
   };
 }
 
@@ -202,12 +215,12 @@ function storedReviewer(reviewer: Reviewer): ReviewerOptions {
 }
 
 /** The steps of `map` that differ from `defaults`, as stored. */
-function storedSteps(map: MapOptions, defaults: MapOptions): Array<StepOptions> {
+function storedSteps(map: MapOptions, defaults: MapOptions, agents: Agents): Array<StepOptions> {
   return STEPS.flatMap((step, index) => {
     const cut = map.cuts.includes(index);
     const newSession =
       index > 0 && cut !== defaults.cuts.includes(index) ? { newSession: cut } : {};
-    const options = { ...storedPick(map.steps[step], defaults.steps[step]), ...newSession };
+    const options = { ...storedPick(map.steps[step], defaults.steps[step], agents), ...newSession };
     return Object.keys(options).length === 0 ? [] : [{ step, ...options }];
   });
 }
@@ -222,11 +235,13 @@ function followBuild(options: MapOptions): boolean {
  * The implementers to store over `defaults`: none while both follow their build, and, while only
  * the defaults follow theirs, what differs from following the map's own build.
  */
-function storedImplementers(map: MapOptions, defaults: MapOptions): RunPick {
+function storedImplementers(map: MapOptions, defaults: MapOptions, agents: Agents): RunPick {
   if (!followBuild(defaults)) {
-    return storedPick(map.implementers, defaults.implementers);
+    return storedPick(map.implementers, defaults.implementers, agents);
   }
-  return followBuild(map) ? {} : storedPick(map.implementers, { runtime: map.steps.build.runtime });
+  return followBuild(map)
+    ? {}
+    : storedPick(map.implementers, { runtime: map.steps.build.runtime }, agents);
 }
 
 /** Whether two reviewers are the same, field by field. */
@@ -255,16 +270,16 @@ function onReviewStep(options: MapOptions): boolean {
 /**
  * The options of `map` to store over `defaults`: only the fields that differ, and the whole list of
  * reviewers when it differs. A value the map leaves to the agent's default, where `defaults` set
- * one, cannot be stored: the stored options only add values over the defaults. Reviewers left to
- * follow the review step stay unset.
+ * one, is stored as the default `agents` gives now, as the stored options only add values over the
+ * defaults. Reviewers left to follow the review step stay unset.
  */
-export function toStored(map: MapOptions, defaults: MapOptions): RunOptions {
-  const implementers = storedImplementers(map, defaults);
+export function toStored(map: MapOptions, defaults: MapOptions, agents: Agents): RunOptions {
+  const implementers = storedImplementers(map, defaults, agents);
   const keepsReviewers =
     (onReviewStep(map) && onReviewStep(defaults)) ||
     sameReviewers(map.reviewers, defaults.reviewers);
   return {
-    steps: storedSteps(map, defaults),
+    steps: storedSteps(map, defaults, agents),
     ...(Object.keys(implementers).length === 0 ? {} : { implementers }),
     ...(keepsReviewers ? {} : { reviewers: map.reviewers.map(storedReviewer) }),
     ...(map.depth === defaults.depth ? {} : { reviewDepth: map.depth }),

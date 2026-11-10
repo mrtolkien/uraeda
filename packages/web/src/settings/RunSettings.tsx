@@ -42,8 +42,14 @@ const STEP_RUNS = "How each step runs";
 const HOLD_MS = 2000;
 
 /** Whether two maps save as the same options. */
-function sameSaved(one: RunOptions, other: RunOptions, defaults: RunOptions): boolean {
-  return JSON.stringify(toSaved(one, defaults)) === JSON.stringify(toSaved(other, defaults));
+function sameSaved(
+  runtimes: ReadonlyArray<PickerRuntime>,
+  one: RunOptions,
+  other: RunOptions,
+  defaults: RunOptions,
+): boolean {
+  const saved = (options: RunOptions) => JSON.stringify(toSaved(runtimes, options, defaults));
+  return saved(one) === saved(other);
 }
 
 /**
@@ -76,7 +82,7 @@ function StepRuns({
       if (edit !== latest.current) {
         return;
       }
-      const refusal = await actions.setRunOptions(toSaved(next, defaults));
+      const refusal = await actions.setRunOptions(toSaved(runtimes, next, defaults));
       if (edit !== latest.current) {
         return;
       }
@@ -96,7 +102,8 @@ function StepRuns({
     });
   };
   const isHeld =
-    pending !== undefined && !(pending.isAnswered && sameSaved(pending.next, value, defaults));
+    pending !== undefined &&
+    !(pending.isAnswered && sameSaved(runtimes, pending.next, value, defaults));
   const shown = isHeld ? pending.next : value;
   const effort = values.runs.claudeEffortFromEnv;
   return (

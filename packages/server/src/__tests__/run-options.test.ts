@@ -19,6 +19,7 @@ import {
 /** Two agents on, Claude Code first, each with its own default model. */
 const DEFAULT_MODELS: Record<string, string> = { claude: "sonnet", codex: "gpt-6.1-sol" };
 const AGENTS: Agents = {
+  defaultEffort: () => "medium",
   defaultModel: (runtime) => DEFAULT_MODELS[runtime],
   runtime: (chosen) => (chosen !== undefined && chosen in DEFAULT_MODELS ? chosen : "claude"),
 };
@@ -94,7 +95,7 @@ test.each<{
   expect(sessionSpans(AGENTS, value).map(({ first, last }) => [first, last])).toEqual(spans);
   // A forced joint takes no cut of the human's: none is stored.
   const defaults = toMap({ steps: [] }, "claude");
-  expect(toStored(value, defaults)).toEqual(toStored(map, defaults));
+  expect(toStored(value, defaults, AGENTS)).toEqual(toStored(map, defaults, AGENTS));
   for (let index = 1; index < STEPS.length; index++) {
     const isLocked = forced.includes(STEPS[index]!);
     expect(isForced(AGENTS, value, index)).toBe(isLocked);
@@ -171,7 +172,7 @@ test.each<{ defaults?: RunOptions; name: string; options: RunOptions }>([
   },
 ])("stores only what differs: $name", ({ defaults = { steps: [] }, options }) => {
   const map = toMap(mergeRunOptions(defaults, options), "claude");
-  expect(toStored(map, toMap(defaults, "claude"))).toEqual(options);
+  expect(toStored(map, toMap(defaults, "claude"), AGENTS)).toEqual(options);
 });
 
 test("the defaults' reviewer is one agent on the review step's agent and its defaults", () => {
@@ -182,7 +183,7 @@ test("the defaults' reviewer is one agent on the review step's agent and its def
   expect(map.reviewers).toEqual([{ kind: "agent", pick: { runtime: "codex" } }]);
   expect(map.implementers).toEqual({ runtime: "claude" });
   // Left to the default, the reviewer stays unset.
-  expect(toStored(map, toMap({ steps: [] }, "claude")).reviewers).toBeUndefined();
+  expect(toStored(map, toMap({ steps: [] }, "claude"), AGENTS).reviewers).toBeUndefined();
 });
 
 /**
@@ -202,7 +203,7 @@ test("a feature's options stored over the settings' merge back to the map they w
     },
     STEPS.indexOf("review"),
   );
-  expect(toMap(mergeRunOptions(settings, toStored(map, defaults)), "claude")).toEqual(map);
+  expect(toMap(mergeRunOptions(settings, toStored(map, defaults, AGENTS)), "claude")).toEqual(map);
 });
 
 /**
@@ -224,6 +225,53 @@ test.each<{ name: string; settings: StepOptions; spec: StepPick }>([
 ])("$name", ({ settings, spec }) => {
   const defaults = toMap({ steps: [settings] }, "claude");
   const map = { ...defaults, steps: { ...defaults.steps, spec } };
-  const merged = mergeRunOptions({ steps: [settings] }, toStored(map, defaults));
+  const merged = mergeRunOptions({ steps: [settings] }, toStored(map, defaults, AGENTS));
   expect(toMap(merged, "claude").steps.spec).toEqual(spec);
+});
+
+/**
+ * Stored options only add values over the settings': the agent's default, picked over a model or an
+ * effort the settings set, is stored as what the agent says it is, or it would run on the settings'.
+ */
+test.each<{ name: string; pick: StepPick; settings: RunOptions; stored: RunOptions }>([
+  {
+    name: "the implementers' model",
+    pick: { runtime: "claude" },
+    settings: { implementers: { agent: "claude", model: "opus" }, steps: [] },
+    stored: { implementers: { agent: "claude", model: "sonnet" }, steps: [] },
+  },
+  {
+    name: "the implementers' model, their effort picked",
+    pick: { effort: "high", runtime: "claude" },
+    settings: { implementers: { agent: "claude", model: "opus" }, steps: [] },
+    stored: { implementers: { agent: "claude", effort: "high", model: "sonnet" }, steps: [] },
+  },
+  {
+    name: "the implementers' effort",
+    pick: { model: "opus", runtime: "claude" },
+    settings: { implementers: { agent: "claude", effort: "high", model: "opus" }, steps: [] },
+    stored: { implementers: { agent: "claude", effort: "medium", model: "opus" }, steps: [] },
+  },
+])("the agent's default picked over the settings' is stored: $name", (each) => {
+  const defaults = toMap(each.settings, "claude");
+  const map = { ...defaults, implementers: each.pick };
+  const stored = toStored(map, defaults, AGENTS);
+  expect(stored).toEqual(each.stored);
+  const merged = toMap(mergeRunOptions(each.settings, stored), "claude").implementers;
+  expect(merged).toEqual({ runtime: "claude", ...each.stored.implementers, agent: undefined });
+});
+
+test("a step's default effort picked over the settings' is stored, and nothing when equal", () => {
+  const settings: RunOptions = { steps: [{ agent: "claude", effort: "high", step: "spec" }] };
+  const defaults = toMap(settings, "claude");
+  const map = { ...defaults, steps: { ...defaults.steps, spec: { runtime: "claude" } } };
+  expect(toStored(map, defaults, AGENTS).steps).toEqual([
+    { agent: "claude", effort: "medium", step: "spec" },
+  ]);
+  // The agent's default is the settings' value: nothing differs.
+  const same: Agents = { ...AGENTS, defaultEffort: () => "high" };
+  expect(toStored(map, defaults, same).steps).toEqual([]);
+  // The agent does not say its default: it cannot be stored.
+  const silent: Agents = { ...AGENTS, defaultEffort: () => undefined };
+  expect(toStored(map, defaults, silent).steps).toEqual([]);
 });

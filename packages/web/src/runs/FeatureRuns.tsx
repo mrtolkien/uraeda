@@ -132,7 +132,7 @@ function SavedRuns({ feature, history }: { feature: RunsFeature; history: Stages
       defaults={defaults}
       feature={feature}
       history={history}
-      onChange={(next) => save(next, toSaved(next, defaults))}
+      onChange={(next) => save(next, toSaved(runtimes, next, defaults))}
       refused={refused}
       runtimes={runtimes}
       value={pending ?? merged}
