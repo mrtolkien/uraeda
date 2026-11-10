@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: true
 
 # Spec: Migration to Native Shell and a Rust server
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 15 minutes.
+> Approved on 2026-11-10.
 >
 > - You approve replacing the React web UI and the Node server with Native Shell clients and a Rust
 >   server, on Linux and the web.
