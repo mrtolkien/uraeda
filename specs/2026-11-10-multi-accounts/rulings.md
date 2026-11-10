@@ -306,3 +306,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   name that changes as the list does.
 - **Where**: `SessionRecord` in `fate/views.ts`, `sessionRecord` in `fate/sessions.ts`,
   `SessionAgentView` in `web/src/views.ts`, `barWindow` in `sidebar/Allowance.tsx`.
+
+## R20: An extension's `list()` that throws reads as no account
+
+- **Decision**: the server reads a runtime's `accounts.list()` through `listed()` in
+  `runner/account-pick.ts`, which gives an empty list when it throws, in the accounts' records, in
+  the pick, and in `Processes`' check of whether to pick. The reports of an account are kept, not
+  pruned, while `list()` throws, as it may list again. `refresh` and `problems()` were guarded
+  already (R10).
+- **Rationale**: finding 7 of the branch review. `AccountRefresh.refresh` read the records
+  synchronously, so an extension's `list()` that threw once broke every page's read of the agent's
+  record, and made `accountFor` reject with a raw error through `refreshedWithin`, which promises
+  never to reject, so the turn failed with the extension's error.
+- **Alternatives considered**: reporting the throw as a problem in the settings: the extension's own
+  errors already show in its state; the session should go on, on the agent's own login, as with no
+  account.
+- **Where**: `listed` in `runner/account-pick.ts`; `accountRecords`, `Processes.reports`, and
+  `Processes.#pick`.

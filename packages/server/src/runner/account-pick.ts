@@ -51,6 +51,15 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");
 }
 
+/** The accounts an extension's runtime lists: none when it has none, or when its `list()` throws. */
+export function listed(accounts: Pick<Accounts, "list"> | undefined): ReadonlyArray<Account> {
+  try {
+    return accounts?.list() ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Waits for `refresh`, however it settles, and at most `ms`, `PICK_WAIT_MS` by default: it never
  * rejects.
@@ -85,7 +94,7 @@ export async function accountFor(
   refresh: () => Promise<void>,
 ): Promise<string> {
   await refreshedWithin(refresh);
-  const picked = pickAccount(accountUsage(accounts.list(), reports(), Date.now()));
+  const picked = pickAccount(accountUsage(listed(accounts), reports(), Date.now()));
   if (!picked) {
     throw refused(RUNTIME_REFUSALS.noAccount(name));
   }

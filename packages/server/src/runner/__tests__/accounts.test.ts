@@ -152,6 +152,29 @@ test("a first message taken back during the pick's wait leaves no pinned idle pr
   expect(cache.session(run.session)?.account).toBe(folder("c"));
 });
 
+test("accounts whose list() throws read as no account: the record, the ask, and the pick go on", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.accounts = fakeAccounts();
+  const list = vi.spyOn(adapter.accounts, "list").mockImplementation(() => {
+    throw new Error("list is broken");
+  });
+  // The agent's record, which every page reads, and its refresh.
+  expect(sessions.accounts("fake")).toEqual([]);
+  expect(() => sessions.refreshAccounts()).not.toThrow();
+  await flush();
+  // A first turn picks nothing, and runs on the server's own login: it is not refused with the
+  // extension's error.
+  adapter.script([]);
+  const chat = await sessions.newChat(repo);
+  await send(sessions, repo, chat.id, "hello");
+  expect(adapter.opens.at(-1)?.account).toBeUndefined();
+  expect(cache.session(chat.id)?.account).toBeNull();
+
+  // Once it answers again, the accounts are back.
+  list.mockRestore();
+  expect(sessions.accounts("fake").map(({ name }) => name)).toEqual(["default", "b", "c"]);
+});
+
 test("a session whose turn never started opens on no account once the runtime lists none", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   adapter.accounts = fakeAccounts();
