@@ -809,9 +809,11 @@ The break each test catches:
 
 - [x] **Step 3: Move the offer's grammar to the server**
 
-`runner/offers.ts` takes `lastOffer`, `proposalTitle`, their types, and the block's pattern from the
-web UI's `offers.ts`, which imports them from `uraeda-server/offers` and keeps its page state. The
-web UI's existing tests of offers keep passing unchanged.
+`runner/offers.ts` takes `lastOffer`, `proposalTitle`, their types, and the block's grammar from the
+web UI's `offers.ts`, which imports them from `uraeda-server/offers` and keeps its page state. It
+reads fences as markdown does, so a block inside an outer fence is no offer, and `endingOffer` gives
+the offer a text ends on ([ruling R24](rulings.md)). The web UI's existing tests of offers keep
+passing, but for the one of the instructions' sample, which unwraps the sample's own fence first.
 
 - [x] **Step 4: Implement the acceptance and the refusal's status**
 
@@ -820,16 +822,18 @@ web UI's existing tests of offers keep passing unchanged.
   repository. The job, read now by its name, must exist, have no problem, and not be report only.
   The session must hold no message of the origin `human`, the turn must be its latest, and the run's
   row must hold no refusal: a run's offer is accepted at most once ([ruling R19](rulings.md)). The
-  turn's last text, after its last call, must end on a `change` offer, by `lastOffer`, with no block
-  opening after it. Every check of what the human may have done meanwhile comes after the one wait,
-  the read of the jobs, and acceptances go one after another ([ruling R12](rulings.md)).
+  turn's last text, after its last call, must end on a `change` offer, by `endingOffer`: nothing but
+  whitespace after its closing fence. Every check of what the human may have done meanwhile comes
+  after the one wait, the read of the jobs, and acceptances go one after another
+  ([ruling R12](rulings.md)).
 - It then calls `toChange` with the offer's body and no slug, and, once the change started, appends
   `jobChangeLine` to the turn. A refusal is kept with `setRefusal`, its text without the `refused: `
   prefix, and the turn, and announced with `Sessions.announce`; a refusal that says the agent works,
   or one after the human wrote, is the human's path winning: nothing is kept.
 - It holds the run's job busy in the repository from the turn's end until its acceptance ends
   (`jobs/busy.ts`, shared with the scheduler, [ruling R18](rulings.md)).
-- `startJobs` starts it, and its stop joins the scheduler's.
+- `startJobs` starts it, and its stop joins the scheduler's and awaits the acceptance in flight
+  (`settled()`).
 - The status rule gains one case, before "waits on the human": the session's latest turn is the
   refused turn, `done`, and not dismissed, in a session without a folder. It reads "Needs
   attention", reason `change-refused`. The session's view carries the refusal's text. `toChange`

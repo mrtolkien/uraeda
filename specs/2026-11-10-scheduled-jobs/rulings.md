@@ -348,3 +348,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job whose only problem is one the core lists after the schedule that is not an
   empty prompt would run by hand; none exists today.
 - **Where**: tasks 4 and 6.
+
+## R24: The offer's block is read as markdown reads fences, and must end the text to be accepted
+
+- **Decision**: `lastOffer` (R4) reads fences by the CommonMark rules: an opening fence of N
+  backticks or tildes, up to three spaces in, closes only on a line of the same character, N or more
+  of them, with nothing after; a block inside another fence is text. The acceptance reads
+  `endingOffer`: the last closed block must be a `change` offer with nothing but whitespace after
+  its closing fence. The web UI's test of the instructions' sample unwraps the sample's own
+  four-backtick fence first, since inside that fence the sample is text by the same rule.
+- **Rationale**: the server's line patterns accepted an offer quoted inside an outer fence, which
+  the web UI draws as a code sample, and a change offer followed by prose ("do not start it") or a
+  code block, which is not the run's last word. The card and the acceptance must read the same
+  block.
+- **If wrong**: an agent that wraps its real offer in an outer fence gets no change started by
+  itself, and no card either.
+- **Where**: task 5.
