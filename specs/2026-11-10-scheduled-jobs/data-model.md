@@ -70,7 +70,7 @@ sessions. A cache that cannot be read starts empty: the history is lost.
 | `job`        | text                              | the job's name                                                       | New    |
 | `repository` | path                              | the repository's main checkout                                       | New    |
 | `due`        | time, or null                     | the scheduled time it answers; null for "Run now"                    | New    |
-| `at`         | time                              | when it started, or was skipped                                      | New    |
+| `at`         | time                              | when it started, was skipped, or failed to start                     | New    |
 | `trigger`    | `schedule` or `manual`            | at its time, or by "Run now"                                         | New    |
 | `outcome`    | `started`, `skipped`, or `failed` | whether a session started, the time was skipped, or its start failed | New    |
 | `reason`     | `working`, `change-open`, or null | why it was skipped                                                   | New    |

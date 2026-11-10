@@ -811,14 +811,14 @@ understood", "Not running here: Claude Code is off in this repository.", "Not ru
 Code is not available on this machine.", or "Two jobs are named “Dependencies”.". A problem of the
 job itself comes first, then a pause: a paused job reads "Paused" whatever its agent. A problem that
 does not stop the job here, like “notes” is not in Uraeda's list. for a job that runs in this
-repository too, shows beneath the time. Of two jobs with one name, each has its card, and a key on
-either is refused with the words above until one is renamed in `config.toml`. "Last run" says what
-the last run left for you, however many skipped times follow it. The keys act on the selected card,
-each also on its bar and by tap: `j` and `k` move the selection, Enter opens the job's page, `r`
-runs it now, `p` pauses or resumes it, `d` deletes it after "Delete the job “<name>”? Its prompt
-leaves config.toml, and its sessions stay.", and `a` adds a job. A refusal shows under its card
-until you dismiss it. Jobs is a built-in extension, turned off like the others: its place is gone in
-the repositories it is off in, and no job starts there.
+repository too, shows beneath the time. Of two jobs with one name, each has its card, and a write on
+either, `p`, `d`, or a field of its page, and `r`, are refused with the words above until one is
+renamed in `config.toml`. "Last run" says what the last run left for you, however many skipped times
+follow it. The keys act on the selected card, each also on its bar and by tap: `j` and `k` move the
+selection, Enter opens the job's page, `r` runs it now, `p` pauses or resumes it, `d` deletes it
+after "Delete the job “<name>”? Its prompt leaves config.toml, and its sessions stay.", and `a` adds
+a job. A refusal shows under its card until you dismiss it. Jobs is a built-in extension, turned off
+like the others: its place is gone in the repositories it is off in, and no job starts there.
 
 A job's page, `/jobs/<name>`, is its form (a name the address cannot carry, as `new`, `.`, `..`, or
 one that starts with `~`, is written with a `~` before it): the name, the prompt, the schedule, the
@@ -834,9 +834,9 @@ effort. If you untick the repository the page is of while another stays ticked, 
 where "Add the job" writes its table once its name and prompt are filled. "Run now" sits by the
 page's title, and on the phone it is the bottom bar's one action. The page ends with the job's
 history, newest first: each run as its session, or its change once it started one, and "Its session
-is gone." for a run whose session and change are, and each skipped time with its reason. A job's
-table edited by hand shows on its page within a second. A job renamed on its page keeps its history;
-renamed by hand, it starts a new one.
+is gone." for a run whose session and change are, and each skipped time with its reason, and each
+time whose run could not start with why. A job's table edited by hand shows on its page within a
+second. A job renamed on its page keeps its history; renamed by hand, it starts a new one.
 
 **A run.** A run is a session of the main checkout, one per repository, named after the job, on the
 job's agent, model, and effort. It opens with a line saying why it started, "Started by the schedule
@@ -847,7 +847,8 @@ whose agent meets the session limit continues, as any run does. A job edited whi
 leaves that run on the prompt it started with. When several runs are due together, they start a
 minute apart, uraeda's at 3:00 and notes' at 3:01. The server looks for due times every 30 seconds,
 and each time the settings file is read, so a run starts within a minute of its time, and a job you
-save, resume, or switch on up to 30 seconds before its time still runs at it.
+save, resume, or switch on up to 30 seconds before its time still runs at it. Turning the Jobs
+extension on in a repository is seen at the next look of the server, at most 30 seconds later.
 
 **A time that passed.** A time that passes while Uraeda is not running, with the server off or the
 machine asleep, is missed, and nothing makes it up: the job waits for its next time, and a restart
@@ -862,8 +863,8 @@ still open.", naming the open change by its own title. A skipped time is not mad
 the change is merged or dropped, the next time runs. A time whose run could not start, a model the
 agent no longer lists for instance, is recorded once and not tried again: the history says "Could
 not start: <why>", and so does the card's "Last run" while that is the job's newest run, so you see
-it without opening the page. The next time tries again. A "Run now" that cannot start is refused
-under the card and records nothing.
+it without opening the page. The next time tries again. A start that the server's stop cuts records
+nothing, and a "Run now" that cannot start is refused under the card and records nothing.
 
 **The change a run starts.** When a run's last word is an offer of a change, Uraeda starts that
 change as the offer's card does, with its proposal, its branch, and its worktree. The session moves
@@ -873,13 +874,15 @@ was nothing to do, makes no commit, branch, or worktree. An offer that is not th
 as one followed by more text, a feature, one indented or inside a list or a quote, or one in a
 session you wrote in, starts nothing, and its card waits for you. A turn that ends on an offer while
 a wakeup its agent set is pending is not the run's last word either: the turn the wakeup starts is
-read as any turn's end is. So does the offer of a job that has a problem other than its schedule
-when its run ends: a schedule mistyped meanwhile, or in a job you ran by hand, does not take your
-yes back. When the change cannot start, because its folder's name is taken for instance, the session
-asks for you under the banner "The change could not start by itself.", with the reason, until you
-dismiss it or start the change from the card. Every run is told to change no file, as it works in
-the main checkout where your uncommitted edits are. A job that is "Report only" starts no change:
-the offer's card waits in the session. A change merges only when you merge it, either way.
+read as any turn's end is. An offer waits for you too when its job has a problem other than its
+schedule by the time its run ends, and when the job no longer runs in that repository, because you
+turned the Jobs extension off there, took the repository out of the job, or removed it from Uraeda's
+list: each takes your yes back. A schedule mistyped meanwhile, or in a job you ran by hand, does
+not. When the change cannot start, because its folder's name is taken for instance, the session asks
+for you under the banner "The change could not start by itself.", with the reason, until you dismiss
+it or start the change from the card. Every run is told to change no file, as it works in the main
+checkout where your uncommitted edits are. A job that is "Report only" starts no change: the offer's
+card waits in the session. A change merges only when you merge it, either way.
 
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
@@ -897,9 +900,10 @@ a running server keeps the files that only live while it runs, like its host tok
 Storybooks' records, in `run/`, and Codex's catalogs without sub-agents, in `codex-catalog/`.
 
 The record of the jobs' runs is in `runner.sqlite` too, the table `job_runs`: one row for each time
-a job was due in a repository, or was run by hand, started or skipped, with the session it started.
-It keeps the 50 latest rows of each job and repository, and besides them the latest started run that
-has a session and every started run whose session belongs to a change or a feature, for as long as
-that session is kept, which the schedule's open-change check reads. It is a cache: a `runner.sqlite`
-that cannot be read starts empty, and the history is lost, with no job's table in `config.toml`
-touched.
+a job was due in a repository, or was run by hand: started, skipped, or failed to start, with why,
+and with the session it started. It keeps the 50 latest rows of each job and repository, and besides
+them the latest started run that has a session and every started run whose session belongs to a
+change or a feature, for as long as that session is kept, which the schedule's open-change check
+reads, and the latest start that failed, until a run starts after it. It is a cache: a
+`runner.sqlite` that cannot be read starts empty, and the history is lost, with no job's table in
+`config.toml` touched.
