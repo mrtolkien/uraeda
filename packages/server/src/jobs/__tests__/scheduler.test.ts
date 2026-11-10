@@ -467,15 +467,24 @@ test("a time skipped for an open change records the change that is open", async 
   });
 });
 
-/** US3's note: a report-only job's run changes no file, and its offer waits for the human. */
+/**
+ * US3's note, review 07 finding 8. Catches: the note of a job that is not report only leaving out
+ * "Change no file.", which the skill's change reference says the run's message tells: the only rule
+ * that keeps an agent that did not load the skill from editing the main checkout, where the human's
+ * uncommitted edits are, before it offers. A report-only run's offer waits for the human.
+ */
 test("a job's message says what to do with a needed change", () => {
   const { name, prompt } = job("Dependencies", []);
   const open = jobMessage({ name, prompt, reportOnly: false });
   const reportOnly = jobMessage({ name, prompt, reportOnly: true });
   expect(open.startsWith(`${PROMPT}\n\n---\n\n`)).toBe(true);
+  // Both notes tell the agent to change no file, as the first thing they say of the change.
+  for (const message of [open, reportOnly]) {
+    expect(message).toMatch(
+      /Nobody follows it live: the human reads it later\. Change no file\. /u,
+    );
+  }
   expect(open).toContain("Uraeda starts the change from your offer");
-  expect(open).not.toContain("Change no file");
-  expect(reportOnly).toContain("Change no file");
   expect(reportOnly).toContain("the offer waits for the human");
   expect(reportOnly).not.toContain("Uraeda starts the change");
   expect(open).toContain("Nobody follows it");

@@ -755,3 +755,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job whose file was read just after its time, within the same second, is still seen
   after it and waits for the next time, as R2 says.
 - **Where**: the final review's fix 6, task 4.
+
+## R48: Every run's note opens its rule on the change with "Change no file."
+
+- **Decision**: `jobMessage` says "Change no file." in the note of every run, report only or not,
+  before what each says of the offer: the report-only note that the offer waits for the human, the
+  other that Uraeda starts the change from it. The skill's
+  [change reference](/skills/uraeda/references/change.md) already said the run's message tells the
+  agent to offer the change and change no file, and is unchanged.
+- **Rationale**: the spec's tradeoff, a run in the main checkout, relies on two rules only: "Nothing
+  but the skill's rule and the run's note keeps an agent from editing there." The note of a job that
+  is not report only left the rule out, so an agent that did not load the skill's change reference,
+  a plain chat given a prompt such as "upgrade the dependencies", could edit the human's checkout
+  before it offered.
+- **If wrong**: an agent reads "Change no file." as forbidding the change itself; the same note says
+  Uraeda starts the change from its offer, in its own worktree.
+- **Where**: the final review's fix 7, task 4.

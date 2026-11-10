@@ -307,16 +307,18 @@ export function jobChangeLine(job: string, title: string): string {
 
 /**
  * The message of a scheduled job's run: its prompt, a rule, then Uraeda's note. The note says
- * nobody follows the session, and what to do with a needed change: the run's offer is the human's
- * yes, given in advance, unless the job is report only (the agents decision).
+ * nobody follows the session, to change no file, and what to do with a needed change: the run's
+ * offer is the human's yes, given in advance, unless the job is report only (the agents decision).
  */
 export function jobMessage(job: Pick<Job, "name" | "prompt" | "reportOnly">): string {
+  // Every run is told to change no file: it works in the main checkout, where the human's
+  // uncommitted edits are, until its change starts in a worktree (R48).
   const change = job.reportOnly
     ? "Change no file. If a code change is needed, offer it once, as a change, with its " +
       "`uraeda-offer change` block: the job is report only, so the offer waits for the human."
-    : "If a code change is needed, offer it once, as a change, with its `uraeda-offer change` " +
-      "block, then stop: the human gave their yes by scheduling this job, so Uraeda starts the " +
-      "change from your offer, and the next message continues in its worktree.";
+    : "Change no file. If a code change is needed, offer it once, as a change, with its " +
+      "`uraeda-offer change` block, then stop: the human gave their yes by scheduling this job, " +
+      "so Uraeda starts the change from your offer, and the next message continues in its worktree.";
   return (
     `${job.prompt}\n\n---\n\n` +
     `This session was started by the scheduled job “${job.name}”. Nobody follows it live: the ` +

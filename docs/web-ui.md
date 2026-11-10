@@ -877,9 +877,9 @@ read as any turn's end is. So does the offer of a job that has a problem other t
 when its run ends: a schedule mistyped meanwhile, or in a job you ran by hand, does not take your
 yes back. When the change cannot start, because its folder's name is taken for instance, the session
 asks for you under the banner "The change could not start by itself.", with the reason, until you
-dismiss it or start the change from the card. A job that is "Report only" starts no change: its run
-is told to change no file, and the offer's card waits in the session. A change merges only when you
-merge it, either way.
+dismiss it or start the change from the card. Every run is told to change no file, as it works in
+the main checkout where your uncommitted edits are. A job that is "Report only" starts no change:
+the offer's card waits in the session. A change merges only when you merge it, either way.
 
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
