@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::registry::{Action, Record};
+use crate::shared::{RepositoryArgs, UndoChange};
 
 /// Declares the action a type is the input of: its name, and what it answers.
 macro_rules! action {
@@ -49,13 +50,6 @@ impl Record for Buffer {
     type Value = Self;
 }
 
-/// Which write queue: a repository's.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct WriteQueueArgs {
-    pub repo: String,
-}
-
 /// A repository's write queue: its commits still landing, one after another, and the refused
 /// ones, until dismissed.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -67,7 +61,7 @@ pub struct WriteQueue {
 
 impl Record for WriteQueue {
     const NAME: &'static str = "WriteQueue";
-    type Args = WriteQueueArgs;
+    type Args = RepositoryArgs;
     type Value = Self;
 }
 
@@ -121,25 +115,6 @@ pub struct WriteName {
     pub href: String,
     /// Its running text, as "Approving the spec of Recurring tasks".
     pub label: String,
-}
-
-/// What a write changed, as its answer gives it and `undo.apply` takes it back: the commit its
-/// checkout was at, and each file on both sides.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoChange {
-    pub commit: Option<String>,
-    pub files: Vec<UndoFile>,
-}
-
-/// A file of a change, by its path from the top level: its bytes before and after, in base64,
-/// `null` on the side where it did not exist.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoFile {
-    pub path: String,
-    pub before: Option<String>,
-    pub after: Option<String>,
 }
 
 /// What an undoable write answers: the change it made, for the client's undo stack.
@@ -312,14 +287,14 @@ action!(ReviewStartOver, "review.startOver", Recorded);
 /// Adds a comment on the settled point starting with `subject`, at the end of the notes.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct SettledComment {
+pub struct SettledAddComment {
     pub repo: String,
     pub folder: String,
     pub subject: String,
     pub text: String,
 }
 
-action!(SettledComment, "settled.comment", ());
+action!(SettledAddComment, "settled.comment", ());
 
 /// Writes comment `number` on the settled point `subject` over its text last read.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

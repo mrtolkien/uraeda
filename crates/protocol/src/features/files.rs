@@ -7,9 +7,9 @@ use ts_rs::TS;
 use super::ItemArgs;
 use super::decisions::{Candidate, DecisionChange, Run};
 use super::document::{Document, LineRange, MockupEmbed, StoryLink};
-use super::duplicates::ProposalView;
 use super::items::{Items, ReviewItems};
 use crate::registry::Record;
+use crate::shared::ProposalView;
 
 /// A workflow file, by `<folder>/<name>`, as `2026-10-11-web-ui/spec.md`; or a round of the
 /// default branch, by `inbox-triage` or `decisions-check`. Its value is `null` when its feature

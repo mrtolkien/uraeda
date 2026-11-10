@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::ItemArgs;
-use super::duplicates::{FeatureStatus, FeatureView, RunOptions};
 use crate::registry::Record;
+use crate::shared::{FeatureStatus, FeatureView, RunOptions};
 
 /// A feature or a change, by its folder. Its value is `null` when no feature has that folder.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

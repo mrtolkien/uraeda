@@ -14,7 +14,7 @@ mod working;
 mod writes;
 
 use uraeda_core::watch::Changes;
-use uraeda_protocol::{ConflictFile, GitArgs, GitDiff, GitHistoryPage, GitPage, GitSummary};
+use uraeda_protocol::{ConflictFile, GitDiff, GitHistoryPage, GitPage, GitSummary, RepositoryArgs};
 
 use crate::Failure;
 use crate::live::{Bus, Registry};
@@ -47,7 +47,7 @@ pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
 /// Says what git's records show of a repository changed: its page and its count, and whatever
 /// diff, page of the history, and conflicted file somebody holds. A commit never changes.
 fn changed(bus: &Bus, repository: &str) {
-    let args = GitArgs {
+    let args = RepositoryArgs {
         repo: repository.to_owned(),
     };
     bus.changed::<GitPage>(&args);

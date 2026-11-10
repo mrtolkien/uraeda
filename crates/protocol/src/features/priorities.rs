@@ -3,11 +3,11 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::RepositoryArgs;
 use super::document::Span;
-use super::duplicates::{PullRequestView, StepView};
 use super::undo::{FileWritten, ListWritten};
 use crate::registry::Record;
+use crate::shared::RepositoryArgs;
+use crate::shared::{PullRequestView, StepView};
 
 impl Record for Priorities {
     const NAME: &'static str = "Priorities";

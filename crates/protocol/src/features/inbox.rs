@@ -5,11 +5,11 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::RepositoryArgs;
 use super::document::Span;
 use super::priorities::NestedItem;
 use super::undo::{FileWritten, ListWritten, NoteMoved};
 use crate::registry::Record;
+use crate::shared::RepositoryArgs;
 
 impl Record for Inbox {
     const NAME: &'static str = "Inbox";

@@ -11,6 +11,7 @@ mod git;
 mod message;
 mod previews;
 mod registry;
+mod shared;
 mod typescript;
 mod workspace;
 mod writing;
@@ -20,11 +21,11 @@ pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;
 pub use features::*;
 pub use git::{
-    ConflictFile, ConflictFileArgs, GitAbort, GitArgs, GitClean, GitCommit, GitCommitArgs,
-    GitCommitFile, GitCommitRow, GitCommitStaged, GitConflict, GitContinue, GitDiff, GitDiffArgs,
-    GitDiscard, GitFetch, GitFile, GitGroup, GitHistoryArgs, GitHistoryPage, GitMerge, GitPage,
-    GitPull, GitPush, GitRemoveWorktree, GitResolve, GitSaveConflict, GitStage, GitStopped,
-    GitSummary, GitUnstage, GitWorktree,
+    ConflictFile, ConflictFileArgs, GitAbort, GitClean, GitCommit, GitCommitArgs, GitCommitFile,
+    GitCommitRow, GitCommitStaged, GitConflict, GitContinue, GitDiff, GitDiffArgs, GitDiscard,
+    GitFetch, GitFile, GitGroup, GitHistoryArgs, GitHistoryPage, GitMerge, GitPage, GitPull,
+    GitPush, GitRemoveWorktree, GitResolve, GitSaveConflict, GitStage, GitStopped, GitSummary,
+    GitUnstage, GitWorktree,
 };
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
 pub use previews::{
@@ -32,14 +33,14 @@ pub use previews::{
     StoryState,
 };
 pub use registry::{Action, Catalog, Record, Wire, catalog};
+pub use shared::*;
 pub use typescript::typescript;
 pub use workspace::*;
 pub use writing::{
     AnswerSave, AnswersSubmit, Buffer, BufferArgs, BufferSave, CommitRetry, DefaultRoundAnswer,
     DefaultRoundDismiss, DefaultRoundNotes, DefaultRoundRetry, DefaultRoundSubmit, NotesSave,
     QueuedWrite, Recorded, ReviewApprove, ReviewComment, ReviewDecision, ReviewEdit, ReviewRemove,
-    ReviewRequestChanges, ReviewStartOver, Saved, SettledComment, SettledEdit, SettledRemove,
-    TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply, UndoChange, UndoCommitted,
-    UndoDirection, UndoFile, WriteFailure, WriteName, WriteQueue, WriteQueueArgs, WriteState,
-    WritesDismiss,
+    ReviewRequestChanges, ReviewStartOver, Saved, SettledAddComment, SettledEdit, SettledRemove,
+    TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply, UndoCommitted, UndoDirection,
+    WriteFailure, WriteName, WriteQueue, WriteState, WritesDismiss,
 };

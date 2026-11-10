@@ -4,7 +4,7 @@
 // JOIN(wave 6): `workspace::status::of` (task 7), word for word.
 
 use uraeda_core::view::FeatureView;
-use uraeda_protocol::feature_duplicates::{FeatureStatus, SessionStatus, StatusReason};
+use uraeda_protocol::{FeatureStatus, SessionStatus, StatusReason};
 
 /// The status of a feature, from its step: it needs the human when it has problems, or when its
 /// step waits on them, and is idle otherwise.

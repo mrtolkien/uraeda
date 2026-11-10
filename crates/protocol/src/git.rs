@@ -9,14 +9,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::registry::{Action, Record};
-
-/// Which repository's page, or count.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct GitArgs {
-    /// The repository's name.
-    pub repo: String,
-}
+use crate::shared::RepositoryArgs;
 
 /// The Git page: the main checkout's sync, changes, conflicts, and the first page of its
 /// history, each feature's worktree with changes, and every worktree.
@@ -58,7 +51,7 @@ pub struct GitPage {
 
 impl Record for GitPage {
     const NAME: &'static str = "GitPage";
-    type Args = GitArgs;
+    type Args = RepositoryArgs;
     type Value = Self;
 }
 
@@ -185,7 +178,7 @@ pub struct GitSummary {
 
 impl Record for GitSummary {
     const NAME: &'static str = "GitSummary";
-    type Args = GitArgs;
+    type Args = RepositoryArgs;
     type Value = Self;
 }
 

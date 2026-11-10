@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::duplicates::RunOptions;
+use crate::shared::{ChatImage, RunOptions};
 
 /// What a start makes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -13,19 +13,6 @@ pub enum StartKind {
     Feature,
     /// A change, built at once.
     Change,
-}
-
-/// An image of a typed start, as its upload answered it.
-// JOIN(wave 6): the uploads (task 16) answer an image's id and size: one declaration.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatImage {
-    /// What names it in the server's store.
-    pub id: String,
-    /// Its width, in pixels.
-    pub width: u32,
-    /// Its height, in pixels.
-    pub height: u32,
 }
 
 /// A feature started: what its session page opens with.

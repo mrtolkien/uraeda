@@ -1063,12 +1063,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - `Dropped`, `StartPlan`, and `ContinuedAll` are not records: fate read them once, from their
     mutation. `feature.drop` answers `Dropped`, `feature.start` and `feature.startText` answer
     `StartPlan`, and `ContinuedAll` is declared with `feature.continueAll`, by task 15.
-  - An undoable write of the lists answers the change an undo writes back, a `RecordedChange` of
-    each file's bytes in base64, with what no record shows: `ListWritten { hash, change }`, the
-    list's hash to write over next; `NoteMoved { change }`; `FileWritten { path, change }`, the
-    proposal file to open. `inbox.edit`, `priorities.commit`, and `priorities.discard` are not
-    undone, and answer no change. `inbox.removeImage` answers the inbox's hash, not its file's. The
-    core records the change as the write runs, so the binding's token and its `takeChange` are gone.
+  - An undoable write of the lists answers the change an undo writes back, an `UndoChange` of each
+    file's bytes in base64, with what no record shows: `ListWritten { hash, change }`, the list's
+    hash to write over next; `NoteMoved { change }`; `FileWritten { path, change }`, the proposal
+    file to open. `inbox.edit`, `priorities.commit`, and `priorities.discard` are not undone, and
+    answer no change. `inbox.removeImage` answers the inbox's hash, not its file's. The core records
+    the change as the write runs, so the binding's token and its `takeChange` are gone.
   - `feature.setRunOptions`, `feature.fixLinks`, and `item.settings` answer `null`.
     `feature.promote` answers the core's `PromotedView`, and the three `change.*` starts
     `ChangeStarted { folder, session }`.
@@ -1091,12 +1091,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     constitution check, is `SpecPrinciple`, beside the constitution's `Principle`; the core's
     `BranchChanges` is `BranchChangesView`, inside the record `BranchChanges { changes, failed }`.
   - An optional field is sent as `null`, never left out, as the core writes it.
-  - `features/duplicates.rs` holds the seventeen types the workspace's domain declares too, copied
-    word for word from task 7's commit, so the client's types are the same text: `FeatureView`,
-    `StepView`, `TaskProgress`, `CatchUpView`, `FileSummary`, `ProblemView`, `PullRequestView`,
-    `PullRequestState`, `ProposalView`, `FeatureStatus`, `SessionStatus`, `StatusReason`, `Wait`,
-    `RunOptions`, `StepOptions`, `RunPick`, and `ReviewerOptions`. The crate names them
-    `uraeda_protocol::feature_duplicates::…` until the join deletes the file.
+  - The seventeen types the workspace's domain declares too were copied word for word until the
+    join, which gave each one declaration, in `crates/protocol/src/shared/` (T99.1).
 - **Rationale**: the tasks of the wave cannot use each other's code, and two types of one name must
   be the same text for the catalog to take both. Copied by a script from the core's source, the
   mirror cannot differ from the core by a typing mistake, and each record's contract test reads the
@@ -1694,3 +1690,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a story is then compiled when it is first read, so its first frame waits as long as
   the compile takes. `Runner::view` and `Runner::compiled` are what a warm-up calls.
 - **Where**: tasks 15 and 51.
+
+## T99.1: A type two domains use is declared once, in the protocol's `shared/`
+
+- **Decision**: how the join of wave 6 gave each protocol type one declaration.
+  - `crates/protocol/src/shared/` holds the types more than one domain declares a record or an
+    action with, one file each: `RepositoryArgs`, what every record of one repository takes; the
+    feature's view and status (`FeatureView` and the types under it, `ProposalView`,
+    `FeatureStatus`, `SessionStatus`, `StatusReason`, `Wait`); the run options (`RunOptions`,
+    `StepOptions`, `RunPick`, `ReviewerOptions`); `UndoChange` and `UndoFile`, the change an
+    undoable write answers and `undo.apply` takes back; and `ChatImage`, what a chat image's upload
+    answers and a typed start or a message names.
+  - `WorkspaceArgs`, `GitArgs`, and `WriteQueueArgs` are `RepositoryArgs`. `RecordedChange` and
+    `RecordedFile` are `UndoChange` and `UndoFile`. `features/duplicates.rs` and
+    `uraeda_protocol::feature_duplicates` are gone. The session store's event and the uploads use
+    the protocol's `ChatImage`.
+  - Two names clashed between domains with different shapes. The action `settled.comment` is the
+    type `SettledAddComment`, and `SettledComment` stays the core's view of a comment on a settled
+    point. A spec's user story is `SpecStory`, beside `SpecPrinciple`, and `Story` stays the
+    previews' record.
+  - `catalog()` folds one function per domain, in `registry.rs`: its one function was over the
+    lint's 100 lines once seven domains had added theirs.
+- **Rationale**: the client's types are one file, where a name is one type, and a second declaration
+  drifts the day one changes. A view keeps the core's name (R59), so the action gave way, as
+  `git.commit` did (R66).
+- **If wrong**: a rename changes no JSON: only the Rust and TypeScript names.
+- **Where**: `crates/protocol/src/shared.rs` and `shared/`, `crates/protocol/src/registry.rs`,
+  `app/store/protocol.d.ts`. Tasks 15, 20, 23, and the screens.

@@ -4,7 +4,7 @@
 use uraeda_core::api;
 use uraeda_core::files::proposal::discovery_levels;
 use uraeda_core::view::{FeatureView, WorkspaceView};
-use uraeda_protocol::{SlugProposal, Workspace, WorkspaceArgs, WorkspaceFeature};
+use uraeda_protocol::{RepositoryArgs, SlugProposal, Workspace, WorkspaceFeature};
 
 use super::repositories::{self, Repository};
 use super::{status, views};
@@ -23,7 +23,7 @@ pub(super) fn register(registry: &Registry) {
 }
 
 /// The value of the record `Workspace`, of the repository its arguments name.
-fn workspace(shared: &Shared, args: WorkspaceArgs) -> Result<Workspace, Fault> {
+fn workspace(shared: &Shared, args: RepositoryArgs) -> Result<Workspace, Fault> {
     let repository = repositories::find(shared, &args.repo)?;
     let WorkspaceView {
         root,

@@ -9,7 +9,7 @@ use uraeda_core::actions::start::StartProgress;
 use uraeda_core::api::{self, ApiError, TextStart};
 use uraeda_core::view::{PlannedView, StartedView};
 use uraeda_core::workspace::Kind;
-use uraeda_protocol::feature_duplicates::RunOptions;
+use uraeda_protocol::RunOptions;
 use uraeda_protocol::{
     ChangeFromNote, ChangeStart, ChangeStartProposal, ChangeStarted, ChatImage, FeatureStart,
     FeatureStartText, StartKind, StartPlan,

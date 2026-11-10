@@ -24,7 +24,6 @@ macro_rules! action {
 mod branch;
 mod decisions;
 mod document;
-mod duplicates;
 mod feature;
 mod files;
 mod history;
@@ -77,29 +76,13 @@ pub use priorities::{
 pub use spec_items::{
     Criterion, DataModelItems, DataSection, DataTable, EdgeCase, ListedDecision, MockupLink,
     ReviewAnswer, RowChange, RowChangeKind, Scenario, ScenarioStep, SpecItems, SpecPart,
-    SpecPrinciple, Story, TierChoice,
+    SpecPrinciple, SpecStory, TierChoice,
 };
 pub use starts::{
-    ChangeFromNote, ChangeStart, ChangeStartProposal, ChangeStarted, ChatImage, FeatureStart,
+    ChangeFromNote, ChangeStart, ChangeStartProposal, ChangeStarted, FeatureStart,
     FeatureStartText, StartKind, StartPlan,
 };
-pub use undo::{FileWritten, ListWritten, NoteMoved, RecordedChange, RecordedFile};
-
-/// The types the workspace's domain declares too, kept out of the crate's own names until the
-/// two are one.
-// JOIN(wave 6): gone with `features/duplicates.rs`.
-pub mod feature_duplicates {
-    pub use super::duplicates::*;
-}
-
-/// Which repository.
-// JOIN(wave 6): `WorkspaceArgs` of the workspace's domain (task 7) is the same.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct RepositoryArgs {
-    /// The repository's name in the list.
-    pub repo: String,
-}
+pub use undo::{FileWritten, ListWritten, NoteMoved};
 
 /// Which thing of a repository: a feature, a workflow file, a proposal file.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

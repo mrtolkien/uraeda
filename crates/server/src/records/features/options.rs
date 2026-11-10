@@ -8,7 +8,7 @@ use std::sync::{Mutex, PoisonError};
 
 use uraeda_core::settings as core;
 use uraeda_protocol::RunOptionsPair;
-use uraeda_protocol::feature_duplicates::{ReviewerOptions, RunOptions, RunPick, StepOptions};
+use uraeda_protocol::{ReviewerOptions, RunOptions, RunPick, StepOptions};
 
 use crate::live::Fault;
 use crate::shared::Shared;

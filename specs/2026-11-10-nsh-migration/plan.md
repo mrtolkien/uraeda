@@ -783,7 +783,7 @@ Follows [what every records task does](#what-every-records-task-does).
     protocol type that is a view of the core keeps the core's name.
   - A write of the lists answers `ListWritten { hash, change }`, `NoteMoved { change }`, or
     `FileWritten { path, change }`: the hash to write over next, the proposal file to open, and the
-    change an undo writes back, a `RecordedChange`.
+    change an undo writes back, an `UndoChange`.
   - `Trigger`, what starts a workflow turn, and the workflow's message text,
     `records/features/messages/text.rs`, which the sessions' runs use.
   - A feature's own run options, `records/features/options.rs`, kept in `run-options.json` of the

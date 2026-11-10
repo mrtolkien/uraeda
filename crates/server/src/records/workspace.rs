@@ -22,7 +22,7 @@ mod views;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use uraeda_core::watch::Changes;
-use uraeda_protocol::{NeedsYouList, Themes, Workspace, WorkspaceArgs};
+use uraeda_protocol::{NeedsYouList, RepositoryArgs, Themes, Workspace};
 
 use crate::Failure;
 use crate::live::{Bus, Registry};
@@ -42,7 +42,7 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 /// and what needs the human are read again, whatever changed, since a step moves with any of it.
 pub(super) fn files_changed(bus: &Bus, repository: &str, _: &Changes) {
     let repo = repository.to_owned();
-    bus.changed::<Workspace>(&WorkspaceArgs { repo });
+    bus.changed::<Workspace>(&RepositoryArgs { repo });
     bus.changed::<NeedsYouList>(&());
 }
 

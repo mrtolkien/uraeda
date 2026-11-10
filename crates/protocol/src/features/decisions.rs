@@ -4,10 +4,11 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::ItemArgs;
 use super::document::{Document, LineRange};
-use super::duplicates::ProblemView;
-use super::{ItemArgs, RepositoryArgs};
 use crate::registry::Record;
+use crate::shared::ProblemView;
+use crate::shared::RepositoryArgs;
 
 /// The constitution and the decisions of the default branch, kept live.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

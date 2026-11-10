@@ -8,7 +8,7 @@ use super::document::{Span, StoryTarget};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SpecItems {
-    pub stories: Vec<Story>,
+    pub stories: Vec<SpecStory>,
     pub criteria: Vec<Criterion>,
     /// The frontmatter's `risk-tier` and `plan-review`, which an approval may change.
     pub risk_tier: Option<String>,
@@ -41,7 +41,7 @@ pub struct SpecItems {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct Story {
+pub struct SpecStory {
     /// `US2`.
     pub id: String,
     pub title: String,

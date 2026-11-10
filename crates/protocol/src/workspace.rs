@@ -10,21 +10,16 @@ mod repositories;
 mod settings;
 mod themes;
 
-pub use features::{
-    CatchUpView, FeatureStatus, FeatureView, FileSummary, ProblemView, ProposalView,
-    PullRequestState, PullRequestView, SessionStatus, SetupItem, SlugProposal, SlugProposalArgs,
-    StatusReason, StepView, TaskProgress, Wait, Workspace, WorkspaceArgs, WorkspaceFeature,
-};
+pub use features::{SetupItem, SlugProposal, SlugProposalArgs, Workspace, WorkspaceFeature};
 pub use needs_you::{NeedsYouList, NeedsYouReason, NeedsYouRow};
 pub use repositories::{
     FolderSuggestion, FolderSuggestions, FolderSuggestionsArgs, Repositories, RepositoriesAdd,
     RepositoriesAdded, RepositoriesOpen, RepositoriesRemove, RepositoryRow,
 };
 pub use settings::{
-    ContinueKind, KeyboardSettings, ReviewerOptions, RunOptions, RunPick, RunSettings,
-    ServerSettings, Setting, Settings, SettingsAddHost, SettingsEditHost, SettingsRemoveHost,
-    SettingsSetAutomaticContinues, SettingsSetContinue, SettingsSetOpenBrowser, SettingsSetPort,
-    SettingsSetRunOptions, SettingsSetSingleKeyShortcuts, SettingsSetVimCommands,
-    SettingsSetVimMode, Source, StepOptions,
+    ContinueKind, KeyboardSettings, RunSettings, ServerSettings, Setting, Settings,
+    SettingsAddHost, SettingsEditHost, SettingsRemoveHost, SettingsSetAutomaticContinues,
+    SettingsSetContinue, SettingsSetOpenBrowser, SettingsSetPort, SettingsSetRunOptions,
+    SettingsSetSingleKeyShortcuts, SettingsSetVimCommands, SettingsSetVimMode, Source,
 };
 pub use themes::{Theme, ThemeFile, ThemeProblem, Themes};

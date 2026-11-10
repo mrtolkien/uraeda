@@ -2,8 +2,8 @@
 
 use uraeda_core::api::{self, GitAt};
 use uraeda_protocol::{
-    ConflictFile, ConflictFileArgs, GitArgs, GitCommit, GitCommitArgs, GitDiff, GitDiffArgs,
-    GitHistoryArgs, GitHistoryPage, GitPage, GitSummary,
+    ConflictFile, ConflictFileArgs, GitCommit, GitCommitArgs, GitDiff, GitDiffArgs, GitHistoryArgs,
+    GitHistoryPage, GitPage, GitSummary, RepositoryArgs,
 };
 
 use super::fetcher::Fetcher;
@@ -34,7 +34,7 @@ pub(super) fn register(registry: &Registry) {
 
 /// The page, with whether an agent works in each of its checkouts, and why the last fetch
 /// failed.
-fn page(shared: &Shared, args: &GitArgs) -> Result<GitPage, Fault> {
+fn page(shared: &Shared, args: &RepositoryArgs) -> Result<GitPage, Fault> {
     let path = repository::path(shared, &args.repo)?;
     let view = api::git_page(&path)?;
     let known = views::Known {

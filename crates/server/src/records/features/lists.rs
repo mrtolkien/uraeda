@@ -94,7 +94,7 @@ fn recorded<T>(
     repo: &str,
     scope: &[&str],
     write: Write<'_, T>,
-) -> Result<(T, Option<uraeda_protocol::RecordedChange>), Fault> {
+) -> Result<(T, Option<uraeda_protocol::UndoChange>), Fault> {
     let repository = repository::find(call.shared(), repo)?;
     let root = &repository.path;
     // JOIN(wave 6): write queue

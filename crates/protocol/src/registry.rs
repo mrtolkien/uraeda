@@ -126,14 +126,27 @@ fn add(kind: &str, entries: &mut Vec<Entry>, entry: Entry) {
     entries.push(entry);
 }
 
-/// Every record and action of the protocol. A domain adds one line for each of its own.
+/// Every record and action of the protocol. A domain adds one line for each of its own, in its
+/// own function below.
 #[must_use]
 pub fn catalog() -> Catalog {
-    Catalog::new()
+    let domains = [devices, workspace, features, writing, git, previews];
+    domains
+        .into_iter()
+        .fold(Catalog::new(), |catalog, domain| domain(catalog))
+}
+
+/// Sign-in: the paired devices.
+fn devices(catalog: Catalog) -> Catalog {
+    catalog
         .record::<Devices>()
         .action::<DevicesRename>()
         .action::<DevicesRevoke>()
-        // The workspace: repositories, features in flight, settings, and themes (task 7).
+}
+
+/// The workspace: repositories, features in flight, settings, and themes (task 7).
+fn workspace(catalog: Catalog) -> Catalog {
+    catalog
         .record::<workspace::FolderSuggestions>()
         .record::<workspace::NeedsYouList>()
         .record::<workspace::Repositories>()
@@ -155,7 +168,11 @@ pub fn catalog() -> Catalog {
         .action::<workspace::SettingsSetSingleKeyShortcuts>()
         .action::<workspace::SettingsSetVimCommands>()
         .action::<workspace::SettingsSetVimMode>()
-        // The features: a feature and its files, the lists, the ledger, and the starts (task 8).
+}
+
+/// The features: a feature and its files, the lists, the ledger, and the starts (task 8).
+fn features(catalog: Catalog) -> Catalog {
+    catalog
         .record::<features::AllBranchChanges>()
         .record::<features::BranchChanges>()
         .record::<features::BranchDecision>()
@@ -204,7 +221,11 @@ pub fn catalog() -> Catalog {
         .action::<features::ProposalsMove>()
         .action::<features::ProposalsOutline>()
         .action::<features::ProposalsRemove>()
-        // Writing.
+}
+
+/// Writing.
+fn writing(catalog: Catalog) -> Catalog {
+    catalog
         .record::<writing::Buffer>()
         .record::<writing::WriteQueue>()
         .action::<writing::AnswerSave>()
@@ -223,7 +244,7 @@ pub fn catalog() -> Catalog {
         .action::<writing::ReviewRemove>()
         .action::<writing::ReviewRequestChanges>()
         .action::<writing::ReviewStartOver>()
-        .action::<writing::SettledComment>()
+        .action::<writing::SettledAddComment>()
         .action::<writing::SettledEdit>()
         .action::<writing::SettledRemove>()
         .action::<writing::TextCommit>()
@@ -232,7 +253,11 @@ pub fn catalog() -> Catalog {
         .action::<writing::UndoApply>()
         .action::<writing::UndoCommitted>()
         .action::<writing::WritesDismiss>()
-        // Git.
+}
+
+/// Git.
+fn git(catalog: Catalog) -> Catalog {
+    catalog
         .record::<GitPage>()
         .record::<GitSummary>()
         .record::<GitDiff>()
@@ -253,7 +278,11 @@ pub fn catalog() -> Catalog {
         .action::<GitSaveConflict>()
         .action::<GitStage>()
         .action::<GitUnstage>()
-        // Previews.
+}
+
+/// Previews.
+fn previews(catalog: Catalog) -> Catalog {
+    catalog
         .record::<Preview>()
         .record::<Story>()
         .record::<StoryHref>()

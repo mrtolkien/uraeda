@@ -4,8 +4,9 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{ItemArgs, RepositoryArgs};
+use super::ItemArgs;
 use crate::registry::Record;
+use crate::shared::RepositoryArgs;
 
 /// A feature's branch changes, by its folder.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

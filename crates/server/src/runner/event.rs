@@ -29,6 +29,8 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+/// A chat image: its file's name in the data folder's `images/`, and its size in pixels.
+pub use uraeda_protocol::ChatImage;
 
 /// One event of a turn.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -285,12 +287,4 @@ pub struct Denial {
 pub enum Origin {
     Human,
     Workflow,
-}
-
-/// A chat image: its file's name in the data folder's `images/`, and its size in pixels.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ChatImage {
-    pub height: u32,
-    pub id: String,
-    pub width: u32,
 }

@@ -6,19 +6,11 @@ use std::io::{self, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
 use uraeda_core::images::Encoded;
+use uraeda_protocol::ChatImage;
 
 use crate::secret;
 use crate::shared::Shared;
-
-/// A chat image: its file name in the images folder, and its size in pixels.
-#[derive(Debug, Serialize)]
-pub(crate) struct ChatImage {
-    pub height: u32,
-    pub id: String,
-    pub width: u32,
-}
 
 /// The images of `<data folder>/images/`, by their ids.
 pub(crate) struct ChatImages {

@@ -7,7 +7,7 @@ use uraeda_core::files::document::hash;
 use uraeda_core::view::FileView;
 use uraeda_protocol::{
     AnswerSave, AnswersSubmit, DefaultRoundAnswer, DefaultRoundDismiss, DefaultRoundNotes,
-    DefaultRoundRetry, DefaultRoundSubmit, NotesSave, Saved, SettledComment, SettledEdit,
+    DefaultRoundRetry, DefaultRoundSubmit, NotesSave, Saved, SettledAddComment, SettledEdit,
     SettledRemove,
 };
 
@@ -55,7 +55,7 @@ fn answers(registry: &Registry) {
 
 /// The comments on a round's settled points: none commits, and a removal can be undone.
 fn settled(registry: &Registry) {
-    registry.action::<SettledComment>(|call, input| {
+    registry.action::<SettledAddComment>(|call, input| {
         write(call.shared(), &input.repo, Write::saving(), |repo| {
             api::add_settled_comment(repo, &input.folder, &input.subject, &input.text)?;
             Ok(())

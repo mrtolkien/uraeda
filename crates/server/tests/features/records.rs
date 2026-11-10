@@ -2,7 +2,7 @@
 //! protocol's type reads the answer, and the answer says what the fixture holds.
 
 use serde_json::{Value, json};
-use uraeda_protocol::feature_duplicates::SessionStatus;
+use uraeda_protocol::SessionStatus;
 use uraeda_protocol::{
     AllBranchChanges, BranchChanges, BranchDecision, Feature, FileView, HistoryView, Inbox, Ledger,
     Priorities, ProposalFileView, ProposalHints, RecommendedMessage, Trigger, WorkflowMessage,
