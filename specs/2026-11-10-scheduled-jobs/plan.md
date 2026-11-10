@@ -683,7 +683,9 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
   ([ruling R2](rulings.md)). Turning the job on, editing its schedule, or turning on the switch for
   all jobs, sets that moment to now.
 - A job's start in a repository is reserved first, by the names, before anything is awaited, and
-  held until the start ends: a tick and a "Run now" never start two ([ruling R14](rulings.md)).
+  held until the start ends, but not through the minute's wait before it, which releases it and
+  takes it again as the wait ends: a tick and a "Run now" never start two, and a "Run now" during
+  another job's wait starts at once ([rulings R14 and R31](rulings.md)).
 - Before a start: when the latest started run's session works, record a skip, `working`. When any
   started run of the job has a session in a change or a feature the workspace still lists as not
   merged, record a skip, `change-open` ([ruling R15](rulings.md)). Both are read again right before
@@ -695,9 +697,10 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
   first at once, each next after `wait(60_000)` from the last start, while the ticks go on; a time
   skipped or recorded waits for nothing. Right before a start the job is read again, and the time is
   dropped, recording nothing, when it no longer holds, or when the clock jumped during the minute's
-  wait, as the machine sleeping does; a time a tick saw in time stays valid in the queue, however
-  many minutes it waits ([rulings R14 and R17](rulings.md)). Ticks never overlap: one asked while
-  another runs joins it, as `serially` does in `catch-ups.ts`.
+  wait, as the machine sleeping does, which drops every time queued before the jump
+  ([ruling R31](rulings.md)); a time a tick saw in time stays valid in the queue, however many
+  minutes it waits ([rulings R14 and R17](rulings.md)). Ticks never overlap: one asked while another
+  runs joins it, as `serially` does in `catch-ups.ts`.
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there, an acceptance is opening its change, or the
   run is impossible: no prompt, no name, or a name two jobs share, in the card's words; a schedule
@@ -812,8 +815,9 @@ The break each test catches:
 `runner/offers.ts` takes `lastOffer`, `proposalTitle`, their types, and the block's grammar from the
 web UI's `offers.ts`, which imports them from `uraeda-server/offers` and keeps its page state. It
 reads fences as markdown does, so a block inside an outer fence is no offer, and `endingOffer` gives
-the offer a text ends on ([ruling R24](rulings.md)). The web UI's existing tests of offers keep
-passing, but for the one of the instructions' sample, which unwraps the sample's own fence first.
+the offer a text ends on, from a fence at column 0 only ([rulings R24 and R32](rulings.md)). The web
+UI's existing tests of offers keep passing, but for the one of the instructions' sample, which
+unwraps the sample's own fence first.
 
 - [x] **Step 4: Implement the acceptance and the refusal's status**
 
@@ -966,7 +970,8 @@ file, or "Run now" held by the pause.
   (`JobRuns.onChange`), when a run's session changes state, and after each write; also when the
   repository list changes (`Hosts.onChange`), an agent is turned on or off or found available, and a
   feature or a branch of a repository changed, as a change merged or dropped (`onWorkspaceChange`,
-  [ruling R22](rulings.md)).
+  [ruling R22](rulings.md)), on that repository's bus only, and only when a feature or a branch
+  appeared or went, or a change some job's run started changed ([ruling R33](rulings.md)).
 - Keep `sources.ts` under 500 lines: the read lives in `fate/jobs.ts`.
 
 - [x] **Step 4: Run the task's validation**

@@ -465,3 +465,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a page cannot be opened for the second of two jobs of one name; the human renames it
   in `config.toml`, as its card says.
 - **Where**: tasks 6 and 7.
+
+## R31: A clock jump drops the whole queue, and a start's reservation skips the wait
+
+- **Decision**: (1) when the clock jumped during a minute's wait (R17), the scheduler empties the
+  queue, so every time queued before the jump is dropped, recording nothing, not only the one that
+  was waiting. (2) A scheduled start holds its job's reservation (R14) while it reads, releases it
+  for the minute's wait, and takes it again as the wait ends, with nothing awaited between: a "Run
+  now" that came during the wait starts at once, and the scheduled time, finding it taken, is
+  skipped `working`.
+- **Rationale**: (1) the jump was returned as an ordinary unsuccessful start of the one item, so the
+  items behind it each waited an ordinary minute and, with no age read (R17), started hours late.
+  (2) the reservation was held through the whole wait, so "Run now" for a job with no run was
+  refused as "still runs here", which US4 does not allow.
+- **If wrong**: (2) a run by hand during the wait, then the scheduled time after it, starts a second
+  run once the first stopped working; the open-change and working guards still skip it while the
+  first works or its change is open.
+- **Where**: task 4. It amends R14 (1) and R17.
+
+## R32: Only a fence at column 0 is an offer for the automatic acceptance
+
+- **Decision**: `endingOffer` accepts an offer only when its opening fence starts at column 0, and
+  after no fence still open. An offer indented, or in a list item or a quote, is no offer for the
+  acceptance. `lastOffer`, which the card reads, keeps the CommonMark rule of up to three spaces, so
+  the card's behaviour does not change.
+- **Rationale**: an outer fence opened on a list item (`- ` followed by four backticks and `md`) is
+  not recognised by the line patterns, so an indented offer inside it, left unclosed, read as an
+  offer and was accepted for a change, where markdown draws a code sample.
+- **Alternatives considered**: parsing list items and quotes as containers: far more grammar for a
+  case the acceptance can refuse.
+- **If wrong**: an agent that indents its real offer gets a card and no change started by itself.
+- **Where**: task 5. It amends R24.
+
+## R33: The Jobs record is announced on the changed host's bus, for a job's own changes
+
+- **Decision**: `onWorkspaceChange` gives its listener the host and the changes, and the record is
+  announced on that host's bus only, when a feature or a branch appeared or went (`workspace`), or a
+  folder that some job's run started a change in changed (`JobRuns.allChangeFolders`).
+- **Rationale**: every feature-file write in any repository announced the record on every bus, so
+  each open Jobs page read the settings, the history of each job, and possibly the workspace, many
+  times a minute.
+- **If wrong**: a change a job's run did not start, whose step moves what a card says, is not heard
+  until the next announcement: the card reads `change-open` only for changes a job's run started.
+- **Where**: task 6. It amends R22.
