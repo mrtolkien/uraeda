@@ -519,8 +519,9 @@ export class ClaudeAccounts implements Accounts {
 ```
 
 - Produces, in `claude.ts`: `ClaudeAdapterOptions.accounts?: ReadonlyArray<string>`, the setting's
-  lines; `ClaudeAdapter.accounts`, a `ClaudeAccounts` when the lines give a folder, else undefined;
-  and `claudeEnv(options: OpenOptions): Record<string, string> | undefined`, exported.
+  lines; `ClaudeAdapter.accounts`, a `ClaudeAccounts` when the setting has any non-blank line, else
+  undefined (see [R1](rulings.md#r1-a-setting-of-invalid-lines-still-shows-its-banner)); and
+  `claudeEnv(options: OpenOptions): Record<string, string> | undefined`, exported.
 
 - [x] **Step 1: Write the failing tests**
 
