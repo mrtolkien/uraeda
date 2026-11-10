@@ -5,15 +5,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R1: A setting of invalid lines still shows its banner
 
-- **Decision**: `ClaudeAdapter.accounts` is a `ClaudeAccounts` when the `accounts` setting has any
-  non-blank line, and undefined when it has none. With no valid folder, its `list()` is empty, so
-  the runner's pick, which only picks when `list()` is not empty, leaves sessions on the server's
-  login and asks nothing.
+- **Decision**: `ClaudeAdapter.accounts` is always a `ClaudeAccounts`. With no valid folder, even
+  with no line at all, its `list()` is empty, so the runner's pick, which only picks when `list()`
+  is not empty, leaves sessions on the server's login, and asks nothing: the records give the
+  runtime's own usage, as for a runtime with no accounts (SC-003). Its `nameOf` always gives the
+  naming rule's name for a folder, so a session that keeps an account after the setting was emptied
+  reads "b" or "default" in its header. (Amended by wave 3's fix: it was undefined when the setting
+  had no non-blank line, and the header read the folder's raw last segment.)
 - **Rationale**: spec US3 (more 2) shows a banner for a line that is no absolute path, which needs
   `problems()` to be reachable from the adapter. Task 3's first reading, "a `ClaudeAccounts` when
-  the lines give a folder", hid it behind `undefined` for a setting of only invalid lines.
+  the lines give a folder", hid it behind `undefined` for a setting of only invalid lines. Review
+  finding 8 of wave 3: with `accounts` undefined, `nameOf` was not reached and the fallback in
+  `fate/sessions.ts` duplicated the rule wrongly. A runtime that is unregistered, as while the
+  Claude extension is off, still has no `nameOf`: the header then reads the folder's last segment.
 - **Alternatives considered**: a separate `problems` on the adapter: a second path to the same list,
-  beside `Accounts.problems()`.
+  beside `Accounts.problems()`; exporting the naming rule to `fate/sessions.ts`, a second place that
+  knows Claude's folders.
 - **Where**: task 3 of the plan, `ClaudeAdapter` in `runner/claude.ts`.
 
 ## R2: A pick that stops waiting may pick an account not known to be signed out

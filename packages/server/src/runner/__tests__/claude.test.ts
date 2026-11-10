@@ -1731,11 +1731,21 @@ test("the plugin folder holds the skill", () => {
   expect(existsSync(join(plugin, "skills", "uraeda", "SKILL.md"))).toBe(true);
 });
 
+test("the adapter always has accounts: none listed is an empty list that asks nothing", async () => {
+  const options = { imagesDir: "/data/images", pluginDir: "/plugin" };
+  for (const none of [undefined, [], ["", "  "]]) {
+    const accounts = new ClaudeAdapter({ ...options, accounts: none }).accounts;
+    expect(accounts.list()).toEqual([]);
+    expect(accounts.problems()).toEqual([]);
+    await accounts.refresh(0);
+    // A stored folder still has its name by the rule, listed or not: the header reads "b", not ".claude-b".
+    expect(accounts.nameOf("/u/.claude-b")).toBe("b");
+    expect(accounts.nameOf("/u/.claude")).toBe("default");
+  }
+});
+
 test("a setting of lines gives accounts, even when none is a folder, so its problems show", () => {
   const options = { imagesDir: "/data/images", pluginDir: "/plugin" };
-  expect(new ClaudeAdapter(options).accounts).toBeUndefined();
-  expect(new ClaudeAdapter({ ...options, accounts: [] }).accounts).toBeUndefined();
-  expect(new ClaudeAdapter({ ...options, accounts: ["", "  "] }).accounts).toBeUndefined();
 
   // Only an invalid line: no account to pick, so sessions stay on the server's login.
   const invalid = new ClaudeAdapter({ ...options, accounts: ["docs"] }).accounts;

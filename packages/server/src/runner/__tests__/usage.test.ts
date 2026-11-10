@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { parseLine } from "../claude-events.ts";
 import type { AgentEvent } from "../events.ts";
+import { FakeAccounts } from "../fake.ts";
 import { IDLE_CLOSE_MS, type Sessions } from "../sessions.ts";
 import { account, at, fakeAccounts, flush, folder, testSessions } from "./helpers.ts";
 
@@ -425,4 +426,23 @@ test("an asked window's reset is announced when it comes, with no process and no
   await vi.advanceTimersByTimeAsync(2 * 3_600_000);
   expect(announced()).toBeGreaterThan(after);
   expect(accountOf(sessions, "b")?.windows[0]?.used).toBe(0);
+});
+
+test("a runtime that lists no account is a runtime with none: its sessions report their own usage", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.accounts = new FakeAccounts(); // an empty list, as an empty setting gives
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "First" })).turn);
+  // No pick, and no account stored: the session runs on the agent's own login.
+  expect(adapter.opens.at(-1)?.account).toBeUndefined();
+  expect(cache.session(chat.id)?.account).toBeNull();
+  adapter.emit(report(0.4));
+  await flush();
+  const [record] = sessions.runtimes.records(null, {
+    accounts: (name) => sessions.accounts(name),
+    usage: (name) => sessions.usage(name),
+  });
+  expect(record?.accounts).toEqual([]);
+  expect(record?.usage.map(({ used }) => used)).toEqual([0.4]);
 });
