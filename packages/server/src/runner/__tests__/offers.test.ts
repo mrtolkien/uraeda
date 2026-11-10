@@ -69,3 +69,27 @@ test("an offer is the text's last word only with nothing but blanks after it", (
   expect(endingOffer(`${OFFER}\n\`\`\`uraeda-offer change\n# B\nOpen.`)).toBeUndefined();
   expect(endingOffer("Nothing to do.")).toBeUndefined();
 });
+
+/** The text with `by` before each of its lines. */
+const indented = (text: string, by: string) => text.replaceAll("\n", `\n${by}`).replace(/^/u, by);
+
+/**
+ * Codex P1 of the review of wave 5. Catches: an offer in a list item, a quote, or indented, which
+ * the card may draw but nobody wrote as the run's last word, accepted for a change by itself: only a
+ * fence at column 0, outside any other, is.
+ */
+test("the automatic acceptance takes an offer at column 0 only", () => {
+  // The card still draws these, as markdown does.
+  expect(lastOffer(indented(OFFER, "  "))).toBeDefined();
+  expect(endingOffer(indented(OFFER, "  "))).toBeUndefined();
+  expect(endingOffer(indented(OFFER, " "))).toBeUndefined();
+  // An outer fence opened on a list item, with the offer indented under it, never closed.
+  expect(endingOffer(`- \`\`\`\`md\n${indented(OFFER, "  ")}`)).toBeUndefined();
+  expect(endingOffer(`1. Example:\n\n${indented(OFFER, "   ")}\n`)).toBeUndefined();
+  expect(endingOffer(indented(OFFER, "> "))).toBeUndefined();
+  // At column 0 after a list: the list ended, so the block is the text's own.
+  expect(endingOffer(`- one\n- two\n\n${OFFER}\n`)).toEqual({
+    body: "# Example\n\nBody.",
+    kind: "change",
+  });
+});

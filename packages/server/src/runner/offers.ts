@@ -29,8 +29,8 @@ export const offerBody = (code: string) => code.replaceAll("\r\n", "\n").trim();
  * it, so a block quoted inside an outer fence is text, not an offer. A fence left open, as the one of
  * a message still streaming, runs to the end of the text and is no offer.
  */
-function offersOf(text: string): Array<Offer & { end: number }> {
-  const offers: Array<Offer & { end: number }> = [];
+function offersOf(text: string): Array<Offer & { end: number; indent: number }> {
+  const offers: Array<Offer & { end: number; indent: number }> = [];
   let at = 0;
   let open: { body: Array<string>; fence: string; indent: number; kind?: OfferKind } | undefined;
   for (const raw of text.split("\n")) {
@@ -58,7 +58,7 @@ function offersOf(text: string): Array<Offer & { end: number }> {
     ) {
       const body = offerBody(open.body.join("\n"));
       if (open.kind !== undefined && body !== "") {
-        offers.push({ body, end, kind: open.kind });
+        offers.push({ body, end, indent: open.indent, kind: open.kind });
       }
       open = undefined;
     } else {
@@ -77,11 +77,13 @@ export function lastOffer(text: string): Offer | undefined {
 
 /**
  * The offer the text ends on: its last closed block, with nothing but whitespace after its closing
- * fence. Prose, a code block, or a block left open after an offer make it no longer the last word.
+ * fence. Prose, a code block, or a block left open after an offer make it no longer the last word,
+ * and so does an indented fence, which may sit in a list item or a quote, or in an example around
+ * it: the card may draw it, but only a fence at column 0 starts a change by itself.
  */
 export function endingOffer(text: string): Offer | undefined {
   const last = offersOf(text).at(-1);
-  return last && text.slice(last.end).trim() === ""
+  return last && last.indent === 0 && text.slice(last.end).trim() === ""
     ? { body: last.body, kind: last.kind }
     : undefined;
 }
