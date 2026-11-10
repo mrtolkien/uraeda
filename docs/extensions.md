@@ -233,8 +233,9 @@ A runtime implements the contract every agent is reached through, the `Runtime` 
 `uraeda/server`: its `name`, `kind`, `icon`, and `capabilities`, `open` for a session's process,
 `hasSession`, `allowRule`, and `version`. Its process sends `AgentEvent`s: the session's start,
 text, tool calls and their ends, the turn's result, limits, and usage. Usage is a list of windows,
-each `{ id, label, used, resetsAt }`, `used` from 0 to 1, which the sidebar's usage pane draws, each
-runtime's under its mark, as it draws Claude Code's five hours and week.
+each `{ id, label, used, resetsAt }`, `used` from 0 to 1, which Home's usage pane draws, each
+runtime's under its mark, as it draws Claude Code's five hours and week. The sidebar's pane draws
+only the window whose `id` is `five_hour`: name a runtime's five-hour window so.
 
 A runtime may also offer models, all optional:
 
