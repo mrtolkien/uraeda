@@ -10,7 +10,7 @@ import { type Scheduler, startScheduler } from "./scheduler.ts";
 /**
  * Starts the scheduler on the listed repositories, each one's context the one a request there gets,
  * ticking every 30 seconds with a timer that does not keep the process alive, and accepts the
- * change each run offers. Its stop stops the timer, and waits for the runs in flight.
+ * change each run offers. Its stop stops the timer, and waits for the runs and the acceptances in flight.
  */
 export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler {
   const { binding, extensions, hosts, settings } = shared;
@@ -34,7 +34,8 @@ export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler {
     stop: async () => {
       stopAccepting();
       unannounce();
-      await stop();
+      // The acceptance in flight ends first: it may be creating a change, or sending its run.
+      await Promise.all([stop(), stopAccepting.settled()]);
     },
   });
 }
