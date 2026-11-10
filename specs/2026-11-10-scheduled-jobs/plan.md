@@ -551,10 +551,13 @@ git commit -m "feat(scheduled-jobs): the schedule's times, the record of runs, a
 
 - Create: `packages/server/src/jobs/scheduler.ts`, `packages/server/src/jobs/run.ts`,
   `packages/server/src/jobs/start.ts`
+- Create also: `packages/server/src/serially.ts`, the catcher's `serially` moved out of
+  `catch-ups.ts` so the scheduler's ticks join as its runs do ([ruling R11](rulings.md))
 - Modify: `packages/server/src/runner/send-input.ts` (`SendInput`),
   `packages/server/src/runner/send.ts` (`deliver`), `packages/server/src/runner/message.ts` (the two
-  lines, the note), `packages/server/src/fate/context.ts` (`jobs`), `packages/server/src/server.ts`
-  (`startOpened`, its stop), `packages/server/src/__tests__/helpers.ts` (`repoContext`)
+  lines, the note), `packages/server/src/fate/context.ts` and `packages/server/src/app.ts` (`jobs`,
+  which the app's contexts carry), `packages/server/src/catch-ups.ts` (imports `serially`),
+  `packages/server/src/server.ts` (`startOpened`, its stop)
 - Test: `packages/server/src/jobs/__tests__/scheduler.test.ts`
 
 **Interfaces:**
@@ -603,7 +606,7 @@ export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler; // wire
 // RepoContext gains `jobs?: Scheduler`.
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `scheduler.test.ts`, over `testServer` and the fake agent as `catch-ups.test.ts` builds them,
 with a `clock` the test moves, `every: null`, and a `wait` that records its calls:
@@ -649,17 +652,18 @@ The break each test catches:
 - Never started: a server that makes up for the times it missed, which the human refused.
 - Skipped: two runs of one job at once, or a second pull request on the same files.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test run packages/server/src/jobs/__tests__/scheduler.test.ts`
 - Expected: FAIL, `Cannot find module '../scheduler.ts'`
 
-- [ ] **Step 3: Implement the run's start**
+- [x] **Step 3: Implement the run's start**
 
 `startRun` records the run's row first, with `JobRuns.add`, and stops when the time is recorded
 already. It then opens a chat with `newChat` on the job's agent, model, and effort, titles it with
 the job's name, sends `jobMessage` with its line and the origin `workflow`, and sets the row's
-session with `JobRuns.setSession`. When the chat does not start, it removes the row with
+session with `JobRuns.setSession`, before the first turn starts, so the turn's end finds the row by
+its session ([ruling R11](rulings.md)). When the chat does not start, it removes the row with
 `JobRuns.remove` and rethrows, so the time is not marked run ([ruling R9](rulings.md)). `jobMessage`
 is the prompt, then a rule, then Uraeda's note. The note says the session was started by the
 scheduled job, by name, and that nobody follows it. For a job that is not report only, it says to
@@ -667,7 +671,7 @@ offer a needed code change once, as a change, then stop, since Uraeda starts it 
 continues in its worktree. For a report-only job, it says to change no file, and that an offer waits
 for the human. Both say to answer in one line when nothing needs doing.
 
-- [ ] **Step 4: Implement the scheduler and wire it**
+- [x] **Step 4: Implement the scheduler and wire it**
 
 - A tick reads the jobs, and for each job that is on and has no problem, each repository it names
   that is listed, where the `jobs` extension is on and the job's agent is available: take
@@ -686,14 +690,14 @@ for the human. Both say to answer in one line when nothing needs doing.
   every 30 seconds, with an unref'd timer. `server.ts` starts it after the catcher, puts it in the
   context, and stops it with the server.
 
-- [ ] **Step 5: Run the task's validation, and make the risky breaks**
+- [x] **Step 5: Run the task's validation, and make the risky breaks**
 
 - Run: `vp test run packages/server/src`, then `vp run fast`
 - Expected: PASS
 - Breaks to make once, see fail, and revert, reported in the commit's body: start the session before
   recording the row; drop the "saw it arrive" check.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src

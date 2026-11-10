@@ -114,3 +114,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the hourly job runs twice in the clock-change night's repeated hour, by the wall
   clock.
 - **Where**: task 3.
+
+## R11: The scheduler's small shapes beyond the plan
+
+- **Decision**: (1) the catcher's `serially` moves to `packages/server/src/serially.ts`, and the
+  scheduler's ticks use it; (2) `startRun` sets the row's session right after the chat is made,
+  before its first turn, not after the send; (3) `jobs` is carried by the app's contexts too
+  (`app.ts`), as `RepoContext.jobs`, so task 6's record reads it; (4) `nextRun` answers the first of
+  `problem`, `paused`, `off`, `agent-off`, `change-open`, and an agent that is not available at its
+  last check reads as `agent-off`; (5) a time the server saw arrive is by job and repository, and a
+  job loses that moment while it is off, has a problem, or is in a repository where its extension or
+  its agent is off, so turning any of them on just after a time does not run it (R2); (6) a stop
+  cuts the minute between two runs short, and starts no other.
+- **Rationale**: (1) one implementation of "joins the one after it", with no import of the catcher
+  by the jobs; (2) the turn's end, which task 5 reads by `ofSession`, may come before a later
+  `setSession`; (3) the Jobs record is read on every endpoint; (4) the plan names the values, not
+  their order; (5) a repository added to a job at 3:02 is a job added at 3:02; (6) the server's stop
+  must not wait a minute.
+- **If wrong**: (4) the card shows another reason first when two hold; (5) an agent turned off and
+  on within a time's 5 minutes loses that run.
+- **Where**: task 4.

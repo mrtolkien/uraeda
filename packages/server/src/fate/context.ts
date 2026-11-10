@@ -1,4 +1,5 @@
 import type { ExtensionsHost } from "../extensions/server.ts";
+import type { Scheduler } from "../jobs/scheduler.ts";
 import type { Previews } from "../preview/runner.ts";
 import type { Hosts } from "../repositories.ts";
 import type { FeatureOptions } from "../runner/feature-options.ts";
@@ -17,7 +18,8 @@ export type Binding = typeof import("uraeda-binding");
  * own run options, in its cache; the hosts of every listed repository; the data folder holding
  * their list; the server's Storybooks; and the frame secret their paths carry; the settings in
  * force; the colour themes; and the extensions, absent in tests' apps made without them.
- * `lockedList` locks the list, as Uraeda's own Storybook does: see `unlockedList`.
+ * `lockedList` locks the list, as Uraeda's own Storybook does: see `unlockedList`. `jobs` is the
+ * scheduler of the scheduled jobs, absent in tests' apps made without it.
  */
 export type Context = {
   binding: Binding;
@@ -26,6 +28,7 @@ export type Context = {
   featureOptions: FeatureOptions;
   frames: FrameSecret;
   hosts: Hosts;
+  jobs?: Scheduler;
   lockedList?: boolean;
   previews: Previews;
   repo: string | null;

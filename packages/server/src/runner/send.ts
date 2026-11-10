@@ -63,7 +63,7 @@ export async function sendTo(
 async function deliver(
   context: SessionContext,
   live: Live,
-  { held, opening: given, paths, text, workflow: sent }: Checked,
+  { held, line: said, opening: given, origin: from, paths, text, workflow: sent }: Checked,
   { asChat, branch, caughtUpTo, step }: Place,
   { behind, fields }: { behind: boolean; fields: SessionFields },
 ): Promise<{ session: string; turn: number }> {
@@ -89,9 +89,10 @@ async function deliver(
   }
   reopened(cache, live, text, paths.length > 0);
   const id = randomUUID();
-  const origin = workflow ? "workflow" : "human";
+  const origin = workflow || from ? "workflow" : "human";
   // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
-  if (live.turn && !live.turn.stop && !sent && runtimeOf(context, live)?.capabilities.steer) {
+  const mine = sent === undefined && from === undefined;
+  if (live.turn && !live.turn.stop && mine && runtimeOf(context, live)?.capabilities.steer) {
     const item: Message = { ...messageItem(id, origin, text), ...held };
     const seq = cache.appendItem(live.turn.id, item);
     live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
@@ -120,7 +121,7 @@ async function deliver(
   const kind: TurnKind = workflow ? "workflow" : "chat";
   const turn = { allowed: null, caughtUpTo: caughtUpTo ?? null, kind, step };
   const trigger = workflow?.trigger ?? null;
-  const line = workflow?.line;
+  const line = workflow?.line ?? said;
 
   // A busy session queues the turn: Uraeda writes its message once the running turn ends, or once
   // the other session of its folder is idle, which wakes it. Checked with the push, at once.
