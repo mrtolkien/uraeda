@@ -6,14 +6,15 @@
 >
 > Required for personal usage
 
-- [Run options: one session per feature or per step, model and effort per step, review options, global defaults with per-feature overrides](/specs/2026-11-08-run-options/proposal.md)
-- [Agents fix merge conflicts on open pull requests on their own, triggered by pulling main after a merge](/specs/2026-11-08-agents-fix/proposal.md)
 - [Scheduled jobs: agent runs on a schedule, like a daily dependencies upgrade and performance pass](/specs/changes/2026-11-09-scheduled-jobs/proposal.md)
 
 Human reviews:
 
 - Review the UI guidelines properly
 - Once CRON jobs exist: daily persona run, performance run, code quality run, ...
+
+- Multi-accounts management: auto rotation between multiple claude logins
+  - Niche but would make it easier for me...
 
 ## Next
 
