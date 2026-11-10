@@ -9,7 +9,6 @@
 Human reviews:
 
 - [Scheduled jobs](/specs/2026-11-10-scheduled-jobs/proposal.md)
-- [Multi-accounts management: auto rotation between multiple claude logins](/specs/2026-11-10-multi-accounts/proposal.md)
 
 - Review the UI guidelines properly
 - Once CRON jobs exist: daily persona run, performance run, code quality run, ...
