@@ -582,3 +582,41 @@ fn a_first_job_goes_below_the_files_comments() {
     assert!(after.starts_with("# Uraeda's settings."), "{after}");
     assert!(after.contains("[[jobs]]\nname = \"B\""), "{after}");
 }
+
+const HEADER: &str =
+    "# Uraeda's settings. The settings page writes this file too, and keeps your comments.";
+
+#[test]
+fn removing_the_last_job_keeps_the_comments_that_are_not_its_own() {
+    // A fresh file's header stays when its only job goes.
+    let dir = tempdir();
+    jobs::add(dir.path(), &input("A", "hourly", "x")).unwrap();
+    jobs::remove(dir.path(), "A").unwrap();
+    assert!(text(dir.path()).contains(HEADER), "{}", text(dir.path()));
+
+    // A human's header, and a section comment set apart by a blank line, stay too.
+    for (before, kept) in [
+        (
+            format!("# my header\n\n{}", table("A", "\"a\"", "hourly", "\"x\"")),
+            "# my header",
+        ),
+        (
+            format!(
+                "[server]\nport = 1\n\n# section: jobs\n\n# mine\n{}",
+                table("A", "\"a\"", "hourly", "\"x\"")
+            ),
+            "# section: jobs",
+        ),
+    ] {
+        let dir = tempdir();
+        write(dir.path(), &before);
+
+        jobs::remove(dir.path(), "A").unwrap();
+
+        let after = text(dir.path());
+        assert!(after.contains(kept), "{after}");
+        assert!(!after.contains("# mine\n[["), "{after}");
+        assert!(!after.contains("[[jobs]]"), "{after}");
+        assert_eq!(jobs::read(dir.path()).jobs.len(), 0);
+    }
+}

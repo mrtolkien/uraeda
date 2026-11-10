@@ -77,9 +77,11 @@ pub fn set_on(config_dir: &Path, name: &str, on: bool) -> Result<(), ApiError> {
 }
 
 /// Removes the job `name`, its table and the comment above it. A comment above it that a blank
-/// line sets apart, like the file's header, is not its own: it stays, above the next table.
+/// line sets apart, like the file's header, is not its own: it stays, above the next table, or at
+/// the end of the file when no table follows.
 pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
-    edit(config_dir, |root| {
+    change_document(config_dir, HEADER, |document| {
+        let root = document.as_table_mut();
         let place = place(root, name)?;
         let mut left = None;
         let empty = match root.get_mut("jobs") {
@@ -97,13 +99,21 @@ pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
         if empty {
             root.remove("jobs");
         }
-        if let Some((position, comment)) = left
-            && let Some(next) = next_position(root, position)
-        {
-            prepend(root, next, &comment);
+        if let Some((position, comment)) = left {
+            match next_position(root, position) {
+                Some(next) => {
+                    prepend(root, next, &comment);
+                }
+                None => {
+                    let trailing = document.trailing().as_str().unwrap_or_default();
+                    let trailing = format!("{comment}{trailing}");
+                    document.set_trailing(trailing);
+                }
+            }
         }
         Ok(())
     })
+    .map(|_| ())
 }
 
 /// Applies `change` to the file's top level, under the folder's lock.
