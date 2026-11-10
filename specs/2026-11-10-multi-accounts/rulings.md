@@ -280,3 +280,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   second place to keep in step, and a process opened for a turn that failed to start would still
   stay.
 - **Where**: `Processes.open` and `#pickWhileIdle` in `runner/processes.ts`.
+
+## R18: Any runtime's account problems reach its extension's settings
+
+- **Decision**: `ExtensionsHost.#state` adds `accounts.problems()` of the runtime registered under
+  the extension's name for every extension, one of yours as a built-in, as plain problems with no
+  file. The extension's state does not follow them.
+- **Rationale**: finding 5 of the branch review. Only the built-in branch read them, though
+  `docs/extensions.md` documents `problems()` for any runtime's `Accounts`: an extension's runtime
+  announced a change and no banner ever showed.
+- **Alternatives considered**: none: the read was one branch short.
+- **Where**: `#state` in `extensions/server.ts`.

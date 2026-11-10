@@ -249,16 +249,16 @@ export class ExtensionsHost implements Registry {
     const own = extension.problems.map(({ file, line, message }) =>
       line === undefined ? { file, message } : { file, line, message },
     );
+    // A runtime's accounts' problems are its extension's, a built-in's or yours: its state does
+    // not follow them.
+    const accounts = (this.runtimes.get(extension.name)?.accounts?.problems() ?? []).map(
+      (message) => ({ file: "", message }),
+    );
     if (extension.isBuiltIn) {
       const { name } = extension;
       const off = !extension.onAll && extension.on.length === 0;
       const unregistered = BUILT_IN_RUNTIMES.has(name) && this.runtimes.get(name) === undefined;
       const { problems, ...state } = this.#builtIns.state(name, off || unregistered);
-      // A runtime's accounts' problems are its extension's: its state does not follow them.
-      const accounts = (this.runtimes.get(name)?.accounts?.problems() ?? []).map((message) => ({
-        file: "",
-        message,
-      }));
       return {
         extension,
         pageVersion: null,
@@ -278,6 +278,7 @@ export class ExtensionsHost implements Registry {
       problems: [
         ...(loaded?.problems ?? own),
         ...this.#pageProblems.of(extension.name, pageVersion),
+        ...accounts,
       ],
       state: loaded?.state ?? "off",
       values,
