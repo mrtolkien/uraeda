@@ -330,8 +330,8 @@ class JobScheduler implements Scheduler {
 
   /**
    * Waits the minute between two starts. Returns whether the clock jumped meanwhile, which the
-   * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so every
-   * time still queued is hours old. They are all dropped, recording nothing (R17).
+   * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so every time
+   * still queued is hours old. They are all dropped, recording nothing (R17).
    */
   async #waited(): Promise<boolean> {
     const before = this.#now().getTime();
@@ -346,13 +346,15 @@ class JobScheduler implements Scheduler {
 
   /**
    * Starts, or skips, one due time. Returns whether it started a session. The job's start in the
-   * repository is reserved before anything is awaited, and held until it ends: a run by hand, or
-   * the same time asked twice, finds it taken.
+   * repository is reserved while it is read, and again from the end of the minute's wait to the
+   * start, not through the wait: a run by hand, or the same time asked twice, finds it taken.
    */
   async #run({ due, job, repo }: Due, spaced: boolean): Promise<boolean> {
     const key = keyOf(job.name, repo.name);
     const taken = this.#starting.has(key);
     this.#starting.add(key);
+    // Whether this run holds the reservation now.
+    let holding = !taken;
     try {
       const ctx = this.#options.context(repo.path);
       const root = await ctx.sessions.mainRoot(repo.path);
@@ -367,8 +369,20 @@ class JobScheduler implements Scheduler {
         return false;
       }
       // A start comes a minute after the one before it, and the job may have changed meanwhile.
-      if (spaced && (await this.#waited())) {
-        return false;
+      if (spaced) {
+        this.#starting.delete(key);
+        holding = false;
+        if (await this.#waited()) {
+          return false;
+        }
+        // Reserved again as the wait ends, with nothing awaited between: a run by hand that took
+        // the job meanwhile has its own start to finish.
+        if (this.#starting.has(key)) {
+          this.#skip(ctx, job.name, root, due, "working");
+          return false;
+        }
+        this.#starting.add(key);
+        holding = true;
       }
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {
@@ -389,7 +403,7 @@ class JobScheduler implements Scheduler {
       return false;
     } finally {
       // The reservation of another start, which this one found, is that start's to release.
-      if (!taken) {
+      if (holding) {
         this.#starting.delete(key);
       }
     }

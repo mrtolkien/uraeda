@@ -759,6 +759,35 @@ test("a clock jump drops every time queued before it, not only the one waiting",
 });
 
 /**
+ * US4 (`r` starts a run at once unless a run is at work); review 05, finding 7. Catches: a job
+ * refused as running while its start only waits its minute behind another job's.
+ */
+test("a run by hand starts at once while the job's scheduled start waits its minute", async () => {
+  const run = await setup();
+  const [uraeda, notes] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  run.state.jobs = {
+    jobs: [job("A", [uraeda.name], hourly), job("B", [notes.name], hourly)],
+  };
+  await run.at("11T02:59:00");
+  const gate = Promise.withResolvers<void>();
+  run.state.gate = gate.promise;
+  run.state.clock = new Date("2026-11-11T03:00:10");
+  await run.scheduler.tick();
+  while (run.state.waits.length === 0) {
+    await turns(1);
+  }
+  expect(run.created).toHaveLength(1);
+  run.server.adapter.script([]);
+  await run.scheduler.runNow(notes.name, "B");
+  expect(run.created).toHaveLength(2);
+  gate.resolve();
+  await run.scheduler.settled();
+  // The time of B came while its run by hand ran or ended: at most one more start, never two.
+  expect(run.created.length).toBeLessThanOrEqual(3);
+});
+
+/**
  * US2 1; R17. Catches: the minute between starts, with the 5 minutes of a time, silently dropping the
  * sixth and later runs due together, every time, with no row: a time the tick saw in time stays
  * valid in the queue.
