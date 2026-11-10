@@ -1178,12 +1178,12 @@ them report only, and `sandboxEnv` sets `URAEDA_SCHEDULED_JOBS=false`, as [rulin
 says. A sandbox built before keeps working: the file is written when the folder is built, and on a
 reset.
 
-- [ ] **Step 3: Run the complete validation**
+- [x] **Step 3: Run the complete validation**
 
 - Run: `vp run ready`
 - Expected: PASS, the Storybook build included
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs packages/web/sandbox
