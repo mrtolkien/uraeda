@@ -1,11 +1,11 @@
-import { pickAccount, PICK_WAIT_MS, USAGE_MAX_AGE_MS } from "./account-pick.ts";
+import { listed, pickAccount, PICK_WAIT_MS, USAGE_MAX_AGE_MS } from "./account-pick.ts";
 import type { Accounts } from "./adapter.ts";
 import { accountUsage, type UsageReport } from "./account-usage.ts";
 import type { Runtimes, AccountRecord } from "./runtimes.ts";
 
 /**
  * The runtime's accounts for the UI, with the freshest usage of each, `isNext` on the one a new
- * session would start on now. None for a runtime with no accounts.
+ * session would start on now. None for a runtime with no accounts, or whose `list()` throws.
  */
 export function accountRecords(
   runtimes: Runtimes,
@@ -13,7 +13,7 @@ export function accountRecords(
   reports: ReadonlyArray<UsageReport>,
   now = Date.now(),
 ): Array<AccountRecord> {
-  const merged = accountUsage(runtimes.get(runtime)?.accounts?.list() ?? [], reports, now);
+  const merged = accountUsage(listed(runtimes.get(runtime)?.accounts), reports, now);
   const next = pickAccount(merged)?.id;
   return merged.map(({ id, name, state, windows }) => ({
     id,

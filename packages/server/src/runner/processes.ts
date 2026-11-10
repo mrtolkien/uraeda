@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { accountFor } from "./account-pick.ts";
+import { accountFor, listed } from "./account-pick.ts";
 import type { UsageReport } from "./account-usage.ts";
-import type { Adapter, OpenOptions } from "./adapter.ts";
+import type { Account, Adapter, OpenOptions } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
 import { hasStartedTurn } from "./cache-turns.ts";
 import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
@@ -77,14 +77,20 @@ export class Processes {
    * longer listed, is moot, and dropped here.
    */
   reports(runtime: string): Array<UsageReport> {
-    const listed = this.#context.runtimes.get(runtime)?.accounts?.list() ?? [];
+    let known: ReadonlyArray<Account>;
+    try {
+      known = this.#context.runtimes.get(runtime)?.accounts?.list() ?? [];
+    } catch {
+      // An extension's accounts that fail to list: its reports are kept, as it may list again.
+      return [];
+    }
     const prefix = `${runtime}\0`;
     const kept: Array<UsageReport> = [];
     for (const [key, report] of this.#accounted) {
       if (!key.startsWith(prefix)) {
         continue;
       }
-      const account = listed.find(({ id }) => id === report.account);
+      const account = known.find(({ id }) => id === report.account);
       if (account === undefined || report.at <= (account.askedAt ?? -Infinity)) {
         this.#accounted.delete(key);
       } else {
@@ -278,14 +284,15 @@ export class Processes {
    * login (R3).
    */
   async #pick(row: SessionRow, adapter: Adapter): Promise<string | null> {
-    if (!adapter.accounts?.list().length) {
+    const { accounts } = adapter;
+    if (accounts === undefined || listed(accounts).length === 0) {
       if (row.account !== null) {
         this.#context.cache.updateSession(row.id, { account: null });
       }
       return null;
     }
     const account = await accountFor(
-      adapter.accounts,
+      accounts,
       adapter.name,
       () => this.reports(row.agent),
       () => this.#context.refreshAccounts(row.agent),
