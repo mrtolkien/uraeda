@@ -679,13 +679,14 @@ session with `JobRuns.setSession`, before the first turn starts, so the turn's e
 its session ([ruling R11](rulings.md)). When the chat does not start, it removes the row with
 `JobRuns.remove`, removes the chat it made through the session manager, which reports it to the
 clients, and rethrows. The scheduler then records the time once, as `failed` with the error's text
-as `error`, so it is not tried again and the history says why ([rulings R9 and R45](rulings.md)); a
-failed "Run now" records nothing. `jobMessage` is the prompt, then a rule, then Uraeda's note. The
-note says the session was started by the scheduled job, by name, and that nobody follows it. Both
-notes open their rule on the change with "Change no file." ([ruling R48](rulings.md)). A job that is
-not report only is then told to offer a needed code change once, as a change, then stop, since
-Uraeda starts it and the next message continues in its worktree. A report-only job is told that an
-offer waits for the human. Both say to answer in one line when nothing needs doing.
+as `error`, so it is not tried again and the history says why ([rulings R9 and R45](rulings.md)),
+unless the scheduler is stopped, when the time is just not run ([ruling R54](rulings.md)); a failed
+"Run now" records nothing. `jobMessage` is the prompt, then a rule, then Uraeda's note. The note
+says the session was started by the scheduled job, by name, and that nobody follows it. Both notes
+open their rule on the change with "Change no file." ([ruling R48](rulings.md)). A job that is not
+report only is then told to offer a needed code change once, as a change, then stop, since Uraeda
+starts it and the next message continues in its worktree. A report-only job is told that an offer
+waits for the human. Both say to answer in one line when nothing needs doing.
 
 - [x] **Step 4: Implement the scheduler and wire it**
 

@@ -406,8 +406,11 @@ class JobScheduler implements Scheduler {
         return (await startRun(ctx, now, run, root)) !== undefined;
       } catch (error) {
         // A start that failed is recorded once, so the time is not tried again and the history says
-        // why: `startRun` removed its own row (R45).
-        this.#fail(ctx, job.name, root, due, error);
+        // why: `startRun` removed its own row (R45). A start cut by the server's stop failed for no
+        // reason of the job's: nothing is recorded, and the time is not run, as a missed one (R54).
+        if (!this.#stopped) {
+          this.#fail(ctx, job.name, root, due, error);
+        }
         throw error;
       }
     } catch (error) {

@@ -1250,3 +1250,33 @@ test("nothing is awaited between the switch's last read and the start's row", as
   spy.mockRestore();
   expect(rows).toEqual(["read now"]);
 });
+
+/**
+ * Review 08, C4. Catches: a start cut by the server's stop recorded as a failed start, a permanent
+ * row that the card reads "Could not start: ..." for, when the time is simply not run, as a missed one.
+ */
+test("a start cut by the stop is not recorded as a failed start", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  const cut = Promise.withResolvers<never>();
+  const sending = vi.spyOn(run.server.sessions, "send").mockReturnValue(cut.promise);
+  const printed = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  try {
+    run.state.jobs = { jobs: [job("Dependencies", [name])] };
+    await run.at("11T02:59:00");
+    run.state.clock = new Date("2026-11-11T03:00:10");
+    await run.scheduler.tick();
+    while (sending.mock.calls.length === 0) {
+      await turns(1);
+    }
+    // The server stops while the session starts, and its layer rejects the send.
+    const stopping = run.scheduler.stop();
+    cut.reject(new Error("the server is stopping"));
+    await stopping;
+
+    expect(await run.history("Dependencies")).toEqual([]);
+  } finally {
+    sending.mockRestore();
+    printed.mockRestore();
+  }
+});

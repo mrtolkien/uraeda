@@ -864,3 +864,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   run at the row's write only when nothing was awaited since.
 - **If wrong**: none known: the callers read the root first, as before.
 - **Where**: the second pass's fix 4, task 4.
+
+## R54: A start cut by the server's stop is not a failed start
+
+- **Decision**: the scheduler records a `failed` row for a throw of `startRun` only while it is not
+  stopped. Once stopped, the throw records nothing, and the time is not run, as a missed one. This
+  completes [R45](#r45-a-scheduled-start-that-failed-is-recorded-once-and-shown).
+- **Rationale**: a stop aborts the start in its session layer, which rejects with the server's
+  stopping. Recorded, that was a permanent row: after the restart the card read "Could not start:
+  <the server stopping>" until another run started, and the time was marked recorded, so it was not
+  tried again either.
+- **If wrong**: a start that failed for its own reason in the same instant as a stop is not
+  recorded; the next time runs, and "Run now" is the way.
+- **Where**: the second pass's fix 5, task 4.
