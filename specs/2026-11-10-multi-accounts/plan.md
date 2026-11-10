@@ -254,7 +254,7 @@ export interface Accounts {
   `FakeAdapter.accounts?: FakeAccounts`, unset by default.
   `FakeAdapter.hasSession(nativeId, account?)` ignores the account.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // account-pick.test.ts
@@ -329,12 +329,12 @@ The break each row catches: a pick by listed order; a skipped guard dropped; a t
 later one; a reset ignored; an unread account read as unused; a used-up week falling through to no
 pick; a signed-out account picked.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/account-pick.test.ts`
 - Expected: FAIL, the import of `../account-pick.ts` does not resolve.
 
-- [ ] **Step 3: Add the contract's types, `pickAccount`, and `FakeAccounts`**
+- [x] **Step 3: Add the contract's types, `pickAccount`, and `FakeAccounts`**
 
 `pickAccount` is pure. An account is eligible when it is `ready` and no window after its first is
 used up (`used >= 1`). Among the eligible: the least `used` of the first window, an account with no
@@ -342,17 +342,17 @@ used up (`used >= 1`). Among the eligible: the least `used` of the first window,
 the listed order. With none eligible, the first `ready` one listed. With none `ready`, undefined. An
 account with `askedAt` and no first window counts as unused.
 
-- [ ] **Step 4: Document the contract in `docs/extensions.md`**
+- [x] **Step 4: Document the contract in `docs/extensions.md`**
 
 In the Runtimes section, after the models: a runtime may offer `accounts`, with `list`, `nameOf`,
 `problems`, and `refresh`; `open` then gets `account`, and `hasSession` the session's account.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner/adapter.ts packages/server/src/runner/account-pick.ts \
