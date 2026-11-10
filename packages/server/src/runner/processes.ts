@@ -164,7 +164,19 @@ export class Processes {
     const { binding, cache, runtimes } = this.#context;
     // A turn taken back while the process opened left its line to the next one.
     const held = live.proc?.line;
-    if (live.proc && !live.proc.closing && allowed === undefined && this.#effortSet(live)) {
+    // While no turn of the session started, an open process is reused only on the account the pick
+    // gives now: a first turn taken back while the process opened left it idle (R17).
+    const early =
+      live.proc && !live.proc.closing && allowed === undefined
+        ? await this.#pickWhileIdle(live)
+        : undefined;
+    if (
+      live.proc &&
+      !live.proc.closing &&
+      allowed === undefined &&
+      (early === undefined || early.account === live.proc.account) &&
+      this.#effortSet(live)
+    ) {
       delete live.proc.line;
       return { proc: live.proc, ...(held === undefined ? {} : { line: held }) };
     }
@@ -191,7 +203,11 @@ export class Processes {
       // listed or not: one that ran with none ran before accounts, or with none listed, and stays
       // on the server's own login. A first turn that never started, taken back or failed to open,
       // fixed nothing: the pick is made again, on the usage of that moment.
-      const account = ran ? row.account : await this.#pick(row, adapter);
+      const account = ran
+        ? row.account
+        : early === undefined
+          ? await this.#pick(row, adapter)
+          : early.account;
       const resume = adapter.hasSession(row.nativeId, account ?? undefined);
       // A session that ran before has lost its transcript: Claude Code deletes old ones. A line
       // held from a replacement the process opened on is carried, resuming that new session.
@@ -240,6 +256,19 @@ export class Processes {
       cache.releaseSession(live.id);
       throw error;
     }
+  }
+
+  /**
+   * The pick of a session with an open process and no started turn, which the process may not
+   * have been opened on any more: undefined when a turn started, then the session keeps its account.
+   */
+  async #pickWhileIdle(live: Live): Promise<{ account: string | null } | undefined> {
+    const { cache, runtimes } = this.#context;
+    if (hasStartedTurn(cache.db, live.id)) {
+      return undefined;
+    }
+    const row = rowOf(cache, live);
+    return { account: await this.#pick(row, sessionRuntime(runtimes, row)) };
   }
 
   /**

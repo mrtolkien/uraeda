@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { PICK_WAIT_MS } from "../account-pick.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
-import type { Limit } from "../events.ts";
+import type { AgentEvent, Limit } from "../events.ts";
 import { FakeAccounts } from "../fake.ts";
 import type { Sessions } from "../sessions.ts";
 import {
@@ -14,6 +14,9 @@ import {
   restart,
   testSessions,
 } from "./helpers.ts";
+
+/** The end of a turn that went well. */
+const done: AgentEvent = { denials: [], errors: [], interrupted: false, ok: true, type: "result" };
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -104,6 +107,49 @@ test("a session picks again until a turn of it starts, and keeps the account of 
   adapter.script([]);
   await send(sessions, repo, chat.id, "more");
   expect(adapter.opens.at(-1)?.account).toBe(folder("c"));
+});
+
+test("a first message taken back during the pick's wait leaves no pinned idle process", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.accounts = fakeAccounts();
+  // A session works: a fresh run waits behind it, in a new session.
+  const working = await sessions.featureSession(repo, AGENT);
+  const chat = await sessions.send(repo, working.id, { text: "What is left?" });
+  adapter.script([]);
+  const run = await sessions.send(repo, working.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "approval" },
+  });
+  expect(cache.turn(run.turn)?.state).toBe("queued");
+
+  // The accounts are asked again when the working session ends: the run's pick waits for them.
+  const stale = fakeAccounts();
+  stale.hangs = true;
+  adapter.accounts = stale;
+  adapter.emit(done);
+  await sessions.settled(chat.turn);
+  await vi.waitFor(() => expect(stale.asks).toBe(1));
+  const [message] = cache.itemsOf(run.turn, "message");
+  sessions.takeBack(repo, run.session, message!.id);
+
+  // The wait ends: the process opens on the pick, and the run that wanted it never starts.
+  await vi.advanceTimersByTimeAsync(PICK_WAIT_MS);
+  await vi.waitFor(() => expect(adapter.opens).toHaveLength(2));
+  expect(adapter.opens.map(({ account }) => account)).toEqual([folder("b"), folder("b")]);
+  expect(cache.turn(run.turn)?.state).toBe("stopped");
+
+  // Within the idle timeout the usage changed: the next message runs on the new pick, not on the
+  // idle process's account.
+  stale.hangs = false;
+  stale.accounts = [account("default", 0.42), account("b", 0.95), account("c", 0.1)];
+  adapter.script([]);
+  await send(sessions, repo, run.session, "hello again");
+  expect(adapter.opens.map(({ account }) => account)).toEqual([
+    folder("b"),
+    folder("b"),
+    folder("c"),
+  ]);
+  expect(cache.session(run.session)?.account).toBe(folder("c"));
 });
 
 test("a session whose turn never started opens on no account once the runtime lists none", async () => {

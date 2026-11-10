@@ -254,3 +254,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   read. Unset the variable for the server.
 - **Where**: `folderEnv` in `runner/claude-accounts.ts`, `claudeEnv` and `ClaudeAdapter` in
   `runner/claude.ts` (the adapter takes the `home` its accounts do).
+
+## R17: A process opened for a first turn that never started is reused only on the pick's account
+
+- **Decision**: while no turn of a session ever started, `Processes.open` picks even when the
+  session has an open process, and reuses that process only when the pick gives its own account;
+  else it closes it and opens a new one on the pick. A session that ran a turn reuses its process as
+  before. The pick made for the check is the one the new process opens on: it is asked once.
+- **Rationale**: Codex's finding 1 of the branch review. A first message taken back while its
+  process opened (Turns' `#startQueued` finds the queue changed) leaves the process idle, opened on
+  that pick. The next message within the 15-minute idle timeout took `open`'s reuse shortcut and
+  never reached the re-pick R3 promises, so it ran on the old pick whatever the usage had become.
+- **Alternatives considered**: closing the process in `#startQueued` when its turn was taken back: a
+  second place to keep in step, and a process opened for a turn that failed to start would still
+  stay.
+- **Where**: `Processes.open` and `#pickWhileIdle` in `runner/processes.ts`.
