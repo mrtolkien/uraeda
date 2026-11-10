@@ -263,7 +263,7 @@ test("an unknown kind of automatic run is refused as a bad request", async () =>
 
   expect(result.error).toEqual({
     code: "BAD_REQUEST",
-    message: "refused: sleep is not a kind of automatic run: restart, limit, or catch-up.",
+    message: "refused: sleep is not a kind of automatic run: restart, limit, catch-up, or jobs.",
   });
 });
 

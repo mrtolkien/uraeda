@@ -5,16 +5,23 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import {
+  addJob,
   checkRunOptions,
   checkedPort,
+  checkedSchedule,
   mergeRunOptions,
+  readJobs,
   readSettings,
+  removeJob,
+  setContinue,
+  setJobOn,
   setPort,
   setRunOptions,
   setSingleKeyShortcuts,
   setVimCommands,
   setVimMode,
   settingsFile,
+  updateJob,
 } from "./index.js";
 import { temporaryFolder } from "./test-utils.ts";
 
@@ -173,3 +180,53 @@ test("an unreadable file rejects reads and writes with its own code, and is kept
 function escape(text: string) {
   return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
+
+test("jobs read and write through the binding", async () => {
+  const dir = configWith("# mine\n[server]\nport = 4310\n");
+  const job = {
+    effort: "high",
+    name: "Dependencies",
+    prompt: 'Upgrade \\ the """ dependencies.\nRun the tests.\\\n',
+    reportOnly: false,
+    repositories: ["uraeda", "notes"],
+    schedule: "monday 04:00",
+  };
+
+  await addJob(dir, job);
+
+  const { jobs, problem } = await readJobs(dir);
+  expect(problem).toBeUndefined();
+  expect(jobs).toEqual([
+    {
+      effort: "high",
+      name: "Dependencies",
+      on: true,
+      prompt: job.prompt,
+      reportOnly: false,
+      repositories: ["uraeda", "notes"],
+      schedule: { day: 1, hour: 4, kind: "weekly", minute: 0 },
+      scheduleText: "monday 04:00",
+    },
+  ]);
+  expect(checkedSchedule("hourly")).toEqual({ hour: 0, kind: "hourly", minute: 0 });
+  expect(() => checkedSchedule("daily 25:00")).toThrow("A time is from 00:00 to 23:59.");
+
+  await updateJob(dir, "Dependencies", { ...job, name: "Upgrades", schedule: "hourly" });
+  await setJobOn(dir, "Upgrades", false);
+  expect((await readJobs(dir)).jobs.map(({ name, on }) => [name, on])).toEqual([
+    ["Upgrades", false],
+  ]);
+  expect(await rejection(addJob(dir, { ...job, name: "Upgrades" }))).toBe(
+    "refused: A job named “Upgrades” exists already.",
+  );
+  await removeJob(dir, "Upgrades");
+  expect((await readJobs(dir)).jobs).toEqual([]);
+
+  expect((await setContinue(dir, "jobs", false)).runs.scheduledJobs).toBe(false);
+  expect(read(dir)).toContain("scheduled_jobs = false");
+  expect(read(dir)).toContain("# mine\n[server]\nport = 4310\n");
+
+  writeFileSync(join(dir, "config.toml"), "jobs = 3\n");
+  expect(await readJobs(dir)).toEqual({ jobs: [], problem: "jobs is a list of [[jobs]] tables." });
+  expect(await readSettings(dir)).toBeDefined();
+});

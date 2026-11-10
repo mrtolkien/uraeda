@@ -50,3 +50,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the [sandbox](../decisions/sandbox.md) decision keeps a step from moving by itself
   there, and the switch already does it.
 - **Where**: task 9.
+
+## R6: A built-in's manifest is `<name>.toml`, and a write may reach the whole document
+
+- **Decision**: the `jobs` built-in's manifest is `crates/core/extensions/jobs.toml`, where the
+  other nine are, not `jobs/extension.toml`. `change_path` in `settings.rs` now calls a new
+  `change_document`, which hands its edit the whole document, and the jobs' `add` uses it. The
+  plan's test command runs the core's and the binding's tests apart.
+- **Rationale**: the built-ins' loader reads `<name>.toml`. A comment-only file, and the header a
+  first write creates, are the document's trailing text in `toml_edit`, so a first `[[jobs]]` table
+  added through the top-level table would have ended up above the header, which moved to the file's
+  end. `cargo nextest run -p uraeda-core -p uraeda-binding` does not link: cargo unifies the
+  binding's `napi` feature into the core's test binaries.
+- **Alternatives considered**: keeping the header above the table by writing an empty `[[jobs]]`
+  into a new file, which would put a jobs rule in `change_path`.
+- **Where**: task 1.

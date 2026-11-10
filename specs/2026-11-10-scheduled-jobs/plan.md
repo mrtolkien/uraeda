@@ -106,8 +106,8 @@ Every command runs in the dev shell, `nix develop -c <command>`. No commit names
   and `[keyboard]` only, and one bad value makes the whole file `unreadable`. Jobs must not: they
   read apart, as extensions do.
 - [`crates/core/src/extensions.rs`](/crates/core/src/extensions.rs): `BUILT_INS`, nine names, each
-  with a manifest in `crates/core/extensions/<name>/extension.toml`, and `read`, the lenient reader
-  with a problem per extension: the model for jobs. Its tests are
+  with a manifest in `crates/core/extensions/<name>.toml`, and `read`, the lenient reader with a
+  problem per extension: the model for jobs. Its tests are
   [`crates/core/tests/extensions.rs`](/crates/core/tests/extensions.rs), which list the built-ins.
 - [`crates/core/src/settings/runs_write.rs`](/crates/core/src/settings/runs_write.rs):
   `write_reviewers` writes `[[runs.reviewers]]`, an array of tables kept in place: the model for
@@ -233,12 +233,13 @@ stage.
 **Files:**
 
 - Create: `crates/core/src/jobs.rs`, `crates/core/src/jobs/schedule.rs`,
-  `crates/core/src/jobs/write.rs`, `crates/core/extensions/jobs/extension.toml`,
-  `crates/binding/src/jobs.rs`
-- Modify: `crates/core/src/lib.rs`, `crates/core/src/settings.rs` (`RunSettings`, `ContinueKey`),
-  `crates/core/src/settings/file.rs` (`parse_runs`), `crates/core/src/extensions.rs` (`BUILT_INS`),
-  `crates/binding/src/lib.rs`, `crates/binding/src/settings.rs` (`set_continue`),
-  `crates/core/tests/extensions.rs` (the built-ins' list),
+  `crates/core/src/jobs/write.rs`, `crates/core/extensions/jobs.toml`, `crates/binding/src/jobs.rs`
+- Modify: `crates/core/src/lib.rs`, `crates/core/src/settings.rs` (`RunSettings`, `ContinueKey`, and
+  `change_document`, which `change_path` now calls), `crates/core/src/settings/file.rs`
+  (`parse_runs`), `crates/core/src/extensions.rs` (`BUILT_INS`), `crates/binding/src/lib.rs`,
+  `crates/binding/src/settings.rs` (`set_continue`), `crates/core/tests/extensions.rs` (the
+  built-ins' list), `crates/core/tests/settings.rs` (the new switch),
+  `packages/server/src/__tests__/settings-fate.test.ts` (the refusal's new text),
   `packages/web/src/settings/sampleExtensions.ts`
 - Test: `crates/core/tests/jobs.rs`, `packages/binding/contracts.test.ts`
 
@@ -277,7 +278,7 @@ pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError>;
   `setContinue(dir, "jobs", on)`; and `Settings.runs.scheduledJobs?: boolean`.
 - Produces: the built-in extension `jobs`, tenth of `BUILT_INS`, after `git`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/jobs.rs`, with the helpers of `settings_writes.rs` copied as that file has
 them:
@@ -325,12 +326,12 @@ The break each test catches:
   the prompt so it reads back changed.
 - Through the binding: a field the server reads under another name.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test jobs`
 - Expected: FAIL to compile, `unresolved import uraeda_core::jobs`
 
-- [ ] **Step 3: Implement the jobs module, the switch, and the built-in**
+- [x] **Step 3: Implement the jobs module, the switch, and the built-in**
 
 - `jobs.rs` reads the file's text with the settings' loader and walks the top-level `jobs` item. It
   never goes through `Settings`. A file that cannot be read or parsed gives `Jobs.problem`, the
@@ -348,21 +349,20 @@ The break each test catches:
   `A job named “<name>” exists already.` for a taken name.
 - `scheduled_jobs` joins `RunSettings` and its parser, and `ContinueKey` gains `Jobs`, key
   `scheduled_jobs`, named `"jobs"` in the binding.
-- The manifest of `jobs`: title "Jobs", scope `repository`, no server or page entry, no setting. Add
-  it to `BUILT_INS` after `git`, and to the lists of `crates/core/tests/extensions.rs` and
-  `sampleExtensions.ts`.
+- The manifest of `jobs`, `crates/core/extensions/jobs.toml`: title "Jobs", icon `uraeda:history`,
+  scope `repository`, no server or page entry, no setting. Add it to `BUILT_INS` after `git`, and to
+  the lists of `crates/core/tests/extensions.rs` and `sampleExtensions.ts`.
 - Keep `settings.rs` under 500 lines: the new code lives in the new files.
 
-- [ ] **Step 4: Run the task's validation, and make the risky breaks**
+- [x] **Step 4: Run the task's validation, and make the risky breaks**
 
-- Run: `cargo nextest run -p uraeda-core -p uraeda-binding`, then
-  `vp run --filter uraeda-binding build` and `vp test run packages/binding/contracts.test.ts`, then
-  `vp run fast`
+- Run: `cargo nextest run -p uraeda-core`, then `vp run --filter uraeda-binding build` and
+  `vp test run packages/binding/contracts.test.ts`, then `vp run fast`
 - Expected: PASS
 - Breaks to make once, see fail, and revert, reported in the commit's body: write the prompt as a
   one-line string without escaping; let `update` rewrite the whole table.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding packages/web/src/settings/sampleExtensions.ts

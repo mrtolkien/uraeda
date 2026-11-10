@@ -58,6 +58,8 @@ pub struct RunSettings {
     /// Whether an open pull request behind the default branch is caught up by itself: `false`
     /// when unset.
     pub catch_up_pull_requests: Option<bool>,
+    /// Whether the jobs start at their times: `true` when unset.
+    pub scheduled_jobs: Option<bool>,
     /// Each step's agent, model, effort, and session, the implementers, and the reviewers: the
     /// `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
     pub options: RunOptions,
@@ -72,6 +74,8 @@ pub enum ContinueKey {
     Limit,
     /// `catch_up_pull_requests`.
     CatchUp,
+    /// `scheduled_jobs`.
+    Jobs,
 }
 
 impl ContinueKey {
@@ -81,6 +85,7 @@ impl ContinueKey {
             Self::Restart => "continue_after_restart",
             Self::Limit => "continue_after_limit",
             Self::CatchUp => "catch_up_pull_requests",
+            Self::Jobs => "scheduled_jobs",
         }
     }
 }
@@ -352,6 +357,18 @@ pub(crate) fn change_path(
     path: &[&str],
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
+    change_document(dir, path, |document| {
+        edit(nested(dir, document.as_table_mut(), path)?)
+    })
+}
+
+/// Applies `edit` to the whole document of the file as it is now, as `change_path` does; a file
+/// the write creates starts with the table at `path`, or with none when `path` is empty.
+pub(crate) fn change_document(
+    dir: &Path,
+    path: &[&str],
+    edit: impl FnOnce(&mut DocumentMut) -> Result<(), ApiError>,
+) -> Result<Settings, ApiError> {
     let _lock = crate::cache::folder_lock(dir);
     let (read, _) = checked(dir)?;
     let (text, layout) = read.unwrap_or_else(|| {
@@ -359,14 +376,18 @@ pub(crate) fn change_path(
             .iter()
             .map(|name| Key::new(*name).to_string())
             .collect();
-        let header = keys.join(".");
-        (format!("{HEADER}\n[{header}]\n"), file::Layout::default())
+        let table = if keys.is_empty() {
+            String::new()
+        } else {
+            format!("\n[{}]\n", keys.join("."))
+        };
+        (format!("{HEADER}{table}"), file::Layout::default())
     });
     // `checked` parsed the same text, so this failure is unreachable; it still answers.
     let mut document: DocumentMut = text
         .parse()
         .map_err(|error: toml_edit::TomlError| unreadable(dir, error.message()))?;
-    edit(nested(dir, document.as_table_mut(), path)?)?;
+    edit(&mut document)?;
     let text = document.to_string();
     let not_saved = |reason: &str| refused(format!("Could not save {}: {reason}", shown_file(dir)));
     let settings = file::parse(&text).map_err(|problem| not_saved(&problem))?;

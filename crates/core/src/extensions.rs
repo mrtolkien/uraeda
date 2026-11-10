@@ -24,7 +24,7 @@ pub use write::{On, add_on, set_on, set_setting};
 pub const EXTENSION_API: u32 = 1;
 
 /// The built-in extensions, in the order the lists show them.
-const BUILT_INS: [&str; 9] = [
+const BUILT_INS: [&str; 10] = [
     "claude",
     "codex",
     "fake",
@@ -32,6 +32,7 @@ const BUILT_INS: [&str; 9] = [
     "priorities",
     "decisions",
     "git",
+    "jobs",
     "previews",
     "notifications",
 ];

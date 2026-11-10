@@ -76,6 +76,7 @@ const BUILT_IN: ReadonlyArray<ExtensionRow> = [
   ),
   builtIn("decisions", "Decisions", "uraeda:ruler", "The Decisions place and the decisions check."),
   builtIn("git", "Git", "uraeda:git-branch", "The Git place."),
+  builtIn("jobs", "Jobs", "uraeda:history", "The Jobs place."),
   builtIn(
     "previews",
     "Previews",
