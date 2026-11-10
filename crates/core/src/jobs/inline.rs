@@ -26,6 +26,9 @@ struct Lines {
     tails: Vec<String>,
     /// The text before the `]`, after its line break.
     closing: String,
+    /// The entry whose suffix is already in `tails`: the last one of a list without a trailing
+    /// comma. Every other suffix is a comment between a value and its comma, and stays where it is.
+    consumed: Option<usize>,
 }
 
 impl Lines {
@@ -54,10 +57,12 @@ impl Lines {
                 .collect(),
             tails: ends.clone().map(|end| split(end).0.to_owned()).collect(),
             closing: split(&end).1.to_owned(),
+            consumed: (!list.trailing_comma()).then(|| list.len() - 1),
         })
     }
 
-    /// Writes this layout on the entries of `list`, one per lead.
+    /// Writes this layout on the entries of `list`, one per lead. A comment is never dropped: an
+    /// entry that follows one starts its own line, even when it shared its line.
     fn apply(&self, list: &mut Array) {
         for (at, value) in list.iter_mut().enumerate() {
             let (lead, breaks) = &self.leads[at];
@@ -66,13 +71,15 @@ impl Lines {
             } else {
                 &self.tails[at - 1]
             };
-            let prefix = if *breaks {
+            let prefix = if *breaks || !before.trim().is_empty() {
                 format!("{before}\n{lead}")
             } else {
                 lead.clone()
             };
             value.decor_mut().set_prefix(prefix);
-            value.decor_mut().set_suffix("");
+            if self.consumed == Some(at) {
+                value.decor_mut().set_suffix("");
+            }
         }
         let tail = self.tails.last().map_or("", String::as_str);
         list.set_trailing(format!("{tail}\n{}", self.closing));
@@ -87,6 +94,11 @@ pub(super) fn remove(list: &mut Array, place: usize) {
     if let Some(mut lines) = lines {
         lines.leads.remove(place);
         lines.tails.remove(place);
+        lines.consumed = match lines.consumed {
+            Some(at) if at == place => None,
+            Some(at) if at > place => Some(at - 1),
+            other => other,
+        };
         if !list.is_empty() {
             lines.apply(list);
         }

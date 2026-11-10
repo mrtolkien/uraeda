@@ -846,3 +846,64 @@ fn an_empty_or_blank_option_written_by_hand_reads_as_unset() {
     assert_eq!((&read.agent, &read.model), (&None, &None));
     assert_eq!(read.effort.as_deref(), Some("high"));
 }
+
+/// An inline entry named `name`, as the file's text.
+fn inline(name: &str) -> String {
+    format!(
+        "{{ name = \"{name}\", repositories = [\"a\"], schedule = \"hourly\", prompt = \"x\" }}"
+    )
+}
+
+#[test]
+fn a_write_to_an_inline_list_never_deletes_a_comment_of_another_entry() {
+    let (a, b, c) = (inline("A"), inline("B"), inline("C"));
+    let names = |dir: &Path| {
+        jobs::read(dir)
+            .jobs
+            .into_iter()
+            .map(|job| job.name)
+            .collect::<Vec<_>>()
+    };
+
+    // The comment after the `[`, with entries sharing a line: removing the first keeps it.
+    let dir = tempdir();
+    write(dir.path(), &format!("jobs = [ # note\n  {a}, {b},\n]\n"));
+    jobs::remove(dir.path(), "A").unwrap();
+    assert!(text(dir.path()).contains("# note"), "{}", text(dir.path()));
+    assert_eq!(names(dir.path()), ["B"]);
+
+    // The comment after a comma, before an entry that now shares its line: kept on a removal.
+    write(
+        dir.path(),
+        &format!("jobs = [\n  {a}, # a\n  {b},\n  {c}, # c\n]\n"),
+    );
+    jobs::remove(dir.path(), "B").unwrap();
+    assert!(text(dir.path()).contains("# a"), "{}", text(dir.path()));
+    assert!(text(dir.path()).contains("# c"), "{}", text(dir.path()));
+    write(
+        dir.path(),
+        &format!("jobs = [\n  {a}, # a\n  {b}, {c},\n]\n"),
+    );
+    jobs::remove(dir.path(), "B").unwrap();
+    assert!(text(dir.path()).contains("# a"), "{}", text(dir.path()));
+    assert_eq!(names(dir.path()), ["A", "C"]);
+
+    // A comment between a value and its comma stays on an add and on a removal.
+    write(
+        dir.path(),
+        &format!("jobs = [\n  {a}\n  # before the comma\n  ,\n  {b},\n]\n"),
+    );
+    jobs::add(dir.path(), &input("D", "hourly", "z")).unwrap();
+    assert!(
+        text(dir.path()).contains("# before the comma"),
+        "{}",
+        text(dir.path())
+    );
+    jobs::remove(dir.path(), "B").unwrap();
+    assert!(
+        text(dir.path()).contains("# before the comma"),
+        "{}",
+        text(dir.path())
+    );
+    assert_eq!(names(dir.path()), ["A", "D"]);
+}
