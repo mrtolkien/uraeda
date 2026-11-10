@@ -1,0 +1,15 @@
+[package]
+name = "uraeda-vim"
+description = "Uraeda's Vim layer: a state machine from keys to editor commands, with no UI."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+[lints]
+workspace = true

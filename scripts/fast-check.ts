@@ -105,8 +105,12 @@ type Command = [string, Array<string>];
 export function checkStages(selection: FastSelection): Array<Array<Array<Command>>> {
   // The binding's build regenerates its committed declarations, which the type check reads: it
   // comes first. Then the TypeScript checks run beside the Rust chain, which shares one Cargo build
-  // directory and stays in order.
-  const typescript: Array<Command> = [["vp", ["check"]]];
+  // directory and stays in order. The app's check writes the types of `nsh` in `app/.nsh/`, which
+  // the type check reads for the app's files: a hit restores them, in a checkout without them.
+  const typescript: Array<Command> = [
+    ["vp", ["run", "app:check"]],
+    ["vp", ["check"]],
+  ];
   if (selection.checks.includes("specs:check")) {
     typescript.push(["vp", ["run", "specs:check"]]);
   }

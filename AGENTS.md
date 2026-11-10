@@ -61,6 +61,13 @@ editing it.
   - `cli/` (`uraeda-cli`): the `ura` binary
   - `binding/` (`uraeda-binding`): the core's Node binding, built with napi-rs
   - `lsp/` (`uraeda-lsp`): the `ura lsp` language server
+  - `protocol/` (`uraeda-protocol`): the messages between the Rust server and its clients
+  - `server/` (`uraeda-server`): the Rust server, everything `ura serve` does
+  - `vim/` (`uraeda-vim`): the Vim layer, a state machine from keys to editor commands
+  - `app/` (`uraeda-app`): the app's native module `uraeda/native`, its native components, and the
+    Linux host
+- `app/`: the app on Native Shell, in TSX. `nsh.json` names its crate, `crates/app/`, and `App.tsx`
+  is its entry. `.nsh/` there is generated, and never committed.
 - `packages/`: TypeScript, in one pnpm workspace
   - `binding/`: the binding's npm package, with its generated `index.js` and `index.d.ts`
   - `server/`: the Hono server on Node, serving fate's protocol at `/fate` and the built UI
@@ -99,8 +106,10 @@ spikes measured.
   `crates/nsh-platform-*/` one backend each.
 - **For examples**: `examples/` in that repository, with `gallery` and `gallery-rs` for every
   element in TSX and in Rust, and `embedded` and `host-echo` for a view inside a host.
-- **Read the pinned version.** NSH's Rust API changes between releases. Once the migration pins a
-  commit, read the source at that commit, not at `main`. The website follows `main`.
+- **Read the pinned version.** The migration pins NSH **0.4.0**, the release `v0.4.0`, at commit
+  `e626a8dd8f8d8b277b9507cfd5ac74d0e67020f3`. NSH's Rust API changes between releases: read the
+  source at that commit (`git clone --depth 1 --branch v0.4.0 https://github.com/longbridge/nsh.git`
+  in a temporary folder), not at `main`. The website follows `main`.
 - **Trust the source over the website** when they disagree, and a run over both: the spikes found
   pages that were out of date.
 
@@ -113,7 +122,29 @@ What the spikes learned, which no page says plainly:
 - Only TSX has WebSockets and streamed `fetch`. Rust gets whole responses.
 - There is no error boundary, and a view embedded on GTK reports no error to its host.
 - Tests run without a display, with `nsh test`. Never open a window on the human's screen without
-  asking: use Xvfb.
+  asking: use the dev shell's `hidden-display`.
+
+Running it here:
+
+- **The pin is in four places**, which move together in one commit: `nsh`'s version and hash in
+  `flake.nix`, the `nsh-*` crates in `Cargo.toml`, `minRuntime` in `app/nsh.json`, and the version
+  and commit above.
+- **Run `nsh` through `node scripts/nsh.ts <command>`**, as the tasks do: `vp run app:check`
+  (`cargo check` of the crate, then the TSX's types), `vp run app:test` (`nsh test`, with no
+  display), and `vp run app:dev`. It runs `nsh` in `app/`, builds in the repository's `target/`, and
+  starts the lockfile of the workspace `nsh` generates from the repository's `Cargo.lock`. A bare
+  `nsh` in `app/` builds everything again, in `app/target/`, with the newest version of every crate.
+- **A window opens only on the hidden display**: `hidden-display <command>`, as in
+  `hidden-display vp run app:dev`, or `hidden-display node scripts/nsh.ts test --target linux` for
+  tests that draw in a GTK window and take pictures with `app.screenshot(path)`. It is an X display
+  of 1400 by 800 that no screen shows, and shaders draw on it.
+- **In a new worktree, run `vp run app:check` before `vp check`**: it writes NSH's types in
+  `app/.nsh/`, without which `vp check` fails with `Invalid tsconfig`. `vp run fast` and
+  `vp run ready` do it themselves.
+- **A crate that takes `nsh-bundler` takes the five `rolldown_*` crates beside it** in `Cargo.toml`,
+  as `crates/server/` does: NSH holds `rolldown` at 1.2.13, a new release moved those five alone,
+  and `rolldown` no longer built.
+- Rust 1.97.0 is the first release that builds NSH 0.4.0: its bundler's `oxc` asks for it.
 
 ## Shell
 

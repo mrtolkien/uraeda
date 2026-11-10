@@ -190,7 +190,16 @@ pub fn settings_json(config_dir: &Path, name: &str, repository: Option<&str>) ->
         return "{}".to_owned();
     };
     let values = values::Config::load(config_dir).settings(&extension, repository);
-    serde_json::Value::Object(values).to_string()
+    sorted_json(values)
+}
+
+/// A JSON object's text, its keys sorted at every level. serde_json sorts them itself only without
+/// its `preserve_order` feature, which a crate linked beside the core can turn on, as Native
+/// Shell's bundler does: the text must not depend on what the core is built with.
+fn sorted_json(values: serde_json::Map<String, serde_json::Value>) -> String {
+    let mut object = serde_json::Value::Object(values);
+    object.sort_all_objects();
+    object.to_string()
 }
 
 /// The values of the extension `name` set for one repository, over those for every repository, as
@@ -201,7 +210,7 @@ pub fn repository_settings_json(config_dir: &Path, name: &str) -> String {
         return "{}".to_owned();
     };
     let values = values::Config::load(config_dir).by_repository(&extension);
-    serde_json::Value::Object(values).to_string()
+    sorted_json(values)
 }
 
 /// Whether `extension` is on in `repository`; with no repository, whether it is on in every one.

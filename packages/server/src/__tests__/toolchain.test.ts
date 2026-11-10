@@ -313,8 +313,8 @@ function projectNames(): Array<string> {
   });
 }
 
-/** A command line that runs tests: a test runner, or the package's smoke test. */
-const TEST_RUNNER = /\b(?:vp test|cargo (?:llvm-cov )?nextest)\b|smoke\.ts\b/;
+/** A command line that runs tests: a test runner, the package's smoke test, or the app's tests. */
+const TEST_RUNNER = /\b(?:vp test|cargo (?:llvm-cov )?nextest)\b|smoke\.ts\b|nsh\.ts test\b/;
 
 /** `scripts/test-run.ts`, from the root or a task's folder, with its options. */
 const TEST_RUN = /^node (?:\.\.\/)*scripts\/test-run\.ts((?: --\S+ \S+)*) /;
@@ -681,13 +681,23 @@ test("the repository's toolchain follows the decision", () => {
   ]);
 });
 
+test("ready checks and tests the app on Native Shell, and never runs it", () => {
+  const ready = readyTasks();
+  expect(Object.keys(ready)).toEqual(expect.arrayContaining(["app:check", "app:test"]));
+  // `app:check` writes the types of `nsh`, which `vp check` reads for the app's files.
+  expect(allTasks()["ts:check"].dependsOn).toContain("app:check");
+  // The app's development run never ends: no check waits for it, and nothing replays it.
+  expect(ready["app:dev"]).toBeUndefined();
+  expect(allTasks()["app:dev"].cache).toBe(false);
+});
+
 test("a project added to test.projects is run by a task running every project", () =>
   expect(
     unselected(["uraeda-binding", "uraeda-new"], { "ts:test": { command: "vp test" } }),
   ).toEqual([]));
 
 test("the heavy checks wait for the other checkouts' through a shared limit of two", () => {
-  for (const name of ["ts:check", "rust:clippy", "rust:test"]) {
+  for (const name of ["ts:check", "rust:clippy", "rust:test", "app:test"]) {
     const line = [allTasks()[name].command].flat()[0];
     expect(TEST_RUN.exec(line)?.[1], `${name} runs under the heavy lock`).toBe(
       " --lock heavy --slots 2",

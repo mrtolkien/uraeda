@@ -147,6 +147,15 @@ test("the type check never runs while the binding's generated files are rebuilt"
   ).toEqual(expect.arrayContaining(["run binding:touch", "check"]));
 });
 
+test("the app's types are written before the type check reads them", () => {
+  const chains = checkStages(selectFast([{ added: false, deleted: false, path: "README.md" }]))
+    .flat()
+    .map((chain) => chain.map(([, args]) => args.join(" ")));
+  const typescript = chains.find((chain) => chain.includes("check"));
+  expect(typescript?.indexOf("run app:check")).toBe(0);
+  expect(typescript?.indexOf("check")).toBe(1);
+});
+
 test("when both chains fail, both failures are reported", async () => {
   const failure = await concurrently([
     [["sh", ["-c", "exit 3"]]],

@@ -72,10 +72,8 @@ pub type QuestionHeading = (String, Option<(String, char)>, String);
 fn heading(line: &str) -> Option<QuestionHeading> {
     let (rest, follow_up) = if let Some(rest) = line.strip_prefix("### Q") {
         (rest, true)
-    } else if let Some(rest) = line.strip_prefix("## Q") {
-        (rest, false)
     } else {
-        return None;
+        (line.strip_prefix("## Q")?, false)
     };
     let (id, title) = rest.split_once(':')?;
     let title = title.trim().to_string();

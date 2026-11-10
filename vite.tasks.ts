@@ -60,6 +60,22 @@ const rustSources = [
   ...toolchainInputs,
 ];
 
+/**
+ * Native Shell's CLI on the app, `app/`, with the repository's lockfile and build folder (see
+ * `scripts/nsh.ts`).
+ */
+const nsh = "node scripts/nsh.ts";
+
+/** What the app is built from: its TSX, its crates, and the pinned Native Shell. */
+const appInputs = [
+  "app/**",
+  // What `nsh` generates, and what a bare `nsh` in `app/` builds.
+  "!app/.nsh/**",
+  "!app/target/**",
+  "scripts/nsh.ts",
+  ...rustSources,
+];
+
 /** The binding's sources, from `binding.ts`'s list, a folder standing for every file under it. */
 const bindingInputs = SOURCES.map((source) =>
   statSync(join(import.meta.dirname, source)).isDirectory() ? `${source}/**` : source,
@@ -88,6 +104,24 @@ const tsTestInputs = [
  * The `ready:*` groups, which run nothing themselves, are the units CI's jobs run, uncached.
  */
 export const tasks = {
+  // NSH's type check of the app's TSX, after `cargo check` of its crate. A hit restores the types
+  // of `nsh` and of the crate's module it writes, which `vp check` reads for the app's files. It
+  // takes no heavy slot: `fast` runs it while holding one.
+  "app:check": {
+    cache: { input: appInputs, output: ["app/.nsh/tsconfig.json", "app/.nsh/types/**"] },
+    command: `${nsh} check`,
+  },
+  // The app on GTK, with hot reload. On the display of whoever runs it: an agent, and any check,
+  // runs it as `hidden-display vp run app:dev`, on a display no screen shows.
+  "app:dev": {
+    cache: false,
+    command: `${nsh} run`,
+  },
+  // The app's tests, `*.test.tsx`, on NSH's headless runner, built with the app's crate: no display.
+  "app:test": {
+    cache: { input: [...appInputs, "fixtures/**", "scripts/test-run.ts"], output: [] },
+    command: `${heavyRun} ${isolatedGit} ${nsh} test`,
+  },
   // Selection has no cached result: HEAD and the working tree are runtime inputs. It takes a heavy
   // slot itself, after selecting, and none when it escalates to ready, whose tasks take their own.
   fast: {
@@ -178,8 +212,10 @@ export const tasks = {
   },
   ready: {
     command: "true",
-    dependsOn: ["ready:rust", "ready:typescript", "ready:ts-test"],
+    dependsOn: ["ready:rust", "ready:typescript", "ready:ts-test", "ready:app"],
   },
+  // The app on Native Shell: its types and its tests. `app:dev` runs it, and is no check.
+  "ready:app": { command: "true", dependsOn: ["app:check", "app:test"] },
   "ready:rust": {
     command: "true",
     dependsOn: ["rust:fmt", "rust:clippy", "rust:test", "rust:features", "specs:check"],
@@ -302,11 +338,14 @@ export const tasks = {
         "!coverage/**",
         "!**/.vitest/**",
         "!packages/uraeda/{docs,plugin,web}/**",
+        // NSH's generated runners and builds: only its types, which `app:check` writes, are read.
+        "!app/.nsh/{rust,out}/**",
+        "!app/target/**",
       ],
       output: [],
     },
     command: `${heavyRun} vp check`,
-    dependsOn: ["binding:build"],
+    dependsOn: ["binding:build", "app:check"],
   },
   "ts:test": {
     cache: {

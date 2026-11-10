@@ -101,7 +101,7 @@ Set by this plan, from the human's answers on 2026-11-10:
   or the simplest design that keeps its tests, writes a ruling, and goes on. It never asks, and
   never leaves the build stopped.
 - **No window opens on the human's display.** Every run of the app, the gallery, or a test that
-  draws uses an invisible display.
+  draws uses an invisible display: `hidden-display <command>`, from the dev shell (ruling R17).
 - **Nothing outside the worktree changes.** No task installs a tool on the machine, touches the
   human's config or data folders, or stops a server it did not start: tools come from the Nix dev
   shell, and data from temporary folders and the sandbox.
@@ -129,7 +129,8 @@ Set by this plan, from the human's answers on 2026-11-10:
 
 Unless a task says otherwise, its validation is `vp check`, then `cargo nextest run -p <its crate>`
 for Rust, or `vp run app:check` and `vp run app:test` for the app. It leaves `vp run ready` to the
-push.
+push. In a new worktree, run `vp run app:check` once before `vp check`: it writes the types of `nsh`
+in `app/.nsh/`, which `vp check` reads.
 
 ### What every records task does
 
@@ -315,8 +316,9 @@ the layer keeps Vim's keys.
 NSH moves fast: read the page again before building on it. Start from
 [`llms.txt`](https://nsh.dev/llms.txt), which lists every page, and from the NSH section of
 [`AGENTS.md`](/AGENTS.md), which says where the documentation and the source are. Paths below are
-under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.x; task 1 records the exact
-version and commit.
+under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.0, the release `v0.4.0`, at
+commit `e626a8dd8f8d8b277b9507cfd5ac74d0e67020f3` (ruling R14): read the pages at that commit, with
+`v0.4.0` in place of `main` in a path.
 
 | Subject                           | Page                                                                                                                                                                                                                         |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -442,27 +444,40 @@ Nothing here is a screen of the app.
 **Files:**
 
 - Create: `crates/protocol/`, `crates/server/`, `crates/vim/`, `crates/app/` (empty crates, in the
-  workspace), `app/nsh.json`, `app/App.tsx`, `app/tsconfig.json`, `app/theme.json`
+  workspace: `crates/app/` holds an empty `uraeda/native`, and `crates/server/` takes
+  `nsh-bundler`), `app/nsh.json`, `app/App.tsx`, `app/App.test.tsx`, `app/tsconfig.json`,
+  `app/theme.json`, `scripts/nsh.ts`
 - Modify: `Cargo.toml`, `rust-toolchain.toml`, `flake.nix`, `vite.tasks.ts`, `CONTRIBUTING.md`,
-  `AGENTS.md` (the pinned NSH version and commit, and the `app/` and new crates in the layout)
+  `AGENTS.md` (the pinned NSH version and commit, and the `app/` and new crates in the layout),
+  `scripts/fast-check.ts`, `.github/workflows/ci.yml`, the toolchain configuration's test, and
+  `crates/core/src/extensions.rs` (its JSON sorts its keys itself: ruling R19)
 
 **Interfaces:**
 
-- Produces: `vp run app:check` (NSH's type check), `vp run app:test` (`nsh test`), `vp run app:dev`
-  (the app on GTK), all part of `ready`. The pinned NSH version and commit, in `app/nsh.json` and
-  `Cargo.lock`.
+- Produces:
+  - `vp run app:check` (`cargo check` of the app's crate, then NSH's type check) and
+    `vp run app:test` (`nsh test`, with no display), both part of `ready`, in its group `ready:app`;
+    and `vp run app:dev` (the app on GTK), which is no check.
+  - `node scripts/nsh.ts <command>`: any other `nsh` command on the app, as the three tasks run it
+    (ruling R16).
+  - `hidden-display <command>`: the invisible display (ruling R17).
+  - The pinned NSH version, 0.4.0, in `flake.nix`, `Cargo.toml`, `Cargo.lock`, and `app/nsh.json`
+    (`minRuntime`), and its commit in `AGENTS.md` (ruling R14). Rust 1.97.0 (ruling R15).
 
-- [ ] **Step 1: Raise the Rust toolchain** to the first stable release that builds NSH 0.4 (1.96
+- [x] **Step 1: Raise the Rust toolchain** to the first stable release that builds NSH 0.4 (1.96
       does not: the spike used 1.99.1). Run `cargo nextest run` on the whole workspace. Expected:
       PASS, as before the change.
-- [ ] **Step 2: Add the four crates and the `app/` project.** `App.tsx` mounts a text. Add NSH's
+- [x] **Step 2: Add the four crates and the `app/` project.** `App.tsx` mounts a text. Add NSH's
       CLI, GTK 4.14, and an invisible display server to the Nix dev shell, pinned. Pin `rolldown`
       and its sibling crates to one version in every lockfile NSH generates: version drift between
       them broke two builds in the spike.
-- [ ] **Step 3: Add the three tasks to `vite.tasks.ts`**, with their inputs, and to `ready`. The
+- [x] **Step 3: Add the three tasks to `vite.tasks.ts`**, with their inputs, and to `ready`. The
       toolchain configuration's test must name them.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS, with the new tasks listed.
-- [ ] **Step 5: Commit**: `chore(nsh-migration): scaffold the server, the app, and their checks`.
+- [ ] **Step 4: Run `vp run ready`**. Expected: PASS, with the new tasks listed. It ran with the new
+      tasks, and every check passed but one test of `ts:test`, which failed before this task:
+      `each decision of this repository has a drawn icon`, since the frozen web UI draws no `cable`
+      icon for the new protocol decision.
+- [x] **Step 5: Commit**: `chore(nsh-migration): scaffold the server, the app, and their checks`.
 
 ## Task 2: Check what the spikes did not verify
 
@@ -936,7 +951,8 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/app/src/{lib,native}.rs`
+- Create: `crates/app/src/native.rs`
+- Modify: `crates/app/src/lib.rs`, which task 1 made with an empty `uraeda/native`
 - Test: `crates/app/tests/native.rs`
 
 **Interfaces:**
@@ -946,8 +962,8 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
   native components (34, 36). See NSH's Rust-modules pages.
 
 - [ ] **Step 1: Write the failing test** `TSX calls a function of the module`, through `nsh test`.
-- [ ] **Step 2: Run it**. Expected: FAIL, module not found.
-- [ ] **Step 3: Implement** the module and register it in `app/nsh.json`.
+- [ ] **Step 2: Run it**. Expected: FAIL, `uraeda/native` has no `version`.
+- [ ] **Step 3: Implement** the module. `app/nsh.json` names the crate since task 1.
 - [ ] **Step 4: Run the task's validation**. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the app's native module`.
 

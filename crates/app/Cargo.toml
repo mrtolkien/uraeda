@@ -1,0 +1,19 @@
+[package]
+name = "uraeda-app"
+description = "Uraeda's app on Native Shell: the native module `uraeda/native`, the native components, and the Linux host."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+[dependencies]
+nsh-base.workspace = true
+nsh-core.workspace = true
+
+[lints]
+workspace = true

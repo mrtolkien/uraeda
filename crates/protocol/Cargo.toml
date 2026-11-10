@@ -1,0 +1,15 @@
+[package]
+name = "uraeda-protocol"
+description = "The protocol between Uraeda's server and its clients: the messages, and the names of records and actions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+# cargo-nextest does not run doctests, and the crate has none.
+[lib]
+doctest = false
+
+[lints]
+workspace = true

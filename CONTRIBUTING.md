@@ -1,6 +1,7 @@
 # Contributing to Uraeda
 
-Uraeda's tools are a Rust core, the `ura` CLI, and a web UI served with its server. The
+Uraeda's tools are a Rust core, the `ura` CLI, and a web UI served with its server, with
+[an app on Native Shell](#the-app-on-native-shell) being built to replace that UI. The
 [repository's layout](AGENTS.md#repository-layout) says what lives where, and the
 [stack](specs/decisions/stack.md) and [toolchain](specs/decisions/toolchain.md) decisions why.
 Uraeda builds itself with its own workflow: its files are in [`specs/`](specs/), and what is being
@@ -22,6 +23,35 @@ vp run sandbox     # the web UI over sample projects and a fake agent, without s
 vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build
 cargo run -p uraeda-cli -- status
 ```
+
+## The app, on Native Shell
+
+The UI is moving to one TSX app on [Native Shell](https://nsh.dev) (NSH), in [`app/`](app/), with
+its Rust crate in [`crates/app/`](crates/app/). It will talk to a Rust server,
+[`crates/server/`](crates/server/), over [`crates/protocol/`](crates/protocol/), and edit text
+through [`crates/vim/`](crates/vim/). `nix develop` on x86_64 Linux brings what they build with:
+NSH's CLI, `nsh`, GTK 4 and WebKitGTK 6.0, clang, and a display no screen shows. Without Nix,
+install NSH 0.4.0, the version of the `nsh-*` crates in [`Cargo.toml`](Cargo.toml), with what its
+[installation page](https://nsh.dev/docs/installation) lists for Linux.
+
+```sh
+vp run app:check   # cargo check of the app's crate, then the types of its TSX
+vp run app:test    # the app's tests, app/**/*.test.tsx, with no display
+vp run app:dev     # the app in a GTK window, reloading as its TSX changes
+hidden-display vp run app:dev          # the same, on a display no screen shows
+cargo nextest run -p uraeda-server     # one crate's tests: also uraeda-protocol, uraeda-vim, uraeda-app
+cargo clippy -p uraeda-server --all-targets -- -D warnings
+```
+
+`vp run ready` runs the first two, and the crates' tests with the others'. The three tasks run `nsh`
+through [`scripts/nsh.ts`](scripts/nsh.ts), which builds in the repository's `target/` and keeps the
+versions of [`Cargo.lock`](Cargo.lock): run any other `nsh` command the same way, as
+`node scripts/nsh.ts package --target linux`. `app:check` also writes NSH's types in `app/.nsh/`,
+which `vp check` reads: in a new checkout, run it first.
+
+To upgrade NSH, change its version and hash in [`flake.nix`](flake.nix), the `nsh-*` crates in
+`Cargo.toml`, `minRuntime` in [`app/nsh.json`](app/nsh.json), and the version and commit in
+[`AGENTS.md`](AGENTS.md#native-shell-nsh), in one commit.
 
 ## Settings under `vp dev`
 

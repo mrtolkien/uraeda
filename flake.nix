@@ -1,5 +1,5 @@
 {
-  description = "Uraeda: the ura CLI, and the development shell with Node, pnpm, and the pinned Rust toolchain";
+  description = "Uraeda: the ura CLI, and the development shell with Node, pnpm, the pinned Rust toolchain, and Native Shell";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -26,21 +26,83 @@
             }
           )
         );
+
+      # Native Shell's CLI, `nsh`, with the runtimes it runs and packages a TSX app on: the release's
+      # prebuilt distribution, pinned by its version and its hash. The version is also the `nsh-*`
+      # crates' in `Cargo.toml` and `minRuntime` in `app/nsh.json`, and the release's commit is in
+      # `AGENTS.md`: they move together. NSH releases it for x86_64 Linux only, so the app builds
+      # there.
+      nshFor =
+        pkgs:
+        pkgs.stdenv.mkDerivation (finalAttrs: {
+          pname = "nsh";
+          version = "0.4.0";
+          src = pkgs.fetchurl {
+            url = "https://github.com/longbridge/nsh/releases/download/v${finalAttrs.version}/nsh-linux-x86_64.tar.gz";
+            hash = "sha256-iAYSGuv0C7Ufj7aqcDci+7ASU/mkNXWcGNU77s4eyXY=";
+          };
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          buildInputs = gtkFor pkgs ++ [ pkgs.stdenv.cc.cc.lib ];
+          # `nsh` finds its runtimes in `bin/../runtime`. Android's, GPUI's, and the embedding
+          # kits, 650 MB of the distribution, are left out: the app targets GTK and the web.
+          installPhase = ''
+            mkdir -p $out/runtime
+            cp -r bin $out/bin
+            cp -r runtime/linux runtime/web $out/runtime/
+          '';
+          dontStrip = true;
+        });
+
+      # What NSH's GTK backend builds against and runs on: GTK 4, which must be 4.14 or newer, and
+      # WebKitGTK 6.0 for web views.
+      gtkFor =
+        pkgs: with pkgs; [
+          gtk4
+          webkitgtk_6_0
+          pango
+          cairo
+          gdk-pixbuf
+          glib
+          graphene
+          harfbuzz
+          fontconfig
+        ];
+
+      # `hidden-display <command>` runs a command on an X display of its own that no screen shows:
+      # every run of the app by an agent or a check goes through it, so no window opens on the
+      # human's display. GTK prefers the session's Wayland display, so the command loses it.
+      hiddenDisplayFor =
+        pkgs:
+        pkgs.writeShellScriptBin "hidden-display" ''
+          exec env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+            ${pkgs.xvfb-run}/bin/xvfb-run -a -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
+        '';
     in
     {
       formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
 
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
-          packages = with pkgs; [
-            nodejs_24
-            # pnpm downloads the exact version pinned in package.json's devEngines.
-            pnpm
-            (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
-            # The Rust tests' runner, and their coverage.
-            cargo-nextest
-            cargo-llvm-cov
-          ];
+          packages =
+            with pkgs;
+            [
+              nodejs_24
+              # pnpm downloads the exact version pinned in package.json's devEngines.
+              pnpm
+              (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+              # The Rust tests' runner, and their coverage.
+              cargo-nextest
+              cargo-llvm-cov
+            ]
+            # The app, on Native Shell: GTK's build tools, clang for QuickJS' bindings, and the
+            # display no screen shows.
+            ++ lib.optionals stdenv.hostPlatform.isLinux [
+              pkg-config
+              clang
+              (hiddenDisplayFor pkgs)
+            ]
+            ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [ (nshFor pkgs) ];
+          buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (gtkFor pkgs);
           # `nix develop` points the temporary folder at a `nix-shell.*` folder of its own, and
           # writes its shell's startup file in a `nix-develop-<its pid>-*` one: it removes neither
           # when it runs a command (`-c`), so every command left two in /tmp, with what the command
@@ -62,6 +124,10 @@
             fi
             unset root
           '';
+          # QuickJS' bindings are generated with libclang.
+          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+          # `nsh check` runs this TypeScript, the version NSH pins, and downloads none.
+          NSH_TSC = "${pkgs.typescript}/bin/tsc";
           # The browsers of the screenshot scripts in `packages/web/scripts/`: the playwright package pins
           # the same version as nixpkgs' driver, so its browsers run here without a download.
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
