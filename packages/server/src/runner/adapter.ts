@@ -40,8 +40,39 @@ export type ModelList = {
   models: Array<AgentModel>;
 };
 
+/** A usage window of an account: no reset while the window is not open. */
+export type AccountWindow = { id: string; label: string; resetsAt: string | null; used: number };
+
+/** Whether an account can run a session: signed in, signed out, or without its folder. */
+export type AccountState = "ready" | "signed-out" | "missing";
+
+/** An account a runtime offers. `windows` are shortest first: Claude's five hours, then its week. */
+export type Account = {
+  /** When its usage was last read, epoch ms: null while it never was. */
+  askedAt: number | null;
+  /** What a session stores: for Claude Code, its folder as an absolute path. */
+  id: string;
+  name: string;
+  state: AccountState;
+  windows: ReadonlyArray<AccountWindow>;
+};
+
+/** The accounts a runtime offers, an optional part of its contract. */
+export interface Accounts {
+  /** The accounts as last asked, in the listed order. */
+  list(): ReadonlyArray<Account>;
+  /** The name of the account `id`, listed or not. */
+  nameOf(id: string): string;
+  /** What needs the human, in the runtime's words: "account b is signed out, in ~/.claude-b". */
+  problems(): ReadonlyArray<string>;
+  /** Asks again each account read more than `maxAgeMs` ago: settles once they answered. */
+  refresh(maxAgeMs: number): Promise<void>;
+}
+
 /** How to open a session's process. */
 export type OpenOptions = {
+  /** The account to run on, by its ID: none for the agent's own. */
+  account?: string;
   /** The allow rules for this process only, from "Allow and retry" or "Allow all". */
   allowed?: ReadonlyArray<string>;
   /** The feature's worktree, or the main checkout. */
@@ -120,14 +151,16 @@ export interface AgentProcess {
  * sessions store (see `Runtimes`).
  */
 export interface Adapter {
+  /** The accounts the agent runs on, when it offers several: none without it. */
+  readonly accounts?: Accounts;
   /**
    * The narrowest rule that allows a blocked action, passed to `open` as `allowed`: undefined when
    * no rule allows that action alone.
    */
   allowRule(denial: Denial): string | undefined;
   readonly capabilities: Capabilities;
-  /** Whether the session's transcript exists, so it can be resumed. */
-  hasSession(nativeId: string): boolean;
+  /** Whether the session's transcript exists, in its `account` if it has one, to be resumed. */
+  hasSession(nativeId: string, account?: string): boolean;
   /** The icon of its mark, a name of the app's icon set: "uraeda:harness-claude". */
   readonly icon: string;
   /** The agent's own kind, which a benchmark's record names it by: "claude". */

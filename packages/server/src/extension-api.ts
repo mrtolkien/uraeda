@@ -5,6 +5,10 @@ import type { Context as HonoContext } from "hono";
 import type { Adapter } from "./runner/adapter.ts";
 
 export type {
+  Account,
+  AccountState,
+  AccountWindow,
+  Accounts,
   Adapter as Runtime,
   AgentModel,
   AgentProcess,

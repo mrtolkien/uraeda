@@ -248,6 +248,23 @@ A runtime may also offer models, all optional:
   which the session's header shows, and `{ type: "notice", text }`, a line of the agent's that the
   transcript shows.
 
+A runtime may also offer several accounts of its agent, as `accounts`, with four methods:
+
+- `list()` gives the accounts, in the order the human listed them, each
+  `{ id, name, state, windows, askedAt }`: `id` is what a session stores, `state` is `ready`,
+  `signed-out`, or `missing`, `windows` are its usage windows, shortest first, each
+  `{ id, label, used, resetsAt }`, and `askedAt` is when they were read, in epoch milliseconds, null
+  while they never were.
+- `nameOf(id)` gives the name of an account, listed or not.
+- `problems()` gives what needs the human, in your words, such as
+  `account b is signed out, in ~/.claude-b`.
+- `refresh(maxAgeMs)` asks again each account read more than `maxAgeMs` ago, and settles once they
+  answered.
+
+A new session then starts on the account with the most of its shortest window left, among the
+accounts that are `ready` and whose longer windows are not used up. `open` gets that account's ID as
+`account`, and `hasSession(nativeId, account)` is asked in it. A session keeps its account.
+
 A runtime that picks its agent's session IDs itself, opened without `resume`, reports the agent's
 own ID in its first `init`: the session takes it.
 

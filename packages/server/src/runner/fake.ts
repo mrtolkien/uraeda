@@ -1,4 +1,6 @@
 import type {
+  Account,
+  Accounts,
   Adapter,
   AgentProcess,
   Capabilities,
@@ -41,6 +43,47 @@ export function fakeModels(): ModelList {
       { efforts: [], id: "fake-small", name: "Fake Small" },
     ],
   };
+}
+
+/**
+ * The fake's accounts, which a test fills and reads. `refresh` counts an ask only when it asks:
+ * some account was never asked, or was asked more than `maxAgeMs` ago, and marks them all asked.
+ */
+export class FakeAccounts implements Accounts {
+  accounts: Array<Account> = [];
+  /** The refreshes that asked. */
+  asks = 0;
+  /** Makes `refresh` never settle, as an agent that never answers. */
+  hangs = false;
+  /** What `problems` gives, which a test may change. */
+  problemList: Array<string> = [];
+
+  list(): ReadonlyArray<Account> {
+    return this.accounts;
+  }
+
+  nameOf(id: string): string {
+    return this.accounts.find((account) => account.id === id)?.name ?? id;
+  }
+
+  problems(): ReadonlyArray<string> {
+    return this.problemList;
+  }
+
+  refresh(maxAgeMs: number): Promise<void> {
+    const now = Date.now();
+    const stale = this.accounts.some(
+      (account) => account.askedAt === null || now - account.askedAt > maxAgeMs,
+    );
+    if (!stale) {
+      return Promise.resolve();
+    }
+    this.asks++;
+    for (const account of this.accounts) {
+      account.askedAt = now;
+    }
+    return this.hangs ? new Promise<void>(() => {}) : Promise.resolve();
+  }
 }
 
 /** One fake process: its events are pushed, and read in order until its `exit`. */
@@ -221,6 +264,8 @@ export class FakeAdapter implements Adapter {
     subagents: true,
     takeBack: true,
   };
+  /** The accounts it offers: none by default, as a runtime without any. */
+  accounts?: FakeAccounts;
   opens: Array<OpenOptions> = [];
   sent: Array<Outgoing> = [];
   /** The message IDs taken back. The fake gives no `cancelled` event: a test emits it. */
@@ -269,7 +314,8 @@ export class FakeAdapter implements Adapter {
     return structuredClone(this.modelList);
   }
 
-  hasSession(nativeId: string) {
+  /** Whether the session has a transcript: in any account. */
+  hasSession(nativeId: string, _account?: string) {
     return this.sessions.has(nativeId);
   }
 
