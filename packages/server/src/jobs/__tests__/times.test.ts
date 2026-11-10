@@ -123,6 +123,17 @@ test.each([
   expect(nextAfter(schedule, local(now)).getTime()).toBe(local(next).getTime());
 });
 
+test.each([
+  ["hour 24", daily(24, 0)],
+  ["hour -1", daily(-1, 0)],
+  ["minute 60", daily(3, 60)],
+  ["a fractional minute", daily(3, 0.5)],
+])("a schedule with %s is refused", (_name, schedule) => {
+  const now = local("2026-11-11T12:00:00");
+  expect(() => dueAt(schedule, now)).toThrow("not a time");
+  expect(() => nextAfter(schedule, now)).toThrow("not a time");
+});
+
 test("a time is missed once it is more than 5 minutes past", () => {
   expect(MISSED_AFTER_MS).toBe(300_000);
 });
