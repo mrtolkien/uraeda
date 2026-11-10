@@ -529,3 +529,28 @@ test("a later run that opened no change does not hide a change still open", asyn
     why: "change-open",
   });
 });
+
+/**
+ * US2 1, R2. Catches: a schedule edited to a time just past, which the server never saw arrive,
+ * running at once as a job added just after its time does not.
+ */
+test("a schedule edited to a time just past does not run at once", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  const ran = async () => (await run.sessions("Dependencies")).length;
+  const at9 = job("Dependencies", [name], {
+    schedule: { hour: 9, kind: "daily", minute: 0 },
+    scheduleText: "daily 09:00",
+  });
+  run.state.jobs = { jobs: [at9] };
+  await run.at("12T02:00:00");
+  // At 03:02 the human edits it to 03:00: that time passed before the edit.
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  await run.at("12T03:02:00");
+  await run.at("12T03:02:30");
+  expect(await ran()).toBe(0);
+  // The next 03:00 is the new schedule's first.
+  run.server.adapter.script([]);
+  await run.at("13T03:00:10");
+  expect(await ran()).toBe(1);
+});

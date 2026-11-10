@@ -110,8 +110,8 @@ class JobScheduler implements Scheduler {
   readonly #timer: ReturnType<typeof setInterval> | undefined;
   #stopped = false;
   readonly #stop = new AbortController();
-  // When this scheduler first saw each job on in each repository, in ms (R2).
-  readonly #seen = new Map<string, number>();
+  // When this scheduler first saw each job on in each repository with its schedule, in ms (R2).
+  readonly #seen = new Map<string, { first: number; schedule: string }>();
   // The job and repository (by its name) whose run starts now: a time and a run by hand never start two.
   readonly #starting = new Set<string>();
   readonly #printed = new Set<string>();
@@ -215,8 +215,11 @@ class JobScheduler implements Scheduler {
         }
         const key = keyOf(job.name, name);
         eligible.add(key);
-        const first = this.#seen.get(key) ?? at.getTime();
-        this.#seen.set(key, first);
+        // A schedule edited is a job added: the moment it was seen starts again.
+        const schedule = JSON.stringify(job.schedule);
+        const seen = this.#seen.get(key);
+        const first = seen?.schedule === schedule ? seen.first : at.getTime();
+        this.#seen.set(key, { first, schedule });
         // A time the server saw arrive, and not missed.
         if (agent.available && due > first && at.getTime() - due <= MISSED_AFTER_MS) {
           found.push({ due, job, repo });
