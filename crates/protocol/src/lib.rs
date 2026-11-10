@@ -10,7 +10,7 @@ mod message;
 mod registry;
 mod typescript;
 
-pub use change::{ApplyError, Op, Path, apply};
+pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};

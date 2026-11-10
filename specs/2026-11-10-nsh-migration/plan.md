@@ -136,9 +136,12 @@ in `app/.nsh/`, which `vp check` reads.
 
 Tasks 7 to 10 each port the records and mutations of one domain from
 [`packages/server/src/fate/`](/packages/server/src/fate/), keeping their names, and call the core
-function the binding wraps today. Each adds its lines to `records/mod.rs`.
+function the binding wraps today. Each adds its one line, `mod <domain>;`, to the list in
+`records/mod.rs`, and removes its names from `NOT_BUILT` in `crates/server/tests/live.rs` if they
+are there.
 
-- Consumes: `Registry`, `Bus` (task 6); the core's functions.
+- Consumes: `Registry`, `Bus`, `Fault`, `Call` (task 6, whose section and
+  [`live/mod.rs`](/crates/server/src/live/mod.rs) show a whole domain); the core's functions.
 - Produces: its records and actions, typed in `crates/protocol/`, each with its line in `catalog()`
   and the client's types written again by `vp run protocol:types`, and their rows in task 20's list.
 
@@ -683,31 +686,51 @@ fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
-- Create: `crates/server/src/live/{mod,subscription,bus}.rs`, `crates/server/src/records/mod.rs`
+- Create: `crates/server/src/live/{mod,registry,fault,key,bus,topic,subscription,socket}.rs`,
+  `crates/server/src/records/mod.rs`
 - Test: `crates/server/tests/live.rs`
 
 **Interfaces:**
 
-- Consumes: `Record`, `Action`, `diff`, `apply`, `Op`, `catalog` (task 3); `require` (task 5).
-- Produces:
-  - `Registry::record::<R>()`, `Registry::action::<A>()`: how a domain registers itself.
-  - `Bus::changed(record_name, key)`: a domain says a record changed; the engine reads it again,
-    diffs it against what each subscriber has, and sends `Change`.
-  - `Bus::append(record_name, key, path, text)`: a growing text changes without a read.
-  - Sequence numbers per subscription, and `Resume`.
+- Consumes: `Record`, `Action`, `diff`, `apply`, `Op`, `catalog` (task 3). Sign-in's `require`
+  (task 5) is built at the same time: `live::Caller` and `live::Identity` are where its identity and
+  the end of a sign-in come in (ruling T6.4).
+- Produces, in `uraeda_server::live` (rulings T6.1 to T6.5):
+  - `Registry::record::<R>(read)` and `Registry::action::<A>(run)`: how a domain registers itself. A
+    handler is a plain function, run on a blocking thread:
+    `read: Fn(&Shared, R::Args) -> Result<R::Value, Fault>` and
+    `run: Fn(&Call, A::Input) -> Result<A::Output, Fault>`, where `Call` has `shared()`, `bus()`,
+    and `caller()`. `live::wait(future)` runs a future to its end from a handler.
+  - `Fault`, a handler's error: a code of the protocol and a message. The core's errors convert with
+    `?` and keep their code. `Fault::refused`, `conflict`, `internal`, and `new` make others.
+  - `Bus::changed::<R>(&args)`: a domain says a record changed; the engine reads it again, diffs it
+    against what its subscribers hold, and sends `Change`. A record's key is its arguments.
+    `Bus::changed_all::<R>()` says it of every record of a name.
+  - `Bus::append::<R>(&args, path, at, text)`: a growing text changes without a read. `at` is the
+    text's length in bytes before it grew.
+  - The `Registry` and the `Bus` are `shared.get::<Registry>()` and `shared.get::<Bus>()`, for every
+    domain mounted after `live::mount`, the first of `DOMAINS`.
+  - `records/mod.rs`: the list of the domains that are only records and actions, one line each,
+    `mod <domain>;`, for a file with `register(&Shared, &Registry) -> Result<(), Failure>`.
+  - `Connection`, a client's side of the engine with no socket, for a test that sets the clock.
+  - Sequence numbers per record, shared by its subscribers, and `Resume`.
   - Updates of one record are sent at most once per 16 ms; the latest wins.
+  - The test `every_declared_record_and_action_is_served_and_no_other`, which compares the
+    `Registry` with `catalog()` both ways.
 
-- [ ] **Step 1: Write the failing tests**, with a test record `Counter`
+- [x] **Step 1: Write the failing tests**, with a test record `Counter`
   - `a subscriber gets the value, then only changes`.
   - `two clients acting at once end equal`: both call an action on one record; both end with the
     same value and both get a `Result`.
   - `a resume after a drop gets what it missed`: the break is a gap in a reply.
   - `a burst of updates is sent as one change`.
-- [ ] **Step 2: Run them**. Expected: FAIL, `Registry` not found.
-- [ ] **Step 3: Implement.** One task per connection; a slow client never blocks another. A
+  - `an error names what it answers and why`, and
+    `every declared record and action is served and no other`.
+- [x] **Step 2: Run them**. Expected: FAIL, `Registry` not found.
+- [x] **Step 3: Implement.** One task per connection; a slow client never blocks another. A
       subscriber more than 1,000 changes behind gets the whole value again.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): subscriptions and changes`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): subscriptions and changes`.
 
 ## Task 7: Records: workspace
 

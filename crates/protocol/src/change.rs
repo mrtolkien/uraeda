@@ -99,6 +99,17 @@ fn apply_one(root: &mut Value, op: &Op) -> Result<(), ApplyError> {
     }
 }
 
+/// What is at a path of a value, or nothing: how a holder reads one place of the value without
+/// changing it.
+#[must_use]
+pub fn get<'a>(value: &'a Value, path: &[String]) -> Option<&'a Value> {
+    path.iter().try_fold(value, |value, name| match value {
+        Value::Object(fields) => fields.get(name),
+        Value::Array(list) => index(list, name).map(|found| &list[found]),
+        _ => None,
+    })
+}
+
 /// A path as an error shows it.
 fn shown(path: &[String]) -> String {
     path.join("/")

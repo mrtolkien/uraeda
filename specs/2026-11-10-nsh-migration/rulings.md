@@ -768,3 +768,116 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   link over another way that is not a command line.
 - **Where**: task 5, `crates/server/src/sign_in/{mod,routes}.rs`, `http/open.rs`, and the test
   `a_one_time_link_signs_in_once_and_never_leaves_the_server`.
+
+## T6.1: A handler is a plain function on a blocking thread, and fails with a `Fault`
+
+- **Decision**: a domain registers what serves a record and an action with the server's `Registry`,
+  `shared.get::<Registry>()`.
+  - `registry.record::<R>(read)`, with `read: Fn(&Shared, R::Args) -> Result<R::Value, Fault>`. A
+    read gets no caller: every subscriber of the same arguments shares one read and one value. The
+    engine runs one read of a record at a time.
+  - `registry.action::<A>(run)`, with `run: Fn(&Call, A::Input) -> Result<A::Output, Fault>`. A
+    `Call` has `shared()`, `bus()`, and `caller()`, the identity sign-in checked. Calls run at the
+    same time, a client's own too: an action that needs an order keeps it itself, as the write queue
+    does.
+  - A handler is not `async`. The engine runs it on one of tokio's blocking threads, so it calls the
+    core, git, files, and SQLite as they are. `live::wait(future)` runs a future to its end from
+    there, for a queue's turn or a message to a task.
+  - `Fault` is a code of the protocol and a message. The core's `ApiError`, `ActionError`,
+    `GitError`, `ListError`, and `PlaceError` convert with `?`, through the core's own `ApiError`:
+    `refused`, `conflict`, or `hook`, whose message is the hook's output. `Fault::refused`,
+    `Fault::conflict`, `Fault::internal`, and `Fault::new(code, message)` make the others.
+    `internal` is logged, and so is a handler that panics, which fails its own read or call only. A
+    JSON that is not the arguments or the input is `bad-args` or `bad-input`, before the handler
+    runs.
+  - A read that fails ends the record's subscriptions with that `error`, as the contract says.
+- **Rationale**: nearly every read and action is a call of the core, which blocks. A handler that
+  were `async` would block the server's threads the day one forgets `spawn_blocking`.
+- **Alternatives considered**: `async` handlers: needed by few, and a trap for the rest.
+- **If wrong**: a handler that waits holds a blocking thread, of which tokio gives 512.
+- **Where**: task 6, `crates/server/src/live/{registry,fault}.rs`. Tasks 5 and 7 to 19.
+
+## T6.2: The bus names a record by its type and its arguments, and an append says where it grew
+
+- **Decision**: the plan's `Bus::changed(record_name, key)` and
+  `Bus::append(record_name, key, path, text)` are typed, and the key is the record's arguments.
+  - `bus.changed::<R>(&args)`, with `args: &R::Args`, the arguments a client subscribes with. Two
+    clients whose arguments are equal as the record's type reads them hold one record, whatever
+    fields they add or leave out.
+  - `bus.changed_all::<R>()`: every record of that name somebody holds is read again, as each
+    feature's when the settings change.
+  - `bus.append::<R>(&args, path, at, text)`, with `path: &[&str]` as a change's path, and `at` the
+    text's length in bytes before it grew. A value that is `at` long grows. One that already holds
+    `text` there is left as it is. Any other is read again. A domain stores the text first, then
+    says it.
+  - The bus is `shared.get::<Bus>()`, or `call.bus()` in an action. It is called from any thread, as
+    the core's watcher's, and never waits. Nothing happens for a record nobody holds.
+- **Rationale**: a key written by hand that names nothing fails in silence, and a type that is not
+  the record's arguments does not compile. Without `at`, a read that already brought a text,
+  followed by its late append, doubled it in the value, and nothing read the record again. With it,
+  a read in flight while a text grows is kept: the appends it lacks are applied to its result.
+- **If wrong**: a domain must know a text's length as it grows. A record whose text is replaced, not
+  grown, says `changed`.
+- **Where**: task 6, `crates/server/src/live/{bus,key,topic}.rs`. Tasks 7 to 19, and 11 and 15 for
+  the transcript.
+
+## T6.3: What the engine keeps of a record, and when it reads and sends
+
+- **Decision**: the server's own choices, inside the contract.
+  - **Numbers are a record's**, shared by its subscribers: a `data` is at the record's number, and a
+    `resume` on a new connection continues from it. A record held again after it was forgotten
+    starts above every number used before, so its changes are never taken for missed ones.
+  - **The pace is 16 ms**: a record is read again, and its changes sent, at most once per 16 ms.
+    What is said meanwhile is one read, of the latest value, and the appends meanwhile are one
+    `append`.
+  - **A `data` holds every change said before its `sub`**: a subscriber waits for the read that
+    brings them. So a `sub` sent after an action's `result` shows what the action said it changed.
+  - **1,000 changes are kept.** What a client is sent is worked out when it reads, from the change
+    it is at: one further behind gets `data`. Nothing is queued for a slow client but the answers to
+    its own calls.
+  - **A record nobody holds is not read.** It is kept one minute with its number, and its appends
+    still apply, so a `resume` gets only what it missed, as one change. After the minute, a `resume`
+    gets `data`.
+  - **Each connection is one task**, each call a task, and each record somebody holds one task while
+    it has something to read or to send.
+- **Rationale**: a client's place is one number, so a slow client costs no memory and blocks nobody.
+  A reply that streams while its connection is down is the spec's high edge case.
+- **If wrong**: the three values are `PACE`, `KEPT_CHANGES`, and `KEPT_IDLE` of
+  `crates/server/src/live/topic.rs`. A read slower than the appends of its record holds them until
+  it ends.
+- **Where**: task 6, `crates/server/src/live/{topic,subscription}.rs`. Tasks 15, 23, and 53.
+
+## T6.4: Where sign-in comes into a connection
+
+- **Decision**: `http/socket.rs` hands a welcomed socket to
+  `live::serve(&shared, &mut socket, caller)`, which owns the connection from there.
+  - `live::Caller::new(identity, ended)` is who the connection is, and a future that ends with its
+    sign-in: the connection closes then. `Caller::anyone()` stands in, marked `TEMPORARY:`.
+  - `live::Identity` is `()`, marked `TEMPORARY:`: sign-in's identity takes that name, and an action
+    reads it as `call.caller()`. The test helper `connection` of `crates/server/tests/live.rs` names
+    it once.
+  - Task 4's test no longer expects `not-signed-in` for a `sub` on a welcomed connection: R36 held
+    that until this task. It keeps the message that cannot be read.
+- **Rationale**: sign-in is built at the same time, in another worktree. One call in `socket.rs` and
+  two names keep the merge to a few lines.
+- **Where**: task 6, `crates/server/src/live/socket.rs`, `crates/server/src/http/socket.rs`. Task 5.
+
+## T6.5: The records' list, and the test that compares it with the protocol
+
+- **Decision**: how a domain's handlers join the server, and what checks them.
+  - `live::mount` is the first of `DOMAINS`: every domain mounted after it finds the `Registry` and
+    the `Bus`, and registers in its own `mount`, as sign-in for its devices.
+  - A domain that is only records and actions is a file of `crates/server/src/records/`, with a
+    function `register(&Shared, &Registry) -> Result<(), Failure>` and one line, `mod <domain>;`, in
+    the list of `records/mod.rs`, which declares the module and calls it.
+  - `every_declared_record_and_action_is_served_and_no_other` compares `catalog()` with the
+    `Registry` of a started server, both ways. A name declared before its handler exists goes in the
+    test's `NOT_BUILT`, empty today. The test fails for a name that is there and served, so the list
+    only shrinks.
+  - The protocol's crate gains `get(value, path)`, which reads one place of a value by a change's
+    path: the engine reads a text's length with the protocol's own rule for a step.
+  - The tests' record `Counter` is declared in the test, and registered on a running server.
+- **Rationale**: seven tasks add a domain at the same time, so each adds one line that no formatter
+  joins with another's.
+- **Where**: task 6, `crates/server/src/records/mod.rs`, `crates/server/tests/live.rs`,
+  `crates/protocol/src/change.rs`. Tasks 5 and 7 to 19.

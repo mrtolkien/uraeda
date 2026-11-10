@@ -11,7 +11,10 @@
 //! - provides its state to the other domains, `shared.provide(Store::open(..)?)`, which they
 //!   read by its type, `shared.get::<Store>()`;
 //! - registers what stops with the server, `shared.on_stop("previews", async move { .. })`: a
-//!   command, a child process, a VM. [`Server::stop`] runs them all, and nothing else stops them.
+//!   command, a child process, a VM. [`Server::stop`] runs them all, and nothing else stops them;
+//! - registers what reads its records and runs its actions with the live engine's
+//!   `shared.get::<Registry>()`, and says what changed on `shared.get::<Bus>()`: see [`live`]. A
+//!   domain that is only records and actions is a file of `records/`, with its line there.
 //!
 //! A rule every request passes, as the guard, is a layer in `http::router`. A process the server
 //! runs starts from `shared.environment().command(..)`. A time is `shared.now()`.
@@ -21,6 +24,8 @@ mod env;
 pub mod guard;
 mod handoff;
 mod http;
+pub mod live;
+mod records;
 mod run;
 pub mod secret;
 mod shared;
@@ -58,7 +63,12 @@ type Mount = fn(&Shared, &mut Routes) -> Result<(), Failure>;
 
 /// The server's domains, in the order they start, and the reverse of the order they stop in. A
 /// domain may use what the ones before it provide.
-const DOMAINS: &[Mount] = &[sign_in::mount, http::open::mount, http::socket::mount];
+const DOMAINS: &[Mount] = &[
+    live::mount,
+    sign_in::mount,
+    http::open::mount,
+    http::socket::mount,
+];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with
 /// `-next` after its name, as `~/.local/share/uraeda-next`.

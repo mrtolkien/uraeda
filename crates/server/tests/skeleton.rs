@@ -66,22 +66,8 @@ async fn an_older_client_is_refused_with_the_side_to_update() {
     assert!(!client.epoch().is_empty());
     assert_eq!(server.connect().await.epoch(), client.epoch());
 
-    // Nothing is served yet: a message names its id, and one that cannot be read has none.
-    client
-        .send(&ClientMessage::Sub {
-            id: 7,
-            record: "Settings".to_owned(),
-            args: Value::Null,
-        })
-        .await;
-    assert!(matches!(
-        client.next().await,
-        ServerMessage::Error {
-            id: Some(7),
-            code: ErrorCode::NotSignedIn,
-            ..
-        }
-    ));
+    // A message that cannot be read is answered with no id: the live engine's tests have the
+    // messages that can.
     client.send_text("not json").await;
     assert!(matches!(
         client.next().await,
