@@ -1105,9 +1105,10 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 ## R60: A write of this domain takes its repository's turn, and a start answers once it landed
 
-- **Decision**: until the write queue (task 9) is joined, `records/features/turn.rs` gives one
-  writer per repository: a lock by main checkout, taken by every action of this domain that writes.
-  Each call site is marked `// JOIN(wave 6): write queue`.
+- **Decision**: until the write queue (task 9) was joined, `records/features/turn.rs` gave one
+  writer per repository: a lock by main checkout, taken by every action of this domain that wrote.
+  The join replaced it with the queue's `write` and `land` (T99.6 to T99.8), and what follows
+  describes the stand-in.
   - A start answers once it landed, and a refusal is the call's `error`. The Node server answered
     `feature.start` once the core planned it, and ran the start in its queue, where the record
     `WriteQueue` showed its steps and its refusal. Without that record a start that failed after its
@@ -1238,9 +1239,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - **Kept messages** (`unsent`, `waits`, `settled`, and `queued` on a write): sessions.
   - **Git's own writes** (`arrive`, `background`, and `landed`): task 10's actions and the fetcher.
   - **A repository leaving the list**: its queue stays open until the server stops.
-  - **The other domains' records**: a write here says `Buffer` and `WriteQueue` only. `Feature`,
-    `WorkflowFile`, `ProposalFile`, the inbox, the priorities, and the Git page are told by the
-    join, from the action's own input and from the watcher.
+  - **The other domains' records**: a write here said `Buffer` and `WriteQueue` only. Since the
+    join, the queue tells every domain after each write and each landing (T99.6).
 - **Rationale**: each is a few lines beside the code that calls it, and a seam nobody calls cannot
   be tested.
 - **Where**: `crates/server/src/records/writing/queue/repository.rs`. The join of wave 6, and tasks
@@ -1787,3 +1787,37 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `TestRepo`'s relative path is what tests that rule. Writing's tests pass without the override,
   their hook's log included, so the override is gone and `TestRepo` stays as it is.
 - **Where**: `crates/server/tests/support/{fixture,live}.rs`. Tasks 15, 17, and 20.
+
+## T99.6: Every write goes through the write queue, which tells every domain's records
+
+- **Decision**: `records::writing::write` (R64) is the one way a handler writes to a repository. The
+  features' lock per repository is gone, and the uploads' writes take the queue's turn too.
+  - **What a write names**: `Write::saving()` commits nothing. `Write::of_feature(folder)` and
+    `Write::of_lists()` commit, and wait for the queued commits of those files; `.and_feature` adds
+    a feature's files to the lists', as a drop and a repair of links write both. `priorities.commit`
+    and `feature.drop` take `write`, the client's name for the commit, as writing's actions do:
+    `WriteName` moved to the protocol's `shared/`.
+  - **A committing action answers once its files are written**, and its commit lands behind it, with
+    the hooks, in the queue's record: `priorities.commit` and `feature.drop` did both within their
+    call. A test that reads git after one waits for the queue to be idle.
+  - **What is told**: after each write, and again once each commit it queued landed or was refused,
+    the queue calls `records::written(&Bus, repository)`, which calls each domain's `written`, one
+    line each in the list `WRITTEN` of `records/mod.rs`. A domain says there that every record of
+    that repository it serves changed, and the engine reads again the ones somebody holds. So an
+    action says nothing more on the bus for what it wrote: the features' `changed::life`, `lists`,
+    and `proposal_file` calls after a write are gone.
+  - **Why every record, and not the ones the write names**: a save names no file the queue could map
+    to a record, a buffer's or an undo's least of all, and a record left out is a page that shows
+    the old value until the watcher's next burst. The engine reads only what is held, at most once
+    per 16 ms, and the watcher's burst that follows reads the same records for the same change. The
+    cost is the reads of the records held of that one repository.
+  - `Bus::changed_where::<R>(|args| ..)` says it of the records of a name whose arguments match, as
+    each of one repository: `changed_all` crossed repositories.
+- **How it was checked**: `a_write_and_its_landing_reach_the_records_of_every_domain` failed at its
+  first wait, a save of writing never reaching the features' `WorkflowFile`; and
+  `the_priorities_commit_lands_in_the_write_queue_under_its_name` never got its answer while the
+  hook was held.
+- **If wrong**: a domain whose records are costly to read says less in its `written`.
+- **Where**: `crates/server/src/records/{mod.rs,writing/queue.rs,writing/queue/repository.rs}`,
+  `records/features/{lists,moves,feature,starts,changed}.rs`, `files/attach.rs`, `live/bus.rs`.
+  Tasks 15, 17, and 20.

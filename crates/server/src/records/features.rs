@@ -3,8 +3,8 @@
 //! the lists, start a feature or a change, and move one through its life.
 //!
 //! Every read and every write is a call of the core, on the main checkout of the repository the
-//! arguments name. A write goes through [`turn::in_turn`], one writer per repository, then says
-//! on the bus what it changed, as [`changed`] maps it.
+//! arguments name. A write goes through the write queue, [`crate::records::writing::write`],
+//! which keeps one writer per repository and says what changed.
 
 mod branch;
 mod changed;
@@ -19,7 +19,6 @@ mod options;
 mod priorities;
 mod proposals;
 mod starts;
-mod turn;
 mod undo;
 mod views;
 
@@ -32,7 +31,6 @@ use crate::shared::Shared;
 
 /// Registers the features' records and actions.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
-    shared.provide(turn::Turns::default());
     shared.provide(options::Store::new(shared.data_dir()));
     feature::register(registry);
     files::register(registry);
@@ -56,6 +54,11 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 )]
 pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
     changed::files(bus, repository, changes);
+}
+
+/// The server wrote to a repository: every record of this domain that reads it is read again.
+pub(super) fn written(bus: &Bus, repository: &str) {
+    changed::everything(bus, repository);
 }
 
 /// The config folder changed: each feature holds its run options merged over the settings', so

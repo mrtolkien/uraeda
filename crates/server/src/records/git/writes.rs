@@ -11,7 +11,7 @@ use uraeda_protocol::{
 };
 
 use super::working::{self, Touches};
-use super::{changed, fetcher, queue, views};
+use super::{fetcher, queue, views, written};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories;
 
@@ -121,7 +121,7 @@ fn write<T>(
         working::writable(shared, &path, touches)?;
         Ok(land(&path)?)
     });
-    changed(call.bus(), repo);
+    written(call.bus(), repo);
     landed
 }
 

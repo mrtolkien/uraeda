@@ -208,6 +208,41 @@ async fn two_writes_on_one_repository_land_in_order() {
     assert_eq!(committed(&fx, "main", second), "# Second\n\nMore.\n");
 }
 
+// The break it catches: a write that tells its own domain's records only, so a page that reads
+// after an action's answer shows the file, the proposal, or the Git page as they were, until
+// the watcher's next burst.
+#[tokio::test]
+async fn a_write_and_its_landing_reach_the_records_of_every_domain() {
+    let mut fx = Fixture::start().await;
+    let hook = Hook::held(&fx.repo);
+    let round = json!({ "id": format!("{WEB}/clarifications-01.md") });
+    let round = fx.watch("WorkflowFile", round).await;
+    let proposal = fx.watch("ProposalFile", json!({ "id": PROPOSAL })).await;
+    let page = fx.watch("GitPage", json!({})).await;
+    let asked = fx.value(round).clone();
+    let subject = |page: &Value| page["history"][0]["subject"].clone();
+    let before = subject(fx.value(page));
+
+    // A save of writing reaches the features' record of the file it wrote.
+    let answer = json!({
+        "folder": WEB, "question": "Q1", "letters": ["A"], "comment": "", "previous": "",
+    });
+    fx.call("answer.save", answer).await;
+    fx.until(round, |file| *file != asked).await;
+
+    // A commit is written at once: the proposal's record has the text while its hooks run.
+    let text = "# Git listener\n\n## What\n\nRun every step.\n";
+    save_and_commit(&mut fx, PROPOSAL, text, "Committing the listener").await;
+    let written = |file: &Value| file.to_string().contains("Run every step.");
+    fx.until(proposal, written).await;
+    assert_eq!(subject(fx.value(page)), before, "nothing landed yet");
+
+    // Once it landed, the Git page's history starts with it.
+    hook.release();
+    fx.until(page, |page| subject(page) != before).await;
+    assert_eq!(fx.idle().await, Vec::<Value>::new());
+}
+
 #[tokio::test]
 async fn a_refused_write_stays_until_dismissed_and_does_not_stop_the_next() {
     let mut fx = Fixture::start().await;

@@ -10,6 +10,7 @@ use uraeda_protocol::{
 use super::{lists, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories;
+use crate::records::writing::Write;
 use crate::shared::Shared;
 
 /// Registers the record `Inbox`, and the actions that write the inbox alone.
@@ -49,7 +50,7 @@ fn add(call: &Call, input: InboxAdd) -> Result<ListWritten, Fault> {
 /// The action `inbox.edit`: a note's text. It is not undone here: the field's own undo is.
 fn edit(call: &Call, input: InboxEdit) -> Result<ListWritten, Fault> {
     let write = |repo: &_| api::edit_note(repo, &input.note, &input.text, &input.hash);
-    lists::plain(call, &input.repo, Box::new(write))
+    lists::plain(call, &input.repo, Write::saving(), Box::new(write))
 }
 
 /// The action `inbox.outline`: an edit of a note's line, or of one of its nested items.

@@ -836,7 +836,11 @@ repo: string,
 /**
  * The feature's or the change's folder.
  */
-folder: string, };
+folder: string, 
+/**
+ * The name the write queue shows its commit under while it lands.
+ */
+write?: WriteName | null, };
 
 /**
  * Repairs the links of a done feature's record whose file moved or was deleted since, in the
@@ -2669,7 +2673,11 @@ export type PrioritiesCommit = {
 /**
  * The repository's name in the list.
  */
-repo: string, };
+repo: string, 
+/**
+ * The name the write queue shows the commit under while it lands.
+ */
+write?: WriteName | null, };
 
 /**
  * Restores the committed priorities.
@@ -4679,7 +4687,8 @@ pullRequest: PullRequestView | null, };
 export type WriteFailure = "hook" | "failed";
 
 /**
- * What the UI names a committing write with, in the write queue.
+ * What the UI names a write with in the write queue, while it lands: every action that
+ * commits, or that lands as a write of its own, takes one as `write`.
  */
 export type WriteName = { 
 /**

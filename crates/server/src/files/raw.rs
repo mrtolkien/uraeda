@@ -20,7 +20,7 @@ pub(super) async fn raw(
     repository: Repository,
     Path((_, path)): Path<(String, String)>,
 ) -> Response {
-    match read(repository.0, path).await {
+    match read(repository.path, path).await {
         Ok(text) => ([(CONTENT_TYPE, TEXT)], text).into_response(),
         Err(status) => failed(status),
     }
@@ -37,7 +37,7 @@ pub(super) async fn mockup(
     // without the current one is sent to its path under it with 303, and the guard and the
     // session check let a frame read a path that carries it.
     let read = match in_mockups(&path) {
-        true => read(repository.0, path.clone()).await,
+        true => read(repository.path, path.clone()).await,
         false => Err(StatusCode::NOT_FOUND),
     };
     let mut response = match read {

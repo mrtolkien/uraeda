@@ -17,6 +17,7 @@ use uraeda_core::images::{ImageError, MAX_BYTES};
 use super::change::recorded;
 use super::chat_images::ChatImages;
 use super::repository::Repository;
+use crate::records::writing::{self, Write};
 use crate::shared::Shared;
 
 /// The body's limit: the core's 20 MB for the image, and room for the multipart around it.
@@ -50,7 +51,7 @@ pub(super) async fn attach(
     }
     // The refusals that need no image come before the body is read.
     if let Some(path) = &path
-        && let Err(refusal) = writable(&shared, &repository.0, path)
+        && let Err(refusal) = writable(&shared, &repository.path, path)
     {
         return refused(refusal);
     }
@@ -62,16 +63,40 @@ pub(super) async fn attach(
         return refused("refused: The body holds no file.");
     };
     let written = tokio::task::spawn_blocking(move || match path {
-        Some(path) => to_file(&repository.0, &path, &bytes, name.as_deref()),
+        Some(path) => to_file(&shared, &repository.name, &path, &bytes, name.as_deref()),
         None => to_chat(&shared, &bytes, name.as_deref()),
     });
     answer(written.await)
 }
 
+/// Runs an upload's write to the repository listed as `repository` in its turn, through the
+/// write queue, as every write of the server: it commits nothing. A refusal is the core's, or
+/// the list's for a repository that left it meanwhile.
+fn in_turn<T>(
+    shared: &Shared,
+    repository: &str,
+    write: impl FnOnce(&Path) -> Result<T, ApiError>,
+) -> Result<T, String> {
+    let written = writing::write(shared, repository, Write::saving(), |repo| Ok(write(repo)));
+    match written {
+        Ok(written) => written.map_err(refusal),
+        Err(fault) => Err(format!("refused: {}", fault.message())),
+    }
+}
+
 /// Attaches an image to the Markdown file at `path`: the core's answer, with the change it made.
-fn to_file(repo: &Path, path: &str, bytes: &[u8], name: Option<&str>) -> Result<Value, String> {
-    let write = || api::attach_image(repo, path, bytes, name);
-    let (attached, change) = recorded(repo, &attached(path), write).map_err(refusal)?;
+fn to_file(
+    shared: &Shared,
+    repository: &str,
+    path: &str,
+    bytes: &[u8],
+    name: Option<&str>,
+) -> Result<Value, String> {
+    let (attached, change) = in_turn(shared, repository, |repo| {
+        recorded(repo, &attached(path), || {
+            api::attach_image(repo, path, bytes, name)
+        })
+    })?;
     Ok(json!({
         "path": attached.path,
         "link": attached.link,
@@ -94,6 +119,7 @@ fn to_chat(shared: &Shared, bytes: &[u8], name: Option<&str>) -> Result<Value, S
 /// are the query string's `name`s, in the same order. Answers `{ change, file }`: the change an
 /// undo takes back, and the note file's path.
 pub(super) async fn note_image(
+    State(shared): State<Shared>,
     repository: Repository,
     Query(query): Pairs,
     request: Request,
@@ -119,17 +145,15 @@ pub(super) async fn note_image(
     let name = |index: usize| names.get(index).filter(|name| !name.is_empty()).cloned();
     let files = form.files.into_iter().enumerate();
     let images: Vec<_> = files.map(|(index, bytes)| (bytes, name(index))).collect();
-    let repo = repository.0;
     let written = tokio::task::spawn_blocking(move || {
-        let written = match (text, id) {
-            (Some(text), _) => recorded(&repo, &scope(NOTES), || {
-                api::add_note_with_images(&repo, category, about, &text, &images, &hash)
+        let ((_, file), change) = in_turn(&shared, &repository.name, |repo| match (text, id) {
+            (Some(text), _) => recorded(repo, &scope(NOTES), || {
+                api::add_note_with_images(repo, category, about, &text, &images, &hash)
             }),
-            (None, id) => recorded(&repo, &scope(NOTE_IMAGES), || {
-                api::attach_note_images(&repo, &id.unwrap_or_default(), &images, &hash)
+            (None, id) => recorded(repo, &scope(NOTE_IMAGES), || {
+                api::attach_note_images(repo, &id.unwrap_or_default(), &images, &hash)
             }),
-        };
-        let ((_, file), change) = written.map_err(refusal)?;
+        })?;
         Ok(json!({ "change": change, "file": file }))
     });
     answer(written.await)
@@ -141,8 +165,8 @@ fn scope(paths: &[&str]) -> Vec<String> {
 }
 
 /// Refuses a write to a feature while an agent works on it, before the body is read.
-// JOIN(wave 6): the rule of every write (task 9), which the sessions answer (task 15). Until
-// the sessions exist, no agent works on any feature.
+// TASK 15: the sessions answer whether an agent works on the feature a path is of, as for every
+// write of writing (R65). Until they exist, no agent works on any feature.
 #[expect(
     clippy::unnecessary_wraps,
     reason = "the seam's shape, for the rule that joins it"

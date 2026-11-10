@@ -9,10 +9,11 @@ use uraeda_protocol::{
     ItemSettings, PromotedView,
 };
 
-use super::{changed, options, turn, views};
+use super::{changed, options, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories::{self, Repository};
 use crate::records::workspace::status;
+use crate::records::writing::{Write, write};
 use crate::shared::Shared;
 
 /// Registers the record `Feature`, and the actions on a feature that start no run.
@@ -83,28 +84,27 @@ fn set_run_options(call: &Call, input: FeatureSetRunOptions) -> Result<(), Fault
 
 /// The action `feature.fixLinks`: repairs a done feature's moved links, without committing.
 fn fix_links(call: &Call, input: FeatureFixLinks) -> Result<(), Fault> {
-    let repository = repositories::find(call.shared(), &input.repo)?;
-    // It commits nothing, but writes the default branch's files: in the repository's turn, so a
-    // commit never takes the record half written.
-    // JOIN(wave 6): write queue
-    turn::in_turn(call.shared(), &repository.path, || {
-        Ok(api::fix_links(&repository.path, &input.folder)?)
+    // It commits nothing, but writes the default branch's files: after their queued commits and
+    // the feature's, so a commit never takes the record half written.
+    let fix = Write::of_lists().and_feature(&input.folder);
+    write(call.shared(), &input.repo, fix, |root| {
+        Ok(api::fix_links(root, &input.folder)?)
     })?;
-    changed::life(call.bus(), &input.repo, &input.folder);
     Ok(())
 }
 
 /// The action `feature.drop`: its proposal leaves the priorities, its worktree goes unless that
 /// would lose work, and its branch stays.
 fn drop(call: &Call, input: FeatureDrop) -> Result<Dropped, Fault> {
-    let repository = repositories::find(call.shared(), &input.repo)?;
     // TASK 15: `feature.drop` holds the feature's sessions while it lands, refused while an
     // agent works on it, and archives them once it landed.
-    // JOIN(wave 6): write queue
-    let dropped = turn::in_turn(call.shared(), &repository.path, || {
-        Ok(api::drop_item(&repository.path, &input.folder)?)
+    // A drop takes the proposal's line out of the priorities too.
+    let drop = Write::of_lists()
+        .and_feature(&input.folder)
+        .named(input.write);
+    let dropped = write(call.shared(), &input.repo, drop, |root| {
+        Ok(api::drop_item(root, &input.folder)?)
     })?;
-    changed::life(call.bus(), &input.repo, &input.folder);
     Ok(Dropped {
         branch: dropped.branch,
         worktree_left: dropped.worktree_left,
@@ -114,14 +114,11 @@ fn drop(call: &Call, input: FeatureDrop) -> Result<Dropped, Fault> {
 
 /// The action `feature.promote`: makes a change a feature, in place.
 fn promote(call: &Call, input: FeaturePromote) -> Result<PromotedView, Fault> {
-    let repository = repositories::find(call.shared(), &input.repo)?;
     // TASK 15: `feature.promote` moves the change's sessions to the feature, refused while an
     // agent works on it, then sends the feature's first run.
-    // JOIN(wave 6): write queue
-    let promoted = turn::in_turn(call.shared(), &repository.path, || {
-        Ok(api::promote_change(&repository.path, &input.folder)?)
+    let promote = Write::of_lists().and_feature(&input.folder);
+    let promoted = write(call.shared(), &input.repo, promote, |root| {
+        Ok(api::promote_change(root, &input.folder)?)
     })?;
-    changed::life(call.bus(), &input.repo, &input.folder);
-    changed::life(call.bus(), &input.repo, &promoted.folder);
     views::sent(&promoted)
 }

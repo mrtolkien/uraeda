@@ -34,14 +34,19 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 }
 
 /// Says which of the domain's records a change of the repository's files changed: the core's
-/// watcher reports them. A buffer shows any Markdown file of `specs/`, so every buffer somebody
-/// holds is read again.
+/// watcher reports them. A buffer shows any Markdown file of `specs/`, so every buffer of the
+/// repository somebody holds is read again.
 #[expect(
     dead_code,
     reason = "JOIN(wave 6): the server's one watcher calls each domain's `files_changed`"
 )]
-pub(super) fn files_changed(bus: &Bus, _repository: &str, changes: &Changes) {
+pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
     if *changes != Changes::default() {
-        bus.changed_all::<Buffer>();
+        written(bus, repository);
     }
+}
+
+/// The server wrote to a repository: every buffer of it somebody holds is read again.
+pub(super) fn written(bus: &Bus, repository: &str) {
+    bus.changed_where::<Buffer>(|args| args.repo == repository);
 }

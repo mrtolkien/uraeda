@@ -56,7 +56,7 @@ pub(super) fn fetch(shared: &Shared, bus: &Bus, name: &str, path: &Path) -> Resu
         .err()
         .map(|fault| fault.message().to_owned());
     shared.get::<Fetcher>().settle(path, failure);
-    super::changed(bus, name);
+    super::written(bus, name);
     fetched
 }
 

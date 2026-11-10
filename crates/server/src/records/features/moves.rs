@@ -7,9 +7,9 @@ use uraeda_protocol::{
     InboxToProposalFile, InboxUnderProposal, ListWritten, NoteMoved,
 };
 
-use super::{changed, lists, turn, undo};
+use super::{lists, undo};
 use crate::live::{Call, Fault, Registry};
-use crate::records::repositories;
+use crate::records::writing::{Write, write};
 
 /// Registers the actions that move a note out of the inbox.
 pub(super) fn register(registry: &Registry) {
@@ -106,18 +106,13 @@ fn into_proposal_line(call: &Call, input: InboxIntoProposalLine) -> Result<FileW
 /// file. The image is kept with the change: the next commit deletes it unlinked, and the undo
 /// writes it back.
 fn remove_image(call: &Call, input: InboxRemoveImage) -> Result<ListWritten, Fault> {
-    let repository = repositories::find(call.shared(), &input.repo)?;
-    let root = &repository.path;
     let scope = scopes::note_image(&input.file);
     let kept = [input.image.clone()];
-    // JOIN(wave 6): write queue
-    let (inbox, change) = turn::in_turn(call.shared(), root, || {
+    let (inbox, change) = write(call.shared(), &input.repo, Write::saving(), |root| {
         undo::recorded_keeping(root, &scope, &kept, || {
             api::remove_note_image(root, &input.file, &input.image, &input.hash)
         })
     })?;
-    changed::lists(call.bus(), &input.repo);
-    changed::proposal_file(call.bus(), &input.repo, &input.file);
     Ok(ListWritten {
         hash: inbox.hash,
         change,

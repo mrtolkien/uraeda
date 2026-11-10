@@ -3,7 +3,7 @@
 
 use serde_json::{Value, json};
 
-use super::{done, hash_of, of_item, of_repo, served, subjects};
+use super::{Held, Hook, REPO, done, hash_of, idle, of_item, of_repo, served, subjects, writes};
 
 /// The texts of the proposals of a section of the priorities as read.
 fn proposals(priorities: &Value, section: &str) -> Vec<String> {
@@ -138,6 +138,8 @@ async fn committing_the_priorities_commits_them_alone() {
     repo.write("notes.txt", "left alone\n");
 
     let written = done(&server, "priorities.commit", json!({})).await;
+    // The action answers once the file is written: its commit lands behind it.
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
 
     let committed = repo.git(&["show", "--name-only", "--format=", "HEAD"]);
     assert_eq!(committed.trim(), "specs/PRIORITIES.md");
@@ -166,4 +168,28 @@ async fn discarding_the_priorities_restores_the_committed_file() {
 
     assert_eq!(repo.read("specs/PRIORITIES.md"), before);
     assert_eq!(written["hash"], hash);
+}
+
+// The break it catches: a commit of the lists made within its call, outside the write queue,
+// so the action answers only once the hooks ran, and no toast names what is landing.
+#[tokio::test]
+async fn the_priorities_commit_lands_in_the_write_queue_under_its_name() {
+    let (repo, server) = served().await;
+    let hook = Hook::held(&repo);
+    let mut queue = Held::open(&server, "WriteQueue", json!({ "repo": REPO })).await;
+    let hash = hash_of(&server, "Priorities").await;
+    let added = json!({ "section": "next", "text": "Pair a phone", "hash": hash });
+    done(&server, "proposals.add", added).await;
+
+    // The action answers while the hooks still run.
+    let name = json!({ "href": "/priorities", "label": "Committing the priorities" });
+    done(&server, "priorities.commit", json!({ "write": name })).await;
+    let landing = |queue: &Value| writes(queue) == ["Committing the priorities running"];
+    queue.until("the commit to run", landing).await;
+    assert_eq!(subjects(&repo, "main")[0], "chore: specs");
+
+    hook.release();
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
+    assert_ne!(subjects(&repo, "main")[0], "chore: specs");
+    assert_eq!(of_repo(&server, "Priorities").await["changes"], 0);
 }

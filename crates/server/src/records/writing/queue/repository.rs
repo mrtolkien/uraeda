@@ -5,10 +5,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 
 use uraeda_core::api::{self, ApiError};
-use uraeda_protocol::{Buffer, QueuedWrite, WriteFailure, WriteQueue, WriteState};
+use uraeda_protocol::{QueuedWrite, WriteFailure, WriteQueue, WriteState};
 
 use super::{Key, Write};
 use crate::live::Bus;
+use crate::records;
 
 /// A repository's write queue.
 ///
@@ -41,12 +42,13 @@ struct State {
     closed: bool,
 }
 
-/// A queued write: what the record shows of it, the keys of the writes that wait for it, and
-/// the core's deferred commit it lands.
+/// A queued write: what the record shows of it, the keys of the writes that wait for it, the
+/// core's deferred commit it lands, and the name its repository's records are told under.
 struct Entry {
     write: QueuedWrite,
     keys: Vec<Key>,
     deferred: String,
+    repository: String,
 }
 
 impl State {
@@ -94,7 +96,7 @@ impl Queue {
     /// Waits for the queued commits of the write's keys and for the writes before it, then
     /// holds the turn until the returned guard drops: a commit of the same keys queued meanwhile
     /// is waited for too.
-    pub(super) fn turn(self: &Arc<Self>, write: Write) -> Turn {
+    pub(super) fn turn(self: &Arc<Self>, repository: &str, write: Write) -> Turn {
         let mut state = self.state();
         loop {
             state = self.wait(state, |state| state.pending(&write.keys));
@@ -111,6 +113,7 @@ impl Queue {
         drop(state);
         Turn {
             queue: self.clone(),
+            repository: repository.to_owned(),
             write: Some(write),
         }
     }
@@ -145,9 +148,9 @@ impl Queue {
         self.moved.notify_all();
     }
 
-    /// Ends a write's turn: the commits it deferred are queued under its name, in order, and
-    /// the next write runs.
-    fn end(&self, write: &Write) {
+    /// Ends a write's turn: the commits it deferred are queued under its name, in order, the
+    /// next write runs, and the repository's records are read again.
+    fn end(&self, repository: &str, write: &Write) {
         let taken = api::take_deferred(&self.path);
         let queued = !taken.is_empty();
         let mut state = self.state();
@@ -158,13 +161,13 @@ impl Queue {
                 write: write.queued(id, deferred.subject),
                 keys: write.keys.clone(),
                 deferred: deferred.id,
+                repository: repository.to_owned(),
             });
         }
         state.serving += 1;
         drop(state);
         self.moved.notify_all();
-        // A buffer shows any file a write changed, whichever domain wrote it.
-        self.bus.changed_all::<Buffer>();
+        records::written(&self.bus, repository);
         if queued {
             self.bus.changed_all::<WriteQueue>();
         }
@@ -195,9 +198,12 @@ impl Queue {
         self.bus.changed_all::<WriteQueue>();
     }
 
-    /// Takes a landed write out of the record, or keeps a refused one in it, with why.
+    /// Takes a landed write out of the record, or keeps a refused one in it, with why. Either
+    /// way its repository's records are read again: a commit moved a step and the Git page, and
+    /// a hook's refusal put the write's files back.
     fn settle(&self, id: &str, refusal: Option<ApiError>) {
         let mut state = self.state();
+        let repository = state.entry(id).map(|entry| entry.repository.clone());
         match refusal {
             None => state.entries.retain(|entry| entry.write.id != id),
             Some(refusal) => {
@@ -206,13 +212,14 @@ impl Queue {
                     entry.write.failure = Some(failure(&refusal));
                     entry.write.output = Some(reason(refusal));
                 }
-                // A hook's refusal put the write's files back.
-                self.bus.changed_all::<Buffer>();
             }
         }
         drop(state);
         self.moved.notify_all();
         self.bus.changed_all::<WriteQueue>();
+        if let Some(repository) = repository {
+            records::written(&self.bus, &repository);
+        }
     }
 
     fn state(&self) -> MutexGuard<'_, State> {
@@ -234,13 +241,15 @@ impl Queue {
 /// the commits the write deferred, even when the write failed after deferring one.
 pub(super) struct Turn {
     queue: Arc<Queue>,
+    /// The repository's name in the list, which its records are told under.
+    repository: String,
     write: Option<Write>,
 }
 
 impl Drop for Turn {
     fn drop(&mut self) {
         if let Some(write) = self.write.take() {
-            self.queue.end(&write);
+            self.queue.end(&self.repository, &write);
         }
     }
 }

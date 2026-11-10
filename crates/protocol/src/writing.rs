@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::registry::{Action, Record};
-use crate::shared::{RepositoryArgs, UndoChange};
+use crate::shared::{RepositoryArgs, UndoChange, WriteName};
 
 /// Declares the action a type is the input of: its name, and what it answers.
 macro_rules! action {
@@ -105,16 +105,6 @@ pub enum WriteFailure {
     Hook,
     /// Anything else: its files are left written, uncommitted, listed on the Git page.
     Failed,
-}
-
-/// What the UI names a committing write with, in the write queue.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct WriteName {
-    /// The page it opens.
-    pub href: String,
-    /// Its running text, as "Approving the spec of Recurring tasks".
-    pub label: String,
 }
 
 /// What an undoable write answers: the change it made, for the client's undo stack.

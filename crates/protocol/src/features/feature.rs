@@ -6,7 +6,7 @@ use ts_rs::TS;
 
 use super::ItemArgs;
 use crate::registry::Record;
-use crate::shared::{FeatureStatus, FeatureView, RunOptions};
+use crate::shared::{FeatureStatus, FeatureView, RunOptions, WriteName};
 
 /// A feature or a change, by its folder. Its value is `null` when no feature has that folder.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -117,11 +117,14 @@ action!(FeatureFixLinks, "feature.fixLinks", ());
 /// unless it has uncommitted changes, and its branch stays.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(optional_fields = nullable)]
 pub struct FeatureDrop {
     /// The repository's name in the list.
     pub repo: String,
     /// The feature's or the change's folder.
     pub folder: String,
+    /// The name the write queue shows its commit under while it lands.
+    pub write: Option<WriteName>,
 }
 
 action!(FeatureDrop, "feature.drop", Dropped);

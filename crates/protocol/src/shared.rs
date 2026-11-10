@@ -6,6 +6,7 @@ mod feature;
 mod repository;
 mod run_options;
 mod undo;
+mod write_name;
 
 pub use chat_image::ChatImage;
 pub use feature::{
@@ -15,3 +16,4 @@ pub use feature::{
 pub use repository::RepositoryArgs;
 pub use run_options::{ReviewerOptions, RunOptions, RunPick, StepOptions};
 pub use undo::{UndoChange, UndoFile};
+pub use write_name::WriteName;

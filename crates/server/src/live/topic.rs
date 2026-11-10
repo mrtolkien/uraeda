@@ -166,6 +166,11 @@ impl Topic {
         (self.reader.name, self.key.clone())
     }
 
+    /// The record's arguments, as its type writes them.
+    pub(super) fn args(&self) -> &Value {
+        &self.args
+    }
+
     /// Adds a subscriber, and gives what it needs: how many changes were said so far. It gets the
     /// whole value only once a read holds them all.
     pub(super) fn join(self: &Arc<Self>, subscriber: Subscriber) -> u64 {

@@ -39,19 +39,20 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
     let edited = changes.priorities || changes.inbox || !changes.features.is_empty();
     if edited || changes.git {
-        changed(bus, repository);
+        written(bus, repository);
     }
 }
 
-/// Says what git's records show of a repository changed: its page and its count, and whatever
-/// diff, page of the history, and conflicted file somebody holds. A commit never changes.
-fn changed(bus: &Bus, repository: &str) {
+/// The server wrote to a repository: what git's records show of it changed. Its page and its
+/// count, and whatever diff, page of the history, and conflicted file of it somebody holds. A
+/// commit never changes.
+pub(super) fn written(bus: &Bus, repository: &str) {
     let args = RepositoryArgs {
         repo: repository.to_owned(),
     };
     bus.changed::<GitPage>(&args);
     bus.changed::<GitSummary>(&args);
-    bus.changed_all::<GitDiff>();
-    bus.changed_all::<GitHistoryPage>();
-    bus.changed_all::<ConflictFile>();
+    bus.changed_where::<GitDiff>(|args| args.repo == repository);
+    bus.changed_where::<GitHistoryPage>(|args| args.repo == repository);
+    bus.changed_where::<ConflictFile>(|args| args.repo == repository);
 }

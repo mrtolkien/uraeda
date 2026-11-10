@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage, apply};
 
 use super::{TestClient, TestServer};
@@ -66,6 +66,30 @@ pub async fn read(server: &TestServer, record: &str, args: Value) -> Value {
 /// Calls an action from a new client: its output, or its error's code and message.
 pub async fn call(server: &TestServer, action: &str, input: Value) -> Result<Value, Refused> {
     Live::of(server).await.try_call(action, input).await
+}
+
+/// Waits until the write queue of the repository listed as `repo` has no write landing or
+/// waiting, and gives the refused ones left in it, each as `<label> <state>`. It subscribes
+/// anew: a `data` holds everything said before its `sub`, so the writes of the calls answered
+/// so far are in it.
+pub async fn idle(server: &TestServer, repo: &str) -> Vec<String> {
+    let mut queue = Held::open(server, "WriteQueue", json!({ "repo": repo })).await;
+    let settled = |queue: &Value| {
+        let writes = queue["writes"].as_array().expect("writes");
+        writes.iter().all(|write| write["state"] == "refused")
+    };
+    let left = queue.until("the queued writes to land", settled).await;
+    writes(left)
+}
+
+/// The writes of a write queue's value, each as `<label> <state>`.
+pub fn writes(queue: &Value) -> Vec<String> {
+    let named = |write: &Value| {
+        let text = |field: &str| write[field].as_str().unwrap_or_default().to_owned();
+        format!("{} {}", text("label"), text("state"))
+    };
+    let writes = queue["writes"].as_array().expect("writes");
+    writes.iter().map(named).collect()
 }
 
 /// One signed-in client: the records it holds, each kept as its changes say, and the answers

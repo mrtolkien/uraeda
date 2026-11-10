@@ -16,9 +16,10 @@ use uraeda_protocol::{
 };
 
 use super::messages::{Subject, run_message};
-use super::{changed, messages, options, turn};
+use super::{messages, options};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories;
+use crate::records::writing::{Write, write};
 
 /// Registers the actions that start a feature or a change.
 pub(super) fn register(registry: &Registry) {
@@ -34,18 +35,15 @@ pub(super) fn register(registry: &Registry) {
 // planned start before it lands: here a start answers once it landed, and its steps go nowhere.
 fn steps(_: StartProgress) {}
 
-/// Runs a start of the repository whose main checkout is `root` in its turn, then says what it
-/// changed.
+/// Runs a start of the repository listed as `repo` in its turn, after the lists' queued commits:
+/// it commits the proposal within its call.
 fn landed(
     call: &Call,
     repo: &str,
-    root: &Path,
     start: impl FnOnce() -> Result<StartedView, ApiError>,
 ) -> Result<StartedView, Fault> {
     // JOIN(wave 6): write queue
-    let started = turn::in_turn(call.shared(), root, || Ok(start()?))?;
-    changed::life(call.bus(), repo, &started.folder);
-    Ok(started)
+    write(call.shared(), repo, Write::of_lists(), |_| Ok(start()?))
 }
 
 /// The workflow's message of a planned start's first step: a committed proposal and nothing
@@ -106,7 +104,7 @@ fn proposal(call: &Call, input: FeatureStart) -> Result<StartPlan, Fault> {
     let planned = api::plan_start(root, &input.proposal, input.slug.as_deref(), kind)?;
     // TASK 15: `feature.start` keeps the messages sent to the planned folder while its start
     // lands, and sends them to its session once it landed.
-    landed(call, &input.repo, root, || {
+    landed(call, &input.repo, || {
         let (slug, day) = (Some(planned.slug.as_str()), planned.day.as_str());
         api::start_planned(root, &input.proposal, slug, kind, day, &steps)
     })?;
@@ -134,7 +132,7 @@ fn typed_feature(call: &Call, input: FeatureStartText) -> Result<StartPlan, Faul
     }
     // TASK 15: `feature.startText` keeps the messages sent to the planned folder while its
     // start lands, and sends them to its session once it landed.
-    let started = landed(call, &input.repo, root, || {
+    let started = landed(call, &input.repo, || {
         api::start_text(root, &typed, Some(&input.slug), Some(&planned.day), &steps)
     });
     if let Err(refusal) = started {
@@ -193,7 +191,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
         kind: Kind::Change,
         discovery: None,
     };
-    let started = landed(call, &input.repo, root, || {
+    let started = landed(call, &input.repo, || {
         api::start_text(root, &typed, input.slug.as_deref(), None, &steps)
     })?;
     Ok(change_started(call, root, started, input.options))
@@ -203,7 +201,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
 fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeStarted, Fault> {
     let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
-    let started = landed(call, &input.repo, root, || {
+    let started = landed(call, &input.repo, || {
         let slug = input.slug.as_deref();
         api::start_feature(root, &input.proposal, slug, Kind::Change, &steps)
     })?;
@@ -225,17 +223,15 @@ fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault>
         kind: Kind::Change,
         discovery: None,
     };
-    let started = landed(call, &input.repo, root, || {
+    let started = landed(call, &input.repo, || {
         api::start_text(root, &typed, input.slug.as_deref(), None, &steps)
     })?;
-    // JOIN(wave 6): write queue
-    let removed = turn::in_turn(call.shared(), root, || {
+    let removed = write(call.shared(), &input.repo, Write::of_lists(), |root| {
         Ok(api::remove_note_and_commit(root, &input.note, &input.hash)?)
     });
     if let Err(fault) = removed {
         let (folder, why) = (&started.folder, fault.message());
         eprintln!("uraeda: {folder} started, but its note stayed in the inbox: {why}");
     }
-    changed::lists(call.bus(), &input.repo);
     Ok(change_started(call, root, started, None))
 }

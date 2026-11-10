@@ -6,8 +6,7 @@ use ts_rs::TS;
 use super::document::Span;
 use super::undo::{FileWritten, ListWritten};
 use crate::registry::Record;
-use crate::shared::RepositoryArgs;
-use crate::shared::{PullRequestView, StepView};
+use crate::shared::{PullRequestView, RepositoryArgs, StepView, WriteName};
 
 impl Record for Priorities {
     const NAME: &'static str = "Priorities";
@@ -245,9 +244,12 @@ action!(ProposalsRemove, "proposals.remove", ListWritten);
 /// Commits the priorities alone.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(optional_fields = nullable)]
 pub struct PrioritiesCommit {
     /// The repository's name in the list.
     pub repo: String,
+    /// The name the write queue shows the commit under while it lands.
+    pub write: Option<WriteName>,
 }
 
 action!(PrioritiesCommit, "priorities.commit", ListWritten);

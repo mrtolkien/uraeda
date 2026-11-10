@@ -43,6 +43,11 @@ pub(super) fn files_changed(bus: &Bus, repository: &str, _: &Changes) {
     bus.changed::<NeedsYouList>(&());
 }
 
+/// The server wrote to a repository: its workspace and what needs the human are read again.
+pub(super) fn written(bus: &Bus, repository: &str) {
+    files_changed(bus, repository, &Changes::default());
+}
+
 /// The config folder changed: the settings file, or a theme file.
 pub(super) fn config_changed(shared: &Shared) {
     settings::reload(shared);

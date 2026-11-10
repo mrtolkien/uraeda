@@ -42,5 +42,5 @@ pub use writing::{
     QueuedWrite, Recorded, ReviewApprove, ReviewComment, ReviewDecision, ReviewEdit, ReviewRemove,
     ReviewRequestChanges, ReviewStartOver, Saved, SettledAddComment, SettledEdit, SettledRemove,
     TextCommit, TextDiscovery, TextSave, UndoApplied, UndoApply, UndoCommitted, UndoDirection,
-    WriteFailure, WriteName, WriteQueue, WriteState, WritesDismiss,
+    WriteFailure, WriteQueue, WriteState, WritesDismiss,
 };

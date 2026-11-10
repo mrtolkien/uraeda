@@ -79,6 +79,15 @@ impl Write {
         }
     }
 
+    /// The write also commits, or writes over, files of a feature or a change: it waits for that
+    /// folder's queued commits too, as a drop does, which takes a feature's line out of the
+    /// priorities.
+    pub(crate) fn and_feature(mut self, folder: &str) -> Write {
+        self.keys.push(Key::Feature(folder.to_owned()));
+        self.folder.get_or_insert_with(|| folder.to_owned());
+        self
+    }
+
     /// The file the write concerns, as the record shows it.
     pub(crate) fn file(mut self, file: &str) -> Write {
         self.file = Some(file.to_owned());
@@ -117,6 +126,10 @@ impl Write {
 /// one after another, even when it fails after deferring one: `write` answers once the files
 /// are written.
 ///
+/// Once `run` ended, and again once each commit it deferred landed or was refused, every record
+/// of the repository somebody holds is read again: see [`crate::records::written`]. A domain's
+/// action says nothing more on the bus for what it wrote there.
+///
 /// # Errors
 ///
 /// `refused` for a repository the list does not hold, and whatever `run` fails with.
@@ -128,7 +141,7 @@ pub(crate) fn write<T>(
 ) -> Result<T, Fault> {
     let path = repositories::path(shared, repository)?;
     let queue = shared.get::<Queues>().open(shared, &path);
-    let _turn = queue.turn(write);
+    let _turn = queue.turn(repository, write);
     run(&path)
 }
 

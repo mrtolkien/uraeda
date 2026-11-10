@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use uraeda_protocol::ErrorCode;
 
 use super::{
-    HUMAN, Held, REPO, call, done, fixture_repo, hash_of, of_item, of_repo, served, serving,
+    HUMAN, Held, REPO, call, done, fixture_repo, hash_of, idle, of_item, of_repo, served, serving,
     subjects,
 };
 
@@ -225,6 +225,8 @@ async fn dropping_a_change_takes_it_out_of_the_priorities_and_keeps_its_branch()
     assert!(links(&of_repo(&server, "Priorities").await, "now", folder));
 
     let dropped = done(&server, "feature.drop", json!({ "folder": folder })).await;
+    // The drop answers once its files are written: its commit lands behind it.
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
 
     let branch = format!("change/{folder}");
     assert_eq!(

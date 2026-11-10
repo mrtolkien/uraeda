@@ -1,5 +1,5 @@
-//! What changed, said on the bus: after a write of this domain, and after each burst of file
-//! changes the core's watcher reports, as the Node server's `live.ts` mapped them.
+//! What changed, said on the bus: after each burst of file changes the core's watcher reports,
+//! as the Node server's `live.ts` mapped them, and after each write of the server's own.
 
 use uraeda_core::watch::Changes;
 use uraeda_protocol::{
@@ -71,6 +71,23 @@ pub(super) fn files(bus: &Bus, repo: &str, changes: &Changes) {
     }
 }
 
+/// The server wrote to a repository: every record of it this domain serves is read again, the
+/// ones somebody holds. A write names no file here, so none is left out.
+pub(super) fn everything(bus: &Bus, repo: &str) {
+    let item = |args: &ItemArgs| args.repo == repo;
+    bus.changed_where::<Feature>(item);
+    bus.changed_where::<WorkflowFile>(item);
+    bus.changed_where::<ProposalFile>(item);
+    bus.changed_where::<BranchChanges>(item);
+    bus.changed_where::<BranchDecision>(item);
+    bus.changed_where::<History>(item);
+    bus.changed_where::<RecommendedMessage>(item);
+    bus.changed_where::<WorkflowMessage>(|args| args.repo == repo);
+    bus.changed::<AllBranchChanges>(&of(repo));
+    bus.changed::<Ledger>(&of(repo));
+    lists(bus, repo);
+}
+
 /// A feature changed: its step may have moved, which its messages, its history, and its
 /// branch's changes read.
 pub(super) fn feature(bus: &Bus, repo: &str, folder: &str) {
@@ -99,21 +116,4 @@ fn rounds(bus: &Bus, repo: &str) {
     for round in DEFAULT_ROUNDS {
         bus.changed::<WorkflowFile>(&item(repo, round));
     }
-}
-
-/// A proposal file was written, or moved to this path.
-pub(super) fn proposal_file(bus: &Bus, repo: &str, path: &str) {
-    bus.changed::<ProposalFile>(&item(repo, path));
-}
-
-/// A feature or a change started, was dropped, or was made a feature: the lists, the feature
-/// itself, and every record that lists features are read again.
-pub(super) fn life(bus: &Bus, repo: &str, folder: &str) {
-    feature(bus, repo, folder);
-    lists(bus, repo);
-    bus.changed::<AllBranchChanges>(&of(repo));
-    // A start moves its proposal file, and a promotion a change's files: whatever is held of
-    // them is read again.
-    bus.changed_all::<ProposalFile>();
-    bus.changed_all::<WorkflowFile>();
 }

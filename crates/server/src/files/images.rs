@@ -22,7 +22,7 @@ pub(super) async fn committed(
     repository: Repository,
     Path((_, path)): Path<(String, String)>,
 ) -> Response {
-    let read = tokio::task::spawn_blocking(move || api::read_image(&repository.0, &path)).await;
+    let read = tokio::task::spawn_blocking(move || api::read_image(&repository.path, &path)).await;
     match read {
         Ok(Ok((bytes, kind))) => image(kind, bytes),
         _ => not_found(),

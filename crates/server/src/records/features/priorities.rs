@@ -8,6 +8,7 @@ use uraeda_protocol::{
 use super::{lists, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories;
+use crate::records::writing::Write;
 use crate::shared::Shared;
 
 /// Registers the record `Priorities` and the two actions on the whole file.
@@ -25,10 +26,12 @@ fn read(shared: &Shared, args: RepositoryArgs) -> Result<Priorities, Fault> {
 
 /// The action `priorities.commit`: commits the priorities alone.
 fn commit(call: &Call, input: PrioritiesCommit) -> Result<ListWritten, Fault> {
-    lists::plain(call, &input.repo, Box::new(api::commit_priorities))
+    let commit = Write::of_lists().named(input.write);
+    lists::plain(call, &input.repo, commit, Box::new(api::commit_priorities))
 }
 
 /// The action `priorities.discard`: restores the committed priorities.
 fn discard(call: &Call, input: PrioritiesDiscard) -> Result<ListWritten, Fault> {
-    lists::plain(call, &input.repo, Box::new(api::discard_priorities))
+    let discard = Box::new(api::discard_priorities);
+    lists::plain(call, &input.repo, Write::saving(), discard)
 }

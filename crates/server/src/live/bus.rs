@@ -44,6 +44,21 @@ impl Bus {
         topics.iter().for_each(Topic::changed);
     }
 
+    /// Every record of this name whose arguments `of` accepts changed, as each record of one
+    /// repository: each one somebody holds is read again.
+    pub fn changed_where<R: Record>(&self, of: impl Fn(&R::Args) -> bool) {
+        let chosen = |topic: &&Arc<Topic>| {
+            let args = serde_json::from_value::<R::Args>(topic.args().clone());
+            topic.id().0 == R::NAME && args.is_ok_and(|args| of(&args))
+        };
+        let topics: Vec<_> = locked(&self.0.topics)
+            .values()
+            .filter(chosen)
+            .cloned()
+            .collect();
+        topics.iter().for_each(Topic::changed);
+    }
+
     /// A text of a record grew, with no read: the text at `path` was `at` bytes long, and `text`
     /// came after it. Store the text first, then say it here.
     ///
