@@ -405,3 +405,30 @@ test("a refused offer is forgotten once its session moves into a change", async 
   expect(attached?.changeRefusal).toBeNull();
   expect(attached?.statusReason).not.toBe("change-refused");
 });
+
+/**
+ * Review 07, findings 2 and X4. Catches: a run by hand of a job whose only problem is its schedule
+ * ("Run now" runs it, R23, and its note promises the change starts) never having its offer
+ * accepted, because the acceptance refused every job with a core problem.
+ */
+test("a run's offer is accepted for a job whose only problem is its schedule, and refused for any other", async () => {
+  const { run, server } = await setup();
+  server.adapter.fallback = () => [];
+  const mistyped = {
+    ...job(),
+    problem: "the schedule “dayly 06:00” is not understood",
+    schedule: undefined,
+    scheduleText: "dayly 06:00",
+  };
+  const started = await run([{ text: OFFER, type: "text" }], mistyped, []);
+  expect(folderOf(server, started)).toMatch(/^\d{4}-\d{2}-\d{2}-/);
+
+  // Any other problem, or no prompt, takes the human's yes back: the card waits.
+  const noPrompt = await run([{ text: OFFER, type: "text" }], { ...job(), prompt: " " });
+  const unlisted = await run([{ text: OFFER, type: "text" }], {
+    ...job(),
+    problem: "“notes” is not in Uraeda's list.",
+  });
+  expect(folderOf(server, noPrompt)).toBeNull();
+  expect(folderOf(server, unlisted)).toBeNull();
+});

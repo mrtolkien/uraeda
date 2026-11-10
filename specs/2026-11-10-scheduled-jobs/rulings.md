@@ -652,3 +652,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: none known: the place is gone where the extension is off, so no human reaches the
   button.
 - **Where**: the final review's fix 2, task 4.
+
+## R43: A run's offer is accepted by the rule "Run now" uses
+
+- **Decision**: the acceptance asks `impossible(jobs, job)`, in `jobs/problem.ts`, as "Run now" does
+  ([R23](#r23-run-now-is-refused-for-what-makes-a-run-impossible-not-for-a-bad-schedule)), instead
+  of refusing every job that has a problem. A job whose only problem is a schedule that is not
+  understood has its run's offer accepted, whether the run came by hand or by the schedule. A name
+  two jobs share, no name, no prompt, and any other problem still leave the card waiting, and so do
+  the report-only check and every other check. This replaces R12 (5)'s "the job has no problem".
+- **Rationale**: "Run now" runs a job whose schedule is not understood, and its note promises the
+  change starts from the offer, but the acceptance returned on any problem, so that run's offer
+  waited with nothing said. One rule for both is simpler than two, and a schedule mistyped after a
+  run started does not take back the human's yes: the run read the job as it was.
+- **If wrong**: a job whose schedule was broken by hand between its run and its end has its offer
+  accepted, where R12 would have left it to the card.
+- **Where**: the final review's fix 3, task 5.

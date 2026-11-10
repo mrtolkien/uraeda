@@ -12,6 +12,7 @@ import { jobChangeLine } from "../runner/message.ts";
 import { endingOffer, proposalTitle } from "../runner/offers.ts";
 import { REFUSALS } from "../runner/session-state.ts";
 import { Busy } from "./busy.ts";
+import { impossible } from "./problem.ts";
 
 /**
  * The agent's text that is the run's last word: the last of the turn's texts and calls of its own
@@ -60,7 +61,9 @@ async function accept(shared: Omit<RepoContext, "repo">, session: string, turn: 
   const ended = cache.turns(session).at(-1);
   if (
     job === undefined ||
-    job.problem !== undefined ||
+    // The rule "Run now" uses (R23): a schedule not understood after the run started, or when it was
+    // run by hand, does not take back the human's yes; any other problem does.
+    impossible(jobs, job) !== undefined ||
     job.reportOnly ||
     // The run's row is the session's own repository's, and the turn is the session's last.
     row === undefined ||

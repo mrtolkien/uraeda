@@ -866,11 +866,13 @@ into it, says "The job “<job>” started the change “<title>”.", and goes 
 waits for you: scheduling the job is your yes in advance. A run that offers nothing, because there
 was nothing to do, makes no commit, branch, or worktree. An offer that is not the run's last word,
 as one followed by more text, a feature, one indented or inside a list or a quote, or one in a
-session you wrote in, starts nothing, and its card waits for you. When the change cannot start,
-because its folder's name is taken for instance, the session asks for you under the banner "The
-change could not start by itself.", with the reason, until you dismiss it or start the change from
-the card. A job that is "Report only" starts no change: its run is told to change no file, and the
-offer's card waits in the session. A change merges only when you merge it, either way.
+session you wrote in, starts nothing, and its card waits for you. So does the offer of a job that
+has a problem other than its schedule when its run ends: a schedule mistyped meanwhile, or in a job
+you ran by hand, does not take your yes back. When the change cannot start, because its folder's
+name is taken for instance, the session asks for you under the banner "The change could not start by
+itself.", with the reason, until you dismiss it or start the change from the card. A job that is
+"Report only" starts no change: its run is told to change no file, and the offer's card waits in the
+session. A change merges only when you merge it, either way.
 
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
