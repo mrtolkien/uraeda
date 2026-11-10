@@ -4,6 +4,7 @@
 import type { RepoContext } from "../fate/context.ts";
 import { acceptOffers } from "./accept.ts";
 import { announceJobChanges } from "./announce.ts";
+import { Busy } from "./busy.ts";
 import { type Scheduler, startScheduler } from "./scheduler.ts";
 
 /**
@@ -13,7 +14,10 @@ import { type Scheduler, startScheduler } from "./scheduler.ts";
  */
 export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler {
   const { binding, extensions, hosts, settings } = shared;
+  // The jobs an acceptance is opening a change for: the scheduler skips them as working.
+  const busy = new Busy();
   const scheduler = startScheduler({
+    busy,
     context: (repo) => ({ ...shared, repo }),
     enabled: () => settings.runs().scheduledJobs.inForce,
     // Without the extensions' host, as in tests, the extension is on everywhere.
@@ -22,7 +26,7 @@ export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler {
     repos: () =>
       hosts.all().flatMap((host) => (host.missing ? [] : [{ name: host.name, path: host.path }])),
   });
-  const stopAccepting = acceptOffers(shared);
+  const stopAccepting = acceptOffers(shared, busy);
   const unannounce = announceJobChanges(shared);
   // Its stop ends the acceptance and the announcements too.
   const stop = scheduler.stop.bind(scheduler);

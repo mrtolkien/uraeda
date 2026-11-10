@@ -12,6 +12,7 @@ import type { Binding, RepoContext } from "../../fate/context.ts";
 import { onSessionChange } from "../../live.ts";
 import type { SessionRow } from "../../runner/cache.ts";
 import { jobMessage } from "../../runner/message.ts";
+import { Busy } from "../busy.ts";
 import { type Scheduler, startScheduler } from "../scheduler.ts";
 
 // The times are the process's local time: the zone is set for this file, and put back.
@@ -58,7 +59,7 @@ function job(name: string, repositories: Array<string>, over: Partial<Job> = {})
  * ticks itself: its clock, its jobs, its switch, the repositories its extension is off in, and the
  * waits it was asked for are the test's.
  */
-async function setup(using: Binding = binding) {
+async function setup(using: Binding = binding, busy?: Busy) {
   const server = await testServer(undefined, { binding: using });
   const [host] = server.hosts.all();
   const repos = [
@@ -95,6 +96,7 @@ async function setup(using: Binding = binding) {
   const start = (waits = true): Scheduler =>
     startScheduler({
       context,
+      ...(busy && { busy }),
       enabled: () => state.enabled,
       every: null,
       isOn: (repository) => !state.extensionOff.has(repository),
@@ -750,6 +752,83 @@ test("times due together are all started, however many minutes the queue takes",
   expect(run.state.clock.getTime() - new Date("2026-11-11T03:00:00").getTime()).toBeGreaterThan(
     5 * MINUTE,
   );
+});
+
+/**
+ * US2 3; SC-003; Codex P1. Catches: a start queued behind its minute, which read the last run before
+ * the wait, starting a second working run in the repository when yesterday's run was resumed
+ * meanwhile.
+ */
+test("the guards are read again right before a start, and skip a run resumed meanwhile", async () => {
+  const run = await setup();
+  const [uraeda, notes] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  run.state.jobs = { jobs: [job("Hourly", [uraeda.name, notes.name], hourly)] };
+  run.server.adapter.script([]);
+  run.server.adapter.script([]);
+  await run.at("11T01:59:00");
+  await run.at("11T02:00:10");
+  expect(run.created).toHaveLength(2);
+  const [earlier] = await run.sessions("Hourly", notes.path);
+  for (const { id } of run.created) {
+    await ends(run.server, id);
+  }
+
+  run.state.waits.length = 0;
+  const gate = Promise.withResolvers<void>();
+  run.state.gate = gate.promise;
+  run.server.adapter.script([]);
+  run.state.clock = new Date("2026-11-11T03:00:10");
+  await run.scheduler.tick();
+  while (run.state.waits.length === 0) {
+    await turns(1);
+  }
+  expect(run.created).toHaveLength(3);
+  // The human writes to the earlier run of notes while the minute runs: it works again.
+  const holding = Promise.withResolvers<void>();
+  run.server.adapter.script([() => holding.promise]);
+  await run.server.sessions.send(notes.path, earlier, { text: "One more thing." });
+  gate.resolve();
+  await run.scheduler.settled();
+
+  expect(run.created).toHaveLength(3);
+  expect((await run.history("Hourly", notes.path))[0]).toMatchObject({
+    outcome: "skipped",
+    reason: "working",
+    session: null,
+  });
+  holding.resolve();
+  await ends(run.server, earlier);
+});
+
+/**
+ * US2 3; SC-003; finding 4. Catches: a time starting while the previous run's change is being
+ * opened, the session not yet in its folder: an acceptance in flight is the job busy.
+ */
+test("a time is skipped, and a run by hand refused, while an acceptance is in flight", async () => {
+  const busy = new Busy();
+  const run = await setup(binding, busy);
+  const [{ name, path }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  await run.at("11T02:59:00");
+  const root = await run.server.sessions.mainRoot(path);
+  const leave = busy.enter("Dependencies", root);
+  run.server.adapter.script([]);
+  await run.at("11T03:00:10");
+  expect(run.created).toHaveLength(0);
+  expect((await run.history("Dependencies"))[0]).toMatchObject({
+    outcome: "skipped",
+    reason: "working",
+  });
+  await expect(run.scheduler.runNow(name, "Dependencies")).rejects.toThrow(
+    "“Dependencies” still runs here.",
+  );
+  // The acceptance ended: the next time starts, and so does a run by hand.
+  leave();
+  run.server.adapter.script([]);
+  await run.at("12T02:59:00");
+  await run.at("12T03:00:10");
+  expect(run.created).toHaveLength(1);
 });
 
 /**

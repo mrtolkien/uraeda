@@ -4,11 +4,12 @@
 // holds one row per time, so a time is started once.
 import type { Job, Jobs } from "uraeda-binding";
 import type { RepoContext } from "../fate/context.ts";
-import { blockedOf, turnsOf, statusOf } from "../fate/session-reads.ts";
 import { reasonOf } from "../reason.ts";
 import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { refused } from "../runner/session-state.ts";
 import { type Runs, serially } from "../serially.ts";
+import { Busy } from "./busy.ts";
+import { agentOf, anyOpen, works } from "./guards.ts";
 import { startRun } from "./run.ts";
 import { sleep } from "./sleep.ts";
 import { dueAt, MISSED_AFTER_MS, nextAfter } from "./times.ts";
@@ -41,56 +42,16 @@ export type Scheduler = {
   tick(): Promise<void>;
 };
 
+/** Why a time is skipped. */
+type Skipped = NonNullable<JobRunRow["reason"]>;
+
 /** A time due in a repository, to start. */
 type Due = { due: number; job: Job; repo: { name: string; path: string } };
 
-/** The runtime the job's run starts on in the repository: its own, else the first one on there. */
-function agentOf(ctx: RepoContext, job: Job, root: string) {
-  const { runtimes } = ctx.sessions;
-  const name = job.agent ?? runtimes.defaultFor(root);
-  if (name === undefined || runtimes.get(name) === undefined || !runtimes.isOn(name, root)) {
-    return undefined;
-  }
-  return { available: runtimes.status(name).available };
-}
-
-/** Whether the session's agent works, or waits to continue by itself. */
-function works(ctx: RepoContext, session: string): boolean {
-  const { sessions } = ctx;
-  const row = sessions.cache.session(session);
-  if (row === undefined) {
-    return false;
-  }
-  if (sessions.sessionWorking(session)) {
-    return true;
-  }
-  const { cache } = sessions;
-  const { latest, queued } = turnsOf(cache, session);
-  const read = {
-    blocked: blockedOf(cache, latest),
-    latest,
-    queued,
-    wakeup: sessions.wakeup(session),
-  };
-  return statusOf(row, read).status === "working";
-}
-
-/** Whether any of the folders is a change or a feature the workspace still lists as not merged. */
-async function anyOpen(ctx: RepoContext, folders: Array<string>): Promise<boolean> {
-  if (folders.length === 0) {
-    return false;
-  }
-  const { features } = await ctx.binding.readWorkspace(ctx.repo);
-  return features.some(
-    (feature) =>
-      folders.includes(feature.folder) &&
-      feature.step.name !== "done" &&
-      feature.step.name !== "none",
-  );
-}
-
 /** What `startScheduler` takes: see it. */
 type Options = {
+  /** The jobs an acceptance holds busy: a time skips them as working. Its own when left out. */
+  busy?: Busy;
   context: (repo: string) => RepoContext;
   /** The switch for all jobs. */
   enabled: () => boolean;
@@ -113,6 +74,7 @@ const keyOf = (job: string, repository: string) => `${job}\0${repository}`;
 
 class JobScheduler implements Scheduler {
   readonly #options: Options;
+  readonly #busy: Busy;
   readonly #now: () => Date;
   readonly #wait: (ms: number) => Promise<void>;
   readonly #timer: ReturnType<typeof setInterval> | undefined;
@@ -132,6 +94,7 @@ class JobScheduler implements Scheduler {
 
   constructor(options: Options) {
     this.#options = options;
+    this.#busy = options.busy ?? new Busy();
     this.#now = options.now ?? (() => new Date());
     this.#wait = options.wait ?? ((ms) => sleep(ms, this.#stop.signal));
     if (options.every !== null) {
@@ -323,19 +286,34 @@ class JobScheduler implements Scheduler {
     return now;
   }
 
-  /** Why the job's time is skipped in the repository: its last run works, or a change it started is open. */
-  async #skipOf(
-    ctx: RepoContext,
-    job: Job,
-    root: string,
-  ): Promise<JobRunRow["reason"] | undefined> {
+  /**
+   * Why the job's time is skipped in the repository: its last run works, or an acceptance is opening
+   * its change, or a change it started is open. The open-change read is awaited first, so the
+   * synchronous reads of what works come last, as close to the start as they can.
+   */
+  async #skipOf(ctx: RepoContext, job: Job, root: string): Promise<Skipped | undefined> {
     const { jobs } = ctx.sessions.cache;
+    // Any run of the job that started a change still open, not only the latest run.
+    const open = await anyOpen(ctx, jobs.changeFolders(job.name, root));
     const last = jobs.latestStarted(job.name, root);
-    if (last?.session && works(ctx, last.session)) {
+    if (this.#busy.has(job.name, root) || (last?.session && works(ctx, last.session))) {
       return "working";
     }
-    // Any run of the job that started a change still open, not only the latest run.
-    return (await anyOpen(ctx, jobs.changeFolders(job.name, root))) ? "change-open" : undefined;
+    return open ? "change-open" : undefined;
+  }
+
+  /** Records a time skipped, once: the unique row of the time is what keeps it from a second. */
+  #skip(ctx: RepoContext, job: string, root: string, due: number, reason: Skipped): void {
+    ctx.sessions.cache.jobs.add({
+      at: this.#now().getTime(),
+      due,
+      job,
+      outcome: "skipped",
+      reason,
+      repository: root,
+      session: null,
+      trigger: "schedule",
+    });
   }
 
   /**
@@ -368,16 +346,7 @@ class JobScheduler implements Scheduler {
       }
       const reason = taken ? "working" : await this.#skipOf(ctx, job, root);
       if (reason !== undefined) {
-        runs.add({
-          at: this.#now().getTime(),
-          due,
-          job: job.name,
-          outcome: "skipped",
-          reason,
-          repository: root,
-          session: null,
-          trigger: "schedule",
-        });
+        this.#skip(ctx, job.name, root, due, reason);
         return false;
       }
       // A start comes a minute after the one before it, and the job may have changed meanwhile.
@@ -386,6 +355,13 @@ class JobScheduler implements Scheduler {
       }
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {
+        return false;
+      }
+      // What the minute and the reads let change: right before the start, holding the reservation,
+      // the last run may work again, or a change may be open (SC-003).
+      const again = await this.#skipOf(ctx, now, root);
+      if (again !== undefined) {
+        this.#skip(ctx, job.name, root, due, again);
         return false;
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
@@ -444,7 +420,12 @@ class JobScheduler implements Scheduler {
     const root = await ctx.sessions.mainRoot(repo.path);
     const last = ctx.sessions.cache.jobs.latestStarted(name, root);
     const key = keyOf(name, repository);
-    if (this.#stopped || this.#starting.has(key) || (last?.session && works(ctx, last.session))) {
+    if (
+      this.#stopped ||
+      this.#starting.has(key) ||
+      this.#busy.has(name, root) ||
+      (last?.session && works(ctx, last.session))
+    ) {
       throw refused(`“${name}” still runs here.`);
     }
     this.#starting.add(key);

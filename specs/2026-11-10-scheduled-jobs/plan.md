@@ -686,8 +686,11 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
   held until the start ends: a tick and a "Run now" never start two ([ruling R14](rulings.md)).
 - Before a start: when the latest started run's session works, record a skip, `working`. When any
   started run of the job has a session in a change or a feature the workspace still lists as not
-  merged, record a skip, `change-open` ([ruling R15](rulings.md)). A skip is recorded once per time,
-  by the same unique row.
+  merged, record a skip, `change-open` ([ruling R15](rulings.md)). Both are read again right before
+  each start, holding the reservation, after the minute's wait, as the run may work again or a
+  change may open meanwhile. An acceptance in flight for a run of the job in the repository (task 5)
+  is the job `working`, for a time and for "Run now" ([ruling R18](rulings.md)). A skip is recorded
+  once per time, by the same unique row.
 - A tick only queues the times due, none twice, and the queue starts them one after another: the
   first at once, each next after `wait(60_000)` from the last start, while the ticks go on; a time
   skipped or recorded waits for nothing. Right before a start the job is read again, and the time is
@@ -821,6 +824,8 @@ web UI's existing tests of offers keep passing unchanged.
   `jobChangeLine` to the turn. A refusal is kept with `setRefusal`, its text without the `refused: `
   prefix, and the turn, and announced with `Sessions.announce`; a refusal that says the agent works,
   or one after the human wrote, is the human's path winning: nothing is kept.
+- It holds the run's job busy in the repository from the turn's end until its acceptance ends
+  (`jobs/busy.ts`, shared with the scheduler, [ruling R18](rulings.md)).
 - `startJobs` starts it, and its stop joins the scheduler's.
 - The status rule gains one case, before "waits on the human": the session's latest turn is the
   refused turn, `done`, and not dismissed. It reads "Needs attention", reason `change-refused`. The

@@ -7,6 +7,7 @@ import { readSession } from "../../fate/sessions.ts";
 import type { AgentEvent } from "../../runner/events.ts";
 import type { FakeStep } from "../../runner/fake.ts";
 import { acceptOffers } from "../accept.ts";
+import { Busy } from "../busy.ts";
 import { startRun } from "../run.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
@@ -79,12 +80,14 @@ async function setup() {
     settings: server.settings,
     themes: server.themes,
   };
-  const accepting = acceptOffers(shared);
+  const busy = new Busy();
+  const accepting = acceptOffers(shared, busy);
   onTestFinished(() => accepting());
   const ctx: RepoContext = { ...shared, repo: server.repo };
   let due = 0;
   return {
     accepting,
+    busy,
     ctx,
     server,
     state,
@@ -327,3 +330,35 @@ test("a change that cannot start asks, with its reason", async () => {
   await server.sessions.settled(sent.turn);
   expect(await readSession(ctx, second)).toMatchObject({ changeRefusal: null });
 });
+
+/**
+ * Finding 4. Catches: a scheduled time, or a run by hand, starting while the run's change is being
+ * opened, as the session is not in its folder yet and its agent does not work: the acceptance in
+ * flight holds the job busy, from the turn's end until the acceptance ends, whatever it decides.
+ */
+test.each(["starts the change", "finds the job report only"])(
+  "an acceptance in flight holds its job busy until it %s",
+  async (how) => {
+    const { accepting, busy, ctx, server, state } = await setup();
+    server.adapter.fallback = () => [];
+    const root = await server.sessions.mainRoot(ctx.repo);
+    const gate = Promise.withResolvers<void>();
+    state.gate = gate.promise;
+    server.adapter.script([{ text: OFFER, type: "text" }]);
+    const started = await startRun(ctx, job(), { at: Date.now(), due: 1, trigger: "schedule" });
+    const session = started!.session;
+    await ended(server, session);
+    // The turn ended and the acceptance waits for the settings: the job is busy meanwhile.
+    expect(busy.has(NAME, root)).toBe(true);
+    expect(busy.has("Another", root)).toBe(false);
+    expect(busy.has(NAME, "/another/repository")).toBe(false);
+    if (how === "finds the job report only") {
+      state.jobs = { jobs: [job({ reportOnly: true })] };
+    }
+    gate.resolve();
+    await accepting.settled();
+    expect(busy.has(NAME, root)).toBe(false);
+    expect(folderOf(server, session) === null).toBe(how === "finds the job report only");
+    await ended(server, session);
+  },
+);

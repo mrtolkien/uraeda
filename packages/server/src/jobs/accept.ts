@@ -11,6 +11,7 @@ import type { Item } from "../runner/events.ts";
 import { jobChangeLine } from "../runner/message.ts";
 import { endingOffer, proposalTitle } from "../runner/offers.ts";
 import { REFUSALS } from "../runner/session-state.ts";
+import { Busy } from "./busy.ts";
 
 /**
  * The agent's text that is the run's last word: the last of the turn's texts and calls of its own
@@ -97,9 +98,11 @@ export type Accepting = (() => void) & { settled(): Promise<void> };
 /**
  * Starts accepting the offers of the jobs' runs: each turn that ends done, in a session of a run
  * without a change, is read for a change offer. Acceptances go one after another, as each one
- * writes the repository's main checkout. Gives its stop, which also has `settled`.
+ * writes the repository's main checkout. The run's job is held in `busy`, the scheduler's too, from
+ * the turn's end until its acceptance ends, whatever it decides: the change being opened is the run
+ * still working (R18). Gives its stop, which also has `settled`.
  */
-export function acceptOffers(shared: Omit<RepoContext, "repo">): Accepting {
+export function acceptOffers(shared: Omit<RepoContext, "repo">, busy = new Busy()): Accepting {
   let tail: Promise<unknown> = Promise.resolve();
   let stopped = false;
   const stop = onSessionChange(shared.sessions, (change) => {
@@ -115,11 +118,17 @@ export function acceptOffers(shared: Omit<RepoContext, "repo">): Accepting {
     if (change.folder !== null) {
       return;
     }
+    const run = shared.sessions.cache.jobs.ofSession(session);
+    if (run === undefined) {
+      return;
+    }
+    const leave = busy.enter(run.job, run.repository);
     tail = tail
       .then(() => (stopped ? undefined : accept(shared, session, turn)))
       .catch((error: unknown) =>
         process.stderr.write(`uraeda: a job's offer was not accepted: ${reasonOf(error)}\n`),
-      );
+      )
+      .finally(leave);
   });
   return Object.assign(
     () => {

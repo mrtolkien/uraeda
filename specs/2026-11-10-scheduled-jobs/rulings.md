@@ -255,3 +255,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a sleep shorter than 6 minutes inside a wait starts the queue's times late, up to 6
   minutes after the time was seen.
 - **Where**: task 4.
+
+## R18: An acceptance in flight is the job busy, and the guards are read right before a start
+
+- **Decision**: (1) `jobs/busy.ts` is a small record of the jobs an acceptance is opening a change
+  for, by job name and repository root. `acceptOffers` enters a run's job when a turn of the run's
+  session ends done without a folder, and leaves it when the acceptance ends, whatever it decides;
+  the scheduler, built with the same `Busy` by `startJobs`, reads it with the other guards: a
+  scheduled time finds the job `working` (a skip row), and "Run now" is refused with “<name>” still
+  runs here. (2) Right before each start, after the minute's wait and the read of the job, while
+  holding the reservation, the scheduler reads the skip guards again (the last run works, the job is
+  busy, a change of its runs is open) and records the skip it finds. The open-change read, which
+  awaits, comes first, so the synchronous reads of what works come last.
+- **Rationale**: (1) the session joins its change's folder only at `attach`, and its agent does not
+  work while `toChange` creates the worktree, so neither the open-change check nor the status said
+  the run was still at work: a 03:00 time started a second run in the main checkout meanwhile
+  (SC-003). (2) the guards were read before the wait, so a run resumed, or an offer accepted, during
+  the minute was not seen.
+- **Alternatives considered**: a second reservation key in the scheduler for the acceptance: the
+  acceptance knows the repository's root, the scheduler's reservation is by its name.
+- **If wrong**: a time that falls while a turn's end is read for an offer is skipped `working`
+  although the run offered nothing; the run's next ordinary time starts.
+- **Where**: tasks 4 and 5.
