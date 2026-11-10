@@ -127,6 +127,7 @@ export const account = (
 ): Account => ({
   askedAt: 1,
   id: folder(name),
+  known: true,
   name,
   state: "ready",
   windows: [

@@ -48,6 +48,7 @@ export function accountUsage(
       ...account,
       askedAt:
         own.length === 0 ? account.askedAt : Math.max(account.askedAt ?? -Infinity, own.at(-1)!.at),
+      known: account.known || own.length > 0,
       windows: [...reads.values()].map((read) => unexpired(read.window, now)),
     };
   });

@@ -170,7 +170,7 @@ test("a pick on an ask that hangs ranks an account never read last, and two sess
   const { adapter, repo, sessions } = await testSessions();
   adapter.accounts = new FakeAccounts();
   adapter.accounts.accounts = [
-    account("default", 0, { askedAt: null, windows: [] }),
+    account("default", 0, { askedAt: null, known: false, windows: [] }),
     account("b", 0.9),
   ];
   adapter.accounts.hangs = true;
@@ -190,16 +190,18 @@ test("a pick on an ask that hangs ranks an account never read last, and two sess
   expect(adapter.opens.map((open) => open.account)).toEqual([folder("b"), folder("b")]);
   expect(adapter.accounts.asks).toBe(1);
   expect(adapter.accounts.list().map((one) => one.askedAt)).toEqual([null, 1]);
+  expect(adapter.accounts.list().map((one) => one.known)).toEqual([false, true]);
 });
 
 test("an ask that answers marks the accounts read, and is not repeated within the age", async () => {
   vi.spyOn(Date, "now").mockReturnValue(5000);
   const accounts = new FakeAccounts();
-  accounts.accounts = [account("default", 0, { askedAt: null, windows: [] })];
+  accounts.accounts = [account("default", 0, { askedAt: null, known: false, windows: [] })];
   const original = accounts.accounts[0];
   await accounts.refresh(60_000);
   await accounts.refresh(60_000);
   expect(accounts.asks).toBe(1);
   expect(accounts.list()[0]?.askedAt).toBe(5000);
+  expect(accounts.list()[0]?.known).toBe(true);
   expect(original?.askedAt).toBeNull(); // the test's own account is not changed in place
 });

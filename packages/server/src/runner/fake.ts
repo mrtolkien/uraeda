@@ -88,7 +88,7 @@ export class FakeAccounts implements Accounts {
       this.#pending = new Promise<void>(() => {});
       return this.#pending;
     }
-    this.accounts = this.accounts.map((account) => ({ ...account, askedAt: now }));
+    this.accounts = this.accounts.map((account) => ({ ...account, askedAt: now, known: true }));
     return Promise.resolve();
   }
 }

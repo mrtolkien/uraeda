@@ -167,9 +167,11 @@ test("an account whose usage cannot be read is picked after every account whose 
   now = 61_000;
   await accounts.refresh(60_000);
   const b = accounts.list()[0];
-  expect(b?.askedAt).toBeNull();
+  expect(b?.askedAt).toBe(0); // the time its windows were read, kept
+  expect(b?.known).toBe(false);
   expect(b?.windows).toEqual(five(0));
   expect(accounts.list()[1]?.askedAt).toBe(61_000);
+  expect(accounts.list()[1]?.known).toBe(true);
   expect(pickAccount(accounts.list())?.name).toBe("c");
 
   // The same for an ask that rejects, and it is asked again only once a minute.
@@ -189,7 +191,8 @@ test("an account whose usage cannot be read is picked after every account whose 
   await rejecting.refresh(60_000);
   now = 61_000;
   await rejecting.refresh(60_000);
-  expect(rejecting.list()[0]?.askedAt).toBeNull();
+  expect(rejecting.list()[0]?.askedAt).toBe(0);
+  expect(rejecting.list()[0]?.known).toBe(false);
   expect(rejecting.list()[0]?.windows).toEqual(five(0));
   expect(pickAccount(rejecting.list())?.name).toBe("c");
 });

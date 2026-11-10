@@ -82,3 +82,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   nothing, while US3 says Home shows it "at 0% in the error colour".
 - **Alternatives considered**: a minimum fill on an empty bar, which would read as some left.
 - **Where**: task 5 of the plan, `fate/views.ts` and `UsageWindow.tsx`.
+
+## R7: `askedAt` says when, `known` says whether
+
+- **Decision**: `Account.askedAt` is when the account's windows were last read, null while never,
+  and stays after an ask that could not read them. `Account.known` is false while the usage was
+  never read and while its last ask could not read it. The pick ranks `!known` last; the merge with
+  the running processes' reports (R8) reads `askedAt` as the age of the windows it keeps.
+- **Rationale**: `askedAt` meant both "when the windows were read" and "the usage is known", and
+  findings 1 and 2 of wave 3 (and the same family in waves 1 and 2) came back from that: a failed
+  ask nulled the time, so an older report beat a newer successful read, and a report's time made a
+  stale account look known.
+- **Alternatives considered**: a second field `lastAskFailed`: the same two facts, with the name of
+  the one the pick wants least.
+- **Where**: task 1 of the plan, `Account` in `runner/adapter.ts`; `ClaudeAccounts`, `FakeAccounts`,
+  `pickAccount`, `docs/extensions.md`.
