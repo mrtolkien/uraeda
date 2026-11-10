@@ -165,6 +165,16 @@ export class JobRuns {
     });
   }
 
+  /** Removes a row: a run whose session did not start, so its time is not marked run. */
+  remove(id: number): void {
+    this.#db.prepare("DELETE FROM job_runs WHERE id = ?").run(id);
+  }
+
+  /** Sets the session a run started, once it has one. */
+  setSession(id: number, session: string): void {
+    this.#db.prepare("UPDATE job_runs SET session = ? WHERE id = ?").run(session, id);
+  }
+
   /** Sets, or with null clears, why the change the run offered could not start (R1). */
   setRefusal(id: number, refusal: { text: string; turn: number } | null): void {
     this.#db

@@ -139,6 +139,18 @@ test("the history merged by a rename is pruned", () => {
   expect(jobs.ofSession("new-1074")).toBeDefined();
 });
 
+test("a run's session is set after it, and a run that did not start is removed", () => {
+  const jobs = opened();
+  const added = jobs.add(run({ due: 1000 }));
+  jobs.setSession(added?.id ?? 0, "s1");
+  expect(jobs.ofSession("s1")?.due).toBe(1000);
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
+  jobs.remove(added?.id ?? 0);
+  expect(jobs.history("Dependencies", ROOT)).toEqual([]);
+  // The time is free again: it can be recorded and started once more.
+  expect(jobs.add(run({ due: 1000 }))).toBeDefined();
+});
+
 test("a refusal is set with its turn, and cleared", () => {
   const jobs = opened();
   const added = jobs.add(run({ session: "s1" }));

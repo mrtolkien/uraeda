@@ -451,8 +451,10 @@ export class JobRuns {
   history(job: string, repository: string): Array<JobRunRow>; // newest first, 50 at most
   latestStarted(job: string, repository: string): JobRunRow | undefined;
   ofSession(session: string): JobRunRow | undefined;
+  remove(id: number): void; // a run whose session did not start
   rename(from: string, to: string): void;
   setRefusal(id: number, refusal: { text: string; turn: number } | null): void;
+  setSession(id: number, session: string): void; // the session the run started
 }
 // SessionCache gains `readonly jobs: JobRuns`.
 // ServerSettings.runs() gains `scheduledJobs: Setting<boolean>`, true by default.
@@ -656,11 +658,13 @@ The break each test catches:
 `startRun` records the run's row first, with `JobRuns.add`, and stops when the time is recorded
 already. It then opens a chat with `newChat` on the job's agent, model, and effort, titles it with
 the job's name, sends `jobMessage` with its line and the origin `workflow`, and sets the row's
-session. `jobMessage` is the prompt, then a rule, then Uraeda's note. The note says the session was
-started by the scheduled job, by name, and that nobody follows it. For a job that is not report
-only, it says to offer a needed code change once, as a change, then stop, since Uraeda starts it and
-the next message continues in its worktree. For a report-only job, it says to change no file, and
-that an offer waits for the human. Both say to answer in one line when nothing needs doing.
+session with `JobRuns.setSession`. When the chat does not start, it removes the row with
+`JobRuns.remove` and rethrows, so the time is not marked run ([ruling R9](rulings.md)). `jobMessage`
+is the prompt, then a rule, then Uraeda's note. The note says the session was started by the
+scheduled job, by name, and that nobody follows it. For a job that is not report only, it says to
+offer a needed code change once, as a change, then stop, since Uraeda starts it and the next message
+continues in its worktree. For a report-only job, it says to change no file, and that an offer waits
+for the human. Both say to answer in one line when nothing needs doing.
 
 - [ ] **Step 4: Implement the scheduler and wire it**
 

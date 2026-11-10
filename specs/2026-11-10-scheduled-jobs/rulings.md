@@ -88,3 +88,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: reading the open change from the session instead of the row, which
   would move the record's authority elsewhere.
 - **Where**: task 3.
+
+## R9: A run's row can take its session later, and be removed
+
+- **Decision**: `JobRuns` has `setSession(id, session)` and `remove(id)`. `startRun` adds the row,
+  opens the chat, and sets the row's session; when the chat does not start, it removes the row and
+  throws.
+- **Rationale**: the row must exist before the session, so the unique index stops a second start of
+  one time. Without a way to set the session or drop the row, a failed `newChat` would leave a
+  `started` row with no session: the time would never be retried, and `latestStarted` would return a
+  run with nothing to check.
+- **Alternatives considered**: writing the row after the session, which lets two servers start one
+  time ([review focus](plan.md#review-focus): a time started twice).
+- **Where**: tasks 3 and 4.
