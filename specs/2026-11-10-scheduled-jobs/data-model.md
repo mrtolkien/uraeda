@@ -14,7 +14,6 @@ keeps comments, unknown keys, and order.
 name = "Dependencies"
 repositories = ["uraeda", "notes"]
 schedule = "daily 03:00"
-starts_changes = true
 agent = "claude"
 model = "opus"
 effort = "high"
@@ -24,17 +23,17 @@ Run `vp run ready`, and fix what the upgrade breaks.
 """
 ```
 
-| Field            | Type                    | Meaning                                                     | Change |
-| ---------------- | ----------------------- | ----------------------------------------------------------- | ------ |
-| `name`           | text, unique among jobs | the job's name, shown on its page and in its runs' sessions | New    |
-| `repositories`   | list of names           | the repositories of Uraeda's list it runs in, one at least  | New    |
-| `schedule`       | text, see below         | when it runs, in the server's local time                    | New    |
-| `prompt`         | text, not empty         | what each run is asked                                      | New    |
-| `on`             | boolean, `true` unset   | whether it runs at its times                                | New    |
-| `starts_changes` | boolean, `false` unset  | whether a change its run offers starts without the human    | New    |
-| `agent`          | text, optional          | the runtime its runs start on; unset, a new chat's          | New    |
-| `model`          | text, optional          | a model the agent lists; unset, the agent's default         | New    |
-| `effort`         | text, optional          | an effort the model takes; unset, the model's default       | New    |
+| Field          | Type                    | Meaning                                                     | Change |
+| -------------- | ----------------------- | ----------------------------------------------------------- | ------ |
+| `name`         | text, unique among jobs | the job's name, shown on its page and in its runs' sessions | New    |
+| `repositories` | list of names           | the repositories of Uraeda's list it runs in, one at least  | New    |
+| `schedule`     | text, see below         | when it runs, in the server's local time                    | New    |
+| `prompt`       | text, not empty         | what each run is asked                                      | New    |
+| `on`           | boolean, `true` unset   | whether it runs at its times                                | New    |
+| `report_only`  | boolean, `false` unset  | whether a change its run offers waits for the human         | New    |
+| `agent`        | text, optional          | the runtime its runs start on; unset, a new chat's          | New    |
+| `model`        | text, optional          | a model the agent lists; unset, the agent's default         | New    |
+| `effort`       | text, optional          | an effort the model takes; unset, the model's default       | New    |
 
 A schedule is one of four forms, in lower case, its time on 24 hours:
 
@@ -60,8 +59,7 @@ or `false`, else the file, else on.
 ## A job's runs, in the data folder
 
 One row per time a job was due in a repository, or was run by hand, in `runner.sqlite`, the cache of
-sessions. A cache that cannot be read starts empty: the history is lost, and no missed run is made
-up.
+sessions. A cache that cannot be read starts empty: the history is lost.
 
 | Field        | Type                              | Meaning                                                    | Change |
 | ------------ | --------------------------------- | ---------------------------------------------------------- | ------ |
@@ -69,13 +67,12 @@ up.
 | `repository` | path                              | the repository's main checkout                             | New    |
 | `due`        | time, or null                     | the scheduled time it answers; null for "Run now"          | New    |
 | `at`         | time                              | when it started, or was skipped                            | New    |
-| `trigger`    | `schedule`, `late`, or `manual`   | on time, late, or by "Run now"                             | New    |
+| `trigger`    | `schedule` or `manual`            | at its time, or by "Run now"                               | New    |
 | `outcome`    | `started` or `skipped`            | whether a session started                                  | New    |
 | `reason`     | `working`, `change-open`, or null | why it was skipped                                         | New    |
 | `session`    | session ID, or null               | the session it started, which leads to the change it began | New    |
 
-- Each job and repository also keeps the time its schedule counts from: when the server first saw
-  the job on, or last saw it turned back on. A scheduled time before it is never due.
+- A scheduled time runs once: a server that restarts within its minute finds its row.
 - The history keeps the 50 latest rows of each job and repository.
 - A job renamed on its page keeps its rows under the new name. Renamed by hand, it starts a new
   history.

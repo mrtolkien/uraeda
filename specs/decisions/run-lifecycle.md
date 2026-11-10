@@ -47,8 +47,8 @@ that polls cannot read the human's messages. History:
 - A tool call or background work cut by a restart is redone by the continued run.
 - Weekly limits are not continued, and a run that ends before its next human gate is not asked to go
   on: both ask for the human.
-- A scheduled run spends usage unwatched, and one allowed to start changes can be talked into one by
-  a page it reads: nothing merges without the human.
+- A scheduled run spends usage unwatched, and a page it reads can talk it into starting a change:
+  nothing merges without the human.
 - Every later agent runtime must report restarts, limits, and their reset time for runs to continue.
 
 ## Applies to
