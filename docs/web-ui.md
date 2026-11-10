@@ -744,11 +744,12 @@ reads "c · no folder" and "c no folder". A banner in Settings, Extensions, says
 and where.
 
 Uraeda gives a session its account only as `CLAUDE_CONFIG_DIR`, and reads none of its credentials.
-Two things Claude Code decides, not Uraeda: an account with usage credits on is never refused, so it
-pays past its limit, and you should turn them off; and an `ANTHROPIC_API_KEY` in the server's
-environment outranks every account's login, so unset it. Anthropic's terms forbid using someone
-else's account, and its advertised limits "assume ordinary, individual usage": list only accounts
-that are yours, and read the terms yourself.
+The default folder, `~/.claude`, runs without the variable, as Claude Code does on its own, so its
+`~/.claude.json` still applies. Two things Claude Code decides, not Uraeda: an account with usage
+credits on is never refused, so it pays past its limit, and you should turn them off; and an
+`ANTHROPIC_API_KEY` in the server's environment outranks every account's login, so unset it.
+Anthropic's terms forbid using someone else's account, and its advertised limits "assume ordinary,
+individual usage": list only accounts that are yours, and read the terms yourself.
 
 ## The data folder
 

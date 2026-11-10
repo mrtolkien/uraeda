@@ -710,6 +710,21 @@ test("a process gets its account as its configuration folder", () => {
   expect(claudeEnv({ ...open, tools })).not.toHaveProperty("CLAUDE_CONFIG_DIR");
 });
 
+test("a process on Claude Code's default folder gets no configuration folder", () => {
+  const open = { cwd: "/w", nativeId: "id", resume: false, skills: [] };
+  // ~/.claude given explicitly is not the server's own login context: Claude Code then reads
+  // .claude.json inside it, not ~/.claude.json.
+  expect(claudeEnv({ ...open, account: "/home/u/.claude" }, "/home/u")).toBeUndefined();
+  const tools = { token: "secret-token", url: "http://127.0.0.1:4000/mcp" };
+  expect(claudeEnv({ ...open, account: "/home/u/.claude", tools }, "/home/u")).toEqual({
+    [TOKEN_VARIABLE]: "secret-token",
+  });
+  // Another home's .claude is an account like any other.
+  expect(claudeEnv({ ...open, account: "/home/v/.claude" }, "/home/u")).toEqual({
+    CLAUDE_CONFIG_DIR: "/home/v/.claude",
+  });
+});
+
 /** A line of Claude Code's output, as JSON. */
 const line = (value: Record<string, unknown>) => JSON.stringify(value);
 const assistant = (content: Array<Record<string, unknown>>, parent: string | null = null) =>
@@ -1540,6 +1555,32 @@ test("models() runs in the first listed account that is ready, else the first li
   // None is ready: the first listed.
   await adapter([gone, file]).models();
   expect(readFileSync(join(dir, "config"), "utf8")).toBe(gone);
+});
+
+test("models() on the default folder runs without a configuration folder", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const home = join(dir, "home");
+  mkdirSync(join(home, ".claude"), { recursive: true });
+  const adapter = new ClaudeAdapter({
+    accounts: ["~/.claude"],
+    command: accountsAgent(dir),
+    home,
+    imagesDir: images(),
+    pluginDir: "/p",
+  });
+  const saved = process.env.CLAUDE_CONFIG_DIR;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  try {
+    await adapter.models();
+  } finally {
+    if (saved !== undefined) {
+      process.env.CLAUDE_CONFIG_DIR = saved;
+    }
+  }
+  expect(adapter.accounts.list().map(({ id, name }) => [id, name])).toEqual([
+    [join(home, ".claude"), "default"],
+  ]);
+  expect(readFileSync(join(dir, "config"), "utf8")).toBe("");
 });
 
 /**

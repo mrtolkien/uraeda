@@ -24,7 +24,7 @@ import type {
 } from "./adapter.ts";
 import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
 import { refreshedWithin, USAGE_MAX_AGE_MS } from "./account-pick.ts";
-import { askShort, claudeAsk, ClaudeAccounts } from "./claude-accounts.ts";
+import { askShort, claudeAsk, ClaudeAccounts, folderEnv } from "./claude-accounts.ts";
 import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
@@ -203,14 +203,19 @@ export function claudeArgs(
 
 /**
  * The environment a process adds to the server's: its token when it gets Uraeda's tools, and its
- * account as the configuration folder Claude Code reads. Undefined when it adds nothing.
+ * account as the configuration folder Claude Code reads, unless it is `home`'s `.claude`, Claude
+ * Code's default, which a process reads with none (`folderEnv`). Undefined when it adds nothing.
  */
-export function claudeEnv(options: OpenOptions): Record<string, string> | undefined {
+export function claudeEnv(
+  options: OpenOptions,
+  home: string = homedir(),
+): Record<string, string> | undefined {
   const tools = toolsEnv(options.tools);
   if (options.account === undefined) {
     return tools;
   }
-  return { ...tools, CLAUDE_CONFIG_DIR: options.account };
+  const folder = folderEnv(options.account, home);
+  return folder === undefined ? tools : { ...tools, ...folder };
 }
 
 export type ClaudeAdapterOptions = {
@@ -229,6 +234,8 @@ export type ClaudeAdapterOptions = {
    * running Claude Code outside the server, without extensions, do not.
    */
   extensions?: ClaudeExtensions;
+  /** The home folder, `~` in the `accounts` lines: the user's by default, a test's own. */
+  home?: string;
   /** The chat images' folder, `<data folder>/images`, created as a process opens. */
   imagesDir: string;
   /** The plugin folder that holds the Uraeda skill, `layout().plugin` in the server. */
@@ -283,6 +290,7 @@ export class ClaudeAdapter implements Adapter {
   };
   #command: string;
   #configDir: string;
+  #home: string;
   #pluginDir: string;
   #imagesDir: string;
   #extensions: ClaudeExtensions | undefined;
@@ -292,12 +300,18 @@ export class ClaudeAdapter implements Adapter {
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
     extensions,
+    home = homedir(),
     imagesDir,
     pluginDir,
   }: ClaudeAdapterOptions) {
     this.#extensions = extensions;
     this.#command = command;
-    this.accounts = new ClaudeAccounts({ ask: claudeAsk(command), lines: accounts ?? [] });
+    this.#home = home;
+    this.accounts = new ClaudeAccounts({
+      ask: claudeAsk(command, home),
+      home,
+      lines: accounts ?? [],
+    });
     this.#configDir = configDir;
     this.#pluginDir = pluginDir;
     this.#imagesDir = imagesDir;
@@ -349,7 +363,7 @@ export class ClaudeAdapter implements Adapter {
       extensionPlugins(options.skills, extensions.plugins);
     }
     const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);
-    return spawnGrouped(this.#command, args, options.cwd, claudeEnv(options));
+    return spawnGrouped(this.#command, args, options.cwd, claudeEnv(options, this.#home));
   }
 
   /**
@@ -366,7 +380,7 @@ export class ClaudeAdapter implements Adapter {
     const [list, settings] = await askShort(
       this.#command,
       homedir(),
-      folder === undefined ? undefined : { CLAUDE_CONFIG_DIR: folder },
+      folder === undefined ? undefined : folderEnv(folder, this.#home),
       [{ subtype: "list_models" }, { subtype: "get_settings" }],
       { did: "list its models", exited: "listing its models" },
     );
