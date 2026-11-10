@@ -206,3 +206,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: showing the runtime's server login for a session with no account: it
   has no usage of its own to show while accounts are listed.
 - **Where**: task 5 of the plan, `sidebar/Allowance.tsx`.
+
+## R14: Without accounts, the sidebar finds the five hours by their ID
+
+- **Decision**: the sidebar's line and the rail's bar of a runtime with no account list take the
+  window whose ID is `five_hour` (`FIVE_HOUR_WINDOW` in `limits.ts`, which Claude Code's adapter and
+  Codex's both report the five hours by), and show nothing for that runtime while it is not
+  reported, never its week. The accounts' first window stays the five hours by construction: the ask
+  gives it first (`claudeWindows` rejects a usage whose first window is another), and a report never
+  adds a window (R8).
+- **Rationale**: finding 1 of wave 4 and Codex's finding 1: a runtime without accounts orders its
+  `usage` by report order and drops expired windows, so its first window can be the week.
+- **Alternatives considered**: ordering `usage` shortest first on the server: Home lists the windows
+  in report order today, and "shortest" would still need a rule for IDs no adapter shares; a field
+  on the record saying which window is the short one: a second source for what the ID already says.
+- **If wrong**: an extension runtime that reports its five hours under another ID shows no sidebar
+  line; it names the window `five_hour`.
+- **Where**: task 5 of the plan, `UsageWindow.tsx` and `sidebar/Allowance.tsx`.

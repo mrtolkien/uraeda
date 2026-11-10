@@ -5,6 +5,12 @@
 // or of a model or an effort it does not offer, which the composer shows before sending. Free of
 // Node's modules, so the UI can import it.
 
+/**
+ * The ID of the usage window of five hours, the shortest one, which the sidebar shows alone: Claude
+ * Code and Codex both report it by this ID, whatever the order of their reports.
+ */
+export const FIVE_HOUR_WINDOW = "five_hour";
+
 /** The items in each page of a turn's log. */
 export const TURN_PAGE = 100;
 
