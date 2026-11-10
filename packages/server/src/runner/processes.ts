@@ -244,12 +244,16 @@ export class Processes {
 
   /**
    * The account a session with no started turn opens on, stored before its process opens: the pick
-   * of its runtime's listed accounts. When the runtime lists none, the one it had, which is none
-   * for a session that never had one.
+   * of its runtime's listed accounts. When the runtime lists none, none: a last pick stored while
+   * it did, which no turn ever started on, is cleared, and the session runs on the agent's own
+   * login (R3).
    */
   async #pick(row: SessionRow, adapter: Adapter): Promise<string | null> {
     if (!adapter.accounts?.list().length) {
-      return row.account;
+      if (row.account !== null) {
+        this.#context.cache.updateSession(row.id, { account: null });
+      }
+      return null;
     }
     const account = await accountFor(
       adapter.accounts,

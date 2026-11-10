@@ -464,12 +464,12 @@ turns that have a start time: when no turn of the session ever started and
 process opens, even when the row already holds one: a first turn that never started, taken back or
 failed to open, fixed nothing, so the pick is made again on the usage of that moment (R3). A session
 with a started turn keeps its row's account, none for one that ran before accounts; a session with
-no started turn and no listed account keeps the row's. `accountFor` awaits the refresher's
-`refresh(runtime)` (Task 4's `AccountRefresh`, which asks `refresh(USAGE_MAX_AGE_MS)`) raced with a
-timer of `PICK_WAIT_MS`, then picks. A session with an account always opens on it, listed or not.
-The account goes to `adapter.hasSession(row.nativeId, account)`, to `adapter.open` as `account`, and
-to `Proc.account`. A refusal releases the session, as the existing `catch` does. In `continuer.ts`,
-line 324 passes the session's account to `hasSession`, in place.
+no started turn and no listed account opens on none, and stores none. `accountFor` awaits the
+refresher's `refresh(runtime)` (Task 4's `AccountRefresh`, which asks `refresh(USAGE_MAX_AGE_MS)`)
+raced with a timer of `PICK_WAIT_MS`, then picks. A session with an account always opens on it,
+listed or not. The account goes to `adapter.hasSession(row.nativeId, account)`, to `adapter.open` as
+`account`, and to `Proc.account`. A refusal releases the session, as the existing `catch` does. In
+`continuer.ts`, line 324 passes the session's account to `hasSession`, in place.
 
 - [x] **Step 5: Run the task's validation**
 

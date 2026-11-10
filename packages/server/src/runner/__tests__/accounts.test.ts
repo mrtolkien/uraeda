@@ -106,6 +106,24 @@ test("a session picks again until a turn of it starts, and keeps the account of 
   expect(adapter.opens.at(-1)?.account).toBe(folder("c"));
 });
 
+test("a session whose turn never started opens on no account once the runtime lists none", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.accounts = fakeAccounts();
+  const chat = await sessions.newChat(repo);
+  vi.spyOn(adapter, "open").mockImplementationOnce(() => {
+    throw new Error("no process");
+  });
+  await expect(sessions.send(repo, chat.id, { text: "hello" })).rejects.toThrow("no process");
+  expect(cache.session(chat.id)?.account).toBe(folder("b")); // a last pick, not a promise
+
+  // The accounts are emptied: the first turn that starts is on the server's own login, and says so.
+  adapter.accounts.accounts = [];
+  adapter.script([]);
+  await send(sessions, repo, chat.id, "hello again");
+  expect(adapter.opens.at(-1)?.account).toBeUndefined();
+  expect(cache.session(chat.id)?.account).toBeNull();
+});
+
 const ON: ContinueSettings = { ...CONTINUES_OFF, afterLimit: true };
 const RESET = "2026-11-03T23:40:00.000Z";
 const LIMIT: Limit = {
