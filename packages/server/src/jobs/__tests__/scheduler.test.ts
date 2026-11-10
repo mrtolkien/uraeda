@@ -731,6 +731,34 @@ test("a queued time is checked again after its minute, and dropped when it no lo
 });
 
 /**
+ * R17; review 05, finding 1. Catches: a clock jump during one queued time's wait that drops only
+ * that time, so the times still queued behind it start hours late.
+ */
+test("a clock jump drops every time queued before it, not only the one waiting", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  run.state.jobs = { jobs: ["J1", "J2", "J3", "J4"].map((one) => job(one, [name], hourly)) };
+  await run.at("11T02:59:00");
+  const gate = Promise.withResolvers<void>();
+  run.state.gate = gate.promise;
+  run.state.clock = new Date("2026-11-11T03:00:10");
+  await run.scheduler.tick();
+  while (run.state.waits.length === 0) {
+    await turns(1);
+  }
+  // The machine slept during the second time's wait, then the waits end at once.
+  run.state.clock = new Date("2026-11-11T09:00:00");
+  run.state.gate = undefined;
+  gate.resolve();
+  await run.scheduler.settled();
+  expect(run.created).toHaveLength(1);
+  for (const one of ["J2", "J3", "J4"]) {
+    expect(await run.history(one), one).toEqual([]);
+  }
+});
+
+/**
  * US2 1; R17. Catches: the minute between starts, with the 5 minutes of a time, silently dropping the
  * sixth and later runs due together, every time, with no row: a time the tick saw in time stays
  * valid in the queue.

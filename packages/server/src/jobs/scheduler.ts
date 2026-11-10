@@ -330,13 +330,18 @@ class JobScheduler implements Scheduler {
 
   /**
    * Waits the minute between two starts. Returns whether the clock jumped meanwhile, which the
-   * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so the times
-   * still queued are hours old and are dropped, recording nothing (R17).
+   * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so every
+   * time still queued is hours old. They are all dropped, recording nothing (R17).
    */
   async #waited(): Promise<boolean> {
     const before = this.#now().getTime();
     await this.#wait(APART_MS);
-    return this.#now().getTime() - before > APART_MS + MISSED_AFTER_MS;
+    const jumped = this.#now().getTime() - before > APART_MS + MISSED_AFTER_MS;
+    if (jumped) {
+      this.#queue.length = 0;
+      this.#queued.clear();
+    }
+    return jumped;
   }
 
   /**
