@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Scheduled jobs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions, about 15 minutes.
+> Answered on 2026-11-10.
 >
 > - Verdict: worth building, with changes: as written, a nightly upgrade could only offer a change
 >   and wait for you, since only a human starts one.
@@ -123,7 +123,7 @@ rule of the agents decision that guards every session.
   - [pro] no offer to accept, and the run never works in your checkout.
   - [con] a commit on main every night, and a job that only reports has no place.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Where is a job written?
 
@@ -158,7 +158,7 @@ decision moves.
   - [con] anyone who can push to the repository could change what your agent runs unattended, and
     the skill gains a new kind of file.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where do you see and edit jobs in the web UI?
 
@@ -183,7 +183,7 @@ skipped, or when the next one is.
   - [pro] the least to build.
   - [con] skipped runs and the next run show nowhere, and testing means editing the schedule.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Which decision holds the rules of scheduled jobs?
 
@@ -203,7 +203,10 @@ Why it matters: agents read a decision alone before a task, and find it by its t
   - [pro] every automatic run in one place.
   - [con] it passes 10 rules, or its rules merge and lose detail.
 
-**Answer:**
+**Answer:** B: I'm sure some of the existing rules are low impact. You pad each decision to 10 rules
+every time.
+
+If it's really too big for the same decision, go with A, but it should be a last resort.
 
 ## Settled without the human
 
