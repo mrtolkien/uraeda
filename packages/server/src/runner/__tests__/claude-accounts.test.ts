@@ -1,4 +1,5 @@
 import { expect, test } from "vite-plus/test";
+import { pickAccount } from "../account-pick.ts";
 import { ClaudeAccounts, claudeFolders, claudeUsageWindows } from "../claude-accounts.ts";
 
 test.each([
@@ -65,6 +66,12 @@ test("Claude Code's usage answer gives the windows", () => {
   ).toEqual({ id: "five_hour", label: "5h", resetsAt: null, used: 0 });
   // A signed-out folder.
   expect(claudeUsageWindows({ rate_limits: null, rate_limits_available: false })).toBeUndefined();
+  // No five-hour window: a week never stands first, where the pick reads the five hours.
+  expect(
+    claudeUsageWindows(
+      limits(undefined, { resets_at: "2026-11-11T12:00:00+00:00", utilization: 1 }),
+    ),
+  ).toBeUndefined();
 });
 
 test("each account is asked at most once a minute, and once at a time", async () => {
@@ -115,4 +122,54 @@ test("review focus 2: a caller that comes while an ask is under way waits for th
   await Promise.all([first, waiting]);
   expect(asked).toHaveLength(1);
   expect(accounts.list()[0]?.windows[0]?.used).toBe(0.5);
+});
+
+const five = (used: number) => [{ id: "five_hour", label: "5h", resetsAt: null, used }];
+
+test("an account whose usage cannot be read is picked after every account whose usage is known", async () => {
+  let now = 0;
+  let fail = false;
+  const accounts = new ClaudeAccounts({
+    ask: async (folder) => {
+      if (folder.endsWith("-b")) {
+        return fail ? { state: "ready" } : { state: "ready", windows: five(0) };
+      }
+      return { state: "ready", windows: five(0.42) };
+    },
+    home: "/home/u",
+    lines: ["~/.claude-b", "~/.claude-c"],
+    now: () => now,
+  });
+  await accounts.refresh(60_000);
+  expect(pickAccount(accounts.list())?.name).toBe("b");
+
+  // Its next ask gives no windows: it keeps its last windows, and is no longer known.
+  fail = true;
+  now = 61_000;
+  await accounts.refresh(60_000);
+  const b = accounts.list()[0];
+  expect(b?.askedAt).toBeNull();
+  expect(b?.windows).toEqual(five(0));
+  expect(accounts.list()[1]?.askedAt).toBe(61_000);
+  expect(pickAccount(accounts.list())?.name).toBe("c");
+
+  // The same for an ask that rejects, and it is asked again only once a minute.
+  const rejecting = new ClaudeAccounts({
+    ask: async (folder) => {
+      if (folder.endsWith("-b") && now > 0) {
+        throw new Error("no answer");
+      }
+      return { state: "ready", windows: five(folder.endsWith("-b") ? 0 : 0.42) };
+    },
+    home: "/home/u",
+    lines: ["~/.claude-b", "~/.claude-c"],
+    now: () => now,
+  });
+  now = 0;
+  await rejecting.refresh(60_000);
+  now = 61_000;
+  await rejecting.refresh(60_000);
+  expect(rejecting.list()[0]?.askedAt).toBeNull();
+  expect(rejecting.list()[0]?.windows).toEqual(five(0));
+  expect(pickAccount(rejecting.list())?.name).toBe("c");
 });

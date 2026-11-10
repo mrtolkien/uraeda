@@ -137,7 +137,8 @@ const WINDOWS = [
 
 /**
  * The windows of a `get_usage` answer, the share used as a fraction of one: undefined when it gives
- * none, as a signed-out folder's does. A window not open has no reset.
+ * no five-hour window, as a signed-out folder's does, so the first window is always the five hours
+ * and a week never stands first. A window not open has no reset.
  */
 export function claudeUsageWindows(answer: unknown): Array<AccountWindow> | undefined {
   const limits = isJson(answer) ? answer.rate_limits : undefined;
@@ -159,7 +160,7 @@ export function claudeUsageWindows(answer: unknown): Array<AccountWindow> | unde
       used: window.utilization / 100,
     });
   }
-  return windows.length === 0 ? undefined : windows;
+  return windows[0]?.id === WINDOWS[0]?.id ? windows : undefined;
 }
 
 /** What one ask of a folder gives: its state, and its windows when its usage was read. */
@@ -294,14 +295,16 @@ export class ClaudeAccounts implements Accounts {
     entry.inflight = this.#ask(entry.folder.id)
       .then(
         ({ state, windows }) => {
-          // A usage that was not read leaves the windows last read, with their time.
+          // A usage that was not read keeps the windows last read, and is unknown again.
           entry.account =
             windows === undefined
-              ? { ...entry.account, state }
+              ? { ...entry.account, askedAt: null, state }
               : { ...entry.account, askedAt: this.#now(), state, windows };
         },
-        // A rejected ask keeps the account as it was.
-        () => {},
+        // A rejected ask keeps the windows, and is unknown too.
+        () => {
+          entry.account = { ...entry.account, askedAt: null };
+        },
       )
       .finally(() => {
         entry.inflight = undefined;

@@ -48,7 +48,10 @@ export type AccountState = "ready" | "signed-out" | "missing";
 
 /** An account a runtime offers. `windows` are shortest first: Claude's five hours, then its week. */
 export type Account = {
-  /** When its usage was last read, epoch ms: null while it never was. */
+  /**
+   * When its usage was last read, epoch ms: null while it never was, or while its last ask could not
+   * read it. `windows` keep the last windows read either way, for the panes.
+   */
   askedAt: number | null;
   /** What a session stores: for Claude Code, its folder as an absolute path. */
   id: string;
@@ -65,7 +68,10 @@ export interface Accounts {
   nameOf(id: string): string;
   /** What needs the human, in the runtime's words: "account b is signed out, in ~/.claude-b". */
   problems(): ReadonlyArray<string>;
-  /** Asks again each account read more than `maxAgeMs` ago: settles once they answered. */
+  /**
+   * Asks again each account whose last ask, answered or not, is older than `maxAgeMs`: the runtime
+   * keeps that time itself. Settles once they answered.
+   */
   refresh(maxAgeMs: number): Promise<void>;
 }
 
