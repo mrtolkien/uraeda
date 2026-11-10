@@ -385,14 +385,14 @@ class JobScheduler implements Scheduler {
       }
       // The workspace is read first, which awaits, and the job after it: a pause, or the switch
       // turned off during the read, stops the start (R49).
-      const open = await this.#starts.openFor(ctx, job.name, root);
+      const read = await this.#starts.openFor(ctx, job.name, root);
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {
         return false;
       }
       // What the minute and the reads let change: right before the start, holding the reservation,
       // the last run may work again, or a change may be open (SC-003). Nothing is awaited from here.
-      const again = this.#starts.skipNow(ctx, now, root, open);
+      const again = this.#starts.skipNow(ctx, now, root, read);
       if (again !== undefined) {
         this.#skip(ctx, job.name, root, due, again);
         return false;

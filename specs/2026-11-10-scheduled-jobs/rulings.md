@@ -832,3 +832,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the extension off no job starts there, and the change is a start.
 - **If wrong**: a change the human wanted is left to its card, which starts it with one click.
 - **Where**: the second pass's fix 2, task 5.
+
+## R52: A change opened during a start's reads is seen
+
+- **Decision**: `Starts.openFor` returns the open folders together with the folders of the job's
+  runs as they were when the read began, and `skipNow` counts a folder the runs name now that they
+  did not name then as open, as it does every folder when nothing was read. This completes
+  [R49](#r49-one-repositorys-failure-does-not-stop-the-others-and-a-start-reads-the-switch-last)
+  (2), which compared only a read that did not happen.
+- **Rationale**: with R49's order the workspace is read before `#fresh` awaits, so a change that the
+  acceptance of the last run's offer opened meanwhile is in the job's runs but not in the set read:
+  the time was not skipped and a second run started beside an open change (the spec's SC-003).
+- **If wrong**: a folder new to the runs that the workspace lists as merged skips a time it could
+  have run; the next time runs.
+- **Where**: the second pass's fix 3, task 4.

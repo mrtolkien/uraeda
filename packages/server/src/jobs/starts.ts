@@ -10,6 +10,9 @@ import { openFolders, works } from "./guards.ts";
 /** Why a time is skipped. */
 export type Skipped = NonNullable<JobRunRow["reason"]>;
 
+/** The workspace's open folders, and the folders of a job's runs when it was read. */
+export type Read = { folders: ReadonlyArray<string>; open: ReadonlySet<string> };
+
 /** The key of a job in a repository, both by name. */
 export const keyOf = (job: string, repository: string) => `${job}\0${repository}`;
 
@@ -38,18 +41,14 @@ export class Starts {
   }
 
   /**
-   * The folders of the workspace's open changes, when a run of the job started a change to look at:
-   * the one read of the workspace a skip needs, which awaits, so a start reads it before anything it
-   * must decide on as close to the start as it can.
+   * The folders of the workspace's open changes, when a run of the job started a change to look at,
+   * with the folders of the job's runs as they were when the read began: the one read of the
+   * workspace a skip needs, which awaits, so a start reads it before anything it must decide on as
+   * close to the start as it can. A folder the runs name after that is not in the read (R52).
    */
-  async openFor(
-    ctx: RepoContext,
-    job: string,
-    root: string,
-  ): Promise<ReadonlySet<string> | undefined> {
-    return ctx.sessions.cache.jobs.changeFolders(job, root).length === 0
-      ? undefined
-      : openFolders(ctx);
+  async openFor(ctx: RepoContext, job: string, root: string): Promise<Read | undefined> {
+    const folders = ctx.sessions.cache.jobs.changeFolders(job, root);
+    return folders.length === 0 ? undefined : { folders, open: await openFolders(ctx) };
   }
 
   /**
@@ -63,19 +62,26 @@ export class Starts {
     root: string,
     open?: ReadonlySet<string>,
   ): Promise<{ folder?: string; reason: Skipped } | undefined> {
-    return this.skipNow(ctx, job, root, open ?? (await this.openFor(ctx, job.name, root)));
+    // Open folders given were read now, as the runs' folders are.
+    const read =
+      open === undefined
+        ? await this.openFor(ctx, job.name, root)
+        : { folders: ctx.sessions.cache.jobs.changeFolders(job.name, root), open };
+    return this.skipNow(ctx, job, root, read);
   }
 
   /**
-   * `skipOf` with the open folders given, awaiting nothing, so a start that read them first decides
-   * with nothing between its last read and its start. Folders not read, with a change of the job's
-   * runs listed since, count as open: a time is skipped rather than run beside a change.
+   * `skipOf` with the read of the workspace given, awaiting nothing, so a start that read it first
+   * decides with nothing between its last read and its start. A folder the job's runs name now that
+   * they did not name when it was read, or all of them when it was not read, counts as open: a
+   * change a run's offer opened meanwhile is not in the read, and a time is skipped rather than run
+   * beside a change (R52).
    */
   skipNow(
     ctx: RepoContext,
     job: Job,
     root: string,
-    open: ReadonlySet<string> | undefined,
+    read: Read | undefined,
   ): { folder?: string; reason: Skipped } | undefined {
     const { jobs } = ctx.sessions.cache;
     // Any run of the job that started a change still open, not only the latest run.
@@ -85,7 +91,9 @@ export class Starts {
       return { reason: "working" };
     }
     // The open change of the latest run that started one: the one a person looks for (R36).
-    const folder = open === undefined ? folders[0] : folders.find((one) => open.has(one));
+    const folder = folders.find(
+      (one) => read === undefined || read.open.has(one) || !read.folders.includes(one),
+    );
     return folder === undefined ? undefined : { folder, reason: "change-open" };
   }
 }

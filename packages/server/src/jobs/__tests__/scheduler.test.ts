@@ -1149,3 +1149,67 @@ test.each([
 
   expect(run.created).toHaveLength(1);
 });
+
+/**
+ * Review 08, C3 (SC-003). Catches: a second run starting beside an open change: the change the last
+ * run's offer opened while the start read the workspace was in the job's runs but not in the open
+ * folders it had read, so the time was not skipped.
+ */
+test("a change opened during a start's workspace read is open for it", async () => {
+  const reads = { gate: undefined as Promise<void> | undefined, held: 0, target: Infinity };
+  const using = {
+    ...binding,
+    readWorkspace: async (repo: string) => {
+      reads.held += 1;
+      if (reads.held === reads.target) {
+        await reads.gate;
+      }
+      return atStep(binding, CHANGE, { name: "done", waitsOn: "none" }).readWorkspace(repo);
+    },
+  } as Binding;
+  const run = await setup(using);
+  const [{ name, path }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  await run.at("11T02:59:00");
+  await run.at("11T03:00:10");
+  const [first] = run.created;
+  await ends(run.server, first.id);
+  // An older run's change is merged: the next time reads the workspace, which lists nothing open.
+  const { cache } = run.server.sessions;
+  cache.attach(first.id, CHANGE);
+
+  const gate = Promise.withResolvers<void>();
+  reads.gate = gate.promise;
+  reads.held = 0;
+  reads.target = 2;
+  await run.at("12T02:59:00");
+  run.state.clock = new Date("2026-11-12T03:00:10");
+  await run.scheduler.tick();
+  while (reads.held < 2) {
+    await turns(1);
+  }
+  // The acceptance of the last run's offer ends meanwhile: its session is in a new change, which
+  // the read in flight does not list.
+  const opened = await run.server.sessions.newChat(path);
+  cache.jobs.add({
+    at: run.state.clock.getTime(),
+    due: 1,
+    job: "Dependencies",
+    outcome: "started",
+    reason: null,
+    repository: await run.server.sessions.mainRoot(path),
+    session: opened.id,
+    trigger: "schedule",
+  });
+  cache.attach(opened.id, "2026-11-12-opened-meanwhile");
+  gate.resolve();
+  await run.scheduler.settled();
+
+  expect((await run.history("Dependencies"))[0]).toMatchObject({
+    blockedBy: "2026-11-12-opened-meanwhile",
+    outcome: "skipped",
+    reason: "change-open",
+  });
+  expect(run.created.filter((row) => row.id !== opened.id)).toHaveLength(1);
+});

@@ -714,14 +714,16 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
   ([ruling R31](rulings.md)); a time a tick saw in time stays valid in the queue, however many
   minutes it waits ([rulings R14 and R17](rulings.md)). A start reads the workspace's open changes
   first, then the job, then the guards and the switch without awaiting, and starts
-  ([ruling R49](rulings.md)); the look for due times catches a failure per job and repository,
+  ([ruling R49](rulings.md)); a change a run of the job opened after that read counts as open
+  ([ruling R52](rulings.md)); the look for due times catches a failure per job and repository,
   prints it once, and goes on. Ticks never overlap: one asked while another runs joins it, as
   `serially` does in `catch-ups.ts`.
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there, an acceptance is opening its change, or the
-  run is impossible: no prompt, no name, or a name two jobs share, in the card's words; a schedule
-  that is not understood is not a reason ([ruling R23](rulings.md)). It is also refused where the
-  `jobs` extension is off, as for a repository the job does not name ([ruling R42](rulings.md)).
+  run is impossible: any problem of the job but its schedule, or a name two jobs share, in the
+  card's words; a schedule that is not understood is not a reason
+  ([rulings R23 and R50](rulings.md)). It is also refused where the `jobs` extension is off, as for
+  a repository the job does not name ([ruling R42](rulings.md)).
 - `nextRun` gives `nextAfter` for a job that will run, else why not, in the order of `NextRun`.
 - `startJobs` builds the scheduler on the server's settings, hosts, extensions, and binding, ticking
   every 30 seconds, with an unref'd timer, and each time `settings.onRead` fires, so a job written
