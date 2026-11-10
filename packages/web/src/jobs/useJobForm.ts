@@ -84,8 +84,12 @@ const newValues = (repository: string): Values => ({
   when: { day: 1, kind: "daily", raw: "", time: DEFAULT_TIME },
 });
 
+/** A time as the core reads it, two digits for the hour: "9:30" is "09:30". */
+const clock = (time: string) => time.trim().replace(/^(\d):/, "0$1:");
+
 /** The schedule's text, one of the data model's four forms. */
-function scheduleText({ day, kind, raw, time }: When): string {
+function scheduleText({ day, kind, raw, time: typed }: When): string {
+  const time = clock(typed);
   switch (kind) {
     case "":
       return raw;
@@ -127,7 +131,10 @@ function rowOf(refusal: string): Row | "button" {
   if (refusal.startsWith("A job runs in one")) {
     return "repositories";
   }
-  return refusal.startsWith("A time is") ? "schedule" : "button";
+  // The core's words for a schedule it cannot read, a fragment: "the schedule “daily 25:00” is ...".
+  return refusal.startsWith("A time is") || refusal.startsWith("the schedule")
+    ? "schedule"
+    : "button";
 }
 
 /** The text a line holds while it is typed in: not saved yet. */

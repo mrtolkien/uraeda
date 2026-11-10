@@ -2,10 +2,11 @@
 // accepted job and the latest name, queued while another save is in flight, never a whole stale job;
 // the controls move at once and a refusal puts them back; a draft is cleared by a save only when it
 // still holds the text sent. The saves are answered by hand, so no test waits for time.
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { NewJobPageView } from "../jobs/JobPage.tsx";
 import { atWidth, fieldText, type } from "./helpers.tsx";
-import { INPUT, open } from "./job-page-fixtures.tsx";
+import { around, common, INPUT, open } from "./job-page-fixtures.tsx";
 
 beforeEach(() => atWidth(1440));
 afterEach(() => {
@@ -102,4 +103,42 @@ test("a line typed after its Enter keeps its text when the first save is accepte
   await leave(field("Time"));
   await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
   expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "daily 04:45" }, "Dependencies");
+});
+
+test("a time typed without its first zero is sent with two digits", async () => {
+  const onSave = vi.fn(async (_input: unknown, _name: string) => undefined);
+  open(onSave);
+  await type(field("Time"), "9:30");
+  await leave(field("Time"));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(onSave).toHaveBeenLastCalledWith({ ...INPUT, schedule: "daily 09:30" }, "Dependencies");
+});
+
+test("a new job's time typed as 3:00 is added as 03:00", async () => {
+  const onSave = vi.fn(async (_input: unknown, _was: string) => undefined);
+  render(around(<NewJobPageView {...common} onSave={onSave} />));
+  await type(field("Name"), "Dependencies");
+  await type(field("Prompt"), "Upgrade.");
+  await type(field("Time"), "3:00");
+  fireEvent.click(screen.getByRole("button", { name: "Add the job" }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  const [sent] = onSave.mock.calls[0] ?? [];
+  expect((sent as { schedule: string }).schedule).toBe("daily 03:00");
+});
+
+test("a refusal that names the schedule shows under the schedule, not over the button", async () => {
+  const onSave = vi.fn(
+    async (_input: unknown, _was: string) => "the schedule “daily 25:00” is not understood",
+  );
+  render(around(<NewJobPageView {...common} onSave={onSave} />));
+  await type(field("Name"), "Dependencies");
+  await type(field("Prompt"), "Upgrade.");
+  fireEvent.click(screen.getByRole("button", { name: "Add the job" }));
+  const alert = await screen.findByRole("alert");
+  // The closest block holding the refusal and the time field is not the one holding the button.
+  let block = alert.parentElement as HTMLElement;
+  while (within(block).queryByRole("textbox", { name: "Time" }) === null) {
+    block = block.parentElement as HTMLElement;
+  }
+  expect(within(block).queryByRole("button", { name: "Add the job" })).toBeNull();
 });

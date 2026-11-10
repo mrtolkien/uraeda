@@ -1095,8 +1095,9 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
 - [x] **Step 1: Build the page from the mockup**
 
 - The form's rows are the mockup's: Name, Prompt, Schedule, Repositories, Agent, and Report only.
-  The schedule's control writes one of the data model's four forms. The agent's row opens the picker
-  a new session uses, and "Default" removes the job's three keys.
+  The schedule's control writes one of the data model's four forms, its time padded to two digits
+  for the hour ("9:30" is sent as "09:30"). The agent's row opens the picker a new session uses, and
+  "Default" removes the job's three keys.
 - An existing job saves each field as it is left, or on Enter for a line, through `update`. A
   refusal shows under its field, with the server's text, and the file keeps its value. The controls
   move at once and go back on a refusal, and a change made while a save is in flight is queued as a
@@ -1114,10 +1115,10 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
 - Built as: `JobPageView` and `NewJobPageView` take the job, the repositories, the agents on here,
   and their writes, so the stories and the tests draw them over fixed jobs; `JobPage` and
   `NewJobPage` read the `Jobs` record and send the writes. A rename moves the page to the new name's
-  address. A refusal of the core shows under its row by its words (a name, a repository, a time),
-  and a new job's other refusal over its button. On the phone the schedule's kind and day are
-  selectors, not segments ([ruling R25](rulings.md#r25-the-phones-schedule-is-two-selectors)). Its
-  tests are `__tests__/job-page.test.tsx`: the form over fixed jobs, with no server.
+  address. A refusal of the core shows under its row by its words (a name, a repository, a time, the
+  schedule), and a new job's other refusal over its button. On the phone the schedule's kind and day
+  are selectors, not segments ([ruling R25](rulings.md#r25-the-phones-schedule-is-two-selectors)).
+  Its tests are `__tests__/job-page.test.tsx`: the form over fixed jobs, with no server.
 
 - [x] **Step 2: Review it in the sandbox**
 
