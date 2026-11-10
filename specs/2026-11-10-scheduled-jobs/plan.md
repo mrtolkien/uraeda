@@ -1107,7 +1107,9 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
   session.
 - The history lists this repository's rows, newest first: each run's time, then its session's or its
   change's card, as the sidebar draws it, or the line of a skipped time, in the texts of the global
-  constraints. A run by "Run now" says so under its card.
+  constraints, or "Its session is gone." for a started run whose change and session are in neither
+  list (`jobs/runCards.ts` decides it before the card's element is made). A run by "Run now" says so
+  under its card.
 - A name that no job has reads as the app's page for a missing item.
 - Built as: `JobPageView` and `NewJobPageView` take the job, the repositories, the agents on here,
   and their writes, so the stories and the tests draw them over fixed jobs; `JobPage` and

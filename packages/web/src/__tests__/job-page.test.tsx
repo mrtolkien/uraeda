@@ -304,3 +304,12 @@ test("a skipped time names the change of the run before it, or says a change is 
     "Skipped: its last run still works.",
   );
 });
+
+test("a started run with no card says its session is gone", () => {
+  render(
+    around(
+      <JobHistory now={NOW} renderCard={() => null} runs={[{ ...RUN, title: null }]} zone={ZONE} />,
+    ),
+  );
+  expect(screen.getByText("Its session is gone.")).toBeTruthy();
+});

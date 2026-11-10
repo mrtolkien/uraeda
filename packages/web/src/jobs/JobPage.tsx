@@ -31,6 +31,7 @@ import { useNow } from "../useNow.ts";
 import { JobForm } from "./JobForm.tsx";
 import { JobHistory } from "./JobHistory.tsx";
 import { Refusal } from "./JobCard.tsx";
+import { runCardOf } from "./runCards.ts";
 import { useJobActions, useJobs } from "./useJobs.ts";
 
 /** What a page of the form needs besides its job: the time, the lists, and the agents on here. */
@@ -146,18 +147,29 @@ function useAround(zone: string): Around {
   };
 }
 
-/** A started run's card in the history: its change's, else its session's, as the sidebar draws it. */
-function RunCard({ run }: { run: JobRunView }) {
+/**
+ * A started run's card in the history: its change's, else its session's, as the sidebar draws it,
+ * or nothing once both are gone, which the history says in its own line.
+ */
+function useRunCards(): (run: JobRunView) => ReactNode {
   const { sessionList, workspace } = useNavigation();
   const pathname = useLocalPath();
   const rows = sessionList?.rows ?? [];
-  const row = run.session === null ? undefined : rows.find((one) => one.id === run.session);
-  const feature =
-    run.folder === null ? undefined : workspace?.features.find((one) => one.folder === run.folder);
-  if (feature !== undefined) {
-    return <FeatureCard feature={feature} pathname={pathname} row={rowOf(feature, rows) ?? row} />;
-  }
-  return row === undefined ? null : <SessionCard pathname={pathname} row={row} />;
+  return (run) => {
+    const target = runCardOf(run, rows, workspace?.features ?? []);
+    if (target === undefined) {
+      return null;
+    }
+    return target.feature === undefined ? (
+      <SessionCard pathname={pathname} row={target.row} />
+    ) : (
+      <FeatureCard
+        feature={target.feature}
+        pathname={pathname}
+        row={rowOf(target.feature, rows) ?? target.row}
+      />
+    );
+  };
 }
 
 /** The job's page of the name in the address, live. */
@@ -166,6 +178,7 @@ export function JobPage({ name }: { name: string }) {
   const actions = useJobActions();
   const here = useRepoPath();
   const around = useAround(record.timeZone);
+  const renderCard = useRunCards();
   return (
     <JobPageView
       {...around}
@@ -189,7 +202,7 @@ export function JobPage({ name }: { name: string }) {
       }}
       job={record.jobs.find((one) => one.name === name)}
       name={name}
-      renderCard={(run) => <RunCard run={run} />}
+      renderCard={renderCard}
     />
   );
 }
