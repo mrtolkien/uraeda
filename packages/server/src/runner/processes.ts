@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { OpenOptions } from "./adapter.ts";
+import { accountFor } from "./account-pick.ts";
+import type { Adapter, OpenOptions } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
 import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
 import { sessionRuntime } from "./runtimes.ts";
@@ -133,8 +134,11 @@ export class Processes {
       // The session's own runtime, never another: one unregistered or turned off since leaves it
       // read-only.
       const adapter = sessionRuntime(runtimes, row);
-      const resume = adapter.hasSession(row.nativeId);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
+      // A session picks its account once, at its first turn, and keeps it, listed or not: one with
+      // none ran before accounts, or with none listed, and stays on the server's own login.
+      const account = row.account ?? (await this.#pick(live, adapter, ran));
+      const resume = adapter.hasSession(row.nativeId, account ?? undefined);
       // A session that ran before has lost its transcript: Claude Code deletes old ones. A line
       // held from a replacement the process opened on is carried, resuming that new session.
       const replaced = !resume && ran;
@@ -149,6 +153,7 @@ export class Processes {
         cwd,
         nativeId,
         resume,
+        ...(account === null ? {} : { account }),
         skills: runtimes.skills(live.repo),
         ...(tools === undefined ? {} : { tools }),
         ...(allowed === undefined ? {} : { allowed }),
@@ -156,6 +161,7 @@ export class Processes {
         ...(row.effort === null ? {} : { effort: row.effort }),
       });
       const proc: Proc = {
+        account,
         adopts: !resume,
         agent,
         background: new Map(),
@@ -180,6 +186,19 @@ export class Processes {
       cache.releaseSession(live.id);
       throw error;
     }
+  }
+
+  /**
+   * The account a session without one starts on, stored before its process opens: the pick of its
+   * runtime's listed accounts, when no turn of it ever started. None when the runtime lists none.
+   */
+  async #pick(live: Live, adapter: Adapter, ran: boolean): Promise<string | null> {
+    if (ran || !adapter.accounts?.list().length) {
+      return null;
+    }
+    const account = await accountFor(adapter.accounts, adapter.name);
+    this.#context.cache.updateSession(live.id, { account });
+    return account;
   }
 
   /**

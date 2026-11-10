@@ -1,4 +1,6 @@
-import type { Account } from "./adapter.ts";
+import { RUNTIME_REFUSALS } from "../limits.ts";
+import type { Account, Accounts } from "./adapter.ts";
+import { refused } from "./session-state.ts";
 
 /** How old an account's usage may be, before it is asked again. */
 export const USAGE_MAX_AGE_MS = 60_000;
@@ -38,4 +40,26 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
         a.index - b.index,
     );
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");
+}
+
+/**
+ * The id of the account a new session starts on: asks the usage that is stale, waits at most
+ * `PICK_WAIT_MS` for the answers, then picks on what is known. Throws the refusal of a runtime with
+ * no signed-in account. Never settles later than the wait, even for an ask that never answers.
+ */
+export async function accountFor(accounts: Accounts, name: string): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wait = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, PICK_WAIT_MS);
+  });
+  try {
+    await Promise.race([accounts.refresh(USAGE_MAX_AGE_MS).catch(() => {}), wait]);
+  } finally {
+    clearTimeout(timer);
+  }
+  const picked = pickAccount(accounts.list());
+  if (!picked) {
+    throw refused(RUNTIME_REFUSALS.noAccount(name));
+  }
+  return picked.id;
 }

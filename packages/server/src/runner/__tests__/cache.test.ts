@@ -43,6 +43,7 @@ test("a session keeps its fields, and their updates", () => {
   const created = cache.createSession(feature);
 
   expect(created).toMatchObject({
+    account: null,
     agent: "claude",
     archivedAt: null,
     folder: FOLDER,
@@ -59,9 +60,14 @@ test("a session keeps its fields, and their updates", () => {
   expect(cache.latestSession("/repo/b", FOLDER)).toBeUndefined();
   expect(cache.session("nope")).toBeUndefined();
 
-  cache.updateSession(created.id, { nativeId: "9a9a", seenAt: "2026-10-13T10:00:00.000Z" });
+  cache.updateSession(created.id, {
+    account: "/home/u/.claude-b",
+    nativeId: "9a9a",
+    seenAt: "2026-10-13T10:00:00.000Z",
+  });
 
   expect(cache.session(created.id)).toMatchObject({
+    account: "/home/u/.claude-b",
     nativeId: "9a9a",
     seenAt: "2026-10-13T10:00:00.000Z",
     title: null,

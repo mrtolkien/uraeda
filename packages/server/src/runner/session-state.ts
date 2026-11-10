@@ -127,6 +127,8 @@ export type TurnEnd = { reason?: string; state: TurnState };
 
 /** A session's open process. */
 export type Proc = {
+  /** The account it runs on, by its runtime's ID: null when it runs on the server's own login. */
+  account: string | null;
   /**
    * Opened without resume, until its first `init`: the agent session ID that init reports is the
    * session's own, as Codex picks a thread's, not a `/clear`.
