@@ -440,3 +440,60 @@ test("a tick reads the repositories once", async () => {
   await run.at("11T12:00:30");
   expect(run.state.reads).toBe(1);
 });
+
+/**
+ * Review focus: a time started twice. A "Run now" that lands while a tick reads the workspace to see
+ * whether the last run's change is open is refused: the job's start is reserved before that read.
+ */
+test("a run by hand during a tick's workspace read is refused, and one run starts", async () => {
+  const hold: { enter?: () => void; gate?: Promise<void> } = {};
+  const merged: { done?: boolean } = {};
+  const using = {
+    ...binding,
+    readWorkspace: async (repo: string) => {
+      // Only the first read after the test arms the gate waits on it.
+      const gate = hold.gate;
+      hold.gate = undefined;
+      if (gate !== undefined) {
+        hold.enter?.();
+        await gate;
+      }
+      return (
+        merged.done ? atStep(binding, CHANGE, { name: "done", waitsOn: "none" }) : binding
+      ).readWorkspace(repo);
+    },
+  } as Binding;
+  const run = await setup(using);
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  await run.at("09T02:59:00");
+  await run.at("09T03:00:10");
+  const [first] = run.created;
+  await ends(run.server, first.id);
+  run.server.sessions.cache.attach(first.id, CHANGE);
+  merged.done = true;
+  await run.at("10T02:59:00");
+
+  // The tick of 03:00 waits on the workspace; a run by hand lands meanwhile.
+  const gate = Promise.withResolvers<void>();
+  const entry = Promise.withResolvers<void>();
+  hold.gate = gate.promise;
+  hold.enter = entry.resolve;
+  run.server.adapter.script([]);
+  run.state.clock = new Date("2026-11-10T03:00:10");
+  const ticking = run.scheduler.tick();
+  await entry.promise;
+  await expect(run.scheduler.runNow(name, "Dependencies")).rejects.toThrow(
+    "“Dependencies” still runs here.",
+  );
+  gate.resolve();
+  await ticking;
+  expect(run.created).toHaveLength(2);
+  expect(await run.sessions("Dependencies")).toHaveLength(2);
+  // The start ended: a run by hand is allowed once the run stops.
+  await ends(run.server, run.created[1].id);
+  run.server.adapter.script([]);
+  await run.scheduler.runNow(name, "Dependencies");
+  expect(run.created).toHaveLength(3);
+});

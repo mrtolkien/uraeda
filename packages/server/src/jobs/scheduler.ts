@@ -99,7 +99,7 @@ type Options = {
   wait?: (ms: number) => Promise<void>;
 };
 
-/** The key of a job in a repository, by its name or its main checkout. */
+/** The key of a job in a repository, both by name. */
 const keyOf = (job: string, repository: string) => `${job}\0${repository}`;
 
 class JobScheduler implements Scheduler {
@@ -111,7 +111,7 @@ class JobScheduler implements Scheduler {
   readonly #stop = new AbortController();
   // When this scheduler first saw each job on in each repository, in ms (R2).
   readonly #seen = new Map<string, number>();
-  // The job and repository whose run starts now: a time and a run by hand never start two.
+  // The job and repository (by its name) whose run starts now: a time and a run by hand never start two.
   readonly #starting = new Set<string>();
   readonly #printed = new Set<string>();
   readonly #flying = new Set<Promise<unknown>>();
@@ -238,38 +238,43 @@ class JobScheduler implements Scheduler {
     root: string,
   ): Promise<JobRunRow["reason"] | undefined> {
     const last = ctx.sessions.cache.jobs.latestStarted(job.name, root);
-    if (this.#starting.has(keyOf(job.name, root)) || (last?.session && works(ctx, last.session))) {
+    if (last?.session && works(ctx, last.session)) {
       return "working";
     }
     return last?.session && (await changeOpen(ctx, last.session)) ? "change-open" : undefined;
   }
 
-  /** Starts, or skips, one due time. Returns whether it started a session. */
+  /**
+   * Starts, or skips, one due time. Returns whether it started a session. The job's start in the
+   * repository is reserved before anything is awaited, and held until it ends: a run by hand, or
+   * the same time asked twice, finds it taken.
+   */
   async #run({ due, job, repo }: Due): Promise<boolean> {
-    const ctx = this.#options.context(repo.path);
-    const root = await ctx.sessions.mainRoot(repo.path);
-    const runs = ctx.sessions.cache.jobs;
-    // Read first: a time recorded already is nobody's to start or skip again.
-    if (runs.recorded(job.name, root, due)) {
-      return false;
-    }
-    const reason = await this.#skipOf(ctx, job, root);
-    if (reason !== undefined) {
-      runs.add({
-        at: this.#now().getTime(),
-        due,
-        job: job.name,
-        outcome: "skipped",
-        reason,
-        repository: root,
-        session: null,
-        trigger: "schedule",
-      });
-      return false;
-    }
-    const key = keyOf(job.name, root);
+    const key = keyOf(job.name, repo.name);
+    const taken = this.#starting.has(key);
     this.#starting.add(key);
     try {
+      const ctx = this.#options.context(repo.path);
+      const root = await ctx.sessions.mainRoot(repo.path);
+      const runs = ctx.sessions.cache.jobs;
+      // Read first: a time recorded already is nobody's to start or skip again.
+      if (runs.recorded(job.name, root, due)) {
+        return false;
+      }
+      const reason = taken ? "working" : await this.#skipOf(ctx, job, root);
+      if (reason !== undefined) {
+        runs.add({
+          at: this.#now().getTime(),
+          due,
+          job: job.name,
+          outcome: "skipped",
+          reason,
+          repository: root,
+          session: null,
+          trigger: "schedule",
+        });
+        return false;
+      }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
       return (await startRun(ctx, job, run)) !== undefined;
     } catch (error) {
@@ -277,7 +282,10 @@ class JobScheduler implements Scheduler {
       this.#print(`${key}\0${due}`, why);
       return false;
     } finally {
-      this.#starting.delete(key);
+      // The reservation of another start, which this one found, is that start's to release.
+      if (!taken) {
+        this.#starting.delete(key);
+      }
     }
   }
 
@@ -322,7 +330,7 @@ class JobScheduler implements Scheduler {
     const ctx = this.#options.context(repo.path);
     const root = await ctx.sessions.mainRoot(repo.path);
     const last = ctx.sessions.cache.jobs.latestStarted(name, root);
-    const key = keyOf(name, root);
+    const key = keyOf(name, repository);
     if (this.#stopped || this.#starting.has(key) || (last?.session && works(ctx, last.session))) {
       throw refused(`“${name}” still runs here.`);
     }
