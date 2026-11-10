@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { accountFor } from "./account-pick.ts";
 import type { Adapter, OpenOptions } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
+import { hasStartedTurn } from "./cache-turns.ts";
 import type { AgentEvent, TokenCounts, UsageWindow } from "./events.ts";
 import { sessionRuntime } from "./runtimes.ts";
 import {
@@ -134,7 +135,7 @@ export class Processes {
       // The session's own runtime, never another: one unregistered or turned off since leaves it
       // read-only.
       const adapter = sessionRuntime(runtimes, row);
-      const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
+      const ran = hasStartedTurn(cache.db, live.id);
       // A session picks its account until a turn of it starts, and keeps the account from then on,
       // listed or not: one that ran with none ran before accounts, or with none listed, and stays
       // on the server's own login. A first turn that never started, taken back or failed to open,
