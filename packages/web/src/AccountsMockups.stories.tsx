@@ -1,4 +1,4 @@
-// The mockups of several Claude Code accounts (`specs/2026-11-10-multi-accounts/spec.md`): the
+// The mockups of several Claude Code accounts (`specs/done/2026-11-10-multi-accounts.md`): the
 // usage of each account on Home, with its week, and in the sidebar, its five hours alone, an
 // account signed out, an account whose week is used up, and a session's header naming its account.
 // The stories render the real components over fixed records, with no server.

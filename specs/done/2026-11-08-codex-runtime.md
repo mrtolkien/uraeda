@@ -4,7 +4,7 @@ finished: 2026-11-09
 pull-request: https://github.com/mrtolkien/uraeda/pull/114
 supersedes:
   - 2026-11-08-extensions-system
-superseded-by: [2026-11-08-run-options]
+superseded-by: [2026-11-08-run-options, 2026-11-10-multi-accounts]
 ---
 
 # Record: Codex runtime + model settings
@@ -16,6 +16,8 @@ superseded-by: [2026-11-08-run-options]
 > are in git: `git log -- specs/2026-11-08-codex-runtime/`.
 >
 > Superseded in part by [2026-11-08-run-options](2026-11-08-run-options.md).
+>
+> Superseded in part by [2026-11-10-multi-accounts](2026-11-10-multi-accounts.md).
 
 ## What and why
 
