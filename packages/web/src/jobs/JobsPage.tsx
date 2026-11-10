@@ -16,7 +16,7 @@ import { Page } from "../layout/Page.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import type { BarAction } from "../lists/RowBar.tsx";
 import { useListKeys } from "../lists/useListKeys.ts";
-import { currentEntry, navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
+import { currentEntry, jobPath, navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { stepOf } from "../sidebar/cards.ts";
 import { statusLabel } from "../wait.ts";
@@ -28,9 +28,6 @@ import { useJobActions, useJobs } from "./useJobs.ts";
 const styles = stylex.create({
   list: { listStyleType: "none", margin: 0, padding: 0 },
 });
-
-/** The job's page, which its name and Enter open: a path within the repository. */
-export const jobPath = (name: string) => `/jobs/${encodeURIComponent(name)}`;
 
 /** The path of a new job's page, which `a` opens. */
 export const NEW_JOB_PATH = "/jobs/new";

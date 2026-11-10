@@ -376,8 +376,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   measured. A link above the title was 24 px high on the phone, short of the 44 px every target has
   there, and the list is one tap away in the app's own navigation.
 - **If wrong**: a human who wants the segments on the phone gets them from a wrapping control that
-  Astryx does not offer today. A job named "new" cannot be opened: its page's address is the new
-  job's, `/jobs/new`; it stays in the list and in `config.toml`.
+  Astryx does not offer today. A job named "new" opens by the address of
+  [R29](#r29-a-jobs-address-carries-any-name).
 - **Where**: task 8.
 
 ## R26: The card's times read in the server's time zone
@@ -432,3 +432,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   its last run, and read "Never ran" with its session no longer read.
 - **If wrong**: none known; one more small view per job in each read of the record.
 - **Where**: tasks 6 and 7.
+
+## R29: A job's address carries any name
+
+- **Decision**: a job's page is `/jobs/<name>` with the name encoded (`encodeURIComponent`), and
+  `/jobs/~<name>` for a name the plain form cannot carry: `new`, which is the new job's page, `.`
+  and `..`, which the browser normalises away, and a name that starts with `~`. `jobPath` (in
+  `routeTable.ts`) builds it, `parseRoute` reads it, so a name written by hand opens its page. The
+  core is not asked to refuse those names. This replaces R25's note that a job named "new" cannot be
+  opened.
+- **Rationale**: the core accepts any non-empty name, and `config.toml` is written by hand: a card
+  whose link went to the add form, or to the Jobs list, was a job that could not be opened or edited
+  from the web UI.
+- **Alternatives considered**: the core refusing those names on write and reporting them as a
+  problem on read: it limits what a human may write, and a name such as `a/b` is harmless once
+  encoded.
+- **If wrong**: a link typed as `/jobs/~new` by a human who meant a job named `~new` opens `new`.
+- **Where**: tasks 7 and 8.

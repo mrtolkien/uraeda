@@ -14,7 +14,14 @@ import { Page } from "../layout/Page.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { TopBarSlot } from "../layout/TopBarSlot.tsx";
-import { navigate, sessionIdPath, useLocalPath, useRepoPath, useRepository } from "../routes.tsx";
+import {
+  jobPath,
+  navigate,
+  sessionIdPath,
+  useLocalPath,
+  useRepoPath,
+  useRepository,
+} from "../routes.tsx";
 import { useRuntimesOn } from "../runtimes.ts";
 import { useNavigation } from "../sessionData.ts";
 import { type PickerRuntime, pickerRuntimes } from "../SessionPicker.tsx";
@@ -24,7 +31,6 @@ import { useNow } from "../useNow.ts";
 import { JobForm } from "./JobForm.tsx";
 import { JobHistory } from "./JobHistory.tsx";
 import { Refusal } from "./JobCard.tsx";
-import { jobPath } from "./JobsPage.tsx";
 import { useJobActions, useJobs } from "./useJobs.ts";
 
 /** What a page of the form needs besides its job: the time, the lists, and the agents on here. */

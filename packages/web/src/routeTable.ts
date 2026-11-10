@@ -105,7 +105,11 @@ export function parseRoute(pathname: string, search = ""): Route {
     if (parts.length === 1) {
       return { page: "jobs" };
     }
-    return parts[1] === "new" ? { page: "job-new" } : { name: parts[1], page: "job" };
+    if (parts[1] === "new") {
+      return { page: "job-new" };
+    }
+    // The `~` that jobPath puts before a name the plain form cannot carry.
+    return { name: parts[1].startsWith("~") ? parts[1].slice(1) : parts[1], page: "job" };
   }
   if (parts[0] === "sessions" && parts.length === 1) {
     return { page: "sessions" };
@@ -158,6 +162,15 @@ export function parseRoute(pathname: string, search = ""): Route {
     return { page: "buffer", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
+}
+
+/**
+ * A job's page, by its name: the name encoded, with a `~` before it when it would be another page
+ * (`new`, the new job's), a dot segment the browser would normalise away, or itself start with `~`.
+ */
+export function jobPath(name: string): string {
+  const plain = name !== "new" && name !== "." && name !== ".." && !name.startsWith("~");
+  return `/jobs/${plain ? "" : "~"}${encodeURIComponent(name)}`;
 }
 
 /** A session's page, by its id. */

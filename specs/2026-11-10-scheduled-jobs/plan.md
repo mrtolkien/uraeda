@@ -1017,7 +1017,7 @@ export function useJobActions(): {
 // jobs/words.ts
 export function scheduleWords(schedule: Schedule): string; // "Every day at 3:00", "Every Monday at 4:00", "Weekdays at 5:00", "Every hour"
 export function whenWords(at: Date, now: Date, timeZone: string): string; // "Today at 3:00", "Tomorrow at 3:00", "Monday 16 November at 4:00", in the server's zone (R26)
-// The place: id "jobs", path "/jobs", key "j", goKey "j", phoneTab "more"; a job's page at "/jobs/<name>", a new one at "/jobs/new".
+// The place: id "jobs", path "/jobs", key "j", goKey "j", phoneTab "more"; a job's page at "/jobs/<name>" (any name, encoded, R29), a new one at "/jobs/new".
 ```
 
 - [x] **Step 1: Build the place from the mockup**
