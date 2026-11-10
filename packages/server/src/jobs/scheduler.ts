@@ -298,10 +298,11 @@ class JobScheduler implements Scheduler {
 
   /**
    * The job as it is now, when its queued time still holds: the switch is on, the job exists, is on,
-   * has no problem, runs the same schedule in the repository, its extension and agent are on there,
-   * and the time is not past its 5 minutes. `undefined` drops the time, recording nothing.
+   * has no problem, runs the same schedule in the repository, and its extension and agent are on
+   * there. The time's own age is not read: a tick saw it in time, and the queue's minutes do not
+   * make it missed (R17). `undefined` drops the time, recording nothing.
    */
-  async #fresh({ due, job, repo }: Due): Promise<Job | undefined> {
+  async #fresh({ job, repo }: Due): Promise<Job | undefined> {
     if (!this.#on()) {
       return undefined;
     }
@@ -315,8 +316,7 @@ class JobScheduler implements Scheduler {
       place === undefined ||
       place.repo.path !== repo.path ||
       !place.agent.available ||
-      JSON.stringify(place.schedule) !== JSON.stringify(job.schedule) ||
-      this.#now().getTime() - due > MISSED_AFTER_MS
+      JSON.stringify(place.schedule) !== JSON.stringify(job.schedule)
     ) {
       return undefined;
     }
@@ -336,6 +336,17 @@ class JobScheduler implements Scheduler {
     }
     // Any run of the job that started a change still open, not only the latest run.
     return (await anyOpen(ctx, jobs.changeFolders(job.name, root))) ? "change-open" : undefined;
+  }
+
+  /**
+   * Waits the minute between two starts. Returns whether the clock jumped meanwhile, which the
+   * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so the times
+   * still queued are hours old and are dropped, recording nothing (R17).
+   */
+  async #waited(): Promise<boolean> {
+    const before = this.#now().getTime();
+    await this.#wait(APART_MS);
+    return this.#now().getTime() - before > APART_MS + MISSED_AFTER_MS;
   }
 
   /**
@@ -370,8 +381,8 @@ class JobScheduler implements Scheduler {
         return false;
       }
       // A start comes a minute after the one before it, and the job may have changed meanwhile.
-      if (spaced) {
-        await this.#wait(APART_MS);
+      if (spaced && (await this.#waited())) {
+        return false;
       }
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {

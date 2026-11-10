@@ -71,6 +71,8 @@ async function setup(using: Binding = binding) {
     enabled: true,
     extensionOff: new Set<string>(),
     jobs: { jobs: [] } as Jobs,
+    /** Whether each wait moves the clock by its length, as a real minute does. */
+    advance: false,
     /** What the minute between two runs waits on: none, for the waits to end at once. */
     gate: undefined as Promise<void> | undefined,
     reads: 0,
@@ -105,6 +107,9 @@ async function setup(using: Binding = binding) {
       ...(waits && {
         wait: async (ms: number) => {
           state.waits.push(ms);
+          if (state.advance) {
+            state.clock = new Date(state.clock.getTime() + ms);
+          }
           await state.gate;
         },
       }),
@@ -702,8 +707,9 @@ test("a queued time is checked again after its minute, and dropped when it no lo
     "the switch off": (run) => {
       run.state.enabled = false;
     },
-    "the time past its 5 minutes": (run) => {
-      run.state.clock = new Date("2026-11-11T03:06:00");
+    // The machine slept during the wait: the clock jumped far past the wait's own length (R17).
+    "the clock jumped during the wait": (run) => {
+      run.state.clock = new Date("2026-11-11T03:20:00");
     },
   } as Record<string, (run: Run) => void>);
   for (const [what, change] of dropped) {
@@ -720,6 +726,30 @@ test("a queued time is checked again after its minute, and dropped when it no lo
   expect(edited.run.created).toHaveLength(2);
   const second = (await edited.run.sessions("Hourly", edited.notes.path))[0];
   expect(opening(edited.run.server, second).message.text.startsWith("A new prompt.")).toBe(true);
+});
+
+/**
+ * US2 1; R17. Catches: the minute between starts, with the 5 minutes of a time, silently dropping the
+ * sixth and later runs due together, every time, with no row: a time the tick saw in time stays
+ * valid in the queue.
+ */
+test("times due together are all started, however many minutes the queue takes", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  const jobs = ["J1", "J2", "J3", "J4", "J5", "J6", "J7"];
+  run.state.jobs = { jobs: jobs.map((one) => job(one, [name], hourly)) };
+  run.state.advance = true;
+  await run.at("11T02:59:00");
+  await run.at("11T03:00:10");
+  for (const one of jobs) {
+    expect(await run.sessions(one), one).toHaveLength(1);
+  }
+  expect(run.state.waits).toEqual(jobs.slice(1).map(() => MINUTE));
+  // The seventh started 6 minutes after its time was seen: more than 5 minutes past its time.
+  expect(run.state.clock.getTime() - new Date("2026-11-11T03:00:00").getTime()).toBeGreaterThan(
+    5 * MINUTE,
+  );
 });
 
 /**

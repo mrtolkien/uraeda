@@ -691,8 +691,10 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
 - A tick only queues the times due, none twice, and the queue starts them one after another: the
   first at once, each next after `wait(60_000)` from the last start, while the ticks go on; a time
   skipped or recorded waits for nothing. Right before a start the job is read again, and the time is
-  dropped, recording nothing, when it no longer holds ([ruling R14](rulings.md)). Ticks never
-  overlap: one asked while another runs joins it, as `serially` does in `catch-ups.ts`.
+  dropped, recording nothing, when it no longer holds, or when the clock jumped during the minute's
+  wait, as the machine sleeping does; a time a tick saw in time stays valid in the queue, however
+  many minutes it waits ([rulings R14 and R17](rulings.md)). Ticks never overlap: one asked while
+  another runs joins it, as `serially` does in `catch-ups.ts`.
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there.
 - `nextRun` gives `nextAfter` for a job that will run, else why not, in the order of `NextRun`.

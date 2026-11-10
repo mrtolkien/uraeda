@@ -178,11 +178,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   while the ticks go on. A time skipped or already recorded waits for nothing. `Scheduler.tick()`
   resolves once the times are queued, and `settled()` once the queue is empty. (3) Right before each
   start the job is read again: it must exist, be on, have no problem, keep its schedule, be in the
-  repository with its extension and its agent on and available, the switch on, and its time at most
-  5 minutes past; otherwise the time is dropped and records nothing, as a missed one. The run starts
-  with the job as it reads then. (4) The moment the server first saw a job in a repository belongs
-  to the schedule it was seen with: an edited schedule is a job added (R2). (5) `startRun` removes a
-  chat whose send failed through the session manager, which reports it to the clients.
+  repository with its extension and its agent on and available, and the switch on, and the clock
+  must not have jumped ([R17](#r17-a-queued-time-seen-in-time-stays-valid-until-the-clock-jumps),
+  which replaces this rule's 5 minutes); otherwise the time is dropped and records nothing, as a
+  missed one. The run starts with the job as it reads then. (4) The moment the server first saw a
+  job in a repository belongs to the schedule it was seen with: an edited schedule is a job added
+  (R2). (5) `startRun` removes a chat whose send failed through the session manager, which reports
+  it to the clients.
 - **Rationale**: (1) the open-change check awaits a workspace read, and the check and the key were
   apart; (2) the waits were inside the serialised tick, so times that fell due meanwhile were seen
   after their 5 minutes, and a minute was waited even before a skip; (3) a pause, a deletion, an
@@ -235,3 +237,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: (1) a skipped time after the last run would show on the card, if the owner reads the
   latest row. (4) task 8's routes draw their page where `RoutePage` draws `Nothing` now.
 - **Where**: task 7.
+
+## R17: A queued time seen in time stays valid until the clock jumps
+
+- **Decision**: a time a tick saw within its 5 minutes stays valid in the queue, however long the
+  minutes between starts make it wait. A queued item is dropped as missed, recording nothing, only
+  when the clock jumped during its wait: the wait took more than `MISSED_AFTER_MS` beyond its own
+  length (a minute), by the scheduler's injected clock, which is what the machine sleeping does.
+  This replaces the 5-minute check of
+  [R14](#r14-a-jobs-start-is-one-exclusion-and-a-queued-time-is-checked-again) (3), made right
+  before each start.
+- **Rationale**: runs due together start a minute apart, so the sixth and every later one of them
+  reached the check more than 5 minutes past its time and was dropped, every time, with no row,
+  although the spec says a time is missed only when more than 5 minutes past when the server sees
+  it. The reason of R14 (3), a machine that sleeps during a wait must not start hours-old times, is
+  kept by reading the clock around the wait.
+- **If wrong**: a sleep shorter than 6 minutes inside a wait starts the queue's times late, up to 6
+  minutes after the time was seen.
+- **Where**: task 4.
