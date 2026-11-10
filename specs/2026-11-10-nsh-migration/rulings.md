@@ -468,3 +468,53 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   parts export was not checked. A part whose names say too little alone drops `flat`, and is
   imported as its object.
 - **Where**: task 21, `crates/app/src/{lib,native,about}.rs`. Tasks 26, 30, 31, 34, 36, and 50.
+
+## R31: The Vim layer follows Neovim, reads lines, and leaves undo and the clipboard to its caller
+
+- **Decision**: `crates/vim/` is Vim's keys over a text it reads and never holds.
+  - **Neovim's defaults, where Vim and Neovim differ**: `Y` yanks to the line's end; a line opened
+    by `o`, `O`, `cc`, or `S` keeps its line's indent, and loses it when left empty; after `dd`,
+    `>>`, or `<<` the caret keeps its column. One indent is two blanks, and a tab is eight cells.
+  - **The text is read line by line**, through the trait `Text` (`line_count`, `line`), and a
+    position is a line and a column in UTF-16 code units: NSH's `EditorPosition`, so the bridge
+    converts nothing. The only key that copies the whole text is a tag object, `it` or `at`.
+  - **A key returns one replacement at most**, `Edit::Replace`, a range of the text as it was, then
+    the selection in the text after it. A counted command, and a change `.` plays again with what it
+    typed, are one replacement, so one step of the editor's undo.
+  - **Undo is the editor's**: `u` and `Ctrl-r` return `Edit::Undo` and `Edit::Redo`, and the caller
+    then calls `Vim::sync`. The editor types in insert mode, so what was typed is undone in the
+    editor's steps, which NSH's documentation says are words, where Vim takes back a whole insert.
+  - **The clipboard is the caller's**: a yank with no register, or to `"+`, returns
+    `Edit::Clipboard(text)`; a delete never does. `"+p` returns `Edit::ReadClipboard`, and the put
+    happens when `Vim::clipboard(text, view)` brings the text, since NSH reads the clipboard
+    asynchronously. `p` puts Vim's own register, as the human ruled for the earlier Vim mode.
+  - **`Edit::Pass` leaves a key to the field**: every key but Escape in insert mode, and Escape and
+    Enter in normal mode with nothing pending.
+  - **`Mode::Replace` is `r` waiting for its character**, as Vim itself pretends. `R` is not in the
+    subset, nor are `i)`, `ib`, and the other names of the bracket objects.
+  - **A search is the text as typed**, with no pattern language, and it respects case.
+- **Rationale**: the text-editing decision's reason is that the human edits in Neovim everywhere
+  else. NSH's editor keeps a rope and speaks positions, so lines and positions cross without a copy
+  of a long text or a conversion. Its `edit(edits)` is one step of undo, and it has no call to group
+  steps, so the layer cannot make an insert one step.
+- **How it was checked**: each of the 266 rows of `cases.toml` was run in Neovim 0.12.6
+  (`nvim --clean --headless`, an indent of two blanks), except the 8 rows that name the system
+  clipboard, which would write the machine's. 249 rows give the same text and caret. The 9 rows that
+  end in another mode, or half typed, were ended with Escape and give the same text. About 10,000
+  random key sequences were then run through both: in the last rounds under 1 in 100 differed, in
+  the kinds listed under "If wrong", though not each of those was traced. Neovim is not in the dev
+  shell, so the comparison is not a test of the repository.
+- **If wrong**: known differences from Neovim, none in a row of the table.
+  - A command that fails leaves the caret where it is, where Neovim sometimes moves it first.
+  - `>$` leaves the caret in its column, not at the line's end.
+  - A count before `%`, `v`, or `V` is ignored, and `v` between an operator and its motion cancels
+    the operator.
+  - In visual mode, `i"` and `a"` select the string and do not extend the selection.
+  - A word is letters, digits, and `_`; an emoji is punctuation, where Neovim gives it a class of
+    its own.
+  - `p` in visual mode with an empty register deletes the selection, as Neovim does, but `.` and the
+    caret after it differ.
+  - An insert undone in several steps: the layer could keep its own history instead, at the cost of
+    going wrong when the text changes outside it.
+- **Where**: task 22, `crates/vim/`. Task 30 bridges it to NSH's editor: `Replace` is
+  `EditorApi::edit`, `Select` is `set_selections`, `Undo` and `Redo` are `run`.

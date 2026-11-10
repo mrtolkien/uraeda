@@ -1004,17 +1004,39 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/vim/src/{lib,state,motion,operator,object,register,search}.rs`
+- Create: `crates/vim/src/`, one small module per part: `lib` (the public types), `state` (the state
+  between keys, and the layer's doors), `command` (the keys of a command, and `SUBSET`), `key`,
+  `text` (lines, positions, one replacement), `walk` and `word` (Vim's word motions), `motion`,
+  `pair` (brackets), `object`, `tag`, `select` (objects in visual mode), `operator`, `edit`
+  (`J ~ r p P`), `insert`, `visual`, `register`, `search`, `repeat` (`.`), `out` (a key's edits)
 - Test: `crates/vim/tests/keys.rs`, `crates/vim/tests/cases.toml`
 
 **Interfaces:**
 
-- Produces:
+- Produces, as built
+  ([ruling R27](rulings.md#r27-the-vim-layer-follows-neovim-reads-lines-and-leaves-undo-and-the-clipboard-to-its-caller)):
   - `struct Vim`, `Vim::key(&mut self, key: Key, text: &TextView) -> Vec<Edit>`, pure: it reads a
-    text and a selection, and returns edits and selection changes. It never touches an editor.
-  - `enum Mode { Normal, Insert, Visual, VisualLine, Replace, OperatorPending }`, and
-    `Vim::status(&self) -> Status` for the status line.
-  - The subset, which the text-editing decision names:
+    text and a selection, and returns edits and selection changes. It never touches an editor. One
+    `Vim` serves every field, with `Vim::reset()` when the focus moves.
+  - `enum Key { Char(char), Escape, Enter, Backspace, Ctrl(char) }`, and `keys("d2w<Esc>")` for
+    Vim's notation.
+  - `struct TextView<'a> { text: &'a dyn Text, anchor: Position, head: Position }`. `trait Text` is
+    `line_count()` and `line(index) -> Cow<str>`, so a rope gives its lines without a copy, and
+    `Lines::new(&str)` is a `Text` for a caller that has one string. `Position { line, column }`
+    counts the column in UTF-16 code units, as NSH's `EditorPosition`.
+  - `enum Edit { Replace { start, end, text }, Select { anchor, head }, Undo, Redo, Clipboard(String), ReadClipboard, Pass }`.
+    A call returns one `Replace` at most, a range of the text as it was, then `Select` in the text
+    after it: one transaction, one step of undo. `Undo` and `Redo` are the editor's own, followed by
+    `Vim::sync(&TextView)`. `Clipboard` is a text to write to the system clipboard, `ReadClipboard`
+    a request answered with `Vim::clipboard(&str, &TextView) -> Vec<Edit>`. `Pass` leaves the key to
+    the field: every key but Escape in insert mode, which the editor types, and Escape and Enter in
+    normal mode.
+  - `Vim::sync(&mut self, text: &TextView) -> Vec<Edit>`, for a selection or a text changed outside
+    the layer: a selection made with the pointer becomes visual mode.
+  - `enum Mode { Normal, Insert, Visual, VisualLine, Replace, OperatorPending }` with
+    `Mode::label()`, and `Vim::status(&self) -> Status { mode, pending }` for the status line.
+    `Replace` is `r` waiting for its character.
+  - The subset, which the text-editing decision names, as the constant `SUBSET`:
     - motions `h j k l w b e W B E 0 ^ $ gg G f F t T ; , % { }`, with counts;
     - operators `d c y > <`, doubled for a line, with `D C Y x X s S r J ~ p P`;
     - text objects `iw aw iW aW ip ap i" a" i' a' i( a( i[ a[ i{ a{ it at` and their backtick form;
@@ -1023,17 +1045,20 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
     - `/ ? n N * #`, `.`, `u` and `Ctrl-r`, `i a I A o O`.
   - Out for now: Ex commands, macros, marks, block visual.
 
-- [ ] **Step 1: Write the failing tests**: `cases.toml` holds one row per behaviour, as text before,
+- [x] **Step 1: Write the failing tests**: `cases.toml` holds one row per behaviour, as text before,
       keys, and text after, with `|` for the caret. `every case gives its text` runs them all. Write
       at least one row per item of the subset, and the rows `d2w deletes two words`,
       `2dw deletes     two words`, and `a yank reaches the system clipboard`. The break each row
-      catches is its own behaviour.
-- [ ] **Step 2: Run them**. Expected: FAIL, `Vim` not found.
-- [ ] **Step 3: Implement.** Start from the spike's `src/vim.rs`, which already handles counts
+      catches is its own behaviour. `every key of the subset has a case` and
+      `a key outside the subset does nothing` hold the table and `SUBSET` together.
+- [x] **Step 2: Run them**. Expected: FAIL, `Vim` not found.
+- [x] **Step 3: Implement.** Start from the spike's `src/vim.rs`, which already handles counts
       before and after an operator. A count repeats the motion, then the operator runs once, so one
-      undo step undoes it.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the Vim layer`.
+      undo step undoes it. The spike gave editor commands and read no text; the layer reads the
+      text, so its motions and objects are Vim's own, ported from Neovim's source where they are
+      subtle.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the Vim layer`.
 
 ## Task 23: The client store
 
