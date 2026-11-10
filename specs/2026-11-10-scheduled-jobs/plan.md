@@ -552,6 +552,10 @@ git commit -m "feat(scheduled-jobs): the schedule's times, the record of runs, a
 
 - Create: `packages/server/src/jobs/scheduler.ts`, `packages/server/src/jobs/run.ts`,
   `packages/server/src/jobs/start.ts`
+- Created by the final review's fixes, the scheduler's file split: `options.ts` (what
+  `startScheduler` takes), `starts.ts` (`Starts`, the one owner of the reservation of a start, the
+  busy jobs, and the skip's reason), `next-run.ts` (`nextRun`), and `run-now.ts` (the run by hand),
+  which use no queue
 - Create also: `packages/server/src/serially.ts`, the catcher's `serially` moved out of
   `catch-ups.ts` so the scheduler's ticks join as its runs do ([ruling R11](rulings.md))
 - Modify: `packages/server/src/runner/send-input.ts` (`SendInput`),

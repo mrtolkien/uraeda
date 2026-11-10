@@ -5,26 +5,23 @@
 import type { Job, Jobs } from "uraeda-binding";
 import type { RepoContext } from "../fate/context.ts";
 import { reasonOf } from "../reason.ts";
-import type { JobRunRow } from "../runner/cache-jobs.ts";
-import { refused } from "../runner/session-state.ts";
 import { type Runs, serially } from "../serially.ts";
-import { Busy } from "./busy.ts";
-import { agentOf, openFolders, works } from "./guards.ts";
-import { impossible } from "./problem.ts";
+import { agentOf } from "./guards.ts";
+import { type NextRun, nextRun } from "./next-run.ts";
+import type { Options } from "./options.ts";
+import { runNow } from "./run-now.ts";
 import { startRun } from "./run.ts";
 import { sleep } from "./sleep.ts";
-import { dueAt, MISSED_AFTER_MS, nextAfter } from "./times.ts";
+import { keyOf, type Skipped, Starts } from "./starts.ts";
+import { dueAt, MISSED_AFTER_MS } from "./times.ts";
+
+export type { NextRun } from "./next-run.ts";
 
 /** The scheduler looks every 30 seconds. */
 const TICK_MS = 30_000;
 
 /** Runs due together start a minute apart. */
 const APART_MS = 60_000;
-
-/** When a job runs next in a repository, or why it does not. */
-export type NextRun =
-  | { at: Date }
-  | { why: "agent-off" | "change-open" | "off" | "paused" | "problem" };
 
 /** The scheduler's triggers, and its stop. */
 export type Scheduler = {
@@ -46,39 +43,15 @@ export type Scheduler = {
   tick(): Promise<void>;
 };
 
-/** Why a time is skipped. */
-type Skipped = NonNullable<JobRunRow["reason"]>;
-
 /** A time due in a repository, to start. */
 type Due = { due: number; job: Job; repo: { name: string; path: string } };
-
-/** What `startScheduler` takes: see it. */
-type Options = {
-  /** The jobs an acceptance holds busy: a time skips them as working. Its own when left out. */
-  busy?: Busy;
-  context: (repo: string) => RepoContext;
-  /** The switch for all jobs. */
-  enabled: () => boolean;
-  /** Ms between ticks, 30 seconds by default; null: the test ticks. */
-  every?: number | null;
-  /** Whether the `jobs` extension is on in the repository of this name. */
-  isOn: (repository: string) => boolean;
-  jobs: () => Promise<Jobs>;
-  now?: () => Date;
-  repos: () => Array<{ name: string; path: string }>;
-  /** The minute between runs. */
-  wait?: (ms: number) => Promise<void>;
-};
 
 /** The key of a time queued: a job in a repository, and the time. */
 const queuedKey = ({ due, job, repo }: Due) => `${job.name}\0${repo.name}\0${due}`;
 
-/** The key of a job in a repository, both by name. */
-const keyOf = (job: string, repository: string) => `${job}\0${repository}`;
-
 class JobScheduler implements Scheduler {
   readonly #options: Options;
-  readonly #busy: Busy;
+  readonly #starts: Starts;
   readonly #now: () => Date;
   readonly #wait: (ms: number) => Promise<void>;
   readonly #timer: ReturnType<typeof setInterval> | undefined;
@@ -86,8 +59,6 @@ class JobScheduler implements Scheduler {
   readonly #stop = new AbortController();
   // When this scheduler first saw each job on in each repository with its schedule, in ms (R2).
   readonly #seen = new Map<string, { first: number; schedule: string }>();
-  // The job and repository (by its name) whose run starts now: a time and a run by hand never start two.
-  readonly #starting = new Set<string>();
   readonly #printed = new Set<string>();
   readonly #flying = new Set<Promise<unknown>>();
   readonly #ticks = new Map<string, Runs>();
@@ -98,7 +69,7 @@ class JobScheduler implements Scheduler {
 
   constructor(options: Options) {
     this.#options = options;
-    this.#busy = options.busy ?? new Busy();
+    this.#starts = new Starts(options.busy);
     this.#now = options.now ?? (() => new Date());
     this.#wait = options.wait ?? ((ms) => sleep(ms, this.#stop.signal));
     if (options.every !== null) {
@@ -290,30 +261,6 @@ class JobScheduler implements Scheduler {
     return now;
   }
 
-  /**
-   * Why the job's time is skipped in the repository: its last run works, or an acceptance is opening
-   * its change, or a change it started is open. The open-change read is awaited first, so the
-   * synchronous reads of what works come last, as close to the start as they can.
-   */
-  async #skipOf(
-    ctx: RepoContext,
-    job: Job,
-    root: string,
-    open?: ReadonlySet<string>,
-  ): Promise<{ folder?: string; reason: Skipped } | undefined> {
-    const { jobs } = ctx.sessions.cache;
-    // Any run of the job that started a change still open, not only the latest run.
-    const folders = jobs.changeFolders(job.name, root);
-    const opened = folders.length === 0 ? undefined : (open ?? (await openFolders(ctx)));
-    const last = jobs.latestStarted(job.name, root);
-    if (this.#busy.has(job.name, root) || (last?.session && works(ctx, last.session))) {
-      return { reason: "working" };
-    }
-    // The open change of the latest run that started one: the one a person looks for (R36).
-    const folder = opened === undefined ? undefined : folders.find((one) => opened.has(one));
-    return folder === undefined ? undefined : { folder, reason: "change-open" };
-  }
-
   /** Records a time skipped, once: the unique row of the time is what keeps it from a second. */
   #skip(
     ctx: RepoContext,
@@ -358,8 +305,8 @@ class JobScheduler implements Scheduler {
    */
   async #run({ due, job, repo }: Due, spaced: boolean): Promise<boolean> {
     const key = keyOf(job.name, repo.name);
-    const taken = this.#starting.has(key);
-    this.#starting.add(key);
+    const taken = this.#starts.has(key);
+    this.#starts.reserve(key);
     // Whether this run holds the reservation now.
     let holding = !taken;
     try {
@@ -370,25 +317,27 @@ class JobScheduler implements Scheduler {
       if (runs.recorded(job.name, root, due)) {
         return false;
       }
-      const why = taken ? ({ reason: "working" } as const) : await this.#skipOf(ctx, job, root);
+      const why = taken
+        ? ({ reason: "working" } as const)
+        : await this.#starts.skipOf(ctx, job, root);
       if (why !== undefined) {
         this.#skip(ctx, job.name, root, due, why);
         return false;
       }
       // A start comes a minute after the one before it, and the job may have changed meanwhile.
       if (spaced) {
-        this.#starting.delete(key);
+        this.#starts.release(key);
         holding = false;
         if (await this.#waited()) {
           return false;
         }
         // Reserved again as the wait ends, with nothing awaited between: a run by hand that took
         // the job meanwhile has its own start to finish.
-        if (this.#starting.has(key)) {
+        if (this.#starts.has(key)) {
           this.#skip(ctx, job.name, root, due, { reason: "working" });
           return false;
         }
-        this.#starting.add(key);
+        this.#starts.reserve(key);
         holding = true;
       }
       const now = await this.#fresh({ due, job, repo });
@@ -397,7 +346,7 @@ class JobScheduler implements Scheduler {
       }
       // What the minute and the reads let change: right before the start, holding the reservation,
       // the last run may work again, or a change may be open (SC-003).
-      const again = await this.#skipOf(ctx, now, root);
+      const again = await this.#starts.skipOf(ctx, now, root);
       if (again !== undefined) {
         this.#skip(ctx, job.name, root, due, again);
         return false;
@@ -411,80 +360,28 @@ class JobScheduler implements Scheduler {
     } finally {
       // The reservation of another start, which this one found, is that start's to release.
       if (holding) {
-        this.#starting.delete(key);
+        this.#starts.release(key);
       }
     }
   }
 
-  async nextRun(job: Job, repository: string, open?: ReadonlySet<string>): Promise<NextRun> {
-    if (job.problem !== undefined || job.schedule === undefined) {
-      return { why: "problem" };
-    }
-    if (!job.on) {
-      return { why: "paused" };
-    }
-    if (!this.#options.enabled()) {
-      return { why: "off" };
-    }
-    const repo = this.#options.repos().find((one) => one.name === repository);
-    if (repo !== undefined) {
-      const ctx = this.#options.context(repo.path);
-      const root = await ctx.sessions.mainRoot(repo.path);
-      if (!agentOf(ctx, job, root)?.available) {
-        return { why: "agent-off" };
-      }
-      if ((await this.#skipOf(ctx, job, root, open))?.reason === "change-open") {
-        return { why: "change-open" };
-      }
-    }
-    return { at: nextAfter(job.schedule, this.#now()) };
+  nextRun(job: Job, repository: string, open?: ReadonlySet<string>): Promise<NextRun> {
+    return nextRun(
+      { ...this.#options, now: this.#now, starts: this.#starts },
+      job,
+      repository,
+      open,
+    );
   }
 
   runNow(repository: string, name: string): Promise<{ session: string }> {
-    return this.#track(this.#runNow(repository, name));
-  }
-
-  async #runNow(repository: string, name: string): Promise<{ session: string }> {
-    const { jobs, problem } = await this.#options.jobs();
-    const job = jobs.find((one) => one.name === name);
-    const repo = this.#options.repos().find((one) => one.name === repository);
-    if (problem !== undefined) {
-      throw refused(problem);
-    }
-    if (job === undefined) {
-      throw refused(`There is no job named “${name}”.`);
-    }
-    // A run by hand reads no schedule: only what makes a run impossible refuses it.
-    const why = impossible(jobs, job);
-    if (why !== undefined) {
-      throw refused(why);
-    }
-    if (repo === undefined || !job.repositories.includes(repository)) {
-      throw refused(`“${name}” does not run in ${repository}.`);
-    }
-    const ctx = this.#options.context(repo.path);
-    const root = await ctx.sessions.mainRoot(repo.path);
-    const last = ctx.sessions.cache.jobs.latestStarted(name, root);
-    const key = keyOf(name, repository);
-    if (
-      this.#stopped ||
-      this.#starting.has(key) ||
-      this.#busy.has(name, root) ||
-      (last?.session && works(ctx, last.session))
-    ) {
-      throw refused(`“${name}” still runs here.`);
-    }
-    this.#starting.add(key);
-    try {
-      const run = { at: this.#now().getTime(), due: null, trigger: "manual" } as const;
-      const started = await startRun(ctx, job, run);
-      if (started === undefined) {
-        throw new Error("a run by hand is recorded without a time");
-      }
-      return started;
-    } finally {
-      this.#starting.delete(key);
-    }
+    return this.#track(
+      runNow(
+        { ...this.#options, now: this.#now, starts: this.#starts, stopped: () => this.#stopped },
+        repository,
+        name,
+      ),
+    );
   }
 }
 
