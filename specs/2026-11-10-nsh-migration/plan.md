@@ -766,11 +766,30 @@ Follows [what every records task does](#what-every-records-task-does).
 
 Follows [what every records task does](#what-every-records-task-does).
 
-- **Files:** `crates/server/src/records/features.rs`, and its test in `crates/server/tests/`
-- **Records:** Feature, WorkflowFile, ProposalFile, Priorities, ProposalHints, Inbox, Dropped,
-  StartPlan, Ledger, History, BranchDecision, BranchChanges, AllBranchChanges, WorkflowMessage,
-  RecommendedMessage, ContinuedAll
-- **Actions:** `inbox.*`, `proposals.*`, `priorities.*`, `feature.*`, `change.*`, `item.settings`
+- **Files:** `crates/server/src/records/features.rs` and `features/`,
+  `crates/protocol/src/features.rs` and `features/`, and its test, `crates/server/tests/features.rs`
+  and `features/`
+- **Records:** Feature, WorkflowFile, ProposalFile, Priorities, ProposalHints, Inbox, Ledger,
+  History, BranchDecision, BranchChanges, AllBranchChanges, WorkflowMessage, RecommendedMessage.
+  `Dropped` and `StartPlan` are what `feature.drop` and the starts answer, not records, and
+  `ContinuedAll` goes with `feature.continueAll`, to task 15 (ruling R58).
+- **Actions:** `inbox.*`, `proposals.*`, `priorities.*`, `feature.*` but `feature.continueAll`,
+  `change.*`, `item.settings`
+- **Produces, for the screens and the later tasks** (rulings R58 to R62):
+  - A record of a repository takes `{ repo }`, and a record of one thing of it `{ repo, id }`: a
+    feature's folder, a file's `<folder>/<name>`, a proposal file's path. `WorkflowMessage` takes
+    `{ repo, folder, trigger }`. A record of something that is not there has the value `null`.
+  - `WorkflowFile`'s value is the core's `FileView`, with its `Document` as the core writes it. A
+    protocol type that is a view of the core keeps the core's name.
+  - A write of the lists answers `ListWritten { hash, change }`, `NoteMoved { change }`, or
+    `FileWritten { path, change }`: the hash to write over next, the proposal file to open, and the
+    change an undo writes back, a `RecordedChange`.
+  - `Trigger`, what starts a workflow turn, and the workflow's message text,
+    `records/features/messages/text.rs`, which the sessions' runs use.
+  - A feature's own run options, `records/features/options.rs`, kept in `run-options.json` of the
+    data folder.
+  - `files_changed(&Bus, &str, &Changes)` and `config_changed(&Shared)`, for the one watcher.
+- [x] **Done**: `feat(nsh-migration): records of features`
 
 ## Task 9: Records: writing
 
@@ -901,6 +920,19 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
   continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says.
+- **Finishes what task 8 left to the sessions** (ruling R61), each at a `// TASK 15:` comment of
+  [`records/features/`](/crates/server/src/records/features/):
+  - `feature.continueAll`, with its answer `ContinuedAll`: not declared yet, it is all runs.
+  - `Feature`: its `session`, `sessions`, `runtime`, and `newPick`, empty until then, the fields
+    `agent` and `tokens`, which it lacks, and its status from its sessions (`status.rs`).
+  - `RecommendedMessage`: whether the feature's runtime takes the message, taken as available.
+  - `feature.start` and `feature.startText`: the messages kept for the planned folder while the
+    start lands, sent to its session once it landed.
+  - `change.start`, `change.startProposal`, and `change.fromNote`: the started change's first run,
+    whose session they answer, and the check of run options no new session could run on.
+  - `feature.drop`: the feature's sessions held while it lands, and archived after.
+  - `feature.promote`: the change's sessions moved to the feature, and its first run.
+  - The writes of this domain are not refused while an agent works on their feature.
 
 - [ ] **Step 1: Write the failing tests**, on the fake runtime
   - `a streaming reply reaches a subscriber as appends`: no `Set` of the whole log.

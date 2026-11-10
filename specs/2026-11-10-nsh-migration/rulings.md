@@ -1046,3 +1046,117 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   line in `watch.rs`'s `FILES_CHANGED`.
 - **Where**: task 7, `crates/server/src/records/workspace/{status,needs_you,repositories}.rs`. Tasks
   10, 15, and 20.
+
+## R58: The features' records take `{ repo, id }`, a missing one is `null`, and an action answers what no record shows
+
+- **Decision**: the shapes of the features' records and actions, where fate's did not carry over.
+  - A record of a repository takes `{ repo }`: `Priorities`, `Inbox`, `Ledger`, `AllBranchChanges`.
+    A record of one thing of it takes `{ repo, id }`, with the id fate gave it: a feature's folder
+    for `Feature`, `History`, `BranchChanges`, and `RecommendedMessage`; `<folder>/<name>` for
+    `WorkflowFile` and `BranchDecision`, or a default round's `inbox-triage` and `decisions-check`;
+    a path for `ProposalFile`. `ProposalHints` takes `null`.
+  - `WorkflowMessage` takes `{ repo, folder, trigger }`, in place of fate's
+    `<folder>:<trigger>[:<file>]`, whose file nothing read.
+  - A record of something that is not there has the value `null`: a folder that is no feature's, a
+    file its feature lacks, a decision its branch lacks, a round no agent wrote. fate sent a record
+    of empty fields with `missing: true`.
+  - `Dropped`, `StartPlan`, and `ContinuedAll` are not records: fate read them once, from their
+    mutation. `feature.drop` answers `Dropped`, `feature.start` and `feature.startText` answer
+    `StartPlan`, and `ContinuedAll` is declared with `feature.continueAll`, by task 15.
+  - An undoable write of the lists answers the change an undo writes back, a `RecordedChange` of
+    each file's bytes in base64, with what no record shows: `ListWritten { hash, change }`, the
+    list's hash to write over next; `NoteMoved { change }`; `FileWritten { path, change }`, the
+    proposal file to open. `inbox.edit`, `priorities.commit`, and `priorities.discard` are not
+    undone, and answer no change. `inbox.removeImage` answers the inbox's hash, not its file's. The
+    core records the change as the write runs, so the binding's token and its `takeChange` are gone.
+  - `feature.setRunOptions`, `feature.fixLinks`, and `item.settings` answer `null`.
+    `feature.promote` answers the core's `PromotedView`, and the three `change.*` starts
+    `ChangeStarted { folder, session }`.
+  - `inbox.add`'s `about` is a feature's folder, as the core takes it: the note is marked with its
+    slug.
+- **Rationale**: the contract's own examples take `{ repo, id }` for `Feature`, and answer a hash
+  for `proposals.add`. A value that is `null` says "not there" without a second shape, and a
+  client's signal already has "not read yet". Task 7's ruling T7.1 says the rest.
+- **If wrong**: an argument's shape is one type of `crates/protocol/src/features.rs`.
+- **Where**: task 8, `crates/protocol/src/features/`. Tasks 37 to 41, which read them.
+
+## R59: The core's views are mirrored with the core's names, and the workspace's types are copied until the join
+
+- **Decision**: the features' records cross as task 7's ruling T7.2 says, through the JSON the core
+  writes. Their protocol types are the core's definitions, with the core's names, fields, and
+  documentation: about ninety types, of which `FileView` and the document tree under it (`Document`,
+  `Block`, `Span`), the items of each kind of file, `Inbox`, `Priorities`, `ProposalFileView`,
+  `HistoryView`, `BranchDecision`, `Constitution`, and `Decision`.
+  - Two names changed, since the client's types are one file: the spec's `Principle`, of its
+    constitution check, is `SpecPrinciple`, beside the constitution's `Principle`; the core's
+    `BranchChanges` is `BranchChangesView`, inside the record `BranchChanges { changes, failed }`.
+  - An optional field is sent as `null`, never left out, as the core writes it.
+  - `features/duplicates.rs` holds the seventeen types the workspace's domain declares too, copied
+    word for word from task 7's commit, so the client's types are the same text: `FeatureView`,
+    `StepView`, `TaskProgress`, `CatchUpView`, `FileSummary`, `ProblemView`, `PullRequestView`,
+    `PullRequestState`, `ProposalView`, `FeatureStatus`, `SessionStatus`, `StatusReason`, `Wait`,
+    `RunOptions`, `StepOptions`, `RunPick`, and `ReviewerOptions`. The crate names them
+    `uraeda_protocol::feature_duplicates::…` until the join deletes the file.
+- **Rationale**: the tasks of the wave cannot use each other's code, and two types of one name must
+  be the same text for the catalog to take both. Copied by a script from the core's source, the
+  mirror cannot differ from the core by a typing mistake, and each record's contract test reads the
+  answer with it.
+- **If wrong**: a field the core adds is not sent until the mirror names it, and one it renames
+  fails the read as `internal`. One definition, with `TS` derived in the core, removes the mirror:
+  T7.2 names that alternative.
+- **Where**: task 8, `crates/protocol/src/features/{document,items,spec_items,decisions}.rs`, and
+  `crates/server/src/records/features/views.rs`. The join after wave 6.
+
+## R60: A write of this domain takes its repository's turn, and a start answers once it landed
+
+- **Decision**: until the write queue (task 9) is joined, `records/features/turn.rs` gives one
+  writer per repository: a lock by main checkout, taken by every action of this domain that writes.
+  Each call site is marked `// JOIN(wave 6): write queue`.
+  - A start answers once it landed, and a refusal is the call's `error`. The Node server answered
+    `feature.start` once the core planned it, and ran the start in its queue, where the record
+    `WriteQueue` showed its steps and its refusal. Without that record a start that failed after its
+    answer would have nowhere to say so.
+  - A commit is made within its call: nothing is deferred, so a hook's refusal of a start's commit
+    leaves the files written, as through `ura`.
+  - The core's own write lock still guards every write, whatever takes the turn.
+- **Rationale**: the plan gives the queue to task 9, built at the same time. One lock keeps the one
+  rule the tests of this task need: no write between a change's start and its note's removal.
+- **If wrong**: a start blocks its caller for as long as the repository's hooks run.
+- **Where**: task 8, `crates/server/src/records/features/{turn,lists,starts}.rs`. Task 9, and the
+  join after wave 6.
+
+## R61: What the features leave to the sessions, the uploads, and the watcher
+
+- **Decision**: the workflow part of each action is built, and what needs a session is left at one
+  comment `// TASK 15:`, with the action's name in task 15's text.
+  - `feature.continueAll` is not declared: it only sends runs.
+  - `Feature` has `session`, `sessions`, `runtime`, and `newPick`, empty until the sessions exist,
+    and lacks `agent` and `tokens`. Its status is the step's alone, as the workspace's.
+  - `RecommendedMessage` takes an agent as available.
+  - The starts keep and send no message, and the `change.*` starts answer `session: null`: the
+    change's page offers its message unsent. `feature.drop` and `feature.promote` hold, archive, and
+    move no session, and no write is refused while an agent works.
+  - A typed start with images is refused: the uploads (task 16) keep an image's bytes, and
+    `starts.rs` has the one function that reads them, marked `// JOIN(wave 6): chat images`.
+    `change.fromNote` reads a note file's images from the repository, and takes them.
+  - Nothing calls `files_changed` and `config_changed` until the one watcher (task 7) is joined: a
+    record follows this domain's own actions, and not yet a file written outside the server.
+- **Rationale**: the plan builds the sessions, the uploads, and the watcher in other tasks.
+- **Where**: task 8, `crates/server/src/records/features/`. Tasks 15 and 16, and the join.
+
+## R62: A feature's own run options are a JSON file of the data folder
+
+- **Decision**: `run-options.json`, in the data folder, holds each feature's own run options, by its
+  repository's main checkout, then by its folder. A row holds only what the feature changed, as the
+  core normalizes and checks it, and options that set nothing remove the row. The file is written
+  whole, beside itself first, then renamed. A file that cannot be read is never replaced: a read
+  answers no options and prints why, and a write is refused.
+- **Rationale**: the Node server kept them in `run-options.sqlite`, apart from the session cache so
+  they are never lost with it. The rows are a handful, read whole, and the session store (task 11)
+  is the only code that opens its SQLite file. Compatibility may break: the two servers share no
+  data, and the old rows are not imported.
+- **Alternatives considered**: a table of the session store: the human's choices would live in the
+  file the importer fills, and task 11 is built at the same time.
+- **If wrong**: the store is `records/features/options.rs`: `own` and `set` are its whole surface.
+- **Where**: task 8, `crates/server/src/records/features/options.rs`, and the test
+  `a_features_run_options_are_stored_and_survive_a_restart`. Task 15, whose runs read them.
