@@ -649,12 +649,14 @@ that stops waiting knows it. The folders are held once, in its entries. `problem
 folders' problems, then `account <name> is signed out, in <listed>` and
 `account <name> has no folder at <listed>`. `nameOf` gives the listed name, else the name rule's.
 
-`claudeAsk(command)` asks a folder that is a directory: `claude auth status`, with
-`CLAUDE_CONFIG_DIR` set to the folder, whose JSON `loggedIn` false is `signed-out`. Else `ready`,
-with the windows of a `get_usage` control request, sent as `models()` sends `list_models`: a short
-process with `MODELS_ARGS`, the folder in its environment, ended with `endShortProcess`, given up
-after `MODELS_TIMEOUT_MS`. A usage that cannot be read is `ready` without windows. Nothing else of
-the folder is read.
+`claudeAsk(command)` asks a folder that is a directory with two short processes at once, each with
+`CLAUDE_CONFIG_DIR` set to the folder, run from the home folder, ended with `endShortProcess`, and
+given up after `MODELS_TIMEOUT_MS`: `claude auth status` (through `spawnGrouped`), whose JSON
+`loggedIn` false is `signed-out`, and a `get_usage` control request, sent as `models()` sends
+`list_models`, with `SHORT_ARGS`. They combine: signed out wins; else `ready`, with the windows when
+the usage was read, even when the status said nothing, as only a signed-in account gives a five-hour
+window. A usage with no windows is `ready` without them. A status that says nothing, with no
+windows, rejects the ask. Nothing else of the folder is read.
 
 - [x] **Step 4: Give the account to Claude Code**
 
