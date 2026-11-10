@@ -133,4 +133,4 @@ Full review comments:
   update returns. On a slow connection, pressing `p` twice sends the same value twice because both
   actions read the old `job.on`, instead of pausing and resuming. Apply the local value immediately
   and roll it back on refusal, as required by the
-  [optimistic-write guidance](specs/ui/space-and-motion.md#L59-L61).
+  [optimistic-write guidance](../ui/space-and-motion.md#speed).
