@@ -9,8 +9,9 @@ export type SessionStatus = "working" | "needs-you" | "attention" | "unread" | "
  * Why a session needs the human: an action to allow, a step that waits on them, or a latest turn
  * that failed, that they stopped, that the server stopped, that ran the workflow and ended before a
  * human gate, that caught up with the default branch and ended still behind it, on a conflict, or
- * whose automatic continues reached their cap. Or why it works with no turn running: its latest
- * turn waits to continue by itself.
+ * whose automatic continues reached their cap, or that ended on the offer of a change a job's run
+ * could not start by itself. Or why it works with no turn running: its latest turn waits to
+ * continue by itself.
  */
 export type StatusReason =
   | "blocked"
@@ -21,6 +22,7 @@ export type StatusReason =
   | "halted"
   | "conflict"
   | "capped"
+  | "change-refused"
   | "waiting";
 
 /** The step of an open pull request behind the default branch, which its agent catches up. */
@@ -76,9 +78,9 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
  * waiting to continue by itself, a blocked action not allowed, a latest turn that failed or was
  * stopped, until the human dismisses it, as capped when it would have continued, a catch-up turn
  * that ended while the step is still `catch-up` for the same tip, in its folder's latest session,
- * until dismissed,
- * a step that waits on the human, a dismissed turn as idle, a latest turn that ended while the step
- * still waits on the agent, in its folder's latest session, but at `catch-up`, as waiting while its
+ * until dismissed, a latest turn that ended on the offer of a change a job's run could not start,
+ * until dismissed, a step that waits on the human, a dismissed turn as idle, a latest turn that
+ * ended while the step still waits on the agent, in its folder's latest session, but at `catch-up`, as waiting while its
  * process waits for a wakeup the agent set, a latest turn that ended after the human last saw the
  * session, and otherwise idle.
  */
@@ -86,6 +88,8 @@ export function sessionStatus(input: {
   blocked: boolean;
   /** At `catch-up`, the default branch's tip the feature's branch is behind. */
   catchUpCommit?: string;
+  /** Whether the latest turn is the one whose change a job's run could not start (R1). */
+  changeRefused?: boolean;
   latest?: Pick<
     TurnRow,
     "continueAt" | "continueReason" | "dismissedAt" | "endedAt" | "kind" | "reason" | "state"
@@ -134,10 +138,14 @@ export function sessionStatus(input: {
   if (conflict && latest.dismissedAt === null) {
     return { label: "Needs attention", reason: "conflict", status: "attention" };
   }
+  // The change a job's run offered could not start: the offer's card waits, and the run asks.
+  if (input.changeRefused && latest?.state === "done" && latest.dismissedAt === null) {
+    return { label: "Needs attention", reason: "change-refused", status: "attention" };
+  }
   if (waitsOnHuman) {
     return { label: "Needs you", reason: "step", status: "needs-you" };
   }
-  if (failed || conflict) {
+  if (failed || conflict || input.changeRefused) {
     return { label: "Idle", status: "idle" };
   }
   const unseen =

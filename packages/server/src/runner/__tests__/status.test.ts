@@ -161,6 +161,26 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Needs attention", reason: "conflict", status: "attention" },
   ],
   [
+    "a done turn whose offered change could not start (US3 more 1)",
+    { changeRefused: true, latest: ended("done", "chat") },
+    { label: "Needs attention", reason: "change-refused", status: "attention" },
+  ],
+  [
+    "a done turn whose offered change could not start, seen",
+    { changeRefused: true, latest: ended("done", "chat"), seenAt: "2026-10-13T11:00" },
+    { label: "Needs attention", reason: "change-refused", status: "attention" },
+  ],
+  [
+    "a done turn whose offered change could not start, dismissed",
+    { changeRefused: true, latest: ended("done", "chat", dismissed) },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a running turn after one whose offered change could not start",
+    { changeRefused: false, latest: running },
+    { label: "Working", status: "working" },
+  ],
+  [
     "a catch-up turn ended at Catch up in an older session of the folder (R11)",
     {
       ...atCatchUp("x"),

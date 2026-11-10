@@ -392,6 +392,21 @@ export class Sessions {
   }
 
   /**
+   * Reports a change of the session that no turn's end made, as the refusal of the change its
+   * job's run offered, or a line added to a turn that ended: its views, and what needs the human,
+   * read it again, and the turn's with it when `turn` is given.
+   */
+  announce(repo: string, session: string, turn?: number): void {
+    const row = this.#ownNow(repo, session);
+    this.#options.onChange({
+      folder: row.folder,
+      repo: row.repo,
+      session: row.id,
+      ...(turn === undefined ? {} : { turn }),
+    });
+  }
+
+  /**
    * How many of the session's messages this server keeps: those of its turns not ended, or unread.
    */
   tracked(session: string): number {

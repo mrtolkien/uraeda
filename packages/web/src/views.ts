@@ -313,6 +313,7 @@ export const SessionView = view<Session>()({
   allowable: true,
   archived: true,
   automaticContinues: true,
+  changeRefusal: true,
   edited: true,
   folder: true,
   id: true,

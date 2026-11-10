@@ -206,6 +206,11 @@ export type SessionRecord = {
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
   /**
+   * Why the change its job's run offered could not start, the core's refusal, while the turn that
+   * offer ended is its latest: null otherwise.
+   */
+  changeRefusal: string | null;
+  /**
    * The files its completed edit calls changed, of every turn and sub-agent, in the order of their
    * first edit, with their count of completed edits: a failed edit does not count.
    */
@@ -398,6 +403,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   archived: true,
   automaticContinues: true,
   backgroundCommands: true,
+  changeRefusal: true,
   edited: true,
   effort: true,
   folder: true,

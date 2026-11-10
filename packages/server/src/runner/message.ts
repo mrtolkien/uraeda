@@ -300,6 +300,11 @@ export function runNowLine(job: string): string {
   return `Started by “Run now” of the job “${job}”.`;
 }
 
+/** The line the turn of a job's run ends with once Uraeda started the change it offered. */
+export function jobChangeLine(job: string, title: string): string {
+  return `The job “${job}” started the change “${title}”.`;
+}
+
 /**
  * The message of a scheduled job's run: its prompt, a rule, then Uraeda's note. The note says
  * nobody follows the session, and what to do with a needed change: the run's offer is the human's

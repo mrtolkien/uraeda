@@ -134,3 +134,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: (4) the card shows another reason first when two hold; (5) an agent turned off and
   on within a time's 5 minutes loses that run.
 - **Where**: task 4.
+
+## R12: The acceptance's small shapes beyond the plan
+
+- **Decision**: (1) `jobChangeLine` is appended to the turn once `toChange` succeeded, not before
+  it; (2) `Sessions.announce(repo, session, turn?)` reports a change of a session that no turn's end
+  made, which the refusal and the line are; (3) the dismissal of a turn also takes a done turn that
+  a run's row names as its `refused_turn`; (4) acceptances go one after another, and
+  `acceptOffers`'s stop has `settled()`, the promise of those queued, for tests; (5) the acceptance
+  also reads that the job has no problem, the session is not archived, the turn is the session's
+  latest, and no block opens after the offer's.
+- **Rationale**: (1) a refused start must not leave a line saying the change started; (2) the
+  sidebar and the banner read the status from stored data, which changed without an event; (3)
+  Dismiss is the banner's way out, and the cache refused a done turn that was not a catch-up's; (4)
+  a start writes the main checkout, two at once would race, and a test cannot wait on time; (5) each
+  is a way the offer may be less than the run's last word, or the human's yes may no longer hold.
+- **If wrong**: (1) the line comes after the new run's first message in the session, not before; (5)
+  a job whose settings were edited into a problem between its run and its end waits for the card.
+- **Where**: task 5.

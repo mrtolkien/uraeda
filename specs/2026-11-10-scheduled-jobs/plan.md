@@ -715,7 +715,10 @@ git commit -m "feat(scheduled-jobs): the scheduler starts each job's run at its 
   (imports the grammar), `packages/server/src/fate/session-moves.ts` (exports `toChange`),
   `packages/server/src/jobs/start.ts`, `packages/server/src/runner/status.ts`,
   `packages/server/src/runner/message.ts` (the line), the session's view in
-  `packages/server/src/fate/` (`changeRefusal`), `packages/web/src/SessionAttention.tsx`
+  `packages/server/src/fate/` (`changeRefusal`: `views.ts`, `sessions.ts`, `session-reads.ts`),
+  `packages/server/src/runner/sessions.ts` (`announce`) and `cache-turns.ts` (the dismissal of a
+  refused turn, [ruling R12](rulings.md)), `packages/web/src/SessionAttention.tsx`, `useDismiss.ts`,
+  and `views.ts`
 - Test: `packages/server/src/jobs/__tests__/accept.test.ts`
 
 **Interfaces:**
@@ -733,7 +736,8 @@ export function proposalTitle(proposal: string): string;
 // runner/message.ts
 export function jobChangeLine(job: string, title: string): string; // The job “<job>” started the change “<title>”.
 // jobs/accept.ts
-export function acceptOffers(shared: Omit<RepoContext, "repo">): () => void; // gives its stop
+export function acceptOffers(shared: Omit<RepoContext, "repo">): Accepting; // its stop, and `settled()`
+export type Accepting = (() => void) & { settled(): Promise<void> };
 // fate/session-moves.ts
 export async function toChange(
   ctx: RepoContext,
@@ -743,7 +747,7 @@ export async function toChange(
 //   changeRefusal: string | null
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `accept.test.ts`, each run started by `startRun` on a fake agent scripted to end its turn on a
 given text:
@@ -781,26 +785,30 @@ The break each test catches:
   the run's last word, the relaxed guard's edges.
 - Asks with its reason: a refused start that leaves the session reading as a plain new reply.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test run packages/server/src/jobs/__tests__/accept.test.ts`
 - Expected: FAIL, `Cannot find module '../accept.ts'`
 
-- [ ] **Step 3: Move the offer's grammar to the server**
+- [x] **Step 3: Move the offer's grammar to the server**
 
 `runner/offers.ts` takes `lastOffer`, `proposalTitle`, their types, and the block's pattern from the
 web UI's `offers.ts`, which imports them from `uraeda-server/offers` and keeps its page state. The
 web UI's existing tests of offers keep passing unchanged.
 
-- [ ] **Step 4: Implement the acceptance and the refusal's status**
+- [x] **Step 4: Implement the acceptance and the refusal's status**
 
 - `acceptOffers` listens to the sessions' changes, as `onSessionChange` gives them. It acts on a
   turn that ended `done`, in a session without a folder, that a run's row names for the same
-  repository. The job, read now by its name, must exist and not be report only. The session must
-  hold no message of the origin `human`. The turn's last text, after its last call, must end on a
-  `change` offer, by `lastOffer`.
-- It then appends `jobChangeLine` to the turn and calls `toChange` with the offer's body and no
-  slug. A refusal is kept with `setRefusal`, its text without the `refused: ` prefix, and the turn.
+  repository. The job, read now by its name, must exist, have no problem, and not be report only.
+  The session must hold no message of the origin `human`, and the turn must be its latest. The
+  turn's last text, after its last call, must end on a `change` offer, by `lastOffer`, with no block
+  opening after it. Every check of what the human may have done meanwhile comes after the one wait,
+  the read of the jobs, and acceptances go one after another ([ruling R12](rulings.md)).
+- It then calls `toChange` with the offer's body and no slug, and, once the change started, appends
+  `jobChangeLine` to the turn. A refusal is kept with `setRefusal`, its text without the `refused: `
+  prefix, and the turn, and announced with `Sessions.announce`; a refusal that says the agent works,
+  or one after the human wrote, is the human's path winning: nothing is kept.
 - `startJobs` starts it, and its stop joins the scheduler's.
 - The status rule gains one case, before "waits on the human": the session's latest turn is the
   refused turn, `done`, and not dismissed. It reads "Needs attention", reason `change-refused`. The
@@ -809,14 +817,14 @@ web UI's existing tests of offers keep passing unchanged.
   itself.", and the text of the refusal, then "Start it from the offer's card above, or dismiss
   this.", with Dismiss.
 
-- [ ] **Step 5: Run the task's validation, and make the risky breaks**
+- [x] **Step 5: Run the task's validation, and make the risky breaks**
 
 - Run: `vp test run packages/server/src packages/web/src`, then `vp run fast`
 - Expected: PASS
 - Breaks to make once, see fail, and revert, reported in the commit's body: skip the report-only
   check; skip the human-message check; read the offer from any text of the turn.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server packages/web/src

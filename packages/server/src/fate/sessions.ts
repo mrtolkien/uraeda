@@ -162,6 +162,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     archived: row.archivedAt !== null,
     automaticContinues: row.automaticContinues,
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
+    changeRefusal: read.refusal,
     edited: ctx.sessions.cache.editedFiles(row.id),
     place: await placeOf(ctx, row, feature),
     statusTurn: read.latest ? String(read.latest.id) : null,

@@ -16,8 +16,8 @@ type Of = { continues: number; item: string; pullRequest?: number | undefined };
 
 /**
  * What a session that needs attention tells the human, by why it needs it, its item named as a
- * feature or a change. A failed, stopped, or interrupted run, and a catch-up stopped on a conflict,
- * ask until dismissed: the text says so, and the banner has Dismiss. A run past the cap on automatic
+ * feature or a change. A failed, stopped, or interrupted run, a catch-up stopped on a conflict, and
+ * a job's run whose change could not start, ask until dismissed: the text says so, and the banner has Dismiss. A run past the cap on automatic
  * continues says how many it had.
  */
 const ATTENTION: Partial<
@@ -31,6 +31,11 @@ const ATTENTION: Partial<
     text: ({ continues }) =>
       `Uraeda continued it ${continues} times in a row without a commit or a message from you, and stops there. Read its last message, then tell it how to go on, or dismiss this.`,
     title: "The agent keeps stopping.",
+  },
+  "change-refused": {
+    status: "warning",
+    text: "Start it from the offer's card above, or dismiss this.",
+    title: "The change could not start by itself.",
   },
   conflict: {
     status: "warning",
@@ -65,6 +70,8 @@ const ATTENTION: Partial<
 type AttentionSession = {
   /** The automatic continues in a row of its run, which a capped run's banner counts. */
   automaticContinues?: number;
+  /** Why the change its job's run offered could not start, which that banner gives first. */
+  changeRefusal?: string | null;
   id: string;
   status: SessionStatus;
   statusReason?: StatusReason | null;
@@ -193,7 +200,7 @@ function AttentionBanner({
       item={feature?.kind ?? "feature"}
       pullRequest={feature?.pullRequest?.number}
       reason={reason}
-      why={why}
+      why={why ?? (reason === "change-refused" ? (session.changeRefusal ?? undefined) : undefined)}
       {...(turn !== null && isDismissable({ reason, status: session.status, turnState })
         ? { onDismiss: () => dismissal.onDismiss(turn) }
         : {})}

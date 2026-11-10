@@ -91,10 +91,11 @@ function dismissedStatus(feature: { status: Status; step: { waitsOn?: string | n
 }
 
 /**
- * Why a run asks until dismissed: it failed, the human or the server stopped it, or a catch-up
- * stopped on a conflict.
+ * Why a run asks until dismissed: it failed, the human or the server stopped it, a catch-up
+ * stopped on a conflict, or the change its job's run offered could not start.
  */
 const DISMISSABLE: ReadonlySet<StatusReason> = new Set([
+  "change-refused",
   "conflict",
   "failed",
   "interrupted",

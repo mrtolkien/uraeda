@@ -115,9 +115,10 @@ async function startChange(ctx: RepoContext, text: string, slug?: string) {
  * the session moves to it, and its first run goes to the session, after the line telling the
  * agent where it works now and which files to carry over: refused while the agent is unavailable.
  * A session that cannot move once the change started stays without a workflow, and the refusal
- * names the change.
+ * names the change. The offer's card and a job's run, which `jobs/accept.ts` starts, both start
+ * a change here.
  */
-async function toChange(
+export async function toChange(
   ctx: RepoContext,
   input: { session: string; slug?: string; text: string },
 ): Promise<string> {
