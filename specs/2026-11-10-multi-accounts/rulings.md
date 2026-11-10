@@ -45,7 +45,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `Processes.open` picks whenever no turn of the session ever started and its runtime
   lists accounts, even with an account already stored: the session keeps its account from its first
   started turn on. A session whose turns all started before accounts existed stays on the server's
-  login, as before. The stored account is then a last pick, not a promise.
+  login, as before. The stored account is then a last pick, not a promise. A session with no started
+  turn, on a runtime that lists no account, opens with none and stores none: the last pick is
+  cleared. (Amended by wave 3's fix, finding 10: it kept the stored pick, so a first turn ran on an
+  account the setting no longer lists, and the session header named it.)
 - **Rationale**: the spec's assumption says the pick happens at the first turn "so it uses the usage
   of that moment". A first message taken back during the pick's wait, or a process that failed to
   open, left the pick stored: hours later the real first turn ran on an account that may be used up
