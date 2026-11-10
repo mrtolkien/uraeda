@@ -1,9 +1,12 @@
 // Runtimes on a started server: a runtime of yours, or a built-in's, reloads only once its turns
 // end, its row saying which session it waits for; a session gets the skills of the extensions on
 // in its repository; and only a server given the fake agent has its runtime.
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import { FakeAdapter } from "../../runner/fake.ts";
+import { account, flush } from "../../runner/__tests__/helpers.ts";
+import { FakeAccounts, FakeAdapter } from "../../runner/fake.ts";
+import { STATUS_FILE } from "../status-file.ts";
 import { writeFiles } from "./helpers.ts";
 import { FEATURE, mutate, runtime, serve, stateOf } from "./serve.ts";
 
@@ -161,4 +164,45 @@ test("a server stopping checks no runtime as its extensions unload", async () =>
   await opened.server.stop();
 
   expect(check).not.toHaveBeenCalled();
+});
+
+test("a runtime's account problems are its extension's", async () => {
+  const claude = new FakeAdapter();
+  const opened = await serve({}, "", { agents: { claude } });
+  const { server } = opened;
+  await server.sessions.check();
+  const accounts = new FakeAccounts();
+  accounts.accounts = [account("b", 0.2)];
+  accounts.problemList = ["account b is signed out, in ~/.claude-b"];
+  claude.accounts = accounts;
+
+  // The problem is the extension's own, with no file, and its state is still on.
+  const row = stateOf(server, "claude");
+  expect(row?.problems).toContainEqual({ file: "", message: accounts.problemList[0] });
+  expect(row?.state).toBe("on");
+  // A change of the runtimes announces the record: the status file, which `ura extension list`
+  // reads, follows it.
+  const status = () =>
+    readFileSync(join(opened.dataDir, "run", STATUS_FILE), "utf8").includes("signed out");
+  server.extensions.runtimes.changed();
+  await expect.poll(status).toBe(true);
+  // Signed in again: the next announce clears it.
+  accounts.problemList = [];
+  expect(stateOf(server, "claude")?.problems).toEqual([]);
+
+  // A refresh that asked nothing announces no change of the runtimes, even as pages read it.
+  const changed = vi.spyOn(server.extensions.runtimes, "changed");
+  for (let read = 0; read < 3; read++) {
+    server.sessions.refreshAccounts();
+    await flush();
+  }
+  expect(accounts.asks).toBe(1);
+  expect(changed).not.toHaveBeenCalled();
+  // One that read a change of the usage announces it, once.
+  vi.spyOn(accounts, "refresh").mockImplementationOnce(async () => {
+    accounts.accounts = [account("b", 0.9)];
+  });
+  server.sessions.refreshAccounts();
+  await flush();
+  expect(changed).toHaveBeenCalledTimes(1);
 });

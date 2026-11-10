@@ -59,3 +59,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   notice, would unknow an account whose usage was read. Review finding 4 of wave 2 runs the two at
   once, which needs this rule where the old order had none.
 - **Where**: task 3 of the plan, `claudeAsk` in `runner/claude-accounts.ts`.
+
+## R5: The accounts' records and their refresh live in `account-records.ts`
+
+- **Decision**: `Sessions.accounts` and `Sessions.refreshAccounts` stay the plan's names, and
+  delegate to `accountRecords` and `AccountRefresh` in `runner/account-records.ts`. A refresh is not
+  started while one of the same accounts is in flight, and announces only when the runtime's records
+  differ from before its ask.
+- **Rationale**: `sessions.ts` was at 473 lines, and the plan's methods would pass 500. One ask in
+  flight per runtime means an answer is announced once, however many pages read meanwhile.
+- **Alternatives considered**: comparing against the last announced records, which a report's own
+  announce makes stale.
+- **Where**: task 4 of the plan.

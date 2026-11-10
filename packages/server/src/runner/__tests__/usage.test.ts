@@ -3,7 +3,7 @@ import { fixtureRepo } from "uraeda-binding/test-utils";
 import { parseLine } from "../claude-events.ts";
 import type { AgentEvent } from "../events.ts";
 import { IDLE_CLOSE_MS, type Sessions } from "../sessions.ts";
-import { flush, testSessions } from "./helpers.ts";
+import { account, at, fakeAccounts, flush, folder, testSessions } from "./helpers.ts";
 
 afterEach(() => vi.useRealTimers());
 
@@ -195,4 +195,145 @@ test("the week expires on its own reset, apart from the five-hour window", async
   await vi.advanceTimersByTimeAsync(60_000);
   expect(used(sessions)).toEqual({ five_hour: 0.5 });
   expect(changes.slice(before)).toContainEqual({ agent: true });
+});
+
+/** One account's record by its name, as the records the UI reads give it. */
+const accountOf = (sessions: Sessions, name: string) =>
+  sessions.accounts("fake").find((each) => each.name === name);
+
+test("an account's usage is the freshest of its ask and its processes' reports", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts(); // default 0.42, b 0, c 0.88: asked at the start
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "First" })).turn); // picks b
+  expect(adapter.opens.at(-1)?.account).toBe(folder("b"));
+
+  // Its process reports 0.3 of b's five hours, after the ask: the report is the freshest.
+  await vi.advanceTimersByTimeAsync(1000);
+  adapter.emit(report(0.3, at(1)));
+  await flush();
+  expect(accountOf(sessions, "b")?.windows.map((window) => window.used)).toEqual([0.3, 0.3]);
+  expect(sessions.usage("fake")).toEqual([]); // the process has an account: not the runtime's
+  const [record] = sessions.runtimes.records(null, {
+    accounts: (name) => sessions.accounts(name),
+    usage: (name) => sessions.usage(name),
+  });
+  expect(record?.usage).toEqual([]);
+  expect(record?.accounts.map(({ name }) => name)).toEqual(["default", "b", "c"]);
+  expect(
+    sessions
+      .accounts("fake")
+      .filter(({ isNext }) => isNext)
+      .map(({ name }) => name),
+  ).toEqual(["b"]);
+
+  // Its exit drops the report, and the ask's usage stays.
+  adapter.exit();
+  await flush();
+  expect(accountOf(sessions, "b")?.windows.map((window) => window.used)).toEqual([0, 0.3]);
+
+  // The same process, reopened, reports again: and an ask after the report replaces it.
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "More" })).turn);
+  await vi.advanceTimersByTimeAsync(1000);
+  adapter.emit(report(0.3, at(1)));
+  await flush();
+  expect(accountOf(sessions, "b")?.windows[0]?.used).toBe(0.3);
+  // After a use in a terminal, b's ask says 0.5, a minute later.
+  await vi.advanceTimersByTimeAsync(61_000);
+  adapter.accounts.accounts = adapter.accounts.accounts.map((each) =>
+    each.name === "b" ? account("b", 0.5) : each,
+  );
+  sessions.refreshAccounts();
+  await flush();
+  expect(accountOf(sessions, "b")?.windows[0]?.used).toBe(0.5);
+  // b is no longer the next: default has the most of its five hours left.
+  expect(
+    sessions
+      .accounts("fake")
+      .filter(({ isNext }) => isNext)
+      .map(({ name }) => name),
+  ).toEqual(["default"]);
+});
+
+test("a window whose reset has passed reads as unused, in the panes and in the pick", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  adapter.accounts.accounts = [
+    account("default", 0.42),
+    {
+      ...account("b", 0.95),
+      windows: [
+        { id: "five_hour", label: "5h", resetsAt: at(1), used: 0.95 },
+        { id: "seven_day", label: "Week", resetsAt: at(72), used: 0.3 },
+      ],
+    },
+  ];
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("default");
+  await vi.advanceTimersByTimeAsync(1.5 * 3_600_000);
+  // b's five hours reset half an hour ago: its pane shows them unused, and the pick takes b.
+  expect(accountOf(sessions, "b")?.windows[0]).toEqual({
+    id: "five_hour",
+    label: "5h",
+    resetsAt: null,
+    used: 0,
+  });
+  expect(accountOf(sessions, "b")?.windows[1]?.used).toBe(0.3);
+  expect(accountOf(sessions, "default")?.windows[0]?.used).toBe(0.42);
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+  expect(adapter.opens.at(-1)?.account).toBe(folder("b"));
+});
+
+test("a pick counts a running process's report, as it counts an ask", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  const first = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, first.id, { text: "First" })).turn); // b
+  // Its process says b's five hours are used up since the ask: the next session starts elsewhere.
+  await vi.advanceTimersByTimeAsync(1000);
+  adapter.emit(report(1, at(1)));
+  await flush();
+  const second = await sessions.newChat(repo);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, second.id, { text: "Second" })).turn);
+  expect(adapter.opens.at(-1)?.account).toBe(folder("default"));
+});
+
+test("a refresh that asked nothing announces nothing", async () => {
+  const { adapter, changes, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  const announced = () => changes.filter((change) => "agent" in change).length;
+  const before = announced();
+
+  // The first read asks, and the answer changes no record: nothing is announced.
+  sessions.refreshAccounts();
+  await flush();
+  expect(adapter.accounts.asks).toBe(1);
+  // Reads within the minute, as a page does on each announce, ask nothing.
+  for (let read = 0; read < 3; read++) {
+    sessions.refreshAccounts();
+    await flush();
+  }
+  expect(adapter.accounts.asks).toBe(1);
+  expect(announced()).toBe(before);
+
+  // An answer that changes an account's usage is announced once, though pages read meanwhile.
+  const accounts = adapter.accounts!;
+  vi.spyOn(accounts, "refresh").mockImplementation(async () => {
+    accounts.accounts = [account("default", 0.9), account("b", 0), account("c", 0.88)];
+    await flush();
+  });
+  sessions.refreshAccounts();
+  sessions.refreshAccounts();
+  await flush();
+  await flush();
+  expect(announced()).toBe(before + 1);
 });

@@ -6,6 +6,7 @@ import { pickedRuntime, type Runtime, runtimeFor, runtimeRefusal } from "../runt
 
 function runtime(kind: string, isOn: boolean, available = true): Runtime {
   return {
+    accounts: [],
     available,
     capabilities: {} as Runtime["capabilities"],
     icon: "bot",

@@ -1,43 +1,22 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
-import type { Account } from "../adapter.ts";
 import { PICK_WAIT_MS } from "../account-pick.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
 import type { Limit } from "../events.ts";
 import { FakeAccounts } from "../fake.ts";
 import type { Sessions } from "../sessions.ts";
-import { flush, limitTurn, restart, testSessions } from "./helpers.ts";
+import {
+  account,
+  fakeAccounts,
+  flush,
+  folder,
+  limitTurn,
+  restart,
+  testSessions,
+} from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
-const HOUR = 3_600_000;
-const NOON = Date.UTC(2026, 10, 10, 12);
-const at = (hours: number) => new Date(NOON + hours * HOUR).toISOString();
-const folder = (name: string) => `/home/u/.claude-${name}`;
-
-const account = (
-  name: string,
-  five: number,
-  more: Partial<Account> & { week?: number } = {},
-): Account => ({
-  askedAt: 1,
-  id: folder(name),
-  name,
-  state: "ready",
-  windows: [
-    { id: "five_hour", label: "5h", resetsAt: at(2), used: five },
-    { id: "seven_day", label: "Week", resetsAt: at(72), used: more.week ?? 0.3 },
-  ],
-  ...more,
-});
-
-/** Three accounts: `default` at 0.42 of its five hours, `b` at 0, `c` at 0.88. */
-function fakeAccounts() {
-  const accounts = new FakeAccounts();
-  accounts.accounts = [account("default", 0.42), account("b", 0), account("c", 0.88)];
-  return accounts;
-}
-
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();

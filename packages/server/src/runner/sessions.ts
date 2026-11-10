@@ -5,8 +5,15 @@ import { Chain } from "./chain.ts";
 import { CONTINUES_ON, Continuer } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
 import { LiveSessions, working } from "./live-sessions.ts";
+import { AccountRefresh, accountRecords } from "./account-records.ts";
 import { Processes } from "./processes.ts";
-import { readySession, type Runtimes, runsOn, sessionRuntime } from "./runtimes.ts";
+import {
+  type AccountRecord,
+  readySession,
+  type Runtimes,
+  runsOn,
+  sessionRuntime,
+} from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
 import { newPickOf, stepPickOf } from "./run-session.ts";
@@ -64,6 +71,7 @@ export class Sessions {
   readonly subSessions: SubSessions;
   /** The reviews its workflow sessions run, each reviewer at once. */
   readonly reviews: Reviews;
+  readonly #accountRefresh: AccountRefresh;
 
   constructor(options: SessionsOptions) {
     this.#options = options;
@@ -108,10 +116,17 @@ export class Sessions {
     this.reviews = new Reviews(context);
     // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
     // turned on finds no change of availability, but continues the runs a restart cut on it.
+    this.#accountRefresh = new AccountRefresh(
+      runtimes,
+      (runtime) => this.accounts(runtime),
+      () => runtimes.changed(),
+    );
     this.#unsubscribe = runtimes.onChange(() => {
       options.onChange({ agent: true });
+      this.refreshAccounts();
       void this.check({ continueCuts: true });
     });
+    this.refreshAccounts();
   }
 
   /** The cache the sessions are written to, which the server reads them from. */
@@ -133,6 +148,16 @@ export class Sessions {
   /** The runtime's usage windows, from its open processes' freshest reports. */
   usage(runtime: string): Array<UsageWindow> {
     return this.#context.processes.usage(runtime);
+  }
+
+  /** The runtime's accounts, each with the freshest usage of an ask or an open process. */
+  accounts(runtime: string): Array<AccountRecord> {
+    return accountRecords(this.runtimes, runtime, this.#context.processes.reports(runtime));
+  }
+
+  /** Asks each stale account's usage, announcing the runtimes only when an answer changed one. */
+  refreshAccounts(): void {
+    this.#accountRefresh.run();
   }
 
   /**

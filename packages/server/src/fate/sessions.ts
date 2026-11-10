@@ -5,7 +5,7 @@ import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import { TURN_PAGE } from "../limits.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
-import { REFUSALS } from "../runner/sessions.ts";
+import { REFUSALS, type Sessions } from "../runner/sessions.ts";
 import { sessionDone, STATUS_ORDER } from "../runner/status.ts";
 import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
@@ -57,10 +57,28 @@ export function pages(cache: SessionCache, turn: number): number {
 /** The agent's runtimes, each on or off by the repository's main checkout (R19). */
 export async function agentRecord({ repo, sessions }: Context): Promise<AgentRecord> {
   const root = repo === null ? null : await sessions.mainRoot(repo).catch(() => repo);
+  // Every page reads this on each announce: a stale usage is asked again here, and announced only
+  // when the answer changed something.
+  sessions.refreshAccounts();
   return {
     id: AGENT_ID,
-    runtimes: sessions.runtimes.records(root, (name) => sessions.usage(name)),
+    runtimes: sessions.runtimes.records(root, {
+      accounts: (name) => sessions.accounts(name),
+      usage: (name) => sessions.usage(name),
+    }),
   };
+}
+
+/**
+ * The name of the account a session runs on, for people: its runtime's name for the folder, else
+ * the folder's last segment when the runtime is gone. Null for a session with no account.
+ */
+function accountName(sessions: Sessions, row: SessionRow): string | null {
+  if (row.account === null) {
+    return null;
+  }
+  const named = sessions.runtimes.get(row.agent)?.accounts?.nameOf(row.account);
+  return named ?? row.account.split("/").filter(Boolean).at(-1) ?? null;
 }
 
 /** The session of this ID, when it is one of the server's repository: the cache holds them all. */
@@ -122,6 +140,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
   const read = turnsOf(ctx.sessions.cache, row.id);
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
   return {
+    account: accountName(ctx.sessions, row),
     agent: row.agent,
     allowable: read.allowable,
     effort: row.effort,

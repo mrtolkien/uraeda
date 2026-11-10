@@ -1,4 +1,5 @@
 import { RUNTIME_REFUSALS } from "../limits.ts";
+import { accountUsage, type UsageReport } from "./account-usage.ts";
 import type { Account, Accounts } from "./adapter.ts";
 import { refused } from "./session-state.ts";
 
@@ -52,10 +53,15 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
 
 /**
  * The id of the account a new session starts on: asks the usage that is stale, waits at most
- * `PICK_WAIT_MS` for the answers, then picks on what is known. Throws the refusal of a runtime with
+ * `PICK_WAIT_MS` for the answers, then picks on what is known: each account's freshest usage, an
+ * ask's or a running process's report (`reports`), a window whose reset has passed unused. Throws the refusal of a runtime with
  * no signed-in account. Never settles later than the wait, even for an ask that never answers.
  */
-export async function accountFor(accounts: Accounts, name: string): Promise<string> {
+export async function accountFor(
+  accounts: Accounts,
+  name: string,
+  reports: () => ReadonlyArray<UsageReport>,
+): Promise<string> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const wait = new Promise<void>((resolve) => {
     timer = setTimeout(resolve, PICK_WAIT_MS);
@@ -65,7 +71,7 @@ export async function accountFor(accounts: Accounts, name: string): Promise<stri
   } finally {
     clearTimeout(timer);
   }
-  const picked = pickAccount(accounts.list());
+  const picked = pickAccount(accountUsage(accounts.list(), reports(), Date.now()));
   if (!picked) {
     throw refused(RUNTIME_REFUSALS.noAccount(name));
   }

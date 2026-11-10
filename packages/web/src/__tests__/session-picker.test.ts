@@ -58,6 +58,7 @@ describe("the picker's rules", () => {
 
 function runtime(kind: string, isOn: boolean, models: Runtime["models"] = null): Runtime {
   return {
+    accounts: [],
     available: true,
     capabilities: {} as Runtime["capabilities"],
     icon: "",

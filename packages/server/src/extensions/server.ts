@@ -138,6 +138,8 @@ export class ExtensionsHost implements Registry {
       (runtime, title) => this.#busy(runtime, title),
       () => this.#announce(),
     );
+    // An account's problem comes with its asks, which announce the runtimes.
+    this.#stops.push(this.runtimes.onChange(() => this.#announce()));
     this.#stops.push(
       onSessionChange(sessions, (change) => {
         if (!("agent" in change)) {
@@ -251,7 +253,18 @@ export class ExtensionsHost implements Registry {
       const off = !extension.onAll && extension.on.length === 0;
       const unregistered = BUILT_IN_RUNTIMES.has(name) && this.runtimes.get(name) === undefined;
       const { problems, ...state } = this.#builtIns.state(name, off || unregistered);
-      return { extension, pageVersion: null, problems: [...own, ...problems], values, ...state };
+      // A runtime's accounts' problems are its extension's: its state does not follow them.
+      const accounts = (this.runtimes.get(name)?.accounts?.problems() ?? []).map((message) => ({
+        file: "",
+        message,
+      }));
+      return {
+        extension,
+        pageVersion: null,
+        problems: [...own, ...problems, ...accounts],
+        values,
+        ...state,
+      };
     }
     const loaded = this.#loader?.get(extension.name);
     // A runtime's reload waits for its sessions at work: it names the one at work now.

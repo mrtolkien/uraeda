@@ -185,6 +185,11 @@ export type SubagentRecord = SubagentRow;
 
 /** A session, without its turns' items. */
 export type SessionRecord = {
+  /**
+   * The account it runs on, by its runtime's name for it ("b" for `~/.claude-b`): null for a
+   * session on the agent's own login.
+   */
+  account: string | null;
   /** The agent's kind. */
   agent: string;
   /** How many blocked actions of its latest turn "Allow all" would allow: 0 without a turn. */
