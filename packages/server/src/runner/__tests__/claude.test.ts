@@ -1436,7 +1436,8 @@ function controlAgent(dir: string, fail = false): string {
   const agent = join(dir, "agent.cjs");
   writeFileSync(
     agent,
-    `const { appendFileSync } = require("node:fs");
+    `const { appendFileSync, writeFileSync } = require("node:fs");
+writeFileSync(${JSON.stringify(join(dir, "config"))}, process.env.CLAUDE_CONFIG_DIR ?? "");
 const list = ${JSON.stringify(LIST_MODELS)};
 let effort = "medium";
 const out = (response) => process.stdout.write(JSON.stringify({ response, type: "control_response" }) + "\\n");
@@ -1517,6 +1518,28 @@ test("models() lists through a short process, which it closes", async () => {
     { subtype: "list_models" },
     { subtype: "get_settings" },
   ]);
+});
+
+test("models() runs in the first listed account that is ready, else the first listed", async () => {
+  const dir = temporaryFolder("uraeda-claude");
+  const gone = join(dir, ".claude-gone");
+  const file = join(dir, ".claude-file");
+  const ready = join(dir, ".claude-b");
+  writeFileSync(file, "{}");
+  mkdirSync(ready);
+  const adapter = (accounts: Array<string>) =>
+    new ClaudeAdapter({
+      accounts,
+      command: controlAgent(dir),
+      imagesDir: images(),
+      pluginDir: "/p",
+    });
+  // The first listed is missing, or no directory: the models are listed in a usable account.
+  await adapter([gone, file, ready]).models();
+  expect(readFileSync(join(dir, "config"), "utf8")).toBe(ready);
+  // None is ready: the first listed.
+  await adapter([gone, file]).models();
+  expect(readFileSync(join(dir, "config"), "utf8")).toBe(gone);
 });
 
 test("models() rejects when the agent refuses, or exits before answering", async () => {
