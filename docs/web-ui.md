@@ -803,22 +803,26 @@ that name the repository, each as a card. Its head holds the job's name, its sch
 the switch that pauses it, and "Report only" marks a job that does. Under it, "Next run" says when
 the job runs next, like "Tomorrow at 3:00", or why it does not: "Paused", "Scheduled jobs are off",
 "Not running: the schedule “dayly 06:00” is not understood", "Not running here: Claude Code is off
-in this repository.", “notes” is not in Uraeda's list., or "Two jobs are named “Dependencies”.".
-"Last run" says what the last run left for you. The keys act on the selected card, each also on its
-bar and by tap: `j` and `k` move the selection, Enter opens the job's page, `r` runs it now, `p`
-pauses or resumes it, `d` deletes it after "Delete the job “<name>”? Its prompt leaves config.toml,
-and its sessions stay.", and `a` adds a job. A refusal shows under its card until you dismiss it.
-Jobs is a built-in extension, turned off like the others: its place is gone in the repositories it
-is off in, and no job starts there.
+in this repository.", "Not running here: Claude Code is not available on this machine.", or "Two
+jobs are named “Dependencies”.". A pause comes first: a paused job reads "Paused" whatever its
+agent. A problem that does not stop the job here, like “notes” is not in Uraeda's list. for a job
+that runs in this repository too, shows beneath the time. Of two jobs with one name, each has its
+card. "Last run" says what the last run left for you, however many skipped times follow it. The keys
+act on the selected card, each also on its bar and by tap: `j` and `k` move the selection, Enter
+opens the job's page, `r` runs it now, `p` pauses or resumes it, `d` deletes it after "Delete the
+job “<name>”? Its prompt leaves config.toml, and its sessions stay.", and `a` adds a job. A refusal
+shows under its card until you dismiss it. Jobs is a built-in extension, turned off like the others:
+its place is gone in the repositories it is off in, and no job starts there.
 
-A job's page, `/jobs/<name>`, is its form: the name, the prompt, the schedule, the repositories, the
-agent, model, and effort, and "Report only". Each field of an existing job is saved as you leave it,
-and a refusal shows under the field: "A time is from 00:00 to 23:59.", "A job named “<name>” exists
-already.", "A job runs in one repository at least.". `a` opens a new job's page, where "Add the job"
-writes its table once its name and prompt are filled. "Run now" sits by the page's title. The page
-ends with the job's history, newest first: each run as its session, or its change once it started
-one, and each skipped time with its reason. A job's table edited by hand shows on its page within a
-second. A job renamed on its page keeps its history; renamed by hand, it starts a new one.
+A job's page, `/jobs/<name>` (any name opens, `new` and `..` included), is its form: the name, the
+prompt, the schedule, the repositories, the agent, model, and effort, and "Report only". Each field
+of an existing job is saved as you leave it, and a refusal shows under the field: "A time is from
+00:00 to 23:59.", "A job named “<name>” exists already.", "A job runs in one repository at least.".
+`a` opens a new job's page, where "Add the job" writes its table once its name and prompt are
+filled. "Run now" sits by the page's title. The page ends with the job's history, newest first: each
+run as its session, or its change once it started one, and each skipped time with its reason. A
+job's table edited by hand shows on its page within a second. A job renamed on its page keeps its
+history; renamed by hand, it starts a new one.
 
 **A run.** A run is a session of the main checkout, one per repository, named after the job, on the
 job's agent, model, and effort. It opens with a line saying why it started, "Started by the schedule
@@ -846,12 +850,12 @@ change as the offer's card does, with its proposal, its branch, and its worktree
 into it, says "The job “<job>” started the change “<title>”.", and goes on to a pull request that
 waits for you: scheduling the job is your yes in advance. A run that offers nothing, because there
 was nothing to do, makes no commit, branch, or worktree. An offer that is not the run's last word,
-as one followed by more text, a feature, or one in a session you wrote in, starts nothing, and its
-card waits for you. When the change cannot start, because its folder's name is taken for instance,
-the session asks for you under the banner "The change could not start by itself.", with the reason,
-until you dismiss it or start the change from the card. A job that is "Report only" starts no
-change: its run is told to change no file, and the offer's card waits in the session. A change
-merges only when you merge it, either way.
+as one followed by more text, a feature, one indented or inside a list or a quote, or one in a
+session you wrote in, starts nothing, and its card waits for you. When the change cannot start,
+because its folder's name is taken for instance, the session asks for you under the banner "The
+change could not start by itself.", with the reason, until you dismiss it or start the change from
+the card. A job that is "Report only" starts no change: its run is told to change no file, and the
+offer's card waits in the session. A change merges only when you merge it, either way.
 
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
