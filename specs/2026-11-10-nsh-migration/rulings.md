@@ -1327,3 +1327,166 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the join can call `fetcher::fetch` as a repository joins the list, where it starts
   that repository's watcher.
 - **Where**: task 10, `crates/server/src/records/git/fetcher.rs`.
+
+## R69: The session store is three tables, and a transcript is a log of events
+
+- **Decision**: `sessions.sqlite`, in the server's data folder, at schema 1. `runner::Store` is the
+  only code that opens it, through `rusqlite` with SQLite built in.
+  - `sessions` and `turns` keep the Node store's columns, under the same names but
+    `automatic_continues`, now `continues`, and without `pid`. A time is the milliseconds since
+    1970, an integer, where the Node store wrote ISO 8601 texts.
+  - `events` is a turn's log: `(turn_id, seq)`, `at`, `type`, and `data`, the event's JSON. Rows are
+    added and never changed. `seq` counts from 0 in each turn, and is an event's name.
+  - A row of a text also says how long its text is, `text_start` and `text_bytes`: a piece reads the
+    turn's last such row through an index, and never the turn (R47).
+  - The schema's number is `PRAGMA user_version`, and a change is a new step at the end of
+    `schema.rs`. A file with a higher number is refused before anything is written, the journal's
+    mode included, and keeps every byte.
+  - The file is in SQLite's write-ahead mode, with `synchronous` at `NORMAL`.
+  - A file that cannot be opened stops the server's start, and is left as it is. The Node server
+    replaced a damaged file with an empty one.
+- **Rationale**: R2 asks for a log per turn. The Node store changed an item in place, a text at each
+  piece, so a reader that fell behind had to read the turn again. With a log, a reader asks for what
+  follows the last event it has, and a piece of a reply is one row written once.
+- **Alternatives considered**: the text's length kept in memory by the store: lost at a restart, and
+  a second state to keep true. Times as ISO texts: a date parser and a formatter in Rust, for a
+  format no person reads in a database.
+- **If wrong**: a reply streamed in many pieces is many rows, and its whole `text` repeats them. A
+  later step of the schema can fold the pieces of an ended turn into their `text`.
+- **Where**: task 11, `crates/server/src/runner/{schema,store,session,turn,log}.rs`, and the tests
+  `a_transcript_reads_back_as_it_was_written`, `a_store_of_a_newer_schema_is_refused_untouched`, and
+  `a_piece_of_text_says_where_its_text_started_and_how_long_it_was`. Task 15.
+
+## R70: `Event` is the agent's events, and three of the runner's
+
+- **Decision**: `runner::Event` has the twenty kinds of `AgentEvent` in `events.ts`, with the same
+  JSON, `{"type":"toolEnd","id":..,"isError":..}`, and three kinds no agent sends, which the runner
+  logs: `message`, `denial`, and `allowed`.
+  - The Node store kept an `Item` per line of a transcript, and changed it: a message's state, a
+    tool call's end, a blocked action once allowed. A log changes nothing, so each change is an
+    event: `accepted` or `cancelled` after a `message`, `toolEnd` after a `toolStart`, `allowed`
+    naming the `seq` of a `denial`.
+  - The module's documentation says how a log reads as a transcript. A text is every `textDelta`
+    since the last `text`, wherever other events came between; a tool call lasted from its start to
+    its end; a thought lasted since the `activity` of kind `thinking` before it.
+  - The store takes any event, and cuts nothing. The 4,000 characters a tool's output and a thought
+    are cut to are the reader's rule, in task 15.
+  - An event is read with `Event::parse`, or `serde_json::from_value`, never `from_str`: NSH's
+    bundler turns on serde_json's `arbitrary_precision`, and a number with a fraction, as a usage
+    window's `used`, then fails to read from a text into an enum that names its kind in a field.
+- **Rationale**: the plan gives one type to the runtimes (task 12) and to the store. A runtime sends
+  what `AgentEvent` has, so a recorded stream compares with the Node code's events as JSON (task
+  13). The three others are what a transcript holds that no agent says.
+- **Alternatives considered**: a second type for a log's lines, wrapping the agent's: two types and
+  a conversion, for three kinds.
+- **If wrong**: a runtime could send a `message`, which means nothing from an agent. The manager
+  ignores it, as it does a kind it does not know.
+- **Where**: task 11, `crates/server/src/runner/event.rs`. Tasks 12 to 15.
+
+## R71: The store has no clock, and an append says what it grew
+
+- **Decision**: the plan's `Store::append(turn_id, Event)` is
+  `Store::append(turn_id, at, &Event) -> Result<Appended, StoreError>`.
+  - Every method that writes takes its time, `shared.now()`: the store holds no clock.
+  - `Appended` has the event's `seq`, and for a `textDelta`, `text: Some(Growth { start, at })`:
+    `start` is the `seq` of the text's first piece, which names the text, and `at` its length in
+    bytes before this piece, what `Bus::append` takes.
+  - `Store::log(turn_id, from)` gives the events from the place `from`, each with its `seq` and its
+    time.
+  - `Store::open(data_dir)` returns a `Result`. `runner::mount`, in `DOMAINS`, provides the store as
+    `shared.get::<Store>()`, and closes it as the server stops: a call after that fails with
+    `StoreError::Closed`.
+  - `create_session` and `add_turn` are there for the import's tests and task 15's first steps. The
+    other writes, a turn's end, a session's fields, the continues, are task 15's to add, in files
+    beside `session.rs` and `turn.rs`, through `Store::read` and `Store::write`.
+- **Rationale**: a test sets the server's clock, and a store with its own would read the system's.
+  Holding `Shared` for its clock would make the store and the server hold each other.
+- **Where**: task 11, `crates/server/src/runner/{store,log,mod}.rs`. Task 15.
+
+## R72: What the import keeps of the Node store, column by column
+
+- **Decision**: everything but what is listed as dropped.
+  - **A session**: `id`, `repo`, `folder`, `parent`, `role`, `step`, `worktree`, `agent`,
+    `native_id`, `title`, `model`, `effort`, `ran_model`, `ran_effort`, and `automatic_continues` go
+    to the same columns; `created_at`, `updated_at`, `seen_at`, and `archived_at` as milliseconds.
+    **Dropped**: `pid`, the Node server's process that held the session.
+  - **A turn**: `id`, `session_id`, `kind`, `trigger`, `step`, `allowed`, `caught_up_to`, `state`,
+    `reason`, `continue_at`, `continue_reason`, and the four token counts go to the same columns;
+    `started_at`, `ended_at`, and `dismissed_at` as milliseconds. R73 says which turns change.
+  - **An item** becomes one to three events, in its place. Its `seq` is not kept: an event's is new.
+    Its `at` is its events' time, but where said.
+    - `message`: a `message` with its `id`, `origin`, `text`, `opening`, and `images`. Its `state`
+      is the event after it: `accepted` for `read`, `cancelled` for `taken-back`, none while
+      `pending`. Its own `at`, when it has one, is its time.
+    - `text`: a `text`, or a `textDelta` alone when `streaming`, a text cut short.
+    - `tool`: a `toolStart` with its `id`, `name`, `toolKind` as `kind`, `target`, `parent`, and
+      `subagent`. `completed` and `failed` add a `toolEnd` with `output`, `durationMs` later, put
+      before the first item written after that time. Any other `status` is a call cut short.
+      **Dropped**: nothing. Its `input` is empty: the Node store kept none.
+    - `thought`: a `thought` with its `parent` and `text`. `durationMs` is the time since an
+      `activity` of kind `thinking`, added before it, when it lasted and has no `parent`.
+    - `system`: a `notice` with its `text`.
+    - `denial`: a `denial` with its `tool`, `target`, and `rule`. `allowed` is an `allowed` naming
+      it, at the end of the turn's log. One not allowed still waits to be allowed, by its rule.
+  - **An item that cannot be read**, of an unknown kind or with other fields, is left out and
+    counted: `ura import-sessions` says how many.
+  - **Chat images**: each file a message names is copied from the old `images/` to the new one, when
+    it is there and not yet in the new folder.
+  - **Not in the store, so not imported**: the search text, which was a query over messages and
+    texts, and is one over `message` and `text` events; the queue, which is the queued turns and
+    their pending messages; a feature's run options, in `run-options.sqlite`, which belong to no
+    session and wait for the task that ports them.
+- **Rationale**: the task is risky because it changes a stored format: the list is what a review
+  checks against the Node store's tables.
+- **How it was checked**: `fixtures/runner/old.sqlite` is written by the Node server's own
+  `SessionCache`, through `fixtures/runner/write-old.ts`, with every kind of item in each of its
+  states. `an_old_store_imports_with_every_session_and_event` asserts each event of its nine turns.
+- **If wrong**: the old file is never changed, so a fixed import runs again with `--replace`.
+- **Where**: task 11, `crates/server/src/runner/import/{old,lines}.rs`.
+
+## R73: The import runs once, reads only, and leaves nothing running
+
+- **Decision**: `ura import-sessions [--from DIR] [--data-dir DIR] [--replace]`.
+  - It reads `runner.sqlite` in the Node server's data folder, or `--from`, and writes the store of
+    `ura serve`'s data folder (R32), or `--data-dir`.
+  - **Read only**: the old store is opened read-only, at one moment of it. Its bytes never change.
+    SQLite leaves its two side files beside it, `runner.sqlite-shm` and an empty
+    `runner.sqlite-wal`, as any reader of a store in that mode does.
+  - **All or nothing**: one transaction holds every session, turn, and event.
+  - **Once**: a store that holds a session is refused, and nothing changes. So a second run does
+    nothing. With `--replace`, the same transaction first removes every session of the store, those
+    made in the Rust server included, so the result is the first run's.
+  - **Schema 12 only**, the Node store's last. An older file is one the Node server never opened at
+    this version: starting it once brings it there.
+  - **Nothing imported runs by itself.** A turn that ran or was queued is stopped, at its last
+    event. A turn the Node server's stop cut, not dismissed and with no continue decided, is the one
+    a server continues at its next start: its reason becomes the import's. A continue that waited
+    for its time is dropped. Each reads as a stopped or failed run, which a message continues. A
+    dismissed turn, and one past its cap, stay as they were.
+- **Rationale**: until task 61 the Node server is the human's working Uraeda, and may run after an
+  import. A run both servers continue is two agents in one worktree. R2 calls the import a one-time
+  tool, so a second run that merges is more than it needs.
+- **Alternatives considered**: merging by session id on a second run: sessions that went on in the
+  Node server would stay as first imported. Keeping the waiting continues: right only once the Node
+  server is gone for good, which the import cannot know.
+- **If wrong**: at the last import, with the Node server stopped for good, a run that waited to
+  continue waits for the human instead. `settle`, in `import.rs`, is the one function to change.
+  Nothing checks whether `ura serve` runs: a running server shows the imported sessions only once a
+  client reads them again.
+- **Where**: task 11, `crates/server/src/runner/import.rs`, `crates/cli/src/import_sessions.rs`, and
+  the tests `an_import_keeps_the_old_store_and_never_runs_twice_by_mistake`,
+  `an_imported_session_keeps_its_place_and_runs_nothing_by_itself`, and, for the command,
+  `import_sessions_copies_the_earlier_servers_sessions_once`. Tasks 15 and 61.
+
+## R74: The reminder to remove the importer is already in the inbox
+
+- **Decision**: task 11 adds no inbox note. The default branch's `specs/INBOX.md` already holds it:
+  "Remove `ura import-sessions` and its importer once the port to the Rust server is done".
+- **Rationale**: a branch never writes `INBOX.md`, and an agent's note file in `specs/notes/`, which
+  a branch may write, would say the same thing twice.
+- **What to remove then**: `crates/cli/src/import_sessions.rs` and its lines in `main.rs`;
+  `crates/server/src/runner/import.rs` and `import/`, with their exports in `runner/mod.rs`; the
+  import's tests in `crates/server/tests/runner_store.rs`, and
+  `crates/cli/tests/import_sessions.rs`; `fixtures/runner/`; and the command's lines in
+  `docs/cli.md` and `skills/uraeda/references/cli.md`.
+- **Where**: task 61.

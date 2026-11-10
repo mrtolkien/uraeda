@@ -28,6 +28,7 @@ ura clean --all                            # merged features' worktrees, branche
 ura upgrade                                # the latest release, then your skill
 ura serve                                  # the new server, on this machine, until you stop it
 ura pair                                   # a one-time code, and its QR code, to pair a device with it
+ura import-sessions                        # the web UI's sessions, copied into the new server, once
 ```
 
 `ura next` and `ura status` read your pull requests with `gh`. An open pull request, not a draft and
@@ -73,6 +74,22 @@ code, good for one device, for 10 minutes, the address the device reaches the se
 code holding both. The device scans it, or you enter the code there. It then signs in with a token
 of its own, which you can revoke alone. `--data-dir` names the server's data folder when `ura serve`
 was given one.
+
+`ura import-sessions` copies the sessions of the web UI's server, with their transcripts and the
+images in their messages, into the store of `ura serve`. It is a one-time tool, which goes away with
+the web UI's server.
+
+- It reads `runner.sqlite` in your data folder, `~/.local/share/uraeda/`, or in `--from`, and never
+  writes it. It writes `sessions.sqlite` in the data folder of `ura serve`, or in `--data-dir`.
+- Sessions, turns, and messages keep their IDs. Everything lands at once, or nothing does.
+- Nothing imported runs by itself, since the web UI's server may still run it: a turn that ran or
+  waited there, or that its server's stop cut, is stopped here, and a run that waited to continue by
+  itself waits for you. A message continues it.
+- A second run imports nothing: a store that already holds sessions is refused. With `--replace`,
+  its sessions are removed, those made in the new server included, and the web UI's are imported in
+  their place.
+- Run it while `ura serve` is stopped: a running server shows the imported sessions only once its
+  app reads them again.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
 code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder, a

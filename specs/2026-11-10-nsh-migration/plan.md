@@ -836,31 +836,53 @@ Follows [what every records task does](#what-every-records-task-does).
 
 **Files:**
 
-- Create: `crates/server/src/runner/{store,schema,import}.rs`, `crates/cli/src/import_sessions.rs`
-- Test: `crates/server/tests/runner_store.rs`, `fixtures/runner/old.sqlite`
+- Create: `crates/server/src/runner/{mod,event,schema,store,session,turn,log,import}.rs`,
+  `crates/server/src/runner/import/{old,lines}.rs`, `crates/cli/src/import_sessions.rs`
+- Test: `crates/server/tests/runner_store.rs`, `crates/cli/tests/import_sessions.rs`,
+  `fixtures/runner/old.sqlite`, written by `fixtures/runner/write-old.ts`
 
 **Interfaces:**
 
-- Produces:
-  - `Store::open(data_dir) -> Store`, the only code that opens `sessions.sqlite`.
-  - `Store::append(turn_id, Event)`, `Store::session(id)`, `Store::turns(session_id)`,
-    `Store::log(turn_id, from: u64)`.
-  - `enum Event`, the agent-neutral transcript events of
-    [`events.ts`](/packages/server/src/runner/events.ts), unchanged in meaning.
-  - `ura import-sessions [--from DIR]`, a one-time tool, removed after the port (an inbox note asks
-    for it), which copies sessions and transcripts from the Node server's `runner.sqlite`.
+- Produces, in `uraeda_server::runner` (rulings R69 to R74):
+  - `Store::open(data_dir) -> Result<Store, StoreError>`, the only code that opens
+    `sessions.sqlite`. `runner::mount` provides it: `shared.get::<Store>()`.
+  - `Store::append(turn_id, at, &Event) -> Result<Appended, StoreError>`: `Appended` has the event's
+    `seq`, its place in its turn's log from 0, and for a `textDelta`,
+    `text: Some(Growth { start, at })`, the `seq` of the text's first piece and the text's length in
+    bytes before this one, for `Bus::append`.
+  - `Store::log(turn_id, from: u64) -> Result<Vec<Logged>, StoreError>`: the events from a place,
+    each a `Logged { seq, at, event }`.
+  - `Store::session(id)`, `Store::turns(session_id)`, `Store::create_session(NewSession, at)`,
+    `Store::add_turn(NewTurn, at)`, and `Store::close()`. A time is a `SystemTime` the caller gives,
+    `shared.now()`. Task 15 adds the other writes beside them, through `Store::read` and
+    `Store::write`.
+  - `Session`, `Turn`, `TurnKind`, `TurnState`, and `ContinueReason`, the rows as the store keeps
+    them.
+  - `enum Event`, the events of `AgentEvent` in
+    [`events.ts`](/packages/server/src/runner/events.ts), unchanged in meaning and in JSON, and
+    three the runner logs: `message`, `denial`, and `allowed`. Read one with `Event::parse`.
+  - `ura import-sessions [--from DIR] [--data-dir DIR] [--replace]`, a one-time tool, removed after
+    the port (the inbox already asks for it), which copies sessions, transcripts, and chat images
+    from the Node server's `runner.sqlite`, through `runner::import(from, &store, now, Replace)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a transcript reads back as it was written`, across a close and an open.
   - `an old store imports with every session and event`, on a fixture written by the Node server.
   - `a store of a newer schema is refused, untouched`.
-  - Break to make: lose the order of events in a turn.
-- [ ] **Step 2: Run them**. Expected: FAIL, `Store` not found.
-- [ ] **Step 3: Implement**, with `rusqlite` and a numbered schema. A transcript is an append-only
+  - Also: `a piece of text says where its text started and how long it was`;
+    `any sequence of events reads back equal and a log from a place is its tail`;
+    `an imported session keeps its place and runs nothing by itself`;
+    `an import keeps the old store and never runs twice by mistake`;
+    `an import refuses a store it cannot read and imports nothing`;
+    `the server opens the store and closes it as it stops`; and the command's own test.
+  - Breaks made, each failing a test: the order of events in a turn lost; one kind of item dropped
+    in the import; a newer schema opened.
+- [x] **Step 2: Run them**. Expected: FAIL, `Store` not found.
+- [x] **Step 3: Implement**, with `rusqlite` and a numbered schema. A transcript is an append-only
       log per turn, so `Bus::append` and `Store::log(from)` serve a resume without a full read. See
-      the ruling on the store's format.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the session store and its import`.
+      the rulings on the store's format, R69 to R73.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the session store and its import`.
 
 ## Task 12: The runtime contract, and the fake runtime
 

@@ -27,6 +27,7 @@ mod http;
 pub mod live;
 mod records;
 mod run;
+pub mod runner;
 pub mod secret;
 mod shared;
 pub mod sign_in;
@@ -66,6 +67,7 @@ type Mount = fn(&Shared, &mut Routes) -> Result<(), Failure>;
 const DOMAINS: &[Mount] = &[
     live::mount,
     sign_in::mount,
+    runner::mount,
     http::open::mount,
     http::socket::mount,
 ];

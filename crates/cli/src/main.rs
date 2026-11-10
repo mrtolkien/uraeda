@@ -8,6 +8,7 @@ mod complete;
 mod editor;
 mod expand;
 mod extension;
+mod import_sessions;
 mod inbox;
 mod init;
 mod install;
@@ -209,6 +210,18 @@ enum Command {
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
     },
+    /// Copy the earlier server's sessions into the store of `ura serve`, once
+    ImportSessions {
+        /// The earlier server's data folder, which is only read
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        from: Option<std::path::PathBuf>,
+        /// The data folder of the server to import into
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+        /// Remove the sessions the store already holds, and import in their place
+        #[arg(long)]
+        replace: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -269,6 +282,11 @@ fn main() -> ExitCode {
         Command::Extension(args) => extension::run(args),
         Command::Serve { port, data_dir } => serve::run(port, data_dir),
         Command::Pair { data_dir } => pair::run(data_dir),
+        Command::ImportSessions {
+            from,
+            data_dir,
+            replace,
+        } => import_sessions::run(from, data_dir, replace),
         Command::Review {
             target,
             comment,
