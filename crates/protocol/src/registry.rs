@@ -7,6 +7,7 @@ use ts_rs::TS;
 
 use crate::devices::{Devices, DevicesRename, DevicesRevoke};
 use crate::typescript::Types;
+use crate::workspace;
 
 /// What crosses the protocol: read from JSON, written as JSON, and typed for the client.
 pub trait Wire: Serialize + DeserializeOwned + TS + Send + 'static {}
@@ -124,4 +125,26 @@ pub fn catalog() -> Catalog {
         .record::<Devices>()
         .action::<DevicesRename>()
         .action::<DevicesRevoke>()
+        // The workspace: repositories, features in flight, settings, and themes (task 7).
+        .record::<workspace::FolderSuggestions>()
+        .record::<workspace::NeedsYouList>()
+        .record::<workspace::Repositories>()
+        .record::<workspace::Settings>()
+        .record::<workspace::SlugProposal>()
+        .record::<workspace::Themes>()
+        .record::<workspace::Workspace>()
+        .action::<workspace::RepositoriesAdd>()
+        .action::<workspace::RepositoriesOpen>()
+        .action::<workspace::RepositoriesRemove>()
+        .action::<workspace::SettingsAddHost>()
+        .action::<workspace::SettingsEditHost>()
+        .action::<workspace::SettingsRemoveHost>()
+        .action::<workspace::SettingsSetAutomaticContinues>()
+        .action::<workspace::SettingsSetContinue>()
+        .action::<workspace::SettingsSetOpenBrowser>()
+        .action::<workspace::SettingsSetPort>()
+        .action::<workspace::SettingsSetRunOptions>()
+        .action::<workspace::SettingsSetSingleKeyShortcuts>()
+        .action::<workspace::SettingsSetVimCommands>()
+        .action::<workspace::SettingsSetVimMode>()
 }

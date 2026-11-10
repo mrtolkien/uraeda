@@ -79,8 +79,14 @@ pub(crate) async fn open_folder(
     let Some(folder) = folder else {
         return Ok("/".to_owned());
     };
-    let (data_dir, now) = (shared.data_dir().to_owned(), shared.now());
-    let added = tokio::task::spawn_blocking(move || repositories::add(&data_dir, &folder, now))
+    let listed = shared.clone();
+    // The list is read again before the answer, so the page it names is served.
+    let add = move || {
+        let added = repositories::add(listed.data_dir(), &folder, listed.now());
+        crate::records::repositories::reload(&listed);
+        added
+    };
+    let added = tokio::task::spawn_blocking(add)
         .await
         .map_err(|error| error.to_string())?;
     match added {

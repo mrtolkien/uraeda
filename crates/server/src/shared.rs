@@ -36,7 +36,6 @@ impl Shared {
     /// The state of a server that listens on `port`, with its host token.
     pub(crate) fn new(options: Options, port: u16, token: String) -> Shared {
         let environment = Environment::load(&options.config_dir, options.environment);
-        let hosts = allowed_hosts(&environment, &options.config_dir);
         Shared(Arc::new(Inner {
             port,
             config_dir: options.config_dir,
@@ -46,7 +45,8 @@ impl Shared {
             environment,
             allow_origins: options.allow_origins,
             token,
-            hosts: RwLock::new(hosts.into()),
+            // The settings give them as the domains mount, before the first request.
+            hosts: RwLock::default(),
             provided: RwLock::default(),
             stops: Stops::default(),
         }))
@@ -103,7 +103,8 @@ impl Shared {
             .clone()
     }
 
-    /// Replaces the allowed host names: the next request is checked against them.
+    /// Replaces the allowed host names: the next request is checked against them. The settings
+    /// call it with the names in force, as the server starts and each time they change.
     pub fn allow_hosts(&self, names: Vec<String>) {
         *self.0.hosts.write().unwrap_or_else(PoisonError::into_inner) = names.into();
     }
@@ -173,24 +174,5 @@ impl Shared {
     /// The work that stops with the server.
     pub(crate) fn stops(&self) -> &Stops {
         &self.0.stops
-    }
-}
-
-/// The allowed host names at the start: `URAEDA_ALLOWED_HOSTS`, separated by commas, or else the
-/// settings file's, or else none.
-///
-/// TEMPORARY: read once, until the settings' record follows the file and calls `allow_hosts`
-/// (task 7).
-fn allowed_hosts(environment: &Environment, config_dir: &Path) -> Vec<String> {
-    match environment.var("URAEDA_ALLOWED_HOSTS") {
-        Some(names) => names
-            .split(',')
-            .map(|name| name.trim().to_lowercase())
-            .filter(|name| !name.is_empty())
-            .collect(),
-        None => uraeda_core::settings::read(config_dir)
-            .ok()
-            .and_then(|settings| settings.server.allowed_hosts)
-            .unwrap_or_default(),
     }
 }

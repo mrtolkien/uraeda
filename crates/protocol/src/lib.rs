@@ -9,6 +9,7 @@ mod diff;
 mod message;
 mod registry;
 mod typescript;
+mod workspace;
 
 pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
@@ -16,3 +17,4 @@ pub use diff::diff;
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
 pub use registry::{Action, Catalog, Record, Wire, catalog};
 pub use typescript::typescript;
+pub use workspace::*;

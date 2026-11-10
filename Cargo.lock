@@ -8589,6 +8589,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "notify",
  "nsh-bundler",
  "percent-encoding",
  "rolldown_devtools",

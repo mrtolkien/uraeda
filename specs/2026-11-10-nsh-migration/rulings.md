@@ -917,3 +917,132 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/live/socket.rs`, `crates/server/src/http/socket.rs`,
   `crates/server/src/sign_in/{mod,devices}.rs`, `crates/server/tests/{live,sign_in}.rs`. Tasks 7 to
   19, for `call.caller()`.
+
+## R52: A record of one repository takes `repo`, a row carries an `id`, and an action answers little
+
+- **Decision**: the shapes of the workspace's records and actions, where fate's did not carry over.
+  - A record of one repository takes the repository's name in the list as `repo`:
+    `Workspace { repo }`. A record there is one of takes `null`: `Repositories`, `NeedsYouList`,
+    `Settings`, `Themes`. A record read once for a typed text takes it as `text`:
+    `FolderSuggestions { text }`, `SlugProposal { text }`.
+  - A value has no `id` of its own: fate's ids, as `"workspace"` or `"settings"`, named a record in
+    its cache, which the arguments do now.
+  - Each row of a list that changes carries an `id`, so it changes row by row (R27): a repository's
+    name, a workspace feature's folder.
+  - The settings' and the list's actions answer `null`, and the record shows the change:
+    `repositories.add` alone answers `{ name }`, the repository added or found listed, in place of
+    fate's field `added` on the record.
+- **Rationale**: fate answered a mutation with its record, since a client had no other way to learn
+  the change. A subscriber gets it as a `change`, and a `sub` sent after the `result` reads it
+  (R48).
+- **Where**: task 7, `crates/protocol/src/workspace/`. Tasks 8 to 10, whose records are all of one
+  repository, and tasks 36 to 48, which read them.
+
+## R53: The core's views cross as the JSON the core writes
+
+- **Decision**: a protocol type named `…View` is the core's view of that name: `FeatureView`,
+  `StepView`, `ProposalView`, `PullRequestView`, and the others of
+  `crates/protocol/src/workspace/features.rs`. The server turns one into the other with
+  `views::sent`, through the JSON the core's `Serialize` writes, which the protocol's type reads. A
+  core type with no JSON form, as the themes and the run options, is converted field by field, in
+  the domain's file.
+  - `WorkspaceFeature` is a `FeatureView` with its `id`, its `label` in the sidebar, and its
+    `status`, flattened into one object.
+- **Rationale**: the protocol's crate does not depend on the core, and a type that crosses must
+  derive `TS` and `Deserialize`, which the core's views do not. The core's JSON is what the Node
+  binding sent, so the names and the shapes carry over. Each record's contract test,
+  `<Record> answers its shape`, reads the answer with the protocol's type.
+- **Alternatives considered**: `TS` derived in the core, with the protocol on top of it: one
+  definition, but the core's views are shared by four tasks of the wave, and `ts-rs` would join the
+  core's build.
+- **If wrong**: a field the core adds is not sent until the protocol's type names it, and one it
+  renames fails the record's read as `internal`, which its contract test sees. Tasks 7 and 8 both
+  declare the feature's types: the join gives them one home.
+- **Where**: task 7, `crates/server/src/records/workspace/views.rs`. Tasks 8 to 10.
+
+## R54: One watcher, two lists of hooks, and `notify` for the files outside a repository
+
+- **Decision**: `crates/server/src/records/watch.rs` is the server's one file watcher, started once
+  every records domain registered, and stopped by `Server::stop`.
+  - **A repository's files**: the core's `watch` runs for each listed repository whose folder is
+    there, and follows the list. After each burst it calls each function of `FILES_CHANGED`, of
+    shape `fn(&Bus, &str, &Changes)`: the bus, the repository's name, and the core's `Changes`,
+    which names features, files, and flags, not paths. A domain adds one line there.
+  - **The config folder**: after each change of `config.toml` or of the themes folder it calls each
+    function of `CONFIG_CHANGED`, of shape `fn(&Shared)`.
+  - **The list**: a change of `repositories.json`, by `ura add` or by hand, reads the list again.
+    The list tells its listeners, the watcher first, then the bus: a client that learns of a
+    repository finds it already watched.
+  - **Files outside a repository** are watched with `notify`, in `watch/files.rs`, as
+    `settings-watch.ts` did: from the nearest folder that exists, through a link to where it leads,
+    a folder's linked entries too, and a change is told once, 100 ms after the last event. The
+    places are worked out again after each change, by folder and inode, so a folder made again is
+    watched again.
+  - `notify` is a direct dependency of the server now. It was in the lockfile, through the core.
+- **Rationale**: the core's `watch` reads a repository's workspace, so it cannot watch a config
+  folder. The human keeps the settings in their dotfiles, where the file is a link.
+- **If wrong**: a domain that needs the server's state in `files_changed` gets the bus only: the
+  join widens the shape. A watch that fails to start is printed, and its files show when read again.
+- **Where**: task 7, `crates/server/src/records/{watch.rs,watch/files.rs}`, and the tests
+  `the_list_follows_its_file`, `a_commit_reaches_the_workspace_and_what_needs_the_human`,
+  `a_host_name_in_the_settings_passes_the_guard_until_it_changes`, and
+  `a_theme_file_written_reaches_the_record`. Tasks 8 to 10, 16, and 17.
+
+## R55: A repository is found by its name through the list the server keeps
+
+- **Decision**: `records::repositories::find(&Shared, name) -> Result<Repository, Fault>` gives the
+  listed repository of a name, the core's `Repository`, whose `path` is its main checkout. It
+  refuses a name the list does not have, and a repository whose folder is gone. `all` gives every
+  repository as last read, `label` an item's name in the sidebar, `reload` reads the list again
+  after a write of its file, and `on_change` is told of each change.
+  - The list is read as the server starts, after each action that writes it, at each change of its
+    file, at each read of the record `Repositories`, and by `find` for a name not listed or a folder
+    that came or went since. A file that cannot be read keeps the rows, and is the record's
+    `problem`.
+  - `POST /open` and a start's folder read the list again once they added to it.
+- **Rationale**: every record of a repository starts there, so it costs one look at `.git`, and no
+  read of the file.
+- **Where**: task 7, `crates/server/src/records/workspace/repositories.rs`, and the test
+  `a_record_of_a_repository_no_longer_there_is_refused`. Tasks 8 to 19.
+
+## R56: The settings in force come from the environment, the file, then the default
+
+- **Decision**: `records::settings::current(&Shared)` gives the settings in force, the record
+  `Settings`: each value, the file's, and its source.
+  - The server has no flag for a setting but `--port` (R32). A variable gives a value for one run:
+    `URAEDA_ALLOWED_HOSTS`, `URAEDA_AUTOMATIC_CONTINUES`, `URAEDA_CONTINUE_AFTER_RESTART`,
+    `URAEDA_CONTINUE_AFTER_LIMIT`, and `URAEDA_CATCH_UP_PULL_REQUESTS`. One that is not a value of
+    its setting stops the start, naming the variable.
+  - The port in force is the one the server listens on, from `--port` or the default: the file's
+    port stays the Node server's until task 61, and `settings.setPort` still writes it.
+  - The allowed host names reach the guard through `Shared::allow_hosts`, as the server starts and
+    at each change, from an action or on disk. `Shared` no longer reads them itself.
+  - The themes are read at each read of `Themes`: the core's read never fails, so nothing is kept.
+- **Rationale**: the settings decision's order, flag, variable, file, default, with the flags the
+  Rust server has.
+- **Where**: task 7, `crates/server/src/records/workspace/settings.rs` and `settings/`,
+  `crates/server/src/shared.rs`, and the tests `settings_answers_its_shape`,
+  `host_names_given_by_the_environment_stay_whatever_the_file_lists`, and
+  `a_variable_that_is_no_value_stops_the_start`. Tasks 13 to 15, which apply them.
+
+## R57: What the workspace leaves to the sessions, the sandbox, and the join
+
+- **Decision**: four rules of the Node server's workspace are not built in task 7, each because what
+  it reads does not exist yet.
+  - **A feature's status follows no session.** `workspace/status.rs` decides it from the step alone:
+    it needs the human when it has problems or its step waits on them, and is idle otherwise.
+    `FeatureStatus` has its final shape, with `session`, `turn`, and `wait` empty. The sessions
+    (task 15) bring the rules before that one, in the same file, marked `TEMPORARY:`.
+  - **`NeedsYouList` holds features only.** A chat refused an action is a row the sessions add.
+  - **`repositories.remove` is not refused while an agent works** in the repository.
+  - **The locked list** of the sandbox, which refused the list's actions and the folder suggestions,
+    comes with the server's sandbox (task 20).
+  - **The refresh of the pull requests**, `pulls.ts`, and the fetch every 5 minutes, `git-fetch.ts`,
+    ran from the Node server's watcher of each repository. No task of the plan names the first: a
+    workspace shows the pull requests the core last knew, which is none until something asks `gh`.
+- **Rationale**: the plan builds the sessions and the sandbox later, and a record's shape is what a
+  screen is written against.
+- **If wrong**: the join task, or task 10 for git, takes the refresh of the pull requests, with a
+  line in `watch.rs`'s `FILES_CHANGED`.
+- **Where**: task 7, `crates/server/src/records/workspace/{status,needs_you,repositories}.rs`. Tasks
+  10, 15, and 20.

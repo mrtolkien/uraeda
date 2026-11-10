@@ -742,10 +742,25 @@ fallback written under it, and later tasks build on the fallback.
 
 Follows [what every records task does](#what-every-records-task-does).
 
-- **Files:** `crates/server/src/records/workspace.rs`, and its test in `crates/server/tests/`
+- **Files:** `crates/server/src/records/workspace.rs` and `workspace/`,
+  `crates/server/src/records/watch.rs` and `watch/files.rs`, `crates/protocol/src/workspace.rs` and
+  `workspace/`, and its test, `crates/server/tests/workspace.rs`
 - **Records:** Repositories, FolderSuggestions, SlugProposal, Workspace, NeedsYouList, Themes,
   Settings
 - **Actions:** `repositories.*`, `settings.*`
+- **Produces, for every other domain** (rulings R52 to R57):
+  - `records::repositories::find(&Shared, name) -> Result<Repository, Fault>`: the listed repository
+    of a name, whose `path` is its main checkout. With it, `all`, `label`, `reload`, and
+    `on_change`.
+  - `records::settings::current(&Shared) -> Settings`: the settings in force.
+  - The server's one file watcher, `records/watch.rs`. A domain adds one line to `FILES_CHANGED`,
+    for `fn files_changed(bus: &Bus, repository: &str, changes: &Changes)`, called after each burst
+    of changes in a repository, with the core's `Changes`; or to `CONFIG_CHANGED`, for
+    `fn(&Shared)`, called after each change of the settings file or the themes folder.
+  - A record of one repository takes `{ repo }`, the repository's name. A protocol type named
+    `…View` is the core's view, turned with `views::sent`.
+  - A feature's status is `workspace/status.rs`, from the step alone until the sessions (task 15).
+- [x] **Done**: `feat(nsh-migration): records of the workspace`
 
 ## Task 8: Records: features
 
