@@ -6,6 +6,8 @@
 - [codex-runtime] Decisions are too specific/constraining: for example the agents decisions focus
   too much on Claude Code and its behaviour and not general rules.
 - Tapping a session composer on mobile does not open the virtual keyboard
+- [scheduled-jobs]
+  [This should be a much bigger view, it's super hard to read Should be the same as settings pretty much.](notes/this-should-be-a-much-bigger-view-it-s-super-hard/note.md)
 
 ## Bugfix
 
