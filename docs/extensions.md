@@ -263,9 +263,19 @@ A runtime may also offer several accounts of its agent, as `accounts`, with four
   `maxAgeMs`, and settles once they answered. Keep that time yourself: `askedAt` is null for an ask
   that could not read the usage.
 
-A new session then starts on the account with the most of its shortest window left, among the
-accounts that are `ready` and whose longer windows are not used up. `open` gets that account's ID as
-`account`, and `hasSession(nativeId, account)` is asked in it. A session keeps its account.
+A new session then starts on one account, picked among those that are `ready` and whose longer
+windows, every one after the first, are not used up. Among them, the pick takes:
+
+1. an account whose usage is known before one whose usage is not: `askedAt` null, never read or not
+   readable, ranks last;
+2. the one with the most of its first, shortest window left;
+3. on a tie, the one whose first window resets first, a window not open (`resetsAt` null) last;
+4. then the first one listed.
+
+A `used` or a `resetsAt` that is no number counts as the last. When every `ready` account is used
+up, the first `ready` one listed is picked. When none is `ready`, the session's turn is refused,
+with why. `open` gets the picked account's ID as `account`, and `hasSession(nativeId, account)` is
+asked in it. A session keeps its account.
 
 A runtime that picks its agent's session IDs itself, opened without `resume`, reports the agent's
 own ID in its first `init`: the session takes it.
