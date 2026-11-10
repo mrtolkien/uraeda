@@ -114,7 +114,7 @@ Full review comments:
   losing the human's file-level comment. `own_comment` correctly extracts it, but this branch
   discards it when `next_position` returns `None`. Preserve it in the document's trailing text when
   there is no following table. This violates the comment-preservation requirement in
-  [the settings decision](specs/decisions/settings.md#L22).
+  [the settings decision](../decisions/settings.md).
 
 - [P2] Flag non-string repository entries instead of discarding them —
   /home/tolki/Development/ai/uraeda/.worktrees/2026-11-10-scheduled-jobs/crates/core/src/jobs.rs:158-161
