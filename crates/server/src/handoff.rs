@@ -34,7 +34,8 @@ const STARTING: Duration = Duration::from_secs(60);
 /// Asks the server on 127.0.0.1:`port` to open `folder`, with the host token `token`.
 pub(crate) async fn hand_over(port: u16, token: Option<&str>, folder: Option<&Path>) -> HandOff {
     let patience = if token.is_some() { STARTING } else { ANSWER };
-    let asked = tokio::time::timeout(patience, ask(port, token, folder)).await;
+    let folder = json!({ "folder": folder.and_then(Path::to_str) });
+    let asked = tokio::time::timeout(patience, post(port, token, "/open", &folder)).await;
     let Ok(Some((status, body))) = asked else {
         return HandOff::Other;
     };
@@ -55,9 +56,15 @@ fn on_server(path: &str) -> bool {
     path.starts_with('/') && !path[1..].starts_with(['/', '\\'])
 }
 
-/// `POST /open` to the port: the answer's status and JSON, or nothing for a refused connection
+/// A `POST` of a JSON body to a route of the server on 127.0.0.1:`port`, with the host token, as
+/// the host's own `ura` sends: the answer's status and JSON, or nothing for a refused connection
 /// or an answer that is not JSON.
-async fn ask(port: u16, token: Option<&str>, folder: Option<&Path>) -> Option<(StatusCode, Value)> {
+pub(crate) async fn post(
+    port: u16,
+    token: Option<&str>,
+    path: &str,
+    body: &Value,
+) -> Option<(StatusCode, Value)> {
     let stream = TcpStream::connect(("127.0.0.1", port)).await.ok()?;
     let (mut sender, connection) = hyper::client::conn::http1::handshake(TokioIo::new(stream))
         .await
@@ -65,14 +72,13 @@ async fn ask(port: u16, token: Option<&str>, folder: Option<&Path>) -> Option<(S
     tokio::spawn(connection);
     let mut request = Request::builder()
         .method(Method::POST)
-        .uri("/open")
+        .uri(path)
         .header(HOST, format!("127.0.0.1:{port}"))
         .header(CONTENT_TYPE, "application/json");
     if let Some(token) = token {
         request = request.header(AUTHORIZATION, format!("Bearer {token}"));
     }
-    let folder = folder.and_then(Path::to_str);
-    let body = serde_json::to_vec(&json!({ "folder": folder })).ok()?;
+    let body = serde_json::to_vec(body).ok()?;
     let request = request.body(Full::new(Bytes::from(body))).ok()?;
     let response = sender.send_request(request).await.ok()?;
     let status = response.status();
