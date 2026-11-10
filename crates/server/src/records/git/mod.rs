@@ -1,12 +1,12 @@
 //! Git: the page of a repository's checkouts, the sidebar's count, a file's diff, a commit, a
 //! page of the history, a conflicted file, and the page's writes.
 //!
-//! The core reads the repository at each read: nothing of it is kept here. Each write runs in
-//! its repository's turn, and is refused while an agent works in a checkout it writes. After
-//! each, landed or refused, the records that show the repository are said to have changed.
+//! The core reads the repository at each read: nothing of it is kept here. Each write lands in
+//! its repository's write queue, under its name, and is refused while an agent works in a
+//! checkout it writes. After each, landed or refused, the queue says the repository's records
+//! changed.
 
 mod fetcher;
-mod queue;
 mod reads;
 mod views;
 mod working;
@@ -21,11 +21,10 @@ use crate::shared::Shared;
 
 /// Registers git's records and actions, and starts fetching the list's repositories.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
-    shared.provide(queue::Turns::default());
     shared.provide(fetcher::Fetcher::default());
     reads::register(registry);
     writes::register(registry);
-    fetcher::start(shared, Bus::clone(&shared.get::<Bus>()));
+    fetcher::start(shared);
     Ok(())
 }
 

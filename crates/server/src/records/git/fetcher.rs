@@ -1,6 +1,6 @@
 //! The fetcher: `origin` of each repository of the list fetched as the server starts and every
-//! 5 minutes, and when a page asks, in the repository's turn. Why the last fetch failed is kept
-//! for the page until one succeeds.
+//! 5 minutes, and when a page asks, as a write of the repository's queue. Why the last fetch
+//! failed is kept for the page until one succeeds.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -9,9 +9,9 @@ use std::time::Duration;
 
 use uraeda_core::api;
 
-use super::queue;
 use crate::live::{Bus, Fault};
 use crate::records::repositories;
+use crate::records::writing::{self, Queued, Write};
 use crate::shared::Shared;
 
 /// How often a repository is fetched.
@@ -41,27 +41,31 @@ impl Fetcher {
     }
 }
 
-/// Fetches `origin` in the main checkout at `path` of the repository `name`, after the writes
-/// made before it, keeps its outcome for the page, and says what the page shows changed.
+/// Fetches `origin` of the repository listed as `name`, as a write of its queue, after the
+/// writes made before it: `write` says whether the record shows it. Its outcome is kept for
+/// the page, which is read again with it.
 ///
 /// # Errors
 ///
 /// The core's refusal: a remote that cannot be reached, or that asks for credentials.
-pub(super) fn fetch(shared: &Shared, bus: &Bus, name: &str, path: &Path) -> Result<(), Fault> {
-    // JOIN(wave 6): write queue, outside its record: a fetch is no write a toast shows
-    let fetched = queue::in_turn(shared, path, || api::git_fetch(path, |_| {}));
-    let fetched = fetched.map_err(Fault::from);
+pub(super) fn fetch(shared: &Shared, name: &str, write: Write) -> Result<(), Fault> {
+    let path = repositories::path(shared, name)?;
+    let fetching = writing::land(shared, name, write, |path, landing| {
+        Ok(api::git_fetch(path, |line| landing.printed(line))?)
+    });
+    let fetched = fetching.and_then(Queued::landed);
     let failure = fetched
         .as_ref()
         .err()
         .map(|fault| fault.message().to_owned());
-    shared.get::<Fetcher>().settle(path, failure);
-    super::written(bus, name);
+    shared.get::<Fetcher>().settle(&path, failure);
+    // The page read as the fetch landed did not have its outcome yet.
+    super::written(&shared.get::<Bus>(), name);
     fetched
 }
 
 /// Fetches every repository of the list now, then every 5 minutes, until the server stops.
-pub(super) fn start(shared: &Shared, bus: Bus) {
+pub(super) fn start(shared: &Shared) {
     let shared = shared.clone();
     tokio::spawn(async move {
         let mut ticks = tokio::time::interval(EVERY);
@@ -70,17 +74,17 @@ pub(super) fn start(shared: &Shared, bus: Bus) {
                 () = shared.stopping() => return,
                 _ = ticks.tick() => {}
             }
-            let (shared, bus) = (shared.clone(), bus.clone());
+            let shared = shared.clone();
             // A fetch that panicked is the next round's to try again.
-            let _ = tokio::task::spawn_blocking(move || fetch_each(&shared, &bus)).await;
+            let _ = tokio::task::spawn_blocking(move || fetch_each(&shared)).await;
         }
     });
 }
 
 /// Fetches each repository of the list, one after another: a failure is kept for its page.
-fn fetch_each(shared: &Shared, bus: &Bus) {
+fn fetch_each(shared: &Shared) {
     let there = |repository: &repositories::Repository| !repository.missing;
     for repository in repositories::all(shared).into_iter().filter(there) {
-        let _ = fetch(shared, bus, &repository.name, &repository.path);
+        let _ = fetch(shared, &repository.name, Write::unseen());
     }
 }

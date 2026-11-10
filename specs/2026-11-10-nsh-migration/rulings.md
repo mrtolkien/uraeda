@@ -1265,8 +1265,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     `git.commit` is `GitCommitStaged`, since `GitCommit` is the record. Every action answers
     nothing, and the records show what it changed, but `git.saveConflict`, which answers the file
     with its new hash.
-  - **No `write` in an input yet.** It named a write in the queue's record, for the toast: it comes
-    back with the write queue, when git's writes are joined to it.
+  - **Every write takes `write`**, the name the queue's record shows it under, since the join
+    (T99.7): the page's own name when none is given.
 - **Rationale**: an `id` that is always `git` says nothing, and one that packs four arguments is
   parsed on both sides. With ids on the items, staging one file sends one field, not every file of
   every group.
@@ -1279,9 +1279,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 - **Decision**: what every action `git.*` does around the core's call, in
   `crates/server/src/records/git/writes.rs`.
-  - **One writer per repository**: `queue::in_turn`, a lock per main checkout, which stands in for
-    the write queue until the two are joined (`JOIN(wave 6): write queue`). It keeps no record, so
-    git's output goes nowhere yet, and it does not order two calls that arrive together.
+  - **One writer per repository**: until the join, `queue::in_turn`, a lock per main checkout, which
+    kept no record, so git's output went nowhere. Since the join each write lands in the write
+    queue, under its name, with git's output (T99.7).
   - **The checkout's guard is written, and nobody works yet.** A write is refused while an agent
     works in a checkout it writes, checked as it lands: the main checkout's for a chat, a feature's
     worktree for its agent, both for a worktree's removal and a feature's cleaning. `working::chat`
@@ -1294,8 +1294,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     `GitSummary` changed, and every `GitDiff`, `GitHistoryPage`, and `ConflictFile` somebody holds:
     a working tree's diff and a commit's mark follow a write. `files_changed` says the same for a
     change the core's watcher reports, as `live.ts` maps it: an edit of the priorities, the inbox,
-    or a feature, or a change of a checkout's git state. Nothing calls it until the one watcher is
-    joined.
+    or a feature, or a change of a checkout's git state. Since the join the queue says it after each
+    write, as `git::written`, and the one watcher calls `files_changed`.
 - **Rationale**: a record nobody holds keeps its value for a minute, so a write that tells nobody
   leaves the next page that opens on the old one.
 - **How it was checked**: without the bus told after a write, seven tests of
@@ -1821,3 +1821,36 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/{mod.rs,writing/queue.rs,writing/queue/repository.rs}`,
   `records/features/{lists,moves,feature,starts,changed}.rs`, `files/attach.rs`, `live/bus.rs`.
   Tasks 15, 17, and 20.
+
+## T99.7: A write of its own lands on the queue's thread, as git's writes do
+
+- **Decision**: what R65 left of the Node queue for git, `add`, `enqueue`, `background`, and
+  `landed`, is `records::writing::land`.
+  - **The entry point**: `land(&Shared, repository, Write, land) -> Result<Queued<T>, Fault>`, where
+    `land` is `FnOnce(&Path, &Landing) -> Result<T, Fault> + Send + 'static`. It is queued behind
+    the writes queued before it, and runs on the repository's landing thread, in the writes' turn,
+    so no committing call is between its write and the take of its commits. `Landing::printed(line)`
+    adds a line to the write's output in the record. The commits `land` defers are queued behind it,
+    under its name.
+  - **Waiting for it**: `Queued::landed()` waits, and a refusal stays in the record until dismissed,
+    and is the answer too. `Queued::answered()` is for a write whose refusal is its call's alone: it
+    leaves the record. Dropping the `Queued` leaves the write to land.
+  - **Told before answered**: the record and every domain's `written` are told before the waiter is
+    answered, so a read made after an action's `result` finds what the write changed. Answered
+    first, three of git's tests read the page as it was.
+  - **Its name**: `Write::of_main()` is a write of the main checkout's git state, which waits for
+    the lists' queued commits, and they for it; `.or_named(label, href)` names a write the client
+    gave no `write` for; `Write::unseen()` lands outside the record, as the server's own fetch.
+  - **Git**: every action `git.*` takes `write`, and lands as a write named by it, or by the page's
+    own name, `Pulling`, `Committing`, `Discarding <path>`, on `/git`. It is refused while an agent
+    works in a checkout it writes, as it is queued and again as it lands. It answers once it landed.
+    `git.saveConflict` answers a stale save alone, out of the record. A person's fetch is a write
+    named `Fetching`; the page's own and the fetcher's rounds land unseen.
+  - A landing that panics is refused as `failed`, and the thread lands the next one.
+- **How it was checked**: `a_git_write_lands_in_the_write_queue_under_its_name_with_its_output`
+  timed out before, the queue never showing the commit. It asserts the name while the hook runs, the
+  answer once landed, and a refused commit left in the record with the hook's output.
+- **If wrong**: a write of the page waits for the repository's queued commits to land before it
+  runs, hooks included: a stage behind a slow commit waits for it.
+- **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs}`,
+  `records/git/{writes,fetcher}.rs`, `crates/protocol/src/git.rs`. Tasks 15 and 46.

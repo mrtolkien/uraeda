@@ -10,7 +10,7 @@ use std::fs;
 
 use serde_json::{Value, json};
 use support::repo::{run_git, without_user_git_config};
-use support::{Live, Refused, TestRepo, TestServer};
+use support::{Hook, Live, Refused, TestRepo, TestServer, idle, writes};
 use uraeda_core::actions::place;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
@@ -395,6 +395,49 @@ async fn a_commit_holds_exactly_the_staged_files() {
     let page = git.page().await;
     assert_eq!(subjects(&page), ["docs: staged", "chore: start"]);
     assert_eq!(files(&page), [("left.md", "new", "yes")]);
+}
+
+// The break it catches: a git write that runs outside the write queue, so no toast names what
+// is landing or shows what git prints, and a refusal is gone once its call answered.
+#[tokio::test]
+async fn a_git_write_lands_in_the_write_queue_under_its_name_with_its_output() {
+    let repo = TestRepo::new();
+    repo.write("first.md", "one\n");
+    repo.write("second.md", "two\n");
+    let (server, mut git) = serving(&repo).await;
+    git.call("git.stage", json!({ "paths": ["first.md"] }))
+        .await;
+    let hook = Hook::held(&repo);
+    let queue = git.hold("WriteQueue", in_repo(json!({}))).await.unwrap();
+
+    // The commit shows under the client's name while its hooks run, and answers once it landed.
+    let name = json!({ "href": "/git", "label": "Committing a note" });
+    let commit = in_repo(json!({ "message": "docs: first", "write": name }));
+    let commit = git.0.send("git.commit", commit).await;
+    let running = |queue: &Value| writes(queue) == ["Committing a note running"];
+    git.follow(queue, running).await;
+    hook.release();
+    git.0.answer(commit).await.expect("the commit lands");
+    assert_eq!(idle(&server, REPO).await, Vec::<String>::new());
+    assert_eq!(subjects(&git.page().await)[0], "docs: first");
+
+    // A refused one answers its call, and stays in the record with what the hook printed,
+    // under the page's own name for it.
+    hook.refusing(true);
+    git.call("git.stage", json!({ "paths": ["second.md"] }))
+        .await;
+    let refused = git.refused("git.commit", json!({ "message": "docs: second" }));
+    assert_eq!(refused.await.0, ErrorCode::Hook);
+    let left = git.follow(queue, |queue| writes(queue) == ["Committing refused"]);
+    let left = left.await["writes"][0].clone();
+    assert_eq!(
+        (&left["href"], &left["failure"]),
+        (&json!("/git"), &json!("hook"))
+    );
+    assert!(
+        left["output"].as_str().unwrap().contains("lint: 1 problem"),
+        "{left}"
+    );
 }
 
 // The break it catches: a write that lands and tells nobody, so an open page shows the files as

@@ -22,13 +22,15 @@ mod repository;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{Receiver, sync_channel};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::JoinHandle;
 
 use uraeda_core::api;
 use uraeda_protocol::{QueuedWrite, WriteName, WriteQueue, WriteState, WritesDismiss};
 
-use repository::Queue;
+pub(crate) use repository::Landing;
+use repository::{Landed, Queue};
 
 use crate::live::{Bus, Fault, Registry};
 use crate::records::repositories;
@@ -42,16 +44,38 @@ pub(crate) enum Key {
     /// The default branch's lists: the inbox, the priorities, their rounds, and the proposal
     /// files, whose commits take each other's files along.
     Lists,
+    /// The main checkout's git state: its branch, its index, a pull or a merge under way.
+    Main,
 }
 
 /// A write to a repository, as the queue takes it: what it commits, and how the record names
-/// the commits it defers.
-#[derive(Default)]
+/// it, or the commits it defers.
+#[derive(Clone)]
 pub(crate) struct Write {
     keys: Vec<Key>,
     name: Option<WriteName>,
+    /// What names it when the client gave no name: a write of its own has one.
+    label: Option<String>,
+    /// The page it opens when the client gave no name.
+    href: &'static str,
     folder: Option<String>,
     file: Option<String>,
+    /// Whether the record shows it: the server's own fetch lands unseen.
+    seen: bool,
+}
+
+impl Default for Write {
+    fn default() -> Write {
+        Write {
+            keys: Vec::new(),
+            name: None,
+            label: None,
+            href: "",
+            folder: None,
+            file: None,
+            seen: true,
+        }
+    }
 }
 
 impl Write {
@@ -79,6 +103,24 @@ impl Write {
         }
     }
 
+    /// A write of the main checkout by git, as a pull, a merge, or a commit of its index: the
+    /// lists' commits wait for it, and it for them, since it may write their files.
+    pub(crate) fn of_main() -> Write {
+        Write {
+            keys: vec![Key::Main, Key::Lists],
+            ..Write::default()
+        }
+    }
+
+    /// A write the record never shows, which waits for no queued commit and none for it: the
+    /// server's own fetch.
+    pub(crate) fn unseen() -> Write {
+        Write {
+            seen: false,
+            ..Write::default()
+        }
+    }
+
     /// The write also commits, or writes over, files of a feature or a change: it waits for that
     /// folder's queued commits too, as a drop does, which takes a feature's line out of the
     /// priorities.
@@ -94,18 +136,27 @@ impl Write {
         self
     }
 
-    /// What the client names the write with: without it, each commit shows its subject.
+    /// What the client names the write with: without it, each commit shows its subject, and a
+    /// write of its own what [`Write::or_named`] says.
     pub(crate) fn named(mut self, name: Option<WriteName>) -> Write {
         self.name = name;
         self
     }
 
-    /// One of the write's commits as the record shows it, waiting: `subject` names it when the
-    /// client did not.
+    /// What names a write of its own when the client gave no name: its running text, and the
+    /// page it opens.
+    pub(crate) fn or_named(mut self, label: impl Into<String>, href: &'static str) -> Write {
+        self.label = Some(label.into());
+        self.href = href;
+        self
+    }
+
+    /// The write, or one of its commits, as the record shows it, waiting: `subject` names it
+    /// when the client did not.
     fn queued(&self, id: String, subject: String) -> QueuedWrite {
         let (label, href) = match &self.name {
             Some(name) => (name.label.clone(), name.href.clone()),
-            None => (subject, String::new()),
+            None => (subject, self.href.to_owned()),
         };
         QueuedWrite {
             id,
@@ -143,6 +194,74 @@ pub(crate) fn write<T>(
     let queue = shared.get::<Queues>().open(shared, &path);
     let _turn = queue.turn(repository, write);
     run(&path)
+}
+
+/// Queues a write of its own to the repository listed as `repository`: `land` runs on the
+/// queue's thread, after the writes queued before it, with the repository's turn, and is given
+/// the main checkout and the write as it lands, for what git prints. The record shows it under
+/// the client's name, or [`Write::or_named`]'s, until it landed. The commits `land` defers land
+/// behind it, under its name. `land` answers once queued: [`Queued`] waits for the landing.
+///
+/// # Errors
+///
+/// `refused` for a repository the list does not hold.
+pub(crate) fn land<T: Send + 'static>(
+    shared: &Shared,
+    repository: &str,
+    write: Write,
+    land: impl FnOnce(&Path, &Landing<'_>) -> Result<T, Fault> + Send + 'static,
+) -> Result<Queued<T>, Fault> {
+    let path = repositories::path(shared, repository)?;
+    let queue = shared.get::<Queues>().open(shared, &path);
+    let (answer, answered) = sync_channel(1);
+    let land = move |landing: &Landing<'_>| {
+        let landed = land(landing.path(), landing);
+        let refusal = landed.as_ref().err().cloned();
+        // Nobody waits for the answer of a write queued and left to land.
+        let answer = Box::new(move || drop(answer.send(landed)));
+        Landed { refusal, answer }
+    };
+    let id = queue.add(repository, write, Box::new(land));
+    Ok(Queued {
+        queue,
+        id,
+        answered,
+    })
+}
+
+/// A write of its own, queued: what waits for its landing.
+pub(crate) struct Queued<T> {
+    queue: Arc<Queue>,
+    id: String,
+    answered: Receiver<Result<T, Fault>>,
+}
+
+impl<T> Queued<T> {
+    /// Waits until the write landed, and gives what it gave. A refusal stays in the record until
+    /// dismissed, and is the answer too.
+    ///
+    /// # Errors
+    ///
+    /// The refusal, or `refused` when the server stopped before the write landed, or failed as
+    /// it landed.
+    pub(crate) fn landed(self) -> Result<T, Fault> {
+        let unanswered = || Fault::refused("This did not land: the server stopped, or failed.");
+        self.answered.recv().unwrap_or_else(|_| Err(unanswered()))
+    }
+
+    /// [`Queued::landed`], for a write whose refusal is its call's alone: it leaves the record.
+    ///
+    /// # Errors
+    ///
+    /// As [`Queued::landed`].
+    pub(crate) fn answered(self) -> Result<T, Fault> {
+        let (queue, id) = (self.queue.clone(), self.id.clone());
+        let landed = self.landed();
+        if landed.is_err() {
+            queue.dismiss(&id);
+        }
+        landed
+    }
 }
 
 /// The queue of each repository written to since the server started, by its main checkout.

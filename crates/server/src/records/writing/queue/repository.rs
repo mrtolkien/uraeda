@@ -1,15 +1,36 @@
 //! One repository's write queue: the turn its writes take, the commits they deferred, and the
 //! thread that lands them, one after another.
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 
 use uraeda_core::api::{self, ApiError};
-use uraeda_protocol::{QueuedWrite, WriteFailure, WriteQueue, WriteState};
+use uraeda_protocol::{ErrorCode, QueuedWrite, WriteFailure, WriteQueue, WriteState};
 
 use super::{Key, Write};
-use crate::live::Bus;
+use crate::live::{Bus, Fault};
 use crate::records;
+
+/// What lands a write of its own, on the queue's thread: it is given the write as it lands.
+pub(super) type Land = Box<dyn FnOnce(&Landing<'_>) -> Landed + Send>;
+
+/// A write of its own, once it ran.
+pub(super) struct Landed {
+    /// Why it was refused, if it was.
+    pub refusal: Option<Fault>,
+    /// Answers whoever waits for it: called once the record and the bus were told, so a read
+    /// made after the answer finds what the write changed.
+    pub answer: Box<dyn FnOnce() + Send>,
+}
+
+/// How a queued write lands.
+enum Work {
+    /// A commit the core deferred, by its id.
+    Deferred(String),
+    /// A write of its own, as a git write or a start: none once it runs.
+    Own(Option<Land>),
+}
 
 /// A repository's write queue.
 ///
@@ -18,8 +39,9 @@ use crate::records;
 /// - **A write waits first for the queued commits of its keys**, the files it commits: the core
 ///   counts a file whose commit has not landed as changed, and would not defer a second commit
 ///   of it.
-/// - **The commits land one after another**, in order, on the queue's own thread. A refused one
-///   stays in the record until dismissed, and does not stop the next.
+/// - **The queued writes land one after another**, in order, on the queue's own thread: a commit
+///   the core deferred, or a write of its own, as a git write. A refused one stays in the record
+///   until dismissed, and does not stop the next.
 pub(super) struct Queue {
     /// The repository's main checkout.
     path: PathBuf,
@@ -42,12 +64,14 @@ struct State {
     closed: bool,
 }
 
-/// A queued write: what the record shows of it, the keys of the writes that wait for it, the
-/// core's deferred commit it lands, and the name its repository's records are told under.
+/// A queued write: what the record shows of it, the keys of the writes that wait for it, how
+/// it lands, the write it was queued by, which names the commits its landing defers, and the
+/// name its repository's records are told under.
 struct Entry {
     write: QueuedWrite,
     keys: Vec<Key>,
-    deferred: String,
+    work: Work,
+    by: Write,
     repository: String,
 }
 
@@ -82,15 +106,33 @@ impl Queue {
     }
 
     /// The record's value: the writes landing, waiting, or refused, in the order they were made.
+    /// One that lands unseen, as the server's own fetch, is not in it.
     pub(super) fn writes(&self) -> WriteQueue {
         let state = self.state();
+        let seen = state.entries.iter().filter(|entry| entry.by.seen);
         WriteQueue {
-            writes: state
-                .entries
-                .iter()
-                .map(|entry| entry.write.clone())
-                .collect(),
+            writes: seen.map(|entry| entry.write.clone()).collect(),
         }
+    }
+
+    /// Queues a write of its own, landed by `land` on the queue's thread, after the writes
+    /// queued before it: its id in the record. The writes of its keys wait for it.
+    pub(super) fn add(&self, repository: &str, by: Write, land: Land) -> String {
+        let mut state = self.state();
+        state.queued += 1;
+        let id = format!("write-{}", state.queued);
+        let label = by.label.clone().unwrap_or_default();
+        state.entries.push(Entry {
+            write: by.queued(id.clone(), label),
+            keys: by.keys.clone(),
+            work: Work::Own(Some(land)),
+            by,
+            repository: repository.to_owned(),
+        });
+        drop(state);
+        self.moved.notify_all();
+        self.changed();
+        id
     }
 
     /// Waits for the queued commits of the write's keys and for the writes before it, then
@@ -118,6 +160,21 @@ impl Queue {
         }
     }
 
+    /// The turn of a write of its own as it lands: after the writes that run, waiting for no
+    /// queued commit, its own included. The commits it defers are queued under its name.
+    fn landing_turn(self: &Arc<Self>, repository: &str, by: Write) -> Turn {
+        let mut state = self.state();
+        let ticket = state.tickets;
+        state.tickets += 1;
+        state = self.wait(state, |state| state.serving != ticket);
+        drop(state);
+        Turn {
+            queue: self.clone(),
+            repository: repository.to_owned(),
+            write: Some(by),
+        }
+    }
+
     /// Removes a refused write from the record: one still landing stays.
     pub(super) fn dismiss(&self, id: &str) {
         let mut state = self.state();
@@ -128,24 +185,59 @@ impl Queue {
         let removed = state.entries.len() != before;
         drop(state);
         if removed {
-            self.bus.changed_all::<WriteQueue>();
+            self.changed();
         }
     }
 
-    /// Lands the queued commits, one after another, in order, until the queue closes: the
+    /// Lands the queued writes, one after another, in order, until the queue closes: the
     /// queue's own thread runs it.
-    pub(super) fn land(&self) {
-        while let Some((id, deferred)) = self.next() {
-            self.bus.changed_all::<WriteQueue>();
-            let landed = api::land(&self.path, &deferred, |line| self.printed(&id, line));
-            self.settle(&id, landed.err());
+    pub(super) fn land(self: &Arc<Self>) {
+        while let Some(next) = self.next() {
+            self.changed();
+            let id = &next.id;
+            let refusal = match next.work {
+                Work::Deferred(deferred) => {
+                    let landed = api::land(&self.path, &deferred, |line| self.printed(id, line));
+                    landed.err().map(Refusal::of_commit)
+                }
+                Work::Own(land) => {
+                    let turn = self.landing_turn(&next.repository, next.by);
+                    let landing = Landing { queue: self, id };
+                    // A landing that panics is refused: the thread goes on with the next.
+                    let run = || land.map(|land| land(&landing));
+                    // A landing that panics is refused, and whoever waits for it is answered
+                    // as its answer is dropped: the thread goes on with the next.
+                    let landed = catch_unwind(AssertUnwindSafe(run));
+                    let panicked = || Fault::internal("the write panicked as it landed");
+                    let (refusal, answer) = match landed {
+                        Ok(Some(landed)) => (landed.refusal, Some(landed.answer)),
+                        Ok(None) => (None, None),
+                        Err(_) => (Some(panicked()), None),
+                    };
+                    drop(turn);
+                    self.settle(id, refusal.map(Refusal::of_fault));
+                    answer.into_iter().for_each(|answer| answer());
+                    continue;
+                }
+            };
+            self.settle(id, refusal);
         }
     }
 
-    /// Stops the queue: the commit that runs ends, none starts after it, and nothing waits.
+    /// Stops the queue: the write that runs ends, none starts after it, and nothing waits. The
+    /// writes of their own not landed are dropped, which answers whoever waits for one.
     pub(super) fn close(&self) {
-        self.state().closed = true;
+        let mut state = self.state();
+        state.closed = true;
+        let waiting = |entry: &Entry| entry.write.state == WriteState::Waiting;
+        state.entries.retain(|entry| !waiting(entry));
+        drop(state);
         self.moved.notify_all();
+    }
+
+    /// Says the record changed.
+    fn changed(&self) {
+        self.bus.changed_all::<WriteQueue>();
     }
 
     /// Ends a write's turn: the commits it deferred are queued under its name, in order, the
@@ -160,7 +252,8 @@ impl Queue {
             state.entries.push(Entry {
                 write: write.queued(id, deferred.subject),
                 keys: write.keys.clone(),
-                deferred: deferred.id,
+                work: Work::Deferred(deferred.id),
+                by: write.clone(),
                 repository: repository.to_owned(),
             });
         }
@@ -169,12 +262,12 @@ impl Queue {
         self.moved.notify_all();
         records::written(&self.bus, repository);
         if queued {
-            self.bus.changed_all::<WriteQueue>();
+            self.changed();
         }
     }
 
-    /// The next commit to land, now running: it waits for one, and gives none once closed.
-    fn next(&self) -> Option<(String, String)> {
+    /// The next write to land, now running: it waits for one, and gives none once closed.
+    fn next(&self) -> Option<Next> {
         let waiting = |entry: &Entry| entry.write.state == WriteState::Waiting;
         let idle = |state: &State| !state.closed && !state.entries.iter().any(waiting);
         let mut state = self.wait(self.state(), idle);
@@ -183,7 +276,16 @@ impl Queue {
         }
         let entry = state.entries.iter_mut().find(|entry| waiting(entry))?;
         entry.write.state = WriteState::Running;
-        Some((entry.write.id.clone(), entry.deferred.clone()))
+        let work = match &mut entry.work {
+            Work::Deferred(deferred) => Work::Deferred(deferred.clone()),
+            Work::Own(land) => Work::Own(land.take()),
+        };
+        Some(Next {
+            id: entry.write.id.clone(),
+            work,
+            by: entry.by.clone(),
+            repository: entry.repository.clone(),
+        })
     }
 
     /// Adds a line git or a hook printed to a running write's output.
@@ -195,28 +297,29 @@ impl Queue {
             }
             output.push_str(line);
         }
-        self.bus.changed_all::<WriteQueue>();
+        self.changed();
     }
 
-    /// Takes a landed write out of the record, or keeps a refused one in it, with why. Either
-    /// way its repository's records are read again: a commit moved a step and the Git page, and
-    /// a hook's refusal put the write's files back.
-    fn settle(&self, id: &str, refusal: Option<ApiError>) {
+    /// Takes a landed write out of the record, or keeps a refused one in it, with why: one that
+    /// lands unseen leaves either way. Its repository's records are read again: a commit moved
+    /// a step and the Git page, and a hook's refusal put the write's files back.
+    fn settle(&self, id: &str, refusal: Option<Refusal>) {
         let mut state = self.state();
         let repository = state.entry(id).map(|entry| entry.repository.clone());
-        match refusal {
+        let unseen = state.entry(id).is_some_and(|entry| !entry.by.seen);
+        match refusal.filter(|_| !unseen) {
             None => state.entries.retain(|entry| entry.write.id != id),
             Some(refusal) => {
                 if let Some(entry) = state.entry(id) {
                     entry.write.state = WriteState::Refused;
-                    entry.write.failure = Some(failure(&refusal));
-                    entry.write.output = Some(reason(refusal));
+                    entry.write.failure = Some(refusal.failure);
+                    entry.write.output = Some(refusal.output);
                 }
             }
         }
         drop(state);
         self.moved.notify_all();
-        self.bus.changed_all::<WriteQueue>();
+        self.changed();
         if let Some(repository) = repository {
             records::written(&self.bus, &repository);
         }
@@ -254,18 +357,62 @@ impl Drop for Turn {
     }
 }
 
-/// Why a landing failed: only a hook's refusal, which the core undid, is `hook`.
-fn failure(refusal: &ApiError) -> WriteFailure {
-    match refusal.code {
-        "hook" => WriteFailure::Hook,
-        _ => WriteFailure::Failed,
+/// The next write to land.
+struct Next {
+    id: String,
+    work: Work,
+    by: Write,
+    repository: String,
+}
+
+/// A write of its own, as it lands: what its landing says of it in the record.
+pub(crate) struct Landing<'a> {
+    queue: &'a Queue,
+    id: &'a str,
+}
+
+impl Landing<'_> {
+    /// The repository's main checkout.
+    pub(crate) fn path(&self) -> &Path {
+        &self.queue.path
+    }
+
+    /// Adds a line git or a hook printed to the write's output.
+    pub(crate) fn printed(&self, line: &str) {
+        self.queue.printed(self.id, line);
     }
 }
 
-/// A refusal's whole message: what failed, then what git and the hooks printed.
-fn reason(refusal: ApiError) -> String {
-    match refusal.output.filter(|output| !output.is_empty()) {
-        Some(output) => format!("{}\n\n{output}", refusal.message),
-        None => refusal.message,
+/// Why a write did not land, as the record keeps it.
+struct Refusal {
+    failure: WriteFailure,
+    output: String,
+}
+
+impl Refusal {
+    /// A deferred commit's: only a hook's refusal, which the core undid, is `hook`. Its output
+    /// is what failed, then what git and the hooks printed.
+    fn of_commit(refusal: ApiError) -> Refusal {
+        let failure = match refusal.code {
+            "hook" => WriteFailure::Hook,
+            _ => WriteFailure::Failed,
+        };
+        let output = match refusal.output.filter(|output| !output.is_empty()) {
+            Some(output) => format!("{}\n\n{output}", refusal.message),
+            None => refusal.message,
+        };
+        Refusal { failure, output }
+    }
+
+    /// A write of its own's: its fault, whose message is a hook's output for a hook's refusal.
+    fn of_fault(fault: Fault) -> Refusal {
+        let failure = match fault.code() {
+            ErrorCode::Hook => WriteFailure::Hook,
+            _ => WriteFailure::Failed,
+        };
+        Refusal {
+            failure,
+            output: fault.message().to_owned(),
+        }
     }
 }

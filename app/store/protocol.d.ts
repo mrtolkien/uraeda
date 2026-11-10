@@ -1124,7 +1124,11 @@ export type GitAbort = {
 /**
  * The repository's name.
  */
-repo: string, };
+repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, };
 
 /**
  * Cleans a merged feature, as `ura clean` does: its worktree, its branch, and its line of the
@@ -1135,6 +1139,10 @@ export type GitClean = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The feature's folder.
  */
@@ -1230,6 +1238,10 @@ export type GitCommitStaged = {
  */
 repo: string, 
 /**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
+/**
  * The group's folder; none for the main checkout.
  */
 folder: string | null, 
@@ -1270,7 +1282,11 @@ export type GitContinue = {
 /**
  * The repository's name.
  */
-repo: string, };
+repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, };
 
 /**
  * A file's diff.
@@ -1340,6 +1356,10 @@ export type GitDiscard = {
  */
 repo: string, 
 /**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
+/**
  * The group's folder; none for the main checkout.
  */
 folder: string | null, 
@@ -1356,6 +1376,10 @@ export type GitFetch = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * Whether the fetch is the page's own, as it opens, and not a person's: it never fails,
  * and the page's `fetchFailure` says why it brought nothing.
@@ -1455,6 +1479,10 @@ export type GitMerge = {
  */
 repo: string, 
 /**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
+/**
  * One of the page's `branches`.
  */
 branch: string, };
@@ -1534,7 +1562,11 @@ export type GitPull = {
 /**
  * The repository's name.
  */
-repo: string, };
+repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, };
 
 /**
  * Pushes the main checkout's branch to `origin`, never forced.
@@ -1543,7 +1575,11 @@ export type GitPush = {
 /**
  * The repository's name.
  */
-repo: string, };
+repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, };
 
 /**
  * Removes a linked worktree, never forced: one with changes, or locked, is refused. Its branch
@@ -1554,6 +1590,10 @@ export type GitRemoveWorktree = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The worktree's `path`, as the page lists it.
  */
@@ -1568,6 +1608,10 @@ export type GitResolve = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The file, from the checkout's top level.
  */
@@ -1586,6 +1630,10 @@ export type GitSaveConflict = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The file, from the checkout's top level.
  */
@@ -1607,6 +1655,10 @@ export type GitStage = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The group's folder; none for the main checkout.
  */
@@ -1658,6 +1710,10 @@ export type GitUnstage = {
  * The repository's name.
  */
 repo: string, 
+/**
+ * The name the write queue shows it under while it lands: the page's own when none.
+ */
+write: WriteName | null, 
 /**
  * The group's folder; none for the main checkout.
  */

@@ -1,6 +1,7 @@
-//! The Git page's writes. Each runs in its repository's turn, after the writes made before it,
-//! and is refused while an agent works in a checkout it writes. After each, landed or refused,
-//! what the page shows is said to have changed.
+//! The Git page's writes. Each lands in its repository's write queue, after the writes made
+//! before it, named by its `write`, with what git prints, and is refused while an agent works
+//! in a checkout it writes. It answers once it landed: a refusal stays in the queue's record
+//! until dismissed, and answers the call too.
 
 use std::path::Path;
 
@@ -8,16 +9,17 @@ use uraeda_core::api::{self, ApiError};
 use uraeda_protocol::{
     ConflictFile, GitAbort, GitClean, GitCommitStaged, GitContinue, GitDiscard, GitFetch, GitMerge,
     GitPull, GitPush, GitRemoveWorktree, GitResolve, GitSaveConflict, GitStage, GitUnstage,
+    WriteName,
 };
 
 use super::working::{self, Touches};
-use super::{fetcher, queue, views, written};
+use super::{fetcher, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories;
+use crate::records::writing::{self, Landing, Queued, Write};
 
-/// Git's output as it comes, which nothing shows yet.
-// JOIN(wave 6): write queue, which shows a landing write's output
-fn unheard(_line: &str) {}
+/// The page a write of the Git page opens, when the client names none.
+const PAGE: &str = "/git";
 
 pub(super) fn register(registry: &Registry) {
     sync(registry);
@@ -26,50 +28,90 @@ pub(super) fn register(registry: &Registry) {
     worktrees(registry);
 }
 
+/// A write of the main checkout, as the queue names it: by the client's name, or by `label`.
+fn main(name: Option<WriteName>, label: impl Into<String>) -> Write {
+    Write::of_main().named(name).or_named(label, PAGE)
+}
+
+/// A write of a group's checkout: the main one for no folder, else the feature's worktree.
+fn group(folder: Option<&str>, name: Option<WriteName>, label: impl Into<String>) -> Write {
+    let write = match folder {
+        None => Write::of_main(),
+        Some(folder) => Write::of_feature(folder),
+    };
+    write.named(name).or_named(label, PAGE)
+}
+
 /// The writes that sync the main checkout's branch: with `origin`, and with another branch.
 fn sync(registry: &Registry) {
-    registry.action::<GitFetch>(|call, input| fetch(call, &input));
+    registry.action::<GitFetch>(fetch);
     registry.action::<GitPull>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_pull(repo, unheard)
-        })
+        let write = main(input.write, "Pulling");
+        landed(
+            call,
+            &input.repo,
+            write,
+            Touches::main(),
+            |repo, landing| api::git_pull(repo, |line| landing.printed(line)),
+        )
     });
     registry.action::<GitPush>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_push(repo, unheard)
-        })
+        let write = main(input.write, "Pushing");
+        landed(
+            call,
+            &input.repo,
+            write,
+            Touches::main(),
+            |repo, landing| api::git_push(repo, |line| landing.printed(line)),
+        )
     });
     registry.action::<GitMerge>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_merge(repo, &input.branch, unheard)
-        })
+        let write = main(input.write, format!("Merging {}", input.branch));
+        let branch = input.branch;
+        landed(
+            call,
+            &input.repo,
+            write,
+            Touches::main(),
+            move |repo, landing| api::git_merge(repo, &branch, |line| landing.printed(line)),
+        )
     });
 }
 
 /// The writes of a group's index and working tree, and its commit.
 fn index(registry: &Registry) {
     registry.action::<GitStage>(|call, input| {
-        let folder = input.folder.as_deref();
-        write(call, &input.repo, &Touches::group(folder), |repo| {
-            api::git_stage(repo, folder, &input.paths)
+        let (folder, paths) = (input.folder, input.paths);
+        let write = group(folder.as_deref(), input.write, "Staging");
+        let touches = Touches::group(folder.as_deref());
+        landed(call, &input.repo, write, touches, move |repo, _| {
+            api::git_stage(repo, folder.as_deref(), &paths)
         })
     });
     registry.action::<GitUnstage>(|call, input| {
-        let folder = input.folder.as_deref();
-        write(call, &input.repo, &Touches::group(folder), |repo| {
-            api::git_unstage(repo, folder, &input.paths)
+        let (folder, paths) = (input.folder, input.paths);
+        let write = group(folder.as_deref(), input.write, "Unstaging");
+        let touches = Touches::group(folder.as_deref());
+        landed(call, &input.repo, write, touches, move |repo, _| {
+            api::git_unstage(repo, folder.as_deref(), &paths)
         })
     });
     registry.action::<GitDiscard>(|call, input| {
-        let folder = input.folder.as_deref();
-        write(call, &input.repo, &Touches::group(folder), |repo| {
-            api::git_discard(repo, folder, &input.path)
+        let (folder, path) = (input.folder, input.path);
+        let label = format!("Discarding {path}");
+        let write = group(folder.as_deref(), input.write, label);
+        let touches = Touches::group(folder.as_deref());
+        landed(call, &input.repo, write, touches, move |repo, _| {
+            api::git_discard(repo, folder.as_deref(), &path)
         })
     });
     registry.action::<GitCommitStaged>(|call, input| {
-        let folder = input.folder.as_deref();
-        write(call, &input.repo, &Touches::group(folder), |repo| {
-            api::git_commit_staged(repo, folder, &input.message, unheard).map(drop)
+        let (folder, message) = (input.folder, input.message);
+        let write = group(folder.as_deref(), input.write, "Committing");
+        let touches = Touches::group(folder.as_deref());
+        landed(call, &input.repo, write, touches, move |repo, landing| {
+            let printed = |line: &str| landing.printed(line);
+            api::git_commit_staged(repo, folder.as_deref(), &message, printed).map(drop)
         })
     });
 }
@@ -77,80 +119,117 @@ fn index(registry: &Registry) {
 /// The writes of a stopped pull or merge of the main checkout.
 fn conflicts(registry: &Registry) {
     registry.action::<GitResolve>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_resolve(repo, &input.path, &input.resolution)
+        let write = main(input.write, format!("Resolving {}", input.path));
+        let (path, resolution) = (input.path, input.resolution);
+        landed(call, &input.repo, write, Touches::main(), move |repo, _| {
+            api::git_resolve(repo, &path, &resolution)
         })
     });
-    registry.action::<GitSaveConflict>(|call, input| save_conflict(call, &input));
+    registry.action::<GitSaveConflict>(save_conflict);
     registry.action::<GitContinue>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_continue(repo, unheard)
-        })
+        let write = main(input.write, "Continuing");
+        landed(
+            call,
+            &input.repo,
+            write,
+            Touches::main(),
+            |repo, landing| api::git_continue(repo, |line| landing.printed(line)),
+        )
     });
     registry.action::<GitAbort>(|call, input| {
-        write(call, &input.repo, &Touches::main(), |repo| {
-            api::git_abort(repo, unheard)
-        })
+        let write = main(input.write, "Aborting");
+        landed(
+            call,
+            &input.repo,
+            write,
+            Touches::main(),
+            |repo, landing| api::git_abort(repo, |line| landing.printed(line)),
+        )
     });
 }
 
 /// The writes that remove a worktree: both write the main checkout's git folder too.
 fn worktrees(registry: &Registry) {
-    registry.action::<GitRemoveWorktree>(|call, input| remove_worktree(call, &input));
+    registry.action::<GitRemoveWorktree>(remove_worktree);
     registry.action::<GitClean>(|call, input| {
+        let write = main(input.write, "Cleaning").and_feature(&input.folder);
         let touches = Touches::both(Some(&input.folder));
-        write(call, &input.repo, &touches, |repo| {
-            api::clean_feature(repo, &input.folder)
+        let folder = input.folder;
+        landed(call, &input.repo, write, touches, move |repo, _| {
+            api::clean_feature(repo, &folder)
         })
     });
 }
 
-/// Runs a write of the page on the repository named `repo`: in the repository's turn, and
-/// unless an agent works in a checkout it touches, checked as it lands. Then says what the page
-/// shows changed, landed or not: a refused write may have written a part.
-fn write<T>(
+/// Queues a write of the page on the repository named `repo`, unless an agent works in a
+/// checkout it touches: checked as it is queued, and again as it lands, since an agent may have
+/// started meanwhile. `land` runs on the queue's thread, with the main checkout and the write
+/// as it lands, for git's output.
+fn queued<T: Send + 'static>(
     call: &Call,
     repo: &str,
-    touches: &Touches,
-    land: impl FnOnce(&Path) -> Result<T, ApiError>,
-) -> Result<T, Fault> {
-    let shared = call.shared();
-    let path = repositories::path(shared, repo)?;
-    // JOIN(wave 6): write queue
-    let landed = queue::in_turn(shared, &path, || {
-        working::writable(shared, &path, touches)?;
-        Ok(land(&path)?)
-    });
-    written(call.bus(), repo);
-    landed
+    write: Write,
+    touches: Touches,
+    land: impl FnOnce(&Path, &Landing<'_>) -> Result<T, ApiError> + Send + 'static,
+) -> Result<Queued<T>, Fault> {
+    let shared = call.shared().clone();
+    let path = repositories::path(&shared, repo)?;
+    working::writable(&shared, &path, &touches)?;
+    writing::land(call.shared(), repo, write, move |path, landing| {
+        working::writable(&shared, path, &touches)?;
+        Ok(land(path, landing)?)
+    })
 }
 
-/// A person's fetch fails as git does. The page's own, as it opens, never does: the page says
-/// why it brought nothing. Neither writes a file of a checkout, so no agent refuses it.
-fn fetch(call: &Call, input: &GitFetch) -> Result<(), Fault> {
-    let path = repositories::path(call.shared(), &input.repo)?;
-    let fetched = fetcher::fetch(call.shared(), call.bus(), &input.repo, &path);
-    if input.quiet { Ok(()) } else { fetched }
+/// [`queued`], answered once it landed: a refusal stays in the queue's record.
+fn landed<T: Send + 'static>(
+    call: &Call,
+    repo: &str,
+    write: Write,
+    touches: Touches,
+    land: impl FnOnce(&Path, &Landing<'_>) -> Result<T, ApiError> + Send + 'static,
+) -> Result<T, Fault> {
+    queued(call, repo, write, touches, land)?.landed()
+}
+
+/// A person's fetch is a write of the queue, and fails as git does. The page's own, as it
+/// opens, lands unseen and never fails: the page says why it brought nothing. Neither writes a
+/// file of a checkout, so no agent refuses it.
+fn fetch(call: &Call, input: GitFetch) -> Result<(), Fault> {
+    if input.quiet {
+        let _ = fetcher::fetch(call.shared(), &input.repo, Write::unseen());
+        return Ok(());
+    }
+    fetcher::fetch(call.shared(), &input.repo, main(input.write, "Fetching"))
 }
 
 /// A save of the editor's text answers the file with its new hash, which the next save names.
-fn save_conflict(call: &Call, input: &GitSaveConflict) -> Result<ConflictFile, Fault> {
-    let saved = write(call, &input.repo, &Touches::main(), |repo| {
-        api::save_conflict_file(repo, &input.path, &input.text, &input.hash)
+/// A stale one is the call's refusal alone, and leaves the queue's record.
+fn save_conflict(call: &Call, input: GitSaveConflict) -> Result<ConflictFile, Fault> {
+    let write = main(input.write, format!("Saving {}", input.path));
+    let (path, text, hash) = (input.path, input.text, input.hash);
+    let saving = queued(call, &input.repo, write, Touches::main(), move |repo, _| {
+        api::save_conflict_file(repo, &path, &text, &hash)
     })?;
-    Ok(views::conflict_file(saved))
+    Ok(views::conflict_file(saving.answered()?))
 }
 
 /// A worktree's removal writes the main checkout's git folder, and the worktree of the feature
 /// on its branch, if any: an agent that works in either refuses it.
-fn remove_worktree(call: &Call, input: &GitRemoveWorktree) -> Result<(), Fault> {
-    let path = repositories::path(call.shared(), &input.repo)?;
-    let mut listed = api::git_page(&path)?.worktrees.into_iter();
+fn remove_worktree(call: &Call, input: GitRemoveWorktree) -> Result<(), Fault> {
+    let root = repositories::path(call.shared(), &input.repo)?;
+    let mut listed = api::git_page(&root)?.worktrees.into_iter();
     let folder = listed
         .find(|worktree| worktree.path == input.path)
         .and_then(|worktree| worktree.folder);
+    let write = main(input.write, format!("Removing {}", input.path));
+    let write = match &folder {
+        Some(folder) => write.and_feature(folder),
+        None => write,
+    };
     let touches = Touches::both(folder.as_deref());
-    write(call, &input.repo, &touches, |repo| {
-        api::git_remove_worktree(repo, &input.path)
+    let path = input.path;
+    landed(call, &input.repo, write, touches, move |repo, _| {
+        api::git_remove_worktree(repo, &path)
     })
 }

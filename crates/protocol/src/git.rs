@@ -4,12 +4,16 @@
 //! A record's or an action's `repo` is the repository's name in the server's list. A group is a
 //! checkout with changes: the main checkout's for no `folder`, else the worktree of the feature
 //! in that folder. A client never names a checkout's path to act on.
+//!
+//! Every write lands in the repository's write queue, after the writes made before it, and
+//! answers once it landed. Its `write` names it there, for the toast: the page's own name when
+//! none is given.
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::registry::{Action, Record};
-use crate::shared::RepositoryArgs;
+use crate::shared::{RepositoryArgs, WriteName};
 
 /// The Git page: the main checkout's sync, changes, conflicts, and the first page of its
 /// history, each feature's worktree with changes, and every worktree.
@@ -359,6 +363,9 @@ writes! {
 pub struct GitAbort {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
 }
 
 /// Cleans a merged feature, as `ura clean` does: its worktree, its branch, and its line of the
@@ -368,6 +375,9 @@ pub struct GitAbort {
 pub struct GitClean {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The feature's folder.
     pub folder: String,
 }
@@ -379,6 +389,9 @@ pub struct GitClean {
 pub struct GitCommitStaged {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The group's folder; none for the main checkout.
     #[serde(default)]
     pub folder: Option<String>,
@@ -392,6 +405,9 @@ pub struct GitCommitStaged {
 pub struct GitContinue {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
 }
 
 /// Discards the changes to a file of a group's checkout.
@@ -400,6 +416,9 @@ pub struct GitContinue {
 pub struct GitDiscard {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The group's folder; none for the main checkout.
     #[serde(default)]
     pub folder: Option<String>,
@@ -413,6 +432,9 @@ pub struct GitDiscard {
 pub struct GitFetch {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// Whether the fetch is the page's own, as it opens, and not a person's: it never fails,
     /// and the page's `fetchFailure` says why it brought nothing.
     #[serde(default)]
@@ -425,6 +447,9 @@ pub struct GitFetch {
 pub struct GitMerge {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// One of the page's `branches`.
     pub branch: String,
 }
@@ -436,6 +461,9 @@ pub struct GitMerge {
 pub struct GitPull {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
 }
 
 /// Pushes the main checkout's branch to `origin`, never forced.
@@ -444,6 +472,9 @@ pub struct GitPull {
 pub struct GitPush {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
 }
 
 /// Removes a linked worktree, never forced: one with changes, or locked, is refused. Its branch
@@ -453,6 +484,9 @@ pub struct GitPush {
 pub struct GitRemoveWorktree {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The worktree's `path`, as the page lists it.
     pub path: String,
 }
@@ -464,6 +498,9 @@ pub struct GitRemoveWorktree {
 pub struct GitResolve {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The file, from the checkout's top level.
     pub path: String,
     /// The side to take, as git names them, or `delete`.
@@ -478,6 +515,9 @@ pub struct GitResolve {
 pub struct GitSaveConflict {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The file, from the checkout's top level.
     pub path: String,
     /// Its new text.
@@ -498,6 +538,9 @@ impl Action for GitSaveConflict {
 pub struct GitStage {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The group's folder; none for the main checkout.
     #[serde(default)]
     pub folder: Option<String>,
@@ -511,6 +554,9 @@ pub struct GitStage {
 pub struct GitUnstage {
     /// The repository's name.
     pub repo: String,
+    /// The name the write queue shows it under while it lands: the page's own when none.
+    #[serde(default)]
+    pub write: Option<WriteName>,
     /// The group's folder; none for the main checkout.
     #[serde(default)]
     pub folder: Option<String>,
