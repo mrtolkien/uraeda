@@ -253,13 +253,15 @@ A runtime may also offer several accounts of its agent, as `accounts`, with four
 - `list()` gives the accounts, in the order the human listed them, each
   `{ id, name, state, windows, askedAt }`: `id` is what a session stores, `state` is `ready`,
   `signed-out`, or `missing`, `windows` are its usage windows, shortest first, each
-  `{ id, label, used, resetsAt }`, and `askedAt` is when they were read, in epoch milliseconds, null
-  while they never were.
+  `{ id, label, used, resetsAt }`, and `askedAt` is when they were last read, in epoch milliseconds:
+  null while they never were, or while the last ask could not read them. The windows keep the last
+  ones read either way.
 - `nameOf(id)` gives the name of an account, listed or not.
 - `problems()` gives what needs the human, in your words, such as
   `account b is signed out, in ~/.claude-b`.
-- `refresh(maxAgeMs)` asks again each account read more than `maxAgeMs` ago, and settles once they
-  answered.
+- `refresh(maxAgeMs)` asks again each account whose last ask, answered or not, is older than
+  `maxAgeMs`, and settles once they answered. Keep that time yourself: `askedAt` is null for an ask
+  that could not read the usage.
 
 A new session then starts on the account with the most of its shortest window left, among the
 accounts that are `ready` and whose longer windows are not used up. `open` gets that account's ID as
