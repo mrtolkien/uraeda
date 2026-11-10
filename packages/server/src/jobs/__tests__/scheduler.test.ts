@@ -70,6 +70,8 @@ async function setup(using: Binding = binding) {
     enabled: true,
     extensionOff: new Set<string>(),
     jobs: { jobs: [] } as Jobs,
+    /** What the minute between two runs waits on: none, for the waits to end at once. */
+    gate: undefined as Promise<void> | undefined,
     reads: 0,
     waits: [] as Array<number>,
   };
@@ -102,6 +104,7 @@ async function setup(using: Binding = binding) {
       ...(waits && {
         wait: async (ms: number) => {
           state.waits.push(ms);
+          await state.gate;
         },
       }),
     });
@@ -111,6 +114,7 @@ async function setup(using: Binding = binding) {
   const at = async (time: string) => {
     state.clock = new Date(`2026-11-${time}`);
     await scheduler.tick();
+    await scheduler.settled();
   };
   /** The job's rows in a repository, the newest first. */
   const history = async (name: string, path = repos[0].path) =>
@@ -151,6 +155,7 @@ async function startedOnce(run: Awaited<ReturnType<typeof setup>>, name: string)
   await run.at("14T02:59:00");
   run.state.clock = new Date("2026-11-14T03:00:10");
   await Promise.all([run.scheduler.tick(), run.scheduler.tick()]);
+  await run.scheduler.settled();
   await run.at("14T03:00:40");
   await run.at("14T02:59:30");
   await run.at("14T03:00:20");
@@ -164,6 +169,7 @@ async function startedOnce(run: Awaited<ReturnType<typeof setup>>, name: string)
   await other.tick();
   run.state.clock = new Date("2026-11-15T03:00:10");
   await Promise.all([run.scheduler.tick(), other.tick()]);
+  await Promise.all([run.scheduler.settled(), other.settled()]);
   expect(run.created.length - before).toBe(1);
   expect(await run.history("Race")).toHaveLength(1);
   await other.stop();
@@ -420,13 +426,13 @@ test("a stop does not wait for the minute between runs", async () => {
   await scheduler.tick();
   run.state.clock = new Date("2026-11-11T03:00:10");
   run.server.adapter.script([]);
-  const ticking = scheduler.tick();
+  await scheduler.tick();
   // Its first run starts at once, and the second waits a minute: the stop ends the wait.
   while (run.created.length === 0) {
     await new Promise((done) => setImmediate(done));
   }
   await scheduler.stop();
-  await ticking;
+  await scheduler.settled();
   expect(run.created).toHaveLength(1);
 });
 
@@ -489,6 +495,7 @@ test("a run by hand during a tick's workspace read is refused, and one run start
   );
   gate.resolve();
   await ticking;
+  await run.scheduler.settled();
   expect(run.created).toHaveLength(2);
   expect(await run.sessions("Dependencies")).toHaveLength(2);
   // The start ended: a run by hand is allowed once the run stops.
@@ -553,4 +560,79 @@ test("a schedule edited to a time just past does not run at once", async () => {
   run.server.adapter.script([]);
   await run.at("13T03:00:10");
   expect(await ran()).toBe(1);
+});
+
+/** Turns of the event loop, a bound that does not read the clock. */
+async function turns(count: number) {
+  for (let turn = 0; turn < count; turn += 1) {
+    await new Promise((done) => setImmediate(done));
+  }
+}
+
+/**
+ * US2 1, 2; R2. Catches: the minutes between starts blocking the next tick, so a time that falls
+ * due meanwhile is seen after its 5 minutes and never started.
+ */
+test("the minute between starts does not stop the next tick from seeing a time", async () => {
+  const run = await setup();
+  const [uraeda, notes] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  run.state.jobs = {
+    jobs: [
+      job("Hourly", [uraeda.name, notes.name], hourly),
+      job("Later", [uraeda.name], {
+        schedule: { hour: 3, kind: "daily", minute: 1 },
+        scheduleText: "daily 03:01",
+      }),
+    ],
+  };
+  await run.at("11T02:59:00");
+
+  // The first start of 03:00 is made, and the second waits on its minute.
+  const gate = Promise.withResolvers<void>();
+  run.state.gate = gate.promise;
+  run.state.clock = new Date("2026-11-11T03:00:10");
+  await run.scheduler.tick();
+  while (run.state.waits.length === 0) {
+    await turns(1);
+  }
+  expect(run.created).toHaveLength(1);
+
+  // The next tick, at 03:01, looks while the minute runs.
+  run.state.clock = new Date("2026-11-11T03:01:10");
+  const second = run.scheduler.tick();
+  const looked = await Promise.race([second.then(() => true), turns(100).then(() => false)]);
+  gate.resolve();
+  await second;
+  await run.scheduler.settled();
+  expect(looked).toBe(true);
+  expect(run.created).toHaveLength(3);
+  expect(await run.sessions("Later")).toHaveLength(1);
+});
+
+/** Catches: a minute waited before a time that is only skipped or recorded, not started. */
+test("only a start waits a minute after the one before it", async () => {
+  const run = await setup();
+  const [uraeda, notes] = run.repos;
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  // B's run of 02:00 still works at 03:00.
+  run.state.jobs = { jobs: [job("B", [uraeda.name], hourly)] };
+  await run.at("11T01:59:00");
+  await run.at("11T02:00:10");
+  expect(run.created).toHaveLength(1);
+
+  // A, B, and C are due at 03:00: A starts, B is skipped, and C starts a minute after A.
+  run.state.jobs = {
+    jobs: [
+      job("A", [uraeda.name], hourly),
+      job("B", [uraeda.name], hourly),
+      job("C", [notes.name], hourly),
+    ],
+  };
+  await run.at("11T02:30:00");
+  run.state.waits.length = 0;
+  await run.at("11T03:00:10");
+  expect(run.created).toHaveLength(3);
+  expect((await run.history("B"))[0]).toMatchObject({ outcome: "skipped", reason: "working" });
+  expect(run.state.waits).toEqual([MINUTE]);
 });

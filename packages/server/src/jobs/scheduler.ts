@@ -30,9 +30,14 @@ export type Scheduler = {
   nextRun(job: Job, repo: string): Promise<NextRun>;
   /** Starts the job's run in the repository now, refused while its latest run works there. */
   runNow(repo: string, name: string): Promise<{ session: string }>;
+  /** Resolves once the times queued are started, skipped, or dropped. */
+  settled(): Promise<void>;
   /** Starts no other run, and resolves once the ones in flight end. */
   stop(): Promise<void>;
-  /** Looks for due times now: one asked while a tick runs joins the one after it. */
+  /**
+   * Looks for due times now, and queues them for `settled`: one asked while a tick runs joins the one
+   * after it. It does not wait for the starts, which a minute separates.
+   */
   tick(): Promise<void>;
 };
 
@@ -100,6 +105,9 @@ type Options = {
   wait?: (ms: number) => Promise<void>;
 };
 
+/** The key of a time queued: a job in a repository, and the time. */
+const queuedKey = ({ due, job, repo }: Due) => `${job.name}\0${repo.name}\0${due}`;
+
 /** The key of a job in a repository, both by name. */
 const keyOf = (job: string, repository: string) => `${job}\0${repository}`;
 
@@ -117,6 +125,10 @@ class JobScheduler implements Scheduler {
   readonly #printed = new Set<string>();
   readonly #flying = new Set<Promise<unknown>>();
   readonly #ticks = new Map<string, Runs>();
+  // The times due and not started yet, in order, and the ones in it or being started.
+  readonly #queue: Array<Due> = [];
+  readonly #queued = new Set<string>();
+  #draining: Promise<void> | undefined;
 
   constructor(options: Options) {
     this.#options = options;
@@ -180,16 +192,51 @@ class JobScheduler implements Scheduler {
       this.#seen.clear();
       return;
     }
-    let started = false;
-    for (const item of await this.#dueNow(jobs, this.#now())) {
-      if (started) {
-        await this.#wait(APART_MS);
+    this.#enqueue(await this.#dueNow(jobs, this.#now()));
+  }
+
+  /** Queues the times not queued yet, and starts the queue's drain when it is not running. */
+  #enqueue(items: Array<Due>): void {
+    for (const item of items) {
+      const key = queuedKey(item);
+      if (!this.#queued.has(key)) {
+        this.#queued.add(key);
+        this.#queue.push(item);
       }
-      // The switch turned off, or the server stopping, during the waits starts no other.
-      if (!this.#on()) {
-        return;
+    }
+    if (this.#queue.length > 0 && this.#draining === undefined) {
+      this.#draining = this.#track(this.#drain());
+    }
+  }
+
+  /**
+   * Starts the queued times one after another, a minute after the last start, while the ticks go on
+   * looking for times and queue them behind. A time skipped or recorded waits for nothing.
+   */
+  async #drain(): Promise<void> {
+    try {
+      let started = false;
+      for (let item = this.#queue.shift(); item !== undefined; item = this.#queue.shift()) {
+        try {
+          started = (await this.#run(item, started)) || started;
+        } finally {
+          this.#queued.delete(queuedKey(item));
+        }
+        // The switch turned off, or the server stopping, starts no other.
+        if (!this.#on()) {
+          break;
+        }
       }
-      started = (await this.#run(item)) || started;
+    } finally {
+      this.#queue.length = 0;
+      this.#queued.clear();
+      this.#draining = undefined;
+    }
+  }
+
+  async settled(): Promise<void> {
+    while (this.#draining !== undefined) {
+      await this.#draining;
     }
   }
 
@@ -255,7 +302,7 @@ class JobScheduler implements Scheduler {
    * repository is reserved before anything is awaited, and held until it ends: a run by hand, or
    * the same time asked twice, finds it taken.
    */
-  async #run({ due, job, repo }: Due): Promise<boolean> {
+  async #run({ due, job, repo }: Due, spaced: boolean): Promise<boolean> {
     const key = keyOf(job.name, repo.name);
     const taken = this.#starting.has(key);
     this.#starting.add(key);
@@ -280,6 +327,13 @@ class JobScheduler implements Scheduler {
           trigger: "schedule",
         });
         return false;
+      }
+      // A start comes a minute after the one before it.
+      if (spaced) {
+        await this.#wait(APART_MS);
+        if (!this.#on()) {
+          return false;
+        }
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
       return (await startRun(ctx, job, run)) !== undefined;
@@ -355,10 +409,10 @@ class JobScheduler implements Scheduler {
 }
 
 /**
- * Starts the scheduler. A tick reads `jobs()`, and, while `enabled()`, starts each time due in a
+ * Starts the scheduler. A tick reads `jobs()`, and, while `enabled()`, queues each time due in a
  * repository of the list where the job is on, its extension is on, and its agent is available. The
- * starts of a tick go one after another, the first at once, each next after `wait(60_000)`. A test
- * gives the clock, `now`, and the waits, and ticks by itself with `every: null`.
+ * queue starts them one after another, the first at once, each next after `wait(60_000)`, while the
+ * ticks go on. A test gives the clock, `now`, and the waits, and ticks by itself with `every: null`.
  */
 export function startScheduler(options: Options): Scheduler {
   return new JobScheduler(options);
