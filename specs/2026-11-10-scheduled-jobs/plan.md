@@ -716,8 +716,9 @@ nothing needs doing.
   `jobs` extension is off, as for a repository the job does not name ([ruling R42](rulings.md)).
 - `nextRun` gives `nextAfter` for a job that will run, else why not, in the order of `NextRun`.
 - `startJobs` builds the scheduler on the server's settings, hosts, extensions, and binding, ticking
-  every 30 seconds, with an unref'd timer. `server.ts` starts it after the catcher, puts it in the
-  context, and stops it with the server.
+  every 30 seconds, with an unref'd timer, and each time `settings.onRead` fires, so a job written
+  just before its time is first seen then ([ruling R47](rulings.md)). `server.ts` starts it after
+  the catcher, puts it in the context, and stops it with the server.
 
 - [x] **Step 5: Run the task's validation, and make the risky breaks**
 

@@ -846,7 +846,8 @@ run needs. It ends as any session does, with a reply to read, or a failure that 
 whose agent meets the session limit continues, as any run does. A job edited while its run works
 leaves that run on the prompt it started with. When several runs are due together, they start a
 minute apart, uraeda's at 3:00 and notes' at 3:01. The server looks for due times every 30 seconds,
-so a run starts within a minute of its time.
+and each time the settings file is read, so a run starts within a minute of its time, and a job you
+save, resume, or switch on up to 30 seconds before its time still runs at it.
 
 **A time that passed.** A time that passes while Uraeda is not running, with the server off or the
 machine asleep, is missed, and nothing makes it up: the job waits for its next time, and a restart

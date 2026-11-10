@@ -739,3 +739,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   after the moment the server first saw the job (R2): an hourly job on a server up for a week, after
   a clock set back by three days, runs about 70 times over again, one at a time, a minute apart.
 - **Where**: the final review's finding X3, task 3. Unchanged: R8 and R15.
+
+## R47: The settings' read ticks, so a job written just before its time runs at it
+
+- **Decision**: `startJobs` ticks the scheduler each time `settings.onRead` fires, as `announce.ts`
+  announces the record then, besides the timer's every 30 seconds. R2 stands: the moment a job is
+  first seen is the tick's clock, and a job added after its time still waits for the next one. A job
+  saved, resumed, or switched on up to 30 seconds before its time is now seen by the read of the
+  file, before its time, instead of by the next timer's tick, after it. `startJobs` takes an
+  optional clock and `every` for tests, as `startScheduler` does.
+- **Rationale**: the card read "Today at 3:00" while the next tick, after 3:00, saw the job for the
+  first time and treated it as added after its time: the run was lost, and the card then read
+  "Tomorrow at 3:00". A tick is serialised and starts a time once (a row per time), so a tick more
+  is safe: the test ticks by the read and by hand, and one session starts.
+- **If wrong**: a job whose file was read just after its time, within the same second, is still seen
+  after it and waits for the next time, as R2 says.
+- **Where**: the final review's fix 6, task 4.
