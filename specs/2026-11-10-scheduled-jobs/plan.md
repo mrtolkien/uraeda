@@ -381,7 +381,7 @@ git commit -m "feat(scheduled-jobs): jobs in the settings file"
 - Consumes: nothing.
 - Produces: nothing code reads.
 
-- [ ] **Step 1: Write the two passages**
+- [x] **Step 1: Write the two passages**
 
 In `change.md`, after "Only when a human asks.": a job the human scheduled in Uraeda's settings is
 their yes, given in advance, for the change its run offers. The run's message says so, and says when
@@ -390,12 +390,12 @@ when a human asks.", one sentence saying the same and linking that passage. Name
 UI: the skill holds the workflow for any agent. Leave `SKILL.md` as it is, as
 [ruling R3](rulings.md) says. The templates and the example do not change: no file's format does.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `cargo nextest run -p uraeda-cli --test skill`, then `vp run fast`
 - Expected: PASS, `SKILL.md` still under 20,000 characters
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills/uraeda/references/change.md skills/uraeda/references/projects.md
