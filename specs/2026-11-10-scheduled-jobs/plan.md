@@ -829,12 +829,14 @@ unwraps the sample's own fence first.
 - `acceptOffers` listens to the sessions' changes, as `onSessionChange` gives them. It acts on a
   turn that ended `done`, in a session without a folder, that a run's row names for the same
   repository. The job, read now by its name, must exist, not be report only, and not be impossible
-  by the rule "Run now" uses, `impossible` ([ruling R43](rulings.md)). The session must hold no
-  message of the origin `human`, the turn must be its latest, and the run's row must hold no
-  refusal: a run's offer is accepted at most once ([ruling R19](rulings.md)). The turn's last text,
-  after its last call, must end on a `change` offer, by `endingOffer`: nothing but whitespace after
-  its closing fence. Every check of what the human may have done meanwhile comes after the one wait,
-  the read of the jobs, and acceptances go one after another ([ruling R12](rulings.md)).
+  by the rule "Run now" uses, `impossible` ([ruling R43](rulings.md)). The session must not work by
+  the scheduler's own reading, `works` in `jobs/guards.ts`, which counts a wakeup the agent set
+  ([ruling R44](rulings.md)), must hold no message of the origin `human`, the turn must be its
+  latest, and the run's row must hold no refusal: a run's offer is accepted at most once
+  ([ruling R19](rulings.md)). The turn's last text, after its last call, must end on a `change`
+  offer, by `endingOffer`: nothing but whitespace after its closing fence. Every check of what the
+  human may have done meanwhile comes after the one wait, the read of the jobs, and acceptances go
+  one after another ([ruling R12](rulings.md)).
 - It then calls `toChange` with the offer's body and no slug, and, once the change started, appends
   `jobChangeLine` to the turn. A refusal is kept with `setRefusal`, its text without the `refused: `
   prefix, and the turn, and announced with `Sessions.announce`; a refusal that says the agent works,

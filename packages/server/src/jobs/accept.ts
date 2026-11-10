@@ -12,6 +12,7 @@ import { jobChangeLine } from "../runner/message.ts";
 import { endingOffer, proposalTitle } from "../runner/offers.ts";
 import { REFUSALS } from "../runner/session-state.ts";
 import { Busy } from "./busy.ts";
+import { works } from "./guards.ts";
 import { impossible } from "./problem.ts";
 
 /**
@@ -76,7 +77,8 @@ async function accept(shared: Omit<RepoContext, "repo">, session: string, turn: 
     // A run's offer is accepted at most once: after a refusal, dismissed or not, the card is the way.
     run.refusedTurn !== null ||
     humanWrote(cache, session) ||
-    sessions.sessionWorking(session)
+    // The scheduler's own reading (R44): a turn that left a wakeup pending is not the run's last word.
+    works({ ...shared, repo: row.repo }, session)
   ) {
     return;
   }

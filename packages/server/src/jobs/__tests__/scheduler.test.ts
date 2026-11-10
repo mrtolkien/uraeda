@@ -995,3 +995,27 @@ test("a run by hand is refused where the Jobs extension is off", async () => {
   await run.scheduler.runNow(name, "Dependencies");
   expect(run.created).toHaveLength(1);
 });
+
+/**
+ * Review 07, finding 6. Catches: a run whose turn ended with a wakeup of the agent's pending (its
+ * process waits to go on by itself) being started over by the next time: "its last run still works".
+ */
+test("a time is skipped while the last run waits for a wakeup it set", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([
+    { at: new Date(Date.now() + 25 * 60_000).toISOString(), type: "wakeup" },
+  ]);
+  await run.at("11T02:59:00");
+  await run.at("11T03:00:10");
+  expect(run.created).toHaveLength(1);
+  await ends(run.server, run.created[0].id);
+  expect(run.server.sessions.wakeup(run.created[0].id)).toBe(true);
+
+  await run.at("12T02:59:00");
+  await run.at("12T03:00:10");
+  expect(run.created).toHaveLength(1);
+  const [skipped] = await run.history("Dependencies");
+  expect(skipped).toMatchObject({ outcome: "skipped", reason: "working" });
+});

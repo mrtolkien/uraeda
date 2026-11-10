@@ -14,14 +14,18 @@ export function agentOf(ctx: RepoContext, job: Job, root: string) {
   return { available: runtimes.status(name).available };
 }
 
-/** Whether the session's agent works, or waits to continue by itself. */
+/**
+ * Whether the session's agent works, or waits to continue by itself: a turn runs or is queued, its
+ * run waits to continue, or its process waits for a wakeup the agent set (a chat has no step, so
+ * its status does not read the wakeup: it is read here). The scheduler and the acceptance both read it (R44).
+ */
 export function works(ctx: RepoContext, session: string): boolean {
   const { sessions } = ctx;
   const row = sessions.cache.session(session);
   if (row === undefined) {
     return false;
   }
-  if (sessions.sessionWorking(session)) {
+  if (sessions.sessionWorking(session) || sessions.wakeup(session)) {
     return true;
   }
   const { cache } = sessions;

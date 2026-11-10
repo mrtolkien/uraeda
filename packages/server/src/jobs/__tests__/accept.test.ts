@@ -1,5 +1,5 @@
 import type { Job, Jobs } from "uraeda-binding";
-import { expect, onTestFinished, test } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the acceptance's imports in a cycle.
 import { binding, git, testFeatureOptions, testServer } from "../../__tests__/helpers.ts";
 import type { Binding, RepoContext } from "../../fate/context.ts";
@@ -431,4 +431,40 @@ test("a run's offer is accepted for a job whose only problem is its schedule, an
   });
   expect(folderOf(server, noPrompt)).toBeNull();
   expect(folderOf(server, unlisted)).toBeNull();
+});
+
+/**
+ * Review 07, finding 6 (R19). Catches: an offer at the end of a turn that left a wakeup of the
+ * agent's pending being accepted, so the change's start closed the process that held the wakeup,
+ * and the continuation the agent scheduled never happened. The turn the wakeup starts is read as
+ * any turn's end is: it starts the change when its last word is an offer.
+ */
+test("an offer at the end of a turn that left a wakeup pending starts nothing, and the next turn's does", async () => {
+  const { accepting, ctx, run, server } = await setup();
+  server.adapter.fallback = () => [];
+  const wakeup: FakeStep = {
+    at: new Date(Date.now() + 25 * 60_000).toISOString(),
+    type: "wakeup",
+  };
+  const session = await run([{ text: OFFER, type: "text" }, wakeup]);
+  expect(server.sessions.wakeup(session)).toBe(true);
+  expect(folderOf(server, session)).toBeNull();
+  expect(server.sessions.cache.jobs.ofSession(session)?.refusal ?? null).toBeNull();
+
+  // The wakeup's time comes, and the turn it starts, as a message of the workflow starts one, ends on
+  // the offer.
+  const real = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => real + 30 * 60_000);
+  onTestFinished(() => void vi.restoreAllMocks());
+  server.adapter.script([{ text: OFFER, type: "text" }]);
+  server.adapter.script([]);
+  const woken = await server.sessions.send(ctx.repo, session, {
+    line: "The agent woke up.",
+    origin: "workflow",
+    text: "Go on.",
+  });
+  await server.sessions.settled(woken.turn);
+  await accepting.settled();
+  await ended(server, session);
+  expect(folderOf(server, session)).toMatch(/^\d{4}-\d{2}-\d{2}-/);
 });

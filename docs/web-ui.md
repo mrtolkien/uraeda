@@ -855,10 +855,10 @@ when the server sees it. A job added, edited, or turned on just after its time w
 one too, and so do the times that pass while it is paused or "Run scheduled jobs" is off.
 
 **A skipped time.** A time is skipped, and shows in the history, while the job's last run in that
-repository still works, "Skipped: its last run still works.", or while a change one of its runs
-started there is still open, "Skipped: the change “<title>” is still open.", naming the open change
-by its own title. A skipped time is not made up either. Once the change is merged or dropped, the
-next time runs.
+repository still works, or waits for a wakeup its agent set, "Skipped: its last run still works.",
+or while a change one of its runs started there is still open, "Skipped: the change “<title>” is
+still open.", naming the open change by its own title. A skipped time is not made up either. Once
+the change is merged or dropped, the next time runs.
 
 **The change a run starts.** When a run's last word is an offer of a change, Uraeda starts that
 change as the offer's card does, with its proposal, its branch, and its worktree. The session moves
@@ -866,13 +866,15 @@ into it, says "The job “<job>” started the change “<title>”.", and goes 
 waits for you: scheduling the job is your yes in advance. A run that offers nothing, because there
 was nothing to do, makes no commit, branch, or worktree. An offer that is not the run's last word,
 as one followed by more text, a feature, one indented or inside a list or a quote, or one in a
-session you wrote in, starts nothing, and its card waits for you. So does the offer of a job that
-has a problem other than its schedule when its run ends: a schedule mistyped meanwhile, or in a job
-you ran by hand, does not take your yes back. When the change cannot start, because its folder's
-name is taken for instance, the session asks for you under the banner "The change could not start by
-itself.", with the reason, until you dismiss it or start the change from the card. A job that is
-"Report only" starts no change: its run is told to change no file, and the offer's card waits in the
-session. A change merges only when you merge it, either way.
+session you wrote in, starts nothing, and its card waits for you. A turn that ends on an offer while
+a wakeup its agent set is pending is not the run's last word either: the turn the wakeup starts is
+read as any turn's end is. So does the offer of a job that has a problem other than its schedule
+when its run ends: a schedule mistyped meanwhile, or in a job you ran by hand, does not take your
+yes back. When the change cannot start, because its folder's name is taken for instance, the session
+asks for you under the banner "The change could not start by itself.", with the reason, until you
+dismiss it or start the change from the card. A job that is "Report only" starts no change: its run
+is told to change no file, and the offer's card waits in the session. A change merges only when you
+merge it, either way.
 
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run

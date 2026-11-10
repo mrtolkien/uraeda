@@ -668,3 +668,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job whose schedule was broken by hand between its run and its end has its offer
   accepted, where R12 would have left it to the card.
 - **Where**: the final review's fix 3, task 5.
+
+## R44: The acceptance and the scheduler read what "works" is in one place
+
+- **Decision**: the acceptance asks `works(ctx, session)`, in `jobs/guards.ts`, which the scheduler
+  asks too, instead of `sessionWorking`. `works` also counts a session whose process waits for a
+  wakeup the agent set, read from `sessions.wakeup` itself: the status reads the wakeup only for a
+  session in a feature's step, and a run's session is a chat with none, so `works` did not see it. A
+  turn that ends on an offer while a wakeup is pending starts nothing, and the turn the wakeup
+  starts is read as any turn's end is: its offer, when it is the last word, starts the change, once
+  the wakeup's time has come. R19 still holds: a refusal is what stops later turns, and a pending
+  wakeup records none.
+- **Rationale**: `toChange` closes the session's process, which dropped the continuation the agent
+  scheduled, and started a change from an offer that was not the run's last act. Two readings of
+  "works" also let the scheduler skip a time as working while the acceptance moved the session.
+- **Alternatives considered**: the acceptance reading `sessions.wakeup` beside `sessionWorking`: a
+  second place that has to agree with the first. A background command of the agent's is not read:
+  the sessions expose no reading of it, and its turn is not ended while it holds one.
+- **If wrong**: a wakeup set far ahead (up to a day) holds the run's offer, and the job's next
+  times, until it passes; the offer's card is the way.
+- **Where**: the final review's fix 4, tasks 4 and 5.
