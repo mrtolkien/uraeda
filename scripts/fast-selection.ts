@@ -117,12 +117,24 @@ export const families = {
 };
 export type Family = keyof typeof families;
 const names = Object.keys(families) as Array<Family>;
-/** The crates depending on each crate, which its change can break: checked against `cargo metadata`. */
-const dependents: Record<string, Array<string>> = {
-  "uraeda-compile": ["uraeda-binding"],
-  "uraeda-core": ["uraeda-binding", "uraeda-cli", "uraeda-lsp"],
-  "uraeda-lsp": ["uraeda-cli"],
+/**
+ * The workspace's crates, each with the workspace's crates its manifest depends on: the one table
+ * the reverse dependents come from, checked against `cargo metadata`. A new crate, or a new
+ * dependency between two, is a line here.
+ */
+export const crates: Record<string, Array<string>> = {
+  "uraeda-app": [],
+  "uraeda-binding": ["uraeda-compile", "uraeda-core"],
+  "uraeda-cli": ["uraeda-core", "uraeda-lsp", "uraeda-server"],
+  "uraeda-compile": [],
+  "uraeda-core": [],
+  "uraeda-lsp": ["uraeda-core"],
+  "uraeda-protocol": [],
+  "uraeda-server": ["uraeda-core", "uraeda-protocol"],
+  "uraeda-vim": [],
 };
+/** The examples of the protocol's messages, which its crate's tests read and the core's do not. */
+const protocolInputs = ["fixtures/protocol/**"];
 const deferred = [
   "application journeys",
   "production builds/package smoke",
@@ -212,6 +224,9 @@ export function selectFast(changed: Array<Change>): FastSelection {
     if (path.startsWith("crates/")) {
       rust.add(`uraeda-${path.split("/")[1]}`);
     }
+    if (matches(path, protocolInputs)) {
+      rust.add("uraeda-protocol");
+    }
     const broad =
       deleted ||
       path.endsWith(".d.ts") ||
@@ -257,8 +272,14 @@ export function selectFast(changed: Array<Change>): FastSelection {
   ) {
     checks.add("binding:touch");
   }
+  // A change can break every crate depending on its crate, directly or through another: a set
+  // also iterates what is added to it, so the dependents' own dependents follow.
   for (const name of rust) {
-    dependents[name]?.forEach((dependent) => rust.add(dependent));
+    for (const [dependent, dependencies] of Object.entries(crates)) {
+      if (dependencies.includes(name)) {
+        rust.add(dependent);
+      }
+    }
   }
   if (rust.size) {
     checks.add("rust:checks");

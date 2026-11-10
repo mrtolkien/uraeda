@@ -16,6 +16,7 @@ import { fastConfig } from "../../vite.fast.config.ts";
 import { gitTestTimeout, scriptsTestTimeout } from "../test-policy.ts";
 import {
   changedFiles,
+  crates,
   families,
   type Family,
   rustCommands,
@@ -210,6 +211,7 @@ test("a core change checks and tests its reverse dependents, and clippy alone ch
     "uraeda-cli",
     "uraeda-core",
     "uraeda-lsp",
+    "uraeda-server",
   ]);
   expect(selectFast([change("crates/lsp/src/lib.rs")]).rust.sort()).toEqual([
     "uraeda-cli",
@@ -222,21 +224,65 @@ test("a core change checks and tests its reverse dependents, and clippy alone ch
   expect(nextest).not.toContain("uraeda-binding");
   expect(nextest).toEqual(expect.arrayContaining(["-p", "uraeda-core", "-p", "uraeda-cli"]));
 });
-test("the reverse dependents follow the workspace's manifests", () => {
-  const metadata = JSON.parse(
+/** The packages nextest runs for one changed path. */
+const tested = (path: string) =>
+  rustCommands(selectFast([change(path)]).rust)
+    .find(([, args]) => args[0] === "nextest")![1]
+    .filter((arg) => arg.startsWith("uraeda-"))
+    .sort();
+test.each([
+  // The server reads the protocol, and the CLI starts the server: a dependent's dependents follow.
+  ["crates/protocol/src/lib.rs", ["uraeda-cli", "uraeda-protocol", "uraeda-server"]],
+  ["crates/server/src/lib.rs", ["uraeda-cli", "uraeda-server"]],
+  ["crates/vim/src/lib.rs", ["uraeda-vim"]],
+  ["crates/app/src/lib.rs", ["uraeda-app"]],
+  // The protocol's examples, which its own tests read, beside the core's fixtures.
+  [
+    "fixtures/protocol/messages.json",
+    ["uraeda-cli", "uraeda-core", "uraeda-lsp", "uraeda-protocol", "uraeda-server"],
+  ],
+])("a change of %s tests its crate and every crate depending on it", (path, packages) =>
+  expect(tested(path)).toEqual(packages),
+);
+type Metadata = { packages: Array<{ dependencies: Array<{ name: string }>; name: string }> };
+const metadata = () =>
+  JSON.parse(
     execFileSync("cargo", ["metadata", "--no-deps", "--format-version", "1"], {
       cwd: ROOT,
       encoding: "utf8",
     }),
-  ) as { packages: Array<{ dependencies: Array<{ name: string }>; name: string }> };
-  for (const { name } of metadata.packages) {
+  ) as Metadata;
+test("the reverse dependents follow the workspace's manifests", () => {
+  const { packages } = metadata();
+  for (const { name } of packages) {
     const selected = selectFast([change(`crates/${name.replace(/^uraeda-/, "")}/src/lib.rs`)]);
-    for (const dependent of metadata.packages) {
+    for (const dependent of packages) {
       if (dependent.dependencies.some((dependency) => dependency.name === name)) {
         expect(selected.rust, `${dependent.name} depends on ${name}`).toContain(dependent.name);
       }
     }
   }
+});
+test("the crates' table is the workspace's manifests, with no crate or dependency more or less", () => {
+  const { packages } = metadata();
+  const names = packages.map(({ name }) => name);
+  const manifests = Object.fromEntries(
+    packages
+      .map(({ dependencies, name }): [string, Array<string>] => [
+        name,
+        [...new Set(dependencies.map((dependency) => dependency.name))]
+          .filter((dependency) => names.includes(dependency))
+          .sort(),
+      ])
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+  expect(crates).toEqual(manifests);
+  // A crate's folder gives its name, which the selection relies on.
+  expect(names.sort()).toEqual(
+    globSync("crates/*/Cargo.toml", { cwd: ROOT })
+      .map((path) => `uraeda-${path.split("/")[1]}`)
+      .sort(),
+  );
 });
 test.each([["workspace"], ["uraeda-core"], ["uraeda-binding", "uraeda-core"]])(
   "fast's nextest never selects the workspace or the binding (%s)",
