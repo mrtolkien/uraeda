@@ -816,7 +816,8 @@ web UI's existing tests of offers keep passing unchanged.
 - `acceptOffers` listens to the sessions' changes, as `onSessionChange` gives them. It acts on a
   turn that ended `done`, in a session without a folder, that a run's row names for the same
   repository. The job, read now by its name, must exist, have no problem, and not be report only.
-  The session must hold no message of the origin `human`, and the turn must be its latest. The
+  The session must hold no message of the origin `human`, the turn must be its latest, and the run's
+  row must hold no refusal: a run's offer is accepted at most once ([ruling R19](rulings.md)). The
   turn's last text, after its last call, must end on a `change` offer, by `lastOffer`, with no block
   opening after it. Every check of what the human may have done meanwhile comes after the one wait,
   the read of the jobs, and acceptances go one after another ([ruling R12](rulings.md)).

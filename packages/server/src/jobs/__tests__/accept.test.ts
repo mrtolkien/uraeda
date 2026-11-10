@@ -305,7 +305,7 @@ test.each(["starts a turn", "lands in the ended turn"])(
  * US3 more 1. Catches: a refused start that leaves the session reading as a plain new reply.
  */
 test("a change that cannot start asks, with its reason", async () => {
-  const { ctx, run, server } = await setup();
+  const { accepting, ctx, run, server } = await setup();
   const first = await run([{ text: OFFER, type: "text" }], job(), []);
   expect(folderOf(server, first)).not.toBeNull();
 
@@ -323,6 +323,19 @@ test("a change that cannot start asks, with its reason", async () => {
   server.sessions.dismiss(ctx.repo, turn.id);
   const idle = await readSession(ctx, second);
   expect(idle).toMatchObject({ status: "idle", statusReason: null });
+
+  // A later turn with no human message, as an agent's wakeup, ends on another offer: the run's row
+  // has its refusal, dismissed or not, so nothing starts by itself again; the card stays the way.
+  server.adapter.script([{ text: `${block("change", "Another proposal")}\n`, type: "text" }]);
+  const woken = await server.sessions.send(ctx.repo, second, {
+    line: "The agent woke up.",
+    origin: "workflow",
+    text: "Go on.",
+  });
+  await server.sessions.settled(woken.turn);
+  await accepting.settled();
+  expect(folderOf(server, second)).toBeNull();
+  expect(server.sessions.cache.jobs.ofSession(second)?.refusedTurn).toBe(turn.id);
 
   // A later turn of the session asks nothing of the refused offer.
   server.adapter.script([{ text: "Understood.", type: "text" }]);

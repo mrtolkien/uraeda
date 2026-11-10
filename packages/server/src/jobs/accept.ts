@@ -70,7 +70,8 @@ async function accept(shared: Omit<RepoContext, "repo">, session: string, turn: 
     ended?.id !== turn ||
     ended.state !== "done" ||
     ended.dismissedAt !== null ||
-    run.refusedTurn === turn ||
+    // A run's offer is accepted at most once: after a refusal, dismissed or not, the card is the way.
+    run.refusedTurn !== null ||
     humanWrote(cache, session) ||
     sessions.sessionWorking(session)
   ) {

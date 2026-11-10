@@ -277,3 +277,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a time that falls while a turn's end is read for an offer is skipped `working`
   although the run offered nothing; the run's next ordinary time starts.
 - **Where**: tasks 4 and 5.
+
+## R19: A run's offer is accepted at most once
+
+- **Decision**: once a run's row holds a refusal (`refused_turn` is set), no later turn of its
+  session starts a change by itself, whether the human dismissed the refusal or not. The offer's
+  card is the human's path. This replaces the turn-by-turn check of
+  [R1](#r1-two-more-fields-on-a-jobs-run), which kept only the refused turn from asking again.
+- **Rationale**: a wakeup the agent set, or a background task ending, starts a turn with no human
+  message. Ending on an offer again, it was accepted again after the human had dismissed the
+  refusal: the change started by itself, or the banner asked a second time.
+- **If wrong**: a refusal caused by a passing state (the agent working) that the human did not
+  notice leaves the run's later offer to the card.
+- **Where**: task 5.
