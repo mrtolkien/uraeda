@@ -107,6 +107,8 @@ function listen() {
 export function useBackCloses(label: string, isOpen: boolean, onClose: () => void): () => void {
   // The label of the entry this overlay pushed, while it is in the history.
   const entry = useRef<string>(undefined);
+  // Whether the overlay's own closing already goes back over that entry.
+  const leaving = useRef(false);
   const labelRef = useRef(label);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -118,11 +120,16 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
     if (!isOpen) {
       // Closed by its owner, after a form's success: its history entry goes too.
       const pushed = entry.current;
+      const isLeaving = leaving.current;
       entry.current = undefined;
+      leaving.current = false;
       if (pushed !== undefined && overlayOf(window.history.state) === pushed) {
         pendingBacks += 1;
         listen();
-        window.history.back();
+        // One Back per entry: a second would leave the page.
+        if (!isLeaving) {
+          window.history.back();
+        }
       }
       return;
     }
@@ -152,6 +159,7 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
       }
       if (overlayOf(window.history.state) !== entry.current) {
         entry.current = undefined;
+        leaving.current = false;
         onCloseRef.current();
       }
     };
@@ -166,7 +174,10 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
   // Closing goes back over the overlay's own entry, which closes it.
   return () => {
     if (entry.current !== undefined && overlayOf(window.history.state) === entry.current) {
-      window.history.back();
+      if (!leaving.current) {
+        leaving.current = true;
+        window.history.back();
+      }
     } else {
       onClose();
     }

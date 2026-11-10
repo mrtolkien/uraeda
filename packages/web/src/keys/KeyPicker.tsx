@@ -44,7 +44,7 @@ import type { EditorHandle } from "../fields/editor/Editor.tsx";
 import { PickerEditor } from "../fields/editor/PickerEditor.tsx";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
 import { Sheet } from "../layout/Sheet.tsx";
-import { useBackCloses } from "../layout/useBackCloses.ts";
+import { overlayOf, useBackCloses } from "../layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
 import type { PickerItem } from "./pickerSources.ts";
@@ -400,11 +400,11 @@ export function KeyPicker({
       close();
     }
   };
-  // The item opens once the picker's history entry is gone, which Back would otherwise undo.
+  // The item opens once the picker's entry, as pushed, is gone, which Back would otherwise undo.
   const pick = (id: string) => {
     const item = items.find((one) => one.id === id);
     if (item) {
-      afterOverlayCloses(title, () => onPick(item));
+      afterOverlayCloses(overlayOf(window.history.state) ?? title, () => onPick(item));
     }
   };
   const search = {

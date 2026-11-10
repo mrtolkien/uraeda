@@ -6,10 +6,10 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { EditableLine } from "../EditableLine.tsx";
 import { RunMap } from "../runs/RunMap.tsx";
-import { fromStored, todayOptions, toSaved } from "../runs/runOptions.ts";
+import { fromStored, type RunOptions, todayOptions, toSaved } from "../runs/runOptions.ts";
 import type { PickerRuntime } from "../SessionPicker.tsx";
 import { type Category, settingOf } from "./categories.ts";
 import { CONTINUE_SETTINGS, type ContinueKey } from "./optimistic.ts";
@@ -38,10 +38,21 @@ const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10
 
 const STEP_RUNS = "How each step runs";
 
+/** The longest an edit saved stays shown while the record does not hold it yet, in ms. */
+const HOLD_MS = 2000;
+
+/** Whether two maps save as the same options. */
+function sameSaved(one: RunOptions, other: RunOptions, defaults: RunOptions): boolean {
+  return JSON.stringify(toSaved(one, defaults)) === JSON.stringify(toSaved(other, defaults));
+}
+
 /**
  * How each step runs: the run map over the saved options, on the agents `runtimes`, a step that
  * names none on the first; each change saved at once, with its refusal, and the Claude Code effort
- * the server's environment forces, under it.
+ * the server's environment forces, under it. The saves go one after the other, as a feature's do:
+ * each edit's map is shown until the record holds the last one, so an edit made while another
+ * saves, as the effort picked right after its model, starts from that one and is never put back
+ * by its answer.
  */
 function StepRuns({
   actions,
@@ -54,6 +65,39 @@ function StepRuns({
   const runtime = runtimes[0]?.kind ?? "claude";
   const defaults = useMemo(() => todayOptions(runtime), [runtime]);
   const value = useMemo(() => fromStored(values.runs.options, runtime), [runtime, values]);
+  const [pending, setPending] = useState<{ isAnswered: boolean; next: RunOptions }>();
+  const queue = useRef(Promise.resolve());
+  const latest = useRef(0);
+  const save = (next: RunOptions) => {
+    const edit = ++latest.current;
+    setPending({ isAnswered: false, next });
+    setRefused(undefined);
+    queue.current = queue.current.then(async () => {
+      if (edit !== latest.current) {
+        return;
+      }
+      const refusal = await actions.setRunOptions(toSaved(next, defaults));
+      if (edit !== latest.current) {
+        return;
+      }
+      setRefused(refusal);
+      if (refusal !== undefined) {
+        setPending(undefined);
+        return;
+      }
+      // The record may still read the options before for a moment after the answer: the edit
+      // stays shown until the record holds it, `HOLD_MS` at most.
+      setPending({ isAnswered: true, next });
+      setTimeout(() => {
+        if (edit === latest.current) {
+          setPending(undefined);
+        }
+      }, HOLD_MS);
+    });
+  };
+  const isHeld =
+    pending !== undefined && !(pending.isAnswered && sameSaved(pending.next, value, defaults));
+  const shown = isHeld ? pending.next : value;
   const effort = values.runs.claudeEffortFromEnv;
   return (
     <SettingRow
@@ -62,15 +106,7 @@ function StepRuns({
       setting={setting}
       under={
         <VStack gap={3}>
-          <RunMap
-            defaults={defaults}
-            onChange={async (next) => {
-              setRefused(undefined);
-              setRefused(await actions.setRunOptions(toSaved(next, defaults)));
-            }}
-            runtimes={runtimes}
-            value={value}
-          />
+          <RunMap defaults={defaults} onChange={save} runtimes={runtimes} value={shown} />
           {effort !== undefined && (
             <Text color="accent">
               CLAUDE_CODE_EFFORT_LEVEL is set to {effort}: every Claude Code effort follows it.
