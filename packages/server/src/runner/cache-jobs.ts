@@ -123,6 +123,15 @@ export class JobRuns {
       .run(job, repository);
   }
 
+  /** Whether the time `due` of the job is recorded in the repository: a lookup by the unique index. */
+  recorded(job: string, repository: string, due: number): boolean {
+    return (
+      this.#db
+        .prepare("SELECT 1 FROM job_runs WHERE job = ? AND repository = ? AND due = ?")
+        .get(job, repository, due) !== undefined
+    );
+  }
+
   /** The job's runs in the repository, the newest first, 50 at most. */
   history(job: string, repository: string): Array<JobRunRow> {
     const rows = this.#db

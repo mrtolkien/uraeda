@@ -70,6 +70,7 @@ async function setup(using: Binding = binding) {
     enabled: true,
     extensionOff: new Set<string>(),
     jobs: { jobs: [] } as Jobs,
+    reads: 0,
     waits: [] as Array<number>,
   };
   const featureOptions = testFeatureOptions(server.dataDir, server.settings, using);
@@ -94,7 +95,10 @@ async function setup(using: Binding = binding) {
       isOn: (repository) => !state.extensionOff.has(repository),
       jobs: async () => state.jobs,
       now: () => state.clock,
-      repos: () => repos,
+      repos: () => {
+        state.reads += 1;
+        return repos;
+      },
       ...(waits && {
         wait: async (ms: number) => {
           state.waits.push(ms);
@@ -424,4 +428,15 @@ test("a stop does not wait for the minute between runs", async () => {
   await scheduler.stop();
   await ticking;
   expect(run.created).toHaveLength(1);
+});
+
+/** A tick lists the repositories once, however many jobs and repositories it looks at. */
+test("a tick reads the repositories once", async () => {
+  const run = await setup();
+  const names = run.repos.map(({ name }) => name);
+  run.state.jobs = { jobs: ["A", "B", "C"].map((name) => job(name, names)) };
+  await run.at("11T12:00:00");
+  run.state.reads = 0;
+  await run.at("11T12:00:30");
+  expect(run.state.reads).toBe(1);
 });

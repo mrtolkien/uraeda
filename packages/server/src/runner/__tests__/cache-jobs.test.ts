@@ -102,6 +102,15 @@ test("fifty skips never push out the latest started run", () => {
   expect(jobs.ofSession("s1")?.due).toBe(1000);
 });
 
+test("a time is looked up by its job and repository", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000 }));
+  expect(jobs.recorded("Dependencies", ROOT, 1000)).toBe(true);
+  expect(jobs.recorded("Dependencies", ROOT, 2000)).toBe(false);
+  expect(jobs.recorded("Other", ROOT, 1000)).toBe(false);
+  expect(jobs.recorded("Dependencies", "/another/root", 1000)).toBe(false);
+});
+
 test("renaming a job to its own name changes nothing", () => {
   const jobs = opened();
   jobs.add(run({ due: 1000, session: "s1" }));
@@ -172,6 +181,7 @@ test("the reads of a job and repository use the unique index", () => {
   for (const sql of [
     "SELECT * FROM job_runs WHERE job = 'a' AND repository = 'b' ORDER BY id DESC LIMIT 50",
     "SELECT * FROM job_runs WHERE job = 'a' AND repository = 'b' AND outcome = 'started'",
+    "SELECT 1 FROM job_runs WHERE job = 'a' AND repository = 'b' AND due = 1",
   ]) {
     const plan = db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as Array<{ detail: string }>;
     expect(plan.map(({ detail }) => detail).join(" ")).toContain("job_runs_due");

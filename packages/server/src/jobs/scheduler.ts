@@ -10,6 +10,7 @@ import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { refused } from "../runner/session-state.ts";
 import { type Runs, serially } from "../serially.ts";
 import { startRun } from "./run.ts";
+import { sleep } from "./sleep.ts";
 import { dueAt, MISSED_AFTER_MS, nextAfter } from "./times.ts";
 
 /** The scheduler looks every 30 seconds. */
@@ -119,31 +120,13 @@ class JobScheduler implements Scheduler {
   constructor(options: Options) {
     this.#options = options;
     this.#now = options.now ?? (() => new Date());
-    this.#wait = options.wait ?? ((ms) => this.#sleep(ms));
+    this.#wait = options.wait ?? ((ms) => sleep(ms, this.#stop.signal));
     if (options.every !== null) {
       this.#timer = setInterval(() => void this.tick(), options.every ?? TICK_MS);
       this.#timer.unref();
       // The first look, now: it sets the moment each job was first seen, and starts nothing past.
       void this.tick();
     }
-  }
-
-  /** The minute between runs: the stop cuts it short, so it never waits for it. */
-  #sleep(ms: number): Promise<void> {
-    if (this.#stop.signal.aborted) {
-      return Promise.resolve();
-    }
-    return new Promise<void>((done) => {
-      const timer = setTimeout(done, ms);
-      this.#stop.signal.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(timer);
-          done();
-        },
-        { once: true },
-      );
-    });
   }
 
   #on(): boolean {
@@ -213,13 +196,14 @@ class JobScheduler implements Scheduler {
   async #dueNow(jobs: Jobs["jobs"], at: Date): Promise<Array<Due>> {
     const found: Array<Due> = [];
     const eligible = new Set<string>();
+    const repos = this.#options.repos();
     for (const job of jobs) {
       if (!job.on || job.problem !== undefined || job.schedule === undefined) {
         continue;
       }
       const due = dueAt(job.schedule, at).getTime();
       for (const name of job.repositories) {
-        const repo = this.#options.repos().find((one) => one.name === name);
+        const repo = repos.find((one) => one.name === name);
         if (repo === undefined || !this.#options.isOn(name)) {
           continue;
         }
@@ -266,7 +250,7 @@ class JobScheduler implements Scheduler {
     const root = await ctx.sessions.mainRoot(repo.path);
     const runs = ctx.sessions.cache.jobs;
     // Read first: a time recorded already is nobody's to start or skip again.
-    if (runs.history(job.name, root).some((row) => row.due === due)) {
+    if (runs.recorded(job.name, root, due)) {
       return false;
     }
     const reason = await this.#skipOf(ctx, job, root);
