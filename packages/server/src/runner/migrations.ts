@@ -169,6 +169,25 @@ export const migrations: Array<Migration> = [
   // The account a session started on, a folder the runtime lists: null for every session made
   // before, and for one started with no account listed, which runs on the server's own login.
   "ALTER TABLE sessions ADD COLUMN account TEXT;",
+  // The runs of the scheduled jobs, one row per time a job was due in a repository, or run by hand.
+  // A time is recorded once: the unique index is what stops two servers from starting it twice.
+  // `refusal` and `refused_turn` are why the change a run offered could not start, and the turn
+  // that offer ended (ruling R1).
+  `CREATE TABLE job_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job TEXT NOT NULL,
+    repository TEXT NOT NULL,
+    due INTEGER,
+    at INTEGER NOT NULL,
+    trigger TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    reason TEXT,
+    session TEXT,
+    refusal TEXT,
+    refused_turn INTEGER
+  );
+  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due) WHERE due IS NOT NULL;
+  CREATE INDEX job_runs_session ON job_runs (session);`,
 ];
 
 /**

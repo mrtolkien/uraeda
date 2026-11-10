@@ -95,6 +95,18 @@ test("the catch-up's variable is kept as typed, and its flag turns it on over it
   });
 });
 
+test("the scheduled jobs' variable is kept as typed, and its flag turns them off over it", () => {
+  const env = loadEnv(null, { URAEDA_SCHEDULED_JOBS: "true" });
+  expect(env.scheduledJobs).toEqual({ name: "URAEDA_SCHEDULED_JOBS", value: "true" });
+
+  expect(parseOptions([], env).scheduledJobs).toEqual(env.scheduledJobs);
+  expect(parseOptions(["--no-scheduled-jobs"], env).scheduledJobs).toEqual({
+    name: "--no-scheduled-jobs",
+    value: false,
+  });
+  expect(parseOptions([], loadEnv(null, {})).scheduledJobs).toBeUndefined();
+});
+
 /** R7 */
 test("an empty variable leaves .env's value", () => {
   const dir = root(

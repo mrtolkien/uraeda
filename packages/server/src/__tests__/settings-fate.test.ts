@@ -63,6 +63,7 @@ const runDefaults = {
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
   options: { steps: [] },
+  scheduledJobs: { inForce: true, saved: null, source: { kind: "default" } },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {

@@ -412,10 +412,12 @@ git commit -m "docs(scheduled-jobs): a scheduled job is the human's yes to its c
 - Modify: `packages/server/src/runner/migrations.ts` (a new last step),
   `packages/server/src/runner/cache.ts` (one property), `packages/server/src/settings.ts`,
   `packages/server/src/env.ts`, `packages/server/src/options.ts`,
-  `packages/server/src/fate/settings-mutations.ts` (`settings.setContinue`)
+  `packages/server/src/fate/settings-mutations.ts` (`settings.setContinue`),
+  `packages/web/src/settings/settingsViews.ts` and `SettingsView.stories.tsx` (the record's
+  `scheduledJobs`, [ruling R7](rulings.md))
 - Test: `packages/server/src/jobs/__tests__/times.test.ts`,
   `packages/server/src/runner/__tests__/cache-jobs.test.ts`, and one row each in
-  `packages/server/src/__tests__/settings.test.ts` and `env.test.ts`
+  `packages/server/src/__tests__/settings.test.ts`, `env.test.ts`, and `settings-fate.test.ts`
 
 **Interfaces:**
 
@@ -457,7 +459,7 @@ export class JobRuns {
 // settings.setContinue takes key "jobs".
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // jobs/__tests__/times.test.ts: one table, the zone set to Europe/Paris for the file and put back
@@ -503,13 +505,13 @@ The break each test catches:
 - The record: a time written twice, which starts two runs; a history that grows without end; rows of
   another repository.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test run packages/server/src/jobs/__tests__/times.test.ts packages/server/src/runner/__tests__/cache-jobs.test.ts`
 - Expected: FAIL, `Cannot find module '../times.ts'`
 
-- [ ] **Step 3: Implement the times, the record, and the switch**
+- [x] **Step 3: Implement the times, the record, and the switch**
 
 - `times.ts` computes in local time from the schedule's fields, with `Date` alone. A local time that
   does not exist that night becomes the first minute that does: 2:30 becomes 3:00, never 3:30. A
@@ -522,13 +524,14 @@ The break each test catches:
   by default: `--no-scheduled-jobs` turns it off, as `--no-continue-after-restart` does, and
   `URAEDA_SCHEDULED_JOBS` reads `true` or `false`, any other value stopping the start.
 
-- [ ] **Step 4: Run the task's validation, and make the risky break**
+- [x] **Step 4: Run the task's validation, and make the risky break**
 
 - Run: `vp test run packages/server/src`, then `vp run fast`
 - Expected: PASS
 - Break to make once, see fail, and revert, reported in the commit's body: drop the unique index.
+  Done: `a time is recorded once, …` failed, as `add` returned a second row for one `due`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

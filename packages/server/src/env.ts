@@ -23,6 +23,9 @@ export type LimitName = "--no-continue-after-limit" | "URAEDA_CONTINUE_AFTER_LIM
  */
 export type CatchUpName = "--catch-up-pull-requests" | "URAEDA_CATCH_UP_PULL_REQUESTS";
 
+/** The flag and the variable turning off the scheduled jobs. */
+export type ScheduledJobsName = "--no-scheduled-jobs" | "URAEDA_SCHEDULED_JOBS";
+
 /** The flag and the variable giving the automatic continues in a row. */
 export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUES";
 
@@ -40,7 +43,8 @@ export type GivenName =
   | RestartName
   | LimitName
   | CatchUpName
-  | ContinuesName;
+  | ContinuesName
+  | ScheduledJobsName;
 
 /**
  * The variables of the server's settings, from the process's environment, then `.env` at the
@@ -64,6 +68,8 @@ export type Env = {
   port?: Given<string, PortName>;
   /** The repository to open first: `URAEDA_REPO`, or else the folder the server starts in. */
   repo: string;
+  /** Whether the scheduled jobs start at their times. */
+  scheduledJobs?: Switch<ScheduledJobsName>;
 };
 
 /**
@@ -91,6 +97,7 @@ export function loadEnv(
   const restart = value("URAEDA_CONTINUE_AFTER_RESTART");
   const limit = value("URAEDA_CONTINUE_AFTER_LIMIT");
   const catchUp = value("URAEDA_CATCH_UP_PULL_REQUESTS");
+  const jobs = value("URAEDA_SCHEDULED_JOBS");
   return {
     ...(hosts && { allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: hostNames(hosts) } }),
     ...(continues && {
@@ -106,6 +113,7 @@ export function loadEnv(
     given: Boolean(repo),
     ...(port && { port: { name: "URAEDA_PORT", value: port } }),
     repo: resolve(root ?? process.cwd(), repo || "."),
+    ...(jobs && { scheduledJobs: { name: "URAEDA_SCHEDULED_JOBS", value: jobs } }),
   };
 }
 

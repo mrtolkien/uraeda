@@ -65,3 +65,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping the header above the table by writing an empty `[[jobs]]`
   into a new file, which would put a jobs rule in `change_path`.
 - **Where**: task 1.
+
+## R7: The settings record's selection and fixtures carry `scheduledJobs` from task 3
+
+- **Decision**: task 3 also adds `scheduledJobs: SettingSelection` to the web UI's
+  `SettingsRecordView` (`packages/web/src/settings/settingsViews.ts`), and the key to the settings
+  story's and the fate test's fixtures.
+- **Rationale**: `ServerSettings.runs()` gains the switch, so the record the server serves has it,
+  and the web UI's `Values` type requires every key of the record: `vp run fast` fails without the
+  selection. The switch itself is drawn in task 7.
+- **Where**: tasks 3 and 7.

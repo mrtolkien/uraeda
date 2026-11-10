@@ -26,6 +26,7 @@ export const SettingsRecordView = view<Settings>()({
     continueAfterLimit: SettingSelection,
     continueAfterRestart: SettingSelection,
     options: true,
+    scheduledJobs: SettingSelection,
   },
   server: {
     allowedHosts: SettingSelection,

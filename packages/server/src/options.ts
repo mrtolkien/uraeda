@@ -29,6 +29,7 @@ Starts Uraeda's web UI for the repository of the current folder.
   --no-continue-after-restart  do not continue a run a restart cut (URAEDA_CONTINUE_AFTER_RESTART)
   --no-continue-after-limit    do not continue a run at its usage limit's reset (URAEDA_CONTINUE_AFTER_LIMIT)
   --catch-up-pull-requests     catch up open pull requests behind the default branch (URAEDA_CATCH_UP_PULL_REQUESTS)
+  --no-scheduled-jobs          do not start the scheduled jobs at their times (URAEDA_SCHEDULED_JOBS)
   --automatic-continues <n>    automatic continues in a row, 1 to 10, 3 by default (URAEDA_AUTOMATIC_CONTINUES)
   --new-key                    make a new access key and sign every device out
   --version                    print the version
@@ -68,6 +69,9 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
     noOpen: Boolean(values["no-open"]),
     ...(values.port !== undefined && { port: { name: "--port", value: values.port } }),
     repo: values.repo ? resolve(values.repo) : env.repo,
+    ...(values["no-scheduled-jobs"] && {
+      scheduledJobs: { name: "--no-scheduled-jobs", value: false },
+    }),
     ...(show && { show }),
   };
 }
@@ -87,6 +91,7 @@ function parse(argv: Array<string>) {
         "no-continue-after-limit": { type: "boolean" },
         "no-continue-after-restart": { type: "boolean" },
         "no-open": { type: "boolean" },
+        "no-scheduled-jobs": { type: "boolean" },
         port: { type: "string" },
         repo: { type: "string" },
         version: { type: "boolean" },

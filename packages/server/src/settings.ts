@@ -9,6 +9,7 @@ import type {
   LimitName,
   PortName,
   RestartName,
+  ScheduledJobsName,
   Switch,
 } from "./env.ts";
 import type { Binding } from "./fate/context.ts";
@@ -59,6 +60,8 @@ export type RunSettingsView = {
   continueAfterRestart: Setting<boolean>;
   /** The run options the file holds, only what it sets: no flag or variable gives them. */
   options: RunOptions;
+  /** Whether the scheduled jobs start at their times, for all jobs. */
+  scheduledJobs: Setting<boolean>;
 };
 
 /** The variables of the server's environment the settings show, not set by Uraeda's own. */
@@ -116,6 +119,7 @@ export type GivenValues = Pick<
   | "continueAfterRestart"
   | "noOpen"
   | "port"
+  | "scheduledJobs"
 >;
 
 /** The values given for this run, the port, the automatic continues, and the switches checked. */
@@ -126,12 +130,14 @@ export type RunValues = Omit<
   | "continueAfterLimit"
   | "continueAfterRestart"
   | "port"
+  | "scheduledJobs"
 > & {
   automaticContinues?: Given<number, ContinuesName>;
   catchUpPullRequests?: Given<boolean, CatchUpName>;
   continueAfterLimit?: Given<boolean, LimitName>;
   continueAfterRestart?: Given<boolean, RestartName>;
   port?: Given<number, PortName>;
+  scheduledJobs?: Given<boolean, ScheduledJobsName>;
 };
 
 /** The core's rules for the numbers given as typed, each throwing its problem. */
@@ -164,15 +170,23 @@ function checkedSwitch<N extends string>(
  */
 export function checked(given: GivenValues, checks: Checks): RunValues {
   const { automaticContinues, port, ...rest } = given;
-  const { catchUpPullRequests, continueAfterLimit, continueAfterRestart, ...others } = rest;
+  const {
+    catchUpPullRequests,
+    continueAfterLimit,
+    continueAfterRestart,
+    scheduledJobs,
+    ...others
+  } = rest;
   const catchUp = checkedSwitch(catchUpPullRequests);
   const limit = checkedSwitch(continueAfterLimit);
   const restart = checkedSwitch(continueAfterRestart);
+  const jobs = checkedSwitch(scheduledJobs);
   return {
     ...others,
     ...(catchUp && { catchUpPullRequests: catchUp }),
     ...(limit && { continueAfterLimit: limit }),
     ...(restart && { continueAfterRestart: restart }),
+    ...(jobs && { scheduledJobs: jobs }),
     ...(port && { port: { ...port, value: checks.checkedPort(port.value) } }),
     ...(automaticContinues && {
       automaticContinues: {
@@ -186,7 +200,7 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, no
- * catch-up of open pull requests, the single-key shortcuts on and Vim off without commands, which
+ * catch-up of open pull requests, the scheduled jobs on, the single-key shortcuts on and Vim off without commands, which
  * have no flag or variable, and the run options the file holds. `file` is null when there is none,
  * or it cannot be read. `environment` gives the Claude Code effort it sets, when it does.
  */
@@ -216,6 +230,7 @@ export function inForce(
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
       continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
       options: runs.options ?? { steps: [] },
+      scheduledJobs: setting(options.scheduledJobs, runs.scheduledJobs, true),
     },
     server: {
       allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),

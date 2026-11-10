@@ -8,6 +8,7 @@ import {
   type SessionFields,
   writeSession,
 } from "./cache-sessions.ts";
+import { JobRuns } from "./cache-jobs.ts";
 import { addTurnTokens, agentSessionTokens } from "./cache-tokens.ts";
 import {
   addContinue,
@@ -84,12 +85,14 @@ const SESSIONS_LIMIT = 50;
  */
 export class SessionCache {
   readonly db: DatabaseSync;
+  readonly jobs: JobRuns;
   #pid: number;
   /** Called with each session recorded, inside its insert: see `onCreated`. */
   readonly #created = new Set<(row: SessionRow) => void>();
 
   private constructor(db: DatabaseSync, pid: number) {
     this.db = db;
+    this.jobs = new JobRuns(db);
     this.#pid = pid;
   }
 

@@ -59,7 +59,7 @@ export const settingsMutations = {
     resolve: ({
       input,
       ...call
-    }: ListResolver<{ key: "catch-up" | "limit" | "restart"; on: boolean }>) =>
+    }: ListResolver<{ key: "catch-up" | "jobs" | "limit" | "restart"; on: boolean }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setContinue(dir, input.key, input.on)),
     type: "Settings",
   },
