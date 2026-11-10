@@ -29,10 +29,13 @@ export const offerBody = (code: string) => code.replaceAll("\r\n", "\n").trim();
  * it, so a block quoted inside an outer fence is text, not an offer. A fence left open, as the one of
  * a message still streaming, runs to the end of the text and is no offer.
  */
-function offersOf(text: string): Array<Offer> {
-  const offers: Array<Offer> = [];
+function offersOf(text: string): Array<Offer & { end: number }> {
+  const offers: Array<Offer & { end: number }> = [];
+  let at = 0;
   let open: { body: Array<string>; fence: string; indent: number; kind?: OfferKind } | undefined;
   for (const raw of text.split("\n")) {
+    const end = at + raw.length;
+    at = end + 1;
     const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
     if (open === undefined) {
       const opening = OPENING.exec(line);
@@ -55,7 +58,7 @@ function offersOf(text: string): Array<Offer> {
     ) {
       const body = offerBody(open.body.join("\n"));
       if (open.kind !== undefined && body !== "") {
-        offers.push({ body, kind: open.kind });
+        offers.push({ body, end, kind: open.kind });
       }
       open = undefined;
     } else {
@@ -68,7 +71,19 @@ function offersOf(text: string): Array<Offer> {
 
 /** The last closed offer block of a message's text: a block still open is text. */
 export function lastOffer(text: string): Offer | undefined {
-  return offersOf(text).at(-1);
+  const last = offersOf(text).at(-1);
+  return last && { body: last.body, kind: last.kind };
+}
+
+/**
+ * The offer the text ends on: its last closed block, with nothing but whitespace after its closing
+ * fence. Prose, a code block, or a block left open after an offer make it no longer the last word.
+ */
+export function endingOffer(text: string): Offer | undefined {
+  const last = offersOf(text).at(-1);
+  return last && text.slice(last.end).trim() === ""
+    ? { body: last.body, kind: last.kind }
+    : undefined;
 }
 
 /** A proposal's title: its first line, without the heading's `#`. */

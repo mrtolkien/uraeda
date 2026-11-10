@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { lastOffer } from "../offers.ts";
+import { endingOffer, lastOffer } from "../offers.ts";
 
 const OFFER = "```uraeda-offer change\n# Example\n\nBody.\n```";
 
@@ -58,4 +58,14 @@ const rows: Array<[string, string, ReturnType<typeof lastOffer>]> = [
 
 test.each(rows)("an offer read as markdown reads it: %s", (_name, text, expected) => {
   expect(lastOffer(text)).toEqual(expected);
+});
+
+test("an offer is the text's last word only with nothing but blanks after it", () => {
+  const offer = { body: "# Example\n\nBody.", kind: "change" };
+  expect(endingOffer(`Intro.\n\n${OFFER}\n\n  \n`)).toEqual(offer);
+  expect(endingOffer(`${OFFER}\r\n`)).toEqual(offer);
+  expect(endingOffer(`${OFFER}\n\nDo not start it.`)).toBeUndefined();
+  expect(endingOffer(`${OFFER}\n\`\`\`sh\nls\n\`\`\`\n`)).toBeUndefined();
+  expect(endingOffer(`${OFFER}\n\`\`\`uraeda-offer change\n# B\nOpen.`)).toBeUndefined();
+  expect(endingOffer("Nothing to do.")).toBeUndefined();
 });

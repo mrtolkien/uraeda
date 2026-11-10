@@ -212,6 +212,15 @@ test("an offer waits where the job or the human says so", async () => {
       type: "text",
     },
   ]);
+  await check("prose after the offer", [
+    {
+      text: `${block("change")}\n\nOn reflection this is too risky: do not start it.`,
+      type: "text",
+    },
+  ]);
+  await check("a code block after the offer", [
+    { text: `${OFFER}\n\`\`\`sh\nnpm test\n\`\`\`\n`, type: "text" },
+  ]);
   await check("an earlier text", [offer, ...call("c1"), { text: "Done.", type: "text" }]);
   await check("a call after the offer", [offer, ...call("c2")]);
   await check("a job deleted meanwhile", [

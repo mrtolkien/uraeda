@@ -9,11 +9,8 @@ import { reasonOf } from "../reason.ts";
 import type { SessionCache } from "../runner/cache.ts";
 import type { Item } from "../runner/events.ts";
 import { jobChangeLine } from "../runner/message.ts";
-import { lastOffer, proposalTitle } from "../runner/offers.ts";
+import { endingOffer, proposalTitle } from "../runner/offers.ts";
 import { REFUSALS } from "../runner/session-state.ts";
-
-/** The start of an offer block's first line, in any kind. */
-const OPENING = /^```uraeda-offer\b/gmu;
 
 /**
  * The agent's text that is the run's last word: the last of the turn's texts and calls of its own
@@ -27,18 +24,13 @@ function lastWord(items: Array<Item>): string | undefined {
 }
 
 /**
- * The proposal of the change the text offers: its last closed block is a `change` offer, and no
- * block opens after it. A `feature` offer, or a block left open, offers no change.
+ * The proposal of the change the text offers: the text ends on a `change` offer, with nothing after
+ * its closing fence. A `feature` offer, a block left open, or any word after the offer offers no
+ * change: the offer must be the run's last word.
  */
 function proposalOf(text: string): string | undefined {
-  const offer = lastOffer(text);
-  if (offer?.kind !== "change") {
-    return undefined;
-  }
-  const last = [...text.matchAll(OPENING)].at(-1);
-  return last?.index !== undefined && lastOffer(text.slice(last.index)) === undefined
-    ? undefined
-    : offer.body;
+  const offer = endingOffer(text);
+  return offer?.kind === "change" ? offer.body : undefined;
 }
 
 /** Whether the human wrote in the session: any message of the origin `human`, of any turn. */
