@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Multi-accounts management
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-11-10.
 >
 > - Verdict: worth building, with changes: no rotation can promise "never stopped", and signing in
 >   stays in Claude Code, not in Uraeda.
@@ -115,7 +115,8 @@ Why it matters: it decides whether a limit still stops a run at night. A and C c
   - [con] a workflow run is mostly one turn, so the threshold rarely acts before the refusal.
   - [con] more switches, each rebuilding the cache, and one more setting.
 
-**Answer:**
+**Answer:** B: Let's just wait on limits actually hit. It should come up pretty rarely with the
+rotation on session start.
 
 ## Q2: Who makes each account's folder?
 
@@ -148,7 +149,7 @@ Why it matters: it decides how much you do per account, and whether the agents d
   - [con] Maestro warns that such links "may break after a Claude Code update", which Uraeda must
     then repair.
 
-**Answer:**
+**Answer:** A: Give me the recipe at the spec step, I'll run it directly.
 
 ## Settled without the human
 
@@ -187,3 +188,5 @@ Why it matters: it decides how much you do per account, and whether the agents d
   [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 
 **Notes:**
+
+- **Anthropic's terms**: They are all my accounts.
