@@ -819,10 +819,12 @@ gives each runtime its accounts, and an empty `usage` while it has some. `sessio
 `account`, by `accounts.nameOf`, else the stored folder's last segment, else null.
 `refreshAccounts()` (the `AccountRefresh` class) calls `refresh(USAGE_MAX_AGE_MS)` on each runtime's
 accounts not being asked already, and calls `runtimes.changed()` only when the runtime's account
-records differ from before the ask. It runs as the sessions start, on each change of the runtimes,
-and from `agentRecord`, which every page reads. In `extensions/server.ts`, a built-in runtime's
-state adds each of `accounts.problems()` as a problem with an empty file, and the host announces the
-`Extensions` record on the runtimes' changes, if it does not already.
+records differ from before the ask. It also arms one timer at the earliest future `resetsAt` among
+the accounts' windows, which announces the records as it fires and is armed again at each announce
+and each read, and cleared as the sessions close. It runs as the sessions start, on each change of
+the runtimes, and from `agentRecord`, which every page reads. In `extensions/server.ts`, a built-in
+runtime's state adds each of `accounts.problems()` as a problem with an empty file, and the host
+announces the `Extensions` record on the runtimes' changes, if it does not already.
 
 - [x] **Step 5: Run the task's validation**
 

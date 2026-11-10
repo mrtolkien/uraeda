@@ -120,3 +120,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   week.
 - **Where**: tasks 1 and 4 of the plan, `accountUsage` in `runner/account-usage.ts` and
   `Processes.reports` in `runner/processes.ts`.
+
+## R9: One timer announces the next reset of an account's window
+
+- **Decision**: `AccountRefresh` arms one timer at the earliest future `resetsAt` among every
+  runtime's account windows, as the records give them (an expired window's reset is already null).
+  It announces the records when it fires, and is armed again at each announce (the agent's record,
+  or a process's report) and at each read of `refreshAccounts`. It is cleared when the sessions
+  close. A process's report keeps its own timer in `Processes`, for the usage of no account.
+- **Rationale**: finding 4 of wave 3: an asked window's expiry applied only when something read the
+  records, so Home and the sidebar kept "0% left" and the old next account until an unrelated read.
+- **Alternatives considered**: one timer per window: many timers, and each needs clearing when an
+  ask moves its reset.
+- **Where**: task 4 of the plan, `AccountRefresh` in `runner/account-records.ts`.

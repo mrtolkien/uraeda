@@ -390,3 +390,39 @@ test("an expired report of an account still counts as read, as unused", async ()
   });
   expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("default");
 });
+
+const window = (id: string, used: number, resets: number) => ({
+  id,
+  label: id === "five_hour" ? "5h" : "Week",
+  resetsAt: at(resets),
+  used,
+});
+
+test("an asked window's reset is announced when it comes, with no process and no read", async () => {
+  const { adapter, changes, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  adapter.accounts.accounts = [
+    {
+      ...account("default", 1),
+      windows: [window("five_hour", 1, 1), window("seven_day", 0.3, 72)],
+    },
+    { ...account("b", 0.9), windows: [window("five_hour", 0.9, 3), window("seven_day", 0.3, 72)] },
+  ];
+  const announced = () => changes.filter((change) => "agent" in change).length;
+  sessions.refreshAccounts();
+  await flush();
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("b");
+  const before = announced();
+
+  // default's five hours reset in an hour: the records change then, and say so.
+  await vi.advanceTimersByTimeAsync(3_600_000 + 1);
+  expect(announced()).toBeGreaterThan(before);
+  expect(accountOf(sessions, "default")?.windows[0]?.used).toBe(0);
+  expect(sessions.accounts("fake").find(({ isNext }) => isNext)?.name).toBe("default");
+  // The next reset, b's, is armed in its turn.
+  const after = announced();
+  await vi.advanceTimersByTimeAsync(2 * 3_600_000);
+  expect(announced()).toBeGreaterThan(after);
+  expect(accountOf(sessions, "b")?.windows[0]?.used).toBe(0);
+});
