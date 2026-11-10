@@ -75,3 +75,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and the web UI's `Values` type requires every key of the record: `vp run fast` fails without the
   selection. The switch itself is drawn in task 7.
 - **Where**: tasks 3 and 7.
+
+## R8: Pruning keeps the latest started run
+
+- **Decision**: the history shows 50 rows per job and repository, but pruning also keeps the job's
+  latest `started` row in the repository, however many skipped rows follow it. The
+  [data model](data-model.md) says so.
+- **Rationale**: the open-change check (`latestStarted`) and the offer's acceptance (`ofSession`)
+  read that row. An hourly job whose change stays open adds a skip per hour, so after 50 hours a
+  plain "50 newest" would delete the row, and the scheduler would start a second run on the same
+  files.
+- **Alternatives considered**: reading the open change from the session instead of the row, which
+  would move the record's authority elsewhere.
+- **Where**: task 3.

@@ -518,7 +518,8 @@ The break each test catches:
   local time that happens twice is its first.
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
   [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)` where
-  `due` is not null. `add` prunes its job and repository to 50 rows.
+  `due` is not null. `add` prunes its job and repository to the 50 latest rows, and the latest
+  started one ([ruling R8](rulings.md)).
 - `cache.ts` has 5 lines left: add the `jobs` property and nothing else there.
 - The switch follows `catchUpPullRequests` through `options.ts`, `env.ts`, and `settings.ts`, but on
   by default: `--no-scheduled-jobs` turns it off, as `--no-continue-after-restart` does, and

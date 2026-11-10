@@ -85,6 +85,17 @@ test("the latest started run skips the skipped ones, and a session finds its run
   expect(jobs.ofSession("missing")).toBeUndefined();
 });
 
+test("fifty skips never push out the latest started run", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000, session: "s1" }));
+  for (let due = 2000; due < 2060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  expect(jobs.history("Dependencies", ROOT)).toHaveLength(50);
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
+  expect(jobs.ofSession("s1")?.due).toBe(1000);
+});
+
 test("a refusal is set with its turn, and cleared", () => {
   const jobs = opened();
   const added = jobs.add(run({ session: "s1" }));

@@ -73,6 +73,7 @@ sessions. A cache that cannot be read starts empty: the history is lost.
 | `session`    | session ID, or null               | the session it started, which leads to the change it began | New    |
 
 - A scheduled time runs once: a server that restarts within its minute finds its row.
-- The history keeps the 50 latest rows of each job and repository.
+- The history keeps the 50 latest rows of each job and repository, and besides them the latest
+  `started` one, which the open-change check and the offer's acceptance read.
 - A job renamed on its page keeps its rows under the new name. Renamed by hand, it starts a new
   history.

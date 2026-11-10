@@ -61,8 +61,9 @@ export class JobRuns {
   }
 
   /**
-   * Records a run, and drops the oldest rows of its job and repository past 50. Returns the row,
-   * or undefined when its `due` time is recorded already for that job and repository.
+   * Records a run, and drops the oldest rows of its job and repository past 50, but its latest
+   * started one. Returns the row, or undefined when its `due` time is recorded already for that job
+   * and repository.
    */
   add(row: Omit<JobRunRow, "id" | "refusal" | "refusedTurn">): JobRunRow | undefined {
     return transaction(this.#db, () => {
@@ -85,15 +86,25 @@ export class JobRuns {
       if (stored === undefined) {
         return undefined;
       }
-      this.#db
-        .prepare(
-          `DELETE FROM job_runs WHERE job = ?1 AND repository = ?2 AND id NOT IN
-             (SELECT id FROM job_runs WHERE job = ?1 AND repository = ?2
-              ORDER BY id DESC LIMIT ${KEPT})`,
-        )
-        .run(row.job, row.repository);
+      this.#prune(row.job, row.repository);
       return toRow(stored);
     });
+  }
+
+  /**
+   * Drops the rows of the job in the repository past the 50 newest, but the latest started one:
+   * the open-change check and the offer's acceptance read it, however many skips follow it.
+   */
+  #prune(job: string, repository: string): void {
+    this.#db
+      .prepare(
+        `DELETE FROM job_runs WHERE job = ?1 AND repository = ?2
+           AND id NOT IN (SELECT id FROM job_runs WHERE job = ?1 AND repository = ?2
+                          ORDER BY id DESC LIMIT ${KEPT})
+           AND id IS NOT (SELECT MAX(id) FROM job_runs
+                          WHERE job = ?1 AND repository = ?2 AND outcome = 'started')`,
+      )
+      .run(job, repository);
   }
 
   /** The job's runs in the repository, the newest first, 50 at most. */
