@@ -8,13 +8,21 @@ export const USAGE_MAX_AGE_MS = 60_000;
 /** How long a pick waits for the answers of the usage it asks. */
 export const PICK_WAIT_MS = 10_000;
 
+/** A number that is no number, or none, counts as Infinity: it sorts last. */
+const orLast = (value: number | undefined) =>
+  value === undefined || Number.isNaN(value) ? Infinity : value;
+
+/** Orders two numbers, never by a NaN: Infinity equals Infinity, so the order stays whole. */
+const compare = (a: number, b: number) => (a === b ? 0 : a < b ? -1 : 1);
+
 /** An account's share used of its first, shortest window: an account with no window is unused. */
-const shortUsed = (account: Account) => account.windows[0]?.used ?? 0;
+const shortUsed = (account: Account) =>
+  account.windows[0] === undefined ? 0 : orLast(account.windows[0].used);
 
 /** When its first window resets, as epoch ms: never for a window not open, so it sorts last. */
 const shortReset = (account: Account) => {
   const resetsAt = account.windows[0]?.resetsAt;
-  return resetsAt ? Date.parse(resetsAt) : Infinity;
+  return orLast(resetsAt ? Date.parse(resetsAt) : undefined);
 };
 
 /** Signed in, and no window after the first used up: Claude's week. */
@@ -24,9 +32,9 @@ const eligible = (account: Account) =>
 /**
  * The account a new session starts on: among the signed-in accounts whose longer windows are not
  * used up, the one with the most of its first window left; on a tie, the one whose first window
- * resets first; then the first one listed. An account whose usage was never read comes after every
- * other. When every signed-in account is used up, the first signed-in one listed; with none signed
- * in, none.
+ * resets first; then the first one listed. An account whose usage is not known, never read or not
+ * readable, comes after every other; a share or a reset that is no number counts as the last. When
+ * every signed-in account is used up, the first signed-in one listed; with none signed in, none.
  */
 export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefined {
   const ranked = accounts
@@ -34,9 +42,9 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
     .filter(({ account }) => eligible(account))
     .toSorted(
       (a, b) =>
-        Number(a.account.askedAt === null) - Number(b.account.askedAt === null) ||
-        shortUsed(a.account) - shortUsed(b.account) ||
-        shortReset(a.account) - shortReset(b.account) ||
+        compare(Number(a.account.askedAt === null), Number(b.account.askedAt === null)) ||
+        compare(shortUsed(a.account), shortUsed(b.account)) ||
+        compare(shortReset(a.account), shortReset(b.account)) ||
         a.index - b.index,
     );
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");

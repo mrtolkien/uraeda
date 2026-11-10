@@ -14,7 +14,12 @@ const account = (
   name,
   state: "ready",
   windows: [
-    { id: "five_hour", label: "5h", resetsAt: more.resets ?? at(2), used: five },
+    {
+      id: "five_hour",
+      label: "5h",
+      resetsAt: "resets" in more ? (more.resets ?? null) : at(2),
+      used: five,
+    },
     { id: "seven_day", label: "Week", resetsAt: at(72), used: more.week ?? 0.3 },
   ],
   ...more,
@@ -39,6 +44,25 @@ test.each([
     "a tie goes to the first listed",
     [account("default", 0, { resets: null }), account("b", 0, { resets: null })],
     "default",
+  ],
+  [
+    "a window not open loses a tie to one that resets",
+    [account("default", 0, { resets: null }), account("b", 0, { resets: at(4) })],
+    "b",
+  ],
+  [
+    "an unparsable reset sorts last, and the order stays whole",
+    [
+      account("default", 1, { resets: "soon" }),
+      account("b", 1, { resets: at(5) }),
+      account("c", 1, { resets: at(1) }),
+    ],
+    "c",
+  ],
+  [
+    "a used share that is no number sorts last",
+    [account("default", Number.NaN), account("b", 0.9)],
+    "b",
   ],
   [
     "a tie goes to the one that resets first",
