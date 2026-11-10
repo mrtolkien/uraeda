@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, relative } from "node:path";
-import { addRepository, readFile, readRepositories, saveAnswer } from "uraeda-binding";
+import { addRepository, readFile, readJobs, readRepositories, saveAnswer } from "uraeda-binding";
 import {
   fixtureRepo,
   git,
@@ -159,7 +159,33 @@ test("the sandbox lists its five projects, in its own data folder", async () => 
     ].sort(),
   );
   expect(built.dataDir).toBe(join(root, ".sandbox", "data"));
-  expect(readdirSync(built.configDir)).toEqual([]);
+  expect(readdirSync(built.configDir)).toEqual(["config.toml"]);
+});
+
+test("the config folder holds two valid jobs in sample, one report only, back after a reset", async () => {
+  const jobs = async () =>
+    (await readJobs(built.configDir)).jobs.map((job) => ({
+      problem: job.problem,
+      reportOnly: job.reportOnly,
+      repositories: job.repositories,
+    }));
+  const expected = [
+    { problem: undefined, reportOnly: false, repositories: ["sample"] },
+    { problem: undefined, reportOnly: true, repositories: ["sample"] },
+  ];
+  expect(await jobs()).toEqual(expected);
+
+  writeFileSync(join(built.configDir, "config.toml"), "");
+  expect(await jobs()).toEqual([]);
+  await seed(root, { reset: true });
+  expect(await jobs()).toEqual(expected);
+}, 60_000);
+
+test("the sandbox's environment turns the schedule off, whatever the shell says", () => {
+  const environment = sandboxEnv(built, { URAEDA_SCHEDULED_JOBS: "true" });
+
+  expect(environment.URAEDA_SCHEDULED_JOBS).toBe("false");
+  expect(sandboxEnv(built, {}).URAEDA_SCHEDULED_JOBS).toBe("false");
 });
 
 test("builders changed since the seed print the reset hint, and keep the state", async () => {

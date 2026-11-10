@@ -114,6 +114,7 @@ continue_after_restart = true   # continue a run a server restart cut less than 
 continue_after_limit = true     # continue a run a session limit stopped, a minute after its reset
 automatic_continues = 3         # automatic continues in a row, 1 to 10, before the run asks for you
 catch_up_pull_requests = false  # catch up open pull requests behind the default branch
+scheduled_jobs = true           # start your jobs at their times
 review_depth = "waves"          # "waves": review each wave and the branch; "branch": the branch
 ```
 
@@ -159,7 +160,8 @@ They apply at once. Each continue's switch comes from its flag, `--no-continue-a
 continues in a row come from `--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else
 the file, else 3. The catch-up of open pull requests comes from `--catch-up-pull-requests`, which
 turns it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, else the file, else
-off.
+off. The scheduled jobs come from `--no-scheduled-jobs`, which turns them off, else
+`URAEDA_SCHEDULED_JOBS`, set to `true` or `false`, else the file, else on.
 
 The page shows them under Runs. "How each step runs" draws the run map: the six steps in a row. Each
 tile shows its agent's mark, its model, and its effort as a 5-cell meter. Between two tiles, a line
@@ -174,12 +176,48 @@ and `d` removes the one selected. Each is also a tap, and each change is saved a
 and the page says so under the map.
 
 Then a switch for each kind of continue, the continues in a row, saved on Enter or when you leave
-the field, a number outside 1 to 10 refused, and the switch "Catch up open pull requests". Turning a
-continue's switch off cancels the waits it started, and those runs ask for you.
+the field, a number outside 1 to 10 refused, and the switches "Catch up open pull requests" and "Run
+scheduled jobs". Turning a continue's switch off cancels the waits it started, and those runs ask
+for you. Turning "Run scheduled jobs" off starts no job at its times, and "Run now" still works.
 
 A flag or a variable holds for one run, is never written into the file, and the page says which one
 is in force. A file that cannot be read is never overwritten: the server says why and uses its
 defaults until it is fixed.
+
+A `[[jobs]]` table of the same file is a job, a prompt Uraeda runs at set times: see
+[Scheduled jobs](#scheduled-jobs). The Jobs place writes them, keeping your comments, and you can
+write them by hand:
+
+```toml
+[[jobs]]
+name = "Dependencies"            # unique among the jobs
+repositories = ["uraeda"]        # names in Uraeda's list, one at least
+schedule = "daily 03:00"         # when it runs, in the server's local time
+prompt = """
+Upgrade the dependencies to their latest versions, and run the checks.
+"""
+on = true                        # false pauses it; true when unset
+report_only = false              # true leaves the change its run offers to you; false when unset
+agent = "claude"                 # the agent its runs start on; else a new chat's
+model = "opus"                   # a model the agent lists; else the agent's default
+effort = "high"                  # an effort the model takes; else the model's default
+```
+
+`name`, `repositories`, `schedule`, and `prompt` are required. A schedule is one of four forms, in
+lower case, its time on 24 hours:
+
+| Form             | Example          | Runs                                         |
+| ---------------- | ---------------- | -------------------------------------------- |
+| `hourly`         | `hourly`         | at minute 0 of every hour                    |
+| `daily HH:MM`    | `daily 03:00`    | every day at that time                       |
+| `weekdays HH:MM` | `weekdays 03:00` | Monday to Friday at that time                |
+| `<day> HH:MM`    | `monday 04:00`   | that day of every week, `monday` to `sunday` |
+
+The times are the server's local time. An `hourly` job runs in each real hour: the night the clock
+goes back, it runs in the repeated hour too. A table that breaks a rule above is a job with a
+problem: the Jobs place lists it with the problem, and it does not run. Of two jobs with one name,
+the second has the problem. A `jobs` that is not a list of tables is the jobs' own problem, and
+never makes the rest of the settings unreadable.
 
 Its `[keyboard]` table holds the keys' settings, each applied at once:
 
@@ -300,10 +338,10 @@ their lines:
 ## Extensions
 
 Uraeda's parts are extensions: Claude Code, Codex, the fake agent of the tests and the sandbox, the
-inbox, the priorities and proposals, the decisions, Git, the previews, and the notifications are
-built in, and yours are TypeScript folders in `~/.config/uraeda/extensions/`, beside `config.toml`.
-[Extensions](extensions.md) says how to write one, and `ura extension` installs one, as
-[the CLI's page](cli.md) says.
+inbox, the priorities and proposals, the decisions, Git, the jobs, the previews, and the
+notifications are built in, and yours are TypeScript folders in `~/.config/uraeda/extensions/`,
+beside `config.toml`. [Extensions](extensions.md) says how to write one, and `ura extension`
+installs one, as [the CLI's page](cli.md) says.
 
 The settings' Extensions category lists "Your extensions", then the built-in ones, "Built in". A row
 shows an extension's icon, title, and description, its version, where it came from, a git URL at its
@@ -572,6 +610,8 @@ made to it on the feature's page applies from its next run. The next step's run 
 continue, and counts nothing toward the continues in a row. A run you stopped, one that failed, and
 one that ended without finishing its step start nothing: the run asks for you.
 
+A job's run is the one run Uraeda starts on a clock: [Scheduled jobs](#scheduled-jobs) says how.
+
 A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
 server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
 time it goes on, and its session says so above the composer: a message you send goes at once, and
@@ -751,6 +791,73 @@ credits on is never refused, so it pays past its limit, and you should turn them
 Anthropic's terms forbid using someone else's account, and its advertised limits "assume ordinary,
 individual usage": list only accounts that are yours, and read the terms yourself.
 
+## Scheduled jobs
+
+A job is a prompt you schedule: at each of its times, Uraeda starts a new session in the main
+checkout of every repository it names, and sends it the prompt. Jobs are yours: they live in
+`config.toml`, never in a repository, so no repository can add one.
+
+Jobs, in the navigation column, `Space j`, `g j`, or the phone's `…`, at `/jobs`, lists the jobs
+that name the repository, each as a card. Its head holds the job's name, its schedule in words, and
+the switch that pauses it, and "Report only" marks a job that does. Under it, "Next run" says when
+the job runs next, like "Tomorrow at 3:00", or why it does not: "Paused", "Scheduled jobs are off",
+"Not running: the schedule “dayly 06:00” is not understood", "Not running here: Claude Code is off
+in this repository.", “notes” is not in Uraeda's list., or "Two jobs are named “Dependencies”.".
+"Last run" says what the last run left for you. The keys act on the selected card, each also on its
+bar and by tap: `j` and `k` move the selection, Enter opens the job's page, `r` runs it now, `p`
+pauses or resumes it, `d` deletes it after "Delete the job “<name>”? Its prompt leaves config.toml,
+and its sessions stay.", and `a` adds a job. A refusal shows under its card until you dismiss it.
+Jobs is a built-in extension, turned off like the others: its place is gone in the repositories it
+is off in, and no job starts there.
+
+A job's page, `/jobs/<name>`, is its form: the name, the prompt, the schedule, the repositories, the
+agent, model, and effort, and "Report only". Each field of an existing job is saved as you leave it,
+and a refusal shows under the field: "A time is from 00:00 to 23:59.", "A job named “<name>” exists
+already.", "A job runs in one repository at least.". `a` opens a new job's page, where "Add the job"
+writes its table once its name and prompt are filled. "Run now" sits by the page's title. The page
+ends with the job's history, newest first: each run as its session, or its change once it started
+one, and each skipped time with its reason. A job's table edited by hand shows on its page within a
+second. A job renamed on its page keeps its history; renamed by hand, it starts a new one.
+
+**A run.** A run is a session of the main checkout, one per repository, named after the job, on the
+job's agent, model, and effort. It opens with a line saying why it started, "Started by the schedule
+“<job>”." or, for "Run now", "Started by “Run now” of the job “<job>”.", then gets the prompt,
+followed by a note from Uraeda: nobody follows the session live, and what to do with a change the
+run needs. It ends as any session does, with a reply to read, or a failure that asks for you. A run
+whose agent meets the session limit continues, as any run does. A job edited while its run works
+leaves that run on the prompt it started with. When several runs are due together, they start a
+minute apart, uraeda's at 3:00 and notes' at 3:01. The server looks for due times every 30 seconds,
+so a run starts within a minute of its time.
+
+**A time that passed.** A time that passes while Uraeda is not running, with the server off or the
+machine asleep, is missed, and nothing makes it up: the job waits for its next time, and a restart
+starts no job for a time already past. A time counts as missed once it is more than 5 minutes past
+when the server sees it. A job added, edited, or turned on just after its time waits for the next
+one too, and so do the times that pass while it is paused or "Run scheduled jobs" is off.
+
+**A skipped time.** A time is skipped, and shows in the history, while the job's last run in that
+repository still works, "Skipped: its last run still works.", or while a change one of its runs
+started there is still open, "Skipped: the change “<title>” is still open." A skipped time is not
+made up either. Once the change is merged or dropped, the next time runs.
+
+**The change a run starts.** When a run's last word is an offer of a change, Uraeda starts that
+change as the offer's card does, with its proposal, its branch, and its worktree. The session moves
+into it, says "The job “<job>” started the change “<title>”.", and goes on to a pull request that
+waits for you: scheduling the job is your yes in advance. A run that offers nothing, because there
+was nothing to do, makes no commit, branch, or worktree. An offer that is not the run's last word,
+as one followed by more text, a feature, or one in a session you wrote in, starts nothing, and its
+card waits for you. When the change cannot start, because its folder's name is taken for instance,
+the session asks for you under the banner "The change could not start by itself.", with the reason,
+until you dismiss it or start the change from the card. A job that is "Report only" starts no
+change: its run is told to change no file, and the offer's card waits in the session. A change
+merges only when you merge it, either way.
+
+**Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
+runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
+scheduled jobs", and an open change, and a schedule that is not understood. It is refused while the
+job's run works in that repository, "“<name>” still runs here.", and for a job that has no prompt or
+another problem apart from its schedule.
+
 ## The data folder
 
 Sessions are kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder,
@@ -758,3 +865,10 @@ Sessions are kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data
 it: a cache that cannot be read starts empty, but never takes the features' options with it. There,
 a running server keeps the files that only live while it runs, like its host token and its
 Storybooks' records, in `run/`, and Codex's catalogs without sub-agents, in `codex-catalog/`.
+
+The record of the jobs' runs is in `runner.sqlite` too, the table `job_runs`: one row for each time
+a job was due in a repository, or was run by hand, started or skipped, with the session it started.
+It keeps the 50 latest rows of each job and repository, and besides them the latest started run and
+every run whose change is still open, which the schedule's open-change check reads. It is a cache: a
+`runner.sqlite` that cannot be read starts empty, and the history is lost, with no job's table in
+`config.toml` touched.

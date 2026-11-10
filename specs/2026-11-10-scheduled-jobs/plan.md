@@ -1134,7 +1134,7 @@ git commit -m "feat(scheduled-jobs): a job's page, its form and its history"
 - Consumes: the job's format (task 1), the switch's variable (task 3), the place (tasks 7 and 8).
 - Produces: nothing code reads.
 
-- [ ] **Step 1: Write the documentation**
+- [x] **Step 1: Write the documentation**
 
 `docs/web-ui.md` gains the `[[jobs]]` table with its keys and the four schedule forms, the
 `scheduled_jobs` switch with its flag and variable, and a section on jobs. The section covers the
@@ -1143,7 +1143,7 @@ missed. It also covers skipped times, the change a run starts and "Report only",
 data folder's section names the runs' record. `docs/extensions.md` adds `jobs` to the built-ins'
 names, which an extension of yours cannot take.
 
-- [ ] **Step 2: Give the sandbox its jobs**
+- [x] **Step 2: Give the sandbox its jobs**
 
 The sandbox's config folder gets a `config.toml` with two jobs naming its sample project, one of
 them report only, and `sandboxEnv` sets `URAEDA_SCHEDULED_JOBS=false`, as [ruling R5](rulings.md)

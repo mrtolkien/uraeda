@@ -1,5 +1,6 @@
 // The sandbox's state, `.sandbox/` at the checkout's root, git-ignored: its sample projects, its
-// data folder, with their list and sessions, and its empty config folder. This module alone builds,
+// data folder, with their list and sessions, and its config folder, which holds two sample jobs.
+// This module alone builds,
 // stamps, and resets it; everything else reads the paths it returns. Nothing here computes the
 // human's own data or config folder.
 //
@@ -52,6 +53,28 @@ export type Builders = {
   projects: (dir: string) => Projects;
   sessions: (dataDir: string, sample: string, realistic: string) => Promise<void>;
 };
+
+/**
+ * The sandbox's `config.toml`: two jobs in "sample", the second report only. The sandbox's server
+ * runs with the schedule off, so they start only by "Run now", on the fake agent.
+ */
+export const SAMPLE_JOBS = `[[jobs]]
+name = "Dependencies"
+repositories = ["sample"]
+schedule = "daily 03:00"
+prompt = """
+Upgrade the dependencies to their latest versions, and offer the change.
+"""
+
+[[jobs]]
+name = "Weekly report"
+repositories = ["sample"]
+schedule = "monday 09:00"
+report_only = true
+prompt = """
+Read the week's commits, and report what changed and what looks risky.
+"""
+`;
 
 const BUILDERS: Builders = { projects: buildProjects, sessions: seedSessions };
 
@@ -246,6 +269,7 @@ async function build(root: string, version: string, builders: Builders) {
     builders.projects(join(temporary, "projects"));
     mkdirSync(built.dataDir);
     mkdirSync(built.configDir);
+    writeFileSync(join(built.configDir, "config.toml"), SAMPLE_JOBS);
   } catch (error) {
     rmSync(temporary, { force: true, recursive: true });
     throw error;
@@ -312,8 +336,8 @@ export function seed(
 
 /**
  * The environment the sandbox's server runs in, from `environment`: its sample project opened
- * first, its own data and config folders, and "today" fixed. The variables of a human's server
- * that it does not use are left out, so none reaches it.
+ * first, its own data and config folders, "today" fixed, and the schedule off, so no job starts by
+ * itself. The variables of a human's server that it does not use are left out, so none reaches it.
  */
 export function sandboxEnv(
   { configDir, dataDir, projects }: Sandbox,
@@ -326,5 +350,6 @@ export function sandboxEnv(
     URAEDA_CONFIG_DIR: configDir,
     URAEDA_DATA_DIR: dataDir,
     URAEDA_REPO: projects.sample,
+    URAEDA_SCHEDULED_JOBS: "false",
   };
 }
