@@ -357,10 +357,11 @@ export class ClaudeAdapter implements Adapter {
    * The models listed for the account, through a short process, closed once it answered
    * `list_models` and `get_settings`, which spend no usage: rejected when it fails to answer within
    * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that. With
-   * accounts, it runs in the first listed account's folder.
+   * accounts, it runs in the first listed account last known `ready`, else the first listed.
    */
   async models(): Promise<ModelList> {
-    const folder = this.accounts?.list()[0]?.id;
+    const listed = this.accounts?.list();
+    const folder = (listed?.find((account) => account.state === "ready") ?? listed?.[0])?.id;
     const [list, settings] = await askShort(
       this.#command,
       homedir(),

@@ -662,9 +662,9 @@ the folder is read.
 `models()` and the usage ask share: `models()` uses it, so `MODELS_ARGS` moved there as
 `SHORT_ARGS`. `claudeEnv` merges `toolsEnv(options.tools)` with `CLAUDE_CONFIG_DIR` when
 `options.account` is set; `#spawn` uses it. `hasSession(nativeId, account)` looks under `account`,
-else under the adapter's own folder. `models()` runs in the first listed account's folder when
-accounts are listed. The built-in passes the `accounts` setting's lines, a list of strings, else
-none. The manifest gains:
+else under the adapter's own folder. `models()` runs in the folder of the first listed account last
+known `ready`, else of the first listed, when accounts are listed. The built-in passes the
+`accounts` setting's lines, a list of strings, else none. The manifest gains:
 
 ```toml
 [settings.accounts]
