@@ -10,7 +10,11 @@ import { CLAUDE, CODEX } from "../sampleRuntimes.ts";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 import type { ExtensionActions } from "./ExtensionSettings.tsx";
-import { sampleExtensions, sampleExtensionsNeedingYou } from "./sampleExtensions.ts";
+import {
+  sampleExtensions,
+  sampleExtensionsAccounts,
+  sampleExtensionsNeedingYou,
+} from "./sampleExtensions.ts";
 import { sampleThemes } from "./sampleThemes.ts";
 
 /** Vim's settings at their defaults: off, without commands. */
@@ -223,4 +227,12 @@ export const Extensions: Story = {
  */
 export const ExtensionsNeedYou: Story = {
   args: { category: "extensions", extensionActions, extensions: sampleExtensionsNeedingYou },
+};
+
+/**
+ * Claude Code with three accounts listed, as the multi-accounts spec's mockup draws it: its
+ * Accounts setting, one folder per line, and a banner for the account signed out.
+ */
+export const ExtensionsAccounts: Story = {
+  args: { category: "extensions", extensionActions, extensions: sampleExtensionsAccounts },
 };

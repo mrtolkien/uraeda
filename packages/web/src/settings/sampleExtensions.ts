@@ -186,3 +186,31 @@ export const sampleExtensionsNeedingYou: ExtensionsValues = {
   }),
   keyClashes: (name) => (name === "wiki" ? [{ keys: "space y", takenBy: "Deploy" }] : []),
 };
+
+/**
+ * Claude Code with three accounts listed, the second signed out: its Accounts setting under its
+ * row, and the banner naming the account.
+ */
+export const sampleExtensionsAccounts: ExtensionsValues = {
+  ...sampleExtensions,
+  extensions: sampleExtensions.extensions.map((row) =>
+    row.name === "claude"
+      ? {
+          ...row,
+          problems: [{ file: "", line: null, message: "account b is signed out, in ~/.claude-b" }],
+          settings: [
+            ...row.settings,
+            {
+              defaultJson: "[]",
+              help: "The Claude Code configuration folders new sessions pick between, one per line: the one with the most of its five hours left.",
+              key: "accounts",
+              kind: "list",
+              label: "Accounts",
+            },
+          ],
+          values: '{"accounts":["~/.claude","~/.claude-b","~/.claude-c"]}',
+          valuesHere: '{"accounts":["~/.claude","~/.claude-b","~/.claude-c"]}',
+        }
+      : row,
+  ),
+};
