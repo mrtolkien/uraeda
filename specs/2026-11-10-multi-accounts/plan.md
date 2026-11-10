@@ -849,7 +849,7 @@ git commit -m "feat(multi-accounts): each account's usage, in the records and th
   `FakeAccounts`, from Task 1.
 - Produces: nothing a later task uses.
 
-- [ ] **Step 1: Draw accounts in the shared component**
+- [x] **Step 1: Draw accounts in the shared component**
 
 `UsageWindows` draws a runtime's accounts when it has some, else its windows. Full, Home's: each
 account's name in a line of its own, then its windows; a signed-out or missing account reads
@@ -860,7 +860,7 @@ reads "5h 100% left" on Home and "b 5h 100%" in the sidebar. `useReportedRuntime
 runtime that has accounts. The mockups' stories then render these components over fixed records, and
 their local copies go.
 
-- [ ] **Step 2: The rail's bar and the header**
+- [x] **Step 2: The rail's bar and the header**
 
 The rail's bar shows the first window of the account of the session in view, by the name its record
 gives; of a feature's latest session likewise; else of the account whose `isNext` is true. Without
@@ -868,13 +868,13 @@ accounts it stays as today. `SessionHeader` takes `account?: string`, shown afte
 and before the model: "Claude Code · b · Opus 5.5 · High". `SessionView` passes the session's
 `account`, which `views.ts` adds to the views that read it.
 
-- [ ] **Step 3: Sample accounts in the sandbox**
+- [x] **Step 3: Sample accounts in the sandbox**
 
-The sandbox's fake agent offers three accounts: `default`, in use; `b`, signed out; and `c`, its
-week used up. The built-in Claude row of `sampleExtensions.ts` gains the Accounts setting, as the
-manifest has it.
+The sandbox's fake agent offers three accounts (`sandbox/accounts.ts`, for Claude Code's kind
+alone): `default`, in use; `b`, signed out; and `c`, its week used up. The built-in Claude row of
+`sampleExtensions.ts` gains the Accounts setting, as the manifest has it.
 
-- [ ] **Step 4: Document it in `docs/web-ui.md`**
+- [x] **Step 4: Document it in `docs/web-ui.md`**
 
 Under "Sessions with Claude Code and Codex": the script of the
 [spec's first story](spec.md#us1-new-sessions-start-on-the-account-with-the-most-left-p1), whole,
@@ -885,20 +885,20 @@ environment outranks every account; and one sentence saying Anthropic's terms fo
 else's account, and that limits "assume ordinary, individual usage". Where the page describes the
 usage panes: the sidebar shows each login's five hours, and Home its week too.
 
-- [ ] **Step 5: Review the views in the sandbox**
+- [x] **Step 5: Review the views in the sandbox**
 
 - Run: `nix develop -c vp run sandbox`
 - Check Home's Usage pane, the sidebar's pane, the closed rail's bar, a session's header, and
   Settings, Extensions, in both themes, at a phone's and a desktop's width, against the five
   mockups. Expected: each reads as its mockup, and the week shows on Home only.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. `vp run ready`, with Storybook's build, is left to the complete validation before
   the push.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/web docs/web-ui.md

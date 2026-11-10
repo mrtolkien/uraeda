@@ -1,16 +1,33 @@
 // One usage window a runtime reported, in a line and its bar: the harness's mark, the window's
 // label, what is left, and when it resets; and every window the runtimes on reported, in the
-// runtimes' order and then the windows'. Home's Usage pane and the sidebar's allowance share them.
+// runtimes' order and then the windows'. A runtime with accounts shows each account's: on Home its
+// name, then its windows, and in the sidebar one line each, its first window alone. Home's Usage
+// pane and the sidebar's allowance share them.
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
+import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { StyleXStyles } from "@stylexjs/stylex";
+import * as stylex from "@stylexjs/stylex";
 import { HarnessMark } from "./HarnessMark.tsx";
 import { type Runtime, useRuntimes } from "./runtimes.ts";
 
-/** A runtime's usage window: its label, the share used from 0 to 1, and its reset time. */
-export type Window = { label: string; resetsAt: string; used: number };
+const styles = stylex.create({
+  // A used-up window has no fill to colour: its words take the error colour. Astryx's `Text` has no
+  // error colour (`fields/StatusText.tsx`).
+  error: { color: colorVars["--color-error"] },
+  // The reset stays whole at the end of a line: the separator never dangles alone.
+  together: { whiteSpace: "nowrap" },
+});
+
+/**
+ * A runtime's usage window: its label, the share used from 0 to 1, and its reset time, none while
+ * the window is not open.
+ */
+export type Window = { label: string; resetsAt: string | null; used: number };
+
+/** A runtime's account, as its record gives it. */
+type Account = Runtime["accounts"][number];
 
 /** When a window resets: its time today, or its day and time on another day. */
 function resets(resetsAt: string) {
@@ -41,9 +58,14 @@ export function UsageWindow({
   const remaining = Math.min(100, Math.max(0, 100 - window.used * 100));
   const name = window.label;
   const left = Math.round(remaining);
-  const at = resets(window.resetsAt);
+  const at = window.resetsAt === null ? null : resets(window.resetsAt);
   return (
-    <VStack gap={1} {...(isCompact ? { title: `${name}: ${left}% left, reset ${at}` } : {})}>
+    <VStack
+      gap={1}
+      {...(isCompact
+        ? { title: `${name}: ${left}% left${at === null ? "" : `, reset ${at}`}` }
+        : {})}
+    >
       <ProgressBar
         isLabelHidden
         label={`${name} allowance remaining`}
@@ -52,21 +74,110 @@ export function UsageWindow({
       />
       <HStack align="center" gap={2}>
         <HarnessMark isDecorative kind={kind} />
-        <Text color="secondary" hasTabularNumbers type="supporting">
-          {isCompact ? `${name} ${left}% · ` : `${name} ${left}% left - reset `}
-          <time dateTime={window.resetsAt}>{at}</time>
+        <Text
+          color="secondary"
+          hasTabularNumbers
+          type="supporting"
+          {...(remaining === 0 ? { xstyle: styles.error } : {})}
+        >
+          {isCompact ? `${name} ${left}%` : `${name} ${left}% left`}
+          {at !== null && window.resetsAt !== null && (
+            <>
+              {" "}
+              <span {...stylex.props(styles.together)}>
+                {isCompact ? "· " : "- reset "}
+                <time dateTime={window.resetsAt}>{at}</time>
+              </span>
+            </>
+          )}
         </Text>
       </HStack>
     </VStack>
   );
 }
 
-/** The runtimes on here that reported usage windows, in their order. */
+/** The runtimes on here that reported usage windows, or list accounts, in their order. */
 export function useReportedRuntimes(): ReadonlyArray<Runtime> {
-  return useRuntimes().filter((runtime) => runtime.isOn && runtime.usage.length > 0);
+  return useRuntimes().filter(
+    (runtime) => runtime.isOn && (runtime.usage.length > 0 || runtime.accounts.length > 0),
+  );
 }
 
-/** Every window of `runtimes`, each with its harness's mark: `isCompact`, closer and shorter. */
+/** Whether an account can show windows: signed in. A signed-out or missing one shows none. */
+const isReady = (account: Account) => account.state === "ready";
+
+/** An account's line, its name alone beside its harness's mark, in the sidebar's text. */
+function AccountLine({ kind, text }: { kind: string; text: string }) {
+  return (
+    <HStack align="center" gap={2}>
+      <HarnessMark isDecorative kind={kind} />
+      <Text color="secondary" type="supporting">
+        {text}
+      </Text>
+    </HStack>
+  );
+}
+
+/** Home's account: its name in a line of its own, then its windows; signed out, no bar. */
+function AccountWindowsFull({ account, kind }: { account: Account; kind: string }) {
+  return (
+    <VStack gap={2}>
+      <Text type="supporting" weight="semibold">
+        {isReady(account) ? account.name : `${account.name} · signed out`}
+      </Text>
+      {isReady(account) &&
+        account.windows.map((window) => (
+          <UsageWindow key={window.id} kind={kind} window={window} />
+        ))}
+    </VStack>
+  );
+}
+
+/** The sidebar's account: one line, `<name> 5h 58% · 04:33`; signed out, `<name> signed out`. */
+function AccountWindowCompact({ account, kind }: { account: Account; kind: string }) {
+  const [first] = account.windows;
+  if (!isReady(account)) {
+    return <AccountLine kind={kind} text={`${account.name} signed out`} />;
+  }
+  if (first === undefined) {
+    return <AccountLine kind={kind} text={account.name} />;
+  }
+  return (
+    <UsageWindow
+      isCompact
+      kind={kind}
+      window={{ ...first, label: `${account.name} ${first.label}` }}
+    />
+  );
+}
+
+/** One runtime's lines: its accounts when it lists some, else its windows. */
+function RuntimeWindows({ isCompact, runtime }: { isCompact: boolean; runtime: Runtime }) {
+  const { accounts, kind } = runtime;
+  if (accounts.length > 0) {
+    return accounts.map((account) =>
+      isCompact ? (
+        <AccountWindowCompact account={account} key={account.id} kind={kind} />
+      ) : (
+        <AccountWindowsFull account={account} key={account.id} kind={kind} />
+      ),
+    );
+  }
+  // The sidebar shows the first window alone, for every runtime: the week shows on Home.
+  const windows = isCompact ? runtime.usage.slice(0, 1) : runtime.usage;
+  return (
+    <VStack gap={2}>
+      {windows.map((window) => (
+        <UsageWindow isCompact={isCompact} key={window.id} kind={kind} window={window} />
+      ))}
+    </VStack>
+  );
+}
+
+/**
+ * Every window of `runtimes`, each with its harness's mark: `isCompact`, closer and shorter, one
+ * line per account and its first window alone.
+ */
 export function UsageWindows({
   isCompact = false,
   runtimes,
@@ -74,20 +185,13 @@ export function UsageWindows({
 }: {
   isCompact?: boolean;
   runtimes: ReadonlyArray<Runtime>;
-  xstyle?: StyleXStyles;
+  xstyle?: stylex.StyleXStyles;
 }) {
   return (
-    <VStack gap={isCompact ? 2 : 3} {...(xstyle === undefined ? {} : { xstyle })}>
-      {runtimes.flatMap((runtime) =>
-        runtime.usage.map((window) => (
-          <UsageWindow
-            isCompact={isCompact}
-            key={`${runtime.kind}:${window.id}`}
-            kind={runtime.kind}
-            window={window}
-          />
-        )),
-      )}
+    <VStack gap={isCompact ? 2 : 4} {...(xstyle === undefined ? {} : { xstyle })}>
+      {runtimes.map((runtime) => (
+        <RuntimeWindows isCompact={isCompact} key={runtime.kind} runtime={runtime} />
+      ))}
     </VStack>
   );
 }

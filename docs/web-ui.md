@@ -321,6 +321,7 @@ on = ["uraeda"]       # every repository by default, "all"; [] turns it off
 
 [extensions.claude]
 command = "claude"    # the command Claude Code's sessions run
+accounts = []         # the folders of its accounts, see "Several Claude Code accounts"
 
 [extensions.codex]
 command = "codex"     # the command Codex's sessions run
@@ -542,22 +543,24 @@ composer, as the run map's joints say. Nothing goes until you send it. A message
 agent works is steered into its turn. Stop ends the turn and keeps the session.
 
 The sidebar shows every session with what needs you, what works, and each new reply. Its usage pane
-shows the windows of every agent that reported its usage, like Claude Code's five hours and week,
-then Codex's, each with its mark; the closed rail's one bar shows the agent of the page in view. A
-feature reads Working while any of its sessions runs, whatever its step. A run that failed or was
-stopped asks for you until you dismiss it, with Dismiss on its feature's or change's card, or on its
-session's banner. A pull request reads "PR ready" only once it holds its branch's latest commit.
-While its branch holds commits the pull request lacks, the feature reads "Push", in In progress, for
-the agent to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase,
-validate, and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch
-up open pull requests", under Runs in Settings, starts that run by itself, once per commit of main,
-once no turn runs in the feature's latest session. It runs as part of Comments on the run map, on
-its agent, model, and effort, in the session its joint gives. Its session opens with the line
-"Catching up with main, which moved to “<subject of the commit>”." A catch-up that meets a conflict
-with main, one needing your choice, asks on the pull request: the feature reads "Needs attention",
-and its session's banner says "The catch-up stopped on a conflict." until you answer by requesting
-changes, or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until
-main moves again.
+shows one line per login of every agent that reported its usage, its five hours, with Claude Code's
+accounts first, each by its name, then Codex's, each with its mark; Home's Usage pane adds each
+login's week. The closed rail's one bar shows the first window of the account of the session or
+feature in view, else of the one a new session would start on. A feature reads Working while any of
+its sessions runs, whatever its step. A run that failed or was stopped asks for you until you
+dismiss it, with Dismiss on its feature's or change's card, or on its session's banner. A pull
+request reads "PR ready" only once it holds its branch's latest commit. While its branch holds
+commits the pull request lacks, the feature reads "Push", in In progress, for the agent to push.
+Once main moves past its branch, it reads "Catch up", for the agent to rebase, validate, and push;
+main gaining only priorities, inbox, proposals, or notes does not count. "Catch up open pull
+requests", under Runs in Settings, starts that run by itself, once per commit of main, once no turn
+runs in the feature's latest session. It runs as part of Comments on the run map, on its agent,
+model, and effort, in the session its joint gives. Its session opens with the line "Catching up with
+main, which moved to “<subject of the commit>”." A catch-up that meets a conflict with main, one
+needing your choice, asks on the pull request: the feature reads "Needs attention", and its
+session's banner says "The catch-up stopped on a conflict." until you answer by requesting changes,
+or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until main
+moves again.
 
 Each workflow step is a run of its own: the run's message says where it stops, at the end of its
 step. When a run ends its step before a gate of yours, Uraeda starts the next step's run itself, in
@@ -654,6 +657,91 @@ the web UI. The server adds the web UI's own instructions to every session, in
 shows of the agent's messages, and where your extensions folder and their documentation are. A
 session may write in your extensions folder, Codex's after its reviewer approves each write, so
 asking it for a change to Uraeda gives you an extension.
+
+### Several Claude Code accounts
+
+With one Claude Code account, its limit stops your work for hours. List one folder per account in
+Settings, Extensions, under Claude Code, and each new session picks an account as its first turn
+starts, and its header names it, like "Claude Code · b · Opus 5.5 · High". Nothing changes while the
+list is empty.
+
+For each extra account, once, save this script and run it from any shell, as
+`bash claude-account.sh b`. It asks for the name when none is given, and is safe to run again:
+
+```bash
+#!/usr/bin/env bash
+# Makes a Claude Code configuration folder for one more account, ~/.claude-<name>, linked to the
+# settings, skills, plugins, hooks, memory, and conversations of ~/.claude, then signs it in.
+# Usage: bash claude-account.sh [name]
+set -euo pipefail
+
+name="${1:-}"
+if [ -z "$name" ]; then
+  read -r -p "Account name (letters, digits, - or _): " name
+fi
+if ! [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "Not a name: '$name'. Use letters, digits, - or _." >&2
+  exit 1
+fi
+
+source_dir="$HOME/.claude"
+account_dir="$HOME/.claude-$name"
+if [ ! -d "$source_dir" ]; then
+  echo "No $source_dir: sign in to Claude Code once first." >&2
+  exit 1
+fi
+
+mkdir -p "$account_dir"
+for item in settings.json CLAUDE.md skills plugins commands agents hooks statusline.sh projects; do
+  if [ ! -e "$source_dir/$item" ]; then
+    continue
+  fi
+  if [ -e "$account_dir/$item" ] || [ -L "$account_dir/$item" ]; then
+    echo "kept    $account_dir/$item"
+  else
+    ln -s "$source_dir/$item" "$account_dir/$item"
+    echo "linked  $account_dir/$item"
+  fi
+done
+
+echo
+echo "Signing in $account_dir: pick the account for '$name' in the browser."
+CLAUDE_CONFIG_DIR="$account_dir" claude auth login
+echo
+CLAUDE_CONFIG_DIR="$account_dir" claude auth status --text
+echo
+echo "Done. The folder to list in Uraeda's settings: ~/.claude-$name"
+```
+
+The links share your settings, skills, plugins, hooks, memory, and conversations with `~/.claude`.
+MCP servers added for your user live in each folder's own `.claude.json`: add them again with
+`CLAUDE_CONFIG_DIR` set. Then list the folders, in the order they should show, in Settings, or in
+`config.toml`:
+
+```toml
+[extensions.claude]
+accounts = ["~/.claude", "~/.claude-b", "~/.claude-c"]
+```
+
+The list holds for every repository. A session that starts picks, among the listed accounts that are
+signed in and whose week is not used up:
+
+1. the one with the most of its five hours left;
+2. on a tie, the one whose five hours reset first;
+3. then the first one listed.
+
+When every signed-in account's week is used up, the first signed-in one listed is picked. A session
+keeps its account: a limit that refuses its run waits for that account's reset, and the run goes on
+by itself then, never on another account. Home's Usage pane lists each account with its five hours
+and its week, an account signed out reads "b · signed out", and a used-up week reads 0% in red. A
+banner in Settings, Extensions, names an account signed out or without its folder.
+
+Uraeda gives a session its account only as `CLAUDE_CONFIG_DIR`, and reads none of its credentials.
+Two things Claude Code decides, not Uraeda: an account with usage credits on is never refused, so it
+pays past its limit, and you should turn them off; and an `ANTHROPIC_API_KEY` in the server's
+environment outranks every account's login, so unset it. Anthropic's terms forbid using someone
+else's account, and its advertised limits "assume ordinary, individual usage": list only accounts
+that are yours, and read the terms yourself.
 
 ## The data folder
 

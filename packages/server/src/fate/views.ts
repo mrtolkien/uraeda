@@ -385,6 +385,7 @@ export const agentDataView = dataView<AgentRecord>("Agent")({
 });
 
 export const sessionDataView = dataView<SessionRecord>("Session")({
+  account: true,
   agent: true,
   allowable: true,
   archived: true,
