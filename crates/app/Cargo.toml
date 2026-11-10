@@ -15,5 +15,24 @@ doctest = false
 nsh-base.workspace = true
 nsh-core.workspace = true
 
+# `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
+# display: it builds pages as the server will, and embeds them as the Linux host will.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+base64.workspace = true
+log = "0.4"
+nsh-bundler.workspace = true
+nsh-engine.workspace = true
+nsh-package.workspace = true
+nsh-platform-linux = { workspace = true, features = ["js", "webview"] }
+# rolldown's crates that nothing else holds at rolldown's version: see the workspace's manifest.
+rolldown_devtools.workspace = true
+rolldown_devtools_action.workspace = true
+rolldown_fs.workspace = true
+rolldown_std_utils.workspace = true
+rolldown_tracing.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+usvg.workspace = true
+
 [lints]
 workspace = true

@@ -486,14 +486,19 @@ fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
-- Create: `crates/app/tests/outside.rs`, `app/__checks__/`
+- Create: `crates/app/tests/outside.rs`, its helpers in `crates/app/tests/outside/`,
+  `app/__checks__/` (the pages the checks load), `app/package.json`
+- Modify: `flake.nix` (`hidden-display`'s own session bus, `xdotool`), `vite.tasks.ts` (the dev
+  shell's build variables, for the tasks that build the crate's tests), `Cargo.toml`,
+  `crates/app/Cargo.toml`, `pnpm-workspace.yaml`, `AGENTS.md`
 
 **Interfaces:**
 
 - Produces: `crates/app/tests/outside.rs`, kept as the guard of each assumption. Its findings, in
-  [rulings.md](rulings.md): for each check, "holds" or "fallback taken".
+  [rulings.md](rulings.md): for each check, "holds" or "fallback taken". All five hold: rulings R22
+  to R26, and R21 for how the checks run.
 
-- [ ] **Step 1: Write the five checks**
+- [x] **Step 1: Write the five checks**
   1. **A signed package loads in an embedded view on GTK.** Build a page, sign it with a key made
      for the test, and load it in an `AppView` that trusts that key. An unsigned or re-signed
      package is refused. See the signed-packages pages. **Fallback:** the server sends the page's
@@ -510,10 +515,11 @@ fallback written under it, and later tasks build on the fallback.
      spec's assumptions allow.
   5. **A system notification can be sent on Linux** from the app. **Fallback:** notifications are
      toasts inside the app only.
-- [ ] **Step 2: Run them**: `cargo nextest run -p uraeda-app --test outside`. Expected: PASS. A
-      check whose fallback is taken is rewritten to test the fallback, and marked so.
-- [ ] **Step 3: Write each result as a ruling**, with what later tasks must do.
-- [ ] **Step 4: Commit**: `test(nsh-migration): check NSH's unverified behaviours`.
+- [x] **Step 2: Run them**: `cargo nextest run -p uraeda-app --test outside`. Expected: PASS. A
+      check whose fallback is taken is rewritten to test the fallback, and marked so. The five
+      passed, each in a GTK window on a hidden display of its own, and no fallback was taken.
+- [x] **Step 3: Write each result as a ruling**, with what later tasks must do: R21 to R26.
+- [x] **Step 4: Commit**: `test(nsh-migration): check NSH's unverified behaviours`.
 
 ## Task 3: The protocol
 
@@ -900,7 +906,9 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: the loader and watcher (task 17); the result of task 2's first check.
+- Consumes: the loader and watcher (task 17); the result of task 2's first check, which holds:
+  ruling R22 names the signing calls, and why a page's build number only grows. Ruling R23 asks the
+  build to make a post of `start` the page's first statement.
 - Produces:
   - `GET /extensions/:name/page`: the page as a signed NSH package, and its version.
   - The record Extensions carries each page's `pageVersion`, which changes on every build.
@@ -1234,7 +1242,8 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 **Interfaces:**
 
 - Consumes: the core's document tree, from the record WorkflowFile; the result of task 2's diagram
-  check.
+  check, which holds: Pele draws in NSH's VM, and `crates/app/src/diagram.rs` makes its SVG one
+  NSH's images draw, as ruling R25 says.
 - Produces: `Document`, which draws a document tree and never parses Markdown, as the stack decision
   asks. `Reply`, which draws a streamed reply as blocks: finished blocks never redraw while the last
   one grows.
@@ -1301,7 +1310,9 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 **Interfaces:**
 
 - Consumes: `/extensions/:name/page` and its key (task 19); the record Extensions (17); the result
-  of task 2's first two checks.
+  of task 2's first two checks, which hold: ruling R22 names the calls that verify and load a
+  package, and ruling R23 how the host hears a page's errors, from the engine's log, and knows the
+  page from the thread.
 - Produces:
   - The native component `uraeda.extension`, which holds a view of its own per page, with NSH's
     limits and no rights beyond the host's functions.
@@ -1553,7 +1564,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Read:** `LiveFrame.tsx`, `LiveWindow`, `StoryFrames.tsx`, `StoryEmbed.tsx`, `MockupPage.tsx`
 - **Records and actions:** Preview, Story, StoryHref; `preview.restart`
 - **Routes:** `/f/<folder>/mockups/<name>`, `/f/<folder>/storybook`, `/storybook`
-- **Consumes also:** the result of task 2's web-view check.
+- **Consumes also:** the result of task 2's web-view check, which holds: ruling R24.
 - **Its own rules:** `WebFrame` is the only component that shows a web page: a web view on GTK, a
   frame on the web. A preview's address carries its frame secret.
 - **Tests:** none.
@@ -1567,7 +1578,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `fields/LeaveGuard`
 - **Records and actions:** NeedsYouList, Undo, WriteQueue; `undo.*`, `writes.dismiss`,
   `commit.retry`
-- **Consumes also:** the result of task 2's notification check.
+- **Consumes also:** the result of task 2's notification check, which holds: ruling R26 names the
+  call, and asks for `crates/app/src/notify.rs`.
 - **Its own rules:** the app asks for notifications only after saying why, and never again after a
   refusal. `u` and `Ctrl+Z` undo, `U` and `Ctrl+Shift+Z` redo, on a stack of the last 50 actions. An
   undoable action never asks to confirm.

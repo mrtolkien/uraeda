@@ -120,7 +120,9 @@ What the spikes learned, which no page says plainly:
   refuses it, and it draws no backdrop blur.
 - `backdropFilter` draws nothing on GTK: glass there is a `<Shader>` that samples what is behind it.
 - Only TSX has WebSockets and streamed `fetch`. Rust gets whole responses.
-- There is no error boundary, and a view embedded on GTK reports no error to its host.
+- There is no error boundary, and a view embedded on GTK has no error callback: its engine writes a
+  page's errors to the process's log, under the target `js`, on the engine's own thread.
+- An `<Image>` draws an SVG's shapes only: no text, and no CSS variable.
 - Tests run without a display, with `nsh test`. Never open a window on the human's screen without
   asking: use the dev shell's `hidden-display`.
 
@@ -137,7 +139,13 @@ Running it here:
 - **A window opens only on the hidden display**: `hidden-display <command>`, as in
   `hidden-display vp run app:dev`, or `hidden-display node scripts/nsh.ts test --target linux` for
   tests that draw in a GTK window and take pictures with `app.screenshot(path)`. It is an X display
-  of 1400 by 800 that no screen shows, and shaders draw on it.
+  of 1400 by 800 that no screen shows, with a session bus of its own, so a notification sent there
+  reaches no desktop, and shaders draw on it.
+- **`crates/app/tests/outside.rs` guards what the migration assumes of NSH on GTK**: signed
+  packages, a page's errors, web views, diagrams, and notifications. Each test starts a hidden
+  display of its own, so `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages
+  are in `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that
+  broke: the rulings R22 to R26 say what was built on each.
 - **In a new worktree, run `vp run app:check` before `vp check`**: it writes NSH's types in
   `app/.nsh/`, without which `vp check` fails with `Invalid tsconfig`. `vp run fast` and
   `vp run ready` do it themselves.

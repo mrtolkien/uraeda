@@ -70,12 +70,37 @@
 
       # `hidden-display <command>` runs a command on an X display of its own that no screen shows:
       # every run of the app by an agent or a check goes through it, so no window opens on the
-      # human's display. GTK prefers the session's Wayland display, so the command loses it.
+      # human's display. GTK prefers the session's Wayland display, so the command loses it. It
+      # also gets a session bus of its own: what the app sends there, a notification first,
+      # reaches no desktop. Xvfb picks its own free display number (`-d`), so several runs start
+      # at once, as the checks of `crates/app/tests/outside.rs` do.
       hiddenDisplayFor =
         pkgs:
         pkgs.writeShellScriptBin "hidden-display" ''
           exec env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
-            ${pkgs.xvfb-run}/bin/xvfb-run -a -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
+            ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
+            ${pkgs.xvfb-run}/bin/xvfb-run -d -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
+        '';
+
+      # The hidden display's session bus. It names no folder of services, so it starts none: the
+      # stock configuration started the machine's desktop portal there, which reached for the
+      # human's compositor.
+      hiddenBusFor =
+        pkgs:
+        pkgs.writeText "hidden-bus.conf" ''
+          <!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+            "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+          <busconfig>
+            <type>session</type>
+            <keep_umask/>
+            <listen>unix:tmpdir=/tmp</listen>
+            <auth>EXTERNAL</auth>
+            <policy context="default">
+              <allow send_destination="*" eavesdrop="true"/>
+              <allow eavesdrop="true"/>
+              <allow own="*"/>
+            </policy>
+          </busconfig>
         '';
     in
     {
@@ -100,6 +125,9 @@
               pkg-config
               clang
               (hiddenDisplayFor pkgs)
+              # Real key presses and clicks on the hidden display, for the checks of
+              # `crates/app/tests/outside.rs`.
+              xdotool
             ]
             ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [ (nshFor pkgs) ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (gtkFor pkgs);

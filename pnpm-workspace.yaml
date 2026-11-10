@@ -1,5 +1,7 @@
 packages:
   - packages/*
+  # The app on Native Shell: its bundler resolves npm packages from `app/node_modules`.
+  - app
 catalog:
   "@babel/core": 8.0.7
   "@nkzw/eslint-plugin": 2.0.0

@@ -218,3 +218,167 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   that is about to go.
 - **If wrong**: the icon is one line of the React UI's icon table.
 - **Where**: every task that runs `vp run ready`, until task 61. The pull request names the failure.
+
+## R21: The outside checks run on hidden displays of their own, in `ready` and in CI
+
+- **Decision**: `crates/app/tests/outside.rs` holds task 2's five checks. Each runs in a process of
+  its own, started through `hidden-display`, with its own display, session bus, and data, cache, and
+  configuration folders. They are part of `cargo nextest run`, so of `rust:test`, `vp run ready`,
+  and CI's `rust` job. Outside the dev shell, where `hidden-display` is missing, a check is skipped
+  and says so; on CI that is a failure.
+  - `hidden-display` gains a session bus of its own, which names no folder of services, and Xvfb
+    picks its own display number (`-d`). `xdotool` joins the dev shell, for real clicks and keys.
+  - The tasks `app:check`, `rust:clippy`, and `rust:test` pass the dev shell's build variables,
+    `gtkEnv` in `vite.tasks.ts`: a cached task gets a clean environment, where `pkg-config` and the
+    linker did not find GTK.
+  - The app is a package of the pnpm workspace, `uraeda-app` in `app/package.json`: NSH's bundler
+    resolves npm packages from `app/node_modules`, and the diagram check imports `pele`.
+- **Rationale**: the plan asks for tests that stay as the guard of each assumption, so they run
+  where every other Rust test does. With the stock bus configuration, the bus started the machine's
+  desktop portal, which reached for the human's compositor. With one display for all, a click of one
+  check could land on another's window. With `-a`, two displays starting at once could take the same
+  number.
+- **If wrong**: nothing was pushed, so CI has not run them. WebKit starts its page in a sandbox that
+  needs user namespaces, which CI's machines may refuse: the web view check would then fail there,
+  and the human decides between a runner that allows them and skipping that check on CI. The sandbox
+  is left on. CI's `rust` job also builds the GTK and WebKitGTK bindings now.
+- **Where**: task 2, `crates/app/tests/outside/display.rs`, `flake.nix`, `vite.tasks.ts`. R17's
+  `hidden-display` is this one from now on.
+
+## R22: Check 1 holds: a signed package loads in an embedded view on GTK
+
+- **Decision**: extension pages are served as signed NSH packages, as the plan says. The check built
+  a page with `nsh-bundler`, signed it, and ran it in an `AppView` on GTK, where it posted to its
+  host. The same package with its signature blanked is refused (`Error::BadSignature`), and so is
+  one signed again under another root (`Error::UntrustedKey`).
+- **What later tasks use**:
+  - Task 19, the server: `nsh_package::SecretKey::generate`, `to_base64`, and `from_base64` for the
+    keys; `nsh_package::certify(&root, &release.public(), &apps, not_before, not_after)`; and
+    `nsh_package::build(&Contents { app, capabilities, source, bytecode: None, source_map, assets, min_runtime: None }, &release, &certificate)`.
+    Keys have two levels: a root key certifies a release key, and the release key signs.
+    `GET /extensions/key` returns the root's public key, `PublicKey::to_base64`.
+  - Task 34, the client: `nsh_package::TrustStore::new()`, `add_root(PublicKey::from_base64(..))`,
+    `nsh_engine::load_package(&mut trust, &bytes, assets_folder)`, then
+    `AppView::load(loaded.bundle.into())`, with `nsh-platform-linux`'s feature `js`.
+  - A page's rights travel in its package, `Contents::capabilities`, so the server sets them:
+    `{ "host": [..] }` lists every name the page may `host.call` or `host.post`.
+  - `App::build` must never go down: a client refuses a build older than one it loaded
+    (`Error::Rollback`), and loads the same build again. So `pageVersion` is a number that only
+    grows, across server restarts too, such as the build's time in milliseconds.
+- **Rationale**: the check ran the real libraries, on GTK, on the hidden display. No bytecode is
+  packaged: a package always carries its source, which loads on every runtime version.
+- **If wrong**: the fallback stays as the plan wrote it: the compiled source over the signed-in
+  connection, with its hash.
+- **Where**: `a_signed_package_loads_in_an_embedded_view_and_any_other_is_refused`,
+  `crates/app/tests/outside/signing.rs`. The workspace names `nsh-engine`, `nsh-package`, and
+  `nsh-platform-linux` at `=0.4.0`. Tasks 19 and 34.
+
+## R23: Check 2 holds: a broken page is reported to its host, through the engine's log
+
+- **Decision**: the host hears a page's errors from the process's log, and knows the page from the
+  thread. No ping is needed.
+  - NSH 0.4.0's GTK `AppView` has no error callback: `Surface::set_error_handler` is private to the
+    crate, for its development overlay, and GPUI's `AppView::on_app_error` has no GTK twin.
+  - The engine writes each error with `log::error!(target: "js", ..)`, on its own thread, named
+    `nsh-engine`: one thread per load. The text starts with what happened:
+    - `bundle failed: `: the page threw while loading, and never ran.
+    - `uncaught exception: `: it threw in a callback, and goes on. A call that never ends is cut off
+      after `Limits::call_budget`, 2 seconds by default, and reported the same way:
+      `uncaught exception: the script was interrupted`. The page goes on after it too.
+    - `stopped: `: its engine stopped, here out of `Limits::memory_bytes`, after an
+      `uncaught exception: the script ran out of memory`. No code of the page runs again.
+- **What later tasks use**:
+  - Task 34: `crates/app/src/extension_view.rs` sets the process's one logger
+    (`log::set_boxed_logger`), which keeps the records of target `js` and level `Error` with
+    `std::thread::current().id()`. A page's first statement posts `start` to its host
+    (`host.post("start")`, granted in its `capabilities.host`). The host's handler,
+    `AppView::host().handle("start", ..)`, runs on the engine's thread, and so learns which thread
+    is which page. A load that posts no `start` within the load budget, 10 seconds, is broken too.
+  - Task 19: the page's build makes `start` its first statement: the entry it compiles is a module
+    that imports a `start` module, then the extension's page, as `app/__checks__/throws.tsx` does.
+- **Rationale**: the check ran two pages at once in two views. Each report came on its own page's
+  thread: a throw at load, a throw in a callback, an endless loop, and a page out of memory. The
+  page still answered its host after the first three.
+- **If wrong**: the prefixes are log text, not an API. The test fails when an upgrade of NSH changes
+  them, and task 34 then takes the plan's fallback: a ping over the host channel, and a page named
+  broken when it does not answer within 2 seconds or never posts `start`. NSH also logs
+  `unhandled rejection: ` under the same target, which the check did not exercise.
+- **Where**: `a_broken_page_is_reported_to_its_host`, `crates/app/tests/outside/errors.rs`,
+  `app/__checks__/{start,throws,breaks}`. Tasks 19 and 34.
+
+## R24: Check 3 holds: a web view shows a local page on GTK, and gets keys
+
+- **Decision**: previews show in a web view on Linux, as the plan says.
+- **What later tasks use**:
+  - Task 49: `<WebView src onLoad onError onMessage>` from `nsh`. The app's `nsh.json` grants the
+    addresses it may show: `"capabilities": { "webview": { "hosts": ["127.0.0.1"] } }`. A page talks
+    to the app with `window.nsh.postMessage(text)`, heard by `onMessage` as `{ data }`.
+  - Web views need `nsh-platform-linux`'s feature `webview`, which links WebKitGTK 6.0. The runners
+    NSH builds for the app, for `nsh run` and `nsh package`, have it on by default. A binary of
+    Uraeda's own that embeds an `AppView` names it itself, as the test's manifest does: without it,
+    a web view shows a placeholder.
+  - `onLoad` carries the page's address, and an empty title: the title comes with
+    `onNavigationStateChange`.
+- **Rationale**: the check served a page on loopback, as the server serves a preview. Its script
+  ran, GTK drew it, a real click gave its field the focus, and real key presses reached both the
+  page's `keydown` and the field's text. The clicks and keys came from the X server's test
+  extension, as a keyboard's do.
+- **If wrong**: the fallback stays: on Linux a preview opens in the system's browser.
+- **Where**: `a_web_view_shows_a_local_page_and_gets_keys`, `crates/app/tests/outside/web.rs`,
+  `app/__checks__/webview.tsx`. Task 49.
+
+## R25: Check 4 holds: a diagram draws without a browser, in two steps
+
+- **Decision**: Pele draws diagrams in NSH's VM, and Rust makes its SVG one NSH's images draw.
+  - Pele 1.5.2 runs as it is in NSH's VM, with its hardening on: `render(source)` from `pele` drew a
+    three-node flowchart in 2 ms.
+  - NSH's `<Image>` cannot draw Pele's SVG as it is. NSH reads SVG with `resvg` built without text,
+    and Pele takes its colours from CSS variables: the picture had boxes of the wrong colours, and
+    no label.
+  - So a Rust step rewrites the SVG: each `var()` gets its value, the theme's or the fallback the
+    SVG names; the root's own variables leave its style, where they stopped `usvg` from reading the
+    font; a corner's `style="rx:.."` becomes the attribute; and `usvg`, with its feature `text` and
+    the app's fonts, writes the text as shapes. The result goes to `<Image src>` as
+    `data:image/svg+xml;base64,..`, at the width and height Pele gives.
+- **What later tasks use**:
+  - Task 31: `crates/app/src/diagram.rs` takes the three functions of
+    `crates/app/tests/outside/diagram.rs`, `picture`, `without_variables`, and `resolved`, exports
+    the first from `uraeda/native`, and the test then calls the crate's. `Diagram.tsx` calls
+    `render` from `pele`, which `app/package.json` already names, then that function. Pele throws
+    for a source it cannot draw: the source shows then.
+  - The colours are Pele's variables, `--pele-fg`, `--pele-line`, `--pele-surface`, and the others
+    of its README, given from the app's tokens. A theme change makes the picture again.
+  - The fonts are a `usvg::fontdb::Database` filled with the app's own font files. The check used
+    the display's sans-serif font, found with `fc-match`.
+- **Rationale**: the check looked at the pixels GTK drew: orange boxes, green arrows, and blue text,
+  the three colours the test's theme gave. Without the fonts, the same test failed on the text
+  alone.
+- **If wrong**: the fallback stays: diagrams show their source on Linux. Not checked: Pele measures
+  labels with its own metrics, so a label may overflow its box in a wider font
+  (`RenderOptions.measurer` takes the app's); a diagram's links are not clickable in a picture; and
+  the web build, where the browser draws Pele's SVG itself.
+- **Where**: `a_diagram_is_drawn_without_a_browser`, `app/__checks__/diagram.tsx`. The workspace
+  names `usvg` 0.46, the version NSH's `resvg` has. Task 31.
+
+## R26: Check 5 holds: the app sends a system notification on Linux
+
+- **Decision**: the app notifies through the desktop's own service, and hears the click.
+  - NSH has no notification API. On Linux a desktop's notifications are the service
+    `org.freedesktop.Notifications` of the session bus, at `/org/freedesktop/Notifications`.
+  - The app calls its `Notify`, of signature `susssasa{sv}i`, with GTK's `gio`
+    (`nsh_platform_linux::gtk4::gio`): `gio::bus_get_sync(gio::BusType::Session, ..)`, then
+    `DBusConnection::call`. It sends the app's name, `Uraeda`; no id to replace, `0`; no icon; the
+    title; the text; the actions `["default", "Open"]`; the hint `desktop-entry`, the app's id
+    `dev.uraeda.app`; and no timeout of its own, `-1`. The answer is the notification's id.
+  - A click comes back as the signal `ActionInvoked`, with that id and `default`, heard with
+    `DBusConnection::subscribe_to_signal`.
+- **What later tasks use**: task 50 moves `send` and `clicks` of
+  `crates/app/tests/outside/notify.rs` to `crates/app/src/notify.rs`, exports them from
+  `uraeda/native`, and points the test at them. Linux asks no permission for a notification, so
+  "asks only after saying why" is the app's own switch there. The web build uses the browser's.
+- **Rationale**: the check sent a notification from a GTK process to a service of the test's own, on
+  the hidden display's bus, which got every field, and clicked it. The test refuses to run on a bus
+  where a notification service already answers, so it can never notify a real desktop.
+- **If wrong**: no real desktop's service was called, on purpose. The interface is the one every
+  Linux desktop implements. The fallback stays: toasts inside the app only.
+- **Where**: `a_system_notification_is_sent_and_its_click_comes_back`. Task 50.

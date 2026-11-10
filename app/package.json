@@ -1,0 +1,9 @@
+{
+  "name": "uraeda-app",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "dependencies": {
+    "pele": "^1.5.2"
+  }
+}

@@ -76,6 +76,21 @@ const appInputs = [
   ...rustSources,
 ];
 
+/**
+ * What a build of the app's crate with its tests, and a run of them, reads of the dev shell: where
+ * GTK and WebKitGTK are, for `pkg-config` and the linker, and the fonts and the drawing library
+ * the windows of `crates/app/tests/outside.rs` use. Vite Task gives a cached task a clean
+ * environment, and their values come from `flake.nix` and `flake.lock`, which are inputs already.
+ */
+const gtkEnv = [
+  "NIX_*",
+  "PKG_CONFIG_PATH",
+  "LIBCLANG_PATH",
+  "FONTCONFIG_FILE",
+  "__EGL_VENDOR_LIBRARY_DIRS",
+  "XDG_DATA_DIRS",
+];
+
 /** The binding's sources, from `binding.ts`'s list, a folder standing for every file under it. */
 const bindingInputs = SOURCES.map((source) =>
   statSync(join(import.meta.dirname, source)).isDirectory() ? `${source}/**` : source,
@@ -108,7 +123,11 @@ export const tasks = {
   // of `nsh` and of the crate's module it writes, which `vp check` reads for the app's files. It
   // takes no heavy slot: `fast` runs it while holding one.
   "app:check": {
-    cache: { input: appInputs, output: ["app/.nsh/tsconfig.json", "app/.nsh/types/**"] },
+    cache: {
+      input: appInputs,
+      output: ["app/.nsh/tsconfig.json", "app/.nsh/types/**"],
+      untrackedEnv: gtkEnv,
+    },
     command: `${nsh} check`,
   },
   // The app on GTK, with hot reload. On the display of whoever runs it: an agent, and any check,
@@ -235,7 +254,7 @@ export const tasks = {
     ],
   },
   "rust:clippy": {
-    cache: { input: rustSources, output: [] },
+    cache: { input: rustSources, output: [], untrackedEnv: gtkEnv },
     command: `${heavyRun} cargo clippy --workspace --all-targets -- -D warnings`,
   },
   // `ura` never builds napi, since a binding built into the other crates' tests would not link, nor
@@ -266,7 +285,7 @@ export const tasks = {
     cache: {
       input: [...rustSources, "fixtures/**", ".config/nextest.toml", "scripts/test-run.ts"],
       output: [],
-      untrackedEnv: ["NEXTEST_PROFILE"],
+      untrackedEnv: ["NEXTEST_PROFILE", ...gtkEnv],
     },
     command: `${heavyRun} ${isolatedGit} cargo nextest run`,
   },

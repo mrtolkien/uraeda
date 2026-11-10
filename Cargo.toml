@@ -48,6 +48,11 @@ notify = "8.2.0"
 nsh-base = "=0.4.0"
 nsh-bundler = { version = "=0.4.0", features = ["bundle"] }
 nsh-core = "=0.4.0"
+nsh-engine = "=0.4.0"
+nsh-package = "=0.4.0"
+# The GTK backend, without its default features: a crate names the ones it uses, `js` for TSX and
+# `webview` for web views, which links WebKitGTK.
+nsh-platform-linux = { version = "=0.4.0", default-features = false }
 # oxc, at one exact version for every crate: its crates release together, and 0.153 needs Rust 1.97.
 oxc_allocator = "=0.152.0"
 oxc_ast = "=0.152.0"
@@ -76,6 +81,8 @@ serde-saphyr = "1.3.0"
 toml_edit = { version = "0.23", default-features = false, features = ["parse", "display", "serde"] }
 tempfile = "3"
 thiserror = "2.0.21"
+# SVG, at the version NSH draws images with: its text as shapes, which NSH's own build leaves out.
+usvg = { version = "0.46", default-features = false, features = ["text"] }
 uraeda-app = { path = "crates/app" }
 uraeda-compile = { path = "crates/compile" }
 uraeda-core = { path = "crates/core" }
