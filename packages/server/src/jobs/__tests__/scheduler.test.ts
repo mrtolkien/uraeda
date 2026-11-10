@@ -972,3 +972,26 @@ test("a run whose send fails removes its chat, tells the clients, and retries on
   await run.at("11T03:01:10");
   expect(await run.sessions("Dependencies")).toHaveLength(1);
 });
+
+/**
+ * Review 07, findings 3 and X1. Catches: "Run now" starting a run, and the change it offers, in a
+ * repository where the Jobs extension is off, because only the scheduled path read the extension.
+ */
+test("a run by hand is refused where the Jobs extension is off", async () => {
+  const run = await setup();
+  const [{ name }, notes] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name, notes.name])] };
+  run.state.extensionOff.add(name);
+
+  await expect(run.scheduler.runNow(name, "Dependencies")).rejects.toThrow(
+    `“Dependencies” does not run in ${name}.`,
+  );
+  expect(run.created).toHaveLength(0);
+  expect(await run.history("Dependencies")).toEqual([]);
+
+  // Turned on again, the same call starts the run.
+  run.state.extensionOff.delete(name);
+  run.server.adapter.script([]);
+  await run.scheduler.runNow(name, "Dependencies");
+  expect(run.created).toHaveLength(1);
+});

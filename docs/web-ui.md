@@ -875,8 +875,9 @@ offer's card waits in the session. A change merges only when you merge it, eithe
 **Run now.** "Run now", or `r`, starts a run at once and opens its session. It tests the job as it
 runs: it starts the change its run offers, unless the job is report only. It ignores the pause, "Run
 scheduled jobs", and an open change, and a schedule that is not understood. It is refused while the
-job's run works in that repository, "“<name>” still runs here.", and for a job that has no prompt or
-another problem apart from its schedule.
+job's run works in that repository, "“<name>” still runs here.", for a job that has no prompt or
+another problem apart from its schedule, and where the Jobs extension is off: "“<name>” does not run
+in <repository>.", as for a repository the job does not name.
 
 ## The data folder
 

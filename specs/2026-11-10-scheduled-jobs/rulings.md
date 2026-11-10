@@ -635,3 +635,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a human who wants the second removed edits `config.toml` by hand, as R30's "If
   wrong" already said of its page.
 - **Where**: the final review's fix 1, task 1 and the Jobs place.
+
+## R42: "Run now" is refused where the Jobs extension is off
+
+- **Decision**: `runNow`, in [`run-now.ts`](/packages/server/src/jobs/run-now.ts), refuses a
+  repository where `isOn` says the Jobs extension is off, with the text of a repository the job does
+  not name: `“<name>” does not run in <repository>.`. The gate is in the scheduler, the one code
+  that starts a run, not in the `jobs.runNow` mutation. Run now still ignores the pause, the switch
+  for all jobs, and an open change, as R23 says.
+- **Rationale**: the spec's edge case says that with the extension off its place is gone and no job
+  starts there. Only the scheduled path read the extension, so a tab left open on the place, or any
+  client of the mutation, started a run, and the change it offered, in a repository where Jobs is
+  off.
+- **Alternatives considered**: a check in the mutation: another caller of `runNow` would not have
+  it.
+- **If wrong**: none known: the place is gone where the extension is off, so no human reaches the
+  button.
+- **Where**: the final review's fix 2, task 4.

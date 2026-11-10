@@ -708,7 +708,8 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there, an acceptance is opening its change, or the
   run is impossible: no prompt, no name, or a name two jobs share, in the card's words; a schedule
-  that is not understood is not a reason ([ruling R23](rulings.md)).
+  that is not understood is not a reason ([ruling R23](rulings.md)). It is also refused where the
+  `jobs` extension is off, as for a repository the job does not name ([ruling R42](rulings.md)).
 - `nextRun` gives `nextAfter` for a job that will run, else why not, in the order of `NextRun`.
 - `startJobs` builds the scheduler on the server's settings, hosts, extensions, and binding, ticking
   every 30 seconds, with an unref'd timer. `server.ts` starts it after the catcher, puts it in the

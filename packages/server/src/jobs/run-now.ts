@@ -8,7 +8,7 @@ import { startRun } from "./run.ts";
 import { keyOf, type Starts } from "./starts.ts";
 
 /** What a run by hand reads of the scheduler. */
-export type RunNowParts = Pick<Options, "context" | "jobs" | "repos"> & {
+export type RunNowParts = Pick<Options, "context" | "isOn" | "jobs" | "repos"> & {
   now: () => Date;
   starts: Starts;
   /** Whether the scheduler stopped. */
@@ -36,7 +36,8 @@ export async function runNow(
   if (why !== undefined) {
     throw refused(why);
   }
-  if (repo === undefined || !job.repositories.includes(repository)) {
+  // Where the Jobs extension is off its place is gone and no job starts, by hand either.
+  if (repo === undefined || !job.repositories.includes(repository) || !parts.isOn(repository)) {
     throw refused(`“${name}” does not run in ${repository}.`);
   }
   const ctx = parts.context(repo.path);
