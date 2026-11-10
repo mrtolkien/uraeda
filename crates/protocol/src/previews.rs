@@ -15,7 +15,7 @@ use crate::registry::{Action, Record};
 #[serde(rename_all = "camelCase")]
 pub struct PreviewArgs {
     /// The repository's name in the list, the `<name>` of `/r/<name>/`.
-    pub repository: String,
+    pub repo: String,
     /// A feature's or a change's folder, or `main`.
     pub folder: String,
 }
@@ -58,7 +58,7 @@ impl Record for Preview {
 #[serde(rename_all = "camelCase")]
 pub struct StoryArgs {
     /// The repository's name in the list.
-    pub repository: String,
+    pub repo: String,
     /// `<folder>:<path>#<export>`: a feature's folder or `main`, the stories file from the
     /// repository's top level, and the export's name.
     pub id: String,
@@ -130,7 +130,7 @@ impl Record for StoryHref {
 #[serde(rename_all = "camelCase")]
 pub struct PreviewRestart {
     /// The repository's name in the list.
-    pub repository: String,
+    pub repo: String,
     /// A feature's or a change's folder, or `main`.
     pub folder: String,
 }

@@ -49,20 +49,20 @@ const NO_PREVIEW: Preview = Preview {
 /// A checkout's preview, by its folder: reading it is a view, which starts it.
 fn read_preview(shared: &Shared, args: &PreviewArgs) -> Preview {
     let previews = shared.get::<Previews>();
-    let Some(checkout) = runnable(shared, &previews, &args.repository, &args.folder) else {
+    let Some(checkout) = runnable(shared, &previews, &args.repo, &args.folder) else {
         return NO_PREVIEW;
     };
-    let reader = reader(&args.repository, &args.folder, None);
+    let reader = reader(&args.repo, &args.folder, None);
     preview_of(&checkout, previews.view(shared, &checkout, reader))
 }
 
 /// Restarts a checkout's preview, by its folder: none without a checkout or a decision.
 fn restart(shared: &Shared, input: PreviewRestart) -> Preview {
     let previews = shared.get::<Previews>();
-    let Some(checkout) = runnable(shared, &previews, &input.repository, &input.folder) else {
+    let Some(checkout) = runnable(shared, &previews, &input.repo, &input.folder) else {
         return NO_PREVIEW;
     };
-    let reader = reader(&input.repository, &input.folder, None);
+    let reader = reader(&input.repo, &input.folder, None);
     preview_of(&checkout, previews.restart(shared, &checkout, reader))
 }
 
@@ -97,13 +97,13 @@ fn read_story(shared: &Shared, args: &StoryArgs) -> Story {
     let previews = shared.get::<Previews>();
     let parts = story_parts(&args.id);
     let found = parts.and_then(|(folder, path, export)| {
-        let checkout = runnable(shared, &previews, &args.repository, folder)?;
+        let checkout = runnable(shared, &previews, &args.repo, folder)?;
         Some((folder, path, export, checkout))
     });
     let Some((folder, path, export, checkout)) = found else {
         return story(StoryState::None, None);
     };
-    let reader = reader(&args.repository, folder, Some(&args.id));
+    let reader = reader(&args.repo, folder, Some(&args.id));
     match previews.view(shared, &checkout, reader) {
         State::Starting => return story(StoryState::Starting, None),
         State::Failed { error } => return story(StoryState::Failed, Some(error)),

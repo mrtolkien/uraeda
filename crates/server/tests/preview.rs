@@ -208,7 +208,7 @@ impl Records {
 
 /// The arguments of a checkout's `Preview`.
 fn preview_of(repository: &str, folder: &str) -> Value {
-    json!({ "repository": repository, "folder": folder })
+    json!({ "repo": repository, "folder": folder })
 }
 
 /// Subscribes to the main checkout's preview of `repo`, under `id`, and waits until it is ready:
@@ -572,7 +572,7 @@ async fn story_answers_its_shape() {
     add_feature(&project.repo);
     let server = serving(&project).await;
     let mut records = Records::of(&server).await;
-    let story = |id: &str| json!({ "repository": "repo", "id": id });
+    let story = |id: &str| json!({ "repo": "repo", "id": id });
     let none = json!({ "state": "none", "frame": null, "storybook": null, "error": null });
 
     // A link that names no story by the core's rule, and a feature that does not exist.
@@ -654,7 +654,7 @@ async fn preview_restart_starts_the_command_again() {
     let server = serving(&project).await;
     let mut records = Records::of(&server).await;
     let base = ready(&mut records, 1).await;
-    let story = json!({ "repository": "repo", "id": format!("main:{STORIES}#Dragging") });
+    let story = json!({ "repo": "repo", "id": format!("main:{STORIES}#Dragging") });
     records.sub(2, "Story", story).await;
     records.until(2, |story| story["state"] == "ready").await;
     let first = group_of(project.pid(0));

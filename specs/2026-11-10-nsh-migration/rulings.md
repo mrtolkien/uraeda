@@ -1610,10 +1610,11 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 ## R80: A preview's records name their repository, and give whole addresses
 
 - **Decision**: the shapes of the previews' records, in `crates/protocol/src/previews.rs`.
-  - `Preview` takes `{ repository, folder }`, `Story` takes `{ repository, id }`, and
-    `preview.restart` takes `{ repository, folder }` and answers the `Preview`. `repository` is the
-    repository's name in the list, the `<name>` of `/r/<name>/`. `StoryHref` takes `{ href }` alone:
-    the core's rule reads no repository.
+  - `Preview` takes `{ repo, folder }`, `Story` takes `{ repo, id }`, and `preview.restart` takes
+    `{ repo, folder }` and answers the `Preview`. `repo` is the repository's name in the list, the
+    `<name>` of `/r/<name>/`, as every record of one repository takes it (R52): the task named it
+    `repository`, and the join renamed it. `StoryHref` takes `{ href }` alone: the core's rule reads
+    no repository.
   - A value has no `id`: its arguments are its key. States are `none`, `starting`, `ready`,
     `failed`, and `missing` for a story.
   - `Preview.base` and `Story.frame` are paths on the server, with the frame secret. A client puts
@@ -1621,8 +1622,6 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     app.
 - **Rationale**: fate was served under `/r/<name>/fate`, so a record's repository was its address.
   One WebSocket serves every repository, so the arguments name it.
-- **If wrong**: the other domains of wave 6 chose their own name for that argument at the same time.
-  The join gives it one name.
 - **Where**: task 18, `crates/protocol/src/previews.rs`, `crates/server/src/records/previews.rs`.
   Task 49.
 

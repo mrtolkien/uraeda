@@ -85,7 +85,8 @@ subscribes, and gets the value whole once, then only changes.
 }
 ```
 
-A record with no arguments takes `null`:
+A record or an action of one repository names it as `repo`, its name in the server's list, the
+`<name>` of `/r/<name>/`. A record with no arguments takes `null`:
 
 ```json
 { "type": "sub", "id": 2, "record": "Settings", "args": null }

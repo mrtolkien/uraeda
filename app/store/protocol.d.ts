@@ -2602,7 +2602,7 @@ export type PreviewArgs = {
 /**
  * The repository's name in the list, the `<name>` of `/r/<name>/`.
  */
-repository: string, 
+repo: string, 
 /**
  * A feature's or a change's folder, or `main`.
  */
@@ -2616,7 +2616,7 @@ export type PreviewRestart = {
 /**
  * The repository's name in the list.
  */
-repository: string, 
+repo: string, 
 /**
  * A feature's or a change's folder, or `main`.
  */
@@ -4215,7 +4215,7 @@ export type StoryArgs = {
 /**
  * The repository's name in the list.
  */
-repository: string, 
+repo: string, 
 /**
  * `<folder>:<path>#<export>`: a feature's folder or `main`, the stories file from the
  * repository's top level, and the export's name.

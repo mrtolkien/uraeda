@@ -1080,9 +1080,9 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 **Interfaces:**
 
 - Produces (rulings R79 to R83):
-  - Records `Preview { repository, folder }`, `Story { repository, id }`, and `StoryHref { href }`;
-    action `preview.restart { repository, folder }`, which answers the `Preview`. `folder` is a
-    feature's or a change's folder, or `main`; a story's `id` is `<folder>:<path>#<export>`.
+  - Records `Preview { repo, folder }`, `Story { repo, id }`, and `StoryHref { href }`; action
+    `preview.restart { repo, folder }`, which answers the `Preview`. `folder` is a feature's or a
+    change's folder, or `main`; a story's `id` is `<folder>:<path>#<export>`.
   - The proxy at `/r/:name/preview/<secret>/<folder>/*`, HTTP and WebSocket, as
     [`preview/proxy.ts`](/packages/server/src/preview/proxy.ts) has it. A client shows the path a
     record gives it, `Preview.base` or `Story.frame`, on the server's address: it never builds one.

@@ -67,11 +67,11 @@ struct Readers {
 impl Readers {
     /// Says the base's records changed: the ones somebody holds are read again.
     fn tell(&self, bus: &Bus) {
-        let (repository, folder) = (self.repository.clone(), self.folder.clone());
-        bus.changed::<Preview>(&PreviewArgs { repository, folder });
+        let (repo, folder) = (self.repository.clone(), self.folder.clone());
+        bus.changed::<Preview>(&PreviewArgs { repo, folder });
         for id in &self.stories {
-            let (repository, id) = (self.repository.clone(), id.clone());
-            bus.changed::<Story>(&StoryArgs { repository, id });
+            let (repo, id) = (self.repository.clone(), id.clone());
+            bus.changed::<Story>(&StoryArgs { repo, id });
         }
     }
 }
