@@ -1,7 +1,7 @@
 // One usage window a runtime reported, in a line and its bar: the harness's mark, the window's
 // label, what is left, and when it resets; and every window the runtimes on reported, in the
 // runtimes' order and then the windows'. A runtime with accounts shows each account's: on Home its
-// name, then its windows, and in the sidebar one line each, its first window alone. Home's Usage
+// name, then its windows, and in the sidebar one line each, its five hours alone. Home's Usage
 // pane and the sidebar's allowance share them.
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
@@ -9,6 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
+import { FIVE_HOUR_WINDOW } from "uraeda-server/limits";
 import { HarnessMark } from "./HarnessMark.tsx";
 import { type Runtime, useRuntimes } from "./runtimes.ts";
 
@@ -28,6 +29,11 @@ export type Window = { label: string; resetsAt: string | null; used: number };
 
 /** A runtime's account, as its record gives it. */
 type Account = Runtime["accounts"][number];
+
+/** A runtime's five hours among its `windows`, by identity: none when it did not report them. */
+export function fiveHours<Each extends { id: string }>(windows: ReadonlyArray<Each>) {
+  return windows.find((window) => window.id === FIVE_HOUR_WINDOW);
+}
 
 /** When a window resets: its time today, or its day and time on another day. */
 function resets(resetsAt: string) {
@@ -166,8 +172,10 @@ function RuntimeWindows({ isCompact, runtime }: { isCompact: boolean; runtime: R
       ),
     );
   }
-  // The sidebar shows the first window alone, for every runtime: the week shows on Home.
-  const windows = isCompact ? runtime.usage.slice(0, 1) : runtime.usage;
+  // The sidebar shows the five hours alone, by identity, and nothing while they are not reported:
+  // the week shows on Home.
+  const five = isCompact ? fiveHours(runtime.usage) : undefined;
+  const windows = isCompact ? (five === undefined ? [] : [five]) : runtime.usage;
   return (
     <VStack gap={2}>
       {windows.map((window) => (
@@ -179,7 +187,7 @@ function RuntimeWindows({ isCompact, runtime }: { isCompact: boolean; runtime: R
 
 /**
  * Every window of `runtimes`, each with its harness's mark: `isCompact`, closer and shorter, one
- * line per account and its first window alone.
+ * line per account and its five hours alone.
  */
 export function UsageWindows({
   isCompact = false,
