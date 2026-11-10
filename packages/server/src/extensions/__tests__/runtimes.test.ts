@@ -168,7 +168,7 @@ test("a server stopping checks no runtime as its extensions unload", async () =>
 
 test("a runtime's account problems are its extension's", async () => {
   const claude = new FakeAdapter();
-  const opened = await serve({}, "", { agents: { claude } });
+  const opened = await serve({ durable: runtime(1) }, "", { agents: { claude } });
   const { server } = opened;
   await server.sessions.check();
   const accounts = new FakeAccounts();
@@ -215,4 +215,17 @@ test("a runtime's account problems are its extension's", async () => {
   expect(changed).not.toHaveBeenCalled();
   expect(version).not.toHaveBeenCalled();
   await expect.poll(status).toBe(true);
+
+  // An extension's own runtime shows its accounts' problems too, as docs/extensions.md says.
+  await expect.poll(() => opened.sink.activations).toBe(1);
+  const mine = new FakeAccounts();
+  mine.problemList = ["account x is signed out"];
+  opened.sink.adapter.accounts = mine;
+  expect(stateOf(server, "durable")?.problems).toContainEqual({
+    file: "",
+    message: "account x is signed out",
+  });
+  expect(stateOf(server, "durable")?.state).toBe("on");
+  mine.problemList = [];
+  expect(stateOf(server, "durable")?.problems).toEqual([]);
 });
