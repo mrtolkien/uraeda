@@ -831,3 +831,18 @@ fn an_inline_list_on_several_lines_keeps_each_entrys_comments() {
     jobs::remove(dir.path(), "C").unwrap();
     assert_eq!(text(dir.path()), bare);
 }
+
+#[test]
+fn an_empty_or_blank_option_written_by_hand_reads_as_unset() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        "[[jobs]]\nname = \"A\"\nrepositories = [\"a\"]\nschedule = \"hourly\"\nprompt = \"x\"\n\
+         agent = \"\"\nmodel = \"   \"\neffort = \" high \"\n",
+    );
+    let read = jobs::read(dir.path());
+    let read = &read.jobs[0];
+    assert_eq!(read.problem, None);
+    assert_eq!((&read.agent, &read.model), (&None, &None));
+    assert_eq!(read.effort.as_deref(), Some("high"));
+}

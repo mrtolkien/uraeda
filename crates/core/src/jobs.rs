@@ -140,7 +140,10 @@ fn job(table: &dyn TableLike, duplicate: bool) -> Job {
     let mut optional = |key: &str| match table.get(key) {
         None => None,
         Some(item) => match item.as_str() {
-            Some(text) => Some(text.to_owned()),
+            // As a write has it: trimmed, and unset when empty.
+            Some(text) => Some(text.trim())
+                .filter(|text| !text.is_empty())
+                .map(str::to_owned),
             None => {
                 types.push(format!("{key} is text."));
                 None
