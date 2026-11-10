@@ -1,6 +1,6 @@
 // The mockups of several Claude Code accounts (`specs/2026-11-10-multi-accounts/spec.md`): the
-// usage of each account on Home and in the sidebar, an account signed out, an account whose week
-// is used up, and a session's header naming its account. Built from the real components over fixed
+// usage of each account on Home, with its week, and in the sidebar, its five hours alone, an
+// account signed out, an account whose week is used up, and a session's header naming its account. Built from the real components over fixed
 // values, with no server: the stories show the look, and the panes' data is the server's once
 // built.
 import { HStack } from "@astryxdesign/core/HStack";
@@ -97,34 +97,28 @@ function HomeUsage({ accounts }: { accounts: ReadonlyArray<Account> }) {
 }
 
 /**
- * The sidebar's pane: one line per account, its five hours, or its week once the week is used up,
- * which is why no session starts on it.
+ * The sidebar's pane: one line per login, its five hours alone. The week shows on Home only, for
+ * Codex too, and an account whose week is used up reads as any other here.
  */
 function SidebarUsage({ accounts }: { accounts: ReadonlyArray<Account> }) {
   return (
     <Pane isGroup title="Usage" xstyle={[styles.sidebar]}>
       <VStack gap={2} xstyle={styles.body}>
-        {accounts.map(({ name, week: weekly, window }) => {
-          if (!window) {
-            return (
-              <MarkLine key={name} kind="claude">
-                {`${name} signed out`}
-              </MarkLine>
-            );
-          }
-          const shown = weekly && weekly.used >= 1 ? weekly : window;
-          return (
+        {accounts.map(({ name, window }) =>
+          window ? (
             <UsageWindow
               isCompact
               key={name}
               kind="claude"
-              window={{ ...shown, label: `${name} ${shown.label}` }}
+              window={{ ...window, label: `${name} ${window.label}` }}
             />
-          );
-        })}
-        {CODEX.map((window) => (
-          <UsageWindow isCompact key={window.label} kind="codex" window={window} />
-        ))}
+          ) : (
+            <MarkLine key={name} kind="claude">
+              {`${name} signed out`}
+            </MarkLine>
+          ),
+        )}
+        <UsageWindow isCompact kind="codex" window={CODEX[0]!} />
       </VStack>
     </Pane>
   );
@@ -140,12 +134,12 @@ export const HomeThreeAccounts: StoryObj = { render: () => <HomeUsage accounts={
 /** Home's pane with b signed out, and c's week used up. */
 export const HomeNeedingYou: StoryObj = { render: () => <HomeUsage accounts={NEEDING_YOU} /> };
 
-/** The sidebar's Usage pane with three accounts: one line each. */
+/** The sidebar's Usage pane with three accounts: one line each, and no week. */
 export const SidebarThreeAccounts: StoryObj = {
   render: () => <SidebarUsage accounts={THREE} />,
 };
 
-/** The sidebar's pane with b signed out, and c's week used up. */
+/** The sidebar's pane with b signed out; c, its week used up, reads as any other. */
 export const SidebarNeedingYou: StoryObj = {
   render: () => <SidebarUsage accounts={NEEDING_YOU} />,
 };
