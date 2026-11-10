@@ -60,18 +60,21 @@ const started = (id: string, when: string, session: string, title: string, folde
   trigger: "schedule" as const,
 });
 
+const DEPS_RUN = started(
+  "1",
+  at(10, 12, 3),
+  "s-deps",
+  "Upgrade three dependencies",
+  "2026-11-12-upgrade-three-dependencies",
+);
+const PERF_RUN = started("2", at(10, 9, 4), "s-perf", "Performance pass");
+const PERSONA_RUN = started("3", at(10, 2, 5), "s-persona", "Persona walkthrough");
+
 const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
-    history: [
-      started(
-        "1",
-        at(10, 12, 3),
-        "s-deps",
-        "Upgrade three dependencies",
-        "2026-11-12-upgrade-three-dependencies",
-      ),
-    ],
+    history: [DEPS_RUN],
+    last: DEPS_RUN,
     name: "Dependencies",
     next: { at: null, text: null, why: "change-open" },
     on: true,
@@ -82,7 +85,8 @@ const JOBS: ReadonlyArray<JobRow> = [
   },
   {
     ...BASE,
-    history: [started("2", at(10, 9, 4), "s-perf", "Performance pass")],
+    history: [PERF_RUN],
+    last: PERF_RUN,
     name: "Performance pass",
     next: { at: at(10, 16, 4), text: null, why: null },
     on: true,
@@ -93,7 +97,8 @@ const JOBS: ReadonlyArray<JobRow> = [
   },
   {
     ...BASE,
-    history: [started("3", at(10, 2, 5), "s-persona", "Persona walkthrough")],
+    history: [PERSONA_RUN],
+    last: PERSONA_RUN,
     name: "Persona walkthrough",
     next: { at: null, text: null, why: "paused" },
     on: false,
@@ -105,6 +110,7 @@ const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
     history: [],
+    last: null,
     name: "Code quality",
     next: { at: null, text: null, why: "problem" },
     on: true,

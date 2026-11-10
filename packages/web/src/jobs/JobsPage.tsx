@@ -21,7 +21,7 @@ import { useNavigation } from "../sessionData.ts";
 import { stepOf } from "../sidebar/cards.ts";
 import { statusLabel } from "../wait.ts";
 import { useNow } from "../useNow.ts";
-import { type Fact, lastFact, latestStart, nextFact, type RunSession } from "./facts.ts";
+import { type Fact, lastFact, nextFact, type RunSession } from "./facts.ts";
 import { JobCard } from "./JobCard.tsx";
 import { useJobActions, useJobs } from "./useJobs.ts";
 
@@ -62,7 +62,7 @@ function factsOf(
   now: Date,
   zone: string,
 ): { last: Fact; next: Fact } {
-  const run = latestStart(job);
+  const run = job.last ?? undefined;
   return {
     last: lastFact(run, run?.session == null ? undefined : sessions.get(run.session), now, zone),
     next: nextFact(job, now, zone),
@@ -245,7 +245,7 @@ function useRunSessions(jobs: ReadonlyArray<JobRow>): ReadonlyMap<string, RunSes
   const { sessionList, workspace } = useNavigation();
   const sessions = new Map<string, RunSession>();
   for (const job of jobs) {
-    const id = latestStart(job)?.session;
+    const id = job.last?.session;
     const row = id == null ? undefined : sessionList?.rows.find((one) => one.id === id);
     if (id == null || row === undefined) {
       continue;

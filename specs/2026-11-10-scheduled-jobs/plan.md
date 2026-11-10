@@ -892,6 +892,7 @@ export type JobRow = {
   agent: string | null;
   effort: string | null;
   history: Array<JobRunView>;
+  last: JobRunView | null; // the latest started run, beyond the 50 rows of `history` (R28)
   model: string | null;
   name: string;
   next: { at: string | null; text: string | null; why: string | null }; // `text`: the server's words for `agent-off` (R27)
@@ -1030,8 +1031,9 @@ export function whenWords(at: Date, now: Date, timeZone: string): string; // "To
   problem, in the error colour; `Paused`; "Scheduled jobs are off"; the server's words for an agent
   that does not run it (`next.text`); "Waits for that change to close"; else the time in words
   (`jobs/facts.ts`). A problem of the job that is not the reason shows beneath, in the error colour.
-  Last run reads the latest started row of the history ([ruling R16](rulings.md)): its time, then
-  what its session or its change asks, as the sidebar's card names it, or "Never ran".
+  Last run reads the record's `last`, the latest started run ([ruling R16](rulings.md),
+  [R28](rulings.md)): its time, then what its session or its change asks, as the sidebar's card
+  names it, or "Never ran".
 - The keys, in the registry, each also on the selected card's bar and by tap: Enter opens the job's
   page, `r` runs it now and opens its session, `p` pauses or resumes it, `d` deletes it after the
   shared confirmation, with the text of the global constraints, and `a` opens `/jobs/new`. `j` and

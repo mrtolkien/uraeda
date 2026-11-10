@@ -341,6 +341,38 @@ test("a read of the record reads the workspace once, however many jobs started a
   }
 });
 
+/**
+ * Review 05, Codex P2. Catches: a card that reads "Never ran" for a job whose latest started run
+ * is older than the 50 rows of the history, as a job whose change stays open for days is, with an
+ * hourly time skipped each hour: the record gives the latest started run apart from its history.
+ */
+test("the record gives the latest started run beyond the history's 50 rows", async () => {
+  const run = await setup((name) => table("Hourly", [name]));
+  const { cache } = run.server.sessions;
+  const root = await run.server.sessions.mainRoot(run.server.repo);
+  const chat = await run.server.sessions.newChat(run.server.repo);
+  const add = (due: number, outcome: "skipped" | "started") =>
+    cache.jobs.add({
+      at: due,
+      due,
+      job: "Hourly",
+      outcome,
+      reason: outcome === "skipped" ? "change-open" : null,
+      repository: root,
+      session: outcome === "started" ? chat.id : null,
+      trigger: "schedule",
+    });
+  expect(job(await run.read(), "Hourly").last).toBeNull();
+  add(1, "started");
+  for (let due = 2; due < 60; due += 1) {
+    add(due, "skipped");
+  }
+  const hourly = job(await run.read(), "Hourly");
+  expect(hourly.history).toHaveLength(50);
+  expect(hourly.history.every((row: Data) => row.outcome === "skipped")).toBe(true);
+  expect(hourly.last).toMatchObject({ outcome: "started", session: chat.id });
+});
+
 /** A watcher's burst with nothing changed. */
 const NO_CHANGES = {
   branchDecisions: [],

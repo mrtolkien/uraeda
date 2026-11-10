@@ -419,3 +419,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job that is paused with its agent off shows no word of the agent until it is
   resumed.
 - **Where**: tasks 6 and 7. It replaces R16 (2)'s words for `agent-off`.
+
+## R28: The record gives the job's last run apart from its history
+
+- **Decision**: a `JobRow` has `last`, the job's latest run that started a session in the repository
+  (`JobRuns.latestStarted`, as a `JobRunView`), or null. The card's "Last run" and the session it
+  reads come from `last`, not from a search of `history`, which holds the 50 newest rows and may
+  hold no started one. This replaces R16 (1)'s source, the history, and keeps its rule: a skipped
+  time is no run.
+- **Rationale**: the cache keeps the latest started row past the 50 (R15), but the card looked for
+  it in the 50 rows: an hourly job whose change stays open for two days has 50 skipped rows after
+  its last run, and read "Never ran" with its session no longer read.
+- **If wrong**: none known; one more small view per job in each read of the record.
+- **Where**: tasks 6 and 7.

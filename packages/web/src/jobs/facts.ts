@@ -106,8 +106,8 @@ function asks(session: RunSession): string {
 
 /**
  * What the job's last run left: its time, then what its session or its change asks, as the
- * sidebar's card names it; "Never ran" before a first start. `run` is the latest start of the job
- * here, `session` its session as the sidebar reads it, absent once the session is gone.
+ * sidebar's card names it; "Never ran" before a first start. `run` is the job's `last` run here,
+ * `session` its session as the sidebar reads it, absent once the session is gone.
  */
 export function lastFact(
   run: JobRunView | undefined,
@@ -134,7 +134,3 @@ export function lastFact(
   }
   return { ...look, text: `${when} · ${asks(session)}` };
 }
-
-/** The latest run of the job here that started a session, or undefined: its history is newest first. */
-export const latestStart = (job: Pick<JobRow, "history">): JobRunView | undefined =>
-  job.history.find((run) => run.outcome === "started");

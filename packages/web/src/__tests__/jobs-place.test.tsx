@@ -27,31 +27,36 @@ const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const at = (day: number, hour: number) => new Date(2026, 10, day, hour).toISOString();
 
-const BASE: Pick<JobRow, "agent" | "effort" | "history" | "model" | "prompt" | "repositories"> = {
+const BASE: Pick<
+  JobRow,
+  "agent" | "effort" | "history" | "last" | "model" | "prompt" | "repositories"
+> = {
   agent: null,
   effort: null,
   history: [],
+  last: null,
   model: null,
   prompt: "Go.",
   repositories: ["uraeda"],
 };
 
+const RUN = {
+  at: at(12, 3),
+  due: at(12, 3),
+  folder: "2026-11-12-upgrade",
+  id: "1",
+  outcome: "started" as const,
+  reason: null,
+  session: "s1",
+  title: "Upgrade three dependencies",
+  trigger: "schedule" as const,
+};
+
 const JOBS: ReadonlyArray<JobRow> = [
   {
     ...BASE,
-    history: [
-      {
-        at: at(12, 3),
-        due: at(12, 3),
-        folder: "2026-11-12-upgrade",
-        id: "1",
-        outcome: "started",
-        reason: null,
-        session: "s1",
-        title: "Upgrade three dependencies",
-        trigger: "schedule",
-      },
-    ],
+    history: [RUN],
+    last: RUN,
     name: "Dependencies",
     next: { at: null, text: null, why: "change-open" },
     on: true,
@@ -181,6 +186,17 @@ test("a card shows the problem of a job that still runs here beneath its next ru
   const stopped = card("Persona walkthrough");
   expect(within(stopped).getByText("Paused")).toBeTruthy();
   expect(within(stopped).getByText(missing)).toBeTruthy();
+});
+
+test("the last run is the record's, though 50 skipped times have pushed it out of the history", () => {
+  const [deps] = JOBS;
+  const skipped = { ...RUN, id: "2", outcome: "skipped" as const, reason: "change-open" as const };
+  show(spies(), undefined, [{ ...deps, history: [skipped] }]);
+  expect(
+    within(card("Dependencies")).getByText(
+      "Today at 3:00 · started “Upgrade three dependencies”, PR ready",
+    ),
+  ).toBeTruthy();
 });
 
 test("j and k move the selection, and the bar shows under the selected card", () => {

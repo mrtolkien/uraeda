@@ -31,6 +31,7 @@ const JOB: JobRow = {
   agent: "claude",
   effort: "high",
   history: [],
+  last: null,
   model: "opus",
   name: "Dependencies",
   next: { at: new Date(2026, 10, 13, 3).toISOString(), text: null, why: null },

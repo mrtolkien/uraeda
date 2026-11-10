@@ -34,6 +34,11 @@ export type JobRow = {
   agent: string | null;
   effort: string | null;
   history: Array<JobRunView>;
+  /**
+   * The latest run that started a session here, apart from `history`, which holds the 50 newest rows
+   * and may hold none of the started ones.
+   */
+  last: JobRunView | null;
   model: string | null;
   name: string;
   /**
@@ -110,23 +115,31 @@ function agentWords(ctx: RepoContext, job: Job, root: string): string {
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
-/** The runs of the job in the repository, each with its session's folder and title. */
-function historyOf(ctx: RepoContext, job: string, root: string): Array<JobRunView> {
+/** A run of the job as the history lists it, with its session's folder and title. */
+function viewOf(ctx: RepoContext, run: JobRunRow): JobRunView {
   const { cache } = ctx.sessions;
-  return cache.jobs.history(job, root).map((run: JobRunRow) => {
-    const session = run.session === null ? undefined : cache.session(run.session);
-    return {
-      at: iso(run.at),
-      due: run.due === null ? null : iso(run.due),
-      folder: session?.folder ?? null,
-      id: String(run.id),
-      outcome: run.outcome,
-      reason: run.reason,
-      session: run.session,
-      title: session?.title ?? null,
-      trigger: run.trigger,
-    };
-  });
+  const session = run.session === null ? undefined : cache.session(run.session);
+  return {
+    at: iso(run.at),
+    due: run.due === null ? null : iso(run.due),
+    folder: session?.folder ?? null,
+    id: String(run.id),
+    outcome: run.outcome,
+    reason: run.reason,
+    session: run.session,
+    title: session?.title ?? null,
+    trigger: run.trigger,
+  };
+}
+
+/** The runs of the job in the repository, each with its session's folder and title. */
+const historyOf = (ctx: RepoContext, job: string, root: string): Array<JobRunView> =>
+  ctx.sessions.cache.jobs.history(job, root).map((run) => viewOf(ctx, run));
+
+/** The job's latest run that started a session in the repository, or null. */
+function lastOf(ctx: RepoContext, job: string, root: string): JobRunView | null {
+  const run = ctx.sessions.cache.jobs.latestStarted(job, root);
+  return run === undefined ? null : viewOf(ctx, run);
 }
 
 /** The job as the repository lists it: `name` is the repository's name in the list. */
@@ -141,6 +154,7 @@ async function rowOf(
     agent: job.agent ?? null,
     effort: job.effort ?? null,
     history: historyOf(ctx, job.name, root),
+    last: lastOf(ctx, job.name, root),
     model: job.model ?? null,
     name: job.name,
     next:
