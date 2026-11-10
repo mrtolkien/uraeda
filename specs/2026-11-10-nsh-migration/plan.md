@@ -573,21 +573,38 @@ fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
-- Create: `crates/server/src/{lib,http,guard,status}.rs`, `crates/cli/src/serve.rs`
-- Test: `crates/server/tests/skeleton.rs`, `crates/server/tests/support/mod.rs`
+- Create:
+  `crates/server/src/{lib,start,run,shared,stop,http,guard,status,handoff,env,clock,secret}.rs`,
+  `crates/server/src/http/{socket,open}.rs`, `crates/cli/src/serve.rs`
+- Test: `crates/server/tests/skeleton.rs`, `crates/server/tests/support/{mod,client,request}.rs`,
+  `crates/cli/tests/serve.rs`
 
 **Interfaces:**
 
 - Consumes: `ClientMessage`, `ServerMessage`, `PROTOCOL`, `handshake` (task 3).
 - Produces:
-  - `ura serve [--port N] [--data-dir DIR]`. Its default port differs from the Node server's.
-  - `pub struct Server`, `Server::start(Options) -> Server`, `Server::stop(self)`.
-  - The test helper `support::server() -> TestServer`, with `connect() -> TestClient` speaking the
-    real protocol on a temporary data folder. Every later server test uses it.
-  - The status file and the second-start handoff, as [`open.ts`](/packages/server/src/open.ts) does
-    today.
+  - `ura serve [--port N] [--data-dir DIR]`. Its default port, 4320, and its default data folder,
+    the core's with `-next` after its name, differ from the Node server's (ruling R32).
+  - `pub struct Server`, `Server::start(Options) -> Result<Server, NotStarted>`,
+    `Server::stop(self)`, and `uraeda_server::run(Options)`, which `ura serve` calls. `Options` has
+    `port`, `config_dir`, `data_dir`, `folder`, `environment`, `allow_origins`, and `clock`.
+  - How a domain joins the server (ruling R33): a function
+    `mount(&Shared, &mut Routes) -> Result<(), Failure>`, and its line in `DOMAINS`, in `lib.rs`. It
+    adds routes with `Routes::route`, provides its state with `Shared::provide` for
+    `Shared::get::<T>()`, and registers what stops with the server with `Shared::on_stop`. `Shared`
+    also gives `now()`, `environment()`, `data_dir()`, `config_dir()`, `epoch()`,
+    `from_host(headers)`, `allowed_hosts()`, `allow_hosts(names)`, and `stopping()`.
+  - The test helper `support::server().await -> TestServer`, and `support::setup()` for a start that
+    differs, with `connect().await -> TestClient` speaking the real protocol on temporary config and
+    data folders, `get`, `post`, and `request` for plain HTTP, and a clock the test sets. Every
+    later server test uses it.
+  - The status file, `run/server.json` in the data folder, and the second-start handoff,
+    `POST /open`, as [`open.ts`](/packages/server/src/open.ts) does today (ruling R34).
+  - `Environment`, the server's environment with the config folder's `.env`, whose `command` starts
+    every process the server runs (ruling R35); `guard::refusal` and `guard::frame_secret` (ruling
+    R36); `secret::random` and `secret::same`, for tokens.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `an older client is refused with the side to update`: a `Hello` with `PROTOCOL - 1` gets
     `Refused { reason: "client-too-old" }`.
   - `a request with another site's Origin is refused`: the break is DNS rebinding, guarded today by
@@ -596,12 +613,16 @@ fallback written under it, and later tasks build on the fallback.
   - `secrets come from the config folder's .env only`: a `.env` in a project or in the folder the
     server runs in is never read; the config folder's joins the server's environment, and so reaches
     the agents it runs.
-- [ ] **Step 2: Run them**. Expected: FAIL, `Server` not found.
-- [ ] **Step 3: Implement.** `axum` on `tokio`, loopback only. `/live` upgrades to a WebSocket and
+  - `stopping the server stops what its domains registered`: the contract every later domain hangs
+    its shutdown on.
+  - In the CLI's tests, `serve runs until it is stopped and a second start hands over`: the real
+    `ura serve`, its signal, and the `.env` of the folder it runs in.
+- [x] **Step 2: Run them**. Expected: FAIL, `Server` not found.
+- [x] **Step 3: Implement.** `axum` on `tokio`, loopback only. `/live` upgrades to a WebSocket and
       handles `Hello` only; other messages get `Error { code: "not-signed-in" }` until task 5. Port
       `guard.ts`'s rules as they are.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): ura serve, with its handshake and guard`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): ura serve, with its handshake and guard`.
 
 ## Task 5: Sign-in and device pairing
 

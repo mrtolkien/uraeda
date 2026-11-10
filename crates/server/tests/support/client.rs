@@ -1,0 +1,93 @@
+//! A client of the protocol, over a real WebSocket.
+
+use std::time::Duration;
+
+use futures_util::{SinkExt, StreamExt};
+use tokio::net::TcpStream;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use uraeda_protocol::{ClientMessage, PROTOCOL, ServerMessage, SignIn};
+
+/// How long a test waits for a message before it fails: a server that answers does so at once.
+const PATIENCE: Duration = Duration::from_secs(10);
+
+/// One connection to `/live`.
+pub struct TestClient {
+    socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    epoch: Option<String>,
+}
+
+impl TestClient {
+    /// Opens a connection to the server on `port`, and says nothing.
+    pub(super) async fn open(port: u16) -> TestClient {
+        let (socket, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}/live"))
+            .await
+            .expect("the WebSocket opens");
+        TestClient {
+            socket,
+            epoch: None,
+        }
+    }
+
+    /// Says `hello` at the server's version, and expects its `welcome`.
+    pub async fn hello(&mut self) {
+        self.send(&ClientMessage::Hello {
+            protocol: PROTOCOL,
+            sign_in: SignIn::Cookie,
+        })
+        .await;
+        match self.next().await {
+            ServerMessage::Welcome { epoch, .. } => self.epoch = Some(epoch),
+            other => panic!("expected a welcome, got {other:?}"),
+        }
+    }
+
+    /// The epoch of the `welcome` this connection got.
+    pub fn epoch(&self) -> &str {
+        self.epoch.as_deref().expect("a welcomed connection")
+    }
+
+    /// Sends a message.
+    pub async fn send(&mut self, message: &ClientMessage) {
+        self.send_text(&serde_json::to_string(message).unwrap())
+            .await;
+    }
+
+    /// Sends a text frame as it is, as a client of another version would.
+    pub async fn send_text(&mut self, text: &str) {
+        self.socket
+            .send(Message::text(text))
+            .await
+            .expect("the message is sent");
+    }
+
+    /// The server's next message. Fails when the connection closes first, or nothing comes.
+    pub async fn next(&mut self) -> ServerMessage {
+        match self.frame().await {
+            Some(text) => serde_json::from_str(&text)
+                .unwrap_or_else(|error| panic!("not a server message: {text}: {error}")),
+            None => panic!("the connection closed before a message"),
+        }
+    }
+
+    /// Waits for the server to close the connection. Fails when a message comes first.
+    pub async fn closed(&mut self) {
+        if let Some(text) = self.frame().await {
+            panic!("expected the connection to close, got {text}");
+        }
+    }
+
+    /// The next text frame, or none once the connection is closed.
+    async fn frame(&mut self) -> Option<String> {
+        loop {
+            let next = tokio::time::timeout(PATIENCE, self.socket.next())
+                .await
+                .expect("the server answers");
+            match next {
+                Some(Ok(Message::Text(text))) => return Some(text.to_string()),
+                Some(Ok(Message::Close(_)) | Err(_)) | None => return None,
+                Some(Ok(_)) => {}
+            }
+        }
+    }
+}

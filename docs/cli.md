@@ -26,6 +26,7 @@ ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-c
 ura inbox                                  # every note, agents' notes included; --json for tools
 ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
+ura serve                                  # the new server, on this machine, until you stop it
 ```
 
 `ura next` and `ura status` read your pull requests with `gh`. An open pull request, not a draft and
@@ -49,6 +50,19 @@ points at its record, keeping a question's anchor. A link to a deleted file beco
 `--fix` exits as the check after it, with success when no problem is left, and its JSON adds a
 `fixed` list of files and link counts. In the web UI, a done feature's page has "Fix moved links"
 for the same repair.
+
+`ura serve` runs the server the next Uraeda is built on, written in Rust inside `ura`. It is not the
+web UI's server yet: [the web UI](web-ui.md) still starts with `npx @uraeda/ui`, and the two share
+nothing but your config folder.
+
+- It listens on http://127.0.0.1:4320, or on `--port`; `--port 0` takes a free port. It keeps its
+  files in `~/.local/share/uraeda-next/`, your data folder with `-next` after its name, or in
+  `--data-dir`.
+- It reads secrets from the `.env` of your config folder only, never from a project or the folder it
+  runs in, and gives them to the agents it runs.
+- Run in a repository, it adds that repository to its list. A second `ura serve` on the same data
+  folder starts nothing: it hands its folder to the first, prints its address, and exits.
+- Ctrl-C, or closing its terminal, stops it, and everything it runs.
 
 `ura extension` manages the extensions in your config folder's `extensions/`. It never runs their
 code: the server does. [Extensions](extensions.md) says how to write one. `add` takes a folder, a

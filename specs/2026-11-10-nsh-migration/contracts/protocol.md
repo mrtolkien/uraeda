@@ -270,11 +270,13 @@ start of a message.
 ## The HTTP routes
 
 A client reaches the server through `/live` and these routes only. Each task that adds a route adds
-its line.
+its line. `POST /open` is not a client's: the host's own `ura` calls it, with the host token of the
+server's status file.
 
 | Route                                                           | For                              | Task |
 | --------------------------------------------------------------- | -------------------------------- | ---- |
 | `GET /live`                                                     | The WebSocket of this contract   | 4    |
+| `POST /open`                                                    | A second start's folder          | 4    |
 | `GET`, `POST`, `DELETE /session`, `DELETE /sessions`            | Signing in and out with the key  | 5    |
 | `GET /session/:token`                                           | Signing in from a link           | 5    |
 | `POST /pair`                                                    | Pairing a device, for its token  | 5    |

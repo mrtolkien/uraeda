@@ -16,6 +16,7 @@ mod note;
 mod output;
 mod picker;
 mod review;
+mod serve;
 mod shell;
 mod start;
 mod status;
@@ -192,6 +193,15 @@ enum Command {
     },
     /// Add, update, remove, and list your extensions, in the config folder's extensions/
     Extension(extension::Args),
+    /// Run Uraeda's server on this machine, until it is stopped
+    Serve {
+        /// The port on 127.0.0.1, 4320 by default; 0 takes a free one
+        #[arg(long)]
+        port: Option<u16>,
+        /// The folder the server keeps its data in
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        data_dir: Option<std::path::PathBuf>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -250,6 +260,7 @@ fn main() -> ExitCode {
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
+        Command::Serve { port, data_dir } => serve::run(port, data_dir),
         Command::Review {
             target,
             comment,

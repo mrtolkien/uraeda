@@ -21,6 +21,7 @@ serde.workspace = true
 serde_json.workspace = true
 uraeda-core.workspace = true
 uraeda-lsp.workspace = true
+uraeda-server.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true

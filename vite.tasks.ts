@@ -263,8 +263,8 @@ export const tasks = {
     cache: { input: rustSources, output: [], untrackedEnv: gtkEnv },
     command: `${heavyRun} cargo clippy --workspace --all-targets -- -D warnings`,
   },
-  // `ura` never builds napi, since a binding built into the other crates' tests would not link, nor
-  // oxc, the extension compiler, which only the binding uses.
+  // `ura` never builds napi, since a binding built into the other crates' tests would not link. It
+  // builds oxc since it holds the server, which compiles extensions' pages with NSH's bundler.
   "rust:features": {
     cache: {
       input: [
@@ -276,8 +276,7 @@ export const tasks = {
       ],
       output: [],
     },
-    command:
-      "! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^(napi(-derive)?|oxc[a-z_]*) v'",
+    command: "! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v'",
   },
   "rust:fmt": {
     cache: {

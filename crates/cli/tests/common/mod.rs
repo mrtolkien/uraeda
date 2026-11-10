@@ -97,7 +97,8 @@ pub fn ura_with_file_limit(repo: &TestRepo, blocks: u64, args: &[&str]) -> Outpu
         .env("LLVM_PROFILE_FILE", "/dev/null"))
 }
 
-fn command(dir: &Path, args: &[&str]) -> Command {
+/// The built `ura` to run in a folder, for a test that starts it itself.
+pub fn command(dir: &Path, args: &[&str]) -> Command {
     configured(Command::new(env!("CARGO_BIN_EXE_ura")), dir, args)
 }
 

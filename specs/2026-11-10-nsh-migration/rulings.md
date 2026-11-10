@@ -518,3 +518,125 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     going wrong when the text changes outside it.
 - **Where**: task 22, `crates/vim/`. Task 30 bridges it to NSH's editor: `Replace` is
   `EditorApi::edit`, `Select` is `set_selections`, `Undo` and `Redo` are `run`.
+
+## R32: `ura serve` listens on 4320 and keeps its files in `uraeda-next`, by flags only
+
+- **Decision**: the Rust server's default port is 4320. Its default data folder is the core's data
+  folder with `-next` after its name: `~/.local/share/uraeda-next` on Linux, and
+  `$URAEDA_DATA_DIR-next` when that variable is set. `--port` and `--data-dir` change them, and no
+  variable or setting does: `URAEDA_PORT`, `URAEDA_DATA_DIR`, and the settings file's `port` stay
+  the Node server's. `--port 0` takes a free port.
+- **Rationale**: R3 keeps the two servers apart while both exist. They read one config folder, so
+  the same `port` in it, or one variable in the human's shell, would send both to one port and one
+  folder.
+- **If wrong**: the two defaults are `DEFAULT_PORT` and `default_data_dir`, in
+  `crates/server/src/lib.rs`, both marked `TEMPORARY:`. Task 61 gives the port its setting, its
+  variable, and the Node server's number.
+- **Where**: task 4, `crates/server/src/lib.rs`, `crates/cli/src/serve.rs`. Tasks 20, 36, and 61.
+
+## R33: A domain mounts itself, shares its state by type, and registers what stops
+
+- **Decision**: a domain of the server is a module with
+  `mount(&Shared, &mut Routes) -> Result<(), Failure>`, and one line in `DOMAINS`, in
+  `crates/server/src/lib.rs`. They mount in that order as the server starts.
+  - **Routes**: `routes.route("/pair", post(pair))`, with axum's handlers over `State<Shared>`.
+    `Server::routes()` lists the paths, so a test can walk them. A rule every request passes is a
+    layer in `http::router`, as the guard is.
+  - **State**: `shared.provide(store)`, read by any domain as `shared.get::<Store>()`, an
+    `Arc<Store>`: one value per type. `get` panics for a type nobody provided, naming it; `find`
+    gives an `Option`.
+  - **Shutdown**: `shared.on_stop("previews", async move { .. })`. `Server::stop` says the server is
+    stopping, which ends `shared.stopping().await` in every connection and task, then runs the
+    registered work, the last registered first, each to its end, then gives open requests 5 seconds.
+    Work registered once the server is stopping runs at once.
+  - **Time and processes**: `shared.now()` is the server's clock, which a test sets. A process
+    starts from `shared.environment().command(program)`.
+- **Rationale**: twenty tasks extend the server, several at once in separate worktrees. With a field
+  per domain in one struct, each would change three places of two shared files. A panic for a
+  missing type shows in the first test, since every test starts the whole server.
+- **Alternatives considered**: a struct with a field per domain: checked by the compiler, and a
+  conflict at each merge. A timeout on each piece of stop work: a command left running in silence,
+  where the stack decision says the server MUST stop them.
+- **If wrong**: `Shared` is one file. A field per domain replaces `provide` and `get` without
+  touching a route.
+- **Where**: task 4, `crates/server/src/{lib,shared,stop,http}.rs`, and the test
+  `stopping_the_server_stops_what_its_domains_registered`. Tasks 5 to 20.
+
+## R34: One server per data folder, found through `run/server.json`
+
+- **Decision**: a running server writes `run/server.json` in its data folder, readable by its owner
+  only: its `pid`, its `port`, and its `token`, the host token, 32 random bytes. It removes the file
+  as it stops.
+  - A start reads that file first, and asks its server to take over: `POST /open` with
+    `Authorization: Bearer <token>` and `{ "folder": "/absolute/path" }`. The answer is
+    `{ "uraeda": "<version>", "url": "/r/<name>/" }`, and the start ends there
+    (`NotStarted::HandedOver`). A file whose server does not answer to its token is one a killed
+    server left: the start goes on, and replaces it.
+  - Then the start takes its port. A port in use is another data folder's server when it answers
+    401, and another program otherwise.
+  - `POST /open` adds the folder's repository to the list, as `ura add` does, through the core. It
+    answers 401 without the host token, and `/` for no folder or one outside git.
+  - `Shared::from_host(headers)` is the check of the host token, for the routes only the host's own
+    `ura` and app call.
+- **Rationale**: the Node server named its token file by its port, so a second start on another port
+  ran a second server on the same files. The Rust server's store has one writer (R2). A file with
+  one name also tells the app where the server listens, on a port it did not choose.
+- **Alternatives considered**: the Node server's `given`, for `--repo`: `ura serve` has no such
+  flag. Its one-time sign-in link: it comes with sign-in, in task 5.
+- **If wrong**: a status file left by a killed server names a port another program may hold now:
+  that program gets one request carrying a token that opens nothing any more. A start waits up to a
+  minute for a server that holds its status file's token and does not answer.
+- **Where**: task 4, `crates/server/src/{status,start,handoff}.rs`, `http/open.rs`, and the test
+  `a_second_start_hands_over_to_the_first`. Tasks 5 and 36.
+
+## R35: The server's environment is a value, with the config folder's `.env`
+
+- **Decision**: `Environment` is the environment the server starts in, then the `.env` of the config
+  folder for each variable that one leaves unset or empty. The server never changes its process's
+  environment, and reads no other `.env`.
+  - `environment().var(name)` reads a variable, and `environment().command(program)` starts a
+    process with exactly these variables: every agent, preview, and command the server runs starts
+    there.
+  - `.env` holds one `NAME=value` per line, with `export`, quotes, and `#` comments.
+  - The allowed host names are read once at the start: `URAEDA_ALLOWED_HOSTS`, or else the settings
+    file's `allowed_hosts`. `Shared::allow_hosts` replaces them: task 7 calls it when the settings
+    change.
+- **Rationale**: a variable set in a running process is unsafe once it has threads, and a test in
+  the same process could not see it. A value is what a test asserts: a command the test's server
+  runs prints the config folder's secret, and nothing of a project's `.env`.
+- **If wrong**: a later task that starts a process with `Command::new` gives it the process's
+  environment, without the secrets. The crate's documentation names the rule; no lint does.
+- **Where**: task 4, `crates/server/src/env.rs`, and the tests
+  `secrets_come_from_the_config_folders_env_only` and, for the folder `ura serve` runs in,
+  `serve_runs_until_it_is_stopped_and_a_second_start_hands_over`. Tasks 7, 12 to 15, and 18.
+
+## R36: The guard is ported whole, frames included, and reads the path as sent
+
+- **Decision**: `guard::refusal(rules, asked)` is `guard.ts`'s rule, with its cases as the rows of
+  `a_request_with_another_sites_origin_is_refused`. It is a layer over every route and the fallback,
+  so it runs before a WebSocket's upgrade.
+  - The rule for a sandboxed frame's `Origin: null` is there too, with `guard::frame_secret(path)`,
+    the one reader of a preview's and a mockup's path. No path is a frame's yet: the layer's `frame`
+    is marked `TEMPORARY:` until task 18 brings the frame secret.
+  - The guard reads the path as the request sent it. axum routes on the same text, so the guard and
+    the router never read two paths, where the Node server normalized it for both.
+  - Every welcomed connection is told `not-signed-in` for a `sub`, a `call`, or a `resume`, as the
+    plan says, until tasks 5 and 6.
+- **Rationale**: the frame rows are the costly ones to lose, and task 18 would otherwise port them
+  from a file task 61 deletes.
+- **Where**: task 4, `crates/server/src/guard.rs`. Tasks 5 and 18.
+
+## R37: `ura` holds the server, so it builds oxc, and grows by 0.85 MB
+
+- **Decision**: `ura` depends on `uraeda-server`. The check `rust:features` of `vp run ready` no
+  longer fails when `ura` builds an oxc crate: it still fails for napi.
+- **Rationale**: the stack decision puts the server inside `ura`, and the server takes NSH's
+  bundler, which is built on oxc, to compile extensions' pages (task 19). The check dated from the
+  time only the Node binding compiled extensions.
+- **What was measured**: the release `ura` is 8,986,752 bytes with the server's skeleton, against
+  8,132,240 bytes for the release build of the day before, without it: 854,512 bytes more, for
+  `axum`, `hyper`, and `tokio`. The bundler adds nothing yet: nothing calls it, so the linker leaves
+  it out. It will count when task 19 calls it.
+- **If wrong**: the earlier figure is the main checkout's build of 2026-11-10, not a build of this
+  branch's parent, so the difference may hold a little of tasks 1 to 3.
+- **Where**: task 4, `crates/cli/Cargo.toml`, `vite.tasks.ts`. Task 19.
