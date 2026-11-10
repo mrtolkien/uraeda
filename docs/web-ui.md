@@ -545,16 +545,17 @@ agent works is steered into its turn. Stop ends the turn and keeps the session.
 The sidebar shows every session with what needs you, what works, and each new reply. Its usage pane
 shows one line per login of every agent that reported its usage, its five hours, with Claude Code's
 accounts first, each by its name, then Codex's, each with its mark; Home's Usage pane adds each
-login's week. The closed rail's one bar shows the first window of the account of the session or
-feature in view, else of the one a new session would start on. A feature reads Working while any of
-its sessions runs, whatever its step. A run that failed or was stopped asks for you until you
-dismiss it, with Dismiss on its feature's or change's card, or on its session's banner. A pull
-request reads "PR ready" only once it holds its branch's latest commit. While its branch holds
-commits the pull request lacks, the feature reads "Push", in In progress, for the agent to push.
-Once main moves past its branch, it reads "Catch up", for the agent to rebase, validate, and push;
-main gaining only priorities, inbox, proposals, or notes does not count. "Catch up open pull
-requests", under Runs in Settings, starts that run by itself, once per commit of main, once no turn
-runs in the feature's latest session. It runs as part of Comments on the run map, on its agent,
+login's week. The closed rail's one bar shows the five hours of the account of the session or
+feature in view, named by its label ("b 5h: 58% left"), else, with none in view, of the one a new
+session would start on; a session whose account is no longer listed shows no bar. A feature reads
+Working while any of its sessions runs, whatever its step. A run that failed or was stopped asks for
+you until you dismiss it, with Dismiss on its feature's or change's card, or on its session's
+banner. A pull request reads "PR ready" only once it holds its branch's latest commit. While its
+branch holds commits the pull request lacks, the feature reads "Push", in In progress, for the agent
+to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase, validate,
+and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch up open
+pull requests", under Runs in Settings, starts that run by itself, once per commit of main, once no
+turn runs in the feature's latest session. It runs as part of Comments on the run map, on its agent,
 model, and effort, in the session its joint gives. Its session opens with the line "Catching up with
 main, which moved to “<subject of the commit>”." A catch-up that meets a conflict with main, one
 needing your choice, asks on the pull request: the feature reads "Needs attention", and its
@@ -732,9 +733,15 @@ signed in and whose week is not used up:
 
 When every signed-in account's week is used up, the first signed-in one listed is picked. A session
 keeps its account: a limit that refuses its run waits for that account's reset, and the run goes on
-by itself then, never on another account. Home's Usage pane lists each account with its five hours
-and its week, an account signed out reads "b · signed out", and a used-up week reads 0% in red. A
-banner in Settings, Extensions, names an account signed out or without its folder.
+by itself then, never on another account.
+
+An account's name is its folder's name without its dot and its `claude-`: `~/.claude-b` reads "b",
+`~/.claude-work` reads "work", and `~/.claude` reads "default". A second folder that would read the
+same as a listed one reads its full path instead. Home's Usage pane lists each account by its name
+with its five hours and its week, and a used-up week reads 0% in red. An account signed out reads "b
+· signed out" on Home and "b signed out" in the sidebar, with no usage; one whose folder is missing
+reads "c · no folder" and "c no folder". A banner in Settings, Extensions, says which of the two,
+and where.
 
 Uraeda gives a session its account only as `CLAUDE_CONFIG_DIR`, and reads none of its credentials.
 Two things Claude Code decides, not Uraeda: an account with usage credits on is never refused, so it
