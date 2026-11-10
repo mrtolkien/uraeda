@@ -16,7 +16,7 @@ import { Page } from "../layout/Page.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import type { BarAction } from "../lists/RowBar.tsx";
 import { useListKeys } from "../lists/useListKeys.ts";
-import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
+import { currentEntry, navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { stepOf } from "../sidebar/cards.ts";
 import { statusLabel } from "../wait.ts";
@@ -74,7 +74,8 @@ function factsOf(
  */
 function useJobsPlace(jobs: ReadonlyArray<JobRow>, handlers: JobsHandlers) {
   const confirm = useConfirm();
-  const [name, setName] = useState<string>();
+  // The job a page named on arrival, as a new job's page does once it added it.
+  const [name, setName] = useState<string | undefined>(() => currentEntry().select);
   const [isBarred, setBarred] = useState(true);
   const [refusals, setRefusals] = useState<ReadonlyMap<string, string>>(new Map());
   const selected = jobs.find((job) => job.name === name) ?? jobs[0];

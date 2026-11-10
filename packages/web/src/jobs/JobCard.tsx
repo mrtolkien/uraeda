@@ -104,10 +104,16 @@ function FactOf({ fact, label }: { fact: Fact; label: string }) {
 }
 
 /**
- * The refusal under the card, in a room that opens as it comes and keeps its words while it closes,
- * so the cards under it glide.
+ * A refusal under a card or a field, in a room that opens as it comes and keeps its words while it
+ * closes, so what is under it glides. With `onDismiss`, it can be dismissed.
  */
-function Refusal({ onDismiss, refusal }: { onDismiss: () => void; refusal: string | undefined }) {
+export function Refusal({
+  onDismiss,
+  refusal,
+}: {
+  onDismiss?: () => void;
+  refusal: string | undefined;
+}) {
   const [shown, setShown] = useState(refusal);
   if (refusal !== undefined && refusal !== shown) {
     setShown(refusal);
@@ -115,14 +121,17 @@ function Refusal({ onDismiss, refusal }: { onDismiss: () => void; refusal: strin
   return (
     <Room gap={1} isOpen={refusal !== undefined} takesGapBack>
       {shown !== undefined && (
-        <AnnouncedBanner
-          collapsible={false}
-          dismissLabel="Dismiss"
-          isDismissable
-          onDismiss={onDismiss}
-          status="error"
-          title={shown}
-        />
+        // Its words stay while the room closes: hidden from a screen reader at once.
+        <div aria-hidden={refusal === undefined}>
+          <AnnouncedBanner
+            collapsible={false}
+            status="error"
+            title={shown}
+            {...(onDismiss === undefined
+              ? {}
+              : { dismissLabel: "Dismiss", isDismissable: true, onDismiss })}
+          />
+        </div>
       )}
     </Room>
   );

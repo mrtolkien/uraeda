@@ -53,6 +53,7 @@ import {
   BufferPage,
   CheckPage,
   GitPage,
+  JobPage,
   JobsPage,
   DecisionsPage,
   EditorPage,
@@ -60,6 +61,7 @@ import {
   FilePage,
   InboxRoute,
   MockupPage,
+  NewJobPage,
   NewPage,
   PrioritiesRoute,
   SessionPage,
@@ -178,6 +180,10 @@ function RoutePage({ route }: { route: Route }) {
       return <GitPage />;
     case "jobs":
       return <JobsPage />;
+    case "job":
+      return <JobPage key={route.name} name={route.name} />;
+    case "job-new":
+      return <NewJobPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "buffer":

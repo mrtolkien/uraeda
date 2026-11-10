@@ -364,3 +364,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an agent that wraps its real offer in an outer fence gets no change started by
   itself, and no card either.
 - **Where**: task 5.
+
+## R25: The phone's schedule is two selectors
+
+- **Decision**: on the phone, a job's schedule kind (Hourly, Daily, Weekdays, Weekly) and its day
+  are the app's selector, which opens as a sheet; on wider screens they are the mockup's segmented
+  controls. Both write the same text. The page's title says "Jobs" above it as text, as the mockup
+  draws it, not as a link.
+- **Rationale**: at 390 px the four kinds need about 400 px and the seven days more, so the segments
+  ran past the pane's edge. A selector is a 44 px field the whole width, as the sandbox review
+  measured. A link above the title was 24 px high on the phone, short of the 44 px every target has
+  there, and the list is one tap away in the app's own navigation.
+- **If wrong**: a human who wants the segments on the phone gets them from a wrapping control that
+  Astryx does not offer today. A job named "new" cannot be opened: its page's address is the new
+  job's, `/jobs/new`; it stays in the list and in `config.toml`.
+- **Where**: task 8.

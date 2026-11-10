@@ -1062,11 +1062,15 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
 **Files:**
 
 - Create: `packages/web/src/jobs/JobPage.tsx`, `packages/web/src/jobs/JobForm.tsx`,
+  `packages/web/src/jobs/useJobForm.ts` (the form's values and saves),
   `packages/web/src/jobs/JobHistory.tsx`
 - Start from: `packages/web/src/jobs/JobPageMockups.stories.tsx`, the stories `JobOpen`,
   `JobOpenPhone`, and `JobNew`
-- Modify: `packages/web/src/extensions/builtins/jobs.tsx` (the two routes),
-  `packages/web/src/jobs/JobPageMockups.stories.tsx` (the stories draw the real components)
+- Modify: `packages/web/src/App.tsx` and `pages.ts` (the two routes, `job` and `job-new`, which
+  `routeTable.ts` and the extension's `OWNERS` named already), `packages/web/src/jobs/JobsPage.tsx`
+  (the list opens on the job a page names), `packages/web/src/jobs/JobCard.tsx` (its `Refusal`,
+  shared), `packages/web/src/jobs/JobPageMockups.stories.tsx` (the stories draw the real components)
+- Test: `packages/web/src/__tests__/job-page.test.tsx`
 
 **Interfaces:**
 
@@ -1074,7 +1078,7 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
   7); `checkedSchedule` is the core's, reached through the mutations' refusals.
 - Produces: nothing later tasks use.
 
-- [ ] **Step 1: Build the page from the mockup**
+- [x] **Step 1: Build the page from the mockup**
 
 - The form's rows are the mockup's: Name, Prompt, Schedule, Repositories, Agent, and Report only.
   The schedule's control writes one of the data model's four forms. The agent's row opens the picker
@@ -1089,20 +1093,27 @@ git commit -m "feat(scheduled-jobs): the Jobs place"
   change's card, as the sidebar draws it, or the line of a skipped time, in the texts of the global
   constraints. A run by "Run now" says so under its card.
 - A name that no job has reads as the app's page for a missing item.
+- Built as: `JobPageView` and `NewJobPageView` take the job, the repositories, the agents on here,
+  and their writes, so the stories and the tests draw them over fixed jobs; `JobPage` and
+  `NewJobPage` read the `Jobs` record and send the writes. A rename moves the page to the new name's
+  address. A refusal of the core shows under its row by its words (a name, a repository, a time),
+  and a new job's other refusal over its button. On the phone the schedule's kind and day are
+  selectors, not segments ([ruling R25](rulings.md#r25-the-phones-schedule-is-two-selectors)). Its
+  tests are `__tests__/job-page.test.tsx`: the form over fixed jobs, with no server.
 
-- [ ] **Step 2: Review it in the sandbox**
+- [x] **Step 2: Review it in the sandbox**
 
 - Run: `vp run sandbox`, open a job, and add one
 - Expected: the page draws as the stories do, in both themes, on a desktop and at 390 px, with no
   sideways scroll and every target 44 px at least on the phone. A hand edit of the sandbox's
   `config.toml` shows on the page within a second.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web
