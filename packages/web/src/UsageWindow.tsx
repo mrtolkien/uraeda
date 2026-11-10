@@ -35,6 +35,14 @@ export function fiveHours<Each extends { id: string }>(windows: ReadonlyArray<Ea
   return windows.find((window) => window.id === FIVE_HOUR_WINDOW);
 }
 
+/**
+ * Whether the sidebar's compact body draws a line for the runtime: each account's, else its five
+ * hours. A runtime that reported only its week, or a window of unknown length, draws none.
+ */
+export function hasSidebarLine(runtime: Pick<Runtime, "accounts" | "usage">): boolean {
+  return runtime.accounts.length > 0 || fiveHours(runtime.usage) !== undefined;
+}
+
 /** When a window resets: its time today, or its day and time on another day. */
 function resets(resetsAt: string) {
   const at = new Date(resetsAt);

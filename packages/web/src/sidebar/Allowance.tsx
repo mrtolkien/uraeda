@@ -1,11 +1,12 @@
 // The usage windows every runtime on reported, Claude Code's five hours and its week, then Codex's,
 // in the "Usage" pane at the column's foot, as Home's pane lists them, and until a run reports one,
-// nothing. In the closed rail the pane is hidden and a small bar stands in for it, on the icons'
-// axis: what is left of the five hours alone, the shortest, of the runtime in view, red once it
-// is nearly gone: the runtime of the session shown, or of the feature shown, its latest session's,
-// else the one new sessions run on. With accounts, the bar is the first window of the account of
-// the session in view, of the feature's latest session likewise, else, with no session in view, of the one a
-// new session would start on; a session whose account is not listed, or has none, shows no bar.
+// nothing: the pane shows only when a line is drawn, an account's or a five-hour window's. In the
+// closed rail the pane is hidden and a small bar stands in for it, on the icons' axis: what is left
+// of the five hours alone, the shortest, of the runtime in view, red once it is nearly gone: the
+// runtime of the session shown, or of the feature shown, its latest session's, else the one new
+// sessions run on. With accounts, the bar is the first window of the account of the session in
+// view, of the feature's latest session likewise, else, with no session in view, of the one a new
+// session would start on; a session whose account is not listed, or has none, shows no bar.
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
@@ -14,7 +15,7 @@ import { useAgent, useFeature } from "../data.ts";
 import { type Runtime, useSessionAgent } from "../runtimes.ts";
 import { useRoute } from "../routes.tsx";
 import type { Route } from "../routeTable.ts";
-import { fiveHours, UsageWindows, useReportedRuntimes } from "../UsageWindow.tsx";
+import { fiveHours, hasSidebarLine, UsageWindows, useReportedRuntimes } from "../UsageWindow.tsx";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
 
@@ -94,14 +95,15 @@ export function AllowancePane({
 
 function Bar({ accountId, agent }: { accountId?: string | null; agent: Runtime | undefined }) {
   const window = barWindow(agent, accountId);
-  const reported = useReportedRuntimes();
+  // Only the runtimes whose compact body draws a line: a pane with none would stand empty.
+  const shown = useReportedRuntimes().filter(hasSidebarLine);
   const isRail = useClosedRail();
-  if (reported.length === 0) {
+  if (shown.length === 0) {
     return null;
   }
   return (
     <>
-      <AllowancePane isRail={isRail} runtimes={reported} />
+      <AllowancePane isRail={isRail} runtimes={shown} />
       {window && <RailBar isRail={isRail} window={window} />}
     </>
   );

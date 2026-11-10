@@ -188,10 +188,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   path from the accounts to the runtimes, for a list that is asked again at each start and each
   opening of the picker.
 - **If wrong**: an ask that `models()` starts itself, when it comes before any page's read, answers
-  its accounts with no announce until the next one. Review finding 9 (a second ask path beside
-  R10's) is accepted as that: R10's refresher announces for the pages and the pick, and `models()`
-  only reads its answer. A slow account whose status has not come in 4 seconds leaves the list asked
-  in a folder that looks ready by default.
+  its accounts with no announce until the next one (R23). A slow account whose status has not come
+  in 4 seconds leaves the list asked in a folder that looks ready by default.
 - **Where**: task 3 of the plan, `ClaudeAdapter.models` in `runner/claude.ts`.
 
 ## R12: A missing folder reads "no folder", a signed-out account "signed out"
@@ -323,3 +321,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   account.
 - **Where**: `listed` in `runner/account-pick.ts`; `accountRecords`, `Processes.reports`, and
   `Processes.#pick`.
+
+## R21: The sidebar's Usage pane shows only when its compact body draws a line
+
+- **Decision**: the sidebar's Usage pane, and so its rail's bar, take only the runtimes for which
+  `hasSidebarLine` holds: one that lists an account, or reported a window whose ID is `five_hour`
+  (R14). With none, there is no pane. Home's pane is unchanged: it lists every window.
+- **Rationale**: finding 8 of the branch review. The pane showed whenever a runtime reported any
+  window, but its compact body draws only the five hours: Codex reporting only its week, or a window
+  of unknown length, drew a titled "Usage" pane with nothing in it.
+- **Alternatives considered**: drawing the week in the sidebar for such a runtime: R14 keeps the
+  sidebar to the five hours, which the week never stands in for.
+- **Where**: `hasSidebarLine` in `UsageWindow.tsx`, `Bar` in `sidebar/Allowance.tsx`.
+
+## R22: Reading the agent's record asks stale usage, whichever page reads it
+
+- **Decision**: no change. `refreshAccounts()` stays where `fate/sessions.ts` reads the agent's
+  record, so any page reading it asks the stale accounts, at most once a minute per account
+  (SC-005). The spec's "when Home or the settings open" is met, and every page also meets it.
+- **Rationale**: finding 3 of the branch review, dropped. Every page reads the agent's record (the
+  sidebar's usage pane and the rail's bar are on all of them), so asking for Home and the settings
+  alone needs a request from the web that the plan did not have: a field or a mutation those two
+  views send, and the sidebar's usage would then wait for one of them. The cost is bounded: one ask
+  per account in a minute, two short processes each, while a page is open.
+- **Alternatives considered**: a mutation the web calls when Home or the settings open: a second
+  path to the same ask, and a stale sidebar elsewhere.
+- **If wrong**: raise `USAGE_MAX_AGE_MS`, which the pick shares, or add that request then.
+- **Where**: `fate/sessions.ts`, `AccountRefresh` in `runner/account-records.ts`.
+
+## R23: `models()` asks the accounts outside the refresher
+
+- **Decision**: no change. `ClaudeAdapter.models()` asks its accounts directly, as R11 says, and its
+  answers are not announced.
+- **Rationale**: finding 9 of the branch review, dropped. `AccountRefresh` lives in `Sessions`,
+  which knows the runtimes; the adapter does not know it, and a callback from an adapter to the
+  refresher is the "second path from the accounts" R11 refused. The ask is the same
+  `refresh(USAGE_MAX_AGE_MS)` the refresher calls, shared per account while in flight and kept a
+  minute, so a pick or a page right after finds the answers; the next announce, the server's start
+  asks before registration does, shows them.
+- **Alternatives considered**: giving `models()` a refresher passed to the adapter at registration:
+  the Extensions host would then need it for every extension's runtime.
+- **If wrong**: a page that read the agent's record before `models()` ran keeps its old accounts
+  until the next announce, a minute at most once a page asks again.
+- **Where**: `ClaudeAdapter.models` in `runner/claude.ts`.

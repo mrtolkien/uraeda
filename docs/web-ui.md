@@ -543,25 +543,25 @@ composer, as the run map's joints say. Nothing goes until you send it. A message
 agent works is steered into its turn. Stop ends the turn and keeps the session.
 
 The sidebar shows every session with what needs you, what works, and each new reply. Its usage pane
-shows one line per login of every agent that reported its usage, its five hours, with Claude Code's
-accounts first, each by its name, then Codex's, each with its mark; Home's Usage pane adds each
-login's week. The closed rail's one bar shows the five hours of the account of the session or
-feature in view, named by its label ("b 5h: 58% left"), else, with none in view, of the one a new
-session would start on; a session whose account is no longer listed shows no bar. A feature reads
-Working while any of its sessions runs, whatever its step. A run that failed or was stopped asks for
-you until you dismiss it, with Dismiss on its feature's or change's card, or on its session's
-banner. A pull request reads "PR ready" only once it holds its branch's latest commit. While its
-branch holds commits the pull request lacks, the feature reads "Push", in In progress, for the agent
-to push. Once main moves past its branch, it reads "Catch up", for the agent to rebase, validate,
-and push; main gaining only priorities, inbox, proposals, or notes does not count. "Catch up open
-pull requests", under Runs in Settings, starts that run by itself, once per commit of main, once no
-turn runs in the feature's latest session. It runs as part of Comments on the run map, on its agent,
-model, and effort, in the session its joint gives. Its session opens with the line "Catching up with
-main, which moved to “<subject of the commit>”." A catch-up that meets a conflict with main, one
-needing your choice, asks on the pull request: the feature reads "Needs attention", and its
-session's banner says "The catch-up stopped on a conflict." until you answer by requesting changes,
-or dismiss it with Dismiss. A catch-up you stopped or dismissed is not started again until main
-moves again.
+shows one line per login of every agent that reported its five hours (one that reported only its
+week has none, and with no line there is no pane), with Claude Code's accounts first, each by its
+name, then Codex's, each with its mark; Home's Usage pane adds each login's week. The closed rail's
+one bar shows the five hours of the account of the session or feature in view, named by its label
+("b 5h: 58% left"), else, with none in view, of the one a new session would start on; a session
+whose account is no longer listed shows no bar. A feature reads Working while any of its sessions
+runs, whatever its step. A run that failed or was stopped asks for you until you dismiss it, with
+Dismiss on its feature's or change's card, or on its session's banner. A pull request reads "PR
+ready" only once it holds its branch's latest commit. While its branch holds commits the pull
+request lacks, the feature reads "Push", in In progress, for the agent to push. Once main moves past
+its branch, it reads "Catch up", for the agent to rebase, validate, and push; main gaining only
+priorities, inbox, proposals, or notes does not count. "Catch up open pull requests", under Runs in
+Settings, starts that run by itself, once per commit of main, once no turn runs in the feature's
+latest session. It runs as part of Comments on the run map, on its agent, model, and effort, in the
+session its joint gives. Its session opens with the line "Catching up with main, which moved to
+“<subject of the commit>”." A catch-up that meets a conflict with main, one needing your choice,
+asks on the pull request: the feature reads "Needs attention", and its session's banner says "The
+catch-up stopped on a conflict." until you answer by requesting changes, or dismiss it with Dismiss.
+A catch-up you stopped or dismissed is not started again until main moves again.
 
 Each workflow step is a run of its own: the run's message says where it stops, at the end of its
 step. When a run ends its step before a gate of yours, Uraeda starts the next step's run itself, in
