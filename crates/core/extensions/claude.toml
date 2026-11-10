@@ -11,3 +11,9 @@ type = "string"
 default = "claude"
 label = "Command"
 help = "The command sessions run."
+
+[settings.accounts]
+type = "list"
+default = []
+label = "Accounts"
+help = "The Claude Code configuration folders new sessions pick between, one per line: the one with the most of its five hours left."

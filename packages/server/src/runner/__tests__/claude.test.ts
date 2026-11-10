@@ -16,7 +16,7 @@ import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { lines, MODELS_KILL_AFTER_MS, MODELS_TIMEOUT_MS } from "../child.ts";
 import { allowRule, type Blocks, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
-import { ClaudeAdapter, claudeArgs, extensionPlugins, prunePlugins } from "../claude.ts";
+import { ClaudeAdapter, claudeArgs, claudeEnv, extensionPlugins, prunePlugins } from "../claude.ts";
 import { claudeModels, claudeRunsOn } from "../claude-control.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { webUiInstructions } from "../instructions.ts";
@@ -688,6 +688,26 @@ test("a session exists when its transcript is found", () => {
       pluginDir: "/p",
     }).hasSession("3f2c"),
   ).toBe(false);
+  // SC-002: a session's transcript is looked for in its account's folder, and there alone.
+  const other = temporaryFolder("uraeda-claude-b");
+  mkdirSync(join(other, "projects", "-w"), { recursive: true });
+  writeFileSync(join(other, "projects", "-w", "7b7b.jsonl"), "");
+  expect(adapter.hasSession("7b7b", other)).toBe(true);
+  expect(adapter.hasSession("7b7b")).toBe(false);
+  expect(adapter.hasSession("3f2c", other)).toBe(false);
+});
+
+test("a process gets its account as its configuration folder", () => {
+  const open = { cwd: "/w", nativeId: "id", resume: false, skills: [] };
+  const account = "/home/u/.claude-b";
+  expect(claudeEnv({ ...open, account })).toMatchObject({ CLAUDE_CONFIG_DIR: account });
+  expect(claudeEnv(open)).toBeUndefined();
+  const tools = { token: "secret-token", url: "http://127.0.0.1:4000/mcp" };
+  expect(claudeEnv({ ...open, account, tools })).toEqual({
+    CLAUDE_CONFIG_DIR: account,
+    [TOKEN_VARIABLE]: "secret-token",
+  });
+  expect(claudeEnv({ ...open, tools })).not.toHaveProperty("CLAUDE_CONFIG_DIR");
 });
 
 /** A line of Claude Code's output, as JSON. */

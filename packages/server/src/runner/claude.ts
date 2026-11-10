@@ -22,14 +22,8 @@ import type {
   ReviewAsk,
   ReviewMessage,
 } from "./adapter.ts";
-import {
-  type Child,
-  endShortProcess,
-  EventQueue,
-  lines,
-  MODELS_TIMEOUT_MS,
-  spawnGrouped,
-} from "./child.ts";
+import { type Child, EventQueue, lines, spawnGrouped } from "./child.ts";
+import { askShort, claudeAsk, ClaudeAccounts } from "./claude-accounts.ts";
 import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
@@ -44,22 +38,6 @@ import {
 
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5000;
-/**
- * The arguments of that process: print mode and stream-json, as a session's, in `auto` mode, which
- * the list says each model keeps or drops, and no transcript written, as no message is sent.
- */
-const MODELS_ARGS = [
-  "-p",
-  "--input-format",
-  "stream-json",
-  "--output-format",
-  "stream-json",
-  "--verbose",
-  "--permission-mode",
-  "auto",
-  "--no-session-persistence",
-];
-
 /** Where sessions write extensions, read their documentation, and get their skills. */
 export type ClaudeExtensions = ExtensionPaths & {
   /** The folder of the extensions' plugins, `<data folder>/extension-plugins`. */
@@ -222,7 +200,24 @@ export function claudeArgs(
   ];
 }
 
+/**
+ * The environment a process adds to the server's: its token when it gets Uraeda's tools, and its
+ * account as the configuration folder Claude Code reads. Undefined when it adds nothing.
+ */
+export function claudeEnv(options: OpenOptions): Record<string, string> | undefined {
+  const tools = toolsEnv(options.tools);
+  if (options.account === undefined) {
+    return tools;
+  }
+  return { ...tools, CLAUDE_CONFIG_DIR: options.account };
+}
+
 export type ClaudeAdapterOptions = {
+  /**
+   * The `accounts` setting's lines, the configuration folders new sessions pick between: none, or
+   * none that is a folder, gives the adapter no accounts.
+   */
+  accounts?: ReadonlyArray<string>;
   /** The command to run, `claude` from the `PATH` by default. */
   command?: string;
   /** Claude Code's configuration folder, where it keeps its transcripts. */
@@ -273,6 +268,8 @@ export class ClaudeAdapter implements Adapter {
   readonly icon = "uraeda:harness-claude";
   readonly kind = "claude";
   readonly name = "Claude Code";
+  /** The listed folders, when the setting gives one. */
+  readonly accounts: ClaudeAccounts | undefined;
   /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */
   readonly capabilities: Capabilities = {
     approvals: false,
@@ -289,6 +286,7 @@ export class ClaudeAdapter implements Adapter {
   #extensions: ClaudeExtensions | undefined;
 
   constructor({
+    accounts,
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
     extensions,
@@ -297,6 +295,8 @@ export class ClaudeAdapter implements Adapter {
   }: ClaudeAdapterOptions) {
     this.#extensions = extensions;
     this.#command = command;
+    const listed = new ClaudeAccounts({ ask: claudeAsk(command), lines: accounts ?? [] });
+    this.accounts = listed.folders.length > 0 ? listed : undefined;
     this.#configDir = configDir;
     this.#pluginDir = pluginDir;
     this.#imagesDir = imagesDir;
@@ -316,9 +316,12 @@ export class ClaudeAdapter implements Adapter {
     });
   }
 
-  /** Looks for `<configDir>/projects/*\/<id>.jsonl`, without reading any file. */
-  hasSession(nativeId: string): boolean {
-    const projects = join(this.#configDir, "projects");
+  /**
+   * Looks for `<account>/projects/*\/<id>.jsonl`, the adapter's own folder without an account,
+   * without reading any file.
+   */
+  hasSession(nativeId: string, account?: string): boolean {
+    const projects = join(account ?? this.#configDir, "projects");
     let folders: Array<string>;
     try {
       folders = readdirSync(projects);
@@ -345,44 +348,25 @@ export class ClaudeAdapter implements Adapter {
       extensionPlugins(options.skills, extensions.plugins);
     }
     const args = claudeArgs(options, this.#pluginDir, this.#imagesDir, extensions);
-    return spawnGrouped(this.#command, args, options.cwd, toolsEnv(options.tools));
+    return spawnGrouped(this.#command, args, options.cwd, claudeEnv(options));
   }
 
   /**
    * The models listed for the account, through a short process, closed once it answered
    * `list_models` and `get_settings`, which spend no usage: rejected when it fails to answer within
-   * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that.
+   * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that. With
+   * accounts, it runs in the first listed account's folder.
    */
   async models(): Promise<ModelList> {
-    const short = spawnGrouped(this.#command, MODELS_ARGS, homedir());
-    const controls = new Controls(short.write);
-    void (async () => {
-      try {
-        for await (const line of lines(short.child.stdout)) {
-          controls.answer(line);
-        }
-      } catch {
-        // A process that failed to start has no output.
-      }
-      const { missing, stderr } = await short.exited;
-      controls.end(
-        missing
-          ? `Claude Code is not available: ${stderr}`
-          : `Claude Code exited before listing its models${stderr === "" ? "" : `: ${stderr}`}`,
-      );
-    })();
-    const timer = setTimeout(() => {
-      controls.end(
-        `Claude Code did not list its models within ${MODELS_TIMEOUT_MS / 1000} seconds`,
-      );
-    }, MODELS_TIMEOUT_MS);
-    try {
-      const list = await controls.ask({ subtype: "list_models" });
-      return claudeModels(list, await controls.ask({ subtype: "get_settings" }));
-    } finally {
-      clearTimeout(timer);
-      endShortProcess(short);
-    }
+    const folder = this.accounts?.folders[0]?.id;
+    const [list, settings] = await askShort(
+      this.#command,
+      homedir(),
+      folder === undefined ? undefined : { CLAUDE_CONFIG_DIR: folder },
+      [{ subtype: "list_models" }, { subtype: "get_settings" }],
+      { did: "list its models", exited: "listing its models" },
+    );
+    return claudeModels(list, settings);
   }
 
   reviewMessage(ask: ReviewAsk): ReviewMessage {
