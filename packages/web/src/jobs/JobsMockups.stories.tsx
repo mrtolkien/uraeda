@@ -1,4 +1,4 @@
-// The scheduled jobs' stories (`specs/2026-11-10-scheduled-jobs/spec.md`): the Jobs place of a
+// The scheduled jobs' stories (`specs/done/2026-11-10-scheduled-jobs.md`): the Jobs place of a
 // repository, its jobs as cards, at rest, empty, and with every job off; the lines a scheduled run
 // leaves in its session; and the Runs settings' new switch. The real components over fixed jobs,
 // with no server. The navigation around the pages is the fixture's.

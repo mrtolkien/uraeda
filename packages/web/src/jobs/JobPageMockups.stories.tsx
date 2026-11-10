@@ -1,4 +1,4 @@
-// The mockups of a scheduled job's page (`specs/2026-11-10-scheduled-jobs/spec.md`): its form, each
+// The mockups of a scheduled job's page (`specs/done/2026-11-10-scheduled-jobs.md`): its form, each
 // field saved as it is left, and its history in the repository, and a new job's form. The real page
 // over fixed jobs, with no server: the stories show the look, and the page's data is the Jobs
 // record's. Each write is answered at once, "Run now" included. The list of jobs is in

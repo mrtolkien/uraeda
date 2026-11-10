@@ -32,7 +32,7 @@ nobody starts does not happen. Continuing and scheduling keep the workflow async
 without a cap could loop, and catching up spends usage on every merge, so the human sets both. A job
 read from a repository would let whoever pushes there run an agent on the human's machine. A run
 that polls cannot read the human's messages. History:
-[Scheduled jobs](../2026-11-10-scheduled-jobs/spec.md).
+[Scheduled jobs](../done/2026-11-10-scheduled-jobs.md).
 
 ## Alternatives considered
 
