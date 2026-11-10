@@ -15,9 +15,12 @@ export type JobRunRow = {
   blockedBy: string | null;
   /** The scheduled time it answers, in ms since the epoch: null for "Run now". */
   due: number | null;
+  /** Why a scheduled start failed, null for every other row (R45). */
+  error: string | null;
   id: number;
   job: string;
-  outcome: "skipped" | "started";
+  /** `failed`: the time's session could not start (R45). */
+  outcome: "failed" | "skipped" | "started";
   /** Why it was skipped. */
   reason: "change-open" | "working" | null;
   /** Why the change its run offered could not start, null when nothing refused (R1). */
@@ -36,6 +39,7 @@ type Stored = {
   at: number;
   blocked_by: string | null;
   due: number | null;
+  error: string | null;
   id: number;
   job: string;
   outcome: JobRunRow["outcome"];
@@ -53,7 +57,7 @@ function toRow({ blocked_by: blockedBy, refused_turn: refusedTurn, ...row }: Sto
 
 /** The table's columns, as `SELECT` lists them. */
 const COLUMNS =
-  "id, job, repository, due, at, trigger, outcome, reason, session, refusal, refused_turn, blocked_by";
+  "id, job, repository, due, at, trigger, outcome, reason, session, refusal, refused_turn, blocked_by, error";
 
 /** The record of runs: made by `SessionCache`, which owns the database. */
 export class JobRuns {
@@ -80,16 +84,17 @@ export class JobRuns {
    * and repository.
    */
   add(
-    row: Omit<JobRunRow, "blockedBy" | "id" | "refusal" | "refusedTurn"> & {
+    row: Omit<JobRunRow, "blockedBy" | "error" | "id" | "refusal" | "refusedTurn"> & {
       blockedBy?: string | null;
+      error?: string | null;
     },
   ): JobRunRow | undefined {
     const added = transaction(this.#db, () => {
       const stored = this.#db
         .prepare(
           `INSERT INTO job_runs
-             (job, repository, due, at, trigger, outcome, reason, session, blocked_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             (job, repository, due, at, trigger, outcome, reason, session, blocked_by, error)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (job, repository, due) DO NOTHING RETURNING ${COLUMNS}`,
         )
         .get(
@@ -102,6 +107,7 @@ export class JobRuns {
           row.reason,
           row.session,
           row.blockedBy ?? null,
+          row.error ?? null,
         ) as Stored | undefined;
       if (stored === undefined) {
         return undefined;
@@ -195,6 +201,18 @@ export class JobRuns {
       )
       .all(repository) as Array<{ folder: string }>;
     return new Set(rows.map(({ folder }) => folder));
+  }
+
+  /** The job's latest scheduled start that failed in the repository (R45). */
+  latestFailed(job: string, repository: string): JobRunRow | undefined {
+    const row = this.#db
+      .prepare(
+        `SELECT ${COLUMNS} FROM job_runs
+         WHERE job = ? AND repository = ? AND outcome = 'failed'
+         ORDER BY id DESC LIMIT 1`,
+      )
+      .get(job, repository) as Stored | undefined;
+    return row && toRow(row);
   }
 
   /** The run that started the session, when a job did. */

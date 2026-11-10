@@ -23,10 +23,12 @@ export type JobRunView = {
   blockedBy: { folder: string; title: string } | null;
   /** The scheduled time it answers; null for "Run now". */
   due: string | null;
+  /** Why a scheduled start failed, for an `outcome` of `failed`; null for every other row (R45). */
+  error: string | null;
   /** The folder of the change its session became, when it did. */
   folder: string | null;
   id: string;
-  outcome: "skipped" | "started";
+  outcome: "failed" | "skipped" | "started";
   reason: "change-open" | "working" | null;
   session: string | null;
   /** Its session's title. */
@@ -42,8 +44,9 @@ export type JobRow = {
   /** The job's place in the file, which tells two jobs of one name apart. */
   index: number;
   /**
-   * The latest run that started a session here, apart from `history`, which holds the 50 newest rows
-   * and may hold none of the started ones.
+   * The latest run here, apart from `history`, which holds the 50 newest rows and may hold none of
+   * the started ones: the latest that started a session, or a scheduled start that failed when it
+   * is newer (R45).
    */
   last: JobRunView | null;
   model: string | null;
@@ -145,6 +148,7 @@ function viewOf(ctx: RepoContext, run: JobRunRow, changes: Changes | undefined):
     blockedBy:
       run.blockedBy === null || title === undefined ? null : { folder: run.blockedBy, title },
     due: run.due === null ? null : iso(run.due),
+    error: run.error,
     folder: session?.folder ?? null,
     id: String(run.id),
     outcome: run.outcome,
@@ -155,9 +159,16 @@ function viewOf(ctx: RepoContext, run: JobRunRow, changes: Changes | undefined):
   };
 }
 
-/** The job's latest run that started a session in the repository, or null. */
+/**
+ * The job's latest run in the repository, or null: the latest that started a session, or the latest
+ * start that failed, when it is newer. A skipped time is no run.
+ */
 function lastOf(ctx: RepoContext, job: string, root: string): JobRunView | null {
-  const run = ctx.sessions.cache.jobs.latestStarted(job, root);
+  const { jobs } = ctx.sessions.cache;
+  const started = jobs.latestStarted(job, root);
+  const failed = jobs.latestFailed(job, root);
+  const run =
+    failed !== undefined && (started === undefined || failed.id > started.id) ? failed : started;
   return run === undefined ? null : viewOf(ctx, run, undefined);
 }
 

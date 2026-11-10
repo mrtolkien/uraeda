@@ -438,7 +438,8 @@ export type JobRunRow = {
   due: number | null;
   id: number;
   job: string;
-  outcome: "skipped" | "started";
+  outcome: "failed" | "skipped" | "started"; // failed: a scheduled start whose session did not start (R45)
+  error: string | null; // why it failed
   reason: "change-open" | "working" | null;
   refusal: string | null;
   refusedTurn: number | null;
@@ -520,11 +521,12 @@ The break each test catches:
   local time that happens twice is its first, but an hourly schedule runs in each real hour
   ([ruling R10](rulings.md)).
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
-  [ruling R1](rulings.md), `refusal` and `refused_turn`, and, in a step of its own, `blocked_by`
-  ([ruling R36](rulings.md)), unique on `(job, repository, due)`, an index with no condition: SQLite
-  counts each null `due` as distinct, and the reads of a job and repository use it. `add` prunes its
-  job and repository to the 50 latest rows, the latest started one with a session, and each started
-  one whose session is in a change or a feature ([rulings R8 and R15](rulings.md)).
+  [ruling R1](rulings.md), `refusal` and `refused_turn`, with `blocked_by`
+  ([ruling R36](rulings.md)) and `error` ([ruling R45](rulings.md)), in one step, unique on
+  `(job, repository, due)`, an index with no condition: SQLite counts each null `due` as distinct,
+  and the reads of a job and repository use it. `add` prunes its job and repository to the 50 latest
+  rows, the latest started one with a session, and each started one whose session is in a change or
+  a feature ([rulings R8 and R15](rulings.md)).
 - `cache.ts` has 5 lines left: add the `jobs` property and nothing else there.
 - The switch follows `catchUpPullRequests` through `options.ts`, `env.ts`, and `settings.ts`, but on
   by default: `--no-scheduled-jobs` turns it off, as `--no-continue-after-restart` does, and
@@ -671,12 +673,14 @@ the job's name, sends `jobMessage` with its line and the origin `workflow`, and 
 session with `JobRuns.setSession`, before the first turn starts, so the turn's end finds the row by
 its session ([ruling R11](rulings.md)). When the chat does not start, it removes the row with
 `JobRuns.remove`, removes the chat it made through the session manager, which reports it to the
-clients, and rethrows, so the time is not marked run ([rulings R9 and R14](rulings.md)).
-`jobMessage` is the prompt, then a rule, then Uraeda's note. The note says the session was started
-by the scheduled job, by name, and that nobody follows it. For a job that is not report only, it
-says to offer a needed code change once, as a change, then stop, since Uraeda starts it and the next
-message continues in its worktree. For a report-only job, it says to change no file, and that an
-offer waits for the human. Both say to answer in one line when nothing needs doing.
+clients, and rethrows. The scheduler then records the time once, as `failed` with the error's text
+as `error`, so it is not tried again and the history says why ([rulings R9 and R45](rulings.md)); a
+failed "Run now" records nothing. `jobMessage` is the prompt, then a rule, then Uraeda's note. The
+note says the session was started by the scheduled job, by name, and that nobody follows it. For a
+job that is not report only, it says to offer a needed code change once, as a change, then stop,
+since Uraeda starts it and the next message continues in its worktree. For a report-only job, it
+says to change no file, and that an offer waits for the human. Both say to answer in one line when
+nothing needs doing.
 
 - [x] **Step 4: Implement the scheduler and wire it**
 
@@ -894,7 +898,8 @@ export type JobRunView = {
   due: string | null;
   folder: string | null;
   id: string;
-  outcome: "skipped" | "started";
+  outcome: "failed" | "skipped" | "started";
+  error: string | null; // why a scheduled start failed (R45)
   reason: "change-open" | "working" | null;
   session: string | null;
   title: string | null;

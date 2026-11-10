@@ -48,6 +48,7 @@ const RUN = {
   at: at(12, 3),
   blockedBy: null,
   due: at(12, 3),
+  error: null,
   folder: "2026-11-12-upgrade",
   id: "1",
   outcome: "started" as const,

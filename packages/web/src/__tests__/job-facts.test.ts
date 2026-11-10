@@ -68,6 +68,7 @@ const run = (folder: string | null) => ({
   at: new Date(2026, 10, 12, 3).toISOString(),
   blockedBy: null,
   due: null,
+  error: null,
   folder,
   id: "1",
   outcome: "started" as const,
@@ -110,6 +111,16 @@ test.each([
     "problem",
   ],
   [run(null), undefined, "Today at 3:00 · “Upgrade three dependencies”", "quiet"],
+  [
+    {
+      ...run(null),
+      error: "Claude Code has no model opus-9: pick another",
+      outcome: "failed" as const,
+    },
+    undefined,
+    "Today at 3:00 · Could not start: Claude Code has no model opus-9: pick another",
+    "problem",
+  ],
 ])("lastFact(%#) says %s", (given, read, text, tone) =>
   expect(lastFact(given, read, NOW, ZONE)).toMatchObject({ text, tone }),
 );

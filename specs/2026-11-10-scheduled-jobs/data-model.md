@@ -63,18 +63,22 @@ or `false`, else the file, else on.
 One row per time a job was due in a repository, or was run by hand, in `runner.sqlite`, the cache of
 sessions. A cache that cannot be read starts empty: the history is lost.
 
-| Field        | Type                              | Meaning                                                    | Change |
-| ------------ | --------------------------------- | ---------------------------------------------------------- | ------ |
-| `job`        | text                              | the job's name                                             | New    |
-| `repository` | path                              | the repository's main checkout                             | New    |
-| `due`        | time, or null                     | the scheduled time it answers; null for "Run now"          | New    |
-| `at`         | time                              | when it started, or was skipped                            | New    |
-| `trigger`    | `schedule` or `manual`            | at its time, or by "Run now"                               | New    |
-| `outcome`    | `started` or `skipped`            | whether a session started                                  | New    |
-| `reason`     | `working`, `change-open`, or null | why it was skipped                                         | New    |
-| `session`    | session ID, or null               | the session it started, which leads to the change it began | New    |
+| Field        | Type                              | Meaning                                                              | Change |
+| ------------ | --------------------------------- | -------------------------------------------------------------------- | ------ |
+| `job`        | text                              | the job's name                                                       | New    |
+| `repository` | path                              | the repository's main checkout                                       | New    |
+| `due`        | time, or null                     | the scheduled time it answers; null for "Run now"                    | New    |
+| `at`         | time                              | when it started, or was skipped                                      | New    |
+| `trigger`    | `schedule` or `manual`            | at its time, or by "Run now"                                         | New    |
+| `outcome`    | `started`, `skipped`, or `failed` | whether a session started, the time was skipped, or its start failed | New    |
+| `reason`     | `working`, `change-open`, or null | why it was skipped                                                   | New    |
+| `error`      | text, or null                     | why a scheduled start failed, for `failed`                           | New    |
+| `session`    | session ID, or null               | the session it started, which leads to the change it began           | New    |
 
 - A scheduled time runs once: a server that restarts within its minute finds its row.
+- A scheduled start that fails, because the agent or the model it names cannot open a session, is
+  recorded once as `failed`, with its `error`, and is not tried again: the history lists it, and the
+  card's last run says it while it is the newest run. A failed "Run now" records nothing.
 - The history keeps the 50 latest rows of each job and repository, and besides them the latest
   `started` one that has a session, and every `started` one whose session is in a change or a
   feature, which the open-change check and the offer's acceptance read

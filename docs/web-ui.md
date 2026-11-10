@@ -858,7 +858,11 @@ one too, and so do the times that pass while it is paused or "Run scheduled jobs
 repository still works, or waits for a wakeup its agent set, "Skipped: its last run still works.",
 or while a change one of its runs started there is still open, "Skipped: the change “<title>” is
 still open.", naming the open change by its own title. A skipped time is not made up either. Once
-the change is merged or dropped, the next time runs.
+the change is merged or dropped, the next time runs. A time whose run could not start, a model the
+agent no longer lists for instance, is recorded once and not tried again: the history says "Could
+not start: <why>", and so does the card's "Last run" while that is the job's newest run, so you see
+it without opening the page. The next time tries again. A "Run now" that cannot start is refused
+under the card and records nothing.
 
 **The change a run starts.** When a run's last word is an offer of a change, Uraeda starts that
 change as the offer's card does, with its proposal, its branch, and its worktree. The session moves

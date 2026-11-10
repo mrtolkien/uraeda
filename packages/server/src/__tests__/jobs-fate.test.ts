@@ -384,6 +384,47 @@ test("the record gives the latest started run beyond the history's 50 rows", asy
 });
 
 /**
+ * Review 07, finding 4. Catches: a scheduled start that failed leaving no trace: the history lists
+ * it with why, and the card's last run is the failed start while it is the newest run, however many
+ * skipped times follow it, until a run starts.
+ */
+test("a failed start is in the history, and is the card's last run while it is the newest run", async () => {
+  const run = await setup((name) => table("Hourly", [name]));
+  const { cache } = run.server.sessions;
+  const root = await run.server.sessions.mainRoot(run.server.repo);
+  const chat = await run.server.sessions.newChat(run.server.repo);
+  const add = (due: number, outcome: "failed" | "skipped" | "started") =>
+    cache.jobs.add({
+      at: due,
+      due,
+      ...(outcome === "failed" && { error: "Claude Code has no model opus-9: pick another" }),
+      job: "Hourly",
+      outcome,
+      reason: outcome === "skipped" ? "working" : null,
+      repository: root,
+      session: outcome === "started" ? chat.id : null,
+      trigger: "schedule",
+    });
+  add(1, "started");
+  add(2, "failed");
+  const failed = job(await run.read(), "Hourly");
+  expect(failed.history[0]).toMatchObject({
+    error: "Claude Code has no model opus-9: pick another",
+    outcome: "failed",
+  });
+  expect(failed.last).toMatchObject({
+    error: "Claude Code has no model opus-9: pick another",
+    outcome: "failed",
+  });
+  // A skipped time after it is no run: the failure stays the card's last run.
+  add(3, "skipped");
+  expect(job(await run.read(), "Hourly").last).toMatchObject({ outcome: "failed" });
+  // A run that started later is.
+  add(4, "started");
+  expect(job(await run.read(), "Hourly").last).toMatchObject({ error: null, outcome: "started" });
+});
+
+/**
  * Review 05, finding 2. Catches: two jobs of one name, which the file may hold and the card says,
  * indistinguishable to a reader of the record: each row carries its place in the file.
  */

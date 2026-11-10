@@ -52,6 +52,7 @@ const started = (id: string, when: string, session: string, title: string, folde
   at: when,
   blockedBy: null,
   due: when,
+  error: null,
   folder: folder ?? null,
   id,
   outcome: "started" as const,

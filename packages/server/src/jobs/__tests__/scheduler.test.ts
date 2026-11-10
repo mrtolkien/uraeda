@@ -251,16 +251,34 @@ test("a job runs at its time", async () => {
   }
   expect(run.created).toHaveLength(3);
 
-  // A chat that does not start, a model the agent does not list, leaves no row and no session: the
-  // time is tried again at the next tick, once the job is mended (R9).
+  // A chat that does not start, a model the agent does not list, is recorded once, at the first
+  // failure, with why: the time is not tried again at the next tick, mended or not (R9, R45).
+  const printed = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   run.state.jobs = { jobs: [job("Mended", [uraeda.name], { model: "no-such-model" })] };
   await run.at("13T02:59:00");
   await run.at("13T03:00:10");
-  expect(await run.history("Mended")).toEqual([]);
+  const [failed] = await run.history("Mended");
+  expect(failed).toMatchObject({
+    due: new Date("2026-11-13T03:00:00").getTime(),
+    error: "Claude Code has no model no-such-model: pick another",
+    outcome: "failed",
+    session: null,
+    trigger: "schedule",
+  });
   expect(run.created).toHaveLength(3);
   run.server.adapter.script([]);
   run.state.jobs = { jobs: [job("Mended", [uraeda.name])] };
   await run.at("13T03:00:40");
+  await run.at("13T03:01:10");
+  expect(await run.history("Mended")).toHaveLength(1);
+  expect(run.created).toHaveLength(3);
+  expect(printed.mock.calls.filter(([line]) => String(line).includes("was refused"))).toHaveLength(
+    1,
+  );
+  printed.mockRestore();
+  // The next day's time starts.
+  await run.at("14T02:59:00");
+  await run.at("14T03:00:10");
   expect(await run.sessions("Mended")).toHaveLength(1);
 });
 
@@ -928,10 +946,11 @@ test("a time is skipped, and a run by hand refused, while an acceptance is in fl
 });
 
 /**
- * R9. Catches: the chat made for a run whose send failed, removed from the cache without a word to
- * the clients, which keep a ghost chat in the sidebar, and the problem printed at every retry.
+ * R9, R45. Catches: the chat made for a run whose send failed, removed from the cache without a word
+ * to the clients, which keep a ghost chat in the sidebar; the failure printed at every retry; and a
+ * time tried again at every tick for 5 minutes, then forgotten with no trace of it.
  */
-test("a run whose send fails removes its chat, tells the clients, and retries once, quietly", async () => {
+test("a run whose send fails removes its chat, tells the clients, and is recorded as failed once", async () => {
   const run = await setup();
   const [{ name }] = run.repos;
   const failing = vi
@@ -950,15 +969,17 @@ test("a run whose send fails removes its chat, tells the clients, and retries on
     await run.at("11T02:59:00");
     await run.at("11T03:00:10");
     await run.at("11T03:00:40");
+    await run.at("11T03:01:10");
 
-    // Tried at each tick, the chat of each try removed and its removal published, one line printed.
-    expect(failing).toHaveBeenCalledTimes(2);
-    expect(run.created).toHaveLength(2);
-    for (const { id } of run.created) {
-      expect(run.server.sessions.cache.session(id)).toBeUndefined();
-      expect(removed).toContain(id);
-    }
-    expect(await run.history("Dependencies")).toEqual([]);
+    // Tried once, the chat removed and its removal published, one line printed, one row recorded.
+    expect(failing).toHaveBeenCalledTimes(1);
+    expect(run.created).toHaveLength(1);
+    const [{ id }] = run.created;
+    expect(run.server.sessions.cache.session(id)).toBeUndefined();
+    expect(removed).toContain(id);
+    expect(await run.history("Dependencies")).toMatchObject([
+      { error: "the agent cannot open", outcome: "failed", session: null },
+    ]);
     const lines = printed.mock.calls.filter(([line]) => String(line).includes("was refused"));
     expect(lines).toHaveLength(1);
   } finally {
@@ -967,9 +988,12 @@ test("a run whose send fails removes its chat, tells the clients, and retries on
     printed.mockRestore();
   }
 
-  // Mended within the 5 minutes: the time starts.
+  // Mended, the same time is not made up; the next day's starts.
   run.server.adapter.script([]);
-  await run.at("11T03:01:10");
+  await run.at("11T03:01:40");
+  expect(await run.sessions("Dependencies")).toHaveLength(0);
+  await run.at("12T02:59:00");
+  await run.at("12T03:00:10");
   expect(await run.sessions("Dependencies")).toHaveLength(1);
 });
 

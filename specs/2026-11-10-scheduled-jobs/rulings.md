@@ -688,3 +688,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a wakeup set far ahead (up to a day) holds the run's offer, and the job's next
   times, until it passes; the offer's card is the way.
 - **Where**: the final review's fix 4, tasks 4 and 5.
+
+## R45: A scheduled start that failed is recorded, once, and shown
+
+- **Decision**: when `startRun` throws for a scheduled time, the scheduler records the time as a row
+  with `outcome` `failed`, and why in a new column `error`, the error's text without its `refused: `
+  prefix, at the first failure. A recorded time is not tried again, so there is no retry for 5
+  minutes. The history shows the row as `Could not start: <why>`, in the form the skipped times use,
+  and the card's "Last run" shows that line, after the time, when a failed start is the job's newest
+  run in the repository: the newest row that is not a skip, so the line stays however many skipped
+  times follow it, until a run starts. A failed "Run now" records nothing: its refusal shows under
+  the card. R9 keeps what it decided: `startRun` still removes the row of a start that failed, and
+  the chat with it; the scheduler records the failure after. A refusal of the reads before the start
+  (the repository's root, the guards) is not a failed start: it is printed once and the time is
+  tried again, as before. The migrations fold into one step: `job_runs` is written once with
+  `blocked_by` and `error`, and the two steps after the table (the index's fix and `blocked_by`'s
+  `ALTER TABLE`) are removed.
+- **Rationale**: a job with a model the agent no longer lists never ran, the row was added and
+  removed at each tick for 5 minutes, and then the time was forgotten with nothing in the history or
+  on the card: the job silently never ran, night after night. The migrations: no cache holds the
+  branch's `job_runs` steps (the data folder's is at an older version without the table, and no
+  sandbox was made on the branch), so the table is written once. This also settles review 07's
+  finding 7, a cache that applied the earlier steps before the rebase put the accounts' column
+  before them, which has no cache to break.
+- **Alternatives considered**: keeping the retry and showing the last error: a start that fails for
+  a lasting reason, as a model the agent lacks, is tried about ten times for nothing, and one that
+  fails for a passing reason is as well started by the next time or "Run now".
+- **If wrong**: a start that failed for a passing reason, the agent's process not opening once,
+  loses that time instead of retrying it within the 5 minutes; "Run now" is the way, and the next
+  time runs.
+- **Where**: the final review's fix 5, tasks 3, 4, 6, and 8. Replaces R9's "so the time is not
+  marked run" for a scheduled start.

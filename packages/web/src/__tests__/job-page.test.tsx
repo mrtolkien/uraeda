@@ -230,6 +230,7 @@ const RUN = {
   at: new Date(2026, 10, 10, 3).toISOString(),
   blockedBy: null,
   due: new Date(2026, 10, 10, 3).toISOString(),
+  error: null,
   folder: "2026-11-10-upgrade-three",
   id: "1",
   outcome: "started" as const,
@@ -310,6 +311,26 @@ test("a skipped time names the change the record says blocked it, or says a chan
   expect(skippedWords({ ...skipped, reason: "working" })).toBe(
     "Skipped: its last run still works.",
   );
+});
+
+test("a scheduled start that failed says why, in the line a skipped time has", () => {
+  const failed = {
+    ...RUN,
+    error: "Claude Code has no model opus-9: pick another",
+    folder: null,
+    outcome: "failed" as const,
+    session: null,
+    title: null,
+  };
+  render(
+    around(
+      <JobHistory now={NOW} renderCard={() => <span>card</span>} runs={[failed]} zone={ZONE} />,
+    ),
+  );
+  expect(
+    screen.getByText("Could not start: Claude Code has no model opus-9: pick another"),
+  ).toBeTruthy();
+  expect(screen.queryByText("card")).toBeNull();
 });
 
 test("a started run with no card says its session is gone", () => {

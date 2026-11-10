@@ -8,7 +8,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { JobRunView } from "uraeda-server/fate";
 import { Pane } from "../layout/Pane.tsx";
-import { whenWords } from "./words.ts";
+import { failedWords, whenWords } from "./words.ts";
 
 const styles = stylex.create({
   list: { listStyleType: "none", margin: 0, padding: 0 },
@@ -29,10 +29,13 @@ export function skippedWords(run: JobRunView): string {
     : `Skipped: the change “${run.blockedBy.title}” is still open.`;
 }
 
-/** What a run says in place of its card, a skipped time's reason or a session that is gone. */
+/** What a run says in place of its card: a skipped time's reason, a start that failed, or a session that is gone. */
 function lineOf(run: JobRunView): string {
   if (run.outcome === "skipped") {
     return skippedWords(run);
+  }
+  if (run.outcome === "failed") {
+    return failedWords(run);
   }
   return run.title === null ? "Its session is gone." : `“${run.title}”: its session is gone.`;
 }

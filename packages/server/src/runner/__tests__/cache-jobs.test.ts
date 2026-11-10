@@ -1,16 +1,14 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { expect, onTestFinished, test } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import { migrations, SessionCache } from "../cache.ts";
 import type { JobRunRow } from "../cache-jobs.ts";
 
 const ROOT = "/repo/a";
 
 /** What `add` takes: a run's fields but those the record decides. */
-type NewRun = Omit<JobRunRow, "blockedBy" | "id" | "refusal" | "refusedTurn"> & {
+type NewRun = Omit<JobRunRow, "blockedBy" | "error" | "id" | "refusal" | "refusedTurn"> & {
   blockedBy?: string | null;
+  error?: string | null;
 };
 
 /** A started run of "Dependencies" in `ROOT`, due at 1000 unless given another time. */
@@ -81,6 +79,7 @@ test("a row reads back as written, with no refusal", () => {
   expect(added).toEqual({
     ...run({ at: 5, session: "s1" }),
     blockedBy: null,
+    error: null,
     id: added?.id,
     refusal: null,
     refusedTurn: null,
@@ -269,25 +268,21 @@ test("the migration adds the table to a cache made before it", () => {
   expect(db.prepare("SELECT COUNT(*) AS n FROM job_runs").get()).toEqual({ n: 0 });
 });
 
-/**
- * Wave 3, finding 6. Catches: a cache that applied the table's first step, whose unique index was
- * partial (`WHERE due IS NOT NULL`), which `add`'s `ON CONFLICT (job, repository, due)` cannot
- * use: every insert throws, so no run starts and "Run now" fails.
- */
-test("a cache migrated with the partial index accepts add once upgraded", () => {
-  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
-  onTestFinished(() => rmSync(dirname(path), { force: true, recursive: true }));
-  const old = new DatabaseSync(path);
-  apply(old, 0, TABLE_STEP + 1);
-  old.exec(`DROP INDEX job_runs_due;
-    CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due) WHERE due IS NOT NULL;
-    PRAGMA user_version = ${TABLE_STEP + 1}`);
-  old.close();
-
-  const jobs = SessionCache.open(path).jobs;
-  expect(jobs.add(run({ due: 1000 }))).toBeDefined();
+test("a start that failed is a row of its time, with why, and is no started run", () => {
+  const jobs = opened();
+  const failed = jobs.add(
+    run({ due: 1000, error: "Claude Code has no model opus-9: pick another", outcome: "failed" }),
+  );
+  expect(failed).toMatchObject({
+    error: "Claude Code has no model opus-9: pick another",
+    outcome: "failed",
+    session: null,
+  });
+  // Its time is recorded: nothing starts it again.
+  expect(jobs.recorded("Dependencies", ROOT, 1000)).toBe(true);
   expect(jobs.add(run({ due: 1000 }))).toBeUndefined();
-  // A run by hand has no time: two of them never conflict.
-  expect(jobs.add(run({ due: null, trigger: "manual" }))).toBeDefined();
-  expect(jobs.add(run({ due: null, trigger: "manual" }))).toBeDefined();
+  expect(jobs.latestFailed("Dependencies", ROOT)?.id).toBe(failed?.id);
+  expect(jobs.latestStarted("Dependencies", ROOT)).toBeUndefined();
+  expect(jobs.changeFolders("Dependencies", ROOT)).toEqual([]);
+  expect(jobs.history("Dependencies", ROOT)[0]).toMatchObject({ outcome: "failed" });
 });

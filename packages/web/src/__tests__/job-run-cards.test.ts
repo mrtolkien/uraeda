@@ -8,6 +8,7 @@ const run = (session: string | null, folder: string | null) => ({
   at: "2026-11-10T03:00:00.000Z",
   blockedBy: null,
   due: null,
+  error: null,
   folder,
   id: "1",
   outcome: "started" as const,

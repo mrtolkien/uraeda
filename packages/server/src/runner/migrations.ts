@@ -174,7 +174,10 @@ export const migrations: Array<Migration> = [
   // SQLite counts each null as distinct, so a run by hand never conflicts, and a plain index also
   // serves the reads of a job and repository.
   // `refusal` and `refused_turn` are why the change a run offered could not start, and the turn
-  // that offer ended (ruling R1).
+  // that offer ended (ruling R1). `blocked_by` is the folder of the change that blocked a skipped
+  // time (ruling R36), null for every row that is no skip for an open change. `error` is why a
+  // scheduled start failed (ruling R45), null for every row that did not. The table is written once,
+  // with its columns: no cache holds an earlier version of it (ruling R45).
   `CREATE TABLE job_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job TEXT NOT NULL,
@@ -186,18 +189,12 @@ export const migrations: Array<Migration> = [
     reason TEXT,
     session TEXT,
     refusal TEXT,
-    refused_turn INTEGER
+    refused_turn INTEGER,
+    blocked_by TEXT,
+    error TEXT
   );
   CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
   CREATE INDEX job_runs_session ON job_runs (session);`,
-  // A step of its own, as an earlier version of the one above made the unique index partial (WHERE
-  // due IS NOT NULL), which an insert's ON CONFLICT (job, repository, due) cannot use: a cache that
-  // applied that version gets the plain index here, and a new one recreates what it has.
-  `DROP INDEX job_runs_due;
-  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);`,
-  // The folder of the change that blocked a skipped time (ruling R36), null for a row made before
-  // and for every row that is no skip for an open change.
-  "ALTER TABLE job_runs ADD COLUMN blocked_by TEXT;",
 ];
 
 /**

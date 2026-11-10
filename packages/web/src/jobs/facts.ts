@@ -6,7 +6,7 @@ import type { Icon } from "@astryxdesign/core/Icon";
 import type { JobRow, JobRunView } from "uraeda-server/fate";
 import type { SessionStatus } from "uraeda-server/fate";
 import { STEP_ICONS, type StepKind } from "../sidebar/StepIcon.tsx";
-import { whenWords } from "./words.ts";
+import { failedWords, whenWords } from "./words.ts";
 
 type IconName = ComponentProps<typeof Icon>["icon"];
 
@@ -106,8 +106,9 @@ function asks(session: RunSession): string {
 
 /**
  * What the job's last run left: its time, then what its session or its change asks, as the
- * sidebar's card names it; "Never ran" before a first start. `run` is the job's `last` run here,
- * `session` its session as the sidebar reads it, absent once the session is gone.
+ * sidebar's card names it, or why its start failed; "Never ran" before a first start. `run` is the
+ * job's `last` run here, `session` its session as the sidebar reads it, absent once the session is
+ * gone.
  */
 export function lastFact(
   run: JobRunView | undefined,
@@ -119,6 +120,14 @@ export function lastFact(
     return { icon: "uraeda:square-dashed", text: "Never ran", tone: "quiet" };
   }
   const when = whenWords(new Date(run.at), now, zone);
+  // A scheduled start that failed is the newest run: the human sees why without opening the page.
+  if (run.outcome === "failed") {
+    return {
+      icon: "uraeda:triangle-alert",
+      text: `${when} · ${failedWords(run)}`,
+      tone: "problem",
+    };
+  }
   if (session === undefined) {
     return {
       icon: "uraeda:square",

@@ -1,6 +1,7 @@
 // A job's schedule and its times in words, as its card reads them, in the server's time zone, the one
 // its schedules run in: the hour of a time and of its schedule read alike, whatever the browser's zone.
 import type { Schedule } from "uraeda-binding";
+import type { JobRunView } from "uraeda-server/fate";
 
 const DAYS = [
   "Monday",
@@ -101,3 +102,7 @@ export function whenWords(at: Date, now: Date, timeZone: string): string {
   }
   return days > -7 ? `${name} at ${time}` : `${date} at ${time}`;
 }
+
+/** The line of a scheduled start that failed, in the form the skipped times use: why it could not. */
+export const failedWords = (run: Pick<JobRunView, "error">) =>
+  `Could not start: ${run.error ?? "the agent did not say why"}`;

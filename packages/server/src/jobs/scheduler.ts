@@ -282,6 +282,21 @@ class JobScheduler implements Scheduler {
     });
   }
 
+  /** Records a time whose session did not start, once, with why: the time is not tried again. */
+  #fail(ctx: RepoContext, job: string, root: string, due: number, error: unknown): void {
+    ctx.sessions.cache.jobs.add({
+      at: this.#now().getTime(),
+      due,
+      error: reasonOf(error),
+      job,
+      outcome: "failed",
+      reason: null,
+      repository: root,
+      session: null,
+      trigger: "schedule",
+    });
+  }
+
   /**
    * Waits the minute between two starts. Returns whether the clock jumped meanwhile, which the
    * machine sleeping does: the wait took more than `MISSED_AFTER_MS` beyond its length, so every time
@@ -352,7 +367,14 @@ class JobScheduler implements Scheduler {
         return false;
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
-      return (await startRun(ctx, now, run)) !== undefined;
+      try {
+        return (await startRun(ctx, now, run)) !== undefined;
+      } catch (error) {
+        // A start that failed is recorded once, so the time is not tried again and the history says
+        // why: `startRun` removed its own row (R45).
+        this.#fail(ctx, job.name, root, due, error);
+        throw error;
+      }
     } catch (error) {
       const why = `the run of ${job.name} in ${repo.name} was refused: ${reasonOf(error)}`;
       this.#print(`${key}\0${due}`, why);
