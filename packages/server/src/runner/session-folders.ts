@@ -90,6 +90,18 @@ export function newChat(context: SessionContext, root: string, pick?: SessionPic
 }
 
 /**
+ * Removes a chat while it has no turn, as the one made for a start that never landed, and reports
+ * its removal, which the lists of its clients read again.
+ */
+export function removeEmpty(context: SessionContext, onChange: OnChange, id: string): void {
+  const row = context.cache.session(id);
+  context.cache.removeEmptySession(id);
+  if (row !== undefined && context.cache.session(id) === undefined) {
+    onChange({ folder: row.folder, repo: row.repo, session: id });
+  }
+}
+
+/**
  * Moves a session without a workflow to the change it became, between turns: refused while its
  * agent works. Its open process closes, so its next turn opens in the change's worktree, and
  * resumes its agent session there.

@@ -19,7 +19,14 @@ import { sendTo } from "./send.ts";
 import { newPickOf, stepPickOf } from "./run-session.ts";
 import type { SessionPick } from "./picks.ts";
 import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-edits.ts";
-import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
+import {
+  archiveFolder,
+  attach,
+  featureSession,
+  newChat,
+  newSession,
+  removeEmpty,
+} from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
 import { Reviews } from "./reviews.ts";
@@ -288,6 +295,11 @@ export class Sessions {
   /** A new chat, without a feature, on `pick`, titled by its first message. */
   async newChat(repo: string, pick?: SessionPick): Promise<SessionRow> {
     return newChat(this.#context, await this.mainRoot(repo), pick);
+  }
+
+  /** Removes a chat while it has no turn, as the one made for a start that never landed. */
+  removeEmpty(session: string): void {
+    removeEmpty(this.#context, this.#options.onChange, session);
   }
 
   /**

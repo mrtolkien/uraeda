@@ -1,5 +1,5 @@
 import type { Job, Jobs } from "uraeda-binding";
-import { afterAll, beforeAll, expect, test } from "vite-plus/test";
+import { afterAll, beforeAll, expect, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the scheduler's imports in a cycle.
 import {
   atStep,
@@ -9,6 +9,7 @@ import {
   testServer,
 } from "../../__tests__/helpers.ts";
 import type { Binding, RepoContext } from "../../fate/context.ts";
+import { onSessionChange } from "../../live.ts";
 import type { SessionRow } from "../../runner/cache.ts";
 import { jobMessage } from "../../runner/message.ts";
 import { type Scheduler, startScheduler } from "../scheduler.ts";
@@ -719,4 +720,50 @@ test("a queued time is checked again after its minute, and dropped when it no lo
   expect(edited.run.created).toHaveLength(2);
   const second = (await edited.run.sessions("Hourly", edited.notes.path))[0];
   expect(opening(edited.run.server, second).message.text.startsWith("A new prompt.")).toBe(true);
+});
+
+/**
+ * R9. Catches: the chat made for a run whose send failed, removed from the cache without a word to
+ * the clients, which keep a ghost chat in the sidebar, and the problem printed at every retry.
+ */
+test("a run whose send fails removes its chat, tells the clients, and retries once, quietly", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  const failing = vi
+    .spyOn(run.server.sessions, "send")
+    .mockRejectedValue(new Error("the agent cannot open"));
+  const printed = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  // The sessions whose change was published once their row was gone: their removal.
+  const removed: Array<string> = [];
+  const stop = onSessionChange(run.server.sessions, (change) => {
+    if (!("agent" in change) && run.server.sessions.cache.session(change.session) === undefined) {
+      removed.push(change.session);
+    }
+  });
+  try {
+    run.state.jobs = { jobs: [job("Dependencies", [name])] };
+    await run.at("11T02:59:00");
+    await run.at("11T03:00:10");
+    await run.at("11T03:00:40");
+
+    // Tried at each tick, the chat of each try removed and its removal published, one line printed.
+    expect(failing).toHaveBeenCalledTimes(2);
+    expect(run.created).toHaveLength(2);
+    for (const { id } of run.created) {
+      expect(run.server.sessions.cache.session(id)).toBeUndefined();
+      expect(removed).toContain(id);
+    }
+    expect(await run.history("Dependencies")).toEqual([]);
+    const lines = printed.mock.calls.filter(([line]) => String(line).includes("was refused"));
+    expect(lines).toHaveLength(1);
+  } finally {
+    stop();
+    failing.mockRestore();
+    printed.mockRestore();
+  }
+
+  // Mended within the 5 minutes: the time starts.
+  run.server.adapter.script([]);
+  await run.at("11T03:01:10");
+  expect(await run.sessions("Dependencies")).toHaveLength(1);
 });

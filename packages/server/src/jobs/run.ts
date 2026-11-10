@@ -50,9 +50,9 @@ export async function startRun(
     });
   } catch (error) {
     cache.jobs.remove(row.id);
-    // A chat made and not started holds no turn: it goes with its row.
+    // A chat made and not started holds no turn: it goes with its row, and its clients are told.
     if (session !== undefined) {
-      cache.removeEmptySession(session);
+      sessions.removeEmpty(session);
     }
     throw error;
   }
