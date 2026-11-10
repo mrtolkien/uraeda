@@ -1,6 +1,7 @@
 // The sandbox's sample accounts of Claude Code, for the panes and a session's header: `default`, in
-// use; `b`, signed out; and `c`, its week used up. Their folders are made up: nothing in the
-// sandbox opens them.
+// use; `b`, signed out; `c`, its week used up; `d`, its folder missing; and `e`, unused, whose five
+// hours are not open and have no reset. Their folders are made up: nothing in the sandbox opens
+// them.
 import type { Account, AccountWindow } from "uraeda-server/runner/adapter";
 import { FakeAccounts } from "uraeda-server/runner/fake";
 
@@ -10,6 +11,14 @@ const window = (id: string, label: string, used: number, hours: number): Account
   label,
   resetsAt: new Date(Date.now() + hours * 3_600_000).toISOString(),
   used,
+});
+
+/** A window not open: unused, with no reset, as Claude Code reports it. */
+const unused = (id: string, label: string): AccountWindow => ({
+  id,
+  label,
+  resetsAt: null,
+  used: 0,
 });
 
 /** An account of the sample: `default` is the server's own folder, the others are `~/.claude-<name>`. */
@@ -36,7 +45,12 @@ export function sampleAccounts(): FakeAccounts {
     ]),
     account("b", "signed-out", []),
     account("c", "ready", [window("five_hour", "5h", 0.2, 4), window("seven_day", "Week", 1, 30)]),
+    account("d", "missing", []),
+    account("e", "ready", [unused("five_hour", "5h"), window("seven_day", "Week", 0.1, 100)]),
   ];
-  accounts.problemList = ["account b is signed out, in /sandbox/.claude-b"];
+  accounts.problemList = [
+    "account b is signed out, in /sandbox/.claude-b",
+    "account d has no folder at /sandbox/.claude-d",
+  ];
   return accounts;
 }

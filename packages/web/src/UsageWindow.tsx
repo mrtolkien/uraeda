@@ -86,14 +86,33 @@ export function UsageWindow({
           type="supporting"
           {...(left === 0 ? { xstyle: styles.error } : {})}
         >
-          {isCompact ? `${name} ${left}%` : `${name} ${left}% left`}
-          {at !== null && window.resetsAt !== null && (
+          {isCompact ? (
+            // What is left and the reset wrap together, so a long name leaves them whole on the
+            // next line, never "· 19:27" alone.
             <>
-              {" "}
+              {name}{" "}
               <span {...stylex.props(styles.together)}>
-                {isCompact ? "· " : "- reset "}
-                <time dateTime={window.resetsAt}>{at}</time>
+                {left}%
+                {at !== null && window.resetsAt !== null && (
+                  <>
+                    {" · "}
+                    <time dateTime={window.resetsAt}>{at}</time>
+                  </>
+                )}
               </span>
+            </>
+          ) : (
+            <>
+              {`${name} ${left}% left`}
+              {at !== null && window.resetsAt !== null && (
+                <>
+                  {" "}
+                  <span {...stylex.props(styles.together)}>
+                    {"- reset "}
+                    <time dateTime={window.resetsAt}>{at}</time>
+                  </span>
+                </>
+              )}
             </>
           )}
         </Text>
