@@ -29,6 +29,7 @@ import { claudeModels, claudeRunsOn, Controls } from "./claude-control.ts";
 import { allowRule, type Blocks, parseLine } from "./claude-events.ts";
 import type { Denial } from "./events.ts";
 import { type ExtensionPaths, webUiInstructions } from "./instructions.ts";
+import { MODELS_ACCOUNTS_WAIT_MS } from "./runtimes.ts";
 import {
   TOKEN_VARIABLE,
   TOOL_NAMES,
@@ -370,11 +371,11 @@ export class ClaudeAdapter implements Adapter {
    * The models listed for the account, through a short process, closed once it answered
    * `list_models` and `get_settings`, which spend no usage: rejected when it fails to answer within
    * 10 seconds. Its group is sent SIGTERM as it is done with, and SIGKILL if it outlives that. With
-   * accounts, it first waits for their ask, at most `PICK_WAIT_MS`, so that a signed-out folder is
-   * known, then runs in the first listed account that is `ready`, else the first listed.
+   * accounts, it first waits for their ask, at most `MODELS_ACCOUNTS_WAIT_MS`, so that the whole
+   * call fits the refresh's time and a signed-out folder is known, then runs in the first listed account that is `ready`, else the first listed.
    */
   async models(): Promise<ModelList> {
-    await refreshedWithin(() => this.accounts.refresh(USAGE_MAX_AGE_MS));
+    await refreshedWithin(() => this.accounts.refresh(USAGE_MAX_AGE_MS), MODELS_ACCOUNTS_WAIT_MS);
     const listed = this.accounts.list();
     const folder = (listed.find((account) => account.state === "ready") ?? listed[0])?.id;
     const [list, settings] = await askShort(

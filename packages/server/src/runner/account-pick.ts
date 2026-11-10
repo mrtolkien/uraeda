@@ -51,11 +51,17 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");
 }
 
-/** Waits for `refresh`, however it settles, and at most `PICK_WAIT_MS`: it never rejects. */
-export async function refreshedWithin(refresh: () => Promise<void>): Promise<void> {
+/**
+ * Waits for `refresh`, however it settles, and at most `ms`, `PICK_WAIT_MS` by default: it never
+ * rejects.
+ */
+export async function refreshedWithin(
+  refresh: () => Promise<void>,
+  ms: number = PICK_WAIT_MS,
+): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const wait = new Promise<void>((resolve) => {
-    timer = setTimeout(resolve, PICK_WAIT_MS);
+    timer = setTimeout(resolve, ms);
   });
   try {
     await Promise.race([refresh().catch(() => {}), wait]);

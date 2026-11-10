@@ -1,5 +1,6 @@
 import type { AccountState, AccountWindow, Adapter, Capabilities, ModelList } from "./adapter.ts";
 import type { SessionRow } from "./cache.ts";
+import { MODELS_TIMEOUT_MS } from "./child.ts";
 import type { UsageWindow } from "./events.ts";
 import { REFUSALS, refused } from "./session-state.ts";
 
@@ -64,6 +65,12 @@ export const MODELS_REFRESH_MS = 60_000;
 
 /** A model list asked for longer than this is given up on: the runtime keeps its last one. */
 export const MODELS_REFRESH_TIMEOUT_MS = 15_000;
+
+/**
+ * The most a runtime's `models()` waits for its accounts' ask: what the refresh's time leaves once
+ * its own short process had its `MODELS_TIMEOUT_MS`, less a second, so that the whole call fits.
+ */
+export const MODELS_ACCOUNTS_WAIT_MS = MODELS_REFRESH_TIMEOUT_MS - MODELS_TIMEOUT_MS - 1000;
 
 /**
  * A registered runtime: its status, and its last model list, with when it was last asked for and
