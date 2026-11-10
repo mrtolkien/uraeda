@@ -522,7 +522,7 @@ export class ClaudeAccounts implements Accounts {
   lines; `ClaudeAdapter.accounts`, a `ClaudeAccounts` when the lines give a folder, else undefined;
   and `claudeEnv(options: OpenOptions): Record<string, string> | undefined`, exported.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // claude-accounts.test.ts
@@ -624,13 +624,13 @@ The break each test catches: a name rule that drifts from the spec's; a share re
 second ask started while one runs; a transcript looked for in the wrong folder; an account never
 reaching the process.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/claude-accounts.test.ts packages/server/src/runner/__tests__/claude.test.ts`
 - Expected: FAIL, the import of `../claude-accounts.ts` does not resolve.
 
-- [ ] **Step 3: Implement `claude-accounts.ts`**
+- [x] **Step 3: Implement `claude-accounts.ts`**
 
 `claudeFolders` expands a leading `~/` with `home`, leaves out a line that is not then absolute,
 with the problem `account folder <line> is not an absolute path`, and a folder already listed. A
@@ -651,12 +651,15 @@ sends `list_models`: a short process with `MODELS_ARGS`, the folder in its envir
 `endShortProcess`, given up after `MODELS_TIMEOUT_MS`. A usage that cannot be read is `ready`
 without windows. Nothing else of the folder is read.
 
-- [ ] **Step 4: Give the account to Claude Code**
+- [x] **Step 4: Give the account to Claude Code**
 
-`claudeEnv` merges `toolsEnv(options.tools)` with `CLAUDE_CONFIG_DIR` when `options.account` is set;
-`#spawn` uses it. `hasSession(nativeId, account)` looks under `account`, else under the adapter's
-own folder. `models()` runs in the first listed account's folder when accounts are listed. The
-built-in passes the `accounts` setting's lines, a list of strings, else none. The manifest gains:
+`askShort(command, cwd, env, requests, words)`, in `claude-accounts.ts`, is the short process
+`models()` and the usage ask share: `models()` uses it, so `MODELS_ARGS` moved there as
+`SHORT_ARGS`. `claudeEnv` merges `toolsEnv(options.tools)` with `CLAUDE_CONFIG_DIR` when
+`options.account` is set; `#spawn` uses it. `hasSession(nativeId, account)` looks under `account`,
+else under the adapter's own folder. `models()` runs in the first listed account's folder when
+accounts are listed. The built-in passes the `accounts` setting's lines, a list of strings, else
+none. The manifest gains:
 
 ```toml
 [settings.accounts]
@@ -666,7 +669,7 @@ label = "Accounts"
 help = "The Claude Code configuration folders new sessions pick between, one per line: the one with the most of its five hours left."
 ```
 
-- [ ] **Step 5: Smoke test by hand, with the three folders**
+- [x] **Step 5: Smoke test by hand, with the three folders**
 
 With a script kept outside the repository, build
 `new ClaudeAccounts({ ask: claudeAsk("claude"), lines: ["~/.claude-gary", "~/.claude-leo", "~/.claude-tato"] })`,
@@ -674,12 +677,12 @@ await `refresh(0)`, and print `list()` and `problems()`. Expected: three `ready`
 gary, leo, and tato, each with a five-hour window and a week, and no problem. Then delete the
 script. If an account gives no windows, stop and report it: the pick would not know idle accounts.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/server/src/runner/claude-accounts.ts packages/server/src/runner/claude.ts \

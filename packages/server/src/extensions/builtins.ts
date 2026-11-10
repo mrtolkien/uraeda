@@ -38,12 +38,21 @@ function commandSetting(api: ServerApi, fallback: string): string {
   return typeof command === "string" && command !== "" ? command : fallback;
 }
 
+/** The lines of the claude built-in's `accounts` setting: strings only, none when it is not a list. */
+function accountsSetting(api: ServerApi): Array<string> {
+  const accounts = api.settings(null).accounts;
+  return Array.isArray(accounts)
+    ? accounts.filter((line): line is string => typeof line === "string")
+    : [];
+}
+
 /** Each built-in's server part, by its name. */
 export const BUILT_IN_SERVER: Record<string, (api: ServerApi, deps: BuiltInDeps) => void> = {
   claude: (api, { agents, dataDir, extensionsDir }) => {
     const adapter = agents
       ? agents.claude
       : new ClaudeAdapter({
+          accounts: accountsSetting(api),
           command: commandSetting(api, "claude"),
           extensions: {
             docs: layout().docs,
