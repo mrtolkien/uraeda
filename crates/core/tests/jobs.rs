@@ -620,3 +620,26 @@ fn removing_the_last_job_keeps_the_comments_that_are_not_its_own() {
         assert_eq!(jobs::read(dir.path()).jobs.len(), 0);
     }
 }
+
+#[test]
+fn removing_the_first_table_of_the_file_leaves_no_blank_line_above() {
+    let (a, b) = (
+        table("A", "\"a\"", "hourly", "\"x\""),
+        table("B", "\"a\"", "hourly", "\"y\""),
+    );
+    for (before, after) in [
+        (format!("{a}\n{b}"), b.clone()),
+        (
+            format!("{a}\n[server]\nport = 1\n"),
+            "[server]\nport = 1\n".to_owned(),
+        ),
+        (format!("{a}\n# about B\n{b}"), format!("# about B\n{b}")),
+    ] {
+        let dir = tempdir();
+        write(dir.path(), &before);
+
+        jobs::remove(dir.path(), "A").unwrap();
+
+        assert_eq!(text(dir.path()), after);
+    }
+}

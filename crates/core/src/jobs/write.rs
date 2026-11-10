@@ -81,6 +81,7 @@ pub fn set_on(config_dir: &Path, name: &str, on: bool) -> Result<(), ApiError> {
 /// the end of the file when no table follows.
 pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
     change_document(config_dir, HEADER, |document| {
+        let blank = document.to_string().starts_with('\n');
         let root = document.as_table_mut();
         let place = place(root, name)?;
         let mut left = None;
@@ -108,6 +109,21 @@ pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
                     let trailing = document.trailing().as_str().unwrap_or_default();
                     let trailing = format!("{comment}{trailing}");
                     document.set_trailing(trailing);
+                }
+            }
+        }
+        // The separator of the removed first table was the next one's prefix: no blank line leads.
+        if !blank && document.to_string().starts_with('\n') {
+            match next_position(document.as_table(), isize::MIN) {
+                Some(first) => {
+                    with_table(document.as_table_mut(), first, &mut |table| {
+                        let prefix = decor_text(table).trim_start_matches('\n').to_owned();
+                        table.decor_mut().set_prefix(prefix);
+                    });
+                }
+                None => {
+                    let trailing = document.trailing().as_str().unwrap_or_default();
+                    document.set_trailing(trailing.trim_start_matches('\n').to_owned());
                 }
             }
         }
@@ -249,23 +265,25 @@ fn next_position(table: &dyn TableLike, at: isize) -> Option<isize> {
         .min()
 }
 
-/// Puts `comment`, then a blank line, above the table at `position`, before its own comment.
-fn prepend(table: &mut dyn TableLike, position: isize, comment: &str) -> bool {
+/// Applies `change` to the table of `table` at `position`; whether it is there.
+fn with_table(
+    table: &mut dyn TableLike,
+    position: isize,
+    change: &mut dyn FnMut(&mut Table),
+) -> bool {
     for (_, item) in table.iter_mut() {
         let found = match item {
-            Item::Table(inner) => {
-                if inner.position() == Some(position) {
-                    above(inner, comment);
-                    true
-                } else {
-                    prepend(inner, position, comment)
-                }
+            Item::Table(inner) if inner.position() == Some(position) => {
+                change(inner);
+                true
             }
-            Item::ArrayOfTables(list) => list
-                .iter_mut()
-                .find(|inner| inner.position() == Some(position))
-                .map(|inner| above(inner, comment))
-                .is_some(),
+            Item::Table(inner) => with_table(inner, position, change),
+            Item::ArrayOfTables(list) => {
+                let found = list
+                    .iter_mut()
+                    .find(|inner| inner.position() == Some(position));
+                found.map(&mut *change).is_some()
+            }
             _ => false,
         };
         if found {
@@ -275,12 +293,20 @@ fn prepend(table: &mut dyn TableLike, position: isize, comment: &str) -> bool {
     false
 }
 
-fn above(table: &mut Table, comment: &str) {
-    let own = table
+/// The text of a table's decor prefix.
+fn decor_text(table: &Table) -> &str {
+    table
         .decor()
         .prefix()
         .and_then(RawString::as_str)
-        .unwrap_or_default();
-    let prefix = format!("{}\n\n{}", comment.trim_end(), own.trim_start_matches('\n'));
-    table.decor_mut().set_prefix(prefix);
+        .unwrap_or_default()
+}
+
+/// Puts `comment`, then a blank line, above the table at `position`, before its own comment.
+fn prepend(table: &mut dyn TableLike, position: isize, comment: &str) -> bool {
+    with_table(table, position, &mut |inner| {
+        let own = decor_text(inner);
+        let prefix = format!("{}\n\n{}", comment.trim_end(), own.trim_start_matches('\n'));
+        inner.decor_mut().set_prefix(prefix);
+    })
 }
