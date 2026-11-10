@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
 import { startJobs } from "../jobs/start.ts";
+import type { Binding } from "../fate/context.ts";
 import { binding, byIdAt, type Data, fateAt, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
@@ -27,12 +28,12 @@ ${over}
 `;
 
 /** The server's app with the scheduler of its jobs, which the test stops. */
-async function setup(config: (repository: string) => string) {
-  const server = await testServer();
+async function setup(config: (repository: string) => string, using: Binding = binding) {
+  const server = await testServer(undefined, { binding: using });
   const path = join(server.configDir, "config.toml");
   writeFileSync(path, config(server.name));
   const jobs = startJobs({
-    binding,
+    binding: using,
     dataDir: server.dataDir,
     featureOptions: server.featureOptions,
     frames: server.frames,
@@ -45,7 +46,7 @@ async function setup(config: (repository: string) => string) {
   onTestFinished(() => jobs.stop());
   const app = createApp({
     allowOrigins: [],
-    binding,
+    binding: using,
     dataDir: server.dataDir,
     featureOptions: server.featureOptions,
     frames: server.frames,
@@ -271,4 +272,46 @@ test("the record is announced on every repository's endpoint", async () => {
   const [turn] = server.sessions.cache.turns(started.data.session);
   await server.sessions.settled(turn.id);
   expect(heard()).toBeGreaterThan(working);
+});
+
+/**
+ * Finding 8. Catches: one workspace read for each job that started a change, on every read of the
+ * record, which each client repeats at each run's start: the record reads it once.
+ */
+test("a read of the record reads the workspace once, however many jobs started a change", async () => {
+  const reads = { workspace: 0 };
+  const counting: Binding = {
+    ...binding,
+    readWorkspace: async (repo: string) => {
+      reads.workspace += 1;
+      return binding.readWorkspace(repo);
+    },
+  };
+  const run = await setup(
+    (name) => ["A", "B", "C"].map((one) => table(one, [name])).join("\n"),
+    counting,
+  );
+  const { cache } = run.server.sessions;
+  const root = await run.server.sessions.mainRoot(run.server.repo);
+  for (const [at, name] of ["A", "B", "C"].entries()) {
+    const chat = await run.server.sessions.newChat(run.server.repo);
+    cache.jobs.add({
+      at: at + 1,
+      due: at + 1,
+      job: name,
+      outcome: "started",
+      reason: null,
+      repository: root,
+      session: chat.id,
+      trigger: "schedule",
+    });
+    cache.attach(chat.id, "2026-10-12-cli-tuis");
+  }
+  reads.workspace = 0;
+  const record = await run.read();
+  expect(names(record)).toEqual(["A", "B", "C"]);
+  expect(reads.workspace).toBe(1);
+  for (const one of ["A", "B", "C"]) {
+    expect(job(record, one).next.why).toBe("change-open");
+  }
 });

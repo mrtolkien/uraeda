@@ -303,3 +303,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the status guard alone: the row would keep a refusal that no longer
   holds. Clearing alone: a session attached another way would keep reading it.
 - **Where**: task 5.
+
+## R21: A read of the Jobs record reads the workspace once
+
+- **Decision**: `Scheduler.nextRun(job, repo, open?)` takes the folders of the changes and features
+  the workspace lists as not merged. `jobsRecord` reads them once (`jobs/guards.ts` `openFolders`),
+  only when a listed job has a run whose session is in a folder, and gives them to each job. Without
+  them, `nextRun` reads the workspace for the one job, as the scheduler's tick does.
+- **Rationale**: each job's `nextRun` read the whole workspace, so a record of N jobs that ever
+  started a change did N reads, and every connected client repeats the record's read several times
+  per run's start.
+- **Where**: tasks 4 and 6.

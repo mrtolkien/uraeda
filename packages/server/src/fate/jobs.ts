@@ -3,6 +3,7 @@
 // announced when a job, a run, or a run's session changes; and the answer of "Run now".
 import { dataView } from "@nkzw/fate/server";
 import type { Job, Schedule } from "uraeda-binding";
+import { openFolders } from "../jobs/guards.ts";
 import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
 import { fileSource } from "./source.ts";
@@ -118,8 +119,13 @@ function historyOf(ctx: RepoContext, job: string, root: string): Array<JobRunVie
 }
 
 /** The job as the repository lists it: `name` is the repository's name in the list. */
-async function rowOf(ctx: RepoContext, job: Job, name: string, root: string): Promise<JobRow> {
-  const next = ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name);
+async function rowOf(
+  ctx: RepoContext,
+  job: Job,
+  place: { name: string; open: ReadonlySet<string>; root: string },
+): Promise<JobRow> {
+  const { name, open, root } = place;
+  const next = ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name, open);
   return {
     agent: job.agent ?? null,
     effort: job.effort ?? null,
@@ -148,10 +154,15 @@ export async function jobsRecord(ctx: RepoContext): Promise<JobsRecord> {
   const name = ctx.hosts.byPath(ctx.repo)?.name;
   const root = await ctx.sessions.mainRoot(ctx.repo);
   const here = name === undefined ? [] : jobs.filter((job) => job.repositories.includes(name));
+  // The workspace is read once for the record, and only when a job started a change to look at.
+  const started = here.some(
+    (job) => ctx.sessions.cache.jobs.changeFolders(job.name, root).length > 0,
+  );
+  const open = started ? await openFolders(ctx) : new Set<string>();
   return {
     enabled: ctx.settings.runs().scheduledJobs.inForce,
     id: JOBS_ID,
-    jobs: await Promise.all(here.map((job) => rowOf(ctx, job, name!, root))),
+    jobs: await Promise.all(here.map((job) => rowOf(ctx, job, { name: name!, open, root }))),
     problem: problem ?? null,
   };
 }

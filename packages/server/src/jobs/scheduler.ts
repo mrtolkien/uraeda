@@ -9,7 +9,7 @@ import type { JobRunRow } from "../runner/cache-jobs.ts";
 import { refused } from "../runner/session-state.ts";
 import { type Runs, serially } from "../serially.ts";
 import { Busy } from "./busy.ts";
-import { agentOf, anyOpen, works } from "./guards.ts";
+import { agentOf, openFolders, works } from "./guards.ts";
 import { startRun } from "./run.ts";
 import { sleep } from "./sleep.ts";
 import { dueAt, MISSED_AFTER_MS, nextAfter } from "./times.ts";
@@ -27,8 +27,11 @@ export type NextRun =
 
 /** The scheduler's triggers, and its stop. */
 export type Scheduler = {
-  /** When the job runs next in the repository, or why it does not. */
-  nextRun(job: Job, repo: string): Promise<NextRun>;
+  /**
+   * When the job runs next in the repository, or why it does not. A caller asking for many jobs
+   * gives the open folders it read once; without them, the workspace is read for the job.
+   */
+  nextRun(job: Job, repo: string, open?: ReadonlySet<string>): Promise<NextRun>;
   /** Starts the job's run in the repository now, refused while its latest run works there. */
   runNow(repo: string, name: string): Promise<{ session: string }>;
   /** Resolves once the times queued are started, skipped, or dropped. */
@@ -291,15 +294,23 @@ class JobScheduler implements Scheduler {
    * its change, or a change it started is open. The open-change read is awaited first, so the
    * synchronous reads of what works come last, as close to the start as they can.
    */
-  async #skipOf(ctx: RepoContext, job: Job, root: string): Promise<Skipped | undefined> {
+  async #skipOf(
+    ctx: RepoContext,
+    job: Job,
+    root: string,
+    open?: ReadonlySet<string>,
+  ): Promise<Skipped | undefined> {
     const { jobs } = ctx.sessions.cache;
     // Any run of the job that started a change still open, not only the latest run.
-    const open = await anyOpen(ctx, jobs.changeFolders(job.name, root));
+    const folders = jobs.changeFolders(job.name, root);
+    const opened = folders.length === 0 ? undefined : (open ?? (await openFolders(ctx)));
     const last = jobs.latestStarted(job.name, root);
     if (this.#busy.has(job.name, root) || (last?.session && works(ctx, last.session))) {
       return "working";
     }
-    return open ? "change-open" : undefined;
+    return opened !== undefined && folders.some((folder) => opened.has(folder))
+      ? "change-open"
+      : undefined;
   }
 
   /** Records a time skipped, once: the unique row of the time is what keeps it from a second. */
@@ -378,7 +389,7 @@ class JobScheduler implements Scheduler {
     }
   }
 
-  async nextRun(job: Job, repository: string): Promise<NextRun> {
+  async nextRun(job: Job, repository: string, open?: ReadonlySet<string>): Promise<NextRun> {
     if (job.problem !== undefined || job.schedule === undefined) {
       return { why: "problem" };
     }
@@ -395,7 +406,7 @@ class JobScheduler implements Scheduler {
       if (!agentOf(ctx, job, root)?.available) {
         return { why: "agent-off" };
       }
-      if ((await this.#skipOf(ctx, job, root)) === "change-open") {
+      if ((await this.#skipOf(ctx, job, root, open)) === "change-open") {
         return { why: "change-open" };
       }
     }

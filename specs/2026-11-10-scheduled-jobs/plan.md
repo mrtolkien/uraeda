@@ -587,7 +587,7 @@ export async function startRun(
 export type NextRun =
   { at: Date } | { why: "agent-off" | "change-open" | "off" | "paused" | "problem" };
 export type Scheduler = {
-  nextRun(job: Job, repo: string): Promise<NextRun>;
+  nextRun(job: Job, repo: string, open?: ReadonlySet<string>): Promise<NextRun>; // open: R21
   runNow(repo: string, name: string): Promise<{ session: string }>; // refused: “<name>” still runs here.
   settled(): Promise<void>; // the times queued are started, skipped, or dropped
   stop(): Promise<void>;
@@ -945,7 +945,8 @@ file, or "Run now" held by the pause.
   `problem` is the core's, a fragment (the schedule's) prefixed "Not running: " and a sentence ("Two
   jobs are named “…”.") as it is ([ruling R13](rulings.md)), else the first repository it names that
   is not listed, else that its named agent is off here, in the texts of the global constraints.
-  `next` comes from `Scheduler.nextRun`, its `why` the code it answers (`problem`, `paused`, `off`,
+  `next` comes from `Scheduler.nextRun`, given the workspace's open folders, read once for the whole
+  record ([ruling R21](rulings.md)), its `why` the code it answers (`problem`, `paused`, `off`,
   `agent-off`, `change-open`), and `history` from `JobRuns.history`, each run with its session's
   folder and title when it has them. `enabled` is the switch for all jobs.
 - The mutations write through the binding, as `extension-mutations.ts` does, a file that cannot be
