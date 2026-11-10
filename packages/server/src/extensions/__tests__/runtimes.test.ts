@@ -1,7 +1,7 @@
 // Runtimes on a started server: a runtime of yours, or a built-in's, reloads only once its turns
 // end, its row saying which session it waits for; a session gets the skills of the extensions on
 // in its repository; and only a server given the fake agent has its runtime.
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { account, flush } from "../../runner/__tests__/helpers.ts";
@@ -190,19 +190,29 @@ test("a runtime's account problems are its extension's", async () => {
   accounts.problemList = [];
   expect(stateOf(server, "claude")?.problems).toEqual([]);
 
-  // A refresh that asked nothing announces no change of the runtimes, even as pages read it.
-  const changed = vi.spyOn(server.extensions.runtimes, "changed");
+  // A refresh that asked nothing announces nothing, even as pages read it.
+  const { runtimes } = server.extensions;
+  const changed = vi.spyOn(runtimes, "changed");
+  const problems = vi.spyOn(runtimes, "accountsChanged");
   for (let read = 0; read < 3; read++) {
     server.sessions.refreshAccounts();
     await flush();
   }
   expect(accounts.asks).toBe(1);
   expect(changed).not.toHaveBeenCalled();
-  // One that read a change of the usage announces it, once.
+  expect(problems).not.toHaveBeenCalled();
+  // One that read a change of the usage announces it, once, through the accounts' own hook: the
+  // runtimes' versions are not asked again, and the problem it brings reaches the status file.
+  const version = vi.spyOn(claude, "version");
   vi.spyOn(accounts, "refresh").mockImplementationOnce(async () => {
     accounts.accounts = [account("b", 0.9)];
+    accounts.problemList = ["account b is signed out, in ~/.claude-b"];
   });
+  rmSync(join(opened.dataDir, "run", STATUS_FILE), { force: true });
   server.sessions.refreshAccounts();
   await flush();
-  expect(changed).toHaveBeenCalledTimes(1);
+  expect(problems).toHaveBeenCalledTimes(1);
+  expect(changed).not.toHaveBeenCalled();
+  expect(version).not.toHaveBeenCalled();
+  await expect.poll(status).toBe(true);
 });

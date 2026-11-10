@@ -89,6 +89,7 @@ export class Runtimes {
   readonly isOn: IsOn;
   #entries = new Map<string, Entry>();
   #listeners = new Set<() => void>();
+  #accountListeners = new Set<() => void>();
   /** Each name's status when it was unregistered, which a registration under it starts from. */
   #last = new Map<string, RuntimeStatus>();
 
@@ -251,6 +252,20 @@ export class Runtimes {
   onChange(listener: () => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
+  }
+
+  /**
+   * Calls `listener` when an ask changed what a runtime's accounts say, their problems included:
+   * none of the runtimes themselves changed. Gives its removal.
+   */
+  onAccounts(listener: () => void): () => void {
+    this.#accountListeners.add(listener);
+    return () => this.#accountListeners.delete(listener);
+  }
+
+  /** Tells the `onAccounts` listeners that an ask changed the accounts. */
+  accountsChanged(): void {
+    this.#accountListeners.forEach((listener) => listener());
   }
 
   /** Tells the listeners that the runtimes, or where they are on, changed. */

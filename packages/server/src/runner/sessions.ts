@@ -78,7 +78,7 @@ export class Sessions {
     this.starts = new StartMessages(options.cache);
     // Each part reaches the others through the context, filled once they are all made.
     const context = {
-      agentChanged: () => options.onChange({ agent: true }),
+      agentChanged: () => this.#accountRefresh.announce(),
       binding: options.binding,
       cache: options.cache,
       changed: (live, turn, state) => {
@@ -97,6 +97,7 @@ export class Sessions {
       live: new LiveSessions(),
       ...(options.mcp === undefined ? {} : { mcp: options.mcp }),
       queue: options.queue ?? (() => undefined),
+      refreshAccounts: (runtime) => this.#accountRefresh.refresh(runtime),
       runOptions: options.runOptions ?? (() => ({ steps: [] })),
       runtimes: options.runtimes,
     } as SessionContext;
@@ -119,7 +120,7 @@ export class Sessions {
     this.#accountRefresh = new AccountRefresh(
       runtimes,
       (runtime) => this.accounts(runtime),
-      () => runtimes.changed(),
+      () => options.onChange({ agent: true }),
     );
     this.#unsubscribe = runtimes.onChange(() => {
       options.onChange({ agent: true });

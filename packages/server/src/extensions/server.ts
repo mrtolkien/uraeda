@@ -138,8 +138,9 @@ export class ExtensionsHost implements Registry {
       (runtime, title) => this.#busy(runtime, title),
       () => this.#announce(),
     );
-    // An account's problem comes with its asks, which announce the runtimes.
+    // An account's problem comes with its asks, which announce it on its own, with no runtime changed.
     this.#stops.push(this.runtimes.onChange(() => this.#announce()));
+    this.#stops.push(this.runtimes.onAccounts(() => this.#announce()));
     this.#stops.push(
       onSessionChange(sessions, (change) => {
         if (!("agent" in change)) {

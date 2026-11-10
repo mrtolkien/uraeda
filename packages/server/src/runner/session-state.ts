@@ -277,6 +277,11 @@ export type SessionContext = {
    */
   queue: (repo: string) => WriteQueue | undefined;
   /**
+   * Asks the usage of a runtime's accounts when it is stale, as the pages do, and announces what
+   * it changed: settles within the pick's wait.
+   */
+  refreshAccounts: (runtime: string) => Promise<void>;
+  /**
    * The run options a feature's next run starts on, by its repository's main checkout and its
    * folder: its own over the settings', as they are now.
    */
