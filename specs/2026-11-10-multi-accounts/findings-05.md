@@ -174,10 +174,9 @@ Full review comments:
   newly opened process idle without starting a turn. A subsequent message within the 15-minute idle
   timeout returns through `open`'s existing-process shortcut, never reaching this re-pick: it starts
   on the old account even if another now has more allowance. This contradicts the first-started-turn
-  rule in
-  [R3](specs/2026-11-10-multi-accounts/rulings.md#r3-a-session-picks-again-until-a-turn-of-it-starts).
-  Gate process reuse on a previously started turn, and cover cancellation during the pick rather
-  than only an `adapter.open` exception.
+  rule in [R3](rulings.md#r3-a-session-picks-again-until-a-turn-of-it-starts). Gate process reuse on
+  a previously started turn, and cover cancellation during the pick rather than only an
+  `adapter.open` exception.
 
 - [P2] Match the session's account by its stored identity —
   /home/tolki/Development/ai/uraeda/.worktrees/2026-11-10-multi-accounts/packages/web/src/sidebar/Allowance.tsx:72-75
@@ -185,6 +184,6 @@ Full review comments:
   gives the removed account its rule-derived name `b`, which also names the remaining account. This
   lookup consequently displays the other account's allowance for the session, despite the session
   retaining its original folder. That violates
-  [R13](specs/2026-11-10-multi-accounts/rulings.md#r13-the-rails-bar-follows-the-session-in-view-and-shows-nothing-for-one-it-cannot-place),
+  [R13](rulings.md#r13-the-rails-bar-follows-the-session-in-view-and-shows-nothing-for-one-it-cannot-place),
   which requires no bar for an unlisted session account. Carry the stored account ID separately from
   its display name and match against `each.id`.
