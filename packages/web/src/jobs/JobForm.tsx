@@ -36,6 +36,9 @@ type Form = ReturnType<typeof useJobForm>;
 /** A sentence of the server's ends with its own full stop. */
 const full = (text: string) => (text.endsWith(".") ? text : `${text}.`);
 
+/** The words of a time that read in a sentence in lower case: a day's name keeps its capital. */
+const DAY_WORD = /^(Today|Tomorrow|Yesterday)\b/;
+
 /** The next run's words after the schedule's, for an existing job. */
 function ScheduleNotes({ job, now, zone }: { job: JobRow; now: Date; zone: string }) {
   const next = nextFact(job, now, zone);
@@ -45,7 +48,7 @@ function ScheduleNotes({ job, now, zone }: { job: JobRow; now: Date; zone: strin
       ? next.text
       : job.next.at === null
         ? next.text
-        : `Next run ${next.text.charAt(0).toLowerCase()}${next.text.slice(1)}`;
+        : `Next run ${next.text.replace(DAY_WORD, (word) => word.toLowerCase())}`;
   return (
     <Text color="secondary">
       {first} <Text xstyle={next.tone === "problem" && styles.problem}>{full(sentence)}</Text>
