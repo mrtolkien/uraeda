@@ -636,3 +636,87 @@ test("only a start waits a minute after the one before it", async () => {
   expect((await run.history("B"))[0]).toMatchObject({ outcome: "skipped", reason: "working" });
   expect(run.state.waits).toEqual([MINUTE]);
 });
+
+type Run = Awaited<ReturnType<typeof setup>>;
+
+/** The names of the two repositories of the setup. */
+const names = (run: Run) => run.repos.slice(0, 2).map(({ name }) => name);
+
+/**
+ * US2 (a time more than 5 minutes past is missed); the rule that a human's pause stands. Catches: a
+ * job paused, deleted, edited, or turned off while its start waits its minute, still started with
+ * the old settings, or a time that is past its 5 minutes by then.
+ */
+test("a queued time is checked again after its minute, and dropped when it no longer holds", async () => {
+  const hourly = { schedule: { hour: 0, kind: "hourly", minute: 0 } } as const;
+  /** Two repositories' runs due at 03:00; `change` happens while the second waits its minute. */
+  const during = async (change: (run: Run) => void) => {
+    const run = await setup();
+    const [uraeda, notes] = run.repos;
+    const names = [uraeda.name, notes.name];
+    run.state.jobs = { jobs: [job("Hourly", names, hourly)] };
+    await run.at("11T02:59:00");
+    const gate = Promise.withResolvers<void>();
+    run.state.gate = gate.promise;
+    run.state.clock = new Date("2026-11-11T03:00:10");
+    await run.scheduler.tick();
+    while (run.state.waits.length === 0) {
+      await turns(1);
+    }
+    expect(run.created).toHaveLength(1);
+    change(run);
+    gate.resolve();
+    await run.scheduler.settled();
+    return { notes, run, uraeda };
+  };
+  const dropped: Array<[string, (run: Run) => void]> = Object.entries({
+    "a pause": (run) => {
+      run.state.jobs = { jobs: [job("Hourly", names(run), { ...hourly, on: false })] };
+    },
+    "a problem": (run) => {
+      run.state.jobs = { jobs: [job("Hourly", names(run), { ...hourly, problem: "No prompt." })] };
+    },
+    "its agent unregistered": (run) => {
+      run.state.jobs = { jobs: [job("Hourly", names(run), { ...hourly, agent: "gone" })] };
+    },
+    "its deletion": (run) => {
+      run.state.jobs = { jobs: [] };
+    },
+    "its repository removed from it": (run) => {
+      run.state.jobs = { jobs: [job("Hourly", [names(run)[0]], hourly)] };
+    },
+    "its schedule edited": (run) => {
+      run.state.jobs = {
+        jobs: [
+          job("Hourly", names(run), {
+            schedule: { hour: 3, kind: "daily", minute: 30 },
+            scheduleText: "daily 03:30",
+          }),
+        ],
+      };
+    },
+    "the extension off there": (run) => {
+      run.state.extensionOff.add("notes");
+    },
+    "the switch off": (run) => {
+      run.state.enabled = false;
+    },
+    "the time past its 5 minutes": (run) => {
+      run.state.clock = new Date("2026-11-11T03:06:00");
+    },
+  } as Record<string, (run: Run) => void>);
+  for (const [what, change] of dropped) {
+    const { notes, run } = await during(change);
+    expect(run.created, what).toHaveLength(1);
+    // A dropped time records nothing, as a missed one.
+    expect(await run.history("Hourly", notes.path), what).toEqual([]);
+  }
+
+  // Unchanged but for its prompt: the second run starts with the prompt as it is now.
+  const edited = await during((run) => {
+    run.state.jobs = { jobs: [job("Hourly", names(run), { ...hourly, prompt: "A new prompt." })] };
+  });
+  expect(edited.run.created).toHaveLength(2);
+  const second = (await edited.run.sessions("Hourly", edited.notes.path))[0];
+  expect(opening(edited.run.server, second).message.text.startsWith("A new prompt.")).toBe(true);
+});

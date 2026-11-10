@@ -240,26 +240,40 @@ class JobScheduler implements Scheduler {
     }
   }
 
+  /**
+   * Where the job runs in the repository of this name, `undefined` when it does not: the job is on,
+   * has no problem, the repository is listed with its extension on, and its agent is on there.
+   */
+  async #placeOf(job: Job, name: string, repos: Array<{ name: string; path: string }>) {
+    const repo = repos.find((one) => one.name === name);
+    if (
+      !job.on ||
+      job.problem !== undefined ||
+      job.schedule === undefined ||
+      !job.repositories.includes(name) ||
+      repo === undefined ||
+      !this.#options.isOn(name)
+    ) {
+      return undefined;
+    }
+    const ctx = this.#options.context(repo.path);
+    const agent = agentOf(ctx, job, await ctx.sessions.mainRoot(repo.path));
+    return agent && { agent, repo, schedule: job.schedule };
+  }
+
   /** The times due now, in the repositories where each job runs. */
   async #dueNow(jobs: Jobs["jobs"], at: Date): Promise<Array<Due>> {
     const found: Array<Due> = [];
     const eligible = new Set<string>();
     const repos = this.#options.repos();
     for (const job of jobs) {
-      if (!job.on || job.problem !== undefined || job.schedule === undefined) {
-        continue;
-      }
-      const due = dueAt(job.schedule, at).getTime();
       for (const name of job.repositories) {
-        const repo = repos.find((one) => one.name === name);
-        if (repo === undefined || !this.#options.isOn(name)) {
+        const place = await this.#placeOf(job, name, repos);
+        if (place === undefined) {
           continue;
         }
-        const ctx = this.#options.context(repo.path);
-        const agent = agentOf(ctx, job, await ctx.sessions.mainRoot(repo.path));
-        if (agent === undefined) {
-          continue;
-        }
+        const { agent, repo } = place;
+        const due = dueAt(place.schedule, at).getTime();
         const key = keyOf(job.name, name);
         eligible.add(key);
         // A schedule edited is a job added: the moment it was seen starts again.
@@ -280,6 +294,33 @@ class JobScheduler implements Scheduler {
       }
     }
     return found;
+  }
+
+  /**
+   * The job as it is now, when its queued time still holds: the switch is on, the job exists, is on,
+   * has no problem, runs the same schedule in the repository, its extension and agent are on there,
+   * and the time is not past its 5 minutes. `undefined` drops the time, recording nothing.
+   */
+  async #fresh({ due, job, repo }: Due): Promise<Job | undefined> {
+    if (!this.#on()) {
+      return undefined;
+    }
+    const { jobs, problem } = await this.#options.jobs();
+    const now = jobs.find((one) => one.name === job.name);
+    if (problem !== undefined || now === undefined || !this.#on()) {
+      return undefined;
+    }
+    const place = await this.#placeOf(now, repo.name, this.#options.repos());
+    if (
+      place === undefined ||
+      place.repo.path !== repo.path ||
+      !place.agent.available ||
+      JSON.stringify(place.schedule) !== JSON.stringify(job.schedule) ||
+      this.#now().getTime() - due > MISSED_AFTER_MS
+    ) {
+      return undefined;
+    }
+    return now;
   }
 
   /** Why the job's time is skipped in the repository: its last run works, or a change it started is open. */
@@ -328,15 +369,16 @@ class JobScheduler implements Scheduler {
         });
         return false;
       }
-      // A start comes a minute after the one before it.
+      // A start comes a minute after the one before it, and the job may have changed meanwhile.
       if (spaced) {
         await this.#wait(APART_MS);
-        if (!this.#on()) {
-          return false;
-        }
+      }
+      const now = await this.#fresh({ due, job, repo });
+      if (now === undefined) {
+        return false;
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;
-      return (await startRun(ctx, job, run)) !== undefined;
+      return (await startRun(ctx, now, run)) !== undefined;
     } catch (error) {
       const why = `the run of ${job.name} in ${repo.name} was refused: ${reasonOf(error)}`;
       this.#print(`${key}\0${due}`, why);
