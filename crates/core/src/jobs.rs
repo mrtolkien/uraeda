@@ -11,6 +11,8 @@ use std::path::Path;
 use napi_derive::napi;
 use toml_edit::{Document, Item, TableLike};
 
+use crate::settings::unreadable;
+
 mod schedule;
 mod write;
 
@@ -52,7 +54,7 @@ pub struct Job {
 
 /// The jobs of the settings file, in its order.
 #[cfg_attr(feature = "napi", napi(object))]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Jobs {
     pub jobs: Vec<Job>,
     /// Why no job is read: the settings file cannot be read, or `jobs` is not a list of tables.
@@ -80,24 +82,21 @@ pub fn read(config_dir: &Path) -> Jobs {
         jobs: Vec::new(),
         problem: Some(problem.to_owned()),
     };
-    if let Err(error) = crate::settings::read(config_dir) {
-        return whole(&error.message);
-    }
-    let Ok(Some((text, _))) = crate::settings::load_text(config_dir) else {
-        return Jobs {
-            jobs: Vec::new(),
-            problem: None,
-        };
+    // One load: the settings and the jobs read the same text.
+    let text = match crate::settings::load_text(config_dir) {
+        Ok(Some((text, _))) => text,
+        Ok(None) => return Jobs::default(),
+        Err(reason) => return whole(&unreadable(config_dir, &reason).message),
     };
-    // The settings read the same text, so it parses.
+    if let Err(problem) = crate::settings::parse_text(&text) {
+        return whole(&unreadable(config_dir, &problem).message);
+    }
+    // The settings parsed the same text, so it parses.
     let Ok(document) = Document::parse(text.as_str()) else {
         return whole("config.toml cannot be read.");
     };
     let Some(item) = document.as_table().get("jobs") else {
-        return Jobs {
-            jobs: Vec::new(),
-            problem: None,
-        };
+        return Jobs::default();
     };
     let Some(tables) = tables(item) else {
         return whole(NOT_A_LIST);

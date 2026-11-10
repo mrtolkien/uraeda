@@ -762,3 +762,15 @@ fn an_empty_option_is_unset_and_the_schedule_is_written_normalised() {
     jobs::update(dir.path(), "A", &job).unwrap();
     assert!(!text(dir.path()).contains("agent"), "{}", text(dir.path()));
 }
+
+#[test]
+fn a_file_that_fails_to_load_is_the_jobs_problem() {
+    let dir = tempdir();
+    fs::create_dir(dir.path().join("config.toml")).unwrap();
+
+    let jobs = jobs::read(dir.path());
+
+    assert!(jobs.jobs.is_empty());
+    let message = jobs.problem.expect("the load's own message");
+    assert!(message.starts_with("Cannot read "), "{message}");
+}

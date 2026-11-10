@@ -16,7 +16,7 @@ mod rules;
 mod runs;
 mod runs_write;
 
-pub(crate) use file::{line, load as load_text};
+pub(crate) use file::{line, load as load_text, parse as parse_text};
 pub use runs::{
     ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
 };
@@ -462,7 +462,7 @@ pub(crate) fn refused(message: impl Into<String>) -> ApiError {
     }
 }
 
-fn unreadable(dir: &Path, problem: &str) -> ApiError {
+pub(crate) fn unreadable(dir: &Path, problem: &str) -> ApiError {
     ApiError {
         code: "unreadable",
         message: format!("Cannot read {}: {problem}", shown_file(dir)),
