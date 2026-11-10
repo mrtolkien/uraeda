@@ -11,7 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
 import { Suspense } from "react";
 import { useAgent, useFeature } from "../data.ts";
-import { type Runtime, useSessionAccount, useSessionRuntime } from "../runtimes.ts";
+import { type Runtime, useSessionAgent } from "../runtimes.ts";
 import { useRoute } from "../routes.tsx";
 import type { Route } from "../routeTable.ts";
 import { UsageWindows, useReportedRuntimes } from "../UsageWindow.tsx";
@@ -132,7 +132,8 @@ function RailBar({ isRail, window }: { isRail: boolean; window: { label: string;
 }
 
 function SessionBar({ id }: { id: string }) {
-  return <Bar account={useSessionAccount(id)} agent={useSessionRuntime(id).runtime} />;
+  const { account, runtime } = useSessionAgent(id);
+  return <Bar account={account} agent={runtime.runtime} />;
 }
 
 /** A feature's latest session's bar, else the one of a new session. */

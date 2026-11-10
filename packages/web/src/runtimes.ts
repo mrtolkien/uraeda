@@ -127,16 +127,14 @@ export function useFeatureRuntime(folder: string): RuntimeChoice {
   return useRuntime(useFeature(folder)?.runtime);
 }
 
-/** The runtime a session runs on, by its ID: by the name it stored. */
-export function useSessionRuntime(id: string): RuntimeChoice {
+/**
+ * What a session runs on, by its ID, read once: the runtime by the name it stored, and the account
+ * it keeps, null for a session with none.
+ */
+export function useSessionAgent(id: string): { account: string | null; runtime: RuntimeChoice } {
   const { session } = useRequest({ session: { id, view: SessionAgentView } });
-  return useRuntime(useLiveView(SessionAgentView, session)?.agent);
-}
-
-/** The name of the account a session runs on, by its ID, null for a session with none. */
-export function useSessionAccount(id: string): string | null {
-  const { session } = useRequest({ session: { id, view: SessionAgentView } });
-  return useLiveView(SessionAgentView, session)?.account ?? null;
+  const view = useLiveView(SessionAgentView, session);
+  return { account: view?.account ?? null, runtime: useRuntime(view?.agent) };
 }
 
 /** Why no message can go to the runtime chosen now: off, or not available on this machine. */
