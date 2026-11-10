@@ -190,6 +190,11 @@ export const migrations: Array<Migration> = [
   );
   CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
   CREATE INDEX job_runs_session ON job_runs (session);`,
+  // A step of its own, as an earlier version of the one above made the unique index partial (WHERE
+  // due IS NOT NULL), which an insert's ON CONFLICT (job, repository, due) cannot use: a cache that
+  // applied that version gets the plain index here, and a new one recreates what it has.
+  `DROP INDEX job_runs_due;
+  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);`,
 ];
 
 /**

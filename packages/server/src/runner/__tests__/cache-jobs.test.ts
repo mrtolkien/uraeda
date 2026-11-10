@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { expect, test } from "vite-plus/test";
+import { expect, onTestFinished, test } from "vite-plus/test";
 import { migrations, SessionCache } from "../cache.ts";
 import type { JobRunRow } from "../cache-jobs.ts";
 
@@ -229,22 +232,49 @@ test("the reads of a job and repository use the unique index", () => {
   }
 });
 
-test("the migration adds the table to a cache made before it", () => {
-  const db = new DatabaseSync(":memory:");
-  for (const migration of migrations.slice(0, -1)) {
+/** The index of the step that creates `job_runs`. */
+const TABLE_STEP = migrations.findIndex(
+  (step) => typeof step === "string" && step.includes("CREATE TABLE job_runs"),
+);
+
+/** Applies the steps `from` to `to` (exclusive) of the schema to the database. */
+function apply(db: DatabaseSync, from: number, to: number) {
+  for (const migration of migrations.slice(from, to)) {
     if (typeof migration === "string") {
       db.exec(migration);
     } else {
       migration(db);
     }
   }
-  db.exec(`PRAGMA user_version = ${migrations.length - 1}`);
+}
+
+test("the migration adds the table to a cache made before it", () => {
+  const db = new DatabaseSync(":memory:");
+  apply(db, 0, TABLE_STEP);
   expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'job_runs'").all()).toEqual([]);
-  const last = migrations.at(-1);
-  if (typeof last === "string") {
-    db.exec(last);
-  } else {
-    last?.(db);
-  }
+  apply(db, TABLE_STEP, migrations.length);
   expect(db.prepare("SELECT COUNT(*) AS n FROM job_runs").get()).toEqual({ n: 0 });
+});
+
+/**
+ * Wave 3, finding 6. Catches: a cache that applied the table's first step, whose unique index was
+ * partial (`WHERE due IS NOT NULL`), which `add`'s `ON CONFLICT (job, repository, due)` cannot
+ * use: every insert throws, so no run starts and "Run now" fails.
+ */
+test("a cache migrated with the partial index accepts add once upgraded", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+  onTestFinished(() => rmSync(dirname(path), { force: true, recursive: true }));
+  const old = new DatabaseSync(path);
+  apply(old, 0, TABLE_STEP + 1);
+  old.exec(`DROP INDEX job_runs_due;
+    CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due) WHERE due IS NOT NULL;
+    PRAGMA user_version = ${TABLE_STEP + 1}`);
+  old.close();
+
+  const jobs = SessionCache.open(path).jobs;
+  expect(jobs.add(run({ due: 1000 }))).toBeDefined();
+  expect(jobs.add(run({ due: 1000 }))).toBeUndefined();
+  // A run by hand has no time: two of them never conflict.
+  expect(jobs.add(run({ due: null, trigger: "manual" }))).toBeDefined();
+  expect(jobs.add(run({ due: null, trigger: "manual" }))).toBeDefined();
 });
