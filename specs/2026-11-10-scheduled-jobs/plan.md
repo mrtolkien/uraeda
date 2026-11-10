@@ -517,8 +517,9 @@ The break each test catches:
   does not exist that night becomes the first minute that does: 2:30 becomes 3:00, never 3:30. A
   local time that happens twice is its first.
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
-  [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)` where
-  `due` is not null. `add` prunes its job and repository to the 50 latest rows, and the latest
+  [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)`, an
+  index with no condition: SQLite counts each null `due` as distinct, and the reads of a job and
+  repository use it. `add` prunes its job and repository to the 50 latest rows, and the latest
   started one ([ruling R8](rulings.md)).
 - `cache.ts` has 5 lines left: add the `jobs` property and nothing else there.
 - The switch follows `catchUpPullRequests` through `options.ts`, `env.ts`, and `settings.ts`, but on

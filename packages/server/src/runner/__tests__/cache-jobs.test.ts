@@ -142,6 +142,24 @@ test("a refusal is set with its turn, and cleared", () => {
   expect(jobs.ofSession("s1")).toMatchObject({ refusal: null, refusedTurn: null });
 });
 
+test("the reads of a job and repository use the unique index", () => {
+  const db = new DatabaseSync(":memory:");
+  for (const migration of migrations) {
+    if (typeof migration === "string") {
+      db.exec(migration);
+    } else {
+      migration(db);
+    }
+  }
+  for (const sql of [
+    "SELECT * FROM job_runs WHERE job = 'a' AND repository = 'b' ORDER BY id DESC LIMIT 50",
+    "SELECT * FROM job_runs WHERE job = 'a' AND repository = 'b' AND outcome = 'started'",
+  ]) {
+    const plan = db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as Array<{ detail: string }>;
+    expect(plan.map(({ detail }) => detail).join(" ")).toContain("job_runs_due");
+  }
+});
+
 test("the migration adds the table to a cache made before it", () => {
   const db = new DatabaseSync(":memory:");
   for (const migration of migrations.slice(0, -1)) {

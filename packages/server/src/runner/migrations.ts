@@ -171,6 +171,8 @@ export const migrations: Array<Migration> = [
   "ALTER TABLE sessions ADD COLUMN account TEXT;",
   // The runs of the scheduled jobs, one row per time a job was due in a repository, or run by hand.
   // A time is recorded once: the unique index is what stops two servers from starting it twice.
+  // SQLite counts each null as distinct, so a run by hand never conflicts, and a plain index also
+  // serves the reads of a job and repository.
   // `refusal` and `refused_turn` are why the change a run offered could not start, and the turn
   // that offer ended (ruling R1).
   `CREATE TABLE job_runs (
@@ -186,7 +188,7 @@ export const migrations: Array<Migration> = [
     refusal TEXT,
     refused_turn INTEGER
   );
-  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due) WHERE due IS NOT NULL;
+  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
   CREATE INDEX job_runs_session ON job_runs (session);`,
 ];
 
