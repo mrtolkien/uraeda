@@ -33,7 +33,7 @@ A model that changes during a session would surprise the human, and a feature's 
 model nobody picked for them. Effort changes cost and depth as much as the model, but keeps the
 conversation and the model, so the human tunes it as the work goes, or per step. Without a pick, the
 agent's defaults already express the human's preference. An account that changes re-reads the
-conversation uncached. History: [Multi-accounts](../2026-11-10-multi-accounts/spec.md).
+conversation uncached. History: [Multi-accounts](../done/2026-11-10-multi-accounts.md).
 
 ## Alternatives considered
 
