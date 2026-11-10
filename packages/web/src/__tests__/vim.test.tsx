@@ -349,6 +349,12 @@ test("clicking away while the `:` prompt is open saves the row", async () => {
   await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, left\n"));
 });
 
+/** The Save buttons that can be pressed: those of the fields that changed. */
+const enabledSaves = () =>
+  screen
+    .getAllByRole("button", { name: "Save" })
+    .filter((button) => !(button as HTMLButtonElement).disabled);
+
 // Break: the blank lines kept in the field after the save drops them from the list, so the engine's
 // "Line 2" names the field's third line.
 test("saved commands lose their blank lines in the field, which an error's line number counts", async () => {
@@ -358,7 +364,9 @@ test("saved commands lose their blank lines in the field, which an error's line 
   await waitFor(() => expect(slotContent()).not.toHaveLength(0));
   await type(field, "imap jj <Esc>\n\nnmpa Q dd");
 
-  await click(screen.getByRole("button", { name: "Save" }));
+  // Every list setting has its own Save, Claude Code's accounts too: only the edited field's is on.
+  await waitFor(() => expect(enabledSaves()).toHaveLength(1));
+  await click(enabledSaves()[0]!);
 
   await refreshUntil(() =>
     expect(screen.getByText('Line 2: Not an editor command ":nmpa Q dd"')).toBeTruthy(),
