@@ -278,10 +278,32 @@ What the spikes taught, which tasks rely on:
   spike. So the protocol sends changes, each acknowledged.
 - **NSH's editor has no Vim.** The spike's layer worked over its commands. So Vim is ours.
 
+### Why Vim's keys, and not Helix
+
+Reviewed on 2026-11-10, on Helix at commit `ba40e54`: could Helix's code be embedded, leaving only
+the drawing to write? No. The human ruled that Helix is worth it only with its full feature set, so
+the layer keeps Vim's keys.
+
+- **Helix's commands cannot be embedded.** They are 7,200 lines of `helix-term/src/commands.rs`,
+  written against Helix's own editor and screen. That editor, `helix-view`, brings `tokio`, language
+  servers, the debugger, and version control with it.
+- **Helix's core crate could be, and costs more than it saves.** `helix-core` holds pure functions
+  over a rope: motions, text objects, surrounds. It is not published, so it would be pinned from
+  git, under MPL 2.0. It brings Helix's grammar loader and its C parser, which its own manifest says
+  are not ready for the web target. Building it for the web was not tried.
+- **"Only the drawing" is the largest part.** With Helix's buffer, Uraeda would draw the text, the
+  carets, and the selections itself, and handle composed input, touch selection, the phone's
+  keyboard, and accessibility, on GTK, on the web, and later on iOS. NSH's editor already does all
+  of that.
+- **A subset of Helix's keys is possible, and not wanted.** It would be a smaller state machine than
+  Vim's, and not the whole of Helix.
+
 ### NSH documentation
 
-NSH moves fast: read the page again before building on it. Paths are under
-`https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.x; task 2 records the exact
+NSH moves fast: read the page again before building on it. Start from
+[`llms.txt`](https://nsh.dev/llms.txt), which lists every page, and from the NSH section of
+[`AGENTS.md`](/AGENTS.md), which says where the documentation and the source are. Paths below are
+under `https://github.com/longbridge/nsh/blob/main/`. The pin is NSH 0.4.x; task 2 records the exact
 version and commit.
 
 | Subject                           | Page                                                                                                                                                                                                                         |
@@ -465,7 +487,8 @@ The human approves by setting `protocol.md` to `active`, or asks for changes in 
 
 - Create: `crates/protocol/`, `crates/server/`, `crates/vim/`, `crates/app/` (empty crates, in the
   workspace), `app/nsh.json`, `app/App.tsx`, `app/tsconfig.json`, `app/theme.json`
-- Modify: `Cargo.toml`, `rust-toolchain.toml`, `flake.nix`, `vite.tasks.ts`, `CONTRIBUTING.md`
+- Modify: `Cargo.toml`, `rust-toolchain.toml`, `flake.nix`, `vite.tasks.ts`, `CONTRIBUTING.md`,
+  `AGENTS.md` (the pinned NSH version and commit, and the `app/` and new crates in the layout)
 
 **Interfaces:**
 
@@ -1065,7 +1088,10 @@ A human gate: the first of the two design gates.
 - Produces: the rules tasks 27 to 34 follow. Until the human approves it, they do not start.
 
 - [ ] **Step 1: Write `design-language.md`**, short enough to review in 15 minutes. It decides:
-  - the surfaces and their order in depth: page, pane, glass, overlay;
+  - the heights: at least `recessed` (a well, a field, a code block), `standard` (the page and its
+    panes), `raised` (a card, a bar that stays), and `overlay` (a menu, a dialog, a sheet, a toast).
+    For each height: its fill, its border, its shadow, whether it is glass, and how far it glows;
+  - what a height means inside another, such as a field in a dialog;
   - where glass goes, how strong its blur and tint are, and where it never goes (behind long prose);
   - neon light: which roles glow, how far, and when it moves;
   - corners, borders, and the titled pane, kept or changed from
@@ -1095,7 +1121,8 @@ A human gate: the first of the two design gates.
 - Consumes: the approved design language (task 26); the record Themes (task 8).
 - Produces: `applyTheme(theme)`, which maps a theme's roles onto NSH's tokens; the roles for glass
   and glow; bundled fonts, with no file loaded from another host; `tokens`, the only source of
-  colours, radii, blur, and glow for `app/ui/`.
+  colours, radii, blur, and glow for `app/ui/`; `tokens.height[name]`, one set per height: fill,
+  border, shadow, blur, tint, and glow.
 
 - [ ] **Step 1: Write the failing tests**: `every shipped theme meets the contrast floors` (4.5:1
       for text, 3:1 for borders, as today); `a theme without the new roles inherits them`;
@@ -1110,23 +1137,33 @@ A human gate: the first of the two design gates.
 
 **Files:**
 
-- Create: `app/ui/surfaces/{Glass,Glow,Pane,Overlay,Sheet,Popover,Dialog,Toast,Tooltip}.tsx`,
+- Create:
+  `app/ui/surfaces/{Surface,Glass,Glow,Pane,Well,Overlay,Sheet,Popover,Dialog,Toast,Tooltip}.tsx`,
   `app/ui/surfaces/glass.wgsl`
 
 **Interfaces:**
 
 - Consumes: `tokens` (task 27).
-- Produces: the components named above. `Glass` draws native glass or backdrop blur where the
-  platform has it, and the shader elsewhere: on GTK today. No caller knows which.
+- Produces: the components named above.
+  - `Surface` takes `height: "recessed" | "standard" | "raised" | "overlay"`, and draws that
+    height's fill, border, shadow, glass, and glow from `tokens.height`. It is the only component
+    that draws a shadow or glass: every other one is built on it, and none sets its own.
+  - `useHeight()` gives the height a component sits on, from a context `Surface` sets, so a control
+    picks its contrast and a nested surface its look.
+  - `Glass` draws native glass or backdrop blur where the platform has it, and the shader elsewhere:
+    on GTK today. No caller knows which. A later iOS client maps a height to the system's material
+    here, and nowhere else.
 
 - [ ] **Step 1: Build `Glass` first, and measure it.** Start from the spike's shader, with a
       smoother blur. Put it over the spike's scrolling transcript: the frame cost must stay under
       8.3 ms at the 99th percentile on GTK. If it does not, lower the blur's samples, not the
       budget.
-- [ ] **Step 2: Build the others**, each following [surfaces](/specs/ui/surfaces.md) and the design
-      language. A sheet rises from the bottom on a narrow window; a menu stays a popover at every
-      width, as the UI layout decision says.
-- [ ] **Step 3: Add each to the gallery**, in its states.
+- [ ] **Step 2: Build `Surface`, then the others on it**, each following
+      [surfaces](/specs/ui/surfaces.md) and the design language. `Well` is the recessed one, `Pane`
+      the standard one, and every overlay sits at `overlay`. A sheet rises from the bottom on a
+      narrow window; a menu stays a popover at every width, as the UI layout decision says.
+- [ ] **Step 3: Add each to the gallery**, in its states, with one page that shows every height
+      inside every other.
 - [ ] **Step 4: Run the task's validation**: `vp run app:check`. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): surfaces, with glass and glow`.
 

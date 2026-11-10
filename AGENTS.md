@@ -80,6 +80,41 @@ reference, its template, and the example's file must agree.
 Markdown files can link to any file in the repository. Write markdown links with a relative path or
 a path from the repository root (`/src/...`). Humans may also write wikilinks (`[[file-name]]`).
 
+## Native Shell (NSH)
+
+The UI is moving to [Native Shell](https://nsh.dev) (NSH), a young framework: assume you know
+nothing about it, and read before writing. The
+[migration plan](specs/2026-11-10-nsh-migration/plan.md) says what is built on it, and what the
+spikes measured.
+
+- **Start here**: <https://nsh.dev/llms.txt> lists every page of the documentation with one line
+  each. Every page is also served as Markdown, at its address plus `.md`.
+- **For app code**: the guides are under `https://nsh.dev/docs/`, one page per element under
+  `/elements/`, and one per module an app imports under `/modules/` (`nsh`, `nsh/base`,
+  `nsh/desktop`, the style reference).
+- **For how it works inside**: the source is at <https://github.com/longbridge/nsh>. Its `docs/dev/`
+  has one page per area (`embedding.md`, `signed-packages.md`, `sandbox.md`, `rust-modules.md`,
+  `shaders.md`, `editor.md`, `linux.md`, `pitfalls.md`), and its `AGENTS.md` maps the crates.
+  `crates/nsh-core/` is the engine, `crates/nsh-base/` the unstyled components, and
+  `crates/nsh-platform-*/` one backend each.
+- **For examples**: `examples/` in that repository, with `gallery` and `gallery-rs` for every
+  element in TSX and in Rust, and `embedded` and `host-echo` for a view inside a host.
+- **Read the pinned version.** NSH's Rust API changes between releases. Once the migration pins a
+  commit, read the source at that commit, not at `main`. The website follows `main`.
+- **Trust the source over the website** when they disagree, and a run over both: the spikes found
+  pages that were out of date.
+
+What the spikes learned, which no page says plainly:
+
+- TSX runs in an interpreter with no JIT: put parsing, diffing, and per-key logic in Rust.
+- On Linux the app ships on GTK. GPUI is a development host: `nsh package` refuses it, and it draws
+  no blur and no shader.
+- `backdropFilter` draws nothing on GTK: glass there is a `<Shader>` that samples what is behind it.
+- Only TSX has WebSockets and streamed `fetch`. Rust gets whole responses.
+- There is no error boundary, and a view embedded on GTK reports no error to its host.
+- Tests run without a display, with `nsh test`. Never open a window on the human's screen without
+  asking: use Xvfb.
+
 ## Shell
 
 - Commands run in zsh or fish, where an unquoted glob that matches no file fails the whole command

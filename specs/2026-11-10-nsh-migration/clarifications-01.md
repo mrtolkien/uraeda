@@ -246,3 +246,8 @@ Why it matters: it decides what the human reviews before the plan.
 - On iOS, later: "we should use native widgets, which are glassy".
 - After the plan was written: "it's really ok to break compatibility, no one really uses the tool
   atm". The session import can be removed after the port, and the extension API stays version 1.
+- Later, on question 10: Helix's keys were reviewed again. "If we can't bring the full helix feature
+  set, go with vim. Helix is worth it only if simpler." Helix's code cannot be embedded, so the
+  answer stands.
+- "Components in our system should have a concept of 'height'. We have recessed surface, standard
+  surface, and overlays, at least."

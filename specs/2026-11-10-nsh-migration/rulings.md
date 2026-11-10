@@ -75,7 +75,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 - **Decision**: the Vim layer has one flavour.
 - **Rationale**: the human chose "our own Vim layer in Rust, a defined subset" over the option with
-  Helix. The spike's Helix flavour is kept on its branch.
+  Helix. The spike's Helix flavour is kept on its branch. Asked again, the human ruled that Helix is
+  worth it only with its full feature set. That needs Helix's own code, which cannot be embedded:
+  see [the review](plan.md#why-vims-keys-and-not-helix).
 - **Where**: task 23.
 
 ## R9: The gallery replaces the app's own Storybook

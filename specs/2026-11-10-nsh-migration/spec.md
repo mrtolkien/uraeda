@@ -114,7 +114,8 @@ Key scenarios:
 ### US4: A coherent, glassy look (P2)
 
 Every screen is built from one component library, with glass surfaces, blur, and neon light, in a
-terminal style. The owner approves its design language, then its gallery, before screens are built.
+terminal style. Every surface has a height, which decides its shadow, its glass, and its glow. The
+owner approves its design language, then its gallery, before screens are built.
 
 ### US5: A remote device (P2)
 
