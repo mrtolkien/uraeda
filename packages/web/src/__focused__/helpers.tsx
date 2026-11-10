@@ -97,6 +97,7 @@ function agentRecord(): AgentRecord {
 export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}): SessionRecord {
   return {
     account: null,
+    accountId: null,
     agent: "fake",
     allowable: 0,
     archived: false,
