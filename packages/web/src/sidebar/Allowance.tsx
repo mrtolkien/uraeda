@@ -60,19 +60,19 @@ const styles = stylex.create({
 });
 
 /**
- * The window the rail's bar shows: with accounts, the first of the account `account` names, none
- * when the session's account is not listed or it has none; `undefined` is no session in view, which
- * shows the account a new session would start on, and the window is labelled by the account's name.
- * Without accounts, the runtime's five hours, none when it did not report them.
+ * The window the rail's bar shows: with accounts, the first of the account whose ID is `accountId`,
+ * none when the session's account is not listed or it has none; `undefined` is no session in view,
+ * which shows the account a new session would start on, and the window is labelled by the account's
+ * name. Without accounts, the runtime's five hours, none when it did not report them.
  */
-function barWindow(agent: Runtime | undefined, account: string | null | undefined) {
+function barWindow(agent: Runtime | undefined, accountId: string | null | undefined) {
   if (agent === undefined || agent.accounts.length === 0) {
     return agent && fiveHours(agent.usage);
   }
   const shown =
-    account === undefined
+    accountId === undefined
       ? agent.accounts.find((each) => each.isNext)
-      : agent.accounts.find((each) => each.name === account);
+      : agent.accounts.find((each) => each.id === accountId);
   const [first] = shown?.state === "ready" ? shown.windows : [];
   return first && { ...first, label: `${shown?.name} ${first.label}` };
 }
@@ -92,8 +92,8 @@ export function AllowancePane({
   );
 }
 
-function Bar({ account, agent }: { account?: string | null; agent: Runtime | undefined }) {
-  const window = barWindow(agent, account);
+function Bar({ accountId, agent }: { accountId?: string | null; agent: Runtime | undefined }) {
+  const window = barWindow(agent, accountId);
   const reported = useReportedRuntimes();
   const isRail = useClosedRail();
   if (reported.length === 0) {
@@ -137,8 +137,8 @@ function RailBar({ isRail, window }: { isRail: boolean; window: { label: string;
 }
 
 function SessionBar({ id }: { id: string }) {
-  const { account, runtime } = useSessionAgent(id);
-  return <Bar account={account} agent={runtime.runtime} />;
+  const { accountId, runtime } = useSessionAgent(id);
+  return <Bar accountId={accountId} agent={runtime.runtime} />;
 }
 
 /** A feature's latest session's bar, else the one of a new session. */

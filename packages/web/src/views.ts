@@ -294,6 +294,7 @@ export const AgentView = view<Agent>()({
  */
 export const SessionAgentView = view<Session>()({
   account: true,
+  accountId: true,
   agent: true,
   id: true,
 });

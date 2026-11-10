@@ -6,6 +6,7 @@ import type { RepoContext } from "../fate/context.ts";
 import { featureStatusOf } from "../fate/feature-status.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { fakeModels } from "../runner/fake.ts";
+import { account, fakeAccounts, folder } from "../runner/__tests__/helpers.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
 import { OUTPUT_LIMIT, SERVER_STOPPED, TAKEN_BACK } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
@@ -923,6 +924,24 @@ test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a messag
   const sent = await send(server, { session: chat.id, text: "Any new draft?" });
   await settle(server, sent);
   expect(sent).toMatchObject({ archived: false, title: "Drafts" });
+});
+
+test("a session's record carries its account's id beside its name", async () => {
+  const server = await testServer();
+  server.adapter.accounts = fakeAccounts();
+  const chat = (await mutate(server.app, "session.newChat", {}, SESSION_FIELDS)).data;
+  const read = async () =>
+    (await byId(server.app, "Session", [chat.id], ["account", "accountId"]))[0];
+  expect(await read()).toMatchObject({ account: null, accountId: null });
+
+  server.adapter.script([]);
+  await settle(server, await send(server, { session: chat.id, text: "Hello" }));
+  expect(await read()).toMatchObject({ account: "b", accountId: folder("b") });
+
+  // The account left the list, and another folder of the same name is listed: the name is the
+  // same, the id is not, which is what tells them apart.
+  server.adapter.accounts.accounts = [{ ...account("b", 0.1), id: "/srv/.claude-b" }];
+  expect(await read()).toMatchObject({ account: "/home/u/.claude-b", accountId: folder("b") });
 });
 
 test("Agent reads each runtime's name, mark, availability, version, capabilities, models, and usage", async () => {

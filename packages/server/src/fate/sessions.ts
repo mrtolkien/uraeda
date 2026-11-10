@@ -141,6 +141,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
   return {
     account: accountName(ctx.sessions, row),
+    accountId: row.account,
     agent: row.agent,
     allowable: read.allowable,
     effort: row.effort,

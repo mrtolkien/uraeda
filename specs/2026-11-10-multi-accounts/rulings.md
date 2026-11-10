@@ -291,3 +291,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   announced a change and no banner ever showed.
 - **Alternatives considered**: none: the read was one branch short.
 - **Where**: `#state` in `extensions/server.ts`.
+
+## R19: The session's record carries its account's id, and the rail's bar matches the id
+
+- **Decision**: `SessionRecord` gains `accountId`, the id the session stored (for Claude Code, its
+  folder), beside `account`, the name for people. The web's `SessionAgentView` reads it, and the
+  rail's bar finds the session's account among the runtime's by `id`, never by name.
+- **Rationale**: finding 6 and Codex's finding 2 of the branch review. A session on `/z/.claude-b`,
+  whose folder left the list while `/a/.claude-b` is listed, got the name "b" from the naming rule,
+  and the bar showed the other account's five hours, where R13 says a session on an account that is
+  not listed shows none. Two accounts may share a name; the naming rule gives the second its path,
+  but only among the listed ones.
+- **Alternatives considered**: giving the second folder's name a suffix whatever the list says: a
+  name that changes as the list does.
+- **Where**: `SessionRecord` in `fate/views.ts`, `sessionRecord` in `fate/sessions.ts`,
+  `SessionAgentView` in `web/src/views.ts`, `barWindow` in `sidebar/Allowance.tsx`.

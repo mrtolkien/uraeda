@@ -190,6 +190,12 @@ export type SessionRecord = {
    * session on the agent's own login.
    */
   account: string | null;
+  /**
+   * The account's id, what the session stored (for Claude Code, its folder), by which the sidebar
+   * finds it among the runtime's accounts: two accounts may share a name, never an id. Null with
+   * no account.
+   */
+  accountId: string | null;
   /** The agent's kind. */
   agent: string;
   /** How many blocked actions of its latest turn "Allow all" would allow: 0 without a turn. */
@@ -386,6 +392,7 @@ export const agentDataView = dataView<AgentRecord>("Agent")({
 
 export const sessionDataView = dataView<SessionRecord>("Session")({
   account: true,
+  accountId: true,
   agent: true,
   allowable: true,
   archived: true,
