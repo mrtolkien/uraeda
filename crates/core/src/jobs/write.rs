@@ -9,12 +9,12 @@ use toml_edit::{Array, ArrayOfTables, Item, RawString, Table, TableLike, Value};
 
 use super::{JobInput, NOT_A_LIST, check, tables, text_of};
 use crate::api::ApiError;
-use crate::settings::{change_document, change_path, refused, set};
+use crate::settings::{HEADER, change_document, change_path, refused, set};
 
 /// Adds `job` as the last of the jobs: a new `[[jobs]]` table.
 pub fn add(config_dir: &Path, job: &JobInput) -> Result<(), ApiError> {
     check_input(job)?;
-    change_document(config_dir, &[], |document| {
+    change_document(config_dir, HEADER, |document| {
         let root = document.as_table_mut();
         if names(root)?.contains(&job.name) {
             return Err(taken(&job.name));

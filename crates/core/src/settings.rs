@@ -23,7 +23,7 @@ pub use runs::{
 pub use runs_write::set_run_options;
 
 /// The start of a file the first write creates.
-const HEADER: &str =
+pub(crate) const HEADER: &str =
     "# Uraeda's settings. The settings page writes this file too, and keeps your comments.\n";
 
 /// The settings the file holds, an absent key unset.
@@ -351,38 +351,35 @@ fn change_table(
 
 /// Applies `edit` to the table at `path`, like `["extensions", "wiki"]` for `[extensions.wiki]`,
 /// of the file as it is now, created when absent with the tables above it implicit, one write at a
-/// time, and writes the file, refused while the file cannot be read.
+/// time, and writes the file, refused while the file cannot be read. A file the write creates
+/// starts with its header and the table at `path`.
 pub(crate) fn change_path(
     dir: &Path,
     path: &[&str],
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
-    change_document(dir, path, |document| {
+    let table = path.iter().map(|name| Key::new(*name).to_string());
+    let table = table.collect::<Vec<_>>().join(".");
+    let seed = if path.is_empty() {
+        HEADER.to_owned()
+    } else {
+        format!("{HEADER}\n[{table}]\n")
+    };
+    change_document(dir, &seed, |document| {
         edit(nested(dir, document.as_table_mut(), path)?)
     })
 }
 
 /// Applies `edit` to the whole document of the file as it is now, as `change_path` does; a file
-/// the write creates starts with the table at `path`, or with none when `path` is empty.
+/// the write creates starts with the text `seed`.
 pub(crate) fn change_document(
     dir: &Path,
-    path: &[&str],
+    seed: &str,
     edit: impl FnOnce(&mut DocumentMut) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
     let _lock = crate::cache::folder_lock(dir);
     let (read, _) = checked(dir)?;
-    let (text, layout) = read.unwrap_or_else(|| {
-        let keys: Vec<String> = path
-            .iter()
-            .map(|name| Key::new(*name).to_string())
-            .collect();
-        let table = if keys.is_empty() {
-            String::new()
-        } else {
-            format!("\n[{}]\n", keys.join("."))
-        };
-        (format!("{HEADER}{table}"), file::Layout::default())
-    });
+    let (text, layout) = read.unwrap_or_else(|| (seed.to_owned(), file::Layout::default()));
     // `checked` parsed the same text, so this failure is unreachable; it still answers.
     let mut document: DocumentMut = text
         .parse()
