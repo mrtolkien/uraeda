@@ -1717,3 +1717,25 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a rename changes no JSON: only the Rust and TypeScript names.
 - **Where**: `crates/protocol/src/shared.rs` and `shared/`, `crates/protocol/src/registry.rs`,
   `app/store/protocol.d.ts`. Tasks 15, 20, 23, and the screens.
+
+## T99.2: Every domain finds a repository through the workspace's list
+
+- **Decision**: `records::repositories::find` (R55) is the only lookup of a repository by its name,
+  and `records::repositories::path(&Shared, name) -> Result<PathBuf, Fault>` gives its main checkout
+  alone, for what needs no more. The private lookups of the features, writing, git, the files'
+  routes, and the previews are gone, each of which read `repositories.json` at every call.
+  - One refusal for each case, whatever asks: `No repository named “<name>”` for a name the list
+    lacks, and `<name> is no longer at <folder>: move it back, or remove it from the list.` for a
+    folder that is gone. The files' routes answer 404 with that text, where they said
+    `Folder not found: <folder>`, and git's records no longer say `no repository is named`.
+  - A git record of a repository whose folder is gone is refused, as every other: git's lookup did
+    not look.
+  - `item.settings` reads the list again once the core wrote the name, so the feature's record and
+    the workspace show it.
+  - The fetcher's round reads `repositories::all`, without the ones whose folder is gone.
+- **Rationale**: the list is kept as last read, so a record costs one look at `.git`, and a name
+  means the same repository to every domain.
+- **Where**: `crates/server/src/records/workspace/repositories.rs`, and its callers in
+  `records/{features,writing,git}/`, `files/repository.rs`, and `preview/checkout.rs`. The tests
+  `a_repository_that_is_not_listed_or_is_gone_serves_no_file` and
+  `a_repository_the_list_lacks_is_refused` expect the one text.

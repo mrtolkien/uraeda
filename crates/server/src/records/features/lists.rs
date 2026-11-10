@@ -9,8 +9,9 @@ use uraeda_core::files::inbox::Inbox;
 use uraeda_core::files::priorities::Priorities;
 use uraeda_protocol::{FileWritten, ListWritten, NoteMoved};
 
-use super::{changed, repository, turn, undo};
+use super::{changed, turn, undo};
 use crate::live::{Call, Fault};
+use crate::records::repositories;
 
 /// A list the core read back once written, with the hash the next write is made over.
 pub(super) trait List {
@@ -53,7 +54,7 @@ pub(super) fn plain<L: List>(
     repo: &str,
     write: Write<'_, L>,
 ) -> Result<ListWritten, Fault> {
-    let repository = repository::find(call.shared(), repo)?;
+    let repository = repositories::find(call.shared(), repo)?;
     // JOIN(wave 6): write queue
     let list = turn::in_turn(call.shared(), &repository.path, || {
         Ok(write(&repository.path)?)
@@ -95,7 +96,7 @@ fn recorded<T>(
     scope: &[&str],
     write: Write<'_, T>,
 ) -> Result<(T, Option<uraeda_protocol::UndoChange>), Fault> {
-    let repository = repository::find(call.shared(), repo)?;
+    let repository = repositories::find(call.shared(), repo)?;
     let root = &repository.path;
     // JOIN(wave 6): write queue
     let answer = turn::in_turn(call.shared(), root, || {

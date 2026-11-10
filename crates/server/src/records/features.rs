@@ -18,7 +18,6 @@ mod moves;
 mod options;
 mod priorities;
 mod proposals;
-mod repository;
 mod starts;
 mod status;
 mod turn;

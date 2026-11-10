@@ -4,13 +4,14 @@
 use uraeda_core::api::{self, BufferView};
 use uraeda_protocol::{Buffer, BufferSave, Saved};
 
-use super::{Write, repository, write};
+use super::{Write, write};
 use crate::live::Registry;
+use crate::records::repositories;
 
 /// Registers the record `Buffer` and the action `buffer.save`.
 pub(super) fn register(registry: &Registry) {
     registry.record::<Buffer>(|shared, args| {
-        let repo = repository(shared, &args.repo)?;
+        let repo = repositories::path(shared, &args.repo)?;
         Ok(sent(api::read_buffer(&repo, &args.path)?))
     });
     registry.action::<BufferSave>(|call, input| {

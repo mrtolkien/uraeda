@@ -11,8 +11,8 @@ use uraeda_protocol::{
 
 pub(super) use text::{Run, Subject, run_message};
 
-use super::repository;
 use crate::live::{Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Why a feature without a branch gets no message.
@@ -39,7 +39,7 @@ pub(super) fn register(registry: &Registry) {
 /// The value of the record `WorkflowMessage`: empty, with the refusal, when the feature has no
 /// branch, or does not wait on the agent. None for a folder that is no feature's.
 fn workflow(shared: &Shared, args: WorkflowMessageArgs) -> Result<Option<WorkflowMessage>, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     // The core reads no step for a folder that is no feature's.
     let Ok(next) = api::next_step(&repository.path, &args.folder) else {
         return Ok(None);
@@ -100,7 +100,7 @@ fn of_step(
 /// The value of the record `RecommendedMessage`: the one workflow message that applies to a
 /// feature now, or why none does. None for a folder that is no feature's.
 fn recommended(shared: &Shared, args: ItemArgs) -> Result<Option<RecommendedMessage>, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     let read = api::next_step(&repository.path, &args.id)
         .and_then(|next| Ok((next, api::read_feature(&repository.path, &args.id)?)));
     let Ok((next, feature)) = read else {

@@ -764,7 +764,7 @@ async fn a_repository_the_list_lacks_is_refused() {
     let nowhere = json!({ "repo": "nowhere" });
     let expected = (
         ErrorCode::Refused,
-        "no repository is named `nowhere`".to_owned(),
+        "No repository named “nowhere”".to_owned(),
     );
 
     let read = git.try_read("GitPage", nowhere.clone()).await;

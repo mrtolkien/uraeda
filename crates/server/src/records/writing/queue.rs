@@ -31,6 +31,7 @@ use uraeda_protocol::{QueuedWrite, WriteName, WriteQueue, WriteState, WritesDism
 use repository::Queue;
 
 use crate::live::{Bus, Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// What a committing write commits, which the next commit of the same waits for.
@@ -125,7 +126,7 @@ pub(crate) fn write<T>(
     write: Write,
     run: impl FnOnce(&Path) -> Result<T, Fault>,
 ) -> Result<T, Fault> {
-    let path = super::repository(shared, repository)?;
+    let path = repositories::path(shared, repository)?;
     let queue = shared.get::<Queues>().open(shared, &path);
     let _turn = queue.turn(write);
     run(&path)
@@ -189,12 +190,12 @@ pub(super) fn register(shared: &Shared, registry: &Registry) {
         let _ = closing.await;
     });
     registry.record::<WriteQueue>(|shared, args| {
-        let path = super::repository(shared, &args.repo)?;
+        let path = repositories::path(shared, &args.repo)?;
         let queue = shared.get::<Queues>().found(&path);
         Ok(queue.map(|queue| queue.writes()).unwrap_or_default())
     });
     registry.action::<WritesDismiss>(|call, input| {
-        let path = super::repository(call.shared(), &input.repo)?;
+        let path = repositories::path(call.shared(), &input.repo)?;
         if let Some(queue) = call.shared().get::<Queues>().found(&path) {
             queue.dismiss(&input.id);
         }

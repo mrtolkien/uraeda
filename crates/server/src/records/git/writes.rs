@@ -11,8 +11,9 @@ use uraeda_protocol::{
 };
 
 use super::working::{self, Touches};
-use super::{changed, fetcher, queue, repository, views};
+use super::{changed, fetcher, queue, views};
 use crate::live::{Call, Fault, Registry};
+use crate::records::repositories;
 
 /// Git's output as it comes, which nothing shows yet.
 // JOIN(wave 6): write queue, which shows a landing write's output
@@ -114,7 +115,7 @@ fn write<T>(
     land: impl FnOnce(&Path) -> Result<T, ApiError>,
 ) -> Result<T, Fault> {
     let shared = call.shared();
-    let path = repository::path(shared, repo)?;
+    let path = repositories::path(shared, repo)?;
     // JOIN(wave 6): write queue
     let landed = queue::in_turn(shared, &path, || {
         working::writable(shared, &path, touches)?;
@@ -127,7 +128,7 @@ fn write<T>(
 /// A person's fetch fails as git does. The page's own, as it opens, never does: the page says
 /// why it brought nothing. Neither writes a file of a checkout, so no agent refuses it.
 fn fetch(call: &Call, input: &GitFetch) -> Result<(), Fault> {
-    let path = repository::path(call.shared(), &input.repo)?;
+    let path = repositories::path(call.shared(), &input.repo)?;
     let fetched = fetcher::fetch(call.shared(), call.bus(), &input.repo, &path);
     if input.quiet { Ok(()) } else { fetched }
 }
@@ -143,7 +144,7 @@ fn save_conflict(call: &Call, input: &GitSaveConflict) -> Result<ConflictFile, F
 /// A worktree's removal writes the main checkout's git folder, and the worktree of the feature
 /// on its branch, if any: an agent that works in either refuses it.
 fn remove_worktree(call: &Call, input: &GitRemoveWorktree) -> Result<(), Fault> {
-    let path = repository::path(call.shared(), &input.repo)?;
+    let path = repositories::path(call.shared(), &input.repo)?;
     let mut listed = api::git_page(&path)?.worktrees.into_iter();
     let folder = listed
         .find(|worktree| worktree.path == input.path)

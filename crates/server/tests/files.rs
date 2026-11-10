@@ -176,7 +176,7 @@ async fn a_repository_that_is_not_listed_or_is_gone_serves_no_file() {
     for path in ["/raw/docs/guide.md", "/images/specs/x.webp"] {
         let answer = served.get(path).await;
         assert_eq!(answer.status, 404, "{path}");
-        assert!(answer.text().starts_with("Folder not found: "), "{path}");
+        assert!(answer.text().contains(" is no longer at "), "{path}");
     }
     let upload = served
         .upload(

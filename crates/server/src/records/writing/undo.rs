@@ -12,8 +12,9 @@ use uraeda_protocol::{
     Recorded, UndoApplied, UndoApply, UndoChange, UndoCommitted, UndoDirection, UndoFile,
 };
 
-use super::{Write, repository, write};
+use super::{Write, write};
 use crate::live::{Fault, Registry};
+use crate::records::repositories;
 
 /// Registers the actions `undo.apply` and `undo.committed`.
 pub(super) fn register(registry: &Registry) {
@@ -29,7 +30,7 @@ pub(super) fn register(registry: &Registry) {
         })
     });
     registry.action::<UndoCommitted>(|call, input| {
-        let repo = repository(call.shared(), &input.repo)?;
+        let repo = repositories::path(call.shared(), &input.repo)?;
         Ok(undo::committed_since(&repo, &taken(input.change)?)?)
     });
 }

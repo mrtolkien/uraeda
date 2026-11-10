@@ -5,8 +5,9 @@ use uraeda_core::api::ApiError;
 use uraeda_core::changes;
 use uraeda_protocol::{AllBranchChanges, BranchChanges, FeatureChanges, ItemArgs, RepositoryArgs};
 
-use super::{repository, views};
+use super::views;
 use crate::live::{Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Registers the records `BranchChanges` and `AllBranchChanges`.
@@ -30,7 +31,7 @@ fn failed(what: &str, error: &ApiError) {
 /// feature's has none, nor a repository without `specs/`: changes that cannot be read, git
 /// missing or the diff failing, are answered as failed, so the page says so.
 fn of_feature(shared: &Shared, args: ItemArgs) -> Result<BranchChanges, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     let answer = |changes, failed| Ok(BranchChanges { changes, failed });
     match changes::branch_changes(&repository.path, &args.id) {
         Ok(read) => answer(read.as_ref().map(views::sent).transpose()?, false),
@@ -44,7 +45,7 @@ fn of_feature(shared: &Shared, args: ItemArgs) -> Result<BranchChanges, Fault> {
 
 /// The value of the record `AllBranchChanges`: each feature that has changes, without its files.
 fn of_all(shared: &Shared, args: RepositoryArgs) -> Result<AllBranchChanges, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     let counts = |read: changes::FeatureChanges| FeatureChanges {
         id: read.folder,
         count: read.changes.count,

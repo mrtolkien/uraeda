@@ -9,8 +9,9 @@ use std::time::Duration;
 
 use uraeda_core::api;
 
-use super::{queue, repository};
+use super::queue;
 use crate::live::{Bus, Fault};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// How often a repository is fetched.
@@ -78,7 +79,8 @@ pub(super) fn start(shared: &Shared, bus: Bus) {
 
 /// Fetches each repository of the list, one after another: a failure is kept for its page.
 fn fetch_each(shared: &Shared, bus: &Bus) {
-    for repository in repository::all(shared) {
+    let there = |repository: &repositories::Repository| !repository.missing;
+    for repository in repositories::all(shared).into_iter().filter(there) {
         let _ = fetch(shared, bus, &repository.name, &repository.path);
     }
 }

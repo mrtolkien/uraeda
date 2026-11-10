@@ -8,8 +8,9 @@ use uraeda_protocol::{
     BranchDecision, FileView, ItemArgs, ProposalFile, ProposalFileView, ProposalHints, WorkflowFile,
 };
 
-use super::{repository, views};
+use super::views;
 use crate::live::{Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Registers the records `WorkflowFile`, `ProposalFile`, `ProposalHints`, and `BranchDecision`.
@@ -31,7 +32,7 @@ fn parts(id: &str) -> (&str, &str) {
 /// The value of the record `WorkflowFile`: a round of the default branch by its id, or a
 /// feature's file by `<folder>/<name>`. None for a file that is not there.
 fn file(shared: &Shared, args: ItemArgs) -> Result<Option<FileView>, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     let read = match DefaultRound::from_id(&args.id) {
         // A round on the default branch has no feature: none until an agent writes it.
         Some(round) => api::read_round(&repository.path, round)?,
@@ -45,14 +46,14 @@ fn file(shared: &Shared, args: ItemArgs) -> Result<Option<FileView>, Fault> {
 
 /// The value of the record `ProposalFile`, by the file's path from the top level.
 fn proposal_file(shared: &Shared, args: ItemArgs) -> Result<ProposalFileView, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     views::sent(&api::read_text(&repository.path, &args.id)?)
 }
 
 /// The value of the record `BranchDecision`, by `<folder>/<name>`: none for a decision the
 /// branch does not have, and for a folder that is no feature's.
 fn decision(shared: &Shared, args: ItemArgs) -> Result<Option<BranchDecision>, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     let (folder, name) = parts(&args.id);
     let read = views::found(api::read_decision(&repository.path, folder, name))?;
     read.as_ref().map(views::sent).transpose()

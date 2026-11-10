@@ -7,8 +7,9 @@ use uraeda_protocol::{
     InboxPlace, InboxRemove, InboxRemoveCategory, InboxRenameCategory, ListWritten, RepositoryArgs,
 };
 
-use super::{lists, repository, views};
+use super::{lists, views};
 use crate::live::{Call, Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Registers the record `Inbox`, and the actions that write the inbox alone.
@@ -28,7 +29,7 @@ pub(super) fn register(registry: &Registry) {
 
 /// The value of the record `Inbox`.
 fn read(shared: &Shared, args: RepositoryArgs) -> Result<Inbox, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     views::sent(&api::read_inbox(&repository.path)?)
 }
 

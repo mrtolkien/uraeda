@@ -16,8 +16,9 @@ use uraeda_protocol::{
 };
 
 use super::messages::{Subject, run_message};
-use super::{changed, messages, options, repository, turn};
+use super::{changed, messages, options, turn};
 use crate::live::{Call, Fault, Registry};
+use crate::records::repositories;
 
 /// Registers the actions that start a feature or a change.
 pub(super) fn register(registry: &Registry) {
@@ -96,7 +97,7 @@ fn image_bytes(images: Option<&[ChatImage]>) -> Result<Vec<Vec<u8>>, Fault> {
 /// The action `feature.start`: starts a proposal file as a feature, or as a change, as the core
 /// planned it.
 fn proposal(call: &Call, input: FeatureStart) -> Result<StartPlan, Fault> {
-    let repository = repository::find(call.shared(), &input.repo)?;
+    let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
     let kind = match input.kind {
         Some(StartKind::Change) => Kind::Change,
@@ -115,7 +116,7 @@ fn proposal(call: &Call, input: FeatureStart) -> Result<StartPlan, Fault> {
 /// The action `feature.startText`: starts a feature typed as a text, its own run options kept
 /// for the folder its plan gives, and dropped again when the start is refused.
 fn typed_feature(call: &Call, input: FeatureStartText) -> Result<StartPlan, Fault> {
-    let repository = repository::find(call.shared(), &input.repo)?;
+    let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
     let images = image_bytes(input.images.as_deref())?;
     let typed = TextStart {
@@ -178,7 +179,7 @@ fn change_started(
 
 /// The action `change.start`: starts a change typed as a text.
 fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault> {
-    let repository = repository::find(call.shared(), &input.repo)?;
+    let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
     // Options the store would refuse are refused before the change starts.
     if let Some(options) = &input.options {
@@ -200,7 +201,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
 
 /// The action `change.startProposal`: starts a proposal file as a change.
 fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeStarted, Fault> {
-    let repository = repository::find(call.shared(), &input.repo)?;
+    let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
     let started = landed(call, &input.repo, root, || {
         let slug = input.slug.as_deref();
@@ -214,7 +215,7 @@ fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeS
 /// alone when it had no other change. A refused start leaves the note in the inbox; a note that
 /// cannot leave it once the change started is printed, and stays.
 fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault> {
-    let repository = repository::find(call.shared(), &input.repo)?;
+    let repository = repositories::find(call.shared(), &input.repo)?;
     let root = &repository.path;
     let note = note::as_change(root, &input.note, &input.hash)?;
     let typed = TextStart {

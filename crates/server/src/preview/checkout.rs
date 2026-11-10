@@ -7,20 +7,16 @@ use uraeda_core::api;
 use super::Previews;
 use super::runner::Checkout;
 use crate::http::segment;
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// The folder of the main checkout's preview: dated feature folders cannot clash with it.
 pub(crate) const MAIN: &str = "main";
 
-// JOIN(wave 6): finding a repository's main checkout by its name in the list.
 /// The main checkout of the repository named `name` in the server's list: none when it is not
-/// listed, or is no git repository any more.
+/// listed, or its folder is gone.
 fn main_checkout(shared: &Shared, name: &str) -> Option<PathBuf> {
-    let listed = api::read_repositories(shared.data_dir()).ok()?;
-    let mut listed = listed.into_iter();
-    let repository = listed.find(|repository| repository.name == name)?;
-    let root = api::main_root(Path::new(&repository.path)).ok()?;
-    Some(PathBuf::from(root))
+    repositories::path(shared, name).ok()
 }
 
 /// The checkout a folder's preview runs in: the main checkout for `main`, else the feature's

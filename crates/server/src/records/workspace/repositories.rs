@@ -6,6 +6,7 @@
 //! changes on disk, as `ura add` or a hand edit changes it, and when a name asked for is not in
 //! it, or its folder came or went since.
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use uraeda_core::repositories::{self, ListError};
@@ -89,6 +90,16 @@ pub(crate) fn find(shared: &Shared, name: &str) -> Result<Repository, Fault> {
         }
         Some(row) => Ok(row),
     }
+}
+
+/// The main checkout of the listed repository of a name: [`find`], for what needs its folder
+/// alone.
+///
+/// # Errors
+///
+/// As [`find`].
+pub(crate) fn path(shared: &Shared, name: &str) -> Result<PathBuf, Fault> {
+    Ok(find(shared, name)?.path)
 }
 
 /// Every listed repository, the most recently opened first, as last read: one whose folder is

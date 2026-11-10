@@ -8,7 +8,6 @@
 mod fetcher;
 mod queue;
 mod reads;
-mod repository;
 mod views;
 mod working;
 mod writes;

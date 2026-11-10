@@ -5,8 +5,9 @@ use uraeda_protocol::{
     ListWritten, Priorities, PrioritiesCommit, PrioritiesDiscard, RepositoryArgs,
 };
 
-use super::{lists, repository, views};
+use super::{lists, views};
 use crate::live::{Call, Fault, Registry};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Registers the record `Priorities` and the two actions on the whole file.
@@ -18,7 +19,7 @@ pub(super) fn register(registry: &Registry) {
 
 /// The value of the record `Priorities`.
 fn read(shared: &Shared, args: RepositoryArgs) -> Result<Priorities, Fault> {
-    let repository = repository::find(shared, &args.repo)?;
+    let repository = repositories::find(shared, &args.repo)?;
     views::sent(&api::read_priorities(&repository.path)?)
 }
 
