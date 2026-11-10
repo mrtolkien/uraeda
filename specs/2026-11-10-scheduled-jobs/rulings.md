@@ -607,3 +607,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: the catch-up with the default branch, before the final review. The rebase kept both
   sides of two conflicts: the cache's migrations, the account's column before the jobs' table, as
   the default branch's ran first, and the web UI's page, the accounts' section before the jobs'.
+
+## R40: The sessions' context is built in a file of its own
+
+- **Decision**: [`session-context.ts`](/packages/server/src/runner/session-context.ts) builds the
+  context the sessions' parts share, and `Sessions`' constructor calls it. Nothing else changes.
+- **Rationale**: `sessions.ts` reached its 500 lines on the default branch, with the accounts, so
+  the 27 lines the branch adds there, `removeEmpty` and `announce`, put it past the limit once
+  caught up. The constructor's wiring of the parts is the one block that answers no call of the
+  server.
+- **Alternatives considered**: `removeEmpty` and `announce` as functions the jobs call themselves:
+  they need the context and `onChange`, which `Sessions` keeps private.
+- **Where**: the catch-up with the default branch, before the final review.

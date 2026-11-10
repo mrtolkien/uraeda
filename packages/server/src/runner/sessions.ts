@@ -1,22 +1,14 @@
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import { Chain } from "./chain.ts";
-import { CONTINUES_ON, Continuer } from "./continuer.ts";
 import type { TurnActivity, UsageWindow } from "./events.ts";
-import { LiveSessions, working } from "./live-sessions.ts";
+import { working } from "./live-sessions.ts";
 import { AccountRefresh, accountRecords } from "./account-records.ts";
-import { Processes } from "./processes.ts";
-import {
-  type AccountRecord,
-  readySession,
-  type Runtimes,
-  runsOn,
-  sessionRuntime,
-} from "./runtimes.ts";
+import { type AccountRecord, readySession, type Runtimes, sessionRuntime } from "./runtimes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
 import { newPickOf, stepPickOf } from "./run-session.ts";
+import { sessionContext } from "./session-context.ts";
 import type { SessionPick } from "./picks.ts";
 import { archive, dismiss, rename, seen, setEffort, stopRun } from "./session-edits.ts";
 import {
@@ -30,7 +22,7 @@ import {
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
 import { Reviews } from "./reviews.ts";
-import { SubSessions } from "./sub-sessions.ts";
+import type { SubSessions } from "./sub-sessions.ts";
 import {
   type Live,
   REFUSALS,
@@ -41,8 +33,6 @@ import {
   type SessionsOptions,
   wakeupPending,
 } from "./session-state.ts";
-import { Transcript } from "./transcript.ts";
-import { Turns } from "./turns.ts";
 
 export { type ContinueSettings } from "./continuer.ts";
 export { type SendInput, type SentImage } from "./send-input.ts";
@@ -83,52 +73,21 @@ export class Sessions {
   constructor(options: SessionsOptions) {
     this.#options = options;
     this.starts = new StartMessages(options.cache);
-    // Each part reaches the others through the context, filled once they are all made.
-    const context = {
+    const context = sessionContext(options, {
       agentChanged: () => this.#accountRefresh.announce(),
-      binding: options.binding,
-      cache: options.cache,
-      changed: (live, turn, state) => {
-        if (live.held) {
-          live.held.changes.push([turn, state]);
-          return;
-        }
-        options.onChange({
-          folder: live.folder,
-          repo: live.repo,
-          session: live.id,
-          ...(turn === undefined ? {} : { turn }),
-          ...(state === undefined ? {} : { state }),
-        });
-      },
-      live: new LiveSessions(),
-      ...(options.mcp === undefined ? {} : { mcp: options.mcp }),
-      queue: options.queue ?? (() => undefined),
       refreshAccounts: (runtime) => this.#accountRefresh.refresh(runtime),
-      runOptions: options.runOptions ?? (() => ({ steps: [] })),
-      runtimes: options.runtimes,
-    } as SessionContext;
-    context.processes = new Processes(context);
-    context.turns = new Turns(context);
-    context.transcript = new Transcript(context);
-    context.chain = new Chain(context);
-    const { runtimes } = options;
-    context.continuer = new Continuer(context, {
-      available: (row) => runsOn(runtimes, row),
-      hosted: options.hosted ?? (() => true),
-      runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;
-    this.subSessions = new SubSessions(context);
-    context.subSessions = this.subSessions;
+    this.subSessions = context.subSessions;
     this.reviews = new Reviews(context);
-    // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
-    // turned on finds no change of availability, but continues the runs a restart cut on it.
+    const { runtimes } = options;
     this.#accountRefresh = new AccountRefresh(
       runtimes,
       (runtime) => this.accounts(runtime),
       () => options.onChange({ agent: true }),
     );
+    // A runtime registered, unregistered, or turned on or off is checked, and shown, at once. One
+    // turned on finds no change of availability, but continues the runs a restart cut on it.
     this.#unsubscribe = runtimes.onChange(() => {
       options.onChange({ agent: true });
       this.refreshAccounts();
