@@ -353,13 +353,36 @@ test("the record is announced when the repository list, a runtime, or the worksp
   server.sessions.runtimes.changed();
   await vi.waitFor(() => expect(heard()).toBeGreaterThan(before));
 
-  // A change merged or dropped, as the watcher and the pull requests' refresh report it.
+  // A change a job started, merged or dropped, as the watcher and the pull requests' refresh report
+  // it: a feature no job's run is in asks nothing of the jobs (review 05, finding 8).
+  const { cache } = server.sessions;
+  const chat = await server.sessions.newChat(server.repo);
+  cache.jobs.add({
+    at: 1,
+    due: 1,
+    job: "Dependencies",
+    outcome: "started",
+    reason: null,
+    repository: await server.sessions.mainRoot(server.repo),
+    session: chat.id,
+    trigger: "schedule",
+  });
+  cache.attach(chat.id, "2026-10-12-cli-tuis");
   before = heard();
+  publish({ ...NO_CHANGES, features: ["2026-10-01-other"] }, host, server.sessions);
+  expect(heard()).toBe(before);
   publish({ ...NO_CHANGES, features: ["2026-10-12-cli-tuis"] }, host, server.sessions);
   expect(heard()).toBeGreaterThan(before);
+  // A feature or a branch that appeared or went changes the open changes: announced.
   before = heard();
   publish({ ...NO_CHANGES, workspace: true }, host, server.sessions);
   expect(heard()).toBeGreaterThan(before);
+
+  // Only the changed host's bus hears it, not the global one nor another repository's.
+  const other = server.hosts.all().find((one) => one !== host);
+  const elsewhere = vi.spyOn(other!.live, "update");
+  publish({ ...NO_CHANGES, workspace: true }, host, server.sessions);
+  expect(elsewhere.mock.calls.filter(([type]) => type === "Jobs")).toEqual([]);
 
   // A burst that moved no feature or branch asks nothing of the jobs.
   before = heard();

@@ -51,13 +51,20 @@ export function publishGit(bus: LiveBus) {
 }
 
 /** What each session manager's repositories call as their features or branches change. */
-const workspaceListeners = new WeakMap<Sessions, Set<() => void>>();
+const workspaceListeners = new WeakMap<
+  Sessions,
+  Set<(host: Pick<Host, "path" | "live">, changes: Changes) => void>
+>();
 
 /**
  * Calls `listener` each time `publish`, for a repository of `sessions`, reports a feature or a branch
- * that changed: a change merged or dropped, or a pull request's refresh. Gives what stops the calls.
+ * that changed: a change merged or dropped, or a pull request's refresh. It gets the repository's
+ * host and what changed. Gives what stops the calls.
  */
-export function onWorkspaceChange(sessions: Sessions, listener: () => void): () => void {
+export function onWorkspaceChange(
+  sessions: Sessions,
+  listener: (host: Pick<Host, "path" | "live">, changes: Changes) => void,
+): () => void {
   const listeners = workspaceListeners.get(sessions) ?? new Set();
   workspaceListeners.set(sessions, listeners);
   listeners.add(listener);
@@ -118,7 +125,7 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     // What reads the workspace's open changes, as the jobs' next runs do, hears it too.
-    workspaceListeners.get(sessions)?.forEach((listener) => listener());
+    workspaceListeners.get(sessions)?.forEach((listener) => listener(host, changes));
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
     // The host's path is the main checkout, which keys its sessions. Each reads the step, its
     // sub-sessions too.

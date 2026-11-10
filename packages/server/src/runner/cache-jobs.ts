@@ -173,6 +173,18 @@ export class JobRuns {
     return rows.map(({ folder }) => folder);
   }
 
+  /** The folders of the changes and features any job's runs in the repository are in. */
+  allChangeFolders(repository: string): Set<string> {
+    const rows = this.#db
+      .prepare(
+        `SELECT DISTINCT sessions.folder FROM job_runs JOIN sessions ON sessions.id = job_runs.session
+         WHERE job_runs.repository = ? AND job_runs.outcome = 'started'
+           AND sessions.folder IS NOT NULL`,
+      )
+      .all(repository) as Array<{ folder: string }>;
+    return new Set(rows.map(({ folder }) => folder));
+  }
+
   /** The run that started the session, when a job did. */
   ofSession(session: string): JobRunRow | undefined {
     const row = this.#db
