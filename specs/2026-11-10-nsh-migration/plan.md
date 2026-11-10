@@ -1,13 +1,13 @@
 ---
-status: awaiting-human
+status: approved
 spec-revision: 1
 ---
 
 # Plan: Migration to Native Shell and a Rust server
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Plan to review, about 2 hours.
+> Approved on 2026-11-10.
 >
 > - Beyond the spec: four behaviours get a test the spec does not name, see
 >   [review focus](#review-focus).
