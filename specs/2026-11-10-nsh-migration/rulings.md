@@ -780,8 +780,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     engine runs one read of a record at a time.
   - `registry.action::<A>(run)`, with `run: Fn(&Call, A::Input) -> Result<A::Output, Fault>`. A
     `Call` has `shared()`, `bus()`, and `caller()`, the identity sign-in checked. Calls run at the
-    same time, a client's own too: an action that needs an order keeps it itself, as the write queue
-    does.
+    same time. A connection's own start in the order it sent them, each once the one before took its
+    place in the write queue or ended (T99.9).
   - A handler is not `async`. The engine runs it on one of tokio's blocking threads, so it calls the
     core, git, files, and SQLite as they are. `live::wait(future)` runs a future to its end from
     there, for a queue's turn or a message to a task.
@@ -1218,10 +1218,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     cannot hold a call between its write and its take through the protocol.
   - Deferral left on at the stop: failed `a_stopped_server_defers_no_commit_any_more`.
 - **If wrong**:
-  - The queue keeps the order writes reach it in, not the order a client sent them in. The engine
-    starts each call on a task of its own, so two calls sent back to back may reach the queue in
-    either order. A client that needs an order waits for the first answer, as a save's hash already
-    makes it. Else the engine takes a ticket as it reads a call.
+  - The queue kept the order writes reached it in, not the order a client sent them in: the engine
+    started each call on a task of its own, so two calls sent back to back could reach the queue in
+    either order. The join made a connection's calls reach it in the order sent (T99.9).
   - `cargo fmt` did not see a module declared inside `domains! { }`: the join made them plain `mod`
     lines (T99.3).
   - Git and the hooks the core runs get the server process's environment, without the config
@@ -1901,3 +1900,35 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/features/{starts.rs,starts/queued.rs,starts/steps.rs}`,
   `records/features/feature.rs`, `crates/protocol/src/{writing.rs,features/starts.rs}`. Tasks 15,
   38, and 50.
+
+## T99.9: A connection's calls reach the write queue in the order it sent them
+
+- **Decision**: two rules, one in the engine and one in the queue.
+  - **In the engine**, a connection's calls start one after another: each once the call before it
+    took its place in what orders it, or ended. From there they run at the same time, as before. A
+    handler's thread says its call is placed with `live::placed()`, which the write queue calls as a
+    write takes its ticket and as a write of its own is queued. An action that never writes lets the
+    next call start as it ends. Reads, and other connections, wait for nothing: a `sub` is no call,
+    and the order is a connection's own.
+  - **In the queue**, the turn goes by ticket, taken as a write arrives: among the writes that wait,
+    the one with the first ticket whose keys have no commit to land takes the turn. A write that
+    waits for a commit of its keys no longer takes a new ticket once the commit landed, so two
+    commits of one file sent back to back run in the order sent too. Meanwhile the turn goes to the
+    writes behind it that wait for none, as before.
+- **Rationale**: the order is lost between the connection's task, which reads the calls in order,
+  and each call's thread reaching the queue. Closing that gap in the engine fixes it for every
+  action at once, and keeps the queue free of any notion of a connection. A ticket handed out by the
+  engine as it reads a call, R64's own suggestion, would have made the engine know which calls
+  write, and to which repository.
+- **How it was checked**: `two_saves_sent_back_to_back_land_in_the_order_sent` sends two saves over
+  the same hash, fifty times, with no wait between them: the first must land and the second
+  conflict. The first save's input is the longer one to read, so without the order the second
+  reaches the queue first: the test failed at its first round, `conflict` for the first save. With
+  `before.placed().await` taken out of the engine, it fails the same way.
+- **If wrong**: a call that takes long before it writes, or that never writes, holds its
+  connection's next calls until it ends. An action that waits on something slow without writing
+  calls `live::placed()` first. Two writes of one connection of which the first waits for a queued
+  commit of its files, and the second for none, still run second first: a save does not wait for
+  another file's hooks.
+- **Where**: `crates/server/src/live/{order,subscription}.rs`,
+  `crates/server/src/records/writing/queue/repository.rs`. Tasks 15, 17, and 23.

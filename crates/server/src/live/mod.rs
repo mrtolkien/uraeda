@@ -30,7 +30,9 @@
 //!   value. It gets no caller: every subscriber of the same arguments shares one read and one
 //!   value. The engine runs one read of a record at a time.
 //! - **An action's run** takes a [`Call`], with `shared()`, `bus()`, and `caller()`, and the
-//!   action's input, and gives its output. Calls run at the same time, a client's own too.
+//!   action's input, and gives its output. Calls run at the same time, but a connection's own
+//!   start in the order it sent them, each once the one before took its place in the write
+//!   queue, or ended: two saves sent back to back land in that order.
 //!   `caller()` is sign-in's [`Identity`](crate::sign_in::Identity) of the connection: a
 //!   browser's session or a paired device, with its `id()`.
 //! - **Both fail with a [`Fault`]**, the `error` the client gets. The core's errors convert with
@@ -63,6 +65,7 @@
 mod bus;
 mod fault;
 mod key;
+mod order;
 mod registry;
 mod socket;
 mod subscription;
@@ -73,6 +76,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 pub use bus::Bus;
 pub use fault::Fault;
 use key::Key;
+pub(crate) use order::placed;
 pub use registry::{Call, Registry};
 pub use socket::Caller;
 pub(crate) use socket::serve;

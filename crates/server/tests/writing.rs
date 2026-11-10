@@ -209,6 +209,36 @@ async fn two_writes_on_one_repository_land_in_order() {
     assert_eq!(committed(&fx, "main", second), "# Second\n\nMore.\n");
 }
 
+// The break it catches: each call run on a task of its own, so two saves one client sends back
+// to back reach the queue in either order, and the older text is the one that stays. The first
+// save's input is the longer one to read, as a call's may be: without an order kept, the second
+// reaches the queue first.
+#[tokio::test]
+async fn two_saves_sent_back_to_back_land_in_the_order_sent() {
+    let mut fx = Fixture::start().await;
+    let mut hash = hash_of(&fx.read("Buffer", json!({ "path": PROPOSAL })).await);
+    // A field the action does not know is read, and dropped, before the action runs.
+    let long_to_read = vec![0; 40_000];
+
+    for round in 0..50 {
+        // Both are made over the text read: the one that lands first wins, the other conflicts.
+        let text = |nth: &str| format!("round {round}, the {nth} save\n");
+        let first = json!({
+            "path": PROPOSAL, "text": text("first"), "hash": hash, "unknown": long_to_read,
+        });
+        let second = json!({ "path": PROPOSAL, "text": text("second"), "hash": hash });
+        let first = fx.send("buffer.save", first).await;
+        let second = fx.send("buffer.save", second).await;
+
+        let landed = fx.answer(first).await;
+        let late = fx.answer(second).await;
+        let landed = landed.unwrap_or_else(|refused| panic!("round {round}: {refused:?}"));
+        assert_eq!(late.unwrap_err().0, ErrorCode::Conflict, "round {round}");
+        hash = hash_of(&landed);
+    }
+    assert_eq!(fx.repo.read(PROPOSAL), "round 49, the first save\n");
+}
+
 // The break it catches: a write that tells its own domain's records only, so a page that reads
 // after an action's answer shows the file, the proposal, or the Git page as they were, until
 // the watcher's next burst.

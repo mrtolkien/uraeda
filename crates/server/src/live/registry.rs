@@ -94,8 +94,9 @@ impl Registry {
     }
 
     /// Registers what runs an action: a plain function from the action's input to its output,
-    /// run on a blocking thread. Calls run at the same time, a client's own too: an action that
-    /// needs an order keeps it itself.
+    /// run on a blocking thread. Calls run at the same time. A connection's own start in the
+    /// order it sent them, each once the one before took its place in the write queue or ended:
+    /// see [`placed`](super::placed).
     ///
     /// # Panics
     ///

@@ -10,6 +10,7 @@ use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage};
 
 use super::bus::{Bus, Engine};
 use super::locked;
+use super::order::Order;
 use super::registry::{Call, blocking};
 use super::topic::{News, Topic};
 use crate::shared::Shared;
@@ -83,6 +84,8 @@ pub struct Connection {
     subs: HashMap<u32, Sub>,
     /// The messages ready to send, the next one first.
     out: VecDeque<ServerMessage>,
+    /// The order of its calls.
+    calls: Order,
 }
 
 impl Connection {
@@ -95,6 +98,7 @@ impl Connection {
             mailbox: Arc::default(),
             subs: HashMap::new(),
             out: VecDeque::new(),
+            calls: Order::default(),
         }
     }
 
@@ -106,7 +110,8 @@ impl Connection {
         }
     }
 
-    /// Takes one message of the client. It never waits: a read or a call runs on its own task.
+    /// Takes one message of the client. It never waits: a read or a call runs on its own task,
+    /// a call once the connection's call before it is placed.
     pub fn receive(&mut self, message: ClientMessage) {
         match message {
             ClientMessage::Hello { .. } => {
@@ -177,7 +182,8 @@ impl Connection {
         }
     }
 
-    /// Runs an action on its own task, and leaves its answer in the mailbox.
+    /// Runs an action on its own task, once the call before it took its place or ended, and
+    /// leaves its answer in the mailbox.
     fn call(&mut self, id: u32, action: &str, input: Value) {
         let run = match self.engine.registry.runner(action) {
             Ok(run) => run,
@@ -189,8 +195,10 @@ impl Connection {
             caller: self.caller.clone(),
         };
         let mailbox = self.mailbox.clone();
+        let (before, place) = self.calls.next();
         self.engine.runtime.spawn(async move {
-            let answer = match blocking(move || run(&call, input)).await {
+            before.placed().await;
+            let answer = match blocking(move || place.run(|| run(&call, input))).await {
                 Ok(output) => ServerMessage::Result { id, output },
                 Err(fault) => fault.answer(id),
             };
