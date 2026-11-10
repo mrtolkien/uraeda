@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,28 +8,38 @@ plan-review: false
 
 # Spec: Multi-accounts management
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-10: 3 comments in spec-review.md.
+> Spec to review, about 5 minutes.
 >
 > - You approve new Claude Code sessions starting on the listed account with the most of its five
->   hours left, each session keeping its account, and each account's usage on Home and the sidebar.
-> - The models decision gains one rule: a session keeps its account. The round said your answer
->   changed no decision. Say so if the rule should stay in this spec only.
-> - The recipe you asked for is in the first story. It was checked here up to the sign-in: a linked
->   folder reads your settings, and stays signed out until its own login.
-> - Reading usage without a turn is unverified on a Max login: only a Team login was in reach. The
->   plan's first task checks it with yours. If it fails, the pick only knows running sessions'
->   usage.
-> - A refused run waits for its own account's reset, even while another account has room, as you
->   chose.
-> - The sidebar shows one line per account, its five hours. The week shows on Home.
-> - Risk tier `medium`: the sessions' cache gets one column. The plan does not wait for a review.
+>   hours left, each session keeping its account. Home shows each account's five hours and week, and
+>   the sidebar its five hours.
+> - Since your review: the week leaves the sidebar, the recipe is the script from our chat, and your
+>   three folders are named for smoke tests.
+> - The week leaves the sidebar for Codex too, and when no account is listed: your comment pointed
+>   at Codex's line. Say so if you meant Claude's accounts only.
+> - In the sidebar, an account whose week is used up reads as any other, though no session starts on
+>   it. Home shows why.
+> - Reading usage without a turn is now checked on your three folders: each answered, at no cost.
+>   They are Team seats, so a Max login stays unchecked.
+> - The models decision still gains one rule: a session keeps its account.
+> - Risk tier `medium`, as before: the sessions' cache gets one column, and the plan does not wait.
 
 You list the configuration folders of your Claude Code accounts in the settings. Each new session
 then starts on the account with the most of its five-hour window left, and keeps it. Home and the
 sidebar show each account's usage, and the settings say when an account needs you. See the
 [proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (the week in the sidebar): done. The sidebar shows each login's five hours only, for Codex
+  too and when no account is listed. The week shows on Home.
+- **C2** (the recipe as the script, and your folders): done. The first story holds the script from
+  our chat. The assumptions name `~/.claude-gary`, `~/.claude-leo`, and `~/.claude-tato` for smoke
+  tests by hand.
+- **C3** (the week only on Home): done. In the sidebar, an account whose week is used up reads as
+  any other. Home shows its week at 0%.
 
 ## Decisions
 
@@ -46,7 +56,7 @@ Relied on:
 | [Settings](../decisions/settings.md)           | the accounts are a list of folders in `config.toml`, which holds no secret         |
 | [Extensions](../decisions/extensions.md)       | the list is a setting of the built-in Claude extension, with its banner            |
 | [Preview](../decisions/preview.md)             | the mockups are stories of the real components                                     |
-| [Documentation](../decisions/documentation.md) | the recipe goes to the web UI's page, beside the sessions' requirements            |
+| [Documentation](../decisions/documentation.md) | the script goes to the web UI's page, beside the sessions' requirements            |
 
 ## User stories
 
@@ -56,15 +66,52 @@ You make a folder per extra account, sign it in, and list the folders in Setting
 Claude Code. Each new session then picks an account as its first turn starts, and its header names
 it.
 
-For each extra account, here `b`, once:
+For each extra account, once, save this script and run it from any shell, as
+`bash claude-account.sh b`. It asks for the name when none is given, and is safe to run again:
 
-```sh
-mkdir ~/.claude-b
+```bash
+#!/usr/bin/env bash
+# Makes a Claude Code configuration folder for one more account, ~/.claude-<name>, linked to the
+# settings, skills, plugins, hooks, memory, and conversations of ~/.claude, then signs it in.
+# Usage: bash claude-account.sh [name]
+set -euo pipefail
+
+name="${1:-}"
+if [ -z "$name" ]; then
+  read -r -p "Account name (letters, digits, - or _): " name
+fi
+if ! [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "Not a name: '$name'. Use letters, digits, - or _." >&2
+  exit 1
+fi
+
+source_dir="$HOME/.claude"
+account_dir="$HOME/.claude-$name"
+if [ ! -d "$source_dir" ]; then
+  echo "No $source_dir: sign in to Claude Code once first." >&2
+  exit 1
+fi
+
+mkdir -p "$account_dir"
 for item in settings.json CLAUDE.md skills plugins commands agents hooks statusline.sh projects; do
-  [ -e ~/.claude/$item ] && ln -s ~/.claude/$item ~/.claude-b/$item
+  if [ ! -e "$source_dir/$item" ]; then
+    continue
+  fi
+  if [ -e "$account_dir/$item" ] || [ -L "$account_dir/$item" ]; then
+    echo "kept    $account_dir/$item"
+  else
+    ln -s "$source_dir/$item" "$account_dir/$item"
+    echo "linked  $account_dir/$item"
+  fi
 done
-CLAUDE_CONFIG_DIR=~/.claude-b claude auth login
-CLAUDE_CONFIG_DIR=~/.claude-b claude auth status
+
+echo
+echo "Signing in $account_dir: pick the account for '$name' in the browser."
+CLAUDE_CONFIG_DIR="$account_dir" claude auth login
+echo
+CLAUDE_CONFIG_DIR="$account_dir" claude auth status --text
+echo
+echo "Done. The folder to list in Uraeda's settings: ~/.claude-$name"
 ```
 
 The links share your settings, skills, plugins, hooks, memory, and conversations with `~/.claude`.
@@ -116,8 +163,9 @@ More scenarios:
 ### US2: See each account's usage (P2)
 
 Home's Usage pane lists each account under Claude Code's mark, by its name, with its five hours and
-its week. The sidebar's pane shows one line per account. An account's name is its folder's name
-without its dot and its `claude-`: `~/.claude-b` reads "b", and `~/.claude` reads "default".
+its week. The sidebar's pane shows one line per login, its five hours: the week shows on Home only,
+for every agent. An account's name is its folder's name without its dot and its `claude-`:
+`~/.claude-b` reads "b", and `~/.claude` reads "default".
 
 [Home's Usage pane, three accounts](/packages/web/src/AccountsMockups.stories.tsx#HomeThreeAccounts)
 
@@ -133,7 +181,7 @@ Key scenarios:
    and `c` in that order, `default` with "5h 58% left - reset 15:08" and its week, then Codex's
    windows.
 2. **Given** the three accounts, **When** the sidebar shows, **Then** its pane has one line per
-   account, like "default 5h 58% · 15:08".
+   account, like "default 5h 58% · 15:08", then Codex's five hours, and no week.
 3. **Given** the sidebar closed to its rail, and a session on `b` in view, **When** the rail shows,
    **Then** its bar is `b`'s five hours. With no session in view, it is the account a new session
    would start on.
@@ -142,13 +190,14 @@ More scenarios:
 
 1. **Given** `b` with no five-hour window open, **When** the panes show, **Then** `b` reads "5h 100%
    left" on Home and "b 5h 100%" in the sidebar, with no reset time.
-2. **Given** no account listed, **When** the panes show, **Then** they read as today.
+2. **Given** no account listed, **When** the panes show, **Then** Home reads as today, and the
+   sidebar shows each agent's five hours, without its week.
 
 ### US3: Know when an account needs you (P3)
 
 An account that is signed out, or whose folder is missing, is never picked. A banner of Settings,
-Extensions names it, and the usage panes say so. An account whose week is used up shows its week in
-the sidebar, which is why no session starts on it.
+Extensions names it, and the usage panes say so. An account whose week is used up shows it on Home,
+at 0%. In the sidebar it reads as any other account.
 
 [Home's Usage pane, b signed out and c's week used up](/packages/web/src/AccountsMockups.stories.tsx#HomeNeedingYou)
 
@@ -161,8 +210,9 @@ Key scenarios:
    the sidebar "b signed out".
 2. **Given** `~/.claude-c` listed and missing, **When** the section shows, **Then** a banner reads
    "Claude Code: account c has no folder at ~/.claude-c".
-3. **Given** `c`'s week used up, resetting Wednesday at 18:38, **When** the sidebar shows, **Then**
-   `c`'s line reads "c Week 0% · Wed 18:38", in the error colour.
+3. **Given** `c`'s week used up, resetting Wednesday at 18:38, and 20% of its five hours used,
+   **When** the panes show, **Then** Home reads "Week 0% left - reset Wed 18:38" in the error
+   colour, and the sidebar reads "c 5h 80% · 16:38".
 
 More scenarios:
 
@@ -181,6 +231,9 @@ More scenarios:
   repositories and falls back when its process exits" and "each window keeps the newest live report
   of its own, and a report without the week keeps it". With accounts, usage is kept per account, and
   an asked usage stays when a process exits.
+
+- **The sidebar's Usage pane lists every window of an agent, its week included.** No test guards it.
+  It lists each login's five hours only.
 
 ## Architecture
 
@@ -225,6 +278,7 @@ Tradeoffs:
 | Normal     | You use an account in a terminal                      | the next ask sees it, since Claude Code answers for the whole account                                                          |
 | Niche      | A folder is listed twice                              | it is one account                                                                                                              |
 | Niche      | Two folders have the same name                        | the second shows its path as its name                                                                                          |
+| Niche      | Two folders are signed in to the same account         | they are two accounts with the same usage                                                                                      |
 | Niche      | An API key is set in the server's environment         | Claude Code uses the key on every account; the documentation says so                                                           |
 | Niche      | An account has usage credits on                       | it is never refused, so it pays past its limit; the documentation says to turn them off                                        |
 | Niche      | An account's plan lists other models than the first's | the model list is the first account's; a model the account lacks fails the turn in Claude Code's words                         |
@@ -252,7 +306,11 @@ spec:
   that moment.
 - A tie on the five hours left goes to the account that resets first, before the first listed. See
   [the pick rule](discovery-01.md#the-pick-rule).
-- An account with no five-hour window open counts as unused.
+- An account with no five-hour window open counts as unused. Claude Code answers 0% and no reset
+  time for it, as checked on one of your folders.
+- `~/.claude-gary`, `~/.claude-leo`, and `~/.claude-tato` may be used for smoke tests by hand during
+  the build, as you said. Automated tests stay on the fake agent.
+- The script lives in the documentation, as written in the first story.
 - Only the five hours and the week are read. A model's own weekly limit is not: a run it refuses
   asks for you, as today.
 - You cannot pick a session's account yourself: no picker is added.
@@ -272,3 +330,23 @@ spec:
 
 **Medium**: one new column in the sessions' cache and one setting, a small UI change, and no change
 to how a run continues.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-10: 3 comments in spec-review.md.
+>
+> - You approve new Claude Code sessions starting on the listed account with the most of its five
+>   hours left, each session keeping its account, and each account's usage on Home and the sidebar.
+> - The models decision gains one rule: a session keeps its account. The round said your answer
+>   changed no decision. Say so if the rule should stay in this spec only.
+> - The recipe you asked for is in the first story. It was checked here up to the sign-in: a linked
+>   folder reads your settings, and stays signed out until its own login.
+> - Reading usage without a turn is unverified on a Max login: only a Team login was in reach. The
+>   plan's first task checks it with yours. If it fails, the pick only knows running sessions'
+>   usage.
+> - A refused run waits for its own account's reset, even while another account has room, as you
+>   chose.
+> - The sidebar shows one line per account, its five hours. The week shows on Home.
+> - Risk tier `medium`: the sessions' cache gets one column. The plan does not wait for a review.
