@@ -38,9 +38,24 @@ export class Starts {
   }
 
   /**
+   * The folders of the workspace's open changes, when a run of the job started a change to look at:
+   * the one read of the workspace a skip needs, which awaits, so a start reads it before anything it
+   * must decide on as close to the start as it can.
+   */
+  async openFor(
+    ctx: RepoContext,
+    job: string,
+    root: string,
+  ): Promise<ReadonlySet<string> | undefined> {
+    return ctx.sessions.cache.jobs.changeFolders(job, root).length === 0
+      ? undefined
+      : openFolders(ctx);
+  }
+
+  /**
    * Why the job's time is skipped in the repository: its last run works, or an acceptance is opening
-   * its change, or a change it started is open. The open-change read is awaited first, so the
-   * synchronous reads of what works come last, as close to the start as they can.
+   * its change, or a change it started is open. The open-change read is awaited first, and what
+   * comes after reads without awaiting (`skipNow`).
    */
   async skipOf(
     ctx: RepoContext,
@@ -48,16 +63,29 @@ export class Starts {
     root: string,
     open?: ReadonlySet<string>,
   ): Promise<{ folder?: string; reason: Skipped } | undefined> {
+    return this.skipNow(ctx, job, root, open ?? (await this.openFor(ctx, job.name, root)));
+  }
+
+  /**
+   * `skipOf` with the open folders given, awaiting nothing, so a start that read them first decides
+   * with nothing between its last read and its start. Folders not read, with a change of the job's
+   * runs listed since, count as open: a time is skipped rather than run beside a change.
+   */
+  skipNow(
+    ctx: RepoContext,
+    job: Job,
+    root: string,
+    open: ReadonlySet<string> | undefined,
+  ): { folder?: string; reason: Skipped } | undefined {
     const { jobs } = ctx.sessions.cache;
     // Any run of the job that started a change still open, not only the latest run.
     const folders = jobs.changeFolders(job.name, root);
-    const opened = folders.length === 0 ? undefined : (open ?? (await openFolders(ctx)));
     const last = jobs.latestStarted(job.name, root);
     if (this.busy.has(job.name, root) || (last?.session && works(ctx, last.session))) {
       return { reason: "working" };
     }
     // The open change of the latest run that started one: the one a person looks for (R36).
-    const folder = opened === undefined ? undefined : folders.find((one) => opened.has(one));
+    const folder = open === undefined ? folders[0] : folders.find((one) => open.has(one));
     return folder === undefined ? undefined : { folder, reason: "change-open" };
   }
 }

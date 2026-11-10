@@ -199,29 +199,57 @@ class JobScheduler implements Scheduler {
     return agent && { agent, repo, schedule: job.schedule };
   }
 
-  /** The times due now, in the repositories where each job runs. */
+  /**
+   * The time due now of the job in the repository of this name, when it runs there and the server
+   * saw the time arrive; `eligible` collects the jobs that run in a repository, for what was seen.
+   */
+  async #dueIn(
+    job: Job,
+    name: string,
+    look: { at: Date; eligible: Set<string>; repos: Array<{ name: string; path: string }> },
+  ): Promise<Due | undefined> {
+    const { at, eligible, repos } = look;
+    const place = await this.#placeOf(job, name, repos);
+    if (place === undefined) {
+      return undefined;
+    }
+    const { agent, repo } = place;
+    const due = dueAt(place.schedule, at).getTime();
+    const key = keyOf(job.name, name);
+    eligible.add(key);
+    // A schedule edited is a job added: the moment it was seen starts again.
+    const schedule = JSON.stringify(job.schedule);
+    const seen = this.#seen.get(key);
+    const first = seen?.schedule === schedule ? seen.first : at.getTime();
+    this.#seen.set(key, { first, schedule });
+    // A time the server saw arrive, and not missed.
+    return agent.available && due > first && at.getTime() - due <= MISSED_AFTER_MS
+      ? { due, job, repo }
+      : undefined;
+  }
+
+  /**
+   * The times due now, in the repositories where each job runs. A failure for one job in one
+   * repository is printed once and leaves the others' times, and what it had seen, as they were.
+   */
   async #dueNow(jobs: Jobs["jobs"], at: Date): Promise<Array<Due>> {
     const found: Array<Due> = [];
     const eligible = new Set<string>();
     const repos = this.#options.repos();
     for (const job of jobs) {
       for (const name of job.repositories) {
-        const place = await this.#placeOf(job, name, repos);
-        if (place === undefined) {
-          continue;
-        }
-        const { agent, repo } = place;
-        const due = dueAt(place.schedule, at).getTime();
-        const key = keyOf(job.name, name);
-        eligible.add(key);
-        // A schedule edited is a job added: the moment it was seen starts again.
-        const schedule = JSON.stringify(job.schedule);
-        const seen = this.#seen.get(key);
-        const first = seen?.schedule === schedule ? seen.first : at.getTime();
-        this.#seen.set(key, { first, schedule });
-        // A time the server saw arrive, and not missed.
-        if (agent.available && due > first && at.getTime() - due <= MISSED_AFTER_MS) {
-          found.push({ due, job, repo });
+        try {
+          const due = await this.#dueIn(job, name, { at, eligible, repos });
+          if (due !== undefined) {
+            found.push(due);
+          }
+        } catch (error) {
+          const key = keyOf(job.name, name);
+          eligible.add(key);
+          this.#print(
+            `${key}\0${reasonOf(error)}`,
+            `the look for the times of ${job.name} in ${name} failed: ${reasonOf(error)}`,
+          );
         }
       }
     }
@@ -355,15 +383,21 @@ class JobScheduler implements Scheduler {
         this.#starts.reserve(key);
         holding = true;
       }
+      // The workspace is read first, which awaits, and the job after it: a pause, or the switch
+      // turned off during the read, stops the start (R49).
+      const open = await this.#starts.openFor(ctx, job.name, root);
       const now = await this.#fresh({ due, job, repo });
       if (now === undefined) {
         return false;
       }
       // What the minute and the reads let change: right before the start, holding the reservation,
-      // the last run may work again, or a change may be open (SC-003).
-      const again = await this.#starts.skipOf(ctx, now, root);
+      // the last run may work again, or a change may be open (SC-003). Nothing is awaited from here.
+      const again = this.#starts.skipNow(ctx, now, root, open);
       if (again !== undefined) {
         this.#skip(ctx, job.name, root, due, again);
+        return false;
+      }
+      if (!this.#on()) {
         return false;
       }
       const run = { at: this.#now().getTime(), due, trigger: "schedule" } as const;

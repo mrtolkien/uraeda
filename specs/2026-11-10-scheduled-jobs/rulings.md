@@ -771,3 +771,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an agent reads "Change no file." as forbidding the change itself; the same note says
   Uraeda starts the change from its offer, in its own worktree.
 - **Where**: the final review's fix 7, task 4.
+
+## R49: One repository's failure does not stop the others, and a start reads the switch last
+
+- **Decision**: (1) the look for due times, `#dueNow`, catches a throw of `#placeOf` (the
+  repository's root, its agent) or `dueAt` for one job in one repository, prints it once as the
+  scheduler prints its other problems, and goes on with the others; what it had seen of that job
+  stays. (2) A start, `#run`, reads the workspace's open changes first (`Starts.openFor`), then
+  checks the job (`#fresh`), then reads the skips with the folders it has (`Starts.skipNow`) and the
+  switch (`#on()`) without awaiting, and then starts. If the folders were not read, as the job had
+  no change then, and a change of its runs is listed by the end, the time is skipped as
+  `change-open`, rather than run beside a change.
+- **Rationale**: (1) a folder that stopped being a git checkout made `mainRoot` reject, which ended
+  the tick, so no healthy repository's time was queued, each silently missed after 5 minutes. (2)
+  the workspace read was awaited after `#fresh` checked the job, so a pause, the switch turned off,
+  or the job deleted during that read did not stop the start (R14 and R18 asked for the guards right
+  before the start, and this read was the one wait left).
+- **If wrong**: (1) a repository that fails at every tick prints one line and never runs; (2) a
+  pause made in the few microtasks between the last read and the start still does not stop it, as
+  nothing can.
+- **Where**: the final review's fix 8, task 4.

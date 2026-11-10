@@ -707,8 +707,11 @@ offer waits for the human. Both say to answer in one line when nothing needs doi
   dropped, recording nothing, when it no longer holds, or when the clock jumped during the minute's
   wait, as the machine sleeping does, which drops every time queued before the jump
   ([ruling R31](rulings.md)); a time a tick saw in time stays valid in the queue, however many
-  minutes it waits ([rulings R14 and R17](rulings.md)). Ticks never overlap: one asked while another
-  runs joins it, as `serially` does in `catch-ups.ts`.
+  minutes it waits ([rulings R14 and R17](rulings.md)). A start reads the workspace's open changes
+  first, then the job, then the guards and the switch without awaiting, and starts
+  ([ruling R49](rulings.md)); the look for due times catches a failure per job and repository,
+  prints it once, and goes on. Ticks never overlap: one asked while another runs joins it, as
+  `serially` does in `catch-ups.ts`.
 - `runNow` starts with `due: null`, whatever the pause, the switch, or an open change, and is
   refused only while the job's latest run works there, an acceptance is opening its change, or the
   run is impossible: no prompt, no name, or a name two jobs share, in the card's words; a schedule

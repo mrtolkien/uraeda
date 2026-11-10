@@ -1052,3 +1052,99 @@ test("a time is skipped while the last run waits for a wakeup it set", async () 
   const [skipped] = await run.history("Dependencies");
   expect(skipped).toMatchObject({ outcome: "skipped", reason: "working" });
 });
+
+/**
+ * Review 07, finding 9. Catches: one repository's failure in the look for due times, here a folder
+ * that is no git checkout, ending the whole tick, so no job of any other repository is queued.
+ */
+test("a repository that fails does not stop the others' times", async () => {
+  const broken = new Set<string>();
+  const using = {
+    ...binding,
+    mainRoot: async (path: string) => {
+      if (broken.has(path)) {
+        throw new Error("not a git checkout");
+      }
+      return binding.mainRoot(path);
+    },
+  } as Binding;
+  const run = await setup(using);
+  const [uraeda, notes] = run.repos;
+  broken.add(notes.path);
+  const printed = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  try {
+    // The job of the broken repository comes first in the file.
+    run.state.jobs = {
+      jobs: [job("Broken", [notes.name]), job("Healthy", [uraeda.name])],
+    };
+    run.server.adapter.script([]);
+    await run.at("11T02:59:00");
+    await run.at("11T03:00:10");
+    expect(await run.sessions("Healthy")).toHaveLength(1);
+    // The failure is printed once, however many ticks meet it.
+    await run.at("11T03:00:40");
+    const lines = printed.mock.calls.filter(([line]) =>
+      String(line).includes("not a git checkout"),
+    );
+    expect(lines).toHaveLength(1);
+  } finally {
+    printed.mockRestore();
+  }
+});
+
+/**
+ * Review 07, findings X2 (Codex P2). Catches: a start going on after the job was paused, or the
+ * switch turned off, while the workspace was read for its open changes, because that read was
+ * awaited after the job was checked.
+ */
+test.each([
+  [
+    "the switch is turned off",
+    (run: Awaited<ReturnType<typeof setup>>) => (run.state.enabled = false),
+  ],
+  [
+    "the job is paused",
+    (run: Awaited<ReturnType<typeof setup>>) => {
+      run.state.jobs = { jobs: [job("Dependencies", [run.repos[0].name], { on: false })] };
+    },
+  ],
+])("a start does not go on when %s during the workspace read", async (_why, change) => {
+  const reads = { gate: undefined as Promise<void> | undefined, held: 0, target: Infinity };
+  const using = {
+    ...binding,
+    readWorkspace: async (repo: string) => {
+      reads.held += 1;
+      if (reads.held === reads.target) {
+        await reads.gate;
+      }
+      return atStep(binding, CHANGE, { name: "done", waitsOn: "none" }).readWorkspace(repo);
+    },
+  } as Binding;
+  const run = await setup(using);
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  await run.at("11T02:59:00");
+  await run.at("11T03:00:10");
+  const [first] = run.created;
+  await ends(run.server, first.id);
+  // The run's change is merged: the next time reads the workspace, and finds nothing open.
+  run.server.sessions.cache.attach(first.id, CHANGE);
+
+  // The second read of the workspace for the next time is held, and the change made during it.
+  const gate = Promise.withResolvers<void>();
+  reads.gate = gate.promise;
+  reads.held = 0;
+  reads.target = 2;
+  await run.at("12T02:59:00");
+  run.state.clock = new Date("2026-11-12T03:00:10");
+  await run.scheduler.tick();
+  while (reads.held < 2) {
+    await turns(1);
+  }
+  change(run);
+  gate.resolve();
+  await run.scheduler.settled();
+
+  expect(run.created).toHaveLength(1);
+});
