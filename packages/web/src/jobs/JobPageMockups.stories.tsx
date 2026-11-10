@@ -16,6 +16,8 @@ const nothing = () => {};
 
 /** Thursday 12 November 2026, 10:30, the stories' now. */
 const NOW = new Date(2026, 10, 12, 10, 30);
+/** The zone `NOW` is local to, which the times read in. */
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const at = (day: number, hour: number, minute = 0) =>
   new Date(2026, 10, day, hour, minute).toISOString();
@@ -105,6 +107,7 @@ const around = {
   repositories: ["dotfiles", "notes", "uraeda"],
   repository: "uraeda",
   runtimes: [CLAUDE],
+  zone: ZONE,
 };
 
 /** A job's page, over `job`: its name and Run now, its form, then its history. */

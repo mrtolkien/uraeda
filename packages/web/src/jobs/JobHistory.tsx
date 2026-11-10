@@ -39,17 +39,19 @@ function lineOf(run: JobRunView, older: ReadonlyArray<JobRunView>): string {
 }
 
 /**
- * The history: `runs` newest first, `now` the time its times read against, and `renderCard` a
+ * The history: `runs` newest first, `now` the time its times read against, in the server's `zone`, and `renderCard` a
  * started run's card, or nothing once its session is gone.
  */
 export function JobHistory({
   now,
   renderCard,
   runs,
+  zone,
 }: {
   now: Date;
   renderCard: (run: JobRunView) => ReactNode;
   runs: ReadonlyArray<JobRunView>;
+  zone: string;
 }) {
   return (
     <Pane count={runs.length} icon="uraeda:history" isSnugOnPhone title="History">
@@ -62,7 +64,7 @@ export function JobHistory({
             return (
               <VStack as="li" gap={1} key={run.id}>
                 <Text color="secondary" type="supporting">
-                  {whenWords(new Date(run.at), now)}
+                  {whenWords(new Date(run.at), now, zone)}
                 </Text>
                 {card ?? (
                   <Text color="secondary" xstyle={styles.note}>

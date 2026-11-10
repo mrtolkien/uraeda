@@ -10,7 +10,13 @@ import { refusal } from "../errors.ts";
 const JOBS_ID = "jobs";
 
 /** The record: whether jobs run, the file's problem, and each job here with its next run and history. */
-const JobsView = view<Jobs>()({ enabled: true, id: true, jobs: true, problem: true });
+const JobsView = view<Jobs>()({
+  enabled: true,
+  id: true,
+  jobs: true,
+  problem: true,
+  timeZone: true,
+});
 
 /** The answer of "Run now": the record, and the session it started. */
 const JobsRunView = view<JobsRun>()({
@@ -19,6 +25,7 @@ const JobsRunView = view<JobsRun>()({
   jobs: true,
   problem: true,
   session: true,
+  timeZone: true,
 });
 
 /**

@@ -22,6 +22,9 @@ afterEach(() => {
 
 /** Thursday 12 November 2026, 10:30. */
 const NOW = new Date(2026, 10, 12, 10, 30);
+/** The zone `NOW` is local to, which the times read in. */
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 const at = (day: number, hour: number) => new Date(2026, 10, day, hour).toISOString();
 
 const BASE: Pick<JobRow, "agent" | "effort" | "history" | "model" | "prompt" | "repositories"> = {
@@ -125,6 +128,7 @@ function show(handlers: Spies, extra?: ReactNode, jobs = JOBS, enabled = true) {
             now={NOW}
             problem={null}
             sessions={SESSIONS}
+            zone={ZONE}
           />
           {extra}
         </ConfirmHost>

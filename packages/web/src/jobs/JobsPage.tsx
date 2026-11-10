@@ -60,11 +60,12 @@ function factsOf(
   job: JobRow,
   sessions: ReadonlyMap<string, RunSession>,
   now: Date,
+  zone: string,
 ): { last: Fact; next: Fact } {
   const run = latestStart(job);
   return {
-    last: lastFact(run, run?.session == null ? undefined : sessions.get(run.session), now),
-    next: nextFact(job, now),
+    last: lastFact(run, run?.session == null ? undefined : sessions.get(run.session), now, zone),
+    next: nextFact(job, now, zone),
   };
 }
 
@@ -166,6 +167,7 @@ export function JobsPlace({
   now,
   problem,
   sessions,
+  zone,
 }: {
   enabled: boolean;
   handlers: JobsHandlers;
@@ -173,6 +175,8 @@ export function JobsPlace({
   now: Date;
   problem: string | null;
   sessions: ReadonlyMap<string, RunSession>;
+  /** The server's time zone, which the times read in. */
+  zone: string;
 }) {
   const here = useRepoPath();
   const { ref, ...list } = useJobsPlace(jobs, handlers);
@@ -225,7 +229,7 @@ export function JobsPlace({
                     onPick={() => list.pick(job.name)}
                     onSwitch={(on) => list.sendSwitch(job.name, on)}
                     refusal={list.refusals.get(job.name)}
-                    {...factsOf(job, sessions, now)}
+                    {...factsOf(job, sessions, now, zone)}
                   />
                 ))}
               </VStack>
@@ -297,6 +301,7 @@ export function JobsPage() {
       now={now}
       problem={record.problem}
       sessions={sessions}
+      zone={record.timeZone}
     />
   );
 }

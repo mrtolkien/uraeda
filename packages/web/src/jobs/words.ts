@@ -1,5 +1,5 @@
-// A job's schedule and its times in words, as its card reads them, in the server's local time,
-// which is the human's: the card never shows a time as the server writes it.
+// A job's schedule and its times in words, as its card reads them, in the server's time zone, the one
+// its schedules run in: the hour of a time and of its schedule read alike, whatever the browser's zone.
 import type { Schedule } from "uraeda-binding";
 
 const DAYS = [
@@ -45,24 +45,48 @@ export function scheduleWords(schedule: Schedule): string {
   }
 }
 
-/** The calendar day of a date, as a count, so that a day is a day whatever the clock changes did. */
-const dayNumber = (date: Date) =>
-  Math.round(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 864e5);
+/** A date's calendar day and clock in a time zone. */
+function partsIn(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    hour: "numeric",
+    hourCycle: "h23",
+    minute: "numeric",
+    month: "numeric",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(date);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return {
+    day: value("day"),
+    hour: value("hour"),
+    minute: value("minute"),
+    month: value("month") - 1,
+    year: value("year"),
+  };
+}
 
-/** The Monday-first index of a date's day of the week. */
-const weekday = (date: Date) => (date.getDay() + 6) % 7;
+/** The calendar day of a date's parts, as a count, so that a day is a day whatever the clock changes did. */
+const dayNumber = ({ day, month, year }: { day: number; month: number; year: number }) =>
+  Math.round(Date.UTC(year, month, day) / 864e5);
+
+/** The Monday-first index of a day counted by `dayNumber`: 1 January 1970 was a Thursday. */
+const weekday = (days: number) => (((days + 3) % 7) + 7) % 7;
 
 /**
  * A time, ahead or past, as the card reads it: "Today at 3:00", "Tomorrow at 3:00", then a day
  * ahead by its name and date, "Monday 16 November at 4:00"; a day past is "Yesterday at 4:00", its
  * name within the week, "Saturday at 5:00", and its date after, "2 November at 5:00". A date of
- * another year says the year. Days are counted on the calendar.
+ * another year says the year. Hours and days are those of `timeZone`, the server's, in which its
+ * schedules run, whatever the browser's zone is; days are counted on the calendar.
  */
-export function whenWords(at: Date, now: Date): string {
-  const days = dayNumber(at) - dayNumber(now);
-  const time = clock({ hour: at.getHours(), minute: at.getMinutes() });
-  const year = at.getFullYear() === now.getFullYear() ? "" : ` ${at.getFullYear()}`;
-  const date = `${at.getDate()} ${MONTHS[at.getMonth()]}${year}`;
+export function whenWords(at: Date, now: Date, timeZone: string): string {
+  const then = partsIn(at, timeZone);
+  const days = dayNumber(then) - dayNumber(partsIn(now, timeZone));
+  const time = clock(then);
+  const year = then.year === partsIn(now, timeZone).year ? "" : ` ${then.year}`;
+  const date = `${then.day} ${MONTHS[then.month]}${year}`;
+  const name = DAYS[weekday(dayNumber(then))];
   if (days === 0) {
     return `Today at ${time}`;
   }
@@ -70,10 +94,10 @@ export function whenWords(at: Date, now: Date): string {
     return `Tomorrow at ${time}`;
   }
   if (days > 1) {
-    return `${DAYS[weekday(at)]} ${date} at ${time}`;
+    return `${name} ${date} at ${time}`;
   }
   if (days === -1) {
     return `Yesterday at ${time}`;
   }
-  return days > -7 ? `${DAYS[weekday(at)]} at ${time}` : `${date} at ${time}`;
+  return days > -7 ? `${name} at ${time}` : `${date} at ${time}`;
 }

@@ -34,8 +34,8 @@ const styles = stylex.create({
 type Form = ReturnType<typeof useJobForm>;
 
 /** The next run's words after the schedule's, for an existing job. */
-function ScheduleNotes({ job, now }: { job: JobRow; now: Date }) {
-  const next = nextFact(job, now);
+function ScheduleNotes({ job, now, zone }: { job: JobRow; now: Date; zone: string }) {
+  const next = nextFact(job, now, zone);
   const first = job.schedule === null ? undefined : `${scheduleWords(job.schedule)}.`;
   const sentence =
     next.tone === "problem"
@@ -186,7 +186,17 @@ function Under({ children, refusal }: { children: ReactNode; refusal: string | u
 }
 
 /** The rows of the lines and of the schedule: the job's name, its prompt, and when it runs. */
-function WhenRows({ form, job, now }: { form: Form; job: JobRow | undefined; now: Date }) {
+function WhenRows({
+  form,
+  job,
+  now,
+  zone,
+}: {
+  form: Form;
+  job: JobRow | undefined;
+  now: Date;
+  zone: string;
+}) {
   const { refusals } = form;
   return (
     <>
@@ -230,7 +240,7 @@ function WhenRows({ form, job, now }: { form: Form; job: JobRow | undefined; now
         }
       />
       <SettingRow
-        notes={job !== undefined && <ScheduleNotes job={job} now={now} />}
+        notes={job !== undefined && <ScheduleNotes job={job} now={now} zone={zone} />}
         setting={{
           help: "In the server's local time. A time that passes while Uraeda is not running is missed.",
           icon: "uraeda:hourglass",
@@ -329,6 +339,7 @@ export function JobForm({
   repositories,
   repository,
   runtimes,
+  zone,
 }: {
   job?: JobRow | undefined;
   now: Date;
@@ -336,13 +347,15 @@ export function JobForm({
   repositories: ReadonlyArray<string>;
   repository: string;
   runtimes: ReadonlyArray<PickerRuntime>;
+  /** The server's time zone, which the times read in. */
+  zone: string;
 }) {
   const form = useJobForm({ job, onSave, repository });
   return (
     <Pane icon="uraeda:history" isSnugOnPhone title={job === undefined ? "New job" : "Job"}>
       <VStack gap={3}>
         <SettingRows>
-          <WhenRows form={form} job={job} now={now} />
+          <WhenRows form={form} job={job} now={now} zone={zone} />
           <ChoiceRows form={form} repositories={repositories} runtimes={runtimes} />
         </SettingRows>
         {job === undefined && (

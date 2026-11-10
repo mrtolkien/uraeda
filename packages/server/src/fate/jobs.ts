@@ -55,6 +55,8 @@ export type JobsRecord = {
   id: string;
   jobs: Array<JobRow>;
   problem: string | null;
+  /** The IANA zone of the server, the one the schedules run in and the times read in. */
+  timeZone: string;
 };
 
 /** The answer of "Run now": the record, and the session the run started. */
@@ -65,6 +67,7 @@ export const jobsDataView = dataView<JobsRecord>("Jobs")({
   id: true,
   jobs: true,
   problem: true,
+  timeZone: true,
 });
 
 export const jobsRunDataView = dataView<JobsRunRecord>("JobsRun")({
@@ -73,6 +76,7 @@ export const jobsRunDataView = dataView<JobsRunRecord>("JobsRun")({
   jobs: true,
   problem: true,
   session: true,
+  timeZone: true,
 });
 
 /**
@@ -158,6 +162,7 @@ export async function jobsRecord(ctx: RepoContext): Promise<JobsRecord> {
     id: JOBS_ID,
     jobs: await Promise.all(here.map((job) => rowOf(ctx, job, { name: name!, open, root }))),
     problem: problem ?? null,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 }
 

@@ -32,6 +32,8 @@ const nothing = () => {};
 
 /** Thursday 12 November 2026, 10:30, the stories' now. */
 const NOW = new Date(2026, 10, 12, 10, 30);
+/** The zone `NOW` is local to, which the times read in. */
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const at = (month: number, day: number, hour: number, minute = 0) =>
   new Date(2026, month, day, hour, minute).toISOString();
@@ -147,6 +149,7 @@ function JobsFrame({ isOff = false, jobs }: { isOff?: boolean; jobs: ReadonlyArr
         now={NOW}
         problem={null}
         sessions={SESSIONS}
+        zone={ZONE}
       />
     </Shell>
   );

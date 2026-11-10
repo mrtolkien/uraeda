@@ -213,11 +213,12 @@ lower case, its time on 24 hours:
 | `weekdays HH:MM` | `weekdays 03:00` | Monday to Friday at that time                |
 | `<day> HH:MM`    | `monday 04:00`   | that day of every week, `monday` to `sunday` |
 
-The times are the server's local time. An `hourly` job runs in each real hour: the night the clock
-goes back, it runs in the repeated hour too. A table that breaks a rule above is a job with a
-problem: the Jobs place lists it with the problem, and it does not run. Of two jobs with one name,
-the second has the problem. A `jobs` that is not a list of tables is the jobs' own problem, and
-never makes the rest of the settings unreadable.
+The times are the server's local time, and the Jobs place and a job's page read them in that zone
+too, whatever the browser's is. An `hourly` job runs in each real hour: the night the clock goes
+back, it runs in the repeated hour too. A table that breaks a rule above is a job with a problem:
+the Jobs place lists it with the problem, and it does not run. Of two jobs with one name, the second
+has the problem. A `jobs` that is not a list of tables is the jobs' own problem, and never makes the
+rest of the settings unreadable.
 
 Its `[keyboard]` table holds the keys' settings, each applied at once:
 

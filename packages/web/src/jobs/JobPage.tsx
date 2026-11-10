@@ -33,6 +33,8 @@ type Around = {
   repositories: ReadonlyArray<string>;
   repository: string;
   runtimes: ReadonlyArray<PickerRuntime>;
+  /** The server's time zone, which the times read in. */
+  zone: string;
 };
 
 /** A write: its refusal in words, or nothing. */
@@ -90,7 +92,12 @@ export function JobPageView({
         <Title onRun={narrow ? undefined : () => void run()}>{job.name}</Title>
         <Refusal onDismiss={() => setRefusal(undefined)} refusal={refusal} />
         <JobForm job={job} onSave={handlers.onSave} {...around} />
-        <JobHistory now={around.now} renderCard={renderCard} runs={job.history} />
+        <JobHistory
+          now={around.now}
+          renderCard={renderCard}
+          runs={job.history}
+          zone={around.zone}
+        />
       </VStack>
       {narrow && (
         <TopBarSlot>
@@ -122,13 +129,14 @@ export function NewJobPageView({ onSave, ...around }: Around & { onSave: Write }
 }
 
 /** What the page reads besides the job: the time, the repositories by name, and the agents on. */
-function useAround(): Around {
+function useAround(zone: string): Around {
   const repositories = useRepositories()?.rows ?? [];
   return {
     now: new Date(useNow(30_000)),
     repositories: repositories.map((row) => row.name).sort((a, b) => a.localeCompare(b)),
     repository: useRepository(),
     runtimes: pickerRuntimes(useRuntimesOn()),
+    zone,
   };
 }
 
@@ -151,7 +159,7 @@ export function JobPage({ name }: { name: string }) {
   const record = useJobs();
   const actions = useJobActions();
   const here = useRepoPath();
-  const around = useAround();
+  const around = useAround(record.timeZone);
   return (
     <JobPageView
       {...around}
@@ -184,7 +192,7 @@ export function JobPage({ name }: { name: string }) {
 export function NewJobPage() {
   const actions = useJobActions();
   const here = useRepoPath();
-  const around = useAround();
+  const around = useAround(useJobs().timeZone);
   return (
     <NewJobPageView
       {...around}

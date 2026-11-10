@@ -39,10 +39,14 @@ const WHY = {
  * When the job runs next, or why it does not: the time in words, "Paused", its problem in the error
  * colour, "Waits for that change to close", or, for an agent that is off here, the agent's words.
  */
-export function nextFact(job: Pick<JobRow, "agent" | "next" | "problem">, now: Date): Fact {
+export function nextFact(
+  job: Pick<JobRow, "agent" | "next" | "problem">,
+  now: Date,
+  zone: string,
+): Fact {
   const { at, why } = job.next;
   if (at !== null) {
-    return { icon: "uraeda:hourglass", text: whenWords(new Date(at), now), tone: "quiet" };
+    return { icon: "uraeda:hourglass", text: whenWords(new Date(at), now, zone), tone: "quiet" };
   }
   if (why === "problem" || job.problem !== null) {
     return {
@@ -105,11 +109,12 @@ export function lastFact(
   run: JobRunView | undefined,
   session: RunSession | undefined,
   now: Date,
+  zone: string,
 ): Fact {
   if (run === undefined) {
     return { icon: "uraeda:square-dashed", text: "Never ran", tone: "quiet" };
   }
-  const when = whenWords(new Date(run.at), now);
+  const when = whenWords(new Date(run.at), now, zone);
   if (session === undefined) {
     return {
       icon: "uraeda:square",

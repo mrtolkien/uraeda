@@ -24,6 +24,8 @@ afterEach(() => {
 
 /** Thursday 12 November 2026, 10:30. */
 const NOW = new Date(2026, 10, 12, 10, 30);
+/** The zone `NOW` is local to, which the times read in. */
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const JOB: JobRow = {
   agent: "claude",
@@ -92,6 +94,7 @@ const common = {
   repositories: ["uraeda", "notes", "dotfiles"],
   repository: "uraeda",
   runtimes: RUNTIMES,
+  zone: ZONE,
 };
 
 /** An open job's page over `job`, its writes spied; `rerender` shows it again with another job. */
@@ -347,6 +350,7 @@ test("the history says each time, its card, and what a skipped time was for", ()
         now={NOW}
         renderCard={(run) => <span>{`card of ${run.session}`}</span>}
         runs={runs}
+        zone={ZONE}
       />,
     ),
   );

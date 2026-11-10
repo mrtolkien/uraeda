@@ -5,6 +5,9 @@ import { expect, test } from "vite-plus/test";
 import { lastFact, nextFact, type RunSession } from "../jobs/facts.ts";
 
 const NOW = new Date(2026, 10, 12, 10, 30);
+/** The zone `NOW` is local to, which the times read in. */
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 const job = (next: { at: string | null; why: string | null }, rest = {}) => ({
   agent: null,
   next,
@@ -33,7 +36,7 @@ test.each([
     "problem",
   ],
 ])("nextFact(%j) says %s", (given, text, tone) =>
-  expect(nextFact(given, NOW)).toMatchObject({ text, tone }),
+  expect(nextFact(given, NOW, ZONE)).toMatchObject({ text, tone }),
 );
 
 const run = (folder: string | null) => ({
@@ -82,5 +85,5 @@ test.each([
   ],
   [run(null), undefined, "Today at 3:00 · “Upgrade three dependencies”", "quiet"],
 ])("lastFact(%#) says %s", (given, read, text, tone) =>
-  expect(lastFact(given, read, NOW)).toMatchObject({ text, tone }),
+  expect(lastFact(given, read, NOW, ZONE)).toMatchObject({ text, tone }),
 );

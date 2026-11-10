@@ -379,3 +379,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   Astryx does not offer today. A job named "new" cannot be opened: its page's address is the new
   job's, `/jobs/new`; it stays in the list and in `config.toml`.
 - **Where**: task 8.
+
+## R26: The card's times read in the server's time zone
+
+- **Decision**: the `Jobs` record carries `timeZone`, the server's IANA zone, the one the schedules
+  run in. `whenWords(at, now, timeZone)` reads the hour, the calendar day, and the day's name in
+  that zone, whatever the browser's zone is, and so do the history's times. `scheduleWords` already
+  prints the schedule's hour as the file holds it, the server's.
+- **Rationale**: the card read "Every day at 3:00" over "Today at 4:00" on a phone in another zone,
+  and the Today, Tomorrow, and Yesterday words fell on the browser's calendar. The times of a
+  schedule are the server's local time ([data model](data-model.md)); a human away from it reads
+  them in the zone the job runs in.
+- **If wrong**: a human who wants times in their own zone gets the server's until a setting asks for
+  the browser's.
+- **Where**: tasks 6, 7, and 8.

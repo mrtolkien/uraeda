@@ -13,7 +13,7 @@ import { binding, byIdAt, type Data, fateAt, fixtureRepo, testServer } from "./h
 type Server = Awaited<ReturnType<typeof testServer>>;
 type Read = { data?: Data; error?: { message: string }; ok: boolean };
 
-const SELECT = ["id", "enabled", "problem", "jobs"];
+const SELECT = ["id", "enabled", "problem", "jobs", "timeZone"];
 const PROMPT = "Check the dependencies and report what is outdated.";
 
 /** A job's table, on the fake agent. */
@@ -104,6 +104,8 @@ test("the jobs' record and its writes", async () => {
   const record = await run.read();
   expect(record.enabled).toBe(true);
   expect(record.problem).toBeNull();
+  // The zone the schedules run in, which the card's times read in.
+  expect(record.timeZone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   expect(names(record)).toEqual(["Dependencies", "Code quality"]);
   expect(job(record, "Dependencies").problem).toBe("“notes” is not in Uraeda's list.");
   expect(job(record, "Code quality").problem).toBe(
