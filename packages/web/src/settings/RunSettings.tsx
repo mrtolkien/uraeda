@@ -1,6 +1,7 @@
 // The Runs section: how each step runs, the run map over the settings' run options, which every
 // feature starts from; whether Uraeda continues a run by itself after a restart or a usage limit,
-// and how many times in a row; whether it catches up open pull requests behind the default branch.
+// and how many times in a row; whether it catches up open pull requests behind the default branch;
+// whether the scheduled jobs start at their times.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
@@ -32,6 +33,9 @@ const CONTINUES: ReadonlyArray<{ key: ContinueKey; label: string }> = [
 
 /** The catch-up of open pull requests' switch, off by default, after the continues' rows. */
 const CATCH_UP = { key: "catch-up", label: "Catch up open pull requests" } as const;
+
+/** The scheduled jobs' switch, on by default, under the catch-up's. */
+const RUN_JOBS = { key: "jobs", label: "Run scheduled jobs" } as const;
 
 const CAP = "Automatic continues in a row";
 const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10.";
@@ -208,6 +212,7 @@ export function RunSettings({
           kinds.map((kind) => <ContinueSwitch key={kind.key} {...props} kind={kind} />)}
         {!values.problem && shows(CAP) && <AutomaticContinues {...props} />}
         {!values.problem && shows(CATCH_UP.label) && <ContinueSwitch {...props} kind={CATCH_UP} />}
+        {!values.problem && shows(RUN_JOBS.label) && <ContinueSwitch {...props} kind={RUN_JOBS} />}
       </SettingRows>
       {isContinuing && (
         <VStack paddingBlock={2} paddingInline={3}>

@@ -213,3 +213,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job whose runs each opened a change keeps one small row per change in the cache
   for good, not shown in the history, which lists 50.
 - **Where**: tasks 3 and 4.
+
+## R16: The Jobs place's card reads the last run from the latest started row, and the routes are the UI's
+
+- **Decision**: (1) "Last run" reads the latest _started_ row of the job's history, not the latest
+  row: a skipped time is no run, and has no session to ask anything. A job with only skipped rows
+  reads "Never ran". The skipped rows stay in the job's page, task 8. (2) The words of a job's card
+  live in `jobs/facts.ts` (`nextFact`, `lastFact`), beside `words.ts`. A reason of `agent-off` with
+  no problem reads "Not running here: no agent is on in this repository." for a job with no agent,
+  and "Not running here: <agent> is not available." for one that names its agent, and `off` reads
+  "Scheduled jobs are off". (3) The built-in `jobs` has order 6, after Git; previews and
+  notifications moved to 7 and 8. (4) `/jobs`, `/jobs/<name>`, and `/jobs/new` are routes of the
+  UI's table (`routeTable.ts`), owned by `jobs` in `extensions/routes.tsx`, so a turned-off Jobs
+  place says so on all three; the two of a job's page draw the app's page for a missing item until
+  task 8. (5) The card's mark stays the mockup's `uraeda:history`, and the place's icon is the new
+  `uraeda:clock`. (6) The go key `g j` made the keyboard test of a pending `g` use `k` for its key
+  no sequence uses: `j` is a sequence now.
+- **Rationale**: (1) the plan says "the latest row of the history", and what its session asks has no
+  meaning for a skipped one; the spec's card shows what a run left for the human. (3) the plan says
+  "after `git`"; the orders are integers. (4) a place has one path, and a job's page is a route.
+- **If wrong**: (1) a skipped time after the last run would show on the card, if the owner reads the
+  latest row. (4) task 8's routes draw their page where `RoutePage` draws `Nothing` now.
+- **Where**: task 7.

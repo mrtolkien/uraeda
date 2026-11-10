@@ -18,6 +18,9 @@ export type Route =
   | { folder: string; name: string; page: "branch-decision" }
   | { page: "constitution" }
   | { page: "git" }
+  | { page: "jobs" }
+  | { name: string; page: "job" }
+  | { page: "job-new" }
   | { page: "edit"; path: string }
   | { page: "buffer"; path: string }
   | { folder: string; name: string; page: "mockup" }
@@ -97,6 +100,12 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (parts[0] === "git" && parts.length === 1) {
     return { page: "git" };
+  }
+  if (parts[0] === "jobs" && parts.length <= 2) {
+    if (parts.length === 1) {
+      return { page: "jobs" };
+    }
+    return parts[1] === "new" ? { page: "job-new" } : { name: parts[1], page: "job" };
   }
   if (parts[0] === "sessions" && parts.length === 1) {
     return { page: "sessions" };

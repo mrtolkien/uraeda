@@ -70,3 +70,12 @@ test("a repository's path starts with its encoded name", () => {
 test("a feature's session address encodes its folder, as every link to it does", () => {
   expect(sessionPath("2026-10-12-a#b?c")).toBe("/f/2026-10-12-a%23b%3Fc/session");
 });
+
+/** US4, US5: the Jobs place, a job's page, and a new job's; a name that needs it is encoded. */
+test.each([
+  ["/jobs", { page: "jobs" }],
+  ["/jobs/Dependencies", { name: "Dependencies", page: "job" }],
+  ["/jobs/Performance%20pass", { name: "Performance pass", page: "job" }],
+  ["/jobs/new", { page: "job-new" }],
+  ["/jobs/a/b", { page: "missing", path: "/jobs/a/b" }],
+])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));

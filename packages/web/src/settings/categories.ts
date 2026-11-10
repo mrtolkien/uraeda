@@ -173,6 +173,12 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         icon: "uraeda:workflow",
         label: "Catch up open pull requests",
       },
+      {
+        help: "Your jobs start by themselves at their times, in the repositories they name. Off, none starts until it is on again, and “Run now” still works. A change applies at once.",
+        icon: "uraeda:history",
+        label: "Run scheduled jobs",
+        terms: ["jobs", "schedule", "cron"],
+      },
     ],
   },
   {

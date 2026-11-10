@@ -964,13 +964,17 @@ git commit -m "feat(scheduled-jobs): the jobs' record, their writes, and Run now
 
 - Create: `packages/web/src/jobs/JobsPage.tsx`, `packages/web/src/jobs/JobCard.tsx`,
   `packages/web/src/jobs/useJobs.ts`, `packages/web/src/jobs/words.ts`,
-  `packages/web/src/extensions/builtins/jobs.tsx`
+  `packages/web/src/jobs/facts.ts`, `packages/web/src/extensions/builtins/jobs.tsx`
+- Test: `packages/web/src/__tests__/job-words.test.ts`, `job-facts.test.ts`, `jobs-place.test.tsx`,
+  and `routes.test.ts`, `keys-go.test.tsx` (the go key `g j`)
 - Start from: `packages/web/src/jobs/JobsMockups.stories.tsx`, the stories `JobsList`,
   `JobsListPhone`, `JobsEmpty`, `JobsOff`, and `RunsSection`
 - Modify: `packages/web/src/extensions/builtins/order.ts`, `places.ts`, `index.ts`,
-  `packages/web/src/pages.ts`, `packages/web/src/settings/RunSettings.tsx` and the settings' views
-  and stories that list the runs' switches, `packages/web/src/theme/icons.ts` (a clock),
-  `packages/web/src/jobs/JobsMockups.stories.tsx` (the stories draw the real components)
+  `packages/web/src/pages.ts`, `packages/web/src/routeTable.ts`, `packages/web/src/App.tsx`,
+  `packages/web/src/extensions/routes.tsx` (the place's routes),
+  `packages/web/src/settings/RunSettings.tsx`, `categories.ts`, `optimistic.ts` (the runs' switch),
+  `packages/web/src/theme/icons.ts` (a clock), `packages/web/src/jobs/JobsMockups.stories.tsx` (the
+  stories draw the real components)
 
 **Interfaces:**
 
@@ -994,15 +998,16 @@ export function whenWords(at: Date, now: Date): string; // "Today at 3:00", "Tom
 // The place: id "jobs", path "/jobs", key "j", goKey "j", phoneTab "more"; a job's page at "/jobs/<name>", a new one at "/jobs/new".
 ```
 
-- [ ] **Step 1: Build the place from the mockup**
+- [x] **Step 1: Build the place from the mockup**
 
 - `JobCard.tsx` and `JobsPage.tsx` take the mockup's `JobCard` and `JobsPlace` as they are drawn,
   fed by `useJobs`: the head with the job's mark, name, "Report only", schedule in words, and
   switch; then "Next run" and "Last run" under their labels, each with its icon in its role's
-  colour. The stories then import the real components, with the same exports, so the spec's links
-  hold.
+  colour. The stories then import the real components (`JobsPlace`, which the story `JobsFrame`
+  draws in the app's frame), over fixed `JobRow`s, so the spec's links hold.
 - Next run reads, from `next`: the time in words; `Paused`; the job's problem, in the error colour;
-  or "Waits for that change to close". Last run reads the latest row of the history: its time, then
+  or "Waits for that change to close" (`jobs/facts.ts`, with the words of `off` and `agent-off`).
+  Last run reads the latest started row of the history ([ruling R16](rulings.md)): its time, then
   what its session or its change asks, as the sidebar's card names it, or "Never ran".
 - The keys, in the registry, each also on the selected card's bar and by tap: Enter opens the job's
   page, `r` runs it now and opens its session, `p` pauses or resumes it, `d` deletes it after the
@@ -1015,18 +1020,18 @@ export function whenWords(at: Date, now: Date): string; // "Today at 3:00", "Tom
 - The Runs settings gain the switch "Run scheduled jobs", with the help text of the `RunsSection`
   story, under the catch-up's.
 
-- [ ] **Step 2: Review it in the sandbox**
+- [x] **Step 2: Review it in the sandbox**
 
 - Run: `vp run sandbox`, and open Jobs with `Space j`
 - Expected: the list draws as the stories do, in both themes, on a desktop and at 390 px. Every key
   of step 1 acts, and each has its tap.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS, the Storybook build included in `vp run ready` later
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web

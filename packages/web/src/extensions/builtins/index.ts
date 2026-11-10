@@ -4,5 +4,6 @@ import "./priorities.tsx";
 import "./decisions.tsx";
 import "./sessions.tsx";
 import "./git.tsx";
+import "./jobs.tsx";
 import "./previews.tsx";
 import "./notifications.tsx";

@@ -42,13 +42,14 @@ test("g then i on the priorities opens the inbox (US2 1)", async () => {
   expect(window.location.pathname).toBe(atRepo("/inbox"));
 });
 
-test("every go key opens its page: h i p d s and the comma (US2 table)", async () => {
+test("every go key opens its page: h i p d s j and the comma (US2 table)", async () => {
   await loaded("/inbox");
   const pages: Array<[key: string, path: string]> = [
     ["h", "/"],
     ["p", "/priorities"],
     ["d", "/decisions"],
     ["s", "/sessions"],
+    ["j", "/jobs"],
     [",", "/settings"],
     ["i", "/inbox"],
   ];
@@ -86,8 +87,9 @@ test("a pending g waits for its key past 2 seconds, and Escape ends it, a later 
   });
   press("g");
   act(() => void vi.advanceTimersByTime(5000));
-  // Still pending: the vertical key is the sequence's, and nothing scrolls.
-  press("j");
+  // Still pending: a vertical key is the sequence's, and nothing scrolls (`j` is no such key: it is
+  // the go key of Jobs).
+  press("k");
   act(() => void vi.advanceTimersByTime(1000));
   expect(scrolled()).toBe(0);
 
