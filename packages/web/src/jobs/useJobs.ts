@@ -47,11 +47,30 @@ const refused = (result: { error?: unknown }): Refused =>
   result.error ? refusal(result.error).message : undefined;
 
 /**
+ * The jobs as the record shows them once the job of this name is switched, the first of that name
+ * as the core's write is. A pause says why at once; a resume leaves the reason until the answer,
+ * which knows the next time.
+ */
+function withOn(record: JobsRecord, name: string, on: boolean) {
+  const place = record.jobs.findIndex((job) => job.name === name);
+  return {
+    id: record.id,
+    jobs: record.jobs.map((job, index) =>
+      index === place
+        ? { ...job, next: on ? job.next : { at: null, text: null, why: "paused" }, on }
+        : job,
+    ),
+  };
+}
+
+/**
  * The jobs' writes, which the card and the job's page send. Each answers the refusal, never throws:
- * a name taken, a time out of range, or a run that still works.
+ * a name taken, a time out of range, or a run that still works. The switch shows its value at once
+ * and a refusal puts it back.
  */
 export function useJobActions() {
   const fate = useFateClient();
+  const record = useJobs();
   const { jobs } = fate.mutations;
   return {
     add: async (job: JobInput): Promise<Refused> =>
@@ -66,7 +85,13 @@ export function useJobActions() {
         : { session };
     },
     setOn: async (name: string, on: boolean): Promise<Refused> =>
-      refused(await jobs.setOn({ input: { name, on }, view: JobsView })),
+      refused(
+        await jobs.setOn({
+          input: { name, on },
+          optimistic: withOn(record, name, on),
+          view: JobsView,
+        }),
+      ),
     update: async (name: string, job: JobInput): Promise<Refused> =>
       refused(await jobs.update({ input: { job, name }, view: JobsView })),
   };

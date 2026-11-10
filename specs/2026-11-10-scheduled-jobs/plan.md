@@ -1037,8 +1037,10 @@ export function whenWords(at: Date, now: Date, timeZone: string): string; // "To
   names it, or "Never ran".
 - The keys, in the registry, each also on the selected card's bar and by tap: Enter opens the job's
   page, `r` runs it now and opens its session, `p` pauses or resumes it, `d` deletes it after the
-  shared confirmation, with the text of the global constraints, and `a` opens `/jobs/new`. `j` and
-  `k` move the selection. A refusal shows under its card until dealt with, never in a toast.
+  shared confirmation, with the text of the global constraints, and `a` opens `/jobs/new`. A job's
+  switch shows its value at once and a refusal puts it back, as the UI's optimistic writes ask
+  (`specs/ui/space-and-motion.md`), so `p` twice pauses and then resumes. `j` and `k` move the
+  selection. A refusal shows under its card until dealt with, never in a toast.
 - The banner "Scheduled jobs are off." shows while `enabled` is false, and the file's problem shows
   in its place when the settings cannot be read.
 - Register the built-in `jobs` after `git` in `order.ts`, with its place in the phone's `…`. Its
