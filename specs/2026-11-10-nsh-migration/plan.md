@@ -972,21 +972,33 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Files:**
 
-- Create: `crates/app/src/native.rs`
-- Modify: `crates/app/src/lib.rs`, which task 1 made with an empty `uraeda/native`
-- Test: `crates/app/tests/native.rs`
+- Create: `crates/app/src/native.rs` (the list of the module's exports), `crates/app/src/about.rs`
+  (`version()`)
+- Modify: `crates/app/src/lib.rs`, which task 1 made with an empty `uraeda/native`, and
+  `crates/app/Cargo.toml`
+- Test: `app/native.test.ts`, through `nsh test`, and `crates/app/tests/native.rs`
 
 **Interfaces:**
 
-- Produces: the NSH native module `uraeda/native`, which TSX imports. It starts with `version()`.
-  Later tasks add to it: the Vim layer's bridge (30), highlighting and diagrams (31), the app's
-  native components (34, 36). See NSH's Rust-modules pages.
+- Produces: the NSH native module `uraeda/native`, which TSX imports. It starts with `version()`:
+  `import { version } from "uraeda/native"`. Later tasks add to it: the Vim layer's bridge (30),
+  highlighting and diagrams (31), the app's native components (34, 36). See NSH's Rust-modules
+  pages, and ruling R30 for how a task adds an export:
+  - its Rust goes in a file of its own, `crates/app/src/<part>.rs`, named in `lib.rs`, with one line
+    in `register` of `crates/app/src/native.rs`, whose comment says the rest;
+  - functions are a unit struct with `#[module]` and its `impl` with `#[module(flat)]`: TSX imports
+    each `pub(crate) fn` by its name in camel case;
+  - TypeScript's types come from Rust's, written by `vp run app:check` in
+    `app/.nsh/types/uraeda/native.d.ts`;
+  - every export has a doc comment, its documentation in TypeScript:
+    `every_export_is_documented_for_typescript` fails without one.
 
-- [ ] **Step 1: Write the failing test** `TSX calls a function of the module`, through `nsh test`.
-- [ ] **Step 2: Run it**. Expected: FAIL, `uraeda/native` has no `version`.
-- [ ] **Step 3: Implement** the module. `app/nsh.json` names the crate since task 1.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the app's native module`.
+- [x] **Step 1: Write the failing test** `TSX calls a function of the module`, through `nsh test`.
+- [x] **Step 2: Run it**. Expected: FAIL, `uraeda/native` has no `version`. It failed with
+      `Could not find export 'version' in module 'uraeda/native'`.
+- [x] **Step 3: Implement** the module. `app/nsh.json` names the crate since task 1.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the app's native module`.
 
 ## Task 22: The Vim layer
 

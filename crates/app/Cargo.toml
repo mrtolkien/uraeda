@@ -15,6 +15,11 @@ doctest = false
 nsh-base.workspace = true
 nsh-core.workspace = true
 
+# `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
+# text out of a build without `declarations`.
+[dev-dependencies]
+nsh-core = { workspace = true, features = ["declarations"] }
+
 # `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
 # display: it builds pages as the server will, and embeds them as the Linux host will.
 [target.'cfg(target_os = "linux")'.dev-dependencies]

@@ -440,3 +440,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 3, `crates/protocol/src/message.rs`, and its test
   `a_hello_of_another_version_is_refused_naming_the_side_to_update`. Task 4 calls it, and keeps its
   own test over the WebSocket.
+
+## R30: `uraeda/native` exports functions by name, each part in a file of its own
+
+- **Decision**: a function of the native module is imported by its own name,
+  `import { version } from "uraeda/native"`, and the module's list is one file.
+  - NSH 0.4.0 exports no free function: a function is in the `impl` of a unit struct with
+    `#[module]`. With `#[module(flat)]` on the `impl`, TSX imports each function by its name, in
+    camel case; without it, TSX imports the struct's name, an object with the functions.
+  - `crates/app/src/native.rs` holds `register`, with one line for each part, and the steps to add
+    one. A part's Rust is in a file beside it: `about.rs` for `version()`, and `diagram.rs`,
+    `notify.rs`, and `extension_view.rs` as R23, R25, and R26 name them. The entry NSH looks for,
+    `#[native_module("uraeda/native")]`, stays in `lib.rs`: NSH wants it at the crate's root, and
+    reads the module's name in that file.
+  - `version()` is the version of the workspace's crates, the release the app was built for.
+  - `every_export_is_documented_for_typescript`, in `crates/app/tests/native.rs`, fails for an
+    export without a doc comment, where NSH only warns. NSH keeps that text out of a build without
+    its feature `declarations`, so the crate's tests turn it on: without it, the test names every
+    export.
+- **Rationale**: the plan writes `version()`, and R25 and R26 export functions "from
+  `uraeda/native`": names, not objects. One list keeps two tasks of a wave to one line each in a
+  shared file. A doc comment is all the documentation an export has where it is called.
+- **Alternatives considered**: objects, `Diagram.picture(..)`: a second name to choose and to import
+  for each part. The entry in `native.rs`, exported again from `lib.rs`: NSH's own check of the
+  module's name reads `lib.rs`.
+- **If wrong**: every export shares the module's one set of names, and what NSH does with a name two
+  parts export was not checked. A part whose names say too little alone drops `flat`, and is
+  imported as its object.
+- **Where**: task 21, `crates/app/src/{lib,native,about}.rs`. Tasks 26, 30, 31, 34, 36, and 50.
