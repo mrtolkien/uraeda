@@ -28,16 +28,14 @@ async fn upgrade(
     socket.on_upgrade(move |socket| connection(shared, headers, socket))
 }
 
-/// One connection, from its `hello` to its end: the client's, the server's stop, or the end of
-/// its sign-in, as a session signed out or a device revoked.
+/// One connection, from its `hello` to its end. The live engine serves whoever sign-in
+/// welcomed, and ends the connection: at the client's end, the server's stop, or the end of the
+/// sign-in, as a session signed out or a device revoked.
 async fn connection(shared: Shared, headers: HeaderMap, mut socket: WebSocket) {
     if let Some(identity) = welcomed(&shared, &headers, &mut socket).await {
-        // TEMPORARY: `Caller::anyone()`, and the sign-in's end awaited here, until the live
-        // engine takes sign-in's identity (task 5).
-        tokio::select! {
-            () = live::serve(&shared, &mut socket, Caller::anyone()) => {}
-            () = identity.ended() => {}
-        }
+        let signed_in = identity.clone();
+        let caller = Caller::new(identity, async move { signed_in.ended().await });
+        live::serve(&shared, &mut socket, caller).await;
     }
     // The close frame: a client that is gone already gets none.
     let _ = socket.send(Message::Close(None)).await;

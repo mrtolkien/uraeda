@@ -10,6 +10,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
+use hyper::HeaderMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use support::{TestClient, TestServer};
@@ -17,8 +18,9 @@ use tokio::sync::oneshot;
 use tokio::time::Instant;
 use ts_rs::TS;
 use uraeda_core::actions::ActionError;
-use uraeda_protocol::{Action, ClientMessage, ErrorCode, Op, Record, ServerMessage, apply};
+use uraeda_protocol::{Action, ClientMessage, ErrorCode, Op, Record, ServerMessage, SignIn, apply};
 use uraeda_server::live::{self, Bus, Connection, Fault, Registry};
+use uraeda_server::sign_in::{self, Identity};
 
 /// Which counter.
 #[derive(Clone, Serialize, Deserialize, TS)]
@@ -65,6 +67,15 @@ impl Action for CounterFail {
     type Output = ();
 }
 
+/// Says who calls it: the kind and the id of the caller's sign-in.
+struct CounterWho;
+
+impl Action for CounterWho {
+    const NAME: &'static str = "counter.who";
+    type Input = ();
+    type Output = String;
+}
+
 /// The tests' domain: the counters it stores, and the bus it reports their changes on.
 #[derive(Clone)]
 struct Counters {
@@ -103,6 +114,10 @@ impl Counters {
             Ok(domain.add(&input.id, input.by))
         });
         registry.action::<CounterFail>(|_, kind| Err(failure(&kind)));
+        registry.action::<CounterWho>(|call, ()| {
+            let caller = call.caller();
+            Ok(format!("{:?} {}", caller.kind(), caller.id()))
+        });
         counters
     }
 
@@ -456,17 +471,24 @@ async fn a_resume_after_a_drop_gets_what_it_missed() {
     assert_eq!((seq, &value), (held.seq, &held.value));
 }
 
-/// A connection to the engine with no socket, for the tests that set the clock.
-fn connection(server: &TestServer) -> Connection {
-    // TEMPORARY: the caller is nobody, until sign-in has an identity to give (task 5).
-    Connection::open(server.shared(), ())
+/// Who a newly paired device is, as sign-in checks its `hello`.
+async fn identity(server: &TestServer) -> Identity {
+    let token = server.pair("A test's device").await;
+    sign_in::check(server.shared(), &HeaderMap::new(), &SignIn::Token(token))
+        .expect("a paired device signs in")
+}
+
+/// A connection of `caller` to the engine with no socket, for the tests that set the clock.
+fn connection(server: &TestServer, caller: &Identity) -> Connection {
+    Connection::open(server.shared(), caller.clone())
 }
 
 #[tokio::test(start_paused = true)]
 async fn a_burst_of_updates_is_sent_as_one_change() {
     let server = support::server().await;
     let counters = Counters::on(&server);
-    let mut reader = connection(&server);
+    let caller = identity(&server).await;
+    let mut reader = connection(&server, &caller);
     reader.receive(sub(1, "a"));
     let ServerMessage::Data { seq, .. } = reader.next().await else {
         panic!("a sub is answered with the whole value");
@@ -493,7 +515,7 @@ async fn a_burst_of_updates_is_sent_as_one_change() {
 
     // A subscriber 1,000 changes behind still gets them, one by one; one change more, and it
     // gets the whole value again.
-    let (mut behind, mut lost) = (connection(&server), connection(&server));
+    let (mut behind, mut lost) = (connection(&server, &caller), connection(&server, &caller));
     for late in [&mut behind, &mut lost] {
         late.receive(sub(1, "a"));
         assert!(matches!(late.next().await, ServerMessage::Data { .. }));
@@ -509,6 +531,38 @@ async fn a_burst_of_updates_is_sent_as_one_change() {
         panic!("a subscriber too far behind gets the whole value");
     };
     assert_eq!((at, &value["count"]), (seq + 1003, &json!(1009)));
+}
+
+#[tokio::test]
+async fn an_action_knows_who_calls() {
+    let server = support::server().await;
+    Counters::on(&server);
+    let who = ClientMessage::Call {
+        id: 1,
+        action: "counter.who".to_owned(),
+        input: Value::Null,
+    };
+    let said = |caller: String| ServerMessage::Result {
+        id: 1,
+        output: json!(caller),
+    };
+
+    // A paired device, by the token its `hello` gives.
+    let token = server.pair("Phone").await;
+    let mut device = server.socket().await;
+    device.sign_in(SignIn::Token(token.clone()));
+    device.hello().await;
+    device.send(&who).await;
+    let id = token.split_once('.').unwrap().0;
+    assert_eq!(device.next().await, said(format!("Device {id}")));
+
+    // A browser, by the cookie of the request that opened its connection.
+    let cookie = server.sign_in().await;
+    let mut browser = server.browser_socket(&cookie).await;
+    browser.hello().await;
+    browser.send(&who).await;
+    let id = cookie.split_once('=').unwrap().1.split_once('.').unwrap().0;
+    assert_eq!(browser.next().await, said(format!("Session {id}")));
 }
 
 /// A message that fails, the code of its `error`, and a part of the error's message.
@@ -594,12 +648,7 @@ async fn an_error_names_what_it_answers_and_why() {
 /// The records and the actions the protocol declares, and no handler serves yet, each with the
 /// task that builds it. A name leaves this list in the commit that registers its handler: the test
 /// fails while it is both here and served.
-const NOT_BUILT: &[&str] = &[
-    // Sign-in's devices, registered once the live engine takes sign-in's identity (R44).
-    "Devices",
-    "devices.revoke",
-    "devices.rename",
-];
+const NOT_BUILT: &[&str] = &[];
 
 #[tokio::test]
 async fn every_declared_record_and_action_is_served_and_no_other() {

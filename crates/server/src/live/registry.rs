@@ -8,10 +8,11 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use uraeda_protocol::{Action, ErrorCode, Record};
 
+use super::Key;
 use super::bus::Bus;
 use super::fault::Fault;
-use super::{Identity, Key};
 use crate::shared::Shared;
+use crate::sign_in::Identity;
 
 /// A record's read, on its arguments as JSON.
 type Read = Arc<dyn Fn(&Shared, Value) -> Result<Value, Fault> + Send + Sync>;
@@ -50,7 +51,8 @@ impl Call {
         &self.bus
     }
 
-    /// Who called: the identity sign-in checked for the connection.
+    /// Who called: the identity sign-in checked for the connection, a browser's session or a
+    /// paired device.
     pub fn caller(&self) -> &Identity {
         &self.caller
     }

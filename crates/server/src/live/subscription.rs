@@ -9,10 +9,11 @@ use tokio::sync::Notify;
 use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage};
 
 use super::bus::{Bus, Engine};
+use super::locked;
 use super::registry::{Call, blocking};
 use super::topic::{News, Topic};
-use super::{Identity, locked};
 use crate::shared::Shared;
+use crate::sign_in::Identity;
 
 /// What waits for a connection: the subscriptions that have news, and the answers to its calls.
 /// The engine only leaves a note here: a client that reads slowly holds nobody up, and what it

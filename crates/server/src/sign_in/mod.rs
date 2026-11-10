@@ -18,9 +18,13 @@
 //! async fn read(identity: Identity, State(shared): State<Shared>) -> Response { .. }
 //! ```
 //!
-//! The WebSocket checks its `hello` itself, with [`check`], and holds the identity for as long
-//! as it lives. Whatever outlives a request awaits [`Identity::ended`] beside its own work, and
-//! stops then: a signed-out session and a revoked device close their connections.
+//! The WebSocket checks its `hello` itself, with [`check`], and gives the identity to the live
+//! engine, which serves the connection for as long as the sign-in lives, and gives it to each
+//! action as `call.caller()`. Whatever outlives a request awaits [`Identity::ended`] beside its
+//! own work, and stops then: a signed-out session and a revoked device close their connections.
+//!
+//! The paired devices are the record `Devices`, with the actions `devices.revoke` and
+//! `devices.rename`: see [`devices`].
 
 mod check;
 mod cookie;
@@ -92,6 +96,7 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
     });
     routes::mount(routes);
     pairing::mount(routes);
+    devices::register(shared);
     tokio::spawn(sweeps(shared.clone()));
     let stopping = shared.clone();
     shared.on_stop("sign-in", async move {

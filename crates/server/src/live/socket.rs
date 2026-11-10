@@ -4,38 +4,36 @@ use std::pin::Pin;
 
 use axum::extract::ws::WebSocket;
 
-use super::Identity;
 use super::subscription::Connection;
 use crate::http::socket::{next, send};
 use crate::shared::Shared;
+use crate::sign_in::Identity;
 
 /// Who a welcomed connection is, and when its sign-in ends.
 pub struct Caller {
     /// The identity sign-in checked: an action reads it as `Call::caller`.
     identity: Identity,
-    /// Ends when the sign-in does, as a device's token that is revoked: the connection closes.
+    /// Ends when the sign-in does, as a session signed out or a device revoked: the connection
+    /// closes.
     ended: Pin<Box<dyn Future<Output = ()> + Send>>,
 }
 
 impl Caller {
-    /// A caller, and the future that ends with its sign-in.
+    /// A caller: the identity sign-in checked, and the future that ends with its sign-in.
     pub fn new(identity: Identity, ended: impl Future<Output = ()> + Send + 'static) -> Caller {
         Caller {
             identity,
             ended: Box::pin(ended),
         }
     }
-
-    /// TEMPORARY: anyone, signed in until the connection closes: every welcomed connection is
-    /// this caller until sign-in gives `Caller::new` the identity it checked, and the end of
-    /// its sign-in (task 5).
-    pub(crate) fn anyone() -> Caller {
-        Caller::new((), std::future::pending())
-    }
 }
 
 /// Serves a welcomed connection until the client closes it, the server stops, or the caller's
 /// sign-in ends. A client that reads slowly waits here, in its own task, and holds nobody up.
+///
+/// It is the one place a connection ends. Once the sign-in ended, no message is read and none is
+/// sent: the end is looked at first, each time. Leaving drops the connection, which ends its
+/// subscriptions; the calls it made run to their end, unanswered.
 pub(crate) async fn serve(shared: &Shared, socket: &mut WebSocket, caller: Caller) {
     let Caller {
         identity,
@@ -44,6 +42,7 @@ pub(crate) async fn serve(shared: &Shared, socket: &mut WebSocket, caller: Calle
     let mut connection = Connection::open(shared, identity);
     loop {
         let message = tokio::select! {
+            biased;
             () = &mut ended => return,
             text = next(shared, socket) => match text {
                 Some(text) => {
@@ -55,6 +54,7 @@ pub(crate) async fn serve(shared: &Shared, socket: &mut WebSocket, caller: Calle
             message = connection.next() => message,
         };
         let sent = tokio::select! {
+            biased;
             () = &mut ended => false,
             sent = send(socket, &message) => sent,
         };

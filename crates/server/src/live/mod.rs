@@ -31,6 +31,8 @@
 //!   value. The engine runs one read of a record at a time.
 //! - **An action's run** takes a [`Call`], with `shared()`, `bus()`, and `caller()`, and the
 //!   action's input, and gives its output. Calls run at the same time, a client's own too.
+//!   `caller()` is sign-in's [`Identity`](crate::sign_in::Identity) of the connection: a
+//!   browser's session or a paired device, with its `id()`.
 //! - **Both fail with a [`Fault`]**, the `error` the client gets. The core's errors convert with
 //!   `?` and keep their code, `refused`, `conflict`, or `hook`. A read that fails ends the
 //!   record's subscriptions.
@@ -79,11 +81,6 @@ pub use subscription::Connection;
 use crate::http::Routes;
 use crate::shared::Shared;
 use crate::{Failure, records};
-
-/// Who a connection is, for the actions it calls.
-///
-/// TEMPORARY: nobody in particular, until sign-in's identity takes this name (task 5).
-pub type Identity = ();
 
 /// Starts the engine, provides the [`Registry`] and the [`Bus`] to the domains mounted after it,
 /// and registers the records' domains.

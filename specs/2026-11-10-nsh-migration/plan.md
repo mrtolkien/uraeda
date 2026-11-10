@@ -653,12 +653,14 @@ fallback written under it, and later tasks build on the fallback.
     its cookie, or by a device's token as `Authorization: Bearer <token>`. A layer over every route
     calls it, so a handler takes `Identity` as an argument and never calls it itself (ruling R39).
   - `Identity`, with `kind()`, `id()`, `has_ended()`, and `ended().await`, which a connection awaits
-    beside its messages: it ends when the session signs out or the device is revoked.
+    beside its messages: it ends when the session signs out or the device is revoked. The live
+    engine's loop awaits it, and an action reads the identity as `call.caller()` (ruling R51).
   - `sign_in::OPEN`: the one list of the routes open without a session. Every other route answers
     401, so a new route is closed until it is listed there.
   - The record `Devices` and the actions `devices.revoke` and `devices.rename`, typed in
     `crates/protocol/`, with their logic in `sign_in::devices`: `list`, `revoke`, `rename`, and
-    `on_change`. The live engine registers them once it exists (ruling R44).
+    `on_change`. `sign_in::mount` registers them with the live engine's `Registry`, and tells the
+    `Bus` at each change of the list (rulings R44 and R51).
   - `secret::Hashed`, the only form a secret is kept in, and `sign_in::link`, `sweep`, `on_ended`,
     and `first_key` (rulings R40 to R42).
   - In the tests' support: `TestServer::connect` pairs a device and signs in with its token, and
@@ -672,6 +674,8 @@ fallback written under it, and later tasks build on the fallback.
   - `every route but the open ones refuses a request without a session`: walks the router's routes,
     so a new route is closed by default.
   - `a wrong key is slowed, never locked out`.
+  - `a device's list follows a pairing and a revocation`, over `/live`, written when the live engine
+    was joined (ruling R51): a subscriber of `Devices` sees a device pair, be renamed, and go.
   - The cases of the Node server's sign-in tests, as five more tests: the key and signing out, 30
     days without use, a one-time link, a new key, and what the sign-in file holds.
   - Breaks to make, since the task is risky: skip the check on `/live`; compare tokens without
@@ -692,10 +696,11 @@ fallback written under it, and later tasks build on the fallback.
 
 **Interfaces:**
 
-- Consumes: `Record`, `Action`, `diff`, `apply`, `Op`, `catalog` (task 3). Sign-in's `require`
-  (task 5) is built at the same time: `live::Caller` and `live::Identity` are where its identity and
-  the end of a sign-in come in (ruling T6.4).
-- Produces, in `uraeda_server::live` (rulings T6.1 to T6.5):
+- Consumes: `Record`, `Action`, `diff`, `apply`, `Op`, `catalog` (task 3); sign-in's `check` and
+  `Identity` (task 5). `http/socket.rs` gives the identity it welcomed to `live::serve`, as
+  `Caller::new(identity, ended)`: the engine closes the connection when the sign-in ends, and an
+  action reads who calls as `call.caller()` (rulings R49 and R51).
+- Produces, in `uraeda_server::live` (rulings R46 to R51):
   - `Registry::record::<R>(read)` and `Registry::action::<A>(run)`: how a domain registers itself. A
     handler is a plain function, run on a blocking thread:
     `read: Fn(&Shared, R::Args) -> Result<R::Value, Fault>` and
@@ -726,6 +731,7 @@ fallback written under it, and later tasks build on the fallback.
   - `a burst of updates is sent as one change`.
   - `an error names what it answers and why`, and
     `every declared record and action is served and no other`.
+  - `an action knows who calls`, written when sign-in was joined (ruling R51).
 - [x] **Step 2: Run them**. Expected: FAIL, `Registry` not found.
 - [x] **Step 3: Implement.** One task per connection; a slow client never blocks another. A
       subscriber more than 1,000 changes behind gets the whole value again.

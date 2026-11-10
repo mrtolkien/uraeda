@@ -672,13 +672,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - The layer puts the `Identity` in the request, so a handler takes it as an argument:
     `async fn read(identity: Identity, ..)`. On an open route, `Result<Identity, Refusal>` says
     whether there is one.
-  - A WebSocket's connection is welcomed by `sign_in::check`, then runs its messages in a `select!`
-    with `identity.ended()`, and closes when that ends first.
+  - A WebSocket's connection is welcomed by `sign_in::check`, then served by the live engine, whose
+    loop awaits `identity.ended()` beside the messages, and closes when that ends first (R51).
 - **Rationale**: the router and the check read the same matched path, so they cannot disagree on
   what a request asks for, where the Node server tested the path's text against a pattern. A route
   nobody listed is closed without anyone thinking of it.
-- **If wrong**: the connection's messages are dropped where they wait when the sign-in ends. A live
-  engine that must run something after its last message moves `identity.ended()` into its own loop.
+- **If wrong**: the connection's messages are dropped where they wait when the sign-in ends. The
+  live engine holds `identity.ended()` in its own loop, so what must run after a connection's last
+  message goes there.
 - **Where**: task 5, `crates/server/src/sign_in/check.rs`, `http.rs`, `http/socket.rs`, and the test
   `every_route_but_the_open_ones_refuses_a_request_without_a_session`. It needs axum's feature
   `matched-path`. Tasks 6, 16, 18, and 19: a preview's path with the frame secret, and `/mcp` with
@@ -743,19 +744,20 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 5, `crates/cli/src/pair.rs`, `crates/server/src/sign_in/pairing.rs`, and the test
   `pair_shows_a_code_that_pairs_one_device`.
 
-## R44: `Devices` and its actions are typed and written, and not registered yet
+## R44: `Devices` and its actions are typed, written as functions, and registered by sign-in
 
 - **Decision**: the record `Devices` and the actions `devices.revoke` and `devices.rename` are
   declared in `crates/protocol/src/devices.rs`, in `catalog()`, and in the client's types. Their
-  logic is `sign_in::devices::{list, revoke, rename}`, tested as functions. Nothing serves them over
-  `/live` until the live engine's `Registry` exists.
-  - To register: `list(&Shared) -> Devices` as the record's value; `revoke(&Shared, &DevicesRevoke)`
-    and `rename(&Shared, &DevicesRename)`, which return `Result<(), devices::Problem>`, a code and a
-    message for the `error`; and `on_change(&Shared, listener)`, called with a closure that tells
-    the engine `Devices` changed.
-- **Rationale**: task 6 builds the `Registry` at the same time, in another worktree.
-- **Where**: task 5, `crates/server/src/sign_in/devices.rs`. The task that merges tasks 5 and 6, or
-  task 7.
+  logic is `sign_in::devices::{list, revoke, rename}`, tested as functions, and over `/live` since
+  the live engine's `Registry` exists (R51).
+  - What is registered: `list(&Shared) -> Devices` as the record's value;
+    `revoke(&Shared, &DevicesRevoke)` and `rename(&Shared, &DevicesRename)`, which return
+    `Result<(), Fault>`, the engine's code and message for the `error`; and
+    `on_change(&Shared, listener)`, called with a closure that tells the bus `Devices` changed.
+- **Rationale**: task 6 built the `Registry` at the same time, in another worktree, so the functions
+  came first, and their registration with the merge.
+- **Where**: task 5, `crates/server/src/sign_in/devices.rs`. Registered in the commit that joined
+  tasks 5 and 6.
 
 ## R45: One-time links are made by the server alone, with no page on disk
 
@@ -769,7 +771,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 5, `crates/server/src/sign_in/{mod,routes}.rs`, `http/open.rs`, and the test
   `a_one_time_link_signs_in_once_and_never_leaves_the_server`.
 
-## T6.1: A handler is a plain function on a blocking thread, and fails with a `Fault`
+## R46: A handler is a plain function on a blocking thread, and fails with a `Fault`
 
 - **Decision**: a domain registers what serves a record and an action with the server's `Registry`,
   `shared.get::<Registry>()`.
@@ -797,7 +799,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a handler that waits holds a blocking thread, of which tokio gives 512.
 - **Where**: task 6, `crates/server/src/live/{registry,fault}.rs`. Tasks 5 and 7 to 19.
 
-## T6.2: The bus names a record by its type and its arguments, and an append says where it grew
+## R47: The bus names a record by its type and its arguments, and an append says where it grew
 
 - **Decision**: the plan's `Bus::changed(record_name, key)` and
   `Bus::append(record_name, key, path, text)` are typed, and the key is the record's arguments.
@@ -821,7 +823,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 6, `crates/server/src/live/{bus,key,topic}.rs`. Tasks 7 to 19, and 11 and 15 for
   the transcript.
 
-## T6.3: What the engine keeps of a record, and when it reads and sends
+## R48: What the engine keeps of a record, and when it reads and sends
 
 - **Decision**: the server's own choices, inside the contract.
   - **Numbers are a record's**, shared by its subscribers: a `data` is at the record's number, and a
@@ -847,22 +849,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   it ends.
 - **Where**: task 6, `crates/server/src/live/{topic,subscription}.rs`. Tasks 15, 23, and 53.
 
-## T6.4: Where sign-in comes into a connection
+## R49: Where sign-in comes into a connection
 
 - **Decision**: `http/socket.rs` hands a welcomed socket to
   `live::serve(&shared, &mut socket, caller)`, which owns the connection from there.
   - `live::Caller::new(identity, ended)` is who the connection is, and a future that ends with its
-    sign-in: the connection closes then. `Caller::anyone()` stands in, marked `TEMPORARY:`.
-  - `live::Identity` is `()`, marked `TEMPORARY:`: sign-in's identity takes that name, and an action
-    reads it as `call.caller()`. The test helper `connection` of `crates/server/tests/live.rs` names
-    it once.
+    sign-in: the connection closes then.
+  - The identity is sign-in's `Identity`, and an action reads it as `call.caller()`. Until sign-in
+    was merged, `Caller::anyone()` and a `live::Identity` that was `()` stood in: R51 says how they
+    went.
   - Task 4's test no longer expects `not-signed-in` for a `sub` on a welcomed connection: R36 held
     that until this task. It keeps the message that cannot be read.
-- **Rationale**: sign-in is built at the same time, in another worktree. One call in `socket.rs` and
-  two names keep the merge to a few lines.
+- **Rationale**: sign-in was built at the same time, in another worktree. One call in `socket.rs`
+  and two names kept the merge to a few lines.
 - **Where**: task 6, `crates/server/src/live/socket.rs`, `crates/server/src/http/socket.rs`. Task 5.
 
-## T6.5: The records' list, and the test that compares it with the protocol
+## R50: The records' list, and the test that compares it with the protocol
 
 - **Decision**: how a domain's handlers join the server, and what checks them.
   - `live::mount` is the first of `DOMAINS`: every domain mounted after it finds the `Registry` and
@@ -881,3 +883,37 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   joins with another's.
 - **Where**: task 6, `crates/server/src/records/mod.rs`, `crates/server/tests/live.rs`,
   `crates/protocol/src/change.rs`. Tasks 5 and 7 to 19.
+
+## R51: The live engine serves who sign-in welcomed, and ends a connection with its sign-in
+
+- **Decision**: how tasks 5 and 6, built at the same time, were joined.
+  - **One identity.** `live::Identity` is gone: `Connection::open(&shared, identity)` takes
+    sign-in's `Identity`, and `call.caller()` gives it, so an action reads `call.caller().kind()`
+    and `call.caller().id()`. A record's read still gets no caller.
+  - **One place ends a connection.** `http/socket.rs` welcomes with `sign_in::check`, then calls
+    `live::serve(&shared, &mut socket, Caller::new(identity, ended))`, where `ended` awaits
+    `Identity::ended`. `Caller::anyone()` is gone, and `socket.rs` awaits nothing itself. The
+    engine's loop looks at the sign-in's end first, each time, so nothing is read and nothing is
+    sent once it ended. Leaving drops the `Connection`, which ends its subscriptions. The calls it
+    made run to their end, unanswered.
+  - **Sign-in registers its devices.** `DOMAINS` starts with `live::mount`, then `sign_in::mount`,
+    which calls `sign_in::devices::register`: the record `Devices` on `list`, the actions
+    `devices.revoke` and `devices.rename` on `revoke` and `rename`, and `on_change` telling the bus
+    `Devices` changed. So the list follows whatever changes it: an action, `POST /pair`, a device
+    that signs out, a new key, the sweep.
+  - `devices::Problem` is gone: `revoke` and `rename` fail with the engine's `Fault`.
+  - Any signed-in caller revokes or renames any device, its own included: the server has one owner.
+  - `NOT_BUILT` is empty. A name there that is declared no more is looked for among the records and
+    the actions together: looked for in each, a record's name was refused among the actions.
+- **Rationale**: a connection that two places could end would end without its subscriptions, or
+  twice. The devices are sign-in's, so sign-in registers them, as R50 says of a domain with routes.
+- **How it was checked**: `a_devices_list_follows_a_pairing_and_a_revocation` and
+  `an_action_knows_who_calls`, both over `/live`; and in
+  `a_paired_device_signs_in_until_it_is_revoked`, the device now holds `Devices` open when it is
+  revoked. Without the `ended` arms of `live::serve`, its connection stayed open and got the change
+  that removed it, and the connections of a signed-out session and of a new key never closed.
+- **If wrong**: `Caller` holds the sign-in's end apart from the identity, which gives it as
+  `Identity::ended`: `serve` could take the identity alone.
+- **Where**: `crates/server/src/live/socket.rs`, `crates/server/src/http/socket.rs`,
+  `crates/server/src/sign_in/{mod,devices}.rs`, `crates/server/tests/{live,sign_in}.rs`. Tasks 7 to
+  19, for `call.caller()`.

@@ -13,9 +13,10 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use support::{TestResponse, TestServer};
+use support::{TestClient, TestResponse, TestServer};
 use uraeda_protocol::{
-    Device, DevicesRename, DevicesRevoke, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn,
+    ClientMessage, Device, DevicesRename, DevicesRevoke, ErrorCode, PROTOCOL, Refusal,
+    ServerMessage, SignIn, apply,
 };
 use uraeda_server::secret::Hashed;
 use uraeda_server::sign_in::{self, devices};
@@ -84,6 +85,53 @@ async fn refused(server: &TestServer, sign_in: SignIn) {
     client.closed().await;
 }
 
+/// The record `Devices` as a client holds it, under the subscription 1: its value, and the number
+/// of the last change applied.
+struct Listed {
+    value: Value,
+    seq: u64,
+}
+
+impl Listed {
+    /// Subscribes a welcomed client to `Devices`, and takes the whole value.
+    async fn open(client: &mut TestClient) -> Listed {
+        let record = "Devices".to_owned();
+        let args = Value::Null;
+        client
+            .send(&ClientMessage::Sub {
+                id: 1,
+                record,
+                args,
+            })
+            .await;
+        match client.next().await {
+            ServerMessage::Data { id: 1, seq, value } => Listed { value, seq },
+            other => panic!("a sub to `Devices` is answered with its value, not {other:?}"),
+        }
+    }
+
+    /// Takes the client's next message, the list's next change, and gives the devices after it.
+    async fn changed(&mut self, client: &mut TestClient) -> &Value {
+        match client.next().await {
+            ServerMessage::Change { id: 1, seq, ops } if seq == self.seq + 1 => {
+                apply(&mut self.value, &ops).expect("a change applies to the value held");
+                self.seq = seq;
+            }
+            other => panic!("expected the next change of `Devices`, got {other:?}"),
+        }
+        &self.value["devices"]
+    }
+}
+
+/// A `call` of an action on a device.
+fn call(id: u32, action: &str, input: Value) -> ClientMessage {
+    ClientMessage::Call {
+        id,
+        action: action.to_owned(),
+        input,
+    }
+}
+
 // US5, with the edge case of a token revoked while its device is connected, and review focus 4:
 // nothing the device sends holds a time.
 #[tokio::test]
@@ -124,6 +172,9 @@ async fn a_paired_device_signs_in_until_it_is_revoked() {
     device.sign_in(SignIn::Token(token.clone()));
     device.hello().await;
     assert_eq!(signed_in(&server, None, Some(&token)).await, 204);
+    // It holds a record open, as an app does: the list of devices, itself in it.
+    let mut held = Listed::open(&mut device).await;
+    assert_eq!(held.value["devices"][0]["name"], "Phone");
     // No other sign-in is welcomed: none, an unknown token, another secret, a browser's cookie.
     let cookie = server.sign_in().await;
     let session = cookie.split_once('=').unwrap().1;
@@ -145,7 +196,7 @@ async fn a_paired_device_signs_in_until_it_is_revoked() {
             id: id.to_owned(),
             name: name.to_owned(),
         };
-        devices::rename(server.shared(), &input).map_err(|problem| problem.code)
+        devices::rename(server.shared(), &input).map_err(|fault| fault.code())
     };
     assert_eq!(rename(id, " Pixel\n"), Ok(()));
     assert_eq!(rename(id, "  "), Err(ErrorCode::BadInput));
@@ -155,18 +206,71 @@ async fn a_paired_device_signs_in_until_it_is_revoked() {
         ..listed
     };
     assert_eq!(devices::list(server.shared()).devices, [renamed]);
+    assert_eq!(held.changed(&mut device).await[0]["name"], "Pixel");
 
-    // Revoked, its open connection closes, and its token signs in nowhere.
+    // Revoked, its open connection closes, with the record it holds, before any change of that
+    // record reaches it, and its token signs in nowhere.
     let revoke = DevicesRevoke { id: id.to_owned() };
     assert!(devices::revoke(server.shared(), &revoke).is_ok());
     device.closed().await;
     refused(&server, SignIn::Token(token.clone())).await;
     assert_eq!(signed_in(&server, None, Some(&token)).await, 401);
     assert_eq!(devices::list(server.shared()).devices, []);
-    let gone = devices::revoke(server.shared(), &revoke).map_err(|problem| problem.code);
+    let gone = devices::revoke(server.shared(), &revoke).map_err(|fault| fault.code());
     assert_eq!(gone, Err(ErrorCode::Refused));
     // Whoever shows the devices heard each change: paired, renamed, revoked.
     assert_eq!(*changes.lock().unwrap(), 3);
+}
+
+// US5: the owner's list of devices is live, and its actions are called over `/live`.
+#[tokio::test]
+async fn a_devices_list_follows_a_pairing_and_a_revocation() {
+    let server = support::server().await;
+    let cookie = server.sign_in().await;
+    let mut owner = server.browser_socket(&cookie).await;
+    owner.hello().await;
+    let mut listed = Listed::open(&mut owner).await;
+    assert_eq!(listed.value, json!({ "devices": [] }));
+
+    // A device pairs: the list gains it.
+    let token = server.pair("Phone").await;
+    let id = token.split_once('.').unwrap().0;
+    let device = |name: &str| json!({ "id": id, "name": name, "created": START, "used": START });
+    assert_eq!(*listed.changed(&mut owner).await, json!([device("Phone")]));
+
+    // Another connection renames it, then revokes it: each action is answered there, and the
+    // list follows here.
+    let mut other = server.browser_socket(&cookie).await;
+    other.hello().await;
+    let done = |id| ServerMessage::Result {
+        id,
+        output: Value::Null,
+    };
+    let rename = json!({ "id": id, "name": " Pixel " });
+    other.send(&call(1, "devices.rename", rename)).await;
+    assert_eq!(other.next().await, done(1));
+    assert_eq!(*listed.changed(&mut owner).await, json!([device("Pixel")]));
+    other
+        .send(&call(2, "devices.revoke", json!({ "id": id })))
+        .await;
+    assert_eq!(other.next().await, done(2));
+    assert_eq!(*listed.changed(&mut owner).await, json!([]));
+
+    // An action that does nothing says why, with the code of its `error`.
+    let blank = json!({ "id": id, "name": " " });
+    let named = json!({ "id": id, "name": "Tablet" });
+    let nothing = [
+        ("devices.rename", blank, ErrorCode::BadInput),
+        ("devices.rename", named, ErrorCode::Refused),
+        ("devices.revoke", json!({ "id": id }), ErrorCode::Refused),
+    ];
+    for (action, input, expected) in nothing {
+        other.send(&call(3, action, input.clone())).await;
+        let ServerMessage::Error { id, code, .. } = other.next().await else {
+            panic!("{action} of {input} is answered with an error");
+        };
+        assert_eq!((id, code), (Some(3), expected), "{action} of {input}");
+    }
 }
 
 /// A route's path as a request asks for it: `x` for each of its parameters.
