@@ -7,6 +7,11 @@ use ts_rs::TS;
 
 use crate::devices::{Devices, DevicesRename, DevicesRevoke};
 use crate::features;
+use crate::git::{
+    ConflictFile, GitAbort, GitClean, GitCommit, GitCommitStaged, GitContinue, GitDiff, GitDiscard,
+    GitFetch, GitHistoryPage, GitMerge, GitPage, GitPull, GitPush, GitRemoveWorktree, GitResolve,
+    GitSaveConflict, GitStage, GitSummary, GitUnstage,
+};
 use crate::typescript::Types;
 use crate::workspace;
 use crate::writing;
@@ -226,4 +231,25 @@ pub fn catalog() -> Catalog {
         .action::<writing::UndoApply>()
         .action::<writing::UndoCommitted>()
         .action::<writing::WritesDismiss>()
+        // Git.
+        .record::<GitPage>()
+        .record::<GitSummary>()
+        .record::<GitDiff>()
+        .record::<GitCommit>()
+        .record::<GitHistoryPage>()
+        .record::<ConflictFile>()
+        .action::<GitAbort>()
+        .action::<GitClean>()
+        .action::<GitCommitStaged>()
+        .action::<GitContinue>()
+        .action::<GitDiscard>()
+        .action::<GitFetch>()
+        .action::<GitMerge>()
+        .action::<GitPull>()
+        .action::<GitPush>()
+        .action::<GitRemoveWorktree>()
+        .action::<GitResolve>()
+        .action::<GitSaveConflict>()
+        .action::<GitStage>()
+        .action::<GitUnstage>()
 }

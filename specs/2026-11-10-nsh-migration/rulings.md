@@ -1249,3 +1249,81 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   be tested.
 - **Where**: `crates/server/src/records/writing/queue/repository.rs`. The join of wave 6, and tasks
   8, 10, and 15.
+
+## R66: Git's records are keyed by their arguments, and the items of their lists carry an `id`
+
+- **Decision**: how the Git page's views and mutations became records and actions, in
+  `crates/protocol/src/git.rs`.
+  - **A repository is named.** Every record's arguments and every action's input have `repo`, the
+    repository's name in the server's list, as the contract's examples do.
+  - **Fate's ids are gone.** `GitPage`, `GitSummary`, `GitDiff`, `GitHistoryPage`, and
+    `ConflictFile` no longer hold an `id`: a record's key is its arguments. A diff is asked with
+    `{ repo, folder, commit, path, whole }`, in place of the id fate packed those in. `GitCommit`
+    keeps its `id`, the commit's.
+  - **A list's items carry an `id`**, so the page changes item by item: a group's is its feature's
+    folder, or `.` for the main checkout's; a file's, a conflict's, and a worktree's is its path; a
+    commit's row has the commit's.
+  - **States stay texts**, as the core gives them, typed as unions in the client's types
+    (`"modified" | "new" | "deleted"`).
+  - **An action is a type that is its own input**, named after it: `GitStage` for `git.stage`.
+    `git.commit` is `GitCommitStaged`, since `GitCommit` is the record. Every action answers
+    nothing, and the records show what it changed, but `git.saveConflict`, which answers the file
+    with its new hash.
+  - **No `write` in an input yet.** It named a write in the queue's record, for the toast: it comes
+    back with the write queue, when git's writes are joined to it.
+- **Rationale**: an `id` that is always `git` says nothing, and one that packs four arguments is
+  parsed on both sides. With ids on the items, staging one file sends one field, not every file of
+  every group.
+- **If wrong**: a client that wants the whole page at each change loses nothing: it applies the
+  changes. The ids are four lines of `crates/server/src/records/git/views.rs`.
+- **Where**: task 10, `crates/protocol/src/git.rs`, `crates/server/src/records/git/views.rs`. Tasks
+  46 and 47.
+
+## R67: A git write takes its repository's turn, and says what it changed
+
+- **Decision**: what every action `git.*` does around the core's call, in
+  `crates/server/src/records/git/writes.rs`.
+  - **One writer per repository**: `queue::in_turn`, a lock per main checkout, which stands in for
+    the write queue until the two are joined (`JOIN(wave 6): write queue`). It keeps no record, so
+    git's output goes nowhere yet, and it does not order two calls that arrive together.
+  - **The checkout's guard is written, and nobody works yet.** A write is refused while an agent
+    works in a checkout it writes, checked as it lands: the main checkout's for a chat, a feature's
+    worktree for its agent, both for a worktree's removal and a feature's cleaning. `working::chat`
+    and `working::folders` answer that nobody works, marked `TEMPORARY:`, and so do the page's
+    `agentWorking` and `isWorking`. Task 15 answers from its sessions, and owes the Node server's
+    test `the page refuses its writes while a chat works in the checkout`.
+  - **A fetch is refused for no agent**: it writes no file of a checkout. The Node server refused a
+    person's fetch while a chat worked.
+  - **After each write, landed or refused**, the bus is told the repository's `GitPage` and
+    `GitSummary` changed, and every `GitDiff`, `GitHistoryPage`, and `ConflictFile` somebody holds:
+    a working tree's diff and a commit's mark follow a write. `files_changed` says the same for a
+    change the core's watcher reports, as `live.ts` maps it: an edit of the priorities, the inbox,
+    or a feature, or a change of a checkout's git state. Nothing calls it until the one watcher is
+    joined.
+- **Rationale**: a record nobody holds keeps its value for a minute, so a write that tells nobody
+  leaves the next page that opens on the old one.
+- **How it was checked**: without the bus told after a write, seven tests of
+  `crates/server/tests/git.rs` fail, each reading the page as it was. With a group's folder dropped
+  on the way to the core, `a_groups_writes_land_in_its_features_worktree` fails.
+- **Where**: task 10, `crates/server/src/records/git/{writes,queue,working,mod}.rs`. Task 15, and
+  the join of wave 6.
+
+## R68: The fetcher is one round over the list, every 5 minutes
+
+- **Decision**: `fetcher::start` fetches `origin` of each repository of the list as the server
+  starts, then every 5 minutes, one after another, each in its repository's turn. Why a repository's
+  last fetch failed is kept in memory for its page's `fetchFailure`, until one succeeds. `git.fetch`
+  with `quiet` is the page's own, as it opens: it never fails. A person's fails as git does, and its
+  outcome is kept too.
+  - A repository that joins the list after a round began is fetched by the next round, or as its
+    page opens. The start's own folder joins the list after the domains mount, so a first start in a
+    new folder is one such.
+  - Two fetches of one repository asked together run one after the other: the Node server joined the
+    second to the first.
+- **Rationale**: the Node server kept a fetcher per open repository, started by its host. The list
+  is task 7's, built at the same time: a round that reads the list needs nothing of it.
+- **How it was checked**: `a_repository_of_the_list_is_fetched_as_the_server_starts` fails without
+  the fetcher's start. The 5 minutes have no test: the round is the one the start runs.
+- **If wrong**: the join can call `fetcher::fetch` as a repository joins the list, where it starts
+  that repository's watcher.
+- **Where**: task 10, `crates/server/src/records/git/fetcher.rs`.

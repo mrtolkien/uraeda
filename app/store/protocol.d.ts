@@ -5,49 +5,6 @@
 export type Protocol = 1;
 
 /**
- * Saves one answer of a feature's latest round, from the letters picked and a comment, over
- * the answer last read.
- */
-export type AnswerSave = { repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string, };
-
-/**
- * Submits a feature's latest round, and commits it.
- */
-export type AnswersSubmit = { repo: string, folder: string, 
-/**
- * The round answered: refused when the latest is another.
- */
-file?: string, 
-/**
- * Whether the answers continue the implementation.
- */
-resumes: boolean, write?: WriteName, };
-
-/**
- * A buffer: any Markdown file under `specs/`, whole, frontmatter included, as the branch it is
- * written on has it.
- */
-export type Buffer = { path: string, text: string, 
-/**
- * The hash of `text`, which `buffer.save` takes back.
- */
-hash: string, 
-/**
- * The branch the file is written on: its feature's or its change's, else the default one.
- */
-branch: string, };
-
-/**
- * Which buffer: a Markdown file under `specs/`, by its path from the repository's top level.
- */
-export type BufferArgs = { repo: string, path: string, };
-
-/**
- * Saves a buffer as typed on its branch, over the text read with `hash`, without committing.
- */
-export type BufferSave = { repo: string, path: string, text: string, hash: string, };
-
-/**
  * What a client sends.
  *
  * A `sub`, a `call`, and a `resume` carry an `id` the client picks, unique among the
@@ -56,41 +13,34 @@ export type BufferSave = { repo: string, path: string, text: string, hash: strin
 export type ClientMessage = { "type": "hello", protocol: number, signIn: SignIn, } | { "type": "sub", id: number, record: string, args: JsonValue, } | { "type": "unsub", id: number, } | { "type": "call", id: number, action: string, input: JsonValue, } | { "type": "resume", id: number, record: string, args: JsonValue, epoch: string, seq: number, };
 
 /**
- * Commits again what did not land, its files left written: a submitted round, a review's
- * findings, or a verdict.
+ * A conflicted text file of the main checkout, for the editor.
  */
-export type CommitRetry = { repo: string, folder: string, file: string, write?: WriteName, };
+export type ConflictFile = { 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, 
+/**
+ * Its text as it is on disk, with git's conflict markers.
+ */
+text: string, 
+/**
+ * What a save over it names, to be refused when the file changed since.
+ */
+hash: string, };
 
 /**
- * Saves one answer of a round of the default branch, `inbox-triage` or `decisions-check`, over
- * the answer last read, in the round read with the hash `base`.
+ * Which conflicted file of the main checkout.
  */
-export type DefaultRoundAnswer = { repo: string, id: string, question: string, letters: Array<string>, comment: string, previous: string, 
+export type ConflictFileArgs = { 
 /**
- * The hash of the round as the page read or wrote it last.
+ * The repository's name.
  */
-base: string, };
-
+repo: string, 
 /**
- * Dismisses the inbox's triage, read with the hash `previous`: deletes it, and commits the
- * deletion alone.
+ * The file, from the checkout's top level.
  */
-export type DefaultRoundDismiss = { repo: string, previous: string, write?: WriteName, };
-
-/**
- * Saves the notes of a round of the default branch, as an answer is.
- */
-export type DefaultRoundNotes = { repo: string, id: string, notes: string, previous: string, base: string, };
-
-/**
- * Commits an answered round of the default branch again.
- */
-export type DefaultRoundRetry = { repo: string, id: string, write?: WriteName, };
-
-/**
- * Submits a round of the default branch, read with the hash `previous`, and commits it.
- */
-export type DefaultRoundSubmit = { repo: string, id: string, previous: string, write?: WriteName, };
+path: string, };
 
 /**
  * A paired device.
@@ -149,12 +99,600 @@ id: string, };
  */
 export type ErrorCode = "not-signed-in" | "bad-message" | "unknown-record" | "unknown-action" | "bad-args" | "bad-input" | "refused" | "conflict" | "hook" | "internal";
 
-export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
+/**
+ * Aborts the main checkout's stopped pull or merge.
+ */
+export type GitAbort = { 
+/**
+ * The repository's name.
+ */
+repo: string, };
 
 /**
- * Saves the notes on a round's settled points, over the notes last read.
+ * Which repository's page, or count.
  */
-export type NotesSave = { repo: string, folder: string, notes: string, previous: string, };
+export type GitArgs = { 
+/**
+ * The repository's name.
+ */
+repo: string, };
+
+/**
+ * Cleans a merged feature, as `ura clean` does: its worktree, its branch, and its line of the
+ * priorities. Refused, after what it could do, when something stays.
+ */
+export type GitClean = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The feature's folder.
+ */
+folder: string, };
+
+/**
+ * A commit, with the files it changed.
+ */
+export type GitCommit = { 
+/**
+ * Its full id.
+ */
+id: string, 
+/**
+ * Its message's first line.
+ */
+subject: string, 
+/**
+ * The rest of its message.
+ */
+body: string, 
+/**
+ * When it was authored, in Unix seconds.
+ */
+authored: number, 
+/**
+ * The files it changed.
+ */
+files: Array<GitCommitFile>, };
+
+/**
+ * Which commit of the main checkout's history.
+ */
+export type GitCommitArgs = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The commit's id, full or short.
+ */
+id: string, };
+
+/**
+ * A file a commit changed.
+ */
+export type GitCommitFile = { 
+/**
+ * From the repository's top level; the new path of a renamed file.
+ */
+path: string, 
+/**
+ * Lines added; none for a binary file.
+ */
+added: number | null, 
+/**
+ * Lines removed; none for a binary file.
+ */
+removed: number | null, };
+
+/**
+ * A commit of the history.
+ */
+export type GitCommitRow = { 
+/**
+ * Its full id.
+ */
+id: string, 
+/**
+ * Its first 7 characters.
+ */
+short: string, 
+/**
+ * Its message's first line.
+ */
+subject: string, 
+/**
+ * When it was authored, in Unix seconds.
+ */
+authored: number, 
+/**
+ * `pull` for a commit only `origin` has, `push` for one only the branch has, else empty.
+ */
+mark: "" | "pull" | "push", };
+
+/**
+ * Commits what is staged in a group's checkout, through the repository's hooks. A hook's
+ * refusal is the error `hook`, with its output, and leaves the files staged.
+ */
+export type GitCommitStaged = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The group's folder; none for the main checkout.
+ */
+folder: string | null, 
+/**
+ * The message, as typed: a blank one takes the group's `defaultMessage`.
+ */
+message: string, };
+
+/**
+ * A conflicted file of the main checkout.
+ */
+export type GitConflict = { 
+/**
+ * Its path.
+ */
+id: string, 
+/**
+ * From the checkout's top level; a renamed file's new path.
+ */
+path: string, 
+/**
+ * How its two sides differ: `ours` is the stopped operation's `ours` side.
+ */
+kind: "both-changed" | "both-added" | "deleted-ours" | "deleted-theirs" | "both-deleted" | "added-ours" | "added-theirs", 
+/**
+ * Whether it is binary: only a side taken whole resolves it.
+ */
+isBinary: boolean, 
+/**
+ * Whether it is resolved, and waits for the operation to continue.
+ */
+isResolved: boolean, };
+
+/**
+ * Continues the main checkout's stopped pull or merge, once its conflicts are resolved.
+ */
+export type GitContinue = { 
+/**
+ * The repository's name.
+ */
+repo: string, };
+
+/**
+ * A file's diff.
+ */
+export type GitDiff = { 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, 
+/**
+ * The unified diff; none for a binary file, or one capped.
+ */
+text: string | null, 
+/**
+ * A binary file's size before, in bytes.
+ */
+binaryBefore: number | null, 
+/**
+ * A binary file's size after, in bytes.
+ */
+binaryAfter: number | null, 
+/**
+ * Lines added.
+ */
+added: number, 
+/**
+ * Lines removed.
+ */
+removed: number, 
+/**
+ * Whether it is over 1,000 lines, and the whole was not asked for.
+ */
+isCapped: boolean, };
+
+/**
+ * Which diff: of a file in a commit of the main checkout's history, else in a group's working
+ * tree.
+ */
+export type GitDiffArgs = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The group's folder; none for the main checkout, or with a commit.
+ */
+folder: string | null, 
+/**
+ * The commit's id; none for a working tree.
+ */
+commit: string | null, 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, 
+/**
+ * Whether to give the whole diff, past 1,000 lines.
+ */
+whole: boolean, };
+
+/**
+ * Discards the changes to a file of a group's checkout.
+ */
+export type GitDiscard = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The group's folder; none for the main checkout.
+ */
+folder: string | null, 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, };
+
+/**
+ * Fetches `origin` in the main checkout.
+ */
+export type GitFetch = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * Whether the fetch is the page's own, as it opens, and not a person's: it never fails,
+ * and the page's `fetchFailure` says why it brought nothing.
+ */
+quiet: boolean, };
+
+/**
+ * A changed file of a group.
+ */
+export type GitFile = { 
+/**
+ * Its path.
+ */
+id: string, 
+/**
+ * From the checkout's top level.
+ */
+path: string, 
+/**
+ * What happened to it.
+ */
+state: "modified" | "new" | "deleted", 
+/**
+ * How much of its change the next commit holds.
+ */
+staged: "no" | "yes" | "partly", 
+/**
+ * Lines added from `HEAD`; none for a binary file, or one past 1 MiB.
+ */
+added: number | null, 
+/**
+ * Lines removed from `HEAD`; none for a binary file, or one past 1 MiB.
+ */
+removed: number | null, };
+
+/**
+ * The changed files of one checkout.
+ */
+export type GitGroup = { 
+/**
+ * The feature's folder, or `.` for the main checkout's.
+ */
+id: string, 
+/**
+ * The feature's folder, as the page's writes name the group; none for the main checkout.
+ */
+folder: string | null, 
+/**
+ * The main checkout's branch, or the feature's title.
+ */
+name: string, 
+/**
+ * Sorted by path. A conflicted file is under the page's conflicts instead.
+ */
+files: Array<GitFile>, 
+/**
+ * The message a commit takes when none is typed, from what is staged; none when nothing is.
+ */
+defaultMessage: string | null, 
+/**
+ * Whether its feature's agent works, which refuses its writes.
+ */
+isWorking: boolean, };
+
+/**
+ * Which page of the main checkout's history.
+ */
+export type GitHistoryArgs = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The id of the commit the page continues after: the last one of the page before.
+ */
+after: string, };
+
+/**
+ * A page of the history, after a commit.
+ */
+export type GitHistoryPage = { 
+/**
+ * The next commits, the newest first.
+ */
+commits: Array<GitCommitRow>, 
+/**
+ * Whether the history goes on after them.
+ */
+hasMore: boolean, };
+
+/**
+ * Merges a branch into the main checkout's branch.
+ */
+export type GitMerge = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * One of the page's `branches`.
+ */
+branch: string, };
+
+/**
+ * The Git page: the main checkout's sync, changes, conflicts, and the first page of its
+ * history, each feature's worktree with changes, and every worktree.
+ */
+export type GitPage = { 
+/**
+ * Whether a chat's agent works in the main checkout, which refuses the page's writes there.
+ */
+agentWorking: boolean, 
+/**
+ * The main checkout's branch, or the one a stopped rebase replays.
+ */
+branch: string | null, 
+/**
+ * `HEAD`'s short id when it is detached and nothing is stopped.
+ */
+detached: string | null, 
+/**
+ * Whether the repository has an `origin`.
+ */
+hasRemote: boolean, 
+/**
+ * The commits to push.
+ */
+ahead: number, 
+/**
+ * The commits to pull.
+ */
+behind: number, 
+/**
+ * When `origin` was last fetched, in Unix seconds.
+ */
+fetchedAt: number | null, 
+/**
+ * Why the last fetch in the background failed, until one succeeds.
+ */
+fetchFailure: string | null, 
+/**
+ * The pull or the merge the main checkout stopped in.
+ */
+stopped: GitStopped | null, 
+/**
+ * The main checkout's group first, always there, then each feature's worktree with changes.
+ */
+groups: Array<GitGroup>, 
+/**
+ * The main checkout's conflicted files.
+ */
+conflicts: Array<GitConflict>, 
+/**
+ * The first page of the history.
+ */
+history: Array<GitCommitRow>, 
+/**
+ * Whether the history goes on after that page.
+ */
+hasMoreHistory: boolean, 
+/**
+ * The linked worktrees, by path.
+ */
+worktrees: Array<GitWorktree>, 
+/**
+ * The branches a merge into the checked-out one may pick: the other local ones, then
+ * `origin`'s, as `origin/<name>`.
+ */
+branches: Array<string>, };
+
+/**
+ * Pulls the main checkout's branch from `origin`, rebasing unless git's configuration says how
+ * to pull. A pull that stops on a conflict succeeds: the page shows the stop.
+ */
+export type GitPull = { 
+/**
+ * The repository's name.
+ */
+repo: string, };
+
+/**
+ * Pushes the main checkout's branch to `origin`, never forced.
+ */
+export type GitPush = { 
+/**
+ * The repository's name.
+ */
+repo: string, };
+
+/**
+ * Removes a linked worktree, never forced: one with changes, or locked, is refused. Its branch
+ * stays.
+ */
+export type GitRemoveWorktree = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The worktree's `path`, as the page lists it.
+ */
+path: string, };
+
+/**
+ * Resolves a conflicted file of the main checkout with a side whole, or by deleting it, and
+ * stages it.
+ */
+export type GitResolve = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, 
+/**
+ * The side to take, as git names them, or `delete`.
+ */
+resolution: "ours" | "theirs" | "delete", };
+
+/**
+ * Saves the editor's text over a conflicted file of the main checkout, and answers the file
+ * with its new hash, which the next save names. It never stages: `git.continue` does.
+ */
+export type GitSaveConflict = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The file, from the checkout's top level.
+ */
+path: string, 
+/**
+ * Its new text.
+ */
+text: string, 
+/**
+ * The `hash` of the file as it was read: the error `conflict` when it changed since.
+ */
+hash: string, };
+
+/**
+ * Stages files or folders of a group's checkout.
+ */
+export type GitStage = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The group's folder; none for the main checkout.
+ */
+folder: string | null, 
+/**
+ * Files or folders, from the checkout's top level.
+ */
+paths: Array<string>, };
+
+/**
+ * The operation the main checkout stopped in, its sides named by branch.
+ */
+export type GitStopped = { 
+/**
+ * What stopped.
+ */
+kind: "pull" | "merge" | "stash", 
+/**
+ * Git's stage 2, like `origin/main` during a pull.
+ */
+ours: string, 
+/**
+ * Git's stage 3.
+ */
+theirs: string, 
+/**
+ * The stash a stash's stop kept, like `stash@{0}`.
+ */
+stash: string | null, };
+
+/**
+ * The sidebar's count.
+ */
+export type GitSummary = { 
+/**
+ * The main checkout's changed and conflicted files: a feature worktree's are not counted.
+ */
+changes: number, 
+/**
+ * The commits to pull into the main checkout's branch.
+ */
+behind: number, };
+
+/**
+ * Unstages files or folders of a group's checkout.
+ */
+export type GitUnstage = { 
+/**
+ * The repository's name.
+ */
+repo: string, 
+/**
+ * The group's folder; none for the main checkout.
+ */
+folder: string | null, 
+/**
+ * Files or folders, from the checkout's top level.
+ */
+paths: Array<string>, };
+
+/**
+ * A linked worktree.
+ */
+export type GitWorktree = { 
+/**
+ * Its path.
+ */
+id: string, 
+/**
+ * From the main checkout's top level, or absolute outside it: what `git.removeWorktree`
+ * names.
+ */
+path: string, 
+/**
+ * The feature's title, else its folder's name.
+ */
+name: string, 
+/**
+ * The branch it has checked out.
+ */
+branch: string | null, 
+/**
+ * The folder of the feature on its branch.
+ */
+folder: string | null, 
+/**
+ * The first that holds: `merged` is a feature that is done.
+ */
+state: "missing" | "changes" | "locked" | "merged" | "clean", 
+/**
+ * Whether its feature's agent works, which refuses its cleaning and its removal.
+ */
+isWorking: boolean, };
+
+export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
 
 /**
  * One operation of a change.
@@ -165,97 +703,9 @@ export type NotesSave = { repo: string, folder: string, notes: string, previous:
 export type Op = { "op": "set", path: Array<string>, value: JsonValue, } | { "op": "append", path: Array<string>, text: string, } | { "op": "insert", path: Array<string>, value: JsonValue, before?: string | null, } | { "op": "remove", path: Array<string>, } | { "op": "move", path: Array<string>, before?: string | null, };
 
 /**
- * A write of the queue: its name, where it is, and the feature and file it concerns.
- */
-export type QueuedWrite = { id: string, 
-/**
- * What it does, as the UI named it, or its commit's subject.
- */
-label: string, 
-/**
- * The page it opens: empty when the UI named none.
- */
-href: string, 
-/**
- * The feature or the change it concerns.
- */
-folder: string | null, 
-/**
- * The file it concerns: a feature's file by its name, any other by its path.
- */
-file: string | null, state: WriteState, 
-/**
- * Once refused, why.
- */
-failure: WriteFailure | null, 
-/**
- * What git and the hooks printed: as it comes, then the refusal's whole message.
- */
-output: string | null, };
-
-/**
- * What an undoable write answers: the change it made, for the client's undo stack.
- */
-export type Recorded = { change: UndoChange, };
-
-/**
  * Why a server turns a `hello` down.
  */
 export type Refusal = "client-too-old" | "server-too-old" | "not-signed-in";
-
-/**
- * Approves a spec or a plan, and commits it.
- */
-export type ReviewApprove = { repo: string, folder: string, file: string, summary?: string, 
-/**
- * The spec's risk tier, when the human changes it.
- */
-tier?: string, 
-/**
- * Whether the plan is reviewed, when the human changes it.
- */
-planReview?: boolean, write?: WriteName, };
-
-/**
- * Comments on lines of a file as committed, on lines of a decision its spec changes, or on
- * the whole file without lines.
- */
-export type ReviewComment = { repo: string, folder: string, file: string, startLine?: number, 
-/**
- * `startLine` alone when left out.
- */
-endLine?: number, text: string, decision?: ReviewDecision, };
-
-/**
- * The decision a comment points into: its file's stem, and whether the lines are of a part the
- * branch removed.
- */
-export type ReviewDecision = { name: string, removed: boolean, };
-
-/**
- * Replaces the text of a pending comment.
- */
-export type ReviewEdit = { repo: string, folder: string, file: string, number: number, text: string, };
-
-/**
- * Removes a pending comment.
- */
-export type ReviewRemove = { repo: string, folder: string, file: string, number: number, };
-
-/**
- * Requests changes on a spec or a plan, and commits it.
- */
-export type ReviewRequestChanges = { repo: string, folder: string, file: string, summary?: string, write?: WriteName, };
-
-/**
- * Deletes the pending review of a file.
- */
-export type ReviewStartOver = { repo: string, folder: string, file: string, };
-
-/**
- * What a save answers: the hash of the text as written, which the next save takes.
- */
-export type Saved = { hash: string, };
 
 /**
  * What a server sends.
@@ -263,151 +713,37 @@ export type Saved = { hash: string, };
 export type ServerMessage = { "type": "welcome", protocol: number, epoch: string, } | { "type": "refused", reason: Refusal, protocol: number, } | { "type": "data", id: number, seq: number, value: JsonValue, } | { "type": "change", id: number, seq: number, ops: Array<Op>, } | { "type": "result", id: number, output: JsonValue, } | { "type": "error", id?: number | null, code: ErrorCode, message: string, };
 
 /**
- * Adds a comment on the settled point starting with `subject`, at the end of the notes.
- */
-export type SettledComment = { repo: string, folder: string, subject: string, text: string, };
-
-/**
- * Writes comment `number` on the settled point `subject` over its text last read.
- */
-export type SettledEdit = { repo: string, folder: string, number: number, subject: string, text: string, previous: string, };
-
-/**
- * Removes comment `number` on the settled point `subject`, over its text last read.
- */
-export type SettledRemove = { repo: string, folder: string, number: number, subject: string, previous: string, };
-
-/**
  * How a client signs in.
  */
 export type SignIn = { "by": "cookie" } | { "by": "token", "token": string };
 
-/**
- * Commits a proposal file or a note file, with the lists that changed.
- */
-export type TextCommit = { repo: string, path: string, write?: WriteName, };
-
-/**
- * Sets a proposal's discovery level, over the text read with `hash`.
- */
-export type TextDiscovery = { repo: string, path: string, level: string, hash: string, };
-
-/**
- * Saves a proposal file, a note file, or a feature's proposal as typed, over the text read
- * with `hash`, without committing.
- */
-export type TextSave = { repo: string, path: string, text: string, hash: string, };
-
-/**
- * What `undo.apply` answers: the commit the files' checkout is at now.
- */
-export type UndoApplied = { commit: string | null, };
-
-/**
- * Writes a change back, for an undo, or forward, for a redo, once every file holds the other
- * side: `subject` names the action in the refusal of a file that changed since.
- */
-export type UndoApply = { repo: string, change: UndoChange, direction: UndoDirection, subject: string, };
-
-/**
- * What a write changed, as its answer gives it and `undo.apply` takes it back: the commit its
- * checkout was at, and each file on both sides.
- */
-export type UndoChange = { commit: string | null, files: Array<UndoFile>, };
-
-/**
- * Whether a commit since a change holds any of its files otherwise: its undo then asks first.
- */
-export type UndoCommitted = { repo: string, change: UndoChange, };
-
-/**
- * Which way a change is written.
- */
-export type UndoDirection = "undo" | "redo";
-
-/**
- * A file of a change, by its path from the top level: its bytes before and after, in base64,
- * `null` on the side where it did not exist.
- */
-export type UndoFile = { path: string, before: string | null, after: string | null, };
-
-/**
- * Why a refused write did not land.
- */
-export type WriteFailure = "hook" | "failed";
-
-/**
- * What the UI names a committing write with, in the write queue.
- */
-export type WriteName = { 
-/**
- * The page it opens.
- */
-href: string, 
-/**
- * Its running text, as "Approving the spec of Recurring tasks".
- */
-label: string, };
-
-/**
- * A repository's write queue: its commits still landing, one after another, and the refused
- * ones, until dismissed.
- */
-export type WriteQueue = { 
-/**
- * In the order they were made.
- */
-writes: Array<QueuedWrite>, };
-
-/**
- * Which write queue: a repository's.
- */
-export type WriteQueueArgs = { repo: string, };
-
-/**
- * Where a queued write is.
- */
-export type WriteState = "waiting" | "running" | "refused";
-
-/**
- * Takes a refused write out of the write queue.
- */
-export type WritesDismiss = { repo: string, id: string, };
-
 /** Every record, by the name a `sub` gives: its arguments, and its whole value. */
 export type Records = {
-  Buffer: { args: BufferArgs; value: Buffer };
+  ConflictFile: { args: ConflictFileArgs; value: ConflictFile };
   Devices: { args: null; value: Devices };
-  WriteQueue: { args: WriteQueueArgs; value: WriteQueue };
+  GitCommit: { args: GitCommitArgs; value: GitCommit };
+  GitDiff: { args: GitDiffArgs; value: GitDiff };
+  GitHistoryPage: { args: GitHistoryArgs; value: GitHistoryPage };
+  GitPage: { args: GitArgs; value: GitPage };
+  GitSummary: { args: GitArgs; value: GitSummary };
 };
 
 /** Every action, by the name a `call` gives: its input, and its output. */
 export type Actions = {
-  "answer.save": { input: AnswerSave; output: null };
-  "answers.submit": { input: AnswersSubmit; output: null };
-  "buffer.save": { input: BufferSave; output: Saved };
-  "commit.retry": { input: CommitRetry; output: null };
-  "defaultRound.answer": { input: DefaultRoundAnswer; output: Saved };
-  "defaultRound.dismiss": { input: DefaultRoundDismiss; output: null };
-  "defaultRound.notes": { input: DefaultRoundNotes; output: Saved };
-  "defaultRound.retry": { input: DefaultRoundRetry; output: null };
-  "defaultRound.submit": { input: DefaultRoundSubmit; output: null };
   "devices.rename": { input: DevicesRename; output: null };
   "devices.revoke": { input: DevicesRevoke; output: null };
-  "notes.save": { input: NotesSave; output: null };
-  "review.approve": { input: ReviewApprove; output: null };
-  "review.comment": { input: ReviewComment; output: Recorded };
-  "review.edit": { input: ReviewEdit; output: Recorded };
-  "review.remove": { input: ReviewRemove; output: Recorded };
-  "review.requestChanges": { input: ReviewRequestChanges; output: null };
-  "review.startOver": { input: ReviewStartOver; output: Recorded };
-  "settled.comment": { input: SettledComment; output: null };
-  "settled.edit": { input: SettledEdit; output: null };
-  "settled.remove": { input: SettledRemove; output: Recorded };
-  "text.commit": { input: TextCommit; output: null };
-  "text.discovery": { input: TextDiscovery; output: Saved };
-  "text.save": { input: TextSave; output: Saved };
-  "undo.apply": { input: UndoApply; output: UndoApplied };
-  "undo.committed": { input: UndoCommitted; output: boolean };
-  "writes.dismiss": { input: WritesDismiss; output: null };
+  "git.abort": { input: GitAbort; output: null };
+  "git.clean": { input: GitClean; output: null };
+  "git.commit": { input: GitCommitStaged; output: null };
+  "git.continue": { input: GitContinue; output: null };
+  "git.discard": { input: GitDiscard; output: null };
+  "git.fetch": { input: GitFetch; output: null };
+  "git.merge": { input: GitMerge; output: null };
+  "git.pull": { input: GitPull; output: null };
+  "git.push": { input: GitPush; output: null };
+  "git.removeWorktree": { input: GitRemoveWorktree; output: null };
+  "git.resolve": { input: GitResolve; output: null };
+  "git.saveConflict": { input: GitSaveConflict; output: ConflictFile };
+  "git.stage": { input: GitStage; output: null };
+  "git.unstage": { input: GitUnstage; output: null };
 };

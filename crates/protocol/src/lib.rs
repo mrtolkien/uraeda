@@ -7,6 +7,7 @@ mod change;
 mod devices;
 mod diff;
 mod features;
+mod git;
 mod message;
 mod registry;
 mod typescript;
@@ -17,6 +18,13 @@ pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;
 pub use features::*;
+pub use git::{
+    ConflictFile, ConflictFileArgs, GitAbort, GitArgs, GitClean, GitCommit, GitCommitArgs,
+    GitCommitFile, GitCommitRow, GitCommitStaged, GitConflict, GitContinue, GitDiff, GitDiffArgs,
+    GitDiscard, GitFetch, GitFile, GitGroup, GitHistoryArgs, GitHistoryPage, GitMerge, GitPage,
+    GitPull, GitPush, GitRemoveWorktree, GitResolve, GitSaveConflict, GitStage, GitStopped,
+    GitSummary, GitUnstage, GitWorktree,
+};
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
 pub use registry::{Action, Catalog, Record, Wire, catalog};
 pub use typescript::typescript;

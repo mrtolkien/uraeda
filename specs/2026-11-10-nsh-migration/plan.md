@@ -818,9 +818,17 @@ Follows [what every records task does](#what-every-records-task-does).
 
 Follows [what every records task does](#what-every-records-task-does).
 
-- **Files:** `crates/server/src/records/git.rs`, and its test in `crates/server/tests/`
+- **Files:** `crates/server/src/records/git/`, a folder, `crates/protocol/src/git.rs`, and its test
+  `crates/server/tests/git.rs`
 - **Records:** GitPage, GitSummary, GitDiff, GitCommit, GitHistoryPage, ConflictFile
 - **Actions:** `git.*`
+- **As built** (rulings R66 to R68): every record and action takes `repo`, the repository's name; a
+  diff is asked with `{ repo, folder, commit, path, whole }`; the items of the page's lists carry an
+  `id`; an action answers nothing but `git.saveConflict`; the fetcher runs as the server starts and
+  every 5 minutes. A write takes its repository's turn in `git/queue.rs`, which stands in for task
+  9's write queue. Nobody works in a checkout until task 15 answers `git/working.rs`'s two
+  functions, marked `TEMPORARY:`.
+- [x] **Done**: `feat(nsh-migration): records of git`
 
 ## Task 11: The session store, and its import
 
