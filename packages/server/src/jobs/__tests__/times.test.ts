@@ -54,6 +54,30 @@ test.each([
     "2026-10-25T12:00:00",
     "2026-10-25T02:30:00+02:00",
   ],
+  [
+    "hourly, the first pass of the repeated hour",
+    hourly(),
+    "2026-10-25T02:20:00+02:00",
+    "2026-10-25T02:00:00+02:00",
+  ],
+  [
+    "hourly, the second pass of the repeated hour",
+    hourly(),
+    "2026-10-25T02:20:00+01:00",
+    "2026-10-25T02:00:00+01:00",
+  ],
+  [
+    "hourly, before the hour the clock skips",
+    hourly(),
+    "2026-03-29T01:30:00+01:00",
+    "2026-03-29T01:00:00+01:00",
+  ],
+  [
+    "hourly, after the hour the clock skips",
+    hourly(),
+    "2026-03-29T03:20:00+02:00",
+    "2026-03-29T03:00:00+02:00",
+  ],
 ])("%s", (_name, schedule, now, due) => {
   expect(dueAt(schedule, local(now)).getTime()).toBe(local(due).getTime());
 });
@@ -70,6 +94,30 @@ test.each([
     daily(2, 30),
     "2026-03-28T12:00:00",
     "2026-03-29T03:00:00",
+  ],
+  [
+    "hourly, the first pass of the repeated hour",
+    hourly(),
+    "2026-10-25T02:20:00+02:00",
+    "2026-10-25T02:00:00+01:00",
+  ],
+  [
+    "hourly, the second pass of the repeated hour",
+    hourly(),
+    "2026-10-25T02:20:00+01:00",
+    "2026-10-25T03:00:00+01:00",
+  ],
+  [
+    "hourly, before the hour the clock skips",
+    hourly(),
+    "2026-03-29T01:30:00+01:00",
+    "2026-03-29T03:00:00+02:00",
+  ],
+  [
+    "hourly, after the hour the clock skips",
+    hourly(),
+    "2026-03-29T03:20:00+02:00",
+    "2026-03-29T04:00:00+02:00",
   ],
 ])("next: %s", (_name, schedule, now, next) => {
   expect(nextAfter(schedule, local(now)).getTime()).toBe(local(next).getTime());

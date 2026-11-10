@@ -517,7 +517,8 @@ The break each test catches:
 
 - `times.ts` computes in local time from the schedule's fields, with `Date` alone. A local time that
   does not exist that night becomes the first minute that does: 2:30 becomes 3:00, never 3:30. A
-  local time that happens twice is its first.
+  local time that happens twice is its first, but an hourly schedule runs in each real hour
+  ([ruling R10](rulings.md)).
 - The migration adds `job_runs` with the columns of the [data model](data-model.md) and of
   [ruling R1](rulings.md), `refusal` and `refused_turn`, unique on `(job, repository, due)`, an
   index with no condition: SQLite counts each null `due` as distinct, and the reads of a job and

@@ -43,11 +43,13 @@ function runsOn(schedule: Schedule, from: Date, day: number): boolean {
   }
 }
 
-/** The top of the local hour `now` is in. */
+/**
+ * The top of the local hour `now` is in: `now` less the minutes it has shown since the hour. It
+ * counts the real hours, so the hour a clock passes twice has two tops, an hour apart.
+ */
 function topOfHour(now: Date): Date {
-  const top = new Date(now);
-  top.setMinutes(0, 0, 0);
-  return top;
+  const since = (now.getMinutes() * 60 + now.getSeconds()) * 1000 + now.getMilliseconds();
+  return new Date(now.getTime() - since);
 }
 
 /** The latest scheduled time at or before `now`, in the process's local time. */

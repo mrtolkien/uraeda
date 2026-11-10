@@ -101,3 +101,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: writing the row after the session, which lets two servers start one
   time ([review focus](plan.md#review-focus): a time started twice).
 - **Where**: tasks 3 and 4.
+
+## R10: An hourly schedule runs in each real hour
+
+- **Decision**: `hourly` is at minute 0 of every hour, counted in elapsed hours: the night the clock
+  goes back, the repeated hour has two tops, both are scheduled times, and no hour is missed. The
+  night it goes forward, the skipped hour has none. A daily, weekday, or weekly time that happens
+  twice is still its first.
+- **Rationale**: both contracts hold: `nextAfter` is strictly after `now`, and `dueAt` is the latest
+  time at or before it. Skipping the second top would leave a two-hour gap in a job that says "every
+  hour", and `dueAt` would stay 80 minutes old through the second pass.
+- **If wrong**: the hourly job runs twice in the clock-change night's repeated hour, by the wall
+  clock.
+- **Where**: task 3.
