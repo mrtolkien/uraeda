@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: bot
 ---
 
@@ -25,7 +25,7 @@ change or a feature.
 - Every conversation with an agent MUST be a session, run in the worktree of its change or feature,
   or of one of its tasks. Checked by the runner's tests.
 - An agent MUST NOT turn a session into a change, or a change into a feature, unless the human
-  accepts it.
+  accepts it: each offer, or in advance the changes of a job they scheduled.
 - Sessions MUST be a cache in Uraeda's data folder, never stored in a repository.
 - Tests MUST reach agents through a fake adapter, never a real agent.
 - A runtime SHOULD run the user's installed agent through the agent's own protocol, never a bundled
