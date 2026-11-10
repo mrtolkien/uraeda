@@ -108,8 +108,10 @@ export class JobRuns {
   }
 
   /**
-   * Drops the rows of the job in the repository past the 50 newest, but the latest started one:
-   * the open-change check and the offer's acceptance read it, however many skips follow it.
+   * Drops the rows of the job in the repository past the 50 newest, but the ones the open-change
+   * check and the offer's acceptance read, however many skips follow them: the latest started run
+   * that has a session, which a run still starting cannot displace, and each started run whose
+   * session belongs to a change or a feature, which stay while that session does.
    */
   #prune(job: string, repository: string): void {
     this.#db
@@ -118,7 +120,11 @@ export class JobRuns {
            AND id NOT IN (SELECT id FROM job_runs WHERE job = ?1 AND repository = ?2
                           ORDER BY id DESC LIMIT ${KEPT})
            AND id IS NOT (SELECT MAX(id) FROM job_runs
-                          WHERE job = ?1 AND repository = ?2 AND outcome = 'started')`,
+                          WHERE job = ?1 AND repository = ?2 AND outcome = 'started'
+                            AND session IS NOT NULL)
+           AND NOT EXISTS (SELECT 1 FROM sessions
+                           WHERE sessions.id = job_runs.session AND sessions.folder IS NOT NULL
+                             AND job_runs.outcome = 'started')`,
       )
       .run(job, repository);
   }
@@ -143,15 +149,28 @@ export class JobRuns {
     return rows.map(toRow);
   }
 
-  /** The job's latest run that started a session in the repository. */
+  /** The job's latest run that started a session in the repository, once it has one. */
   latestStarted(job: string, repository: string): JobRunRow | undefined {
     const row = this.#db
       .prepare(
         `SELECT ${COLUMNS} FROM job_runs
-         WHERE job = ? AND repository = ? AND outcome = 'started' ORDER BY id DESC LIMIT 1`,
+         WHERE job = ? AND repository = ? AND outcome = 'started' AND session IS NOT NULL
+         ORDER BY id DESC LIMIT 1`,
       )
       .get(job, repository) as Stored | undefined;
     return row && toRow(row);
+  }
+
+  /** The folders of the changes and features the sessions of the job's runs in the repository are in. */
+  changeFolders(job: string, repository: string): Array<string> {
+    const rows = this.#db
+      .prepare(
+        `SELECT DISTINCT sessions.folder FROM job_runs JOIN sessions ON sessions.id = job_runs.session
+         WHERE job_runs.job = ? AND job_runs.repository = ? AND job_runs.outcome = 'started'
+           AND sessions.folder IS NOT NULL`,
+      )
+      .all(job, repository) as Array<{ folder: string }>;
+    return rows.map(({ folder }) => folder);
   }
 
   /** The run that started the session, when a job did. */

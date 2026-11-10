@@ -102,6 +102,47 @@ test("fifty skips never push out the latest started run", () => {
   expect(jobs.ofSession("s1")?.due).toBe(1000);
 });
 
+test("a started run that is still starting never pushes out the run before it", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000, session: "s1" }));
+  for (let due = 2000; due < 2060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  // The start of a run by hand: its row has no session yet, and the start may fail.
+  const starting = jobs.add(run({ due: null, session: null, trigger: "manual" }));
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
+  expect(jobs.ofSession("s1")?.due).toBe(1000);
+  jobs.remove(starting?.id ?? 0);
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
+  expect(jobs.ofSession("s1")?.due).toBe(1000);
+});
+
+test("the runs whose session is in a change are kept, and name the change's folder", () => {
+  const cache = SessionCache.open(":memory:");
+  const { jobs } = cache;
+  const made = (folder: string | null) =>
+    cache.createSession({
+      agent: "fake",
+      folder,
+      nativeId: `n${Math.random()}`,
+      repo: ROOT,
+      title: null,
+    }).id;
+  const upgrades = made(null);
+  jobs.add(run({ due: 1000, session: upgrades }));
+  cache.attach(upgrades, "2026-11-01-upgrades");
+  // Later runs opened no change, and a manual one is starting: the first run's change is still open.
+  jobs.add(run({ due: 1500, session: made(null) }));
+  for (let due = 2000; due < 2060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  jobs.add(run({ due: null, session: null, trigger: "manual" }));
+  expect(jobs.ofSession(upgrades)?.due).toBe(1000);
+  expect(jobs.changeFolders("Dependencies", ROOT)).toEqual(["2026-11-01-upgrades"]);
+  expect(jobs.changeFolders("Other", ROOT)).toEqual([]);
+  expect(jobs.changeFolders("Dependencies", "/another/root")).toEqual([]);
+});
+
 test("a time is looked up by its job and repository", () => {
   const jobs = opened();
   jobs.add(run({ due: 1000 }));

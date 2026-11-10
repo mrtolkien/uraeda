@@ -70,16 +70,17 @@ function works(ctx: RepoContext, session: string): boolean {
   return statusOf(row, read).status === "working";
 }
 
-/** Whether the session belongs to a change or a feature the workspace still lists as not merged. */
-async function changeOpen(ctx: RepoContext, session: string): Promise<boolean> {
-  const folder = ctx.sessions.cache.session(session)?.folder ?? null;
-  if (folder === null) {
+/** Whether any of the folders is a change or a feature the workspace still lists as not merged. */
+async function anyOpen(ctx: RepoContext, folders: Array<string>): Promise<boolean> {
+  if (folders.length === 0) {
     return false;
   }
   const { features } = await ctx.binding.readWorkspace(ctx.repo);
   return features.some(
     (feature) =>
-      feature.folder === folder && feature.step.name !== "done" && feature.step.name !== "none",
+      folders.includes(feature.folder) &&
+      feature.step.name !== "done" &&
+      feature.step.name !== "none",
   );
 }
 
@@ -231,17 +232,19 @@ class JobScheduler implements Scheduler {
     return found;
   }
 
-  /** Why the job's time is skipped in the repository: its last run works, or its change is open. */
+  /** Why the job's time is skipped in the repository: its last run works, or a change it started is open. */
   async #skipOf(
     ctx: RepoContext,
     job: Job,
     root: string,
   ): Promise<JobRunRow["reason"] | undefined> {
-    const last = ctx.sessions.cache.jobs.latestStarted(job.name, root);
+    const { jobs } = ctx.sessions.cache;
+    const last = jobs.latestStarted(job.name, root);
     if (last?.session && works(ctx, last.session)) {
       return "working";
     }
-    return last?.session && (await changeOpen(ctx, last.session)) ? "change-open" : undefined;
+    // Any run of the job that started a change still open, not only the latest run.
+    return (await anyOpen(ctx, jobs.changeFolders(job.name, root))) ? "change-open" : undefined;
   }
 
   /**

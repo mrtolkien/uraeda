@@ -497,3 +497,35 @@ test("a run by hand during a tick's workspace read is refused, and one run start
   await run.scheduler.runNow(name, "Dependencies");
   expect(run.created).toHaveLength(3);
 });
+
+/**
+ * US2 3, SC-003. Catches: a run by hand that opened no change hiding the change an earlier run
+ * opened and left open, so the next time starts a second run on the same files.
+ */
+test("a later run that opened no change does not hide a change still open", async () => {
+  const run = await setup();
+  const [{ name }] = run.repos;
+  run.state.jobs = { jobs: [job("Dependencies", [name])] };
+  run.server.adapter.script([]);
+  await run.at("09T02:59:00");
+  await run.at("09T03:00:10");
+  const [first] = run.created;
+  await ends(run.server, first.id);
+  run.server.sessions.cache.attach(first.id, CHANGE);
+
+  // Run now, with the change open, ends without a change of its own.
+  run.server.adapter.script([]);
+  const manual = await run.scheduler.runNow(name, "Dependencies");
+  await ends(run.server, manual.session);
+
+  await run.at("10T02:59:00");
+  await run.at("10T03:00:10");
+  expect(run.created).toHaveLength(2);
+  expect((await run.history("Dependencies"))[0]).toMatchObject({
+    outcome: "skipped",
+    reason: "change-open",
+  });
+  expect(await run.scheduler.nextRun(run.state.jobs.jobs[0], name)).toEqual({
+    why: "change-open",
+  });
+});
