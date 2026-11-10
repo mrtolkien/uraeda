@@ -1702,7 +1702,7 @@ export interface ItemSettingsView {
 
 /** A job, as the settings file describes it. */
 export interface Job {
-  /** Unique among the jobs, as written: the second of a name has a problem. */
+  /** Unique among the jobs, trimmed: the second of a name has a problem. */
   name: string
   /** The repositories of Uraeda's list it runs in. */
   repositories: Array<string>
