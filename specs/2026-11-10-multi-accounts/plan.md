@@ -455,11 +455,16 @@ neighbours have: null for every session made before, and for one started with no
 
 - [x] **Step 4: Pick in `Processes.open`, and keep**
 
-In `open`, after the adapter is known and `ran` is read: when the row has no account, no turn of the
-session ever started, and `adapter.accounts?.list()` is not empty, the session's account is
+In `open`, after the adapter is known and `ran` is read, with one `EXISTS` query on the session's
+turns that have a start time: when no turn of the session ever started and
+`adapter.accounts?.list()` is not empty, the session's account is
 `await accountFor(adapter.accounts, adapter.name)`, stored with `cache.updateSession` before the
-process opens. `accountFor` awaits `refresh(USAGE_MAX_AGE_MS)` raced with a timer of `PICK_WAIT_MS`,
-then picks. A session with an account always opens on it, listed or not. The account goes to
+process opens, even when the row already holds one: a first turn that never started, taken back or
+failed to open, fixed nothing, so the pick is made again on the usage of that moment (R3). A session
+with a started turn keeps its row's account, none for one that ran before accounts; a session with
+no started turn and no listed account keeps the row's. `accountFor` awaits
+`refresh(USAGE_MAX_AGE_MS)` raced with a timer of `PICK_WAIT_MS`, then picks. A session with an
+account always opens on it, listed or not. The account goes to
 `adapter.hasSession(row.nativeId, account)`, to `adapter.open` as `account`, and to `Proc.account`.
 A refusal releases the session, as the existing `catch` does. In `continuer.ts`, line 324 passes the
 session's account to `hasSession`, in place.

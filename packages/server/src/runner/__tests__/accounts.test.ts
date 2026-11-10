@@ -102,6 +102,31 @@ test("a session picks its account at its first turn, and keeps it", async () => 
   expect(cache.session(refused.id)?.account).toBe(folder("b"));
 });
 
+test("a session picks again until a turn of it starts, and keeps the account of the turn that did", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  adapter.accounts = fakeAccounts();
+  const chat = await sessions.newChat(repo);
+  // The process fails to open after the pick: no turn started, yet the account is stored.
+  vi.spyOn(adapter, "open").mockImplementationOnce(() => {
+    throw new Error("no process");
+  });
+  await expect(sessions.send(repo, chat.id, { text: "hello" })).rejects.toThrow("no process");
+  expect(cache.session(chat.id)?.account).toBe(folder("b"));
+
+  // The usage changed since: the first turn that starts picks on it.
+  adapter.accounts.accounts = [account("default", 0.42), account("b", 0.95), account("c", 0.1)];
+  adapter.script([]);
+  await send(sessions, repo, chat.id, "hello again");
+  expect(adapter.opens.at(-1)?.account).toBe(folder("c"));
+  expect(cache.session(chat.id)?.account).toBe(folder("c"));
+
+  // From that turn on it keeps its account.
+  adapter.accounts.accounts = [account("default", 0), account("b", 0), account("c", 0.9)];
+  adapter.script([]);
+  await send(sessions, repo, chat.id, "more");
+  expect(adapter.opens.at(-1)?.account).toBe(folder("c"));
+});
+
 const ON: ContinueSettings = { ...CONTINUES_OFF, afterLimit: true };
 const RESET = "2026-11-03T23:40:00.000Z";
 const LIMIT: Limit = {

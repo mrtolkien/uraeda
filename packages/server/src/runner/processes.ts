@@ -135,9 +135,11 @@ export class Processes {
       // read-only.
       const adapter = sessionRuntime(runtimes, row);
       const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
-      // A session picks its account once, at its first turn, and keeps it, listed or not: one with
-      // none ran before accounts, or with none listed, and stays on the server's own login.
-      const account = row.account ?? (await this.#pick(live, adapter, ran));
+      // A session picks its account until a turn of it starts, and keeps the account from then on,
+      // listed or not: one that ran with none ran before accounts, or with none listed, and stays
+      // on the server's own login. A first turn that never started, taken back or failed to open,
+      // fixed nothing: the pick is made again, on the usage of that moment.
+      const account = ran ? row.account : await this.#pick(live, adapter, row.account);
       const resume = adapter.hasSession(row.nativeId, account ?? undefined);
       // A session that ran before has lost its transcript: Claude Code deletes old ones. A line
       // held from a replacement the process opened on is carried, resuming that new session.
@@ -189,12 +191,13 @@ export class Processes {
   }
 
   /**
-   * The account a session without one starts on, stored before its process opens: the pick of its
-   * runtime's listed accounts, when no turn of it ever started. None when the runtime lists none.
+   * The account a session with no started turn opens on, stored before its process opens: the pick
+   * of its runtime's listed accounts. When the runtime lists none, the one it had, which is none
+   * for a session that never had one.
    */
-  async #pick(live: Live, adapter: Adapter, ran: boolean): Promise<string | null> {
-    if (ran || !adapter.accounts?.list().length) {
-      return null;
+  async #pick(live: Live, adapter: Adapter, had: string | null): Promise<string | null> {
+    if (!adapter.accounts?.list().length) {
+      return had;
     }
     const account = await accountFor(adapter.accounts, adapter.name);
     this.#context.cache.updateSession(live.id, { account });
