@@ -96,6 +96,14 @@ test("fifty skips never push out the latest started run", () => {
   expect(jobs.ofSession("s1")?.due).toBe(1000);
 });
 
+test("renaming a job to its own name changes nothing", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000, session: "s1" }));
+  jobs.rename("Dependencies", "Dependencies");
+  expect(jobs.history("Dependencies", ROOT)).toHaveLength(1);
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s1");
+});
+
 test("a refusal is set with its turn, and cleared", () => {
   const jobs = opened();
   const added = jobs.add(run({ session: "s1" }));

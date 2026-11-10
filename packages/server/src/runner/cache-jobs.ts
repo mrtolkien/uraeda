@@ -142,6 +142,9 @@ export class JobRuns {
    * it is, and its twin under `from` goes.
    */
   rename(from: string, to: string): void {
+    if (from === to) {
+      return;
+    }
     transaction(this.#db, () => {
       this.#db.prepare("UPDATE OR IGNORE job_runs SET job = ? WHERE job = ?").run(to, from);
       this.#db.prepare("DELETE FROM job_runs WHERE job = ?").run(from);
