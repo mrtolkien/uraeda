@@ -50,6 +50,20 @@ export function publishGit(bus: LiveBus) {
   update("GitSummary", GIT_ID);
 }
 
+/** What each session manager's repositories call as their features or branches change. */
+const workspaceListeners = new WeakMap<Sessions, Set<() => void>>();
+
+/**
+ * Calls `listener` each time `publish`, for a repository of `sessions`, reports a feature or a branch
+ * that changed: a change merged or dropped, or a pull request's refresh. Gives what stops the calls.
+ */
+export function onWorkspaceChange(sessions: Sessions, listener: () => void): () => void {
+  const listeners = workspaceListeners.get(sessions) ?? new Set();
+  workspaceListeners.set(sessions, listeners);
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
  * reports. A feature's change may change its step, which its sessions' statuses read, its
@@ -103,6 +117,8 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     }
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
+    // What reads the workspace's open changes, as the jobs' next runs do, hears it too.
+    workspaceListeners.get(sessions)?.forEach((listener) => listener());
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
     // The host's path is the main checkout, which keys its sessions. Each reads the step, its
     // sub-sessions too.

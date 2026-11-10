@@ -314,3 +314,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   started a change did N reads, and every connected client repeats the record's read several times
   per run's start.
 - **Where**: tasks 4 and 6.
+
+## R22: The Jobs record is announced on what it reads of the server
+
+- **Decision**: besides the settings reads, the runs' rows, and the runs' sessions, the record is
+  announced when the repository list or its problem changes (`Hosts.onChange`, a listener set called
+  where the `Repositories` update goes out), when an agent is turned on or off or found available or
+  not (the session manager's `agent` change), and when `live.publish` reports a feature or a branch
+  that changed for a repository of the session manager (`onWorkspaceChange(sessions, listener)`,
+  beside `onSessionChange`).
+- **Rationale**: a card reads "“notes” is not in Uraeda's list.", "Not running here: … is off in
+  this repository.", or `change-open` from the list, the runtimes, and the workspace's open changes,
+  and none of them sent an update: the card kept the stale reason until an unrelated job event or a
+  reload.
+- **Alternatives considered**: announcing on every `publish`, which a file's save in any checkout
+  sends: a burst with no feature or branch changed (a git-only one) asks nothing of the jobs.
+- **Where**: task 6.

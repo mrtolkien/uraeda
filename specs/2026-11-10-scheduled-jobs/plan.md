@@ -953,7 +953,10 @@ file, or "Run now" held by the pause.
   read refused with its problem. A `jobs.update` that changes the name also renames the runs.
 - The record is announced, on every repository's endpoint, when the settings file is read (a hand
   edit of a job changes no value), when a run's row is added, changed, or removed
-  (`JobRuns.onChange`), when a run's session changes state, and after each write.
+  (`JobRuns.onChange`), when a run's session changes state, and after each write; also when the
+  repository list changes (`Hosts.onChange`), an agent is turned on or off or found available, and a
+  feature or a branch of a repository changed, as a change merged or dropped (`onWorkspaceChange`,
+  [ruling R22](rulings.md)).
 - Keep `sources.ts` under 500 lines: the read lives in `fate/jobs.ts`.
 
 - [x] **Step 4: Run the task's validation**

@@ -7,7 +7,8 @@ import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
 import { startJobs } from "../jobs/start.ts";
 import type { Binding } from "../fate/context.ts";
-import { binding, byIdAt, type Data, fateAt, testServer } from "./helpers.ts";
+import { publish } from "../live.ts";
+import { binding, byIdAt, type Data, fateAt, fixtureRepo, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 type Read = { data?: Data; error?: { message: string }; ok: boolean };
@@ -314,4 +315,54 @@ test("a read of the record reads the workspace once, however many jobs started a
   for (const one of ["A", "B", "C"]) {
     expect(job(record, one).next.why).toBe("change-open");
   }
+});
+
+/** A watcher's burst with nothing changed. */
+const NO_CHANGES = {
+  branchDecisions: [],
+  decisions: false,
+  features: [],
+  files: [],
+  git: false,
+  inbox: false,
+  priorities: false,
+  workspace: false,
+};
+
+/**
+ * Finding 7. Catches: a card that keeps "“notes” is not in Uraeda's list.", "Not running here: Claude
+ * Code is off in this repository.", or "change-open" after the repository was added, the agent turned
+ * on, or the change merged, until an unrelated job event or a reload.
+ */
+test("the record is announced when the repository list, a runtime, or the workspace changes", async () => {
+  const run = await setup((name) => table("Dependencies", [name]));
+  const { server } = run;
+  const host = server.hosts.all()[0];
+  const update = vi.spyOn(host.live, "update");
+  const heard = () =>
+    update.mock.calls.filter(([type, id]) => type === "Jobs" && id === "jobs").length;
+
+  // A repository added to the list, read again by the hosts.
+  let before = heard();
+  await binding.addRepository(server.dataDir, fixtureRepo());
+  await server.hosts.reload();
+  await vi.waitFor(() => expect(heard()).toBeGreaterThan(before));
+
+  // An agent turned on or off, or found available, in a repository.
+  before = heard();
+  server.sessions.runtimes.changed();
+  await vi.waitFor(() => expect(heard()).toBeGreaterThan(before));
+
+  // A change merged or dropped, as the watcher and the pull requests' refresh report it.
+  before = heard();
+  publish({ ...NO_CHANGES, features: ["2026-10-12-cli-tuis"] }, host, server.sessions);
+  expect(heard()).toBeGreaterThan(before);
+  before = heard();
+  publish({ ...NO_CHANGES, workspace: true }, host, server.sessions);
+  expect(heard()).toBeGreaterThan(before);
+
+  // A burst that moved no feature or branch asks nothing of the jobs.
+  before = heard();
+  publish({ ...NO_CHANGES, git: true }, host, server.sessions);
+  expect(heard()).toBe(before);
 });

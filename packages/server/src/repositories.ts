@@ -84,6 +84,8 @@ export class Hosts {
   #options: HostsOptions;
   #entries = new Map<string, Entry>();
   #rows: Array<Repository> = [];
+  /** What is told when the list or its problem changes: see `onChange`. */
+  readonly #listeners = new Set<() => void>();
   /** The reloads run one at a time, each reading the file after the last one's done. */
   #reloading: Promise<void> = Promise.resolve();
   /** Why the list could not be read at the last reload, or null when it was. */
@@ -227,14 +229,21 @@ export class Hosts {
     this.#announce(before, [...heard, ...this.all()]);
   }
 
+  /** Calls `listener` each time the list or its problem changes: gives its removal. */
+  onChange(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
   /**
    * Sends a `Repositories` update on the global bus and the hosts' when the list or its problem
-   * changed since `before`.
+   * changed since `before`, and tells the listeners of `onChange`.
    */
   #announce(before: string, hosts: Array<Host>): void {
     if (JSON.stringify([this.#rows, this.problem]) === before) {
       return;
     }
+    this.#listeners.forEach((listener) => listener());
     for (const bus of new Set([globalLive, ...hosts.map((host) => host.live)])) {
       bus.update("Repositories", REPOSITORIES_ID, {
         eventId: `repositories:${Date.now()}:${announced++}`,
