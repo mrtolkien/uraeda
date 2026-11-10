@@ -233,3 +233,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   opened the second line. The sandbox's samples gain a missing folder (`d`) and an unused account
   (`e`, five hours with no reset), which no sample showed.
 - **Where**: task 5 of the plan, `UsageWindow.tsx` and `sandbox/accounts.ts`.
+
+## R16: Claude Code's default folder runs without `CLAUDE_CONFIG_DIR`
+
+- **Decision**: an account whose folder is `<home>/.claude`, Claude Code's default, keeps its id and
+  its name ("default") but runs with no `CLAUDE_CONFIG_DIR`: `claudeEnv` for a session's process,
+  `models()`, and the ask's `claude auth status` and `get_usage` processes all go through
+  `folderEnv` in `runner/claude-accounts.ts`, which gives no variable for it. Any other folder is
+  given as before.
+- **Rationale**: finding 1 of the branch review. With the variable set, Claude Code reads
+  `.claude.json` inside the folder rather than `~/.claude.json`, so the folder given explicitly is
+  not the login context of a process started with none: user-scope MCP servers and project trust are
+  missing, and where the credentials are keyed to the folder, the default reads as signed out. The
+  spec's own example lists `~/.claude`.
+- **Alternatives considered**: telling the human to list the default folder under another name: the
+  spec's example lists it. Leaving it explicit: it is a different login context from the one the
+  human uses outside Uraeda.
+- **If wrong**: a server started with its own `CLAUDE_CONFIG_DIR` runs the default account in that
+  folder, as every process with none does; the account then names a folder the process does not
+  read. Unset the variable for the server.
+- **Where**: `folderEnv` in `runner/claude-accounts.ts`, `claudeEnv` and `ClaudeAdapter` in
+  `runner/claude.ts` (the adapter takes the `home` its accounts do).

@@ -317,3 +317,43 @@ test("an ask runs auth status and the usage at once, from home, and combines the
     rmSync(dir, { force: true, recursive: true });
   }
 });
+
+test("an ask of the default folder runs both processes without a configuration folder", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-ask-"));
+  const saved = process.env.CLAUDE_CONFIG_DIR;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  try {
+    const agent = join(dir, "agent.cjs");
+    writeFileSync(
+      agent,
+      `const fs = require("node:fs");
+const kind = process.argv[2] === "auth" ? "auth" : "usage";
+fs.writeFileSync(${JSON.stringify(join(dir, "env-"))} + kind, process.env.CLAUDE_CONFIG_DIR ?? "(unset)");
+if (kind === "auth") { process.stdout.write('{"loggedIn":true}'); process.exit(0); }
+require("node:readline").createInterface({ input: process.stdin }).on("line", (line) => {
+  const { request_id } = JSON.parse(line);
+  process.stdout.write(JSON.stringify({ response: { request_id, response: ${JSON.stringify(usageAnswer(10))}, subtype: "success" }, type: "control_response" }) + "\\n");
+});
+`,
+    );
+    const command = join(dir, "claude");
+    writeFileSync(command, `#!/bin/sh\nexec "${process.execPath}" "${agent}" "$@"\n`, {
+      mode: 0o755,
+    });
+    const home = join(dir, "home");
+    const ask = claudeAsk(command, home);
+    // The default folder, ~/.claude: Claude Code's own login context, not an explicit one.
+    expect((await ask(join(home, ".claude"))).state).toBe("ready");
+    expect(readFileSync(join(dir, "env-auth"), "utf8")).toBe("(unset)");
+    expect(readFileSync(join(dir, "env-usage"), "utf8")).toBe("(unset)");
+    // Another folder is asked as an explicit one.
+    await ask(join(home, ".claude-b"));
+    expect(readFileSync(join(dir, "env-auth"), "utf8")).toBe(join(home, ".claude-b"));
+    expect(readFileSync(join(dir, "env-usage"), "utf8")).toBe(join(home, ".claude-b"));
+  } finally {
+    if (saved !== undefined) {
+      process.env.CLAUDE_CONFIG_DIR = saved;
+    }
+    rmSync(dir, { force: true, recursive: true });
+  }
+});

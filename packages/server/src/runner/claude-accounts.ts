@@ -77,6 +77,16 @@ export async function askShort(
   }
 }
 
+/**
+ * The environment that puts a process in a folder, `CLAUDE_CONFIG_DIR`: none for Claude Code's
+ * default folder, `<home>/.claude`. With the variable set Claude Code reads `.claude.json` inside
+ * the folder, not `~/.claude.json`, so the default folder given explicitly is not the login context
+ * of a process with none.
+ */
+export function folderEnv(folder: string, home: string): Record<string, string> | undefined {
+  return folder === join(home, ".claude") ? undefined : { CLAUDE_CONFIG_DIR: folder };
+}
+
 /** One listed folder: its id, absolute; the line as listed; its name. */
 export type ClaudeFolder = { id: string; listed: string; name: string };
 
@@ -170,10 +180,13 @@ export type ClaudeAsk = (
  * short process, as the others: from the home folder, ended with `endShortProcess`, given up after
  * `MODELS_TIMEOUT_MS`.
  */
-async function signedOut(command: string, folder: string): Promise<boolean> {
-  const short = spawnGrouped(command, ["auth", "status", "--json"], homedir(), {
-    CLAUDE_CONFIG_DIR: folder,
-  });
+async function signedOut(command: string, folder: string, home: string): Promise<boolean> {
+  const short = spawnGrouped(
+    command,
+    ["auth", "status", "--json"],
+    homedir(),
+    folderEnv(folder, home),
+  );
   let stdout = "";
   short.child.stdout.setEncoding("utf8");
   short.child.stdout.on("data", (data: string) => {
@@ -208,12 +221,16 @@ async function signedOut(command: string, folder: string): Promise<boolean> {
 }
 
 /** The windows `get_usage` gives, or undefined when it gives none or does not answer. */
-async function usageOf(command: string, folder: string): Promise<Array<AccountWindow> | undefined> {
+async function usageOf(
+  command: string,
+  folder: string,
+  home: string,
+): Promise<Array<AccountWindow> | undefined> {
   try {
     const [answer] = await askShort(
       command,
       homedir(),
-      { CLAUDE_CONFIG_DIR: folder },
+      folderEnv(folder, home),
       [{ subtype: "get_usage" }],
       { did: "give its usage", exited: "giving its usage" },
     );
@@ -225,15 +242,16 @@ async function usageOf(command: string, folder: string): Promise<Array<AccountWi
 
 /**
  * The ask of a folder, which is a directory: its `claude auth status` and its `get_usage` request
- * run at once, from the home folder, as `models()` is, with `CLAUDE_CONFIG_DIR` the folder. Signed
+ * run at once, from the home folder, as `models()` is, with `CLAUDE_CONFIG_DIR` the folder, unless it
+ * is `home`'s `.claude` (`folderEnv`). Signed
  * out wins; else `ready`, with the windows when the usage was read. A status that says nothing and
  * a usage that gives no windows reject: the account stays as it was.
  */
-export function claudeAsk(command: string): ClaudeAsk {
+export function claudeAsk(command: string, home: string = homedir()): ClaudeAsk {
   return async (folder) => {
     const [signed, windows] = await Promise.allSettled([
-      signedOut(command, folder),
-      usageOf(command, folder),
+      signedOut(command, folder, home),
+      usageOf(command, folder, home),
     ]);
     if (signed.status === "fulfilled" && signed.value) {
       return { state: "signed-out" };
