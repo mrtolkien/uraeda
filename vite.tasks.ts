@@ -229,6 +229,12 @@ export const tasks = {
     cache: false,
     command: `${isolatedGit} node packages/web/scripts/performance.ts`,
   },
+  // The client's types of the protocol, `app/store/protocol.d.ts`, written from the protocol's
+  // crate. It is committed: a test of the crate, in `rust:test`, fails when it is stale.
+  "protocol:types": {
+    cache: false,
+    command: "cargo run -q -p uraeda-protocol --example types -- app/store/protocol.d.ts",
+  },
   ready: {
     command: "true",
     dependsOn: ["ready:rust", "ready:typescript", "ready:ts-test", "ready:app"],
@@ -283,7 +289,14 @@ export const tasks = {
   "rust:test": {
     // CI sets NEXTEST_PROFILE=ci, to report every failure at once.
     cache: {
-      input: [...rustSources, "fixtures/**", ".config/nextest.toml", "scripts/test-run.ts"],
+      input: [
+        ...rustSources,
+        "fixtures/**",
+        ".config/nextest.toml",
+        "scripts/test-run.ts",
+        // The protocol's types for the client, which a test of its crate compares with its own.
+        "app/store/protocol.d.ts",
+      ],
       output: [],
       untrackedEnv: ["NEXTEST_PROFILE", ...gtkEnv],
     },

@@ -139,7 +139,8 @@ Tasks 7 to 10 each port the records and mutations of one domain from
 function the binding wraps today. Each adds its lines to `records/mod.rs`.
 
 - Consumes: `Registry`, `Bus` (task 6); the core's functions.
-- Produces: its records and actions, typed in `crates/protocol/`, and their rows in task 20's list.
+- Produces: its records and actions, typed in `crates/protocol/`, each with its line in `catalog()`
+  and the client's types written again by `vp run protocol:types`, and their rows in task 20's list.
 
 - [ ] **Step 1: Write the failing contract tests**: one test per record,
       `<Record> answers its     shape`, on the fixtures in [`fixtures/`](/fixtures/); and one per
@@ -288,7 +289,7 @@ What the spikes taught, which tasks rely on:
 - **A list crosses nothing.** NSH's list took 20,000 rows directly. So transcripts need no paging
   window in the client.
 - **Events, not snapshots.** A streamed transcript sent as growing snapshots lost messages in one
-  spike. So the protocol sends changes, each acknowledged.
+  spike. So the protocol sends changes, each numbered.
 - **NSH's editor has no Vim.** The spike's layer worked over its commands. So Vim is ours.
 
 ### Why Vim's keys, and not Helix
@@ -525,36 +526,48 @@ fallback written under it, and later tasks build on the fallback.
 
 **Files:**
 
-- Create: `crates/protocol/src/{lib,message,change,registry}.rs`,
-  `specs/2026-11-10-nsh-migration/contracts/protocol.md`, `app/store/protocol.d.ts` (generated)
-- Test: `crates/protocol/tests/roundtrip.rs`
+- Create: `crates/protocol/src/{lib,message,change,diff,registry,typescript}.rs`,
+  `crates/protocol/examples/types.rs`, `specs/2026-11-10-nsh-migration/contracts/protocol.md`,
+  `app/store/protocol.d.ts` (generated), `fixtures/protocol/{messages,changes}.json`
+- Test: `crates/protocol/tests/roundtrip.rs`, `crates/protocol/tests/types.rs`
 
 **Interfaces:**
 
 - Produces:
   - `PROTOCOL: u32`, the version.
   - `enum ClientMessage { Hello, Sub, Unsub, Call, Resume }` and
-    `enum ServerMessage { Welcome, Refused, Data, Change, Result, Error }`, as JSON.
-  - `enum Op { Set, Append, Insert, Remove, Move }`, each with a path into the value.
+    `enum ServerMessage { Welcome, Refused, Data, Change, Result, Error }`, as JSON, with
+    `enum SignIn { Cookie, Token(String) }`, `enum Refusal`, and `enum ErrorCode`.
+  - `fn handshake(first: &str) -> Result<SignIn, ServerMessage>`: the sign-in of a `hello` of this
+    version, or the `refused` or the `error` to answer before closing (ruling R29).
+  - `enum Op { Set, Append, Insert, Remove, Move }`, each with a path into the value: a step is a
+    field's name or an item's `id` (ruling R27).
   - `fn apply(value: &mut serde_json::Value, ops: &[Op]) -> Result<(), ApplyError>`.
   - `fn diff(old: &Value, new: &Value) -> Vec<Op>`, which emits `Append` when a string only grew,
     and list operations keyed by each item's `id`.
-  - `trait Record` and `trait Action`, with a name, typed arguments, and a typed value; and
-    `vp run protocol:types`, which writes `app/store/protocol.d.ts` from them.
+  - `trait Record` and `trait Action`, with a name, typed arguments, and a typed value;
+    `catalog() -> Catalog`, the list of every one declared, with `Catalog::record::<R>()`,
+    `action::<A>()`, `records()`, and `actions()`; and `vp run protocol:types`, which writes
+    `app/store/protocol.d.ts` from it (ruling R28).
+  - `fixtures/protocol/`: each message's JSON, and pairs of values with the change between them, for
+    the tests of anything that applies a change.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a change applied to the old value gives the new value`: for a table of pairs,
     `apply(old, diff(old, new))` equals `new`. Rows: a string that grew, a list with an insert, a
     removal, a move, a nested record.
   - `a string that only grew is one append`: the break it catches is a whole-value resend on each
     chunk of a reply.
   - `every message survives JSON`.
-- [ ] **Step 2: Run them**. Expected: FAIL, `apply` not found.
-- [ ] **Step 3: Implement the crate and write the contract.** `contracts/protocol.md` holds each
+  - `a hello of another version is refused, naming the side to update`: the break is two versions
+    that talk on, each reading the other wrong.
+  - `a declared record and action are typed for the client`, and `the client's types are fresh`.
+- [x] **Step 2: Run them**. Expected: FAIL, `apply` not found.
+- [x] **Step 3: Implement the crate and write the contract.** `contracts/protocol.md` holds each
       message with an example, the handshake, sequence numbers, `Resume`, and the error codes. A
       list's items must carry an `id`: `diff` falls back to `Set` when one does not.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the protocol's messages and changes`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the protocol's messages and changes`.
 
 ## Task 4: `ura serve`, the server's skeleton
 
@@ -565,7 +578,7 @@ fallback written under it, and later tasks build on the fallback.
 
 **Interfaces:**
 
-- Consumes: `ClientMessage`, `ServerMessage`, `PROTOCOL` (task 3).
+- Consumes: `ClientMessage`, `ServerMessage`, `PROTOCOL`, `handshake` (task 3).
 - Produces:
   - `ura serve [--port N] [--data-dir DIR]`. Its default port differs from the Node server's.
   - `pub struct Server`, `Server::start(Options) -> Server`, `Server::stop(self)`.
@@ -635,7 +648,7 @@ fallback written under it, and later tasks build on the fallback.
 
 **Interfaces:**
 
-- Consumes: `Record`, `Action`, `diff`, `Op` (task 3); `require` (task 5).
+- Consumes: `Record`, `Action`, `diff`, `apply`, `Op`, `catalog` (task 3); `require` (task 5).
 - Produces:
   - `Registry::record::<R>()`, `Registry::action::<A>()`: how a domain registers itself.
   - `Bus::changed(record_name, key)`: a domain says a record changed; the engine reads it again,
@@ -1019,7 +1032,8 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Consumes: `app/store/protocol.d.ts` (task 3); `ura sandbox` (task 20) for its tests.
+- Consumes: `app/store/protocol.d.ts`, with its type `Protocol`, and `fixtures/protocol/` for the
+  store's own `apply` (task 3); `ura sandbox` (task 20) for its tests.
 - Produces:
   - `connect(options): Connection`, with `status: Signal<"connecting"|"live"|"offline"|"refused">`.
   - `record<N>(name: N, args): Signal<Value<N> | undefined>`: subscribes while something reads it,

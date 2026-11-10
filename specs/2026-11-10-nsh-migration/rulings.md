@@ -382,3 +382,61 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: no real desktop's service was called, on purpose. The interface is the one every
   Linux desktop implements. The fallback stays: toasts inside the app only.
 - **Where**: `a_system_notification_is_sent_and_its_click_comes_back`. Task 50.
+
+## R27: A change names a list's item by its `id`, and changes are numbered, not acknowledged
+
+- **Decision**: the wire shapes the plan left open, as [the contract](contracts/protocol.md) has
+  them.
+  - A path's step is a field's name or an item's `id`, a text: `["items", "m2", "text"]`. A list
+    whose items do not each have an `id` of their own changes whole, by `set`, and so does one that
+    was or becomes empty.
+  - `remove` takes a record's field as well as a list's item, so a field that goes needs no sixth
+    operation. `insert` and `move` name the item to go before, or none for the end.
+  - A `sub`, a `call`, and a `resume` share one space of ids on a connection, so an `error` names
+    one of them without saying which kind.
+  - No message acknowledges a change. A WebSocket loses nothing while it is open: `seq` shows a gap,
+    and `resume` says the last change applied. The plan's "each acknowledged" now reads "each
+    numbered", as the decision does.
+  - `welcome` carries an `epoch`, drawn at each start of the server, and `resume` gives it back: a
+    number from before a restart is never read as one of this run.
+  - `refused` has three reasons, `client-too-old`, `server-too-old`, and `not-signed-in`, and
+    carries the server's version.
+- **Rationale**: a domain that appends to a reply knows the message's id, not its place in each
+  subscriber's list, and a client finds an item's signal by its id. Without the epoch, a client that
+  outlives the server would apply new changes to an old value.
+- **If wrong**: the shapes are one crate and one version number. Ids are texts: a record whose items
+  are numbered, as a turn's by `seq` today, sends that number as its `id`.
+- **Where**: task 3, `crates/protocol/src/{message,change,diff}.rs`. Tasks 6, 15, and 23.
+
+## R28: The client's types are written by `ts-rs`, and a test checks they are fresh
+
+- **Decision**: a type that crosses the protocol derives `TS`, of the crate `ts-rs`.
+  `vp run protocol:types` writes `app/store/protocol.d.ts` from the messages and from `catalog()`,
+  the list of every record and action, in `crates/protocol/src/registry.rs`. The crate's test
+  `the_clients_types_are_fresh` fails when the file is stale, and `rust:test` reads the file.
+  - The file holds types only. The version is the type `Protocol`, the number itself: the store
+    writes `const PROTOCOL: Protocol = 1`, which stops compiling when the version rises.
+  - `u64` and `i64` are `number` there, as JSON has them.
+  - The plan's `Registry` stays the server's, in task 6, where handlers register. The protocol's
+    list is `Catalog`, so the two names do not clash: `Catalog::records()` and `actions()` give the
+    names a server test can compare its registry with.
+- **Rationale**: `ts-rs` is in the lockfile already, through NSH's bundler, and reads serde's
+  attributes, so the JSON and the types cannot differ. Writing types by hand for 44 records is the
+  drift the protocol decision forbids.
+- **Alternatives considered**: a constant in a `.ts` file: a second generated file, for one number.
+- **If wrong**: `ts-rs` names no variant's documentation, and puts a type on one line: the file is
+  for the compiler, and the contract is what a person reads.
+- **Where**: task 3, `crates/protocol/src/{registry,typescript}.rs`, `vite.tasks.ts`. Tasks 6 to 20,
+  which add records and actions, and task 23.
+
+## R29: The handshake's rule lives in the protocol's crate
+
+- **Decision**: `handshake(first) -> Result<SignIn, ServerMessage>` reads a connection's first
+  message. It gives the sign-in to check, or the message to answer before closing: `refused` for a
+  `hello` of another version, on its `type` and `protocol` alone, and `error` for anything else.
+- **Rationale**: the version is the crate's, so the rule that compares it is too. A later version
+  may write the rest of its `hello` another way: read whole first, it would get `bad-message`, and
+  the client could not say which side to update.
+- **Where**: task 3, `crates/protocol/src/message.rs`, and its test
+  `a_hello_of_another_version_is_refused_naming_the_side_to_update`. Task 4 calls it, and keeps its
+  own test over the WebSocket.
