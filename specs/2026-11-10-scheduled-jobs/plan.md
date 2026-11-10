@@ -955,17 +955,18 @@ file, or "Run now" held by the pause.
 
 - [x] **Step 3: Implement the record and the mutations**
 
-- The record lists the jobs that name the endpoint's repository, in the file's order. A job's
-  `problem` is the core's, a fragment (the schedule's) prefixed "Not running: " and a sentence ("Two
-  jobs are named “…”.") as it is ([ruling R13](rulings.md)), else the first repository it names that
-  is not listed, in the text of the global constraints. An agent that does not run the job here is
-  `next.why = "agent-off"` with `next.text`, the server's words ([ruling R27](rulings.md)). `next`
-  comes from `Scheduler.nextRun`, given the workspace's open folders, read once for the whole record
-  ([ruling R21](rulings.md)), its `why` the code it answers (`problem`, `paused`, `off`,
-  `agent-off`, `change-open`), and `history` from `JobRuns.history`, each run with its session's
-  folder and title when it has them, and a time skipped as `change-open` with the open change that
-  blocked it, by the workspace's title ([ruling R36](rulings.md)). `enabled` is the switch for all
-  jobs.
+- The record lists the jobs that name the endpoint's repository, and those that name no repository
+  of Uraeda's list, which run nowhere and whose `next` is their problem ([ruling R38](rulings.md)),
+  in the file's order. A job's `problem` is the core's, a fragment (the schedule's) prefixed "Not
+  running: " and a sentence ("Two jobs are named “…”.") as it is ([ruling R13](rulings.md)), else
+  the first repository it names that is not listed, in the text of the global constraints. An agent
+  that does not run the job here is `next.why = "agent-off"` with `next.text`, the server's words
+  ([ruling R27](rulings.md)). `next` comes from `Scheduler.nextRun`, given the workspace's open
+  folders, read once for the whole record ([ruling R21](rulings.md)), its `why` the code it answers
+  (`problem`, `paused`, `off`, `agent-off`, `change-open`), and `history` from `JobRuns.history`,
+  each run with its session's folder and title when it has them, and a time skipped as `change-open`
+  with the open change that blocked it, by the workspace's title ([ruling R36](rulings.md)).
+  `enabled` is the switch for all jobs.
 - The mutations write through the binding, as `extension-mutations.ts` does, a file that cannot be
   read refused with its problem. A `jobs.update` that changes the name also renames the runs.
 - The record is announced, on every repository's endpoint, when the settings file is read (a hand

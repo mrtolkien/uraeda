@@ -578,3 +578,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   came with a navigation, and its undo would need the job's former values carried across.
 - **If wrong**: the way back appends the repository at the end of the job's list, not where it was.
 - **Where**: task 8.
+
+## R38: A job that runs nowhere is listed in every repository
+
+- **Decision**: the `Jobs` record of a repository lists the jobs that name it, and also every job
+  that names no repository of Uraeda's list: no `repositories` key, a value that is not a list of
+  names, an empty list, or only names the list lacks. Its `problem` is the core's, else the first
+  name the list lacks; its `next` is the problem's, never a time or another reason, since it runs
+  nowhere. A job that names a repository of the list, and no more, stays out of the others.
+- **Rationale**: the data model says a table that breaks a rule is listed with its problem, and the
+  docs said the Jobs place lists it, but the record kept only the jobs that name the current
+  repository, so a hand-written job with a misspelt name was in no place, and a human who followed
+  the docs to find the job that never runs saw nothing.
+- **Alternatives considered**: saying in the docs where it does not show: the human then has no
+  place in the web UI to find or mend it.
+- **If wrong**: with many repositories, a broken job shows in each of their Jobs places.
+- **Where**: tasks 6 and 9.

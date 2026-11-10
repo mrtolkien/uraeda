@@ -68,6 +68,14 @@ async function setup(config: (repository: string) => string, using: Binding = bi
   return { app, configText: () => readFileSync(path, "utf8"), mutate, path, read, server };
 }
 
+/** Adds a second repository to the list, and writes its name where the config says `placeholder`. */
+async function addOther(run: Awaited<ReturnType<typeof setup>>, placeholder: string) {
+  const added = (await binding.addRepository(run.server.dataDir, fixtureRepo())).repository.name;
+  await run.server.hosts.reload();
+  writeFileSync(run.path, readFileSync(run.path, "utf8").replaceAll(placeholder, added));
+  return added;
+}
+
 /** A fake turn that waits, and what ends its wait. */
 function held() {
   const wake: { release: () => void } = { release: () => {} };
@@ -106,7 +114,9 @@ test("the jobs' record and its writes", async () => {
   expect(record.problem).toBeNull();
   // The zone the schedules run in, which the card's times read in.
   expect(record.timeZone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  expect(names(record)).toEqual(["Dependencies", "Code quality"]);
+  // "Elsewhere" names no repository of the list: every repository lists it, with its problem (R38).
+  expect(names(record)).toEqual(["Dependencies", "Elsewhere", "Code quality"]);
+  expect(job(record, "Elsewhere").problem).toBe("“elsewhere” is not in Uraeda's list.");
   expect(job(record, "Dependencies").problem).toBe("“notes” is not in Uraeda's list.");
   expect(job(record, "Code quality").problem).toBe(
     "Not running: the schedule “dayly 06:00” is not understood",
@@ -380,9 +390,11 @@ test("the record gives the latest started run beyond the history's 50 rows", asy
 test("each job of the record carries its place in the file, two of one name too", async () => {
   const run = await setup(
     (name) =>
-      `${table("Elsewhere", ["elsewhere"])}\n${table("Twin", [name])}\n${table("Other", [name])}\n` +
-      table("Twin", [name]),
+      `${table("Elsewhere", ["other-repository"])}\n${table("Twin", [name])}\n` +
+      `${table("Other", [name])}\n${table("Twin", [name])}`,
   );
+  // "Elsewhere" is in the second repository of the list, so it leaves a gap in this one's places.
+  await addOther(run, "other-repository");
   const record = await run.read();
   expect(record.jobs.map((one: Data) => [one.index, one.name])).toEqual([
     [1, "Twin"],
@@ -533,4 +545,38 @@ test("a skipped time names the change that blocked it, by the change's title", a
   expect(unknown.blockedBy).toBeNull();
   // A folder no workspace lists any more has no title to say.
   expect(gone.blockedBy).toBeNull();
+});
+
+/**
+ * Review 06, finding 8 (R38). Catches: a hand-written job with no `repositories`, a text for it, or
+ * a misspelt name, which no repository lists, so the human could not find the job that never runs:
+ * every repository's Jobs place lists a job that names no repository of Uraeda's list, with its
+ * problem, and none lists a job that names another repository of the list.
+ */
+test("a job that names no listed repository is listed in every repository, with its problem", async () => {
+  const run = await setup((name) => {
+    const bare = table("Bare", [name]).replace(/repositories = .*\n/, "");
+    const text = table("Text", []).replace(/repositories = .*\n/, 'repositories = "uraeda"\n');
+    return [
+      table("Mine", [name]),
+      table("Away", ["other-repository"]),
+      table("Nowhere", ["ureada"]),
+      bare,
+      text,
+    ].join("\n");
+  });
+  const { name } = run.server;
+  // "Away" names the second repository of the list.
+  const added = await addOther(run, "other-repository");
+  const record = await run.read(name);
+  expect(names(record)).toEqual(["Mine", "Nowhere", "Bare", "Text"]);
+  expect(job(record, "Nowhere").problem).toBe("“ureada” is not in Uraeda's list.");
+  expect(job(record, "Bare").problem).toBe("A job runs in one repository at least.");
+  expect(job(record, "Text").problem).toBe("repositories is a list of names.");
+  // None of the three runs anywhere, and the card says why, not a time.
+  for (const stray of ["Nowhere", "Bare", "Text"]) {
+    expect(job(record, stray).next).toEqual({ at: null, text: null, why: "problem" });
+  }
+  // The same three are in the other repository's place, with "Away" there.
+  expect(names(await run.read(added))).toEqual(["Away", "Nowhere", "Bare", "Text"]);
 });

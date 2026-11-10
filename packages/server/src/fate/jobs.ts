@@ -104,6 +104,19 @@ function localProblem(ctx: RepoContext, job: Job): string | null {
 }
 
 /**
+ * Whether the repository `name` lists the job: it names the repository, or it names no repository of
+ * Uraeda's list, none at all, a value that is not a list of names, or only names the list lacks.
+ * That job runs nowhere, and every repository lists it with its problem, so that a human can find
+ * it (R38).
+ */
+function listsHere(ctx: RepoContext, job: Job, name: string): boolean {
+  return (
+    job.repositories.includes(name) ||
+    job.repositories.every((one) => ctx.hosts.get(one) === undefined)
+  );
+}
+
+/**
  * The words for a job whose agent does not run it in the repository: no agent on there, the named
  * one off or unknown, or the one it runs on not available. The runtime's title is its name for
  * people, as its other refusals say it.
@@ -155,8 +168,14 @@ async function rowOf(
   place: { changes: Changes | undefined; index: number; name: string; root: string },
 ): Promise<JobRow> {
   const { changes, index, name, root } = place;
+  // A job that runs nowhere has no next run, whatever it is a problem of.
+  const away = !job.repositories.includes(name);
   const next =
-    ctx.jobs === undefined ? undefined : await ctx.jobs.nextRun(job, name, changes?.open);
+    ctx.jobs === undefined
+      ? undefined
+      : away
+        ? { why: "problem" as const }
+        : await ctx.jobs.nextRun(job, name, changes?.open);
   return {
     agent: job.agent ?? null,
     effort: job.effort ?? null,
@@ -195,7 +214,7 @@ export async function jobsRecord(ctx: RepoContext): Promise<JobsRecord> {
   // Each job here with its place in the file, which the jobs of another repository leave gaps in.
   const here = jobs
     .map((job, index) => ({ index, job }))
-    .filter(({ job }) => name !== undefined && job.repositories.includes(name));
+    .filter(({ job }) => name !== undefined && listsHere(ctx, job, name));
   // The workspace is read once for the record, and only when a job started a change to look at, or
   // skipped a time for one, whose title the history says.
   const { jobs: runs } = ctx.sessions.cache;
