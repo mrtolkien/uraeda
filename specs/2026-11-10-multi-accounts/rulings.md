@@ -364,3 +364,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a page that read the agent's record before `models()` ran keeps its old accounts
   until the next announce, a minute at most once a page asks again.
 - **Where**: `ClaudeAdapter.models` in `runner/claude.ts`.
+
+## R24: The Vim settings test presses the Save of the field it edited
+
+- **Decision**: the test "saved commands lose their blank lines in the field" in
+  `packages/web/src/__tests__/vim.test.tsx` presses the one enabled Save of the Settings page, not
+  the only Save by name.
+- **Rationale**: the Accounts setting of Claude Code is a list setting with its own Save, so the
+  page has two, and `getByRole("button", { name: "Save" })` found both. The test failed on the
+  branch before this round of fixes (the review ran no web tests); what it guards, the blank lines a
+  saved command drops, is unchanged.
+- **Alternatives considered**: scoping to the Vim row's container: it relies on markup the test does
+  not otherwise know.
+- **Where**: `packages/web/src/__tests__/vim.test.tsx`.
