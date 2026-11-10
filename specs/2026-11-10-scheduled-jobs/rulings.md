@@ -719,3 +719,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   time runs.
 - **Where**: the final review's fix 5, tasks 3, 4, 6, and 8. Replaces R9's "so the time is not
   marked run" for a scheduled start.
+
+## R46: A clock set back is covered by the history's 50 rows, not for days
+
+- **Decision**: nothing changes. The spec's niche case, "The system clock is set back: a time
+  already run does not run again", holds for the 50 latest rows of a job in a repository, which is
+  what the unique row of a time reads. That covers a clock corrected by minutes or hours. A time
+  whose row was pruned, more than 50 rows ago, starts again when the clock is set back past it: a
+  clock set back by days re-lives those days, and a job that runs at its times then does what the
+  clock says.
+- **Rationale**: a mark of the latest time ever run would stop the repeat, and would also stop a job
+  for good after a clock set forward by mistake: it would not run again until the real time passed
+  the mark, which is worse than a repeat. A separate ledger of every time run would grow without
+  bound, or be pruned in turn.
+- **Alternatives considered**: a mark of the latest time run, per job and repository (the review's
+  Codex P2): it fails the forward case above. Keeping the rows of every time run: the history keeps
+  50 rows by the spec.
+- **If wrong**: a clock set back by more than 50 times of a job starts times it already ran, those
+  after the moment the server first saw the job (R2): an hourly job on a server up for a week, after
+  a clock set back by three days, runs about 70 times over again, one at a time, a minute apart.
+- **Where**: the final review's finding X3, task 3. Unchanged: R8 and R15.
