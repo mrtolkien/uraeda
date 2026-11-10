@@ -7,7 +7,7 @@ use std::path::Path;
 
 use toml_edit::{Array, ArrayOfTables, Item, RawString, Table, TableLike, Value};
 
-use super::{JobInput, NOT_A_LIST, check, tables, text_of};
+use super::{JobInput, NOT_A_LIST, check, inline, tables, text_of};
 use crate::api::ApiError;
 use crate::settings::{HEADER, change_document, change_path, refused, set};
 
@@ -32,7 +32,7 @@ pub fn add(config_dir: &Path, job: &JobInput) -> Result<(), ApiError> {
             }
             Some(Item::ArrayOfTables(list)) => list.push(table),
             Some(Item::Value(Value::Array(list))) => {
-                list.push(Value::InlineTable(table.into_inline_table()));
+                inline::push(list, Value::InlineTable(table.into_inline_table()));
             }
             Some(_) => return Err(refused(NOT_A_LIST)),
         }
@@ -93,7 +93,7 @@ pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
                 list.is_empty()
             }
             Some(Item::Value(Value::Array(list))) => {
-                list.remove(place);
+                inline::remove(list, place);
                 list.is_empty()
             }
             _ => return Err(refused(NOT_A_LIST)),

@@ -774,3 +774,60 @@ fn a_file_that_fails_to_load_is_the_jobs_problem() {
     let message = jobs.problem.expect("the load's own message");
     assert!(message.starts_with("Cannot read "), "{message}");
 }
+
+const INLINE: &str = r#"jobs = [ # first
+  { name = "A", repositories = ["a"], schedule = "hourly", prompt = "x" }, # a
+  # about B
+  { name = "B", repositories = ["a"], schedule = "hourly", prompt = "y" }, # b
+]
+"#;
+
+#[test]
+fn an_inline_list_on_several_lines_keeps_each_entrys_comments() {
+    // Removing an entry takes its comments, and the others keep theirs.
+    let dir = tempdir();
+    write(dir.path(), INLINE);
+    jobs::remove(dir.path(), "A").unwrap();
+    let after = text(dir.path());
+    assert!(
+        after.starts_with("jobs = [ # first\n  # about B\n  { name = \"B\""),
+        "{after}"
+    );
+    assert!(after.ends_with("}, # b\n]\n"), "{after}");
+    assert!(!after.contains("# a\n"), "{after}");
+
+    jobs::remove(dir.path(), "B").unwrap();
+    assert_eq!(jobs::read(dir.path()).jobs.len(), 0);
+
+    // Removing the last keeps the one before with its comment.
+    write(dir.path(), INLINE);
+    jobs::remove(dir.path(), "B").unwrap();
+    let after = text(dir.path());
+    assert!(after.contains("}, # a\n]\n"), "{after}");
+    assert!(
+        !after.contains("# b") && !after.contains("about B"),
+        "{after}"
+    );
+
+    // Adding goes on a line of its own, after the last entry's comment.
+    write(dir.path(), INLINE);
+    jobs::add(dir.path(), &input("C", "hourly", "z")).unwrap();
+    let after = text(dir.path());
+    assert!(after.contains("}, # a\n  # about B\n"), "{after}");
+    assert!(after.contains("}, # b\n  { name = \"C\""), "{after}");
+    assert!(
+        after.ends_with(" },\n]\n") || after.ends_with("}\n]\n"),
+        "{after}"
+    );
+    assert_eq!(jobs::read(dir.path()).jobs.len(), 3);
+
+    // Without a trailing comma too.
+    let bare = INLINE.replace("}, # b\n]", "} # b\n]");
+    write(dir.path(), &bare);
+    jobs::add(dir.path(), &input("C", "hourly", "z")).unwrap();
+    let after = text(dir.path());
+    assert!(after.contains("}, # b\n  { name = \"C\""), "{after}");
+    assert_eq!(jobs::read(dir.path()).jobs.len(), 3);
+    jobs::remove(dir.path(), "C").unwrap();
+    assert_eq!(text(dir.path()), bare);
+}

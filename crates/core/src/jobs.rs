@@ -13,6 +13,7 @@ use toml_edit::{Document, Item, TableLike};
 
 use crate::settings::unreadable;
 
+mod inline;
 mod schedule;
 mod write;
 
