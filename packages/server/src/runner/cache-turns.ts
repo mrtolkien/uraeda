@@ -27,6 +27,19 @@ export function startTurn(db: DatabaseSync, id: number): void {
   });
 }
 
+/** Whether a turn of the session ever started. */
+export function hasStartedTurn(db: DatabaseSync, sessionId: string): boolean {
+  return (
+    (
+      db
+        .prepare(
+          "SELECT EXISTS (SELECT 1 FROM turns WHERE session_id = ? AND started_at IS NOT NULL) AS found",
+        )
+        .get(sessionId) as { found: number }
+    ).found === 1
+  );
+}
+
 /** Makes an ended turn run again, as its agent went on after it ended. */
 export function reopenTurn(db: DatabaseSync, id: number): void {
   transaction(db, () => {

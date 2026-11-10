@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { migrations, SessionCache } from "../cache.ts";
+import { hasStartedTurn } from "../cache-turns.ts";
 import { imageInUse, imagesInUse } from "../image-uses.ts";
 import { expectLogged, temporaryFolder } from "uraeda-binding/test-utils";
 
@@ -159,6 +160,19 @@ test("a session's turns come back oldest first, with their start and end", () =>
     state: "failed",
   });
   expect(cache.turn(second + 1)).toBeUndefined();
+});
+
+test("a session has a started turn once one of its turns started, queued or not", () => {
+  const cache = SessionCache.open(":memory:");
+  const session = cache.createSession(feature);
+  const other = cache.createSession(feature);
+  expect(hasStartedTurn(cache.db, session.id)).toBe(false);
+
+  const id = cache.addTurn({ sessionId: session.id, ...workflowTurn, state: "queued" });
+  expect(hasStartedTurn(cache.db, session.id)).toBe(false);
+  cache.startTurn(id);
+  expect(hasStartedTurn(cache.db, session.id)).toBe(true);
+  expect(hasStartedTurn(cache.db, other.id)).toBe(false);
 });
 
 test("a turn's start and end bump its session's updatedAt", () => {
