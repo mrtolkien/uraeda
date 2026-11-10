@@ -19,7 +19,6 @@ mod options;
 mod priorities;
 mod proposals;
 mod starts;
-mod status;
 mod turn;
 mod undo;
 mod views;

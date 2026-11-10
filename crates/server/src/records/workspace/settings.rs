@@ -8,7 +8,7 @@
 
 mod actions;
 mod given;
-mod options;
+pub(in crate::records) mod options;
 
 use std::sync::Mutex;
 
@@ -16,8 +16,7 @@ use uraeda_core::settings as core;
 use uraeda_protocol::{KeyboardSettings, RunSettings, ServerSettings, Setting, Settings, Source};
 
 use self::given::Given;
-use super::locked;
-use crate::live::{Bus, Registry};
+use crate::live::{Bus, Registry, locked};
 use crate::shared::Shared;
 use crate::{DEFAULT_PORT, Failure};
 

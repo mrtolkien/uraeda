@@ -9,8 +9,8 @@ use uraeda_protocol::{
 
 use super::repositories::{self, Repository};
 use super::status;
-use super::views::word;
 use crate::live::Registry;
+use crate::records::views::word;
 use crate::shared::Shared;
 
 /// What a refused action tells.

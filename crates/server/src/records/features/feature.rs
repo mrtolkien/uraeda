@@ -9,9 +9,10 @@ use uraeda_protocol::{
     ItemSettings, PromotedView,
 };
 
-use super::{changed, options, status, turn, views};
+use super::{changed, options, turn, views};
 use crate::live::{Call, Fault, Registry};
 use crate::records::repositories::{self, Repository};
+use crate::records::workspace::status;
 use crate::shared::Shared;
 
 /// Registers the record `Feature`, and the actions on a feature that start no run.

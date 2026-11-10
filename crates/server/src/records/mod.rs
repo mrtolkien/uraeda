@@ -29,15 +29,12 @@
 mod features;
 mod git;
 mod previews;
+mod views;
 mod watch;
 mod workspace;
-mod writing;
+pub(crate) mod writing;
 
 pub(crate) use workspace::repositories;
-#[expect(
-    unused_imports,
-    reason = "the settings in force, for the domains that apply them, as the sessions do"
-)]
 pub(crate) use workspace::settings;
 
 use crate::Failure;

@@ -8,9 +8,13 @@ use std::sync::{Mutex, PoisonError};
 
 use uraeda_core::settings as core;
 use uraeda_protocol::RunOptionsPair;
-use uraeda_protocol::{ReviewerOptions, RunOptions, RunPick, StepOptions};
+use uraeda_protocol::{RunOptions, RunPick, StepOptions};
 
 use crate::live::Fault;
+use crate::records::settings::{
+    self,
+    options::{given, sent},
+};
 use crate::shared::Shared;
 
 /// The file's name, in the data folder.
@@ -127,75 +131,9 @@ pub(super) fn pair(shared: &Shared, root: &Path, folder: &str) -> RunOptionsPair
     }
 }
 
-/// The settings' run options, which a feature's own are read over: none set while the settings
-/// file cannot be read.
-// JOIN(wave 6): `records::settings::current` (task 7) gives the settings in force.
+/// The settings' run options in force, which a feature's own are read over.
 fn defaults(shared: &Shared) -> core::RunOptions {
-    let settings = core::read(shared.config_dir()).unwrap_or_default();
-    settings.runs.options
-}
-
-// JOIN(wave 6): `sent` and `given` are `workspace::settings::options`' (task 7), word for word:
-// the core's run options have no JSON form.
-
-/// Run options of the core, as the protocol sends them.
-pub(super) fn sent(options: core::RunOptions) -> RunOptions {
-    let step = |step: core::StepOptions| StepOptions {
-        step: step.step,
-        agent: step.agent,
-        model: step.model,
-        effort: step.effort,
-        new_session: step.new_session,
-    };
-    let pick = |pick: core::RunPick| RunPick {
-        agent: pick.agent,
-        model: pick.model,
-        effort: pick.effort,
-    };
-    let reviewer = |reviewer: core::ReviewerOptions| ReviewerOptions {
-        agent: reviewer.agent,
-        model: reviewer.model,
-        effort: reviewer.effort,
-        instructions: reviewer.instructions,
-        command: reviewer.command,
-    };
-    let reviewers = |reviewers: Vec<_>| reviewers.into_iter().map(reviewer).collect();
-    RunOptions {
-        steps: options.steps.into_iter().map(step).collect(),
-        implementers: options.implementers.map(pick),
-        reviewers: options.reviewers.map(reviewers),
-        review_depth: options.review_depth,
-    }
-}
-
-/// The run options a client sends, as the core reads them.
-pub(super) fn given(options: RunOptions) -> core::RunOptions {
-    let step = |step: StepOptions| core::StepOptions {
-        step: step.step,
-        agent: step.agent,
-        model: step.model,
-        effort: step.effort,
-        new_session: step.new_session,
-    };
-    let pick = |pick: RunPick| core::RunPick {
-        agent: pick.agent,
-        model: pick.model,
-        effort: pick.effort,
-    };
-    let reviewer = |reviewer: ReviewerOptions| core::ReviewerOptions {
-        agent: reviewer.agent,
-        model: reviewer.model,
-        effort: reviewer.effort,
-        instructions: reviewer.instructions,
-        command: reviewer.command,
-    };
-    let reviewers = |reviewers: Vec<_>| reviewers.into_iter().map(reviewer).collect();
-    core::RunOptions {
-        steps: options.steps.into_iter().map(step).collect(),
-        implementers: options.implementers.map(pick),
-        reviewers: options.reviewers.map(reviewers),
-        review_depth: options.review_depth,
-    }
+    given(settings::current(shared).runs.options)
 }
 
 /// Refuses run options the store would refuse, before anything is written for them.

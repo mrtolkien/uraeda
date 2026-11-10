@@ -11,7 +11,7 @@ mod queue;
 mod review;
 mod rounds;
 mod text;
-mod undo;
+pub(crate) mod undo;
 
 use uraeda_core::watch::Changes;
 use uraeda_protocol::Buffer;

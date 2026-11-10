@@ -17,8 +17,8 @@ use uraeda_protocol::{
 
 pub(crate) use uraeda_core::repositories::Repository;
 
-use super::{folders, locked};
-use crate::live::{Bus, Call, Fault, Registry};
+use super::folders;
+use crate::live::{Bus, Call, Fault, Registry, locked};
 use crate::shared::Shared;
 
 /// What is told each time the list changes.

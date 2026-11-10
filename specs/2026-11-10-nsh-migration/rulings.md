@@ -1749,3 +1749,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   inside one, and `vp check` passed whatever their formatting. Two lines per domain is the price: a
   domain left out of `DOMAINS` fails the lint, since nothing calls its `register`.
 - **Where**: `crates/server/src/records/mod.rs`. Tasks 15, 17, and 20, which add a domain.
+
+## T99.4: What every records domain needs of another has one home in `records/`
+
+- **Decision**: the helpers the domains of wave 6 each wrote for themselves are one function each.
+  - `records::views::sent` turns a view of the core into the protocol's type, and `word` gives a
+    word of the protocol as JSON writes it (R53). The features' `views.rs` keeps only `found` and
+    `missing`, which answer `null` for what is not there.
+  - `records::workspace::status::of` is a feature's status, for the workspace and for the record
+    `Feature`: the one function the sessions (task 15) change.
+  - `records::settings::options::{sent, given}` turn run options between the core's types and the
+    protocol's, for the settings and for a feature's own. A feature's own are read over
+    `records::settings::current`, the settings in force, where they read the file again.
+  - `records::writing::undo::sent` is the change an undoable write answers, as an `UndoChange`:
+    writing's, the lists', and the uploads' answers go through it.
+  - `live::locked` takes a lock whoever panicked while holding it: `pub(crate)`, for every domain.
+- **Rationale**: one home per rule. A status decided twice is the first thing the sessions would
+  have changed in one place only.
+- **Where**: `crates/server/src/records/{views.rs,workspace/status.rs,writing/undo.rs}`,
+  `records/workspace/settings/options.rs`, `live/mod.rs`. Tasks 15, 17, and 20.

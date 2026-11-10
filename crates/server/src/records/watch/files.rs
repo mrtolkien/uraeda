@@ -10,11 +10,13 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use notify::event::{AccessKind, AccessMode, EventKind};
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher as _};
+
+use crate::live::locked;
 
 /// How long the file events must stop before a change is told, so a write is read once.
 const QUIET: Duration = Duration::from_millis(100);
@@ -257,10 +259,4 @@ fn dangling(path: &Path) -> Option<PathBuf> {
         }
     }
     None
-}
-
-/// A lock, whoever panicked while holding it.
-// JOIN(wave 6): `live::locked`, private to the live engine.
-fn locked<T>(lock: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    lock.lock().unwrap_or_else(PoisonError::into_inner)
 }

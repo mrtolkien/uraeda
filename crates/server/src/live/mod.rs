@@ -103,7 +103,8 @@ pub fn wait<F: Future>(future: F) -> F::Output {
     tokio::runtime::Handle::current().block_on(future)
 }
 
-/// A lock, whoever panicked while holding it: the engine's state is whole between its steps.
-fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
+/// A lock, whoever panicked while holding it: what it guards is whole between two steps of the
+/// code that holds it.
+pub(crate) fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
     lock.lock().unwrap_or_else(PoisonError::into_inner)
 }

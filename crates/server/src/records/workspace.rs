@@ -15,11 +15,8 @@ mod folders;
 mod needs_you;
 pub(crate) mod repositories;
 pub(crate) mod settings;
-mod status;
+pub(super) mod status;
 mod themes;
-mod views;
-
-use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use uraeda_core::watch::Changes;
 use uraeda_protocol::{NeedsYouList, RepositoryArgs, Themes, Workspace};
@@ -50,10 +47,4 @@ pub(super) fn files_changed(bus: &Bus, repository: &str, _: &Changes) {
 pub(super) fn config_changed(shared: &Shared) {
     settings::reload(shared);
     shared.get::<Bus>().changed::<Themes>(&());
-}
-
-/// A lock, whoever panicked while holding it: what it guards is whole between two steps.
-// JOIN(wave 6): `live::locked`, private to the live engine.
-fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
-    lock.lock().unwrap_or_else(PoisonError::into_inner)
 }

@@ -1,6 +1,4 @@
-//! The core's views, as the protocol's types.
-
-// JOIN(wave 6): every records domain turns the core's views into the protocol's types.
+//! The core's views, as the protocol's types: how every records domain turns one into the other.
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;

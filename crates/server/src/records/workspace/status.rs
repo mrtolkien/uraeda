@@ -10,7 +10,7 @@ use uraeda_protocol::{FeatureStatus, SessionStatus, StatusReason};
 /// TEMPORARY: a feature follows its sessions first, a running one, then the latest. The sessions
 /// (task 15) bring the rules before this one, and the `session`, `turn`, and `wait` it leaves
 /// empty.
-pub(super) fn of(feature: &FeatureView) -> FeatureStatus {
+pub(in crate::records) fn of(feature: &FeatureView) -> FeatureStatus {
     let asks = !feature.problems.is_empty() || feature.step.waits_on == "human";
     let (status, label) = match asks {
         true => (SessionStatus::NeedsYou, "Needs you"),

@@ -7,8 +7,9 @@ use uraeda_core::view::{FeatureView, WorkspaceView};
 use uraeda_protocol::{RepositoryArgs, SlugProposal, Workspace, WorkspaceFeature};
 
 use super::repositories::{self, Repository};
-use super::{status, views};
+use super::status;
 use crate::live::{Fault, Registry};
+use crate::records::views;
 use crate::shared::Shared;
 
 /// Registers the records `Workspace` and `SlugProposal`.

@@ -48,8 +48,9 @@ pub(super) fn recorded<T>(
     })
 }
 
-/// A change as an answer gives it: each file's bytes in base64.
-fn sent(change: Change) -> UndoChange {
+/// A change as an answer gives it and a client keeps it: each file's bytes in base64. Every
+/// domain's undoable write answers its change through here.
+pub(crate) fn sent(change: Change) -> UndoChange {
     let encode = |bytes: Option<Vec<u8>>| bytes.map(|bytes| STANDARD.encode(bytes));
     let file = |file: ChangedFile| UndoFile {
         path: file.path,

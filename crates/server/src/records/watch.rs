@@ -10,7 +10,7 @@ mod files;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex};
 
 use uraeda_core::themes::themes_dir;
 use uraeda_core::watch::{Changes, Watcher, watch};
@@ -18,7 +18,7 @@ use uraeda_core::watch::{Changes, Watcher, watch};
 use self::files::Target;
 use super::workspace::{self, repositories};
 use crate::Failure;
-use crate::live::Bus;
+use crate::live::{Bus, locked};
 use crate::shared::Shared;
 
 /// What a domain does when a repository's files changed: it gets the bus, the repository's name
@@ -106,10 +106,4 @@ impl Watches {
         locked(&self.folders).extend([list, config]);
         Ok(())
     }
-}
-
-/// A lock, whoever panicked while holding it: a map of watches is whole between two steps.
-// JOIN(wave 6): `live::locked`, private to the live engine.
-fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
-    lock.lock().unwrap_or_else(PoisonError::into_inner)
 }
