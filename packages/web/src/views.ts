@@ -288,8 +288,12 @@ export const AgentView = view<Agent>()({
   runtimes: true,
 });
 
-/** A session's runtime alone, by the name it stored, as the sidebar's usage reads it. */
+/**
+ * A session's runtime by the name it stored, and its account, as the sidebar's usage and a
+ * session's header read them.
+ */
 export const SessionAgentView = view<Session>()({
+  account: true,
   agent: true,
   id: true,
 });
@@ -303,6 +307,7 @@ export const SessionPickView = view<Session>()({
 });
 
 export const SessionView = view<Session>()({
+  account: true,
   agent: true,
   allowable: true,
   archived: true,

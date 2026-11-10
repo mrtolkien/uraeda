@@ -7,6 +7,7 @@ import type { AgentEvent } from "uraeda-server/runner/events";
 import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
+import { sampleAccounts } from "./accounts.ts";
 import type { AgentProcess, OpenOptions, Outgoing } from "uraeda-server/runner/adapter";
 import { dirname, join } from "node:path";
 import { REALISTIC_FOLDERS, SAMPLE_FOLDERS } from "../samples/index.ts";
@@ -398,10 +399,15 @@ const KIND_MARKS: Record<(typeof SANDBOX_KINDS)[number], { icon: string; name: s
  */
 function asKind(agent: SandboxAgent, kind: (typeof SANDBOX_KINDS)[number]): SandboxAgent {
   const mark = KIND_MARKS[kind];
+  const accounts = kind === "claude" ? sampleAccounts() : undefined;
   return new Proxy(agent, {
     get(target, key) {
       if (key === "icon" || key === "name") {
         return mark[key];
+      }
+      // Only Claude Code lists accounts.
+      if (key === "accounts") {
+        return accounts;
       }
       const value: unknown = Reflect.get(target, key, target);
       return typeof value === "function" ? value.bind(target) : value;

@@ -71,3 +71,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: comparing against the last announced records, which a report's own
   announce makes stale.
 - **Where**: task 4 of the plan.
+
+## R6: The session's data view carries `account`; a used-up window's words are red
+
+- **Decision**: `sessionDataView` in `packages/server/src/fate/views.ts` gains `account: true`,
+  which Task 4 left off its record's type, so the web's `Session` had no `account` to read. A usage
+  window with nothing left draws its words in the error colour, besides its bar's error variant.
+- **Rationale**: the web views read `Session` through the data view, so the header and the rail's
+  bar need the field there. A used-up week has a zero-width fill, so the bar's error colour shows
+  nothing, while US3 says Home shows it "at 0% in the error colour".
+- **Alternatives considered**: a minimum fill on an empty bar, which would read as some left.
+- **Where**: task 5 of the plan, `fate/views.ts` and `UsageWindow.tsx`.

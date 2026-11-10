@@ -133,6 +133,12 @@ export function useSessionRuntime(id: string): RuntimeChoice {
   return useRuntime(useLiveView(SessionAgentView, session)?.agent);
 }
 
+/** The name of the account a session runs on, by its ID, null for a session with none. */
+export function useSessionAccount(id: string): string | null {
+  const { session } = useRequest({ session: { id, view: SessionAgentView } });
+  return useLiveView(SessionAgentView, session)?.account ?? null;
+}
+
 /** Why no message can go to the runtime chosen now: off, or not available on this machine. */
 export function runtimeRefusal({ off, runtime }: RuntimeChoice): string | undefined {
   if (off !== undefined) {

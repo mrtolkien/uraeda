@@ -1,4 +1,4 @@
-// A session's header: its title, its status, its agent's mark and name, and its place.
+// A session's header: its title, its status, its agent's mark and name, its account, and its place.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import type { SessionStatus as Status } from "uraeda-server/fate";
@@ -20,12 +20,13 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 }
 
 /**
- * A session's header: its title, then its status, agent, model and effort, and place on one line. Its title
+ * A session's header: its title, then its status, agent, account, model and effort, and place on one line. Its title
  * is renamed in place, once the session exists. The agent is the one the session runs on, by its
  * kind, as its card in the navigation names it; before the session exists, the one it will start,
  * while only one is on: with more, the composer's picker says which.
  */
 export function SessionHeader({
+  account,
   agent: kind,
   place,
   rename,
@@ -33,6 +34,8 @@ export function SessionHeader({
   status,
   title,
 }: {
+  /** The account the session runs on, by its name: none for a session with none. */
+  account?: string | null | undefined;
   /** The kind of agent the session runs on. */
   agent?: string;
   place?: string;
@@ -46,7 +49,9 @@ export function SessionHeader({
   const shown = kind ?? (on.length === 1 ? on[0]!.kind : undefined);
   const { name } = useHarnessMark(shown ?? "");
   const agent = shown === undefined ? undefined : { kind: shown, name };
-  const meta = [agent?.name, runsOn, place].filter((part): part is string => Boolean(part));
+  const meta = [agent?.name, account, runsOn, place].filter((part): part is string =>
+    Boolean(part),
+  );
   return (
     <PageTitle
       meta={{

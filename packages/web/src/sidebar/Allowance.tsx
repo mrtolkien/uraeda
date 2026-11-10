@@ -3,13 +3,15 @@
 // nothing. In the closed rail the pane is hidden and a small bar stands in for it, on the icons'
 // axis: what is left of the first window alone, the shortest, of the runtime in view, red once it
 // is nearly gone: the runtime of the session shown, or of the feature shown, its latest session's,
-// else the one new sessions run on.
+// else the one new sessions run on. With accounts, the bar is the first window of the account of
+// the session in view, of the feature's latest session likewise, else of the one a new session would
+// start on.
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
 import { Suspense } from "react";
-import { useAgent } from "../data.ts";
-import { type Runtime, useFeatureRuntime, useSessionRuntime } from "../runtimes.ts";
+import { useAgent, useFeature } from "../data.ts";
+import { type Runtime, useSessionAccount, useSessionRuntime } from "../runtimes.ts";
 import { useRoute } from "../routes.tsx";
 import type { Route } from "../routeTable.ts";
 import { UsageWindows, useReportedRuntimes } from "../UsageWindow.tsx";
@@ -57,8 +59,36 @@ const styles = stylex.create({
   },
 });
 
-function Bar({ agent }: { agent: Runtime | undefined }) {
-  const window = agent?.usage[0];
+/**
+ * The window the rail's bar shows: the first of the account `account` names, else of the one a new
+ * session would start on, when `agent` lists accounts; else the runtime's first.
+ */
+function barWindow(agent: Runtime | undefined, account: string | null | undefined) {
+  if (agent === undefined || agent.accounts.length === 0) {
+    return agent?.usage[0];
+  }
+  const own = account == null ? undefined : agent.accounts.find((each) => each.name === account);
+  const shown = own ?? agent.accounts.find((each) => each.isNext);
+  return shown?.state === "ready" ? shown.windows[0] : undefined;
+}
+
+/** The sidebar's Usage pane: one line per login, its first window alone; the stories draw it too. */
+export function AllowancePane({
+  isRail = false,
+  runtimes,
+}: {
+  isRail?: boolean;
+  runtimes: ReadonlyArray<Runtime>;
+}) {
+  return (
+    <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
+      <UsageWindows isCompact runtimes={runtimes} xstyle={styles.usage} />
+    </Pane>
+  );
+}
+
+function Bar({ account, agent }: { account?: string | null; agent: Runtime | undefined }) {
+  const window = barWindow(agent, account);
   const reported = useReportedRuntimes();
   const isRail = useClosedRail();
   if (reported.length === 0) {
@@ -66,9 +96,7 @@ function Bar({ agent }: { agent: Runtime | undefined }) {
   }
   return (
     <>
-      <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
-        <UsageWindows isCompact runtimes={reported} xstyle={styles.usage} />
-      </Pane>
+      <AllowancePane isRail={isRail} runtimes={reported} />
       {window && <RailBar isRail={isRail} window={window} />}
     </>
   );
@@ -77,7 +105,7 @@ function Bar({ agent }: { agent: Runtime | undefined }) {
 /**
  * The rail's one bar: the first window's of the runtime in view, the one that runs out first.
  */
-function RailBar({ isRail, window }: { isRail: boolean; window: Runtime["usage"][number] }) {
+function RailBar({ isRail, window }: { isRail: boolean; window: { label: string; used: number } }) {
   const remaining = Math.min(100, Math.max(0, 100 - window.used * 100));
   return (
     <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
@@ -104,11 +132,13 @@ function RailBar({ isRail, window }: { isRail: boolean; window: Runtime["usage"]
 }
 
 function SessionBar({ id }: { id: string }) {
-  return <Bar agent={useSessionRuntime(id).runtime} />;
+  return <Bar account={useSessionAccount(id)} agent={useSessionRuntime(id).runtime} />;
 }
 
+/** A feature's latest session's bar, else the one of a new session. */
 function FeatureBar({ folder }: { folder: string }) {
-  return <Bar agent={useFeatureRuntime(folder).runtime} />;
+  const session = useFeature(folder)?.session;
+  return session ? <SessionBar id={session} /> : <DefaultBar />;
 }
 
 function DefaultBar() {

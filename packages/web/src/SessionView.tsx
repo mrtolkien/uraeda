@@ -173,6 +173,7 @@ function SessionLog({
   return (
     <VStack gap={3}>
       <SessionHeader
+        account={session.account}
         agent={session.agent}
         place={session.place}
         runsOn={ranOn(session)}
