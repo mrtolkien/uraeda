@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Scheduled jobs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-11-10.
 >
 > - You approve jobs written in `config.toml` that run a prompt at set times, a Jobs place to see,
 >   test, and write them, and runs that start the change they offer, unless a job is report only.
