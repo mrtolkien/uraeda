@@ -286,3 +286,31 @@ test("a start that failed is a row of its time, with why, and is no started run"
   expect(jobs.changeFolders("Dependencies", ROOT)).toEqual([]);
   expect(jobs.history("Dependencies", ROOT)[0]).toMatchObject({ outcome: "failed" });
 });
+
+/**
+ * Review 08, X3 (R45). Catches: the failure the card shows until a newer run starts deleted by the
+ * pruning, 50 skipped times after it, so the card went back to an older run.
+ */
+test("the latest failed start outlives the pruning while no run started after it", () => {
+  const jobs = opened();
+  jobs.add(run({ due: 1000, session: "s1" }));
+  const failed = jobs.add(run({ due: 2000, error: "no such model", outcome: "failed" }));
+  for (let due = 3000; due < 3060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  expect(jobs.history("Dependencies", ROOT)).toHaveLength(50);
+  expect(jobs.latestFailed("Dependencies", ROOT)?.id).toBe(failed?.id);
+  // A newer failure replaces it, and the older one is pruned with the rest.
+  const newer = jobs.add(run({ due: 4000, error: "no such agent", outcome: "failed" }));
+  for (let due = 5000; due < 5060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  expect(jobs.latestFailed("Dependencies", ROOT)?.id).toBe(newer?.id);
+  // A run that starts after it makes it an old row: the pruning takes it, as any other.
+  jobs.add(run({ due: 6000, session: "s2" }));
+  for (let due = 7000; due < 7060; due += 1) {
+    jobs.add(run({ due, outcome: "skipped", reason: "change-open" }));
+  }
+  expect(jobs.latestFailed("Dependencies", ROOT)).toBeUndefined();
+  expect(jobs.latestStarted("Dependencies", ROOT)?.session).toBe("s2");
+});

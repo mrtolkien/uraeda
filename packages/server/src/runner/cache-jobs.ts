@@ -125,7 +125,8 @@ export class JobRuns {
    * Drops the rows of the job in the repository past the 50 newest, but the ones the open-change
    * check and the offer's acceptance read, however many skips follow them: the latest started run
    * that has a session, which a run still starting cannot displace, and each started run whose
-   * session belongs to a change or a feature, which stay while that session does.
+   * session belongs to a change or a feature, which stay while that session does. Also the latest
+   * failed start, while no run that has a session started after it: the card shows it until then (R55).
    */
   #prune(job: string, repository: string): void {
     this.#db
@@ -136,6 +137,11 @@ export class JobRuns {
            AND id IS NOT (SELECT MAX(id) FROM job_runs
                           WHERE job = ?1 AND repository = ?2 AND outcome = 'started'
                             AND session IS NOT NULL)
+           AND id IS NOT (SELECT MAX(id) FROM job_runs
+                          WHERE job = ?1 AND repository = ?2 AND outcome = 'failed'
+                            AND id > COALESCE((SELECT MAX(id) FROM job_runs
+                                               WHERE job = ?1 AND repository = ?2
+                                                 AND outcome = 'started' AND session IS NOT NULL), 0))
            AND NOT EXISTS (SELECT 1 FROM sessions
                            WHERE sessions.id = job_runs.session AND sessions.folder IS NOT NULL
                              AND job_runs.outcome = 'started')`,

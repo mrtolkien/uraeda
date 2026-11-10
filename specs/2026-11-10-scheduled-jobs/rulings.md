@@ -877,3 +877,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a start that failed for its own reason in the same instant as a stop is not
   recorded; the next time runs, and "Run now" is the way.
 - **Where**: the second pass's fix 5, task 4.
+
+## R55: The latest failed start outlives the history's pruning
+
+- **Decision**: besides the 50 latest rows and the started rows R8 and R15 name, the pruning keeps
+  the job's latest `failed` row in the repository while no `started` row that has a session is newer
+  than it. This completes [R45](#r45-a-scheduled-start-that-failed-is-recorded-once-and-shown),
+  whose card shows the failure until a newer run starts, however many skipped times follow it.
+- **Rationale**: 50 skipped times after a failed start (a change reopened, say) deleted its row, and
+  the card went back to an older run, as if the job had never failed.
+- **If wrong**: one row more than 50 in a history, only while the failure is the newest run.
+- **Where**: the second pass's fix 6, task 3.
