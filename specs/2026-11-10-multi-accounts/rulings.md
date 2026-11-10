@@ -36,8 +36,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   by itself" when `claude` is slow.
 - **Alternatives considered**: treating an account never asked as unusable, and refusing the pick
   when no answer came: a slow `claude` would then refuse every first session after a start.
-- **If wrong**: a session picked on a signed-out account fails its first turn in Claude Code's
-  words, and keeps no account until a turn starts (R3), so its next message picks again.
+- **If wrong**: a session picked on an account that was in fact signed out fails its turn in Claude
+  Code's words, and keeps that account: the turn started, so R3 pins it, as the spec's edge "a
+  session's account is signed out since it started" says. A new session picks again, on the answers
+  that have come since. The window is the first seconds after a server's start: the start asks usage
+  (Task 4), so every later pick finds the answers, or a wait of 10 seconds that ended with `claude`
+  still silent. (Amended by the branch review, finding 2: it promised that the session's next
+  message picks again, which R3 prevents once a turn started.)
 - **Where**: task 3 of the plan, `ClaudeAccounts` in `runner/claude-accounts.ts`.
 
 ## R3: A session picks again until a turn of it starts
