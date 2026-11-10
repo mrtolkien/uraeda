@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Multi-accounts management
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-10: 3 comments in spec-review.md.
 >
 > - You approve new Claude Code sessions starting on the listed account with the most of its five
 >   hours left, each session keeping its account, and each account's usage on Home and the sidebar.
