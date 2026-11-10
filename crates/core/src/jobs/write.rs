@@ -16,8 +16,8 @@ pub fn add(config_dir: &Path, job: &JobInput) -> Result<(), ApiError> {
     check_input(job)?;
     change_document(config_dir, HEADER, |document| {
         let root = document.as_table_mut();
-        if names(root)?.contains(&job.name) {
-            return Err(taken(&job.name));
+        if names(root)?.iter().any(|listed| listed == job.name.trim()) {
+            return Err(taken(job.name.trim()));
         }
         // The comments after the file's last table or value are the document's trailing text, which
         // a first table would end up above: they go above the table instead, as the header does.
@@ -57,8 +57,9 @@ pub fn update(config_dir: &Path, name: &str, job: &JobInput) -> Result<(), ApiEr
     check_input(job)?;
     edit(config_dir, |root| {
         let place = place(root, name)?;
-        if job.name != name && names(root)?.contains(&job.name) {
-            return Err(taken(&job.name));
+        let renamed = job.name.trim() != name.trim();
+        if renamed && names(root)?.iter().any(|listed| listed == job.name.trim()) {
+            return Err(taken(job.name.trim()));
         }
         let table = table_mut(root, place).ok_or_else(|| refused(NOT_A_LIST))?;
         apply(table, job);
@@ -157,7 +158,7 @@ fn taken(name: &str) -> ApiError {
     refused(format!("A job named “{name}” exists already."))
 }
 
-/// The names of the jobs in file order, empty for a job without one.
+/// The names of the jobs in file order, trimmed, empty for a job without one.
 fn names(root: &dyn TableLike) -> Result<Vec<String>, ApiError> {
     let Some(item) = root.get("jobs") else {
         return Ok(Vec::new());
@@ -165,7 +166,7 @@ fn names(root: &dyn TableLike) -> Result<Vec<String>, ApiError> {
     let tables = tables(item).ok_or_else(|| refused(NOT_A_LIST))?;
     Ok(tables
         .into_iter()
-        .map(|table| text_of(table, "name").unwrap_or_default().to_owned())
+        .map(|table| text_of(table, "name").unwrap_or_default().trim().to_owned())
         .collect())
 }
 
@@ -173,7 +174,7 @@ fn names(root: &dyn TableLike) -> Result<Vec<String>, ApiError> {
 fn place(root: &dyn TableLike, name: &str) -> Result<usize, ApiError> {
     names(root)?
         .iter()
-        .position(|listed| listed == name)
+        .position(|listed| listed == name.trim())
         .ok_or_else(|| refused(format!("There is no job named “{name}”.")))
 }
 
@@ -195,7 +196,7 @@ fn table_mut(root: &mut dyn TableLike, place: usize) -> Option<&mut dyn TableLik
 /// Writes `job` in `table`: a key whose value is the same is left as it is, and the optional keys
 /// at their default are removed.
 fn apply(table: &mut dyn TableLike, job: &JobInput) {
-    put(table, "name", Some(&job.name));
+    put(table, "name", Some(job.name.trim()));
     let same = table
         .get("repositories")
         .and_then(Item::as_array)

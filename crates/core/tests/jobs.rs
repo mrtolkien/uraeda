@@ -697,3 +697,38 @@ fn a_repository_that_is_not_a_name_is_the_jobs_problem() {
     );
     assert_eq!(by_name(&jobs, "Fine", 0).problem, None);
 }
+
+#[test]
+fn names_are_trimmed_so_two_cannot_differ_by_spaces() {
+    let dir = tempdir();
+    jobs::add(dir.path(), &input(" A ", "hourly", "x")).unwrap();
+    assert!(
+        text(dir.path()).contains("name = \"A\""),
+        "{}",
+        text(dir.path())
+    );
+    assert_eq!(
+        refusal(jobs::add(dir.path(), &input("A", "hourly", "x"))),
+        "A job named “A” exists already."
+    );
+    jobs::update(dir.path(), "A", &input(" B ", "hourly", "x")).unwrap();
+    assert_eq!(jobs::read(dir.path()).jobs[0].name, "B");
+    assert!(text(dir.path()).contains("name = \"B\""));
+
+    // Written by hand with spaces, a name is the same as without, and found as shown.
+    let dir = tempdir();
+    let text = [
+        table(" A ", "\"a\"", "hourly", "\"x\""),
+        table("A", "\"a\"", "hourly", "\"x\""),
+    ]
+    .join("\n");
+    write(dir.path(), &text);
+    let jobs = jobs::read(dir.path());
+    assert_eq!(problem(&jobs, "A"), "");
+    assert_eq!(
+        jobs.jobs[1].problem.as_deref(),
+        Some("Two jobs are named “A”.")
+    );
+    jobs::set_on(dir.path(), "A", false).unwrap();
+    assert!(!jobs::read(dir.path()).jobs[0].on);
+}

@@ -30,7 +30,7 @@ const NO_REPOSITORY: &str = "A job runs in one repository at least.";
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Job {
-    /// Unique among the jobs, as written: the second of a name has a problem.
+    /// Unique among the jobs, trimmed: the second of a name has a problem.
     pub name: String,
     /// The repositories of Uraeda's list it runs in.
     pub repositories: Vec<String>,
@@ -106,7 +106,7 @@ pub fn read(config_dir: &Path) -> Jobs {
     let jobs = tables
         .into_iter()
         .map(|table| {
-            let name = text_of(table, "name").unwrap_or_default();
+            let name = text_of(table, "name").unwrap_or_default().trim();
             // A job without a name is never a duplicate.
             let duplicate = !name.is_empty() && !seen.insert(name.to_owned());
             job(table, duplicate)
@@ -173,7 +173,7 @@ fn job(table: &dyn TableLike, duplicate: bool) -> Job {
         }
     };
     let mut job = Job {
-        name: text_of(table, "name").unwrap_or_default().to_owned(),
+        name: text_of(table, "name").unwrap_or_default().trim().to_owned(),
         repositories,
         schedule_text: text_of(table, "schedule").unwrap_or_default().to_owned(),
         schedule: None,
