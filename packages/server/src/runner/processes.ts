@@ -32,12 +32,18 @@ type Exit = Extract<AgentEvent, { type: "exit" }>;
 export class Processes {
   #context: SessionContext;
   /**
-   * Each runtime's windows' reports, by the runtime's name and the window's ID, in report order,
-   * each with when it came: the newest open process's report wins, even when usage decreased. A
-   * report without a window keeps that window's last report. A runtime's windows keep the order
-   * they first came in.
+   * Each runtime's windows' reports of the processes running on no account, by the runtime's name
+   * and the window's ID, in report order, each with when it came: the newest open process's report
+   * wins, even when usage decreased. A report without a window keeps that window's last report. A
+   * runtime's windows keep the order they first came in. A process's reports go as it closes.
    */
   #limits = new Map<string, Map<Proc, { at: number; window: UsageWindow }>>();
+  /**
+   * The latest report of each window of each account, by the runtime's name, the account, and the
+   * window's ID: kept after its process closed, and once expired, until an ask newer than it makes
+   * it moot. `accountUsage` decides which of it and the ask counts.
+   */
+  #accounted = new Map<string, UsageReport>();
   #expiry: ReturnType<typeof setTimeout> | undefined;
   /** Each process's agent session total so far, which its next report's own work is counted from. */
   #baselines = new WeakMap<Proc, TokenCounts>();
@@ -65,18 +71,27 @@ export class Processes {
   }
 
   /**
-   * Every open process's latest report of each window of the runtime, unexpired, with the
-   * process's account and when the report came: `accountUsage` merges them with the asks.
+   * The latest report of each window of each account of the runtime, with when it came, from
+   * processes open or closed, expired or not: `accountUsage` merges them with the asks, and
+   * normalizes the expired. A report that is not newer than its account's ask, or of an account no
+   * longer listed, is moot, and dropped here.
    */
   reports(runtime: string): Array<UsageReport> {
-    const now = Date.now();
-    return [...this.#limits].flatMap(([key, reports]) =>
-      key.startsWith(`${runtime}\0`)
-        ? [...reports]
-            .filter(([, { window }]) => Date.parse(window.resetsAt) > now)
-            .map(([proc, { at, window }]) => ({ account: proc.account, at, window }))
-        : [],
-    );
+    const listed = this.#context.runtimes.get(runtime)?.accounts?.list() ?? [];
+    const prefix = `${runtime}\0`;
+    const kept: Array<UsageReport> = [];
+    for (const [key, report] of this.#accounted) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      const account = listed.find(({ id }) => id === report.account);
+      if (account === undefined || report.at <= (account.askedAt ?? -Infinity)) {
+        this.#accounted.delete(key);
+      } else {
+        kept.push(report);
+      }
+    }
+    return kept;
   }
 
   /** Drops the process's reports of every window: whether it had any. */
@@ -84,10 +99,21 @@ export class Processes {
     return [...this.#limits.values()].map((reports) => reports.delete(proc)).includes(true);
   }
 
-  /** Keeps a report's windows as the process's newest, each in report order. */
+  /**
+   * Keeps a report's windows as the newest: a process of an account's, as the account's latest
+   * report of the window; any other's, as its own, each in report order.
+   */
   #report(proc: Proc, event: Extract<AgentEvent, { type: "usage" }>) {
     const at = Date.now();
     for (const window of event.windows) {
+      if (proc.account !== null) {
+        this.#accounted.set(`${proc.kind}\0${proc.account}\0${window.id}`, {
+          account: proc.account,
+          at,
+          window,
+        });
+        continue;
+      }
       const key = `${proc.kind}\0${window.id}`;
       const reports = this.#limits.get(key) ?? new Map<Proc, { at: number; window: UsageWindow }>();
       this.#limits.set(key, reports);
@@ -97,7 +123,10 @@ export class Processes {
     this.#usageChanged();
   }
 
-  /** Drops expired reports, and publishes expiry even when no process prints another event. */
+  /**
+   * Drops the expired reports of no account, and publishes expiry even when no process prints
+   * another event. An account's reports stay, expired: their expiry is read in the merge.
+   */
   #usageChanged() {
     clearTimeout(this.#expiry);
     const now = Date.now();

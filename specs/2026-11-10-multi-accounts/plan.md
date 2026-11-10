@@ -801,11 +801,15 @@ every read.
 
 - [x] **Step 3: Keep reports by account, and merge**
 
-`Processes` keeps each report with its process's account and the time it came. `usage(runtime)`
-gives the windows of the processes without an account, as today; `reports(runtime)` gives every open
-process's latest report of each window. `accountUsage` gives, for each account and window, the
-freshest of the ask (`askedAt`) and the account's reports (`at`); a window whose reset is at or
-before `now` reads `{ used: 0, resetsAt: null }`; an account never asked takes its reports alone.
+`Processes` keeps each account's latest report of each window with the time it came, after its
+process closed and once expired, until an ask newer than it makes it moot. `usage(runtime)` gives
+the windows of the processes without an account, as today; `reports(runtime)` gives the accounts'
+reports. `accountUsage` gives, for each window the ask gave, the freshest of the ask (`askedAt`,
+kept after a failed ask) and the account's reports (`at`); a report never adds a window, so the
+first is always the shortest, and an account whose ask never read windows stays unknown, its reports
+set aside. The account is `known` when its ask's usage is, or when a report of its first window is
+fresher than its `askedAt`. A window whose reset is at or before `now` reads
+`{ used: 0, resetsAt: null }`, applied in this merge.
 
 - [x] **Step 4: The records, the asks, and the settings**
 
