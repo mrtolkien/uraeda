@@ -17,6 +17,8 @@ pub struct TestClient {
     socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
     sign_in: SignIn,
     epoch: Option<String>,
+    /// What the test waits for, said when nothing comes.
+    waiting_for: String,
 }
 
 impl TestClient {
@@ -37,6 +39,7 @@ impl TestClient {
             socket,
             sign_in: SignIn::Cookie,
             epoch: None,
+            waiting_for: String::new(),
         }
     }
 
@@ -85,6 +88,12 @@ impl TestClient {
 
     /// The server's next message. Fails when the connection closes first, or nothing comes.
     pub async fn next(&mut self) -> ServerMessage {
+        self.next_for("").await
+    }
+
+    /// [`TestClient::next`], naming what the test waits for when nothing comes.
+    pub async fn next_for(&mut self, what: &str) -> ServerMessage {
+        self.waiting_for = what.to_owned();
         match self.frame().await {
             Some(text) => serde_json::from_str(&text)
                 .unwrap_or_else(|error| panic!("not a server message: {text}: {error}")),
@@ -102,9 +111,11 @@ impl TestClient {
     /// The next text frame, or none once the connection is closed.
     async fn frame(&mut self) -> Option<String> {
         loop {
-            let next = tokio::time::timeout(PATIENCE, self.socket.next())
-                .await
-                .expect("the server answers");
+            let next = tokio::time::timeout(PATIENCE, self.socket.next()).await;
+            let next = next.unwrap_or_else(|_| match self.waiting_for.as_str() {
+                "" => panic!("the server did not answer"),
+                what => panic!("the server did not answer: waiting for {what}"),
+            });
             match next {
                 Some(Ok(Message::Text(text))) => return Some(text.to_string()),
                 Some(Ok(Message::Close(_)) | Err(_)) | None => return None,

@@ -1,154 +1,88 @@
 //! What the tests of writing start from: a server over a copy of the fixture repository, a client
 //! that keeps what it subscribed to, and a pre-commit hook the test holds.
 
-use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use serde_json::{Value, json};
-use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage, apply};
 
-use crate::support::{self, TestClient, TestRepo, TestServer};
+use crate::support::{self, Live, Refused, TestRepo, TestServer};
+pub use crate::support::{fixture_repo, fixture_text as fixture};
 
 /// The fixture repository's name in the server's list: its folder's.
 pub const REPO: &str = "todo";
-
-/// What a call fails with: the error's code, and its message.
-pub type Refused = (ErrorCode, String);
 
 /// A server over a copy of the fixture repository, and one signed-in client.
 pub struct Fixture {
     pub repo: TestRepo,
     server: TestServer,
-    client: TestClient,
-    next: u32,
-    /// The value of each open subscription, as the changes left it.
-    values: HashMap<u32, Value>,
-    /// The answers that came for calls nobody asked about yet.
-    answers: HashMap<u32, Result<Value, Refused>>,
+    live: Live,
 }
 
 impl Fixture {
     /// Starts a server in a copy of the fixture repository, which joins its list as `todo`.
     pub async fn start() -> Fixture {
-        Fixture::over(fixture_repo()).await
+        Fixture::over(fixture_repo(REPO)).await
     }
 
     /// Starts a server in a repository the test prepared.
     pub async fn over(repo: TestRepo) -> Fixture {
         let server = support::setup().folder(repo.path()).start().await;
-        let client = server.connect().await;
-        Fixture {
-            repo,
-            server,
-            client,
-            next: 0,
-            values: HashMap::new(),
-            answers: HashMap::new(),
-        }
+        let live = Live::of(&server).await;
+        Fixture { repo, server, live }
     }
 
     /// Calls an action of the repository, and gives its output.
     pub async fn call(&mut self, action: &str, input: Value) -> Value {
-        match self.try_call(action, input).await {
-            Ok(output) => output,
-            Err((code, message)) => panic!("{action} failed: {code:?}: {message}"),
-        }
+        self.live.call(action, in_repo(input)).await
     }
 
     /// Calls an action of the repository that fails, and gives its error.
     pub async fn refused(&mut self, action: &str, input: Value) -> Refused {
-        match self.try_call(action, input).await {
-            Ok(output) => panic!("{action} answered {output}"),
-            Err(refused) => refused,
-        }
-    }
-
-    /// Calls an action of the repository, and gives its answer.
-    pub async fn try_call(&mut self, action: &str, input: Value) -> Result<Value, Refused> {
-        let id = self.send(action, input).await;
-        self.answer(id).await
+        self.live.refused(action, in_repo(input)).await
     }
 
     /// Sends a call of the repository without waiting for its answer: its id.
     pub async fn send(&mut self, action: &str, input: Value) -> u32 {
-        let id = self.id();
-        let call = ClientMessage::Call {
-            id,
-            action: action.to_owned(),
-            input: in_repo(input),
-        };
-        self.client.send(&call).await;
-        id
+        self.live.send(action, in_repo(input)).await
     }
 
     /// The answer to a call sent, once it comes.
     pub async fn answer(&mut self, id: u32) -> Result<Value, Refused> {
-        loop {
-            if let Some(answer) = self.answers.remove(&id) {
-                return answer;
-            }
-            self.take().await;
-        }
+        self.live.answer(id).await
     }
 
     /// Whether a call sent was answered yet, after every message that came within `patience`.
     pub async fn answered_within(&mut self, id: u32, patience: Duration) -> bool {
-        let waited = tokio::time::timeout(patience, async {
-            while !self.answers.contains_key(&id) {
-                self.take().await;
-            }
-        });
-        waited.await.is_ok()
+        self.live.answered_within(id, patience).await
     }
 
     /// Subscribes to a record of the repository, and waits for its whole value: the
     /// subscription's id.
     pub async fn watch(&mut self, record: &str, args: Value) -> u32 {
-        match self.try_watch(record, args).await {
-            Ok(id) => id,
-            Err((code, message)) => panic!("{record} cannot be read: {code:?}: {message}"),
-        }
+        self.live.watch(record, in_repo(args)).await
     }
 
     /// Subscribes to a record of the repository: the subscription's id once its whole value
     /// came, or why it cannot be read.
     pub async fn try_watch(&mut self, record: &str, args: Value) -> Result<u32, Refused> {
-        let id = self.id();
-        let sub = ClientMessage::Sub {
-            id,
-            record: record.to_owned(),
-            args: in_repo(args),
-        };
-        self.client.send(&sub).await;
-        while !self.values.contains_key(&id) {
-            if let Some(Err(refused)) = self.answers.remove(&id) {
-                return Err(refused);
-            }
-            self.take().await;
-        }
-        Ok(id)
+        self.live.try_watch(record, in_repo(args)).await
     }
 
     /// The value a subscription holds now.
     pub fn value(&self, id: u32) -> &Value {
-        &self.values[&id]
+        self.live.value(id)
     }
 
     /// Waits until a subscription's value is as `wanted` says, and gives it.
     pub async fn until(&mut self, id: u32, wanted: impl Fn(&Value) -> bool) -> Value {
-        while !wanted(&self.values[&id]) {
-            self.take().await;
-        }
-        self.values[&id].clone()
+        self.live.until(id, wanted).await
     }
 
     /// Reads a record of the repository once.
     pub async fn read(&mut self, record: &str, args: Value) -> Value {
-        let id = self.watch(record, args).await;
-        self.client.send(&ClientMessage::Unsub { id }).await;
-        self.values.remove(&id).expect("a value")
+        self.live.read(record, in_repo(args)).await
     }
 
     /// The text of a Markdown file of `specs/`, as its branch has it: the record `Buffer`.
@@ -159,18 +93,14 @@ impl Fixture {
 
     /// The text of a Markdown file of `specs/`, or none when its branch has no such file.
     pub async fn try_text(&mut self, path: &str) -> Option<String> {
-        let id = self
-            .try_watch("Buffer", json!({ "path": path }))
-            .await
-            .ok()?;
-        self.client.send(&ClientMessage::Unsub { id }).await;
-        let buffer = self.values.remove(&id).expect("a value");
+        let args = in_repo(json!({ "path": path }));
+        let buffer = self.live.try_read("Buffer", args).await.ok()?;
         Some(buffer["text"].as_str().expect("a buffer's text").to_owned())
     }
 
     /// The write queue's writes as a subscription holds them, each as `<label> <state>`.
     pub fn writes(&self, queue: u32) -> Vec<String> {
-        names(self.values[&queue]["writes"].as_array().expect("writes"))
+        names(self.value(queue)["writes"].as_array().expect("writes"))
     }
 
     /// Waits until the write queue has no write landing or waiting, and gives the refused ones
@@ -183,8 +113,7 @@ impl Fixture {
             writes.iter().all(|write| write["state"] == "refused")
         };
         self.until(queue, settled).await;
-        self.client.send(&ClientMessage::Unsub { id: queue }).await;
-        let left = self.values.remove(&queue).expect("a value");
+        let left = self.live.unwatch(queue).await;
         left["writes"].as_array().expect("writes").clone()
     }
 
@@ -192,33 +121,6 @@ impl Fixture {
     pub async fn stop(self) -> TestRepo {
         self.server.stop().await;
         self.repo
-    }
-
-    fn id(&mut self) -> u32 {
-        self.next += 1;
-        self.next
-    }
-
-    /// Takes the server's next message: a subscription's value or change, or a call's answer.
-    async fn take(&mut self) {
-        match self.client.next().await {
-            ServerMessage::Data { id, value, .. } => {
-                self.values.insert(id, value);
-            }
-            ServerMessage::Change { id, ops, .. } => {
-                if let Some(value) = self.values.get_mut(&id) {
-                    apply(value, &ops).expect("a change applies to the value held");
-                }
-            }
-            ServerMessage::Result { id, output } => {
-                self.answers.insert(id, Ok(output));
-            }
-            ServerMessage::Error { id, code, message } => {
-                let id = id.unwrap_or_else(|| panic!("the server could not read: {message}"));
-                self.answers.insert(id, Err((code, message)));
-            }
-            other => panic!("unexpected message: {other:?}"),
-        }
     }
 }
 
@@ -235,54 +137,6 @@ pub fn names(writes: &[Value]) -> Vec<String> {
 fn in_repo(mut fields: Value) -> Value {
     fields["repo"] = json!(REPO);
     fields
-}
-
-/// A copy of the fixture repository, `fixtures/repo/`: `main/` committed on `main`, then each
-/// folder of `branches/` committed on a branch of its name, from `main`. Its hooks run in every
-/// worktree.
-// JOIN(wave 6): the fixture repository of the server's tests, as the Node tests' `fixtureRepo`.
-pub fn fixture_repo() -> TestRepo {
-    support::repo::without_user_git_config();
-    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
-    let repo = TestRepo::named(REPO);
-    let hooks = repo.path().join(".git/hooks");
-    repo.git(&["config", "core.hooksPath", hooks.to_str().expect("a path")]);
-    copy(&fixtures.join("repo/main"), repo.path());
-    repo.commit("chore: specs");
-    let mut branches: Vec<PathBuf> = fs::read_dir(fixtures.join("repo/branches"))
-        .expect("the fixture's branches")
-        .map(|entry| entry.expect("a branch").path())
-        .collect();
-    branches.sort();
-    for branch in branches {
-        let name = branch.file_name().and_then(|name| name.to_str());
-        let name = name.expect("a branch's name");
-        repo.git(&["switch", "--quiet", "--create", name, "main"]);
-        copy(&branch, repo.path());
-        repo.commit(&format!("work on {name}"));
-        repo.switch("main");
-    }
-    repo
-}
-
-/// Copies a folder's files into another, folder by folder.
-fn copy(from: &Path, to: &Path) {
-    fs::create_dir_all(to).expect("a folder");
-    for entry in fs::read_dir(from).expect("a fixture's folder") {
-        let entry = entry.expect("a fixture's file");
-        let target = to.join(entry.file_name());
-        if entry.path().is_dir() {
-            copy(&entry.path(), &target);
-        } else {
-            fs::copy(entry.path(), target).expect("a copied file");
-        }
-    }
-}
-
-/// A fixture file's text, by its path under `fixtures/`.
-pub fn fixture(path: &str) -> String {
-    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
-    fs::read_to_string(fixtures.join(path)).expect("a fixture")
 }
 
 /// The repository's pre-commit hook, held by the test: each commit waits until the test lets

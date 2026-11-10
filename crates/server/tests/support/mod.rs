@@ -10,6 +10,9 @@
 //!
 //! `support::setup()` prepares a start that differs: a file in the config folder, a variable of
 //! the server's environment, the folder it starts in.
+//!
+//! Beside it: `fixture_repo(name)`, the git repository built from `fixtures/repo/`, and `read`,
+//! `call`, `Held`, and `Live`, which read records and call actions over `/live`: see `live.rs`.
 
 #![allow(
     dead_code,
@@ -21,6 +24,8 @@
 pub mod repo;
 
 mod client;
+mod fixture;
+mod live;
 mod request;
 
 use std::fs;
@@ -33,6 +38,8 @@ use uraeda_protocol::SignIn;
 use uraeda_server::{Clock, Options, Server, Shared, sign_in, status};
 
 pub use client::TestClient;
+pub use fixture::{fixture, fixture_repo, fixture_text};
+pub use live::{Held, Live, Refused, call, read};
 pub use repo::TestRepo;
 pub use request::{TestRequest, TestResponse};
 

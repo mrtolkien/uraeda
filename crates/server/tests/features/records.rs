@@ -110,7 +110,7 @@ async fn workflow_file_answers_its_shape() {
 
 #[tokio::test]
 async fn a_round_of_the_default_branch_is_read_by_its_id() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.write(
         "specs/INBOX-TRIAGE.md",
         &std::fs::read_to_string(super::fixture("INBOX-TRIAGE.md")).unwrap(),
@@ -230,7 +230,7 @@ async fn ledger_answers_its_shape() {
 
 #[tokio::test]
 async fn the_ledger_carries_the_decisions_checks_status() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.write(
         "specs/DECISIONS-CHECK.md",
         &std::fs::read_to_string(super::fixture("DECISIONS-CHECK.md")).unwrap(),
@@ -257,7 +257,7 @@ async fn history_answers_its_shape() {
 
 #[tokio::test]
 async fn branch_decision_answers_its_shape() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     let text = repo
         .read("specs/decisions/git.md")
         .replace("MUST", "SHOULD");
@@ -277,7 +277,7 @@ async fn branch_decision_answers_its_shape() {
 
 #[tokio::test]
 async fn branch_changes_answers_its_shape() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.add_on_branch(HUMAN, "src/app.ts", "export const app = 1;\n");
     let server = serving(&repo).await;
 
@@ -296,7 +296,7 @@ async fn branch_changes_answers_its_shape() {
 
 #[tokio::test]
 async fn all_branch_changes_answers_its_shape() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.add_on_branch(HUMAN, "src/app.ts", "export const app = 1;\n");
     let server = serving(&repo).await;
 

@@ -10,11 +10,11 @@ use std::fs;
 
 use serde_json::{Value, json};
 use support::repo::{run_git, without_user_git_config};
-use support::{TestClient, TestRepo, TestServer};
+use support::{Live, Refused, TestRepo, TestServer};
 use uraeda_core::actions::place;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
-use uraeda_protocol::{ClientMessage, ErrorCode, ServerMessage, apply};
+use uraeda_protocol::ErrorCode;
 
 /// The name the tests' repository has in the server's list: its folder's.
 const REPO: &str = "repo";
@@ -27,121 +27,51 @@ const FEATURE: &str = "2026-10-11-web-ui";
 const WORKTREE: &str = ".worktrees/2026-10-11-web-ui";
 
 /// A client of the Git page: it reads records and calls actions, as the page does.
-struct Page {
-    client: TestClient,
-    /// The id of the next `sub` or `call`.
-    next: u32,
-}
-
-/// What a failed read or call answers: the error's code and its message.
-type Refused = (ErrorCode, String);
-
-/// A record a client holds: its subscription, its value, and the number of its last change.
-struct Held {
-    id: u32,
-    value: Value,
-    seq: u64,
-}
+struct Page(Live);
 
 /// A server whose list holds `repo`, and a signed-in client of its Git page.
 async fn serving(repo: &TestRepo) -> (TestServer, Page) {
     without_user_git_config();
     let server = support::setup().folder(repo.path()).start().await;
-    let client = server.connect().await;
-    (server, Page { client, next: 1 })
+    let live = Live::of(&server).await;
+    (server, Page(live))
 }
 
 impl Page {
-    fn id(&mut self) -> u32 {
-        self.next += 1;
-        self.next
-    }
-
-    /// Subscribes to a record, and holds its value.
-    async fn hold(&mut self, record: &str, args: Value) -> Result<Held, Refused> {
-        let id = self.id();
-        let record = record.to_owned();
-        self.client
-            .send(&ClientMessage::Sub { id, record, args })
-            .await;
-        loop {
-            match self.client.next().await {
-                ServerMessage::Data {
-                    id: of, seq, value, ..
-                } if of == id => return Ok(Held { id, value, seq }),
-                ServerMessage::Error {
-                    id: Some(of),
-                    code,
-                    message,
-                } if of == id => return Err((code, message)),
-                _ => {}
-            }
-        }
+    /// Subscribes to a record, and holds its value: its subscription's id.
+    async fn hold(&mut self, record: &str, args: Value) -> Result<u32, Refused> {
+        self.0.try_watch(record, args).await
     }
 
     /// Applies the changes of a held record as they come, until its value is as `done` says.
-    async fn follow(&mut self, held: &mut Held, done: impl Fn(&Value) -> bool) {
-        while !done(&held.value) {
-            match self.client.next().await {
-                ServerMessage::Data { id, seq, value } if id == held.id => {
-                    (held.value, held.seq) = (value, seq);
-                }
-                ServerMessage::Change { id, seq, ops } if id == held.id => {
-                    assert_eq!(seq, held.seq + 1, "a change is numbered one more");
-                    apply(&mut held.value, &ops).expect("a change applies to the value held");
-                    held.seq = seq;
-                }
-                _ => {}
-            }
-        }
+    async fn follow(&mut self, held: u32, done: impl Fn(&Value) -> bool) -> Value {
+        self.0.until(held, done).await
     }
 
     /// Reads a record once, as a page that opens does.
     async fn try_read(&mut self, record: &str, args: Value) -> Result<Value, Refused> {
-        let held = self.hold(record, args).await?;
-        self.client
-            .send(&ClientMessage::Unsub { id: held.id })
-            .await;
-        Ok(held.value)
+        self.0.try_read(record, args).await
     }
 
     /// Reads a record of the tests' repository once: `args` are its arguments besides `repo`.
     async fn read(&mut self, record: &str, args: Value) -> Value {
-        let read = self.try_read(record, in_repo(args)).await;
-        read.unwrap_or_else(|(code, message)| panic!("{record} is not read: {code:?}: {message}"))
+        self.0.read(record, in_repo(args)).await
     }
 
     /// Calls an action, and gives its output or its error.
     async fn try_call(&mut self, action: &str, input: Value) -> Result<Value, Refused> {
-        let id = self.id();
-        let action = action.to_owned();
-        self.client
-            .send(&ClientMessage::Call { id, action, input })
-            .await;
-        loop {
-            match self.client.next().await {
-                ServerMessage::Result { id: of, output } if of == id => return Ok(output),
-                ServerMessage::Error {
-                    id: Some(of),
-                    code,
-                    message,
-                } if of == id => return Err((code, message)),
-                _ => {}
-            }
-        }
+        self.0.try_call(action, input).await
     }
 
     /// Calls an action on the tests' repository, which lands: `input` is its input besides
     /// `repo`.
     async fn call(&mut self, action: &str, input: Value) -> Value {
-        let called = self.try_call(action, in_repo(input)).await;
-        called.unwrap_or_else(|(code, message)| panic!("{action} failed: {code:?}: {message}"))
+        self.0.call(action, in_repo(input)).await
     }
 
     /// Calls an action on the tests' repository, which is refused: its code and its message.
     async fn refused(&mut self, action: &str, input: Value) -> Refused {
-        let called = self.try_call(action, in_repo(input)).await;
-        called.expect_err("the action is refused")
+        self.0.refused(action, in_repo(input)).await
     }
 
     /// The Git page of the tests' repository, read once.
@@ -475,20 +405,18 @@ async fn staging_and_unstaging_reach_an_open_page() {
     repo.write("notes.txt", "a note\n");
     repo.write("docs/guide.md", "# Guide\n");
     let (_server, mut git) = serving(&repo).await;
-    let mut page = git.hold("GitPage", in_repo(json!({}))).await.unwrap();
+    let page = git.hold("GitPage", in_repo(json!({}))).await.unwrap();
     let both = |staged| [("docs/guide.md", "new", staged), ("notes.txt", "new", "no")];
-    assert_eq!(files(&page.value), both("no"));
+    git.follow(page, |page| files(page) == both("no")).await;
 
     // A folder stages what it holds.
     git.call("git.stage", json!({ "paths": ["docs"] })).await;
-    git.follow(&mut page, |page| files(page) == both("yes"))
-        .await;
+    git.follow(page, |page| files(page) == both("yes")).await;
     assert_eq!(repo.staged(), ["docs/guide.md"]);
 
     git.call("git.unstage", json!({ "paths": ["docs/guide.md"] }))
         .await;
-    git.follow(&mut page, |page| files(page) == both("no"))
-        .await;
+    git.follow(page, |page| files(page) == both("no")).await;
     assert!(repo.staged().is_empty());
 
     // A path outside the checkout is refused, and stages nothing.
@@ -590,14 +518,13 @@ async fn a_repository_of_the_list_is_fetched_as_the_server_starts() {
     pushed_elsewhere(&repo, "later.md");
     // A start with the repository in its list already.
     let server = server.restart().await;
-    let client = server.connect().await;
-    let mut git = Page { client, next: 1 };
+    let mut git = Page(Live::of(&server).await);
 
     // Nobody asks for a fetch: an open page is told what the server's own brought.
-    let mut page = git.hold("GitPage", in_repo(json!({}))).await.unwrap();
-    git.follow(&mut page, |page| page["behind"] == 2).await;
+    let page = git.hold("GitPage", in_repo(json!({}))).await.unwrap();
+    let page = git.follow(page, |page| page["behind"] == 2).await;
 
-    assert_eq!(page.value["fetchFailure"], Value::Null);
+    assert_eq!(page["fetchFailure"], Value::Null);
 }
 
 // The break it catches: a save of the editor's text over a file that changed since it was read,

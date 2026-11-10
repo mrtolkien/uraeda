@@ -8,17 +8,16 @@ mod support;
 
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use futures_util::StreamExt;
 use serde_json::{Value, json};
-use support::{TestClient, TestRepo, TestResponse, TestServer};
+use support::{Live, TestRepo, TestResponse, TestServer, fixture};
 use tempfile::TempDir;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-use uraeda_protocol::{ClientMessage, ServerMessage, apply};
 use uraeda_server::preview;
 
 /// The stories file of the tests' projects, from the repository's top level.
@@ -31,13 +30,6 @@ const FEATURE: &str = "2026-10-20-sidebar-resize";
 const PATIENCE: Duration = Duration::from_secs(10);
 
 const MINUTE: Duration = Duration::from_secs(60);
-
-/// A path of the repository's `fixtures/`.
-fn fixture(path: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../fixtures")
-        .join(path)
-}
 
 /// A repository whose main checkout has a stories file and an active preview decision, running
 /// the fake Storybook in `packages/web`, with the log of its starts.
@@ -138,71 +130,37 @@ async fn listed(server: &TestServer, repo: &TestRepo) {
     assert_eq!(answer.json(&folder).send().await.status, 200);
 }
 
-/// A client's records: each subscription's value, kept as its changes come.
+/// A client's records: each subscription's value, kept as its changes come, under the number
+/// the test gives it.
 struct Records {
-    client: TestClient,
-    values: HashMap<u32, Value>,
-    calls: u32,
+    live: Live,
+    /// The subscription of each number the test gave.
+    subs: HashMap<u32, u32>,
 }
 
 impl Records {
     async fn of(server: &TestServer) -> Records {
         Records {
-            client: server.connect().await,
-            values: HashMap::new(),
-            calls: 1000,
+            live: Live::of(server).await,
+            subs: HashMap::new(),
         }
     }
 
     /// Subscribes to a record under `id`, and gives its first value.
     async fn sub(&mut self, id: u32, record: &str, args: Value) -> Value {
-        let record = record.to_owned();
-        self.client
-            .send(&ClientMessage::Sub { id, record, args })
-            .await;
-        self.until(id, |_| true).await
+        let sub = self.live.watch(record, args).await;
+        self.subs.insert(id, sub);
+        self.live.value(sub).clone()
     }
 
     /// Reads the server's messages until the record `id` has a value that `done` accepts.
     async fn until(&mut self, id: u32, done: impl Fn(&Value) -> bool) -> Value {
-        loop {
-            if let Some(value) = self.values.get(&id).filter(|value| done(value)) {
-                return value.clone();
-            }
-            let message = self.client.next().await;
-            self.take(message);
-        }
+        self.live.until(self.subs[&id], done).await
     }
 
     /// Calls an action, and gives its output.
     async fn call(&mut self, action: &str, input: Value) -> Value {
-        self.calls += 1;
-        let (id, action) = (self.calls, action.to_owned());
-        self.client
-            .send(&ClientMessage::Call { id, action, input })
-            .await;
-        loop {
-            match self.client.next().await {
-                ServerMessage::Result {
-                    id: answered,
-                    output,
-                } if answered == id => return output,
-                other => self.take(other),
-            }
-        }
-    }
-
-    /// Keeps a record's value, or applies its change.
-    fn take(&mut self, message: ServerMessage) {
-        match message {
-            ServerMessage::Data { id, value, .. } => {
-                self.values.insert(id, value);
-            }
-            ServerMessage::Change { id, ops, .. } => {
-                apply(self.values.get_mut(&id).expect("a held record"), &ops).unwrap();
-            }
-            other => panic!("neither a value nor a change: {other:?}"),
-        }
+        self.live.call(action, input).await
     }
 }
 

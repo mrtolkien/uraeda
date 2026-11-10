@@ -10,7 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use fixture::{Fixture, Hook, fixture, fixture_repo, names};
+use fixture::{Fixture, Hook, REPO, fixture, fixture_repo, names};
 use serde_json::{Value, json};
 use uraeda_protocol::ErrorCode;
 
@@ -129,7 +129,7 @@ async fn write_queue_answers_its_shape() {
 // not landed yet.
 #[tokio::test]
 async fn two_writes_on_one_repository_land_in_order() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.write(
         "specs/proposals/second.md",
         "# Second\n\n## What\n\nMore.\n",
@@ -364,7 +364,7 @@ async fn a_review_is_written_comment_by_comment() {
 
 /// A server over the fixture repository with the inbox's triage committed on `main`.
 async fn with_triage() -> Fixture {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     repo.write(TRIAGE, &fixture("INBOX-TRIAGE.md"));
     repo.commit("chore: triage");
     Fixture::over(repo).await

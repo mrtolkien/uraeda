@@ -1767,3 +1767,23 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   have changed in one place only.
 - **Where**: `crates/server/src/records/{views.rs,workspace/status.rs,writing/undo.rs}`,
   `records/workspace/settings/options.rs`, `live/mod.rs`. Tasks 15, 17, and 20.
+
+## T99.5: The server's tests share one fixture repository and one client of `/live`
+
+- **Decision**: `crates/server/tests/support/` holds what the domains' tests each wrote.
+  - `support::fixture(path)` and `fixture_text(path)` give a path and a text of `fixtures/`, and
+    `fixture_repo(name)` the git repository built from `fixtures/repo/`: `main/` on `main`, then
+    each folder of `branches/` on a branch of its name. Files are copied as bytes.
+  - `support::read(&server, record, args)` reads a record once, `call(&server, action, input)` calls
+    an action, and `Held::open` holds one record on a client of its own, with `until`.
+  - `support::Live` is one client that holds several records and makes several calls: `watch`,
+    `until`, `read`, `send`, `answer`, `call`, `try_call`, `refused`. It checks that each change is
+    numbered one more than the last. Writing's `Fixture`, git's `Page`, and the previews' `Records`
+    are thin wrappers of it, for their repository's name.
+  - A wait that never ends says what it waited for.
+- **Task 9's finding on hooks**: its fixture set `core.hooksPath` to an absolute path, noting that
+  `TestRepo`'s relative `.git/hooks` points at nothing in a worktree. The core already resolves a
+  relative path from the main checkout when it commits in a worktree (`Git::hooks_override`), and
+  `TestRepo`'s relative path is what tests that rule. Writing's tests pass without the override,
+  their hook's log included, so the override is gone and `TestRepo` stays as it is.
+- **Where**: `crates/server/tests/support/{fixture,live}.rs`. Tasks 15, 17, and 20.

@@ -317,7 +317,7 @@ fn record(title: &str, body: &str) -> String {
 
 #[tokio::test]
 async fn a_done_features_moved_link_is_fixed_without_a_commit() {
-    let repo = fixture_repo();
+    let repo = fixture_repo(REPO);
     let done_folder = "2026-10-28-inbox-again";
     let proposal = "specs/2026-10-30-proposal-start/proposal.md";
     repo.write(
