@@ -55,9 +55,20 @@ const COLUMNS =
 /** The record of runs: made by `SessionCache`, which owns the database. */
 export class JobRuns {
   readonly #db: DatabaseSync;
+  readonly #listeners = new Set<() => void>();
 
   constructor(db: DatabaseSync) {
     this.#db = db;
+  }
+
+  /** Calls `listener` after each change of the rows: gives its removal. */
+  onChange(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  #changed(): void {
+    this.#listeners.forEach((listener) => listener());
   }
 
   /**
@@ -66,7 +77,7 @@ export class JobRuns {
    * and repository.
    */
   add(row: Omit<JobRunRow, "id" | "refusal" | "refusedTurn">): JobRunRow | undefined {
-    return transaction(this.#db, () => {
+    const added = transaction(this.#db, () => {
       const stored = this.#db
         .prepare(
           `INSERT INTO job_runs
@@ -90,6 +101,10 @@ export class JobRuns {
       this.#prune(row.job, row.repository);
       return toRow(stored);
     });
+    if (added !== undefined) {
+      this.#changed();
+    }
+    return added;
   }
 
   /**
@@ -163,16 +178,19 @@ export class JobRuns {
         this.#prune(to, repository);
       }
     });
+    this.#changed();
   }
 
   /** Removes a row: a run whose session did not start, so its time is not marked run. */
   remove(id: number): void {
     this.#db.prepare("DELETE FROM job_runs WHERE id = ?").run(id);
+    this.#changed();
   }
 
   /** Sets the session a run started, once it has one. */
   setSession(id: number, session: string): void {
     this.#db.prepare("UPDATE job_runs SET session = ? WHERE id = ?").run(session, id);
+    this.#changed();
   }
 
   /** Sets, or with null clears, why the change the run offered could not start (R1). */
@@ -180,5 +198,6 @@ export class JobRuns {
     this.#db
       .prepare("UPDATE job_runs SET refusal = ?, refused_turn = ? WHERE id = ?")
       .run(refusal?.text ?? null, refusal?.turn ?? null, id);
+    this.#changed();
   }
 }

@@ -19,6 +19,7 @@ import { agentRecord, featureRecord, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { extensionMutations } from "./extension-mutations.ts";
+import { jobMutations } from "./job-mutations.ts";
 import { sources } from "./sources.ts";
 import { priorities, proposalFile, undoablePriorities } from "./masked.ts";
 import { agentDataView, featureDataView } from "./views.ts";
@@ -40,6 +41,7 @@ const repositoryMutations = {
   ...bufferMutations,
   ...gitMutations,
   ...undoMutations,
+  ...jobMutations,
   "item.settings": {
     resolve: async ({
       ctx,

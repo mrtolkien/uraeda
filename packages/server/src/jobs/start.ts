@@ -3,6 +3,7 @@
 // server's own state.
 import type { RepoContext } from "../fate/context.ts";
 import { acceptOffers } from "./accept.ts";
+import { announceJobChanges } from "./announce.ts";
 import { type Scheduler, startScheduler } from "./scheduler.ts";
 
 /**
@@ -22,11 +23,14 @@ export function startJobs(shared: Omit<RepoContext, "repo">): Scheduler {
       hosts.all().flatMap((host) => (host.missing ? [] : [{ name: host.name, path: host.path }])),
   });
   const stopAccepting = acceptOffers(shared);
+  const unannounce = announceJobChanges(shared);
+  // Its stop ends the acceptance and the announcements too.
   const stop = scheduler.stop.bind(scheduler);
   return Object.assign(scheduler, {
-    stop: () => {
+    stop: async () => {
       stopAccepting();
-      return stop();
+      unannounce();
+      await stop();
     },
   });
 }

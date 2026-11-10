@@ -152,3 +152,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: (1) the line comes after the new run's first message in the session, not before; (5)
   a job whose settings were edited into a problem between its run and its end waits for the card.
 - **Where**: task 5.
+
+## R13: A job's problem is a fragment or a sentence, and the record's answers are two types
+
+- **Decision**: the record's `problem` of a job puts "Not running: " before the core's problem only
+  when it is a fragment, as the schedule's (“the schedule “dayly 06:00” is not understood”): a
+  problem that ends with a full stop is a sentence, and stands alone (“Two jobs are named
+  “Dependencies”.”, “A time is from 00:00 to 23:59.”). "Run now" answers a record of its own,
+  `JobsRun`, which is the `Jobs` record and its `session`.
+- **Rationale**: the spec's card texts are "Not running: the schedule “<text>” is not understood"
+  and "Two jobs are named “<name>”.", the second without the prefix, and the edge cases quote the
+  second alone. Prefixing every problem, as the plan reads, would give "Not running: Two jobs are
+  named…". `JobsRecord` stays as the plan types it, with no `session` that is null on a read.
+- **If wrong**: a new core problem written as a fragment is shown with the prefix, one written as a
+  sentence without it; the reader of the core's texts must keep to that rule.
+- **Where**: task 6.

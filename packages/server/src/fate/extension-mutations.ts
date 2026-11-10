@@ -2,7 +2,7 @@
 // on every endpoint, and running an action, on a repository's endpoint, where its extension is on.
 import { randomUUID } from "node:crypto";
 import { type Context, inRepository } from "./context.ts";
-import { callSiteError, refusable } from "./errors.ts";
+import { callSiteError, settingsWrite } from "./errors.ts";
 import { extensionActionDataView, extensionsDataView, extensionsRecord } from "./extensions.ts";
 import type { ListResolver } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
@@ -15,16 +15,7 @@ async function written(
   { ctx, select }: Omit<ListResolver<unknown>, "input">,
   write: (configDir: string) => Promise<void>,
 ) {
-  await refusable(async () => {
-    try {
-      await write(ctx.settings.dir);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw /^unreadable: /.test(message)
-        ? new Error(message.replace(/^unreadable: /, "refused: "))
-        : error;
-    }
-  });
+  await settingsWrite(() => write(ctx.settings.dir));
   await ctx.extensions?.refresh();
   return sources.masked(extensionsDataView, ctx, await extensionsRecord(ctx), select);
 }

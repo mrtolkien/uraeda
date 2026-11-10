@@ -835,11 +835,14 @@ git commit -m "feat(scheduled-jobs): a job's run starts the change it offers"
 
 **Files:**
 
-- Create: `packages/server/src/fate/jobs.ts`, `packages/server/src/fate/job-mutations.ts`
+- Create: `packages/server/src/fate/jobs.ts`, `packages/server/src/fate/job-mutations.ts`,
+  `packages/server/src/jobs/announce.ts`
 - Modify: `packages/server/src/fate.ts`, `packages/server/src/fate/mutations.ts`,
   `packages/server/src/fate/sources.ts` (the record's source, a few lines: it has 490),
-  `packages/server/src/jobs/start.ts` (announces the record), `packages/server/package.json` only if
-  the web UI needs a new export
+  `packages/server/src/jobs/start.ts` (announces the record),
+  `packages/server/src/runner/cache-jobs.ts` (`JobRuns.onChange`),
+  `packages/server/src/fate/errors.ts` and `extension-mutations.ts` (the settings write they share);
+  `package.json` needs no export: the types leave through `uraeda-server/fate`
 - Test: `packages/server/src/__tests__/jobs-fate.test.ts`
 
 **Interfaces:**
@@ -885,10 +888,10 @@ export type JobsRecord = {
 
 - Produces the mutations, each answering the record: `jobs.add { job: JobInput }`,
   `jobs.update { job: JobInput; name: string }`, `jobs.setOn { name: string; on: boolean }`,
-  `jobs.remove { name: string }`, and `jobs.runNow { name: string }`, whose answer also carries
-  `session`.
+  `jobs.remove { name: string }`, and `jobs.runNow { name: string }`, whose answer, the record
+  `JobsRun` (a `JobsRecord` and its `session`), is a type of its own, as `ExtensionAction` is.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 test("the jobs' record and its writes", async () => {
@@ -912,30 +915,33 @@ test("the jobs' record and its writes", async () => {
 The break it catches: a job shown in a repository it does not name, a pause that never reaches the
 file, or "Run now" held by the pause.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test run packages/server/src/__tests__/jobs-fate.test.ts`
 - Expected: FAIL, the record `Jobs` is unknown
 
-- [ ] **Step 3: Implement the record and the mutations**
+- [x] **Step 3: Implement the record and the mutations**
 
 - The record lists the jobs that name the endpoint's repository, in the file's order. A job's
-  `problem` is the core's, prefixed "Not running: ", else the first repository it names that is not
-  listed, else that its agent is off here, in the texts of the global constraints. `next` comes from
-  `Scheduler.nextRun`, and `history` from `JobRuns.history`, each run with its session's folder and
-  title when it has them. `enabled` is the switch for all jobs.
+  `problem` is the core's, a fragment (the schedule's) prefixed "Not running: " and a sentence ("Two
+  jobs are named “…”.") as it is ([ruling R13](rulings.md)), else the first repository it names that
+  is not listed, else that its named agent is off here, in the texts of the global constraints.
+  `next` comes from `Scheduler.nextRun`, its `why` the code it answers (`problem`, `paused`, `off`,
+  `agent-off`, `change-open`), and `history` from `JobRuns.history`, each run with its session's
+  folder and title when it has them. `enabled` is the switch for all jobs.
 - The mutations write through the binding, as `extension-mutations.ts` does, a file that cannot be
   read refused with its problem. A `jobs.update` that changes the name also renames the runs.
-- The record is announced, on every repository's endpoint, when the settings file changes, when a
-  run's row is added or refused, and when a run's session changes state.
+- The record is announced, on every repository's endpoint, when the settings file is read (a hand
+  edit of a job changes no value), when a run's row is added, changed, or removed
+  (`JobRuns.onChange`), when a run's session changes state, and after each write.
 - Keep `sources.ts` under 500 lines: the read lives in `fate/jobs.ts`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp test run packages/server/src`, then `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server

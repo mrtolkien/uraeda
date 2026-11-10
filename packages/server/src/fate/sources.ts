@@ -28,6 +28,7 @@ import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { readThemesRecord, themesDataView } from "./themes.ts";
 import { extensionSources } from "./extensions.ts";
+import { jobSources } from "./jobs.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import { continuedAllDataView } from "./views-continued-all.ts";
 import { droppedDataView } from "./views-dropped.ts";
@@ -456,6 +457,7 @@ export const sources = createSources<Context>([
   fileSource(settingsDataView, { byIds: readSettingsRecord }),
   fileSource(themesDataView, { byIds: readThemesRecord }),
   ...extensionSources,
+  ...jobSources,
   fileSource(folderSuggestionsDataView, {
     byIds: async (ctx, ids) => {
       unlockedList(ctx);
