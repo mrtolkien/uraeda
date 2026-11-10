@@ -4,8 +4,8 @@
 // axis: what is left of the first window alone, the shortest, of the runtime in view, red once it
 // is nearly gone: the runtime of the session shown, or of the feature shown, its latest session's,
 // else the one new sessions run on. With accounts, the bar is the first window of the account of
-// the session in view, of the feature's latest session likewise, else of the one a new session would
-// start on.
+// the session in view, of the feature's latest session likewise, else, with no session in view, of the one a
+// new session would start on; a session whose account is not listed, or has none, shows no bar.
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
@@ -60,15 +60,18 @@ const styles = stylex.create({
 });
 
 /**
- * The window the rail's bar shows: the first of the account `account` names, else of the one a new
- * session would start on, when `agent` lists accounts; else the runtime's first.
+ * The window the rail's bar shows: with accounts, the first of the account `account` names, none
+ * when the session's account is not listed or it has none; `undefined` is no session in view, which
+ * shows the account a new session would start on. Without accounts, the runtime's first.
  */
 function barWindow(agent: Runtime | undefined, account: string | null | undefined) {
   if (agent === undefined || agent.accounts.length === 0) {
     return agent?.usage[0];
   }
-  const own = account == null ? undefined : agent.accounts.find((each) => each.name === account);
-  const shown = own ?? agent.accounts.find((each) => each.isNext);
+  const shown =
+    account === undefined
+      ? agent.accounts.find((each) => each.isNext)
+      : agent.accounts.find((each) => each.name === account);
   return shown?.state === "ready" ? shown.windows[0] : undefined;
 }
 
