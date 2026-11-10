@@ -1035,7 +1035,7 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 **Interfaces:**
 
 - Produces, as built
-  ([ruling R27](rulings.md#r27-the-vim-layer-follows-neovim-reads-lines-and-leaves-undo-and-the-clipboard-to-its-caller)):
+  ([ruling R31](rulings.md#r31-the-vim-layer-follows-neovim-reads-lines-and-leaves-undo-and-the-clipboard-to-its-caller)):
   - `struct Vim`, `Vim::key(&mut self, key: Key, text: &TextView) -> Vec<Edit>`, pure: it reads a
     text and a selection, and returns edits and selection changes. It never touches an editor. One
     `Vim` serves every field, with `Vim::reset()` when the focus moves.
