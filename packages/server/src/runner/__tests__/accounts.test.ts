@@ -205,3 +205,71 @@ test("an ask that answers marks the accounts read, and is not repeated within th
   expect(accounts.list()[0]?.known).toBe(true);
   expect(original?.askedAt).toBeNull(); // the test's own account is not changed in place
 });
+
+/** The announces of the agent's record: the usage, the accounts, the runtimes. */
+const announces = (changes: Array<object>) => changes.filter((change) => "agent" in change).length;
+
+test("a pick's own ask announces what it changed, as a page's does", async () => {
+  const { adapter, changes, repo, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  const accounts = adapter.accounts;
+  sessions.refreshAccounts(); // a page read it two minutes ago: nothing asked since
+  await flush();
+  await vi.advanceTimersByTimeAsync(120_000);
+  // The pick asks again: b is now at 90%, and the answer is announced with no page asking.
+  vi.spyOn(accounts, "refresh").mockImplementationOnce(async () => {
+    accounts.accounts = [account("default", 0.42), account("b", 0.9), account("c", 0.88)];
+  });
+  const problems = vi.fn();
+  sessions.runtimes.onAccounts(problems);
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+  const before = announces(changes);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "hello" })).turn);
+  expect(adapter.opens.at(-1)?.account).toBe(folder("default"));
+  expect(announces(changes)).toBeGreaterThan(before);
+  expect(problems).toHaveBeenCalledTimes(1);
+});
+
+test("an announce of an account's usage asks no runtime's version", async () => {
+  const { adapter, changes, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  const version = vi.spyOn(adapter, "version");
+  const accounts = adapter.accounts;
+  vi.spyOn(accounts, "refresh").mockImplementationOnce(async () => {
+    accounts.accounts = [account("default", 0.9), account("b", 0), account("c", 0.88)];
+  });
+  const before = announces(changes);
+  sessions.refreshAccounts();
+  await flush();
+  expect(announces(changes)).toBe(before + 1);
+  expect(version).not.toHaveBeenCalled();
+});
+
+test("a refresh that never settles stops blocking its runtime after 10 seconds, and is asked again", async () => {
+  const { adapter, changes, sessions } = await testSessions();
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  adapter.accounts = fakeAccounts();
+  adapter.accounts.hangs = true;
+  sessions.refreshAccounts();
+  await flush();
+  expect(adapter.accounts.asks).toBe(1);
+  // Still asked: a page's read does not ask a second time.
+  sessions.refreshAccounts();
+  expect(adapter.accounts.asks).toBe(1);
+
+  await vi.advanceTimersByTimeAsync(PICK_WAIT_MS + 1);
+  // The extension recovers, and the usage changed: the next read asks, and announces it.
+  const accounts = adapter.accounts;
+  accounts.hangs = false;
+  vi.spyOn(accounts, "refresh").mockImplementationOnce(async () => {
+    accounts.accounts = [account("default", 0.9), account("b", 0), account("c", 0.88)];
+  });
+  const before = announces(changes);
+  sessions.refreshAccounts();
+  await flush();
+  expect(announces(changes)).toBeGreaterThan(before);
+  expect(accounts.list()[0]?.windows[0]?.used).toBe(0.9);
+});

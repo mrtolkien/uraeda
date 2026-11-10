@@ -54,20 +54,23 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
 /**
  * The id of the account a new session starts on: asks the usage that is stale, waits at most
  * `PICK_WAIT_MS` for the answers, then picks on what is known: each account's freshest usage, an
- * ask's or a running process's report (`reports`), a window whose reset has passed unused. Throws the refusal of a runtime with
- * no signed-in account. Never settles later than the wait, even for an ask that never answers.
+ * ask's or a running process's report (`reports`), a window whose reset has passed unused. The ask
+ * is `refresh`, the one the pages' go through, which announces what it changed. Throws the refusal
+ * of a runtime with no signed-in account. Never settles later than the wait, even for an ask that
+ * never answers.
  */
 export async function accountFor(
-  accounts: Accounts,
+  accounts: Pick<Accounts, "list">,
   name: string,
   reports: () => ReadonlyArray<UsageReport>,
+  refresh: () => Promise<void>,
 ): Promise<string> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const wait = new Promise<void>((resolve) => {
     timer = setTimeout(resolve, PICK_WAIT_MS);
   });
   try {
-    await Promise.race([accounts.refresh(USAGE_MAX_AGE_MS).catch(() => {}), wait]);
+    await Promise.race([refresh().catch(() => {}), wait]);
   } finally {
     clearTimeout(timer);
   }

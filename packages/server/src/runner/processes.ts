@@ -251,7 +251,12 @@ export class Processes {
     if (!adapter.accounts?.list().length) {
       return row.account;
     }
-    const account = await accountFor(adapter.accounts, adapter.name, () => this.reports(row.agent));
+    const account = await accountFor(
+      adapter.accounts,
+      adapter.name,
+      () => this.reports(row.agent),
+      () => this.#context.refreshAccounts(row.agent),
+    );
     this.#context.cache.updateSession(row.id, { account });
     return account;
   }

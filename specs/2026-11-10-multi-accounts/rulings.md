@@ -133,3 +133,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: one timer per window: many timers, and each needs clearing when an
   ask moves its reset.
 - **Where**: task 4 of the plan, `AccountRefresh` in `runner/account-records.ts`.
+
+## R10: Every ask goes through one refresher, and announces through a narrow path
+
+- **Decision**: the pick's ask and the pages' both go through `AccountRefresh.refresh(runtime)`: it
+  shares the ask in flight, and when the runtime's account records or problems differ after it,
+  announces the agent's record (`options.onChange({ agent: true })`) and calls
+  `runtimes.accountsChanged()`, which the Extensions host listens to through `runtimes.onAccounts`.
+  It does not call `runtimes.changed()`, whose listener in `Sessions` asks every runtime's version
+  and the continuer's `agentBack`. An ask not settled within `PICK_WAIT_MS` stops blocking its
+  runtime, and still announces its answer if it comes. A refresh that asked nothing announces
+  nothing. Every announce of the agent's record, a process's report included, arms the next reset
+  timer (R9).
+- **Rationale**: findings 5, 6, 7 of wave 3: the pick's own ask changed records with no announce;
+  each usage change ran the versions of every runtime; and one hanging `refresh` froze its runtime's
+  usage until a reload.
+- **Alternatives considered**: announcing each account as its own answer lands, which needs a
+  callback in the `Accounts` contract that every extension runtime would implement: finding 7's
+  second scenario (default and b answer in a second, c times out at ten, the announce comes at ten)
+  is bounded by the wait, not removed. Claude Code's own asks time out at 10 seconds as well.
+- **If wrong**: a slow account delays the whole runtime's announce by at most `PICK_WAIT_MS`; add
+  `onChange` to `Accounts` then.
+- **Where**: task 4 of the plan; `AccountRefresh` in `runner/account-records.ts`,
+  `Runtimes.onAccounts` in `runner/runtimes.ts`, `ExtensionsHost.start` in `extensions/server.ts`,
+  `Processes.#pick`.

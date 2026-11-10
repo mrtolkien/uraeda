@@ -464,12 +464,12 @@ turns that have a start time: when no turn of the session ever started and
 process opens, even when the row already holds one: a first turn that never started, taken back or
 failed to open, fixed nothing, so the pick is made again on the usage of that moment (R3). A session
 with a started turn keeps its row's account, none for one that ran before accounts; a session with
-no started turn and no listed account keeps the row's. `accountFor` awaits
-`refresh(USAGE_MAX_AGE_MS)` raced with a timer of `PICK_WAIT_MS`, then picks. A session with an
-account always opens on it, listed or not. The account goes to
-`adapter.hasSession(row.nativeId, account)`, to `adapter.open` as `account`, and to `Proc.account`.
-A refusal releases the session, as the existing `catch` does. In `continuer.ts`, line 324 passes the
-session's account to `hasSession`, in place.
+no started turn and no listed account keeps the row's. `accountFor` awaits the refresher's
+`refresh(runtime)` (Task 4's `AccountRefresh`, which asks `refresh(USAGE_MAX_AGE_MS)`) raced with a
+timer of `PICK_WAIT_MS`, then picks. A session with an account always opens on it, listed or not.
+The account goes to `adapter.hasSession(row.nativeId, account)`, to `adapter.open` as `account`, and
+to `Proc.account`. A refusal releases the session, as the existing `catch` does. In `continuer.ts`,
+line 324 passes the session's account to `hasSession`, in place.
 
 - [x] **Step 5: Run the task's validation**
 
@@ -818,13 +818,17 @@ fresher than its `askedAt`. A window whose reset is at or before `now` reads
 gives each runtime its accounts, and an empty `usage` while it has some. `sessionRecord` gives
 `account`, by `accounts.nameOf`, else the stored folder's last segment, else null.
 `refreshAccounts()` (the `AccountRefresh` class) calls `refresh(USAGE_MAX_AGE_MS)` on each runtime's
-accounts not being asked already, and calls `runtimes.changed()` only when the runtime's account
-records differ from before the ask. It also arms one timer at the earliest future `resetsAt` among
-the accounts' windows, which announces the records as it fires and is armed again at each announce
-and each read, and cleared as the sessions close. It runs as the sessions start, on each change of
-the runtimes, and from `agentRecord`, which every page reads. In `extensions/server.ts`, a built-in
-runtime's state adds each of `accounts.problems()` as a problem with an empty file, and the host
-announces the `Extensions` record on the runtimes' changes, if it does not already.
+accounts not being asked already, and, when the runtime's account records or problems differ from
+before the ask, announces the agent's record and calls `runtimes.accountsChanged()`, a hook of its
+own that the Extensions host listens to, not `runtimes.changed()` with its version checks. The
+pick's ask goes through the same `AccountRefresh.refresh(runtime)`, so it announces too, and an ask
+not settled within `PICK_WAIT_MS` stops blocking its runtime. It also arms one timer at the earliest
+future `resetsAt` among the accounts' windows, which announces the records as it fires and is armed
+again at each announce and each read, and cleared as the sessions close. It runs as the sessions
+start, on each change of the runtimes, and from `agentRecord`, which every page reads. In
+`extensions/server.ts`, a built-in runtime's state adds each of `accounts.problems()` as a problem
+with an empty file, and the host announces the `Extensions` record on the runtimes' changes and on
+`onAccounts`.
 
 - [x] **Step 5: Run the task's validation**
 
