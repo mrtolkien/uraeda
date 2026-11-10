@@ -18,6 +18,7 @@ const job: Job = {
   reportOnly: false,
   repositories: ["uraeda"],
   schedule: { hour: 3, kind: "daily", minute: 0 },
+  scheduleOnly: false,
   scheduleText: "daily 03:00",
 };
 

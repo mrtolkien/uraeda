@@ -792,3 +792,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   pause made in the few microtasks between the last read and the start still does not stop it, as
   nothing can.
 - **Where**: the final review's fix 8, task 4.
+
+## R50: A job's schedule is its problem only when nothing else is wrong, and the core says so
+
+- **Decision**: the core reports a job's problems in the order name, duplicate, repository, prompt,
+  a key of the wrong type, then the schedule, and a new field of `Job`, `schedule_only`, is true
+  exactly when the problem reported is the schedule's, so nothing else is wrong with the job. (A
+  list that is not names is still the problem to fix before the empty repositories it causes.) A
+  write refuses in the same order, as it shares `check`. `impossible()`, in `jobs/problem.ts`, now
+  refuses every problem that is not `scheduleOnly`, in the card's words, and keeps its own read only
+  of a name two jobs have, since the core flags the second of the two alone. Its own reads of the
+  name and the prompt are dropped: the core reports them before the schedule, so they are the
+  problem it reads. This completes [R43](#r43-a-runs-offer-is-accepted-by-the-rule-run-now-uses),
+  whose rule is now exact, and replaces what
+  [R23](#r23-run-now-is-refused-for-what-makes-a-run-impossible-not-for-a-bad-schedule) says of the
+  order and of the server reading the prompt itself.
+- **Rationale**: R43 read a problem with no schedule read as the schedule's. But the core kept a
+  wrong-typed key only when the schedule passed, and read no schedule for a job with no repository:
+  a job with `report_only = "true"` (text) and a schedule not understood read as report only false,
+  and a job whose repositories were emptied while its run worked passed the rule, and a change
+  started for a job the human wrote as report only, or with no repository.
+- **Alternatives considered**: the server telling the schedule's problem by its text: a second
+  reading of the core's messages, which the stack decision forbids reimplementing.
+- **If wrong**: a job with a wrong type and a bad schedule shows the type's problem first, and its
+  schedule's only once the type is mended.
+- **Where**: the second pass's fix 1, tasks 1, 4, and 5.

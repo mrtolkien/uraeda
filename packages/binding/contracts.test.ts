@@ -205,6 +205,7 @@ test("jobs read and write through the binding", async () => {
       reportOnly: false,
       repositories: ["uraeda", "notes"],
       schedule: { day: 1, hour: 4, kind: "weekly", minute: 0 },
+      scheduleOnly: false,
       scheduleText: "monday 04:00",
     },
   ]);

@@ -49,6 +49,7 @@ function job(name: string, repositories: Array<string>, over: Partial<Job> = {})
     reportOnly: false,
     repositories,
     schedule: { hour: 3, kind: "daily", minute: 0 },
+    scheduleOnly: false,
     scheduleText: "daily 03:00",
     ...over,
   };

@@ -257,6 +257,7 @@ pub struct Job {
     pub schedule: Option<Schedule>, pub prompt: String, pub on: bool, pub report_only: bool,
     pub agent: Option<String>, pub model: Option<String>, pub effort: Option<String>,
     pub problem: Option<String>,
+    pub schedule_only: bool, // the problem is the schedule's, and nothing else is wrong
 }
 pub struct Jobs { pub jobs: Vec<Job>, pub problem: Option<String> }
 pub struct JobInput {
@@ -337,8 +338,12 @@ The break each test catches:
   never goes through `Settings`. A file that cannot be read or parsed gives `Jobs.problem`, the
   settings' own message, and no job.
 - A job's problems, first one kept, in this order: a missing or empty `name`; a second job of a
-  name, compared as written; no repository; a schedule not understood, or its time outside 00:00 to
-  23:59; an empty prompt. The texts are the plan's global constraints.
+  name, compared as written; no repository; an empty prompt; a key of the wrong type (`on`,
+  `report_only`, a text option, a list that is not names, which comes before the no repository it
+  causes); a schedule not understood, or its time outside 00:00 to 23:59 ([R50](rulings.md)). The
+  schedule's is last so it hides nothing, and `schedule_only` is true when it is the problem
+  reported: the one problem a run by hand, and the acceptance of a run's offer, do not refuse. The
+  texts are the plan's global constraints.
 - `schedule.rs` owns the four forms of the [data model](data-model.md), in lower case, hours and
   minutes on two digits.
 - `write.rs` writes under the folder's lock, as `change_path` does, and refuses while the settings

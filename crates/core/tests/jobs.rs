@@ -420,6 +420,8 @@ fn a_write_refuses_what_the_reader_would_flag() {
             "A time is from 00:00 to 23:59.",
         ),
         (input("X", "hourly", " \n"), "A job has no prompt."),
+        // The schedule's problem is the last one a write reports, as the reader does.
+        (input("X", "dayly 06:00", " \n"), "A job has no prompt."),
     ];
     for (job, message) in rows {
         assert_eq!(refusal(jobs::add(dir.path(), &job)), message);
@@ -946,4 +948,45 @@ fn a_write_to_an_inline_list_never_deletes_a_comment_of_another_entry() {
         text(dir.path())
     );
     assert_eq!(names(dir.path()), ["A", "D"]);
+}
+
+#[test]
+fn a_bad_schedule_is_the_problem_reported_last_and_alone() {
+    let dir = tempdir();
+    let rest = "repositories = [\"a\"]\nprompt = \"x\"\n";
+    write(
+        dir.path(),
+        &[
+            // A key of the wrong type is reported before the schedule it hides behind.
+            format!("[[jobs]]\nname = \"Typed\"\nschedule = \"dayly 06:00\"\nreport_only = \"true\"\n{rest}"),
+            format!("[[jobs]]\nname = \"Late\"\nschedule = \"dayly 06:00\"\n{rest}"),
+            // A repository and a prompt are reported before the schedule.
+            "[[jobs]]\nname = \"Nowhere\"\nschedule = \"dayly 06:00\"\nrepositories = []\nprompt = \"x\"\n"
+                .to_owned(),
+            "[[jobs]]\nname = \"Quiet\"\nschedule = \"dayly 06:00\"\nrepositories = [\"a\"]\nprompt = \" \"\n"
+                .to_owned(),
+            "[[jobs]]\nname = \"Fine\"\nschedule = \"hourly\"\nrepositories = [\"a\"]\nprompt = \"x\"\n"
+                .to_owned(),
+        ]
+        .join("\n"),
+    );
+
+    let jobs = jobs::read(dir.path());
+
+    let typed = by_name(&jobs, "Typed", 0);
+    assert_eq!(
+        typed.problem.as_deref(),
+        Some("report_only is true or false.")
+    );
+    assert!(!typed.schedule_only && typed.schedule.is_none());
+    let late = by_name(&jobs, "Late", 0);
+    assert!(late.schedule_only && late.problem.as_deref().unwrap().contains("dayly 06:00"));
+    assert_eq!(
+        problem(&jobs, "Nowhere"),
+        "A job runs in one repository at least."
+    );
+    assert_eq!(problem(&jobs, "Quiet"), "A job has no prompt.");
+    for name in ["Nowhere", "Quiet", "Fine"] {
+        assert!(!by_name(&jobs, name, 0).schedule_only, "{name}");
+    }
 }

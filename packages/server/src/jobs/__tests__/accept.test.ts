@@ -1,3 +1,5 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Job, Jobs } from "uraeda-binding";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 // The helpers first: they load the app, whose modules the acceptance's imports in a cycle.
@@ -14,6 +16,9 @@ import { startRun } from "../run.ts";
 type Server = Awaited<ReturnType<typeof testServer>>;
 
 const NAME = "Dependencies";
+
+/** The repository's name in Uraeda's list, which the jobs name: the server's, once one is made. */
+const repository = { name: "uraeda" };
 
 const TITLE = "Upgrade three dependencies";
 
@@ -49,8 +54,9 @@ function job(over: Partial<Job> = {}): Job {
     on: true,
     prompt: "Check the dependencies and report what is outdated.",
     reportOnly: false,
-    repositories: ["uraeda"],
+    repositories: [repository.name],
     schedule: { hour: 3, kind: "daily", minute: 0 },
+    scheduleOnly: false,
     scheduleText: "daily 03:00",
     ...over,
   };
@@ -61,15 +67,19 @@ function job(over: Partial<Job> = {}): Job {
  * and which a test may hold at `state.gate`, as a settings file read slowly.
  */
 async function setup() {
-  const state: { gate?: Promise<void>; jobs: Jobs } = { jobs: { jobs: [job()] } };
+  // `file`: the jobs are the core's reading of the settings file, as in the app, not the test's.
+  const state: { file?: boolean; gate?: Promise<void>; jobs: Jobs } = {
+    jobs: { jobs: [job()] },
+  };
   const using: Binding = {
     ...binding,
-    readJobs: async () => {
+    readJobs: async (dir) => {
       await state.gate;
-      return state.jobs;
+      return state.file ? binding.readJobs(dir) : state.jobs;
     },
   };
   const server = await testServer(undefined, { binding: using });
+  repository.name = server.name;
   const shared = {
     binding: using,
     dataDir: server.dataDir,
@@ -406,30 +416,70 @@ test("a refused offer is forgotten once its session moves into a change", async 
   expect(attached?.statusReason).not.toBe("change-refused");
 });
 
+/** A `[[jobs]]` table of the job in the settings file, with the fields a test changes. */
+function table(fields: Record<string, string>): string {
+  const all: Record<string, string> = {
+    agent: '"fake"',
+    name: `"${NAME}"`,
+    prompt: '"Check the dependencies."',
+    repositories: `["${repository.name}"]`,
+    schedule: '"daily 03:00"',
+    ...fields,
+  };
+  return `[[jobs]]\n${Object.entries(all)
+    .map(([key, value]) => `${key} = ${value}\n`)
+    .join("")}`;
+}
+
 /**
- * Review 07, findings 2 and X4. Catches: a run by hand of a job whose only problem is its schedule
- * ("Run now" runs it, R23, and its note promises the change starts) never having its offer
- * accepted, because the acceptance refused every job with a core problem.
+ * Review 07, findings 2 and X4; review 08, C1 and X1. The offer is accepted for a job whose only
+ * problem is its schedule ("Run now" runs it, R23, and its note promises the change starts), and
+ * for no other: the core's own reading of the file, since it reports the schedule's problem last
+ * and a job with a text `report_only` or no repository must not read as only a bad schedule.
+ * Catches: a change started for a job the human wrote as report only, or with no repository.
  */
-test("a run's offer is accepted for a job whose only problem is its schedule, and refused for any other", async () => {
+test.each([
+  ["a schedule not understood", { schedule: '"dayly 06:00"' }, true],
+  [
+    "a text report_only with a schedule not understood",
+    { report_only: '"true"', schedule: '"dayly 06:00"' },
+    false,
+  ],
+  [
+    "repositories emptied with a schedule not understood",
+    { repositories: "[]", schedule: '"dayly 06:00"' },
+    false,
+  ],
+  ["repositories that are not names", { repositories: "[3]", schedule: '"dayly 06:00"' }, false],
+  [
+    "a report-only job with a schedule not understood",
+    { report_only: "true", schedule: '"dayly 06:00"' },
+    false,
+  ],
+  [
+    "no prompt, with a schedule not understood",
+    { prompt: '" "', schedule: '"dayly 06:00"' },
+    false,
+  ],
+  ["a text report_only", { report_only: '"true"' }, false],
+])("a run's offer, for a job edited to have %s while it worked", async (_why, fields, accepted) => {
+  const { run, server, state } = await setup();
+  server.adapter.fallback = () => [];
+  state.file = true;
+  const path = join(server.settings.dir, "config.toml");
+  const edit = () => writeFileSync(path, table(fields));
+  const session = await run([edit, { text: OFFER, type: "text" }], job(), []);
+  expect(folderOf(server, session) !== null).toBe(accepted);
+});
+
+/** A job with a problem that is not in the core's reading, as the card's: the card waits. */
+test("a run's offer waits for a job with a problem that is not the schedule's", async () => {
   const { run, server } = await setup();
   server.adapter.fallback = () => [];
-  const mistyped = {
-    ...job(),
-    problem: "the schedule “dayly 06:00” is not understood",
-    schedule: undefined,
-    scheduleText: "dayly 06:00",
-  };
-  const started = await run([{ text: OFFER, type: "text" }], mistyped, []);
-  expect(folderOf(server, started)).toMatch(/^\d{4}-\d{2}-\d{2}-/);
-
-  // Any other problem, or no prompt, takes the human's yes back: the card waits.
-  const noPrompt = await run([{ text: OFFER, type: "text" }], { ...job(), prompt: " " });
   const unlisted = await run([{ text: OFFER, type: "text" }], {
     ...job(),
     problem: "“notes” is not in Uraeda's list.",
   });
-  expect(folderOf(server, noPrompt)).toBeNull();
   expect(folderOf(server, unlisted)).toBeNull();
 });
 

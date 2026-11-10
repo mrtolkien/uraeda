@@ -1720,6 +1720,8 @@ export interface Job {
   effort?: string
   /** The first rule it fails. A job with a problem does not run. */
   problem?: string
+  /** Whether the problem is the schedule's and nothing else is wrong with the job. */
+  scheduleOnly: boolean
 }
 
 /** A job to write, as the Jobs page's form gives it. */

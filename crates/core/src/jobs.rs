@@ -51,6 +51,8 @@ pub struct Job {
     pub effort: Option<String>,
     /// The first rule it fails. A job with a problem does not run.
     pub problem: Option<String>,
+    /// Whether the problem is the schedule's and nothing else is wrong with the job.
+    pub schedule_only: bool,
 }
 
 /// The jobs of the settings file, in its order.
@@ -187,38 +189,41 @@ fn job(table: &dyn TableLike, duplicate: bool) -> Job {
         model,
         effort,
         problem: None,
+        schedule_only: false,
     };
-    let checked = check(
-        &job.name,
-        &job.repositories,
-        &job.schedule_text,
-        &job.prompt,
-        duplicate,
-    );
-    match checked {
-        Ok(schedule) => {
-            job.schedule = Some(schedule);
-            job.problem = types.into_iter().next();
-        }
+    let rest = check_rest(&job.name, &job.repositories, &job.prompt, duplicate);
+    let rest_passed = rest.is_ok();
+    job.problem = match rest {
         // A list that is not names is the problem to fix, before the one it causes.
         Err(problem) if problem == NO_REPOSITORY && types.iter().any(|kind| kind == NOT_NAMES) => {
-            job.problem = Some(NOT_NAMES.to_owned());
+            Some(NOT_NAMES.to_owned())
         }
-        Err(problem) => job.problem = Some(problem),
+        Err(problem) => Some(problem),
+        Ok(()) => types.into_iter().next(),
+    };
+    // The schedule's problem comes last, so what it hides is reported first: a job whose problem
+    // is `schedule_only` has nothing else wrong with it.
+    if rest_passed {
+        match schedule(&job.schedule_text) {
+            Ok(schedule) => job.schedule = Some(schedule),
+            Err(problem) if job.problem.is_none() => {
+                job.problem = Some(problem);
+                job.schedule_only = true;
+            }
+            Err(_) => {}
+        }
     }
     job
 }
 
-/// The schedule of a job, or the first rule it fails, in the order of the data model: a name, a
-/// name of its own (`duplicate` when an earlier job has it), a repository, a schedule, a prompt.
-/// The reader lists this problem on the job, and a write refuses with it.
-fn check(
+/// A job's rules before its schedule's, in the order of the data model: a name, a name of its own
+/// (`duplicate` when an earlier job has it), a repository, a prompt.
+fn check_rest(
     name: &str,
     repositories: &[String],
-    schedule_text: &str,
     prompt: &str,
     duplicate: bool,
-) -> Result<Schedule, String> {
+) -> Result<(), String> {
     if name.trim().is_empty() {
         return Err("A job has no name.".to_owned());
     }
@@ -228,9 +233,23 @@ fn check(
     if repositories.is_empty() {
         return Err(NO_REPOSITORY.to_owned());
     }
-    let schedule = schedule(schedule_text)?;
     if prompt.trim().is_empty() {
         return Err("A job has no prompt.".to_owned());
     }
-    Ok(schedule)
+    Ok(())
+}
+
+/// The schedule of a job, or the first rule it fails, in the order of the data model: a name, a
+/// name of its own (`duplicate` when an earlier job has it), a repository, a prompt, a schedule.
+/// A write refuses with this problem; the reader also reports a key of the wrong type before the
+/// schedule.
+fn check(
+    name: &str,
+    repositories: &[String],
+    schedule_text: &str,
+    prompt: &str,
+    duplicate: bool,
+) -> Result<Schedule, String> {
+    check_rest(name, repositories, prompt, duplicate)?;
+    schedule(schedule_text)
 }
