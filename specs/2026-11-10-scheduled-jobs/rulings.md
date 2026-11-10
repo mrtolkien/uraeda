@@ -594,3 +594,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   place in the web UI to find or mend it.
 - **If wrong**: with many repositories, a broken job shows in each of their Jobs places.
 - **Where**: tasks 6 and 9.
+
+## R39: A run's session takes its account as any session does
+
+- **Decision**: the branch adds nothing for the accounts the default branch gained while it was
+  built. The [models](../decisions/models.md) decision now says a session runs on one account, which
+  Uraeda picks, and keeps it. A run's session starts through `sessions.newChat` and `sessions.send`,
+  in [`run.ts`](/packages/server/src/jobs/run.ts), so its process picks its account where every
+  session's does, and a run a limit refused waits for that account's reset.
+- **Rationale**: the decision applies to every feature that starts a session, and the scheduler
+  starts none by another path.
+- **Where**: the catch-up with the default branch, before the final review. The rebase kept both
+  sides of two conflicts: the cache's migrations, the account's column before the jobs' table, as
+  the default branch's ran first, and the web UI's page, the accounts' section before the jobs'.
