@@ -69,9 +69,10 @@ export class JobRuns {
     return transaction(this.#db, () => {
       const stored = this.#db
         .prepare(
-          `INSERT OR IGNORE INTO job_runs
+          `INSERT INTO job_runs
              (job, repository, due, at, trigger, outcome, reason, session)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING ${COLUMNS}`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (job, repository, due) DO NOTHING RETURNING ${COLUMNS}`,
         )
         .get(
           row.job,

@@ -47,6 +47,12 @@ test("a time is recorded once for each job and each repository", () => {
   expect(jobs.add(run({ repository: "/repo/b" }))).toBeDefined();
 });
 
+test("a row the table refuses is an error, not a time recorded already", () => {
+  const jobs = opened();
+  const nameless = { ...run(), job: null } as unknown as ReturnType<typeof run>;
+  expect(() => jobs.add(nameless)).toThrow();
+});
+
 test("runs by hand have no time, and each is recorded", () => {
   const jobs = opened();
   expect(jobs.add(run({ due: null, trigger: "manual" }))).toBeDefined();
