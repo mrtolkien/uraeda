@@ -67,6 +67,7 @@
 //! takes it away again, as an extension's does when it unloads. The sessions read
 //! `shared.get::<Runtimes>()`.
 
+mod built_in;
 mod child;
 mod claude;
 pub mod codex;
@@ -199,6 +200,8 @@ pub(crate) fn mount(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
     shared.on_stop("agents", async move {
         stopping.get::<child::Children>().stop().await;
     });
+    let given = built_in::Given::new(shared.config_dir(), shared.data_dir());
+    shared.provide(given);
     claude::register(shared)?;
     codex::register(shared)?;
     Ok(())

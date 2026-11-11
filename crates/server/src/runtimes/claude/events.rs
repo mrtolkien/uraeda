@@ -6,6 +6,7 @@ use std::time::SystemTime;
 use jiff::tz::TimeZone;
 use serde_json::Value;
 
+use super::super::built_in::tool_target;
 use super::json::{self, Object, is_true, listed, nested, objects, string, text};
 use super::time::{Clock, millis};
 use super::tools::{self, SUBAGENT_TOOLS};
@@ -139,7 +140,7 @@ impl Parser {
             name: name.to_owned(),
             parent: parent.map(str::to_owned),
             subagent,
-            target: tools::target(&input, &self.cwd),
+            target: tool_target(&input, &self.cwd),
             input,
         }
     }

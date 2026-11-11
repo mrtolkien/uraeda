@@ -2761,3 +2761,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   needs its own answer, as R106 says.
 - **Where**: `crates/server/tests/support/{mod,machine}.rs` and `no-agents/stand-in`,
   `crates/server/tests/{claude,codex}/stage.rs`, `crates/cli/tests/serve.rs`.
+
+## T98.2: What the built-in runtimes share is in `runtimes/built_in/`
+
+- **Decision**: the four things Claude Code's runtime and Codex's each held a copy of have one home,
+  `crates/server/src/runtimes/built_in.rs` and its folder, which closes what R105 and R110 left to
+  the join.
+  - **`built_in::Given`**, in `given.rs`: the folders every built-in agent is given,
+    `<data folder>/plugin` and its `skills/`, `<data folder>/docs/extensions.md`, and the owner's
+    extensions folder, with the writer of the skill and the documentation. `runtimes::mount`
+    provides one per server, `shared.get::<Given>()`, so they are written once per start, as the
+    first process of either agent opens, and no longer once by each runtime.
+  - **The writer is the one Codex's runtime had**: file by file, then the files the skill no longer
+    has removed, so no file is missing for a session that reads it. Claude Code's removed the
+    skill's folder first. What is on disk afterwards is the same.
+  - **`built_in::instructions`**, in `instructions.rs`: the app's words with the section on
+    extensions. Codex's `instructions.rs` keeps its sandbox's section, after them.
+  - **`built_in::tool_target` and `file_target`**, in `target.rs`: what a tool call acts on. The two
+    copies read a path under the session's directory in two ways that give the same text; the one
+    kept is Codex's.
+  - **`built_in::effort_name`**.
+  - Claude Code's `folders.rs` keeps what only it needs: the plugin's manifest, the chat images'
+    folder, and the extensions' plugin folders.
+- **Rationale**: a word of the instructions changed in one runtime alone would tell the two agents
+  different things. No test changed: the recorded streams of both runtimes give the same events, and
+  both are started with the same arguments and instructions.
+- **Where**: `crates/server/src/runtimes/{mod,built_in,claude,codex}.rs`, `built_in/`,
+  `claude/{folders,args,models,tools,events}.rs`, `codex/{instructions,items,events,models}.rs`.

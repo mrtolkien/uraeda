@@ -4,21 +4,9 @@
 use serde_json::Value;
 use uraeda_protocol::{AgentModel, ModelDefaults, ModelEffort, ModelList};
 
+use super::super::built_in::effort_name;
 use super::json::{field, is_true, listed, nested, string, words};
 use crate::runner::Event;
-
-/// An effort's name for people: "Extra high" for `xhigh`, any other id as given.
-pub(super) fn effort_name(id: &str) -> &str {
-    match id {
-        "high" => "High",
-        "low" => "Low",
-        "max" => "Max",
-        "medium" => "Medium",
-        "ultra" => "Ultra",
-        "xhigh" => "Extra high",
-        other => other,
-    }
-}
 
 /// The rows of a `list_models` answer, but its `default` row, which stands for one of the
 /// others.

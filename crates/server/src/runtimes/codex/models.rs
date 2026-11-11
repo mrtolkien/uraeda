@@ -4,9 +4,9 @@
 use serde_json::{Value, json};
 use uraeda_protocol::{AgentModel, ModelDefaults, ModelEffort, ModelList};
 
+use super::super::built_in::effort_name;
 use super::json::{filled, object, objects};
 use super::rpc::Answer;
-use super::target::effort_name;
 
 /// `model/list` pages read at most, should Codex never stop giving a cursor.
 const MAX_PAGES: usize = 50;

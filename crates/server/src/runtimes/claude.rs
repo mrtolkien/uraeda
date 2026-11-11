@@ -18,7 +18,6 @@ mod args;
 mod control;
 mod events;
 mod folders;
-mod instructions;
 mod json;
 mod limits;
 mod models;
@@ -42,6 +41,7 @@ use self::control::Controls;
 use self::events::Parser;
 use self::folders::Folders;
 use self::process::Process;
+use super::built_in::Given;
 use super::{
     AgentProcess, Capabilities, Child, ModelList, Options, ReviewAsk, ReviewMessage, Runtime,
     RuntimeError, Runtimes, Spawn,
@@ -70,7 +70,7 @@ pub(super) struct Claude {
 fn claude(shared: &Shared) -> Claude {
     Claude {
         shared: shared.clone(),
-        folders: Folders::new(shared.config_dir(), shared.data_dir()),
+        folders: Folders::new(shared.get::<Given>(), shared.data_dir()),
     }
 }
 

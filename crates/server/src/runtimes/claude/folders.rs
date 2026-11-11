@@ -1,54 +1,43 @@
 //! The folders a session's `claude` is given: the skill's plugin, the chat images, the owner's
 //! extensions, and a plugin folder for each extension's skills.
 //!
-//! The server is one binary, which holds the skill and the documentation of the extension API:
-//! it writes both in its data folder, where `claude` reads them, each time it starts.
+//! The skill and the documentation of the extension API are the folders every built-in agent
+//! is given, `built_in::Given`: this adds what makes the skill's folder a plugin of Claude
+//! Code's, and the extensions' plugins.
 
 use std::fs;
 use std::io;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
-use include_dir::Dir;
-use uraeda_core::embedded::SKILL;
-use uraeda_core::extensions::extensions_dir;
-
+use super::super::built_in::{Given, SKILL_NAME, write_new};
 use crate::files::chat_images;
 use crate::secret;
 
-/// The documentation of the extension API, as it was when the server was built.
-const DOCS: &str = include_str!("../../../../../docs/extensions.md");
-
-/// The plugin the skill loads as.
-const PLUGIN: &str = "uraeda";
-
 /// Where a session's `claude` finds what it is given.
 pub(super) struct Folders {
-    /// The folder passed to `--plugin-dir`: `.claude-plugin/plugin.json` and `skills/uraeda/`.
-    pub plugin: PathBuf,
+    /// The skill, the owner's extensions folder, and the documentation of the extension API.
+    /// The skill's folder is passed to `--plugin-dir`: `.claude-plugin/plugin.json` and
+    /// `skills/uraeda/`.
+    pub given: Arc<Given>,
     /// The chat images' folder, `<data folder>/images`.
     pub images: PathBuf,
-    /// The owner's extensions folder, `<config folder>/extensions`, where sessions write them.
-    pub extensions: PathBuf,
-    /// The documentation of the extension API, which sessions are told to read.
-    pub docs: PathBuf,
     /// The folder of the extensions' plugins, `<data folder>/extension-plugins`.
     plugins: PathBuf,
-    /// Whether the skill and the documentation were written since the server started.
-    written: OnceLock<()>,
+    /// Whether the plugin's manifest was written since the server started.
+    manifest: OnceLock<()>,
 }
 
 impl Folders {
-    /// The folders of a server, by its config and data folders. Nothing is made yet.
-    pub(super) fn new(config_dir: &Path, data_dir: &Path) -> Folders {
+    /// The folders of a server, by what every agent is given and its data folder. Nothing is
+    /// made yet.
+    pub(super) fn new(given: Arc<Given>, data_dir: &Path) -> Folders {
         Folders {
-            plugin: data_dir.join("plugin"),
+            given,
             images: data_dir.join(chat_images::FOLDER),
-            extensions: extensions_dir(config_dir),
-            docs: data_dir.join("docs/extensions.md"),
             plugins: data_dir.join("extension-plugins"),
-            written: OnceLock::new(),
+            manifest: OnceLock::new(),
         }
     }
 
@@ -58,27 +47,14 @@ impl Folders {
     /// taken away. A folder that cannot be made is left to `claude`, which says so.
     pub(super) fn prepare(&self, skills: &[PathBuf]) {
         let _ = fs::create_dir_all(&self.images);
-        let _ = fs::create_dir_all(&self.extensions);
-        self.written.get_or_init(|| {
-            let _ = self.write_plugin();
-            let _ = write_new(&self.docs, DOCS.as_bytes());
+        self.given.prepare();
+        self.manifest.get_or_init(|| {
+            let _ = write_manifest(&self.given.plugin, SKILL_NAME);
         });
         self.prune_plugins();
         for folder in skills {
             let _ = self.link_plugin(folder);
         }
-    }
-
-    /// Writes the skill's plugin folder anew, from the skill the server holds: a file an older
-    /// server wrote, and this one's skill no longer has, is gone.
-    fn write_plugin(&self) -> io::Result<()> {
-        let skill = self.plugin.join("skills").join(PLUGIN);
-        match fs::remove_dir_all(&skill) {
-            Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
-            _ => {}
-        }
-        write_dir(&SKILL, &skill)?;
-        write_manifest(&self.plugin, PLUGIN)
     }
 
     /// The plugin folder of the extension whose `skills/` folder is `skills`, `ext-<name>`:
@@ -125,7 +101,7 @@ impl Folders {
             else {
                 continue;
             };
-            if !self.extensions.join(extension).exists() {
+            if !self.given.extensions.join(extension).exists() {
                 let _ = fs::remove_dir_all(entry.path());
             }
         }
@@ -142,23 +118,4 @@ fn write_manifest(plugin: &Path, name: &str) -> io::Result<()> {
     let manifest = serde_json::json!({ "name": name });
     let path = plugin.join(".claude-plugin/plugin.json");
     write_new(&path, format!("{manifest}\n").as_bytes())
-}
-
-/// Writes a file unless it holds these bytes already: sessions opening together write the same.
-fn write_new(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    if fs::read(path).is_ok_and(|old| old == bytes) {
-        return Ok(());
-    }
-    if let Some(folder) = path.parent() {
-        fs::create_dir_all(folder)?;
-    }
-    fs::write(path, bytes)
-}
-
-/// Writes an embedded folder's files under `to`.
-fn write_dir(dir: &Dir<'_>, to: &Path) -> io::Result<()> {
-    for file in dir.files() {
-        write_new(&to.join(file.path()), file.contents())?;
-    }
-    dir.dirs().try_for_each(|sub| write_dir(sub, to))
 }

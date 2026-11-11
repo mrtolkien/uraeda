@@ -1,11 +1,11 @@
-//! The folders a session's Codex is given besides its own: the Uraeda skill, and the
-//! documentation of the extension API its instructions name.
+//! The folders both built-in agents are given: the Uraeda skill, and the documentation of the
+//! extension API, which the instructions name.
 //!
-//! The server is one binary, which holds both: it writes them in its data folder, where Codex
-//! reads them, the first time a process opens. They are the folders Claude Code's runtime
-//! writes (ruling T13.3): one home for both is the join's.
+//! The server is one binary, which holds both: it writes them in its data folder, where the
+//! agents read them, as the first process of each start opens.
 
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -15,10 +15,15 @@ use uraeda_core::extensions::extensions_dir;
 /// The documentation of the extension API, as it was when the server was built.
 const DOCS: &str = include_str!("../../../../../docs/extensions.md");
 
-/// Where a session's Codex finds what it is given.
-pub(super) struct Folders {
-    /// The folder of skills Codex reads besides its own, `<data folder>/plugin/skills`, which
-    /// holds `uraeda/`.
+/// The skill's name, and the name of the plugin Claude Code loads it as.
+pub(in crate::runtimes) const SKILL_NAME: &str = "uraeda";
+
+/// Where a session's agent finds what every built-in agent is given: one per server, which
+/// `runtimes::mount` provides.
+pub(in crate::runtimes) struct Given {
+    /// The folder of the skill's plugin, `<data folder>/plugin`, which holds `skills/`.
+    pub plugin: PathBuf,
+    /// The folder of skills, `<data folder>/plugin/skills`, which holds `uraeda/`.
     pub skills: PathBuf,
     /// The owner's extensions folder, `<config folder>/extensions`, where sessions write them.
     pub extensions: PathBuf,
@@ -28,11 +33,13 @@ pub(super) struct Folders {
     written: OnceLock<()>,
 }
 
-impl Folders {
+impl Given {
     /// The folders of a server, by its config and data folders. Nothing is made yet.
-    pub(super) fn new(config_dir: &Path, data_dir: &Path) -> Folders {
-        Folders {
-            skills: data_dir.join("plugin/skills"),
+    pub(in crate::runtimes) fn new(config_dir: &Path, data_dir: &Path) -> Given {
+        let plugin = data_dir.join("plugin");
+        Given {
+            skills: plugin.join("skills"),
+            plugin,
             extensions: extensions_dir(config_dir),
             docs: data_dir.join("docs/extensions.md"),
             written: OnceLock::new(),
@@ -40,12 +47,13 @@ impl Folders {
     }
 
     /// Makes what a process is started with: the extensions folder, and, once per server, the
-    /// skill and the documentation. A folder that cannot be made is left to Codex.
-    pub(super) fn prepare(&self) {
+    /// skill and the documentation. A folder that cannot be made is left to the agent, which
+    /// says so.
+    pub(in crate::runtimes) fn prepare(&self) {
         let _ = fs::create_dir_all(&self.extensions);
         self.written.get_or_init(|| {
-            write_skill(&self.skills.join("uraeda"));
-            write_new(&self.docs, DOCS.as_bytes());
+            write_skill(&self.skills.join(SKILL_NAME));
+            let _ = write_new(&self.docs, DOCS.as_bytes());
         });
     }
 }
@@ -59,7 +67,7 @@ fn write_skill(folder: &Path) {
     while let Some(dir) = dirs.pop() {
         for file in dir.files() {
             let path = folder.join(file.path());
-            write_new(&path, file.contents());
+            let _ = write_new(&path, file.contents());
             held.push(path);
         }
         dirs.extend(dir.dirs());
@@ -85,12 +93,12 @@ fn remove_others(folder: &Path, held: &[PathBuf]) {
 }
 
 /// Writes a file unless it holds these bytes already: sessions opening together write the same.
-fn write_new(path: &Path, bytes: &[u8]) {
+pub(in crate::runtimes) fn write_new(path: &Path, bytes: &[u8]) -> io::Result<()> {
     if fs::read(path).is_ok_and(|old| old == bytes) {
-        return;
+        return Ok(());
     }
     if let Some(folder) = path.parent() {
-        let _ = fs::create_dir_all(folder);
+        fs::create_dir_all(folder)?;
     }
-    let _ = fs::write(path, bytes);
+    fs::write(path, bytes)
 }

@@ -6,10 +6,10 @@ use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
+use super::super::built_in::effort_name;
 use super::items::{end_of, review_notice, tokens_of, tool_of};
 use super::json::{Object, filled, object, text, texts, truthy};
 use super::limits;
-use super::target::effort_name;
 use crate::runner::{Activity, Event};
 
 /// The account's rate-limit bucket, as against a model's own.

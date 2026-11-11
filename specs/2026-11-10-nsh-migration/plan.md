@@ -1005,9 +1005,12 @@ Follows [what every records task does](#what-every-records-task-does).
 **Files:**
 
 - Create: `crates/server/src/runtimes/claude.rs` and `claude/` (task 13: `args`, `folders`,
-  `instructions`, `process`, `control`, `models`, `events`, `stream`, `system`, `results`, `tools`,
-  `limits`, `wakeups`, `time`, `allow`, `json`), `crates/server/src/runtimes/codex.rs` and
-  `codex_rpc.rs` (task 14)
+  `process`, `control`, `models`, `events`, `stream`, `system`, `results`, `tools`, `limits`,
+  `wakeups`, `time`, `allow`, `json`), `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`
+  (task 14)
+- What the two built-in runtimes share is in `crates/server/src/runtimes/built_in.rs` and
+  `built_in/{given,instructions,target}.rs`: the skill and the documentation written in the data
+  folder, the app's instructions, what a tool call acts on, and an effort's name (ruling T98.2)
 - Test: `crates/server/tests/claude.rs` and `claude/{stage,process,asked,real}.rs`,
   `crates/server/tests/codex.rs`, with recorded streams in `fixtures/runtimes/`, and the stand-ins
   of the machine's agents, in `crates/server/tests/support/machine.rs`: every test's server gets its
@@ -1068,7 +1071,8 @@ small file per part (ruling R110), tested in `crates/server/tests/codex.rs` and 
 the exchanges of `fixtures/runtimes/codex/` (ruling R107). It ports
 [`codex.ts`](/packages/server/src/runner/codex.ts) and `codex-rpc.ts`, with what they import, and
 produces `runtimes::codex::codex(&shared)`, which `runtimes::mount` registers as the built-in
-`codex`. Its steps and tests are task 13's, with Codex's streams.
+`codex`. Its steps and tests are task 13's, with Codex's streams. What it shares with Claude Code's
+runtime is in `runtimes/built_in/` (ruling T98.2).
 
 What the sessions (task 15) rely on:
 

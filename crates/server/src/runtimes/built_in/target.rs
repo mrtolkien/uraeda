@@ -1,27 +1,35 @@
-//! What a tool call acts on, for its line of the transcript, and the names for people of what
-//! agents share: as `toolTarget` and `effortName` of the Node server.
+//! What a tool call acts on, for its line of the transcript: as `toolTarget` of the Node
+//! server.
 
 use std::path::{Component, Path, PathBuf};
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 /// The fields of a tool's input that say what it acts on, the first one found.
 const TARGETS: [&str; 5] = ["command", "file_path", "url", "pattern", "path"];
 
-/// Those of them that are paths.
+/// Those of them that are a file's path.
 const PATHS: [&str; 2] = ["file_path", "path"];
 
 /// What a tool call acts on: its command, file, URL, or pattern. A file under `cwd`, the
 /// session's directory, is relative to it.
-pub(super) fn tool_target(input: &Value, cwd: &str) -> Option<String> {
+pub(in crate::runtimes) fn tool_target(input: &Map<String, Value>, cwd: &str) -> Option<String> {
     let (key, value) = TARGETS.iter().find_map(|key| {
-        let value = input.get(key)?.as_str()?;
+        let value = input.get(*key)?.as_str()?;
         Some((*key, value))
     })?;
-    let inside = (PATHS.contains(&key) && !cwd.is_empty() && value.starts_with('/'))
-        .then(|| inside(Path::new(cwd), Path::new(value)))
+    if PATHS.contains(&key) {
+        return Some(file_target(value, cwd));
+    }
+    Some(value.to_owned())
+}
+
+/// A file a tool call acts on: relative to `cwd`, the session's directory, when under it.
+pub(in crate::runtimes) fn file_target(path: &str, cwd: &str) -> String {
+    let inside = (!cwd.is_empty() && path.starts_with('/'))
+        .then(|| inside(Path::new(cwd), Path::new(path)))
         .flatten();
-    Some(inside.unwrap_or_else(|| value.to_owned()))
+    inside.unwrap_or_else(|| path.to_owned())
 }
 
 /// A path as it reads from a folder that holds it: none for the folder itself, or a path
@@ -46,17 +54,4 @@ fn plain(path: &Path) -> PathBuf {
         }
     }
     plain
-}
-
-/// An effort's name for people: "Extra high" for `xhigh`, any other id as given.
-pub(super) fn effort_name(id: &str) -> &str {
-    match id {
-        "high" => "High",
-        "low" => "Low",
-        "max" => "Max",
-        "medium" => "Medium",
-        "ultra" => "Ultra",
-        "xhigh" => "Extra high",
-        other => other,
-    }
 }

@@ -4,8 +4,8 @@ use std::path::Path;
 
 use serde_json::json;
 
+use super::super::built_in::instructions;
 use super::folders::Folders;
-use super::instructions::instructions;
 use crate::mcp;
 use crate::runtimes::{Options, TOKEN_VARIABLE, TOOL_TIMEOUT, TOOLS_SERVER, Tools};
 
@@ -45,14 +45,14 @@ pub(super) fn session(options: &Options, folders: &Folders) -> Vec<String> {
             args.all([option, picked]);
         }
     }
-    args.path("--plugin-dir", &folders.plugin);
+    args.path("--plugin-dir", &folders.given.plugin);
     for skills in &options.skills {
         args.path("--plugin-dir", &folders.extension_plugin(skills));
     }
     args.path("--add-dir", &folders.images);
-    args.path("--add-dir", &folders.extensions);
+    args.path("--add-dir", &folders.given.extensions);
     tools(&options.tools, &mut args);
-    let said = instructions(&folders.extensions, &folders.docs);
+    let said = instructions(&folders.given.extensions, &folders.given.docs);
     args.all(["--append-system-prompt", &said]);
     let session = if options.resume {
         "--resume"

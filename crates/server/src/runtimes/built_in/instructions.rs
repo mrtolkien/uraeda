@@ -1,17 +1,18 @@
 //! What the app tells the agent of every session it runs, beside the skill: the skill holds the
 //! workflow, for any harness, and never describes the app; these instructions hold what only the
-//! app does with the agent's messages. Claude Code's runtime appends them to its system prompt.
+//! app does with the agent's messages. Claude Code's runtime appends them to its system prompt,
+//! and Codex's gives them as a thread's developer instructions, with its sandbox's after them.
 //!
 //! The words are the Node server's, of `packages/server/src/runner/instructions.ts`, as they
-//! were when the runtime was ported.
+//! were when the runtimes were ported.
 
 use std::path::Path;
 
-/// The instructions appended to every session's system prompt, with the section on extensions:
-/// only where they live and how to add one, never anything an extension says, as extensions
-/// must not add instructions to the agent's runs. `folder` is the owner's extensions folder,
-/// and `docs` the documentation of the extension API.
-pub(super) fn instructions(folder: &Path, docs: &Path) -> String {
+/// The instructions of every session, with the section on extensions: only where they live and
+/// how to add one, never anything an extension says, as extensions must not add instructions
+/// to the agent's runs. `folder` is the owner's extensions folder, and `docs` the documentation
+/// of the extension API.
+pub(in crate::runtimes) fn instructions(folder: &Path, docs: &Path) -> String {
     let (folder, docs) = (folder.display(), docs.display());
     format!(
         "{INSTRUCTIONS}\n# Extensions\n\nUraeda's server and web UI take extensions, TypeScript \

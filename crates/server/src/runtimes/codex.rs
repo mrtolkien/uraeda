@@ -22,7 +22,6 @@
 
 mod catalog;
 mod events;
-mod folders;
 mod instructions;
 mod items;
 mod json;
@@ -35,7 +34,6 @@ mod rollouts;
 mod rpc;
 mod short;
 mod start;
-mod target;
 mod thread;
 mod turns;
 mod wire;
@@ -47,6 +45,7 @@ use std::time::Duration;
 use uraeda_core::extensions::settings_json;
 use uraeda_protocol::{Capabilities, ModelList};
 
+use super::built_in::Given;
 use super::{AgentProcess, Options, ReviewAsk, ReviewMessage, Runtime, RuntimeError, Spawn};
 use crate::Failure;
 use crate::live::wait;
@@ -66,7 +65,7 @@ pub const START_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// What every process of a server's Codex shares.
 struct Setup {
-    folders: folders::Folders,
+    folders: Arc<Given>,
     catalogs: catalog::Catalogs,
     /// How long a process's start may take.
     start_within: Duration,
@@ -96,7 +95,7 @@ pub fn codex(shared: &Shared) -> Codex {
 /// What a server's processes share, each giving up its start after `start_within`.
 fn setup(shared: &Shared, start_within: Duration) -> Setup {
     Setup {
-        folders: folders::Folders::new(shared.config_dir(), shared.data_dir()),
+        folders: shared.get::<Given>(),
         // The catalogs without sub-agents: never in Codex's home.
         catalogs: catalog::Catalogs::new(shared.data_dir().join("codex-catalog")),
         start_within,

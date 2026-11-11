@@ -7,8 +7,8 @@ use std::sync::LazyLock;
 use regex::Regex;
 use serde_json::{Value, json};
 
+use super::super::built_in::{file_target, tool_target};
 use super::json::{Object, filled, number, object, objects, text};
-use super::target::tool_target;
 use crate::runner::{Event, Subagent, TokenCounts, ToolKind};
 
 /// A shell's command line, `bash -lc '…'`, as Codex runs each command.
@@ -63,7 +63,7 @@ impl Tool {
 /// A file change's paths, relative to the session's directory when under it.
 fn changed_paths(changes: &[&Value], cwd: &str) -> Option<String> {
     let paths = changes.iter().filter_map(|change| {
-        let path = tool_target(&json!({ "path": text(change, "path") }), cwd)?;
+        let path = file_target(text(change, "path"), cwd);
         (!path.is_empty()).then_some(path)
     });
     let paths: Vec<String> = paths.collect();
@@ -106,7 +106,7 @@ pub(super) fn tool_of(item: &Value, cwd: &str) -> Option<Tool> {
             } else {
                 text(item, "tool").to_owned()
             };
-            let target = tool_target(&input, cwd);
+            let target = input.as_object().and_then(|input| tool_target(input, cwd));
             Some(Tool::new(&name, ToolKind::Other, input, target))
         }
         "webSearch" => {
