@@ -2731,7 +2731,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_page_that_does_not_compile_keeps_the_last_one_and_says_why` fails on `pageVersion`, null where
   it was 1.
 - **Where**: task 19, `crates/server/src/extensions/{signing,pages,loader}.rs`. Tasks 34 and 58.
-## T98.1: A test's server gets its `PATH` from one place, which holds a stand-in for each agent
+
+## R118: A test's server gets its `PATH` from one place, which holds a stand-in for each agent
 
 - **Decision**: `crates/server/tests/support/machine.rs` is the one home of "no test's server starts
   the machine's agents". It replaces the parts of R106 and R110 on the folder `no-agents/`.
@@ -2756,13 +2757,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   its owner's account. A rule every stage must remember is forgotten by the next one. Links, not
   scripts written per server: a script written and run at once can be refused as busy while another
   thread starts a process.
-- **If wrong**: the pull requests' refresh runs `gh` (T98.3), which is a command of the machine that
+- **If wrong**: the pull requests' refresh runs `gh` (R120), which is a command of the machine that
   uses its owner's account too: it has a stand-in in the same folder. The sandbox's server (task 20)
   needs its own answer, as R106 says.
 - **Where**: `crates/server/tests/support/{mod,machine}.rs` and `no-agents/stand-in`,
   `crates/server/tests/{claude,codex}/stage.rs`, `crates/cli/tests/serve.rs`.
 
-## T98.2: What the built-in runtimes share is in `runtimes/built_in/`
+## R119: What the built-in runtimes share is in `runtimes/built_in/`
 
 - **Decision**: the four things Claude Code's runtime and Codex's each held a copy of have one home,
   `crates/server/src/runtimes/built_in.rs` and its folder, which closes what R105 and R110 left to
@@ -2789,7 +2790,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/runtimes/{mod,built_in,claude,codex}.rs`, `built_in/`,
   `claude/{folders,args,models,tools,events}.rs`, `codex/{instructions,items,events,models}.rs`.
 
-## T98.3: The pull requests' refresh is a records domain, which runs `gh` itself
+## R120: The pull requests' refresh is a records domain, which runs `gh` itself
 
 - **Decision**: `crates/server/src/records/pulls.rs` ports the Node server's `pulls.ts`, which no
   task named (R57). It serves no record: the workspace's and the features' records already carry a
@@ -2813,7 +2814,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     runs: a `gh` that runs is killed, and none is started.
   - **`SETTLED`**, a list of `fn(&Shared, &str)` in `pulls.rs`, is where the sessions start the
     catch-up runs (task 15). It is empty, and marked `TASK 15:`.
-  - **In tests**, `gh` is a stand-in that fails, beside the agents' (T98.1). `tests/pulls.rs` puts
+  - **In tests**, `gh` is a stand-in that fails, beside the agents' (R118). `tests/pulls.rs` puts
     its own before it, a script that answers the JSON recorded in its folder. Two of its tests run
     on tokio's paused clock, so a minute passes at once.
   - A failure is not logged: `gh` missing or signed out is the snapshot `Unavailable`, as in the
@@ -2824,3 +2825,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   minutes as a write of the queue; the refresh writes nothing, and runs by the minute.
 - **Where**: `crates/server/src/records/{mod,watch,pulls}.rs`, `pulls/gh.rs`,
   `crates/server/tests/pulls.rs`, `crates/server/tests/support/machine.rs`. Task 15.
+
+## R121: The browser opens at the start with the web build, in task 56
+
+- **Decision**: the Rust server opens no browser as it starts, and `settings.setOpenBrowser` writes
+  a setting nothing reads. Task 56, which makes `ura serve` serve the app, reads it and opens the
+  browser as the Node server's `browser.ts` does: only where a desktop can show one, never over SSH,
+  with `xdg-open` or `open`, and with a one-time sign-in link. Its text says so, and the action is
+  marked `TASK 56:`.
+- **Rationale**: the Rust server serves no page until task 56. A browser opened on it before would
+  show nothing.
+- **Where**: `crates/server/src/records/workspace/settings/actions.rs`, and the plan's task 56.

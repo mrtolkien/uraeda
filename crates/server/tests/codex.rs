@@ -316,7 +316,7 @@ async fn closing_a_session_leaves_no_codex_process() {
     );
 }
 
-// No test's server starts the machine's agents (ruling T98.1): the other built-in's command is
+// No test's server starts the machine's agents (ruling R118): the other built-in's command is
 // a stand-in on this stage too, which the server asked for its models as it started.
 #[tokio::test]
 async fn the_stage_runs_no_agent_of_the_machine() {

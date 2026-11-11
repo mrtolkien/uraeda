@@ -485,7 +485,7 @@ async fn a_hook_of_a_commit_the_server_lands_gets_the_config_folders_secrets() {
 }
 
 // No test's server starts the machine's agents, which use their owner's accounts (ruling
-// T98.1): the built-in runtimes ask stand-ins for their models as the server starts.
+// R118): the built-in runtimes ask stand-ins for their models as the server starts.
 #[tokio::test]
 async fn a_test_server_runs_no_agent_of_the_machine() {
     let server = support::server().await;

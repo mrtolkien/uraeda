@@ -495,7 +495,7 @@ dropped. Rulings R84 to R96 say what was decided. What later tasks use:
   `fixture_repo(name)`, `Hook`, `read`, `call`, `Held`, `Live`, `idle(&server, repo)`, and
   `writes(&queue)`. A test's own commands, as a stand-in of `gh` or of an agent, are a folder given
   to `Setup::commands(dir)`: no test sets `PATH`, which holds a stand-in that fails for `claude`,
-  `codex`, and `gh` (rulings T98.1 and T98.3).
+  `codex`, and `gh` (rulings R118 and R120).
 
 Left for later tasks, each marked `TASK 15:`, `TASK 20:`, `TASK 51:`, or `TEMPORARY:` where it goes:
 a feature's status from its sessions, the refusal of a write while an agent works, a start's first
@@ -1012,12 +1012,12 @@ Follows [what every records task does](#what-every-records-task-does).
   (task 14)
 - What the two built-in runtimes share is in `crates/server/src/runtimes/built_in.rs` and
   `built_in/{given,instructions,target}.rs`: the skill and the documentation written in the data
-  folder, the app's instructions, what a tool call acts on, and an effort's name (ruling T98.2)
+  folder, the app's instructions, what a tool call acts on, and an effort's name (ruling R119)
 - Test: `crates/server/tests/claude.rs` and `claude/{stage,process,asked,real}.rs`,
   `crates/server/tests/codex.rs`, with recorded streams in `fixtures/runtimes/`, and the stand-ins
   of the machine's agents, in `crates/server/tests/support/machine.rs`: every test's server gets its
   `PATH` from `support::setup()`, and a test's own commands are a folder given to `Setup::commands`
-  (ruling T98.1)
+  (ruling R118)
 
 **Interfaces:**
 
@@ -1074,7 +1074,7 @@ the exchanges of `fixtures/runtimes/codex/` (ruling R107). It ports
 [`codex.ts`](/packages/server/src/runner/codex.ts) and `codex-rpc.ts`, with what they import, and
 produces `runtimes::codex::codex(&shared)`, which `runtimes::mount` registers as the built-in
 `codex`. Its steps and tests are task 13's, with Codex's streams. What it shares with Claude Code's
-runtime is in `runtimes/built_in/` (ruling T98.2).
+runtime is in `runtimes/built_in/` (ruling R119).
 
 What the sessions (task 15) rely on:
 
@@ -1132,7 +1132,7 @@ What the sessions (task 15) rely on:
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
   continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says.
-- **Starts the catch-up runs on the pull requests' refresh** (ruling T98.3), which
+- **Starts the catch-up runs on the pull requests' refresh** (ruling R120), which
   [`records/pulls.rs`](/crates/server/src/records/pulls.rs) runs: it asks `gh` for each listed
   repository as the server starts, as a repository joins the list, after a burst of the watcher that
   moved a branch, and every minute while a branch is past its last task, and the core keeps what it
@@ -2264,6 +2264,10 @@ here: iOS and macOS are the human's, later.
 - Consumes: the app (phase 1); `sign_in` (task 5).
 - Produces: `vp run web:build`, which packages the app for the web; `ura serve` serving it at `/`,
   with any unknown path answering the app's page; the sign-in cookie for the browser, as today.
+- `ura serve` reads the setting `open_browser`, which `settings.setOpenBrowser` writes and nothing
+  reads until then, and opens the app in a browser as it starts, as
+  [`browser.ts`](/packages/server/src/browser.ts) does: at the comment `// TASK 56:` of
+  `records/workspace/settings/actions.rs` (ruling R121).
 
 - [ ] **Step 1: Write the failing tests**
   - `the app's files are served compressed, and cached by their hash`: the break is a 10 MB first

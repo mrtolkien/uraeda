@@ -42,6 +42,8 @@ pub(super) fn register(registry: &Registry) {
             core::set_continue(dir, key(input.key), input.on)
         })
     });
+    // TASK 56: nothing reads this setting yet. The server opens a browser as it starts once it
+    // serves the app, as the Node server's `browser.ts` does.
     registry.action::<SettingsSetOpenBrowser>(|call, input| {
         write(call, |dir| core::set_open_browser(dir, input.open))
     });
