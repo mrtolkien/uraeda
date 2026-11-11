@@ -6358,3 +6358,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Props whose meaning changed**: none; `Button`'s `compact` is new.
 - **Where**: `app/ui/layout/Stacks.tsx`, `app/ui/controls/Button.tsx`,
   `app/screens/decisions/List.tsx`.
+
+## T93.7: The diff's code colours are Native Shell's; a patch it cannot read shows as text
+
+- **Decision**: `DiffView` takes no colour for its code: NSH 0.4.0 paints each token with
+  `Token::style` (`nsh-base/src/syntax.rs`), a fixed pair of colours for a light and a dark theme,
+  and its `styles` reach rows, numbers, and words, not tokens. The diff keeps them, with its rows in
+  the theme's roles. A patch `DiffView` cannot read, which it draws as nothing, is checked first in
+  Rust by the reader's rules (`patchProblem`, `crates/app/src/patch.rs`), and `Diff` shows it as its
+  plain text, under a quiet line naming the line that failed.
+- **Rationale**: drawing the code plain, to keep to the theme's hues, would cost every diff its
+  colours for a difference only a custom theme shows; reading a patch in TSX would be a parser in
+  the interpreter.
+- **If wrong**: NSH takes token colours (a `styles` part per token, or the editor's theme), and
+  `Diff` passes the theme's `syntax-*` roles, as `Code` does.
+- **Where**: `app/ui/document/Diff.tsx`, `crates/app/src/{patch,native,lib}.rs`,
+  `app/gallery/document/diff.tsx`.

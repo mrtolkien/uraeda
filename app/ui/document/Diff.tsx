@@ -4,9 +4,17 @@
 // fills the room it is given and scrolls inside itself, down and sideways, never the page; with
 // `wrap`, long lines wrap at its width instead. With `keys`, the pane it is in scrolls it by `j`
 // `k` and goes from change to change by `n` `N`. The Git page and a session's changes draw it.
-import type { StyleProp, ViewStyle } from "nsh";
+//
+// `DiffView` draws nothing for a patch it cannot read, and says nothing: a patch Rust finds it
+// cannot (`patchProblem`) shows as its plain text, under a quiet line that says why. Its code's
+// colours are `DiffView`'s own, for a light or a dark theme: it takes no colour of a token's
+// (ruling T93.7). Its rows, numbers, and changed words are the theme's roles.
+import { computed, Scroll, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { DiffView, type DiffViewRef } from "nsh/base";
+import { patchProblem } from "uraeda/native";
+import { Icon } from "../controls";
 import { registerKey } from "../keys/registry";
+import { Well } from "../surfaces";
 import { alpha, tokens } from "../tokens";
 
 export type DiffProps = {
@@ -54,7 +62,53 @@ function parts() {
 /** How far `j` and `k` scroll: three rows. */
 const STEP = 60;
 
+/** A patch `DiffView` cannot read: why, on a quiet line, then its text as it came. */
+function Unread(props: {
+  patch: string;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  why: string;
+}) {
+  return (
+    <View style={[{ flex: 1, gap: 6 }, props.style]} testID={props.testID}>
+      <View style={{ alignItems: "flex-start", flexDirection: "row", gap: 6 }}>
+        <Icon name="circle-alert" size={14} style={{ marginTop: 3 }} />
+        <Text style={{ color: tokens.role.inkQuiet, flexShrink: 1, fontSize: tokens.type.under }}>
+          {`Not read as a diff, ${props.why}: its text as it came.`}
+        </Text>
+      </View>
+      <Well style={{ flex: 1 }}>
+        <Scroll horizontal={false} style={{ flex: 1 }}>
+          <Text
+            style={{
+              color: tokens.role.ink,
+              fontFamily: tokens.type.code,
+              fontSize: tokens.type.under,
+              lineHeight: 20,
+              padding: 10,
+            }}
+          >
+            {props.patch}
+          </Text>
+        </Scroll>
+      </Well>
+    </View>
+  );
+}
+
 export function Diff(props: DiffProps) {
+  const why = computed(() => patchProblem(props.patch));
+  return (
+    <If
+      when={why() === ""}
+      else={<Unread patch={props.patch} style={props.style} testID={props.testID} why={why()} />}
+    >
+      <Read {...props} />
+    </If>
+  );
+}
+
+function Read(props: DiffProps) {
   let view: DiffViewRef | undefined;
   // Where the rows are, and how far they go, as the view last said.
   let rows = { at: 0, most: 0 };

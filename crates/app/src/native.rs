@@ -37,6 +37,7 @@ pub(crate) fn register(registry: &mut Registry) {
     registry.module::<crate::diagram::Diagrams>();
     registry.module::<crate::highlight::Highlight>();
     registry.module::<crate::time::Clocks>();
+    registry.module::<crate::patch::Patches>();
     registry
         .module::<crate::reply::Markdown>()
         .class::<crate::reply::ReplySplitter>();
