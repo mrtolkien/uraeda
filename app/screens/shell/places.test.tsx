@@ -31,6 +31,7 @@ const PAGES: Record<string, { address: string; words: string }> = {
   "decisions-check": { address: "/r/realistic/decisions/check", words: "Decisions check" },
   git: { address: "/r/sample/git", words: "README.md" },
   settings: { address: "/r/sample/settings/appearance", words: "Catppuccin Mocha" },
+  new: { address: "/r/sample/new?kind=feature", words: "Git listener process" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },
 };
 

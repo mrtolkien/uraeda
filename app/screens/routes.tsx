@@ -12,6 +12,8 @@ import "./shell/panes";
 import "./home";
 import "./priorities";
 // Task 38: Proposals, and starting work.
+import "./proposal";
+import "./new";
 // Task 39: Inbox and triage.
 import "./triage";
 // Task 40: The feature page.

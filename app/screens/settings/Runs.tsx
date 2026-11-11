@@ -8,6 +8,7 @@ import { fromWords, isOverridden, onOff, SettingRow, SettingRows } from "./Row";
 import { call, record } from "../../store";
 import type { ContinueKind, RunSettings, Setting } from "../../store/protocol";
 import { NumberInput, Select, type Sent, sent, Switch, Text } from "../../ui/controls";
+import { SettingsMap } from "../runs/SettingsMap";
 
 /** The choice of no default agent: no agent's name holds a colon. */
 const FIRST_ON = ":first";
@@ -200,17 +201,13 @@ export function Runs() {
       <SettingRows rows={rows}>
         <If when={runs() !== undefined}>
           <DefaultAgent opener={(open) => (openAgent = open)} runs={runs} />
-          {/* TASK 44: the run map, the shared component of the run options, goes under this row. */}
           <SettingRow
             {...wordsOf("runs", "How each step runs")}
             icon="workflow"
             id="map"
             under={
               <View style={{ gap: 4 }}>
-                <Text tone="faint">
-                  The run map is not drawn here yet: until it is, [runs.steps], [runs.implementers],
-                  and [[runs.reviewers]] in config.toml say how each step runs.
-                </Text>
+                <SettingsMap runs={runs} />
                 <If when={runs()?.claudeEffortFromEnv}>
                   {(effort) => (
                     <Text tone="caution">

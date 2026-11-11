@@ -6386,3 +6386,115 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   map, and the folds first): the keys a screen names in its own buttons are drawn there too.
 - **If wrong**: the screen's own hints come before the frame's, and the frame's go first.
 - **Where**: `app/ui/layout/StatusLine.tsx`.
+
+## R315: The proposal's pane is the one place a proposal file is written and started
+
+- **Decision**: `proposal({ repo, key })` (`app/screens/proposal/`) takes the place of task 37's
+  `proposal-summary` at `/priorities/<key>`, through the seam R273 left, with no change to its
+  files. It shows where the proposal stands and its words, then by what it is: a started or merged
+  one opens its feature; one with a file is that file in the shared `TextField` (Ctrl+Enter and `:w`
+  save over the hash it was read at, `SaveStatus`, unsaved text kept on the device, so `LeaveGuard`
+  asks before leaving), its research effort (`text.discovery`, through `sent`), its images (picker,
+  paste, drop, each attached to the file and linked at the caret), and its start; a line alone is
+  written into a file (`proposals.expand`) or started from the New page with its words. Then the
+  moves to another section and Remove, which asks for a second press. The old React UI split this
+  between the line's overlay and the editor page `/edit/<path>`.
+- **Rationale**: one pane for the thing the human reads, writes, and starts, with nothing to open in
+  between; `/edit/<path>` stays task 47's for every other file.
+- **If wrong**: task 47's editor places this pane for a proposal file's `/edit/<path>`.
+- **Where**: `app/screens/proposal/`.
+
+## R316: A proposal file's start is its pane's Start, or Ctrl+Enter in its short name
+
+- **Decision**: the Start part holds the kind (`f`, `c`), the short name (`s` focuses it, proposed
+  by the file's `slug`, kept on the device as typed), and the main button. The short name has no
+  `onEnter`: Enter there does nothing, and its `onSave`, Ctrl+Enter, starts, as it holds nothing to
+  save. A feature starts with `feature.start` and its write named "Starting the feature <title>",
+  opening `/priorities/<key>` again; a change with `change.startProposal`, which answers once landed
+  and opens the change's page. The text is saved first, and a refusal shows under the short name.
+  The proposal file's start sends no run options: `feature.start` takes none, so it runs on the
+  settings', which its feature page changes; a typed start's dialog holds the map.
+- **Test**: `Enter in a proposal's slug starts nothing`. The headless runner gives a field's own
+  keys to no editor, so the test guards Enter pressed on the page and in the short name reaching no
+  key that starts; the button's start is its control. With the Start button given `keys="Enter"` it
+  failed: `feature.start` was sent.
+- **Where**: `app/screens/proposal/StartPart.tsx`, `proposal.test.tsx`.
+
+## R317: A start says where the work went, its steps landing, and the way to its page
+
+- **Decision**: once `feature.start` or `feature.startText` answers its `StartPlan`, the pane that
+  started it shows `Landing` (`app/screens/new/Landing.tsx`): the feature's title and folder, the
+  write queue's steps of its write (`WriteQueue`, by folder) with their states and times, a refused
+  step's output with the way back, then "Open the feature" once its write left the queue and
+  `Feature` reads it. A change's start answers once landed, and opens the change's page; a new
+  session opens its page. The pane keeps the start in its visit (`rememberStarted`, a JSON text, as
+  a pane keeps plain values only).
+- **Rationale**: rule 9; the old UI opened the session with the message in its composer, which the
+  server now sends itself (R91).
+- **Where**: `app/screens/new/Landing.tsx`, `NewPane.tsx`, `app/screens/proposal/ProposalPane.tsx`.
+
+## R318: The run map is one component in `app/screens/runs/`, over the protocol's run options
+
+- **Decision**: `RunMap` (`app/screens/runs/RunMap.tsx`) draws run options as the server keeps them,
+  `value` read over `over` (a feature's or a start's own over the settings', or the settings' over
+  nothing), and gives `onChange` the options as the human set them: a model or an effort left to the
+  agent is `""` (R301), and the server stores what it means. The track's six steps are
+  `SelectableCard`s with "agent · model · effort", the joints between them `IconButton`s (scissors
+  where a new session starts, a link where the step goes on; a forced cut, two steps on different
+  agents or models, cannot be joined), the roles under them (implementers, reviewers, the reviewer
+  to add, where reviews happen), and under the map the selected place's controls: one `Select` of
+  every agent's models ("Claude Code · Default", "Claude Code · Opus 5.5"), one of efforts, a
+  joint's `Switch`, the depth's `Segmented`, Add, Back to what it follows, Remove. A place that
+  names no agent says it runs on the default agent, the setting's or the first on. Keys, a
+  selection's scope on while `active()`: `h` `l` and `j` `k` (along every place in a column), each
+  `false` at the edge; Enter picks or flips; `e` effort; `r` back; `a` add; `d` remove. The old
+  map's `toStored` diff, its own pickers, its history lock, and its row of presses are left: the
+  server stores the choice (R301), the controls are the app's, and a feature's history on its page
+  is task 44's.
+- **Rationale**: rule 3, "only one component to maintain": the settings, a typed start's dialog, and
+  a feature's continue draw the same map. Built here, a wave before task 44, as both this task and
+  the settings needed it.
+- **If wrong**: a lock of the steps a feature already ran is a `disabled` per place, from the
+  feature's history.
+- **Where**: `app/screens/runs/{options,places,RunMap,Detail,SettingsMap,ContinueDialog}.ts*`.
+
+## R319: A typed start's dialog holds the run map at its size, the field first, Enter confirming
+
+- **Decision**: the New page's Start, or Ctrl+Enter in its composer for a change or a feature, opens
+  `StartDialog`: the short name (`SlugProposal` of the text, editable, first focus, Enter starts:
+  the dialog is the deliberate step), a feature's research effort, and the run map under them, a row
+  of six tiles 1180 points wide in a wide window, a column 640 wide otherwise and for a change,
+  scrolling inside the dialog's 80% of the window. It sends only what the map changed (`options`
+  `null` when nothing was). Closing it starts nothing, and the draft stays.
+- **Where**: `app/screens/new/StartDialog.tsx`.
+
+## R320: A feature's continue opens the continue dialog, its message and its map
+
+- **Decision**: "Next"'s continue (R285) opens `ContinueDialog`: the workflow's message whole, the
+  run map on the feature's own options (`feature.setRunOptions` through `sent`, saved at once), and
+  the run's button, its first focus. It sends `session.send` as R285 did, then opens the session.
+- **Where**: `app/screens/runs/ContinueDialog.tsx`, `app/screens/feature/Overview.tsx`.
+
+## R321: The New page is one draft for three kinds, and a source list beside it
+
+- **Decision**: `new({ repo })` in main, `new-sources({ repo })` in side, the kind read from the
+  address so a switch (`s` `c` `f`, or the cards) keeps the panes. One draft per repository, kept on
+  the device without the leave question (`draftOf`), with images held while the app runs and sent
+  through `/attach?chat=1` with the start. A session starts with Enter, on the default agent, named
+  under the composer (rule 10); a change and a feature with Ctrl+Enter or Start, through the dialog.
+  "Start from" lists the proposals not started and the inbox's notes: Enter puts a line's words in
+  the draft (a proposal's line kept, so its start links it), or opens a proposal with a file. The
+  old page's `/` search of the entries is left: the side pane's list is short, and the app's find
+  covers the rest.
+- **Where**: `app/screens/new/`.
+
+## R322: The leave question resolved nothing, and the images moved to a shared module
+
+- **Decision**: `LeaveGuard` held its resolver as `asking.set(() => resolve)`: a signal keeps a
+  function as its value, so the answer called the wrapper and never resolved, and neither Leave nor
+  Stay did anything but close the dialog. It now holds `{ answer: resolve }`. The inbox's image
+  helpers (sign-in, draw, pick, paste, drop) moved to `app/screens/images.ts`, with `attachToFile`
+  and `keepForChat`; `inbox/images.ts` keeps the note's upload and re-exports them.
+- **Test**: `leaving an edited proposal asks first, and keeps the text` failed without the fix:
+  after "Leave page", the proposal's page stayed.
+- **Where**: `app/ui/text/LeaveGuard.tsx`, `app/screens/images.ts`, `app/screens/inbox/images.ts`.

@@ -11,6 +11,7 @@ import { Pane, Well } from "../../ui/surfaces";
 import type { Tone } from "../../ui/tokens";
 import { type Next, type NextAction, nextOf } from "./next";
 import { Drop, DroppedNote, Problems } from "./Parts";
+import { ContinueDialog } from "../runs/ContinueDialog";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
 import { day, endedWords, kindWord, plural, waitWords } from "./words";
 
@@ -53,16 +54,9 @@ async function run(args: FeatureArgs, action: NextAction): Promise<void> {
     case "clean":
       await call("git.clean", { folder: args.folder, repo: args.repo, write: null });
       return;
-    case "continue": {
-      // TASK 38: the start dialog, with the run's options at full size, replaces this plain start.
-      const sent = await call("session.send", {
-        folder: args.folder,
-        repo: args.repo,
-        text: action.text,
-        workflow: { step: action.step, trigger: action.trigger },
-      });
-      navigate({ id: sent.session, page: "session-id" });
-    }
+    case "continue":
+      // The continue dialog sends it, its message and run options read first (`NextPart`).
+      return;
   }
 }
 
@@ -78,7 +72,15 @@ const ICONS = {
 function NextPart(props: { args: FeatureArgs; next: Next }) {
   const pending = signal(false);
   const refusal = signal<string | null>(null);
+  // The run the dialog asks about, kept after it closes so it leaves with its motion.
+  const asked = signal<Extract<NextAction, { kind: "continue" }> | null>(null);
+  const asking = signal(false);
   const press = async (action: NextAction) => {
+    if (action.kind === "continue") {
+      asked.set(action);
+      asking.set(true);
+      return;
+    }
     if (pending()) return;
     pending.set(true);
     refusal.set(null);
@@ -110,6 +112,17 @@ function NextPart(props: { args: FeatureArgs; next: Next }) {
             />
             <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
           </View>
+        )}
+      </If>
+      <If when={asked()}>
+        {(next) => (
+          <ContinueDialog
+            folder={props.args.folder}
+            onClose={() => asking.set(false)}
+            open={asking()}
+            repo={props.args.repo}
+            run={next()}
+          />
         )}
       </If>
     </Pane>

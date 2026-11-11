@@ -2539,12 +2539,26 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Tests:** `leaving an edited proposal asks first, and keeps the text`;
   `Enter in a proposal's slug starts nothing`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): proposals, and starting work`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 117 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): proposals, and starting work`.
+
+**As built** (rulings R315 to R322):
+
+- `app/screens/proposal/`: the pane `proposal({ repo, key })`, main, which takes the summary's place
+  at `/priorities/<key>`: the proposal file edited in place (`FileEditor.tsx`) and its start
+  (`StartPart.tsx`). `app/screens/new/`: `new({ repo })` main and `new-sources({ repo })` side, the
+  kind read from the address; `StartDialog`, `Landing` (a start's steps landing), and `draft.ts`
+  (`startFromLine`, which a proposal with no file starts through).
+- **The run map** is `app/screens/runs/RunMap.tsx`,
+  `RunMap { value, over?, onChange, runtimes, defaultAgent, kind?: "feature" | "change", column?, active, cursor?, refusal?, disabled? }`,
+  over the protocol's `RunOptions`; `SettingsMap` is the settings' (in `Runs.tsx`), `ContinueDialog`
+  the feature page's continue, which replaced its plain start.
+- `app/screens/images.ts` holds every screen's image helpers, with `attachToFile` and `keepForChat`.
+  `LeaveGuard` resolves its answer now (R322).
 
 ## Task 39: Inbox and triage
 
@@ -2702,10 +2716,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** Session, Turn, BranchChanges, AllBranchChanges; `session.allow`,
   `session.allowAll`, `session.toChange`
 - **Its own rules:** the run map is one component, used by the settings and by the start dialogs
-  (task 38). A session's sub-agents are framed cards, with their start and their end, in the order
-  they started; the tab follows its end as the Activity does, and has no Changes under it. A
-  reviewer's title shows no commit. In the Activity, a `run_agent` call shows its sub-session on one
-  line, a link to its page, and its target is its task.
+  (task 38). Task 38 built it: `RunMap` in `app/screens/runs/RunMap.tsx` (ruling R318), drawn by the
+  settings, the typed starts, and a feature's continue; this task puts it in the feature's Steps
+  pane (its `TASK 44:` mark), with what the feature already ran locked. A session's sub-agents are
+  framed cards, with their start and their end, in the order they started; the tab follows its end
+  as the Activity does, and has no Changes under it. A reviewer's title shows no commit. In the
+  Activity, a `run_agent` call shows its sub-session on one line, a link to its page, and its target
+  is its task.
 - **Tests:** none.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
