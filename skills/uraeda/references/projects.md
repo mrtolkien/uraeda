@@ -89,7 +89,8 @@ on the default branch, from the files as they are then:
 
 ## Starting, postponing, and dropping a feature
 
-Do these only when a human asks.
+Do these only when a human asks. A job the human scheduled is their yes in advance for the change
+its run offers, not for a feature: see [Starting a change](change.md#starting-a-change).
 
 - **Expand**: a proposal line of `PRIORITIES.md` becomes a proposal file,
   `specs/proposals/<slug>.md` or the next free name with `-2`, `-3`, ..., from the proposal template

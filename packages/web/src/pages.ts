@@ -27,6 +27,9 @@ export const FeaturePage = page(
 export const FilePage = page(async () => (await import("./FilePage.tsx")).FilePage);
 export const GitPage = page(async () => (await import("./git/GitPage.tsx")).GitPage);
 export const InboxRoute = page(async () => (await import("./pane/DetailRoutes.tsx")).InboxRoute);
+export const JobsPage = page(async () => (await import("./jobs/JobsPage.tsx")).JobsPage);
+export const JobPage = page(async () => (await import("./jobs/JobPage.tsx")).JobPage);
+export const NewJobPage = page(async () => (await import("./jobs/JobPage.tsx")).NewJobPage);
 export const MockupPage = page(async () => (await import("./MockupPage.tsx")).MockupPage);
 export const NewPage = page(async () => (await import("./NewPage.tsx")).NewPage);
 export const PrioritiesRoute = page(

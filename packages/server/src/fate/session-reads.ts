@@ -41,6 +41,19 @@ export function blockedOf(cache: SessionCache, turn: TurnRow | undefined): boole
   return turn ? cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed) : false;
 }
 
+/**
+ * Why the change a job's run offered could not start, while the turn that offer ended is the
+ * session's latest (R1): a later turn of the session asks nothing of it, nor does a session that
+ * belongs to a change or a feature now (R20).
+ */
+function refusalOf(cache: SessionCache, session: string, latest: TurnRow | undefined) {
+  const run = latest === undefined ? undefined : cache.jobs.ofSession(session);
+  if (run?.refusal == null || run.refusedTurn !== latest?.id) {
+    return null;
+  }
+  return cache.session(session)?.folder == null ? run.refusal : null;
+}
+
 /** What a session's status and its sidebar row read of its turns. */
 export function turnsOf(cache: SessionCache, session: string) {
   const turns = cache.turns(session);
@@ -52,6 +65,7 @@ export function turnsOf(cache: SessionCache, session: string) {
     blocked: blockedOf(cache, latest),
     latest,
     queued,
+    refusal: refusalOf(cache, session, latest),
     subagents,
     turns,
   };
@@ -64,13 +78,17 @@ export function turnsOf(cache: SessionCache, session: string) {
  */
 export function statusOf(
   row: SessionRow,
-  read: Pick<ReturnType<typeof turnsOf>, "blocked" | "latest" | "queued"> & { wakeup?: boolean },
+  read: Pick<ReturnType<typeof turnsOf>, "blocked" | "latest" | "queued"> & {
+    refusal?: string | null;
+    wakeup?: boolean;
+  },
   feature?: FeatureView,
   latestSession = true,
 ) {
   const status = sessionStatus({
     ...(read.latest === undefined ? {} : { latest: read.latest }),
     blocked: read.blocked,
+    changeRefused: read.refusal != null,
     latestSession,
     queued: read.queued,
     seenAt: row.seenAt,

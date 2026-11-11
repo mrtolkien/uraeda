@@ -4,6 +4,7 @@ import { localPath, parseLocation, repoPath, type Route } from "./routeTable.ts"
 
 export {
   branchDecisionPath,
+  jobPath,
   localPath,
   type NewKind,
   parseLocation,

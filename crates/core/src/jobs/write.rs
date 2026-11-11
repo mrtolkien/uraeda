@@ -1,0 +1,338 @@
+//! Writing the jobs: each write edits the settings file as it is, under the folder's lock, and
+//! changes only its job's table: every other table, comment, unknown key, and the order stay. A
+//! write refuses what the reader would flag, with the same text, and while the settings file
+//! cannot be read.
+
+use std::path::Path;
+
+use toml_edit::{Array, ArrayOfTables, Item, RawString, Table, TableLike, Value};
+
+use super::{JobInput, NOT_A_LIST, check, inline, tables, text_of};
+use crate::api::ApiError;
+use crate::settings::{HEADER, change_document, change_path, refused, set};
+
+/// Adds `job` as the last of the jobs: a new `[[jobs]]` table.
+pub fn add(config_dir: &Path, job: &JobInput) -> Result<(), ApiError> {
+    check_input(job)?;
+    change_document(config_dir, HEADER, |document| {
+        let root = document.as_table_mut();
+        if names(root)?.iter().any(|listed| listed == job.name.trim()) {
+            return Err(taken(job.name.trim()));
+        }
+        // The comments after the file's last table or value are the document's trailing text, which
+        // a first table would end up above: they go above the table instead, as the header does.
+        let first = root.get("jobs").is_none();
+        let mut table = Table::new();
+        apply(&mut table, job);
+        match root.get_mut("jobs") {
+            None => {
+                let mut list = ArrayOfTables::new();
+                list.push(table);
+                root.insert("jobs", Item::ArrayOfTables(list));
+            }
+            Some(Item::ArrayOfTables(list)) => list.push(table),
+            Some(Item::Value(Value::Array(list))) => {
+                inline::push(list, Value::InlineTable(table.into_inline_table()));
+            }
+            Some(_) => return Err(refused(NOT_A_LIST)),
+        }
+        let trailing = document.trailing().as_str().unwrap_or_default().to_owned();
+        if first && !trailing.trim().is_empty() {
+            document.set_trailing("");
+            if let Some(Item::ArrayOfTables(list)) = document.as_table_mut().get_mut("jobs") {
+                let comment = format!("{}\n\n", trailing.trim_end());
+                list.iter_mut()
+                    .for_each(|table| table.decor_mut().set_prefix(&comment));
+            }
+        }
+        Ok(())
+    })
+    .map(|_| ())
+}
+
+/// Replaces the job `name` with `job`, a rename included: only the keys whose value differs are
+/// written, each keeping its comment, and `report_only`, `agent`, `model`, and `effort` are
+/// removed when they return to their default. `on` is not touched.
+pub fn update(config_dir: &Path, name: &str, job: &JobInput) -> Result<(), ApiError> {
+    check_input(job)?;
+    edit(config_dir, |root| {
+        let place = place(root, name)?;
+        let renamed = job.name.trim() != name.trim();
+        if renamed && names(root)?.iter().any(|listed| listed == job.name.trim()) {
+            return Err(taken(job.name.trim()));
+        }
+        let table = table_mut(root, place).ok_or_else(|| refused(NOT_A_LIST))?;
+        apply(table, job);
+        Ok(())
+    })
+}
+
+/// Sets whether the job `name` runs at its times: `on`, written in its table.
+pub fn set_on(config_dir: &Path, name: &str, on: bool) -> Result<(), ApiError> {
+    edit(config_dir, |root| {
+        let place = place(root, name)?;
+        let table = table_mut(root, place).ok_or_else(|| refused(NOT_A_LIST))?;
+        set(table, "on", Value::from(on));
+        Ok(())
+    })
+}
+
+/// Removes the job `name`, its table and the comment above it. A comment above it that a blank
+/// line sets apart, like the file's header, is not its own: it stays, above the next table, or at
+/// the end of the file when no table follows.
+pub fn remove(config_dir: &Path, name: &str) -> Result<(), ApiError> {
+    change_document(config_dir, HEADER, |document| {
+        let blank = document.to_string().starts_with('\n');
+        let root = document.as_table_mut();
+        let place = place(root, name)?;
+        let mut left = None;
+        let empty = match root.get_mut("jobs") {
+            Some(Item::ArrayOfTables(list)) => {
+                let table = list.remove(place);
+                left = table.position().zip(own_comment(&table));
+                list.is_empty()
+            }
+            Some(Item::Value(Value::Array(list))) => {
+                inline::remove(list, place);
+                list.is_empty()
+            }
+            _ => return Err(refused(NOT_A_LIST)),
+        };
+        if empty {
+            root.remove("jobs");
+        }
+        if let Some((position, comment)) = left {
+            match next_position(root, position) {
+                Some(next) => {
+                    prepend(root, next, &comment);
+                }
+                None => {
+                    let trailing = document.trailing().as_str().unwrap_or_default();
+                    let trailing = format!("{comment}{trailing}");
+                    document.set_trailing(trailing);
+                }
+            }
+        }
+        // The separator of the removed first table was the next one's prefix: no blank line leads.
+        if !blank && document.to_string().starts_with('\n') {
+            match next_position(document.as_table(), isize::MIN) {
+                Some(first) => {
+                    with_table(document.as_table_mut(), first, &mut |table| {
+                        let prefix = decor_text(table).trim_start_matches('\n').to_owned();
+                        table.decor_mut().set_prefix(prefix);
+                    });
+                }
+                None => {
+                    let trailing = document.trailing().as_str().unwrap_or_default();
+                    document.set_trailing(trailing.trim_start_matches('\n').to_owned());
+                }
+            }
+        }
+        Ok(())
+    })
+    .map(|_| ())
+}
+
+/// Applies `change` to the file's top level, under the folder's lock.
+fn edit(
+    config_dir: &Path,
+    change: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
+) -> Result<(), ApiError> {
+    change_path(config_dir, &[], change).map(|_| ())
+}
+
+/// Refuses a job the reader would flag, with its problem.
+fn check_input(job: &JobInput) -> Result<(), ApiError> {
+    check(
+        &job.name,
+        &job.repositories,
+        &job.schedule,
+        &job.prompt,
+        false,
+    )
+    .map(|_| ())
+    .map_err(refused)
+}
+
+fn taken(name: &str) -> ApiError {
+    refused(format!("A job named “{name}” exists already."))
+}
+
+/// The names of the jobs in file order, trimmed, empty for a job without one.
+fn names(root: &dyn TableLike) -> Result<Vec<String>, ApiError> {
+    let Some(item) = root.get("jobs") else {
+        return Ok(Vec::new());
+    };
+    let tables = tables(item).ok_or_else(|| refused(NOT_A_LIST))?;
+    Ok(tables
+        .into_iter()
+        .map(|table| text_of(table, "name").unwrap_or_default().trim().to_owned())
+        .collect())
+}
+
+/// Where the job `name` is in the list, as written. A name that more than one table has is
+/// refused: a write by name could not tell which job it is for, and the human renames one by hand.
+fn place(root: &dyn TableLike, name: &str) -> Result<usize, ApiError> {
+    let listed = names(root)?;
+    let mut found = listed
+        .iter()
+        .enumerate()
+        .filter(|(_, listed)| *listed == name.trim())
+        .map(|(place, _)| place);
+    match (found.next(), found.next()) {
+        (Some(_), Some(_)) => Err(refused(format!(
+            "Two jobs are named “{}”. Rename one in config.toml.",
+            name.trim()
+        ))),
+        (Some(place), None) => Ok(place),
+        _ => Err(refused(format!("There is no job named “{name}”."))),
+    }
+}
+
+/// The table of the job at `place`.
+fn table_mut(root: &mut dyn TableLike, place: usize) -> Option<&mut dyn TableLike> {
+    match root.get_mut("jobs")? {
+        Item::ArrayOfTables(list) => list
+            .iter_mut()
+            .nth(place)
+            .map(|table| table as &mut dyn TableLike),
+        Item::Value(Value::Array(list)) => list
+            .get_mut(place)?
+            .as_inline_table_mut()
+            .map(|table| table as &mut dyn TableLike),
+        _ => None,
+    }
+}
+
+/// Writes `job` in `table`: a key whose value is the same is left as it is, and the optional keys
+/// at their default are removed.
+fn apply(table: &mut dyn TableLike, job: &JobInput) {
+    put(table, "name", Some(job.name.trim()));
+    let same = table
+        .get("repositories")
+        .and_then(Item::as_array)
+        .is_some_and(|list| {
+            list.iter()
+                .map(Value::as_str)
+                .eq(job.repositories.iter().map(|name| Some(name.as_str())))
+        });
+    if !same {
+        let list: Array = job.repositories.iter().map(String::as_str).collect();
+        set(table, "repositories", Value::Array(list));
+    }
+    // The schedule is its words, one space apart, and an option left empty is unset.
+    let schedule = job
+        .schedule
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    put(table, "schedule", Some(&schedule));
+    match job.report_only {
+        true if table.get("report_only").and_then(Item::as_bool) != Some(true) => {
+            set(table, "report_only", Value::from(true));
+        }
+        true => {}
+        false => {
+            table.remove("report_only");
+        }
+    }
+    put(table, "agent", text(&job.agent));
+    put(table, "model", text(&job.model));
+    put(table, "effort", text(&job.effort));
+    put(table, "prompt", Some(&job.prompt));
+}
+
+/// An option's text, trimmed, `None` when it is unset or empty.
+fn text(option: &Option<String>) -> Option<&str> {
+    option
+        .as_deref()
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+}
+
+/// Sets `key` to the text `value`, or removes it when `None`; unchanged when it holds that text.
+fn put(table: &mut dyn TableLike, key: &str, value: Option<&str>) {
+    match value {
+        Some(value) if text_of(table, key) == Some(value) => {}
+        Some(value) => set(table, key, Value::from(value)),
+        None => {
+            table.remove(key);
+        }
+    }
+}
+
+/// The comment above a removed table that is not its own, a blank line after it, or `None`.
+fn own_comment(table: &Table) -> Option<String> {
+    let prefix = table.decor().prefix().and_then(RawString::as_str)?;
+    let lines: Vec<&str> = prefix.split_inclusive('\n').collect();
+    let blank = lines
+        .iter()
+        .rposition(|line| line.ends_with('\n') && line.trim().is_empty())?;
+    let kept = lines[..=blank].concat();
+    (!kept.trim().is_empty()).then_some(kept)
+}
+
+/// The position of the first table of `table` after `at`, in the file's order.
+fn next_position(table: &dyn TableLike, at: isize) -> Option<isize> {
+    let after = |position: Option<isize>| position.filter(|position| *position > at);
+    table
+        .iter()
+        .filter_map(|(_, item)| match item {
+            Item::Table(inner) => after(inner.position())
+                .into_iter()
+                .chain(next_position(inner, at))
+                .min(),
+            Item::ArrayOfTables(list) => list
+                .iter()
+                .filter_map(|inner| after(inner.position()))
+                .min(),
+            _ => None,
+        })
+        .min()
+}
+
+/// Applies `change` to the table of `table` at `position`; whether it is there.
+fn with_table(
+    table: &mut dyn TableLike,
+    position: isize,
+    change: &mut dyn FnMut(&mut Table),
+) -> bool {
+    for (_, item) in table.iter_mut() {
+        let found = match item {
+            Item::Table(inner) if inner.position() == Some(position) => {
+                change(inner);
+                true
+            }
+            Item::Table(inner) => with_table(inner, position, change),
+            Item::ArrayOfTables(list) => {
+                let found = list
+                    .iter_mut()
+                    .find(|inner| inner.position() == Some(position));
+                found.map(&mut *change).is_some()
+            }
+            _ => false,
+        };
+        if found {
+            return true;
+        }
+    }
+    false
+}
+
+/// The text of a table's decor prefix.
+fn decor_text(table: &Table) -> &str {
+    table
+        .decor()
+        .prefix()
+        .and_then(RawString::as_str)
+        .unwrap_or_default()
+}
+
+/// Puts `comment`, then a blank line, above the table at `position`, before its own comment.
+fn prepend(table: &mut dyn TableLike, position: isize, comment: &str) -> bool {
+    with_table(table, position, &mut |inner| {
+        let own = decor_text(inner);
+        let prefix = format!("{}\n\n{}", comment.trim_end(), own.trim_start_matches('\n'));
+        inner.decor_mut().set_prefix(prefix);
+    })
+}

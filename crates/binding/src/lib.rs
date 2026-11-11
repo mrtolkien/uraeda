@@ -36,6 +36,7 @@ pub mod git_writes;
 pub mod history;
 pub mod inbox_categories;
 pub mod inbox_writes;
+pub mod jobs;
 pub mod moves;
 pub mod note_images;
 pub mod proposal_writes;

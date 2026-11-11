@@ -193,6 +193,11 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
                 .map_err(|problem| (offset(key, item), "automatic_continues".into(), problem))?,
         );
     }
+    settings.scheduled_jobs = switch(
+        runs,
+        "scheduled_jobs",
+        "Running scheduled jobs is true or false.",
+    )?;
     settings.options = super::runs::parse(runs, fresh)?;
     Ok(settings)
 }

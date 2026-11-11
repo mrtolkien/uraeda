@@ -6,5 +6,6 @@ export const BUILT_IN_PLACES = {
   decisions: { icon: "uraeda:decision-ruler", label: "Decisions", path: "/decisions" },
   git: { icon: "uraeda:git-branch", label: "Git", path: "/git" },
   inbox: { icon: "uraeda:inbox", label: "Inbox", path: "/inbox" },
+  jobs: { icon: "uraeda:clock", label: "Jobs", path: "/jobs" },
   priorities: { icon: "uraeda:list", label: "Priorities", path: "/priorities" },
 } as const satisfies Record<string, Destination>;

@@ -7,6 +7,7 @@ import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import { type CatchUps, catcher } from "./catch-ups.ts";
+import { startJobs } from "./jobs/start.ts";
 import type { Binding, RepoContext } from "./fate/context.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { ExtensionsHost } from "./extensions/server.ts";
@@ -392,6 +393,8 @@ async function startOpened(
   await sessions.sessions.startContinues();
   const caught = catcher(shared);
   started.catchUps = caught;
+  // After the catcher: the scheduler's first look sets the moment each job was first seen.
+  const jobs = startJobs(shared);
   const sweepPreviews = waitingPreviews(shared);
   const sweeping = setInterval(() => {
     sweepPreviews();
@@ -409,6 +412,7 @@ async function startOpened(
       featureOptions: shared.featureOptions,
       frames,
       hosts: opened,
+      jobs,
       mcp,
       previews,
       sessions: sessions.sessions,
@@ -438,7 +442,7 @@ async function startOpened(
         clearInterval(sweeping);
         // Its runs in flight end before the sessions stop: a send the stop did not prevent is
         // stopped with the others.
-        const catching = caught.stop();
+        const catching = Promise.all([caught.stop(), jobs.stop()]);
         signIn?.links.close();
         opened.close();
         options.settings.close();

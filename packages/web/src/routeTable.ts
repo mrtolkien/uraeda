@@ -18,6 +18,9 @@ export type Route =
   | { folder: string; name: string; page: "branch-decision" }
   | { page: "constitution" }
   | { page: "git" }
+  | { page: "jobs" }
+  | { name: string; page: "job" }
+  | { page: "job-new" }
   | { page: "edit"; path: string }
   | { page: "buffer"; path: string }
   | { folder: string; name: string; page: "mockup" }
@@ -98,6 +101,16 @@ export function parseRoute(pathname: string, search = ""): Route {
   if (parts[0] === "git" && parts.length === 1) {
     return { page: "git" };
   }
+  if (parts[0] === "jobs" && parts.length <= 2) {
+    if (parts.length === 1) {
+      return { page: "jobs" };
+    }
+    if (parts[1] === "new") {
+      return { page: "job-new" };
+    }
+    // The `~` that jobPath puts before a name the plain form cannot carry.
+    return { name: parts[1].startsWith("~") ? parts[1].slice(1) : parts[1], page: "job" };
+  }
   if (parts[0] === "sessions" && parts.length === 1) {
     return { page: "sessions" };
   }
@@ -149,6 +162,15 @@ export function parseRoute(pathname: string, search = ""): Route {
     return { page: "buffer", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
+}
+
+/**
+ * A job's page, by its name: the name encoded, with a `~` before it when it would be another page
+ * (`new`, the new job's), a dot segment the browser would normalise away, or itself start with `~`.
+ */
+export function jobPath(name: string): string {
+  const plain = name !== "new" && name !== "." && name !== ".." && !name.startsWith("~");
+  return `/jobs/${plain ? "" : "~"}${encodeURIComponent(name)}`;
 }
 
 /** A session's page, by its id. */

@@ -27,6 +27,9 @@ export declare function addCategory(repo: string, name: string, previous: string
  */
 export declare function addComment(repo: string, folder: string, file: string, lines: CommentLines | undefined | null, text: string, decision?: DecisionTarget | undefined | null, undo?: string | undefined | null): Promise<FileView>
 
+/** Adds a job as the last of the jobs. */
+export declare function addJob(configDir: string, jobInput: JobInput): Promise<void>
+
 /**
  * Adds a note at the end of a category, or of the notes without one, marked with the slug of the
  * feature or change folder `about`.
@@ -127,6 +130,12 @@ export declare function checkedAutomaticContinues(typed: string): number
  * otherwise, `The port is a number from 1 to 65535.`
  */
 export declare function checkedPort(typed: string): number
+
+/**
+ * The schedule `text` writes. Throws the problem otherwise: the schedule is not understood, or its
+ * time is outside 00:00 to 23:59. It reads nothing, so it returns at once.
+ */
+export declare function checkedSchedule(text: string): Schedule
 
 /**
  * The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
@@ -538,6 +547,9 @@ export declare function readImage(repo: string, path: string): Promise<ImageFile
 /** The inbox, with the count of the changes waiting for a commit and the triage's status. */
 export declare function readInbox(repo: string): Promise<Inbox>
 
+/** The jobs in the config folder's settings file, each with its problem. */
+export declare function readJobs(configDir: string): Promise<Jobs>
+
 /** The constitution and the decisions of the default branch, each decision with its last change. */
 export declare function readLedger(repo: string): Promise<Ledger>
 
@@ -588,6 +600,9 @@ export declare function removeCategory(repo: string, name: string, keepNotes: bo
 
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number, undo?: string | undefined | null): Promise<FileView>
+
+/** Removes the job `name`. */
+export declare function removeJob(configDir: string, name: string): Promise<void>
 
 /** Removes a note, sub-items included, and its note file. */
 export declare function removeNote(repo: string, id: string, previous: string, undo?: string | undefined | null): Promise<Inbox>
@@ -683,9 +698,9 @@ export declare function setAutomaticContinues(dir: string, continues: string): P
 
 /**
  * Sets whether a kind of automatic run is on: the continue after a restart or after a usage
- * limit, or the catch-up of open pull requests.
+ * limit, the catch-up of open pull requests, or the scheduled jobs.
  */
-export declare function setContinue(dir: string, key: "restart" | "limit" | "catch-up", on: boolean): Promise<Settings>
+export declare function setContinue(dir: string, key: "restart" | "limit" | "catch-up" | "jobs", on: boolean): Promise<Settings>
 
 /** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
@@ -707,6 +722,9 @@ export declare function setExtensionSetting(configDir: string, dataDir: string, 
  * empty name removes it.
  */
 export declare function setItemSettings(dataDir: string, name: string, folder: string, label?: string | undefined | null): Promise<Repository>
+
+/** Sets whether the job `name` runs at its times. */
+export declare function setJobOn(configDir: string, name: string, on: boolean): Promise<void>
 
 /** Sets whether a start opens a browser. */
 export declare function setOpenBrowser(dir: string, open: boolean): Promise<Settings>
@@ -803,6 +821,9 @@ export interface TextStartOptions {
 
 /** The themes folder of the config folder `dir`, the path the server watches. */
 export declare function themesFolder(dir: string): string
+
+/** Replaces the job `name`, a rename included. */
+export declare function updateJob(configDir: string, name: string, jobInput: JobInput): Promise<void>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string
@@ -1679,6 +1700,50 @@ export interface ItemSettingsView {
   label?: string
 }
 
+/** A job, as the settings file describes it. */
+export interface Job {
+  /** Unique among the jobs, trimmed: the second of a name has a problem. */
+  name: string
+  /** The repositories of Uraeda's list it runs in. */
+  repositories: Array<string>
+  /** The schedule as written. */
+  scheduleText: string
+  /** The schedule, absent when it has a problem. */
+  schedule?: Schedule
+  prompt: string
+  /** Whether it runs at its times: `true` when unset. */
+  on: boolean
+  /** Whether a change its run offers waits for the human: `false` when unset. */
+  reportOnly: boolean
+  agent?: string
+  model?: string
+  effort?: string
+  /** The first rule it fails. A job with a problem does not run. */
+  problem?: string
+  /** Whether the problem is the schedule's and nothing else is wrong with the job. */
+  scheduleOnly: boolean
+}
+
+/** A job to write, as the Jobs page's form gives it. */
+export interface JobInput {
+  name: string
+  repositories: Array<string>
+  /** The schedule's text, one of the four forms. */
+  schedule: string
+  prompt: string
+  reportOnly: boolean
+  agent?: string
+  model?: string
+  effort?: string
+}
+
+/** The jobs of the settings file, in its order. */
+export interface Jobs {
+  jobs: Array<Job>
+  /** Why no job is read: the settings file cannot be read, or `jobs` is not a list of tables. */
+  problem?: string
+}
+
 /** The `[keyboard]` table: how the web UI's keys behave. */
 export interface KeyboardSettings {
   /** Whether the keys of one printable character act: `true` when unset. */
@@ -2245,6 +2310,8 @@ export interface RunSettings {
    * when unset.
    */
   catchUpPullRequests?: boolean
+  /** Whether the jobs start at their times: `true` when unset. */
+  scheduledJobs?: boolean
   /**
    * Each step's agent, model, effort, and session, the implementers, and the reviewers: the
    * `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
@@ -2267,6 +2334,18 @@ export interface ScenarioStep {
   /** Given, When, or Then; empty for the spans before the first step. */
   word: string
   spans: Array<Span>
+}
+
+/** When a job runs, in the server's local time. */
+export interface Schedule {
+  /** `"hourly"`, `"daily"`, `"weekdays"`, or `"weekly"`. */
+  kind: string
+  /** The day of a weekly schedule, 1 for Monday to 7 for Sunday; absent for the other forms. */
+  day?: number
+  /** 0 to 23; 0 for `hourly`, which runs at minute 0 of every hour. */
+  hour: number
+  /** 0 to 59. */
+  minute: number
 }
 
 /** A section of a decision: the intent before the first `##`, titled `""`, then each `##`. */

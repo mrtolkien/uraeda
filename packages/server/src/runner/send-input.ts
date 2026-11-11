@@ -16,11 +16,14 @@ export type SentImage = ChatImage & { path: string };
  * an automatic continue's. A workflow run goes to the session its run step's options give,
  * `runSession`; `fresh: true` always starts a new session of its change or feature. `opening` is a
  * line the server puts before the message, as the one telling a session moved to a change where it
- * works now.
+ * works now. A message Uraeda sends in a chat, as a scheduled job's, has `origin: "workflow"`, and
+ * the `line` its turn shows before it, saying why it ran.
  */
 export type SendInput = {
   images?: Array<SentImage>;
+  line?: string;
   opening?: string;
+  origin?: "workflow";
   text: string;
   workflow?: {
     file?: string;
@@ -41,14 +44,16 @@ export function checkSend(input: SendInput, capabilities: Pick<Capabilities, "im
   if (blank && images.length === 0) {
     throw refused(REFUSALS.blank);
   }
-  checkImages(images, input.workflow !== undefined, capabilities);
+  checkImages(images, input.workflow !== undefined || input.origin !== undefined, capabilities);
   const held: { images?: Array<ChatImage> } =
     images.length === 0
       ? {}
       : { images: images.map(({ height, id, width }) => ({ height, id, width })) };
   return {
     held,
+    line: input.line,
     opening: input.opening,
+    origin: input.origin,
     paths: images.map(({ path }) => ({ path })),
     text: blank ? "" : input.text,
     workflow: input.workflow,

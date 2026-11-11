@@ -1,7 +1,7 @@
 // The addresses of the task view, a mockup, and a run's view, which the UI layout decision requires for an open
 // detail.
 import { expect, test } from "vite-plus/test";
-import { parseLocation, parseRoute, repoPath } from "../routes.tsx";
+import { jobPath, parseLocation, parseRoute, repoPath } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 
 test.each([
@@ -69,4 +69,45 @@ test("a repository's path starts with its encoded name", () => {
 
 test("a feature's session address encodes its folder, as every link to it does", () => {
   expect(sessionPath("2026-10-12-a#b?c")).toBe("/f/2026-10-12-a%23b%3Fc/session");
+});
+
+/** US4, US5: the Jobs place, a job's page, and a new job's; a name that needs it is encoded. */
+test.each([
+  ["/jobs", { page: "jobs" }],
+  ["/jobs/Dependencies", { name: "Dependencies", page: "job" }],
+  ["/jobs/Performance%20pass", { name: "Performance pass", page: "job" }],
+  ["/jobs/new", { page: "job-new" }],
+  ["/jobs/a/b", { page: "missing", path: "/jobs/a/b" }],
+])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
+
+/**
+ * Review 05, finding 4. Catches: a job named "new" opening the add form, and a job named ".." or "."
+ * going where the browser normalises it, so a hand-written name could not be opened.
+ */
+test.each([
+  "Dependencies",
+  "Performance pass",
+  "new",
+  ".",
+  "..",
+  "a/b",
+  "~tilde",
+  "a#b?c",
+  "50%",
+  "é",
+])("a job named %j opens its own page", (name) => {
+  const path = jobPath(name);
+  // The browser would normalise a dot segment away, and the new job's address is its own.
+  expect(path.split("/").filter((part) => part === "." || part === "..")).toEqual([]);
+  expect(path).not.toBe("/jobs/new");
+  expect(parseRoute(path)).toEqual({ name, page: "job" });
+});
+
+test("a job's address is its name when the name is plain, and `~` before it when it is not", () => {
+  expect(jobPath("Dependencies")).toBe("/jobs/Dependencies");
+  expect(jobPath("Performance pass")).toBe("/jobs/Performance%20pass");
+  expect(jobPath("new")).toBe("/jobs/~new");
+  expect(jobPath("..")).toBe("/jobs/~..");
+  expect(jobPath("~x")).toBe("/jobs/~~x");
+  expect(parseRoute("/jobs/new")).toEqual({ page: "job-new" });
 });

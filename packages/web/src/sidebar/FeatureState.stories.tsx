@@ -145,6 +145,11 @@ export const SessionBanners: Story = {
         reason="failed"
         why="You've hit your session limit · resets 1:20am (Asia/Tokyo)"
       />
+      <RunBanner
+        onDismiss={open}
+        reason="change-refused"
+        why="A branch or folder named 2026-11-10-upgrade-three exists: pick another slug."
+      />
     </VStack>
   ),
 };

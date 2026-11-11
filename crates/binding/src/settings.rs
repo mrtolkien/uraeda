@@ -112,9 +112,9 @@ pub fn set_single_key_shortcuts(dir: String, on: bool) -> AsyncTask<Job<Settings
 }
 
 /// Sets whether a kind of automatic run is on: the continue after a restart or after a usage
-/// limit, or the catch-up of open pull requests.
+/// limit, the catch-up of open pull requests, or the scheduled jobs.
 #[napi(
-    ts_args_type = "dir: string, key: \"restart\" | \"limit\" | \"catch-up\", on: boolean",
+    ts_args_type = "dir: string, key: \"restart\" | \"limit\" | \"catch-up\" | \"jobs\", on: boolean",
     ts_return_type = "Promise<Settings>"
 )]
 pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTask<Job<Settings>>> {
@@ -122,9 +122,10 @@ pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTas
         "restart" => ContinueKey::Restart,
         "limit" => ContinueKey::Limit,
         "catch-up" => ContinueKey::CatchUp,
+        "jobs" => ContinueKey::Jobs,
         _ => {
             return Err(napi::Error::from_reason(format!(
-                "refused: {key} is not a kind of automatic run: restart, limit, or catch-up."
+                "refused: {key} is not a kind of automatic run: restart, limit, catch-up, or jobs."
             )));
         }
     };

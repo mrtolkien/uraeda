@@ -63,6 +63,7 @@ const runDefaults = {
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
   options: { steps: [] },
+  scheduledJobs: { inForce: true, saved: null, source: { kind: "default" } },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
@@ -263,7 +264,7 @@ test("an unknown kind of automatic run is refused as a bad request", async () =>
 
   expect(result.error).toEqual({
     code: "BAD_REQUEST",
-    message: "refused: sleep is not a kind of automatic run: restart, limit, or catch-up.",
+    message: "refused: sleep is not a kind of automatic run: restart, limit, catch-up, or jobs.",
   });
 });
 

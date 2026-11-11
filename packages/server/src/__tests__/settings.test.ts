@@ -247,6 +247,30 @@ test.each<{
       },
     },
   },
+  {
+    file: null,
+    name: "the scheduled jobs on, without a value",
+    options: none,
+    runs: { scheduledJobs: { inForce: true, saved: null, source: { kind: "default" } } },
+  },
+  {
+    file: { scheduledJobs: false },
+    name: "the file's scheduled jobs over their default",
+    options: none,
+    runs: { scheduledJobs: { inForce: false, saved: false, source: { kind: "file" } } },
+  },
+  {
+    file: { scheduledJobs: true },
+    name: "the scheduled jobs' flag over the file",
+    options: { noOpen: false, scheduledJobs: { name: "--no-scheduled-jobs", value: false } },
+    runs: {
+      scheduledJobs: {
+        inForce: false,
+        saved: true,
+        source: { kind: "flag", name: "--no-scheduled-jobs" },
+      },
+    },
+  },
 ])("$name", ({ file: runs, options, runs: view }) => {
   expect(
     inForce(options, runs && { ...file, runs: { ...runs, options: { steps: [] } } }).runs,
@@ -433,6 +457,12 @@ const catchUp = (value: string) => ({
   noOpen: false,
 });
 
+/** The switch typed in `URAEDA_SCHEDULED_JOBS`. */
+const jobs = (value: string) => ({
+  noOpen: false,
+  scheduledJobs: { name: "URAEDA_SCHEDULED_JOBS" as const, value },
+});
+
 /** R13 */
 test("a given switch's variable reads true or false, and stops the start otherwise", async () => {
   await expect(opened(temporaryFolder("uraeda-config"), limit("yes"))).rejects.toThrow(
@@ -441,6 +471,11 @@ test("a given switch's variable reads true or false, and stops the start otherwi
   await expect(opened(temporaryFolder("uraeda-config"), catchUp("yes"))).rejects.toThrow(
     /^URAEDA_CATCH_UP_PULL_REQUESTS is true or false\.$/,
   );
+  await expect(opened(temporaryFolder("uraeda-config"), jobs("yes"))).rejects.toThrow(
+    /^URAEDA_SCHEDULED_JOBS is true or false\.$/,
+  );
+  const off = await opened(temporaryFolder("uraeda-config"), jobs(" false "));
+  expect(off.runs().scheduledJobs.inForce).toBe(false);
   const settings = await opened(temporaryFolder("uraeda-config"), limit(" false "));
   expect(settings.runs().continueAfterLimit).toEqual({
     inForce: false,

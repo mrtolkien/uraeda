@@ -70,6 +70,7 @@ import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import {
   badgeCheck,
   cpu,
+  clock,
   hourglass,
   keyboard,
   lightbulb,
@@ -216,6 +217,7 @@ export const uraedaIcons = {
   "uraeda:bot": bot,
   "uraeda:brain": brain,
   "uraeda:brush-cleaning": brushCleaning,
+  "uraeda:clock": clock,
   "uraeda:columns-3": columns3,
   "uraeda:comment": comment,
   "uraeda:compass": compass,

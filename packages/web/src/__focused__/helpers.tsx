@@ -103,6 +103,7 @@ export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}
     archived: false,
     automaticContinues: 0,
     backgroundCommands: 0,
+    changeRefusal: null,
     edited: [],
     effort: null,
     folder: null,

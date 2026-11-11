@@ -58,6 +58,11 @@ branch, `chore: expand <title>`. Start it as
 [Projects](projects.md#starting-postponing-and-dropping-a-feature) says, and run the change in its
 worktree.
 
+A job the human scheduled in their settings is their yes, given in advance, for the change its run
+offers. The run's message says so: offer the change as above, change no file, and Uraeda starts it.
+When the message says the job is report only, no yes was given: the offer waits, as any offer does.
+A feature is never started this way: offering one always waits for the human.
+
 Typos, formatting, and comments stay in the session, made there as before.
 
 ## Finding the step

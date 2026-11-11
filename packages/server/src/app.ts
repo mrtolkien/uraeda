@@ -6,6 +6,7 @@ import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { rewritten } from "./fate/select.ts";
 import { extensionRoutes } from "./extensions/routes.ts";
 import type { ExtensionsHost } from "./extensions/server.ts";
+import type { Scheduler } from "./jobs/scheduler.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview-waiting.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
@@ -48,6 +49,8 @@ type AppOptions = {
   /** The frame secret of preview and mockup paths: a new one by default. */
   frames?: FrameSecret;
   hosts: Hosts;
+  /** The scheduler of the scheduled jobs: without it, as in most tests, a record reads none. */
+  jobs?: Scheduler;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
   /**
@@ -83,6 +86,7 @@ function hostedRoutes(
     dataDir,
     extensions,
     hosts,
+    jobs,
     lockedList,
     previews,
     sessions,
@@ -107,6 +111,7 @@ function hostedRoutes(
       featureOptions,
       frames,
       hosts,
+      jobs,
       lockedList,
       previews,
       repo: host.path,
@@ -173,7 +178,7 @@ const timed = async (context: Context, next: Next) => {
  * refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
-  const { allowOrigins, binding, dataDir, extensions, hosts, lockedList, port } = options;
+  const { allowOrigins, binding, dataDir, extensions, hosts, jobs, lockedList, port } = options;
   const { previews, sessions } = options;
   const { settings, signIn, themes } = options;
   const allowedHosts = () => settings.allowedHosts();
@@ -207,6 +212,7 @@ export function createApp(options: AppOptions) {
       featureOptions,
       frames,
       hosts,
+      jobs,
       lockedList,
       previews,
       repo: null,

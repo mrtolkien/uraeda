@@ -74,6 +74,7 @@ fn reads_each_file() {
             continue_after_limit: Some(true),
             automatic_continues: Some(4),
             catch_up_pull_requests: Some(true),
+            scheduled_jobs: Some(false),
             options: RunOptions::default(),
         },
         ..Settings::default()
@@ -84,7 +85,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\nscheduled_jobs = false\n",
             ),
             Ok(full),
         ),
@@ -161,7 +162,11 @@ fn reads(
 #[test]
 fn refuses_each_continue_setting_out_of_its_rule() {
     let dir = tempdir();
-    let rows: [(Option<&str>, Result<Settings, String>); 6] = [
+    let rows: [(Option<&str>, Result<Settings, String>); 7] = [
+        (
+            Some("[runs]\nscheduled_jobs = \"yes\"\n"),
+            Err("line 2, scheduled_jobs: Running scheduled jobs is true or false.".into()),
+        ),
         (
             Some("[runs]\ncatch_up_pull_requests = \"yes\"\n"),
             Err(

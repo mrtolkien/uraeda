@@ -37,6 +37,7 @@ const server: ServerValues = {
     continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
     continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
     options: { steps: [] },
+    scheduledJobs: { inForce: true, saved: null, source: { kind: "default" } },
   },
   server: {
     allowedHosts: {

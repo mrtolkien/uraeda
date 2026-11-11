@@ -169,6 +169,32 @@ export const migrations: Array<Migration> = [
   // The account a session started on, a folder the runtime lists: null for every session made
   // before, and for one started with no account listed, which runs on the server's own login.
   "ALTER TABLE sessions ADD COLUMN account TEXT;",
+  // The runs of the scheduled jobs, one row per time a job was due in a repository, or run by hand.
+  // A time is recorded once: the unique index is what stops two servers from starting it twice.
+  // SQLite counts each null as distinct, so a run by hand never conflicts, and a plain index also
+  // serves the reads of a job and repository.
+  // `refusal` and `refused_turn` are why the change a run offered could not start, and the turn
+  // that offer ended (ruling R1). `blocked_by` is the folder of the change that blocked a skipped
+  // time (ruling R36), null for every row that is no skip for an open change. `error` is why a
+  // scheduled start failed (ruling R45), null for every row that did not. The table is written once,
+  // with its columns: no cache holds an earlier version of it (ruling R45).
+  `CREATE TABLE job_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job TEXT NOT NULL,
+    repository TEXT NOT NULL,
+    due INTEGER,
+    at INTEGER NOT NULL,
+    trigger TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    reason TEXT,
+    session TEXT,
+    refusal TEXT,
+    refused_turn INTEGER,
+    blocked_by TEXT,
+    error TEXT
+  );
+  CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
+  CREATE INDEX job_runs_session ON job_runs (session);`,
 ];
 
 /**

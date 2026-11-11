@@ -28,3 +28,20 @@ export async function refusable<T>(call: () => Promise<T>): Promise<T> {
     throw new FateRequestError("INTERNAL_ERROR", message);
   }
 }
+
+/**
+ * Runs a write of the settings file, a file that cannot be read refused with its problem: the
+ * binding's `unreadable: ` is a refusal here, as the page shows it where it wrote.
+ */
+export function settingsWrite(write: () => Promise<void>): Promise<void> {
+  return refusable(async () => {
+    try {
+      await write();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw /^unreadable: /.test(message)
+        ? new Error(message.replace(/^unreadable: /, "refused: "))
+        : error;
+    }
+  });
+}

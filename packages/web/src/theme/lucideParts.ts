@@ -90,3 +90,9 @@ export const cpu = outline(
   h("path", { d: "M9 2v2" }),
   h("path", { d: "M9 20v2" }),
 );
+
+/** A clock, for a scheduled job: Lucide's `clock`. */
+export const clock = outline(
+  h("path", { d: "M12 6v6l4 2" }),
+  h("circle", { cx: "12", cy: "12", r: "10" }),
+);

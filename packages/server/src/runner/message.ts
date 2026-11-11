@@ -1,5 +1,5 @@
 import { isAbsolute, relative, sep } from "node:path";
-import type { CatchUpView, FeatureView, NextView } from "uraeda-binding";
+import type { CatchUpView, FeatureView, Job, NextView } from "uraeda-binding";
 import type { ContinueReason, Trigger } from "./events.ts";
 import { CATCH_UP } from "./status.ts";
 import {
@@ -288,6 +288,44 @@ export function continuedLine(reason: ContinueReason): string {
 /** The line a catch-up's turn opens with: the commit of the default branch it catches up with. */
 export function catchUpLine(catchUp: Pick<CatchUpView, "branch" | "subject">): string {
   return `Catching up with ${catchUp.branch}, which moved to “${catchUp.subject}”.`;
+}
+
+/** The line a scheduled job's run opens with: the job whose time it is. */
+export function scheduleLine(job: string): string {
+  return `Started by the schedule “${job}”.`;
+}
+
+/** The line the run of a job the human started by hand opens with. */
+export function runNowLine(job: string): string {
+  return `Started by “Run now” of the job “${job}”.`;
+}
+
+/** The line the turn of a job's run ends with once Uraeda started the change it offered. */
+export function jobChangeLine(job: string, title: string): string {
+  return `The job “${job}” started the change “${title}”.`;
+}
+
+/**
+ * The message of a scheduled job's run: its prompt, a rule, then Uraeda's note. The note says
+ * nobody follows the session, to change no file, and what to do with a needed change: the run's
+ * offer is the human's yes, given in advance, unless the job is report only (the agents decision).
+ */
+export function jobMessage(job: Pick<Job, "name" | "prompt" | "reportOnly">): string {
+  // Every run is told to change no file: it works in the main checkout, where the human's
+  // uncommitted edits are, until its change starts in a worktree (R48).
+  const offer = job.reportOnly
+    ? ": the job is report only, so the offer waits for the human."
+    : ", then stop: the human gave their yes by scheduling this job, so Uraeda starts the change " +
+      "from your offer, and the next message continues in its worktree.";
+  const change =
+    "Change no file. If a code change is needed, offer it once, as a change, with its " +
+    "`uraeda-offer change` block" +
+    offer;
+  return (
+    `${job.prompt}\n\n---\n\n` +
+    `This session was started by the scheduled job “${job.name}”. Nobody follows it live: the ` +
+    `human reads it later. ${change} When nothing needs doing, answer in one line.\n`
+  );
 }
 
 const TITLE_LENGTH = 80;

@@ -1,5 +1,5 @@
 // The built-ins' order in every list, today's: the inbox, the priorities, the decisions, the
-// sessions, then Git; previews and notifications draw no place, nor Claude Code.
+// sessions, Git, then Jobs; previews and notifications draw no place, nor Claude Code.
 import { pageApi } from "../pageApi.ts";
 import { registry } from "../useContributions.ts";
 
@@ -7,8 +7,9 @@ const ORDER = {
   decisions: { order: 3, title: "Decisions" },
   git: { order: 5, title: "Git" },
   inbox: { order: 1, title: "Inbox" },
-  notifications: { order: 7, title: "Notifications" },
-  previews: { order: 6, title: "Previews" },
+  jobs: { order: 6, title: "Jobs" },
+  notifications: { order: 8, title: "Notifications" },
+  previews: { order: 7, title: "Previews" },
   priorities: { order: 2, title: "Priorities and proposals" },
   sessions: { order: 4, title: "Sessions" },
 } as const;

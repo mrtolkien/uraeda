@@ -87,7 +87,7 @@ export function stopEnded(db: DatabaseSync, turn: number): boolean {
 
 /**
  * Dismisses a failed or stopped turn, or a done one sent at `catch-up`, which stops on a conflict,
- * so it no longer asks for the human, nor continues: false for a turn in any other state, or
+ * or one whose offer a job's run could not start, so it no longer asks for the human, nor continues: false for a turn in any other state, or
  * dismissed already.
  */
 export function dismiss(db: DatabaseSync, turn: number): boolean {
@@ -95,7 +95,9 @@ export function dismiss(db: DatabaseSync, turn: number): boolean {
     .prepare(
       `UPDATE turns SET dismissed_at = ?, continue_at = NULL, continue_reason = NULL
        WHERE id = ? AND dismissed_at IS NULL
-         AND (state IN ('failed', 'stopped') OR (state = 'done' AND step = 'catch-up'))`,
+         AND (state IN ('failed', 'stopped')
+              OR (state = 'done' AND (step = 'catch-up'
+                  OR id IN (SELECT refused_turn FROM job_runs WHERE refused_turn IS NOT NULL))))`,
     )
     .run(now(), turn);
   return Number(changes) > 0;

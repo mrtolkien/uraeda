@@ -34,6 +34,7 @@ import {
   extensionRecordDataView,
   extensionsDataView,
 } from "./fate/extensions.ts";
+import { jobsDataView, jobsRunDataView } from "./fate/jobs.ts";
 import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
@@ -76,6 +77,8 @@ export {
   gitSummaryDataView,
   historyDataView,
   inboxDataView,
+  jobsDataView,
+  jobsRunDataView,
   ledgerDataView,
   needsYouListDataView,
   previewDataView,
@@ -110,6 +113,7 @@ export {
 export { SETTINGS_ID } from "./fate/settings.ts";
 export { THEMES_ID } from "./fate/themes.ts";
 export { EXTENSIONS_ID } from "./fate/extensions.ts";
+export { JOBS_ID } from "./fate/jobs.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
@@ -160,6 +164,11 @@ export type Extensions = Entity<typeof extensionsDataView, "Extensions">;
 export type ExtensionRecord = Entity<typeof extensionRecordDataView, "ExtensionRecord">;
 /** An extension's action's answer, its output as JSON. */
 export type ExtensionAction = Entity<typeof extensionActionDataView, "ExtensionAction">;
+/** A repository's jobs, with each one's problem, next run, and history. */
+export type Jobs = Entity<typeof jobsDataView, "Jobs">;
+/** The answer of "Run now": the jobs, and the session the run started. */
+export type JobsRun = Entity<typeof jobsRunDataView, "JobsRun">;
+export type { JobRow, JobRunView, JobsRecord } from "./fate/jobs.ts";
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
 /** The Git page, read at once, with whether an agent works in each checkout. */
@@ -216,6 +225,8 @@ export const Root = {
   gitHistoryPages: list(gitHistoryPageDataView),
   gitPages: list(gitPageDataView),
   gitSummaries: list(gitSummaryDataView),
+  jobsList: list(jobsDataView),
+  jobsRuns: list(jobsRunDataView),
   writeQueues: list(writeQueueDataView),
 };
 

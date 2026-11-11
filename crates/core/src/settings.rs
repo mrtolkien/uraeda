@@ -16,14 +16,14 @@ mod rules;
 mod runs;
 mod runs_write;
 
-pub(crate) use file::{line, load as load_text};
+pub(crate) use file::{line, load as load_text, parse as parse_text};
 pub use runs::{
     ReviewerOptions, RunOptions, RunPick, STEPS, StepOptions, check_run_options, merge_run_options,
 };
 pub use runs_write::set_run_options;
 
 /// The start of a file the first write creates.
-const HEADER: &str =
+pub(crate) const HEADER: &str =
     "# Uraeda's settings. The settings page writes this file too, and keeps your comments.\n";
 
 /// The settings the file holds, an absent key unset.
@@ -58,6 +58,8 @@ pub struct RunSettings {
     /// Whether an open pull request behind the default branch is caught up by itself: `false`
     /// when unset.
     pub catch_up_pull_requests: Option<bool>,
+    /// Whether the jobs start at their times: `true` when unset.
+    pub scheduled_jobs: Option<bool>,
     /// Each step's agent, model, effort, and session, the implementers, and the reviewers: the
     /// `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
     pub options: RunOptions,
@@ -72,6 +74,8 @@ pub enum ContinueKey {
     Limit,
     /// `catch_up_pull_requests`.
     CatchUp,
+    /// `scheduled_jobs`.
+    Jobs,
 }
 
 impl ContinueKey {
@@ -81,6 +85,7 @@ impl ContinueKey {
             Self::Restart => "continue_after_restart",
             Self::Limit => "continue_after_limit",
             Self::CatchUp => "catch_up_pull_requests",
+            Self::Jobs => "scheduled_jobs",
         }
     }
 }
@@ -346,27 +351,40 @@ fn change_table(
 
 /// Applies `edit` to the table at `path`, like `["extensions", "wiki"]` for `[extensions.wiki]`,
 /// of the file as it is now, created when absent with the tables above it implicit, one write at a
-/// time, and writes the file, refused while the file cannot be read.
+/// time, and writes the file, refused while the file cannot be read. A file the write creates
+/// starts with its header and the table at `path`.
 pub(crate) fn change_path(
     dir: &Path,
     path: &[&str],
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
+    let table = path.iter().map(|name| Key::new(*name).to_string());
+    let table = table.collect::<Vec<_>>().join(".");
+    let seed = if path.is_empty() {
+        HEADER.to_owned()
+    } else {
+        format!("{HEADER}\n[{table}]\n")
+    };
+    change_document(dir, &seed, |document| {
+        edit(nested(dir, document.as_table_mut(), path)?)
+    })
+}
+
+/// Applies `edit` to the whole document of the file as it is now, as `change_path` does; a file
+/// the write creates starts with the text `seed`.
+pub(crate) fn change_document(
+    dir: &Path,
+    seed: &str,
+    edit: impl FnOnce(&mut DocumentMut) -> Result<(), ApiError>,
+) -> Result<Settings, ApiError> {
     let _lock = crate::cache::folder_lock(dir);
     let (read, _) = checked(dir)?;
-    let (text, layout) = read.unwrap_or_else(|| {
-        let keys: Vec<String> = path
-            .iter()
-            .map(|name| Key::new(*name).to_string())
-            .collect();
-        let header = keys.join(".");
-        (format!("{HEADER}\n[{header}]\n"), file::Layout::default())
-    });
+    let (text, layout) = read.unwrap_or_else(|| (seed.to_owned(), file::Layout::default()));
     // `checked` parsed the same text, so this failure is unreachable; it still answers.
     let mut document: DocumentMut = text
         .parse()
         .map_err(|error: toml_edit::TomlError| unreadable(dir, error.message()))?;
-    edit(nested(dir, document.as_table_mut(), path)?)?;
+    edit(&mut document)?;
     let text = document.to_string();
     let not_saved = |reason: &str| refused(format!("Could not save {}: {reason}", shown_file(dir)));
     let settings = file::parse(&text).map_err(|problem| not_saved(&problem))?;
@@ -444,7 +462,7 @@ pub(crate) fn refused(message: impl Into<String>) -> ApiError {
     }
 }
 
-fn unreadable(dir: &Path, problem: &str) -> ApiError {
+pub(crate) fn unreadable(dir: &Path, problem: &str) -> ApiError {
     ApiError {
         code: "unreadable",
         message: format!("Cannot read {}: {problem}", shown_file(dir)),
