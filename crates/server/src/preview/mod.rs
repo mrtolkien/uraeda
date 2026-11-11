@@ -18,6 +18,7 @@
 
 pub(crate) mod checkout;
 mod command;
+mod entry;
 mod frames;
 mod groups;
 pub(crate) mod index;

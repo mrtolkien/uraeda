@@ -7022,7 +7022,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: `FieldRow` moves to `app/ui/layout/`, the app's own frame, beside `usePane`.
 - **Where**: `app/ui/lists/{index.ts,FieldRow.tsx}`, its callers.
 
-## T91.1: Every run that is not a person's use of the app has folders of its own, and is checked
+## R356: Every run that is not a person's use of the app has folders of its own, and is checked
 
 - **Decision**: `scripts/isolated.sh` is the one place: it gives the command a temporary folder,
   removed when it ends, holding `TMPDIR` and the four XDG folders (`XDG_DATA_HOME`,
@@ -7048,7 +7048,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `scripts/isolated.sh`, `justfile`, `flake.nix` (`hidden-display`),
   `crates/app/tests/isolated.rs`.
 
-## T91.2: A crate that embeds a folder tells Cargo every file and folder under it
+## R357: A crate that embeds a folder tells Cargo every file and folder under it
 
 - **Decision**: `crates/core/build/track.rs` walks a folder and prints `cargo:rerun-if-changed` for
   each file and folder under it; the build scripts of `uraeda-core` (the skill, the themes, the
@@ -7062,7 +7062,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   it appeared, its edit reached the copy, and its removal took it away.
 - **Where**: `crates/core/build/track.rs`, `crates/{core,server}/build.rs`.
 
-## T91.3: A cursor on a list's last row stays on the last when that row becomes several
+## R358: A cursor on a list's last row stays on the last when that row becomes several
 
 - **Decision**: when the row under a list's cursor goes, and it was the list's last row, the cursor
   takes the new last row; any other row's cursor takes the row that took its place, as before
@@ -7074,7 +7074,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `expected "t2/a" to be "t2/c"` before the change.
 - **Where**: `app/ui/lists/{cursor.ts,cursor.test.ts}`.
 
-## T91.4: Priorities: what is open is `current`, the keys start where rows are, a column's states are icons
+## R359: Priorities: what is open is `current`, the keys start where rows are, a column's states are icons
 
 - **Decision**: the proposal open beside the priorities is marked `current` (its words in the
   accent), and the keys start on it; otherwise in the first section that has rows, never an empty
@@ -7088,14 +7088,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the words come back under the titles, as a second quiet line.
 - **Where**: `app/screens/priorities/{Priorities,Section}.tsx`, its test's key presses.
 
-## T91.5: One outline for every reader, in the library
+## R360: One outline for every reader, in the library
 
 - **Decision**: `Outline` in `app/ui/lists/` draws a document's headings, indented by level under
   the shallowest, a dash each, the part being read marked `current` with `circle-dot`. A workflow
   file's outline and a buffer's both draw with it; its gallery page is Lists, Rows.
 - **Where**: `app/ui/lists/Outline.tsx`, `app/screens/{file,buffer}/Outline.tsx`.
 
-## T91.6: A workflow file's tab is what a person calls it; its file name is in its head
+## R361: A workflow file's tab is what a person calls it; its file name is in its head
 
 - **Decision**: a workflow file's tab reads "Plan", "Spec", "Questions, round 1", "Spec review",
   from its name alone (`tabWord`), so the tab says it before the file is read; a file of no known
@@ -7103,7 +7103,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   · plan.md".
 - **Where**: `app/screens/file/{read.tsx,panes.tsx,facts.ts}`.
 
-## T91.7: A card's fact may be short, with its whole in a tip
+## R362: A card's fact may be short, with its whole in a tip
 
 - **Decision**: `CardFact` takes `tip`, shown where the pointer rests. A preview's command shows
   each absolute path from the checkout's top level (a feature's worktree joined to the main
@@ -7111,7 +7111,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   whole. The phrase under a starting preview keeps the whole command.
 - **Where**: `app/ui/lists/Card.tsx`, `app/screens/preview/{command.ts,StoryPage.tsx}`.
 
-## T91.8: The rest of the second join's loose ends
+## R363: The rest of the second join's loose ends
 
 - **Decision**: a job's card no longer says "Scheduled jobs are off": the list's banner says it once
   (a job's own page, which has no banner, still does). The conflict editor's words sit over its

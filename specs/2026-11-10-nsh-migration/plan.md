@@ -184,15 +184,15 @@ function the binding wraps today. Each adds its line `mod <domain>;` and its lin
 - Produces: its records and actions, typed in `crates/protocol/`, each with its line in `catalog()`
   and the client's types written again by `just protocol-types`, and their rows in task 20's list.
 
-- [ ] **Step 1: Write the failing contract tests**: one test per record,
-      `<Record> answers its     shape`, on the fixtures in [`fixtures/`](/fixtures/); and one per
-      action that writes git or a stored file, asserting what a later read shows. Reuse the cases of
-      the Node server's tests for that domain, which name what is costly to lose.
-- [ ] **Step 2: Run them**. Expected: FAIL, `unknown record`.
-- [ ] **Step 3: Implement the domain's module**, and wire the core's `watch` to `Bus::changed` for
-      its records, as [`live.ts`](/packages/server/src/live.ts) maps them today.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): records of <domain>`.
+1. **Write the failing contract tests**: one test per record, `<Record> answers its shape`, on the
+   fixtures in [`fixtures/`](/fixtures/); and one per action that writes git or a stored file,
+   asserting what a later read shows. Reuse the cases of the Node server's tests for that domain,
+   which name what is costly to lose.
+2. **Run them**. Expected: FAIL, `unknown record`.
+3. **Implement the domain's module**, and wire the core's `watch` to `Bus::changed` for its records,
+   as [`live.ts`](/packages/server/src/live.ts) maps them today.
+4. **Run the task's validation**. Expected: PASS.
+5. **Commit**: `feat(nsh-migration): records of <domain>`.
 
 ### What every screen task does
 
@@ -217,19 +217,19 @@ one, or on a key that means two things once its panes are drawn.
 
 **Shared steps:**
 
-- [ ] **Step 1: Read the old screens and their guide.** The old code says what exists; the guides in
-      [`specs/ui/`](/specs/ui/) and the design language say how it should look and behave. Where
-      they disagree with the old code, the guides win. List what the old screen does, in the task's
-      commit body, so the review can check nothing was lost.
-- [ ] **Step 2: Write the tests the area names**, and no others: the testing decision keeps UI tests
-      for behaviour that is costly to lose and that using the app would not show.
-- [ ] **Step 3: Build the screens** from `app/ui/` only. A missing component is added to `app/ui/`
-      and the gallery, never drawn in the screen. Declare the area's keys in the registry.
-- [ ] **Step 4: Review each screen in the running app**, on `ura sandbox`, in both themes, at a
-      narrow and a wide width, with `just app-shots <route>`. Fix what you see. One picture of each
-      new screen goes in the pull request, none in the repository.
-- [ ] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): <area>`.
+1. **Read the old screens and their guide.** The old code says what exists; the guides in
+   [`specs/ui/`](/specs/ui/) and the design language say how it should look and behave. Where they
+   disagree with the old code, the guides win. List what the old screen does, in the task's commit
+   body, so the review can check nothing was lost.
+2. **Write the tests the area names**, and no others: the testing decision keeps UI tests for
+   behaviour that is costly to lose and that using the app would not show.
+3. **Build the screens** from `app/ui/` only. A missing component is added to `app/ui/` and the
+   gallery, never drawn in the screen. Declare the area's keys in the registry.
+4. **Review each screen in the running app**, on `ura sandbox`, in both themes, at a narrow and a
+   wide width, with `just app-shots <route>`. Fix what you see. One picture of each new screen goes
+   in the pull request, none in the repository.
+5. **Run the task's validation**: `just task-app`. Expected: PASS.
+6. **Commit**: `feat(nsh-migration): <area>`.
 
 ### What makes a screen good
 
@@ -1160,7 +1160,9 @@ Follows [what every records task does](#what-every-records-task-does).
     is a built-in the owner turns off.
   - Breaks made, each failing a test: a group's signal sent to its leader alone; the allow rules
     left out of the arguments; a sub-agent's tool call without its parent.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing after the port, not before it: with the
+      runtime's registration removed, every test failed, 20 of them on "the built-in runtime"; and
+      each break above failed its test.
 - [x] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts), or
       `codex.ts` and `codex-rpc.ts`. `child.ts` is ported already, as `runtimes::Child` (ruling
       R100): a child process leads its own process group, which ends with it and with the server.
@@ -1198,7 +1200,8 @@ What the sessions (task 15) rely on:
 
 - [x] **Step 1: Write the failing tests**, as task 13's. They were written after the port, against
       the brief's order, and seen failing with the registration removed.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing after the port, not before it: with the
+      runtime's registration removed, 19 of the 20 tests failed on "the built-in runtime".
 - [x] **Step 3: Implement.**
 - [x] **Step 4: Run the task's validation**, then one manual run against the real CLI. Expected:
       PASS.
@@ -1276,7 +1279,8 @@ What the sessions (task 15) rely on:
     a blocked action allowed then tried again; `run_agent` and `review` through `/mcp`; an
     unanswered interrupt or close followed by signals at 10 second steps; a restart that never
     continues an imported run; a transcript by pages; and one test per seam closed.
-- [ ] **Step 2: Run them**. Expected: FAIL. Seen: `no action is session.newChat`.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing before the code:
+      `no action is     session.newChat`.
 - [x] **Step 3: Implement.** `TurnLog` changes through `Bus::append`. Port the continuer's rules as
       they are.
 - [x] **Step 4: Run the task's validation**. Expected: PASS. Two tests of the runtimes' registry
@@ -1364,8 +1368,8 @@ What the sessions (task 15) rely on:
     `a panic under an extension's code ends its VM alone, and says why`.
   - Breaks to make: let a VM's panic unwind into the server; forget a VM's child process on unload;
     no interrupt handler; an extension loaded from a repository's folder.
-- [ ] **Step 2: Run them**. Expected: FAIL. Not run in that order: the tests were written once the
-      VM answered, and each was seen failing through its break.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing through its breaks, not before the code:
+      the tests were written once the VM answered, and each failed under its break.
 - [x] **Step 3: Implement**, with `rquickjs`, one VM per extension, each on its own thread with a
       memory limit and an interrupt handler for time. Compile TypeScript with `crates/compile`. An
       extension loads only from the config folder; the loader's test for that rule is ported.
@@ -1399,7 +1403,10 @@ What the sessions (task 15) rely on:
 
 - [x] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
       (the stack decision's rule); `a preview path without its secret is refused`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing through breaks, not before the code:
+      without the stop work, with the signal sent to the group's leader alone, with every
+      frame-shaped path accepted, and without the rule that keeps a waiting folder's preview, each
+      test failed.
 - [x] **Step 3: Implement**, porting the runner's rules.
 - [x] **Step 4: Run the task's validation**. Expected: PASS.
 - [x] **Step 5: Commit**: `feat(nsh-migration): previews and their proxy`.
@@ -1444,8 +1451,8 @@ What the sessions (task 15) rely on:
     `a page gets the app's modules from the data folder`.
   - Breaks to make: serve an unsigned package; serve the private key; sign with a key other than the
     one whose public half is served.
-- [ ] **Step 2: Run them**. Expected: FAIL. Not run in that order: the tests were written once the
-      pages were served, and each was seen failing through its break.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing through its breaks, not before the code:
+      the tests were written once the pages were served, and each failed under its break.
 - [x] **Step 3: Implement**, with `nsh-bundler` for the build and NSH's package signing. The key is
       made at the first start, in the data folder. Give the bundler the modules a page may import:
       `nsh`, `nsh/base`, `uraeda/ui`, `uraeda/page`. Read NSH's signed-packages pages first.
@@ -1492,11 +1499,15 @@ predates. Read its record first: it is the specification.
       record's rows for ties, an unknown usage, a used-up week, and none signed in;
       `a run a limit refused goes on at once on another account`, with a row where no other has
       room; `an account reaches the agent only as its configuration folder`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing through breaks, not before the code: the
+      pick ranking the most used first, the move finding no account, and the folder not given to the
+      process each failed its tests.
 - [x] **Step 3: Implement**, porting the files above. Uraeda never reads or writes a credential. No
       test and no step asks a real account for its usage.
-- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
-      PASS.
+- [x] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+      PASS. At the task, every test passed but `rust_source_files_stay_under_500_lines`, failing on
+      earlier tasks' files; it passed once task 91 split the last of them, `preview/runner.rs`, and
+      the whole validation passed then.
 - [x] **Step 5: Commit**: `feat(nsh-migration): accounts, their usage, and a limit's move`.
 
 **As built** (rulings R181 to R185):
@@ -1548,9 +1559,10 @@ gotchas: each is a bug the Node code met.
 - [x] **Step 3: Implement**, porting [`packages/server/src/jobs/`](/packages/server/src/jobs/). The
       run's row is written with nothing awaited after its last guard. The scheduler stops through
       `shared.on_stop`, waiting for an acceptance in flight.
-- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
-      PASS. Seen, with `uraeda-cli` and `uraeda-core`: formatting and Clippy pass, and 1,767 of
-      1,768 tests; `rust_source_files_stay_under_500_lines` fails, as it did before this task, on
+- [x] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+      PASS. It passed whole once task 91 split `preview/runner.rs`, the last file over 500 lines.
+      Seen at the task, with `uraeda-cli` and `uraeda-core`: formatting and Clippy pass, and 1,767
+      of 1,768 tests; `rust_source_files_stay_under_500_lines` fails, as it did before this task, on
       nine files of the runner, the protocol's sessions, and the core (task 15's and earlier),
       `runner/manager.rs` and `runner/send.rs` among them, which this task grew by 2 and 9 lines.
 - [x] **Step 5: Commit**: `feat(nsh-migration): scheduled jobs`.
@@ -1922,7 +1934,8 @@ ported, beyond accounts and jobs.
 - [x] **Step 1: Write the failing tests**: `every shipped theme meets the contrast floors` (4.5:1
       for text, 3:1 for borders, as today, and for text over glass at each height);
       `a theme without the new roles inherits them`; `a broken theme never blocks the others`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing before the code: the core's
+      `a theme     without the new roles inherits them` first.
 - [x] **Step 3: Implement.** Themes stay one TOML file each. A role missing from a user's theme
       comes from the default of its mode.
 - [x] **Step 4: Run the task's validation**. Expected: PASS.
@@ -2216,7 +2229,10 @@ ported, beyond accounts and jobs.
       `single-key     shortcuts can be switched off, and a chord then opens the leader menu`;
       `a text field with the focus gets keys first`;
       `a key registered by a view goes when the view goes`.
-- [ ] **Step 2: Run them**. Expected: FAIL. They failed with `Could not resolve './store'`.
+- [x] **Step 2: Run them**. Expected: FAIL. They failed before the code, on the missing module
+      (`Could not resolve './store'`), not on a behaviour; each behaviour was then seen failing
+      through a break: every key heard in a text field, a key not removed with its view, a pending
+      sequence hearing only its bound keys.
 - [x] **Step 3: Implement.** A text field with the focus gets keys first.
 - [x] **Step 4: Run the task's validation**: `just task-app`, and `just task uraeda-app` for the
       structural test. Expected: PASS.
@@ -2401,7 +2417,7 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
 - [ ] **Step 3: Run `just frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
       percentile. Record the numbers in the commit's body. In software, `streaming` passes (p99 at
       most 6.03 ms); `scrolling` and `glass` do not (at most 10.04 and 11.93 ms), ruling R239: a
-      GPU's frames are task 53's.
+      GPU's frames are task 53's. Left unchecked until task 53 measures them on a GPU.
 - [x] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
       what drifts. Then ask a second reviewer, with no part in building the library, to compare the
       pictures with the design language, and fix what it finds.
@@ -2442,7 +2458,9 @@ package. It starts once the gallery (task 35) is done.
   - `the app starts a server when none runs`, with a row where the server stops while the app is
     open: the app says so, then starts or waits for one.
   - `a refused version shows which side to update`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen failing before the code: the shell's two tests with
+      nothing drawn (`on screen: []`), the host's two with `not built`, and the server's key-pairing
+      rows with 401.
 - [x] **Step 3: Build the host and the shell.** The app owns a server it started, and stops it when
       the last window closes; it never stops a server it found running. The device's token is kept
       in the system's secret store, never in a plain file.

@@ -11,11 +11,12 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use tokio::sync::watch;
 
 use super::command::{Run, Start};
+use super::entry::{Entry, Live, held};
 use super::groups::Groups;
 use super::index::{self, NoIndex, StoryIndex};
 use super::ports::{free_port, port_taken};
@@ -60,51 +61,6 @@ pub(crate) struct Checkout {
     /// The code version it has checked out, its last commit's tree outside `specs/`: none when
     /// it could not be read.
     pub version: Option<String>,
-}
-
-/// One checkout's preview, from its first view until it is stopped.
-struct Entry {
-    checkout: Checkout,
-    /// The `read` stamp it started at: only a version read after it can move it.
-    stamp: u64,
-    /// When it started: the 2 minutes count from it, across the port's retry.
-    started: SystemTime,
-    live: Mutex<Live>,
-    /// Told once the entry is stopped: its task ends.
-    stopped: watch::Sender<bool>,
-}
-
-/// What changes while an entry lives.
-struct Live {
-    state: State,
-    last_view: SystemTime,
-    run: Option<Arc<Run>>,
-    /// Its stories' compiles, once it is ready.
-    compiles: Option<Arc<Compiles>>,
-}
-
-impl Entry {
-    fn live(&self) -> MutexGuard<'_, Live> {
-        self.live.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    /// Whether the entry's preview is at another code version than `now`'s, or runs another
-    /// preview command or folder, which its decision under `specs/` sets without moving the
-    /// version. One whose first version read failed is at an unknown version, which any known
-    /// one is another than. A read begun before the preview started cannot say it moved: it may
-    /// be the older of two views racing a move.
-    fn moved(&self, now: &Checkout) -> bool {
-        let Checkout {
-            command,
-            folder,
-            version,
-            ..
-        } = &self.checkout;
-        let other = (now.version.is_some() && now.version != *version)
-            || now.command != *command
-            || now.folder != *folder;
-        other && now.read > self.stamp
-    }
 }
 
 /// How a run of an entry's command ended.
@@ -492,10 +448,4 @@ impl Inner {
         }
         run
     }
-}
-
-/// Whether the entry is the one its base has now.
-fn held(entries: &HashMap<String, Arc<Entry>>, entry: &Arc<Entry>) -> bool {
-    let current = entries.get(&entry.checkout.base);
-    current.is_some_and(|current| Arc::ptr_eq(current, entry))
 }
