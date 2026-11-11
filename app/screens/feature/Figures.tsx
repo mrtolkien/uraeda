@@ -78,6 +78,21 @@ function figuresOf(feature: Feature, history: HistoryView, now: number): Array<F
   return rows;
 }
 
+/**
+ * A name over its value at the row's whole width: a branch, a path, which would break under its name
+ * beside it.
+ */
+function Place(props: { children: JSX.Element; label: string }) {
+  return (
+    <View style={{ gap: 0 }}>
+      <Text size="under" tone="quiet">
+        {props.label}
+      </Text>
+      {props.children}
+    </View>
+  );
+}
+
 /** A row: its name at the start, its value and what it counts at the end. */
 function Fact(props: { caption?: string; children: JSX.Element; label: string }) {
   return (
@@ -139,19 +154,21 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
       </View>
       <View style={{ gap: 8 }}>
         <Heading level={3}>Where it lives</Heading>
-        <Fact label="Branch">
-          <Text font="code">{feature().branch ?? "none yet"}</Text>
-        </Fact>
+        <Place label="Branch">
+          <Text font="code" tone={feature().branch === null ? "faint" : "ink"}>
+            {feature().branch ?? "none yet"}
+          </Text>
+        </Place>
         <If when={feature().worktree}>
           {(worktree) => (
-            <Fact label="Worktree">
+            <Place label="Worktree">
               <Text font="code">{worktree()}</Text>
-            </Fact>
+            </Place>
           )}
         </If>
-        <Fact label="Folder">
+        <Place label="Folder">
           <Text font="code">{feature().path}</Text>
-        </Fact>
+        </Place>
         <If when={feature().pullRequest}>
           {(pull) => (
             <Fact caption={pull().state === "open" ? undefined : pull().state} label="Pull request">

@@ -6315,3 +6315,18 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/lists/{Row,Card,Line,keys,SelectableCard,ThemeSample}.tsx`,
   `app/ui/keys/{store.ts,registry.tsx}`, `app/ui/tokens/light.ts`, `app/ui/layout/Rail.tsx`,
   `app/screens/shell/Sidebar.tsx`, `app/screens/home/Cards.tsx`, `app/screens/git/Worktrees.tsx`.
+
+## T93.2: A title gets the row's width first; its state wraps to a second line
+
+- **Decision**: `Line` and `Card` lay a title and its end (a meta, a count, a state, a time) in one
+  wrapping row: the title at its whole width (`flexBasis: auto`) and the end beside it while both
+  fit, the end at the end of a second line when they do not, wrapping again there. On a narrow
+  window a card keeps its head line, and a card with neither state nor time draws its icon before
+  its title, where it stood alone on a line.
+- **Rationale**: "Recurrin g tasks" in a priorities column, "Decisions check" beside "Waits for your
+  answers" in the side stack, a note squeezed by "1 image" on a phone: a fixed end beside a
+  shrinking title broke words. The phone's rule, "text of more than one line takes the full width",
+  is the same rule at any width: a title that fits on one line keeps its state beside it, one that
+  does not gets the row.
+- **If wrong**: the end goes to a head line over the title in every narrow pane, as on the phone.
+- **Where**: `app/ui/lists/{Line,Card}.tsx`.

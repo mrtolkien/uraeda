@@ -1,6 +1,10 @@
 // What a row of one fact holds: its kind's icon in its kind's hue, its words, and at its end a
-// quiet fact, a key, a count, a time. The words wrap rather than cut: a row grows a line before it
+// quiet fact, a key, a count, a time. The words get the row's width first: the fact stays beside
+// them while both fit on one line, and goes to the end of a second line when they do not, so a
+// title is never squeezed into a column by its state, and wraps only at the row's full width, as
+// the phone's rule has it for every text of more than one line. A row grows a line before it
 // hides a word. Several facts about one thing are a card, never a longer line.
+import { View } from "nsh";
 import { Badge, Icon, type IconName, Text } from "../controls";
 import { type Tone, tokens } from "../tokens";
 
@@ -22,25 +26,57 @@ export type LineProps = {
 };
 
 export function Line(props: LineProps) {
+  const current = () => props.current === true;
+  const hasEnd = () => props.meta !== undefined || (props.count ?? 0) > 0;
   return (
-    <>
+    <View style={{ alignItems: "flex-start", flex: 1, flexDirection: "row", gap: 8, minWidth: 0 }}>
       <If when={props.icon}>
         {(name) => (
-          <Icon colour={props.current === true ? tokens.row.current : props.hue} name={name()} />
+          // On the first line's middle, however many lines the words take.
+          <View style={{ height: tokens.type.line, justifyContent: "center" }}>
+            <Icon colour={current() ? tokens.row.current : props.hue} name={name()} />
+          </View>
         )}
       </If>
-      <Text
-        bold={props.current === true}
-        colour={props.current === true ? tokens.row.current : undefined}
-        style={{ flex: 1, minWidth: 0 }}
-        tone={props.quiet === true ? "faint" : "ink"}
+      <View
+        style={{
+          alignItems: "center",
+          columnGap: 8,
+          flex: 1,
+          flexDirection: "row",
+          flexWrap: "wrap",
+          minWidth: 0,
+        }}
       >
-        {props.label}
-      </Text>
-      <If when={props.meta}>{(meta) => <Text tone={props.metaTone ?? "faint"}>{meta()}</Text>}</If>
-      <If when={props.count !== undefined && props.count > 0}>
-        <Badge tone={props.countTone ?? "needs"}>{String(props.count)}</Badge>
-      </If>
-    </>
+        <Text
+          bold={current()}
+          colour={current() ? tokens.row.current : undefined}
+          style={{ flexBasis: "auto", flexGrow: 1, flexShrink: 1, minWidth: 0 }}
+          tone={props.quiet === true ? "faint" : "ink"}
+        >
+          {props.label}
+        </Text>
+        <If when={hasEnd()}>
+          <View
+            style={{
+              alignItems: "center",
+              columnGap: 8,
+              flexDirection: "row",
+              flexShrink: 1,
+              flexWrap: "wrap",
+              marginLeft: "auto",
+              minWidth: 0,
+            }}
+          >
+            <If when={props.meta}>
+              {(meta) => <Text tone={props.metaTone ?? "faint"}>{meta()}</Text>}
+            </If>
+            <If when={props.count !== undefined && props.count > 0}>
+              <Badge tone={props.countTone ?? "needs"}>{String(props.count)}</Badge>
+            </If>
+          </View>
+        </If>
+      </View>
+    </View>
   );
 }

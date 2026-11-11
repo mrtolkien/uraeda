@@ -5,7 +5,9 @@
 // - **The head**: its kind's icon, its `title` as a person would say it aloud, whole, wrapping
 //   (never a hash, an id, or an internal name), its `state` in words with its tone, and its `time`.
 //   On a narrow window the icon, the state, and the time are a head line, and the title takes the
-//   card's full width under it, as every text of more than one line does on a phone.
+//   card's full width under it, as every text of more than one line does on a phone; a card with
+//   neither state nor time has its icon before its title. Elsewhere the state and the time stay
+//   beside the title while both fit, and go to a second line when they do not.
 // - **`who`**: one quiet line under the title, of who or what it is: "Claude · Opus 5.5".
 // - **`facts`**: each led by its icon, under a quiet rule, in the order things happened; a fact
 //   that is unknown is left out, never drawn empty.
@@ -93,6 +95,10 @@ function When(props: { time: CardTime }) {
   );
 }
 
+/** Whether the icon, the state, and the time are a line over the title: a narrow window's. */
+const headLine = (props: CardProps) =>
+  isNarrow() && (props.state !== undefined || props.time !== undefined);
+
 function Head(props: CardProps) {
   const icon = () => (
     <Icon colour={props.current === true ? tokens.row.current : props.hue} name={props.icon} />
@@ -105,21 +111,50 @@ function Head(props: CardProps) {
     <Text
       bold
       colour={props.current === true ? tokens.row.current : undefined}
+      style={{ flexBasis: "auto", flexGrow: 1, flexShrink: 1, minWidth: 0 }}
       testID={props.testID === undefined ? undefined : `${props.testID}-title`}
     >
       {props.title}
     </Text>
   );
+  const hasHead = () => props.state !== undefined || props.time !== undefined;
   return (
     <If
-      when={isNarrow()}
+      when={headLine(props)}
       else={
         <View style={{ alignItems: "flex-start", flexDirection: "row", gap: 8 }}>
           <View style={{ height: tokens.type.line, justifyContent: "center" }}>{icon()}</View>
-          <View style={{ flex: 1, minWidth: 0 }}>{title()}</View>
-          <View style={{ alignItems: "center", flexDirection: "row", gap: 12, minHeight: 24 }}>
-            {state()}
-            {time()}
+          {/* The title gets the width first: the state and the time stay beside it while both
+              fit on one line, and go to the end of a second line when they do not. */}
+          <View
+            style={{
+              alignItems: "center",
+              columnGap: 12,
+              flex: 1,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              minWidth: 0,
+            }}
+          >
+            {title()}
+            <If when={hasHead()}>
+              <View
+                // On a line of its own, it wraps too: the time under the state, never cut.
+                style={{
+                  alignItems: "center",
+                  columnGap: 12,
+                  flexDirection: "row",
+                  flexShrink: 1,
+                  flexWrap: "wrap",
+                  marginLeft: "auto",
+                  minHeight: 24,
+                  minWidth: 0,
+                }}
+              >
+                {state()}
+                {time()}
+              </View>
+            </If>
           </View>
         </View>
       }
@@ -163,7 +198,7 @@ export function Card(props: CardProps) {
         <Head {...props} />
         <If when={props.who}>
           {(who) => (
-            <View style={{ paddingLeft: isNarrow() ? 0 : tokens.control.icon + 8 }}>
+            <View style={{ paddingLeft: headLine(props) ? 0 : tokens.control.icon + 8 }}>
               <Text tone="quiet">{who()}</Text>
             </View>
           )}
