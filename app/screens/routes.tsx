@@ -21,6 +21,7 @@ import "./feature/panes";
 // Task 43: Sessions.
 // Task 44: Session panels and runs.
 // Task 45: Decisions.
+import "./decisions";
 // Task 46: Git.
 // Task 47: Editors.
 // Task 48: Settings.

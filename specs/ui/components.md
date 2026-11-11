@@ -68,7 +68,7 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   in the order things happened. Never a row of grey words, never an id in a title.
 - **A control moves at once; its refusal sits under it.** A value the server keeps goes through
   `sent`, and its `refusal` names the way out, under that control, never in a toast.
-- **A list has one cursor**, which is its selection: `j` `k`, `g g` `G`, `Enter`, the pointer too.
+- **A list has one cursor**, which is its selection: `j` `k`, `Home` `G`, `Enter`, the pointer too.
   It returns `false` at its ends, so the frame's keys move on. Keep it in the visit, with
   `usePane().remember`.
 - **A long list's row keeps one structure.** Native Shell reuses a row's views for any other row: a

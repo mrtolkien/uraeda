@@ -31,6 +31,8 @@ export type DeviceKeys = {
   frame: { rail?: boolean; side?: boolean; sideWidth?: number };
   /** How the priorities show, as columns or one list (`app/screens/priorities/`). */
   "priorities.view": "columns" | "list";
+  /** The decisions' order in their list (`app/screens/decisions/`). */
+  "decisions.sort": "changed-desc" | "changed-asc" | "title";
 };
 
 /** The values of a device, by the names of `Keys`. */

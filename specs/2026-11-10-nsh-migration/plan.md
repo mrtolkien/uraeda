@@ -2724,12 +2724,24 @@ Follows [what every screen task does](#what-every-screen-task-does).
   device.
 - **Tests:** none.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): decisions`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names: none.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 102 tests passed;
+      `just task uraeda-server`: 312 passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): decisions`.
+
+**As built** (rulings T45.1 to T45.4):
+
+- Panes: `decision { name, repo }`, `constitution { repo }`,
+  `branch-decision { folder, name, repo }`, and `decisions-check { repo }` in the main stack;
+  `decisions-list { repo }` in the side stack, on every page of `/decisions…` and on
+  `/f/<folder>/decisions/<name>`. On a phone, `/decisions` shows the list first.
+- The redirect R126 left: a branch with no such decision opens `/decisions/<name>`, in the visit.
+- The order is the device's `decisions.sort`. The check's question cards are task 42's, where
+  `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (T45.3).
+- `listKeys` binds no `g g` (T45.4); the icon `cable` joins `app/ui/controls/icons/lucide.ts`.
 
 ## Task 46: Git
 

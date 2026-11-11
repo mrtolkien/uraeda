@@ -6021,3 +6021,66 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   running for 5 s" was cut at the card's edge, and a failed run's words, the reason the human opens
   it, would have been too.
 - **Where**: `app/ui/lists/Card.tsx`.
+
+## T45.1: The decisions are a reader in the main stack and the ledger's list in the side stack
+
+- **Decision**: every page of the decisions is two panes: the reader (`decision`, `constitution`,
+  `branch-decision`, `decisions-check`) in the main stack, and the list (`decisions-list`) in the
+  side stack. On a wide window the list's cursor moves the reader with it, by `redirect`, in the
+  same visit, and Enter, or a press on a card, gives the reader the focus; on a phone, `/decisions`
+  shows the list first, the constitution as its next pane, and Enter or a tap opens the reader in a
+  visit of its own, which Back leaves. The constitution is one row, first, and one document: its
+  principles are found by Jump (`/`), which lists them, and open the constitution. The decisions
+  check, while one waits, is the row above it. The order is kept on the device, `decisions.sort` in
+  `DeviceKeys`.
+- **Rationale**: what is read is the subject, and the main stack is the one wide enough for the
+  reading measure; the side stack folds to 280 to 400 points, which a card of a decision fills well
+  and a decision's prose does not. A reader that follows the cursor by a `redirect` lets the human
+  step through the ledger with `j` `k` without filling the history, as the React page did. The old
+  list drew a row per principle, each opening the same page: one row says the constitution is one
+  file, and Jump still reaches each principle by name.
+- **Alternatives considered**: the list as the main pane and the reader beside it, which reads a
+  decision at 45 characters a line; one place whose stacks swap by width, which `sync` does not do
+  within a visit.
+- **Where**: `app/screens/decisions/{index,List}.tsx`.
+
+## T45.2: A decision is read whole by the document renderer, its branches' changes as cards
+
+- **Decision**: a decision's reader is its head (icon, title, status with its cause, rules and its
+  last change), the problem `ura check` finds, one card per feature whose branch changes it
+  ("Proposed by Due date reminders", what its branch does, counted, with "Read the branch's
+  version"), then the whole file past its title through `Document`, links staying in the app
+  (`links.ts`). The branch's version, `/f/<folder>/decisions/<name>`, is the same reader over
+  `BranchDecision`, each part the branch added or changed marked under it ("Added on this branch"),
+  the parts it removed listed after, and it redirects to the decision in force, at the same heading,
+  when the branch has none: the redirect R126 left to this task.
+- **Rationale**: the React page drew the `## Rules` section with the spec page's rule lines and the
+  branch's change as the spec page's diff card, two components the app has not ported (tasks 41 and
+  42). The document renderer draws every rule already, so one component draws the decision, and a
+  mark under each changed part shows the change where it is read.
+- **Not built**: a link to a heading (`#anchor`) keeps the hash, and does not scroll the reader to
+  it: `Document` gives no block's place in its scroll. A link to code or to a done record opens
+  `/buffer/<path>`, task 47's page, which the server limits to `specs/` today.
+- **Where**: `app/screens/decisions/{Reader,Branch,Branches,links}.tsx`.
+
+## T45.3: The decisions check's page reads the round, and its answers wait for task 42's cards
+
+- **Decision**: `/decisions/check` reads `WorkflowFile { id: "decisions-check" }`: its state and how
+  many questions are answered, then the file through `Document`, each question's answer under its
+  heading, read-only, and each option's candidate decisions under the option, from `candidates`. The
+  seam is marked `TASK 42:` in `Check.tsx`. "Review with AI", which asked an agent for a check, is
+  not built: its message is the Node server's (`round-messages`), and the Rust server serves no
+  record of it.
+- **Sandbox**: the `realistic` repository gains a decisions check, `specs/DECISIONS-CHECK.md` with
+  its candidate, and its "Due date reminders" branch changes the notifications decision, so the
+  reader shows a feature proposing a change to an active decision.
+- **Where**: `app/screens/decisions/Check.tsx`, `crates/server/src/sandbox/others.rs`.
+
+## T45.4: A list's keys leave `g g` to the shell
+
+- **Decision**: `listKeys` no longer binds `g g` to the first row: `Home` does. The shell binds
+  `g g` to the Git place, and the key store refuses a key bound twice where both are on, so the
+  first pane to hold a list in the app threw as it was drawn ("A key means two things in Decisions:
+  "g g" is bound twice, to Git and to first row").
+- **Rationale**: the places' `g` keys are the app's, everywhere; `G` and `End` keep the last row.
+- **Where**: `app/ui/lists/keys.ts`.

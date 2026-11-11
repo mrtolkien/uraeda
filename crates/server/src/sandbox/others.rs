@@ -177,8 +177,32 @@ pub(super) fn realistic(path: &Path) -> Result<(), String> {
         at("21 11:00"),
         vec![text("specs/INBOX-TRIAGE.md", triage.clone())],
     ));
+    main.push(Commit::new(
+        "chore: propose a decisions check",
+        at("21 11:30"),
+        vec![
+            file("specs/DECISIONS-CHECK.md", "DECISIONS-CHECK.md")?,
+            file(
+                "specs/decisions-check/q1-a/ui-components.md",
+                "decisions-check/q1-a/ui-components.md",
+            )?,
+        ],
+    ));
     repo.commits("main", main)?;
     live_features(&repo)
+}
+
+/// The notifications decision as the reminders' branch changes it: a reminder that comes due is an
+/// ask too, so the decisions page shows a feature proposing a change to an active decision.
+fn reminders_notify() -> Result<String, String> {
+    let active =
+        String::from_utf8_lossy(&bytes("realistic/decisions/notifications.md")?).into_owned();
+    let rule = "- The tab's title SHOULD count the items that need the human.";
+    let added = "- A reminder that comes due MUST notify, as an item that needs the human does. Checked by\n  the notifier's tests.\n";
+    let at = active
+        .find(rule)
+        .ok_or("the notifications decision lost its last rule")?;
+    Ok(format!("{}{added}{}", &active[..at], &active[at..]))
 }
 
 /// The realistic project's four live features, each on its branch: a spec being written, a plan
@@ -197,6 +221,14 @@ fn live_features(repo: &Repo) -> Result<(), String> {
         message,
         at("17 15:08"),
         code("reminders", None),
+    ));
+    building.push(Commit::new(
+        "decision(due-reminders): a reminder notifies",
+        at("17 15:20"),
+        vec![text(
+            "specs/decisions/notifications.md",
+            reminders_notify()?,
+        )],
     ));
     repo.commits(BUILDING, building)?;
     repo.worktree(BUILDING)?;
