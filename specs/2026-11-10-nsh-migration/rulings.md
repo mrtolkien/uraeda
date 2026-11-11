@@ -4973,3 +4973,38 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   server part that throws.
 - **Where**: `crates/app/tests/extensions.rs`, `crates/app/tests/extensions/`,
   `fixtures/extensions/{counter,crashes,loops}/`.
+
+## T64.1: The sessions on the merged branch, their catch-up runs, and the suite's slow tests
+
+- **Decision**: the server's tests had not run since task 15 was merged by a rebase. On the merged
+  tree, `just task uraeda-server uraeda-protocol uraeda-cli` failed on one test,
+  `rust_source_files_stay_under_500_lines`: nine files were over 500 lines, two of the core
+  (`check/mod.rs`, `settings.rs`, over it on main too, from the catch-up with the default branch)
+  and seven of the sessions. They are split by responsibility, in a commit of its own. Every other
+  test passed: 552 run, in 16 s.
+  - **The catch-up runs start on `SETTLED`**, `sessions::settled`, called once the pull requests'
+    refresh of a burst ended, and after each other refresh that changed them. The sessions' line in
+    `FILES_CHANGED` is gone: on the burst itself, the catcher read the pull requests as they were
+    before the refresh, and a pull request opened meanwhile was caught up only if the refresh won
+    the race. `a_refresh_that_moves_a_feature_to_catch_up_starts_its_run` passed before the change,
+    by that race; with `SETTLED` empty it fails, "the server did not answer: waiting for the
+    catch-up's run".
+  - **The seams task 15 was to finish are built**: `feature.continueAll`, the feature's status and
+    sessions, the start's first run and kept messages, the drop, the promotion's first run, the
+    recommended message's agent, `mcp::Runner`, a process's token, the chat images' cleanup,
+    `Runtimes::check()`, the extensions' skills and events, the writes refused while an agent works.
+    Left, each marked: `TASK 51:` in `preview/warm.rs` (a linked story still compiles at its first
+    read) and `TASK 20:` in `records/workspace/repositories.rs` (the sandbox's locked list). The
+    `TEMPORARY:` marks are the port and data folder apart from the Node server's, and the session
+    import, all for task 61.
+  - **Slow tests**: `two_saves_sent_back_to_back_land_in_the_order_sent` ran 50 rounds of a commit,
+    5.2 s; it runs 10. `an_extension_that_never_returns_is_cut_off`, 12.8 s, is kept: it waits for
+    the VM's real limits, 2 s to load and 10 s a call, on the VM's own thread, which no paused clock
+    reaches, and it guards the extensions decision's "a broken extension MUST NOT stop Uraeda".
+    Making it fast takes the limits as a value of the server's options, through the VM, its calls,
+    and the runtimes' calls. `the_signing_key_never_leaves_the_data_folder`, 5.6 s under load, asks
+    every route four ways: kept.
+- **If wrong**: a burst with no refresh still settles, so the catcher runs after every burst as it
+  did, only later.
+- **Where**: `crates/server/src/records/{pulls,watch}.rs`, `records/sessions/mod.rs`,
+  `crates/server/tests/sessions/catch_ups.rs`, `crates/server/tests/writing.rs`.

@@ -41,8 +41,9 @@ pub(super) fn config_changed(shared: &Shared) {
     });
 }
 
-/// A repository's files changed: its pull requests behind the default branch are caught up.
-pub(super) fn files_changed(shared: &Shared, repository: &str, _: &uraeda_core::watch::Changes) {
+/// A repository's pull requests are settled, after a burst of its files or a refresh that
+/// changed them: its pull requests behind the default branch are caught up.
+pub(super) fn settled(shared: &Shared, repository: &str) {
     let Some(runner) = crate::runner::Runner::find(shared) else {
         return;
     };

@@ -6,6 +6,8 @@
 
 mod support;
 
+#[path = "sessions/catch_ups.rs"]
+mod catch_ups;
 #[path = "sessions/escalation.rs"]
 mod escalation;
 #[path = "sessions/life.rs"]

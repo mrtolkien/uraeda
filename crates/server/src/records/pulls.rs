@@ -29,7 +29,7 @@ use uraeda_core::steps::StepName;
 use uraeda_core::watch::Changes;
 use uraeda_core::{api, pulls};
 
-use super::{features, repositories, workspace};
+use super::{features, repositories, sessions, workspace};
 use crate::Failure;
 use crate::live::{Bus, Registry};
 use crate::shared::Shared;
@@ -55,10 +55,9 @@ const PAST_LAST_TASK: [StepName; 7] = [
 /// changed what is known. The repository's workspace, read from there, holds each feature's
 /// pull request and the step it decides. One line per domain.
 ///
-/// TASK 15: the sessions' line, which starts the catch-up runs. A burst read before its
-/// refresh ended would see a pull request merged on GitHub still open, the fetch having moved
-/// the default branch first.
-const SETTLED: &[fn(&Shared, &str)] = &[];
+/// The sessions start the catch-up runs here, not on the burst itself: a burst read before its
+/// refresh ended would see a pull request opened or merged on GitHub as it was before.
+const SETTLED: &[fn(&Shared, &str)] = &[sessions::settled];
 
 /// Where the refresher is told of a repository to settle: `shared.get::<Refresher>()`.
 struct Refresher {

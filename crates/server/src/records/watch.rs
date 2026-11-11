@@ -34,7 +34,6 @@ const FILES_CHANGED: &[fn(&Shared, &str, &Changes)] = &[
     previews::files_changed,
     extensions::files_changed,
     pulls::files_changed,
-    sessions::files_changed,
 ];
 
 /// What a domain does when the config folder changed: the settings file, or a theme file. One
