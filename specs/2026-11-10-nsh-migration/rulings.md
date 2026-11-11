@@ -2913,3 +2913,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: task 15 was built on the code before the catch-up, so what it ported of the runner
   is a day older than what tasks 62 to 64 read. Task 64 lists what the difference holds.
 - **Where**: the plan's tasks 33, 36 to 39, 43, 44, 48, 51, and 62 to 65.
+
+## R125: The client's first tasks are built beside the sessions
+
+- **Decision**: tasks 24 (routes and per-device storage) and 25 (the design language's samples)
+  start while task 15 (sessions) is still built, ahead of tasks 62 to 64 and 20, which wait for it.
+- **Rationale**: neither reads the server: task 24 is pure TypeScript, and task 25 draws samples.
+  The human's ruling of 2026-11-11 holds a wave only for code that does not build or an interface it
+  consumes, and the sessions are the longest task of the server. Task 23, the client store, still
+  waits for the sandbox of task 20, which its tests run on.
+- **Where**: the plan's [waves](plan.md#waves), 9 to 11.
