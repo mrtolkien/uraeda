@@ -5592,14 +5592,34 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 ## T95.5: An extension reads a file up to 64 MB
 
-- **Decision**: `uraeda:fs`'s `readText` and `readBytes` refuse a file over 64 MB before reading
-  it, by its size, and a file that grows past it while read, through a read bounded at one byte
-  over: "`<path>` is over 64 MB, the most an extension reads at once", thrown as every refusal of
+- **Decision**: `uraeda:fs`'s `readText` and `readBytes` refuse a file over 64 MB before reading it,
+  by its size, and a file that grows past it while read, through a read bounded at one byte over:
+  "`<path>` is over 64 MB, the most an extension reads at once", thrown as every refusal of
   `uraeda:fs` is, which the extension can catch. The API's declarations say it.
 - **Rationale**: the server held the whole file before the VM's 256 MiB limit applied, then copied
-  it as base64 or a string: a large file could exhaust the server's memory, and take every
-  extension and session down (Codex's P1), which the extensions decision forbids. 64 MB is
-  `fetch`'s limit for an answer, and leaves the VM room for the copies a read makes.
-- **Seen failing**: `extensions::fs::tests::a_file_over_the_limit_is_refused_before_it_is_read`,
-  on a sparse file one byte over the limit, which the read accepted.
+  it as base64 or a string: a large file could exhaust the server's memory, and take every extension
+  and session down (Codex's P1), which the extensions decision forbids. 64 MB is `fetch`'s limit for
+  an answer, and leaves the VM room for the copies a read makes.
+- **Seen failing**: `extensions::fs::tests::a_file_over_the_limit_is_refused_before_it_is_read`, on
+  a sparse file one byte over the limit, which the read accepted.
 - **Where**: `crates/server/src/extensions/{fs.rs,api/server.d.ts}`.
+
+## T95.6: The session store reads on a connection of its own
+
+- **Decision**: `Store` opens `sessions.sqlite` twice: the connection that writes, as before, and a
+  read-only one, opened once the writer made the file and its schema, which every `Store::read` uses
+  inside one read transaction, so a read's statements see one state of the store. Writes, their
+  transactions, and `Store::write` are as they were; `Store` is still the only code that opens the
+  file, and `close` drops the reader first, so the writer's close folds the log in.
+- **Rationale**: one mutex around one connection made every read wait behind every write, and the
+  standard mutex is not fair: with agents streaming, a page read starved (finding 7). In write-ahead
+  mode a reader never waits for the writer. One reader, not a pool: reads are short, and a second
+  lock is the whole change.
+- **Measured**, once each, by a throwaway test: four threads appending text pieces to four turns as
+  fast as they can, while one thread reads the last page of a turn of 2,000 events, for 3 s. Before:
+  18 reads, mean 167 ms, median 82 ms, p99 769 ms; 54,010 writes. After: 5,080 reads, mean 0.59 ms,
+  median 0.58 ms, p99 0.82 ms, max 1.4 ms; 41,578 writes, the writers now sharing the machine with a
+  reader that runs.
+- **If wrong**: a read that must see a write the same thread made a moment before still does: a read
+  transaction begins after the write committed.
+- **Where**: `crates/server/src/runner/store.rs`.

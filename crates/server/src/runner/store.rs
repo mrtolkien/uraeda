@@ -1,4 +1,5 @@
-//! `sessions.sqlite`, the sessions' store: the file, its one connection, and its transactions.
+//! `sessions.sqlite`, the sessions' store: the file, its two connections, and their
+//! transactions.
 //! What it holds is beside this file: [sessions](super::session), [turns](super::turn), and each
 //! turn's [log](super::log).
 
@@ -8,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 use std::time::{Duration, SystemTime};
 
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 
 use super::schema;
 
@@ -43,14 +44,18 @@ pub enum StoreError {
 }
 
 /// The sessions, their turns, and the turns' logs, in SQLite: the only code that opens
-/// `sessions.sqlite`. One server at a time owns the data folder, so one connection writes it.
+/// `sessions.sqlite`. One server at a time owns the data folder, so one connection writes it,
+/// and a second, read-only, reads beside it: in write-ahead mode a read never waits for a write,
+/// and sees what the writes committed before it began.
 ///
 /// Every method takes the time it writes as an argument, the server's `shared.now()`: the store
 /// has no clock.
 pub struct Store {
     folder: PathBuf,
-    /// The one connection, none once the store closed.
+    /// The connection that writes, none once the store closed.
     db: Mutex<Option<Connection>>,
+    /// The connection that reads, none once the store closed.
+    reader: Mutex<Option<Connection>>,
 }
 
 impl Store {
@@ -81,9 +86,13 @@ impl Store {
         if found < known {
             schema::migrate(&mut db)?;
         }
+        // Opened once the writer made the file, its log, and its schema.
+        let reader = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        reader.busy_timeout(BUSY)?;
         Ok(Store {
             folder: data_dir.to_owned(),
             db: Mutex::new(Some(db)),
+            reader: Mutex::new(Some(reader)),
         })
     }
 
@@ -94,20 +103,27 @@ impl Store {
 
     /// Closes the file, as the server stops: every later call fails with [`StoreError::Closed`].
     pub fn close(&self) {
-        // Dropped here: SQLite folds the write-ahead log into the file, and removes it.
+        self.reader
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
+        // Dropped last: SQLite folds the write-ahead log into the file, and removes it.
         self.db
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .take();
     }
 
-    /// Reads with the connection.
+    /// Reads with the reading connection, in one transaction: every statement of `work` sees
+    /// the store as it was when the first one ran, whatever is written meanwhile.
     pub(super) fn read<T>(
         &self,
         work: impl FnOnce(&Connection) -> Result<T, StoreError>,
     ) -> Result<T, StoreError> {
-        let db = self.db.lock().unwrap_or_else(PoisonError::into_inner);
-        work(db.as_ref().ok_or(StoreError::Closed)?)
+        let mut db = self.reader.lock().unwrap_or_else(PoisonError::into_inner);
+        let snapshot = db.as_mut().ok_or(StoreError::Closed)?.transaction()?;
+        // Dropped after `work`, it ends the read: nothing was written to commit.
+        work(&snapshot)
     }
 
     /// Writes in one transaction: all of `work`, or nothing when it fails.
