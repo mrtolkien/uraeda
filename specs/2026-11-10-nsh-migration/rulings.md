@@ -2891,9 +2891,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: Pele in the VM still holds, as R25 measured it. Merman brings about 240 crates, and
   a second `usvg`, 0.47, beside NSH's 0.46. Not checked: a diagram's links, which a picture cannot
   follow, and the web build.
-- **Where**: `a_diagram_is_drawn_without_a_browser`, `crates/app/tests/outside/diagram.rs`,
-  `app/__checks__/diagram.tsx`. Task 31. The human amended the [diagrams](../decisions/diagrams.md)
-  decision to Merman on 2026-11-11.
+- **Where**: `a_diagram_is_drawn_without_a_browser`, `crates/app/src/diagram.rs` (moved there by
+  task 31), `app/__checks__/diagram.tsx`. Task 31. The human amended the
+  [diagrams](../decisions/diagrams.md) decision to Merman on 2026-11-11.
 
 ## R124: The branch caught up with the default branch before its last server tasks
 
@@ -4709,3 +4709,133 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the busy run had seconds of 6 to 11 frames, every 7 to 8 s, with painting at 40 to
   105 ms; the quiet runs had none, so they were the machine's, as R175 found.
 - **Where**: [`Line.tsx`](/app/ui/lists/Line.tsx), [`Icon.tsx`](/app/ui/controls/Icon.tsx).
+
+## R202: Every kind of parsing has one home, and TSX reads none
+
+- **Decision**: Markdown is read in Rust only, by the core's parser, in two places.
+  - **A workflow file**: the core reads it on the server, and the record `WorkflowFile` sends its
+    tree, `current.document`. `Document` draws that tree and walks it, children by parent, once per
+    tree: it never sees Markdown.
+  - **An agent's reply**, which is Markdown text and grows by appends (R144): the client's Rust,
+    `ReplySplitter` of `uraeda/native` (`crates/app/src/reply.rs`), reads each appended piece once,
+    line by line, keeping only the block being written, and finds where blocks end: a blank line
+    ends a paragraph, a quote, or a table; a closing fence ends code; a heading or a rule is one
+    line; a list goes on across blank lines until a line that is neither indented nor an item. Each
+    finished block's text goes through the core's own `files::document::parse`, and crosses as the
+    JSON of the protocol's `Document`, which `Reply` draws with the same blocks as a file.
+  - **A whole text the client holds**, as a message once sent: `markdownTree(text)`, the same parse.
+  - `uraeda-app` takes `uraeda-core` as a dependency for it, which its tests already built.
+- **Measured** (release, once): the core's tree of a 712-byte paragraph with code, bold, and a link
+  in 22 µs; 31.6 KB of reply split in 12-byte pieces in 0.62 ms in all, 0.24 µs a piece. So a block
+  is parsed once, as it finishes, for less than a frame's thousandth.
+- **Rationale**: the stack decision puts parsing in Rust; the spike measured NSH's `TextView`
+  parsing a whole message again on each chunk. One parser keeps a reply's blocks and a file's alike:
+  callouts, typed items, tasks, links resolved as the core resolves them.
+- **If wrong**: the web build (task 56) compiles `uraeda-app` for the browser, and the core brings
+  `gix`, `image`, and `libwebp-sys`: the document's parser then moves to a crate of its own, which
+  the core and the app both take. A reply's links are resolved from the repository's top level,
+  where a file's are from its folder.
+- **Where**: `crates/app/src/reply.rs`, `reply/split.rs`, `reply/lines.rs`, and their table of cases
+  in `reply/tests.rs`.
+
+## R203: What `Reply` takes, and what the client store gives it
+
+- **Decision**: `Reply` takes `text`, an accessor of the reply so far, and `done`, an accessor that
+  turns true once the reply is whole. It keeps how much of the text it has read, and on each change
+  sends the splitter `text().slice(read)`: a copy of the new piece only, never a scan of the text. A
+  text shorter than what it read is another reply, read from its start. A piece that ends in the
+  first half of a UTF-16 pair waits for the next; the splitter itself waits for a UTF-8 character a
+  piece cut, for a caller that sends bytes.
+  - Finished blocks are a list of `{ key, tree }`, keyed by a count, drawn by `Each`: a new block
+    adds one row, and no other row is made again. The growing block is plain prose, or `Code`
+    without colours while its fence is open.
+- **What task 23 must give**: `text(record, path)` as a signal whose value only grows by `append`
+  while one reply streams, and a value that is not longer than before when the record is replaced
+  (another reply in the same place), or a new signal. And a reply's end: the message's state in the
+  same record, which a screen turns into `done`. Nothing else: no offsets, no chunks.
+- **Rationale**: the plan's constraint, "a long reply is drawn as blocks", and its measure: NSH
+  parsed a whole message again on each chunk. Tested by "a growing reply redraws its last block
+  only", which counts the blocks made through the `mark` slot while 55 pieces arrive.
+- **Measured**: `just document-frames`, a reply of 40 sections, each a heading, a paragraph, a list,
+  and code, about 22,000 characters, growing 12 characters a frame for 27 seconds, its scroll
+  following its end, on the hidden display, which draws in software (R131), the machine's load
+  between 6 and 7. Two runs. Seconds 2 to 4, a reply under 3,000 characters: 3.1 to 3.9 ms a frame
+  on average, the engine's JavaScript 0.4 to 0.5 ms. Seconds 10 to 27, from about 7,000 characters
+  to the whole: 3.4 to 4.4 ms, JavaScript 0.4 to 0.6 ms, 60 frames a second. So a frame's cost stays
+  flat as the reply grows. Seconds 5 to 9 of both runs rose, to 6 to 22 ms on average in the first
+  and 5 to 7 ms in the second, layout and painting both, not JavaScript: not explained. The first
+  code blocks' colours arrive then, from a debug build's syntect on another thread, which re-lays
+  out their text once each.
+- **Where**: [`Reply.tsx`](/app/ui/document/Reply.tsx),
+  [`frames.test.tsx`](/app/gallery/document/frames.test.tsx).
+
+## R204: One highlighter: syntect with the syntaxes NSH's editor reads, coloured by the theme
+
+- **Decision**: `highlightCode(code, language)` of `uraeda/native` cuts a finished code block into
+  runs, each with one of the theme's `syntax-*` roles, `keyword` to `variable`, or none. It runs on
+  syntect 5 with two-face's syntaxes, at the features NSH 0.4.0's `nsh-base` builds them with, so
+  the app holds one highlighter and one set of grammars. NSH's own tokenizer (`nsh_base::syntax`) is
+  private, and colours with a palette of its own: the app maps TextMate scopes to its roles itself
+  (`highlight/scopes.rs`), the innermost scope that names one deciding, as NSH's does, with the same
+  settling of a grammar's `storage.type` by its word (`fn` a keyword, `f32` a type).
+  - It runs once per finished block, on a blocking thread (`async`): the first block with a language
+    reads the syntaxes, tens of milliseconds in a release build, over a second in a debug one. The
+    block shows plain at once, and coloured when the runs arrive. A block still growing in a reply
+    is never coloured.
+- **Alternatives considered**: NSH's `TextView` for code blocks, which colours them itself: it
+  parses Markdown, and its colours are not the theme's.
+- **Where**: [`highlight.rs`](/crates/app/src/highlight.rs),
+  [`Code.tsx`](/app/ui/document/Code.tsx).
+
+## R205: A diagram is `diagramPicture`, in the interface's font, measured and drawn in Rust
+
+- **Decision**: `crates/app/src/diagram.rs` holds `picture`, `fonts`, and `without_markup`, moved
+  from `crates/app/tests/outside/diagram.rs`; the outside check calls the crate's. TSX calls
+  `diagramPicture(source, colours)`, named so in the module's one set of names (R30), not `picture`.
+  - **The font is Monaspace Neon**, the interface's, bundled whole as an OpenType file: the other
+    bundled families are WOFF2, which neither Merman's measuring nor `usvg` reads. The check used
+    the display's font before; it passes on Neon.
+  - **Colours** are Mermaid's theme variables from the roles: boxes in `chip`, their edges `rule`,
+    lines `ink-quiet`, text `ink`, groups `sunken`; a theme's alpha is dropped. An `effect` reads
+    them, so a theme change draws the picture again, and the old one stays until the new one comes.
+  - **2 seconds**: Merman's own deadline, and a timer in `Diagram.tsx`; past it, or for a source
+    Merman refuses, the source shows as code, under "The diagram could not be drawn:" and Merman's
+    words. A drawn diagram wider than its room scrolls sideways inside itself.
+  - Merman's `filter: none`, `transform: none`, and its drop shadows at 6 % of black leave the SVG
+    before `usvg` reads it: each made `usvg` log a warning. One warning of a filter is still logged
+    per diagram, unfound.
+- **Where**: [`diagram.rs`](/crates/app/src/diagram.rs),
+  [`Diagram.tsx`](/app/ui/document/Diagram.tsx), `a_diagram_never_carries_a_script`,
+  `a diagram that fails shows its source`.
+
+## R206: A document's blocks, how they read, and the screen's slots
+
+- **Decision**: `Document` draws the core's tree; the screen gives four hands, all optional:
+  `onLink(link)` for a link that stays in the app (a file, `#anchor`, a wikilink to a file, a
+  story), where a web address opens through the system; `image(image)` for an image's address,
+  without which an image is a link with its alt text; `mark(block)`, the screen's own mark under a
+  block, made once with the block, for each block of the top level, each list's item, and each
+  table's row; and `override(block)`, a block drawn the screen's way, as a story or a mockup live
+  (task 49). Each block's view has the test id `block-<id>`, the core's stable index.
+  - **Prose** keeps a measure of `type.measure × type.prose` points, about 80 characters, centred in
+    a wider pane (`align="start"` puts it at the left edge): 18 px on a 28 px line in the reading
+    font. Headings are in the heading font, bold, the first level 22 px and the others 18, in their
+    level's colour, with 14 points between blocks and 10 to 22 more above a heading. Inline code is
+    the code font a step under, in `code-inline` on a faint block of it.
+  - **Code, tables, and diagrams** start at the prose's edge and may take the room to the document's
+    right edge: code is as wide as its longest line, at least the measure, and scrolls sideways
+    inside itself; a table's columns share the room down to a floor each, about half their widest
+    cell, then the table scrolls inside itself, never the page.
+  - **Lists** keep their markers in a column of their own, so a wrapped line hangs under its text: a
+    bullet, a dash on a narrow document, a number right-aligned, a task's box, a typed item's sign
+    in its role's colour. **Callouts** are a bar of their kind's tone on a faint block of it, with
+    its icon and title; a quote is the bar alone.
+  - **A link alone in its paragraph to a picture in a `mockups` folder**, and an image alone, draw
+    in place, as wide as the room, up to their own width.
+- **Not built**: footnotes, which the core's tree does not hold, and folds; a selection over the
+  blocks is the screens', through `mark`.
+- **Alternatives considered**: the lists' `Table` (R170), a list of records with a cursor and keys:
+  a document's table is a grid of words, with no cursor. `Heading`, whose third level is the
+  interface's 15 px, smaller than the prose under it.
+- **Where**: [`app/ui/document/`](/app/ui/document/), the gallery's page
+  [`gallery/document/`](/app/gallery/document/), `just gallery-shots document`.

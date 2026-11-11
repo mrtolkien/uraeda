@@ -14,7 +14,18 @@ doctest = false
 [dependencies]
 nsh-base.workspace = true
 nsh-core.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+# Code blocks' colours, with the syntaxes NSH's editor reads: `highlight.rs`.
+syntect.workspace = true
+two-face.workspace = true
+# The document tree of a reply's finished blocks, read by the core's parser: `reply.rs`.
+uraeda-core.workspace = true
+# Diagrams, drawn in Rust as a picture of shapes: `diagram.rs`.
+base64.workspace = true
+merman.workspace = true
+merman-export.workspace = true
+usvg.workspace = true
 # The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
 uraeda-vim.workspace = true
 
@@ -22,17 +33,13 @@ uraeda-vim.workspace = true
 # text out of a build without `declarations`.
 [dev-dependencies]
 nsh-core = { workspace = true, features = ["declarations"] }
-# `tests/theme.rs` measures the shipped themes, which the core reads.
+# `tests/theme.rs` measures the shipped themes, which the core reads, from a temporary folder.
 tempfile.workspace = true
-uraeda-core.workspace = true
 
 # `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
 # display: it builds pages as the server will, and embeds them as the Linux host will.
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-base64.workspace = true
 log = "0.4"
-merman.workspace = true
-merman-export.workspace = true
 nsh-bundler.workspace = true
 nsh-engine.workspace = true
 nsh-package.workspace = true
@@ -43,7 +50,6 @@ rolldown_devtools_action.workspace = true
 rolldown_fs.workspace = true
 rolldown_std_utils.workspace = true
 rolldown_tracing.workspace = true
-usvg.workspace = true
 
 [lints]
 workspace = true

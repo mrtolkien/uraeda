@@ -34,6 +34,11 @@ pub(crate) fn register(registry: &mut Registry) {
     registry.assets(assets!());
     registry.module::<crate::fonts::Fonts>();
     registry.module::<crate::theme::Theme>();
+    registry.module::<crate::diagram::Diagrams>();
+    registry.module::<crate::highlight::Highlight>();
+    registry
+        .module::<crate::reply::Markdown>()
+        .class::<crate::reply::ReplySplitter>();
     registry
         .module::<crate::vim_bridge::VimBridge>()
         .register::<crate::vim_bridge::TextEditor>();

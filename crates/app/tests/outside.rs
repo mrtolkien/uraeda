@@ -8,8 +8,6 @@
 //! that started it, and a check's clicks and keys go to its own display.
 #![cfg(target_os = "linux")]
 
-#[path = "outside/diagram.rs"]
-mod diagram;
 #[path = "outside/display.rs"]
 mod display;
 #[path = "outside/errors.rs"]
@@ -230,7 +228,7 @@ fn a_web_view_shows_a_local_page_and_gets_keys() {
 /// and green arrows on orange boxes. Their edges blend with what is under them, so a pixel counts
 /// by the colour that leads in it.
 const DIAGRAM: &str = "flowchart LR\n  A[Proposal] --> B{Questions?}\n  B -- Yes --> C[Round]";
-const THEME: diagram::Theme<'static> = &[
+const THEME: uraeda_app::diagram::Theme<'static> = &[
     ("primaryTextColor", "#0000ff"),
     ("lineColor", "#00a000"),
     ("primaryColor", "#ffdca0"),
@@ -253,10 +251,10 @@ fn a_diagram_is_drawn_without_a_browser() {
         let stage = Stage::open(AppOptions::default());
         let (drawn, shown) = (stage.posts("drawn"), stage.posts("shown"));
         let failed = stage.posts("failed");
-        let fonts = diagram::fonts();
         stage.answers("picture", move |source| {
             let source = source.as_str().ok_or("a diagram's source is a text")?;
-            let picture = diagram::picture(source, THEME, &fonts)?;
+            let picture =
+                uraeda_app::diagram::picture(source, THEME, uraeda_app::diagram::fonts())?;
             Ok(json!({ "height": picture.height, "src": picture.src, "width": picture.width }))
         });
         let mut params = serde_json::Map::new();

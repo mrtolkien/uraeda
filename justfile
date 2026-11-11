@@ -101,11 +101,17 @@ gallery-shots filter="":
     hidden-display {{ nsh }} test gallery/lists/gallery.test.tsx --target linux --filter "{{ filter }}"
     hidden-display {{ nsh }} test gallery/text/gallery.test.tsx --target linux --filter "{{ filter }}"
     hidden-display {{ nsh }} test gallery/layout/gallery.test.tsx --target linux --filter "{{ filter }}"
+    hidden-display {{ nsh }} test gallery/document/gallery.test.tsx --target linux --filter "{{ filter }}"
 
 # What a frame costs with a list of 20,000 rows that scrolls fast by itself, on the hidden display:
 # Native Shell's frame timing, one `nsh::perf` line a second, for 30 seconds.
 lists-frames:
     hidden-display {{ nsh }} test gallery/lists/frames.test.tsx --target linux --fps -v
+
+# What a frame costs while a long reply grows by itself, its last block changing every frame, on the
+# hidden display: Native Shell's frame timing, one `nsh::perf` line a second, for 40 seconds.
+document-frames:
+    hidden-display {{ nsh }} test gallery/document/frames.test.tsx --target linux --fps -v
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:

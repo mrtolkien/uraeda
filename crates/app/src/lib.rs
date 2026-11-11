@@ -2,8 +2,11 @@
 //! app's native components, and the Linux host.
 
 mod about;
+pub mod diagram;
 mod fonts;
+mod highlight;
 mod native;
+mod reply;
 pub mod theme;
 mod vim_bridge;
 

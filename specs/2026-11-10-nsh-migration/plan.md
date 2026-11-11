@@ -2084,32 +2084,43 @@ ported, beyond accounts and jobs.
 
 **Files:**
 
-- Create: `app/ui/document/{Document,Blocks,Spans,Table,Code,Diagram}.tsx`,
-  `crates/app/src/{highlight,diagram}.rs`
-- Test: `app/ui/document/document.test.tsx`
+- Create:
+  `app/ui/document/{Document,Blocks,Spans,List,Callout,Table,Code,Diagram,Picture,Reply}.tsx`,
+  `context.ts`, `look.ts`, `index.ts`; `crates/app/src/{highlight,diagram,reply}.rs`, with
+  `highlight/scopes.rs` and `reply/{split,lines}.rs`; the gallery's page `app/gallery/document/`,
+  and the recipe `just document-frames`
+- Test: `app/ui/document/document.test.tsx`, and the Rust tables of `reply/tests.rs`,
+  `highlight/tests.rs`, and `diagram.rs`
 
 **Interfaces:**
 
 - Consumes: the core's document tree, from the record WorkflowFile; the diagram check, which holds:
   Rust draws a diagram with Merman, measured and drawn in the app's fonts, and `usvg` makes its text
-  shapes, as ruling R123 says. `crates/app/src/diagram.rs` takes `picture`, `fonts`, and
-  `without_markup` from `crates/app/tests/outside/diagram.rs`, exports `picture` from
-  `uraeda/native`, and the check then calls the crate's. `Diagram.tsx` calls it with the source and
-  the theme's colours, as Mermaid's theme variables, and imports no diagram library: the app has no
-  npm package.
-- Produces: `Document`, which draws a document tree and never parses Markdown, as the stack decision
-  asks. `Reply`, which draws a streamed reply as blocks: finished blocks never redraw while the last
-  one grows.
+  shapes, as ruling R123 says. `crates/app/src/diagram.rs` took `picture`, `fonts`, and
+  `without_markup` from the check, which now calls the crate's, and exports `diagramPicture` from
+  `uraeda/native` (ruling R205). `Diagram.tsx` calls it with the source and the theme's colours, as
+  Mermaid's theme variables, and imports no diagram library: the app has no npm package.
+- Produces, from `app/ui/document` (ruling R206):
+  - `Document({ document, ids?, align?, onLink?, image?, mark?, override? })`, which draws a
+    document tree and never parses Markdown, as the stack decision asks. `mark(block)` is a screen's
+    slot under each top-level block, list item, and table row; each block's view has the test id
+    `block-<id>`.
+  - `Reply({ text, done?, ...the same hands })`, which draws a streamed reply as blocks: finished
+    blocks never redraw while the last one grows. Task 23's `text(record, path)` feeds `text`
+    (ruling R203).
+  - In `uraeda/native`: `ReplySplitter` (`push(piece)`, `end()`), `markdownTree(text)`,
+    `highlightCode(code, language)`, and `diagramPicture(source, colours)` (rulings R202, R204).
 
-- [ ] **Step 1: Write the failing tests**: `a diagram that fails shows its source`;
-      `a growing reply     redraws its last block only`, counting the blocks made while a text
-      grows.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** Port the block and span kinds of
+- [x] **Step 1: Write the failing tests**: `a diagram that fails shows its source`;
+      `a growing reply redraws its last block only`, counting the blocks made while a text grows.
+- [x] **Step 2: Run them**. Expected: FAIL. They failed on the stub: no source shown in 5 s, and
+      `expected 0 to be 6` blocks made.
+- [x] **Step 3: Implement.** Port the block and span kinds of
       [`Blocks.tsx`](/packages/web/src/Blocks.tsx) and `Spans.tsx`. Highlight code in Rust. Split a
       reply at block boundaries in Rust, so TSX never scans a long text.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the document renderer`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS. `just task-app`: 171 tests passed;
+      `just task uraeda-app`: 30 tests passed.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the document renderer`.
 
 ## Task 32: Keys
 
