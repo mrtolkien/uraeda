@@ -1,4 +1,5 @@
-# At most 4 links run at once on the machine, across every checkout: see `scripts/slots-cc.sh`.
+# A few links run at once on the machine, one per 4 GiB of its memory, across every checkout: see
+# `scripts/slots-cc.sh`.
 [target.x86_64-unknown-linux-gnu]
 linker = "scripts/slots-cc.sh"
 
