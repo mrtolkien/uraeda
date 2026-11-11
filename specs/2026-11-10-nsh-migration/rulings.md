@@ -4008,3 +4008,130 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     key map draws a key's icon where the app carries it. `isNarrow` moved to
     [`app/ui/width.ts`](/app/ui/width.ts), still marked `TASK 33:`.
 - **Where**: `app/ui/controls/`, `app/ui/tokens/control.ts`, `app/ui/keys/`.
+
+## R170: A list is a cursor, the keys of the pane that holds it, and one row
+
+- **Decision**: every list of the app, `List`, `VirtualList`, `Table`, `Tree`, and `DragOrder`, is
+  drawn over one model, `createCursor(items, { initial?, onChange?, range? })` in
+  [`cursor.ts`](/app/ui/lists/cursor.ts), with one set of keys, `listKeys` in
+  [`keys.ts`](/app/ui/lists/keys.ts), and one row, `Row`.
+  - **The cursor is the selection.** The keyboard guide's "one selection per view" and its list's
+    "`j` `k` move the selection" are one thing: the row under the cursor. A range, where a list
+    allows one (`range: true`), runs from an anchor to the cursor, stretched by `J` `K` and Shift
+    with the arrows, as a review's comment is stretched over blocks.
+  - **The keys are declared in the scope around the list**, the pane's `KeyScope`, through the
+    registry: `j` `k` and the arrows (held, they repeat), `g g` `G` `Home` `End`, and `Enter` for
+    `onOpen`. A move past either end returns `false`, so the key goes on to a fallback: the layout
+    shell's `k` to the pane's tabs, past the first row. Two lists in one place each sit in a pane of
+    their own, or the registry refuses the second `j`, as R141 says.
+  - **The pointer moves the cursor when it moves** (`onMouseMove`), never as a row slides under a
+    resting pointer. **A press selects the row and runs `onOpen`**: the guide's "a click selects, a
+    click on the selected row edits" asks two taps on a phone, which has no pointer that moves, for
+    the thing done most, against rule 1. With a mouse the pointer already put the cursor there, so
+    the press is the second step anyway. A screen whose open is costly gives no `onOpen`, and the
+    press only selects.
+  - **The cursor is the screen's to keep**: `initial` from the visit's entry, `onChange` to write it
+    back, as panes keep their state (R163). It never scrolls: the list it is given to keeps its row
+    in view, scrolling only when the row is not wholly shown, the pointer's moves never.
+  - **Rows read `holds(id)`**, which compares ids and builds nothing: a move redraws the two rows it
+    left and reached, and a transcript that grows by a row costs no walk of its rows. Where an id is
+    in the rows is looked for only as a key moves the cursor, from its last place first.
+- **Not built**: `Ctrl+D` `Ctrl+U` (half a screen), and `/` to filter: the first is the shell's on
+  every page, the second a screen's own.
+- **Seen failing**: with the move not brought into view, "the cursor stays in view as it moves"
+  failed with `expected 1120 to be less than or equal to 400`, the list still at its top.
+- **Where**: `app/ui/lists/`, and the test [`lists.test.tsx`](/app/ui/lists/lists.test.tsx).
+
+## R171: What the client store and the screens give a list
+
+- **Decision**: a list takes `items`, an accessor of `{ id }` objects, through its cursor, and
+  `row(id, index)`, which draws one row and reads `id()` where it uses it. What a row shows comes
+  from a signal of its id. So the client store (task 23) gives, for a list record:
+  - **the rows' array, new at each insert, remove, or move, keeping every unchanged row's object as
+    it was** (`===`): Native Shell's `List` matches rows by identity and keeps their cells and
+    sizes, and `Each` keys them by id;
+  - **one signal per item, read by id**, so a chunk of one message redraws that row alone, and the
+    rows' array does not change for it.
+- **For the screens**: a `VirtualList` recycles its cells, so a row never copies a value out of
+  `id()` at the top of `row`: the next row the cell shows would keep it. The scroll place is the
+  screen's to keep, as the cursor is: `offset` where it opens, `onOffset` as it scrolls, and the
+  ref's `scrollTo(offset)`.
+- **Where**: [`VirtualList.tsx`](/app/ui/lists/VirtualList.tsx),
+  [`List.tsx`](/app/ui/lists/List.tsx).
+
+## R172: A list follows its end by `follow`, and the list scrolls itself when a row comes
+
+- **Decision**: `<VirtualList follow>` opens at its last row and stays at its end while it grows,
+  until the reader scrolls more than 48 points from it; scrolled back within them, it follows again.
+  `onFollowing(now)` hears each change, for a "jump to the latest" button, and the ref's `toEnd()`
+  jumps and follows again.
+  - A row that grows, a reply streaming, is followed by Native Shell, with
+    `maintainVisibleContentPosition` at 48 points.
+  - **A row that comes while it follows is scrolled to by the list itself**, `scrollToEnd` as the
+    rows' count grows: in the headless runner the native anchor left the list where it was after an
+    append, and the test failed with `expected 1000 to be 1028`.
+  - Whether it follows is read from `onScroll`, the offset and the sizes it gives.
+- **Seen failing**: scrolling to the end at every new row, followed or not, failed
+  `expected 1084 to be 728`: the reader's place was taken from under them.
+- **If wrong**: on GTK the native anchor and the list's own scroll both go to the end, once each:
+  nothing shows twice, as both land at the same place.
+- **Where**: [`VirtualList.tsx`](/app/ui/lists/VirtualList.tsx).
+
+## R173: A card takes slots, never free children
+
+- **Decision**: `Card` is a raised surface with slots, in the order a person reads them: `icon` and
+  `hue` (its kind), `title` (what a person calls it aloud), `state` (`label`, `tone`, `running`),
+  `time` (`started`, `ended`, `took`), `who` (one quiet line), `facts` (each `icon`, `label`,
+  `tone`), `body` (what needs its whole width), and `actions` (buttons, each with its key). Sixteen
+  screens then draw the same card, and a card with no state, no time, or a hash in its title is a
+  thing a reviewer sees at once in its props.
+  - **The head on a phone** is the icon, the state, and the time on one line, and the title at the
+    card's full width under it, as the phone guide asks of every text that wraps.
+  - **Times are words the screen gives**, in the server's time zone (rule 8): the card draws
+    `14:02 → 14:05 · 3 min`, and does no arithmetic on a clock it cannot see.
+  - **Selected**, its edge takes `light.focus` and its left edge the bar of light, as a row's.
+  - `SelectableCard` is a card that is a choice: a control, with `press.ts`'s focus and states.
+- **Alternatives considered**: free children with a few layout helpers, as the React UI's `ItemCard`
+  and `AgentCard` were two shapes of one idea: the plan's rule 4 was sent back for exactly that.
+- **Where**: [`Card.tsx`](/app/ui/lists/Card.tsx),
+  [`SelectableCard.tsx`](/app/ui/lists/SelectableCard.tsx).
+
+## R174: A row moves by keys, by its grip, or by a long press, and says where it went
+
+- **Decision**: `DragOrder` lifts the row under the cursor with `m`; while one is carried, a
+  `selection` scope holds `j` `k` and the arrows, which carry it a row at a time, gliding, `Enter`,
+  which drops it, and `Escape`, which puts it back. The pointer drags a row by its grip, and a
+  finger after a long press on the row; the rows it passes make room, sliding, and the row glides
+  the rest of the way from where the pointer left it. `onMove(id, to)` is called once, as a row
+  lands somewhere new. Where it went is said under the list and to a screen reader (`announce`):
+  "Inbox moved to 3 of 5.".
+  - **Native Shell's own `Tree` and drag parts are not used**: its controls bind their own keys as
+    they take the focus, which the registry would lose (R139).
+  - `Collapsible` is `nsh/base`'s with `reveal`, which eases the height and moves what follows: R168
+    named it the layout shell's, and this task's prompt names it here.
+- **Not tested**: the pointer's drag, which the gallery's pictures do not show either. The keys'
+  move is the test, and the words it says.
+- **Seen failing**: with `Escape` landing the row where it was carried, "a reorder by keys moves one
+  item, and says where it went" failed with `Order: Now Inbox Next Later Done` and `Moves: 2`.
+- **Where**: [`DragOrder.tsx`](/app/ui/lists/DragOrder.tsx), [`order.ts`](/app/ui/lists/order.ts).
+
+## R175: The frames of 20,000 rows scrolling, in software, are over 8.3 ms at the 99th percentile
+
+- **Decision**: measured once, with `just lists-frames`: the gallery's list of 20,000 rows, each an
+  icon, its words, a time, and a quiet line, filling a window of 1400 by 800, scrolling 900 points a
+  frame by itself for 30 s, on the hidden display, which draws in software (R131). The machine's
+  load was 4.4 as it started, after an hour near 60.
+  - The seconds at rest from other work: 7.5 to 8.2 ms a frame on average, the 95th percentile of
+    each second from 8.1 to 9.5 ms, the worst 11.3 ms, 60 frames a second, none dropped. Painting is
+    4.6 ms of it, the layout 0.3 ms, the engine's turn 0.5 ms: the rows' bindings cost little.
+  - Four seconds had frames up to 142 ms, with painting at 50 to 90 ms: other work on the machine,
+    as the run's first second, not the list.
+  - So the 99th percentile is over the 8.3 ms the task asked, by about 1 to 3 ms, in software.
+- **Rationale**: the glass bar over the samples' transcript cost 5.5 ms a frame on the same display
+  (R162); this list paints more on each frame, a full window of rows with an icon each, where the
+  samples' rows were fewer and taller. No measure on a GPU was taken here, as R131 says.
+- **If wrong**: the GPU's frames over it are the performance task's (53). The first thing to try
+  there is the rows' icons, each a picture made from an SVG and drawn again as a cell is reused for
+  another kind.
+- **Where**: [`frames.test.tsx`](/app/gallery/lists/frames.test.tsx),
+  [`scroll.tsx`](/app/gallery/lists/scroll.tsx), the [`justfile`](/justfile)'s `lists-frames`.

@@ -1972,12 +1972,31 @@ ported, beyond accounts and jobs.
 - Produces: the components above. `VirtualList` wraps NSH's list with the app's cursor and
   selection, and follows its end when asked. `DragOrder` reorders by drag, by long press on touch,
   and by keys.
+- Produces, as built (rulings R170 to R175), all from `app/ui/lists`:
+  - `createCursor(items, { initial?, onChange?, range? }): Cursor`: `at`, `anchor`, `holds(id)`,
+    `selected()`, `set(id, { extend?, reveal? })`, `move(by, extend?)`, `to("first" | "last")`. The
+    cursor is the selection; the screen keeps it in the visit's entry.
+  - `listKeys(cursor, { onOpen?, openLabel?, when? })`: `j` `k` and the arrows, `g g` `G` `Home`
+    `End`, `Enter`, and with ranges `J` `K` and Shift with the arrows, declared in the scope around
+    the list, the pane's. A move past an end returns `false`, for the shell's fallback.
+  - `VirtualList` (`cursor`, `row(id, index)`, `onOpen`, `follow`, `onFollowing`, `offset`,
+    `onOffset`, `rowHeight`, `rules`, `framed`, `keys`, `empty`, `header`, `footer`, `ref` with
+    `toEnd`, `show`, `scrollTo`), `List` (the same, every row made), `Row` and `Bar`, `Line`
+    (`icon`, `hue`, `label`, `meta`, `count`, `quiet`), `Card` (`icon`, `hue`, `title`, `state`,
+    `time`, `who`, `facts`, `body`, `actions`, `selected`, `onPress`), `SelectableCard`, `Table`
+    (`columns`, `cell(id, column)`, `cursor`), `Tree` with `treeRows(nodes, folded)`, `Collapsible`
+    (`title`, `count`, `open`, `onToggle`, `keys`), `DragOrder` (`cursor`, `row`, `label`,
+    `onMove(id, to)`), `Empty` (`icon`, `title`, `words`, `action`), and `glide()`.
+  - For task 23 (R171): a list record's rows as a new array at each insert, remove, or move, with
+    every unchanged row's object kept (`===`), and one signal per item, read by id.
+  - The gallery's pages in `app/gallery/lists/`, which `just gallery-shots` draws too, and
+    `just lists-frames`, the frames of the 20,000 rows scrolling.
 
-- [ ] **Step 1: Build them**, following [components](/specs/ui/components.md): a multi-fact item is
+- [x] **Step 1: Build them**, following [components](/specs/ui/components.md): a multi-fact item is
       a framed card with a hierarchy, not grey lines.
-- [ ] **Step 2: Add each to the gallery**, with a list of 20,000 rows.
-- [ ] **Step 3: Run the task's validation**. Expected: PASS.
-- [ ] **Step 4: Commit**: `feat(nsh-migration): lists, cards, tables, and trees`.
+- [x] **Step 2: Add each to the gallery**, with a list of 20,000 rows.
+- [x] **Step 3: Run the task's validation**. Expected: PASS.
+- [x] **Step 4: Commit**: `feat(nsh-migration): lists, cards, tables, and trees`.
 
 ## Task 30: The text field
 

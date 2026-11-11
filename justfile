@@ -98,6 +98,12 @@ gallery-shots filter="":
     mkdir -p target/shots/gallery
     hidden-display {{ nsh }} test gallery/surfaces/gallery.test.tsx --target linux --filter "{{ filter }}"
     hidden-display {{ nsh }} test gallery/controls/gallery.test.tsx --target linux --filter "{{ filter }}"
+    hidden-display {{ nsh }} test gallery/lists/gallery.test.tsx --target linux --filter "{{ filter }}"
+
+# What a frame costs with a list of 20,000 rows that scrolls fast by itself, on the hidden display:
+# Native Shell's frame timing, one `nsh::perf` line a second, for 30 seconds.
+lists-frames:
+    hidden-display {{ nsh }} test gallery/lists/frames.test.tsx --target linux --fps -v
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:
