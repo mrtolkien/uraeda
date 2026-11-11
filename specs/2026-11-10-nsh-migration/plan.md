@@ -2473,7 +2473,7 @@ package. It starts once the gallery (task 35) is done.
   (`Status.tsx`). The leader's tree is `keys.tsx`, its pickers `pickers.tsx`.
 - `app/ui/layout/`: `RailSlots.bar` and `RailSlots.onTitle`; the status line's slots read one by
   one; the phone's bar of places scrolls sideways.
-- Fixed after review (T94.2 to T94.8): the phone's bar puts Decisions, Jobs, and Settings in a `…`
+- Fixed after review (R262 to R268): the phone's bar puts Decisions, Jobs, and Settings in a `…`
   (`RailPlace.onPhone`); every time shown is `serverTime` from `app/store`; a server on a new port
   keeps the same connection (`Connection.moveTo`); `just app-test` runs a sandbox with sign-in too.
 

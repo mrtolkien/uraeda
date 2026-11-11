@@ -131,6 +131,15 @@ export const PaneContext = context<PaneHere | null>(null);
 /** A pane's own value that a move, a hidden tab, or Back keeps: plain data, in the visit. */
 export type Remembered<T extends Json> = { (): T; set(value: T): void };
 
+/** The type a first value stands for: `0` for any number, `""` for any text, `false` for both. */
+type Widened<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T;
+
 /** The pane drawn around the caller, with what it remembers. Throws outside a pane. */
 export function usePane() {
   const here = PaneContext();
@@ -143,9 +152,11 @@ export function usePane() {
      * A value the pane keeps in the visit, under `name`: its selection, a fold. It survives the
      * pane's tab hidden, a move to the other stack, and Back to the visit.
      */
-    remember<T extends Json>(name: string, initial: T): Remembered<T> {
-      const read = () => (entry().kept.panes?.[here.key]?.[name] as T | undefined) ?? initial;
-      const set = (value: T) => {
+    remember<T extends Json>(name: string, initial: T): Remembered<Widened<T> & Json> {
+      type Kept = Widened<T> & Json;
+      const read = () =>
+        (entry().kept.panes?.[here.key]?.[name] as Kept | undefined) ?? (initial as Kept);
+      const set = (value: Kept) => {
         const panes = entry().kept.panes ?? {};
         keep({ panes: { ...panes, [here.key]: { ...panes[here.key], [name]: value } } });
       };

@@ -44,7 +44,8 @@ Lists, [`app/ui/lists/`](/app/ui/lists/) (gallery [Lists](/app/gallery/lists/)):
 Text, [`app/ui/text/`](/app/ui/text/) (gallery [Text](/app/gallery/text/)):
 
 - Every field: `TextField`, one line or many, with Vim when the setting is on; a message to an
-  agent: `Composer`; a field that picks: `PickerField`; a save's state: `SaveStatus` with `saving`.
+  agent: `Composer`, with `attached`, the number of images or files, so they send without words; a
+  field that picks: `PickerField`; a save's state: `SaveStatus` with `saving`.
 
 Documents, [`app/ui/document/`](/app/ui/document/) (gallery [Documents](/app/gallery/document/)):
 
@@ -78,6 +79,9 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
   starts work is a button or `Ctrl+Enter`, never Enter in a field.
 - **A key is declared where it acts**, by `registerKey` or a `Button`'s `keys`, and shown by `Kbd`:
   a key that means two things where both are on throws as the view is made.
+- **A time reads in the server's time zone**, whatever the device's: `serverTime(at)` from
+  `app/store` writes it as "15:08" today, "Tue 15:08" this week, "12 Nov 15:08" this year, and
+  `serverClock(at)` gives its parts. Never `Date`'s hours, which are the device's.
 - **Every state has its words**: `Empty` for nothing, `Spinner` with what it waits for, `Banner` for
   what is wrong and the way out.
 - **Missing a component?** Add it to `app/ui/`, with its page in the gallery, before a screen uses

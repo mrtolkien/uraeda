@@ -5639,7 +5639,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   is rebuilt, `just sandbox --reset` for the sandbox's, or by removing `sessions.sqlite` from the
   data folder.
 - **Where**: `crates/server/src/runner/schema.rs`, `crates/server/tests/sessions/pages.rs`.
-## T94.1: An extension's page runs only while its view is in a window
+
+## R261: An extension's page runs only while its view is in a window
 
 - **Decision**: a page fetched while its `uraeda.extension` view is in no window waits, and runs
   when the view is put in a window again; a view dropped runs nothing. A page's calls are numbered
@@ -5656,7 +5657,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/src/extension_view.rs`, `extension_view/channel.rs`,
   `crates/app/tests/extensions.rs`.
 
-## T94.2: The phone's bar holds the places visited most, a `…` for the others, and New last
+## R262: The phone's bar holds the places visited most, a `…` for the others, and New last
 
 - **Decision**: on a narrow window the top bar shows Home, Priorities, Inbox, Sessions, and Git,
   then a `…` whose menu holds Decisions, Jobs, and Settings, then New. A place says where it goes
@@ -5668,7 +5669,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Eight controls fit from 375 points; narrower, the bar still scrolls rather than cut.
 - **Where**: `app/ui/layout/bars.tsx`, `Rail.tsx`, `app/screens/shell/places.ts`, `Frame.tsx`.
 
-## T94.3: Every time the app shows reads in the server's zone, through `serverTime`
+## R263: Every time the app shows reads in the server's zone, through `serverTime`
 
 - **Decision**: `app/store/time.ts` exports `serverTime(at, now?)`, "15:08" today, "Tue 15:08"
   within a week, "12 Nov 15:08" this year, "12 Nov 2025" before, and `serverClock(at)`, the parts.
@@ -5682,7 +5683,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   change of the protocol and of `crates/server/`, left to the server's side.
 - **Where**: `app/store/time.ts`, `crates/app/src/time.rs`, `app/screens/shell/Frame.tsx`.
 
-## T94.4: An extension page's view reads the app's files, and its fonts with them
+## R264: An extension page's view reads the app's files, and its fonts with them
 
 - **Decision**: `uraeda.extension` makes each page's view with the app's asset location: the one the
   Linux host gives at its start (`share_app_assets`), else, under NSH's development host
@@ -5697,7 +5698,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Monaspace Neon; after the fix, `just app-shots /` logged no font failure.
 - **Where**: `crates/app/src/extension_view.rs`, `crates/app/src/host/window.rs`.
 
-## T94.5: What a page declares is kept on the device, by the page's version
+## R265: What a page declares is kept on the device, by the page's version
 
 - **Decision**: every `ready` of a page's view keeps its declarations under `declared:<name>` on the
   device, with the page's version (`app/extensions/declared.ts`). `ReadDeclarations` runs a page
@@ -5710,7 +5711,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   until any part of the page draws and says them again.
 - **Where**: `app/extensions/declared.ts`, `ExtensionPlace.tsx`, `app/screens/shell/Status.tsx`.
 
-## T94.6: A server found at another address takes the same connection there
+## R266: A server found at another address takes the same connection there
 
 - **Decision**: `Connection.moveTo(address)` reconnects at a new address, keeping every record's
   value, `stale()` until the server there answers each. The shell moves its connection when this
@@ -5724,7 +5725,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `expected false to be true`.
 - **Where**: `app/store/connection.ts`, `app/screens/shell/Root.tsx`.
 
-## T94.7: The app's tests have a second sandbox, with sign-in on
+## R267: The app's tests have a second sandbox, with sign-in on
 
 - **Decision**: `scripts/sandboxed.sh` starts a second sandbox beside the first, with `--sign-in`,
   and gives its address and access key as `URAEDA_SANDBOX_SIGN_IN` and `URAEDA_SANDBOX_KEY`.
@@ -5735,3 +5736,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   test. The test passed at once: no fix was needed. With the shell ignoring a sign-in refusal, it
   failed after 20 s, the frame still shown.
 - **Where**: `scripts/sandboxed.sh`, `app/screens/shell/shell.test.tsx`, `__checks__/Shell.tsx`.
+
+## R268: A pane's remembered value takes the type its first value stands for
+
+- **Decision**: `usePane().remember(name, 0)` is a `Remembered<number>`, not `Remembered<0>`, and so
+  for texts and booleans; a type given, `remember<string | null>`, is kept.
+- **Rationale**: a pane written from the guides alone, keeping a `VirtualList`'s offset as
+  `panes.md` now shows, failed the type check: `offset.set` took only `0`. The guide's example also
+  read records that do not exist (`session`, `sessionChanges`), imported keys past the folder's
+  index, and said nothing of a list's cursor and scroll, nor of an absent repository: all fixed.
+- **Where**: `app/ui/layout/panes.tsx`, `specs/ui/panes.md`, `specs/ui/components.md`,
+  `app/store/README.md`.

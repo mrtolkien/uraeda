@@ -30,38 +30,48 @@ draws, with `definePlace`. The first main pane is the page's subject, focused as
 
 ```tsx
 // app/screens/session/panes.tsx
-import { record } from "../../store";
+import { list, record } from "../../store";
+import { registerKey } from "../../ui/keys";
 import { definePane, definePlace, PaneScroll, usePane } from "../../ui/layout";
-import { registerKey } from "../../ui/keys/registry";
+import { createCursor, Line, VirtualList } from "../../ui/lists";
 
-export const transcript = definePane<{ session: string }>({
+// A pane's arguments are what it shows, and nothing else: the repository and the session.
+type Of = { repo: string; session: string };
+
+export const transcript = definePane<Of>({
   kind: "transcript",
   title: "Transcript",
   icon: "message-square",
   stack: "main",
   flush: true, // its rows reach the border: no padding on the sides
-  mark: ({ session }) => ({ running: record("session", { session })()?.running }),
-  view: (props) => <Transcript session={props.args.session} />,
+  mark: ({ repo, session }) => ({
+    running: record("Session", { id: session, repo })()?.status === "working",
+  }),
+  view: (props) => <Transcript repo={props.args.repo} session={props.args.session} />,
 });
 
-export const changes = definePane<{ session: string }>({
+export const changes = definePane<Of>({
   kind: "session-changes",
   title: "Changes",
   icon: "git-compare",
   stack: "side",
   closes: true,
-  mark: ({ session }) => ({ count: record("sessionChanges", { session })()?.files.length }),
-  view: (props) => <Changes session={props.args.session} width={props.width} />,
+  view: (props) => <Changes {...props.args} width={props.width} />,
 });
 
-definePlace("session-id", (route) => [
-  transcript({ session: route.id }),
-  activity({ session: route.id }),
-  changes({ session: route.id }),
-  // A kind's stack can be overridden by a place: { pane: plan({ ... }), stack: "main" }.
-]);
+// `route.repo` is optional, as an address from before repositories had names: a place with no
+// repository has no panes, and the frame says so.
+definePlace("session-id", (route) =>
+  route.repo === undefined
+    ? []
+    : [
+        transcript({ repo: route.repo, session: route.id }),
+        changes({ repo: route.repo, session: route.id }),
+        // A kind's stack can be overridden by a place: { pane: plan({ ... }), stack: "main" }.
+      ],
+);
 
-function Changes(props: { session: string; width: "narrow" | "semi-wide" | "wide" }) {
+function Changes(props: Of & { width: "narrow" | "semi-wide" | "wide" }) {
   const pane = usePane();
   // Kept in the visit, under the pane's key: it survives a hidden tab, a move, and Back.
   const picked = pane.remember<string | null>("picked", null);
@@ -77,6 +87,27 @@ function Changes(props: { session: string; width: "narrow" | "semi-wide" | "wide
     </PaneScroll>
   );
 }
+
+// A long list keeps its cursor and its scroll in the visit the same way: `VirtualList` scrolls
+// itself, so its place goes through `offset` and `onOffset`, not `PaneScroll`.
+function Sessions(props: { repo: string }) {
+  const pane = usePane();
+  const picked = pane.remember<string | null>("picked", null);
+  const offset = pane.remember("offset", 0);
+  const shown = list(record("SessionList", { repo: props.repo }), "rows");
+  const cursor = createCursor(shown.rows, {
+    initial: picked() ?? undefined,
+    onChange: (id) => picked.set(id ?? null),
+  });
+  return (
+    <VirtualList
+      cursor={cursor}
+      offset={offset()}
+      onOffset={offset.set}
+      row={(id) => <Line label={shown.item(id())?.title ?? ""} />}
+    />
+  );
+}
 ```
 
 The rules that make a pane work everywhere:
@@ -88,9 +119,10 @@ The rules that make a pane work everywhere:
 - **It draws at any width.** `props.width` is the width class of the stack it is in, not the
   window's: a side stack of 400 points is `narrow`, and so is a phone. Lay out by it.
 - **It keeps nothing in component state that matters.** A hidden tab is not drawn, and a pane moved
-  to the other stack is drawn anew. Its scroll is kept by `PaneScroll`, its selection, folds, and
-  other small values by `usePane().remember(name, initial)`, and its unsaved text in the store or
-  the device, as any field's.
+  to the other stack is drawn anew. Its scroll is kept by `PaneScroll`, or a `VirtualList`'s by
+  `offset` and `onOffset` with `remember`; its cursor, folds, and other small values by
+  `usePane().remember(name, initial)`, a cursor through `createCursor`'s `initial` and `onChange`;
+  and its unsaved text in the store or the device, as any field's.
 - **Its keys are its own.** Keys a view declares with `registerKey` are in the pane's scope, on
   while the pane has the focus, so two panes may both have `j`. The frame's `h` `l` `j` `k` are
   fallbacks: a pane may declare them too, for columns or rows, and return `false` at its edge so the
