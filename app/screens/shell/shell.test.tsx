@@ -7,7 +7,7 @@ import { type App, expect, open, test } from "nsh/test";
 const shell = (scenario: string) =>
   open("./__checks__/Shell.tsx", {
     height: 800,
-    host: { params: { scenario } },
+    host: { handlers: { key: null, revoked: null }, params: { scenario } },
     network: "live",
     width: 1400,
   });
@@ -52,4 +52,26 @@ async function refused(scenario: string, side: string, other: string) {
 test("a refused version shows which side to update", async () => {
   await refused("app-older", "Update this app", "Update the server");
   await refused("server-older", "Update the server", "Update this app");
+});
+
+// The edge cases "a revoked device" and "pairing against a server with sign-in on".
+test("a revoked device is sent back to pairing", async () => {
+  // Another machine's server, with sign-in on: the device pairs with the access key.
+  const app = await shell("revoked");
+  await says(app, "Pair this device");
+  const key = app.host.posts().find((post) => post.name === "key")?.data as string;
+  expect(key.startsWith("ura_")).toBe(true);
+  await app.type("label:Pairing code", key);
+  await app.press("label:Pair");
+  await says(app, "Inbox");
+
+  // The owner revokes it from another device: its line ends, the server refuses its token, and the
+  // app pairs again, saying why.
+  await app.host.send("revoke", null);
+  await app.waitUntil(() => app.host.posts().some((post) => post.name === "revoked"), {
+    timeout: 20_000,
+  });
+  await says(app, "This device was unpaired from the server");
+  await says(app, "Pair this device");
+  expect(shows(app)).not.toContain("Inbox");
 });

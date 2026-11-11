@@ -4,8 +4,8 @@
       "hosts": ["127.0.0.1"]
     },
     "process": {
-      "env": ["URAEDA_SANDBOX"]
+      "env": ["URAEDA_SANDBOX", "URAEDA_SANDBOX_SIGN_IN", "URAEDA_SANDBOX_KEY"]
     },
-    "host": ["uraeda.*"]
+    "host": ["uraeda.*", "key", "revoked"]
   }
 }

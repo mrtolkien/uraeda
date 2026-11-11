@@ -5723,3 +5723,15 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a server found at another address keeps the records' values, stale, until its own come` failed,
   `expected false to be true`.
 - **Where**: `app/store/connection.ts`, `app/screens/shell/Root.tsx`.
+
+## T94.7: The app's tests have a second sandbox, with sign-in on
+
+- **Decision**: `scripts/sandboxed.sh` starts a second sandbox beside the first, with `--sign-in`,
+  and gives its address and access key as `URAEDA_SANDBOX_SIGN_IN` and `URAEDA_SANDBOX_KEY`.
+  `a revoked device is sent back to pairing` pairs a device with the key through the pairing page,
+  revokes it from a second paired device with `devices.revoke`, and sees the pairing page again,
+  with why.
+- **Rationale**: pairing against a server with sign-in, and a revoked token, were never run by a
+  test. The test passed at once: no fix was needed. With the shell ignoring a sign-in refusal, it
+  failed after 20 s, the frame still shown.
+- **Where**: `scripts/sandboxed.sh`, `app/screens/shell/shell.test.tsx`, `__checks__/Shell.tsx`.
