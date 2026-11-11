@@ -1930,7 +1930,7 @@ ported, beyond accounts and jobs.
     it renders, and whose two handlers it sets on its element. An overlay puts the focus on its
     first stop as it opens, gives it back where it was as it closes, and a dialog or a sheet keeps
     Tab among its own stops. Tasks 28 and 30 call it for every control and field. A field's `escape`
-    takes an overlay's Escape first (ruling T96.1).
+    takes an overlay's Escape first (ruling R197).
   - `just gallery-shots [word]`: the pictures of the surfaces' gallery pages, in
     `target/shots/gallery/`, in both themes, 1400 and 390 points wide.
 

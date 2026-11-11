@@ -2,7 +2,7 @@
 // `just app-test` only checks that it mounts and takes typing. On the hidden display,
 // `just gallery-shots field` saves its pictures in `target/shots/gallery/`, in both themes, at a
 // desktop's and a phone's width, and pictures of a field typed in with Vim on and off. The caret's
-// trail is over before a picture is taken: a key's step runs its animation to the end (T96.3).
+// trail is over before a picture is taken: a key's step runs its animation to the end (R199).
 import { type App, expect, open, test } from "nsh/test";
 
 const SHOTS = "../target/shots/gallery";

@@ -4504,7 +4504,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reads them.
 - **Where**: [`schema.rs`](/crates/server/src/runner/schema.rs),
   [`pages.rs`](/crates/server/tests/sessions/pages.rs).
-## T96.1: An overlay gives Escape to its field first, and Native Shell's order is reported upstream
+
+## R197: An overlay gives Escape to its field first, and Native Shell's order is reported upstream
 
 - **Decision**: an overlay's `onCancel` (Escape, the phone's Back) goes first to the field of its
   own that has the focus: `focusStop` takes an `escape` from a field, `escapeHeld(stops)` in
@@ -4582,7 +4583,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`vim_bridge/api.rs`](/crates/app/src/vim_bridge/api.rs) (moved out of `vim_bridge.rs`, which had
   reached 507 lines), [`text.test.tsx`](/app/ui/text/text.test.tsx).
 
-## T96.2: No row of a field's editor wraps again on GTK
+## R198: No row of a field's editor wraps again on GTK
 
 - **Decision**: `TextEditor` ([`vim_bridge.rs`](/crates/app/src/vim_bridge.rs)) draws the editor in
   a view of the Tailwind class `whitespace-nowrap`, which Native Shell's texts inherit, and gives
@@ -4610,7 +4611,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   released, the class stays.
 - **Where**: [`vim_bridge.rs`](/crates/app/src/vim_bridge.rs), `Field::view`.
 
-## T96.3: The caret's trail compiles, draws, and is a thin line
+## R199: The caret's trail compiles, draws, and is a thin line
 
 - **Decision**: the trail stays on, behind its token `caret.trail`. Two changes:
   - **Its shader never compiled**: its uniforms were named `from` and `to`, and `from` is a word
@@ -4638,7 +4639,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`trail.wgsl.ts`](/app/ui/text/trail.wgsl.ts), [`Trail.tsx`](/app/ui/text/Trail.tsx),
   [`shaders.rs`](/crates/app/tests/shaders.rs).
 
-## T96.4: A narrow window's bar, a stack's tabs, and what the gallery's pictures showed
+## R200: A narrow window's bar, a stack's tabs, and what the gallery's pictures showed
 
 - **Decision**:
   - **The bottom bar's tiles are as wide as their words**, and share what is left, while every word
@@ -4677,7 +4678,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`Card.tsx`](/app/ui/lists/Card.tsx), [`SelectableCard.tsx`](/app/ui/lists/SelectableCard.tsx),
   [`DragOrder.tsx`](/app/ui/lists/DragOrder.tsx), [`layout.test.ts`](/app/ui/layout/layout.test.ts).
 
-## T96.5: A list's row costs a view less, and an icon's picture is built once
+## R201: A list's row costs a view less, and an icon's picture is built once
 
 - **Decision**: two changes to what every row of a list costs, kept because they measured better.
   - **`Line` draws its words as one `Text` with `flex: 1`**, where a `View` held the `Text`: one

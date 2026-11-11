@@ -105,7 +105,7 @@ export function fitted(tabs: ReadonlyArray<PaneTab>, room: number, extra: number
   const nearest = tabs
     .map((_, at) => at)
     .filter((at) => at !== shown)
-    .sort((a, b) => Math.abs(a - shown) - Math.abs(b - shown) || a - b);
+    .toSorted((a, b) => Math.abs(a - shown) - Math.abs(b - shown) || a - b);
   for (const at of nearest) {
     const more = tabWidth(tabs[at], false) - tabWidth(tabs[at], true);
     if (width + more > free) {

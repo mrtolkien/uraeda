@@ -116,7 +116,7 @@ impl Field {
         // The editor wraps its rows itself, and a row keeps the space it broke after. Native Shell's
         // text on GTK wraps a line whose trailing space passes its box, where CSS and Pango let it
         // hang: a row that fits but for that space broke again, its last word drawn over the next
-        // row. So no row's text wraps; the placeholder, one text, still does. Ruling T96.2.
+        // row. So no row's text wraps; the placeholder, one text, still does. Ruling R198.
         let mut classes = EditorClasses::default();
         classes.placeholder = Some("whitespace-normal".into());
         view()

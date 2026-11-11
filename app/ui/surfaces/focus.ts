@@ -143,7 +143,7 @@ export function pressHeld(stops: Stops): boolean {
  *
  * Native Shell 0.4.0 binds an overlay's `onCancel` after every view's binding
  * (`nsh-core/src/core/overlay.rs`, `overlay_key_binding`, chained last in `keymap()`), so it wins
- * over the field's own Escape: the overlay hands the key back here. Upstream report: ruling T96.1.
+ * over the field's own Escape: the overlay hands the key back here. Upstream report: ruling R197.
  */
 export function escapeHeld(stops: Stops): boolean {
   const held = heldNow();

@@ -1,6 +1,6 @@
 //! Every shader of the app compiles. Native Shell compiles a `<Shader>`'s source as the page draws
 //! it, and one that fails is only a warning in the log: the view draws nothing, and nothing else
-//! says so. The caret's trail was such a shader (ruling T96.3).
+//! says so. The caret's trail was such a shader (ruling R199).
 
 use std::collections::BTreeMap;
 use std::fs;
