@@ -24,6 +24,7 @@ mod moves;
 mod page;
 pub(crate) mod picks;
 mod processes;
+mod publish;
 pub(crate) mod reads;
 mod reviews;
 mod running;
@@ -39,6 +40,7 @@ mod transcript;
 mod turn;
 mod turns;
 mod waits;
+mod working;
 
 pub use event::{
     Activity, BackgroundKind, BackgroundTask, ChatImage, Denial, Event, Limit, LimitKind, Origin,
@@ -48,7 +50,7 @@ pub use import::{IMPORTED, ImportError, Imported, Replace, import};
 pub use job_runs::{JobRun, KEPT as JOB_RUNS_KEPT, NewJobRun};
 pub use log::{Appended, Growth, Logged};
 pub use manager::{IDLE_CLOSE, SERVER_STOPPED, Sessions, TAKEN_BACK, TERMINATE_AFTER, WATCHDOG};
-pub(crate) use manager::{Runner, Target, refusals};
+pub(crate) use manager::{Runner, refusals};
 pub(crate) use message::effort_name;
 pub use page::{Blocked, OUTPUT_LIMIT, PAGE, sent};
 pub(crate) use running::latest_of;
@@ -56,6 +58,7 @@ pub use session::{NewSession, Session};
 pub use store::{FILE, Store, StoreError};
 pub use turn::{ContinueReason, NewTurn, Turn, TurnKind, TurnState};
 pub use turns::TurnEnd;
+pub(crate) use working::Target;
 
 use crate::Failure;
 use crate::http::Routes;

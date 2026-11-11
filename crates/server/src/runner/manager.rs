@@ -24,20 +24,14 @@ use std::time::{Duration, SystemTime};
 
 use tokio::runtime::Handle;
 use tokio::sync::watch;
-use uraeda_protocol::{
-    Agent, Feature, ItemArgs, NeedsYouList, RecommendedMessage, RepositoryArgs,
-    Session as SessionRecord, SessionArgs, SessionList, SessionSearch, Subagent, SubagentCall,
-    Turn as TurnRecord, TurnActivity, TurnLog, TurnLogArgs, Workspace,
-};
 
-use super::live::{Live, Lives, Timer, folder_key, session_key};
+use super::live::{Live, Lives, Timer};
 use super::session::Session;
 use super::store::{Store, StoreError};
 use super::turn::TurnState;
 use super::turns::TurnEnd;
 use super::{catch_ups, continuer, processes, starts, sub_sessions};
-use crate::extensions::{self, Happened};
-use crate::live::{Bus, Fault, locked};
+use crate::live::{Fault, locked};
 use crate::records::repositories;
 use crate::runtimes::Runtimes;
 use crate::shared::Shared;
@@ -206,20 +200,6 @@ impl Sessions {
 pub(crate) struct Runner {
     pub(crate) shared: Shared,
     inner: Arc<Inner>,
-}
-
-/// What changed of a session, as the records are told.
-pub(super) struct Change {
-    /// Its repository's main checkout.
-    pub repo: String,
-    pub folder: Option<String>,
-    pub session: String,
-    pub parent: Option<String>,
-    pub turn: Option<i64>,
-    /// The turn's new state.
-    pub state: Option<TurnState>,
-    /// The human dismissed the turn: it did not end now.
-    pub dismissed: bool,
 }
 
 impl Runner {
@@ -408,252 +388,6 @@ impl Runner {
         body()
     }
 
-    /// Says a session changed: itself, the lists it is in, and its feature's status. With a
-    /// turn, that turn too, and with its new state, what follows a turn's end. Held while the
-    /// continue of a turn of the session is decided.
-    pub(super) fn changed(
-        &self,
-        state: &mut State,
-        session: &str,
-        turn: Option<i64>,
-        ended: Option<TurnState>,
-    ) {
-        let change = match state.lives.get(session) {
-            Some(live) => {
-                if let Some(held) = live.held.as_mut() {
-                    held.changes.push((turn, ended));
-                    return;
-                }
-                Change {
-                    repo: live.repo.clone(),
-                    folder: live.folder.clone(),
-                    session: live.id.clone(),
-                    parent: live.parent.clone(),
-                    turn,
-                    state: ended,
-                    dismissed: false,
-                }
-            }
-            None => match self.store().session(session) {
-                Ok(Some(row)) => Change::of(&row, turn, ended),
-                _ => return,
-            },
-        };
-        self.publish(&change);
-    }
-
-    /// Says a change of a session to the records that show it, and to what follows a turn.
-    pub(super) fn publish(&self, change: &Change) {
-        let Some(repo) = self.name_of(&change.repo) else {
-            return;
-        };
-        let bus = self.shared.get::<Bus>();
-        let session = |id: &str| SessionArgs {
-            repo: repo.clone(),
-            id: id.to_owned(),
-        };
-        bus.changed::<SessionRecord>(&session(&change.session));
-        if let Some(parent) = &change.parent {
-            bus.changed::<SessionRecord>(&session(parent));
-        }
-        if let Some(turn) = change.turn {
-            bus.changed::<TurnRecord>(&session(&turn.to_string()));
-        }
-        bus.changed::<SessionList>(&RepositoryArgs { repo: repo.clone() });
-        bus.changed_where::<SessionSearch>(|args| args.repo == repo);
-        if let Some(folder) = &change.folder {
-            bus.changed::<Feature>(&ItemArgs {
-                repo: repo.clone(),
-                id: folder.clone(),
-            });
-        }
-        bus.changed::<Workspace>(&RepositoryArgs { repo: repo.clone() });
-        bus.changed::<NeedsYouList>(&());
-        let ended = change.state.filter(|state| {
-            !change.dismissed && !matches!(state, TurnState::Running | TurnState::Queued)
-        });
-        let Some(ended) = ended else {
-            return;
-        };
-        let (chat, done) = (change.folder.is_none(), ended == TurnState::Done);
-        crate::jobs::turn_ended(self, &change.session, chat, change.turn, done);
-        let happened = Happened::TurnEnded {
-            repository: repo.clone(),
-            session: change.session.clone(),
-            feature: change.folder.clone(),
-            state: ended.name().to_owned(),
-        };
-        extensions::emit(&self.shared, &happened);
-        if ended == TurnState::Done
-            && let Some(folder) = change.folder.clone()
-        {
-            self.turn_done(repo, folder);
-        }
-    }
-
-    /// What follows a feature's turn that ended done: its preview warms up for the human, and
-    /// the pull requests behind the default branch are caught up.
-    fn turn_done(&self, repository: String, folder: String) {
-        self.spawn(move |runner| {
-            crate::preview::warm_waiting(&runner.shared, &repository, &folder);
-            runner.catch_up(&repository);
-        });
-    }
-
-    /// Says a turn changed, and nothing else of its session: what it does now, its sub-agents,
-    /// its transcript's pages.
-    pub(super) fn turn_changed(&self, repo: &str, turn: i64) {
-        let Some(repo) = self.name_of(repo) else {
-            return;
-        };
-        let args = SessionArgs {
-            repo,
-            id: turn.to_string(),
-        };
-        self.shared.get::<Bus>().changed::<TurnRecord>(&args);
-    }
-
-    /// What names a page of a turn's transcript on the bus: none for a repository off the list.
-    pub(super) fn page_args(&self, repo: &str, turn: i64, page: u32) -> Option<TurnLogArgs> {
-        Some(TurnLogArgs {
-            repo: self.name_of(repo)?,
-            turn: turn.to_string(),
-            page,
-        })
-    }
-
-    /// Says a page of a turn's transcript changed: a line was added to it, or one of its lines
-    /// changed otherwise than by growing.
-    pub(super) fn page_changed(&self, repo: &str, turn: i64, page: u32) {
-        if let Some(args) = self.page_args(repo, turn, page) {
-            self.shared.get::<Bus>().changed::<TurnLog>(&args);
-        }
-    }
-
-    /// Says the runtimes changed: which are there, on, available, their models, their usage.
-    pub(super) fn agent_changed(&self) {
-        let bus = self.shared.get::<Bus>();
-        bus.changed_all::<Agent>();
-        // What a feature's next session runs on, and whether its message can go, follow them.
-        bus.changed_all::<Feature>();
-        bus.changed_all::<RecommendedMessage>();
-    }
-
-    /// The folders of a repository whose session has a turn running, starting, or queued.
-    pub(crate) fn working(&self, root: &str) -> Vec<String> {
-        let state = self.state();
-        let folders = state.lives.working(root);
-        folders.filter_map(|live| live.folder.clone()).collect()
-    }
-
-    /// Whether a chat, a session without a feature, has a turn running, starting, or queued.
-    pub(crate) fn chat_working(&self, root: &str) -> bool {
-        let state = self.state();
-        state.lives.working(root).any(|live| live.folder.is_none())
-    }
-
-    /// Whether any session of the repository, a chat's too, has a turn running, starting, or
-    /// queued.
-    pub(crate) fn busy(&self, root: &str) -> bool {
-        self.state().lives.working(root).next().is_some()
-    }
-
-    /// Whether the session's agent works: a turn of it runs, starts, or waits, on this server.
-    pub(crate) fn session_working(&self, session: &str) -> bool {
-        let state = self.state();
-        state.lives.sessions.get(session).is_some_and(Live::working)
-    }
-
-    /// How many background commands of the session's run still run.
-    pub(crate) fn background_commands(&self, session: &str) -> u32 {
-        let state = self.state();
-        let proc = state.lives.sessions.get(session);
-        let proc = proc.and_then(|live| live.proc.as_ref());
-        proc.map_or(0, processes::commands)
-    }
-
-    /// Whether the session's process waits for a wakeup the agent set.
-    pub(crate) fn wakeup(&self, session: &str) -> bool {
-        let now = self.now();
-        let state = self.state();
-        let proc = state.lives.sessions.get(session);
-        let proc = proc.and_then(|live| live.proc.as_ref());
-        proc.is_some_and(|proc| proc.wakeup_pending(now))
-    }
-
-    /// What a running turn does now, and its sub-agents at work, in the order they started:
-    /// none for a turn this server does not run.
-    pub(crate) fn turn_live(&self, turn: i64) -> Option<(TurnActivity, Vec<Subagent>)> {
-        let state = self.state();
-        let mut running = state
-            .lives
-            .sessions
-            .values()
-            .filter_map(|live| live.turn.as_ref());
-        let running = running.find(|running| running.id == turn)?;
-        let activity = TurnActivity {
-            label: running.label.clone(),
-            since: super::page::sent(running.since),
-        };
-        let subagents = running.tools.iter().filter_map(|(id, tool)| {
-            Some(Subagent {
-                id: id.clone(),
-                description: tool.subagent.clone()?,
-                parent: tool.parent.clone(),
-                started_at: super::page::sent(tool.started_at),
-                calls: tool.calls,
-                latest: tool.latest.clone().map(|(kind, target)| SubagentCall {
-                    tool_kind: super::page::tool_kind(kind),
-                    target,
-                }),
-            })
-        });
-        Some((activity, subagents.collect()))
-    }
-
-    /// How many sub-agents of the session's running turn work.
-    pub(crate) fn subagents(&self, session: &str) -> u32 {
-        let state = self.state();
-        let running = state
-            .lives
-            .sessions
-            .get(session)
-            .and_then(|live| live.turn.as_ref());
-        let subagents = running.map_or(0, |running| {
-            running
-                .tools
-                .iter()
-                .filter(|(_, tool)| tool.subagent.is_some())
-                .count()
-        });
-        u32::try_from(subagents).unwrap_or(u32::MAX)
-    }
-
-    /// Holds the change or the feature, or the session without one, for a move or a drop:
-    /// refused while one of its sessions works, or another move holds it. Until what it
-    /// returns is dropped, its sessions take no message.
-    pub(crate) fn hold(&self, root: &str, target: Target<'_>) -> Result<Moving, Fault> {
-        let mut state = self.state();
-        let (busy, key) = match target {
-            Target::Folder(folder) => {
-                let mut working = state.lives.working(root);
-                let busy = working.any(|live| live.folder.as_deref() == Some(folder));
-                (busy, folder_key(root, folder))
-            }
-            Target::Session(session) => {
-                let live = state.lives.sessions.get(session);
-                (live.is_some_and(Live::working), session_key(session))
-            }
-        };
-        if busy || !state.lives.moving.insert(key.clone()) {
-            return Err(Fault::refused(refusals::AGENT_WORKING));
-        }
-        Ok(Moving {
-            runner: self.clone(),
-            key,
-        })
-    }
-
     /// Resolves once the turn has ended, at once when this server does not run it.
     pub(super) fn settled(&self, turn: i64) -> impl Future<Output = ()> + Send + use<> {
         let ended = self
@@ -711,21 +445,6 @@ impl Runner {
     }
 }
 
-impl Change {
-    /// A change of a session the server does not keep in memory.
-    pub(super) fn of(row: &Session, turn: Option<i64>, state: Option<TurnState>) -> Change {
-        Change {
-            repo: row.repo.clone(),
-            folder: row.folder.clone(),
-            session: row.id.clone(),
-            parent: row.parent.clone(),
-            turn,
-            state,
-            dismissed: false,
-        }
-    }
-}
-
 /// A call on a session ended: the session is forgotten once nothing of it is left in memory.
 struct Left<'a>(&'a Runner, &'a str);
 
@@ -736,26 +455,6 @@ impl Drop for Left<'_> {
             live.calls = live.calls.saturating_sub(1);
         }
         state.lives.prune(self.1);
-    }
-}
-
-/// What a move or a drop holds.
-pub(crate) enum Target<'a> {
-    /// A change or a feature, by its folder.
-    Folder(&'a str),
-    /// A session without one.
-    Session(&'a str),
-}
-
-/// A change, a feature, or a session held for a move or a drop, until this is dropped.
-pub(crate) struct Moving {
-    runner: Runner,
-    key: String,
-}
-
-impl Drop for Moving {
-    fn drop(&mut self) {
-        self.runner.state().lives.moving.remove(&self.key);
     }
 }
 

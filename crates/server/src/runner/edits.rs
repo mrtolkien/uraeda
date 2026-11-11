@@ -5,11 +5,12 @@
 use uraeda_protocol::SessionPick;
 
 use super::live::Reading;
-use super::manager::{Change, Runner, TAKEN_BACK, refusals};
+use super::manager::{Runner, TAKEN_BACK, refusals};
 use super::message::{chat_title, retry_message};
 use super::page::Blocked;
 use super::picks::{self, Picked};
 use super::processes::uuid;
+use super::publish::Change;
 use super::running::{Shown, Starting};
 use super::send::of_dropped;
 use super::session::{NewSession, Session};

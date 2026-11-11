@@ -7,6 +7,7 @@ mod finder;
 mod links;
 mod names;
 mod priorities;
+mod record;
 mod reviews;
 mod sections;
 mod spec;
@@ -439,32 +440,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         _ => {}
     }
     if file.kind == Checked::Record {
-        sections::check_record_numbering(file, &document, &mut problems);
-        let name = Path::new(&file.path)
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let dated = name
-            .strip_suffix(".md")
-            .is_some_and(|stem| crate::workspace::folder_slug(stem).is_some());
-        if !dated {
-            problems.push(file.problem(
-                None,
-                "names.record",
-                format!("\"{name}\" is not a record's name: YYYY-MM-DD-<slug>.md"),
-            ));
-        }
-        let noted = document
-            .callout
-            .as_ref()
-            .is_some_and(|c| c.kind == markdown::CalloutKind::Note);
-        if !noted {
-            problems.push(file.problem(
-                None,
-                "blocks.note",
-                "a record opens with a \"> [!NOTE]\" block",
-            ));
-        }
+        record::check_record(file, &document, &mut problems);
     }
     if let Checked::Workflow(FileKind::Clarifications) | Checked::DefaultRound(_) = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
