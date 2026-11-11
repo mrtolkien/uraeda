@@ -3,6 +3,7 @@
 //! it; and the action `preview.restart`.
 
 use uraeda_core::files::stories::story_link;
+use uraeda_core::watch::Changes;
 use uraeda_protocol::{
     Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryState,
 };
@@ -10,6 +11,7 @@ use uraeda_protocol::{
 use crate::Failure;
 use crate::http::segment;
 use crate::live::{self, Registry};
+use crate::preview;
 use crate::preview::checkout::{MAIN, runnable};
 use crate::preview::index::{UNREADABLE, match_story};
 use crate::preview::runner::{Checkout, State};
@@ -28,6 +30,18 @@ pub(super) fn register(_: &Shared, registry: &Registry) -> Result<(), Failure> {
     });
     registry.action::<PreviewRestart>(|call, input| Ok(restart(call.shared(), input)));
     Ok(())
+}
+
+/// A repository's files or commits changed, as the core's watcher reports after each burst: the
+/// records of its running previews are read again, which starts one again when its checkout's
+/// code moved.
+pub(super) fn files_changed(shared: &Shared, repository: &str, _: &Changes) {
+    preview::files_changed(shared, repository);
+}
+
+/// A repository left the list, or its folder went: its previews stop.
+pub(super) fn repository_left(shared: &Shared, repository: &str) {
+    preview::repository_removed(shared, repository);
 }
 
 /// A preview's record from its state.

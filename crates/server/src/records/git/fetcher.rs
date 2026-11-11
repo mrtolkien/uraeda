@@ -4,12 +4,13 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, PoisonError};
+use std::sync::Mutex;
 use std::time::Duration;
 
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 use uraeda_core::api;
 
-use crate::live::{Bus, Fault};
+use crate::live::{Bus, Fault, locked};
 use crate::records::repositories;
 use crate::records::writing::{self, Queued, Write};
 use crate::shared::Shared;
@@ -17,9 +18,12 @@ use crate::shared::Shared;
 /// How often a repository is fetched.
 const EVERY: Duration = Duration::from_secs(300);
 
-/// Why each repository's last fetch failed, by its main checkout: none once one succeeded.
-#[derive(Default)]
-pub(super) struct Fetcher(Mutex<HashMap<PathBuf, String>>);
+/// Why each repository's last fetch failed, by its main checkout: none once one succeeded. And
+/// where a repository that joins the list is named, to be fetched before the next round.
+pub(super) struct Fetcher {
+    failures: Mutex<HashMap<PathBuf, String>>,
+    joined: UnboundedSender<String>,
+}
 
 impl Fetcher {
     /// Why the repository's last fetch failed, if it did.
@@ -37,7 +41,7 @@ impl Fetcher {
     }
 
     fn failures(&self) -> std::sync::MutexGuard<'_, HashMap<PathBuf, String>> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        locked(&self.failures)
     }
 }
 
@@ -64,27 +68,45 @@ pub(super) fn fetch(shared: &Shared, name: &str, write: Write) -> Result<(), Fau
     fetched
 }
 
-/// Fetches every repository of the list now, then every 5 minutes, until the server stops.
+/// Fetches every repository of the list now, then every 5 minutes, and each repository that
+/// joins the list as it does, until the server stops.
 pub(super) fn start(shared: &Shared) {
+    let (joined, mut joining) = unbounded_channel();
+    shared.provide(Fetcher {
+        failures: Mutex::default(),
+        joined,
+    });
     let shared = shared.clone();
     tokio::spawn(async move {
         let mut ticks = tokio::time::interval(EVERY);
         loop {
-            tokio::select! {
+            let one = tokio::select! {
                 () = shared.stopping() => return,
-                _ = ticks.tick() => {}
-            }
+                _ = ticks.tick() => None,
+                Some(name) = joining.recv() => Some(name),
+            };
             let shared = shared.clone();
             // A fetch that panicked is the next round's to try again.
-            let _ = tokio::task::spawn_blocking(move || fetch_each(&shared)).await;
+            let _ = tokio::task::spawn_blocking(move || fetch_each(&shared, one)).await;
         }
     });
 }
 
-/// Fetches each repository of the list, one after another: a failure is kept for its page.
-fn fetch_each(shared: &Shared) {
+/// A repository joined the list: it is fetched before the next round.
+pub(super) fn joined(shared: &Shared, name: &str) {
+    // The fetcher's task ended with the server: nothing is left to fetch for.
+    let _ = shared.get::<Fetcher>().joined.send(name.to_owned());
+}
+
+/// Fetches one repository of the list, or each when none is named, one after another: a failure
+/// is kept for its page.
+fn fetch_each(shared: &Shared, one: Option<String>) {
     let there = |repository: &repositories::Repository| !repository.missing;
-    for repository in repositories::all(shared).into_iter().filter(there) {
+    let named = |repository: &repositories::Repository| {
+        one.as_ref().is_none_or(|name| *name == repository.name)
+    };
+    let listed = repositories::all(shared).into_iter();
+    for repository in listed.filter(there).filter(named) {
         let _ = fetch(shared, &repository.name, Write::unseen());
     }
 }

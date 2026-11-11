@@ -654,12 +654,11 @@ async fn a_preview_follows_its_reads_and_its_checkouts_code() {
     // A commit under `specs/` keeps it, and one outside starts it again, at the new code.
     project.repo.write("specs/notes.md", "Notes.\n");
     project.repo.commit("docs: notes");
-    preview::files_changed(server.shared(), "repo");
     project
         .repo
         .write("packages/web/.storybook/main.ts", "// changed\n");
     project.repo.commit("chore: the preview's configuration");
-    preview::files_changed(server.shared(), "repo");
+    // Nobody says so: the server's watcher sees the commits.
     records
         .until(1, |preview| preview["state"] == "starting")
         .await;
@@ -692,6 +691,28 @@ async fn a_preview_follows_its_reads_and_its_checkouts_code() {
     // The feature's round waits for the human, with its stories: its preview is kept up.
     let kept = framed(&server, &format!("{waiting}__echo")).await;
     assert_eq!(kept.status, 200);
+    server.stop().await;
+}
+
+// The break it catches: a repository taken off the list whose preview command runs on, with
+// nothing left to stop it but the server's own stop.
+#[tokio::test]
+async fn a_repository_that_leaves_the_list_stops_its_previews() {
+    let project = project("repo", "ok");
+    let server = serving(&project).await;
+    let mut records = Records::of(&server).await;
+    ready(&mut records, 1).await;
+    let group = group_of(project.pid(0));
+
+    records
+        .call("repositories.remove", json!({ "name": "repo" }))
+        .await;
+
+    assert_eq!(
+        gone(group).await,
+        Vec::<u32>::new(),
+        "the preview's command"
+    );
     server.stop().await;
 }
 

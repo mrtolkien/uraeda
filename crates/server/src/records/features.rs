@@ -48,13 +48,8 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 
 /// A repository's files changed, as the core's watcher reports after each burst: each record of
 /// this domain that reads them is read again.
-// JOIN(wave 6): the server's one watcher (task 7) calls it, from its list `FILES_CHANGED`.
-#[expect(
-    dead_code,
-    reason = "called by the server's one file watcher, which joins this domain after the wave"
-)]
-pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
-    changed::files(bus, repository, changes);
+pub(super) fn files_changed(shared: &Shared, repository: &str, changes: &Changes) {
+    changed::files(&shared.get::<Bus>(), repository, changes);
 }
 
 /// The server wrote to a repository: every record of this domain that reads it is read again.
@@ -64,11 +59,6 @@ pub(super) fn written(bus: &Bus, repository: &str) {
 
 /// The config folder changed: each feature holds its run options merged over the settings', so
 /// every feature somebody holds is read again.
-// JOIN(wave 6): the server's one watcher (task 7) calls it, from its list `CONFIG_CHANGED`.
-#[expect(
-    dead_code,
-    reason = "called by the server's one file watcher, which joins this domain after the wave"
-)]
 pub(super) fn config_changed(shared: &Shared) {
     shared.get::<Bus>().changed_all::<Feature>();
 }

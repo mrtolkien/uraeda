@@ -37,15 +37,15 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 
 /// A repository's files changed, as the core's watcher reports after each burst: its workspace
 /// and what needs the human are read again, whatever changed, since a step moves with any of it.
-pub(super) fn files_changed(bus: &Bus, repository: &str, _: &Changes) {
-    let repo = repository.to_owned();
-    bus.changed::<Workspace>(&RepositoryArgs { repo });
-    bus.changed::<NeedsYouList>(&());
+pub(super) fn files_changed(shared: &Shared, repository: &str, _: &Changes) {
+    written(&shared.get::<Bus>(), repository);
 }
 
 /// The server wrote to a repository: its workspace and what needs the human are read again.
 pub(super) fn written(bus: &Bus, repository: &str) {
-    files_changed(bus, repository, &Changes::default());
+    let repo = repository.to_owned();
+    bus.changed::<Workspace>(&RepositoryArgs { repo });
+    bus.changed::<NeedsYouList>(&());
 }
 
 /// The config folder changed: the settings file, or a theme file.

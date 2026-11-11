@@ -57,8 +57,10 @@ pub(super) struct Queue {
 struct State {
     /// The writes landing, waiting, or refused, in the order they were made.
     entries: Vec<Entry>,
-    /// How many writes were queued, for their ids.
+    /// How many writes the record shows were queued, for their ids, and how many it does not
+    /// show.
     queued: u64,
+    unseen: u64,
     /// The turn: whether a write runs, the next ticket to give, and the writes that wait for
     /// the turn, each with its ticket and its keys.
     running: bool,
@@ -131,8 +133,14 @@ impl Queue {
     /// queued before it: its id in the record. The writes of its keys wait for it.
     pub(super) fn add(&self, repository: &str, by: Write, land: Land) -> String {
         let mut state = self.state();
-        state.queued += 1;
-        let id = format!("write-{}", state.queued);
+        // A write the record never shows takes no number of the ones it does.
+        let id = if by.seen {
+            state.queued += 1;
+            format!("write-{}", state.queued)
+        } else {
+            state.unseen += 1;
+            format!("unseen-{}", state.unseen)
+        };
         let label = by.label.clone().unwrap_or_default();
         let write = QueuedWrite {
             steps: by.steps.clone(),

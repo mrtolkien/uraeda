@@ -21,7 +21,6 @@ use crate::shared::Shared;
 
 /// Registers git's records and actions, and starts fetching the list's repositories.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
-    shared.provide(fetcher::Fetcher::default());
     reads::register(registry);
     writes::register(registry);
     fetcher::start(shared);
@@ -31,15 +30,17 @@ pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failu
 /// Says what git's records show of a repository changed, as the core's watcher reports it: an
 /// edit of a list or of a feature, which is a change waiting for a commit, or a change of a
 /// checkout's git state.
-#[expect(
-    dead_code,
-    reason = "JOIN(wave 6): the one watcher of a repository's files calls it"
-)]
-pub(super) fn files_changed(bus: &Bus, repository: &str, changes: &Changes) {
+pub(super) fn files_changed(shared: &Shared, repository: &str, changes: &Changes) {
     let edited = changes.priorities || changes.inbox || !changes.features.is_empty();
     if edited || changes.git {
-        written(bus, repository);
+        written(&shared.get::<Bus>(), repository);
     }
+}
+
+/// A repository joined the list once the server runs: it is fetched now, and not at the next
+/// round.
+pub(super) fn repository_joined(shared: &Shared, repository: &str) {
+    fetcher::joined(shared, repository);
 }
 
 /// The server wrote to a repository: what git's records show of it changed. Its page and its

@@ -755,9 +755,11 @@ Follows [what every records task does](#what-every-records-task-does).
     `on_change`.
   - `records::settings::current(&Shared) -> Settings`: the settings in force.
   - The server's one file watcher, `records/watch.rs`. A domain adds one line to `FILES_CHANGED`,
-    for `fn files_changed(bus: &Bus, repository: &str, changes: &Changes)`, called after each burst
-    of changes in a repository, with the core's `Changes`; or to `CONFIG_CHANGED`, for
-    `fn(&Shared)`, called after each change of the settings file or the themes folder.
+    for `fn files_changed(shared: &Shared, repository: &str, changes: &Changes)`, called after each
+    burst of changes in a repository, with the core's `Changes`; to `CONFIG_CHANGED`, for
+    `fn(&Shared)`, called after each change of the settings file or the themes folder; or to
+    `REPOSITORY_JOINED` and `REPOSITORY_LEFT`, for `fn(&Shared, &str)`, called as a repository joins
+    or leaves the list (ruling T99.10).
   - A record of one repository takes `{ repo }`, the repository's name. A protocol type named
     `…View` is the core's view, turned with `views::sent`.
   - A feature's status is `workspace/status.rs`, from the step alone until the sessions (task 15).
@@ -791,7 +793,8 @@ Follows [what every records task does](#what-every-records-task-does).
     `records/features/messages/text.rs`, which the sessions' runs use.
   - A feature's own run options, `records/features/options.rs`, kept in `run-options.json` of the
     data folder.
-  - `files_changed(&Bus, &str, &Changes)` and `config_changed(&Shared)`, for the one watcher.
+  - `files_changed(&Shared, &str, &Changes)` and `config_changed(&Shared)`, which the one watcher
+    calls.
 - [x] **Done**: `feat(nsh-migration): records of features`
 
 ## Task 9: Records: writing
@@ -811,8 +814,8 @@ Follows [what every records task does](#what-every-records-task-does).
   `records::writing::write(&Shared, repository, Write, run) -> Result<T, Fault>`, where `run` is
   `FnOnce(&Path) -> Result<T, Fault>` on the repository's main checkout, and `Write` is
   `Write::saving()`, `Write::of_feature(folder)`, or `Write::of_lists()`, with `.file(name)` and
-  `.named(Option<WriteName>)`. It also produces `files_changed(&Bus, repository, &Changes)`, for the
-  one watcher.
+  `.named(Option<WriteName>)`. It also produces `files_changed(&Shared, repository, &Changes)`,
+  which the one watcher calls.
 - **Left to later tasks** (ruling R65): the refusal of a feature's write while its agent works, and
   the messages kept for a write, for task 15. The join built what starts and git use of the queue
   (rulings T99.6 to T99.8).
@@ -1090,9 +1093,9 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
     record gives it, `Preview.base` or `Story.frame`, on the server's address: it never builds one.
   - The frame secret: `preview::frame_secret(&Shared)` and `preview::is_frame(&Shared, path)`, for
     previews and mockups alike, and `Open::Frame` in `sign_in::OPEN`, for a route open with it.
-  - `preview::files_changed(&Shared, repository)`, for the one watcher to call;
-    `preview::repository_removed(&Shared, name)`, for the action that removes a repository; and
-    `preview::sweep(&Shared)`.
+  - `preview::files_changed(&Shared, repository)`, which the one watcher calls after each burst;
+    `preview::repository_removed(&Shared, name)`, which it calls as a repository leaves the list
+    (ruling T99.10); and `preview::sweep(&Shared)`.
 
 - [x] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
       (the stack decision's rule); `a preview path without its secret is refused`.

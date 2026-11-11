@@ -552,6 +552,25 @@ async fn a_fetch_brings_origins_commits_and_a_quiet_one_keeps_why_it_failed() {
     assert_eq!(git.page().await["behind"], 3);
 }
 
+// The break it catches: a repository that joins the list once the server runs, left unfetched
+// until the next round, five minutes later.
+#[tokio::test]
+async fn a_repository_that_joins_the_list_is_fetched() {
+    let repo = TestRepo::with_origin();
+    pushed_elsewhere(&repo, "later.md");
+    without_user_git_config();
+    let server = support::server().await;
+    let mut git = Page(Live::of(&server).await);
+
+    let folder = repo.path().to_string_lossy();
+    let added = git.0.call("repositories.add", json!({ "folder": folder }));
+    assert_eq!(added.await["name"], REPO);
+    let page = git.hold("GitPage", in_repo(json!({}))).await.unwrap();
+    let page = git.follow(page, |page| page["behind"] == 2).await;
+
+    assert_eq!(page["fetchFailure"], Value::Null);
+}
+
 // The break it catches: a list's repositories never fetched unless a person asks, so the page
 // and the sidebar say nothing is to pull.
 #[tokio::test]

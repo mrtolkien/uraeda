@@ -966,8 +966,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   every records domain registered, and stopped by `Server::stop`.
   - **A repository's files**: the core's `watch` runs for each listed repository whose folder is
     there, and follows the list. After each burst it calls each function of `FILES_CHANGED`, of
-    shape `fn(&Bus, &str, &Changes)`: the bus, the repository's name, and the core's `Changes`,
-    which names features, files, and flags, not paths. A domain adds one line there.
+    shape `fn(&Shared, &str, &Changes)` since the join (T99.10), `fn(&Bus, ..)` before it: the
+    server's shared state, the repository's name, and the core's `Changes`, which names features,
+    files, and flags, not paths. A domain adds one line there.
   - **The config folder**: after each change of `config.toml` or of the themes folder it calls each
     function of `CONFIG_CHANGED`, of shape `fn(&Shared)`.
   - **The list**: a change of `repositories.json`, by `ura add` or by hand, reads the list again.
@@ -981,8 +982,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - `notify` is a direct dependency of the server now. It was in the lockfile, through the core.
 - **Rationale**: the core's `watch` reads a repository's workspace, so it cannot watch a config
   folder. The human keeps the settings in their dotfiles, where the file is a link.
-- **If wrong**: a domain that needs the server's state in `files_changed` gets the bus only: the
-  join widens the shape. A watch that fails to start is printed, and its files show when read again.
+- **If wrong**: a watch that fails to start is printed, and its files show when read again.
 - **Where**: task 7, `crates/server/src/records/{watch.rs,watch/files.rs}`, and the tests
   `the_list_follows_its_file`, `a_commit_reaches_the_workspace_and_what_needs_the_human`,
   `a_host_name_in_the_settings_passes_the_guard_until_it_changes`, and
@@ -1137,8 +1137,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - A typed start with images is refused: the uploads (task 16) keep an image's bytes, and
     `starts.rs` has the one function that reads them, marked `// JOIN(wave 6): chat images`.
     `change.fromNote` reads a note file's images from the repository, and takes them.
-  - Nothing calls `files_changed` and `config_changed` until the one watcher (task 7) is joined: a
-    record follows this domain's own actions, and not yet a file written outside the server.
+  - Nothing called `files_changed` and `config_changed` until the one watcher (task 7) was joined
+    (T99.10): a record followed this domain's own actions only.
 - **Rationale**: the plan builds the sessions, the uploads, and the watcher in other tasks.
 - **Where**: task 8, `crates/server/src/records/features/`. Tasks 15 and 16, and the join.
 
@@ -1322,8 +1322,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   is task 7's, built at the same time: a round that reads the list needs nothing of it.
 - **How it was checked**: `a_repository_of_the_list_is_fetched_as_the_server_starts` fails without
   the fetcher's start. The 5 minutes have no test: the round is the one the start runs.
-- **If wrong**: the join can call `fetcher::fetch` as a repository joins the list, where it starts
-  that repository's watcher.
+- **Since the join**: a repository that joins the list once the server runs is fetched as it joins,
+  where its watcher starts (T99.10).
 - **Where**: task 10, `crates/server/src/records/git/fetcher.rs`.
 
 ## R69: The session store is three tables, and a transcript is a log of events
@@ -1635,8 +1635,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - when the frame secret is replaced: every command stops, and the records, read again, start
     theirs under the new address;
   - when `preview::files_changed(&Shared, repository)` is called, for the repository's running
-    previews: a commit outside `specs/` then starts one again at the new code. The join's watcher
-    calls it. A commit under `specs/` keeps it.
+    previews: a commit outside `specs/` then starts one again at the new code. The one watcher calls
+    it after each burst (T99.10). A commit under `specs/` keeps it.
   - A preview stopped for 30 minutes without a view tells nobody: a read would start it again. Its
     frame then answers 503, and `preview.restart` starts it. A held subscription is not a view.
   - A preview whose folder's file waits for the human, and embeds a story, is kept up, as today.
@@ -1932,3 +1932,32 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   another file's hooks.
 - **Where**: `crates/server/src/live/{order,subscription}.rs`,
   `crates/server/src/records/writing/queue/repository.rs`. Tasks 15, 17, and 23.
+
+## T99.10: The one watcher calls every domain, and tells who starts or stops with a repository
+
+- **Decision**: `records/watch.rs` holds four lists, one line per domain in each.
+  - `FILES_CHANGED`, of shape `fn(&Shared, &str, &Changes)`: the workspace, the features, writing,
+    git, and the previews, after each burst of changes in a repository. The shape takes the server's
+    shared state, where it took the bus: the previews read their own state there.
+  - `CONFIG_CHANGED`, `fn(&Shared)`: the workspace, then the features, whose `Feature` holds its run
+    options merged over the settings'.
+  - `REPOSITORY_JOINED`, `fn(&Shared, &str)`: git, which fetches a repository that joins the list
+    once the server runs, or whose folder came back, before the next round. The repositories listed
+    as the server starts join nothing: the fetcher's first round is theirs.
+  - `REPOSITORY_LEFT`, `fn(&Shared, &str)`: the previews, which stop the commands of a repository
+    that left the list, or whose folder went.
+  - A change of the priorities or of the inbox reads again the `ProposalFile` records of the
+    repository: a proposal file is the priorities', and a note file the inbox's.
+  - A write the record never shows, as the fetch of a repository that joins, takes no number of the
+    writes it shows: `write_queue_answers_its_shape` read `write-2` for the first write.
+- **How it was checked**: four tests, each failing before.
+  `a_file_written_outside_the_server_reaches_a_record_of_each_domain` writes `INBOX.md` on disk and
+  waits for the features' `Inbox`, writing's `Buffer`, and git's `GitPage`: it waited for the inbox
+  in vain. `a_preview_follows_its_reads_and_its_checkouts_code` no longer calls
+  `preview::files_changed` itself, and waited for the restart in vain.
+  `a_repository_that_leaves_the_list_stops_its_previews` found the command running, and
+  `a_repository_that_joins_the_list_is_fetched` waited for the commits to pull.
+- **Left as it was**: a repository that leaves the list keeps its write queue open until the server
+  stops (R65).
+- **Where**: `crates/server/src/records/watch.rs`, each domain's `files_changed`,
+  `records/git/fetcher.rs`, `records/previews.rs`. Tasks 15, 17, and 20, which add their line.

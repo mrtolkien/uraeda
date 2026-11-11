@@ -442,6 +442,31 @@ async fn a_commit_reaches_the_workspace_and_what_needs_the_human() {
         .await;
 }
 
+// The break it catches: a domain's hook left out of the one watcher, so its records show a
+// file written by an editor or an agent only once the page is opened again.
+#[tokio::test]
+async fn a_file_written_outside_the_server_reaches_a_record_of_each_domain() {
+    let repo = fixture_repo("todo-app");
+    let server = serving(&repo).await;
+    let args = json!({ "repo": "todo-app" });
+    let buffer = json!({ "repo": "todo-app", "path": "specs/INBOX.md" });
+    let mut inbox = Held::open(&server, "Inbox", args.clone()).await;
+    let mut buffer = Held::open(&server, "Buffer", buffer).await;
+    let mut page = Held::open(&server, "GitPage", args).await;
+    let notes = inbox.value["count"].as_u64().expect("the notes' count");
+
+    let text = repo.read("specs/INBOX.md");
+    repo.write("specs/INBOX.md", &format!("{text}- Written in an editor\n"));
+
+    // The features' record, writing's, and git's each follow the file.
+    let counted = |inbox: &Value| inbox["count"] == notes + 1;
+    inbox.until("the inbox to count the note", counted).await;
+    let written = |buffer: &Value| buffer.to_string().contains("Written in an editor");
+    buffer.until("the buffer to hold the note", written).await;
+    let changed = |page: &Value| page.to_string().contains("specs/INBOX.md");
+    page.until("the Git page to list the file", changed).await;
+}
+
 /// The settings' actions, each with its input, the place of its setting in the record, and the
 /// value it saves.
 fn settings_writes() -> Vec<(&'static str, Value, [&'static str; 2], Value)> {

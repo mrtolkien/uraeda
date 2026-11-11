@@ -229,7 +229,10 @@ pub fn sweep(shared: &Shared) {
 /// A repository's files or commits changed: the records of its running previews are read again,
 /// which starts one again when its checkout's code version moved.
 pub fn files_changed(shared: &Shared, repository: &str) {
-    let previews = shared.get::<Previews>();
+    // The watcher starts before the previews mount: nothing runs yet.
+    let Some(previews) = shared.find::<Previews>() else {
+        return;
+    };
     let prefix = format!("/r/{}/preview/", segment(repository));
     let watched = previews.watched();
     let readers = watched.iter().filter(|(base, _)| base.starts_with(&prefix));
@@ -238,7 +241,9 @@ pub fn files_changed(shared: &Shared, repository: &str) {
 
 /// A repository left the list: its previews stop.
 pub fn repository_removed(shared: &Shared, name: &str) {
-    let previews = shared.get::<Previews>();
+    let Some(previews) = shared.find::<Previews>() else {
+        return;
+    };
     previews
         .runner
         .stop_under(&format!("/r/{}/preview/", segment(name)));

@@ -4,7 +4,8 @@
 //! two lists below, and says on the bus what the change means for its records.
 //!
 //! The watches follow the list: a repository added is watched, one removed, or whose folder is
-//! gone, no longer is. They all stop with the server.
+//! gone, no longer is, and the domains that start or stop something with a repository are told,
+//! through the two other lists below. They all stop with the server.
 
 mod files;
 
@@ -17,18 +18,33 @@ use uraeda_core::watch::{Changes, Watcher, watch};
 
 use self::files::Target;
 use super::workspace::{self, repositories};
+use super::{features, git, previews, writing};
 use crate::Failure;
-use crate::live::{Bus, locked};
+use crate::live::locked;
 use crate::shared::Shared;
 
-/// What a domain does when a repository's files changed: it gets the bus, the repository's name
-/// in the list, and what the core's watcher saw change, after each burst of file events, on the
-/// watcher's own thread. One line per domain.
-const FILES_CHANGED: &[fn(&Bus, &str, &Changes)] = &[workspace::files_changed];
+/// What a domain does when a repository's files changed: it gets the server's shared state, the
+/// repository's name in the list, and what the core's watcher saw change, after each burst of
+/// file events, on the watcher's own thread. One line per domain.
+const FILES_CHANGED: &[fn(&Shared, &str, &Changes)] = &[
+    workspace::files_changed,
+    features::files_changed,
+    writing::files_changed,
+    git::files_changed,
+    previews::files_changed,
+];
 
 /// What a domain does when the config folder changed: the settings file, or a theme file. One
 /// line per domain.
-const CONFIG_CHANGED: &[fn(&Shared)] = &[workspace::config_changed];
+const CONFIG_CHANGED: &[fn(&Shared)] = &[workspace::config_changed, features::config_changed];
+
+/// What a domain does when a repository joins the list once the server runs, or its folder
+/// comes back: it gets the repository's name. One line per domain.
+const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[git::repository_joined];
+
+/// What a domain does when a repository leaves the list, or its folder goes: it gets the
+/// repository's name. One line per domain.
+const REPOSITORY_LEFT: &[fn(&Shared, &str)] = &[previews::repository_left];
 
 /// The list's file, in the data folder.
 const LIST: &str = "repositories.json";
@@ -49,9 +65,12 @@ struct Watches {
 /// file's, and the config folder's. `Server::stop` stops them.
 pub(super) fn start(shared: &Shared) -> Result<(), Failure> {
     let watches = Arc::new(Watches::default());
-    follow(shared, &watches);
+    // The repositories listed as the server starts join nothing: each domain starts with them.
+    follow(shared, &watches, &[]);
     let (following, listed) = (watches.clone(), shared.clone());
-    repositories::on_change(shared, move || follow(&listed, &following));
+    repositories::on_change(shared, move || {
+        follow(&listed, &following, REPOSITORY_JOINED);
+    });
     watches.watch_folders(shared)?;
     let stopping = shared.clone();
     shared.on_stop("watch", async move {
@@ -63,27 +82,45 @@ pub(super) fn start(shared: &Shared) -> Result<(), Failure> {
 }
 
 /// Watches the repositories the list holds now, and no other: one added is watched from here,
-/// and the watch of one removed, moved, or whose folder is gone, ends.
-fn follow(shared: &Shared, watches: &Watches) {
+/// and the watch of one removed, moved, or whose folder is gone, ends. Each that left is told
+/// to the domains of [`REPOSITORY_LEFT`], and each that joined to those of `joined`.
+fn follow(shared: &Shared, watches: &Watches, joined: &[fn(&Shared, &str)]) {
     let there = |repository: &repositories::Repository| !repository.missing;
     let listed = repositories::all(shared).into_iter().filter(there);
     let listed: HashMap<_, _> = listed.map(|row| (row.name, row.path)).collect();
-    let mut running = locked(&watches.repositories);
-    running.retain(|name, (path, _)| listed.get(name) == Some(path));
-    for (name, path) in listed {
-        if running.contains_key(&name) {
-            continue;
+    let (mut left, mut came) = (Vec::new(), Vec::new());
+    {
+        let mut running = locked(&watches.repositories);
+        running.retain(|name, (path, _)| {
+            let stays = listed.get(name) == Some(path);
+            if !stays {
+                left.push(name.clone());
+            }
+            stays
+        });
+        for (name, path) in listed {
+            if running.contains_key(&name) {
+                continue;
+            }
+            came.push(name.clone());
+            let (watched, repository) = (shared.clone(), name.clone());
+            let changed = move |changes: Changes| {
+                let hooks = FILES_CHANGED.iter();
+                hooks.for_each(|hook| hook(&watched, &repository, &changes));
+            };
+            match watch(&path, changed) {
+                Ok(watcher) => drop(running.insert(name, (path, watcher))),
+                // The repository is still served: its records are read again when asked again.
+                Err(error) => eprintln!("uraeda: {name}: {error}"),
+            }
         }
-        let (bus, repository) = (shared.get::<Bus>(), name.clone());
-        let changed = move |changes: Changes| {
-            let hooks = FILES_CHANGED.iter();
-            hooks.for_each(|hook| hook(&bus, &repository, &changes));
-        };
-        match watch(&path, changed) {
-            Ok(watcher) => drop(running.insert(name, (path, watcher))),
-            // The repository is still served: its records are read again when asked again.
-            Err(error) => eprintln!("uraeda: {name}: {error}"),
-        }
+    }
+    // Outside the lock: a domain may read the list, or start something of its own.
+    for name in &left {
+        REPOSITORY_LEFT.iter().for_each(|hook| hook(shared, name));
+    }
+    for name in &came {
+        joined.iter().for_each(|hook| hook(shared, name));
     }
 }
 

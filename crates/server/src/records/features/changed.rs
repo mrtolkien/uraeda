@@ -62,6 +62,10 @@ pub(super) fn files(bus: &Bus, repo: &str, changes: &Changes) {
     if changes.priorities || changes.inbox || !changes.features.is_empty() {
         lists(bus, repo);
     }
+    // A proposal file is the priorities', and a note file the inbox's.
+    if changes.priorities || changes.inbox {
+        bus.changed_where::<ProposalFile>(|args| args.repo == repo);
+    }
     // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
     if changes.decisions || changes.inbox {
         bus.changed::<Ledger>(&of(repo));
