@@ -1862,7 +1862,7 @@ ported, beyond accounts and jobs.
 **Interfaces:**
 
 - Consumes: `tokens` (task 26); `KeyScope` and `registerKey` (task 32).
-- Produces, as built (rulings T27.1 to T27.6), all from `app/ui/surfaces`:
+- Produces, as built (rulings R157 to R162), all from `app/ui/surfaces`:
   - `Surface` takes `height: "recessed" | "standard" | "raised" | "overlay"`, and draws that
     height's fill, border, lip, shadow, glass, and glow from `tokens.height`. It is the only
     component that draws a shadow, glass, or a glow: every other one is built on it, and none sets
@@ -1895,7 +1895,7 @@ ported, beyond accounts and jobs.
       pass over the picture each view gets, with the bent edge, the colour fringe, the rim, and the
       care it asks for square corners (ruling R129). Over the samples' scrolling transcript the
       frame cost stays under 8.3 ms at the 99th percentile on GTK, so no part was dropped (ruling
-      T27.6).
+      R162).
 - [x] **Step 2: Build `Surface`, then the others on it**, each following
       [surfaces](/specs/ui/surfaces.md) and the design language. `Well` is the recessed one, `Pane`
       the standard one, and every overlay sits at `overlay`. A dialog is a sheet on a narrow window;

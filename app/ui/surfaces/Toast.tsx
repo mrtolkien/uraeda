@@ -15,7 +15,7 @@ export function Toasts(props: { children?: JSX.Element }) {
     <Layer
       style={[
         // A toast's plate stands over its top edge: the gap leaves it room.
-        { gap: tokens.space.panePadding + 8, position: "absolute", top: tokens.space.row },
+        { gap: tokens.type.line / 2 + 10, position: "absolute", top: tokens.space.row },
         isNarrow() ? { left: 8, right: 8 } : { right: 12, width: 360 },
       ]}
     >

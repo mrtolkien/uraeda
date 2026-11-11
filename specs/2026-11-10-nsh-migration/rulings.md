@@ -3712,7 +3712,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/tests/outside.rs`, `crates/app/tests/outside/fonts.rs`,
   [`app/__checks__/fonts.tsx`](/app/__checks__/fonts.tsx).
 
-## T27.1: A shader is a string in a `.wgsl.ts` module
+## R157: A shader is a string in a `.wgsl.ts` module
 
 - **Decision**: the surfaces' shaders are `glass.wgsl.ts`, `glow.wgsl.ts`, `backdrop.wgsl.ts`, and
   `hash.wgsl.ts`, which the first three share: each exports its WGSL as a string. The plan named
@@ -3723,7 +3723,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`app/ui/surfaces/`](/app/ui/surfaces/). The samples' `shaders.ts` is gone: the samples
   draw with the components.
 
-## T27.2: A surface is one view, with layers only where something stands on its edge
+## R158: A surface is one view, with layers only where something stands on its edge
 
 - **Decision**: `Surface` is one view with its height's fill, border, lip, and shadow. It gains
   layers, absolute children under what it holds, only for what one view cannot draw.
@@ -3754,7 +3754,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`light.tsx`](/app/ui/surfaces/light.tsx), and the line added to the NSH section of
   [`AGENTS.md`](/AGENTS.md).
 
-## T27.3: An overlay's keys are the registry's, and the focus is kept in a ledger
+## R159: An overlay's keys are the registry's, and the focus is kept in a ledger
 
 - **Decision**: every overlay is Native Shell's `Overlay`, through one component, `Float`. Its keys
   are a layer of the key registry, and what has the focus is kept by the library, in
@@ -3792,7 +3792,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`Float.tsx`](/app/ui/surfaces/Float.tsx), [`focus.ts`](/app/ui/surfaces/focus.ts),
   [`surfaces.test.tsx`](/app/ui/surfaces/surfaces.test.tsx).
 
-## T27.4: An overlay is shown by `open`, and stays drawn for its way out
+## R160: An overlay is shown by `open`, and stays drawn for its way out
 
 - **Decision**: each overlay takes `open`, true unless given. It comes in as `open` turns true, or
   as it appears open, and it stays drawn for `motion.out` after `open` turns false, while its layer
@@ -3817,7 +3817,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`presence.ts`](/app/ui/surfaces/presence.ts),
   [`Float.tsx`](/app/ui/surfaces/Float.tsx), [`app/ui/keys/`](/app/ui/keys/).
 
-## T27.5: What the surfaces draw otherwise than the language, and what was not run
+## R161: What the surfaces draw otherwise than the language, and what was not run
 
 - **Decision**:
   - **A pane's title is drawn at `wrap` only.** The token `pane.title` also names `tab` and
@@ -3837,7 +3837,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`Pane.tsx`](/app/ui/surfaces/Pane.tsx), [`Toast.tsx`](/app/ui/surfaces/Toast.tsx),
   [`Glass.tsx`](/app/ui/surfaces/Glass.tsx).
 
-## T27.6: The frames of glass as `Surface` draws it, and the pictures
+## R162: The frames of glass as `Surface` draws it, and the pictures
 
 - **Decision**: no part of the glass recipe was dropped.
   - **Measured** with `just samples-frames`, the bar of glass, now a raised `Surface`, over the

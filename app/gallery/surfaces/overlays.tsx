@@ -36,7 +36,7 @@ function page(v: Tokens, narrow: boolean, over: JSX.Element, first?: JSX.Element
       </Pane>
       {narrow ? null : (
         <Pane title="Plan" more="· 61 tasks" tone={v.role.heading1} style={{ flex: 1 }}>
-          {busy(v, 30)}
+          <View style={{ flex: 1 }}>{busy(v, 30)}</View>
         </Pane>
       )}
       {over}
