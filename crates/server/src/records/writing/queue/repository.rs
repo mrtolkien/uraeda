@@ -44,6 +44,9 @@ enum Work {
 /// - **The queued writes land one after another**, in order, on the queue's own thread: a commit
 ///   the core deferred, or a write of its own, as a git write. A refused one stays in the record
 ///   until dismissed, and does not stop the next.
+/// - **A landing takes the turn too**: one writer touches the checkout at a time, the hooks
+///   included. A write that arrives while a commit lands waits for that one, and goes before the
+///   next, which takes a ticket only once the first ended.
 pub(super) struct Queue {
     /// The repository's main checkout.
     path: PathBuf,
@@ -131,8 +134,15 @@ impl Queue {
 
     /// Queues a write of its own, landed by `land` on the queue's thread, after the writes
     /// queued before it: its id in the record. The writes of its keys wait for it.
-    pub(super) fn add(&self, repository: &str, by: Write, land: Land) -> String {
+    ///
+    /// # Errors
+    ///
+    /// `refused` once the server stops.
+    pub(super) fn add(&self, repository: &str, by: Write, land: Land) -> Result<String, Fault> {
         let mut state = self.state();
+        if state.closed {
+            return Err(stopped());
+        }
         // A write the record never shows takes no number of the ones it does.
         let id = if by.seen {
             state.queued += 1;
@@ -158,44 +168,60 @@ impl Queue {
         self.changed();
         // Its place is taken: the next call of its connection may come.
         live::placed();
-        id
+        Ok(id)
     }
 
     /// Waits for the queued commits of the write's keys and for the writes before it, then
     /// holds the turn until the returned guard drops: a commit of the same keys queued meanwhile
     /// is waited for too.
-    pub(super) fn turn(self: &Arc<Self>, repository: &str, write: Write) -> Turn {
-        self.take(&write.keys);
-        Turn {
+    ///
+    /// # Errors
+    ///
+    /// `refused` once the server stops, before the turn came.
+    pub(super) fn turn(self: &Arc<Self>, repository: &str, write: Write) -> Result<Turn, Fault> {
+        if !self.take(&write.keys) {
+            return Err(stopped());
+        }
+        Ok(Turn {
             queue: self.clone(),
             repository: repository.to_owned(),
             write: Some(write),
-        }
+        })
     }
 
     /// Takes a ticket, which is the write's place among the writes that wait, then the turn
-    /// once it is this ticket's.
-    fn take(&self, keys: &[Key]) {
+    /// once it is this ticket's: false when the queue closed first, and nothing is taken.
+    fn take(&self, keys: &[Key]) -> bool {
         let mut state = self.state();
         let ticket = state.tickets;
         state.tickets += 1;
         state.waiting.push((ticket, keys.to_vec()));
         // Its place is taken: the next call of its connection may come.
         live::placed();
-        state = self.wait(state, |state| !state.goes(ticket));
+        state = self.wait(state, |state| !state.closed && !state.goes(ticket));
         state.waiting.retain(|(waiting, _)| *waiting != ticket);
-        state.running = true;
+        state.running = !state.closed;
+        state.running
     }
 
     /// The turn of a write of its own as it lands: after the writes that wait, waiting for no
     /// queued commit, its own included. The commits it defers are queued under its name.
-    fn landing_turn(self: &Arc<Self>, repository: &str, by: Write) -> Turn {
-        self.take(&[]);
-        Turn {
+    fn landing_turn(self: &Arc<Self>, repository: &str, by: Write) -> Option<Turn> {
+        self.take(&[]).then(|| Turn {
             queue: self.clone(),
             repository: repository.to_owned(),
             write: Some(by),
-        }
+        })
+    }
+
+    /// The turn of a deferred commit as it lands: after the writes that wait, waiting for no
+    /// queued commit. It defers nothing, so its end queues nothing.
+    fn commit_turn(self: &Arc<Self>, repository: &str) -> Option<Turn> {
+        self.take(&[]).then(|| Turn {
+            queue: self.clone(),
+            repository: repository.to_owned(),
+            write: None,
+        })
     }
 
     /// Waits until the commits queued for `keys` landed or were refused, those queued meanwhile
@@ -235,21 +261,27 @@ impl Queue {
         }
     }
 
-    /// Lands the queued writes, one after another, in order, until the queue closes: the
-    /// queue's own thread runs it.
+    /// Lands the queued writes, one after another, in order, each in the repository's turn,
+    /// until the queue closes: the queue's own thread runs it.
     pub(super) fn land(self: &Arc<Self>) {
         while let Some(next) = self.next() {
             self.changed();
             let id = &next.id;
             let refusal = match next.work {
                 Work::Deferred(deferred) => {
+                    // In the turn: no write touches the checkout while the hooks run, which may
+                    // stash, format, or stage what they find there.
+                    let Some(_turn) = self.commit_turn(&next.repository) else {
+                        return;
+                    };
                     let landed = api::land(&self.path, &deferred, |line| self.printed(id, line));
                     landed.err().map(Refusal::of_commit)
                 }
                 Work::Own(land) => {
-                    let turn = self.landing_turn(&next.repository, next.by);
+                    let Some(turn) = self.landing_turn(&next.repository, next.by) else {
+                        return;
+                    };
                     let landing = Landing { queue: self, id };
-                    // A landing that panics is refused: the thread goes on with the next.
                     let run = || land.map(|land| land(&landing));
                     // A landing that panics is refused, and whoever waits for it is answered
                     // as its answer is dropped: the thread goes on with the next.
@@ -329,6 +361,12 @@ impl Queue {
         }
     }
 
+    /// Ends a deferred commit's turn: the next write runs.
+    fn release(&self) {
+        self.state().running = false;
+        self.moved.notify_all();
+    }
+
     /// The next write to land, now running: it waits for one, and gives none once closed.
     fn next(&self) -> Option<Next> {
         let waiting = |entry: &Entry| entry.write.state == WriteState::Waiting;
@@ -403,8 +441,9 @@ impl Queue {
     }
 }
 
-/// A write's turn: while it is held, no other write of the repository runs. Dropping it queues
-/// the commits the write deferred, even when the write failed after deferring one.
+/// A write's turn, or a landing's: while it is held, no other write of the repository runs, and
+/// no commit lands. Dropping a write's queues the commits it deferred, even when it failed after
+/// deferring one.
 pub(super) struct Turn {
     queue: Arc<Queue>,
     /// The repository's name in the list, which its records are told under.
@@ -414,8 +453,9 @@ pub(super) struct Turn {
 
 impl Drop for Turn {
     fn drop(&mut self) {
-        if let Some(write) = self.write.take() {
-            self.queue.end(&self.repository, &write);
+        match self.write.take() {
+            Some(write) => self.queue.end(&self.repository, &write),
+            None => self.queue.release(),
         }
     }
 }
@@ -455,6 +495,11 @@ impl Landing<'_> {
     pub(crate) fn free_lists(&self) {
         self.queue.free_lists(self.id);
     }
+}
+
+/// Why a write is refused once the server stops.
+pub(super) fn stopped() -> Fault {
+    Fault::refused("The server is stopping: nothing is written any more.")
 }
 
 /// Why a write did not land, as the record keeps it.

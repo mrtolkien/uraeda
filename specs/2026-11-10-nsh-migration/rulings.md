@@ -5526,3 +5526,32 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Seen failing**: `an_import_refuses_the_store_of_a_running_server` (it imported), and
   `a_failed_import_leaves_no_image_behind` ("no image is left").
 - **Where**: `crates/server/src/{status.rs,runner/import.rs}`.
+
+## T95.2: A landing takes the repository's turn, and no queue opens once the stop began
+
+- **Decision**: a deferred commit lands in the repository's turn, as a write of its own already did:
+  one writer touches the main checkout at a time, git's hooks included. A write that arrives while a
+  commit lands waits for that one landing, then goes before the next one, which takes its ticket
+  only once the first ended: a save waits for one hook at most, never for the queue behind it. Once
+  the stop began, `Queues` holds no map: a write or a landing is refused ("The server is stopping:
+  nothing is written any more."), and a write waiting for its turn, or one that found its queue
+  before the stop, is refused too, so no queue opens and no thread is left unjoined.
+- **Rationale**: the core stages under its write lock but runs `git commit` and its hooks outside
+  it, so a save could write the checkout while a hook that stashes what is not staged (`lint-staged`
+  style) ran: the save's text taken away, swept into the commit, or a pop that conflicts. **The Node
+  server did not protect it either**: its landings ran on their own chain (`#tail`), outside the
+  committing calls' turn, and its saves took no turn at all, so a save never waited for a hook, and
+  could run inside one. The safe order costs that wait: **a save, or a committing write, that
+  arrives while a slow hook runs answers once that hook ended**, where the Node server answered at
+  once. The editor keeps its text meanwhile, and the connection's next calls are not held
+  (`live::placed`). A refusal at the stop is safer than running without deferral: nothing is half
+  done, and the stop does not wait for a hook it did not start.
+- **If wrong**: when the wait for a hook is felt, a repository without hooks could let writes run
+  beside a landing (git's commit alone never touches the working tree): the human arbitrates between
+  that wait and the risk.
+- **Seen failing**: `a_save_never_writes_while_a_commit_lands` ("the save ran while the commit's
+  hook ran"), and `no_write_opens_a_queue_once_the_stop_began` with the map refilled at the stop.
+  `two_writes_on_one_repository_land_in_order` sends its writes while the first commit is held, and
+  checks none ran before it landed.
+- **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs,queue/tests.rs}`,
+  `crates/server/src/live/mod.rs` (`test_bus`).

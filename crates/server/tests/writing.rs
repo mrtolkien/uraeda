@@ -126,6 +126,39 @@ async fn write_queue_answers_its_shape() {
     assert!(committed(&fx, TASKS, &spec(TASKS)).contains("status: approved"));
 }
 
+// The break it catches: a deferred commit landing outside the repository's turn, so a save
+// writes the checkout while the commit's hooks run, where a hook that stashes what is not staged
+// would take the save's text away, or sweep it into the commit. A save that arrives meanwhile
+// waits for the one commit that runs, and no other.
+#[tokio::test]
+async fn a_save_never_writes_while_a_commit_lands() {
+    let mut fx = Fixture::start().await;
+    let hook = Hook::held(&fx.repo);
+    let queue = fx.watch("WriteQueue", json!({})).await;
+    let before = fx.repo.read(PROPOSAL);
+    let hash = hash_of(&fx.read("Buffer", json!({ "path": PROPOSAL })).await);
+    let approve = json!({ "folder": TASKS, "file": "spec.md", "write": named("The spec") });
+    fx.call("review.approve", approve).await;
+    fx.until(queue, |value| value["writes"][0]["state"] == "running")
+        .await;
+
+    let text = "# Git listener\n\nSaved while a hook ran.\n";
+    let save = json!({ "path": PROPOSAL, "text": text, "hash": hash });
+    let save = fx.send("text.save", save).await;
+    let answered = fx.answered_within(save, Duration::from_millis(300)).await;
+    assert!(!answered, "the save ran while the commit's hook ran");
+    assert_eq!(fx.repo.read(PROPOSAL), before, "nothing written meanwhile");
+
+    hook.release();
+    fx.answer(save)
+        .await
+        .expect("the save, once the commit landed");
+    assert_eq!(fx.repo.read(PROPOSAL), text);
+    assert_eq!(fx.idle().await, Vec::<Value>::new());
+    assert_eq!(hook.log().len(), 2, "one commit: {:?}", hook.log());
+    assert!(committed(&fx, TASKS, &spec(TASKS)).contains("status: approved"));
+}
+
 // Breaks caught: commits landed at the same time, and a commit of files whose last commit has
 // not landed yet.
 #[tokio::test]
@@ -139,46 +172,47 @@ async fn two_writes_on_one_repository_land_in_order() {
     let mut fx = Fixture::over(repo).await;
     let hook = Hook::held(&fx.repo);
     let queue = fx.watch("WriteQueue", json!({})).await;
+    let second = "specs/proposals/second.md";
+    let hash = |value: Value| hash_of(&value);
+    let first_hash = hash(fx.read("Buffer", json!({ "path": PROPOSAL })).await);
+    let second_hash = hash(fx.read("Buffer", json!({ "path": second })).await);
 
     let spec_file = json!({ "folder": TASKS, "file": "spec.md", "write": named("The spec") });
     fx.call("review.approve", spec_file).await;
+    fx.until(queue, |value| value["writes"][0]["state"] == "running")
+        .await;
+    // Every write sent while the spec's commit lands waits for it, in the order sent; the lists'
+    // second commit waits for their first to land too, as the core would not defer it.
     let plan_file = json!({ "folder": PLAN, "file": "plan.md", "write": named("The plan") });
-    fx.call("review.approve", plan_file).await;
-    save_and_commit(
-        &mut fx,
-        PROPOSAL,
-        "# Git listener\n\nFirst.\n",
-        "The proposal",
-    )
-    .await;
-    // The record shows them in the order they were made, the first one landing.
-    let all = [
-        "The spec running",
-        "The plan waiting",
-        "The proposal waiting",
+    let first = "# Git listener\n\nFirst.\n";
+    let commit = |path: &str, label: &str| json!({ "path": path, "write": named(label) });
+    let sent = [
+        fx.send("review.approve", plan_file).await,
+        fx.send(
+            "text.save",
+            json!({ "path": PROPOSAL, "text": first, "hash": first_hash }),
+        )
+        .await,
+        fx.send("text.commit", commit(PROPOSAL, "The proposal"))
+            .await,
+        fx.send(
+            "text.save",
+            json!({ "path": second, "text": "# Second\n\nMore.\n", "hash": second_hash }),
+        )
+        .await,
+        fx.send("text.commit", commit(second, "The second proposal"))
+            .await,
     ];
-    let shown = |value: &Value| {
-        value["writes"][0]["state"] == "running" && value["writes"][2]["state"] == "waiting"
-    };
-    fx.until(queue, shown).await;
-    assert_eq!(fx.writes(queue), all);
-    // A second commit of the lists waits for the first to land: the core would not defer it.
-    let second = "specs/proposals/second.md";
-    let read = fx.read("Buffer", json!({ "path": second })).await;
-    let save = json!({ "path": second, "text": "# Second\n\nMore.\n", "hash": hash_of(&read) });
-    fx.call("text.save", save).await;
-    let commit = json!({ "path": second, "write": named("The second proposal") });
-    let last = fx.send("text.commit", commit).await;
-    let answered = fx.answered_within(last, Duration::from_millis(300)).await;
-    assert!(
-        !answered,
-        "the lists' second commit ran before their first landed"
-    );
+    let answered = fx
+        .answered_within(sent[0], Duration::from_millis(300))
+        .await;
+    assert!(!answered, "a write ran while a commit landed");
+    assert_eq!(fx.writes(queue), ["The spec running"]);
 
     hook.release();
-    fx.answer(last)
-        .await
-        .expect("the second commit of the lists");
+    for id in sent {
+        fx.answer(id).await.expect("a write sent meanwhile");
+    }
     assert_eq!(fx.idle().await, Vec::<Value>::new());
 
     // One commit at a time, in the order the writes were made.

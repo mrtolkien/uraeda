@@ -97,6 +97,12 @@ pub(crate) fn mount(shared: &Shared, _: &mut Routes) -> Result<(), Failure> {
     records::register(shared, &registry)
 }
 
+/// A bus of its own, on no registry, for a unit test of a domain's state.
+#[cfg(test)]
+pub(crate) fn test_bus(shared: &Shared) -> Bus {
+    Bus(bus::Engine::start(shared, Registry::default()))
+}
+
 /// Runs a future to its end from a handler, which is on a blocking thread and cannot await: a
 /// queue's turn, a message to a task.
 ///

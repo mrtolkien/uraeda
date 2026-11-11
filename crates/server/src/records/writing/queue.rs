@@ -19,6 +19,8 @@
 //! hooks. A hook's refusal puts the files back, and stays in the record until dismissed.
 
 mod repository;
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -218,7 +220,8 @@ impl Write {
 /// # Errors
 ///
 /// `refused` for a repository the list does not hold, for a write of a feature's files while
-/// its agent works on it, before the turn is taken, and whatever `run` fails with.
+/// its agent works on it, before the turn is taken, once the server stops, and whatever `run`
+/// fails with.
 pub(crate) fn write<T>(
     shared: &Shared,
     repository: &str,
@@ -227,8 +230,8 @@ pub(crate) fn write<T>(
 ) -> Result<T, Fault> {
     let path = repositories::path(shared, repository)?;
     working(shared, &path, &write.guarded)?;
-    let queue = shared.get::<Queues>().open(shared, &path);
-    let _turn = queue.turn(repository, write);
+    let queue = shared.get::<Queues>().open(shared, &path)?;
+    let _turn = queue.turn(repository, write)?;
     run(&path)
 }
 
@@ -257,7 +260,7 @@ pub(crate) fn working(shared: &Shared, root: &Path, folders: &[String]) -> Resul
 ///
 /// # Errors
 ///
-/// `refused` for a repository the list does not hold.
+/// `refused` for a repository the list does not hold, and once the server stops.
 pub(crate) fn land<T: Send + 'static>(
     shared: &Shared,
     repository: &str,
@@ -265,7 +268,7 @@ pub(crate) fn land<T: Send + 'static>(
     land: impl FnOnce(&Path, &Landing<'_>) -> Result<T, Fault> + Send + 'static,
 ) -> Result<Queued<T>, Fault> {
     let path = repositories::path(shared, repository)?;
-    let queue = shared.get::<Queues>().open(shared, &path);
+    let queue = shared.get::<Queues>().open(shared, &path)?;
     let (answer, answered) = sync_channel(1);
     let land = move |landing: &Landing<'_>| {
         let landed = land(landing.path(), landing);
@@ -274,7 +277,7 @@ pub(crate) fn land<T: Send + 'static>(
         let answer = Box::new(move || drop(answer.send(landed)));
         Landed { refusal, answer }
     };
-    let id = queue.add(repository, write, Box::new(land));
+    let id = queue.add(repository, write, Box::new(land))?;
     Ok(Queued {
         queue,
         id,
@@ -337,9 +340,15 @@ impl<T> Queued<T> {
     }
 }
 
-/// The queue of each repository written to since the server started, by its main checkout.
-#[derive(Default)]
-struct Queues(Mutex<HashMap<PathBuf, Open>>);
+/// The queue of each repository written to since the server started, by its main checkout, none
+/// once the server stops: no queue opens then.
+struct Queues(Mutex<Option<HashMap<PathBuf, Open>>>);
+
+impl Default for Queues {
+    fn default() -> Queues {
+        Queues(Mutex::new(Some(HashMap::new())))
+    }
+}
 
 /// An open queue, and the thread that lands its commits.
 struct Open {
@@ -350,10 +359,11 @@ struct Open {
 impl Queues {
     /// A repository's queue, opened at its first write: the core defers its commits from then
     /// on, and a thread of the queue's own lands them.
-    fn open(&self, shared: &Shared, path: &Path) -> Arc<Queue> {
+    fn open(&self, shared: &Shared, path: &Path) -> Result<Arc<Queue>, Fault> {
         let mut queues = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        let queues = queues.as_mut().ok_or_else(repository::stopped)?;
         if let Some(open) = queues.get(path) {
-            return open.queue.clone();
+            return Ok(open.queue.clone());
         }
         let queue = Arc::new(Queue::new(path, Bus::clone(&shared.get::<Bus>())));
         api::defer_commits(path, true);
@@ -364,20 +374,22 @@ impl Queues {
             landing,
         };
         queues.insert(path.to_owned(), open);
-        queue
+        Ok(queue)
     }
 
     /// A repository's queue, when a write opened it.
     fn found(&self, path: &Path) -> Option<Arc<Queue>> {
         let queues = self.0.lock().unwrap_or_else(PoisonError::into_inner);
-        queues.get(path).map(|open| open.queue.clone())
+        let open = queues.as_ref()?.get(path)?;
+        Some(open.queue.clone())
     }
 
-    /// Stops every queue as the server stops: the commit that runs ends, and the core defers
-    /// no commit any more. The ones not landed are forgotten, their files left written.
+    /// Stops every queue as the server stops: the commit that runs ends, the core defers no
+    /// commit any more, and a write from then on is refused. The ones not landed are forgotten,
+    /// their files left written.
     fn close(&self) {
-        let queues = std::mem::take(&mut *self.0.lock().unwrap_or_else(PoisonError::into_inner));
-        for Open { queue, landing } in queues.into_values() {
+        let queues = self.0.lock().unwrap_or_else(PoisonError::into_inner).take();
+        for Open { queue, landing } in queues.into_iter().flat_map(HashMap::into_values) {
             queue.close();
             let _ = landing.join();
             api::defer_commits(queue.path(), false);
