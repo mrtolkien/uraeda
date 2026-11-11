@@ -6,6 +6,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead as _, BufReader, Write as _};
 use std::net::{TcpListener, TcpStream};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, PoisonError};
 
 /// The device's token the stand-in takes.
@@ -16,6 +17,10 @@ struct Held {
     key: String,
     pages: HashMap<String, Vec<u8>>,
     probes: usize,
+    /// The next request of this extension's page waits for the sender's word.
+    gate: Option<(String, Receiver<()>)>,
+    /// The requests of a page waiting at the gate.
+    waiting: usize,
 }
 
 /// The server, and what it serves.
@@ -36,8 +41,10 @@ impl Served {
         }));
         let serving = Arc::clone(&held);
         std::thread::spawn(move || {
+            // One thread a request: one held at the gate holds no other.
             for stream in listener.incoming().flatten() {
-                answer(stream, &serving);
+                let serving = Arc::clone(&serving);
+                std::thread::spawn(move || answer(stream, &serving));
             }
         });
         Served { address, held }
@@ -54,6 +61,22 @@ impl Served {
         self.held.lock().unwrap_or_else(PoisonError::into_inner).key = key;
     }
 
+    /// Holds the next request of `name`'s page until the sender returned is used or dropped.
+    pub fn hold(&self, name: &str) -> Sender<()> {
+        let (open, gate) = mpsc::channel();
+        self.held().gate = Some((name.to_owned(), gate));
+        open
+    }
+
+    /// How many requests of a page wait at the gate.
+    pub fn waiting(&self) -> usize {
+        self.held().waiting
+    }
+
+    fn held(&self) -> std::sync::MutexGuard<'_, Held> {
+        self.held.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
     /// How many requests reached `/probe`.
     pub fn probes(&self) -> usize {
         self.held
@@ -68,7 +91,7 @@ impl Served {
     }
 }
 
-fn answer(stream: TcpStream, held: &Mutex<Held>) {
+fn answer(stream: TcpStream, shared: &Mutex<Held>) {
     let mut reader = BufReader::new(&stream);
     let mut first = String::new();
     let _ = reader.read_line(&mut first);
@@ -82,7 +105,16 @@ fn answer(stream: TcpStream, held: &Mutex<Held>) {
         signed_in |= line.to_lowercase().trim() == format!("authorization: {bearer}");
     }
     let path = first.split(' ').nth(1).unwrap_or_default();
-    let mut held = held.lock().unwrap_or_else(PoisonError::into_inner);
+    let lock = || shared.lock().unwrap_or_else(PoisonError::into_inner);
+    let mut held = lock();
+    let gated = |(name, _): &mut (String, Receiver<()>)| path == format!("/extensions/{name}/page");
+    if let Some((_, gate)) = held.gate.take_if(gated) {
+        held.waiting += 1;
+        drop(held);
+        let _ = gate.recv();
+        held = lock();
+        held.waiting -= 1;
+    }
     let (status, body) = match path.split('/').collect::<Vec<_>>()[..] {
         ["", "probe"] => {
             held.probes += 1;

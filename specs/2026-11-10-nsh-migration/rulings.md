@@ -5639,3 +5639,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   is rebuilt, `just sandbox --reset` for the sandbox's, or by removing `sessions.sqlite` from the
   data folder.
 - **Where**: `crates/server/src/runner/schema.rs`, `crates/server/tests/sessions/pages.rs`.
+## T94.1: An extension's page runs only while its view is in a window
+
+- **Decision**: a page fetched while its `uraeda.extension` view is in no window waits, and runs
+  when the view is put in a window again; a view dropped runs nothing. A page's calls are numbered
+  across its loads, so the app's late answer to a call of the page before matches no call of the new
+  one.
+- **Rationale**: NSH 0.4.0 takes a removed element out of its window at once (`MountItem::Remove`)
+  and drops its component only later, when the element is deleted: a flag set in `Drop` was still
+  unset when the fetch ended, and the page ran in a stopped view, in an engine nothing stops
+  (`Surface`'s drop does not stop it). Waiting instead of discarding keeps a pane that is moved, out
+  of its window for a moment, loading its page.
+- **Seen failing**: `a_page_fetched_after_its_place_closed_never_runs` counted 3 engines for 2, with
+  the `Drop` flag alone too; `a_late_answer_reaches_only_the_page_that_asked` got 99, the old page's
+  answer, for 4.
+- **Where**: `crates/app/src/extension_view.rs`, `extension_view/channel.rs`,
+  `crates/app/tests/extensions.rs`.

@@ -46,6 +46,15 @@ struct App {
 
 impl App {
     fn open(names: &[&str], served: &Served) -> App {
+        App::opened(names, served, false)
+    }
+
+    /// The app, whose store holds each answer of the action `add` until `release`.
+    fn holding(names: &[&str], served: &Served) -> App {
+        App::opened(names, served, true)
+    }
+
+    fn opened(names: &[&str], served: &Served, hold: bool) -> App {
         // As the runner `nsh` generates for the app: its module beside NSH's, and its components.
         nsh_platform_linux::set_ui_sets(vec![nsh_base::registry(), uraeda_app::registry()]);
         nsh_platform_linux::set_components(uraeda_app::__nsh_native_components_linux);
@@ -53,6 +62,7 @@ impl App {
         let (ready, called) = (stage.posts("ready"), stage.posts("called"));
         let problems = stage.posts("problem");
         let params = json!({
+            "hold": hold,
             "names": names,
             "probe": served.probe(),
             "server": served.address,
@@ -82,6 +92,20 @@ impl App {
     fn version(&self, version: u64) {
         let sent = self.stage.view.host().send("version", json!(version));
         sent.expect("the version is sent");
+    }
+
+    /// Shows the places of `names` alone, as a pane opens or closes.
+    fn show(&self, names: &[&str]) {
+        let sent = self.stage.view.host().send("names", json!(names));
+        sent.expect("the names are sent");
+    }
+
+    /// Answers the call of `add` numbered `index`, counting from the first of the run, with
+    /// `count`.
+    fn release(&self, index: usize, count: u64) {
+        let release = json!({ "count": count, "index": index });
+        let sent = self.stage.view.host().send("release", release);
+        sent.expect("the answer is sent");
     }
 
     /// The next page drawn: the extension's name, and what its page declared.
@@ -119,6 +143,30 @@ fn served(names: &[&str]) -> (Signer, Served) {
     (signer, served)
 }
 
+/// The page of `counter`, saved with a new title, in `folder`.
+fn saved_counter(folder: &std::path::Path) {
+    let page = fs::read_to_string(fixture("counter").join("page.tsx")).expect("the page");
+    let page = page.replace("title: \"Counter\"", "title: \"Counter, saved\"");
+    fs::write(folder.join("page.tsx"), page).expect("the saved page");
+}
+
+/// Whether `call` is the store's call of the counter's action `action`.
+fn act(action: &'static str) -> impl Fn(&Value) -> bool {
+    move |call: &Value| call["name"] == "extensions.act" && call["input"]["name"] == action
+}
+
+/// How many pages' engines run in this process: NSH names each engine's thread.
+fn engines() -> usize {
+    let threads = fs::read_dir("/proc/self/task").expect("this process's threads");
+    threads
+        .flatten()
+        .filter(|thread| {
+            let name = fs::read_to_string(thread.path().join("comm")).unwrap_or_default();
+            name.trim() == "nsh-engine"
+        })
+        .count()
+}
+
 /// The title of the first place a page declared.
 fn place_title(declarations: &Value) -> &str {
     declarations["places"][0]["title"]
@@ -152,9 +200,7 @@ fn a_saved_page_shows_without_a_restart() {
         // The owner saves the page: the server builds it again, a new version, and the record
         // `Extensions` says so, which the app hands the place.
         let saved = tempfile::tempdir().expect("a folder");
-        let page = fs::read_to_string(fixture("counter").join("page.tsx")).expect("the page");
-        let page = page.replace("title: \"Counter\"", "title: \"Counter, saved\"");
-        fs::write(saved.path().join("page.tsx"), page).expect("the saved page");
+        saved_counter(saved.path());
         served.page("counter", signer.page(saved.path(), "counter", 2));
         app.version(2);
         let (_, declared) = app.next_ready();
@@ -222,11 +268,6 @@ fn a_page_reads_a_record_and_calls_an_action_of_its_extension() {
         || {
             let (_, served) = served(&["counter"]);
             let app = App::open(&["counter"], &served);
-            let act = |action: &'static str| {
-                move |call: &Value| {
-                    call["name"] == "extensions.act" && call["input"]["name"] == action
-                }
-            };
             let read = app.called("the page reads its record", |call| call["read"] == true);
             let own = json!({ "extension": "counter", "name": "count", "repo": "todo-app" });
             assert_eq!(read["args"], own);
@@ -243,4 +284,48 @@ fn a_page_reads_a_record_and_calls_an_action_of_its_extension() {
             assert_eq!(served.probes(), 0, "the page reached the network");
         },
     );
+}
+
+// A page loaded again starts its calls from where the one before stopped: an answer the app gives
+// late, to a call of the page before, never answers the new page's call.
+#[test]
+fn a_late_answer_reaches_only_the_page_that_asked() {
+    on_hidden_display("a_late_answer_reaches_only_the_page_that_asked", || {
+        let (signer, served) = served(&["counter"]);
+        let app = App::holding(&["counter"], &served);
+        app.called("the first page calls its action", act("add"));
+        let saved = tempfile::tempdir().expect("a folder");
+        saved_counter(saved.path());
+        served.page("counter", signer.page(saved.path(), "counter", 2));
+        app.version(2);
+        app.called("the page saved calls its action", act("add"));
+        // The first page's answer comes once the second page waits for its own.
+        app.release(0, 99);
+        app.release(1, 4);
+        let done = app.called("the page got an answer", act("done"));
+        assert_eq!(done["input"]["input"]["got"], 4);
+    });
+}
+
+// A place closed while its page was on its way never runs the page.
+#[test]
+fn a_page_fetched_after_its_place_closed_never_runs() {
+    on_hidden_display("a_page_fetched_after_its_place_closed_never_runs", || {
+        let (_, served) = served(&["counter"]);
+        let gate = served.hold("counter");
+        let app = App::open(&["counter"], &served);
+        wait_for("the page is asked for", 30, || {
+            (served.waiting() == 1).then_some(())
+        });
+        let before = engines();
+        app.show(&[]);
+        gate.send(()).expect("the gate opens");
+        wait_for("the page is sent", 30, || {
+            (served.waiting() == 0).then_some(())
+        });
+        // The place opened again loads and draws its page, in one engine more, and no other.
+        app.show(&["counter"]);
+        app.next_ready();
+        assert_eq!(engines(), before + 1, "a page ran after its place closed");
+    });
 }

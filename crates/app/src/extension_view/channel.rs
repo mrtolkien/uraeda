@@ -56,6 +56,8 @@ pub(super) struct Live {
     over: bool,
     /// The page's calls, waiting for the app's answer, by the number given to the app.
     replies: HashMap<u64, HostReply>,
+    /// The number of the next call, counted across loads: the app may answer a call of the page
+    /// before after the next one asked, and its number must name no call of the new page.
     next_call: u64,
 }
 
@@ -88,11 +90,14 @@ impl Channel {
         self.live.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// A page of `version` loads: what was known of the one before goes, with its calls.
+    /// A page of `version` loads: what was known of the one before goes, with its calls, whose
+    /// numbers are not given again.
     pub(super) fn loading(&self, version: u64) {
-        *self.live() = Live {
+        let mut live = self.live();
+        *live = Live {
             version,
             loaded_at: Some(Instant::now()),
+            next_call: live.next_call,
             ..Live::default()
         };
     }

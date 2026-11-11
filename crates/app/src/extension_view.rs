@@ -22,6 +22,7 @@ mod fetch;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use gtk::prelude::WidgetExt as _;
 use nsh_core::JsonValue;
 use nsh_engine::Bundle;
 use nsh_platform_linux::gtk4::{self as gtk, gio, glib};
@@ -60,6 +61,13 @@ struct Shown {
     loaded: RefCell<Option<Asked>>,
     /// A load is on its way: the next change of the props waits for it.
     fetching: Cell<bool>,
+    /// The component was dropped: a fetch that ends after it runs nothing and tells nothing, as
+    /// a view stopped would start a page again, in an engine nothing stops.
+    gone: Cell<bool>,
+    /// A page fetched while the view was in no window, as NSH takes a removed element out of
+    /// its window at once and drops it later: it runs when the view is put in one again, as a
+    /// moved pane is, and never once it is dropped.
+    waiting: RefCell<Option<nsh_engine::package::VerifiedPackage>>,
 }
 
 /// One extension page.
@@ -79,6 +87,20 @@ impl ExtensionView {
             asked: RefCell::default(),
             loaded: RefCell::default(),
             fetching: Cell::new(false),
+            gone: Cell::new(false),
+            waiting: RefCell::default(),
+        });
+        let placed = Rc::downgrade(&shown);
+        shown.view.widget().connect_root_notify(move |widget| {
+            let Some(shown) = placed.upgrade() else {
+                return;
+            };
+            if widget.root().is_some() && !shown.gone.get() {
+                let waiting = shown.waiting.borrow_mut().take();
+                if let Some(package) = waiting {
+                    shown.run(&package);
+                }
+            }
         });
         let watched = Rc::downgrade(&shown);
         glib::timeout_add_local(PING, move || match watched.upgrade() {
@@ -116,7 +138,13 @@ impl Shown {
             let (source, name) = (asked.source.clone(), asked.name.clone());
             let fetched = gio::spawn_blocking(move || fetch::page(&source, &name)).await;
             shown.fetching.set(false);
+            if shown.gone.get() {
+                return;
+            }
             match fetched {
+                Ok(Ok(package)) if shown.view.widget().root().is_none() => {
+                    *shown.waiting.borrow_mut() = Some(package);
+                }
                 Ok(Ok(package)) => shown.run(&package),
                 Ok(Err(Refused::Unreachable(message))) => {
                     shown.channel.problem("unreachable", &message);
@@ -195,6 +223,7 @@ impl NativeComponent for ExtensionView {
 
 impl Drop for ExtensionView {
     fn drop(&mut self) {
+        self.shown.gone.set(true);
         self.shown.view.stop();
     }
 }
