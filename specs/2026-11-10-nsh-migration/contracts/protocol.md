@@ -314,23 +314,46 @@ A client reaches the server through `/live` and these routes only. Each task tha
 its line. The routes marked "host" are not a client's: the host's own `ura` and app call them, with
 the host token of the server's status file, as `Authorization: Bearer <token>`.
 
-| Route                                                        | For                              | Task |
-| ------------------------------------------------------------ | -------------------------------- | ---- |
-| `GET /live`                                                  | The WebSocket of this contract   | 4    |
-| `POST /open`                                                 | Host: a second start's folder    | 4    |
-| `GET`, `POST`, `DELETE /session`, `DELETE /sessions`         | Signing in and out with the key  | 5    |
-| `GET /session/:token`                                        | Signing in from a link           | 5    |
-| `POST /pair`                                                 | Pairing a device, for its token  | 5    |
-| `POST /pair/code`                                            | Host: a pairing code             | 5    |
-| `POST /session/key`                                          | Host: a new access key           | 5    |
-| `/r/:name/raw/*`, `/images/*`, `/chat-images/:id`            | Files and images, as bytes       | 16   |
-| `GET /r/:name/mockups/:secret/*`                             | Mockups, for a sandboxed frame   | 16   |
-| `DELETE /r/:name/chat-images/:id`                            | A chat's image, taken back       | 16   |
-| `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`     | Uploads                          | 16   |
-| `/mcp`                                                       | The agents' MCP endpoint         | 16   |
-| `GET /r/:name/preview/:secret/:folder/*`, and its WebSockets | Previews, proxied                | 18   |
-| `GET /extensions/:name/page`, `GET /extensions/key`          | Extension pages, as signed bytes | 19   |
-| The web build's files                                        | The client itself, in a browser  | 56   |
+| Route                                                        | For                             | Task |
+| ------------------------------------------------------------ | ------------------------------- | ---- |
+| `GET /live`                                                  | The WebSocket of this contract  | 4    |
+| `POST /open`                                                 | Host: a second start's folder   | 4    |
+| `GET`, `POST`, `DELETE /session`, `DELETE /sessions`         | Signing in and out with the key | 5    |
+| `GET /session/:token`                                        | Signing in from a link          | 5    |
+| `POST /pair`                                                 | Pairing a device, for its token | 5    |
+| `POST /pair/code`                                            | Host: a pairing code            | 5    |
+| `POST /session/key`                                          | Host: a new access key          | 5    |
+| `/r/:name/raw/*`, `/images/*`, `/chat-images/:id`            | Files and images, as bytes      | 16   |
+| `GET /r/:name/mockups/:secret/*`                             | Mockups, for a sandboxed frame  | 16   |
+| `DELETE /r/:name/chat-images/:id`                            | A chat's image, taken back      | 16   |
+| `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`     | Uploads                         | 16   |
+| `/mcp`                                                       | The agents' MCP endpoint        | 16   |
+| `GET /r/:name/preview/:secret/:folder/*`, and its WebSockets | Previews, proxied               | 18   |
+| `GET /extensions/:name/page`                                 | An extension's page, signed     | 19   |
+| `GET /extensions/key`                                        | The key the pages are signed by | 19   |
+| The web build's files                                        | The client itself, in a browser | 56   |
+
+### Extension pages
+
+An extension's page reaches a client as a signed NSH package, which the client runs only when it
+verifies under the key this server gave it. Both routes ask for a sign-in, as every route does.
+
+- `GET /extensions/key` answers 200, `text/plain`: the public key, 32 bytes in base64, with
+  `Cache-Control: no-store`. A client asks for it on each connection, and trusts no other key for
+  this server's pages.
+- `GET /extensions/:name/page` answers 200, `application/octet-stream`: the package's bytes, with
+  `X-Uraeda-Page-Version: <version>`, `ETag: "<version>"`, and `Cache-Control: private, no-cache`.
+  With `If-None-Match: "<version>"` naming the running version, it answers 304 with the same headers
+  and no body. It answers 404, `<name> has no page`, for an extension without a page, off, or whose
+  page never built.
+- The version is the row's `pageVersion` in the record `Extensions`, and the package's build number.
+  It only grows, across the server's restarts too: a client loads the page again when it changes,
+  and refuses a build older than one it ran.
+- The package's app id is `dev.uraeda.extension.<name>`. Its capabilities are
+  `{ "host": ["start", "record", "call", "navigate"] }`: the page may call these functions of its
+  host, and reaches nothing else of the machine. Its first statement is `host.post("start")`.
+- A page that does not build keeps the package before it, and its problem is in the row's
+  `problems`.
 
 ## Declaring a record or an action
 

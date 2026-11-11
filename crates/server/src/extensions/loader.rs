@@ -1,10 +1,11 @@
 //! The loader: the state of every extension in the server, and the one thread that changes it.
 //!
 //! It reads the extensions of the config folder through the core, and no other path: never a
-//! repository's files. For each of the owner's it compiles the server entry's files, stops the
-//! VM of the version before, and starts the new one. A version that does not compile leaves
-//! the one before it running. Built-in extensions are listed and never loaded here: their
-//! server parts are Uraeda's own code.
+//! repository's files. For each of the owner's it builds and signs the page, compiles the server
+//! entry's files, stops the VM of the version before, and starts the new one. A version that
+//! does not compile leaves the one before it running, and a page that does not build the page
+//! before it. Built-in extensions are listed and never loaded here: their server parts are
+//! Uraeda's own code.
 //!
 //! The thread is told what to do through [`Wake`]: to read the extensions again, when the
 //! watcher saw a change or an action wrote the settings, and that a VM ended by itself. It
@@ -14,11 +15,13 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, SyncSender};
 
+use axum::body::Bytes;
 use uraeda_core::extensions::{self, EXTENSION_API, Extension};
 use uraeda_protocol::{ExtensionRecord, ExtensionState, Extensions as ExtensionsRecord};
 
 use super::api::ServerHost;
 use super::graph::{self, Problem};
+use super::pages::{self, Outcome};
 use super::vm::{End, Thrown, Vm};
 use super::watch::Watches;
 use super::{Extensions, events, status};
@@ -71,19 +74,23 @@ pub(super) struct Entry {
     pub vm: Option<Vm>,
     /// The files of the last version that compiled, from its folder.
     files: Vec<String>,
-    /// Its running page, once task 19 builds one, and what clients reported of it.
+    /// Its running page, the last that built; why the build after it failed; and what clients
+    /// reported of it.
     pub page: Option<Page>,
+    pub page_failure: Vec<Problem>,
     pub page_problems: Vec<Problem>,
 }
 
-/// An extension's running page.
-///
-/// TASK 19: the loader builds the page where it compiles the server's files, in [`Loader::load`],
-/// and sets this, with a version that only grows.
+/// An extension's running page: built and signed by [`pages::build`].
 pub(super) struct Page {
+    /// Its build's number, which only grows, across restarts too.
     pub version: u64,
     /// The page's entry, from the extension's folder.
     pub entry: String,
+    /// The page as a signed NSH package.
+    pub package: Bytes,
+    /// What it was built from, as one text: built again from the same, it stays.
+    pub print: String,
 }
 
 impl Entry {
@@ -97,6 +104,7 @@ impl Entry {
             vm: None,
             files: Vec::new(),
             page: None,
+            page_failure: Vec::new(),
             page_problems: Vec::new(),
         }
     }
@@ -201,6 +209,7 @@ impl Loader {
             let entry = self.extensions.state().entries.remove(&name);
             stop(entry.and_then(|entry| entry.vm));
             self.watches.forget(&name);
+            pages::forget(&self.shared, &name);
             self.changed.insert(name);
         }
         if moved {
@@ -209,12 +218,13 @@ impl Loader {
         }
     }
 
-    /// Loads one version of an extension: off or broken by its manifest; else compiled, and on
-    /// a problem the running version kept; else the running version stopped, then the new one
-    /// started, and broken when its activation throws or runs over its time.
+    /// Loads one version of an extension: off or broken by its manifest; else its page built,
+    /// its server's files compiled, and on a problem the running version kept; else the running
+    /// version stopped, then the new one started, and broken when its activation throws or runs
+    /// over its time.
     fn load(&mut self, extension: &Extension, print: String) {
         let name = extension.name.as_str();
-        let (running, version, files, held) = {
+        let (running, version, files, held, paged) = {
             let mut state = self.extensions.state();
             let held = state.holds.get(name).and_then(|holds| holds.first());
             let held = held.map(|(_, title)| title.clone());
@@ -222,7 +232,14 @@ impl Loader {
                 .entries
                 .entry(name.to_owned())
                 .or_insert_with(Entry::new);
-            (entry.vm.clone(), entry.version, entry.files.clone(), held)
+            let paged = entry.page.as_ref().map(|page| page.print.clone());
+            (
+                entry.vm.clone(),
+                entry.version,
+                entry.files.clone(),
+                held,
+                paged,
+            )
         };
         if let (Some(title), Some(_)) = (held, &running) {
             // A session works on its runtime: the load is asked again as the session's hold
@@ -238,8 +255,12 @@ impl Loader {
         let other_api = extension.api != EXTENSION_API;
         let off = !extension.on_all && extension.on.is_empty();
         if fatal || other_api || off {
-            // Its folder stays watched: a fixed manifest is seen.
-            self.watches.follow(extension, &files);
+            // Its folder stays watched: a fixed manifest is seen. No page of it is served.
+            self.watches.follow(extension, &files, &[]);
+            self.set(name, |entry| {
+                entry.page = None;
+                entry.page_failure.clear();
+            });
             stop(running);
             if other_api && !fatal {
                 let (built, runs) = (extension.api, EXTENSION_API);
@@ -253,9 +274,8 @@ impl Loader {
             };
             return self.replace(name, print, state, problems, None, version);
         }
+        let page = self.page(extension, paged.as_deref());
         let server = extension.server.as_deref().map(Path::new);
-        // TASK 19: the page's files are compiled, built, and signed here, beside the server's.
-        // A page that does not build keeps the last package, and its problem joins `problems`.
         let graph = match server
             .map(|entry| graph::compile(&folder, entry))
             .transpose()
@@ -267,7 +287,7 @@ impl Loader {
                 let faulty = failure.problems.iter().map(|problem| problem.file.clone());
                 let mut watched = files;
                 watched.extend(faulty.chain(failure.missing));
-                self.watches.follow(extension, &watched);
+                self.watches.follow(extension, &watched, &page);
                 problems.extend(failure.problems);
                 return self.set(name, |entry| {
                     entry.print = print;
@@ -285,7 +305,7 @@ impl Loader {
             .flat_map(graph::Graph::files)
             .map(str::to_owned)
             .collect();
-        self.watches.follow(extension, &files);
+        self.watches.follow(extension, &files, &page);
         stop(running);
         let version = version + 1;
         let vm = match graph.map(|graph| self.start(name, &folder, version, &graph)) {
@@ -300,6 +320,32 @@ impl Loader {
         self.set(name, |entry| entry.files = files);
         // One that listens to a step or a commit is told what moves from where things are now.
         events::seed(&self.shared);
+    }
+
+    /// Builds and signs the extension's page, beside its server's files: a new version replaces
+    /// the running one, and one that does not build keeps it, with why. The folders of the
+    /// page's files, from the extension's folder, are what a save builds it again from.
+    fn page(&self, extension: &Extension, running: Option<&str>) -> Vec<PathBuf> {
+        let name = extension.name.as_str();
+        let Some(entry) = extension.page.as_deref() else {
+            self.set(name, |entry| {
+                entry.page = None;
+                entry.page_failure.clear();
+            });
+            return Vec::new();
+        };
+        let built = pages::build(&self.shared, extension, Path::new(entry), running);
+        self.set(name, |entry| match built.outcome {
+            Outcome::Built(page) => {
+                entry.page = Some(page);
+                entry.page_failure.clear();
+                // A new page starts without the problems of the one before.
+                entry.page_problems.clear();
+            }
+            Outcome::Same => entry.page_failure.clear(),
+            Outcome::Failed(problems) => entry.page_failure = problems,
+        });
+        built.folders
     }
 
     /// Starts the VM of one version, which tells the loader if it ends by itself.
@@ -364,8 +410,6 @@ impl Loader {
             entry.problems = problems;
             entry.vm = vm;
             entry.version = version;
-            // A new version's page starts without the problems of the one before.
-            entry.page_problems.clear();
         });
     }
 

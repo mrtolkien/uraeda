@@ -2610,3 +2610,124 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: the plan's [global constraints](plan.md#global-constraints) and
   [validation](plan.md#validation), tasks 52, 55, 59, 60, and 61, and `.config/nextest.toml`. It
   replaces ruling R20: no pass runs the test R20 excused.
+
+## R114: Pages are signed under a root key of the data folder, and no clock decides trust
+
+- **Decision**: `extensions/signing.rs` holds the only code that reads a key.
+  - The root key is made at the first start, in `<data folder>/extensions/signing.key`: an Ed25519
+    seed in base64, in a file its owner alone reads (0600, in a folder 0700). A file that is no key
+    stops the server's start, with a message that names the file and never what it holds.
+  - The release key, which signs, is made anew at each start and kept in memory, with the root's
+    certificate for `dev.uraeda.extension.*`. An extension's page is the app
+    `dev.uraeda.extension.<name>`.
+  - `GET /extensions/key` answers the root's public half, `PublicKey::to_base64`, to a signed-in
+    client, which asks for it on each connection.
+  - The certificate is valid for all of time, `0..u64::MAX`. NSH compares that window with the time
+    the package says it was signed at, `createdAt`, which the signer writes: a verifier's clock is
+    never read (`Certified::covers`, `nsh-package` 0.4.0). So a client whose clock is wrong verifies
+    a page, and a server whose clock is wrong still signs one: `nsh_package::build` refuses to sign
+    outside the window.
+- **Rationale**: the plan's review focus keeps sign-in off a device's clock, and a page's trust
+  follows it. A narrow window would add nothing: the release key lives one run, in memory, and the
+  root never leaves its file. One file is one thing to protect.
+- **How it was checked**: served with its signature blanked, the page fails
+  `the served page verifies: BadSignature`; signed under another root than the one served,
+  `UntrustedKey`; the key's file's text in a header of the page's route fails
+  `GET /extensions/{name}/page: a header`, and in a problem of the record,
+  `Extensions holds the key`; the root's seed served as the key fails
+  `the served key is a public key`.
+- **If wrong**: a data folder copied to another machine carries the key with it, as it carries the
+  sign-in file. A root that must change is a file to delete: the next start makes another, and every
+  client takes it on its next connection. NSH's revocation lists are not used.
+- **Where**: task 19, `crates/server/src/extensions/signing.rs`, and the test
+  `the_signing_key_never_leaves_the_data_folder`. Tasks 34 and 58.
+
+## R115: A page's version is one counter of the data folder, and unchanged code keeps its version
+
+- **Decision**: `pageVersion` is the package's build number, `App::build`, from
+  `<data folder>/extensions/page-build`: the last number given, as text, one counter for every
+  extension.
+  - `builds::next` reads it, adds one, writes it whole (a file beside it, synced, then renamed), and
+    only then gives the number. A file that holds no number is a build problem of the page: starting
+    again from 1 would give builds a client refuses.
+  - A restart builds every page again, each with a number after every one before it.
+  - A page built again from the same code, title, and version keeps its package and its number: a
+    save of `server.ts`, or a setting, does not make a client load the page again.
+- **Rationale**: R22 suggested the build's time, but a clock can go back, and a test's clock stands
+  still. A counter cannot, and one file holds it.
+- **How it was checked**: with the counter never written, every build is 1, and
+  `a_build_number_never_goes_back_across_a_restart` fails waiting for `a page after version 1`.
+- **If wrong**: a data folder deleted starts the counter again, with a new root key. A client that
+  keeps its accepted builds on disk (`TrustStore::open`) must drop them when the served key changes:
+  task 34's, which may as well keep its trust in memory, and ask for the key on each connection.
+- **Where**: task 19, `crates/server/src/extensions/builds.rs`. Task 34.
+
+## R116: A page is bundled from its folder, with `uraeda/ui` and `uraeda/page` built in
+
+- **Decision**: `extensions/pages.rs` builds a page with `nsh_bundler::bundle`, into one module.
+  - The build's entry is the server's, in `<data folder>/extensions/pages/<name>/`: `entry.ts`
+    imports `./start`, whose one statement is `host.post("start")`, then the page's entry by its
+    absolute path. The `nsh.json` beside it is the server's too, so the extension's own, if it has
+    one, is never read.
+  - `nsh` and `nsh/base` stay imports, which the client's engine serves. `uraeda/ui` and
+    `uraeda/page` are TSX, and a page runs in an engine of its own, so they cannot be imports the
+    host serves: NSH's UI sets are Rust registries. They are aliases of the build's `nsh.json` to
+    files of the server's **modules folder**, and are built into the package: `ui/index.ts` and
+    `extensions/page.tsx`, the layout of `app/`.
+  - The modules folder is `<data folder>/extensions/modules/`, or the folder the variable
+    `URAEDA_PAGE_MODULES` of the server's environment names: `app/` of a checkout, or the tests'
+    stand-ins in `fixtures/pages/modules/`.
+  - After the build, every file the bundler read (`Bundle::watch_files`) must be in the extension's
+    folder, links resolved, in the modules folder, or the build's own. Any other fails the build,
+    and so does a file that is no code (`.ts`, `.tsx`, `.js`, `.jsx`, `.json`): a page's package
+    carries no asset, since the bundler names an asset from the entry's folder, which is not the
+    extension's.
+  - The folders of the page's files are watched with the server's. After a build that failed, every
+    folder of the extension is, up to 64, without hidden ones and `node_modules`: the bundler does
+    not say where it looked.
+- **What tasks 26 to 34 provide**, and where:
+  - `app/ui/index.ts`: what a page gets of the component library, and `app/extensions/page.tsx`: the
+    page API. Both import only `nsh`, `nsh/base`, and files beside them, in `app/ui/` and
+    `app/extensions/`. No task of 26 to 33 writes an `index.ts`: task 34 does.
+  - Those two folders in the server's binary (`include_dir`, as the skill is, R105), written as
+    `extensions::mount` runs to `<data folder>/extensions/modules/ui/` and `.../extensions/`, anew,
+    before the loader's first read.
+  - If a component of `app/ui/` needs `uraeda/native`, the page's engine must serve it: its
+    `SetDescription` joins `ui_sets` in `pages::bundled`, and its registry the page's view.
+  - If a page must draw with the app's own tokens at build time, its theme goes in the build's
+    `nsh.json`, which `pages::bundled` writes.
+  - Until then, a page that imports one of the two fails its build with
+    `uraeda/ui cannot be imported: this server holds no such module yet`.
+- **Rationale**: the package holds everything that runs, under one signature, on the desktop and in
+  the browser's player alike. The extensions decision loads an extension only from the config
+  folder: the check reads the bundler's own account of what it read, so no second resolver has to
+  agree with it.
+- **How it was checked**: with the check skipped, `a_page_is_built_from_its_extensions_folder_only`
+  fails waiting for `the outside import's problem`: the page was built with the file beside its
+  folder. With the page imported before `start`, the first test fails on the source, where `start`
+  is posted after the page's code.
+- **If wrong**: a page cannot import an image or a font. A fix is NSH's: an asset named from a root
+  the caller gives. `node_modules` inside the extension's own folder is bundled, as its own files.
+- **Where**: task 19, `crates/server/src/extensions/pages.rs`, and the tests
+  `a_page_is_built_from_its_extensions_folder_only` and
+  `a_page_gets_the_apps_modules_from_the_data_folder`. Tasks 34, 51, and 58.
+
+## R117: A page's rights are four functions of its host, and its build's problems are its own
+
+- **Decision**:
+  - A package's capabilities are `{ "host": ["start", "record", "call", "navigate"] }`, the constant
+    `HOST` of `extensions/signing.rs`: `start` for R23, and the three the plan's task 34 has the app
+    answer. Nothing else is granted: no file, process, network, web view, or clipboard. Task 34
+    changes the constant if its channel has other names.
+  - The package carries the bundle's source map, which NSH's engine reads to name a page's files in
+    the errors it logs. It carries no bytecode and no asset. The code is not minified.
+  - A build's problem is kept apart from the server code's, in the entry's `page_failure`, and shown
+    in the row's `problems` after the code's and before what clients reported. Its file is the
+    page's entry, its message the bundler's, with the paths written from the extension's folder. A
+    page that fails leaves the extension's state as its server part has it.
+  - `GET /extensions/:name/page` answers the running version to `If-None-Match`, with 304, so a
+    browser's cache holds a page by its version. A native client asks when `pageVersion` changes.
+- **How it was checked**: with the running page dropped as a build fails,
+  `a_page_that_does_not_compile_keeps_the_last_one_and_says_why` fails on `pageVersion`, null where
+  it was 1.
+- **Where**: task 19, `crates/server/src/extensions/{signing,pages,loader}.rs`. Tasks 34 and 58.

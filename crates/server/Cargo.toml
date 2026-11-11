@@ -22,7 +22,11 @@ hyper-util.workspace = true
 include_dir.workspace = true
 jiff.workspace = true
 libc.workspace = true
+# Extension pages: the modules NSH's own sets serve, the bundler, and the signed package.
+nsh-base.workspace = true
 nsh-bundler.workspace = true
+nsh-core.workspace = true
+nsh-package.workspace = true
 notify.workspace = true
 percent-encoding.workspace = true
 regex.workspace = true

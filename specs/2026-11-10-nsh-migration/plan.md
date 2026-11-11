@@ -1275,31 +1275,47 @@ What the sessions (task 15) rely on:
 
 **Files:**
 
-- Create: `crates/server/src/extensions/{pages,signing}.rs`
-- Test: `crates/server/tests/extension_pages.rs`
+- Create: `crates/server/src/extensions/{pages,signing,builds}.rs`
+- Test: `crates/server/tests/extension_pages.rs`, `fixtures/pages/`
 
 **Interfaces:**
 
 - Consumes: the loader and watcher (task 17); the result of task 2's first check, which holds:
   ruling R22 names the signing calls, and why a page's build number only grows. Ruling R23 asks the
   build to make a post of `start` the page's first statement.
-- Produces:
-  - `GET /extensions/:name/page`: the page as a signed NSH package, and its version.
-  - The record Extensions carries each page's `pageVersion`, which changes on every build.
-  - `GET /extensions/key`: the public key a client trusts, sent only over a signed-in connection.
-  - A compile error keeps the last good package, and is carried in the record as `problem`.
+- Produces (rulings R114 to R117, and "Extension pages" in
+  [`contracts/protocol.md`](contracts/protocol.md)):
+  - `GET /extensions/:name/page`: the page as a signed NSH package, `application/octet-stream`, with
+    its version in `X-Uraeda-Page-Version` and `ETag`; 304 for `If-None-Match` of the running
+    version; 404 without a page.
+  - The record Extensions carries each page's `pageVersion`, the package's build number, which
+    changes on every build of changed code and only grows, across restarts too.
+  - `GET /extensions/key`: the public key a client trusts, in base64, sent only over a signed-in
+    connection.
+  - A build that fails keeps the last good package, and is carried in the row's `problems`.
+  - A page imports its own files, `nsh`, `nsh/base`, and `uraeda/ui` and `uraeda/page`, which are
+    built into it from the server's modules folder: `ui/index.ts` and `extensions/page.tsx` of
+    `<data folder>/extensions/modules/`, or of the folder `URAEDA_PAGE_MODULES` names. Task 34 fills
+    that folder from the binary (ruling R116).
+  - A page's rights are `{ "host": ["start", "record", "call", "navigate"] }`, the constant `HOST`
+    of `extensions/signing.rs`, which task 34 changes if its channel has other names.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a saved page gets a new version and a valid signature`.
   - `a page that does not compile keeps the last one, and says why`.
   - `the signing key never leaves the data folder`: no route or record returns it.
-  - Breaks to make: serve an unsigned package; serve the private key.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, with `nsh-bundler` for the build and NSH's package signing. The key is
-      made at the first start, in the data folder. Give the bundler the UI sets a page may import:
+  - Also: `a build number never goes back across a restart`;
+    `a page is built from its extension's folder only`; and
+    `a page gets the app's modules from the data folder`.
+  - Breaks to make: serve an unsigned package; serve the private key; sign with a key other than the
+    one whose public half is served.
+- [ ] **Step 2: Run them**. Expected: FAIL. Not run in that order: the tests were written once the
+      pages were served, and each was seen failing through its break.
+- [x] **Step 3: Implement**, with `nsh-bundler` for the build and NSH's package signing. The key is
+      made at the first start, in the data folder. Give the bundler the modules a page may import:
       `nsh`, `nsh/base`, `uraeda/ui`, `uraeda/page`. Read NSH's signed-packages pages first.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): build, sign, and serve extension pages`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): build, sign, and serve extension pages`.
 
 ## Task 20: The parity list, and the server's sandbox
 
@@ -1725,6 +1741,10 @@ What the sessions (task 15) rely on:
   of task 2's first two checks, which hold: ruling R22 names the calls that verify and load a
   package, and ruling R23 how the host hears a page's errors, from the engine's log, and knows the
   page from the thread.
+- Owes task 19 (ruling R116): `app/ui/index.ts`, what a page gets of `uraeda/ui`, and
+  `app/extensions/page.tsx`, `uraeda/page`, both importing only `nsh`, `nsh/base`, and files beside
+  them; and those two folders held by the server's binary, written as it mounts to
+  `<data folder>/extensions/modules/{ui,extensions}/`, where the server builds a page from.
 - Produces:
   - The native component `uraeda.extension`, which holds a view of its own per page, with NSH's
     limits and no rights beyond the host's functions.

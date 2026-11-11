@@ -26,16 +26,22 @@
 //!
 //! The server API an extension's `server.ts` gets is declared in `api/server.d.ts`, built in
 //! `api/prelude.js`, and served by `api.rs`.
+//!
+//! An extension's page is built, signed, and served by [`pages`], with the keys of
+//! [`signing`]: a client runs it only when it is signed under the key this server gave it.
 
 mod api;
+mod builds;
 mod events;
 mod fetch;
 mod fs;
 mod graph;
 mod loader;
+mod pages;
 mod process;
 mod routes;
 mod runtime;
+mod signing;
 mod status;
 mod vm;
 mod watch;
@@ -44,6 +50,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use axum::body::Bytes;
 use serde_json::{Value, json};
 use uraeda_core::extensions::{self as core, EXTENSION_API, Extension};
 use uraeda_protocol::{ExtensionRecord, ExtensionRecordArgs, ExtensionState};
@@ -52,6 +59,7 @@ pub use self::events::Happened;
 pub(crate) use self::events::{files_changed, repository_left};
 pub(crate) use self::graph::Problem;
 use self::loader::{State, Wake};
+use self::signing::Signer;
 use self::vm::{CALL, Vm};
 use crate::http::Routes;
 use crate::live::{Fault, locked};
@@ -72,6 +80,7 @@ struct Inner {
     state: Mutex<State>,
     wake: Sender<Wake>,
     steps: events::Steps,
+    signer: Signer,
 }
 
 /// The server's extensions: `shared.get::<Extensions>()`. A handle, cheap to clone.
@@ -84,21 +93,28 @@ pub(crate) struct Shown {
     pub state: ExtensionState,
     pub waiting_for: Option<String>,
     pub page_version: Option<u64>,
-    /// Its manifest's and its settings' problems, then its code's, then its page's.
+    /// Its manifest's and its settings' problems, then its code's, then its page's: why it did
+    /// not build, then what clients reported of it.
     pub problems: Vec<Problem>,
 }
 
 /// Provides the [`Extensions`], mounts their routes, and starts the loader, which loads the
 /// owner's extensions without holding the server's start. `Server::stop` stops every VM.
+///
+/// # Errors
+///
+/// When the key that signs the pages cannot be read or made in the data folder.
 pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure> {
     let (wake, wakes) = mpsc::channel();
     let extensions = Extensions(Arc::new(Inner {
         state: Mutex::default(),
         wake,
         steps: events::Steps::default(),
+        signer: Signer::open(shared.data_dir())?,
     }));
     shared.provide(extensions.clone());
     routes::mount(routes);
+    pages::mount(routes);
     let (loading, loaded) = (shared.clone(), extensions.clone());
     let tasks = tokio::runtime::Handle::current();
     let loader = std::thread::Builder::new()
@@ -209,6 +225,18 @@ impl Extensions {
         locked(&self.0.state)
     }
 
+    /// What signs the pages.
+    fn signer(&self) -> &Signer {
+        &self.0.signer
+    }
+
+    /// The running page of an extension: its version, and its signed package.
+    fn page(&self, name: &str) -> Option<(u64, Bytes)> {
+        let state = self.state();
+        let page = state.entries.get(name)?.page.as_ref()?;
+        Some((page.version, page.package.clone()))
+    }
+
     /// What wakes the loader.
     fn waker(&self) -> Sender<Wake> {
         self.0.wake.clone()
@@ -281,6 +309,7 @@ impl Extensions {
                 shown.waiting_for.clone_from(&entry.waiting_for);
                 shown.page_version = entry.page.as_ref().map(|page| page.version);
                 shown.problems.clone_from(&entry.problems);
+                shown.problems.extend(entry.page_failure.iter().cloned());
                 shown.problems.extend(entry.page_problems.iter().cloned());
             }
             shown

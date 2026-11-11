@@ -6,7 +6,7 @@
 //! The settings file's changes come through the watcher's `CONFIG_CHANGED`.
 //!
 //! - A folder linked or written in place is watched with the folders of its compiled files,
-//!   and of the files its imports were looked for at: a save reloads it.
+//!   of the files its imports were looked for at, and of its page's files: a save reloads it.
 //! - One `ura` installed from git is watched by its `.ura-source` alone, which
 //!   `ura extension update` rewrites.
 
@@ -50,17 +50,19 @@ impl Watches {
         }
     }
 
-    /// Watches what a change of the extension shows in, given the files of its code, from its
-    /// folder. A watch that already covers them is kept.
-    pub(super) fn follow(&mut self, extension: &Extension, files: &[String]) {
+    /// Watches what a change of the extension shows in, given the files of its code and the
+    /// folders of its page's files, from its folder. A watch that already covers them is kept.
+    pub(super) fn follow(&mut self, extension: &Extension, files: &[String], page: &[PathBuf]) {
         let name = &extension.name;
         if extension.folder.is_empty() {
             return self.forget(name);
         }
-        // TASK 19: the folders of the page's files join these.
         let root = PathBuf::from(&extension.folder);
         let targets = match extension.is_linked {
             true => folders(files)
+                .into_iter()
+                .chain(page.iter().cloned())
+                .collect::<BTreeSet<PathBuf>>()
                 .into_iter()
                 .map(|folder| root.join(folder))
                 .collect(),

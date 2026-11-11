@@ -250,7 +250,7 @@ fn resolve_file(
 
 /// The path of `path` inside `folder`, with `/` between its parts: none for the folder itself,
 /// and for a path outside it.
-fn inside(folder: &Path, path: &Path) -> Option<String> {
+pub(super) fn inside(folder: &Path, path: &Path) -> Option<String> {
     let rest = path.strip_prefix(folder).ok()?;
     let mut parts = Vec::new();
     for part in rest.components() {
