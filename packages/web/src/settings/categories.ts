@@ -148,6 +148,12 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     label: "Runs",
     settings: [
       {
+        help: "The agent a new session runs on when nothing picks one, which every picker starts on. Where it is off in a repository, or no longer installed, the first agent on runs. A change applies to the next session.",
+        icon: "uraeda:bot",
+        label: "Default agent",
+        terms: ["runtime", "Claude Code", "Codex"],
+      },
+      {
         help: "Each step's agent, model, and effort, where a clean session starts, the build's implementers, and the reviewers. A feature starts from these, and can change its own. A change applies to the next run.",
         icon: "uraeda:terminal",
         label: "How each step runs",

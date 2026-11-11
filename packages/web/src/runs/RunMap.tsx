@@ -8,14 +8,20 @@
 // press; the keys are the registry's, a selection's while the map holds the focus. The settings'
 // Runs section draws it on the defaults, a feature's page on the feature's own options, with its
 // history in place of the timeline: there a step that started, and every joint before it, keeps
-// what it ran on, and a merged feature's map only reads.
+// what it ran on, and a merged feature's map only reads. A start dialog draws it too, on what the
+// start changes: a dialog is a layer the registry leaves to its owner, so there the map hears the
+// same bindings itself (`keys/layerKeys.ts`), and a change's dialog (`isChange`) draws what a change
+// runs alone, its fix and its reviewers, ↓ ↑ (j k) moving along them too, as they stand in a column.
+import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type FocusEvent, useEffect, useRef, useState } from "react";
 import { KeyCap } from "../keys/KeyCap.tsx";
+import { useInLayer, useLayerKeys } from "../keys/layerKeys.ts";
 import { type Binding, useKeys } from "../keys/registry.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { type BarAction, RowBar } from "../lists/RowBar.tsx";
@@ -23,6 +29,7 @@ import { PickSteps, type PickerRuntime, type SessionPick } from "../SessionPicke
 import {
   type Below,
   belowItems,
+  CHANGE_STEPS,
   moved,
   type Pos,
   posKey,
@@ -41,6 +48,8 @@ const styles = stylex.create({
     rowGap: spacingVars["--spacing-1"],
   },
   map: { outlineStyle: "none" },
+  // A sheet's presses keep their line while the place selected has none, so nothing under it moves.
+  presses: { minBlockSize: sizeVars["--size-element-md"] },
 });
 
 /** What the picker changes: a step's pick, the implementers', or a reviewer's. */
@@ -144,8 +153,14 @@ function actionsOf(
   ];
 }
 
-/** The moves' hints at the place selected: along the track, and down or back up. */
-function movesOf(place: ReturnType<typeof placeOf>): Array<[string, string]> {
+/**
+ * The moves' hints at the place selected: along the track, and down or back up; at a change's
+ * start, down from its fix to its reviewers, along them, and back up.
+ */
+function movesOf(place: ReturnType<typeof placeOf>, isChange: boolean): Array<[string, string]> {
+  if (isChange) {
+    return typeof place === "object" && "step" in place ? [["↓", "reviewers"]] : [["↑ ↓", "move"]];
+  }
   if (typeof place === "object" && "joint" in place) {
     return [["← →", "move"]];
   }
@@ -161,19 +176,39 @@ function movesOf(place: ReturnType<typeof placeOf>): Array<[string, string]> {
 /**
  * Under the map, what the place selected can do, its keys and presses, then the moves' keys. On the
  * phone, where keys are no help, only the presses, floating at the screen's bottom while the map
- * holds the focus, as a row's bar does.
+ * holds the focus, as a row's bar does; in a sheet (`isInLayer`), the top layer, which nothing of
+ * the page floats over, they are buttons under the map.
  */
 function MapBar({
   actions,
   holds,
+  isInLayer,
   moves,
 }: {
   actions: ReadonlyArray<BarAction>;
   holds: boolean;
+  isInLayer: boolean;
   moves: ReadonlyArray<[string, string]>;
 }) {
   if (isNarrow(useWidthClass())) {
-    return holds ? <RowBar actions={actions} /> : null;
+    if (!isInLayer) {
+      return holds ? <RowBar actions={actions} /> : null;
+    }
+    return (
+      <HStack align="center" gap={2} wrap="wrap" xstyle={styles.presses}>
+        {actions.map(
+          (action) =>
+            action.icon !== undefined && (
+              <Button
+                icon={<Icon icon={action.icon} />}
+                key={action.label}
+                label={action.label.charAt(0).toUpperCase() + action.label.slice(1)}
+                onClick={action.run}
+              />
+            ),
+        )}
+      </HStack>
+    );
   }
   return (
     <HStack align="center" wrap="wrap" xstyle={styles.hints}>
@@ -201,16 +236,34 @@ const MOVES: ReadonlyArray<[keys: string, label: string]> = [
 
 const NO_KEYS: ReadonlyArray<Binding> = [];
 
+/** The moves' bindings: each key takes the cursor from `pos` where `to` says, or does nothing. */
+const moveBindings = (
+  pos: Pos,
+  to: (keys: string) => Pos,
+  setPos: (pos: Pos) => void,
+): Array<Binding> =>
+  MOVES.map(([keys, label]) => ({
+    keys,
+    label,
+    run: () => {
+      const next = to(keys);
+      if (posKey(next) === posKey(pos)) {
+        return false;
+      }
+      setPos(next);
+      return undefined;
+    },
+  }));
+
 /**
- * What the map's keys and presses do: pick, cut or join, reset, add, and remove, then move. The
- * keys are the registry's, declared as a selection's while the map holds the focus, so they run
- * before the page's and never mean two things with its `j` `k`: a key that does nothing here, as
- * `j` on a step with nothing under it, goes on to the page's. Space on a joint is the joint's own,
- * a switch's.
+ * What the map's keys and presses do: pick, cut or join, reset, add, and remove, then move, the
+ * cursor going where `to` says. The `bindings` are the registry's, declared as a selection's while
+ * the map holds the focus, so they run before the page's and never mean two things with its `j`
+ * `k`: a key that does nothing here, as `j` on a step with nothing under it, goes on to the page's.
+ * Space on a joint is the joint's own, a switch's.
  */
 function useMapKeys({
   defaults,
-  holds,
   onChange,
   place,
   pos,
@@ -219,10 +272,10 @@ function useMapKeys({
   setPos,
   stages,
   target,
+  to,
   value,
 }: {
   defaults: RunOptions;
-  holds: boolean;
   onChange: (value: RunOptions) => void;
   place: ReturnType<typeof placeOf>;
   pos: Pos;
@@ -231,6 +284,7 @@ function useMapKeys({
   setPos: (pos: Pos) => void;
   stages: FeatureStages | undefined;
   target: Target | undefined;
+  to: (keys: string) => Pos;
   value: RunOptions;
 }) {
   const act = (at: Pos) => {
@@ -291,21 +345,9 @@ function useMapKeys({
           : false,
     },
     { keys: "d", label: "Remove the reviewer", run: remove },
-    ...MOVES.map(([keys, label]) => ({
-      keys,
-      label,
-      run: () => {
-        const next = moved(pos, keys, value.reviewers.length, stages?.shown);
-        if (posKey(next) === posKey(pos)) {
-          return false;
-        }
-        setPos(next);
-        return undefined;
-      },
-    })),
+    ...moveBindings(pos, to, setPos),
   ];
-  useKeys(holds ? bindings : NO_KEYS, "selection");
-  return { act, remove, reset };
+  return { act, bindings, remove, reset };
 }
 
 /**
@@ -342,14 +384,20 @@ function useMapFocus(pos: Pos, setPos: (pos: Pos) => void) {
  */
 export function RunMap({
   defaults,
+  isChange = false,
+  isColumn = false,
   onChange,
   opened,
   runtimes,
   stages,
-  start = { index: 0, row: "track" },
+  start = { index: isChange ? STEPS.indexOf("build") * 2 : 0, row: "track" },
   value,
 }: {
   defaults: RunOptions;
+  /** A change's start: its fix and its reviewers alone. */
+  isChange?: boolean;
+  /** The track as a column whatever the width, as a semi-wide screen's dialog asks. */
+  isColumn?: boolean;
   onChange: (value: RunOptions) => void;
   opened?: "model" | "effort";
   runtimes: ReadonlyArray<PickerRuntime>;
@@ -366,9 +414,9 @@ export function RunMap({
     place === "implementers" || (typeof place === "object" && !("joint" in place))
       ? place
       : undefined;
-  const { act, remove, reset } = useMapKeys({
+  const shown = stages?.shown ?? (isChange ? CHANGE_STEPS : STEPS);
+  const { act, bindings, remove, reset } = useMapKeys({
     defaults,
-    holds,
     onChange,
     place,
     pos,
@@ -377,8 +425,13 @@ export function RunMap({
     setPos,
     stages,
     target,
+    to: (keys) => moved(pos, keys, value.reviewers.length, shown, isChange),
     value,
   });
+  // On a page the keys are the registry's; in a dialog, a layer it leaves alone, the map's own.
+  useKeys(holds ? bindings : NO_KEYS, "selection");
+  const keyed = useLayerKeys(bindings);
+  const isInLayer = useInLayer(map);
   const isFixed = !isEditable(place, stages);
   const does: Does = {
     act: () => act(pos),
@@ -391,12 +444,15 @@ export function RunMap({
         aria-label="How each step runs"
         onBlur={onBlur}
         onFocus={onFocus}
+        onKeyDown={keyed}
         ref={map}
         role="group"
         {...stylex.props(styles.map)}
       >
         <RunTrack
           defaults={defaults}
+          isChange={isChange}
+          isColumn={isColumn}
           onPress={(at) => {
             setPos(at);
             act(at);
@@ -410,7 +466,8 @@ export function RunMap({
       <MapBar
         actions={actionsOf(place, value, isFixed, does)}
         holds={holds}
-        moves={movesOf(place)}
+        isInLayer={isInLayer}
+        moves={movesOf(place, isChange)}
       />
       {target !== undefined && !isFixed && (
         <PickSteps

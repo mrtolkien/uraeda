@@ -140,6 +140,13 @@ pub fn set_automatic_continues(dir: String, continues: String) -> AsyncTask<Job<
     job(move || settings::set_automatic_continues(Path::new(&dir), &continues))
 }
 
+/// Sets the agent a new session runs on when nothing picks one, or removes it for `null`: the
+/// first agent on is then the default. Rejects with `refused: ` an empty name.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_default_agent(dir: String, agent: Option<String>) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_default_agent(Path::new(&dir), agent.as_deref()))
+}
+
 /// Sets whether the text fields edit with Vim's keys.
 #[napi(ts_return_type = "Promise<Settings>")]
 pub fn set_vim_mode(dir: String, on: bool) -> AsyncTask<Job<Settings>> {

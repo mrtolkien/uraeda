@@ -277,6 +277,12 @@ test.each<{
   ).toMatchObject(view);
 });
 
+test("the default agent is the file's, and none without one", () => {
+  expect(inForce(none, null).runs.defaultAgent).toBeNull();
+  const runs = { defaultAgent: "codex", options: { steps: [] } };
+  expect(inForce(none, { ...file, runs }).runs.defaultAgent).toBe("codex");
+});
+
 test("single-key shortcuts are on by default, and the file's value turns them off", () => {
   expect(inForce(none, null).keyboard.singleKeyShortcuts).toEqual({
     inForce: true,

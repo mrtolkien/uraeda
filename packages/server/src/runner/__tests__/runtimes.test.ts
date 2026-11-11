@@ -105,6 +105,44 @@ test("a runtime registered again keeps its place, and the default runtime", () =
   expect(runtimes.defaultFor(null)).toBe("claude");
 });
 
+test("the default agent of the settings comes first where it is on, else the first runtime on", () => {
+  const { durable, runtimes } = twoRuntimes();
+  const kinds = (repo: string | null) =>
+    runtimes.records(repo, NO_USAGE).map((record) => record.kind);
+  expect(runtimes.defaultFor(null)).toBe("claude");
+
+  runtimes.prefer("pi-durable");
+
+  expect(runtimes.defaultFor(null)).toBe("pi-durable");
+  expect(kinds(null)).toEqual(["pi-durable", "claude"]);
+  expect(runtimes.forRepository(null)[0]).toBe(durable);
+  // The names keep their registration order, whatever the default.
+  expect(runtimes.names()).toEqual(["claude", "pi-durable"]);
+  // A name that is not registered falls back, without failing.
+  runtimes.prefer("gone");
+  expect(runtimes.defaultFor(null)).toBe("claude");
+  expect(kinds(null)).toEqual(["claude", "pi-durable"]);
+  // Unset, the first runtime on again.
+  runtimes.prefer(undefined);
+  expect(runtimes.defaultFor(null)).toBe("claude");
+});
+
+test("a default agent off in a repository leaves it to the first runtime on there", () => {
+  const { runtimes } = twoRuntimes({ "pi-durable": false });
+  const changes: Array<string> = [];
+  runtimes.onChange(() => changes.push("changed"));
+
+  runtimes.prefer("pi-durable");
+  runtimes.prefer("pi-durable");
+
+  expect(changes).toEqual(["changed"]);
+  expect(runtimes.defaultFor(null)).toBe("claude");
+  expect(runtimes.records(null, NO_USAGE).map((record) => record.kind)).toEqual([
+    "claude",
+    "pi-durable",
+  ]);
+});
+
 test("a session made without a pick runs on its step's, one picked keeps it, and a run of its step stays there (R18)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
   await runtimes.refreshModels();

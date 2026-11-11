@@ -63,6 +63,11 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.setContinue(dir, input.key, input.on)),
     type: "Settings",
   },
+  "settings.setDefaultAgent": {
+    resolve: ({ input, ...call }: ListResolver<{ agent: string | null }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setDefaultAgent(dir, input.agent)),
+    type: "Settings",
+  },
   "settings.setOpenBrowser": {
     resolve: ({ input, ...call }: ListResolver<{ open: boolean }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setOpenBrowser(dir, input.open)),

@@ -33,6 +33,8 @@ export type ServerActions = {
   removeHost: (name: string) => Promise<string | undefined>;
   setAutomaticContinues: (continues: string) => Promise<string | undefined>;
   setContinue: (key: ContinueKey, on: boolean) => Promise<string | undefined>;
+  /** The agent a new session runs on when nothing picks one: null for the first one on. */
+  setDefaultAgent: (agent: string | null) => Promise<string | undefined>;
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
   setRunOptions: (options: StoredOptions) => Promise<string | undefined>;

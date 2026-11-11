@@ -172,7 +172,8 @@ export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
 };
 
 /**
- * The agent runtimes sessions run on, in registration order, with what each can do, its usage, and
+ * The agent runtimes sessions run on, the one a new session runs on here first, then in
+ * registration order, with what each can do, its usage, and
  * whether it is on in the endpoint's repository: one record, `agent`.
  */
 export type AgentRecord = { id: string; runtimes: Array<RuntimeRecord> };

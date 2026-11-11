@@ -393,6 +393,9 @@
     --size-label-line: calc(var(--text-label-size) * var(--text-label-leading));
     --size-form: 560px;
     --size-picker: min(640px, 92vw);
+    --size-start: min(1200px, 92vw);
+    --size-start-column: min(640px, 92vw);
+    --size-start-height: 92dvh;
     --size-quick-add: 640px;
     --size-story-desktop: 1440px;
     --size-story-height: 560px;

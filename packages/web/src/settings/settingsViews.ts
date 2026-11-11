@@ -25,6 +25,7 @@ export const SettingsRecordView = view<Settings>()({
     claudeEffortFromEnv: true,
     continueAfterLimit: SettingSelection,
     continueAfterRestart: SettingSelection,
+    defaultAgent: true,
     options: true,
     scheduledJobs: SettingSelection,
   },

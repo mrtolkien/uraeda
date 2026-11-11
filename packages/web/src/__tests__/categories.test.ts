@@ -8,6 +8,8 @@ test.each([
   // The run map's row, by the old setting's words and by what it sets.
   ["FRESH", [["How each step runs", "Runs"]]],
   ["reviewer", [["How each step runs", "Runs"]]],
+  // The default agent, by the old word for an agent.
+  ["runtime", [["Default agent", "Runs"]]],
   // The continues' switches and their cap, under Runs.
   [
     "Continue",

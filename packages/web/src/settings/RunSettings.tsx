@@ -1,9 +1,10 @@
-// The Runs section: how each step runs, the run map over the settings' run options, which every
+// The Runs section: the default agent, which a new session runs on; how each step runs, the run map over the settings' run options, which every
 // feature starts from; whether Uraeda continues a run by itself after a restart or a usage limit,
 // and how many times in a row; whether it catches up open pull requests behind the default branch;
 // whether the scheduled jobs start at their times.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Selector } from "@astryxdesign/core/Selector";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -41,6 +42,14 @@ const CAP = "Automatic continues in a row";
 const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10.";
 
 const STEP_RUNS = "How each step runs";
+
+const DEFAULT_AGENT = "Default agent";
+
+/** The choice of no default agent, which no agent is named as: a name holds no colon. */
+const FIRST_ON = ":first";
+
+/** An agent the default agent is picked among: the name it is registered as, and its name. */
+export type AgentChoice = { kind: string; name: string };
 
 /** The longest an edit saved stays shown while the record does not hold it yet, in ms. */
 const HOLD_MS = 2000;
@@ -130,6 +139,57 @@ function StepRuns({
 }
 
 /**
+ * The default agent: "The first one on", then every agent registered, by name, so the list keeps
+ * its order whichever is picked; saved at once, with its refusal. A saved name no agent has stays
+ * listed, with the line that says the first one on runs.
+ */
+function DefaultAgent({
+  actions,
+  agents,
+  category,
+  values,
+}: RowProps & { agents: ReadonlyArray<AgentChoice> }) {
+  const setting = settingOf(category, DEFAULT_AGENT);
+  const [refused, setRefused] = useRefusal(setting.label);
+  const saved = values.runs.defaultAgent;
+  const isGone = saved !== null && !agents.some((agent) => agent.kind === saved);
+  const listed = agents
+    .map((agent) => ({ label: agent.name, value: agent.kind }))
+    .sort((one, other) => one.label.localeCompare(other.label));
+  const options = [
+    { label: "The first one on", value: FIRST_ON },
+    ...listed,
+    ...(isGone ? [{ label: saved, value: saved }] : []),
+  ];
+  return (
+    <SettingRow
+      notes={
+        <>
+          {isGone && (
+            <Text color="accent">No agent is named {saved} here: the first one on runs.</Text>
+          )}
+          {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+        </>
+      }
+      setting={setting}
+    >
+      <Selector
+        isLabelHidden
+        label={setting.label}
+        onChange={async (kind: string) => {
+          setRefused(undefined);
+          setRefused(await actions.setDefaultAgent(kind === FIRST_ON ? null : kind));
+        }}
+        options={options}
+        presentation="popover"
+        value={saved ?? FIRST_ON}
+        width="24ch"
+      />
+    </SettingRow>
+  );
+}
+
+/**
  * A kind of automatic run's switch, saved at once, with the flag or the variable that sets it
  * for this run, and its refusal, under it.
  */
@@ -195,11 +255,16 @@ function AutomaticContinues({ actions, category, values }: RowProps) {
  */
 export function RunSettings({
   actions,
+  agents,
   category,
   runtimes,
   shows,
   values,
-}: RowProps & { runtimes: ReadonlyArray<PickerRuntime>; shows: (label: string) => boolean }) {
+}: RowProps & {
+  agents: ReadonlyArray<AgentChoice>;
+  runtimes: ReadonlyArray<PickerRuntime>;
+  shows: (label: string) => boolean;
+}) {
   const props = { actions, category, values };
   const kinds = CONTINUES.filter((kind) => shows(kind.label));
   const isContinuing = !values.problem && (kinds.length > 0 || shows(CAP));
@@ -207,6 +272,7 @@ export function RunSettings({
     <VStack>
       {values.problem && <FileProblem problem={values.problem} />}
       <SettingRows>
+        {!values.problem && shows(DEFAULT_AGENT) && <DefaultAgent {...props} agents={agents} />}
         {!values.problem && shows(STEP_RUNS) && <StepRuns {...props} runtimes={runtimes} />}
         {!values.problem &&
           kinds.map((kind) => <ContinueSwitch key={kind.key} {...props} kind={kind} />)}

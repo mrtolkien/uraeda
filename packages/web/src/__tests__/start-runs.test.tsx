@@ -1,7 +1,9 @@
-// The start dialogs' run strip (spec of Run options, US5 and SC-001): Tab reaches it, the map's keys
-// move along it and open the picker, and the start keeps as the feature's own options only what the
-// strip changed, so every value left alone follows the settings at each run. And the feature page's
-// map: drawn once the settings are read, without holding the page, and saved in the edits' order.
+// The start dialogs' run map (spec of Run options, US5 and SC-001): the settings' map, drawn in the
+// dialog, a change's with its fix and its reviewers alone. Tab reaches it, its keys move along it
+// and open the picker there as they do on a page, and the start keeps as the feature's own options
+// only what the map changed, so every value left alone follows the settings at each run. And the
+// feature page's map: drawn once the settings are read, without holding the page, and saved in the
+// edits' order.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { FakeAdapter } from "uraeda-server/testing";
@@ -77,36 +79,52 @@ async function ownOptions(fetch: typeof globalThis.fetch, name: string, folder =
   return body.results[0]?.data[0]?.runOptions.own;
 }
 
-test("a feature started with Spec on Opus keeps only that pick", async () => {
+/** The start dialog `title` of the New page for `kind`, opened on `text` typed in its composer `box`. */
+async function startDialog(kind: "feature" | "change", box: string, text: string, title: string) {
   const repo = fixtureRepo();
   const fake = await twoRuntimes();
   const fetch = serverFetch(repo, fake.sessions);
-  const { name } = await renderPage("/new?kind=feature", repo, { agent: fake, fetch });
-  await type(
-    await screen.findByRole("textbox", { name: "Write Proposal" }),
-    "Dark mode: follow the system theme",
-  );
-  await click(await screen.findByRole("button", { name: "Start the feature" }));
-  const dialog = await screen.findByRole("dialog", { name: "Name the feature" });
+  const { name } = await renderPage(`/new?kind=${kind}`, repo, { agent: fake, fetch });
+  await type(await screen.findByRole("textbox", { name: box }), text);
+  await click(await screen.findByRole("button", { name: `Start the ${kind}` }));
+  const dialog = await screen.findByRole("dialog", { name: title });
   await waitFor(() =>
-    expect(fieldText(within(dialog).getByRole("textbox", { name: "Short name" }))).toBe(
-      "dark-mode",
-    ),
+    expect(fieldText(within(dialog).getByRole("textbox", { name: "Short name" }))).not.toBe(""),
   );
-  expect(within(dialog).getByText("Runs")).toBeTruthy();
-  expect(within(dialog).getByText("defaults")).toBeTruthy();
+  return { dialog, fetch, name };
+}
 
-  // Tab reaches the strip on its first step, its one tab stop.
-  const strip = within(dialog).getByRole("group", { name: "How each step runs" });
-  const stops = within(strip)
+/** The map's places that take the focus by Tab: its cursor's, alone. */
+const stopsOf = (map: HTMLElement) =>
+  within(map)
     .getAllByRole("button")
-    .filter((button) => button.tabIndex === 0);
-  expect(stops.map((stop) => stop.getAttribute("aria-label"))).toEqual(["Discovery"]);
-  act(() => stops[0]!.focus());
-  // The map's keys: → over the joint, then to Spec, and Enter opens the picker.
+    .concat(within(map).queryAllByRole("switch"))
+    .filter((button) => button.tabIndex === 0)
+    .map((stop) => stop.getAttribute("aria-label"));
+
+test("a feature started with Spec on Opus keeps only that pick", async () => {
+  const { dialog, fetch, name } = await startDialog(
+    "feature",
+    "Write Proposal",
+    "Dark mode: follow the system theme",
+    "Name the feature",
+  );
+  expect(fieldText(within(dialog).getByRole("textbox", { name: "Short name" }))).toBe("dark-mode");
+  expect(within(dialog).getByText("How each step runs")).toBeTruthy();
+
+  // The dialog draws the settings' map, whole: its six steps, the implementers, the reviewers.
+  const map = within(dialog).getByRole("group", { name: "How each step runs" });
+  for (const place of ["Discovery", "Spec", "Plan", "Build", "Review", "Comments"]) {
+    expect(within(map).getByRole("button", { name: place })).toBeTruthy();
+  }
+  expect(within(map).getByRole("button", { name: "Implementers" })).toBeTruthy();
+  // Tab reaches the map on its first step, its one tab stop.
+  expect(stopsOf(map)).toEqual(["Discovery"]);
+  act(() => within(map).getByRole("button", { name: "Discovery" }).focus());
+  // The map's keys, heard in the dialog: → over the joint, then to Spec.
   act(() => press("ArrowRight"));
   const joint = document.activeElement;
-  expect(joint?.getAttribute("aria-label")).toBe("Discovery to Spec");
+  expect(joint?.getAttribute("aria-label")).toMatch(/^Discovery to Spec:/);
   // Enter cuts the joint, a switch, and `r` puts it back to the default.
   act(() => press("Enter"));
   expect(joint?.getAttribute("aria-checked")).toBe("true");
@@ -114,11 +132,15 @@ test("a feature started with Spec on Opus keeps only that pick", async () => {
   expect(joint?.getAttribute("aria-checked")).toBe("false");
   act(() => press("ArrowRight"));
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Spec");
+  // Enter on a step opens its picker, and starts nothing: the dialog stays, the page too.
   act(() => press("Enter"));
   await pickRow("Find a model", "Opus");
   await pickRow("Find an effort", "High");
+  expect(window.location.pathname).toMatch(/\/new$/);
 
-  await waitFor(() => expect(within(dialog).getByText("Spec on Opus · High")).toBeTruthy());
+  await waitFor(() =>
+    expect(within(map).getByRole("button", { name: "Spec" }).textContent).toMatch(/Opus/),
+  );
   await click(within(dialog).getByRole("button", { name: "Start the feature" }));
 
   await waitFor(async () =>
@@ -126,6 +148,39 @@ test("a feature started with Spec on Opus keeps only that pick", async () => {
       steps: [{ agent: "claude", effort: "high", model: "opus", step: "spec" }],
     }),
   );
+});
+
+test("a change's dialog draws what a change runs: its fix and its reviewers", async () => {
+  const { dialog } = await startDialog(
+    "change",
+    "Message Claude Code",
+    "Centre the x in failure circles",
+    "Name the change",
+  );
+  expect(within(dialog).getByText("How the change runs")).toBeTruthy();
+  const map = within(dialog).getByRole("group", { name: "How each step runs" });
+  const places = () =>
+    within(map)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"));
+  expect(places()).toEqual(["Fix", "Reviewer 1", "Add a reviewer"]);
+  expect(within(map).queryAllByRole("switch")).toEqual([]);
+
+  // ↓ goes from the fix to its reviewers and along them, `a` adds one, `d` removes the one selected.
+  expect(stopsOf(map)).toEqual(["Fix"]);
+  act(() => within(map).getByRole("button", { name: "Fix" }).focus());
+  act(() => press("ArrowRight"));
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Fix");
+  act(() => press("ArrowDown"));
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Reviewer 1");
+  act(() => press("a"));
+  expect(places()).toEqual(["Fix", "Reviewer 1", "Reviewer 2", "Add a reviewer"]);
+  act(() => press("ArrowDown"));
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Reviewer 2");
+  act(() => press("d"));
+  expect(places()).toEqual(["Fix", "Reviewer 1", "Add a reviewer"]);
+  act(() => press("ArrowUp"));
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Fix");
 });
 
 /**

@@ -429,6 +429,13 @@ export const uraedaTheme = defineTheme({
     // A picker with no preview beside its list, the repositories' on wide and semi-wide screens: as
     // wide as the ＋ forms' dialog, and, as the palette, leaving the page's edges in view.
     "--size-picker": "min(640px, 92vw)",
+    // A start dialog with the run map. On wide screens, the map's six steps and their joints in a
+    // row, each step's model and effort read whole, leaving the page's edges in view. Where the
+    // map is a column, a change's, its fix over its reviewers, and a feature's on semi-wide
+    // screens, as wide as the ＋ forms' dialog. As tall as its content, up to most of the window.
+    "--size-start": "min(1200px, 92vw)",
+    "--size-start-column": "min(640px, 92vw)",
+    "--size-start-height": "92dvh",
     // The ＋ forms' dialog: its buttons, "Attach an image" to "Add as a file", on one line.
     "--size-quick-add": "640px",
     // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a

@@ -19,9 +19,10 @@ import { ExtensionsRecordView, SettingsRecordView } from "./settingsViews.ts";
 import { categoryOf } from "./categories.ts";
 import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";
+import type { AgentChoice } from "./RunSettings.tsx";
 import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
-import { useRuntimesOn } from "../runtimes.ts";
+import { useRuntimes, useRuntimesOn } from "../runtimes.ts";
 import { type PickerRuntime, pickerRuntimes } from "../SessionPicker.tsx";
 import { useThemes } from "../useThemes.ts";
 import type { AppearanceThemes } from "./AppearanceSettings.tsx";
@@ -118,10 +119,13 @@ function useExtensionsSection(repository: Client): {
  * what the Runs section's map picks from.
  */
 function OnSettings({
+  agents,
   category,
   repository,
   runtimes,
 }: {
+  /** Every agent registered, on here or not, which the default agent is picked among. */
+  agents: ReadonlyArray<AgentChoice>;
   category?: string;
   repository: Client;
   runtimes: ReadonlyArray<PickerRuntime>;
@@ -155,6 +159,14 @@ function OnSettings({
     setContinue: (key, on) =>
       run(() =>
         change.setContinue({ input: { key, on }, optimistic: shown.setContinue(key, on), view }),
+      ),
+    setDefaultAgent: (agent) =>
+      run(() =>
+        change.setDefaultAgent({
+          input: { agent },
+          optimistic: shown.setDefaultAgent(agent),
+          view,
+        }),
       ),
     setOpenBrowser: (open) =>
       run(() =>
@@ -191,6 +203,7 @@ function OnSettings({
   };
   return (
     <SettingsView
+      agents={agents}
       category={category === undefined ? undefined : categoryOf(category)?.id}
       extensionActions={extensions.actions}
       extensions={extensions.values}
@@ -208,11 +221,12 @@ function OnSettings({
  */
 export function SettingsPage({ category }: { category?: string }) {
   const repository = useFateClient();
+  const agents = useRuntimes();
   const on = useRuntimesOn();
   const runtimes = useMemo(() => pickerRuntimes(on), [on]);
   return (
     <OnListClient>
-      <OnSettings category={category} repository={repository} runtimes={runtimes} />
+      <OnSettings agents={agents} category={category} repository={repository} runtimes={runtimes} />
     </OnListClient>
   );
 }

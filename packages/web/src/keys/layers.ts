@@ -53,6 +53,14 @@ export function isLayerOpen(target?: EventTarget | null) {
   }
 }
 
+/**
+ * Whether `element` is drawn inside a layer, a dialog, a sheet, a menu: there the registry runs no
+ * binding, and what the element's keys do is its owner's to hear (`layerKeys.ts`).
+ */
+export function inLayer(element: Element | null | undefined) {
+  return element?.closest(INSIDE) != null;
+}
+
 /** What changes whether a layer is open, besides the nodes coming and going. */
 const WATCHED = ["aria-expanded", "aria-haspopup", "class", "hidden", "open", "popover", "role"];
 

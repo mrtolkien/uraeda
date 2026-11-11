@@ -12,7 +12,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | Key                       | Does                                                                                                                      | Where                                 |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `j` `k`, `↑` `↓`          | Move the selection or the cursor, or scroll a page with neither, gliding as a browser's arrows do                         | Every page                            |
-| `h` `l`, `←` `→`          | Move between columns or panes                                                                                             | A page of columns: home, priorities   |
+| `h` `l`, `←` `→`          | Move between columns or panes                                                                                             | Columns: home, priorities, a session  |
 | `Enter`                   | The selection's obvious action: open it, or the page's next step                                                          | Every page with a selection or a step |
 | `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                       | Every editable selection              |
 | `a`, `o`                  | Add: `a` in the selected row's section on the priorities, else at the page's default place; `o` beside the selection      | A list of rows: priorities, inbox     |
@@ -84,6 +84,13 @@ on the Git page. `:q`, or `b` outside the text, goes back, asking first while th
   my keyboard-driven cursor on 'add to now/next/...' and press enter").
 - **It moves in two dimensions** where the page has columns: `h` `l` cross them, keeping the row's
   height where it can.
+- **A session's column is crossed the same way**: `l` moves the focus from the page into the column,
+  unfolding it first, onto its first row, and `h` gives it back to where it was. There `j` `k` move
+  from row to row, the plan's progress at its foot included, and `Enter` is the row's own, a link's
+  or a button's. A part with no row, as the Activity's calls, takes the focus itself, and `j` `k`
+  scroll it. `k` past the first row reaches the tabs, where `h` `l` open the previous and the next
+  one, and `h` on the first goes back to the page (`layout/columnKeys.ts`). The status line names
+  `h l column`.
 - **On a list, the mouse moves it too.** Moving the pointer onto a row moves the selection there; a
   click selects; a click on the selected row, or a double click, edits it. A row that slides under a
   resting pointer, as the page scrolls or a list grows, takes nothing: only a pointer that moves

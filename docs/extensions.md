@@ -224,10 +224,10 @@ extension's name. A session stores the name of the runtime it was started on, an
 it. A picker shows wherever a message makes a session: the composer of a new chat or of a feature's
 new session, and "Apply the answers" of a round; the start dialogs and the settings' run map pick a
 runtime for each workflow step. It offers every runtime on, with the models of those that list them,
-and picks the first runtime on, Claude Code, then Codex, before yours, until you pick another. Where
-a session's runtime is off, its transcript shows, and the composer says
-`pi-durable is off: turn it on to continue this session`. Where every runtime is off, starting a
-session says `No agent runtime is on here: turn one on in Settings, Extensions`.
+and picks the settings' default agent where it is on, else the first runtime on, Claude Code, then
+Codex, before yours, until you pick another. Where a session's runtime is off, its transcript shows,
+and the composer says `pi-durable is off: turn it on to continue this session`. Where every runtime
+is off, starting a session says `No agent runtime is on here: turn one on in Settings, Extensions`.
 
 A runtime implements the contract every agent is reached through, the `Runtime` type of
 `uraeda/server`: its `name`, `kind`, `icon`, and `capabilities`, `open` for a session's process,

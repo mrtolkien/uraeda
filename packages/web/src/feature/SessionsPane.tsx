@@ -28,7 +28,7 @@ import { CardRow } from "../sidebar/CardRow.tsx";
 import { Empty } from "../layout/Empty.tsx";
 import { statusLabel } from "../wait.ts";
 import { useRuntimesAvailable } from "../runtimes.ts";
-import { SubSessionRow } from "../runs/SubSessionRow.tsx";
+import { SubSessionCards } from "../runs/SubSessionRow.tsx";
 import type { SubSession } from "../runs/subSessions.ts";
 
 const styles = stylex.create({
@@ -73,16 +73,14 @@ function LastRun({ id }: { id: string }) {
 /** What the row of a session reads beside its session. */
 type RowProps = { folder: string; latest: boolean; progress?: TaskProgress | null };
 
-/** A session's sub-sessions, nested under it: "Sub-sessions · 5", then each one's row. */
+/** A session's sub-sessions, nested under it: "Sub-sessions · 5", then each one's card. */
 function SubSessionList({ subs }: { subs: ReadonlyArray<SubSession> }) {
   return (
-    <VStack gap={1} xstyle={styles.subs}>
+    <VStack gap={2} xstyle={styles.subs}>
       <Text type="supporting" weight="bold">
         <span {...stylex.props(styles.subsTitle)}>{`Sub-sessions · ${subs.length}`}</span>
       </Text>
-      {subs.map((sub) => (
-        <SubSessionRow key={sub.id} sub={sub} />
-      ))}
+      <SubSessionCards subs={subs} />
     </VStack>
   );
 }

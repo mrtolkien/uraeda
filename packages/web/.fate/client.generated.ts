@@ -496,6 +496,11 @@ const mutations = {
     FateAPI['mutations']['settings.setContinue']['input'],
     FateAPI['mutations']['settings.setContinue']['output']
   >('Settings'),
+  'settings.setDefaultAgent': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setDefaultAgent']['input'],
+    FateAPI['mutations']['settings.setDefaultAgent']['output']
+  >('Settings'),
   'settings.setOpenBrowser': mutation<
     Settings,
     FateAPI['mutations']['settings.setOpenBrowser']['input'],

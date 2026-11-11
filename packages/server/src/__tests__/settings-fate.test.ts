@@ -62,6 +62,7 @@ const runDefaults = {
   catchUpPullRequests: { inForce: false, saved: null, source: { kind: "default" } },
   continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
   continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+  defaultAgent: null,
   options: { steps: [] },
   scheduledJobs: { inForce: true, saved: null, source: { kind: "default" } },
 };
@@ -216,6 +217,25 @@ test("turning single-key shortcuts off answers the record and writes the file", 
   });
   expect((await binding.readSettings(opened.configDir)).keyboard.singleKeyShortcuts).toBe(false);
   expect((await record(opened)).keyboard.singleKeyShortcuts.inForce).toBe(false);
+});
+
+test("the default agent is written, read by the runtimes, and removed", async () => {
+  const opened = await testApp();
+  const { runtimes } = opened.sessions;
+  const first = runtimes.defaultFor(null);
+
+  // A name no runtime has is kept as written, and the first runtime on stays the default.
+  const picked = await change(opened, "setDefaultAgent", { agent: "gone" });
+
+  expect(picked.error).toBeUndefined();
+  expect(picked.data.runs.defaultAgent).toBe("gone");
+  expect((await binding.readSettings(opened.configDir)).runs.defaultAgent).toBe("gone");
+  expect(runtimes.defaultFor(null)).toBe(first);
+  const refused = await change(opened, "setDefaultAgent", { agent: " " });
+  expect(refused.error?.message).toContain("The agent is empty.");
+  const cleared = await change(opened, "setDefaultAgent", { agent: null });
+  expect(cleared.data.runs.defaultAgent).toBeNull();
+  expect((await binding.readSettings(opened.configDir)).runs.defaultAgent).toBeUndefined();
 });
 
 test("turning Vim on and setting its commands answer the record and write the file", async () => {

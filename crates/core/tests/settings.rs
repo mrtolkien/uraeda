@@ -75,6 +75,7 @@ fn reads_each_file() {
             automatic_continues: Some(4),
             catch_up_pull_requests: Some(true),
             scheduled_jobs: Some(false),
+            default_agent: Some("codex".into()),
             options: RunOptions::default(),
         },
         ..Settings::default()
@@ -85,7 +86,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\nscheduled_jobs = false\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\ncontinue_after_restart = false\ncontinue_after_limit = true\nautomatic_continues = 4\ncatch_up_pull_requests = true\nscheduled_jobs = false\ndefault_agent = \" codex \"\n",
             ),
             Ok(full),
         ),
@@ -382,6 +383,40 @@ fn sets_the_automatic_continues() {
     }
     assert_eq!(settings::automatic_continues("10"), Ok(10));
     assert_eq!(settings::automatic_continues("1"), Ok(1));
+}
+
+#[test]
+fn sets_the_default_agent() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        "[runs]\ndefault_agent = \"claude\" # mine\nautomatic_continues = 3\n",
+    );
+
+    let saved = settings::set_default_agent(dir.path(), Some(" codex ")).unwrap();
+
+    assert_eq!(saved.runs.default_agent.as_deref(), Some("codex"));
+    let written = "[runs]\ndefault_agent = \"codex\" # mine\nautomatic_continues = 3\n";
+    assert_eq!(text(dir.path()), written);
+    assert_eq!(
+        settings::set_default_agent(dir.path(), Some(" ")),
+        Err(refused("The agent is empty."))
+    );
+    assert_eq!(text(dir.path()), written);
+    // Unset, the first agent on is the default again: the key leaves the file.
+    let cleared = settings::set_default_agent(dir.path(), None).unwrap();
+    assert_eq!(cleared.runs.default_agent, None);
+    assert_eq!(text(dir.path()), "[runs]\nautomatic_continues = 3\n");
+    // An empty name in the file is no pick, and a value that is not a name is its problem.
+    write(dir.path(), "[runs]\ndefault_agent = \"\"\n");
+    assert_eq!(settings::read(dir.path()).unwrap().runs.default_agent, None);
+    write(dir.path(), "[runs]\ndefault_agent = 3\n");
+    assert!(
+        settings::read(dir.path())
+            .unwrap_err()
+            .message
+            .ends_with("line 2, default_agent: The default agent is a name, like \"claude\".")
+    );
 }
 
 #[test]

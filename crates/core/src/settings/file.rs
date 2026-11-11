@@ -198,6 +198,17 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
         "scheduled_jobs",
         "Running scheduled jobs is true or false.",
     )?;
+    if let Some((key, item)) = runs.get_key_value("default_agent") {
+        let agent = item.as_str().ok_or_else(|| {
+            (
+                offset(key, item),
+                "default_agent".into(),
+                "The default agent is a name, like \"claude\".".to_owned(),
+            )
+        })?;
+        // An empty name is no pick: the first agent on.
+        settings.default_agent = Some(agent.trim().to_owned()).filter(|agent| !agent.is_empty());
+    }
     settings.options = super::runs::parse(runs, fresh)?;
     Ok(settings)
 }

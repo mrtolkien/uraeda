@@ -53,12 +53,14 @@ const styles = stylex.create({
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line. `look` draws the closed line as text, by default, or as a bordered field, for
  * a value to change like a setting's. `empty` is the refusal of an empty text, a proposal's by
- * default. Each new `opens` above 0 opens the field, as a key of the page does.
+ * default. Each new `opens` above 0 opens the field, as a key of the page does. With
+ * `isHiddenClosed`, the closed line draws nothing but its save's status: a button elsewhere opens it.
  */
 export function EditableLine({
   display,
   empty,
   field: key,
+  isHiddenClosed = false,
   label,
   look = "text",
   onSave,
@@ -69,6 +71,7 @@ export function EditableLine({
   display?: ReactNode;
   empty?: string;
   field: string;
+  isHiddenClosed?: boolean;
   label: string;
   look?: "text" | "field";
   onSave: (text: string) => Promise<string | undefined>;
@@ -84,6 +87,9 @@ export function EditableLine({
     }
   }, [opens]);
 
+  if (!line.open && isHiddenClosed) {
+    return line.state.kind === "saved" ? <SaveStatus dirty={false} state={line.state} /> : null;
+  }
   if (!line.open) {
     return (
       <VStack gap={1}>

@@ -6,9 +6,10 @@
 // the Activity. On the phone, the bottom bar's tiles instead, as the documents' pages have them:
 // Activity, Changes, Sub-agents while any run, and the plan's progress, the first three opening the
 // column in a sheet kept in the address (`useSheetTab`, ruling R3). While the main
-// agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins
-// it (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
-// change keeps.
+// agent runs sub-agents, or while the address opens it, a Sub-agents panel joins it, alone in its
+// tab (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
+// change keeps. The keyboard crosses into the column with `l` and back with `h`, and moves through
+// its rows with `j` `k` (`layout/columnKeys.ts`).
 import { Heading } from "@astryxdesign/core/Heading";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -61,8 +62,7 @@ type Of = { folder?: string | undefined; session?: string | undefined };
 /**
  * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab;
  * then, while the session has sub-sessions, while `running` sub-agents or sub-sessions work, or
- * while the address's tab, `asked`, is theirs, the Sub-agents over the Changes, its tab counting
- * them. On the phone, `isSplit` false, each its own panel, as the bottom bar has a tile for each.
+ * while the address's tab, `asked`, is theirs, the Sub-agents, alone, its tab counting them. On the phone, `isSplit` false, each its own panel, as the bottom bar has a tile for each.
  */
 function sessionPanels({
   asked = null,
@@ -104,7 +104,7 @@ function sessionPanels({
   if (!hasSubagents) {
     return [splitPanel(activity, changes)];
   }
-  return [splitPanel(activity, changes), splitPanel(subagentsPanel(session, running), changes)];
+  return [splitPanel(activity, changes), subagentsPanel(session, running)];
 }
 
 /** The Sub-agents panel, its tab counting the `running` ones. */
@@ -356,6 +356,7 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
             </Section>
           )
         }
+        hasKeys
         isBeside
         label="The session's column"
         panels={panels}

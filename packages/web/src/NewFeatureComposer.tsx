@@ -1,6 +1,6 @@
 // The New page's feature part: a composer that starts a feature from the page's draft, its text and
 // images. Ctrl+Enter asks for the feature's slug, which the core proposes for the text, its
-// research effort, High first, and how its steps run, on the strip; Enter starts it, and its
+// research effort, High first, and how its steps run, on the run map; Enter starts it, and its
 // session opens as soon as the start is planned, the discovery's message in its composer, unsent,
 // while the write queue commits it. The draft goes once the start landed: a refused start leaves it
 // in the composer.
@@ -31,7 +31,7 @@ type Asking = { images: ReadonlyArray<DraftImage>; resolve: (sent: boolean) => v
 
 /**
  * Starts the feature from the text and images sent, under the slug and effort asked, on its own run
- * options, what the strip changed: the refusal to show in the dialog, or nothing once planned and
+ * options, what the map changed: the refusal to show in the dialog, or nothing once planned and
  * its session opened. The first line of Now the draft was filled from is replaced by the feature's
  * link in the start commit; the other entries leave their files, and the draft goes, once it
  * landed.
@@ -99,7 +99,7 @@ function FeatureQuestion({
   ) => Promise<string | undefined>;
 }) {
   const { levels, slug } = useStartProposal(asking.text);
-  const { options, strip } = useStartRuns();
+  const { map, options } = useStartRuns();
   return (
     <StartDialog
       {...(levels.length === 0 ? {} : { effort: { initial: INITIAL_EFFORT, levels } })}
@@ -113,7 +113,7 @@ function FeatureQuestion({
         label: SLUG_LABEL,
         title: "Name the feature",
       }}
-      runs={strip}
+      runs={map}
     />
   );
 }

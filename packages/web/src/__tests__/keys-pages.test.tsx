@@ -147,6 +147,23 @@ test("US3 2: `i` in a session focuses the composer, and Escape leaves it keeping
   expect(fieldText(field)).toBe("hello");
 });
 
+// Break: a session's column no key reaches, or one that keeps the focus once entered.
+test("on a session's page, `l` moves the focus into the session's column, and `h` back to the page", async () => {
+  await renderPage(`/f/${FOLDER}/session`, fixtureRepo(), { agent: await fakeAgent() });
+  const field = await composer();
+  // The page opens in its composer, whose keys are its own: `l` is typed there.
+  await press("Escape", field);
+  const column = await screen.findByRole("complementary", { name: "The session's column" });
+  const status = await screen.findByRole("contentinfo", { name: "Status line" });
+  await waitFor(() => expect(status.textContent).toContain("h l"));
+
+  await press("l");
+
+  expect(column.contains(document.activeElement)).toBe(true);
+  await press("h", document.activeElement ?? document.body);
+  expect(document.activeElement).toBe(document.body);
+});
+
 // Break: `m` bound on one page only, or typed into the composer instead of opening the picker.
 test.each([
   ["the New page", "/new"],

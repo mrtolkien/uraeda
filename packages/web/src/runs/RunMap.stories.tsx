@@ -1,6 +1,6 @@
 // Run options' mockups (spec of Run options): the run map in the settings' Runs section, on the
 // defaults and changed; the picker open on a step; a joint selected, cut, and a cut the models
-// force; the strip in a feature's and a change's start dialog; a feature's page, in place of its
+// force; the map in a feature's and a change's start dialog; a feature's page, in place of its
 // timeline, its build at work, on the phone, merged, and a change's; and the settings on the phone. Built from the real components over the runtimes Claude Code and
 // Codex listed on 2026-11-08, with no server: the stories show the look and the keys.
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -16,7 +16,7 @@ import { StartDialog } from "../StartDialog.tsx";
 import type { Pos } from "./runCursor.ts";
 import { RunMap } from "./RunMap.tsx";
 import { type RunOptions, todayOptions } from "./runOptions.ts";
-import { RunStrip } from "./RunStrip.tsx";
+import { StartMap } from "./StartRuns.tsx";
 import { FeatureRunMap } from "./FeatureRuns.tsx";
 import { BUILDING, CHANGE, MERGED } from "./sampleStages.ts";
 import type { StagesFeature } from "./featureStages.ts";
@@ -109,12 +109,13 @@ function FeatureMap({
   );
 }
 
-/** The strip in the start dialog, holding its options. */
+/** The map in the start dialog, holding its options. */
 function Start({ isChange = false, value }: { isChange?: boolean; value: RunOptions }) {
   const [options, setOptions] = useState(value);
   return (
     <StartDialog
       initial={isChange ? "tasks-reappear" : "recurring-tasks"}
+      isChange={isChange}
       isOpen
       onCancel={() => {}}
       onConfirm={async () => undefined}
@@ -125,7 +126,7 @@ function Start({ isChange = false, value }: { isChange?: boolean; value: RunOpti
         title: isChange ? "Start a change" : "Start a feature",
       }}
       runs={
-        <RunStrip
+        <StartMap
           defaults={DEFAULTS}
           isChange={isChange}
           onChange={setOptions}
@@ -216,7 +217,10 @@ export const StartFeatureChanged: Story = {
   render: () => <Start value={{ ...DEFAULTS, steps: { ...DEFAULTS.steps, spec: OPUS_HIGH } }} />,
 };
 
-/** A change's start dialog: its one step and its reviewers. */
+/** A feature's start dialog on the phone: a sheet, the map a column in it. */
+export const StartFeaturePhone: Story = { ...StartFeatureDefaults, beforeEach: atMostWidth(PHONE) };
+
+/** A change's start dialog: its fix and its reviewers. */
 export const StartChange: Story = {
   render: () => (
     <Start

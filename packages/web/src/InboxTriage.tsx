@@ -4,7 +4,6 @@
 // elsewhere.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { APPLY_TRIAGE, ORGANIZE_INBOX, TRIAGE_ID } from "uraeda-server/round-messages";
 import { MessageToCopy, RoundBanner, type StartChat } from "./StartChat.tsx";
 import { Foldable } from "./layout/Foldable.tsx";
@@ -17,10 +16,10 @@ import { FileView, InboxView } from "./views.ts";
 
 /**
  * "Organize with AI", as the decisions page's "Review with AI": starts the triage's chat, gone
- * while a triage exists, whose banner leads to it. On the phone, its icon and "Organize".
+ * while a triage exists, whose banner leads to it. Its icon alone, at every width, in the title's
+ * row of actions.
  */
 export function OrganizeButton({ chat, triage }: { chat: StartChat; triage: string | null }) {
-  const narrow = isNarrow(useWidthClass());
   if (triage !== null) {
     return null;
   }
@@ -28,11 +27,11 @@ export function OrganizeButton({ chat, triage }: { chat: StartChat; triage: stri
     <Button
       clickAction={() => chat.start(ORGANIZE_INBOX)}
       icon={<Icon icon="uraeda:step-questions" />}
+      isIconOnly
       label="Organize with AI"
-      variant="secondary"
-    >
-      {narrow ? "Organize" : undefined}
-    </Button>
+      tooltip="Organize with AI"
+      variant="ghost"
+    />
   );
 }
 

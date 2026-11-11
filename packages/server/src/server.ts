@@ -69,6 +69,9 @@ export async function startSessions(options: {
     process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
   }
   const { featureOptions, settings } = options;
+  // The settings' default agent, before the sessions listen to the runtimes, and at each change.
+  const prefer = () => options.runtimes.prefer(settings.runs().defaultAgent ?? undefined);
+  prefer();
   const sessions = createSessions({
     ...options,
     cache,
@@ -79,7 +82,10 @@ export async function startSessions(options: {
   // Every runtime's model list, asked once at start, which the pickers read: not awaited, as an
   // agent slow to list never holds the server's start.
   void options.runtimes.refreshModels();
-  const unsubscribe = options.settings.onChange(() => sessions.runsChanged());
+  const unsubscribe = options.settings.onChange(() => {
+    prefer();
+    sessions.runsChanged();
+  });
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
   timer.unref();
   return {

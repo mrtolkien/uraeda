@@ -115,6 +115,7 @@ continue_after_limit = true     # continue a run a session limit stopped, a minu
 automatic_continues = 3         # automatic continues in a row, 1 to 10, before the run asks for you
 catch_up_pull_requests = false  # catch up open pull requests behind the default branch
 scheduled_jobs = true           # start your jobs at their times
+default_agent = "codex"         # the agent a new session runs on; the first agent on when unset
 review_depth = "waves"          # "waves": review each wave and the branch; "branch": the branch
 ```
 
@@ -124,7 +125,7 @@ optional:
 
 ```toml
 [runs.steps.spec]
-agent = "claude"     # claude or codex; else the first agent on
+agent = "claude"     # claude or codex; else the default agent
 model = "opus"       # a model the agent lists; else the agent's default
 effort = "high"      # an effort the model takes; else the model's default
 
@@ -147,7 +148,7 @@ command = "coderabbit review --plain"
 ```
 
 A missing table or key is the default: Discovery and Spec share a session, and Plan to Comments a
-second one, every step on the first agent on and its defaults. `new_session` is ignored on
+second one, every step on the default agent and its defaults. `new_session` is ignored on
 `discovery`, which always starts a session, and is forced on a step whose agent or model differs
 from the step before. Without `[[runs.reviewers]]`, one agent reviewer runs on the review step's
 agent and its defaults. A reviewer holds `agent` or `command`, never both. The old
@@ -163,17 +164,24 @@ turns it on, else `URAEDA_CATCH_UP_PULL_REQUESTS`, set to `true` or `false`, els
 off. The scheduled jobs come from `--no-scheduled-jobs`, which turns them off, else
 `URAEDA_SCHEDULED_JOBS`, set to `true` or `false`, else the file, else on.
 
-The page shows them under Runs. "How each step runs" draws the run map: the six steps in a row. Each
-tile shows its agent's mark, its model, and its effort as a 5-cell meter. Between two tiles, a line
-means they share a session, and scissors mean a clean one starts. The scissors lock where the steps
-run on different agents or models. Bands under the tiles name the sessions. Under Build is the
-Implementers tile. Under Review are the reviewers, an agent or a command each, and "Waves" or
-"Branch". ← → (or h l) move along the tiles and the joints, ↓ ↑ (or j k) go to the implementers or
-the reviewers and back. Enter on a tile opens the agent and model picker, then the effort; Enter or
-Space on a joint cuts or joins it; `r` puts the selection back to its default; `a` adds a reviewer
-and `d` removes the one selected. Each is also a tap, and each change is saved at once. When
-`CLAUDE_CODE_EFFORT_LEVEL` is set in the server's environment, every Claude Code effort follows it,
-and the page says so under the map.
+`default_agent` names the agent a new session runs on when nothing picks one, by the name of its
+extension, like `claude` or `codex`: every picker starts on it, and a step without an `agent` runs
+on it. Unset, it is the first agent on: Claude Code, then Codex, then yours. A name no agent has, or
+an agent off in a repository, leaves that repository to the first agent on, and is no problem of the
+file. No flag or variable gives it.
+
+The page shows them under Runs. "Default agent" lists "The first one on" and every agent, and a pick
+is saved at once, for the next session. "How each step runs" draws the run map: the six steps in a
+row. Each tile shows its agent's mark, its model, and its effort as a 5-cell meter. Between two
+tiles, a line means they share a session, and scissors mean a clean one starts. The scissors lock
+where the steps run on different agents or models. Bands under the tiles name the sessions. Under
+Build is the Implementers tile. Under Review are the reviewers, an agent or a command each, and
+"Waves" or "Branch". ← → (or h l) move along the tiles and the joints, ↓ ↑ (or j k) go to the
+implementers or the reviewers and back. Enter on a tile opens the agent and model picker, then the
+effort; Enter or Space on a joint cuts or joins it; `r` puts the selection back to its default; `a`
+adds a reviewer and `d` removes the one selected. Each is also a tap, and each change is saved at
+once. When `CLAUDE_CODE_EFFORT_LEVEL` is set in the server's environment, every Claude Code effort
+follows it, and the page says so under the map.
 
 Then a switch for each kind of continue, the continues in a row, saved on Enter or when you leave
 the field, a number outside 1 to 10 refused, and the switches "Catch up open pull requests" and "Run
@@ -565,20 +573,25 @@ either, the pages only commit.
 Every conversation with the agent is a session. "＋ New" opens one in the main checkout, or starts a
 change or a feature. Its three cards share one text, kept until it starts. A feature asks its slug
 and its research effort, then opens its session. The feature's and the change's start dialogs show
-the run map as a strip: six tiny tiles and their joints, then what differs from your settings,
-"defaults" or "Spec on Opus · High". A change's strip shows its one step and its reviewers. Tab
-reaches it. ← → (or h l) move along the steps and the joints, Enter on a step opens the picker,
-Enter or Space on a joint cuts or joins it, and `r` puts the selection back to its default. A
-change's strip also takes `a` to add a reviewer and `d` to remove the one selected. What you change
-is the feature's own, and the rest follows your settings. It starts with no proposal file: the
-text's first line is the title, and the research effort goes in the proposal's `discovery` field. A
-change starts from a typed request, an inbox note, or a priorities line. A line of **Now** it was
-filled from is replaced by the new link in the start commit. "Drop the change…" and "Drop the
-feature…", in a session's actions, drop it. "Postpone the change" and "Postpone the feature", in its
-page's actions, send its latest session, or a new one, the message that makes it a proposal again,
-in **Later**, and open that session. A line's Start, on the priorities, puts the line in that text,
-in place of what it held, which `u` brings back. A change or a feature holds one or more sessions,
-in its worktree, where the workflow's runs and your messages follow each other.
+the run map, the one the settings draw under "How each step runs", in a dialog as large as the map
+needs, up to most of the window: what differs from your settings is in the accent. On a window under
+1280 px wide the map stands as a column, as on the phone, in a narrower dialog. A change's map shows
+what a change runs: its fix, and under it its reviewers and the one to add. Tab reaches the map, and
+its keys are the settings': ← → (or h l) move along the steps and the joints, ↓ ↑ (or j k) go to the
+implementers and the reviewers and back, Enter on a step, the implementers, or a reviewer opens the
+picker, Enter or Space on a joint cuts or joins it, `r` puts the selection back to its default, `a`
+adds a reviewer, and `d` removes the one selected. Enter starts the feature from the short name's
+field alone. On the phone the dialog is a sheet as tall as the map, up to most of the screen, with
+Reset and Remove as buttons under the map. What you change is the feature's own, and the rest
+follows your settings. It starts with no proposal file: the text's first line is the title, and the
+research effort goes in the proposal's `discovery` field. A change starts from a typed request, an
+inbox note, or a priorities line. A line of **Now** it was filled from is replaced by the new link
+in the start commit. "Drop the change…" and "Drop the feature…", in a session's actions, drop it.
+"Postpone the change" and "Postpone the feature", in its page's actions, send its latest session, or
+a new one, the message that makes it a proposal again, in **Later**, and open that session. A line's
+Start, on the priorities, puts the line in that text, in place of what it held, which `u` brings
+back. A change or a feature holds one or more sessions, in its worktree, where the workflow's runs
+and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open the session of its next step with the workflow's message in the
@@ -647,9 +660,10 @@ picker in two steps: first the models of every agent on, each agent's "Default" 
 model it stands for, then the picked model's efforts, "Default" first. A model that takes no effort
 skips the second step, and on a phone the picker rises as a sheet. In a composer, on the New page, a
 session's page, or a session in a review's column, `m` opens it too, once the field is left with
-`Escape`. A new chat runs on the first agent on, at the agent's own default model and effort, until
-you pick others. A new session of a feature or a change runs on the pick of its next step, from the
-run map, which the button shows until you pick others.
+`Escape`. A new chat runs on the default agent, the settings' "Default agent" or else the first
+agent on, at the agent's own default model and effort, until you pick others. A new session of a
+feature or a change runs on the pick of its next step, from the run map, which the button shows
+until you pick others.
 
 A session keeps the agent and the model it started on, its automatic runs included; it is read-only
 while its agent is off. Each step's run starts on that step's own pick, and a run joined to a
@@ -682,6 +696,11 @@ its agent, model, and effort, its state, its time, and its usage. A click on one
 its page: its transcript, without a composer, with Stop while it works and a link back to its
 parent. On a feature's page, the sessions pane nests each sub-session under the session that started
 it, in the `sub-agent` colour. A chat keeps its agent's own sub-agents, shown in the pane as before.
+
+From the keyboard, on a session's page, `l` or `→` moves into the column on its right, unfolding it
+first, and `h` or `←` comes back. In the column, `j` and `k` move from row to row, Enter opens the
+row, and `k` past the first row reaches the tabs, where `h` and `l` open the previous and the next
+one.
 
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
 the skill as a plugin. Codex runs in its `workspace-write` sandbox, the network off, with approvals

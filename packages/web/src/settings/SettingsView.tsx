@@ -21,7 +21,7 @@ import {
 import { KeyboardSettings } from "./KeyboardSettings.tsx";
 import { AppearanceSettings, type AppearanceThemes } from "./AppearanceSettings.tsx";
 import { FontSettings, SignInSettings } from "./OtherSettings.tsx";
-import { RunSettings } from "./RunSettings.tsx";
+import { type AgentChoice, RunSettings } from "./RunSettings.tsx";
 import {
   type ExtensionActions,
   ExtensionSettings,
@@ -60,6 +60,7 @@ const jumpStyles = stylex.create({
 
 /** One section's rows, those `shows` keeps. */
 function Rows({
+  agents,
   category,
   runtimes,
   server,
@@ -67,6 +68,7 @@ function Rows({
   shows,
   themes,
 }: {
+  agents: ReadonlyArray<AgentChoice>;
   category: Category;
   runtimes: ReadonlyArray<PickerRuntime>;
   server: ServerValues;
@@ -87,7 +89,7 @@ function Rows({
     case "sign-in":
       return <SignInSettings category={category} shows={shows} />;
     case "runs":
-      return <RunSettings {...props} runtimes={runtimes} />;
+      return <RunSettings {...props} agents={agents} runtimes={runtimes} />;
     case "extensions":
       // Drawn by `ExtensionSettings` itself, in its own panes.
       return null;
@@ -159,6 +161,7 @@ function useScrollToSection(id: CategoryId | undefined, bar: RefObject<HTMLEleme
  * that category's section. An unknown category reads as none.
  */
 export function SettingsView({
+  agents,
   category: id,
   extensionActions,
   extensions,
@@ -168,6 +171,8 @@ export function SettingsView({
   serverActions,
   themes,
 }: {
+  /** The agents the default agent is picked among, every one registered: `runtimes` without. */
+  agents?: ReadonlyArray<AgentChoice>;
   category: CategoryId | undefined;
   /** What the Extensions section changes. */
   extensionActions?: ExtensionActions;
@@ -215,6 +220,7 @@ export function SettingsView({
           xstyle={jumped}
         >
           <Rows
+            agents={agents ?? runtimes}
             category={category}
             runtimes={runtimes}
             server={server}

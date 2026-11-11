@@ -3,7 +3,8 @@
 // where reviews happen. On the phone the track stands as a column: a session is the bar along its
 // steps, a joint its line down the column's middle, and a cut a rule across it with its scissors on
 // the same axis. On a feature's page, the proposal and the merge close the track at its two ends,
-// each step shows its time and files under its pick, and the gates mark the joints.
+// each step shows its time and files under its pick, and the gates mark the joints. A change's start
+// dialog draws what a change runs alone: its fix, and under it its reviewers and the one to add.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -13,7 +14,7 @@ import { bareButtonStyles } from "../layout/bareButton.ts";
 import { pickedStyles } from "../layout/picked.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { PickerRuntime } from "../SessionPicker.tsx";
-import { belowItems, type Pos, posKey } from "./runCursor.ts";
+import { belowItems, belowSpan, CHANGE_STEPS, type Pos, posKey } from "./runCursor.ts";
 import { type FeatureStages, type Gate, isOpen } from "./featureStages.ts";
 import { drawn, Joint, partStyles, PickFace, ReviewerFace, sessionColour, Tile } from "./parts.tsx";
 import {
@@ -89,6 +90,10 @@ const styles = stylex.create({
 /** What the track draws, and what a press on one of its places does. */
 export type TrackProps = {
   defaults: RunOptions;
+  /** A change's start: its one step, the fix, and its reviewers under it. */
+  isChange?: boolean | undefined;
+  /** A column whatever the width, where a row of six steps has no room: a semi-wide screen's dialog. */
+  isColumn?: boolean | undefined;
   onPress: (pos: Pos) => void;
   pos: Pos | undefined;
   runtimes: ReadonlyArray<PickerRuntime>;
@@ -97,8 +102,15 @@ export type TrackProps = {
   value: RunOptions;
 };
 
-/** The steps the track shows: a change's own, else all six. */
-const shownOf = (props: TrackProps): ReadonlyArray<StepId> => props.stages?.shown ?? STEPS;
+/** The steps the track shows: a change's own, on its page or at its start, else all six. */
+const shownOf = (props: TrackProps): ReadonlyArray<StepId> =>
+  props.stages?.shown ?? (props.isChange ? CHANGE_STEPS : STEPS);
+
+/** The places under the review, or under a change's fix at its start: the reviewers and what follows them. */
+function reviewPlaces(props: TrackProps): Array<number> {
+  const { last } = belowSpan(props.value.reviewers.length, props.isChange);
+  return Array.from({ length: last }, (_, index) => index + 1);
+}
 
 /** The session each step runs in, by its index. */
 function sessionOf(props: TrackProps): Array<number> {
@@ -109,7 +121,8 @@ function sessionOf(props: TrackProps): Array<number> {
 
 /** A step's name: a change's build is its fix. */
 function nameOf(props: TrackProps, id: StepId): string {
-  return props.stages?.isChange && id === "build" ? "Fix" : STEP_LOOKS[id].name;
+  const isChange = props.stages?.isChange || props.isChange;
+  return isChange && id === "build" ? "Fix" : STEP_LOOKS[id].name;
 }
 
 function StepTile({ props, step }: { props: TrackProps; step: number }) {
@@ -336,7 +349,6 @@ function EndLink({ gate }: { gate?: Gate | undefined }) {
 
 /** The track on wide and semi-wide screens: a row of steps, the bands, and the row under it. */
 function TrackRow({ props }: { props: TrackProps }) {
-  const below = belowItems(props.value.reviewers.length);
   const shown = shownOf(props);
   const column = (step: number) => shown.indexOf(STEPS[step]!) * 2 + 1;
   const template = `repeat(${shown.length - 1}, minmax(88px, 1fr) minmax(28px, 40px)) minmax(88px, 1fr)`;
@@ -363,8 +375,8 @@ function TrackRow({ props }: { props: TrackProps }) {
         )}
       >
         <div {...stylex.props(styles.drop, styles.dropNarrow)} />
-        {below.slice(1).map((_, index) => (
-          <BelowPlace index={index + 1} key={index} props={props} />
+        {reviewPlaces(props).map((index) => (
+          <BelowPlace index={index} key={index} props={props} />
         ))}
       </div>
     </div>
@@ -390,8 +402,8 @@ function JointDown({ props, step }: { props: TrackProps; step: number }) {
 /** The track on the phone: a column of steps, each session a bar along its steps. */
 function TrackColumn({ props }: { props: TrackProps }) {
   const sessions = sessionOf(props);
-  const below = belowItems(props.value.reviewers.length);
   const stages = props.stages;
+  const isChange = props.isChange === true;
   return (
     <div {...stylex.props(styles.column)}>
       {stages && (
@@ -408,15 +420,15 @@ function TrackColumn({ props }: { props: TrackProps }) {
             <div {...stylex.props(drawn.bar(sessionColour(sessions[step]!)))}>
               <StepTile props={props} step={step} />
             </div>
-            {id === "build" && (
+            {id === "build" && !isChange && (
               <div {...stylex.props(styles.nested)}>
                 <BelowPlace index={0} props={props} />
               </div>
             )}
-            {id === "review" && (
+            {id === (isChange ? "build" : "review") && (
               <div {...stylex.props(styles.nested, styles.column)}>
-                {below.slice(1).map((_, index) => (
-                  <BelowPlace index={index + 1} key={index} props={props} />
+                {reviewPlaces(props).map((index) => (
+                  <BelowPlace index={index} key={index} props={props} />
                 ))}
               </div>
             )}
@@ -434,13 +446,12 @@ function TrackColumn({ props }: { props: TrackProps }) {
 }
 
 /**
- * The track, as the width draws it: a row on wide screens, a column on the phone, and on a
- * feature's page at every width, where each step holds its history.
+ * The track, as the width draws it: a row on wide screens, a column on the phone, on a feature's
+ * page at every width, where each step holds its history, at a change's start, whose one step
+ * makes no row, and where its owner says so (`isColumn`).
  */
 export function RunTrack(props: TrackProps) {
-  const isColumn = isNarrow(useWidthClass()) || props.stages !== undefined;
+  const isAsked = props.isChange === true || props.isColumn === true;
+  const isColumn = isNarrow(useWidthClass()) || props.stages !== undefined || isAsked;
   return isColumn ? <TrackColumn props={props} /> : <TrackRow props={props} />;
 }
-
-// Shared with the strip, which draws the same tiles small.
-export { partStyles };

@@ -39,6 +39,8 @@ export function optimisticSettings({ id, keyboard, runs, server }: Values) {
       const name = CONTINUE_SETTINGS[key];
       return { id, runs: { ...runs, [name]: { ...runs[name], saved: on } } };
     },
+    // The default agent has no flag or variable either.
+    setDefaultAgent: (agent: string | null) => ({ id, runs: { ...runs, defaultAgent: agent } }),
     setOpenBrowser: (open: boolean) => ({
       id,
       server: { ...server, openBrowser: { ...openBrowser, saved: open } },

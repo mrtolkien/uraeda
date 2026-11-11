@@ -8,7 +8,6 @@ import {
   type MapOptions,
   samePick as samePickBy,
   sessionSpans as sessionSpansBy,
-  STEPS,
   type StepId,
   toMap,
   toStored,
@@ -130,71 +129,6 @@ export function changes(pick: SessionPick, fallback: SessionPick) {
     effort: agent || pick.effort !== fallback.effort,
     model: agent || pick.model !== fallback.model,
   };
-}
-
-/** Whether a reviewer differs from the default's at its place: its kind, command, or pick. */
-export function reviewerChanged(reviewer: Reviewer, fallback: Reviewer | undefined): boolean {
-  if (fallback === undefined) {
-    return true;
-  }
-  if (reviewer.kind === "command" || fallback.kind === "command") {
-    return !(
-      reviewer.kind === "command" &&
-      fallback.kind === "command" &&
-      reviewer.command === fallback.command
-    );
-  }
-  const changed = changes(reviewer.pick, fallback.pick);
-  return changed.agent || changed.model || changed.effort;
-}
-
-/** An effort's name for people, from the runtime's lists: "xhigh" is "Extra high". */
-function effortName(runtimes: ReadonlyArray<PickerRuntime>, id: string): string {
-  for (const runtime of runtimes) {
-    for (const model of runtime.models) {
-      const effort = model.efforts.find((each) => each.id === id);
-      if (effort) {
-        return effort.name;
-      }
-    }
-  }
-  return id;
-}
-
-/**
- * What differs from the defaults, in a few words: "defaults", or each step changed, "Spec on Opus ·
- * High", then a cut moved or reviewers changed.
- */
-export function differences(
-  runtimes: ReadonlyArray<PickerRuntime>,
-  options: RunOptions,
-  defaults: RunOptions,
-  steps: ReadonlyArray<StepId> = STEPS,
-): string {
-  const parts: Array<string> = [];
-  for (const step of steps) {
-    const pick = options.steps[step];
-    const changed = changes(pick, defaults.steps[step]);
-    if (changed.model || changed.effort) {
-      const run = resolved(runtimes, pick);
-      const effort = run.effort === undefined ? [] : [effortName(runtimes, run.effort)];
-      parts.push(
-        `${STEP_LOOKS[step].name} on ${[run.modelName ?? "Default", ...effort].join(" · ")}`,
-      );
-    }
-  }
-  const cuts = (each: RunOptions) => [...each.cuts].sort().join();
-  if (steps.length > 1 && cuts(options) !== cuts(defaults)) {
-    parts.push("sessions moved");
-  }
-  if (options.reviewers.length !== defaults.reviewers.length) {
-    parts.push(`${options.reviewers.length} reviewers`);
-  } else if (
-    options.reviewers.some((each, index) => reviewerChanged(each, defaults.reviewers[index]))
-  ) {
-    parts.push("reviewers changed");
-  }
-  return parts.length === 0 ? "defaults" : parts.join(", ");
 }
 
 /** Run options as the settings file and a feature keep them: only what they set. */

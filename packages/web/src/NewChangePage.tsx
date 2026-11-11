@@ -1,6 +1,6 @@
 // The New page's change part: a composer that starts a change from a typed text and its images,
 // then sends its first run. Ctrl+Enter asks for the change's slug, which the core proposes for the
-// text, and how its build and its reviews run, on the strip: the page has no field for them.
+// text, and how its fix and its reviews run, on the run map: the page has no field for them.
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -112,10 +112,11 @@ function SlugQuestion({
   onConfirm: (slug: string, options: RunOptions | undefined) => Promise<string | undefined>;
 }) {
   const proposed = useSlugProposal(asking.text);
-  const { options, strip } = useStartRuns(true);
+  const { map, options } = useStartRuns(true);
   return (
     <StartDialog
       initial={proposed}
+      isChange
       isOpen
       onCancel={onCancel}
       onConfirm={(slug) => onConfirm(slug, options)}
@@ -125,7 +126,7 @@ function SlugQuestion({
         label: SLUG_LABEL,
         title: "Name the change",
       }}
-      runs={strip}
+      runs={map}
     />
   );
 }

@@ -23,7 +23,7 @@ export const STATE_NAMES: Record<SubSessionState, string> = {
 };
 
 /** A count of tokens, short: 41 k, 1.2 M. */
-function tokens(count: number): string {
+export function tokens(count: number): string {
   if (count >= 1_000_000) {
     return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")} M`;
   }

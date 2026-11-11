@@ -97,7 +97,11 @@ Two jobs only:
   with one more answer and its key. What the stack can undo never asks: `d` deletes a row at once, a
   note with its note file.
 - **One short question at a decision point**: a single field, with a suggestion at most, like a new
-  feature's slug after `Ctrl+Enter`, or a quick note.
+  feature's slug after `Ctrl+Enter`, or a quick note. A feature's and a change's start also hold the
+  run map under the field, the settings' own (`runs/RunMap.tsx`), in a dialog as large as the map
+  needs, up to most of the window: "Put the full map in the dialog, and make it almost full screen
+  if necessary. Only one component to maintain that way." The field keeps the first focus and Enter,
+  and the map its keys.
 
 A dialog closes by Escape, Close, or Back; the quick note also by a click outside it. A dialog never
 holds a view of its own to read: "Remove the 'view' option and the view modal. Why does it even

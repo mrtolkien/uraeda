@@ -1,5 +1,7 @@
 import { useBufferKey, withText } from "./buffer/useBufferKey.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
@@ -11,7 +13,7 @@ import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useKeys } from "./keys/registry.tsx";
-import { AddBar, useOpenAddForm } from "./SidebarAdd.tsx";
+import { AddBar, AddNoteButton, useOpenAddForm } from "./SidebarAdd.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
 import { useRestoreScroll } from "./routes.tsx";
 import { Empty } from "./layout/Empty.tsx";
@@ -20,10 +22,11 @@ import { PageTitle } from "./layout/PageTitle.tsx";
 /**
  * The inbox: `INBOX.md`'s notes in a pane per category, the notes without one first, then in the
  * file's order, an empty category as an empty pane, under a line that says what the inbox is for.
- * "New category" adds a pane. Each note is edited in place, or opens its file, and drags to its
- * place; the Git page commits the inbox's changes with the priorities'. The heading carries the
- * count, and "Organize with AI", on its right, asks for a triage, one at a time, which its
- * banner leads to, or dismisses for a new one. `select` selects a note, as its address names it.
+ * Each note is edited in place, or opens its file, and drags to its place; the Git page commits
+ * the inbox's changes with the priorities'. The heading carries the count and, on its right, the
+ * page's actions as icons, in one row at every width: "Organize with AI", which asks for a triage,
+ * one at a time, which its banner leads to, or dismisses for a new one; "New category", which
+ * opens its field under the title and adds a pane; and ＋, which adds a note. `select` selects a note, as its address names it.
  */
 export function InboxPage({ select }: { select?: { key: string } | undefined } = {}) {
   const inbox = useInbox();
@@ -47,7 +50,21 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
     <Page kind="rows">
       <VStack gap={2}>
         <PageTitle
-          aside={agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
+          // One row at every width: the title, then its actions as icons.
+          actions={
+            <HStack align="center" gap={1}>
+              {agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
+              <Button
+                icon={<Icon icon="uraeda:folder-plus" />}
+                isIconOnly
+                label="New category"
+                onClick={() => setNewCategory((count) => count + 1)}
+                tooltip="New category"
+                variant="ghost"
+              />
+              <AddNoteButton />
+            </HStack>
+          }
           count={inbox.count > 0 ? inbox.count : undefined}
         >
           Inbox
@@ -61,26 +78,22 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
         {inbox.count === 0 && (
           <Empty>The inbox is empty. Notes you add with ＋ next to Inbox land here.</Empty>
         )}
+        {/* Drawn once the title's button, or `C`, opens it. */}
+        <EditableLine
+          empty="A category needs a name."
+          field="inbox#new-category"
+          isHiddenClosed
+          label="New category"
+          onSave={actions.add}
+          opens={newCategory}
+          value=""
+        />
         <InboxList
           actions={actions}
           inbox={inbox}
           onNewCategory={() => setNewCategory((count) => count + 1)}
           onRefused={setMessage}
           select={select}
-        />
-        {/* After the notes: at the top, its ＋ read as the way to add a note. */}
-        <EditableLine
-          display={
-            <>
-              <Icon icon="uraeda:plus" size="sm" /> New category
-            </>
-          }
-          empty="A category needs a name."
-          field="inbox#new-category"
-          label="New category"
-          onSave={actions.add}
-          opens={newCategory}
-          value=""
         />
       </VStack>
       <AddBar form="note" />

@@ -87,7 +87,8 @@ type Entry = {
 };
 
 /**
- * The agent runtimes sessions run on, by the names they are registered as, in registration order.
+ * The agent runtimes sessions run on, by the names they are registered as, in registration order,
+ * the default agent of the settings first where it is on.
  * A session stores the name of the runtime it was made with, and runs on that runtime only: one
  * unregistered, or off in its repository, leaves it read-only until it returns. `isOn` says where
  * each one is on, every runtime everywhere by default.
@@ -101,6 +102,8 @@ export class Runtimes {
   #accountListeners = new Set<() => void>();
   /** Each name's status when it was unregistered, which a registration under it starts from. */
   #last = new Map<string, RuntimeStatus>();
+  /** The default agent of the settings, `runs.default_agent`: none while it is unset. */
+  #preferred: string | undefined;
 
   readonly #title: (name: string) => string | undefined;
   readonly #skills: (root: string) => ReadonlyArray<string>;
@@ -170,12 +173,26 @@ export class Runtimes {
     return this.#order.filter((name) => this.#entries.has(name));
   }
 
-  /** The runtimes on in the repository, in registration order. */
+  /** The runtimes on in the repository, its default first, then in registration order. */
   forRepository(repo: string | null): Array<Adapter> {
     return this.#onIn(repo).map((name) => this.#entries.get(name)!.runtime);
   }
 
-  /** The name of the runtime a new session of the repository runs on: the first one on there. */
+  /**
+   * Sets the default agent, the settings' `runs.default_agent`, or none: tells the listeners when
+   * it changed, as the runtimes' order did.
+   */
+  prefer(name: string | undefined): void {
+    if (name !== this.#preferred) {
+      this.#preferred = name;
+      this.changed();
+    }
+  }
+
+  /**
+   * The name of the runtime a new session of the repository runs on: the default agent of the
+   * settings while it is registered and on there, else the first one on there.
+   */
   defaultFor(repo: string | null): string | undefined {
     return this.#onIn(repo)[0];
   }
@@ -288,9 +305,13 @@ export class Runtimes {
     this.#listeners.forEach((listener) => listener());
   }
 
-  /** Each runtime, for the UI, its `isOn` in `repo`. */
+  /**
+   * Each runtime, for the UI, its `isOn` in `repo`: the one a new session of `repo` runs on first,
+   * then in registration order, so the first one on is the default wherever the UI lists them.
+   */
   records(repo: string | null, { accounts, usage }: UsageOf): Array<RuntimeRecord> {
-    return [...this.#entries].map(([kind, { models, runtime, status }]) => {
+    return this.#defaultFirst(this.names(), repo).map((kind) => {
+      const { models, runtime, status } = this.#entries.get(kind)!;
       const listed = accounts(kind);
       return {
         ...status,
@@ -307,8 +328,21 @@ export class Runtimes {
     });
   }
 
+  /** The names on in `repo`, its default first. */
   #onIn(repo: string | null): Array<string> {
-    return this.names().filter((name) => this.isOn(name, repo));
+    return this.#defaultFirst(
+      this.names().filter((name) => this.isOn(name, repo)),
+      repo,
+    );
+  }
+
+  /** `names` with the default agent first, while it is registered and on in `repo`. */
+  #defaultFirst(names: Array<string>, repo: string | null): Array<string> {
+    const first = this.#preferred;
+    if (first === undefined || !this.#entries.has(first) || !this.isOn(first, repo)) {
+      return names;
+    }
+    return [first, ...names.filter((name) => name !== first)];
   }
 }
 

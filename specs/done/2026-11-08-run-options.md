@@ -141,9 +141,8 @@ options' data, the server owns runs, and one TypeScript module owns which joints
 - The web UI, in [`packages/web/src/runs/`](/packages/web/src/runs/): the map,
   [`RunMap.tsx`](/packages/web/src/runs/RunMap.tsx) and
   [`parts.tsx`](/packages/web/src/runs/parts.tsx), in the settings'
-  [`RunSettings.tsx`](/packages/web/src/settings/RunSettings.tsx); the strip,
-  [`RunStrip.tsx`](/packages/web/src/runs/RunStrip.tsx) and
-  [`StartRuns.tsx`](/packages/web/src/runs/StartRuns.tsx); the feature page's map,
+  [`RunSettings.tsx`](/packages/web/src/settings/RunSettings.tsx); the start dialogs' map, first a
+  strip, [`StartRuns.tsx`](/packages/web/src/runs/StartRuns.tsx); the feature page's map,
   [`FeatureRuns.tsx`](/packages/web/src/runs/FeatureRuns.tsx),
   [`RunTrack.tsx`](/packages/web/src/runs/RunTrack.tsx), and
   [`featureStages.ts`](/packages/web/src/runs/featureStages.ts); sub-sessions,
@@ -220,9 +219,10 @@ options' data, the server owns runs, and one TypeScript module owns which joints
   thread starts on it, `model_reasoning_effort` in `thread/start`'s configuration.
 - A joint is a switch, `role="switch"`, in [`parts.tsx`](/packages/web/src/runs/parts.tsx): Space is
   the app's leader, so the registry binds no Space for the map, and a switch's own Space toggles it.
-- The strip listens for its own keys, in [`RunStrip.tsx`](/packages/web/src/runs/RunStrip.tsx), and
-  is on `keys-structural.test.ts`'s list: the start dialogs are a layer the key registry leaves to
-  its owner, so a `useKeys` binding would never run there.
+- The strip listened for its own keys, and was on `keys-structural.test.ts`'s list: the start
+  dialogs are a layer the key registry leaves to its owner, so a `useKeys` binding would never run
+  there. The map that replaced it hears, inside a layer, the bindings it declares on a page, through
+  [`layerKeys.ts`](/packages/web/src/keys/layerKeys.ts).
 - A feature's options have their own database file, in
   [`feature-options.ts`](/packages/server/src/runner/feature-options.ts): the cache's file is
   removed when unreadable and kept in memory while locked, which would lose options or hide them
@@ -332,6 +332,11 @@ bold." The spec made it the run map, in the settings and the dialogs as a strip.
 - The run map's joints are switches, and its presses a row's bar, with Reset and Remove taps; the
   strip keeps the map's keys, so changing one step's model in a start dialog takes five keys, Tab,
   two moves over a joint, Enter, and the pick, not SC-001's four.
+- The strip is gone: the start dialogs draw the settings' run map itself, in a dialog as large as
+  the map needs, up to most of the window, so one component draws how steps run everywhere ("Put the
+  full map in the dialog, and make it almost full screen if necessary. Only one component to
+  maintain that way."). A change's dialog draws its fix and its reviewers alone, and the words for
+  what differs from the settings went with the strip: the map marks it in the accent.
 - Sub-sessions leave the sidebar's list and search; their parent's record lists them, and a
   feature's tokens count them.
 - A catch-up is part of Comments, on its agent, model, and session, and the chain starts no run at

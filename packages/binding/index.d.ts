@@ -702,6 +702,12 @@ export declare function setAutomaticContinues(dir: string, continues: string): P
  */
 export declare function setContinue(dir: string, key: "restart" | "limit" | "catch-up" | "jobs", on: boolean): Promise<Settings>
 
+/**
+ * Sets the agent a new session runs on when nothing picks one, or removes it for `null`: the
+ * first agent on is then the default. Rejects with `refused: ` an empty name.
+ */
+export declare function setDefaultAgent(dir: string, agent?: string | undefined | null): Promise<Settings>
+
 /** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
 
@@ -2312,6 +2318,11 @@ export interface RunSettings {
   catchUpPullRequests?: boolean
   /** Whether the jobs start at their times: `true` when unset. */
   scheduledJobs?: boolean
+  /**
+   * The agent a new session runs on when nothing picks one, like `claude` or `codex`: the
+   * first agent on when unset, not registered, or off in the session's repository.
+   */
+  defaultAgent?: string
   /**
    * Each step's agent, model, effort, and session, the implementers, and the reviewers: the
    * `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.

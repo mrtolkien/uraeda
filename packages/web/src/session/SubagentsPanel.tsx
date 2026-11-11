@@ -4,22 +4,20 @@
 // rows it drew while its tab is open, and marks those gone from the list "Done", their time frozen
 // (ruling R10). A workflow session's sub-agents are sessions Uraeda runs (spec of Run options): the
 // pane lists those sub-sessions instead, each with its role, what it works on, its agent, model,
-// effort, state, time, and usage, a link to its read-only page. A chat keeps its agent's own.
+// effort, state, times, and usage, a link to its read-only page. A chat keeps its agent's own.
+// Both are drawn as the same card (`runs/AgentCard.tsx`), each with the facts it has.
 import { Icon } from "@astryxdesign/core/Icon";
-import { List, ListItem } from "@astryxdesign/core/List";
-import { Text } from "@astryxdesign/core/Text";
-import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import type { Session } from "uraeda-server/fate";
 import { useSession } from "../sessionData.ts";
 import { StatusMark } from "../StatusMark.tsx";
-import { clock } from "../feature/times.ts";
-import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "../useNow.ts";
+import { useLatestInView } from "./ActivityPanel.tsx";
 import { Section } from "./Section.tsx";
 import { subagentText } from "./stretches.ts";
 import { Empty } from "../layout/Empty.tsx";
-import { SubSessionRow } from "../runs/SubSessionRow.tsx";
+import { AgentCard, AgentCards, type Ending, lasted, Times, Unit } from "../runs/AgentCard.tsx";
+import { SubSessionCards } from "../runs/SubSessionRow.tsx";
 import type { SubSession } from "../runs/subSessions.ts";
 
 /** A running sub-agent, as the session's record lists it. */
@@ -72,29 +70,28 @@ function useKeptRows(running: ReadonlyArray<Subagent>, now: number): ReadonlyArr
 }
 
 /**
- * A sub-agent's row: working or done, its description, what it does, when it started, and how long
- * it has run.
+ * A sub-agent's card: working or done, its description, and how long it has run on its head, what
+ * it does under it, then when it started and when it was seen gone, or that it runs.
  */
 function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Row }) {
-  const lasting = Math.max((endedAt ?? now) - Date.parse(subagent.startedAt), 0);
+  const ending: Ending = endedAt === undefined ? "running" : { at: endedAt };
   return (
-    <ListItem
-      align="first-line"
-      description={subagentText(subagent)}
-      endContent={
-        <Text color="secondary" type="supporting">
-          {`${clock(subagent.startedAt, new Date(now).toISOString())} · ${elapsed(lasting)}`}
-        </Text>
-      }
-      label={<Text weight="bold">{subagent.description}</Text>}
-      startContent={
+    <AgentCard
+      duration={lasted(subagent.startedAt, ending, now)}
+      isWorking={endedAt === undefined}
+      line={<Unit>{subagentText(subagent)}</Unit>}
+      mark={
         endedAt === undefined ? (
           <StatusMark isSubagent label="Working" small status="working" />
         ) : (
-          <Icon icon="uraeda:badge-check" label="Done" size="sm" />
+          <Icon color="secondary" icon="uraeda:badge-check" label="Done" size="sm" />
         )
       }
-    />
+      rowKey={subagent.id}
+      title={subagent.description}
+    >
+      <Times ending={ending} now={now} startedAt={subagent.startedAt} />
+    </AgentCard>
   );
 }
 
@@ -117,25 +114,21 @@ function Subagents({ session }: { session: string }) {
     return <Empty>No sub-agent running.</Empty>;
   }
   return (
-    <List aria-label="The session's sub-agents" density="compact">
+    <AgentCards label="The session's sub-agents" order={rows.map((row) => row.subagent.id)}>
       {rows.map((row) => (
         <SubagentRow key={row.subagent.id} now={now} row={row} />
       ))}
-    </List>
+    </AgentCards>
   );
 }
 
-/** The sub-sessions a workflow session started, the working ones first, each a link to its page. */
+/**
+ * The sub-sessions a workflow session started, in the order they started, the latest last, as the
+ * Activity and the chat read, each a link to its page.
+ */
 function SubSessions({ subs }: { subs: ReadonlyArray<SubSession> }) {
-  const working = subs.filter((sub) => sub.state === "working");
-  const ended = subs.filter((sub) => sub.state !== "working");
-  return (
-    <VStack gap={1}>
-      {[...working, ...ended].map((sub) => (
-        <SubSessionRow key={sub.id} sub={sub} />
-      ))}
-    </VStack>
-  );
+  const ordered = subs.toSorted((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
+  return <SubSessionCards subs={ordered} />;
 }
 
 /** The Sub-agents of the session `session`, or, before it exists, that none runs. */
@@ -145,7 +138,19 @@ export function SubagentsPanel({ session }: { session?: string | undefined }) {
   }
   return (
     <Section>
-      <Subagents session={session} />
+      <FollowedEnd>
+        <Subagents session={session} />
+      </FollowedEnd>
     </Section>
   );
+}
+
+/**
+ * Keeps the list's end in view, as the Activity does: it opens on the latest sub-agent, and follows
+ * the ones that start while the human is there; scrolled up, nothing moves.
+ */
+function FollowedEnd({ children }: { children: ReactNode }) {
+  const list = useRef<HTMLDivElement>(null);
+  useLatestInView(list, true, true);
+  return <div ref={list}>{children}</div>;
 }

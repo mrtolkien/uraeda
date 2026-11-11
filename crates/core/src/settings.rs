@@ -60,6 +60,9 @@ pub struct RunSettings {
     pub catch_up_pull_requests: Option<bool>,
     /// Whether the jobs start at their times: `true` when unset.
     pub scheduled_jobs: Option<bool>,
+    /// The agent a new session runs on when nothing picks one, like `claude` or `codex`: the
+    /// first agent on when unset, not registered, or off in the session's repository.
+    pub default_agent: Option<String>,
     /// Each step's agent, model, effort, and session, the implementers, and the reviewers: the
     /// `[runs.steps.<step>]`, `[runs.implementers]`, and `[[runs.reviewers]]` tables.
     pub options: RunOptions,
@@ -221,6 +224,24 @@ pub fn set_automatic_continues(dir: &Path, typed: &str) -> Result<Settings, ApiE
     let continues = rules::automatic_continues(typed).map_err(refused)?;
     change_table(dir, "runs", |runs| {
         set(runs, "automatic_continues", Value::from(continues));
+        Ok(())
+    })
+}
+
+/// Sets the agent a new session runs on when nothing picks one, trimmed, in `[runs]`: `None`
+/// removes it, and the first agent on is the default again. An empty name is refused.
+pub fn set_default_agent(dir: &Path, agent: Option<&str>) -> Result<Settings, ApiError> {
+    let agent = agent.map(str::trim);
+    if agent == Some("") {
+        return Err(refused("The agent is empty."));
+    }
+    change_table(dir, "runs", |runs| {
+        match agent {
+            Some(agent) => set(runs, "default_agent", Value::from(agent)),
+            None => {
+                runs.remove("default_agent");
+            }
+        }
         Ok(())
     })
 }

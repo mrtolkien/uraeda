@@ -58,6 +58,12 @@ export type RunSettingsView = {
   claudeEffortFromEnv?: string;
   continueAfterLimit: Setting<boolean>;
   continueAfterRestart: Setting<boolean>;
+  /**
+   * The agent a new session runs on when nothing picks one, as the file names it, or null: the
+   * first agent on then, as when it is not registered, or off in the repository. No flag or
+   * variable gives it.
+   */
+  defaultAgent: string | null;
   /** The run options the file holds, only what it sets: no flag or variable gives them. */
   options: RunOptions;
   /** Whether the scheduled jobs start at their times, for all jobs. */
@@ -229,6 +235,7 @@ export function inForce(
       ...(claudeEffort && { claudeEffortFromEnv: claudeEffort }),
       continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
       continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
+      defaultAgent: runs.defaultAgent ?? null,
       options: runs.options ?? { steps: [] },
       scheduledJobs: setting(options.scheduledJobs, runs.scheduledJobs, true),
     },

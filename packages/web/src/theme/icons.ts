@@ -81,7 +81,7 @@ import {
 } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, brushCleaning, indent, outdent, trash } from "./activityIcons.ts";
-import { play, save } from "./barIcons.ts";
+import { folderPlus, play, save } from "./barIcons.ts";
 import {
   compass,
   replace,
@@ -232,6 +232,7 @@ export const uraedaIcons = {
   "uraeda:git-compare": gitCompare,
   "uraeda:globe": globe,
   // An unknown harness: Lucide's `bot`.
+  "uraeda:folder-plus": folderPlus,
   "uraeda:harness-agent": bot,
   "uraeda:harness-claude": claude,
   "uraeda:harness-openai": openai,

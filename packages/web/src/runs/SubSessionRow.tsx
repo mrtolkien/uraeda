@@ -1,20 +1,44 @@
-// A sub-session's row (spec of Run options), the same in the session's Sub-agents pane and under
-// its parent in the feature's sessions: its state's mark, what it works on, then its role, its
-// agent's mark, its model and effort, and its usage when known, with when it started and how long
-// it ran at its end.
-// The row is a link to the sub-session's page, so a click and Enter both open it.
-import { HStack } from "@astryxdesign/core/HStack";
+// A sub-session's card (spec of Run options), the same in the session's Sub-agents pane and under
+// its parent in the feature's sessions (`AgentCard`): on its head, its state's mark, what it works
+// on, and how long it ran, counted on while it works, then its role and its agent's mark, model,
+// and effort; under the rule, its state in a word, when it started and when it ended, or that it
+// runs, and its tokens in and out once its agent reported them.
+// The card is a link to the sub-session's page, so a click and Enter both open it.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
+import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { HarnessMark } from "../HarnessMark.tsx";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { sessionIdPath, useRepoPath } from "../routes.tsx";
-import { CardRow } from "../sidebar/CardRow.tsx";
 import { StatusMark } from "../StatusMark.tsx";
-import { clock } from "../feature/times.ts";
-import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "../useNow.ts";
-import { roleName, runsOnText, STATE_NAMES, type SubSession, usageText } from "./subSessions.ts";
+import {
+  AgentCard,
+  AgentCards,
+  type Ending,
+  Fact,
+  lasted,
+  Times,
+  timesText,
+  Unit,
+  Value,
+} from "./AgentCard.tsx";
+import {
+  roleName,
+  runsOnText,
+  STATE_NAMES,
+  type SubSession,
+  tokens,
+  usageText,
+} from "./subSessions.ts";
+
+/** The colour of a state's word. */
+const tones = stylex.create({
+  done: { color: colorVars["--color-text-secondary"] },
+  failed: { color: colorVars["--color-error"] },
+  stopped: { color: colorVars["--color-text-secondary"] },
+  working: { color: "var(--role-sub-agent)" },
+});
 
 /** A sub-session's state as a mark: the sub-agent's working square, ✓, the error's !, or ■. */
 export function SubSessionMark({ state }: { state: SubSession["state"] }) {
@@ -31,61 +55,88 @@ export function SubSessionMark({ state }: { state: SubSession["state"] }) {
   }
 }
 
-/** Its role, agent, model, effort, and usage, on the row's second line. */
+/** Its role, then its agent's mark with its model and effort, under the title. */
 function RunsOn({ sub }: { sub: SubSession }) {
-  const usage = usageText(sub);
   return (
-    <HStack align="center" gap={2} wrap="wrap">
-      <HStack align="center" gap={1}>
-        <Icon
-          color="inherit"
-          icon={sub.role === "implementer" ? "uraeda:users" : "uraeda:eye"}
-          size="xsm"
-        />
-        <Text color="secondary" type="supporting">
-          {roleName(sub.role)}
-        </Text>
-      </HStack>
-      <HStack align="center" gap={1}>
-        <HarnessMark color="secondary" isDecorative kind={sub.agent} size="xsm" />
-        <Text color="secondary" type="supporting">
-          {runsOnText(sub)}
-        </Text>
-      </HStack>
-      {usage && (
-        <Text color="secondary" type="supporting">
-          {`· ${usage}`}
-        </Text>
-      )}
-    </HStack>
+    <>
+      <Fact icon={sub.role === "implementer" ? "uraeda:users" : "uraeda:eye"}>
+        <Unit>{roleName(sub.role)}</Unit>
+      </Fact>
+      <Fact mark={<HarnessMark color="secondary" isDecorative kind={sub.agent} size="xsm" />}>
+        <Unit>{runsOnText(sub)}</Unit>
+      </Fact>
+    </>
   );
 }
 
-/** The row of `sub`, a link to its page. */
+/** Its tokens, in then out, once its agent reported them: the two counts stay on one line. */
+function Usage({ usage }: { usage: NonNullable<SubSession["usage"]> }) {
+  return (
+    <Fact icon="uraeda:arrow-right-left" isSpaced>
+      <Fact>
+        <Value>{tokens(usage.input)}</Value>
+        <Unit>in</Unit>
+      </Fact>
+      <Fact>
+        <Value>{tokens(usage.output)}</Value>
+        <Unit>out</Unit>
+      </Fact>
+    </Fact>
+  );
+}
+
+/** When `sub` ended: at its latest turn's end, still running, or unknown, stopped before a turn. */
+function endingOf(sub: SubSession): Ending {
+  if (sub.state === "working") {
+    return "running";
+  }
+  return sub.endedAt === null ? "unknown" : { at: Date.parse(sub.endedAt) };
+}
+
+/** The card of `sub`, a link to its page. */
 export function SubSessionRow({ sub }: { sub: SubSession }) {
   const here = useRepoPath();
-  const now = useNow(sub.endedAt === null ? 1000 : null);
-  const end = sub.endedAt === null ? now : Date.parse(sub.endedAt);
-  // Its start, with its day when that is not today, then how long it ran: "14:02 · 16 min".
-  const started = clock(sub.startedAt, new Date(now).toISOString());
-  const time = `${started} · ${elapsed(Math.max(end - Date.parse(sub.startedAt), 0))}`;
-  const usage = usageText(sub);
+  const isWorking = sub.state === "working";
+  const now = useNow(isWorking ? 1000 : null);
+  const ending = endingOf(sub);
+  const duration = lasted(sub.startedAt, ending, now);
   return (
-    <CardRow
-      endContent={
-        <Text color="secondary" type="supporting">
-          {time}
-        </Text>
-      }
+    <AgentCard
+      duration={duration}
       href={here(sessionIdPath(sub.id))}
-      icon={<SubSessionMark state={sub.state} />}
-      isHeaded={isNarrow(useWidthClass())}
-      isSelected={false}
-      label={sub.about}
-      name={[STATE_NAMES[sub.state], roleName(sub.role), sub.about, runsOnText(sub), usage, time]
+      isWorking={isWorking}
+      line={<RunsOn sub={sub} />}
+      mark={<SubSessionMark state={sub.state} />}
+      name={[
+        STATE_NAMES[sub.state],
+        roleName(sub.role),
+        sub.about,
+        runsOnText(sub),
+        timesText(sub.startedAt, ending, now),
+        duration && (isWorking ? `for ${duration}` : `after ${duration}`),
+        usageText(sub),
+      ]
         .filter(Boolean)
         .join(", ")}
-      sub={<RunsOn sub={sub} />}
-    />
+      rowKey={sub.id}
+      title={sub.about}
+    >
+      <Text type="supporting" weight="bold" xstyle={tones[sub.state]}>
+        {STATE_NAMES[sub.state]}
+      </Text>
+      <Times ending={ending} now={now} startedAt={sub.startedAt} />
+      {sub.usage && <Usage usage={sub.usage} />}
+    </AgentCard>
+  );
+}
+
+/** The cards of the sub-sessions `subs`, in their order, each a link to its page. */
+export function SubSessionCards({ subs }: { subs: ReadonlyArray<SubSession> }) {
+  return (
+    <AgentCards label="Sub-sessions" order={subs.map((sub) => sub.id)}>
+      {subs.map((sub) => (
+        <SubSessionRow key={sub.id} sub={sub} />
+      ))}
+    </AgentCards>
   );
 }

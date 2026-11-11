@@ -6,7 +6,8 @@
 // switching tabs moves nothing on the page. The open tab is in the address, `?tab=<key>`, so
 // reload, Back, and a width change keep it; switching replaces the history entry. `]` folds it to
 // a rail of the panels' icons, the open one's picked, or, railed on a half screen, opens it over
-// the page. On narrow screens, the page alone, kept in its place in the tree as the window crosses
+// the page. A column given `hasKeys`, a session's, is crossed into by the keyboard: `l` enters it,
+// `h` leaves it, and `j` `k` move through its stops (`columnKeys.ts`). On narrow screens, the page alone, kept in its place in the tree as the window crosses
 // 768 px, so its typed text stays.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
@@ -14,9 +15,11 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
 import { redirect, useSearch } from "../routes.tsx";
+import { useColumnKeys } from "./columnKeys.ts";
 import { LIMITS, useDocumentColumnWidth } from "./documentColumnWidth.ts";
 import { pickedStyles } from "./picked.ts";
 import { SideColumn } from "./SideColumn.tsx";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /**
  * A panel of the column, shown as its tab: its key in the address, its name and icon, a badge after
@@ -160,6 +163,11 @@ type ColumnProps = {
    * `fills`; under another, right after the panel's content, scrolling with it.
    */
   footer?: ReactNode;
+  /**
+   * Lets the keyboard cross into the column, `h` `l`, and move through it, `j` `k`: on a page
+   * whose own content binds none of them, a session's.
+   */
+  hasKeys?: boolean;
   /** Keeps the column beside the page on a half screen, a session's (`SideColumn`). */
   isBeside?: boolean;
   label: string;
@@ -189,12 +197,24 @@ function Drawn({
   column: { isShown, resizable, setShown },
   content,
   footer,
+  hasKeys = false,
   isBeside = false,
   label,
   panels,
 }: ColumnProps & { column: DocumentColumnState }) {
-  const [open, setOpen] = useColumnTab(panels.map((panel) => panel.key));
+  const keys = panels.map((panel) => panel.key);
+  const [open, setOpen] = useColumnTab(keys);
   const ids = useId();
+  // Only where the column is drawn: the phone has its sheets, and no column to cross into.
+  const wide = !isNarrow(useWidthClass());
+  useColumnKeys(hasKeys && wide, {
+    elementOf: (key) => document.getElementById(tabId(ids, key)),
+    isShown,
+    keys,
+    open,
+    setOpen,
+    setShown,
+  });
   const shown = panels.find((panel) => panel.key === open);
   const fills = shown?.fills === true;
   return (
