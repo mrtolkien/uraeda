@@ -171,7 +171,7 @@ export class Processes {
     // A turn taken back while the process opened left its line to the next one.
     const held = live.proc?.line;
     // While no turn of the session started, an open process is reused only on the account the pick
-    // gives now: a first turn taken back while the process opened left it idle (R17).
+    // gives now (R17), and after, only on the session's account, which a limit may have moved.
     const early =
       live.proc && !live.proc.closing && allowed === undefined
         ? await this.#pickWhileIdle(live)
@@ -180,7 +180,7 @@ export class Processes {
       live.proc &&
       !live.proc.closing &&
       allowed === undefined &&
-      (early === undefined || early.account === live.proc.account) &&
+      (early ?? rowOf(cache, live)).account === live.proc.account &&
       this.#effortSet(live)
     ) {
       delete live.proc.line;

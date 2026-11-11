@@ -202,33 +202,112 @@ const LIMIT: Limit = {
 };
 const LIMIT_MESSAGE = "The usage limit has reset. Continue where you left off.";
 
-test("a run a limit refused continues on its own account", async () => {
+const MOVED_MESSAGE =
+  "The usage limit was reached, and the session moved to another account. Continue where you left off.";
+const WEEK: Limit = {
+  kind: "other",
+  resetsAt: "2026-11-09T00:00:00.000Z",
+  text: "You've hit your weekly limit · resets Mon 12:00am",
+};
+
+/** Starts the feature's session on `b`, the emptiest account, where `limit` refuses its run. */
+async function limited(limit: Limit, runs: ContinueSettings = ON) {
+  const setup = await testSessions(fixtureRepo(), { runs: () => runs });
+  const { adapter, repo, sessions } = setup;
+  const accounts = fakeAccounts();
+  adapter.accounts = accounts;
+  const session = await sessions.featureSession(repo, AGENT);
+  limitTurn(adapter, limit);
+  // The continue's turn, when one goes.
+  adapter.script([done]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
+  return { ...setup, accounts, session, turn };
+}
+
+/** Waits for the agent to get `text`. */
+const sent = (adapter: { sent: Array<{ text: string }> }, text: string) =>
+  vi.waitFor(() => expect(adapter.sent.some((message) => message.text === text)).toBe(true), {
+    interval: 5,
+    timeout: 5000,
+  });
+
+test.each([
+  { limit: LIMIT, name: "its five hours" },
+  { limit: WEEK, name: "its week" },
+])(
+  "a run refused by the limit of $name goes on at once on the account with the most room",
+  async ({ limit }) => {
+    const { adapter, cache, session, sessions, turn } = await limited(limit);
+    await sessions.settled(turn);
+    // `b` refused: of `default` at 0.42 and `c` at 0.88, `default` has the most left.
+    await sent(adapter, MOVED_MESSAGE);
+    expect(cache.session(session.id)?.account).toBe(folder("default"));
+    expect(adapter.opens.map((open) => open.account)).toEqual([folder("b"), folder("default")]);
+    expect(adapter.opens.at(-1)?.resume).toBe(true);
+    const lines = cache
+      .turns(session.id)
+      .flatMap((one) => cache.itemsOf(one.id, "system").map((item) => item.text));
+    expect(lines).toContain("Continued on account default, after a usage limit.");
+  },
+);
+
+test("a run a limit refused moves to another account with the continues off, and waits for the human", async () => {
+  const { adapter, cache, session, sessions, turn } = await limited(LIMIT, CONTINUES_OFF);
+  await sessions.settled(turn);
+  await flush();
+  expect(cache.session(session.id)?.account).toBe(folder("default"));
+  expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+  expect(adapter.sent).toHaveLength(1);
+});
+
+test("a run a limit refused waits for its own account's reset when no other account has room", async () => {
   const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
     runs: () => ON,
   });
   let now = Date.parse("2026-11-03T14:01:00Z");
   vi.spyOn(Date, "now").mockImplementation(() => now);
-  adapter.accounts = fakeAccounts();
+  const accounts = new FakeAccounts();
+  // No room: a five hours used up, a week used up, an account signed out, a usage not known.
+  accounts.accounts = [
+    account("default", 1),
+    account("b", 0),
+    account("c", 0.2, { week: 1 }),
+    account("d", 0.1, { state: "signed-out" }),
+    account("e", 0.1, { known: false }),
+  ];
+  accounts.refresh = async () => {};
+  adapter.accounts = accounts;
   const session = await sessions.featureSession(repo, AGENT);
-  // `b` refuses at its limit until its reset, while `c` has room.
   limitTurn(adapter, LIMIT);
   const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
   await sessions.settled(turn);
   expect(cache.session(session.id)?.account).toBe(folder("b"));
-  adapter.accounts.accounts = [account("b", 1), account("c", 0)];
+  expect(cache.turn(turn)).toMatchObject({ continueReason: "limit" });
 
   adapter.script([]);
   const to = Date.parse("2026-11-04T00:00:00Z");
   const step = to - now;
   now = to;
   vi.advanceTimersByTime(step);
-  await vi.waitFor(
-    () => expect(adapter.sent.some((message) => message.text === LIMIT_MESSAGE)).toBe(true),
-    { interval: 5, timeout: 5000 },
-  );
+  await sent(adapter, LIMIT_MESSAGE);
   expect(adapter.opens.at(-1)?.account).toBe(folder("b"));
   expect(cache.session(session.id)?.account).toBe(folder("b"));
-  expect(adapter.accounts.asks).toBe(1); // the continue never picked again
+});
+
+test("a run a limit refused stays on its account when no other holds its transcript", async () => {
+  const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+  const { adapter, cache, repo, sessions } = setup;
+  adapter.accounts = fakeAccounts();
+  const has = adapter.hasSession.bind(adapter);
+  vi.spyOn(adapter, "hasSession").mockImplementation(
+    (id, one) => one === folder("b") && has(id, one),
+  );
+  const session = await sessions.featureSession(repo, AGENT);
+  limitTurn(adapter, LIMIT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
+  await sessions.settled(turn);
+  expect(cache.session(session.id)?.account).toBe(folder("b"));
+  expect(cache.turn(turn)).toMatchObject({ continueReason: "limit" });
 });
 
 test("a pick waits 10 seconds for an ask, then goes on", async () => {

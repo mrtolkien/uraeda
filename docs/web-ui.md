@@ -777,8 +777,13 @@ signed in and whose week is not used up:
 3. then the first one listed.
 
 When every signed-in account's week is used up, the first signed-in one listed is picked. A session
-keeps its account: a limit that refuses its run waits for that account's reset, and the run goes on
-by itself then, never on another account.
+keeps its account until a usage limit refuses its run, of its five hours or of its week: it then
+moves to the account with the most left among those with room, and the run goes on there at once,
+with a line that names the account. The new account reads the conversation again, uncached. When no
+other account has room, or none holds the session's conversation, a folder made without the script's
+`projects` link, the session stays: its run waits for its account's five-hour reset, or asks for you
+at a weekly limit. With "Continue after a usage limit" off, the session still moves, and your next
+message runs on the new account.
 
 An account's name is its folder's name without its dot and its `claude-`: `~/.claude-b` reads "b",
 `~/.claude-work` reads "work", and `~/.claude` reads "default". A second folder that would read the

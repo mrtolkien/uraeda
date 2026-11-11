@@ -51,6 +51,22 @@ export function pickAccount(accounts: ReadonlyArray<Account>): Account | undefin
   return ranked[0]?.account ?? accounts.find((account) => account.state === "ready");
 }
 
+/**
+ * The account a session a limit refused moves to: among `accounts`, the pick of those signed in,
+ * whose usage is known, and with room in every window. None when no account has room: the run then
+ * waits, as it would with one account.
+ */
+export function pickWithRoom(accounts: ReadonlyArray<Account>): Account | undefined {
+  return pickAccount(
+    accounts.filter(
+      (account) =>
+        account.state === "ready" &&
+        account.known &&
+        account.windows.every((window) => window.used < 1),
+    ),
+  );
+}
+
 /** The accounts an extension's runtime lists: none when it has none, or when its `list()` throws. */
 export function listed(accounts: Pick<Accounts, "list"> | undefined): ReadonlyArray<Account> {
   try {

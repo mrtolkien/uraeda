@@ -6,18 +6,19 @@ icon: cpu
 
 # Models
 
-A session runs on one agent, one account, and one model, set when it starts, and an effort, the
-model's depth of reasoning, which may change between turns. The human picks the model and the
-effort, where the session starts or in the run options, else the agent's own defaults apply; Uraeda
-picks the account, a login of the agent, among those the human listed. Another model or another
-account means another session.
+A session runs on one agent and one model, set when it starts, on an effort, the model's depth of
+reasoning, which may change between turns, and on an account, a login of the agent, which changes
+only when a usage limit refuses its run. The human picks the model and the effort, where the session
+starts or in the run options, else the agent's own defaults apply; Uraeda picks the account among
+those the human listed. Another model means another session.
 
 ## Rules
 
 - A session MUST keep the agent and the model it started with, its automatic runs included. Checked
   by the runner's tests.
-- A session MUST keep the account it started on, a limit that refuses its run included. Checked by
-  the runner's tests.
+- A session MUST keep the account it started on, until a usage limit refuses its run: it then MUST
+  move to another listed account with room that can resume its conversation, and stay when there is
+  none. Checked by the runner's tests.
 - A new session MUST start on the model and effort the human picked for it, where it starts or in
   the run options of its step or role, else on the agent's own defaults. Checked by the runner's
   tests.
@@ -33,21 +34,26 @@ A model that changes during a session would surprise the human, and a feature's 
 model nobody picked for them. Effort changes cost and depth as much as the model, but keeps the
 conversation and the model, so the human tunes it as the work goes, or per step. Without a pick, the
 agent's defaults already express the human's preference. An account that changes re-reads the
-conversation uncached. History: [Multi-accounts](../done/2026-11-10-multi-accounts.md).
+conversation uncached, so a session moves only when a limit refuses its run: waiting for the reset
+costs hours, and most often the same uncached read, as the cache lasts an hour at most. History:
+[Multi-accounts](../done/2026-11-10-multi-accounts.md), which kept a refused run on its account,
+changed on 2026-11-11 at the human's request.
 
 ## Alternatives considered
 
 - Changing the model between turns, as Claude Code and Codex allow: one session per feature, but the
   model drifts under its runs, and the prompt cache restarts.
 - Remembering the last pick: one pick lasts, but a stale pick runs silently.
-- Moving a run a limit refused to another account: no wait for the reset, but the new account
-  re-reads the whole conversation uncached.
+- Keeping a run a limit refused on its account: one account per session, but the run waits hours for
+  the reset while another account has room.
 
 ## Consequences
 
 - A step that needs another model starts a new session, which forgets the conversation.
 - Steps sharing a session share its agent and model; only their efforts may differ.
-- A run a limit refused waits for its own account's reset, even while another account has room.
+- A run a limit refused goes on at once on another account, whose first turn re-reads the
+  conversation uncached. It waits for its own account's reset only when no other has room.
+- A session's account can change between two turns: its header names the one it runs on now.
 
 ## Applies to
 

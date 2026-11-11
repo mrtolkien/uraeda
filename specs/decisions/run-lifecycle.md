@@ -12,8 +12,11 @@ runs the jobs the human scheduled. Each automatic run says why in its session an
 
 ## Rules
 
-- A run cut by a server restart, or stopped by a usage limit, MUST continue by itself from its
-  agent's session, as a best effort. Checked by the runner's tests.
+- A run cut by a server restart MUST continue by itself from its agent's session, when it was cut
+  recently. Checked by the runner's tests.
+- A run stopped by a usage limit MUST continue by itself, as a best effort: at once on another
+  account with room, as the [models](models.md) decision says, else once the limit resets. Checked
+  by the runner's tests.
 - Automatic continues MUST stop after the number in a row the human set, without a commit or a
   message from them. Checked by the runner's tests.
 - An open pull request behind the default branch MUST be caught up by itself only when the human
@@ -45,10 +48,10 @@ that polls cannot read the human's messages. History:
 ## Consequences
 
 - A tool call or background work cut by a restart is redone by the continued run.
-- Weekly limits are not continued, and a run that ends before its next human gate is not asked to go
-  on: both ask for the human.
-- A scheduled run spends usage unwatched, and a page it reads can talk it into starting a change:
-  nothing merges without the human.
+- Weekly limits are continued only on another account with room: with none, they stop the run, which
+  asks for the human.
+- A run that ends before its next human gate asks for the human: Uraeda never asks it to go on, as
+  that misfired almost every time.
 - Every later agent runtime must report restarts, limits, and their reset time for runs to continue.
 
 ## Applies to

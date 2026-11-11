@@ -272,16 +272,25 @@ export function continueMessage(reason: ContinueReason): string {
       return "The server restarted while you worked. Continue where you left off.";
     case "limit":
       return "The usage limit has reset. Continue where you left off.";
+    case "account":
+      return "The usage limit was reached, and the session moved to another account. Continue where you left off.";
   }
 }
 
-/** The line an automatic continue's turn opens with, which tells the human why it happened. */
-export function continuedLine(reason: ContinueReason): string {
+/**
+ * The line an automatic continue's turn opens with, which tells the human why it happened: for a
+ * move, with the name of the `account` the session moved to.
+ */
+export function continuedLine(reason: ContinueReason, account?: string): string {
   switch (reason) {
     case "restart":
       return "Continued after the server restarted.";
     case "limit":
       return "Continued after the usage limit's reset.";
+    case "account":
+      return account === undefined
+        ? "Continued on another account, after a usage limit."
+        : `Continued on account ${account}, after a usage limit.`;
   }
 }
 

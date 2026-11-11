@@ -277,7 +277,10 @@ windows, every one after the first, are not used up. Among them, the pick takes:
 A `used` or a `resetsAt` that is no number counts as the last. When every `ready` account is used
 up, the first `ready` one listed is picked. When none is `ready`, the session's turn is refused,
 with why. `open` gets the picked account's ID as `account`, and `hasSession(nativeId, account)` is
-asked in it. A session keeps its account.
+asked in it. A session keeps its account until a usage limit refuses its run: it then moves to the
+`ready` account with the most of its first window left, among the others whose usage is `known`,
+with no window used up, and whose `hasSession` says they hold its conversation. Its next `open` gets
+that account, with `resume`. With none, it stays.
 
 A runtime that picks its agent's session IDs itself, opened without `resume`, reports the agent's
 own ID in its first `init`: the session takes it.

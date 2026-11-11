@@ -1,8 +1,9 @@
 // The automatic continues of the run lifecycle decision: whether a stopped turn continues, and
 // when; the switches, the cap, and what sets the count back; the stagger; and the cancels. The
 // cache holds every pending continue: a timer only wakes this server to claim one.
+import { accountName, limitContinue } from "./account-move.ts";
 import type { SessionRow, TurnRow } from "./cache.ts";
-import { limitContinueAt, MINUTE_MS, worktreeCommit } from "./continue-reads.ts";
+import { MINUTE_MS, worktreeCommit } from "./continue-reads.ts";
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
 import { ParentHolds } from "./parent-holds.ts";
@@ -44,6 +45,7 @@ const LONGEST_TIMER_MS = 2 ** 31 - 1;
 
 /** The setting that turns each kind of continue off. */
 const SWITCHES: Record<ContinueReason, Exclude<keyof ContinueSettings, "cap">> = {
+  account: "afterLimit",
   limit: "afterLimit",
   restart: "afterRestart",
 };
@@ -99,10 +101,10 @@ export class Continuer {
 
   /**
    * Decides the continue of a turn that ended, before its end is published, so it never reads as
-   * asking: a turn failed by a session's limit waits for the reset, unless a turn queued after it
-   * goes on with the run. A promise while the decision reads the worktree, the end published once
-   * it settles. A continue's turn that ends without starting, taken back or refused, gives the run
-   * back its own reason.
+   * asking: a turn failed by a limit goes on at once on another account, or waits for a session
+   * limit's reset (`limitContinue`), unless a turn queued after it goes on with the run. A promise
+   * while the decision reads, the end published once it settles. A continue's turn that ends
+   * without starting, taken back or refused, gives the run back its own reason.
    */
   ended(live: Live, turn: TurnRow, limit?: Limit): Promise<void> | undefined {
     this.#unclaim(turn);
@@ -110,13 +112,13 @@ export class Continuer {
       return undefined;
     }
     const taken = this.#taken(turn.sessionId);
-    if (turn.state === "failed" && limit?.kind === "session") {
-      const deciding = this.#decide(
-        turn,
-        "limit",
-        () => limitContinueAt(this.#context.cache, limit),
-        taken,
-      );
+    const deciding =
+      turn.state === "failed" && limit
+        ? limitContinue(this.#context, turn.sessionId, limit, (reason, at) =>
+            this.#decide(turn, reason, at, taken),
+          )
+        : undefined;
+    if (deciding) {
       return live.parent === null
         ? deciding
         : deciding.then(() => this.#holds.subEnded(live.parent));
@@ -243,7 +245,7 @@ export class Continuer {
       let queued: number;
       try {
         queued = deliverContinue(this.#context, live, {
-          line: continuedLine(reason),
+          line: continuedLine(reason, accountName(this.#context, row)),
           reason,
           stopped: claimed,
         });
