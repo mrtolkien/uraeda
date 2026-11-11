@@ -9,6 +9,11 @@ import { isNarrow } from "../width";
 import { TextField, type TextFieldRef } from "./TextField";
 
 export type ComposerProps = {
+  /**
+   * How many images or files are attached: with one or more, the composer sends without words, as
+   * a message of images alone is one. None unless given, so blank text sends nothing.
+   */
+  attached?: number;
   /** What is attached, above the text: images and files, drawn by the screen. */
   attachments?: JSX.Element;
   autoFocus?: boolean;
@@ -50,8 +55,11 @@ function Keys(props: { sendOn: "enter" | "mod+enter"; touch: boolean }) {
 export function Composer(props: ComposerProps) {
   const sendOn = () => props.sendOn ?? "enter";
   const touch = isNarrow;
+  /** Words, or something attached: blank text alone is nothing to send. */
+  const sendable = () =>
+    props.disabled !== true && (props.value.trim() !== "" || (props.attached ?? 0) > 0);
   const send = () => {
-    if (props.disabled !== true && props.value.trim() !== "") {
+    if (sendable()) {
       props.onSend();
     }
   };
@@ -72,12 +80,7 @@ export function Composer(props: ComposerProps) {
           style={{ flexBasis: 0, flexGrow: 1, minWidth: 0 }}
           value={props.value}
         />
-        <IconButton
-          disabled={props.disabled === true || props.value.trim() === ""}
-          icon="arrow-up"
-          label="Send"
-          onPress={send}
-        />
+        <IconButton disabled={!sendable()} icon="arrow-up" label="Send" onPress={send} />
       </View>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         <If when={!touch()}>

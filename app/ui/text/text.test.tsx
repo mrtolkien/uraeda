@@ -1,6 +1,7 @@
 // What the text field guarantees that using it would not show at once: unsaved text survives a
 // restart, Escape in Vim's normal mode is the field's own Escape, in a page and in a dialog, a yank reaches the system
-// clipboard, and a field with Vim off never reaches the Vim layer.
+// clipboard, a field with Vim off never reaches the Vim layer, and a composer sends what is attached
+// without words.
 import { type App, expect, open, test } from "nsh/test";
 
 /** Presses `keys` one after the other, as typed. */
@@ -78,4 +79,24 @@ test("a field with Vim off never calls the bridge", async () => {
   await app.press("id:count");
   expect(app.texts()).toContain("Note: ddSaved text");
   expect(app.texts()).toContain("Taken by Vim: 0");
+});
+
+test("a composer sends what is attached without words, and refuses nothing at all", async () => {
+  const app = await page("off");
+  await app.press("label:Send");
+  expect(app.texts()).toContain("Sent: 1");
+  await app.type("label:Message", "");
+  await app.keyboard.press("enter");
+  expect(app.texts()).toContain("Sent: 2");
+
+  // Nothing attached and no words: Send is off, and Enter sends nothing.
+  await app.press("id:detach");
+  const refused = await app.press("label:Send").then(
+    () => "pressed",
+    (error: unknown) => String(error),
+  );
+  expect(refused).toContain("is disabled");
+  await app.type("label:Message", "");
+  await app.keyboard.press("enter");
+  expect(app.texts()).toContain("Sent: 2");
 });
