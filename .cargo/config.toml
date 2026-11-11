@@ -1,0 +1,6 @@
+# At most 4 links run at once on the machine, across every checkout: see `scripts/slots-cc.sh`.
+[target.x86_64-unknown-linux-gnu]
+linker = "scripts/slots-cc.sh"
+
+[target.aarch64-unknown-linux-gnu]
+linker = "scripts/slots-cc.sh"
