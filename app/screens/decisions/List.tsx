@@ -195,12 +195,19 @@ function pickerItems(ledger: Ledger, sort: DecisionSort): Array<PickerItem> {
   ];
 }
 
-/** Above the cards: Jump, and the order. */
+/** Above the cards: Jump, and the order, on one row: in a narrow pane, Jump is its key and icon. */
 function Tools(props: { count: number; onJump: () => void }) {
+  const pane = usePane();
   return (
     <View style={{ gap: 8, paddingBottom: 10 }}>
-      <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Button icon="search" keys="/" label="Jump to…" onPress={props.onJump} />
+      <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
+        <Button
+          compact={pane.width() === "narrow"}
+          icon="search"
+          keys="/"
+          label="Jump to…"
+          onPress={props.onJump}
+        />
         <Select
           icon="history"
           label="Order of the decisions"

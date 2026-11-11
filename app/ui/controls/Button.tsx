@@ -25,13 +25,18 @@ import { type PressProps, pressable } from "./press";
 import { Spinner } from "./Spinner";
 import { Text } from "./Text";
 import { registerKey } from "../keys/registry";
-import { useGlass, useHeight } from "../surfaces";
+import { Tooltip, useGlass, useHeight } from "../surfaces";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
 export type ButtonProps = PressProps & {
   /** The view's one main action breathes: at most one per view, and none in an overlay. */
   breathes?: boolean;
+  /**
+   * Its key and its icon alone, its label in its tip and to screen readers: a pane's header in a
+   * narrow pane, whose controls stay on one row. Without an icon, it keeps its label.
+   */
+  compact?: boolean;
   icon?: IconName;
   /** Its key, declared in the registry and shown: "Enter", "mod+Enter", "d". */
   keys?: string;
@@ -121,7 +126,7 @@ export function Button(props: ButtonProps) {
     }
     return props.icon === undefined ? null : <Icon colour={ink()} name={props.icon} />;
   };
-  return (
+  const button = (
     <Base
       accessibilityLabel={props.label}
       activeStyle={press.active(looks())}
@@ -143,9 +148,16 @@ export function Button(props: ButtonProps) {
         )}
       </If>
       {mark()}
-      <Text bold={variant() === "main"} colour={ink()} lines={1} style={{ letterSpacing: 0.26 }}>
-        {props.label}
-      </Text>
+      <If when={props.compact !== true || props.icon === undefined}>
+        <Text bold={variant() === "main"} colour={ink()} lines={1} style={{ letterSpacing: 0.26 }}>
+          {props.label}
+        </Text>
+      </If>
     </Base>
+  );
+  return props.compact === true && props.icon !== undefined ? (
+    <Tooltip text={props.label}>{button}</Tooltip>
+  ) : (
+    button
   );
 }

@@ -6344,3 +6344,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: rule 8 of a good screen, and the join's example: "Nothing here yet." beside
   "Nothing in Now". The rule is written in `specs/ui/components.md` so the next screens follow it.
 - **Where**: `app/ui/lists/Empty.tsx`, the screens named, `specs/ui/components.md`.
+
+## T93.4: The side stack takes 440 points while the main one keeps 680; a pane's header is one row
+
+- **Decision**: on a wide window, the side stack's default width is 400 points, and up to 440 while
+  the main stack keeps 680, a reading pane's prose and its room: at 1400 points it is 440. A width
+  the human dragged still wins. A pane's header is one row of controls: `Button`'s `compact` draws
+  its key and icon, its label in its tip, and the decisions' Jump is compact in a narrow pane.
+- **Rationale**: at 1400 points, the feature page's and Git's three side tabs left the third an
+  icon, and the decisions' Jump and order wrapped onto two rows at 400 points. The tabs' rule, the
+  shown tab named first and the others while they fit, is right: the room was short by about 40
+  points, and the main stack had them to spare above its prose's measure.
+- **Props whose meaning changed**: none; `Button`'s `compact` is new.
+- **Where**: `app/ui/layout/Stacks.tsx`, `app/ui/controls/Button.tsx`,
+  `app/screens/decisions/List.tsx`.

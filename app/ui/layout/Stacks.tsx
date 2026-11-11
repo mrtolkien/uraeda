@@ -38,8 +38,16 @@ export type StacksProps = {
   status?: StatusSlots;
 };
 
-/** The side stack's width until the human changes it, and its limits, in points. */
-const SIDE = { least: 280, semiWide: 340, wide: 400 } as const;
+/**
+ * The side stack's width until the human changes it, and its limits, in points. On a wide window
+ * it takes 400, and up to 440 while the main stack keeps `reading`, the width a reading pane's
+ * prose and its room need: three tabs' titles then fit, as the feature page's and Git's.
+ */
+const SIDE = { least: 280, semiWide: 340, wide: 400, roomy: 440, reading: 680 } as const;
+
+/** The side stack's width on a wide window, by the rule above, in `room` points for both. */
+const wideSide = (room: number) =>
+  Math.min(SIDE.roomy, Math.max(SIDE.wide, room - SIDE.reading - tokens.space.gap.wide));
 
 /** Two values equal as data: what the layout and the place are compared by. */
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -72,7 +80,8 @@ export function Stacks(props: StacksProps) {
   const room = signal(0);
   const sideWidth = () => {
     const most = Math.max(SIDE.least, Math.round(room() * 0.6));
-    const chosen = choices.kept().sideWidth ?? (width() === "wide" ? SIDE.wide : SIDE.semiWide);
+    const chosen =
+      choices.kept().sideWidth ?? (width() === "wide" ? wideSide(room()) : SIDE.semiWide);
     return Math.min(most, Math.max(SIDE.least, chosen));
   };
   const hasSide = () => layout().side.panes.length > 0;
