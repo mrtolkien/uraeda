@@ -154,7 +154,16 @@ export function createCursor<Row extends Item>(
     ranges: options.range === true,
     reveal,
     selected: () => selectedOf(items(), anchor(), at()),
-    set: put,
+    set: (id, how) => {
+      // Where a press put the cursor is where it lands when its row goes.
+      if (id !== undefined) {
+        const found = indexOf(untracked(items), id, place);
+        if (found !== -1) {
+          place = found;
+        }
+      }
+      put(id, how);
+    },
     to: (end, extend = false) => {
       const rows = untracked(items);
       const target = end === "first" ? rows[0] : rows[rows.length - 1];
