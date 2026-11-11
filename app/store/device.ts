@@ -24,6 +24,8 @@ export type DeviceKeys = {
   unsaved: ReadonlyArray<string>;
   /** A field's text typed and not saved, by the field's key. */
   [entry: `unsaved:${string}`]: Unsaved;
+  /** The frame: the side stack's width and fold, and the rail's fold (`app/ui/layout/`). */
+  frame: { rail?: boolean; side?: boolean; sideWidth?: number };
 };
 
 /** The values of a device, by the names of `Keys`. */

@@ -4,6 +4,7 @@
 // binds the browser's.
 import { type Accessor, batch, signal } from "nsh";
 import { parseRoute, pathOf, type Route } from "./routes";
+import type { Json, Layout } from "../ui/layout/layout";
 
 /**
  * What a visit keeps for its page, so Back draws it as it was left. A page that keeps something
@@ -14,6 +15,10 @@ export type Kept = {
   readonly activity?: number;
   /** A session its first message just created, on the page it left: its first turn is news. */
   readonly created?: boolean;
+  /** The panes' layout, as the human left it in this visit: the layout shell's. */
+  readonly layout?: Layout;
+  /** What each pane remembers, by the pane's key: its selection, its open folds (`usePane`). */
+  readonly panes?: Readonly<Record<string, Readonly<Record<string, Json>>>>;
   /** What takes the focus on arrival: a file's text, as a proposal file just made opens. */
   readonly focus?: "text";
   /**

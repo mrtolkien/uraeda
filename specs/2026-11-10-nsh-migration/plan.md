@@ -207,8 +207,8 @@ rules.
 - Produces: its screens, registered for their routes in `app/screens/routes.tsx`, each adding its
   own lines there.
 
-**A screen is panes, not a page.** A screen task declares the panes of its routes with `definePane`,
-and their default stacks with `placeOf` (task 33, and the panes guide, `specs/ui/panes.md`): it
+**A screen is panes, not a page.** A screen task declares its kinds of pane with `definePane`, and
+the panes of its routes with `definePlace` (task 33, and the panes guide, `specs/ui/panes.md`): it
 never draws a side column or a tab bar of its own. Each pane draws well in either stack, at the
 width its stack has, and keeps its scroll, its selection, and its unsaved text in the store or the
 visit's entry, so a move or a hidden tab loses nothing.
@@ -2178,39 +2178,58 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
 
 **Files:**
 
-- Create:
-  `app/ui/layout/{layout,panes,Stacks,Stack,PaneTabs,Rail,StatusLine,NavBar,BottomBar, width}.tsx`,
-  and the guide `specs/ui/panes.md`
+- Create, as built: `app/ui/layout/`: `layout.ts` (the model), `panes.tsx`, `Stacks.tsx`,
+  `Stack.tsx`, `keys.tsx`, `Rail.tsx`, `SideRail.tsx`, `StatusLine.tsx`, `bars.tsx` (`NavBar`,
+  `BottomBar`), `index.ts`, and the tests' page `__checks__/layout.tsx`; `app/gallery/layout/`; the
+  guide `specs/ui/panes.md`
+- Modify: `app/ui/width.ts`, `app/ui/surfaces/Pane.tsx`, `Kept` and `DeviceKeys` in `app/store/`,
+  the `justfile`'s `gallery-shots`
 - Test: `app/ui/layout/layout.test.ts`
 
 **Interfaces:**
 
 - Consumes: surfaces (27), controls (28), the key registry's pane scopes (32), `route` and a visit's
   entry (24), the device store (24).
-- Produces:
-  - `definePane({ kind, title, icon, view, stack })`, and `Layout` with its pure functions.
-  - `placeOf(route): { main: PaneRef[], side: PaneRef[] }`, which each screen task fills for its
-    routes, and the shell, which draws the layout of the current route.
-  - The app's frame at the three width classes of the UI layout decision: narrow below 768,
-    semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`.
+- Produces, as built (rulings R176 to R180), all from `app/ui/layout` (`index.ts`):
+  - `definePane<Args>({ kind, title, icon, view, stack, closes?, flush?, mark? }): PaneKind<Args>`,
+    a factory: `transcript({ session })` is a `PaneRef` (`kind`, `args`, `key`, `closes`). `view`
+    gets `{ args, focused, width }`, `width` its stack's class. `mark(args)` gives
+    `{ count?, needs?, running? }`, read as a signal.
+  - `definePlace(page, (route: RouteOf<page>) => Placed[])`, a page's panes in order, each a
+    `PaneRef` in its kind's stack or `{ pane, stack }`; `placeOf(route): Place`, `{ main, side }`.
+  - In a pane's view: `usePane()`, with `key`, `focused()`, `width()`, and
+    `remember(name, initial)`, a value kept in the visit under the pane's key; `PaneScroll`, a
+    `Scroll` that keeps its offset there.
+  - `Layout` (`main`, `side`: `Stack` of `panes`, `shown`, `split`; `focus`, `onTabs`, `folded`,
+    `zoomed`, `closed`) and its pure functions: `layoutOf(place, folded?)`, `reset`, `focus`,
+    `show`, `cross`, `step`, `toTabs`, `move`, `reorder`, `split`, `fold`, `zoom`, `close`, `sync`,
+    `narrowed`, `neighbour`, `beside`, `stackOf`, `focusedStack`, `isShown`, `paneKey`.
+  - `Stacks` (`place?`, `rail?`, `status?`), the frame: `RailSlots` (`places`, `title`, `sidebar`)
+    and `StatusSlots` (`mode`, `start`, `end`, `place`) are task 36's to fill.
+  - `width()`, `widthClass`, `isNarrow`, and `measured` stay in `app/ui/width.ts`.
+  - `Kept.layout` and `Kept.panes` in `app/store/history.ts`; `DeviceKeys.frame` in
+    `app/store/device.ts`: the side stack's width and fold, and the rail's fold.
+  - `Pane` gains `tabs`, `tabsEnd`, and `onPress` (task 27's file).
   - The keys of the frame, declared in the registry: `h` `l` move the focus between the stacks,
     unfolding the side one; in a stack of tabs `j` `k` move through the focused pane's rows, and `k`
     past the first row reaches the tabs, where `h` `l` show the previous and the next, as
-    [the keyboard guide](/specs/ui/keyboard.md) says. The status line names them.
+    [the keyboard guide](/specs/ui/keyboard.md) says. The status line names them. `h` `j` `k` `l`
+    are fallbacks under a pane's own; `[` `]` fold, `{` `}` resize.
 
-- [ ] **Step 1: Write the failing tests** of the layout's functions, as a table: a move to the other
+- [x] **Step 1: Write the failing tests** of the layout's functions, as a table: a move to the other
       stack; a move of a stack's last pane; the focus after a pane goes; a fold with the focus
       inside; a narrow window's one stack, and back; `reset`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Build the model and the frame**, following [wide](/specs/ui/wide.md),
+- [x] **Step 2: Run them**. Expected: FAIL. Four rows of the table failed, and both tests through
+      the runner (`expected [...] to contain "back"`, `cannot scroll by 600: it is at 0 of 0`).
+- [x] **Step 3: Build the model and the frame**, following [wide](/specs/ui/wide.md),
       [semi-wide](/specs/ui/semi-wide.md), and [phone](/specs/ui/phone.md). Read the window's width
       after the first layout: at the first render it is 0, which chose the wrong layout in the
       spike. A pane that moves or whose tab shows again keeps its scroll and its selection.
-- [ ] **Step 4: Write the guide** `specs/ui/panes.md`: what a pane, a stack, and a layout are, what
+- [x] **Step 4: Write the guide** `specs/ui/panes.md`: what a pane, a stack, and a layout are, what
       a screen declares, and the keys, for the people who write screens.
-- [ ] **Step 5: Add it to the gallery**, at each width, with sample panes in both stacks.
-- [ ] **Step 6: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 7: Commit**: `feat(nsh-migration): the layout shell, panes in two stacks`.
+- [x] **Step 5: Add it to the gallery**, at each width, with sample panes in both stacks.
+- [x] **Step 6: Run the task's validation**: `just task-app`. Expected: PASS.
+- [x] **Step 7: Commit**: `feat(nsh-migration): the layout shell, panes in two stacks`.
 
 ## Task 34: Extension pages in the client
 

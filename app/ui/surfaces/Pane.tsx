@@ -3,11 +3,35 @@
 // screen that emits light, and its title fills with it. A pane that waits on the human has its
 // title in `needs-you`, and no light: a colour, not a lamp.
 //
+// A stack of panes shown as tabs is one pane whose title is a row of tabs (`tabs`): the border goes
+// around the whole row, and the tab shown is the one that fills with light. So a pane alone and a
+// stack of tabs are drawn by this one component, and look the same everywhere.
+//
 // It clips what it holds, so a main action's glow stays in its pane, and never reaches the glass
 // of a bar, which would draw again with each of its frames.
 import { type JSX, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { Surface } from "./Surface";
 import { alpha, tokens } from "../tokens";
+
+/** One title on a pane's edge: the pane's own, or one tab of a stack. */
+export type PaneTab = {
+  /** Its icon alone, its title said to screen readers only: a tab that does not fit beside the others. */
+  compact?: boolean;
+  /** The tab shown: it fills with light while the pane has the focus. */
+  current: boolean;
+  /** The title's icon, drawn in the colour the title has now. */
+  icon?: (colour: string) => JSX.Element;
+  /** What follows the title, dimmer: a count, a place, "· 3". */
+  more?: string;
+  /** It waits on the human: its title is in `needs-you`. */
+  needs?: boolean;
+  /** A press on the tab: shows it. */
+  onPress?: () => void;
+  /** A run is on in it: a small mark of the running light follows its title. */
+  running?: boolean;
+  testID?: string;
+  title: string;
+};
 
 export type PaneProps = {
   /** The style of the box the children are in: its padding, its direction. */
@@ -23,11 +47,17 @@ export type PaneProps = {
   more?: string;
   /** It waits on the human: its title is in `needs-you`. */
   needs?: boolean;
+  /** A press anywhere in the pane that nothing inside it took: the layout gives it the focus. */
+  onPress?: () => void;
   /** A run is on in it: `true` and `false` both say it can run, and the line moves between. */
   running?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Several titles on its edge, as a stack's tabs, in place of `title`, `icon`, and `more`. */
+  tabs?: ReadonlyArray<PaneTab>;
+  /** Drawn after the tabs, on the edge: what the keys do on them now. */
+  tabsEnd?: JSX.Element;
   testID?: string;
-  title: string;
+  title?: string;
   /** The title's colour at rest: the pane's role colour, the quiet ink without one. */
   tone?: string;
 };
@@ -41,23 +71,36 @@ const words = (weight: "400" | "700") =>
     lineHeight: tokens.type.line,
   }) as const;
 
-export function Pane(props: PaneProps) {
-  const lit = () => props.focused === true;
+/** One title on the edge, its fill of light under it while it is lit. */
+function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string }) {
   const colour = () => {
-    if (lit()) {
+    if (props.lit) {
       return tokens.role.onAction;
     }
-    return props.needs === true ? tokens.light.needs : (props.tone ?? tokens.role.inkQuiet);
+    if (props.tab.needs === true) {
+      return tokens.light.needs;
+    }
+    if (props.many && !props.tab.current) {
+      return tokens.role.inkFaint;
+    }
+    return props.tone ?? tokens.role.inkQuiet;
   };
-  const title = (
-    <>
+  return (
+    <View
+      accessibilityLabel={props.many || props.tab.compact === true ? props.tab.title : undefined}
+      onPress={props.tab.onPress}
+      accessibilityState={props.many ? { selected: props.tab.current } : undefined}
+      role={props.many ? "tab" : undefined}
+      style={{ height: tokens.pane.titleHeight - 1 }}
+      testID={props.tab.testID}
+    >
       <View
         style={{
-          backgroundColor: props.needs === true ? tokens.light.needs : tokens.light.focus,
-          height: tokens.pane.titleHeight - 1,
+          backgroundColor: props.tab.needs === true ? tokens.light.needs : tokens.light.focus,
+          bottom: 0,
           left: 0,
           // The light glides: the title's fill fades with it, and its words answer at once.
-          opacity: lit() ? 1 : 0,
+          opacity: props.lit ? 1 : 0,
           position: "absolute",
           right: 0,
           top: 0,
@@ -75,27 +118,87 @@ export function Pane(props: PaneProps) {
           paddingRight: tokens.pane.titlePadding[1] - 1,
         }}
       >
-        <If when={props.icon}>{(icon) => <>{icon()(colour())}</>}</If>
-        <Text style={{ ...words("700"), color: colour() }}>{props.title}</Text>
-        <If when={props.more}>
+        <If when={props.tab.icon}>{(icon) => <>{icon()(colour())}</>}</If>
+        <If when={props.tab.compact !== true}>
+          <Text
+            style={{
+              ...words(props.many && !props.tab.current ? "400" : "700"),
+              color: colour(),
+              numberOfLines: 1,
+            }}
+          >
+            {props.tab.title}
+          </Text>
+        </If>
+        <If when={props.tab.compact !== true && props.tab.more}>
           {(more) => (
             <Text
               style={{
                 ...words("400"),
-                color: lit() ? alpha(tokens.role.onAction, 0.72) : tokens.role.inkFaint,
+                color: props.lit ? alpha(tokens.role.onAction, 0.72) : tokens.role.inkFaint,
               }}
             >
               {more()}
             </Text>
           )}
         </If>
+        <If when={props.tab.running === true}>
+          <View
+            style={{
+              backgroundColor: props.lit ? tokens.role.onAction : tokens.light.running,
+              height: 6,
+              width: 6,
+            }}
+          />
+        </If>
       </View>
-    </>
+    </View>
+  );
+}
+
+export function Pane(props: PaneProps) {
+  const tabs = (): ReadonlyArray<PaneTab> =>
+    props.tabs ?? [
+      {
+        current: true,
+        icon: props.icon,
+        more: props.more,
+        needs: props.needs,
+        title: props.title ?? "",
+      },
+    ];
+  const many = () => props.tabs !== undefined && props.tabs.length > 1;
+  const title = (
+    <View style={{ flexDirection: "row" }}>
+      <Each of={tabs()}>
+        {(tab, index) => (
+          <>
+            <If when={index() > 0}>
+              <View
+                style={{
+                  backgroundColor: tokens.role.ruleQuiet,
+                  height: tokens.pane.titleHeight - 1,
+                  width: 1,
+                }}
+              />
+            </If>
+            <Title
+              lit={props.focused === true && tab().current}
+              many={many()}
+              tab={tab()}
+              tone={props.tone}
+            />
+          </>
+        )}
+      </Each>
+      {props.tabsEnd}
+    </View>
   );
   return (
     <Surface
       focused={props.focused}
       height={props.height ?? "standard"}
+      onPress={props.onPress}
       running={props.running}
       style={[{ marginTop: tokens.pane.titleRise }, props.style]}
       tab={title}

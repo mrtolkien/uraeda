@@ -95,7 +95,11 @@ export function Lit(props: {
  * only as the run's state changes: a run starting draws it from left to right, and a run ending
  * turns it green, then fades it. A line that is there as its surface appears does not move.
  */
-export function RunLine(props: { on: boolean }) {
+/**
+ * A run's line on the top edge, from `start` points in: where a title stands on the edge, the line
+ * starts after it, as the edge does, since on GTK an animated view is drawn over its later siblings.
+ */
+export function RunLine(props: { on: boolean; start?: number }) {
   const shown = signal(props.on);
   const ended = signal(false);
   const drawn = createAnimatedValue(1);
@@ -150,7 +154,7 @@ export function RunLine(props: { on: boolean }) {
     <If when={shown() && tokens.light.runningMotion !== "off"}>
       <View
         style={{
-          left: -1,
+          left: (props.start ?? 0) - 1,
           opacity: Animated.multiply(opacity, breath),
           pointerEvents: "none",
           position: "absolute",

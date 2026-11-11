@@ -2,7 +2,7 @@
 // only one that draws a shadow, glass, or a glow; the others are a height with a job.
 export { Backdrop } from "./Backdrop";
 export { type Ground, useGlass, useHeight } from "./height";
-export { Pane, type PaneProps } from "./Pane";
+export { Pane, type PaneProps, type PaneTab } from "./Pane";
 export { Surface, type SurfaceProps } from "./Surface";
 export { Well, type WellProps } from "./Well";
 export { Dialog, type DialogProps } from "./Dialog";

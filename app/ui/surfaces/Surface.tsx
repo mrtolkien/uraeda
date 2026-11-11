@@ -197,7 +197,7 @@ export function Surface(props: SurfaceProps) {
         />
       </If>
       <If when={props.running !== undefined}>
-        <RunLine on={props.running === true} />
+        <RunLine on={props.running === true} start={tabShape()?.[0]} />
       </If>
       <If when={props.tab !== undefined}>
         <View onLayout={(event) => tabWidth.set(event.bounds.size.width)} style={tabStyle()}>

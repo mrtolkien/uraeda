@@ -4218,3 +4218,116 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     with Escape, which is the screens'.
 - **Rationale**: the plan's names, each kept small; the rest is what a screen owns.
 - **Where**: `app/ui/text/`, `app/gallery/text/`, `app/store/device.ts` (its two lines).
+## R176: The layout is data in the visit, and a place lists its panes in order
+
+- **Decision**: the model is the plan's, with these changes, each in
+  [`layout.ts`](/app/ui/layout/layout.ts) and [`panes.tsx`](/app/ui/layout/panes.tsx):
+  - **A place is a list, not two.** `definePlace(page, route => [...])` lists a page's panes in
+    order, each in its kind's stack (`definePane`'s `stack`) unless the place names another. A
+    pane's default stack is said once, by its kind, so a screen cannot place one pane in two ways.
+    `placeOf(route)` still answers `{ main, side }`.
+  - **The layout lives in the visit**, `entry().kept.layout`, beside `kept.panes`, what each pane
+    remembers. The UI layout decision puts an open tab in the address: the visit is what Back and a
+    browser's reload restore (ruling R127 keeps the entry as the history's state), and an address
+    holding two stacks' arrangement would be long and change at every `h`. A new visit opens on the
+    place's default; task 66 keeps the human's arrangement per kind of place, on the device.
+  - **The main stack always holds the place's subject**: `move` refuses its last pane. A side stack
+    left empty is not drawn. A stack with no pane on either side would leave nothing to focus.
+  - **A moved pane takes the focus**, as a window does in i3: the human looks at what they moved,
+    and a pane moved into the focused stack, shown there, would otherwise hide the focused one.
+  - **The focus is always on a shown pane**, or on its stack's tabs (`onTabs`). A pane that leaves
+    gives it to the tab after it, else the one before, else the other stack's shown pane
+    (`neighbour`).
+  - **Functions added to the plan's**: `cross` (`h` `l`), `step` (the tabs, and the phone's one
+    stack), `toTabs`, `close` (with `closed`, so the place does not bring a closed pane back in the
+    visit), `sync` (the layout kept, made to hold the place's panes as they are now, as after a
+    `redirect`), and `narrowed`, the phone's one stack as a view of the layout, not a change of it:
+    a wider window shows both stacks as the narrow one left them.
+  - **The side stack's fold is in the layout and on the device**: in the layout for the focus to
+    leave a folded stack, and on the device (`DeviceKeys.frame`) for the next visit to open folded.
+- **Rationale**: Zed's panels say where they may sit, and VS Code keeps one location per view; one
+  default stack per kind is both. Kiro's chat as a tab is a view of the session, never the session:
+  `remember` and `PaneScroll` keep a pane's state in the visit, so a hidden tab is not drawn at all.
+- **Seen failing**: the table's first run found that a pane moved into the focused stack was shown
+  while the focus stayed on the pane it hid, and three rows whose expected focus did not follow the
+  neighbour rule.
+- **Where**: `app/ui/layout/`, `Kept` in [`history.ts`](/app/store/history.ts), `frame` in
+  [`device.ts`](/app/store/device.ts).
+
+## R177: The frame's keys are fallbacks, and a stack's tabs are a selection
+
+- **Decision**: the frame declares its keys in a page scope, `Panes`, around every pane
+  ([`keys.tsx`](/app/ui/layout/keys.tsx)):
+  - `h` `l` (hint `h l pane`), `j`, and `k` are **fallbacks**. A pane may declare the same keys in
+    its own scope, for its columns or rows, and returns `false` at its edge: the frame's then moves
+    the focus. So `k` past a list's first row reaches the tabs, as the keyboard guide asks, with no
+    pane knowing the frame.
+  - **The tabs are a `selection` scope**, on while the focus is on them: `h` `l` step through the
+    tabs (past an end, the frame's `h` `l` cross the stacks), `j`, Enter, and Escape go back into
+    the pane. Their hints are drawn beside the tabs, as a selection's are.
+  - `[` folds the rail and `]` the side stack (hint `[ ] fold`); `{` and `}` widen and narrow the
+    side stack by 40 points, a held key repeating. The drag is `nsh/base`'s `ResizablePanelGroup`,
+    whose band takes the gap between the stacks; the width is kept on the device.
+- **Rationale**: the registry runs a pane's own binding first and a fallback after it (ruling R141),
+  which is exactly "the pane's key, else the frame's".
+- **Alternatives considered**: `h` `l` as plain frame keys: no pane could then use them, and home's
+  columns need them.
+- **Seen failing**: with `l` crossing to main, "l crosses into the side stack and h comes back"
+  failed on `Focus: Activity`.
+- **Where**: `app/ui/layout/keys.tsx`, `layout.test.ts`.
+
+## R178: One component draws a pane and a stack of tabs
+
+- **Decision**: task 27's `Pane` takes `tabs`, a row of titles on its edge, the border around the
+  whole row, and `tabsEnd`, what follows them: a stack of tabs is one `Pane`, and a pane alone is a
+  stack of one. The shown tab fills with light while the stack has the focus; the others are
+  regular, in the faint ink. A tab with `needs` is in `needs-you`, a hidden tab with `running` has a
+  small square of the running light, and a count follows the title, `· 4`. Tabs that would not fit
+  their stack's width keep their icons alone, but for the one shown (`fitted`, measured on the
+  monospace font's width). On a narrow window the stack's edge holds the shown pane's title alone,
+  and the bar of tiles at the foot switches panes, as the phone's bottom bar did.
+- **Rationale**: the human asked that "panes and tabs will look the same everywhere": one component
+  draws every pane's frame and every tab. A tab bar inside a pane would cost a row, which the design
+  language already refused.
+- **Also found**: a `Scroll` given `{...props}` alone drops its children under NSH's JSX:
+  `PaneScroll` passes them explicitly. A running pane's line crossed its own title's words on GTK,
+  where an animated view is drawn over its later siblings: `RunLine` now starts where the title
+  ends, as the edge does, seen in the gallery's light picture of an unfocused running pane.
+- **Where**: [`Pane.tsx`](/app/ui/surfaces/Pane.tsx), `RunLine` in
+  [`light.tsx`](/app/ui/surfaces/light.tsx), [`Stack.tsx`](/app/ui/layout/Stack.tsx),
+  [`bars.tsx`](/app/ui/layout/bars.tsx).
+
+## R179: The width is the frame's, and a pane reads its stack's
+
+- **Decision**: `width()` and `isNarrow()` stay in [`app/ui/width.ts`](/app/ui/width.ts), where the
+  controls read them, not in `app/ui/layout/width.tsx`: the frame writes the width it was laid out
+  at (`measured`), and before any frame was laid out the platform's window size is read. The frame
+  draws its stacks only once a width is known, so the first render never picks the phone's layout at
+  a width of 0. A pane's view is given its own stack's class, `width`: a side stack of 400 points is
+  `narrow`, as a phone is, and the pane lays out as one column there.
+- **Where**: `app/ui/width.ts`, `Stacks.tsx`, `Stack.tsx`.
+
+## R180: What the frame draws, and its slots
+
+- **Decision**:
+  - **The rail** ([`Rail.tsx`](/app/ui/layout/Rail.tsx)) is open on a wide window and folded to
+    icons on a semi-wide one until the human chooses, kept on the device. Unfolded it is the places'
+    pane, titled by the repository, and the shell's `sidebar` under it. It pushes the stacks aside
+    on a semi-wide window, where the guide unfolds it over the page: one behaviour, and the page
+    moves by a known width.
+  - **The side stack folded is a rail of its panes' icons** at the right, as the rail of places is
+    at the left: the fold shows what it holds, and a press unfolds on that pane. The semi-wide
+    guide's "rail that opens over the page" is this rail, opening beside it.
+  - **The side stack is 400 points wide on a wide window, 340 on a semi-wide one**, between 280 and
+    60% of the room, until the human drags or keys it.
+  - **The slots task 36 fills**: `rail` (`places`, `title`, `sidebar`), `status` (`mode`, `start`,
+    `end`, `place`), and the narrow window's bars, which take the rail's places and its sidebar, in
+    a sheet. The status line draws `keyHints()` between `start` and `end`, each a press of its keys.
+  - **The old sidebar's panes stay the frame's** (Features, Needs you, Usage), in `sidebar`. A
+    third, left stack would let them move like any pane, but they are the app's, not a place's: they
+    show on every page, and a layout per place would drop and bring them back as the human moves. If
+    the human wants them movable, they become panes of a left stack that every place shares, with
+    the moves of task 66.
+- **Not built**: zoom, split, close, and the moves have no key or button yet: task 66. The frame
+  draws a zoomed pane and a split stack already.
+- **Where**: `app/ui/layout/`.
