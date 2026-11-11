@@ -1,7 +1,7 @@
 // A proposal file's Start, the editor page's second pane: what to start it as, a feature or a
 // change, the slug that names its folder and branch, and the button. `f` and `c` pick the kind, `s`
-// brings the focus to the slug, where Enter starts: no key starts anything without the slug in
-// view. On the phone, the same in a sheet, which the bottom bar's one button opens (`StartBar`).
+// brings the focus to the slug, where Ctrl+Enter starts, as the button says: Enter alone starts
+// nothing, as a start makes a branch and commits. On the phone, the same in a sheet, which the bottom bar's one button opens (`StartBar`).
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -30,7 +30,7 @@ export type StartKind = "change" | "feature";
 
 /**
  * The pane: `kind` is what it starts as, `onKind` changes it, `slugRef` is the slug's field. Its one
- * button, or Enter in the slug, opens the session at once, the agent's message in its composer for
+ * button, or Ctrl+Enter in the slug, opens the session at once, the agent's message in its composer for
  * the human to read and send, while the branch and worktree are made. A slug refused, as taken,
  * says why under it.
  */
@@ -64,7 +64,7 @@ export function ProposalStart({
         {...(actions.slugError === undefined ? {} : { error: actions.slugError })}
         field={slug}
         fieldRef={slugRef}
-        onEnter={() => {
+        onSubmit={() => {
           if (slug.text.trim()) {
             void run();
           }

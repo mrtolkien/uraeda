@@ -1,6 +1,7 @@
 // A sub-session's row (spec of Run options), the same in the session's Sub-agents pane and under
 // its parent in the feature's sessions: its state's mark, what it works on, then its role, its
-// agent's mark, its model and effort, and its usage when known, with how long it ran at its end.
+// agent's mark, its model and effort, and its usage when known, with when it started and how long
+// it ran at its end.
 // The row is a link to the sub-session's page, so a click and Enter both open it.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -10,6 +11,7 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { sessionIdPath, useRepoPath } from "../routes.tsx";
 import { CardRow } from "../sidebar/CardRow.tsx";
 import { StatusMark } from "../StatusMark.tsx";
+import { clock } from "../feature/times.ts";
 import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "../useNow.ts";
 import { roleName, runsOnText, STATE_NAMES, type SubSession, usageText } from "./subSessions.ts";
@@ -64,7 +66,9 @@ export function SubSessionRow({ sub }: { sub: SubSession }) {
   const here = useRepoPath();
   const now = useNow(sub.endedAt === null ? 1000 : null);
   const end = sub.endedAt === null ? now : Date.parse(sub.endedAt);
-  const time = elapsed(Math.max(end - Date.parse(sub.startedAt), 0));
+  // Its start, with its day when that is not today, then how long it ran: "14:02 · 16 min".
+  const started = clock(sub.startedAt, new Date(now).toISOString());
+  const time = `${started} · ${elapsed(Math.max(end - Date.parse(sub.startedAt), 0))}`;
   const usage = usageText(sub);
   return (
     <CardRow

@@ -93,6 +93,18 @@ test("a new session runs on the first runtime on in its repository", async () =>
   expect(session.agent).toBe("pi-durable");
 });
 
+test("a runtime registered again keeps its place, and the default runtime", () => {
+  const runtimes = new Runtimes();
+  const undo = runtimes.register("claude", new FakeAdapter());
+  runtimes.register("codex", new FakeAdapter());
+  // As a built-in whose settings changed: unloaded, then registered again.
+  undo();
+  expect(runtimes.defaultFor(null)).toBe("codex");
+  runtimes.register("claude", new FakeAdapter());
+  expect(runtimes.names()).toEqual(["claude", "codex"]);
+  expect(runtimes.defaultFor(null)).toBe("claude");
+});
+
 test("a session made without a pick runs on its step's, one picked keeps it, and a run of its step stays there (R18)", async () => {
   const { claude, durable, runtimes } = twoRuntimes();
   await runtimes.refreshModels();

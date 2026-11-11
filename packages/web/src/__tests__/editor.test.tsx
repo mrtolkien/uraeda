@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
 
@@ -82,6 +82,29 @@ test("Start saves the text typed, then opens the session at once (US4 2)", async
   expect(git(repo, "show", `${STARTED}:specs/${STARTED}/proposal.md`)).toContain(
     "Started as typed.",
   );
+});
+
+/**
+ * A start makes a branch and commits, so it is deliberate: Enter in the slug starts nothing, and
+ * Ctrl+Enter in the text saves it, as in any field of several lines. Break: either one starting.
+ */
+test("Enter in the slug and Ctrl+Enter in the text start nothing: the text is saved", async () => {
+  const { repo } = await renderPage("/edit/specs/proposals/git-listener.md");
+  const field = await edit();
+  await type(field, "# Git listener process\n\nSaved, not started.\n");
+  const slug = screen.getByRole("textbox", { name: "Short name" });
+  await type(slug, "git-listener");
+
+  await act(async () => void fireEvent.keyDown(slug, { key: "Enter" }));
+  await act(async () => void fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" }));
+
+  await waitFor(() =>
+    expect(readFileSync(join(repo, "specs/proposals/git-listener.md"), "utf8")).toContain(
+      "Saved, not started.",
+    ),
+  );
+  expect(window.location.pathname).toMatch(/\/edit\/specs\/proposals\/git-listener\.md$/);
+  expect(git(repo, "branch", "--list", STARTED).trim()).toBe("");
 });
 
 test("a save over a change made elsewhere keeps the text, and offers the new version", async () => {

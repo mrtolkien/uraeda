@@ -75,7 +75,7 @@ function Drawn({
 
 /**
  * The pane: its text field's handle is `editor.images.fieldProps.ref`, which `i` focuses. `onSubmit` is its
- * Ctrl+Enter: a proposal file's starts it, a started proposal's saves it. A proposal file has no
+ * Ctrl+Enter, and Vim's `:w`: it saves the text, and never starts a proposal file. A proposal file has no
  * Commit, as its start commits it; a started proposal commits with "Commit and start the agent", as
  * in its feature.
  */
@@ -148,8 +148,7 @@ export function ProposalText({
           <HStack align="center" gap={2} wrap="wrap">
             {field.dirty && <Button label="Save" onClick={editor.saveText} />}
             <SaveStatus dirty={field.dirty} state={editor.state} />
-            {/* A proposal file's Ctrl+Enter starts it, so it does not save. */}
-            {field.dirty && !isFile && <SaveKeys />}
+            {field.dirty && <SaveKeys />}
           </HStack>
           {!isFile && <CommitActions label="Commit" onCommit={editor.actions.commit} />}
         </HStack>

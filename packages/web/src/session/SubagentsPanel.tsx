@@ -13,6 +13,7 @@ import { useState } from "react";
 import type { Session } from "uraeda-server/fate";
 import { useSession } from "../sessionData.ts";
 import { StatusMark } from "../StatusMark.tsx";
+import { clock } from "../feature/times.ts";
 import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "../useNow.ts";
 import { Section } from "./Section.tsx";
@@ -70,7 +71,10 @@ function useKeptRows(running: ReadonlyArray<Subagent>, now: number): ReadonlyArr
   return kept.rows;
 }
 
-/** A sub-agent's row: working or done, its description, what it does, and how long it has run. */
+/**
+ * A sub-agent's row: working or done, its description, what it does, when it started, and how long
+ * it has run.
+ */
 function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Row }) {
   const lasting = Math.max((endedAt ?? now) - Date.parse(subagent.startedAt), 0);
   return (
@@ -79,7 +83,7 @@ function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Ro
       description={subagentText(subagent)}
       endContent={
         <Text color="secondary" type="supporting">
-          {elapsed(lasting)}
+          {`${clock(subagent.startedAt, new Date(now).toISOString())} · ${elapsed(lasting)}`}
         </Text>
       }
       label={<Text weight="bold">{subagent.description}</Text>}

@@ -95,6 +95,8 @@ type Entry = {
 export class Runtimes {
   readonly isOn: IsOn;
   #entries = new Map<string, Entry>();
+  /** Every name ever registered, in the order of its first registration: a reload keeps its place. */
+  #order: Array<string> = [];
   #listeners = new Set<() => void>();
   #accountListeners = new Set<() => void>();
   /** Each name's status when it was unregistered, which a registration under it starts from. */
@@ -142,6 +144,9 @@ export class Runtimes {
     }
     const entry: Entry = { asks: 0, runtime, status: this.#last.get(name) ?? UNCHECKED };
     this.#entries.set(name, entry);
+    if (!this.#order.includes(name)) {
+      this.#order.push(name);
+    }
     this.changed();
     void this.refreshModels([name]);
     return () => {
@@ -157,9 +162,12 @@ export class Runtimes {
     return this.#entries.get(name)?.runtime;
   }
 
-  /** The names registered, in registration order. */
+  /**
+   * The names registered, in the order each was first registered: a runtime registered again, as a
+   * built-in whose settings changed, keeps its place, so the default runtime stays the same.
+   */
   names(): Array<string> {
-    return [...this.#entries.keys()];
+    return this.#order.filter((name) => this.#entries.has(name));
   }
 
   /** The runtimes on in the repository, in registration order. */

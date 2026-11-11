@@ -280,7 +280,7 @@ export function EditorPage({ path }: { path: string }) {
               editor={editor}
               file={file}
               onEdit={edit}
-              onSubmit={isFile ? startNow : editor.saveText}
+              onSubmit={editor.saveText}
               path={path}
             />
           </div>

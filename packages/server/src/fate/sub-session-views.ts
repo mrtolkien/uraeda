@@ -84,7 +84,8 @@ export function subSessionRecord(ctx: RepoContext, row: SessionRow): SubSessionR
   const state = stateOf(ctx, row, latest);
   const tokens = featureTokens(turns);
   return {
-    about: row.title ?? "",
+    // A reviewer's stored title ends with its commits, which tell its reviews apart: not shown.
+    about: (row.title ?? "").replace(/ on [0-9a-f]{7,64}\.\.[0-9a-f]{7,64}$/, ""),
     agent: row.agent,
     ...namesOf(ctx, row),
     endedAt: state === "working" ? null : (latest?.endedAt ?? null),

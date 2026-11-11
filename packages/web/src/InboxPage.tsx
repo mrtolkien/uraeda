@@ -61,6 +61,14 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
         {inbox.count === 0 && (
           <Empty>The inbox is empty. Notes you add with ＋ next to Inbox land here.</Empty>
         )}
+        <InboxList
+          actions={actions}
+          inbox={inbox}
+          onNewCategory={() => setNewCategory((count) => count + 1)}
+          onRefused={setMessage}
+          select={select}
+        />
+        {/* After the notes: at the top, its ＋ read as the way to add a note. */}
         <EditableLine
           display={
             <>
@@ -73,13 +81,6 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
           onSave={actions.add}
           opens={newCategory}
           value=""
-        />
-        <InboxList
-          actions={actions}
-          inbox={inbox}
-          onNewCategory={() => setNewCategory((count) => count + 1)}
-          onRefused={setMessage}
-          select={select}
         />
       </VStack>
       <AddBar form="note" />

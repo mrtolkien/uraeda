@@ -12,6 +12,8 @@ import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { plural } from "../labels.ts";
 import { proposalFilePage } from "../readAhead.ts";
+import { HStack } from "@astryxdesign/core/HStack";
+import { AddNoteButton } from "../SidebarAdd.tsx";
 import { PaneLink } from "./parts.tsx";
 import { inboxSummary, NOT_SORTED } from "./summary.ts";
 
@@ -28,11 +30,15 @@ export function InboxHomeSection({ children }: Read) {
     ...(count === 0 ? { context: "The inbox is empty." } : {}),
     // Of all its notes, though three are listed.
     count,
+    // The note's form is one tap from Home, at every width.
     footer: (
-      <PaneLink
-        href={here("/inbox")}
-        label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
-      />
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <PaneLink
+          href={here("/inbox")}
+          label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
+        />
+        <AddNoteButton text="Note" />
+      </HStack>
     ),
     icon: "uraeda:inbox",
     id: "inbox",

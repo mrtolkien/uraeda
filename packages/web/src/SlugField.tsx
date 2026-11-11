@@ -23,14 +23,14 @@ const DESCRIPTION = "Two words at most: it names the folder and the branch.";
  * feature starts. Escape leaves the field, its text kept; the restored notice discards. `restoreNotice:
  * false` leaves out the editor's notice of a restored slug, for a page whose text comes back
  * as a new chat's does, like "New change". `description` words the help under it, `error` why the
- * slug started nothing, and `onEnter` runs on Enter.
+ * slug started nothing, and `onSubmit` runs on Ctrl+Enter: Enter alone does nothing.
  */
 export function SlugField({
   description = DESCRIPTION,
   error,
   field,
   fieldRef,
-  onEnter,
+  onSubmit,
   restoreNotice = true,
 }: {
   description?: string;
@@ -38,7 +38,7 @@ export function SlugField({
   field: ReturnType<typeof useTextField>;
   /** The slug's editor, which a page's key focuses. */
   fieldRef?: Ref<EditorHandle>;
-  onEnter?: () => void;
+  onSubmit?: () => void;
   restoreNotice?: boolean;
 }) {
   return (
@@ -55,7 +55,7 @@ export function SlugField({
         value={field.text}
         {...(fieldRef ? { ref: fieldRef } : {})}
         {...(error === undefined ? {} : { status: { message: error, type: "error" as const } })}
-        {...(onEnter ? { onEnter } : {})}
+        {...(onSubmit ? { onSubmit } : {})}
       />
     </>
   );
