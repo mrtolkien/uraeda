@@ -38,15 +38,25 @@ function End(props: { colour: string; label: string }) {
   );
 }
 
-/** The hints of the keys that work now: each a key and its word, pressed as the key is. */
+/** A hint's row: a key's block, 22 points, with a point of room over and under it. */
+const HINT_ROW = 24;
+
+/**
+ * The hints of the keys that work now: each a key and its word, pressed as the key is. They wrap
+ * inside one line's height, so a hint the line cannot hold is hidden whole, from the end, never cut
+ * through its word.
+ */
 function Hints() {
   return (
     <View
       style={{
+        alignContent: "flex-start",
         alignItems: "center",
+        columnGap: 14,
         flexDirection: "row",
         flexShrink: 1,
-        gap: 14,
+        flexWrap: "wrap",
+        height: HINT_ROW,
         minWidth: 0,
         overflow: "hidden",
       }}
@@ -57,7 +67,13 @@ function Hints() {
             accessibilityLabel={`${hint().label}: ${hint().keys}`}
             onPress={() => pressKeys(hint().press)}
             role="button"
-            style={{ alignItems: "center", flexDirection: "row", flexShrink: 0, gap: 6 }}
+            style={{
+              alignItems: "center",
+              flexDirection: "row",
+              flexShrink: 0,
+              gap: 6,
+              height: HINT_ROW,
+            }}
           >
             <Kbd keys={hint().keys} />
             <Text lines={1} tone="quiet">

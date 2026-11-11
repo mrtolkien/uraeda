@@ -6374,3 +6374,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `Diff` passes the theme's `syntax-*` roles, as `Code` does.
 - **Where**: `app/ui/document/Diff.tsx`, `crates/app/src/{patch,native,lib}.rs`,
   `app/gallery/document/diff.tsx`.
+
+## T93.8: The status line hides a hint it cannot hold whole
+
+- **Decision**: the status line's hints wrap inside one line's height: a hint the line cannot hold
+  is hidden whole, from the end, never cut through its key or word.
+- **Rationale**: seen at 1400 points on Git, once its guarded keys' hints came back: the last hint
+  showed as a bare "c" at the line's edge, a key with no word. The order stays (the leader, the key
+  map, and the folds first): the keys a screen names in its own buttons are drawn there too.
+- **If wrong**: the screen's own hints come before the frame's, and the frame's go first.
+- **Where**: `app/ui/layout/StatusLine.tsx`.
