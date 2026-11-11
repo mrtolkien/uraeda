@@ -286,6 +286,35 @@ fn concrete(route: &str) -> String {
     segments.collect::<Vec<_>>().join("/")
 }
 
+// The break it catches: a page of Uraeda shown in another site's frame, where a click meant
+// for that site lands on Uraeda. Only a mockup and a preview are made to be framed, by
+// Uraeda's own pages, in a sandbox.
+#[tokio::test]
+async fn every_answer_but_a_mockups_and_a_previews_refuses_another_sites_frame() {
+    let server = support::server().await;
+    let routes = server.routes();
+    assert!(routes.len() > 10, "the server's routes: {routes:?}");
+
+    for route in routes {
+        let answer = server.get(&concrete(route)).send().await;
+        let framed = ["/r/{name}/mockups/", "/r/{name}/preview/"];
+        let framed = framed.iter().any(|start| route.starts_with(start));
+        let expected = (!framed).then_some("SAMEORIGIN");
+        assert_eq!(answer.header("x-frame-options"), expected, "{route}");
+    }
+    // A path no route serves, and one the guard refuses, say it too.
+    let nowhere = server.get("/nowhere").send().await;
+    assert_eq!(nowhere.header("x-frame-options"), Some("SAMEORIGIN"));
+    let elsewhere = server
+        .get("/session")
+        .header("origin", "https://elsewhere.example");
+    let elsewhere = elsewhere.send().await;
+    assert_eq!(
+        (elsewhere.status, elsewhere.header("x-frame-options")),
+        (403, Some("SAMEORIGIN"))
+    );
+}
+
 // The sign-in decision: every request carries a valid session or device token, except the
 // sign-in and pairing routes, and the preview paths that carry the current frame secret. A route
 // a later task mounts is one of the server's routes, so it is closed here until it is listed

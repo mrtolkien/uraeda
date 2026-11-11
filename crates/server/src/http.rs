@@ -4,8 +4,11 @@ pub(crate) mod open;
 pub(crate) mod socket;
 
 use axum::Router;
-use axum::http::StatusCode;
-use axum::middleware;
+use axum::extract::Request;
+use axum::http::header::X_FRAME_OPTIONS;
+use axum::http::{HeaderValue, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::Response;
 use axum::routing::MethodRouter;
 use tokio::net::TcpListener;
 
@@ -34,8 +37,8 @@ impl Routes {
 }
 
 /// The server's router: the mounted routes, and no other path, behind the rules every request
-/// passes, the guard first, then the session check. A rule for every request is a layer here, the
-/// last one outermost.
+/// passes, the guard first, then the session check. Every answer, a refusal's included, says
+/// who may frame it. A rule for every request is a layer here, the last one outermost.
 pub(crate) fn router(shared: &Shared, routes: Routes) -> Router {
     routes
         .router
@@ -45,7 +48,28 @@ pub(crate) fn router(shared: &Shared, routes: Routes) -> Router {
             sign_in::layer,
         ))
         .layer(middleware::from_fn_with_state(shared.clone(), guard::layer))
+        .layer(middleware::from_fn(frames))
         .with_state(shared.clone())
+}
+
+/// Says on every answer that only Uraeda's own pages may frame it, so no other site shows a
+/// page of Uraeda under its own. A mockup's and a preview's are the exception: they are made to
+/// be framed, sandboxed, from the origin `null`.
+async fn frames(request: Request, next: Next) -> Response {
+    let framed = framed(request.uri().path());
+    let mut response = next.run(request).await;
+    if !framed {
+        let same_origin = HeaderValue::from_static("SAMEORIGIN");
+        response.headers_mut().insert(X_FRAME_OPTIONS, same_origin);
+    }
+    response
+}
+
+/// Whether a path is one Uraeda's own pages frame: a repository's mockups, or its previews.
+fn framed(path: &str) -> bool {
+    let mut parts = path.strip_prefix("/r/").unwrap_or_default().splitn(3, '/');
+    let kind = parts.nth(1);
+    matches!(kind, Some("mockups" | "preview"))
 }
 
 /// Serves the router on the listener until the server stops, then lets open requests end.

@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use serde_json::{Value, json};
 use support::{TestRepo, TestResponse, TestServer};
 use uraeda_core::api;
+use uraeda_server::preview;
 
 /// A single proposal file, on the default branch.
 const PROPOSAL: &str = "specs/proposals/login-banner.md";
@@ -189,8 +190,9 @@ async fn a_repository_that_is_not_listed_or_is_gone_serves_no_file() {
 
 // The preview decision: a mockup is an HTML page of a `mockups/` folder. It is served sandboxed,
 // so its scripts run outside Uraeda's origin, and nothing else of the repository is served so.
+// The sign-in decision: a sandboxed frame sends no cookie, so its path carries the frame secret.
 #[tokio::test]
-async fn a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder() {
+async fn a_mockup_is_served_sandboxed_to_its_frame_and_only_from_a_mockups_folder() {
     let served = served().await;
     let folder = "specs/2026-10-11-web-ui";
     let repo = &served.repo;
@@ -198,10 +200,23 @@ async fn a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder() {
     repo.write(&format!("{folder}/mockups/assets/ui.css"), "p {}");
     repo.write(&format!("{folder}/page.html"), "<p>Page</p>");
     repo.commit("chore: mockups");
+    let secret = preview::frame_secret(served.server.shared());
+    // A sandboxed frame's read: from the origin `null`, with no cookie.
+    let framed = |path: String| {
+        let path = format!("/r/todo-app/mockups/{path}");
+        served.server.get(&path).header("origin", "null").send()
+    };
 
-    let page = served
-        .get(&format!("/mockups/{folder}/mockups/ui.html"))
-        .await;
+    // A signed-in page that names no secret is sent to the path under the current one.
+    let asked = format!("/mockups/{folder}/mockups/ui.html?theme=dark");
+    let sent_on = served.get(&asked).await;
+    let under = format!("/r/todo-app/mockups/{secret}/{folder}/mockups/ui.html?theme=dark");
+    assert_eq!(
+        (sent_on.status, sent_on.header("location")),
+        (303, Some(under.as_str()))
+    );
+
+    let page = framed(format!("{secret}/{folder}/mockups/ui.html")).await;
     assert_eq!(page.status, 200);
     assert_eq!(page.text(), "<p>UI</p>");
     assert_eq!(
@@ -213,15 +228,21 @@ async fn a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder() {
         page.header("content-type"),
         Some("text/html; charset=utf-8")
     );
-    let style = served
-        .get(&format!("/mockups/{folder}/mockups/assets/ui.css"))
-        .await;
+    let style = framed(format!("{secret}/{folder}/mockups/assets/ui.css")).await;
     assert_eq!(
         style.header("content-type"),
         Some("text/css; charset=utf-8")
     );
 
+    // With another secret the page does not exist for a frame, and anyone else is asked to
+    // sign in.
+    let other = format!("another/{folder}/mockups/ui.html");
+    assert_eq!(framed(other.clone()).await.status, 404);
+    let unsigned = format!("/r/todo-app/mockups/{other}");
+    assert_eq!(served.server.get(&unsigned).send().await.status, 401);
+
     for path in [
+        String::new(),
         "specs/PRIORITIES.md".to_owned(),
         format!("{folder}/page.html"),
         format!("{folder}/mockups"),
@@ -230,7 +251,7 @@ async fn a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder() {
         "mockups/..%2Fspecs%2FPRIORITIES.md".to_owned(),
         format!("{folder}/mockups/missing.html"),
     ] {
-        let answer = served.get(&format!("/mockups/{path}")).await;
+        let answer = served.get(&format!("/mockups/{secret}/{path}")).await;
         assert_eq!(answer.status, 404, "{path}");
     }
 }

@@ -1017,10 +1017,10 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 
 **Interfaces:**
 
-- Produces, under `/r/:name`, each closed: `GET /raw/*`, `GET /mockups/*`, `GET /images/*`, `GET`
-  and `DELETE /chat-images/:id`, `POST /attach`, `POST /inbox/note-image`, as
-  [`files.ts`](/packages/server/src/files.ts) and `attach.ts` have them. A mockup's path holds no
-  frame secret until task 18 (ruling R77).
+- Produces, under `/r/:name`, each closed: `GET /raw/*`, `GET /images/*`, `GET` and
+  `DELETE /chat-images/:id`, `POST /attach`, `POST /inbox/note-image`, as
+  [`files.ts`](/packages/server/src/files.ts) and `attach.ts` have them; and
+  `GET /mockups/<secret>/*`, open to a path with the frame secret, as `Open::Frame` (ruling T99.11).
 - Produces `/mcp`, open to the session check and closed by its own per-process tokens, as `mcp/` has
   it (ruling R75): `shared.get::<Mcp>()` with `issue(session)`, `revoke(token)`, and
   `serve(runner)`, the trait `mcp::Runner` for the tools `run_agent` and `review`, which task 15

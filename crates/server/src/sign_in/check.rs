@@ -50,6 +50,8 @@ pub const OPEN: &[(&str, Open)] = &[
     (crate::preview::proxy::PATHS[0], Open::Frame),
     (crate::preview::proxy::PATHS[1], Open::Frame),
     (crate::preview::proxy::PATHS[2], Open::Frame),
+    // The mockups: with the frame secret, or for a signed-in page, which is sent to it.
+    (crate::files::MOCKUPS, Open::Frame),
 ];
 
 /// Who a request or a connection is: a browser's session or a paired device, signed in.

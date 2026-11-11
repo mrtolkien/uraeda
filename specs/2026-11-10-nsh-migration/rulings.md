@@ -1543,11 +1543,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 ## R77: A mockup's path holds no frame secret yet, and the links without a repository are gone
 
 - **Decision**: what of the Node server's file routes is not ported as it was.
-  - `GET /r/:name/mockups/<path>` serves the file at `<path>`, to a signed-in request only. The Node
-    server's path starts with the frame secret, and a path without it is sent to its path under it
-    with 303. Task 18 owns the secret: the comment `TASK 18: frame secret`, in `files/raw.rs`, is
-    where its check and the redirect go. Until then, a sandboxed frame, which sends `Origin: null`,
-    gets the guard's 404 on a mockup.
+  - `GET /r/:name/mockups/<path>` served the file at `<path>`, to a signed-in request only, until
+    the join: the Node server's path starts with the frame secret, which task 18 owned. Since the
+    join the path is `/mockups/<secret>/<path>`, open to its frame (T99.11).
   - `GET /raw/*` and `GET /mockups/*` without `/r/:name`, which sent a link from before repositories
     had names to the most recently opened one, are not ported: compatibility may break.
   - `DELETE /r/:name/chat-images/:id` deletes an image without asking whether a sent message holds
@@ -1559,9 +1557,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     repository itself.
 - **Rationale**: R36 says the guard's frame check waits for task 18, and both tasks are built at the
   same time. One home for the containment rule is what `ura lsp` and the server share.
-- **If wrong**: the Node server answered every route but mockups' and previews' with
-  `X-Frame-Options: SAMEORIGIN`. The Rust server has no such layer yet: it belongs in
-  `http::router`, with the frame paths of task 18.
+- **Since the join**: every answer but a mockup's and a preview's carries
+  `X-Frame-Options: SAMEORIGIN`, from a layer of `http::router` (T99.11).
 - **Where**: task 16, `crates/server/src/files/`, and the tests
   `a_raw_path_cannot_leave_its_repository` and
   `a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder`. Tasks 11, 15, and 18.
@@ -1604,8 +1601,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: one secret serves previews and mockups, as the sign-in decision says, and the
   guard, the session check, and the proxy must read it alike. With `Open::Anyone`, the route would
   have answered 404 where every other closed route answers 401.
-- **If wrong**: task 16 built mockups at the same time, without this. At the join, its mockup route
-  is listed in `OPEN` as `Open::Frame`, and reads the secret from `preview::frame_secret`.
+- **Since the join**: the mockups' route is listed in `OPEN` as `Open::Frame`, and reads the secret
+  from `preview::frame_secret` (T99.11).
 - **Where**: task 18, `crates/server/src/preview/{mod,frames}.rs`, `guard.rs`, `sign_in/check.rs`,
   and the test `a_preview_path_without_its_secret_is_refused`. Tasks 16 and 49.
 
@@ -1961,3 +1958,26 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   stops (R65).
 - **Where**: `crates/server/src/records/watch.rs`, each domain's `files_changed`,
   `records/git/fetcher.rs`, `records/previews.rs`. Tasks 15, 17, and 20, which add their line.
+
+## T99.11: A mockup's path carries the frame secret, and every other answer refuses a frame
+
+- **Decision**: what R77 and R79 left to the join.
+  - `GET /r/<name>/mockups/<secret>/<path>` serves a file of a `mockups/` folder, sandboxed, when
+    `<secret>` is the current frame secret, compared in constant time. The route is `Open::Frame` in
+    `sign_in::OPEN`: a sandboxed frame, which sends no cookie and the origin `null`, reads it with
+    the secret, and the guard answers it 404 with another.
+  - Any other mockup path reaches the handler only signed in, and is sent with 303 to the same path
+    under the current secret, its query kept. The secret alone is 404.
+  - `http::router` has a layer, the outermost, which sets `X-Frame-Options: SAMEORIGIN` on every
+    answer whose path is not a repository's mockups or previews: a refusal of the guard and a path
+    no route serves included.
+- **Rationale**: a sandboxed frame has an opaque origin, so `SAMEORIGIN` would refuse Uraeda's own
+  frames of a mockup or a preview: the Node server left the header out there, and so does this one,
+  by the same paths.
+- **How it was checked**: `a_mockup_is_served_sandboxed_to_its_frame_and_only_from_a_mockups_folder`
+  was served the page with no secret, where it expects the 303; it reads the page as a frame does,
+  with no cookie, and is refused with another secret. And
+  `every_answer_but_a_mockups_and_a_previews_refuses_another_sites_frame` walks `Server::routes()`:
+  no answer had the header.
+- **Where**: `crates/server/src/files/{mod,raw}.rs`, `sign_in/check.rs`, `http.rs`,
+  `contracts/protocol.md`. Tasks 41 and 49, which frame them.

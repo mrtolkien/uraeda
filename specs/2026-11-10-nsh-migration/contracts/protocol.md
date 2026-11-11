@@ -294,6 +294,13 @@ record gives it, `Preview.base` or `Story.frame`, on the server's own address. T
 whenever a session or a device ends: the records then change, and name the new path. A path with
 another secret answers 404 to a frame and to who is signed in, and 401 to anyone else.
 
+A mockup's path carries the same secret, `/r/<name>/mockups/<secret>/<path>`, for the same reason. A
+signed-in client that asks for a mockup under no secret, or under another, is sent to the path under
+the current one, with 303: a frame follows it.
+
+Every answer but a mockup's and a preview's carries `X-Frame-Options: SAMEORIGIN`: no other site
+frames a page of Uraeda.
+
 - A wrong key or code is answered 401 a second later, and never locks anyone out.
 - `GET /session` answers 204 when the request is signed in, and 401 when it is not.
 - `DELETE /session` signs the browser out, or unpairs the device that sends it. `DELETE /sessions`
@@ -307,22 +314,23 @@ A client reaches the server through `/live` and these routes only. Each task tha
 its line. The routes marked "host" are not a client's: the host's own `ura` and app call them, with
 the host token of the server's status file, as `Authorization: Bearer <token>`.
 
-| Route                                                           | For                              | Task |
-| --------------------------------------------------------------- | -------------------------------- | ---- |
-| `GET /live`                                                     | The WebSocket of this contract   | 4    |
-| `POST /open`                                                    | Host: a second start's folder    | 4    |
-| `GET`, `POST`, `DELETE /session`, `DELETE /sessions`            | Signing in and out with the key  | 5    |
-| `GET /session/:token`                                           | Signing in from a link           | 5    |
-| `POST /pair`                                                    | Pairing a device, for its token  | 5    |
-| `POST /pair/code`                                               | Host: a pairing code             | 5    |
-| `POST /session/key`                                             | Host: a new access key           | 5    |
-| `/r/:name/raw/*`, `/mockups/*`, `/images/*`, `/chat-images/:id` | Files and images, as bytes       | 16   |
-| `DELETE /r/:name/chat-images/:id`                               | A chat's image, taken back       | 16   |
-| `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`        | Uploads                          | 16   |
-| `/mcp`                                                          | The agents' MCP endpoint         | 16   |
-| `GET /r/:name/preview/:secret/:folder/*`, and its WebSockets    | Previews, proxied                | 18   |
-| `GET /extensions/:name/page`, `GET /extensions/key`             | Extension pages, as signed bytes | 19   |
-| The web build's files                                           | The client itself, in a browser  | 56   |
+| Route                                                        | For                              | Task |
+| ------------------------------------------------------------ | -------------------------------- | ---- |
+| `GET /live`                                                  | The WebSocket of this contract   | 4    |
+| `POST /open`                                                 | Host: a second start's folder    | 4    |
+| `GET`, `POST`, `DELETE /session`, `DELETE /sessions`         | Signing in and out with the key  | 5    |
+| `GET /session/:token`                                        | Signing in from a link           | 5    |
+| `POST /pair`                                                 | Pairing a device, for its token  | 5    |
+| `POST /pair/code`                                            | Host: a pairing code             | 5    |
+| `POST /session/key`                                          | Host: a new access key           | 5    |
+| `/r/:name/raw/*`, `/images/*`, `/chat-images/:id`            | Files and images, as bytes       | 16   |
+| `GET /r/:name/mockups/:secret/*`                             | Mockups, for a sandboxed frame   | 16   |
+| `DELETE /r/:name/chat-images/:id`                            | A chat's image, taken back       | 16   |
+| `POST /r/:name/attach`, `POST /r/:name/inbox/note-image`     | Uploads                          | 16   |
+| `/mcp`                                                       | The agents' MCP endpoint         | 16   |
+| `GET /r/:name/preview/:secret/:folder/*`, and its WebSockets | Previews, proxied                | 18   |
+| `GET /extensions/:name/page`, `GET /extensions/key`          | Extension pages, as signed bytes | 19   |
+| The web build's files                                        | The client itself, in a browser  | 56   |
 
 ## Declaring a record or an action
 
