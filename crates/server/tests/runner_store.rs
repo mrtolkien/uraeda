@@ -924,6 +924,60 @@ fn an_import_refuses_a_store_it_cannot_read_and_imports_nothing() {
     assert_eq!(store.session(&id(1)).unwrap(), None);
 }
 
+// An import never writes the store of a server that runs on the folder: that server's turns,
+// timers, and memory would no longer match its store. Stopped, the server's folder imports.
+#[test]
+fn an_import_refuses_the_store_of_a_running_server() {
+    let (old, new) = (old_data(), TempDir::new().unwrap());
+    let store = Store::open(new.path()).unwrap();
+    // A server of this very process runs on the folder: its status file names a live process.
+    let running = uraeda_server::status::write(new.path(), 1).unwrap();
+
+    let refused = runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::Yes);
+
+    let refused = refused.expect_err("a refusal");
+    assert!(
+        matches!(refused, ImportError::Running { pid, .. } if pid == running.pid),
+        "{refused}"
+    );
+    assert!(refused.to_string().contains("stop it"), "{refused}");
+    assert_eq!(store.session(&id(1)).unwrap(), None);
+    assert!(!new.path().join("images").join(IMAGE).exists());
+
+    uraeda_server::status::remove(new.path());
+    runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::Yes).unwrap();
+    assert_eq!(
+        store.session(&id(1)).unwrap().map(|session| session.id),
+        Some(id(1))
+    );
+}
+
+// All or nothing holds for the images too: an import that fails after it copied them takes them
+// back, so a retry copies them again and counts them.
+#[test]
+fn a_failed_import_leaves_no_image_behind() {
+    let (old, new) = (old_data(), TempDir::new().unwrap());
+    let store = Store::open(new.path()).unwrap();
+    // The last thing the import reads is the old store's job runs: without them, it fails.
+    let table = rusqlite::Connection::open(old.path().join("runner.sqlite")).unwrap();
+    table
+        .execute_batch("ALTER TABLE job_runs RENAME TO gone")
+        .unwrap();
+
+    let failed = runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::No);
+
+    assert!(matches!(failed, Err(ImportError::Old { .. })), "{failed:?}");
+    assert_eq!(store.session(&id(1)).unwrap(), None);
+    let image = new.path().join("images").join(IMAGE);
+    assert!(!image.exists(), "no image is left");
+
+    table
+        .execute_batch("ALTER TABLE gone RENAME TO job_runs")
+        .unwrap();
+    let imported = runner::import(old.path(), &store, at(12, 0, 0, 0), Replace::No).unwrap();
+    assert_eq!(imported.images, 1);
+}
+
 // How the store joins the server: the server opens it, every domain reads it by its type, and it
 // closes as the server stops.
 #[tokio::test]

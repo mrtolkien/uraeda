@@ -3,8 +3,12 @@
 //!
 //! TEMPORARY: removed with the Node server, once the port is done (task 61).
 //!
+//! - **Never under a running server**: a server that runs on the new data folder holds its
+//!   sessions in memory, runs their turns, and times their jobs; replacing its store under it
+//!   would mix an imported transcript into a live turn. The import is refused until it stops.
 //! - **The old store is only read**: it is opened read-only, and never written.
-//! - **All or nothing**: the sessions, their turns, and their logs land in one transaction.
+//! - **All or nothing**: the sessions, their turns, and their logs land in one transaction. The
+//!   images are copied inside it, and removed again when it fails, its commit included.
 //! - **Once**: a store that already holds sessions is refused, unless told to replace them: it
 //!   is then emptied and filled again in the same transaction.
 //! - **Nothing imported runs by itself**: the Node server may still run, and would run it too.
@@ -34,6 +38,7 @@ use super::session;
 use super::store::{Store, StoreError, millis, time};
 use super::turn::{self, Turn, TurnState};
 use crate::files::chat_images::{FOLDER, is_id};
+use crate::status;
 
 /// Why a turn the Node server ran, queued, or cut as it stopped is stopped in the store.
 pub const IMPORTED: &str =
@@ -85,6 +90,11 @@ pub enum ImportError {
         old::SCHEMA
     )]
     Schema { path: PathBuf, found: u32 },
+    #[error(
+        "a server runs on {} (process {pid}): stop it first, then import again",
+        folder.display()
+    )]
+    Running { folder: PathBuf, pid: u32 },
     #[error("the store already holds {sessions} sessions: nothing was imported")]
     Holds { sessions: u64 },
     #[error("{} could not be read: {source}", path.display())]
@@ -103,14 +113,22 @@ pub enum ImportError {
 ///
 /// # Errors
 ///
-/// [`ImportError`], and nothing is imported: the folder has no store, its store is at another
-/// schema or cannot be read, or the new store holds sessions and `replace` is `No`.
+/// [`ImportError`], and nothing is imported: a server runs on the new store's data folder, the
+/// folder has no store, its store is at another schema or cannot be read, or the new store
+/// holds sessions and `replace` is `No`.
 pub fn import(
     from: &Path,
     store: &Store,
     now: SystemTime,
     replace: Replace,
 ) -> Result<Imported, ImportError> {
+    if let Some(running) = status::running(store.data_dir()) {
+        let folder = store.data_dir().to_owned();
+        return Err(ImportError::Running {
+            folder,
+            pid: running.pid,
+        });
+    }
     let path = from.join(OLD_FILE);
     if !path.is_file() {
         let folder = from.to_owned();
@@ -126,7 +144,8 @@ pub fn import(
         return Err(ImportError::Schema { path, found });
     }
     let now = millis(now);
-    store.write(|new| {
+    let mut copied = Vec::new();
+    let imported = store.write(|new| {
         make_room(new, replace)?;
         let mut imported = Imported::default();
         for session in old.sessions().map_err(unread)? {
@@ -143,13 +162,19 @@ pub fn import(
             imported.events += lines.len() as u64;
             imported.unread += left_out;
         }
-        imported.images = copy_images(from, store.data_dir(), &images)?;
+        copy_images(from, store.data_dir(), &images, &mut copied)?;
+        imported.images = copied.len() as u64;
         imported.job_runs = old
             .copy_job_runs(new)
             .map_err(unread)?
             .map_err(StoreError::from)?;
         Ok(imported)
-    })
+    });
+    // The transaction rolled back, or its commit failed: the images it copied go too.
+    if imported.is_err() {
+        copied.iter().for_each(|image| drop(fs::remove_file(image)));
+    }
+    imported
 }
 
 /// Refuses a store that holds sessions, or empties it when told to.
@@ -220,10 +245,15 @@ fn sent_images(lines: &[Line]) -> impl Iterator<Item = String> {
 }
 
 /// Copies the chat images the imported messages hold from the old data folder to the new one,
-/// and returns how many: one already there, or gone from the old folder, is not copied.
-fn copy_images(from: &Path, to: &Path, images: &BTreeSet<String>) -> Result<u64, ImportError> {
+/// each copy's path added to `copied` as it is made: one already there, or gone from the old
+/// folder, is not copied.
+fn copy_images(
+    from: &Path,
+    to: &Path,
+    images: &BTreeSet<String>,
+    copied: &mut Vec<PathBuf>,
+) -> Result<(), ImportError> {
     let (from, to) = (from.join(FOLDER), to.join(FOLDER));
-    let mut copied = 0;
     // An id names a file of the images' folder, and nothing outside it.
     for image in images.iter().filter(|image| is_id(image)) {
         let (source, target) = (from.join(image), to.join(image));
@@ -234,12 +264,13 @@ fn copy_images(from: &Path, to: &Path, images: &BTreeSet<String>) -> Result<u64,
             .recursive(true)
             .mode(0o700)
             .create(&to);
-        made.and_then(|()| fs::copy(&source, &target))
-            .map_err(|error| ImportError::Image {
-                path: source,
-                source: error,
-            })?;
-        copied += 1;
+        let made = made.and_then(|()| fs::copy(&source, &target));
+        // A copy cut short leaves part of a file: it goes too.
+        copied.push(target);
+        made.map_err(|error| ImportError::Image {
+            path: source,
+            source: error,
+        })?;
     }
-    Ok(copied)
+    Ok(())
 }

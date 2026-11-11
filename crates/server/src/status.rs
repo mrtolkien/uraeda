@@ -67,6 +67,30 @@ pub fn read(data_dir: &Path) -> Option<Status> {
     serde_json::from_str(&fs::read_to_string(path(data_dir)).ok()?).ok()
 }
 
+/// The server that runs on `data_dir`: the status its file holds, when its process is alive. A
+/// file a killed server left names a process that is gone. A process that took a dead server's id
+/// since reads as running: the way out is to remove the file.
+pub fn running(data_dir: &Path) -> Option<Status> {
+    read(data_dir).filter(|status| alive(status.pid))
+}
+
+/// Whether the process `pid` exists, whoever owns it.
+#[cfg(unix)]
+fn alive(pid: u32) -> bool {
+    let Ok(pid) = libc::pid_t::try_from(pid) else {
+        return false;
+    };
+    // SAFETY: `kill` takes no pointer; the signal 0 checks the process, and sends nothing.
+    let sent = unsafe { libc::kill(pid, 0) };
+    pid > 0 && (sent == 0 || io::Error::last_os_error().raw_os_error() == Some(libc::EPERM))
+}
+
+/// Without unix, a status file is believed.
+#[cfg(not(unix))]
+fn alive(_pid: u32) -> bool {
+    true
+}
+
 /// Removes the status file, as the server stops.
 pub fn remove(data_dir: &Path) {
     // A file that is not there is removed already.

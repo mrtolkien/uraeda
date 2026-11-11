@@ -15,8 +15,7 @@ use super::schema;
 /// The store's file, in the server's data folder.
 pub const FILE: &str = "sessions.sqlite";
 
-/// How long a statement waits for another connection's lock: `ura import-sessions` may write
-/// while a server runs.
+/// How long a statement waits for another connection's lock.
 const BUSY: Duration = Duration::from_secs(5);
 
 /// Why the store could not be opened, read, or written.

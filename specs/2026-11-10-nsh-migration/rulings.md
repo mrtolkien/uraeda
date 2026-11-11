@@ -5508,3 +5508,21 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the system's: a light picture came out dark with `open`'s `colorScheme` alone, as the gallery
   found. No `app/tools/shots.ts`: the recipe needs no code beyond the test.
 - **Where**: `justfile`, `app/screens/shots.test.tsx`, `app/screens/shell/boot.ts`.
+
+## T95.1: An import refuses a running server, and takes back the images of a failed one
+
+- **Decision**: `runner::import` is refused, with `ImportError::Running`, while a server runs on the
+  new store's data folder: its status file names a process that is alive (`status::running`). The
+  words say to stop it first. Every import is refused, not only `--replace`: an import into an empty
+  store still writes sessions the running server never read. The images are copied inside the
+  transaction, as before, and every one it copied is removed when the import fails, its commit
+  included, so the count it reports is what it did.
+- **Rationale**: a running server holds its turns, timers, and job runs in memory; an import that
+  empties its store under it mixes imported turns into live ones (both reviewers). A status file a
+  killed server left names a dead process, and is ignored. Copying after the commit instead would
+  leave a landed import whose images failed, which reads as neither all nor nothing.
+- **If wrong**: a process that took a dead server's id since reads as a server: the way out is to
+  remove `run/server.json`.
+- **Seen failing**: `an_import_refuses_the_store_of_a_running_server` (it imported), and
+  `a_failed_import_leaves_no_image_behind` ("no image is left").
+- **Where**: `crates/server/src/{status.rs,runner/import.rs}`.
