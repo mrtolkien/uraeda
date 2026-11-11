@@ -3617,3 +3617,16 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     builds ran, and passed alone and in the two runs after.
 - **Where**: `crates/server/src/runner/{catch_ups,chain}.rs`, `crates/server/src/preview/mod.rs`.
   Tasks 20, 51, and the fixer of the pull requests' refresh.
+## T97.2: The keys' views read the tokens now, not at task 28
+
+- **Decision**: `look()` of [`app/ui/keys/look.ts`](/app/ui/keys/look.ts) reads `tokens`, where it
+  read the samples' `values.ts`. Its colours are the theme's roles: `action`, `rule`, `rule-quiet`,
+  `ink`, `ink-quiet`, and `raised`, and its font is `tokens.type.body`.
+- **Rationale**: task 26 lifted `values.ts` into the tokens and removed it, and task 32, built
+  beside it, still imported it: once both were merged, `just app-check` failed with "Cannot find
+  module '../../gallery/samples/values'", and so did `just task-app` for every later task.
+  [R142](#r142-what-task-32-built-otherwise-than-its-plan-and-the-seams-it-leaves) left the switch
+  to task 28: it is one file, and the build cannot wait for it.
+- **If wrong**: the views follow the theme `applyTheme` shows, where they followed the system's
+  colour scheme. Until task 36 calls it, that is the default dark theme.
+- **Where**: `app/ui/keys/look.ts`. The rest of the seam, `TASK 28:` in `parts.tsx`, stays.

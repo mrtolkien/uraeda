@@ -2025,9 +2025,9 @@ ported, beyond accounts and jobs.
     over a kind, are the shell's.
   - `GROUPS`, in `groups.ts`: a feature whose sequence goes through a new group of the leader's menu
     adds its line.
-  - The seams, marked in the code: `TASK 28:` in `look.ts` and `parts.tsx`, for the tokens, `Kbd`,
-    `Text`, `Icon`, and the overlay's surface; `TASK 30:` in `KeyMap.tsx` and `KeyPicker.tsx`, for
-    the shared text field; `TASK 33:` in `look.ts`, for the width.
+  - The seams, marked in the code: `TASK 28:` in `parts.tsx`, for `Kbd`, `Text`, `Icon`, and the
+    overlay's surface (`look.ts` reads the tokens already, ruling T97.2); `TASK 30:` in `KeyMap.tsx`
+    and `KeyPicker.tsx`, for the shared text field; `TASK 33:` in `look.ts`, for the width.
   - For task 33: a side column's keys go in a `pane` scope whose `on` is the column's focus, the
     page's own movement keys in a `pane` beside it, and `h l column` is a `hint` of the key that
     crosses.
