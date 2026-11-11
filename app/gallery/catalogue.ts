@@ -84,6 +84,7 @@ export const CATALOGUE: ReadonlyArray<GroupEntry> = [
       { icon: "file-text", name: "spec", shows: "Recurring tasks", title: "spec.md" },
       { icon: "workflow", name: "diagrams", shows: "could not be drawn", title: "Diagrams" },
       { icon: "message-square", name: "reply", shows: "Step 1", title: "A reply" },
+      { icon: "git-compare", name: "diff", shows: "doneAt", title: "A diff" },
     ],
   },
   {

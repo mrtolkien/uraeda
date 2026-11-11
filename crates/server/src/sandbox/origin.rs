@@ -1,5 +1,6 @@
 //! The sample project's `origin`: a bare repository beside it, with a commit to pull and one to
-//! push, and its branches brought up to date with `main`, as GitHub's "Update branch" does.
+//! push, and its branches brought up to date with `main`, as GitHub's "Update branch" does; and
+//! two changes left uncommitted in the main checkout.
 
 use std::fs;
 
@@ -88,4 +89,17 @@ fn change_priority(repo: &Repo, line: &str, message: &str) -> Result<(), String>
     let written = read.replacen(PRIORITY_LINE, line, 1);
     let files = vec![text("specs/PRIORITIES.md", written)];
     repo.commits("main", vec![Commit::new(message, None, files)])
+}
+
+/// Two changes left in the main checkout, for the Git page: a file changed, and one new.
+pub(super) fn uncommitted(repo: &Repo) -> Result<(), String> {
+    let readme = repo.path.join("specs/README.md");
+    let read = fs::read_to_string(&readme).map_err(|error| error.to_string())?;
+    let written =
+        format!("{read}\nEach feature has a folder of its own, named by its date and slug.\n");
+    fs::write(&readme, written).map_err(|error| error.to_string())?;
+    let notes = repo.path.join("notes");
+    fs::create_dir_all(&notes).map_err(|error| error.to_string())?;
+    let standup = "# Standup\n\n- Snooze times: spec approved, waiting for a start.\n- Due dates: the spec's status is misspelt.\n";
+    fs::write(notes.join("standup.md"), standup).map_err(|error| error.to_string())
 }

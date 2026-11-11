@@ -6,7 +6,7 @@ use std::path::Path;
 
 use super::fixture;
 use super::git::{Commit, Files, Repo, copy, sorted, text};
-use super::origin::{merge_main, origin};
+use super::origin::{merge_main, origin, uncommitted};
 use super::texts::{
     at, bytes, code, finish, first_stages, lines, plan, proposal, record, recurring, slug_of, spec,
     with_status,
@@ -175,7 +175,8 @@ pub(super) fn build(path: &Path) -> Result<(), String> {
     for branch in [folders::PULL_REQUEST, "change/2026-10-18-empty-state"] {
         merge_main(&repo, branch)?;
     }
-    origin(&repo)
+    origin(&repo)?;
+    uncommitted(&repo)
 }
 
 /// The feature page's features: at work, gated, finished, and done.

@@ -4,7 +4,7 @@
 // chevron folds it, as `Enter` does on it; on a leaf `Enter` is the row's own. What is folded is
 // the screen's to keep, in the visit's entry, and a fold glides.
 import { type JSX, View } from "nsh";
-import { Icon, type IconName, Text } from "../controls";
+import { Icon, IconButton, type IconName, Text } from "../controls";
 import { registerKey } from "../keys/registry";
 import { tokens } from "../tokens";
 import type { Cursor } from "./cursor";
@@ -18,6 +18,8 @@ export type TreeNode = {
   readonly icon?: IconName;
   readonly id: string;
   readonly label: string;
+  /** What a press on its icon does, in words, with `onMark`: "Stage notes/a.md". */
+  readonly markLabel?: string;
   /** A quiet fact at the row's end: "+12 −3". */
   readonly meta?: string;
 };
@@ -46,6 +48,11 @@ export type TreeProps = {
   folded: ReadonlySet<string>;
   /** Folds a folder, or opens it: the screen keeps the set. */
   onFold: (id: string, folded: boolean) => void;
+  /**
+   * A press on the icon of a row whose node has a `markLabel`: its second action, as a file's
+   * staging, which a touch reaches without opening the row.
+   */
+  onMark?: (id: string) => void;
   /** A leaf's own action. */
   onOpen?: (id: string) => void;
   testID?: string;
@@ -103,10 +110,27 @@ export function Tree(props: TreeProps) {
                   />
                 </If>
               </View>
-              <Icon
-                colour={row().node.hue}
-                name={row().node.icon ?? (row().folder ? "folder" : "file-text")}
-              />
+              <If
+                when={props.onMark === undefined ? undefined : row().node.markLabel}
+                else={
+                  <Icon
+                    colour={row().node.hue}
+                    name={row().node.icon ?? (row().folder ? "folder" : "file-text")}
+                  />
+                }
+              >
+                {(label) => (
+                  <IconButton
+                    colour={row().node.hue}
+                    icon={row().node.icon ?? "square"}
+                    label={label()}
+                    onPress={() => {
+                      cursor.set(row().id);
+                      props.onMark?.(row().id);
+                    }}
+                  />
+                )}
+              </If>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text>{row().node.label}</Text>
               </View>

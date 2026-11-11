@@ -46,7 +46,7 @@ pub const PORT: u16 = 4420;
 pub const TODAY: &str = "2026-10-21";
 
 /// What changes the sample projects: a sandbox built by other builders is stale.
-const BUILDERS: &str = "1";
+const BUILDERS: &str = "2";
 
 /// How the sandbox's server runs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

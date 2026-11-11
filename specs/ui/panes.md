@@ -68,6 +68,7 @@ definePlace("session-id", (route) =>
         transcript({ repo: route.repo, session: route.id }),
         changes({ repo: route.repo, session: route.id }),
         // A kind's stack can be overridden by a place: { pane: plan({ ... }), stack: "main" }.
+        // A place may open on another pane than the main stack's first: { pane, focus: true }.
       ],
 );
 
@@ -130,6 +131,8 @@ The rules that make a pane work everywhere:
 - **A page read at a glance splits its stacks**: `definePlace(page, panes, { split: ["main"] })`
   shows all of a stack's panes at once, one under the other, until the human makes them tabs, as
   Home does. Most pages leave their stacks as tabs.
+- **Its action may lead to another pane**: `focusPane(ref)` focuses it, showing it, as a list's
+  Enter focuses the detail it opened in the other stack.
 - **`closes`** says the human may close it. A place's subject never closes.
 - **`kind` is unique** across the app: `definePane` throws on a second one. Name it after its
   screen, `session-changes`.

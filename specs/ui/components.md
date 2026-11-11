@@ -51,6 +51,8 @@ Documents, [`app/ui/document/`](/app/ui/document/) (gallery [Documents](/app/gal
 
 - A workflow file's tree: `Document`; an agent's reply as it streams: `Reply`. Neither reads
   Markdown in TSX.
+- A file's diff, or a commit's files: `Diff`, over the server's unified patch, scrolling inside
+  itself.
 
 Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
 

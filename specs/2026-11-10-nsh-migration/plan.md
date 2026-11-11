@@ -2756,12 +2756,26 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `app/ui/`.
 - **Tests:** `a commit holds exactly the staged files`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): git`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 104 tests passed;
+      `just task uraeda-server`: 312 passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): git`.
+
+**As built** (rulings T46.1 to T46.7):
+
+- `app/screens/git/panes.tsx`: the place `git` shows `git-diff` (Diff) in the main stack, and
+  `git-changes` (Changes), `git-history` (History), `git-worktrees` (Worktrees) as tabs of the side
+  stack, Changes focused as it opens. Each takes `{ repo }`.
+- `app/ui/layout/`: a `Placed` may say `focus: true` (`Place.focus`), and `focusPane(ref)` focuses a
+  pane of the page shown.
+- `app/ui/document/Diff.tsx`: `Diff { patch, path, wrap?, keys? }`, a unified patch of one file or
+  several, which the session's changes (task 44) can draw too; its gallery page is Documents, "A
+  diff".
+- `app/ui/lists/Tree.tsx`: a node's `markLabel` with the tree's `onMark` makes its icon a button.
+- The Git place's key is `g G`. The sandbox's `sample` has two uncommitted changes.
 
 ## Task 47: Editors
 

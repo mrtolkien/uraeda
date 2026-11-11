@@ -1,7 +1,7 @@
 // What a screen declares: its kinds of pane, once each, with `definePane`, and the panes each of
 // its pages shows, with `definePlace`. The layout shell draws them: a screen never draws a pane's
 // frame, a tab, or a side column of its own. See the guide, `specs/ui/panes.md`.
-import { context, type JSX, Scroll, type ScrollProps } from "nsh";
+import { context, type JSX, Scroll, type ScrollProps, signal } from "nsh";
 import { type Json, type PaneRef, paneKey, type Place, type StackName } from "./layout";
 import { entry, keep, positions } from "../../store/history";
 import type { Route, RouteOf } from "../../store/routes";
@@ -56,8 +56,13 @@ export type PaneKind<Args extends PaneArgs> = ((args: Args) => PaneRef) & {
   readonly spec: PaneSpec<Args>;
 };
 
-/** A pane in a place, in its kind's stack, or in the one named. */
-export type Placed = PaneRef | { readonly pane: PaneRef; readonly stack: StackName };
+/**
+ * A pane in a place, in its kind's stack, or in the one named; `focus` makes it the pane focused as
+ * the place opens, in place of the main stack's first.
+ */
+export type Placed =
+  | PaneRef
+  | { readonly focus?: boolean; readonly pane: PaneRef; readonly stack?: StackName };
 
 const kinds = new Map<string, PaneSpec<PaneArgs>>();
 const places = new Map<
@@ -90,9 +95,9 @@ export const kindOf = (pane: PaneRef): PaneSpec<PaneArgs> | undefined => kinds.g
 
 /**
  * Declares the panes a page shows, in order: each in its kind's stack unless given one. The first
- * main pane is the page's subject, focused as it opens. Called once per page, at a module's top
- * level. `split` names the stacks that show all their panes at once, as a page read at a glance
- * does, until the human makes them tabs.
+ * main pane is the page's subject, focused as it opens unless another is placed with `focus: true`.
+ * Called once per page, at a module's top level. `split` names the stacks that show all their panes
+ * at once, as a page read at a glance does, until the human makes them tabs.
  */
 export function definePlace<P extends Route["page"]>(
   page: P,
@@ -114,11 +119,29 @@ export function placeOf(route: Route): Place {
   const placed = declared?.panes(route) ?? [];
   const main: Array<PaneRef> = [];
   const side: Array<PaneRef> = [];
+  let focus: string | undefined;
   for (const one of placed) {
-    const [pane, stack] = "pane" in one ? [one.pane, one.stack] : [one, kindOf(one)?.stack];
-    (stack === "side" ? side : main).push(pane);
+    const [pane, stack] = "pane" in one ? [one.pane, one.stack] : [one, undefined];
+    ((stack ?? kindOf(pane)?.stack) === "side" ? side : main).push(pane);
+    if ("pane" in one && one.focus === true) focus = pane.key;
   }
-  return declared?.split === undefined ? { main, side } : { main, side, split: declared.split };
+  return {
+    main,
+    side,
+    ...(declared?.split === undefined ? {} : { split: declared.split }),
+    ...(focus === undefined ? {} : { focus }),
+  };
+}
+
+/** The pane a view asked to focus, which the layout shell takes and clears. */
+export const focusWanted = signal<string | null>(null);
+
+/**
+ * Puts the focus on a pane of the page shown, showing it, as a press in it does: what a pane's
+ * action leads to, as a list's Enter to the detail it opened in the other stack.
+ */
+export function focusPane(pane: PaneRef) {
+  focusWanted.set(pane.key);
 }
 
 /** The title of a pane, as its tab says it. */

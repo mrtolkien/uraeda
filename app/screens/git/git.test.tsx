@@ -1,0 +1,37 @@
+// The Git page against the real server: `just app-test` starts a sandbox, whose `sample`
+// repository has two changes left in its main checkout, and `__checks__/Git.tsx` opens the app on
+// its Git page. What the test guards is what a person cannot see on the page: that a commit takes
+// what is staged, and nothing else.
+import { expect, open, test } from "nsh/test";
+
+test("a commit holds exactly the staged files", async () => {
+  const app = await open("./__checks__/Git.tsx", {
+    height: 800,
+    network: "live",
+    platform: "linux",
+    width: 1400,
+  });
+  const shows = () => app.texts().join(" ");
+  // Both changes are listed, nothing staged.
+  await app.waitUntil(() => shows().includes("standup.md") && shows().includes("README.md"), {
+    timeout: 30_000,
+  });
+  // Stage one of the two, by its mark: it reads staged once the server says so.
+  await app.press("label:Stage notes/standup.md");
+  await app.waitFor("label:Unstage notes/standup.md", { timeout: 15_000 });
+  expect(app.shows("label:Stage specs/README.md")).toBe(true);
+
+  // Commit, with a message typed, by Ctrl+Enter in the field.
+  await app.type("id:git-message", "docs: the standup's notes");
+  await app.keyboard.press("ctrl+Enter");
+  // The commit lands: the staged file leaves Changes, the other stays, unstaged.
+  await app.waitUntil(() => !shows().includes("standup.md"), { timeout: 15_000 });
+  expect(app.shows("label:Stage specs/README.md")).toBe(true);
+
+  // The commit is the history's newest: it holds the staged file alone.
+  await app.press("label:History");
+  await app.waitUntil(() => shows().includes("docs: the standup's notes"), { timeout: 15_000 });
+  await app.press("text:docs: the standup's notes");
+  await app.waitFor("id:git-commit-files >> text:notes/standup.md", { timeout: 15_000 });
+  expect(app.count("id:git-commit-files >> text:/\\.md$/")).toBe(1);
+});

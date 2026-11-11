@@ -3,7 +3,7 @@
 // window's width: on a wide and a semi-wide window the rail, the main stack, the side stack, and
 // the status line; on a narrow one the places' bar, one stack holding every pane, and its bar of
 // tiles. The rail's, the status line's, and the bars' contents are the app's shell's slots.
-import { computed, type Signal, signal, View } from "nsh";
+import { computed, effect, type Signal, signal, untracked, View } from "nsh";
 import { ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { BottomBar, NavBar } from "./bars";
 import { FrameKeys } from "./keys";
@@ -18,7 +18,7 @@ import {
   type StackName,
   sync,
 } from "./layout";
-import { placeOf } from "./panes";
+import { focusWanted, placeOf } from "./panes";
 import { Rail, type RailSlots } from "./Rail";
 import { SideRail } from "./SideRail";
 import { StackView } from "./Stack";
@@ -82,6 +82,15 @@ export function Stacks(props: StacksProps) {
       set(focus(layout(), key));
     }
   };
+  // A pane's view asked for the focus to go to a pane: it goes, once.
+  effect(() => {
+    const wanted = focusWanted();
+    if (wanted === null) return;
+    untracked(() => {
+      focusWanted.set(null);
+      onFocus(wanted);
+    });
+  });
   const sheet: Signal<boolean> = signal(false);
 
   const stack = (name: StackName) => (

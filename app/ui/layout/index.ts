@@ -5,6 +5,7 @@ export * from "./layout";
 export {
   definePane,
   definePlace,
+  focusPane,
   kindOf,
   type PaneArgs,
   type PaneKind,

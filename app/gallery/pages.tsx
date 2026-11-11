@@ -7,6 +7,7 @@ import { choices } from "./controls/choices";
 import { icons } from "./controls/icons";
 import { menu, select } from "./controls/open";
 import { words } from "./controls/words";
+import { diff } from "./document/diff";
 import { diagrams, reply, spec } from "./document/document";
 import { keys } from "./keys/keys";
 import { activity, agents, changes, notes, transcript } from "./layout/panes";
@@ -29,6 +30,7 @@ const VIEWS: Record<string, (narrow: boolean) => JSX.Element> = {
   corner,
   diagrams,
   dialog,
+  diff,
   fields,
   glass: () => scene("glass"),
   heights,

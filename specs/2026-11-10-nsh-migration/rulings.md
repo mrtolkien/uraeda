@@ -6084,3 +6084,83 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   "g g" is bound twice, to Git and to first row").
 - **Rationale**: the places' `g` keys are the app's, everywhere; `G` and `End` keep the last row.
 - **Where**: `app/ui/lists/keys.ts`.
+
+## T46.1: The Git page's lists are the side stack, its diff the main one, and the page opens in Changes
+
+- **Decision**: `/git` declares four panes: `git-diff` (Diff) in the main stack, and `git-changes`
+  (Changes), `git-history` (History), and `git-worktrees` (Worktrees) as tabs of the side stack. The
+  place names Changes as the pane focused as it opens, with `focus: true` on its `Placed`, a field
+  the layout shell gained (`Place.focus`, read by `layoutOf`, which unfolds the side stack for it).
+  A pane's action that leads to another calls `focusPane(ref)`, which the shell takes: Enter on a
+  file or a commit focuses the Diff. What the lists picked is kept in the visit under the page's own
+  key (`app/screens/git/picked.ts`), since two panes share it.
+- **Rationale**: lazygit's shape is a column of lists beside a wide diff. The side stack's 400
+  points are the old page's list column (`min(36rem, 40%)`), and a diff needs the main stack's
+  width: in the side stack it read 45 characters a line. The work, staging and committing, is in the
+  lists, so the page opens there, as the old page focused its selected row; on a phone the one stack
+  opens on Changes, as the old page showed its sections first.
+- **Alternatives considered**: Changes as the main pane and the Diff in the side stack, as the panes
+  guide's "main holds the subject" reads: a cramped diff, or a side stack widened for every page,
+  since its width is one choice per device.
+- **If wrong**: swap the two stacks in `definePlace("git")` and drop `focus`; `focusPane` and
+  `Place.focus` cost nothing to a place that does not use them.
+- **Where**: `app/screens/git/panes.tsx`, `app/ui/layout/{layout.ts,panes.tsx,Stacks.tsx}`.
+
+## T46.2: `s` stages, since Space is the leader; the Git place is `g G`
+
+- **Decision**: in Changes, `s` stages or unstages the row (a file, a folder's files, a checkout's),
+  and a press on a file's mark does the same; `a` every file of the checkout; `c` goes to the
+  message, and `Ctrl+Enter` there, or Commit, commits; `d` asks, then discards; `o` and `t` take a
+  side of a conflict. `f` `p` `P` `M` sync from every pane of the page. The rail's Git is `g G`,
+  `Space G`, as the old web UI had it, in place of `g g`.
+- **Rationale**: Space starts every leader sequence, and the registry hears no single Space beside
+  them; the old page's Space was a focused checkbox's own, which a list row here is not. `g g` is
+  every list's first row (`listKeys`): with the Git place on `g g`, the registry threw "a key means
+  two things" as the first list of a pane mounted, on any page.
+- **If wrong**: a list could give `g g` up instead; the place's key is one line of `places.ts`.
+- **Where**: `app/screens/git/{Changes,CommitBox,Sync}.tsx`, `app/screens/shell/places.ts`.
+
+## T46.3: The Git page ports what the server has: no hunk staging, amend, or stash
+
+- **Decision**: the page stages and unstages whole files and folders, commits, discards, fetches,
+  pulls, pushes, merges, resolves conflicts by a side or by editing, continues or aborts, and
+  removes or cleans worktrees: every action `git.*` has. It has no hunk staging, amend, or stash,
+  which the server does not offer and the old page did not have.
+- **Rationale**: the task ports what exists. Each missing one is a server action first.
+- **Where**: `app/screens/git/`.
+
+## T46.4: Discard, Remove, and Clean ask first; a write names itself in the queue
+
+- **Decision**: `git.discard`, `git.removeWorktree`, and `git.clean` are not in the server's undo,
+  so each asks in a dialog that says what goes and that nothing brings it back. Every write of the
+  page passes its `write` name, "Committing 1 file in main", "Pushing main to origin", with the
+  page's address, `/r/<repo>/git`: the server's default names the page `/git`, without the
+  repository. A refusal shows under the control it came from, whole, in git's or the hook's words,
+  until the next write from there.
+- **Where**: `app/screens/git/{writes.ts,Changes.tsx,Worktrees.tsx}`.
+
+## T46.5: `Diff` draws one file's patch, or several, with Native Shell's `DiffView`
+
+- **Decision**: `app/ui/document/Diff.tsx` draws a unified patch with `DiffView`, unified, in the
+  code font at the under size on 20-point rows, its parts in the theme's roles (`added`, `removed`,
+  `code-ground`, `sunken`), scrolling down and sideways inside itself, wrapping with `wrap`. With
+  `keys`, `j` `k` scroll it and `n` `N` go to the next or previous change. A commit is one patch of
+  its files' diffs, each read as its own `GitDiff`, joined. The gallery's Documents has a page of
+  it.
+- **Where**: `app/ui/document/Diff.tsx`, `app/gallery/document/diff.tsx`.
+
+## T46.6: `Banner` makes its action once
+
+- **Decision**: `Banner` reads its `action` once, as it is made. It read it in its `If`'s condition
+  and again to draw it, and the condition ran again at each change of what the action read: the
+  stopped pull's Continue, a button with a key, was made twice, and the registry threw "`m` is bound
+  twice".
+- **Where**: `app/ui/controls/Banner.tsx`.
+
+## T46.7: The sandbox's `sample` leaves two changes in its main checkout
+
+- **Decision**: the sample's builder ends with `specs/README.md` changed and `notes/standup.md` new,
+  uncommitted, for the Git page and its test; the builders' stamp is `2`, so an older sandbox is
+  built again. A pull of `sample` still stops on the priorities' conflict, seen on the hidden
+  display.
+- **Where**: `crates/server/src/sandbox/{origin,sample}.rs`, `crates/server/src/sandbox.rs`.

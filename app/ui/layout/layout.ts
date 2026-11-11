@@ -49,6 +49,8 @@ export type Layout = {
 
 /** The panes a place shows, by their default stacks, in order. */
 export type Place = {
+  /** The key of the pane focused as the place opens: the main stack's first unless given. */
+  readonly focus?: string;
   readonly main: ReadonlyArray<PaneRef>;
   readonly side: ReadonlyArray<PaneRef>;
   /** The stacks that show their panes split, all at once, until the human makes them tabs. */
@@ -78,10 +80,10 @@ const stackOfPanes = (
   split: splits,
 });
 
-/** The place's default layout: each stack's first pane shown, the main one's focused. */
+/** The place's default layout: each stack's first pane shown, the main one's or the place's focused. */
 export function layoutOf(place: Place, folded = false): Layout {
   const main = stackOfPanes(place.main, null, place.split?.includes("main"));
-  return {
+  const layout: Layout = {
     closed: [],
     focus: main.shown,
     folded,
@@ -90,6 +92,8 @@ export function layoutOf(place: Place, folded = false): Layout {
     side: stackOfPanes(place.side, null, place.split?.includes("side")),
     zoomed: null,
   };
+  // A place that names its focus shows that pane, unfolding the side stack for it.
+  return place.focus === undefined ? layout : focus(layout, place.focus);
 }
 
 /** The place's default again, the side stack folded as it was: what "reset" gives. */

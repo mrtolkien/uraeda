@@ -23,6 +23,7 @@ import "./feature/panes";
 // Task 45: Decisions.
 import "./decisions";
 // Task 46: Git.
+import "./git/panes";
 // Task 47: Editors.
 // Task 48: Settings.
 // Task 49: Previews.
