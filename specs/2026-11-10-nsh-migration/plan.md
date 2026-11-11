@@ -551,6 +551,7 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 27. Tasks 57, 58: browser behaviour, and extension pages, in separate files.
 28. Tasks 59, 60.
 29. Task 61, alone.
+30. Task 67, alone, last: what the default branch gained while the plan was built.
 
 ### The join of wave 6
 
@@ -3054,3 +3055,41 @@ here: iOS and macOS are the human's, later.
       `vp run ready` held that the new stack still needs, as the toolchain configuration's tests
       were, is rewritten as a Rust test or a recipe, or dropped with a ruling.
 - [ ] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.
+
+## Task 67: What the default branch gained since
+
+Added on 2026-11-11, at the human's request: "after everything is done, review the commits on main
+and add all features that are worth it. Since this rewrite is spanning days and runs inside uraeda
+itself, there are some small functional fixes and changes here and there (like idle session
+nudging)."
+
+**Files:**
+
+- Modify: whatever each kept change needs, in `crates/` and `app/`
+- Create: nothing by default
+
+**Interfaces:**
+
+- Consumes: everything, and the default branch's commits since the catch-up of ruling R124, which
+  stopped at `67f4dad0`: `git log 67f4dad0..origin/main`.
+- Produces: the new stack with every change of the default branch that is worth having, and a list
+  of each commit read, kept or left, with its reason.
+
+- [ ] **Step 1: Read every commit** of `git log --reverse 67f4dad0..origin/main`, with its message
+      and its diff. The old UI and the Node server it changed are gone from this branch, so nothing
+      merges by itself: each commit is read for what it does for the human, not for its lines.
+- [ ] **Step 2: Sort them** in the commit body's list: a fix or a feature of behaviour the new stack
+      has too, which is ported; one of code the rewrite replaced with something that does not have
+      the problem, which is left, saying why; a change of the core, the skill, the specs, or the
+      documentation, which comes with the rebase. When in doubt, port: the human made each change
+      because something hurt.
+- [ ] **Step 3: Port each kept change**, one commit each, named after the default branch's commit,
+      with a test that fails first where it changes behaviour. A change to a screen follows
+      [what makes a screen good](#what-makes-a-screen-good), and adds its complaint to that section
+      when it teaches a new rule.
+- [ ] **Step 4: Rebase the branch** on the default branch. A file the default branch changed and
+      this branch deleted stays deleted, once step 3 has its change. A decision or the constitution
+      changed there is read as the final review's catch-up reads it.
+- [ ] **Step 5: Run the full pass**, `just ready`. Expected: PASS.
+- [ ] **Step 6: Commit** the list as the last commit's body:
+      `feat(nsh-migration): what the default branch gained since the catch-up`.
