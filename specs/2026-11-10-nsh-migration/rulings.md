@@ -5623,3 +5623,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a read that must see a write the same thread made a moment before still does: a read
   transaction begins after the write committed.
 - **Where**: `crates/server/src/runner/store.rs`.
+
+## T95.7: The session store's schema is one first step
+
+- **Decision**: the four steps of `sessions.sqlite`'s schema (the first tables, the lines' numbers,
+  the session's account, the jobs' runs) are one first step, schema 1, with no `steps_taken` shim
+  and no `IF NOT EXISTS`. The steps that come after it are added at the end, as before; a store of a
+  newer schema is still refused, untouched.
+- **Rationale**: no store of this schema shipped, and the project keeps no upgrade path (finding 8):
+  the shim served stores two parallel tasks wrote, each with its own step 3, and the second step's
+  backfill of the lines' numbers served stores written before it, in development only. Folding them
+  reads as the schema it is, and drops the backfill's query. The two tests of those upgrade paths
+  went with them.
+- **If wrong**: a development store at schema 2 to 4 is refused as "written by a newer Uraeda": it
+  is rebuilt, `just sandbox --reset` for the sandbox's, or by removing `sessions.sqlite` from the
+  data folder.
+- **Where**: `crates/server/src/runner/schema.rs`, `crates/server/tests/sessions/pages.rs`.

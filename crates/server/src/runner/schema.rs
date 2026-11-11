@@ -4,15 +4,29 @@
 
 use rusqlite::Connection;
 
-/// The first schema: sessions, their turns, and each turn's log of events.
+/// The first schema: sessions, their turns, each turn's log of events, and the scheduled jobs'
+/// runs. No store of an earlier one shipped: the steps the parallel tasks wrote were folded into
+/// it, and a store of theirs is rebuilt.
 ///
 /// - A time is the milliseconds since 1970, in UTC.
+/// - A session's `account` is the account it runs on, by its runtime's id for it, a folder for
+///   Claude Code: none for one on the server's own login.
 /// - `events` is only ever added to. A row is one event: `data` is its JSON, `type` its kind,
 ///   and `seq` its place in its turn, from 0.
 /// - A row of a text says how long its text is: a piece, `textDelta`, has the place of the
 ///   text's first piece in `text_start`, and the text's bytes so far, its own included, in
 ///   `text_bytes`; a whole `text`, which ends the pieces, has no start and 0 bytes. Any other row
 ///   has neither. The next piece reads the last such row of its turn, through the index.
+/// - An event that starts a line of the transcript says which one, `item`, from 0 in its turn,
+///   so a page of a transcript is found without reading the turn (see [`log`](super::log)). The
+///   index by an event's kind is for what reads one kind of a turn: its blocked actions, its
+///   last text.
+/// - `job_runs` holds a row per time a job was due in a repository, run, skipped, or failed to
+///   start, or per run by hand (see [`job_runs`](super::job_runs)). A time is recorded once: the
+///   unique index of a job, a repository, and a time is what stops two ticks, two servers, or a
+///   clock set back from starting it twice. It is plain, not partial: an insert's `ON CONFLICT`
+///   cannot use a partial index, and SQLite counts each null as distinct, so runs by hand, whose
+///   `due` is null, never conflict.
 const FIRST: &str = "
 CREATE TABLE sessions (
   id          TEXT PRIMARY KEY,
@@ -33,7 +47,8 @@ CREATE TABLE sessions (
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL,
   seen_at     INTEGER,
-  archived_at INTEGER
+  archived_at INTEGER,
+  account     TEXT
 ) STRICT;
 CREATE INDEX sessions_by_folder ON sessions (repo, folder);
 CREATE INDEX sessions_by_parent ON sessions (parent) WHERE parent IS NOT NULL;
@@ -66,56 +81,13 @@ CREATE TABLE events (
   data       TEXT NOT NULL,
   text_start INTEGER,
   text_bytes INTEGER,
+  item       INTEGER,
   PRIMARY KEY (turn_id, seq)
 ) STRICT, WITHOUT ROWID;
 CREATE INDEX events_of_texts ON events (turn_id, seq) WHERE text_bytes IS NOT NULL;
-";
-
-/// The second step: an event that starts a line of the transcript says which one, `item`, from 0
-/// in its turn, so a page of a transcript is found without reading the turn. The events
-/// already there are numbered by the same rule as [`log`](super::log) numbers a new one: a
-/// message, a tool call, a thought, a line, a blocked action, the first piece of a text, a whole
-/// text no piece came before, and the first skipped line of a turn.
-///
-/// And an index by an event's kind, for what reads one kind of a turn: its blocked actions, its
-/// last text.
-const ITEMS: &str = "
-ALTER TABLE events ADD COLUMN item INTEGER;
 CREATE INDEX events_of_items ON events (turn_id, item) WHERE item IS NOT NULL;
 CREATE INDEX events_by_type ON events (turn_id, type, seq);
-UPDATE events SET item = numbered.item FROM (
-  SELECT turn_id, seq, starts,
-    SUM(starts) OVER (PARTITION BY turn_id ORDER BY seq) - 1 AS item
-  FROM (
-    SELECT e.turn_id, e.seq, CASE
-      WHEN e.type IN ('message', 'toolStart', 'thought', 'notice', 'retry', 'denial') THEN 1
-      WHEN e.type = 'textDelta' AND e.text_start = e.seq THEN 1
-      WHEN e.type = 'text' AND COALESCE(
-        (SELECT p.text_start IS NULL FROM events p
-         WHERE p.turn_id = e.turn_id AND p.seq < e.seq AND p.text_bytes IS NOT NULL
-         ORDER BY p.seq DESC LIMIT 1), 1) THEN 1
-      WHEN e.type = 'skipped' AND NOT EXISTS (
-        SELECT 1 FROM events s
-        WHERE s.turn_id = e.turn_id AND s.seq < e.seq AND s.type = 'skipped') THEN 1
-      ELSE 0 END AS starts
-    FROM events e)
-) AS numbered
-WHERE numbered.turn_id = events.turn_id AND numbered.seq = events.seq AND numbered.starts = 1;
-";
-
-/// The third step: the account a session runs on, by its runtime's id for it, a folder for
-/// Claude Code: none for a session made before, and for one on the server's own login.
-const ACCOUNT: &str = "ALTER TABLE sessions ADD COLUMN account TEXT;";
-
-/// The fourth step: the runs of the scheduled jobs, one row per time a job was due in a
-/// repository, run, skipped, or failed to start, or per run by hand (see
-/// [`job_runs`](super::job_runs)). A time is recorded once: the unique index of a job, a
-/// repository, and a time is what stops two ticks, two servers, or a clock set back from
-/// starting it twice. It is plain, not partial: an insert's `ON CONFLICT` cannot use a partial
-/// index, and SQLite counts each null as distinct, so runs by hand, whose `due` is null, never
-/// conflict. It creates only what is missing: see [`steps_taken`].
-const JOB_RUNS: &str = "
-CREATE TABLE IF NOT EXISTS job_runs (
+CREATE TABLE job_runs (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   job          TEXT NOT NULL,
   repository   TEXT NOT NULL,
@@ -130,12 +102,12 @@ CREATE TABLE IF NOT EXISTS job_runs (
   blocked_by   TEXT,
   error        TEXT
 ) STRICT;
-CREATE UNIQUE INDEX IF NOT EXISTS job_runs_due ON job_runs (job, repository, due);
-CREATE INDEX IF NOT EXISTS job_runs_session ON job_runs (session);
+CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
+CREATE INDEX job_runs_session ON job_runs (session);
 ";
 
 /// The schema's steps, in order: the store's number is how many it has taken.
-const STEPS: &[&str] = &[FIRST, ITEMS, ACCOUNT, JOB_RUNS];
+const STEPS: &[&str] = &[FIRST];
 
 /// The number of the schema this version reads and writes.
 pub(super) fn known() -> u32 {
@@ -147,29 +119,10 @@ pub(super) fn found(db: &Connection) -> rusqlite::Result<u32> {
     db.query_row("PRAGMA user_version", [], |row| row.get(0))
 }
 
-/// How many steps a store has taken. The scheduled jobs and the accounts were built at the same
-/// time, each as the third step: a store at 3 with no session's account was written with the
-/// jobs' runs as its third step, and takes the account's step, then the jobs' one, which creates
-/// nothing it already has.
-fn steps_taken(db: &Connection) -> rusqlite::Result<usize> {
-    let applied = found(db)? as usize;
-    let has_account = || {
-        db.query_row(
-            "SELECT count(*) FROM pragma_table_info('sessions') WHERE name = 'account'",
-            [],
-            |row| row.get::<_, i64>(0),
-        )
-    };
-    if applied == 3 && has_account()? == 0 {
-        return Ok(2);
-    }
-    Ok(applied)
-}
-
 /// Applies the steps a store lacks, in one transaction: all of them, or none.
 pub(super) fn migrate(db: &mut Connection) -> rusqlite::Result<()> {
     let transaction = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-    let applied = steps_taken(&transaction)?;
+    let applied = found(&transaction)? as usize;
     for step in STEPS.iter().skip(applied) {
         transaction.execute_batch(step)?;
     }
