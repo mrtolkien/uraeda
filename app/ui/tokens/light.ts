@@ -55,6 +55,13 @@ export function row({ dark, role }: Source) {
     bar: 2,
     /** The bar is lit; the row is not. */
     barGlow: dark ? `0 0 8px ${alpha(role.lightFocus, 0.6)}` : "none",
+    /**
+     * The bar of a cursor whose pane has not the keys: the edge's colour, unlit, so the row is
+     * found again at a glance and nothing but the focused pane emits light.
+     */
+    barRest: role.rule,
+    /** What is open now, the place shown or the item read: its words and icon in the accent. */
+    current: role.action,
     /** The line between two rows. */
     rule: role.ruleQuiet,
   };

@@ -25,8 +25,17 @@ function stateOf(feature: WorkspaceFeature): { icon: IconName; hue?: string } {
   }
 }
 
-/** A row's two lines: what it is, and under it, smaller, its state; its icon in the state's hue. */
-function Two(props: { hue?: string; icon: IconName; title: string; under?: string }) {
+/**
+ * A row's two lines: what it is, and under it, smaller, its state; its icon in the state's hue.
+ * The one open now, `current`, has its title in the accent and bold, as a list's current row.
+ */
+function Two(props: {
+  current?: boolean;
+  hue?: string;
+  icon: IconName;
+  title: string;
+  under?: string;
+}) {
   return (
     <>
       <Icon
@@ -35,7 +44,13 @@ function Two(props: { hue?: string; icon: IconName; title: string; under?: strin
         style={{ alignSelf: "flex-start", marginTop: 4 }}
       />
       <View style={{ flex: 1, minWidth: 0, paddingVertical: 2 }}>
-        <Text lines={1}>{props.title}</Text>
+        <Text
+          bold={props.current === true}
+          colour={props.current === true ? tokens.row.current : undefined}
+          lines={1}
+        >
+          {props.title}
+        </Text>
         <If when={props.under}>
           {(under) => (
             <Text colour={props.hue} lines={1} size="under" tone="quiet">
@@ -73,9 +88,9 @@ function Features(props: { repo: string }) {
             <Row
               accessibilityLabel={feature().label ?? feature().title}
               onPress={() => navigate({ folder: feature().id, page: "feature" })}
-              selected={shownFeature() === feature().id}
             >
               <Two
+                current={shownFeature() === feature().id}
                 hue={stateOf(feature()).hue}
                 icon={stateOf(feature()).icon}
                 title={feature().label ?? feature().title}

@@ -69,6 +69,15 @@ export function keyScope(spec: ScopeSpec, parent: Scope = Current()): Scope {
 }
 
 /**
+ * Whether the keys the caller would declare work now, read as a signal: its pane has the focus, its
+ * section's scope is on, and no dialog over it holds the keys. A list's cursor is lit while they do.
+ */
+export function keysWorkHere(): () => boolean {
+  const scope = Current();
+  return () => store.works(scope);
+}
+
+/**
  * Says the caller keeps Space while `kept` holds, as a checkbox, a radio, or a switch with the
  * focus: Space is then the control's, not the leader's, unless the menu is open.
  */

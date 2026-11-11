@@ -7,7 +7,12 @@
 // is the row's own, `open`. With ranges, `J` `K` and Shift with the arrows stretch the selection. A
 // move past either end does nothing and says so, so the key goes on to what is past the list: the
 // layout shell's `k` to the pane's tabs.
-import { type KeySpec, registerKey } from "../keys/registry";
+//
+// A keyboard-first app shows where the keys go before any is pressed: while the keys work where
+// the list is (its pane has the focus), a list with no cursor puts it on its first row, without
+// scrolling. A pointer user meets a quiet bar there; a pane at rest keeps its cursor, unlit.
+import { effect, untracked } from "nsh";
+import { type KeySpec, keysWorkHere, registerKey } from "../keys/registry";
 import type { Cursor } from "./cursor";
 
 export type ListKeysOptions = {
@@ -24,6 +29,13 @@ const did = (done: boolean): false | undefined => (done ? undefined : false);
 
 export function listKeys(cursor: Cursor, options: ListKeysOptions = {}) {
   const when = options.when;
+  const works = keysWorkHere();
+  effect(() => {
+    const first = cursor.items()[0];
+    if (first !== undefined && cursor.at() === undefined && works() && (when?.() ?? true)) {
+      untracked(() => cursor.set(first.id));
+    }
+  });
   const keys: Array<KeySpec> = [
     {
       keys: "j",

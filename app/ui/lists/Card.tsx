@@ -13,7 +13,9 @@
 // - **`actions`**: its buttons, each with its key, at its foot.
 //
 // It is a raised surface, square, never glowing. A running card carries a run's line on its top
-// edge; a selected one, the bar of light on its left edge. Pressed, the whole card is the target.
+// edge. The cursor's card, `selected`, has a row's look: a fill one step up and the bar on its left
+// edge, lit while the list's keys work, its edge unchanged; the card open now, `current`, has its
+// icon and title in the accent. Pressed, the whole card is the target.
 import { type JSX, View } from "nsh";
 import { Button, Icon, type IconName, StatusDot, Text } from "../controls";
 import { Surface } from "../surfaces";
@@ -57,6 +59,8 @@ export type CardAction = {
 export type CardProps = {
   actions?: ReadonlyArray<CardAction>;
   body?: JSX.Element;
+  /** What is open now, the item read beside the list: its icon and title in the accent. */
+  current?: boolean;
   facts?: ReadonlyArray<CardFact>;
   /** Its kind's hue, a colour of the tokens: the quiet ink unless given. */
   hue?: string;
@@ -90,13 +94,19 @@ function When(props: { time: CardTime }) {
 }
 
 function Head(props: CardProps) {
-  const icon = () => <Icon colour={props.hue} name={props.icon} />;
+  const icon = () => (
+    <Icon colour={props.current === true ? tokens.row.current : props.hue} name={props.icon} />
+  );
   const state = () => (
     <If when={props.state}>{(now) => <StatusDot label={now().label} tone={now().tone} />}</If>
   );
   const time = () => <If when={props.time}>{(when) => <When time={when()} />}</If>;
   const title = () => (
-    <Text bold testID={props.testID === undefined ? undefined : `${props.testID}-title`}>
+    <Text
+      bold
+      colour={props.current === true ? tokens.row.current : undefined}
+      testID={props.testID === undefined ? undefined : `${props.testID}-title`}
+    >
       {props.title}
     </Text>
   );
@@ -133,11 +143,20 @@ export function Card(props: CardProps) {
       height="raised"
       onPress={props.onPress}
       running={props.state?.running}
-      // Only a selected card sets its border: an unset colour given here is drawn black on GTK.
-      style={props.selected === true ? { borderColor: tokens.light.focus } : undefined}
       testID={props.testID}
     >
       <If when={props.selected === true}>
+        {/* The cursor's look, a row's: a fill one step up and the bar, never a lit edge. */}
+        <View
+          style={{
+            backgroundColor: tokens.row.selectedUp,
+            bottom: 0,
+            left: 0,
+            position: "absolute",
+            right: 0,
+            top: 0,
+          }}
+        />
         <Bar />
       </If>
       <View style={{ gap: 2, paddingHorizontal: pad, paddingVertical: 8 }}>

@@ -11,6 +11,7 @@ export {
   KeyScope,
   keyScope,
   keysOn,
+  keysWorkHere,
   type KeySpec,
   pendingKeys,
   pressKeys,

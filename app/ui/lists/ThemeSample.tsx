@@ -1,9 +1,8 @@
 // A theme drawn in its own colours, to be chosen among others: its page, a raised strip with its
 // ink and its quiet ink, and a dot of each of its accents. It is the one component that draws a
 // theme's colours rather than the tokens': a list of themes previews each as it would look. The
-// one picked has the bar of light on its left edge and a tick, in the tokens' colours, as a row.
+// one picked has its edge in the accent and a tick, in the tokens' colours, as any choice made.
 import { View } from "nsh";
-import { Bar } from "./Row";
 import { Icon, Text } from "../controls";
 import { tokens } from "../tokens";
 
@@ -44,9 +43,6 @@ export function ThemeSample(props: ThemeSampleProps) {
       }}
       testID={props.testID}
     >
-      <If when={props.picked === true}>
-        <Bar />
-      </If>
       <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
         <Text bold colour={ink()} style={{ flex: 1 }}>
           {props.name}

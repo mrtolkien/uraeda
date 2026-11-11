@@ -1,14 +1,14 @@
 // A card that is a choice: one of a few things the human picks, each needing more words than a
 // radio's line, as the kinds of work on the New page. It is a raised surface with its icon, its
-// title, and its words; picked, its edge takes the accent and its left edge the bar of light. It
-// takes the focus and presses as every control does (`press.ts`): Tab reaches it in a dialog,
-// Enter or Space picks it, and its ring shows where the focus is.
+// title, and its words; picked, its edge takes the accent: a choice made, not a list's cursor,
+// whose bar it leaves to the cursor. It takes the focus and presses as every control does
+// (`press.ts`): Tab reaches it in a dialog, Enter or Space picks it, and its ring shows where the
+// focus is.
 import { View } from "nsh";
 import { Button as Base } from "nsh/base";
 import { Icon, type IconName, type PressState, pressable, Text } from "../controls";
 import { Surface } from "../surfaces";
 import { tokens } from "../tokens";
-import { Bar } from "./Row";
 
 export type SelectableCardProps = {
   disabled?: boolean;
@@ -63,9 +63,6 @@ export function SelectableCard(props: SelectableCardProps) {
           props.selected === true ? { borderColor: tokens.light.focus } : null,
         ]}
       >
-        <If when={props.selected}>
-          <Bar />
-        </If>
         <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
           <If when={props.icon}>
             {(name) => (

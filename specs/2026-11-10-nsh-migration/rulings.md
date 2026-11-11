@@ -6288,3 +6288,30 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   dropped its conflict keys' hints because they showed on every row.
 - **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/keys/store.ts`,
   `app/screens/decisions/List.tsx`, `app/screens/git/Changes.tsx`.
+
+## T93.1: A list marks three things, each with one look, and a focused list shows its cursor at once
+
+- **Decision**: the cursor of a list, a `Row`'s or a `Card`'s `selected`, is a fill one step up and
+  a 2 px bar on its left edge. `Bar` lights it, `light.focus` and its glow, while the keys declared
+  where it is drawn work (`keysWorkHere`, the key store's `works`: its pane focused, its section's
+  scope on, no dialog over it), and draws it in `row.barRest`, the edge's colour, unlit, otherwise.
+  A card's cursor no longer lights its edge. What is open now is `current`, on `Line` and `Card`:
+  its icon and words in the accent (`row.current`), bold, no bar, no fill; the rail's place shown
+  and the sidebar's feature shown take it, where they took the cursor's bar. A choice made
+  (`SelectableCard`, `ThemeSample`) keeps its accent edge and loses the bar. While its keys work, a
+  list with no cursor puts it on its first row (`listKeys`), without scrolling and without opening
+  it. Git's worktrees take `listKeys` in place of their own `j` `k`.
+- **Rationale**: seen on the first six screens together, a selected row looked four ways: a lit bar
+  and a lit edge (decisions), a lit bar (Git), a coloured title (settings), and nothing until a key
+  was pressed (Home, Priorities, the inbox, which also hid the cursor of a pane at rest). The design
+  language says "only its bar is lit" and "only the focused pane emits light": the unlit bar follows
+  from both. A keyboard-first app shows where `j` starts; a quiet bar on the first row bothers no
+  pointer user.
+- **Props whose meaning changed**: `Card`'s `selected` no longer draws an accent edge; `Bar` takes
+  `lit`, and is unlit outside the scope whose keys work; `SelectableCard`'s and `ThemeSample`'s
+  picked look has no bar; `Rail`'s current place has no bar or fill. New: `Line`'s and `Card`'s
+  `current`, `tokens.row.barRest`, `tokens.row.current`, `keysWorkHere`.
+- **If wrong**: the unlit bar takes the accent at a lower strength (`row.barRest`), one token.
+- **Where**: `app/ui/lists/{Row,Card,Line,keys,SelectableCard,ThemeSample}.tsx`,
+  `app/ui/keys/{store.ts,registry.tsx}`, `app/ui/tokens/light.ts`, `app/ui/layout/Rail.tsx`,
+  `app/screens/shell/Sidebar.tsx`, `app/screens/home/Cards.tsx`, `app/screens/git/Worktrees.tsx`.

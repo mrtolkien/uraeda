@@ -43,7 +43,10 @@ export type RailSlots = {
 /** The rail's width, folded and unfolded, in points. */
 export const RAIL = { folded: 40, open: 248 } as const;
 
-/** One place, unfolded: its icon, its name, and its count, the current one lit at its start. */
+/**
+ * One place, unfolded: its icon, its name, and its count. The current one is a list's current row,
+ * its icon and name in the accent, as the phone's tab bar has it: the bar is the cursor's alone.
+ */
 function PlaceRow(props: { place: RailPlace }) {
   const current = () => props.place.current === true;
   return (
@@ -54,30 +57,23 @@ function PlaceRow(props: { place: RailPlace }) {
       role="link"
       style={{
         alignItems: "center",
-        backgroundColor: current() ? tokens.row.selected : undefined,
         flexDirection: "row",
         gap: 8,
         height: tokens.space.row,
         paddingHorizontal: 8,
       }}
     >
-      <View
-        style={{
-          backgroundColor: current() ? tokens.light.focus : "transparent",
-          bottom: 0,
-          boxShadow: current() ? tokens.row.barGlow : undefined,
-          left: 0,
-          position: "absolute",
-          top: 0,
-          width: tokens.row.bar,
-        }}
-      />
       <Icon
-        colour={current() ? tokens.role.action : tokens.role.inkQuiet}
+        colour={current() ? tokens.row.current : tokens.role.inkQuiet}
         name={props.place.icon}
       />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text bold={current()} lines={1} tone={current() ? "ink" : "quiet"}>
+        <Text
+          bold={current()}
+          colour={current() ? tokens.row.current : undefined}
+          lines={1}
+          tone="quiet"
+        >
           {props.place.label}
         </Text>
       </View>

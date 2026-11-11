@@ -271,6 +271,14 @@ export function createKeyStore() {
       changes();
       return [...keepers].some((kept) => kept());
     },
+    /**
+     * Whether the keys declared in `scope` work now: it is on, and no newer layer holds the keys.
+     * A list's cursor is lit while they do.
+     */
+    works(scope: Scope) {
+      changes();
+      return layerOf(scope) === topLayer() && isOn(scope);
+    },
     /** The newest open layer's id, `null` while the page has the keys. */
     layer() {
       changes();

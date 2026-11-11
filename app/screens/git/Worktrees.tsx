@@ -2,13 +2,13 @@
 // feature's offers Clean, which removes its worktree, its branch, and its line of the priorities;
 // one with nothing in it, or whose folder is gone, offers Remove, which keeps its branch. Both ask
 // first, since nothing undoes them; one with changes, or locked, offers neither, and says why.
-import { effect, signal, untracked, View } from "nsh";
+import { signal, View } from "nsh";
 import { gitPage } from "./Sync";
 import { refusalAt, write } from "./writes";
 import type { GitWorktree } from "../../store/protocol";
 import { Button, Refusal, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
-import { Card, createCursor, Empty } from "../../ui/lists";
+import { Card, createCursor, Empty, listKeys } from "../../ui/lists";
 import { Dialog } from "../../ui/surfaces";
 import { tokens } from "../../ui/tokens";
 import { PaneScroll, usePane } from "../../ui/layout";
@@ -41,11 +41,8 @@ export function Worktrees(props: { repo: string }) {
     initial: at() ?? undefined,
     onChange: (id) => at.set(id ?? null),
   });
-  effect(() => {
-    const first = trees()[0];
-    if (untracked(cursor.at) === undefined && first !== undefined)
-      untracked(() => cursor.set(first.id));
-  });
+  // The list's keys, as every list's: `j` `k`, `g g` `G`, `Home` `End`, the cursor shown at once.
+  listKeys(cursor);
   const asking = signal<GitWorktree | null>(null);
   const where = (tree: GitWorktree) => `${props.repo}/worktree:${tree.path}`;
   const run = (tree: GitWorktree) => {
@@ -68,20 +65,6 @@ export function Worktrees(props: { repo: string }) {
   };
   const selected = () => trees().find((tree) => tree.id === cursor.at());
   registerKey([
-    {
-      hint: "j k",
-      hintLabel: "move",
-      keys: "j",
-      label: "next worktree",
-      repeat: true,
-      run: () => (cursor.move(1) ? undefined : false),
-    },
-    {
-      keys: "k",
-      label: "previous worktree",
-      repeat: true,
-      run: () => (cursor.move(-1) ? undefined : false),
-    },
     {
       hint: "d",
       hintLabel: "remove",
@@ -133,7 +116,7 @@ export function Worktrees(props: { repo: string }) {
                   hue={tree().state === "merged" ? tokens.role.added : undefined}
                   icon="folder-git-2"
                   onPress={() => cursor.set(tree().id)}
-                  selected={cursor.at() === tree().id}
+                  selected={cursor.holds(tree().id)}
                   state={{
                     label: tree().isWorking ? "An agent works in it" : STATE[tree().state].label,
                     running: tree().isWorking,

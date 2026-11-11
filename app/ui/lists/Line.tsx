@@ -2,12 +2,14 @@
 // quiet fact, a key, a count, a time. The words wrap rather than cut: a row grows a line before it
 // hides a word. Several facts about one thing are a card, never a longer line.
 import { Badge, Icon, type IconName, Text } from "../controls";
-import type { Tone } from "../tokens";
+import { type Tone, tokens } from "../tokens";
 
 export type LineProps = {
   /** A count that asks for the human: drawn as a badge in `countTone`. */
   count?: number;
   countTone?: Tone;
+  /** What is open now, the place shown or the item read: its icon and words in the accent. */
+  current?: boolean;
   /** Its kind's hue, a colour of the tokens: the quiet ink unless given. */
   hue?: string;
   icon?: IconName;
@@ -22,8 +24,17 @@ export type LineProps = {
 export function Line(props: LineProps) {
   return (
     <>
-      <If when={props.icon}>{(name) => <Icon colour={props.hue} name={name()} />}</If>
-      <Text style={{ flex: 1, minWidth: 0 }} tone={props.quiet === true ? "faint" : "ink"}>
+      <If when={props.icon}>
+        {(name) => (
+          <Icon colour={props.current === true ? tokens.row.current : props.hue} name={name()} />
+        )}
+      </If>
+      <Text
+        bold={props.current === true}
+        colour={props.current === true ? tokens.row.current : undefined}
+        style={{ flex: 1, minWidth: 0 }}
+        tone={props.quiet === true ? "faint" : "ink"}
+      >
         {props.label}
       </Text>
       <If when={props.meta}>{(meta) => <Text tone={props.metaTone ?? "faint"}>{meta()}</Text>}</If>

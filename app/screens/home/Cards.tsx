@@ -35,7 +35,7 @@ export function Cards(props: {
                 cursor.set(card().id);
                 card().open();
               }}
-              selected={pane.focused() && cursor.holds(card().id)}
+              selected={cursor.holds(card().id)}
               state={card().state}
               testID={`card-${card().id}`}
               time={card().time}
