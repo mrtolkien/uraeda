@@ -5,7 +5,7 @@
 import { signal, View } from "nsh";
 import { wordsOf } from "./categories";
 import { savedField } from "./fields";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, extensionHost, record, serverDay, serverDaysAgo } from "../../store";
 import type { Device } from "../../store/protocol";
 import { Banner, Button, refusalOf, Text, Under } from "../../ui/controls";

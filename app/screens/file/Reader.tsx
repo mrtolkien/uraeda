@@ -2,13 +2,16 @@
 // blocks so a plan of thousands of lines opens at once. Above its title, what the file is and what
 // it asks of the human. A spec waiting again after changes marks each part changed since the
 // review its revision answers, in place. Its place is kept in the visit; a link to a heading, the
-// address's `#heading`, and the outline's entries bring that heading to the top.
+// address's `#heading`, and the outline's entries bring that heading to the top. A story or a
+// mockup a paragraph links alone shows live in place.
 import { effect, untracked, View } from "nsh";
-import { imageOf, positions, route } from "../../store";
-import type { Block, FileView, SinceChange, SpanImage } from "../../store/protocol";
+import { imageOf, navigate, positions, route } from "../../store";
+import type { Block, FileView, SinceChange, SpanImage, VersionView } from "../../store/protocol";
 import { Banner, StatusDot, Text } from "../../ui/controls";
 import { DocumentScroll, type DocumentScrollRef } from "../../ui/document";
+import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
+import { MockupEmbed, StoryEmbed } from "../preview";
 import { follow, headingAt } from "./links";
 import { atTop, jumps } from "./place";
 import { facts } from "./facts";
@@ -40,6 +43,17 @@ function Since(props: { kind: string }) {
 function imageFor(repo: string, image: SpanImage): string | undefined {
   if (image.path !== null) return imageOf(repo, image.path)() ?? undefined;
   return /^https?:\/\//.test(image.target) ? image.target : undefined;
+}
+
+/** A story or a mockup its paragraph links alone, live in place, in the feature's checkout. */
+function embedAt(args: FileArgs, version: VersionView, block: Block) {
+  const link = version.stories.find((one) => one.block === block.id);
+  if (link !== undefined) return <StoryEmbed folder={args.folder} link={link} repo={args.repo} />;
+  const mockup = version.mockups.find((one) => one.block === block.id);
+  if (mockup !== undefined) {
+    return <MockupEmbed folder={args.folder} mockup={mockup} repo={args.repo} />;
+  }
+  return undefined;
 }
 
 /** What the file is, where it stands, and what it asks of the human. */
@@ -82,6 +96,12 @@ function Read(props: { args: FileArgs; file: () => FileView }) {
   const shown = () => shownOf(props.file());
   const since = () => props.file().sinceReview?.parts ?? [];
   let scroll: DocumentScrollRef | undefined;
+  registerKey({
+    icon: "file-pen-line",
+    keys: "space b",
+    label: "Open as a buffer",
+    run: () => navigate({ page: "buffer", path: props.file().path }),
+  });
   // A jump asked by a pane beside it: the outline's, the plan's tasks'.
   effect(() => {
     const asked = jumps(props.args)();
@@ -110,7 +130,7 @@ function Read(props: { args: FileArgs; file: () => FileView }) {
       onLink={(link) => follow(link, props.args, props.file().path, shown().document)}
       onOffset={(offset) => kept.keep(name, offset)}
       onPlace={(block) => atTop(props.args, block)}
-      // TASK 49: `override` draws a story or a mockup a paragraph links alone, live, in place.
+      override={(block) => embedAt(props.args, shown(), block)}
       ref={(ref) => {
         scroll = ref;
         const hash = untracked(route).hash;

@@ -13,7 +13,7 @@ import {
   type OnIn,
   onInOf,
 } from "./extensionWords";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, record } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import {

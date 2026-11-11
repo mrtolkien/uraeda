@@ -11,7 +11,7 @@ import { clockOf, DAY_NAMES, nextFacts } from "./words";
 import { record } from "../../store";
 import type { Job } from "../../store/protocol";
 import { Button, Checkbox, type Option, Select, Switch, Text } from "../../ui/controls";
-import { FieldRow, FieldRows, type RowSpec } from "../../ui/lists";
+import { FieldRow, FieldRows, type RowSpec } from "../../ui/lists/FieldRow";
 import type { TextFieldRef } from "../../ui/text";
 
 const KINDS: ReadonlyArray<Option<Kind>> = [

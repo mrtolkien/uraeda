@@ -6574,7 +6574,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: NSH's editor draws no widget among its lines; one bar for the block in hand keeps
   each choice one key, and the field keeps the text.
 - **Where**: `app/screens/conflict/ConflictEditor.tsx`, `crates/app/src/editing.rs`.
-## T41.1: A workflow file is read as it is written, beside its panes, not rebuilt into parts
+
+## R328: A workflow file is read as it is written, beside its panes, not rebuilt into parts
 
 - **Decision**: every workflow file, a spec and a plan included, is one reader in the main stack:
   the file drawn from the core's tree, in its own order, at the reading measure, under a head that
@@ -6595,7 +6596,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   and the reader stays as it is.
 - **Where**: `app/screens/file/`.
 
-## T41.2: A long document scrolls by its top-level blocks, and a heading is brought to the top by id
+## R329: A long document scrolls by its top-level blocks, and a heading is brought to the top by id
 
 - **Decision**: `DocumentScroll` (`app/ui/document/`) draws a document as Native Shell's list of its
   top-level blocks, with a header and a footer at the measure, its reading keys (`j` `k` and the
@@ -6618,7 +6619,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/document/DocumentScroll.tsx`, `Document.tsx`, `Picture.tsx`;
   `app/gallery/scenes/reading.tsx`; `app/screens/file/{place.ts,Reader.tsx}`.
 
-## T41.3: Approving, answering, and live embeds stay with their tasks
+## R330: Approving, answering, and live embeds stay with their tasks
 
 - **Decision**: the file's one main action, approving a spec or a plan or answering a round, is task
   42's, at the seam `TASK 42:` in `Reader.tsx`'s head, beside its `mark` slot for comments and
@@ -6632,7 +6633,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: one approve button, the review's, as the task asks; a second one here would be a
   second component to keep right.
 - **Where**: `app/screens/file/{Reader,panes}.tsx`.
-## T43.1: A session is one pane, its conversation, and the sessions' list sits beside it
+
+## R331: A session is one pane, its conversation, and the sessions' list sits beside it
 
 - **Decision**: a session's place is the pane `session-transcript` in the main stack, its head, its
   conversation, its banners, and its composer, one pane as the composer belongs to the conversation;
@@ -6651,7 +6653,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   decisions place the constitution, by redirecting the cursor's moves.
 - **Where**: `app/screens/session/{index.tsx,place.ts}`.
 
-## T43.2: The transcript reads a window of pages, and keeps what it read until it is far
+## R332: The transcript reads a window of pages, and keeps what it read until it is far
 
 - **Decision**: `transcriptFeed` (`app/screens/session/pages.ts`) holds a `Turn` for each turn and a
   `TurnLog` for each page of the rows within two screens of those shown (at least 40 rows either
@@ -6669,7 +6671,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the window is `MARGIN` and `KEPT` in `pages.ts`.
 - **Where**: `app/screens/session/pages.ts`, `app/ui/lists/VirtualList.tsx`.
 
-## T43.3: A transcript row is a line that binds and a body made once for its row
+## R333: A transcript row is a line that binds and a body made once for its row
 
 - **Decision**: every row of the transcript is one structure (`Rows.tsx`): a line, whose icon,
   words, and time bind to the row, for a tool's call, a thought, the runner's notice, or a part not
@@ -6690,7 +6692,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   width and ran past a phone's edge.
 - **Where**: `app/screens/session/Rows.tsx`.
 
-## T43.4: An offer's kind is told by its body, and starting it is its card's button
+## R334: An offer's kind is told by its body, and starting it is its card's button
 
 - **Decision**: the core's tree keeps a fence's first word only, `uraeda-offer`: a block of that
   language is an offer, a change's when its body opens with `# `, its proposal's title, else a
@@ -6705,7 +6707,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: `Block.language` keeps the info string whole, and `offerOf` reads its second word.
 - **Where**: `app/screens/session/{offers.ts,Offer.tsx}`.
 
-## T43.5: A blocked action is allowed by its card's button or `a`, never by a press on its row
+## R335: A blocked action is allowed by its card's button or `a`, never by a press on its row
 
 - **Decision**: the card reads "The agent wanted to run X", its state "Blocked by auto mode", and
   why or what allowing does. "Allow and retry" is `session.allow`, "Allow all (N)" from two is
@@ -6716,7 +6718,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   agent's time (rule 2). The transcript has no `onOpen`; a press only selects.
 - **Where**: `app/screens/session/{Permission,Transcript}.tsx`.
 
-## T43.6: A message leaves the composer at once, is sent once, and comes back when refused
+## R336: A message leaves the composer at once, is sent once, and comes back when refused
 
 - **Decision**: Enter sends (the library's `Composer`); the draft empties at once (rule 6), and a
   send already on its way takes no second. A refusal puts the text and the images back, with the
@@ -6731,19 +6733,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   typed during a reply is sent once" failed with `expected 2 to be 1`.
 - **Where**: `app/screens/session/Composer.tsx`.
 
-## T43.7: What the old session screen did that this one leaves, and to whom
+## R337: What the old session screen did that this one leaves, and to whom
 
 - **Decision**: left, each with its reason: the hand-over's workflow message and the recommended
   message (`?continue=`, "Start the agent", task 38's start); `?ask=` quotes and story comments
   (task 49's stories); the start's steps drawn where the transcript will be (task 38); recap lines
-  and the Activity at a stretch (T43.3, task 44); the session's rename in place and "Drop the
+  and the Activity at a stretch (R333, task 44); the session's rename in place and "Drop the
   change…" (a later pass: rename needs a dialog, drop is the feature page's); the effort picker of a
   running session, `m` (task 38's run picker, whose component it is); `#turn-<id>` and the scroll
   place kept by Back (a transcript opens at its newest message, the rule of this task); the reply's
   frame on a done turn's last text; the announcer for screen readers.
 - **Where**: `app/screens/session/`.
 
-## T43.8: What the session's tests found of the driver
+## R338: What the session's tests found of the driver
 
 - **Decision**: three things the tests now work around, each said where it is done:
   - `app.value` reads the driver's own input, which the field's editor does not empty when its
@@ -6757,14 +6759,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     `expected ["Part 2",false,false] to equal ["Part 2",true,false]`; before that check it passed.
 - **Where**: `app/screens/session/session.test.tsx`.
 
-## T43.9: The sandbox's `sample` has a seventh chat, with a blocked action and an offer
+## R339: The sandbox's `sample` has a seventh chat, with a blocked action and an offer
 
 - **Decision**: "Run the tests, then tidy the imports": its reply offers a change, and auto mode
   blocked `npm test`, with the rule `Bash(npm test)`: the permission card and the offer's card are
   seen and used there. R231's "six chats" are seven.
 - **Where**: `fixtures/sandbox/chats.json`, `crates/server/src/sandbox/sessions.rs`.
 
-## T43.10: The transcript's frames, in software: streaming meets 8.3 ms, a fling does not
+## R340: The transcript's frames, in software: streaming meets 8.3 ms, a fling does not
 
 - **Decision**: measured with `just frames`, once each on the final code, on the hidden display,
   which draws in software (R131), at 1400 by 800, 30 s each, the machine's load 1 to 4 (other
@@ -6785,7 +6787,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the frames on a GPU are task 53's. Next to try there: a document of one paragraph
   drawn as its one text, without its measure's and blocks' views.
 - **Where**: `app/screens/session/Rows.tsx`, `app/gallery/scenes/session.tsx`.
-## T49.1: A web page is `WebFrame`, scaled to its design's width, and Tab or a press gives it the keys
+
+## R341: A web page is `WebFrame`, scaled to its design's width, and Tab or a press gives it the keys
 
 - **Decision**: `app/ui/surfaces/WebFrame.tsx` is the one view that shows a web page, with
   `{ src | html, title, width?, height?, scrollable?, onMessage?, onKeys?, onScale?, ref }` and a
@@ -6814,7 +6817,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   over the app) hides the frame while it is open, in `WebFrame` alone.
 - **Where**: `app/ui/surfaces/WebFrame.tsx`, gallery Surfaces, "Web frame".
 
-## T49.2: A mockup's address comes from a record, and a preview says what it runs
+## R342: A mockup's address comes from a record, and a preview says what it runs
 
 - **Decision**: the record `Mockup { repo, path }` gives `{ frame }`, the mockup's path on the
   server under the frame secret, `/r/<name>/mockups/<secret>/<path>`, or null for a file that is not
@@ -6828,7 +6831,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/previews.rs`, `crates/server/src/records/previews.rs`, and the
   test `mockup_answers_its_shape`.
 
-## T49.3: A frame that asks for a stopped preview starts it again, and a frame's request is a view
+## R343: A frame that asks for a stopped preview starts it again, and a frame's request is a view
 
 - **Decision**: the proxy, asked for a preview that runs no more, says the checkout's held records
   changed (`Previews::wake`): read again, they view it, which starts it, as R81 says a read does;
@@ -6843,7 +6846,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   "starting" until it timed out.
 - **Where**: `crates/server/src/preview/{mod,proxy,runner}.rs`, `crates/server/tests/preview.rs`.
 
-## T49.4: The sandbox's stories feature runs the tests' fake Storybook
+## R344: The sandbox's stories feature runs the tests' fake Storybook
 
 - **Decision**: "sample" gains `2026-10-20-sidebar-resize`, at its first round, checked out in its
   worktree: its proposal and questions link three stories of
@@ -6857,7 +6860,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   rewritten, and this command with it.
 - **Where**: `crates/server/src/sandbox/stories.rs`.
 
-## T49.5: What the previews' old screens did, and what this port leaves
+## R345: What the previews' old screens did, and what this port leaves
 
 - **Decision**: ported: a story's and a mockup's page, each live with the widths Phone (402),
   Desktop (1440), and Fit (its room's), picked once per device; the width and scale in words; Load
@@ -6875,7 +6878,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     is `?story=<path>#<export>`, as the routes of task 24 read it.
 - **Where**: `app/screens/preview/`.
 
-## T49.6: The status line leaves out a key whose guard refuses, and the app's host draws web views
+## R346: The status line leaves out a key whose guard refuses, and the app's host draws web views
 
 - **Decision**: `hints()` of the keys' store filters by `when`, as `KeySpec.when` says ("off, and
   unlisted, while it refuses"): "esc back to the app" showed while the page had no keys. The
@@ -6884,7 +6887,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Seen once**: `a_page_fetched_after_its_place_closed_never_runs` failed once during the crates'
   run, while the machine was loaded, and passed rerun alone.
 - **Where**: `app/ui/keys/store.ts`, `crates/app/Cargo.toml`.
-## T65.1: A job's form is one queue of patches, `patched`, beside `sent`
+
+## R347: A job's form is one queue of patches, `patched`, beside `sent`
 
 - **Decision**: `app/ui/controls/patched.ts` holds what a form of several fields the server keeps
   whole does: each field's control moves at once, its change is a patch queued behind the ones
@@ -6904,7 +6908,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   repository yet." still shown.
 - **Where**: `app/ui/controls/patched.ts`, `app/screens/jobs/form.ts`.
 
-## T65.2: The settings' row is the shared saved field, `FieldRow`
+## R348: The settings' row is the shared saved field, `FieldRow`
 
 - **Decision**: `SettingRow`, `SettingRows`, and `Unlisted` moved from
   `app/screens/settings/Row.tsx` to `app/ui/lists/FieldRow.tsx` as `FieldRow`, `FieldRows`, and
@@ -6916,7 +6920,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reach every field (R303).
 - **Where**: `app/ui/lists/FieldRow.tsx`, `app/screens/settings/`, `app/screens/jobs/JobForm.tsx`.
 
-## T65.3: A page's one action is the phone's bottom bar's, declared by its pane
+## R349: A page's one action is the phone's bottom bar's, declared by its pane
 
 - **Decision**: `definePane` takes `action`, `(args) => { icon, label, run }`: the bottom bar of a
   narrow window draws the first action of its stack's panes as a tinted tile after their tiles, and
@@ -6927,7 +6931,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   frame's, so the frame draws it, from a declaration, as it draws the panes' tiles.
 - **Where**: `app/ui/layout/{panes.tsx,bars.tsx,Stacks.tsx}`, `app/screens/jobs/index.tsx`.
 
-## T65.4: What the Jobs place does otherwise than the React one
+## R350: What the Jobs place does otherwise than the React one
 
 - **Decision**:
   - **The schedule's kind and day are selects at every width**, each a row of the form's cursor,
@@ -6950,3 +6954,70 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - **Where the Jobs extension is off**, the place says so above the cards, with "Turn Jobs on here"
     (`extensions.setOn`, this repository added); task 51 removes the place there.
 - **Where**: `app/screens/jobs/`.
+
+## R351: An image is read in the store and sent from the screens: two homes, no re-export
+
+- **Decision**: reading an image of the server with the device's sign-in is the store's,
+  `app/store/images.ts`: `signIn`, `repositoryAddress`, `imageOf` (a file's), and `chatImage` (a
+  message's), one cache of drawn images for both. Sending one is `app/screens/images.ts`'s: where it
+  comes from (`pickImages`, `pastedImage`, `droppedImages`), `attachToFile`, and `keepForChat`. The
+  inbox keeps `sendImages` alone, and the session's own `attach.ts` (a second `signIn`, a second
+  upload to `/attach?chat=1`, a second image cache) is gone: its composer keeps images with
+  `keepForChat`. Every caller imports from the home; nothing re-exports.
+- **Rationale**: tasks 38, 41, and 43 each moved or copied the same three functions at the same
+  time; a document draws images where no screen is (the gallery, a reply), so reading belongs to the
+  store, while picking and uploading are a screen's gestures.
+- **Where**: `app/store/images.ts`, `app/screens/images.ts`, `app/screens/inbox/images.ts`,
+  `app/screens/session/Composer.tsx`.
+
+## R352: A transcript's cursor starts on its newest row, and is lit only while its keys work
+
+- **Decision**: `listKeys` takes `start: "last"`, which `VirtualList` passes for a list that follows
+  its end: a focused transcript with no cursor puts it on its newest row, where it opened, not on
+  its first, which `j` would then scroll to from the end. A transcript row draws its bar in
+  `light.focus` while the transcript's keys work, and in `row.barRest` otherwise, as every list's
+  cursor does (R307). A session card marks the session open with `current`, its cursor with
+  `selected`; an outline's part being read, a plan's task being read, and the story or mockup shown
+  beside its siblings take `current` too, where they took the focus's colour or an accent meta. A
+  job's and a run's card show their cursor at rest, unlit, as R307 says, where they hid it.
+- **Where**: `app/ui/lists/{keys.ts,VirtualList.tsx}`,
+  `app/screens/session/{Rows,Transcript, SessionsPage}.tsx`, `app/screens/file/{Outline,Tasks}.tsx`,
+  `app/screens/preview/Siblings.tsx`, `app/screens/jobs/{JobsList,History}.tsx`.
+
+## R353: A picture of a theme neither reads nor keeps the device's theme
+
+- **Decision**: when the host names the mode (`host.params.theme`, as `just app-shots` does), the
+  app shows that mode's default theme, whatever mode or theme this device picked, and does not keep
+  the theme shown (`theme.shown`) for the next start.
+- **Rationale**: the device's storage is the machine's,
+  `~/.local/share/dev.uraeda.app/ storage.json`, shared by the app, its tests, and every picture
+  taken on the machine. A mode picked there (`Space u m` in a run of `app-dev`) overrode the scheme
+  a picture asked for, which is how a "dark" picture of a chat came out light; and every light
+  picture left the human's next start opening in Latte. Pictures are compared across screens and
+  runs: they must not depend on the machine's state.
+- **If wrong**: the tests also keep their storage elsewhere, if NSH's test runner gains a way.
+- **Where**: `app/screens/shell/{boot.ts,Frame.tsx}`.
+
+## R354: The decisions' documents scroll by their blocks, as a workflow file's
+
+- **Decision**: a decision in force, the constitution, and a decision as a feature's branch has it
+  draw through `DocumentScroll` (`Scroll` in `app/screens/decisions/Reader.tsx`), their head as its
+  header, their place kept in the visit, and the address's `#heading` brought to the top as the page
+  opens and as a link changes it. Their loading and empty states keep the old column.
+- **Rationale**: a link from a spec to `decisions/notifications.md#rationale` opened the branch's
+  decision at its top (task 41's report); one way to scroll to a heading for every document of the
+  app, and the reading keys (`j k`, `mod+d mod+u`) with it.
+- **Where**: `app/screens/decisions/{Reader,Branch}.tsx`.
+
+## R355: `FieldRow` is imported from its file, out of the lists' index an extension's page gets
+
+- **Decision**: `app/ui/lists/FieldRow.tsx` stays where task 65 put it, but `app/ui/lists/index.ts`
+  no longer exports it: the settings, the jobs, and the gallery import `FieldRow`, `FieldRows`,
+  `Unlisted`, and `RowSpec` from `ui/lists/FieldRow`.
+- **Rationale**: `FieldRow` keeps its cursor in its pane's visit (`usePane`, from
+  `ui/layout/panes.tsx`), which imports the app's store; `uraeda/ui`, which every extension's page
+  is built with, exports `ui/lists` whole and holds no store. Exported there, it broke every page's
+  build ("Could not resolve '../../store/history'"), which the server's test
+  `a_page_gets_the_apps_modules_from_the_data_folder` caught once the two were joined.
+- **If wrong**: `FieldRow` moves to `app/ui/layout/`, the app's own frame, beside `usePane`.
+- **Where**: `app/ui/lists/{index.ts,FieldRow.tsx}`, its callers.

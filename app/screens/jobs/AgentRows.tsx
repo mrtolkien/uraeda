@@ -7,7 +7,7 @@ import type { Form, Values } from "./form";
 import { record } from "../../store";
 import type { Job, RuntimeRecord } from "../../store/protocol";
 import { type Option, Select, Text } from "../../ui/controls";
-import { FieldRow } from "../../ui/lists";
+import { FieldRow } from "../../ui/lists/FieldRow";
 
 /** The value of "the default", which no agent, model, or effort is named. */
 const DEFAULT = "";

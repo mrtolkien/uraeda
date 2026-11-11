@@ -88,7 +88,7 @@ export function Composer(props: ComposerProps) {
         </If>
         <If when={props.queued}>
           {(queued) => (
-            <Text size="under" tone="quiet">
+            <Text size="under" style={{ flexShrink: 1, maxWidth: "100%" }} tone="quiet">
               {queued()}
             </Text>
           )}

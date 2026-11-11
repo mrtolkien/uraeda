@@ -2,18 +2,18 @@
 // files, `/f/<folder>/decisions/<name>`: what the human reviews when a feature changes a rule. Its
 // document is the branch's, each part the branch added or changed marked under it, and the parts
 // it removed listed after. A branch without the decision, or a folder that is no feature's, has
-// the default branch's: the address then opens the decision in force, in the same visit.
+// the default branch's: the address then opens the decision in force, in the same visit. A link's
+// `#heading` scrolls to its heading, as in every document of the app.
 import { effect, untracked, View } from "nsh";
 import { navigate, record, redirect, route } from "../../store";
 import type { Block, BranchDecision, PartChange } from "../../store/protocol";
 import { Banner, Text } from "../../ui/controls";
-import { Document } from "../../ui/document";
 import { definePane } from "../../ui/layout";
 import { Card } from "../../ui/lists";
 import { featureName } from "./Branches";
 import { changeCounts, changeWords } from "./ledger";
 import { follow } from "./links";
-import { Column, pastTitle, Reading, Title, ToDecision } from "./Reader";
+import { Column, Reading, Scroll, Title, ToDecision } from "./Reader";
 
 /** The parts of a change of one kind. */
 const partsOf = (decision: BranchDecision, kinds: ReadonlyArray<string>) =>
@@ -58,12 +58,29 @@ function BranchReader(props: { folder: string; name: string; repo: string }) {
     }
   });
   return (
-    <Column>
-      <If when={read()} else={<Reading error={read.error()?.message} />}>
-        {(decision) => {
-          const removed = () => partsOf(decision(), ["removed"]);
-          return (
-            <>
+    <If
+      when={read()}
+      else={
+        <Column>
+          <Reading error={read.error()?.message} />
+        </Column>
+      }
+    >
+      {(decision) => {
+        const removed = () => partsOf(decision(), ["removed"]);
+        return (
+          <Scroll
+            document={decision().document}
+            footer={
+              <If when={removed().length > 0}>
+                <Banner title="Removed on this branch" tone="caution">
+                  <View style={{ gap: 6 }}>
+                    <Each of={removed()}>{(part) => <Text>{`– ${words(part())}`}</Text>}</Each>
+                  </View>
+                </Banner>
+              </If>
+            }
+            header={
               <View style={{ gap: 8 }}>
                 <Title icon="git-branch" title={decision().change.title} />
                 <Card
@@ -79,27 +96,16 @@ function BranchReader(props: { folder: string; name: string; repo: string }) {
                 />
                 <ToDecision label="Read the decision in force" name={props.name} />
               </View>
-              <Document
-                document={decision().document}
-                ids={pastTitle(decision().document)}
-                mark={(block) => {
-                  const part = partAt(partsOf(decision(), ["added", "changed"]), block);
-                  return part === undefined ? undefined : <Changed kind={part.kind} />;
-                }}
-                onLink={(link) => follow(link, props.folder)}
-              />
-              <If when={removed().length > 0}>
-                <Banner title="Removed on this branch" tone="caution">
-                  <View style={{ gap: 6 }}>
-                    <Each of={removed()}>{(part) => <Text>{`– ${words(part())}`}</Text>}</Each>
-                  </View>
-                </Banner>
-              </If>
-            </>
-          );
-        }}
-      </If>
-    </Column>
+            }
+            mark={(block) => {
+              const part = partAt(partsOf(decision(), ["added", "changed"]), block);
+              return part === undefined ? undefined : <Changed kind={part.kind} />;
+            }}
+            onLink={(link) => follow(link, props.folder)}
+          />
+        );
+      }}
+    </If>
   );
 }
 

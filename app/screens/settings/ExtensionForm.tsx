@@ -5,7 +5,7 @@
 import { type JSX, View } from "nsh";
 import { objectOf } from "./extensionWords";
 import { savedField } from "./fields";
-import { FieldRow, Unlisted } from "../../ui/lists";
+import { FieldRow, Unlisted } from "../../ui/lists/FieldRow";
 import { call, record } from "../../store";
 import type { ExtensionRow, ExtensionSetting, JsonValue } from "../../store/protocol";
 import { Button, NumberInput, Select, sent, Switch, Text } from "../../ui/controls";

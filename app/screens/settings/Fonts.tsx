@@ -3,7 +3,7 @@
 import { View } from "nsh";
 import { CATEGORIES } from "./categories";
 import { chooseFont, fontPicked } from "./look";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { device } from "../../store";
 import { Button, Select } from "../../ui/controls";
 import { DEFAULT_FONTS, FONT_ROLES, FONTS, fontOf, type FontRole } from "../../ui/tokens";

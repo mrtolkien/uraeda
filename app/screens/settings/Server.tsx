@@ -6,7 +6,7 @@ import { signal, View } from "nsh";
 import { FileProblem, savedField, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
 import { fromWords, isOverridden, onOff } from "./Row";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, extensionHost } from "../../store";
 import { Button, IconButton, refusalOf, sent, Switch, Text } from "../../ui/controls";
 import { TextField } from "../../ui/text";

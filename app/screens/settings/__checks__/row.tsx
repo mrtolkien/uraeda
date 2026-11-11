@@ -1,7 +1,7 @@
 // What `settings.test.tsx` opens: a category's rows in a pane, as the settings draw them, one a
 // switch whose server refuses every change after half a second, with the way out.
 import { mount, signal, Text, View } from "nsh";
-import { FieldRow, FieldRows } from "../../../ui/lists";
+import { FieldRow, FieldRows } from "../../../ui/lists/FieldRow";
 import { sent, Switch } from "../../../ui/controls";
 import { KeysHost } from "../../../ui/keys/KeysHost";
 import { KeyScope } from "../../../ui/keys/registry";

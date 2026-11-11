@@ -6,17 +6,28 @@ import { pruneUnsaved } from "../../ui/text";
 import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 import { DEFAULT_THEMES, type Mode } from "../../ui/tokens";
 
-/** The system's mode, unless the host names one, as a picture of each theme does. */
+/** The mode the host names, as a picture of each theme does: none for the app itself. */
+const asked = (): Mode | undefined =>
+  host.params.theme === "light" || host.params.theme === "dark" ? host.params.theme : undefined;
+
+/** The system's mode, unless the host names one. */
 export function scheme(): Mode {
-  const asked = host.params.theme;
-  if (asked === "light" || asked === "dark") return asked;
-  return colorScheme() === "light" ? "light" : "dark";
+  return asked() ?? (colorScheme() === "light" ? "light" : "dark");
 }
+
+/**
+ * The theme this device picked, and whether the theme shown is kept for the next start. A picture
+ * names its mode and shows that mode's default theme: it neither reads this device's choice, which
+ * a mode picked here would override, nor keeps what it shows, which the next start would open in.
+ * The device's storage is the machine's, shared by every run of the app and of its tests.
+ */
+export const deviceTheme = () => (asked() === undefined ? device.get("theme") : undefined);
+export const keepsShownTheme = () => asked() === undefined;
 
 export async function boot() {
   await device.load();
-  const named = host.params.theme === undefined ? device.get("theme.shown") : undefined;
-  applyTheme(named ?? pickTheme(Object.values(DEFAULT_THEMES), device.get("theme"), scheme()));
+  const named = keepsShownTheme() ? device.get("theme.shown") : undefined;
+  applyTheme(named ?? pickTheme(Object.values(DEFAULT_THEMES), deviceTheme(), scheme()));
   applyFonts(device.get("fonts"));
   // Unsaved text older than 30 days goes before a field shows it.
   pruneUnsaved(new Date());

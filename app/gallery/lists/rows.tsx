@@ -6,7 +6,8 @@ import { Page, Part } from "../parts";
 import { KeyScope } from "../../ui/keys/registry";
 import { signal } from "nsh";
 import { sent, Switch } from "../../ui/controls";
-import { createCursor, Empty, FieldRow, FieldRows, Line, List, VirtualList } from "../../ui/lists";
+import { createCursor, Empty, Line, List, VirtualList } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { tokens } from "../../ui/tokens";
 
 /** A list's keys, in a pane that has the focus only when `on`. */

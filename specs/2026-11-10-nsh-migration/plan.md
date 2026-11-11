@@ -2654,7 +2654,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 118 tests passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): workflow files`.
 
-**As built** (rulings T41.1 to T41.3):
+**As built** (rulings R328 to R330):
 
 - `app/screens/file/panes.tsx` declares `file-reader` (main), `file-outline`, `file-tasks`,
   `file-review`, and `file-decisions` (side), each with `{ folder, name, repo }`, and
@@ -2662,11 +2662,15 @@ Follows [what every screen task does](#what-every-screen-task-does).
   the reader, Tasks, and Outline; any other file the reader and Outline. One `Reader` draws every
   kind (`DocumentPage`, `SpecPage`, `PlanPage`, and `DataModelPage` are not separate files).
 - `app/ui/document` exports `DocumentScroll` and `DocumentScrollRef` (`toBlock`, `toAnchor`,
-  `scrollTo`); `app/store` exports `imageOf`, `signIn`, and `repositoryAddress`, moved from the
-  inbox. The gallery's scene `reading`, and `just frames reading`, time a plan of 2,700 lines.
+  `scrollTo`); `app/store` exports `imageOf`, `chatImage`, `signIn`, and `repositoryAddress`:
+  reading an image with the sign-in is the store's (`app/store/images.ts`), sending one (picked,
+  pasted, dropped, attached) is `app/screens/images.ts`'s. The gallery's scene `reading`, and
+  `just frames reading`, time a plan of 2,700 lines.
 - Seams left: `TASK 42:` in `Reader.tsx` (the main action, and comments and question cards under
-  their blocks through `mark`) and in `panes.tsx` (a round's pane, a review's pane); `TASK 49:` in
-  `Reader.tsx` (`override`) and `links.ts` (a story link).
+  their blocks through `mark`) and in `panes.tsx` (a round's pane, a review's pane). The join wired
+  task 49's: a story or a mockup a paragraph links alone shows live in place (`override`), and a
+  story link opens its page. The decisions' readers (in force, the constitution, a branch's) draw
+  through `DocumentScroll` too, so every document scrolls to the address's `#heading` alike.
 
 ## Task 42: Rounds and reviews
 
@@ -2721,7 +2725,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 118 tests passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): sessions`.
 
-**As built** (rulings T43.1 to T43.10):
+**As built** (rulings R331 to R340):
 
 - `app/screens/session/`: `index.tsx` (the panes and the places), `place.ts`, `pages.ts` (the window
   of pages), `Transcript.tsx` (the pane), `Rows.tsx` (a row), `Head.tsx` (the head and the banners),
@@ -2737,7 +2741,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **For the gallery**: `just frames streaming` and `just frames scrolling` draw `TranscriptRow` over
   a fixture `Feed` of the server's items' shape (`app/gallery/scenes/session.tsx`).
 - `VirtualList` gains `onShown(first, last)`.
-- **The extra step** (T43.10), in software: `streaming` at most 5.64 ms at the 99th percentile;
+- **The extra step** (R340), in software: `streaming` at most 5.64 ms at the 99th percentile;
   `scrolling` at most 12.54 ms, over the stand-in's 10.04 ms by the Markdown of each message.
 
 ## Task 44: Session panels and runs
@@ -2863,8 +2867,10 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - `TextField` gains `language`, `onQuit`, and its ref's `goToLine(line)`; `uraeda/native` gains
   `conflictBlocks`, `takeConflict`, `textPatch`, and `outline` (`crates/app/src/editing.rs`), and
   the core `git::text_patch`.
-- Not built: `Space b`, "Open as a buffer", on a page of one file: each such page declares it, with
-  `navigate({ page: "buffer", path })`.
+- `Space b`, "Open as a buffer", is declared by each page of one file, with
+  `navigate({ page: "buffer", path })`: the workflow file's reader, a decision in force, and the
+  constitution (the join). A branch's decision does not: the buffer reads a decision on the default
+  branch.
 
 ## Task 48: Settings
 
@@ -2931,7 +2937,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       `just task uraeda-server uraeda-protocol uraeda-app`: 367 passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): previews`.
 
-**As built** (rulings T49.1 to T49.6):
+**As built** (rulings R341 to R346):
 
 - `app/ui/surfaces/WebFrame.tsx`:
   `WebFrame { src | html, title, width?, height?, scrollable?, onMessage?, onKeys?, onScale?, ref }`,
@@ -3032,7 +3038,7 @@ default branch's [scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature.
 - [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 117 tests passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): the Jobs place`.
 
-**As built** (rulings T65.1 to T65.4):
+**As built** (rulings R347 to R350):
 
 - `app/screens/jobs/`: the panes `jobs-list` (`/jobs`, main), `job-form` and `job-history`
   (`/jobs/<name>`, main and side), `job-new` (`/jobs/new`). Tests in `jobs.test.tsx`, its pages in

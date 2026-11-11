@@ -1,6 +1,6 @@
 // Where a link of a workflow file goes, inside the app: a heading of the page, in place; another
-// file of the feature, at its heading; a decision as the feature's branch has it; a mockup; and
-// any other file, code included, in the buffer's page. A web address is the document's own to
+// file of the feature, at its heading; a decision as the feature's branch has it; a story or a
+// mockup, live in its page; and any other file, code included, in the buffer's page. A web address is the document's own to
 // open, in the system's browser.
 import { navigate, type Route } from "../../store";
 import type { Document, SpanLink } from "../../store/protocol";
@@ -30,7 +30,13 @@ export function follow(link: SpanLink, args: FileArgs, path: string, tree: Docum
     if (heading !== undefined) jumpTo(args, heading.id);
     return;
   }
-  // TASK 49: a story link opens its story live, in the previews' panes; until then its file.
-  const target = link.story?.path ?? link.path;
-  navigate({ ...pageOf(target, args.folder), ...(anchor === undefined ? {} : { hash: anchor }) });
+  if (link.story !== null) {
+    const story = `${link.story.path}#${link.story.export}`;
+    navigate({ folder: args.folder, page: "storybook", story });
+    return;
+  }
+  navigate({
+    ...pageOf(link.path, args.folder),
+    ...(anchor === undefined ? {} : { hash: anchor }),
+  });
 }

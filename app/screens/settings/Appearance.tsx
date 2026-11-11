@@ -4,7 +4,7 @@
 import { View } from "nsh";
 import { wordsOf } from "./categories";
 import { chooseMode, chooseTheme, themeChoice } from "./look";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { openPicker } from "../shell/pickers";
 import { record } from "../../store";
 import type { Theme, ThemeFile } from "../../store/protocol";

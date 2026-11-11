@@ -6,7 +6,7 @@
 // It follows the theme picked on this device among the server's themes, and keeps the one shown
 // for the next start, which draws it from its first frame.
 import { computed, effect, Scroll, untracked, View } from "nsh";
-import { scheme } from "./boot";
+import { deviceTheme, keepsShownTheme, scheme } from "./boot";
 import { ShellKeys } from "./keys";
 import { nothingFor } from "./panes";
 import { openPicker, Pickers } from "./pickers";
@@ -62,9 +62,9 @@ export function Frame() {
   effect(() => {
     const themes = record("Themes", null)()?.themes;
     if (themes === undefined) return;
-    const shown = pickTheme(themes, device.get("theme"), scheme());
+    const shown = pickTheme(themes, deviceTheme(), scheme());
     untracked(() => {
-      if (applyTheme(shown)) device.set("theme.shown", shown);
+      if (applyTheme(shown) && keepsShownTheme()) device.set("theme.shown", shown);
     });
   });
   effect(() => applyFonts(device.get("fonts")));

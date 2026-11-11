@@ -1,8 +1,8 @@
 // The reader: a decision of the default branch, or the constitution, each one document, drawn by
 // the document renderer at the reading measure, under a head that says what it is and whether it
 // is in force, and why. Each is a pane of the main stack, the widest, beside the list.
-import { type JSX, View } from "nsh";
-import { navigate } from "../../store";
+import { effect, type JSX, untracked, View } from "nsh";
+import { navigate, positions, route } from "../../store";
 import type { Block, Decision, Document as Tree } from "../../store/protocol";
 import {
   Banner,
@@ -14,8 +14,9 @@ import {
   StatusDot,
   Text,
 } from "../../ui/controls";
-import { Document } from "../../ui/document";
-import { definePane, PaneScroll } from "../../ui/layout";
+import { type DocumentHands, DocumentScroll, type DocumentScrollRef } from "../../ui/document";
+import { registerKey } from "../../ui/keys";
+import { definePane, PaneScroll, usePane } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
 import { Proposals } from "./Branches";
@@ -45,6 +46,57 @@ export function Column(props: { children?: JSX.Element }) {
         {props.children}
       </View>
     </PaneScroll>
+  );
+}
+
+/**
+ * A document of the decisions' panes, scrolled by its blocks under its head, as a workflow file's:
+ * its place kept in the visit, and the heading the address names, `#heading`, brought to the top
+ * as the page opens and as a link changes it.
+ */
+export function Scroll(
+  props: Pick<DocumentHands, "mark" | "onLink"> & {
+    document: Tree;
+    footer?: JSX.Element;
+    header: JSX.Element;
+    /** The file of the default branch it shows, which `Space b` opens as a buffer. */
+    path?: string;
+  },
+) {
+  const pane = usePane();
+  const path = props.path;
+  if (path !== undefined) {
+    registerKey({
+      icon: "file-pen-line",
+      keys: "space b",
+      label: "Open as a buffer",
+      run: () => navigate({ page: "buffer", path }),
+    });
+  }
+  const kept = positions();
+  const name = `${pane.key}:document`;
+  const opened = kept.at(name);
+  let scroll: DocumentScrollRef | undefined;
+  effect(() => {
+    const hash = route().hash;
+    if (hash !== undefined && hash !== "") untracked(() => scroll?.toAnchor(hash));
+  });
+  return (
+    <DocumentScroll
+      document={props.document}
+      footer={props.footer}
+      header={<View style={{ gap: 16 }}>{props.header}</View>}
+      ids={pastTitle(props.document)}
+      mark={props.mark}
+      offset={opened}
+      onLink={props.onLink}
+      onOffset={(offset) => kept.keep(name, offset)}
+      ref={(ref) => {
+        scroll = ref;
+        const hash = untracked(route).hash;
+        if (opened === undefined && hash !== undefined && hash !== "") ref.toAnchor(hash);
+      }}
+    />
   );
 }
 
@@ -99,45 +151,54 @@ function DecisionReader(props: { name: string; repo: string }) {
   const ledger = ledgerOf(props.repo);
   const decision = () => decisionIn(ledger(), props.name);
   return (
-    <Column>
-      <If when={decision() !== undefined} else={<Reading error={ledger.error()?.message} />}>
-        <If
-          when={decision()}
-          else={
+    <If
+      when={decision() !== undefined}
+      else={
+        <Column>
+          <Reading error={ledger.error()?.message} />
+        </Column>
+      }
+    >
+      <If
+        when={decision()}
+        else={
+          <Column>
             <Empty
               action={{ label: "The constitution", run: () => navigate({ page: "constitution" }) }}
               icon="scale"
               title={`No decision named “${props.name}”`}
               words={`specs/decisions/${props.name}.md is not on the default branch: it was renamed or removed, or a feature's branch adds it and has not merged.`}
             />
-          }
-        >
-          {(shown) => (
-            <>
-              <Head decision={shown()} />
-              <If when={shown().problem}>
-                {(problem) => (
-                  <Banner
-                    title={
-                      shown().unreadable ? "This file can't be read" : "ura check finds a problem"
-                    }
-                    tone={shown().unreadable ? "danger" : "caution"}
-                  >
-                    <Text>{problem()}</Text>
-                  </Banner>
-                )}
-              </If>
-              <Proposals name={props.name} repo={props.repo} />
-              <Document
-                document={shown().document}
-                ids={pastTitle(shown().document)}
-                onLink={(link) => follow(link)}
-              />
-            </>
-          )}
-        </If>
+          </Column>
+        }
+      >
+        {(shown) => (
+          <Scroll
+            document={shown().document}
+            header={
+              <>
+                <Head decision={shown()} />
+                <If when={shown().problem}>
+                  {(problem) => (
+                    <Banner
+                      title={
+                        shown().unreadable ? "This file can't be read" : "ura check finds a problem"
+                      }
+                      tone={shown().unreadable ? "danger" : "caution"}
+                    >
+                      <Text>{problem()}</Text>
+                    </Banner>
+                  )}
+                </If>
+                <Proposals name={props.name} repo={props.repo} />
+              </>
+            }
+            onLink={(link) => follow(link)}
+            path={`specs/decisions/${props.name}.md`}
+          />
+        )}
       </If>
-    </Column>
+    </If>
   );
 }
 
@@ -168,38 +229,45 @@ function versionLine(constitution: {
 function ConstitutionReader(props: { repo: string }) {
   const ledger = ledgerOf(props.repo);
   return (
-    <Column>
-      <If when={ledger()} else={<Reading error={ledger.error()?.message} />}>
-        {(read) => (
-          <If
-            when={read().constitution}
-            else={
+    <If
+      when={ledger()}
+      else={
+        <Column>
+          <Reading error={ledger.error()?.message} />
+        </Column>
+      }
+    >
+      {(read) => (
+        <If
+          when={read().constitution}
+          else={
+            <Column>
               <Empty
                 icon="book-open"
                 title="No constitution yet"
                 words="specs/CONSTITUTION.md is not on the default branch. The workflow's setup writes one: ask an agent to set up specs/."
               />
-            }
-          >
-            {(constitution) => (
-              <>
+            </Column>
+          }
+        >
+          {(constitution) => (
+            <Scroll
+              document={constitution().document}
+              header={
                 <View style={{ gap: 6 }}>
                   <Title icon="book-open" title={constitution().title} />
                   <If when={versionLine(constitution())}>
                     {(line) => <Text tone="faint">{line()}</Text>}
                   </If>
                 </View>
-                <Document
-                  document={constitution().document}
-                  ids={pastTitle(constitution().document)}
-                  onLink={(link) => follow(link)}
-                />
-              </>
-            )}
-          </If>
-        )}
-      </If>
-    </Column>
+              }
+              onLink={(link) => follow(link)}
+              path="specs/CONSTITUTION.md"
+            />
+          )}
+        </If>
+      )}
+    </If>
   );
 }
 

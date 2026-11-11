@@ -5,7 +5,7 @@ import { View } from "nsh";
 import { FileProblem, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
 import { fromWords, isOverridden, onOff } from "./Row";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call, record } from "../../store";
 import type { ContinueKind, RunSettings, Setting } from "../../store/protocol";
 import { NumberInput, Select, type Sent, sent, Switch, Text } from "../../ui/controls";

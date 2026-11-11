@@ -14,7 +14,8 @@ export { Collapsible, type CollapsibleProps } from "./Collapsible";
 export { createCursor, type Cursor, type CursorOptions, type Item } from "./cursor";
 export { DragOrder, type DragOrderProps } from "./DragOrder";
 export { Empty, type EmptyProps } from "./Empty";
-export { FieldRow, type FieldRowProps, FieldRows, type RowSpec, Unlisted } from "./FieldRow";
+// `FieldRow` is imported from its file, `./FieldRow`: it keeps its cursor in its pane's visit, which
+// the layout shell holds, so an extension's page, which gets this index, cannot build it.
 export { glide } from "./glide";
 export { listKeys, type ListKeysOptions } from "./keys";
 export { Line, type LineProps } from "./Line";

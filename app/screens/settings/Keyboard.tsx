@@ -4,7 +4,7 @@ import { View } from "nsh";
 import { FileProblem, savedField, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
 import { fromWords, isOverridden, onOff } from "./Row";
-import { FieldRow, FieldRows } from "../../ui/lists";
+import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { call } from "../../store";
 import { Button, sent, Switch } from "../../ui/controls";
 import { pressKeys } from "../../ui/keys";
