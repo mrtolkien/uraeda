@@ -20,9 +20,12 @@ export function KeysHost(props: { children?: JSX.Element; place?: unknown }) {
   });
 
   // The keys of where the focus is as the map opens: under its own layer they would be gone.
-  const sections = signal<ReadonlyArray<KeySection> | null>(null);
-  const open = () =>
+  const sections = signal<ReadonlyArray<KeySection>>([]);
+  const isOpen = signal(false);
+  const open = () => {
     sections.set(keyMapSections(keysOn(), { keepsSpace: spaceIsKept(), singleKeys: singleKeys() }));
+    isOpen.set(true);
+  };
   const label = `${KEY_MAP_TITLE}…`;
   registerKey([
     // Second in the status line, after the menu: "? keys".
@@ -35,9 +38,7 @@ export function KeysHost(props: { children?: JSX.Element; place?: unknown }) {
     <>
       {props.children}
       <LeaderMenuHost />
-      <If when={sections()}>
-        {(shown) => <KeyMap onClose={() => sections.set(null)} sections={shown()} />}
-      </If>
+      <KeyMap onClose={() => isOpen.set(false)} open={isOpen()} sections={sections()} />
     </>
   );
 }

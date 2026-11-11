@@ -1,48 +1,6 @@
-// The three shaders of the samples, in WGSL. GTK draws no backdrop blur, so glass is a shader that
-// reads what is behind its box. The backdrop's wash and grain, and the focused pane's glow, are
-// shaders that draw once: they read no clock and nothing behind them.
-
-/** A value in 0..1 for the pixel a point is in: the same on every GPU, where `fract(sin())` is not. */
-const HASH = /* wgsl */ `
-fn scramble(value: u32) -> u32 {
-  var h = value;
-  h ^= h >> 16u;
-  h *= 0x7feb352du;
-  h ^= h >> 15u;
-  h *= 0x846ca68bu;
-  h ^= h >> 16u;
-  return h;
-}
-
-fn hash(p: vec2f) -> f32 {
-  let cell = bitcast<vec2u>(vec2i(floor(p)));
-  return f32(scramble(scramble(cell.x) ^ cell.y)) / 4294967295.0;
-}`;
-
-/** The backdrop: the theme's darkest colour, a still wash of its two accents, and a fine grain. */
-export const BACKDROP = /* wgsl */ `
-struct Uniforms {
-  fill: vec4f,
-  wash1: vec4f,
-  wash2: vec4f,
-  grain: f32,
-}
-${HASH}
-
-// A wash is full at its heart and gone at 70% of its radius.
-fn wash(uv: vec2f, heart: vec2f, radius: vec2f) -> f32 {
-  return clamp(1.0 - length((uv - heart) / radius) / 0.7, 0.0, 1.0);
-}
-
-fn shade(uv: vec2f) -> vec4f {
-  var rgb = uniforms.fill.rgb;
-  rgb = mix(rgb, uniforms.wash1.rgb, uniforms.wash1.a * wash(uv, vec2f(0.12, 0.08), vec2f(0.6, 0.55)));
-  rgb = mix(rgb, uniforms.wash2.rgb, uniforms.wash2.a * wash(uv, vec2f(0.92, 0.96), vec2f(0.55, 0.6)));
-  rgb = mix(rgb, uniforms.wash2.rgb, uniforms.wash2.a * wash(uv, vec2f(0.7, 0.2), vec2f(0.4, 0.35)));
-  // The grain also keeps the wash from showing bands.
-  rgb += (hash(uv * nsh.size * nsh.scale) - 0.5) * uniforms.grain * 0.2;
-  return vec4f(rgb, 1.0);
-}`;
+// Glass, where the platform draws no blur of what is behind a view: GTK today. The recipe is the
+// design language's, `specs/ui/design-language.md`, "Glass".
+import { HASH } from "./hash.wgsl";
 
 /**
  * Glass: what is behind the box, frosted, tinted, and bent at the edge.
@@ -162,53 +120,4 @@ fn shade(uv: vec2f) -> vec4f {
     rgb = mix(mix(rgb, uniforms.edge.rgb, uniforms.edge.a), uniforms.rim.rgb, lit);
   }
   return vec4f(rgb, 1.0);
-}`;
-
-/**
- * The glow of the focused pane: two lights, one from each end of its outline, which follow the
- * pane's whole shape, its title included. The view is the pane's box and its title's rise, grown
- * by `reach` on every side.
- *
- * As a `filter: drop-shadow()` of the pane, GTK drew the same picture, and blurred the whole pane
- * again on some frames of a scroll: up to 4.5 ms more. This one is drawn once.
- */
-export const GLOW = /* wgsl */ `
-struct Uniforms {
-  first: vec4f,
-  second: vec4f,
-  title: vec2f,
-  reach: f32,
-  blur: f32,
-  offset: f32,
-  single: f32,
-}
-
-fn box(p: vec2f, low: vec2f, high: vec2f) -> f32 {
-  let q = abs(p - (low + high) * 0.5) - (high - low) * 0.5;
-  return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0);
-}
-
-// How far a point is outside the pane's shape: its title's tab, and its body under it.
-fn outside(p: vec2f) -> f32 {
-  let size = nsh.size - vec2f(2.0 * uniforms.reach);
-  let tab = box(p, vec2f(0.0), uniforms.title);
-  let body = box(p, vec2f(0.0, uniforms.title.y), size);
-  return min(tab, body);
-}
-
-// The share of a light left at a distance: a shadow's edge, blurred.
-fn light(distance: f32) -> f32 {
-  return 0.5 * (1.0 - tanh(1.7 * distance / max(uniforms.blur, 0.01)));
-}
-
-fn shade(uv: vec2f) -> vec4f {
-  let p = uv * nsh.size - vec2f(uniforms.reach);
-  let step = vec2f(-uniforms.offset, uniforms.offset);
-  let a = uniforms.first.a * light(outside(p - step * mix(1.0, 0.0, uniforms.single) - vec2f(0.0, uniforms.offset) * uniforms.single));
-  let b = uniforms.second.a * light(outside(p + step)) * (1.0 - uniforms.single);
-  let alpha = a + b - a * b;
-  let rgb = (uniforms.first.rgb * a + uniforms.second.rgb * b) / max(a + b, 0.0001);
-  // It fades out before the view's edge, so the view's box never shows.
-  let edge = min(min(uv.x, 1.0 - uv.x) * nsh.size.x, min(uv.y, 1.0 - uv.y) * nsh.size.y);
-  return vec4f(rgb, alpha * smoothstep(0.0, 6.0, edge));
 }`;

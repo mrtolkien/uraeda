@@ -5,10 +5,11 @@
 // the registry's pending sequence, once it is shown.
 import { computed, View } from "nsh";
 import { isNarrow, look } from "./look";
-import { KeyCap, Panel, Words } from "./parts";
+import { KeyCap, Words } from "./parts";
 import { keysOn, pendingKeys, pressKeys } from "./registry";
 import { entriesAt, type MenuEntry, sortedEntries } from "./sequence";
 import { LEADER } from "./token";
+import { Overlay } from "../surfaces";
 
 /** A key of the path as the title writes it: Space is `Space`, any other as typed. */
 const said = (key: string) => (key === LEADER ? "Space" : key);
@@ -42,8 +43,12 @@ export function LeaderMenu(props: {
   path: ReadonlyArray<string>;
 }) {
   return (
-    <Panel place="corner" testID="leader-menu">
-      <Words tone="accent">{props.path.map(said).join(" ")}</Words>
+    <Overlay
+      name="Leader menu"
+      place="corner"
+      testID="leader-menu"
+      title={props.path.map(said).join(" ")}
+    >
       <View
         style={{
           columnGap: 24,
@@ -69,7 +74,7 @@ export function LeaderMenu(props: {
         <Press keys="Backspace" word="back" />
         <Press keys="Escape" word="close" />
       </View>
-    </Panel>
+    </Overlay>
   );
 }
 

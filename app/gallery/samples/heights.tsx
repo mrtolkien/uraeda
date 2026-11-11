@@ -39,10 +39,7 @@ export function heights(v: Tokens) {
                   {surface(
                     v,
                     inner,
-                    {
-                      inside: outer,
-                      style: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 8 },
-                    },
+                    { style: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 8 } },
                     mono(v, inner),
                   )}
                 </>,

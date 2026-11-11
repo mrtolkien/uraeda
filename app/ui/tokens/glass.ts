@@ -34,5 +34,7 @@ export function glass({ dark, role, mixed }: Source) {
     well: mixed.deeper,
     /** The plate an overlay's title sits on. */
     plate: alpha(role.page, 0.92),
+    /** The line of light inside the plate's top edge, as a `boxShadow`. */
+    plateLip: `inset 0 1px 0 ${alpha(role.glassRim, 0.12)}`,
   };
 }

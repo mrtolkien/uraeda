@@ -3711,3 +3711,149 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   same font, at the cost of walking every kind of node.
 - **Where**: `crates/app/tests/outside.rs`, `crates/app/tests/outside/fonts.rs`,
   [`app/__checks__/fonts.tsx`](/app/__checks__/fonts.tsx).
+
+## T27.1: A shader is a string in a `.wgsl.ts` module
+
+- **Decision**: the surfaces' shaders are `glass.wgsl.ts`, `glow.wgsl.ts`, `backdrop.wgsl.ts`, and
+  `hash.wgsl.ts`, which the first three share: each exports its WGSL as a string. The plan named
+  `glass.wgsl`.
+- **Rationale**: Native Shell's bundler reads every import as JavaScript. A page that imported
+  `./a.wgsl` failed to build, with `PARSE_ERROR` at the shader's first line, and the bundler has no
+  loader for text.
+- **Where**: [`app/ui/surfaces/`](/app/ui/surfaces/). The samples' `shaders.ts` is gone: the samples
+  draw with the components.
+
+## T27.2: A surface is one view, with layers only where something stands on its edge
+
+- **Decision**: `Surface` is one view with its height's fill, border, lip, and shadow. It gains
+  layers, absolute children under what it holds, only for what one view cannot draw.
+  - **Glass is a layer behind what the surface holds**, not their container: a raised surface that
+    becomes glass as content scrolls under it keeps what it holds, where a change of container would
+    make it anew. The surface's own border is then transparent, and the shader draws the rim.
+  - **The edge is a layer where something stands on it**: a title's tab, the focus's light, a run's
+    line. On GTK a view's border is painted over what the view holds: with the border on the surface
+    itself, the pane's edge ran through its title's letters, and over the focus's outline and the
+    run's line, which read dull. Seen in the samples' picture of the panes.
+  - **The focus's light is `Lit`**, drawn for a `standard` surface only: the glow's shader, the fill
+    again over it, and the four lines of ruling R130. It fades in and out over `light.glide`, and is
+    not drawn at rest. A `recessed` surface with the focus takes its tone on its border, with a
+    `boxShadow` from `tokens.height.recessed.glow`, as the samples' field did.
+  - **A run's line is `RunLine`**: it is drawn from left to right as `running` turns true, and turns
+    green and fades as it turns false. One that is there as its surface appears does not move.
+    `light.running.motion` at `breathe` loops its opacity, and at `off` draws none.
+  - **`tab`** is what stands on the top edge: at `standard` and `raised` a pane's title, which the
+    edge goes around, and at `overlay` the plate of an overlay's title. The plate's line of light is
+    a token, `tokens.glass.plateLip`, added for it.
+  - **A raised surface's glass takes `rule` under its rim**, its height's border. The samples' bar
+    over the transcript drew `rule-quiet` there, and their status line `rule`.
+- **Rationale**: most surfaces are rows, cards, and fields, many on a screen: each is one view. The
+  layers cost a view each where a pane has a title or the focus.
+- **If wrong**: a platform that paints a border under what a view holds draws the edge twice at the
+  same place, in the same colour, which shows nothing.
+- **Where**: [`Surface.tsx`](/app/ui/surfaces/Surface.tsx),
+  [`light.tsx`](/app/ui/surfaces/light.tsx), and the line added to the NSH section of
+  [`AGENTS.md`](/AGENTS.md).
+
+## T27.3: An overlay's keys are the registry's, and the focus is kept in a ledger
+
+- **Decision**: every overlay is Native Shell's `Overlay`, through one component, `Float`. Its keys
+  are a layer of the key registry, and what has the focus is kept by the library, in
+  [`focus.ts`](/app/ui/surfaces/focus.ts).
+  - **What Native Shell gives**, read at the pin and run: a view hears `onFocus` and `onBlur`, and a
+    ref has `focus()`, but nothing says which view has the focus. On GTK only a field takes the
+    keyboard focus: a view never does (`view.rs`, "Views never take keyboard focus themselves").
+    `nsh/base`'s `Dialog` keeps Tab in itself and gives the focus back on GTK (`navigation.rs`,
+    `scope_focus`), but the headless runner does neither, and the GTK test driver cannot press Tab
+    (`agent.rs`, `press_keys`), so neither behaviour could be tested there.
+  - **`focusStop(node, { first? })`** is what a field or a control that takes the focus calls as it
+    renders: it answers the `onFocus` and `onBlur` to set on its element. The ledger then knows
+    which stop has the focus, and an overlay's stops in the order they were made.
+  - **As an overlay that takes the keys opens**, it remembers the stop that had the focus, takes the
+    focus off the page with `Keyboard.dismiss()`, so a field typed in stops taking the keys, and
+    puts it on its stop marked `first`, else its first. **As it closes**, its own field loses the
+    focus at once, and the stop remembered gets it back, unless who closed it sent the focus to a
+    stop outside it meanwhile.
+  - **A dialog and a sheet keep Tab**: `Tab` and `Shift+Tab` are keys of their layer, heard in a
+    field too, which move the focus among the overlay's own stops, around from the last. With no
+    stop they do nothing, so Tab never reaches the page.
+  - **Escape is the layer's key**, declared by `Float` with its hint, `esc close`. The phone's Back
+    is Native Shell's `onCancel`, and a press outside its `onPressOutside`, or the scrim's press.
+  - **A toast, a tip, and the corner's overlay take neither the keys nor the focus.**
+- **Rationale**: one mechanism on every platform, which the two tests of the task run without a
+  display. Each was seen to fail with its behaviour taken out:
+  `expected ["page: one"] to contain "page: oney"` without the giving back, and
+  `expected [..."first: a","second: "] to contain "second: a"` without the trap.
+- **Alternatives considered**: `nsh/base`'s `Dialog` for what dims the page. Its trap and its return
+  of the focus are native on GTK, but its layer is the platform's own, its Escape is decided
+  natively, before the registry, and nothing of it runs headless.
+- **If wrong**: a field that does not call `focusStop` is not given the focus back, and is not a
+  stop of Tab in a dialog. The text field (task 30) and the controls (task 28) call it; the key
+  map's search and the picker's filter, Native Shell's `Input` until task 30, do.
+- **Where**: [`Float.tsx`](/app/ui/surfaces/Float.tsx), [`focus.ts`](/app/ui/surfaces/focus.ts),
+  [`surfaces.test.tsx`](/app/ui/surfaces/surfaces.test.tsx).
+
+## T27.4: An overlay is shown by `open`, and stays drawn for its way out
+
+- **Decision**: each overlay takes `open`, true unless given. It comes in as `open` turns true, or
+  as it appears open, and it stays drawn for `motion.out` after `open` turns false, while its layer
+  and the focus go back at once: a key pressed right after Escape is the page's.
+  - In: it fades in and rises `motion.rise`, over `motion.in`. Out: it fades and sinks back, over
+    `motion.out`. With reduced motion it only fades. Behind one that dims the page, the dim fades
+    with it.
+  - **Values the language does not give, taken here**: a sheet rises four times `motion.rise`; a
+    toast drops in from `motion.rise` above; a tip rises half of it, after the pointer rested 600
+    ms; a popover keeps 4 points from its anchor and 8 from the window's edges; a sheet and the
+    corner's overlay keep 8 points from the window's edges; a dialog is 520 points wide unless told.
+  - **Task 32's views float in `Overlay`**: the leader's menu at `corner`, the key map and the
+    picker at `middle`, each with its title on the plate. Their `Panel` is gone, and `look.ts` reads
+    `tokens`: it read the samples' `values.ts`, which task 26 removed, so the app's types did not
+    check as merged. `KeyMap` and `KeyPicker` take `open`, and their search and state are made anew
+    at each opening. `KeysHost` keeps the key map mounted, so it goes with its motion. The marks
+    `TASK 28:` there now name `Kbd`, `Text`, and `Icon` only.
+- **Rationale**: the design language asks that nothing jumps, in or out, and the keyboard decision
+  that a key means what the screen shows.
+- **If wrong**: an owner that takes an overlay out of the view, in place of turning `open` false,
+  sees it go at once. The focus still goes back.
+- **Where**: [`presence.ts`](/app/ui/surfaces/presence.ts),
+  [`Float.tsx`](/app/ui/surfaces/Float.tsx), [`app/ui/keys/`](/app/ui/keys/).
+
+## T27.5: What the surfaces draw otherwise than the language, and what was not run
+
+- **Decision**:
+  - **A pane's title is drawn at `wrap` only.** The token `pane.title` also names `tab` and
+    `border`, the two places the language says were tried and left: `Pane` does not draw them.
+  - **Toasts stack from the window's top right**, across its top on a narrow window, as the design
+    language says. [Surfaces](/specs/ui/surfaces.md) puts the commit toast at the bottom right, over
+    the status line: task 50 places it, with `Overlay` at `corner` if it stays there.
+  - **`Overlay` has two places**, `middle` and `corner`. The theme picker's, alone at the page's top
+    with no scrim, is a `Popover` on a point until task 48 asks for more.
+  - **`Backdrop`** is a component of the surfaces, with its shader: the layout shell (task 33) draws
+    it under the panes.
+  - **Glass where the platform has a blur** is `backdropFilter` with the tint, and
+    `glassEffect: "regular"` for Apple's own. It was drawn on no platform here: only the headless
+    runner, which draws nothing, takes that branch.
+- **If wrong**: `tab` and `border` are a dozen lines of `Pane` each, the title's place and the
+  glow's shape.
+- **Where**: [`Pane.tsx`](/app/ui/surfaces/Pane.tsx), [`Toast.tsx`](/app/ui/surfaces/Toast.tsx),
+  [`Glass.tsx`](/app/ui/surfaces/Glass.tsx).
+
+## T27.6: The frames of glass as `Surface` draws it, and the pictures
+
+- **Decision**: no part of the glass recipe was dropped.
+  - **Measured** with `just samples-frames`, the bar of glass, now a raised `Surface`, over the
+    transcript of 20,000 rows that scrolls 900 points a frame, for 30 s, on the hidden display,
+    which draws in software (ruling R131), with the machine's load between 3 and 6: 1,860 frames at
+    60 a second, 5.49 ms a frame on average, the 95th percentile of each second between 5.82 and
+    7.06 ms, and three seconds with a frame over 8.3 ms, the worst 10.73 ms as the scroll starts. So
+    the 99th percentile is under 8.3 ms. The same scroll with no bar: 4.41 ms on average.
+  - A first run, while other builds loaded the machine to between 9 and 17: 5.74 ms on average with
+    the bar, 5.03 ms without, and frames up to 14.97 ms in four seconds of it. The run with no bar
+    had frames of 81 ms then: the machine's, not the glass's.
+  - **The pictures**: `just samples-shots` draws the samples with the components, and they read as
+    task 25's did. `just gallery-shots` draws the pages of `app/gallery/surfaces/`: every height in
+    every other, the states of a well, a card, a bar, and a pane, and each overlay open over a busy
+    page, in both themes, 1400 and 390 points wide, in `target/shots/gallery/`.
+- **If wrong**: the bar costs about 1 ms a frame here, where ruling R131 measured 0.3 ms: the two
+  runs differ by more than that between themselves, and no measure on a GPU was taken.
+- **Where**: [`frames.test.tsx`](/app/gallery/samples/frames.test.tsx),
+  [`gallery.test.tsx`](/app/gallery/surfaces/gallery.test.tsx), the [`justfile`](/justfile).

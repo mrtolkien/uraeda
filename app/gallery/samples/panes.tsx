@@ -42,7 +42,7 @@ export function panes(v: Tokens) {
           { title: "A pane in a pane", color: v.role.heading3, style: { flex: 1, minHeight: 132 } },
           pane(
             v,
-            { title: "Card", fill: v.role.raised, style: { minHeight: 62 } },
+            { title: "Card", raised: true, style: { minHeight: 62 } },
             tag(v, "Raised. Two levels at most."),
           ),
         )}

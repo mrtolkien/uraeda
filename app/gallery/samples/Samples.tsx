@@ -2,7 +2,7 @@
 // theme its host names, from the tokens of `app/ui/tokens/`. `just samples-shots` takes their
 // pictures on the hidden display. It is a throwaway: the gallery replaces it once the component
 // library exists.
-import { colorScheme, host, type JSX, mount, Shader } from "nsh";
+import { colorScheme, host, type JSX, mount } from "nsh";
 import { buttons } from "./buttons";
 import { dialog } from "./dialog";
 import { glassBar } from "./glassbar";
@@ -11,9 +11,9 @@ import { list } from "./list";
 import { panes } from "./panes";
 import { bare } from "./parts";
 import { scene } from "./session";
-import { BACKDROP } from "./shaders";
 import { status } from "./status";
-import { alpha, DEFAULT_THEMES, type Mode, type Tokens, tokensOf } from "../../ui/tokens";
+import { Backdrop } from "../../ui/surfaces";
+import { DEFAULT_THEMES, type Mode, showTokens, type Tokens, tokensOf } from "../../ui/tokens";
 
 /** The eight samples, by the name a picture is saved under. */
 export const SAMPLES: Record<string, (v: Tokens) => JSX.Element> = {
@@ -29,22 +29,11 @@ export const SAMPLES: Record<string, (v: Tokens) => JSX.Element> = {
 
 function Samples() {
   const v = tokensOf(DEFAULT_THEMES[(host.params.theme as Mode | undefined) ?? colorScheme()]);
+  // The surfaces read the tokens shown: the page shows the theme it draws.
+  showTokens(v);
   const sample = SAMPLES[String(host.params.sample)] ?? SAMPLES.session!;
   host.on("bare", () => bare.set(true));
-  return (
-    <Shader
-      source={BACKDROP}
-      uniforms={{
-        fill: v.backdrop.fill,
-        wash1: alpha(v.backdrop.wash1, v.backdrop.wash[0]!),
-        wash2: alpha(v.backdrop.wash2, v.backdrop.wash[1]!),
-        grain: v.backdrop.grain,
-      }}
-      style={{ flex: 1, backgroundColor: v.backdrop.fill }}
-    >
-      {sample(v)}
-    </Shader>
-  );
+  return <Backdrop>{sample(v)}</Backdrop>;
 }
 
 mount(Samples);

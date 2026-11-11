@@ -11,9 +11,8 @@ export function stuckBar(v: Tokens, testID?: string) {
     v,
     {
       testID,
-      edge: v.role.ruleQuiet,
-      shadow: v.height.raised.glassShadow,
-      style: { position: "absolute", left: 1, right: 1, top: 0, height: v.type.line + 14 },
+      bar: true,
+      style: { position: "absolute", left: 0, right: 0, top: 0, height: v.type.line + 14 },
       content: {
         flex: 1,
         flexDirection: "row",
@@ -80,9 +79,9 @@ export function glassBar(v: Tokens, rows: number, bar: boolean) {
           running: true,
           style: { flex: 1 },
           body: {
-            paddingTop: v.pane.titleHeight - v.pane.titleRise + 1,
+            paddingTop: v.pane.titleHeight - v.pane.titleRise,
             paddingHorizontal: 0,
-            paddingBottom: 1,
+            paddingBottom: 0,
           },
         },
         <View style={{ flex: 1 }}>

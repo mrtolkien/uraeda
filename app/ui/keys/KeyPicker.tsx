@@ -21,9 +21,10 @@ import {
 } from "nsh";
 import { Input } from "nsh/base";
 import { isNarrow, look } from "./look";
-import { KeyCap, Panel, Words } from "./parts";
+import { KeyCap, Words } from "./parts";
 import { searchRanked } from "./pickerSearch";
-import { keyScope, registerKey } from "./registry";
+import { registerKey } from "./registry";
+import { focusStop, Overlay } from "../surfaces";
 
 /** What a picker lists: an item of any kind, found by its title and its first sentence. */
 export type PickerItem = {
@@ -41,11 +42,14 @@ export type PickerItem = {
 /** A row's height: a finger's target on a narrow window, a row's elsewhere. */
 const rowHeight = () => (isNarrow() ? 44 : look().row);
 
-export function KeyPicker<Item extends PickerItem>(props: {
+/** What a picker takes. */
+export type KeyPickerProps<Item extends PickerItem> = {
   /** Its items are still being read: the list says so, and the search is kept. */
   isLoading?: boolean;
   items: ReadonlyArray<Item>;
   onClose: () => void;
+  /** Shown while true, and for its way out after: true unless given. */
+  open?: boolean;
   /** The item under the cursor, as it moves: a caller that previews it in the page itself. */
   onCursor?: (item: Item | undefined) => void;
   /** What Enter does with an item, once the picker is closed. */
@@ -56,11 +60,15 @@ export function KeyPicker<Item extends PickerItem>(props: {
   /** The item the cursor starts on, as the one in use. */
   start?: string;
   title: string;
-}) {
+};
+
+/** The filter, the list, and the preview, with the picker's keys: made anew at each opening. */
+function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> }) {
+  const picker = props.picker;
   const query = signal("");
-  const found = computed(() => searchRanked(props.items, query(), (item) => item));
+  const found = computed(() => searchRanked(picker.items, query(), (item) => item));
   // The cursor's item, by its id: the first result after a letter, `start` before any.
-  const cursor = signal<string | undefined>(untracked(() => props.start));
+  const cursor = signal<string | undefined>(untracked(() => picker.start));
   const at = computed(() => {
     const index = found().findIndex((item) => item.id === cursor());
     return index === -1 ? 0 : index;
@@ -72,68 +80,57 @@ export function KeyPicker<Item extends PickerItem>(props: {
   };
   const pick = (item: Item | undefined) => {
     if (item !== undefined) {
-      props.onClose();
-      props.onPick(item);
+      picker.onClose();
+      picker.onPick(item);
     }
   };
 
-  const layer = keyScope({ kind: "layer", name: props.title });
   const here = { inField: true } as const;
   const moves = (by: number) => ({ repeat: true, run: () => move(by) });
   // Heard in the search, which has the focus: none of them types.
-  registerKey(
-    [
-      { ...here, hint: "↑ ↓", hintLabel: "move", keys: "ArrowDown", label: "Next", ...moves(1) },
-      { ...here, keys: "mod+j", label: "Next", ...moves(1) },
-      { ...here, keys: "ArrowUp", label: "Previous", ...moves(-1) },
-      { ...here, keys: "mod+k", label: "Previous", ...moves(-1) },
-      {
-        ...here,
-        hint: "⏎",
-        hintLabel: "open",
-        keys: "Enter",
-        label: "Open",
-        run: () => pick(held()),
-      },
-      {
-        ...here,
-        hint: "esc",
-        hintLabel: "close",
-        keys: "Escape",
-        label: "Close",
-        run: () => props.onClose(),
-      },
-    ],
-    layer,
-  );
+  registerKey([
+    { ...here, hint: "↑ ↓", hintLabel: "move", keys: "ArrowDown", label: "Next", ...moves(1) },
+    { ...here, keys: "mod+j", label: "Next", ...moves(1) },
+    { ...here, keys: "ArrowUp", label: "Previous", ...moves(-1) },
+    { ...here, keys: "mod+k", label: "Previous", ...moves(-1) },
+    {
+      ...here,
+      hint: "⏎",
+      hintLabel: "open",
+      keys: "Enter",
+      label: "Open",
+      run: () => pick(held()),
+    },
+  ]);
 
-  effect(() => props.onCursor?.(held()));
-  // The layer takes the focus where typing goes: a window on GTK gives a new field none.
+  effect(() => picker.onCursor?.(held()));
+  // The layer takes the focus where typing goes, as it opens.
   let filter: InputRef | undefined;
-  effect(() => filter?.focus());
+  const stop = focusStop(() => filter, { first: true });
   // The cursor's row stays in the list's sight.
   let list: ScrollRef | undefined;
   effect(() => list?.scrollTo({ animated: false, y: Math.max(0, (at() - 4) * rowHeight()) }));
 
   const empty = () =>
-    props.isLoading === true
+    picker.isLoading === true
       ? "Loading…"
-      : props.items.length === 0
+      : picker.items.length === 0
         ? "Nothing to find."
         : "Nothing matches.";
   return (
-    <Panel onClose={() => props.onClose()} place="middle" testID="key-picker" width={920}>
-      <Words tone="accent">{props.title}</Words>
+    <>
       <View style={{ flexDirection: "row", flexShrink: 1, gap: 16 }}>
         <View style={{ flexBasis: 0, flexGrow: 1, gap: 8 }}>
           <Input
-            accessibilityLabel={props.title}
+            accessibilityLabel={picker.title}
             autoFocus
+            onBlur={stop.onBlur}
             onChange={({ value }) => {
               query.set(value);
               cursor.set(undefined);
             }}
-            placeholder={props.placeholder ?? "Find…"}
+            onFocus={stop.onFocus}
+            placeholder={picker.placeholder ?? "Find…"}
             ref={(node: InputRef) => (filter = node)}
             style={{
               borderColor: look().edge,
@@ -189,12 +186,27 @@ export function KeyPicker<Item extends PickerItem>(props: {
             </View>
           </If>
         </View>
-        <If when={!isNarrow() && props.preview !== undefined}>
+        <If when={!isNarrow() && picker.preview !== undefined}>
           <Scroll style={{ flexBasis: 0, flexGrow: 1 }}>
-            <If when={held()}>{(item) => <>{props.preview?.(item())}</>}</If>
+            <If when={held()}>{(item) => <>{picker.preview?.(item())}</>}</If>
           </Scroll>
         </If>
       </View>
-    </Panel>
+    </>
+  );
+}
+
+export function KeyPicker<Item extends PickerItem>(props: KeyPickerProps<Item>) {
+  return (
+    <Overlay
+      name={props.title}
+      onClose={() => props.onClose()}
+      open={props.open}
+      testID="key-picker"
+      title={props.title}
+      width={920}
+    >
+      <Picking picker={props} />
+    </Overlay>
   );
 }

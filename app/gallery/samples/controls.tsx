@@ -429,9 +429,8 @@ export function statusLine(
     v,
     {
       testID: options.testID,
-      edge: v.role.rule,
-      shadow: v.height.raised.glassShadow,
-      style: { height: v.status.height, padding: 1, ...options.style },
+      bar: true,
+      style: { height: v.status.height, ...options.style },
       content: { flex: 1, flexDirection: "row", alignItems: "stretch" },
     },
     <>

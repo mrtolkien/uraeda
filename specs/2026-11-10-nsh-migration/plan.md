@@ -1850,37 +1850,61 @@ ported, beyond accounts and jobs.
 
 **Files:**
 
-- Create:
-  `app/ui/surfaces/{Surface,Glass,Glow,Pane,Well,Overlay,Sheet,Popover,Dialog,Toast,Tooltip}.tsx`,
-  `app/ui/surfaces/glass.wgsl`
+- Create: `app/ui/surfaces/`: `Surface.tsx`, `Glass.tsx`, `Glow.tsx`, `Pane.tsx`, `Well.tsx`,
+  `Backdrop.tsx`, `Overlay.tsx`, `Dialog.tsx`, `Sheet.tsx`, `Popover.tsx`, `Toast.tsx`,
+  `Tooltip.tsx`, `Float.tsx`, `light.tsx`, `height.ts`, `focus.ts`, `presence.ts`, `index.ts`, the
+  shaders `glass.wgsl.ts`, `glow.wgsl.ts`, `backdrop.wgsl.ts`, and `hash.wgsl.ts`, and the tests'
+  page, `__checks__/focus.tsx`; `app/gallery/surfaces/`, their gallery pages
+- Modify: the samples, which draw with the components; `app/ui/keys/`, whose views float in an
+  `Overlay`; the [`justfile`](/justfile), for `gallery-shots`
+- Test: `app/ui/surfaces/surfaces.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `tokens` (task 26).
-- Produces: the components named above.
+- Consumes: `tokens` (task 26); `KeyScope` and `registerKey` (task 32).
+- Produces, as built (rulings T27.1 to T27.6), all from `app/ui/surfaces`:
   - `Surface` takes `height: "recessed" | "standard" | "raised" | "overlay"`, and draws that
-    height's fill, border, shadow, glass, and glow from `tokens.height`. It is the only component
-    that draws a shadow or glass: every other one is built on it, and none sets its own.
-  - `useHeight()` gives the height a component sits on, from a context `Surface` sets, so a control
-    picks its contrast and a nested surface its look.
-  - `Glass` draws native glass or backdrop blur where the platform has it, and the shader elsewhere:
-    on GTK today. No caller knows which. A later iOS client maps a height to the system's material
-    here, and nowhere else.
+    height's fill, border, lip, shadow, glass, and glow from `tokens.height`. It is the only
+    component that draws a shadow, glass, or a glow: every other one is built on it, and none sets
+    its own. Its other props: `glass` (a raised surface over what scrolls), `focused` (a pane's
+    light, a field's edge and glow in `tone`), `running` (a run's line), `tab` (what stands on its
+    top edge: a pane's title, an overlay's plate), and `style`, `testID`, `ref`, `onPress`,
+    `onLayout`, `accessibilityLabel`.
+  - `useHeight()` gives the height a component sits on, and `useGlass()` whether that is glass, each
+    read as a signal, from a context `Surface` sets: a control picks its contrast from them, and a
+    nested surface its look. Outside every surface it is `standard`.
+  - `Glass` draws Apple's own glass or a backdrop blur where the platform has one, and the shader
+    elsewhere: on GTK today. No caller knows which, and only `Surface` uses it. A later iOS client
+    maps a height to the system's material here, and nowhere else.
+  - `Pane` (`title`, `more`, `icon`, `tone`, `focused`, `running`, `needs`, `height`, `body`,
+    `style`), `Well` (`focused`, `tone`, `style`, `ref`), and `Backdrop`, what is under the panes.
+  - The overlays, each shown while its `open` is true, and for its way out after: `Overlay` (`name`,
+    `title`, `icon`, `place` "middle" or "corner", `width`, `onClose`), `Dialog` (`title`, `icon`,
+    `width`, `onClose`), `Sheet`, `Popover` (`anchor`, `placement`, `align`, `width`, `name`,
+    `onClose`), `Toasts` with `Toast` (`title`, `icon`), and `Tooltip` (`text`, `placement`, around
+    what it is about).
+  - `focusStop(node, { first? })`: what a field or a control that takes the focus calls as it
+    renders, and whose two handlers it sets on its element. An overlay puts the focus on its first
+    stop as it opens, gives it back where it was as it closes, and a dialog or a sheet keeps Tab
+    among its own stops. Tasks 28 and 30 call it for every control and field.
+  - `just gallery-shots [word]`: the pictures of the surfaces' gallery pages, in
+    `target/shots/gallery/`, in both themes, 1400 and 390 points wide.
 
-- [ ] **Step 1: Build `Glass` first, and measure it.** Write the shader from the design language's
-      [glass recipe](/specs/ui/design-language.md#glass), reading the sources it links first: the
-      frost from one shared quarter-size copy, the bent edge, the colour fringe, the rim, and the
-      care it asks for square corners. The spike's shader is the starting file. Put it over the
-      spike's scrolling transcript: the frame cost must stay under 8.3 ms at the 99th percentile on
-      GTK. If it does not, drop parts in the order the recipe gives, not the budget.
-- [ ] **Step 2: Build `Surface`, then the others on it**, each following
+- [x] **Step 1: Build `Glass` first, and measure it.** The shader is the samples', which follows the
+      design language's [glass recipe](/specs/ui/design-language.md#glass): on GTK the frost is one
+      pass over the picture each view gets, with the bent edge, the colour fringe, the rim, and the
+      care it asks for square corners (ruling R129). Over the samples' scrolling transcript the
+      frame cost stays under 8.3 ms at the 99th percentile on GTK, so no part was dropped (ruling
+      T27.6).
+- [x] **Step 2: Build `Surface`, then the others on it**, each following
       [surfaces](/specs/ui/surfaces.md) and the design language. `Well` is the recessed one, `Pane`
-      the standard one, and every overlay sits at `overlay`. A sheet rises from the bottom on a
-      narrow window; a menu stays a popover at every width, as the UI layout decision says.
-- [ ] **Step 3: Add each to the gallery**, in its states, with one page that shows every height
-      inside every other.
-- [ ] **Step 4: Run the task's validation**: `just app-check`. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): surfaces, with glass and glow`.
+      the standard one, and every overlay sits at `overlay`. A dialog is a sheet on a narrow window;
+      a popover stays a popover at every width, as the UI layout decision says.
+- [x] **Step 3: Add each to the gallery**, in its states, with one page that shows every height
+      inside every other: the pages of `app/gallery/surfaces/`, which the gallery app (task 35)
+      takes in.
+- [x] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): surfaces, with glass and glow`.
 
 ## Task 28: Controls
 
@@ -1892,7 +1916,7 @@ ported, beyond accounts and jobs.
 
 **Interfaces:**
 
-- Consumes: `tokens` (26), surfaces (27).
+- Consumes: `tokens` (26), surfaces (27): a control that takes the focus calls `focusStop`.
 - Produces: one component for each Astryx component the React UI imports, listed in
   [`packages/web/`](/packages/web/)'s imports of `@astryxdesign/core`, built on `nsh/base`'s
   unstyled parts where one exists.
@@ -1936,7 +1960,8 @@ ported, beyond accounts and jobs.
 
 **Interfaces:**
 
-- Consumes: `Vim` (task 22); `uraeda/native` (21); `device` storage (24); the setting for Vim.
+- Consumes: `Vim` (task 22); `uraeda/native` (21); `device` storage (24); the setting for Vim;
+  `focusStop` (27), which the field calls, and `Well`, the surface it is drawn on.
 - Produces: `TextField`, the one editor of every text field, as the text-editing decision asks: it
   highlights Markdown, wraps, never scrolls sideways, and runs Vim when the setting is on.
   `vimStatus: Signal<Status>` for the status line. Unsaved text kept per device, as
@@ -2026,9 +2051,10 @@ ported, beyond accounts and jobs.
     over a kind, are the shell's.
   - `GROUPS`, in `groups.ts`: a feature whose sequence goes through a new group of the leader's menu
     adds its line.
-  - The seams, marked in the code: `TASK 28:` in `parts.tsx`, for `Kbd`, `Text`, `Icon`, and the
-    overlay's surface (`look.ts` reads the tokens already, ruling R155); `TASK 30:` in `KeyMap.tsx`
-    and `KeyPicker.tsx`, for the shared text field; `TASK 33:` in `look.ts`, for the width.
+  - The seams, marked in the code: `TASK 28:` in `parts.tsx` and `look.ts`, for `Kbd`, `Text`, and
+    `Icon` (`look.ts` reads the tokens already, ruling R155, and task 27 put the views on
+    `Overlay`); `TASK 30:` in `KeyMap.tsx` and `KeyPicker.tsx`, for the shared text field;
+    `TASK 33:` in `look.ts`, for the width.
   - For task 33: a side column's keys go in a `pane` scope whose `on` is the column's focus, the
     page's own movement keys in a `pane` beside it, and `h l column` is a `hint` of the key that
     crosses.

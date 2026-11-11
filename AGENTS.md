@@ -123,6 +123,8 @@ What the spikes learned, which no page says plainly:
 - There is no error boundary, and a view embedded on GTK has no error callback: its engine writes a
   page's errors to the process's log, under the target `js`, on the engine's own thread.
 - An `<Image>` draws an SVG's shapes only: no text, and no CSS variable.
+- On GTK a view's border is painted over what it holds: where a child stands on its parent's edge,
+  the edge is a view of its own, under that child, as `Surface` draws it.
 - Tests run without a display, with `nsh test`. Never open a window on the human's screen without
   asking: use the dev shell's `hidden-display`.
 

@@ -91,6 +91,13 @@ samples-shots filter="":
 samples-frames:
     hidden-display {{ nsh }} test gallery/samples/frames.test.tsx --target linux --fps -v
 
+# The gallery's pages as pictures, in `target/shots/gallery/`, on the hidden display, in both
+# themes and at a desktop's and a phone's width: all of them, or those whose test's name holds a
+# word, `just gallery-shots dialog`, `just gallery-shots "light, 390"`.
+gallery-shots filter="":
+    mkdir -p target/shots/gallery
+    hidden-display {{ nsh }} test gallery/surfaces/gallery.test.tsx --target linux --filter "{{ filter }}"
+
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:
     {{ nsh }} "$@"

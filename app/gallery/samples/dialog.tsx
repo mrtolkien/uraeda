@@ -4,7 +4,7 @@ import { View } from "nsh";
 import { button, field } from "./controls";
 import { glass, icon, mono, prose } from "./parts";
 import { scene } from "./session";
-import { alpha, type Tokens } from "../../ui/tokens";
+import type { Tokens } from "../../ui/tokens";
 
 export function dialog(v: Tokens) {
   return scene(
@@ -25,26 +25,15 @@ export function dialog(v: Tokens) {
         {
           testID: "dialog",
           style: { position: "absolute", left: 440, top: 230, width: 520 },
-          content: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14 },
+          content: { paddingHorizontal: 15, paddingTop: v.type.line / 2 + 9, paddingBottom: 13 },
+          tab: (
+            <>
+              {icon("alert", v.role.action)}
+              {mono(v, "Delete task 27?", { color: v.role.action, fontWeight: "700" })}
+            </>
+          ),
         },
         <>
-          <View
-            style={{
-              position: "absolute",
-              left: 11,
-              top: -v.type.line / 2,
-              height: v.type.line,
-              paddingHorizontal: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              backgroundColor: v.glass.plate,
-              boxShadow: `inset 0 1px 0 ${alpha(v.glass.rim, 0.12)}`,
-            }}
-          >
-            {icon("alert", v.role.action)}
-            {mono(v, "Delete task 27?", { color: v.role.action, fontWeight: "700" })}
-          </View>
           {prose(
             v,
             "Its session and its 4 uncommitted changes go with it. This cannot be undone.",

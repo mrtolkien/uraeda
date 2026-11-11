@@ -5,12 +5,12 @@
 // keys while it is open: Escape, a press outside, and the phone's Back close it.
 //
 // TASK 30: the search is Native Shell's plain `Input` until the shared text field exists.
-import { effect, type InputRef, Scroll, signal, View } from "nsh";
+import { type InputRef, Scroll, signal, View } from "nsh";
 import { Input } from "nsh/base";
 import { type KeyRow, type KeySection, searchKeyMap } from "./keyMap";
 import { look } from "./look";
-import { KeyCap, Panel, Words } from "./parts";
-import { keyScope, registerKey } from "./registry";
+import { KeyCap, Words } from "./parts";
+import { focusStop, Overlay } from "../surfaces";
 
 /** What the key map is called: its layer, and the keys that open it. */
 export const KEY_MAP_TITLE = "Keyboard shortcuts";
@@ -33,35 +33,23 @@ function Row(props: { row: KeyRow }) {
   );
 }
 
-/** The key map over `sections`; `onClose` once Escape, Back, or a press outside closes it. */
-export function KeyMap(props: { onClose: () => void; sections: ReadonlyArray<KeySection> }) {
+/** The search over the rows, and the rows it finds. */
+function Rows(props: { sections: ReadonlyArray<KeySection> }) {
   const query = signal("");
   const found = () => searchKeyMap(props.sections, query());
-  const layer = keyScope({ kind: "layer", name: KEY_MAP_TITLE });
-  // Heard in the search too, which has the focus.
-  registerKey(
-    {
-      hint: "esc",
-      hintLabel: "close",
-      inField: true,
-      keys: "Escape",
-      label: "Close",
-      run: () => props.onClose(),
-    },
-    layer,
-  );
-  // The layer takes the focus where typing goes: a window on GTK gives a new field none.
+  // The layer takes the focus where typing goes, as it opens.
   let search: InputRef | undefined;
-  effect(() => search?.focus());
+  const stop = focusStop(() => search, { first: true });
   return (
-    <Panel onClose={() => props.onClose()} place="middle" testID="key-map" width={760}>
-      <Words tone="accent">{KEY_MAP_TITLE}</Words>
+    <>
       <Input
         accessibilityLabel="Search the keys"
         autoFocus
-        ref={(node: InputRef) => (search = node)}
+        onBlur={stop.onBlur}
         onChange={({ value }) => query.set(value)}
+        onFocus={stop.onFocus}
         placeholder="Search…"
+        ref={(node: InputRef) => (search = node)}
         style={{
           borderColor: look().edge,
           borderWidth: 1,
@@ -90,6 +78,29 @@ export function KeyMap(props: { onClose: () => void; sections: ReadonlyArray<Key
           </View>
         </If>
       </Scroll>
-    </Panel>
+    </>
+  );
+}
+
+/**
+ * The key map over `sections`, while `open`: `onClose` once Escape, Back, or a press outside asks
+ * to close it. Its search starts empty at each opening.
+ */
+export function KeyMap(props: {
+  onClose: () => void;
+  open?: boolean;
+  sections: ReadonlyArray<KeySection>;
+}) {
+  return (
+    <Overlay
+      name={KEY_MAP_TITLE}
+      onClose={() => props.onClose()}
+      open={props.open}
+      testID="key-map"
+      title={KEY_MAP_TITLE}
+      width={760}
+    >
+      <Rows sections={props.sections} />
+    </Overlay>
   );
 }

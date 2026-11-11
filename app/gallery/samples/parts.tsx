@@ -1,9 +1,9 @@
-// What the samples share: text, icons, the four heights, glass, and the pane with its border round
-// its title. Plain NSH elements, with every value from the tokens: the component library replaces
-// all of this.
-import { Image, type JSX, Shader, signal, Text, type TextStyle, View, type ViewStyle } from "nsh";
-import { GLASS, GLOW } from "./shaders";
-import { alpha, mix, type Tokens } from "../../ui/tokens";
+// What the samples share: text, icons, the busiest page, and the surfaces, which are the
+// component library's (`app/ui/surfaces/`), drawn in the theme the page shows. The text and the
+// icons are plain Native Shell elements until the controls exist.
+import { Image, type JSX, signal, Text, type TextStyle, View, type ViewStyle } from "nsh";
+import { Pane, Surface } from "../../ui/surfaces";
+import { alpha, type Tokens } from "../../ui/tokens";
 
 export type Height = "recessed" | "standard" | "raised" | "overlay";
 
@@ -93,79 +93,45 @@ export function icon(name: IconName, color: string, size = 16) {
   );
 }
 
-/** Glass: the shader, with the theme's recipe. `edge` is the line under its rim. */
+/**
+ * Glass, as `Surface` draws it: an overlay's, or with `bar` a raised surface over what scrolls.
+ * `tab` is the plate an overlay's title sits on.
+ */
 export function glass(
-  v: Tokens,
+  _v: Tokens,
   options: {
+    bar?: boolean;
     style?: ViewStyle;
     content?: ViewStyle;
-    edge?: string;
-    shadow?: string;
+    tab?: JSX.Element;
     testID?: string;
   },
   children?: JSX.Element,
 ) {
-  const g = v.glass;
   return (
-    <Shader
+    <Surface
+      glass
+      height={options.bar === true ? "raised" : "overlay"}
+      style={options.style}
+      tab={options.tab}
       testID={options.testID}
-      source={GLASS}
-      uniforms={{
-        tint: alpha(g.tint, g.strength),
-        rim: alpha(g.rim, g.rimCorner),
-        edge: options.edge ?? v.height.overlay.border,
-        shadow: alpha(v.black, g.shade),
-        frost: g.frost,
-        edge_frost: g.edgeFrost,
-        saturate: g.saturate,
-        brightness: g.brightness,
-        band: g.band,
-        pull: g.pull,
-        fringe: g.fringe,
-        rim_between: g.rimBetween,
-        thicken: g.thicken,
-        line: g.line,
-        sheen: g.sheen,
-        glow: g.glow,
-        grain: g.grain,
-        light: v.mode === "light" ? 1 : 0,
-      }}
-      style={[{ boxShadow: options.shadow ?? v.height.overlay.shadow }, options.style]}
     >
       <View style={[options.content, { opacity: bare() ? 0 : 1 }]}>{children}</View>
-    </Shader>
+    </Surface>
   );
 }
 
-/** A surface at a height, inside a surface at `inside`: a height keeps its recipe wherever it is. */
+/** A surface at a height: inside another it keeps its recipe, which `Surface` reads itself. */
 export function surface(
-  v: Tokens,
+  _v: Tokens,
   height: Height,
-  options: { inside?: Height; style?: ViewStyle },
+  options: { style?: ViewStyle },
   children?: JSX.Element,
 ) {
-  if (height === "overlay") {
-    const { padding, paddingHorizontal, paddingVertical, ...box } = options.style ?? {};
-    return glass(
-      v,
-      { style: box, content: { padding, paddingHorizontal, paddingVertical } },
-      children,
-    );
-  }
-  const h = v.height[height];
-  let fill = h.fill;
-  if (height === "recessed" && options.inside === "raised") fill = v.height.recessed.fillIn.raised;
-  if (height === "recessed" && (options.inside === "recessed" || options.inside === "overlay"))
-    fill = v.height.recessed.fillIn.deeper;
   return (
-    <View
-      style={[
-        { backgroundColor: fill, borderWidth: 1, borderColor: h.border, boxShadow: h.lip },
-        options.style,
-      ]}
-    >
+    <Surface height={height} style={options.style}>
       {children}
-    </View>
+    </Surface>
   );
 }
 
@@ -218,180 +184,30 @@ export interface PaneOptions {
   focused?: boolean;
   running?: boolean;
   needs?: boolean;
-  fill?: string;
+  /** A pane in a pane: a card with a title. */
+  raised?: boolean;
   style?: ViewStyle;
   /** The style of the box the children are in. */
   body?: ViewStyle;
 }
 
-/**
- * A pane, with its border round its title: the title stands 14 px above the pane's top edge, and
- * the outline steps up and over it. Focused, the outline is the two lights, mauve at the bottom
- * left and blue at the top right, its glow follows the same shape, and the title fills.
- */
-export function pane(v: Tokens, options: PaneOptions, children?: JSX.Element) {
-  const p = v.pane;
-  const lit = options.focused === true;
-  const fill = options.fill ?? p.fill;
-  const [from, to] = [v.light.focus, v.light.focus2];
-  const mid = mix(from, to, 0.5);
-  const titleColor = lit
-    ? v.role.onAction
-    : options.needs
-      ? v.light.needs
-      : (options.color ?? v.role.inkQuiet);
-  const moreColor = lit ? alpha(v.role.onAction, 0.72) : v.role.inkFaint;
-  const title = (color: string, more: string) => (
-    <View
-      style={{
-        height: p.titleHeight - 1,
-        paddingLeft: p.titlePadding[0] - 1,
-        paddingRight: p.titlePadding[1] - 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      {options.icon ? icon(options.icon, color) : null}
-      {mono(v, options.title, { color, fontWeight: "700" })}
-      {options.more ? mono(v, options.more, { color: more }) : null}
-    </View>
-  );
-  const whole: ViewStyle = { position: "absolute", left: 0, top: 0, right: 0, bottom: 0 };
-  const glow = v.light.glow;
-  // The title's width, which the glow's shape needs: known once the title is laid out.
-  const titleWidth = signal(0);
+/** A pane, as `Pane` draws it: its border goes round its title, and with the focus it emits light. */
+export function pane(_v: Tokens, options: PaneOptions, children?: JSX.Element) {
+  const name = options.icon;
   return (
-    <View style={[{ marginTop: p.titleRise }, options.style]}>
-      {lit ? (
-        <Shader
-          source={GLOW}
-          uniforms={{
-            first: alpha(from, glow.strength),
-            second: alpha(to, glow.strength),
-            title: [titleWidth(), p.titleRise],
-            reach: glow.reach,
-            blur: glow.blur,
-            offset: glow.offset,
-            single: v.mode === "light" ? 1 : 0,
-          }}
-          style={{
-            position: "absolute",
-            left: -glow.reach,
-            right: -glow.reach,
-            top: -p.titleRise - glow.reach,
-            bottom: -glow.reach,
-          }}
-        />
-      ) : null}
-      <View style={[whole, { backgroundColor: fill }]} />
-      {lit ? (
-        <View style={whole}>
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 1,
-              backgroundImage: `linear-gradient(0deg, ${from}, ${mid})`,
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              right: 0,
-              height: 1,
-              backgroundImage: `linear-gradient(90deg, ${mid}, ${to})`,
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 1,
-              backgroundImage: `linear-gradient(0deg, ${mid}, ${to})`,
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              bottom: 0,
-              right: 0,
-              height: 1,
-              backgroundImage: `linear-gradient(90deg, ${from}, ${mid})`,
-            }}
-          />
-        </View>
-      ) : (
-        <View style={[whole, { borderWidth: 1, borderColor: p.border }]} />
-      )}
-      {options.running ? (
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            right: 0,
-            height: v.light.runningWidth,
-            backgroundColor: v.light.running,
-            boxShadow: v.light.runningGlow,
-          }}
-        />
-      ) : null}
-      <View
-        onLayout={(event) => titleWidth.set(event.bounds.size.width)}
-        style={{
-          position: "absolute",
-          left: 0,
-          top: -p.titleRise,
-          height: p.titleRise + 1,
-          borderTopWidth: 1,
-          borderLeftWidth: 1,
-          borderRightWidth: 1,
-          borderColor: lit ? mid : p.border,
-          backgroundColor: fill,
-        }}
-      >
-        {lit ? (
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              right: 0,
-              height: p.titleHeight - 1,
-              backgroundColor: options.needs ? v.light.needs : from,
-            }}
-          />
-        ) : null}
-        {title(titleColor, moreColor)}
-      </View>
-      <View
-        style={[
-          {
-            // It fills a pane that has a height, and is as high as its content in one that has none.
-            // It clips what it holds, a glow included: a main action's breath stays in its pane,
-            // and never reaches the glass of the status line, which would redraw with each frame.
-            overflow: "hidden",
-            flexGrow: 1,
-            flexShrink: 1,
-            flexBasis: "auto",
-            // The title's lower part, `titleHeight - titleRise`, and 6 px of air under it.
-            paddingTop: p.titleHeight - p.titleRise + 6,
-            paddingHorizontal: v.space.panePadding,
-            paddingBottom: v.space.panePadding,
-          },
-          options.body,
-        ]}
-      >
-        {children}
-      </View>
-    </View>
+    <Pane
+      body={options.body}
+      focused={options.focused}
+      height={options.raised === true ? "raised" : "standard"}
+      icon={name === undefined ? undefined : (colour) => icon(name, colour)}
+      more={options.more}
+      needs={options.needs}
+      running={options.running === true ? true : undefined}
+      style={options.style}
+      title={options.title}
+      tone={options.color}
+    >
+      {children}
+    </Pane>
   );
 }

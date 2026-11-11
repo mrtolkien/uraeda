@@ -5,7 +5,7 @@ import { mount, signal, Text, View } from "nsh";
 import { Input } from "nsh/base";
 import { KeyPicker } from "../KeyPicker";
 import { KeysHost } from "../KeysHost";
-import { look } from "../look";
+import { tokens } from "../../tokens";
 import { Words } from "../parts";
 import { keyHints, KeyScope, registerKey, singleKeys } from "../registry";
 
@@ -48,7 +48,7 @@ function Page() {
   const typed = signal("");
   const picked = signal("nothing");
   return (
-    <View style={{ backgroundColor: look().panel, flex: 1, gap: 8, padding: 16 }}>
+    <View style={{ backgroundColor: tokens.role.page, flex: 1, gap: 8, padding: 16 }}>
       <Words>Ran: {ran().join(", ") || "nothing"}</Words>
       <Words>Hints: {hints() || "none"}</Words>
       <Words>Field: {typed()}</Words>

@@ -82,7 +82,7 @@ export function buttons(v: Tokens) {
           v,
           {
             title: "On a raised card",
-            fill: v.role.raised,
+            raised: true,
             body: { gap: 14, paddingVertical: 20 },
           },
           <>
