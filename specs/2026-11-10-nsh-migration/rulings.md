@@ -7047,3 +7047,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   branch without this ruling runs tests beside it: run again once it is quiet.
 - **Where**: `scripts/isolated.sh`, `justfile`, `flake.nix` (`hidden-display`),
   `crates/app/tests/isolated.rs`.
+
+## T91.2: A crate that embeds a folder tells Cargo every file and folder under it
+
+- **Decision**: `crates/core/build/track.rs` walks a folder and prints `cargo:rerun-if-changed` for
+  each file and folder under it; the build scripts of `uraeda-core` (the skill, the themes, the
+  built-in extensions) and `uraeda-server` (`app/ui/`, `app/extensions/`, new) call it for every
+  `include_dir!` they hold. The other embeds (`include_str!` of the docs and the extension VM's
+  scripts, `include_bytes!` of the diagrams' font) are tracked by rustc itself.
+- **Rationale**: `include_dir` reads each file with `include_bytes!`, so rustc saw an edit of a file
+  it embedded already, but not a file added or removed: a page's build then got the server's old
+  modules until a Rust file was touched. Seen by hand: without the server's build script, a new
+  `app/ui/controls/zz-probe.ts` was missing from a fresh sandbox's `extensions/modules/`; with it,
+  it appeared, its edit reached the copy, and its removal took it away.
+- **Where**: `crates/core/build/track.rs`, `crates/{core,server}/build.rs`.

@@ -1,10 +1,12 @@
+#[path = "build/track.rs"]
+mod track;
+
 fn main() {
-    // The skill is embedded with include_dir, which does not track the files it reads.
-    println!("cargo:rerun-if-changed=../../skills/uraeda");
-    // The shipped colour themes, embedded the same way.
-    println!("cargo:rerun-if-changed=themes");
-    // The built-in extensions' manifests, embedded the same way.
-    println!("cargo:rerun-if-changed=extensions");
+    // The skill, the shipped colour themes, and the built-in extensions' manifests, embedded with
+    // include_dir, which does not track the files it reads.
+    track::track("../../skills/uraeda");
+    track::track("themes");
+    track::track("extensions");
     // napi-rs regenerates the TypeScript declarations of a dependency crate only when its build
     // script registers napi's environment variables.
     if std::env::var_os("CARGO_FEATURE_NAPI").is_some() {
