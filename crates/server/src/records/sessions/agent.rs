@@ -18,7 +18,8 @@ pub(super) fn changed(shared: &Shared) {
     shared.get::<Bus>().changed_all::<Agent>();
 }
 
-/// The value of the record `Agent`: every registered runtime, in the order they registered.
+/// The value of the record `Agent`: every registered runtime, the one a new session of the
+/// repository runs on first, then in the order they first registered.
 fn read(shared: &Shared, args: AgentArgs) -> Result<Agent, Fault> {
     let runtimes = shared.get::<Runtimes>();
     let runner = Runner::find(shared);
@@ -27,33 +28,36 @@ fn read(shared: &Shared, args: AgentArgs) -> Result<Agent, Fault> {
     if let Some(runner) = &runner {
         runner.refresh_all_accounts();
     }
-    let records = runtimes.names().into_iter().filter_map(|id| {
-        let runtime = runtimes.get(&id)?;
-        let status = runtimes.status(&id);
-        let usage = runner.as_ref().map(|runner| runner.usage(&id));
-        let window = |window: crate::runner::UsageWindow| UsageWindow {
-            id: window.id,
-            label: window.label,
-            resets_at: window.resets_at,
-            used: window.used,
-        };
-        Some(RuntimeRecord {
-            name: runtime.name(),
-            title: runtimes.title(&id),
-            icon: runtime.icon(),
-            available: status.available,
-            version: status.version,
-            is_on: runtimes.is_on(&id, args.repo.as_deref()),
-            capabilities: runtime.capabilities(),
-            models: runtimes.models(&id),
-            usage: usage.unwrap_or_default().into_iter().map(window).collect(),
-            accounts: runner
-                .as_ref()
-                .map(|runner| runner.account_records(&id))
-                .unwrap_or_default(),
-            id,
-        })
-    });
+    let records = runtimes
+        .ordered(args.repo.as_deref())
+        .into_iter()
+        .filter_map(|id| {
+            let runtime = runtimes.get(&id)?;
+            let status = runtimes.status(&id);
+            let usage = runner.as_ref().map(|runner| runner.usage(&id));
+            let window = |window: crate::runner::UsageWindow| UsageWindow {
+                id: window.id,
+                label: window.label,
+                resets_at: window.resets_at,
+                used: window.used,
+            };
+            Some(RuntimeRecord {
+                name: runtime.name(),
+                title: runtimes.title(&id),
+                icon: runtime.icon(),
+                available: status.available,
+                version: status.version,
+                is_on: runtimes.is_on(&id, args.repo.as_deref()),
+                capabilities: runtime.capabilities(),
+                models: runtimes.models(&id),
+                usage: usage.unwrap_or_default().into_iter().map(window).collect(),
+                accounts: runner
+                    .as_ref()
+                    .map(|runner| runner.account_records(&id))
+                    .unwrap_or_default(),
+                id,
+            })
+        });
     Ok(Agent {
         runtimes: records.collect(),
     })

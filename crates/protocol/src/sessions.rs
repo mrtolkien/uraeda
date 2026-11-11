@@ -53,8 +53,9 @@ pub struct AgentArgs {
     pub repo: Option<String>,
 }
 
-/// The agent runtimes sessions run on, in the order they registered: the first one on is the one
-/// a new session runs on until another is picked.
+/// The agent runtimes sessions run on: the settings' default agent first where it is on, then in
+/// the order they first registered. The first one on is the one a new session runs on until
+/// another is picked.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Agent {

@@ -270,6 +270,7 @@ async fn settings_answers_its_shape() {
         "continueAfterRestart": unset(json!(true)),
         "scheduledJobs": unset(json!(true)),
         "claudeEffortFromEnv": "high",
+        "defaultAgent": null,
         "options": { "steps": [], "implementers": null, "reviewers": null, "reviewDepth": null },
     });
     assert_eq!(value["runs"], runs);

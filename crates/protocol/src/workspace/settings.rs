@@ -91,6 +91,10 @@ pub struct RunSettings {
     /// `CLAUDE_CODE_EFFORT_LEVEL` of the server's environment when set, which every Claude Code
     /// session inherits, over any effort picked.
     pub claude_effort_from_env: Option<String>,
+    /// The agent a new session runs on when nothing picks one, as the file names it: the first
+    /// agent on when none, or when it is not registered or off in the session's repository.
+    /// No flag or variable gives it.
+    pub default_agent: Option<String>,
     /// The run options the file holds, only what it sets: no flag or variable gives them.
     pub options: RunOptions,
 }
@@ -189,6 +193,17 @@ pub enum ContinueKind {
     /// The scheduled jobs, started at their times.
     Jobs,
 }
+
+/// Sets the agent a new session runs on when nothing picks one, by its name, like `claude`,
+/// or removes it, for the first agent on.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsSetDefaultAgent {
+    /// The agent's name, trimmed: none removes it.
+    pub agent: Option<String>,
+}
+
+writes!(SettingsSetDefaultAgent, "settings.setDefaultAgent");
 
 /// Sets whether a start opens a browser.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

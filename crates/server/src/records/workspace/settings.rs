@@ -156,6 +156,7 @@ fn runs(given: &Given, file: core::RunSettings) -> RunSettings {
         continue_after_restart: setting(given.after_restart, file.continue_after_restart, true),
         scheduled_jobs: scheduled_jobs(given, file.scheduled_jobs),
         claude_effort_from_env: given.claude_effort.clone(),
+        default_agent: file.default_agent,
         options: options::sent(file.options),
     }
 }

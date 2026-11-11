@@ -19,7 +19,8 @@ pub use repositories::{
 pub use settings::{
     ContinueKind, KeyboardSettings, RunSettings, ServerSettings, Setting, Settings,
     SettingsAddHost, SettingsEditHost, SettingsRemoveHost, SettingsSetAutomaticContinues,
-    SettingsSetContinue, SettingsSetOpenBrowser, SettingsSetPort, SettingsSetRunOptions,
-    SettingsSetSingleKeyShortcuts, SettingsSetVimCommands, SettingsSetVimMode, Source,
+    SettingsSetContinue, SettingsSetDefaultAgent, SettingsSetOpenBrowser, SettingsSetPort,
+    SettingsSetRunOptions, SettingsSetSingleKeyShortcuts, SettingsSetVimCommands,
+    SettingsSetVimMode, Source,
 };
 pub use themes::{Theme, ThemeFile, ThemeProblem, Themes};

@@ -140,7 +140,7 @@ impl Parser {
             name: name.to_owned(),
             parent: parent.map(str::to_owned),
             subagent,
-            target: tool_target(&input, &self.cwd),
+            target: tool_target(name, &input, &self.cwd),
             input,
         }
     }

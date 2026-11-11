@@ -238,6 +238,28 @@ async fn the_mcp_endpoint_refuses_a_wrong_token() {
     assert_eq!(asked[0].0, "session-2");
 }
 
+// The break it catches: a tool listed without `readOnlyHint`, which Claude Code runs one call
+// at a time, so a wave's implementers ran one after another. No tool changes the caller's own
+// checkout: an implementer works in its task's worktree, and a review changes nothing there.
+#[tokio::test]
+async fn the_tools_say_they_change_nothing() {
+    let server = support::server().await;
+    let token = server.shared().get::<Mcp>().issue("session-1");
+
+    let listed = post(&server, &token, &json!({ "id": 1, "method": "tools/list" })).await;
+
+    let listed = listed.json();
+    let tools = listed["result"]["tools"].as_array().expect("tools");
+    assert_eq!(tools.len(), 2);
+    for tool in tools {
+        assert_eq!(
+            tool["annotations"],
+            json!({ "readOnlyHint": true }),
+            "{tool}"
+        );
+    }
+}
+
 // The contract with the agents' MCP clients: the streamable HTTP transport, stateless, for the
 // four messages a client of tools sends.
 #[tokio::test]

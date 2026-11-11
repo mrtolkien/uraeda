@@ -166,6 +166,7 @@ fn workspace(catalog: Catalog) -> Catalog {
         .action::<workspace::SettingsRemoveHost>()
         .action::<workspace::SettingsSetAutomaticContinues>()
         .action::<workspace::SettingsSetContinue>()
+        .action::<workspace::SettingsSetDefaultAgent>()
         .action::<workspace::SettingsSetOpenBrowser>()
         .action::<workspace::SettingsSetPort>()
         .action::<workspace::SettingsSetRunOptions>()

@@ -68,7 +68,7 @@
 //! `shared.get::<Runtimes>()`.
 
 pub mod accounts;
-mod built_in;
+pub(crate) mod built_in;
 mod child;
 mod claude;
 pub mod codex;

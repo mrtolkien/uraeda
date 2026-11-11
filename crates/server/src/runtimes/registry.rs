@@ -1,4 +1,5 @@
-//! The runtimes sessions run on, by the names they are registered as, in registration order.
+//! The runtimes sessions run on, by the names they are registered as, in the order each name
+//! was first registered, the settings' default agent first where it is on.
 //!
 //! A session stores the name of the runtime it was made with, and runs on that runtime only: one
 //! removed, or off in its repository, leaves it read-only until it returns. A runtime's name is
@@ -52,8 +53,10 @@ struct Entry {
 
 #[derive(Default)]
 struct State {
-    /// In registration order.
     entries: Vec<Entry>,
+    /// Every name ever registered, in the order of its first registration: a runtime
+    /// registered again, as a built-in whose settings changed, keeps its place.
+    order: Vec<String>,
     /// Each name's status when it was removed, which a registration under it starts from.
     last: HashMap<String, Status>,
     next: u64,
@@ -113,6 +116,9 @@ impl Runtimes {
                 listing: Arc::default(),
             };
             state.entries.push(entry);
+            if !state.order.iter().any(|known| known == name) {
+                state.order.push(name.to_owned());
+            }
             state.next
         };
         self.changed();
@@ -133,14 +139,33 @@ impl Runtimes {
         Some(entry.runtime.clone())
     }
 
-    /// The names registered, in registration order.
+    /// The names registered, in the order each was first registered.
     pub fn names(&self) -> Vec<String> {
         let state = locked(&self.0.state);
-        state
-            .entries
-            .iter()
-            .map(|entry| entry.name.clone())
-            .collect()
+        let registered = |name: &&String| state.entries.iter().any(|entry| &entry.name == *name);
+        state.order.iter().filter(registered).cloned().collect()
+    }
+
+    /// The names registered, the default agent first while it is registered and on in the
+    /// repository, then in the order each was first registered: the order every list of the
+    /// runtimes shows them in.
+    pub fn ordered(&self, repository: Option<&str>) -> Vec<String> {
+        let mut names = self.names();
+        let listed = self.extensions();
+        let default = self.default_agent();
+        let first = default.filter(|name| on(&listed, name, repository));
+        if let Some(at) = first.and_then(|name| names.iter().position(|known| *known == name)) {
+            let name = names.remove(at);
+            names.insert(0, name);
+        }
+        names
+    }
+
+    /// The settings' `runs.default_agent`, as the config folder's file says now: none when
+    /// unset, or the file cannot be read.
+    fn default_agent(&self) -> Option<String> {
+        let settings = uraeda_core::settings::read(&self.0.config_dir).ok()?;
+        settings.runs.default_agent
     }
 
     /// Whether the runtime of a name is on in a repository, by its name in the list, or in
@@ -150,11 +175,11 @@ impl Runtimes {
         on(&self.extensions(), name, repository)
     }
 
-    /// The names of the runtimes on in a repository, in registration order: the first is the
+    /// The names of the runtimes on in a repository, the default agent first: the first is the
     /// one a new session runs on until another is picked.
     pub fn on_in(&self, repository: Option<&str>) -> Vec<String> {
         let listed = self.extensions();
-        let names = self.names().into_iter();
+        let names = self.ordered(repository).into_iter();
         names.filter(|name| on(&listed, name, repository)).collect()
     }
 

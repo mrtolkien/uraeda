@@ -53,8 +53,9 @@ resetsAt: string | null,
 used: number, };
 
 /**
- * The agent runtimes sessions run on, in the order they registered: the first one on is the one
- * a new session runs on until another is picked.
+ * The agent runtimes sessions run on: the settings' default agent first where it is on, then in
+ * the order they first registered. The first one on is the one a new session runs on until
+ * another is picked.
  */
 export type Agent = { runtimes: Array<RuntimeRecord>, };
 
@@ -4257,6 +4258,12 @@ scheduledJobs: Setting<boolean>,
  */
 claudeEffortFromEnv: string | null, 
 /**
+ * The agent a new session runs on when nothing picks one, as the file names it: the first
+ * agent on when none, or when it is not registered or off in the session's repository.
+ * No flag or variable gives it.
+ */
+defaultAgent: string | null, 
+/**
  * The run options the file holds, only what it sets: no flag or variable gives them.
  */
 options: RunOptions, };
@@ -4854,6 +4861,16 @@ key: ContinueKind,
  * Whether it runs.
  */
 on: boolean, };
+
+/**
+ * Sets the agent a new session runs on when nothing picks one, by its name, like `claude`,
+ * or removes it, for the first agent on.
+ */
+export type SettingsSetDefaultAgent = { 
+/**
+ * The agent's name, trimmed: none removes it.
+ */
+agent: string | null, };
 
 /**
  * Sets whether a start opens a browser.
@@ -6230,6 +6247,7 @@ export type Actions = {
   "settings.removeHost": { input: SettingsRemoveHost; output: null };
   "settings.setAutomaticContinues": { input: SettingsSetAutomaticContinues; output: null };
   "settings.setContinue": { input: SettingsSetContinue; output: null };
+  "settings.setDefaultAgent": { input: SettingsSetDefaultAgent; output: null };
   "settings.setOpenBrowser": { input: SettingsSetOpenBrowser; output: null };
   "settings.setPort": { input: SettingsSetPort; output: null };
   "settings.setRunOptions": { input: SettingsSetRunOptions; output: null };

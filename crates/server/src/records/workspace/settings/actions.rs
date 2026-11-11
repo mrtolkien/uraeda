@@ -8,9 +8,9 @@ use uraeda_core::api::ApiError;
 use uraeda_core::settings::{self as core, ContinueKey};
 use uraeda_protocol::{
     ContinueKind, SettingsAddHost, SettingsEditHost, SettingsRemoveHost,
-    SettingsSetAutomaticContinues, SettingsSetContinue, SettingsSetOpenBrowser, SettingsSetPort,
-    SettingsSetRunOptions, SettingsSetSingleKeyShortcuts, SettingsSetVimCommands,
-    SettingsSetVimMode,
+    SettingsSetAutomaticContinues, SettingsSetContinue, SettingsSetDefaultAgent,
+    SettingsSetOpenBrowser, SettingsSetPort, SettingsSetRunOptions, SettingsSetSingleKeyShortcuts,
+    SettingsSetVimCommands, SettingsSetVimMode,
 };
 
 use super::{options, reload};
@@ -41,6 +41,15 @@ pub(super) fn register(registry: &Registry) {
         write(call, |dir| {
             core::set_continue(dir, key(input.key), input.on)
         })
+    });
+    // The runtimes read the file at each pick: a session made after the answer runs on it,
+    // and the record of the runtimes lists it first.
+    registry.action::<SettingsSetDefaultAgent>(|call, input| {
+        write(call, |dir| {
+            core::set_default_agent(dir, input.agent.as_deref())
+        })?;
+        call.shared().get::<crate::runtimes::Runtimes>().changed();
+        Ok(())
     });
     // TASK 56: nothing reads this setting yet. The server opens a browser as it starts once it
     // serves the app, as the Node server's `browser.ts` does.

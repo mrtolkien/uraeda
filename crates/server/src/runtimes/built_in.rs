@@ -14,7 +14,8 @@ mod target;
 
 pub(super) use given::{Given, SKILL_NAME, write_new};
 pub(super) use instructions::instructions;
-pub(super) use target::{file_target, tool_target};
+pub(super) use target::file_target;
+pub(crate) use target::tool_target;
 
 /// An effort's name for people: "Extra high" for `xhigh`, any other id as given.
 pub(super) fn effort_name(id: &str) -> &str {

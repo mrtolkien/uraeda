@@ -183,7 +183,7 @@ fn sub_session(runner: &Runner, row: &runner::Session) -> SubSession {
         id: row.id.clone(),
         parent: row.parent.clone().unwrap_or_default(),
         role: role_of(row.role.as_deref().unwrap_or_default()),
-        about: row.title.clone().unwrap_or_default(),
+        about: about(row.title.as_deref().unwrap_or_default()).to_owned(),
         agent: row.agent.clone(),
         model: model
             .map(|model| model.name.clone())
@@ -204,5 +204,23 @@ fn sub_session(runner: &Runner, row: &runner::Session) -> SubSession {
             input: used.input,
             output: used.output,
         }),
+    }
+}
+
+/// What a sub-session is about, as its parent lists it: a reviewer's stored title ends with the
+/// commits it reviewed, ` on <base>..<head>`, which tell its reviews apart and are not shown.
+fn about(title: &str) -> &str {
+    let hex = |text: &str| {
+        (7..=64).contains(&text.len())
+            && text
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    };
+    let Some((about, range)) = title.rsplit_once(" on ") else {
+        return title;
+    };
+    match range.split_once("..") {
+        Some((base, head)) if hex(base) && hex(head) => about,
+        _ => title,
     }
 }

@@ -20,12 +20,13 @@ use uraeda_protocol::TurnLog;
 use super::event::{BackgroundKind, BackgroundTask, Denial, Event, TokenCounts};
 use super::live::{Reading, Tool};
 use super::manager::{Runner, State};
-use super::message::{CLEARED, WORKING, activity_label, tool_target, waiting_label};
+use super::message::{CLEARED, WORKING, activity_label, waiting_label};
 use super::processes::proc_of;
 use super::turn::TurnState;
 use super::turns::TurnEnd;
 use crate::live::{Bus, Fault};
 use crate::runtimes::Runtime;
+use crate::runtimes::built_in::tool_target;
 
 /// A wakeup further ahead than this holds no process open: it would for days.
 const WAKEUP_HORIZON: Duration = Duration::from_secs(24 * 60 * 60);
@@ -139,7 +140,10 @@ impl Runner {
         let ruled = denials.iter().map(|denial| {
             // A rule is one line: the turn that allows keeps its rules a line each.
             let rule = runtime.allow_rule(denial);
-            (tool_target(&denial.input, &cwd), rule)
+            (
+                tool_target(&denial.tool, &denial.input, &cwd.to_string_lossy()),
+                rule,
+            )
         });
         ruled.collect()
     }

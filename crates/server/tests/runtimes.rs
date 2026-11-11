@@ -569,8 +569,38 @@ async fn a_runtime_is_registered_under_one_name_until_it_is_removed() {
     assert!(registry.get("fake").is_none());
     let back = runtimes::register(server.shared(), "fake", Arc::new(Fake::new()));
     assert!(back.is_ok(), "a removed name is free again");
-    assert_eq!(names(), ["other", "fake"]);
+    assert_eq!(
+        names(),
+        ["fake", "other"],
+        "in the order each first registered"
+    );
     other.remove();
+    server.stop().await;
+}
+
+// The Node server's fix: Claude Code's runtime registers again as its settings change, and
+// Codex became the default agent. A runtime registered again keeps its place, and with it the
+// default.
+#[tokio::test]
+async fn a_runtime_registered_again_keeps_its_place() {
+    let server = support::server().await;
+    let registry = server.shared().get::<Runtimes>();
+    let built_in = registry.names();
+    let first = runtimes::register(server.shared(), "first", Arc::new(Fake::new())).unwrap();
+    let second = runtimes::register(server.shared(), "second", Arc::new(Fake::new())).unwrap();
+    let ours = || {
+        let mut on = registry.on_in(None);
+        on.retain(|name| !built_in.contains(name));
+        on
+    };
+
+    first.remove();
+    assert_eq!(ours(), ["second"]);
+    let again = runtimes::register(server.shared(), "first", Arc::new(Fake::new())).unwrap();
+
+    assert_eq!(ours(), ["first", "second"]);
+    again.remove();
+    second.remove();
     server.stop().await;
 }
 

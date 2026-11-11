@@ -168,7 +168,9 @@ async fn review_runs_every_reviewer_and_commits_their_findings() {
         reviews.then(|| script(json!([{ "type": "text", "text": "- src/a.rs:1 leaks." }])))
     });
     let (parent, token) = workflow(&stage).await;
-    let review = json!({ "reviewed": "branch", "base": "main", "head": "HEAD" });
+    let commit = |name: &str| stage.repo.git(&["rev-parse", name]).trim().to_owned();
+    let (base, head) = (commit("main"), commit(AGENT));
+    let review = json!({ "reviewed": "branch", "base": base, "head": head });
 
     let answer = tool(&stage, &token, "review", review)
         .await
@@ -191,5 +193,10 @@ async fn review_runs_every_reviewer_and_commits_their_findings() {
     let session = stage.read("Session", &parent).await;
     assert_eq!(session["subSessions"][0]["role"], "reviewer");
     assert_eq!(session["subSessions"][0]["state"], "done");
+    // Its title names the reviewer, without the commits that tell its reviews apart.
+    let about = session["subSessions"][0]["about"]
+        .as_str()
+        .expect("its title");
+    assert!(!about.is_empty() && !about.contains(&base), "{about}");
     stage.server.stop().await;
 }

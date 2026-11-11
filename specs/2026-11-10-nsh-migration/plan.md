@@ -1592,14 +1592,20 @@ ported, beyond accounts and jobs.
   - A sub-session's view carries when it started and ended, and a reviewer's title no commit.
   - Anything else `git diff e15482f6 main -- packages/server/src` shows that tasks 62 and 63 do not
     own: list each in the commit body, ported or dropped with its reason.
+- As built (rulings R226 to R228): `settings.setDefaultAgent { agent }`, and `runs.defaultAgent` in
+  `Settings`; `Runtimes::ordered(repository)`, the names with the default agent first, which `on_in`
+  and the record `Agent` follow, read from the settings file at each pick. The catch-up runs start
+  on the pull requests' `SETTLED`, `sessions::settled`. The audit left one change unported:
+  `toStored`'s stored defaults, which the web UI alone runs, for the screen tasks 44 and 48 to port
+  to the server.
 
-- [ ] **Step 1: Write the failing tests**: `a new session runs on the default agent`;
+- [x] **Step 1: Write the failing tests**: `a new session runs on the default agent`;
       `a runtime registered again keeps its place`; `the tools say they change nothing`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
       PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the default agent, and what else the server gained`.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the default agent, and what else the server gained`.
 
 ## Task 20: The parity list, and the server's sandbox
 

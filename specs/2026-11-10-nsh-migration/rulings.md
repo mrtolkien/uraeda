@@ -4974,7 +4974,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/app/tests/extensions.rs`, `crates/app/tests/extensions/`,
   `fixtures/extensions/{counter,crashes,loops}/`.
 
-## T64.1: The sessions on the merged branch, their catch-up runs, and the suite's slow tests
+## R226: The sessions on the merged branch, their catch-up runs, and the suite's slow tests
 
 - **Decision**: the server's tests had not run since task 15 was merged by a rebase. On the merged
   tree, `just task uraeda-server uraeda-protocol uraeda-cli` failed on one test,
@@ -5008,3 +5008,71 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   did, only later.
 - **Where**: `crates/server/src/records/{pulls,watch}.rs`, `records/sessions/mod.rs`,
   `crates/server/tests/sessions/catch_ups.rs`, `crates/server/tests/writing.rs`.
+
+## R227: The default agent is read from the settings at each pick, and a runtime keeps its place
+
+- **Decision**: what the Node server gained for the agents, as built here.
+  - **`runs.default_agent`** is in the record `Settings`, `runs.defaultAgent`, and written by
+    `settings.setDefaultAgent { agent }`, `null` removing it, through the core's
+    `set_default_agent`, which refuses a blank name, "The agent is empty." A name no runtime has is
+    kept as written.
+  - **The registry reads it from the config folder's file at each pick**, as it already reads where
+    each extension is on: `Runtimes::ordered(repository)` lists the names with the default agent
+    first while it is registered and on there, and `on_in`, which every pick of a new session asks,
+    follows it. The Node server kept it in memory, with `prefer()` called as the settings changed:
+    one value read where it is used has no second copy to keep in step. `settings.setDefaultAgent`
+    says the runtimes changed, so the record `Agent`, listed in that order, is read again at once.
+  - **A runtime registered again keeps its place**: the registry keeps every name in the order of
+    its first registration. `a_runtime_is_registered_under_one_name_until_it_is_removed` asserted
+    the opposite, a name registered again listed last, and was changed with it.
+  - **The MCP tools are listed with `annotations: { readOnlyHint: true }`.**
+  - **One `tool_target`**, the built-ins', which now takes the tool's name: a `run_agent` call's
+    target is its `task`. The runner had a copy of its own for the blocked actions' lines, which is
+    gone. The Claude fixture's expected events, recorded from the Node runner before it named the
+    task, have the target.
+  - **A sub-session's view** already carried `startedAt` and `endedAt`. Its `about` drops a
+    reviewer's ` on <base>..<head>` when both are commits, as the Node server's pattern does.
+- **Seen failing first**: `no action is settings.setDefaultAgent`; `["second", "first"]` for
+  `["first", "second"]`; a tool's `annotations` `null`.
+- **Where**: `crates/server/src/runtimes/{registry,built_in/target}.rs`,
+  `records/workspace/settings/`, `records/sessions/{agent,session}.rs`, `mcp/tools.rs`,
+  `crates/protocol/src/workspace/settings.rs`; the tests `a_new_session_runs_on_the_default_agent`,
+  `a_runtime_registered_again_keeps_its_place`, `the_tools_say_they_change_nothing`,
+  `a_run_agent_calls_target_is_its_task`.
+
+## R228: What else the Node server gained, file by file
+
+- **Decision**: `git diff e15482f6 main -- packages/server/src`, outside its tests, decided for each
+  change. Accounts are task 62's, jobs task 63's.
+  - **Ported here (R227)**: `runner/runtimes.ts` (first-registration order, the default agent
+    first), `settings.ts` and `fate/settings-mutations.ts` (`defaultAgent`,
+    `settings.setDefaultAgent`), `fate/views.ts` and `fate/sessions.ts` (the runtimes listed default
+    first), `mcp/endpoint.ts` (`readOnlyHint`), `runner/message.ts` (a `run_agent` call's target),
+    `fate/sub-session-views.ts` (a reviewer's title).
+  - **Already in the Rust server**: `catch-ups.ts` and `serially.ts` (a helper moved, no behaviour:
+    the catcher's runs go one at a time per repository, `runner/catch_ups.rs`); `fate/errors.ts` and
+    `fate/extension-mutations.ts` (`settingsWrite`, a helper moved: an unreadable settings file is a
+    refusal, as the Rust `Fault` maps it); `runner/sessions.ts` and `runner/session-context.ts` (the
+    context made in a module of its own); the start and end times of a sub-session's view.
+  - **Task 62's, accounts**: `extension-api.ts`, `extensions/builtins.ts`, `extensions/server.ts`,
+    `limits.ts`, `runner/adapter.ts`, `runner/cache-rows.ts`, `runner/cache-sessions.ts`,
+    `runner/cache-turns.ts` (`hasStartedTurn`), `runner/claude.ts` (the accounts' folders; its
+    models are asked through the accounts' `askShort`), `runner/continuer.ts` and `runner/events.ts`
+    (the `account` continue), `runner/fake.ts`, `runner/migrations.ts` (the `account` column),
+    `runner/processes.ts`, `runner/session-state.ts`, the accounts' line of `runner/message.ts`, and
+    the accounts of `runtimes.ts`, `fate/sessions.ts`, and `fate/views.ts`.
+  - **Task 63's, jobs**: `app.ts`, `env.ts` and `options.ts` (`--no-scheduled-jobs`,
+    `URAEDA_SCHEDULED_JOBS`), `fate.ts`, `fate/context.ts`, `fate/mutations.ts`, `fate/sources.ts`,
+    `fate/session-moves.ts` and `fate/session-reads.ts` (a job's refused change), `live.ts`
+    (`onWorkspaceChange`), `repositories.ts` (`onChange`), `server.ts` (`startJobs`),
+    `runner/cache.ts`, the `job_runs` table of `runner/migrations.ts` and of `cache-turns.ts`,
+    `runner/send-input.ts` and `runner/send.ts` (a chat message Uraeda sends, with `origin` and
+    `line`), `runner/session-folders.ts` (`removeEmpty`), `runner/status.ts` (`change-refused`), the
+    jobs' lines of `runner/message.ts`, and the `jobs` switch of the settings.
+  - **Not ported, with its reason**: `run-options.ts` and `runner/run-session.ts` (`defaultEffort`,
+    and a pick left to the agent's default stored as that default). Only the web UI's
+    `runs/runOptions.ts` calls `toStored`: no server path runs it. The settings screen (task 48) and
+    the run options' panel (task 44) store the options; the UI holds no workflow logic, so their
+    task ports `toStored`, with this rule, to the server.
+- **Where**: the commit `feat(nsh-migration): the default agent, and what else the server gained`.
+  Tasks 20, 44, 48, 62, and 63.

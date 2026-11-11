@@ -97,10 +97,15 @@ pub(super) fn find(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|tool| tool.name == name)
 }
 
-/// The tools, as `tools/list` answers them.
+/// The tools, as `tools/list` answers them. Each says it changes nothing, `readOnlyHint`: an
+/// agent then runs several calls of a turn at once, where Claude Code ran a tool without it one
+/// call after another, and a wave's implementers in turn. None changes the caller's own
+/// checkout: an implementer works in its task's worktree, and a review writes its findings
+/// through the write queue.
 pub(super) fn listed() -> Vec<Value> {
     let listed = |tool: &Tool| {
         json!({
+            "annotations": { "readOnlyHint": true },
             "description": tool.description,
             "inputSchema": (tool.schema)(),
             "name": tool.name,

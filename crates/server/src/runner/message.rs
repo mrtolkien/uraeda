@@ -1,10 +1,6 @@
 //! The words the sessions write: the lines a turn shows, the messages Uraeda sends by itself,
 //! a chat's title and its opening, and what a running turn says it does.
 
-use std::path::{Component, Path};
-
-use serde_json::{Map, Value};
-
 use super::event::{Activity, BackgroundKind};
 use super::turn::ContinueReason;
 
@@ -148,24 +144,6 @@ pub(crate) fn chat_title(text: &str, images: bool) -> String {
         (None, true) => "Image".to_owned(),
         (None, false) => "New session".to_owned(),
     }
-}
-
-/// What a tool call acts on, for its line: its command, file, address, or pattern. A file
-/// under `cwd`, the session's directory, is relative to it.
-pub(super) fn tool_target(input: &Map<String, Value>, cwd: &Path) -> Option<String> {
-    const TARGETS: [&str; 5] = ["command", "file_path", "url", "pattern", "path"];
-    let (key, value) = TARGETS
-        .iter()
-        .find_map(|key| Some((*key, input.get(*key)?.as_str()?)))?;
-    let is_path = matches!(key, "file_path" | "path");
-    let inside = Path::new(value).strip_prefix(cwd).ok().filter(|inside| {
-        let plain = |part: Component<'_>| matches!(part, Component::Normal(_));
-        is_path && inside.components().next().is_some() && inside.components().all(plain)
-    });
-    Some(match inside {
-        Some(inside) => inside.to_string_lossy().into_owned(),
-        None => value.to_owned(),
-    })
 }
 
 /// An effort's name for people: `Extra high` for `xhigh`, any other id as given.

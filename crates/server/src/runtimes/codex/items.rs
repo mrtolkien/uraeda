@@ -106,7 +106,9 @@ pub(super) fn tool_of(item: &Value, cwd: &str) -> Option<Tool> {
             } else {
                 text(item, "tool").to_owned()
             };
-            let target = input.as_object().and_then(|input| tool_target(input, cwd));
+            let target = input
+                .as_object()
+                .and_then(|input| tool_target(&name, input, cwd));
             Some(Tool::new(&name, ToolKind::Other, input, target))
         }
         "webSearch" => {

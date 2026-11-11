@@ -11,9 +11,15 @@ const TARGETS: [&str; 5] = ["command", "file_path", "url", "pattern", "path"];
 /// Those of them that are a file's path.
 const PATHS: [&str; 2] = ["file_path", "path"];
 
-/// What a tool call acts on: its command, file, URL, or pattern. A file under `cwd`, the
-/// session's directory, is relative to it.
-pub(in crate::runtimes) fn tool_target(input: &Map<String, Value>, cwd: &str) -> Option<String> {
+/// What a tool call acts on: its command, file, URL, or pattern, and for Uraeda's own
+/// `run_agent`, the task its implementer builds, which names its sub-session. A file under
+/// `cwd`, the session's directory, is relative to it.
+pub(crate) fn tool_target(name: &str, input: &Map<String, Value>, cwd: &str) -> Option<String> {
+    if name.ends_with("__run_agent")
+        && let Some(task) = input.get("task").and_then(Value::as_str)
+    {
+        return Some(task.to_owned());
+    }
     let (key, value) = TARGETS.iter().find_map(|key| {
         let value = input.get(*key)?.as_str()?;
         Some((*key, value))

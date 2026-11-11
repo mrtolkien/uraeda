@@ -25,7 +25,7 @@
 {"id":"toolu_2","input":{"file_path":"/session-dir/a.ts"},"kind":"edit","name":"MultiEdit","type":"toolStart","target":"a.ts"}
 {"id":"toolu_2","input":{"content":"x","file_path":"/session-dir/new.md"},"kind":"edit","name":"Write","type":"toolStart","target":"new.md"}
 {"id":"toolu_2","input":{"query":"rust"},"kind":"fetch","name":"WebSearch","type":"toolStart"}
-{"id":"toolu_2","input":{"task":"Task 1"},"kind":"other","name":"mcp__uraeda__run_agent","type":"toolStart"}
+{"id":"toolu_2","input":{"task":"Task 1"},"kind":"other","name":"mcp__uraeda__run_agent","target":"Task 1","type":"toolStart"}
 {"id":"toolu_5","input":{},"kind":"execute","name":"Bash","type":"toolStart"}
 {"id":"toolu_6","input":{"command":"ls"},"kind":"other","name":"","type":"toolStart","target":"ls"}
 {"id":"toolu_7","input":{"command":"ls -la"},"kind":"execute","name":"Bash","type":"toolStart","target":"ls -la"}
