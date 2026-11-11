@@ -2,7 +2,8 @@
 // runs it, "Claude Code · b · Opus 5.5 · High", which follows the account when a limit moves the
 // session; where it works. Under it, what asks for the human: a run that ended badly, with its
 // Dismiss; a run waiting to go on by itself, and when; a session that moved, and where (rule 9);
-// a sub-session's parent, which it is read from.
+// a sub-session's parent, which it is read from. Beside the state, Rename (`R`), the effort of its
+// next turns (`m`), and a chat's Archive.
 import { signal, View } from "nsh";
 import { call, navigate, record, serverTime, StoreError } from "../../store";
 import type { RuntimeRecord, Session } from "../../store/protocol";
@@ -10,6 +11,9 @@ import { Banner, Button, Heading, Link, Refusal, sent, StatusDot, Text } from ".
 import { movedOf } from "./offers";
 import { attentionWords, runsOnWords, statusTone, waitWords } from "./words";
 import { isNarrow } from "../../ui/width";
+import { registerKey } from "../../ui/keys";
+import { NameDialog } from "../NameDialog";
+import { SessionEffort } from "./Effort";
 
 export function SessionHead(props: {
   repo: string;
@@ -45,6 +49,10 @@ export function SessionHead(props: {
           <Text size="under" tone="faint">
             {props.session.place}
           </Text>
+        </If>
+        <If when={props.session.parent === null}>
+          <Rename repo={props.repo} session={props.session} />
+          <SessionEffort repo={props.repo} runtime={props.runtime} session={props.session} />
         </If>
         <If when={props.session.folder === null && props.session.parent === null}>
           <Archive repo={props.repo} session={props.session} />
@@ -192,5 +200,41 @@ function Archive(props: { repo: string; session: Session }) {
       </Link>
       <If when={archived.refusal()}>{(words) => <Refusal words={words()} />}</If>
     </View>
+  );
+}
+
+/**
+ * Rename, `R` or its link: the title the session shows in every list, asked in the name dialog.
+ * A sub-session's name is its parent run's, so it has none.
+ */
+function Rename(props: { repo: string; session: Session }) {
+  const asking = signal(false);
+  registerKey({
+    hint: "R",
+    hintLabel: "rename",
+    icon: "pencil",
+    keys: "R",
+    label: "Rename the session",
+    run: () => void asking.set(true),
+  });
+  return (
+    <>
+      <Link onPress={() => asking.set(true)} size="under">
+        Rename
+      </Link>
+      <If when={asking()}>
+        <NameDialog
+          blank="A session needs a name."
+          icon="pencil"
+          initial={props.session.title}
+          label="Name"
+          onClose={() => asking.set(false)}
+          onSave={async (title) => {
+            await call("session.rename", { repo: props.repo, session: props.session.id, title });
+          }}
+          title="Rename the session"
+        />
+      </If>
+    </>
   );
 }
