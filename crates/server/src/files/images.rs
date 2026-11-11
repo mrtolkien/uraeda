@@ -13,6 +13,7 @@ use uraeda_core::api;
 
 use super::chat_images::{self, ChatImages};
 use super::repository::Repository;
+use crate::runner::Store;
 use crate::shared::Shared;
 
 /// `GET /r/<name>/images/<path>`: a PNG, JPEG, GIF, WebP, or SVG file under `specs/`, by its
@@ -37,8 +38,8 @@ pub(super) async fn chat(
     Path((_, id)): Path<(String, String)>,
 ) -> Response {
     let read = tokio::task::spawn_blocking(move || {
-        let path = ChatImages::of(&shared).path(&id)?;
-        Some((chat_images::kind(&id), std::fs::read(path).ok()?))
+        let bytes = ChatImages::of(&shared).read(&id)?;
+        Some((chat_images::kind(&id), bytes))
     });
     let Ok(Some((kind, bytes))) = read.await else {
         return not_found();
@@ -62,11 +63,17 @@ pub(super) async fn remove(
         if images.path(&id).is_none() {
             return not_found();
         }
-        if in_a_message(&shared, &id) {
-            let error = format!("refused: {id} is in a sent message.");
-            return (StatusCode::BAD_REQUEST, Json(json!({ "error": error }))).into_response();
-        }
-        match images.remove(&id) {
+        // Asked of the session store, which keeps every message: an image it cannot answer
+        // for stays.
+        let removed = match shared.get::<Store>().holds_image(&id) {
+            Ok(true) => {
+                let error = format!("refused: {id} is in a sent message.");
+                return (StatusCode::BAD_REQUEST, Json(json!({ "error": error }))).into_response();
+            }
+            Ok(false) => images.remove(&id).map_err(|error| error.to_string()),
+            Err(error) => Err(error.to_string()),
+        };
+        match removed {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
             Err(error) => {
                 eprintln!("uraeda: the server could not delete the chat image {id}: {error}");
@@ -77,13 +84,6 @@ pub(super) async fn remove(
     removed
         .await
         .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
-}
-
-/// Whether a message of any session holds a chat image, taken back or not: one that does is
-/// never deleted.
-// JOIN(wave 6): the session store's answer (task 11). Until the sessions exist no message does.
-fn in_a_message(_: &Shared, _: &str) -> bool {
-    false
 }
 
 /// An image's answer: its detected type, never sniffed, nothing it could load or run, and no

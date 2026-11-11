@@ -22,9 +22,11 @@ use self::queued::{Run, Start};
 
 use super::messages::{Subject, run_message};
 use super::{messages, options};
+use crate::files::chat_images::ChatImages;
 use crate::live::{Call, Fault, Registry, locked};
 use crate::records::repositories;
 use crate::records::writing::{Write, write};
+use crate::shared::Shared;
 
 /// Registers the actions that start a feature or a change.
 pub(super) fn register(registry: &Registry) {
@@ -69,16 +71,21 @@ fn plan_of(planned: PlannedView, kind: Kind) -> StartPlan {
     }
 }
 
-/// The bytes of a typed start's images.
-// JOIN(wave 6): chat images (task 16). The uploads keep an image's bytes in the data folder, by
-// its id: until they are joined, a start with images is refused, and one without starts.
-fn image_bytes(images: Option<&[ChatImage]>) -> Result<Vec<Vec<u8>>, Fault> {
-    match images.unwrap_or_default() {
-        [] => Ok(Vec::new()),
-        _ => Err(Fault::refused(
-            "A start cannot take images yet: start it without them, and attach them after.",
-        )),
+/// The bytes of a typed start's images, as their upload kept them in the data folder, each
+/// once: an image whose file is gone refuses the start, before anything is written.
+fn image_bytes(shared: &Shared, images: Option<&[ChatImage]>) -> Result<Vec<Vec<u8>>, Fault> {
+    let store = ChatImages::of(shared);
+    let mut read: Vec<&str> = Vec::new();
+    let mut bytes = Vec::new();
+    for image in images.unwrap_or_default() {
+        if read.contains(&image.id.as_str()) {
+            continue;
+        }
+        let gone = || Fault::refused("This image is gone: add it again.");
+        bytes.push(store.read(&image.id).ok_or_else(gone)?);
+        read.push(&image.id);
     }
+    Ok(bytes)
 }
 
 /// The page a refused start of a typed feature opens: the New page, whose composer still holds
@@ -196,7 +203,7 @@ impl Typed {
 fn typed_feature(call: &Call, input: FeatureStartText) -> Result<StartPlan, Fault> {
     let typed = Arc::new(Typed {
         text: input.text,
-        images: image_bytes(input.images.as_deref())?,
+        images: image_bytes(call.shared(), input.images.as_deref())?,
         line: input.line,
         kind: Kind::Feature,
         discovery: input.discovery,
@@ -279,7 +286,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
     }
     let typed = Typed {
         text: input.text,
-        images: image_bytes(input.images.as_deref())?,
+        images: image_bytes(call.shared(), input.images.as_deref())?,
         line: input.line,
         kind: Kind::Change,
         discovery: None,

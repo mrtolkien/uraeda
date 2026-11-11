@@ -1134,9 +1134,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     change's page offers its message unsent. Since the join a start is a write of the queue, and a
     feature's answers once planned (T99.8). `feature.drop` and `feature.promote` hold, archive, and
     move no session, and no write is refused while an agent works.
-  - A typed start with images is refused: the uploads (task 16) keep an image's bytes, and
-    `starts.rs` has the one function that reads them, marked `// JOIN(wave 6): chat images`.
-    `change.fromNote` reads a note file's images from the repository, and takes them.
+  - A typed start with images was refused until the join: the uploads (task 16) keep an image's
+    bytes, and a start reads them from their store since (T99.12). `change.fromNote` reads a note
+    file's images from the repository, and takes them.
   - Nothing called `files_changed` and `config_changed` until the one watcher (task 7) was joined
     (T99.10): a record followed this domain's own actions only.
 - **Rationale**: the plan builds the sessions, the uploads, and the watcher in other tasks.
@@ -1548,10 +1548,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     join the path is `/mockups/<secret>/<path>`, open to its frame (T99.11).
   - `GET /raw/*` and `GET /mockups/*` without `/r/:name`, which sent a link from before repositories
     had names to the most recently opened one, are not ported: compatibility may break.
-  - `DELETE /r/:name/chat-images/:id` deletes an image without asking whether a sent message holds
-    it: the session store answers that (task 11), through `files::images::in_a_message`, marked
-    `JOIN(wave 6)`. So does the refusal of an upload to a feature an agent works on,
-    `files::attach::writable`. No session exists on this server before task 15.
+  - `DELETE /r/:name/chat-images/:id` deleted an image without asking whether a sent message holds
+    it, until the join: the session store answers since (T99.12). The refusal of an upload to a
+    feature an agent works on, `files::attach::writable`, waits for the sessions (task 15).
   - What a path may read is the core's rule alone, `api::read_raw` and `api::read_image`: nothing
     outside the repository, hidden, untracked, or behind a symlink. The server opens no file of a
     repository itself.
@@ -1981,3 +1980,25 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   no answer had the header.
 - **Where**: `crates/server/src/files/{mod,raw}.rs`, `sign_in/check.rs`, `http.rs`,
   `contracts/protocol.md`. Tasks 41 and 49, which frame them.
+
+## T99.12: The chat images have one store, which the sessions' store answers for
+
+- **Decision**: what the files, the features, and the session store each held of a chat image.
+  - `Store::holds_image(id)` says whether a message of any session holds an image, taken back or
+    not: one query over the `message` events' `images`. `DELETE /r/<name>/chat-images/<id>` asks it,
+    and answers 400 with `refused: <id> is in a sent message.` An image the store cannot answer for
+    stays, and the answer is 500.
+  - A typed start, `feature.startText` and `change.start`, reads its images' bytes from the chat
+    images' store, each once, with `ChatImages::read`. An image whose file is gone refuses the start
+    before anything is planned, with the Node server's text, `This image is gone: add it again.`
+  - The folder's name and what an image's id is are `files::chat_images::FOLDER` and `is_id`: the
+    importer copies with them, in place of its own.
+  - The upload's answer for an undo is the undo's own `UndoChange` (T99.4), and a chat image is the
+    protocol's `ChatImage` (T99.1).
+- **How it was checked**: `a_chat_image_a_sent_message_holds_is_never_deleted` got 204 for an image
+  a message of the store held, and `a_typed_start_takes_the_images_uploaded_for_it` was refused,
+  `A start cannot take images yet`.
+- **Left to task 15**: the cleanup of the images no message holds, a day after they were written,
+  and the size limits a message's images are checked against.
+- **Where**: `crates/server/src/runner/log.rs`, `files/{images,chat_images}.rs`,
+  `records/features/starts.rs`, `runner/import.rs`. Task 15.

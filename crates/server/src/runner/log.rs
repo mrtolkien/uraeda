@@ -74,6 +74,19 @@ impl Store {
             .collect()
         })
     }
+
+    /// Whether a message of any session holds the chat image of this id, taken back or not: one
+    /// that does is never deleted from the data folder.
+    pub fn holds_image(&self, id: &str) -> Result<bool, StoreError> {
+        self.read(|db| {
+            let mut held = db.prepare_cached(
+                "SELECT 1 FROM events, json_each(events.data, '$.images') AS image
+                 WHERE events.type = 'message' AND json_extract(image.value, '$.id') = ?1
+                 LIMIT 1",
+            )?;
+            Ok(held.exists([id])?)
+        })
+    }
 }
 
 /// Appends an event to a turn's log, inside a transaction.

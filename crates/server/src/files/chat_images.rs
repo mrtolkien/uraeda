@@ -12,6 +12,9 @@ use uraeda_protocol::ChatImage;
 use crate::secret;
 use crate::shared::Shared;
 
+/// The chat images' folder, in a data folder.
+pub(crate) const FOLDER: &str = "images";
+
 /// The images of `<data folder>/images/`, by their ids.
 pub(crate) struct ChatImages {
     dir: PathBuf,
@@ -21,7 +24,7 @@ impl ChatImages {
     /// The chat images of the server's data folder. The folder is created by the first save.
     pub(crate) fn of(shared: &Shared) -> ChatImages {
         ChatImages {
-            dir: shared.data_dir().join("images"),
+            dir: shared.data_dir().join(FOLDER),
         }
     }
 
@@ -64,6 +67,12 @@ impl ChatImages {
         (is_id(id) && path.is_file()).then_some(path)
     }
 
+    /// An image's bytes, as the core encoded them: none when the id is none, or its file is
+    /// gone.
+    pub(crate) fn read(&self, id: &str) -> Option<Vec<u8>> {
+        fs::read(self.path(id)?).ok()
+    }
+
     /// Deletes an image: one already gone is no error.
     pub(crate) fn remove(&self, id: &str) -> io::Result<()> {
         if !is_id(id) {
@@ -86,7 +95,7 @@ pub(crate) fn kind(id: &str) -> &'static str {
 
 /// Whether a text is an image's id: a UUID in small letters and the extension the core gave it.
 /// Nothing else names a file of the data folder.
-fn is_id(id: &str) -> bool {
+pub(crate) fn is_id(id: &str) -> bool {
     let Some((uuid, extension)) = id.split_once('.') else {
         return false;
     };

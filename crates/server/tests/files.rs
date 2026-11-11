@@ -13,6 +13,7 @@ use serde_json::{Value, json};
 use support::{TestRepo, TestResponse, TestServer};
 use uraeda_core::api;
 use uraeda_server::preview;
+use uraeda_server::runner::{Event, NewSession, NewTurn, Store, TurnKind, TurnState};
 
 /// A single proposal file, on the default branch.
 const PROPOSAL: &str = "specs/proposals/login-banner.md";
@@ -353,6 +354,99 @@ async fn a_chat_image_is_kept_in_the_data_folder_until_it_is_deleted() {
     assert_eq!(removed.status, 204);
     assert_eq!(fs::read_dir(&folder).unwrap().count(), 0);
     assert_eq!(served.get(&path).await.status, 404);
+}
+
+/// Uploads a fixture image for a chat message: what the upload answered, its id and its size.
+async fn chat_image(served: &Served) -> Value {
+    let upload = [Part::File("desktop.png", &image("desktop.png"))];
+    let saved = served.upload("/attach?chat=1&name=desktop.png", &upload);
+    let saved = saved.await;
+    assert_eq!(saved.status, 200, "{}", saved.text());
+    saved.json()
+}
+
+// The break it catches: an image deleted from the data folder while a sent message still holds
+// it, which leaves a transcript with a broken picture for good.
+#[tokio::test]
+async fn a_chat_image_a_sent_message_holds_is_never_deleted() {
+    let served = served().await;
+    let saved = chat_image(&served).await;
+    let id = saved["id"].as_str().expect("an id");
+    // A message of a session holds the image, as the session store keeps it.
+    let store = served.server.shared().get::<Store>();
+    let now = served.server.shared().now();
+    let chat = NewSession {
+        repo: served.repo.path().to_string_lossy().into_owned(),
+        folder: None,
+        parent: None,
+        role: None,
+        step: None,
+        worktree: None,
+        agent: "fake".to_owned(),
+        native_id: "native".to_owned(),
+        title: None,
+        model: None,
+        effort: None,
+    };
+    let session = store.create_session(chat, now).unwrap();
+    let turn = NewTurn {
+        session_id: session.id,
+        kind: TurnKind::Chat,
+        trigger: None,
+        step: None,
+        allowed: None,
+        caught_up_to: None,
+        state: TurnState::Running,
+    };
+    let turn = store.add_turn(turn, now).unwrap();
+    let message = json!({
+        "type": "message", "id": "m1", "origin": "human", "text": "Look at this",
+        "images": [saved],
+    });
+    let message = Event::parse(&message.to_string()).expect("a message");
+    store.append(turn, now, &message).unwrap();
+
+    let path = format!("/chat-images/{id}");
+    let refused = served.request("DELETE", &path).send().await;
+
+    assert_eq!(
+        refusal(&refused),
+        format!("refused: {id} is in a sent message.")
+    );
+    assert_eq!(served.get(&path).await.status, 200);
+}
+
+// The break it catches: a typed start that refuses its images, or starts without them, though
+// the composer uploaded them for it.
+#[tokio::test]
+async fn a_typed_start_takes_the_images_uploaded_for_it() {
+    let served = served().await;
+    let saved = chat_image(&served).await;
+
+    let start = json!({
+        "repo": "todo-app", "text": "Login banner\n\nAs in the picture.", "slug": "banner",
+        "images": [saved],
+    });
+    let started = support::call(&served.server, "change.start", start).await;
+
+    let started = started.expect("the change starts");
+    let folder = started["folder"].as_str().expect("the folder");
+    let branch = format!("change/{folder}");
+    let files = served.repo.git(&["ls-tree", "-r", "--name-only", &branch]);
+    let image = format!("specs/changes/{folder}/images/");
+    assert!(
+        files.lines().any(|file| file.starts_with(&image)),
+        "{files}"
+    );
+    // An image that is gone refuses the start, before anything is written.
+    let gone =
+        json!({ "id": "00000000-0000-4000-8000-000000000000.webp", "width": 1, "height": 1 });
+    let start =
+        json!({ "repo": "todo-app", "text": "Another", "slug": "another", "images": [gone] });
+    let (code, _) = support::call(&served.server, "change.start", start)
+        .await
+        .unwrap_err();
+    assert_eq!(code, uraeda_protocol::ErrorCode::Refused);
 }
 
 // The chat images' ids are the only names read in the data folder, which also holds the sign-in

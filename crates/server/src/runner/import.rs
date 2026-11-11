@@ -33,6 +33,7 @@ use super::log;
 use super::session;
 use super::store::{Store, StoreError, millis, time};
 use super::turn::{self, Turn, TurnState};
+use crate::files::chat_images::{FOLDER, is_id};
 
 /// Why a turn the Node server ran, queued, or cut as it stopped is stopped in the store.
 pub const IMPORTED: &str =
@@ -43,10 +44,6 @@ const CUT: &str = "Stopped: the server stopped while it ran.";
 
 /// The Node server's store, in its data folder.
 const OLD_FILE: &str = "runner.sqlite";
-
-/// The chat images' folder, in a data folder.
-// JOIN(wave 6): the chat images' folder and an image's name, which the files' domain owns.
-const IMAGES: &str = "images";
 
 /// Whether the import empties a store that already holds sessions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -217,9 +214,10 @@ fn sent_images(lines: &[Line]) -> impl Iterator<Item = String> {
 /// Copies the chat images the imported messages hold from the old data folder to the new one,
 /// and returns how many: one already there, or gone from the old folder, is not copied.
 fn copy_images(from: &Path, to: &Path, images: &BTreeSet<String>) -> Result<u64, ImportError> {
-    let (from, to) = (from.join(IMAGES), to.join(IMAGES));
+    let (from, to) = (from.join(FOLDER), to.join(FOLDER));
     let mut copied = 0;
-    for image in images.iter().filter(|image| is_image(image)) {
+    // An id names a file of the images' folder, and nothing outside it.
+    for image in images.iter().filter(|image| is_id(image)) {
         let (source, target) = (from.join(image), to.join(image));
         if !source.is_file() || target.exists() {
             continue;
@@ -236,20 +234,4 @@ fn copy_images(from: &Path, to: &Path, images: &BTreeSet<String>) -> Result<u64,
         copied += 1;
     }
     Ok(copied)
-}
-
-/// Whether a text is a chat image's name, a UUID and `.webp` or `.gif`: it names a file of the
-/// images' folder, and nothing outside it.
-fn is_image(name: &str) -> bool {
-    let Some((id, extension)) = name.split_once('.') else {
-        return false;
-    };
-    let fits = |(place, byte): (usize, u8)| {
-        if [8, 13, 18, 23].contains(&place) {
-            byte == b'-'
-        } else {
-            byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
-        }
-    };
-    id.len() == 36 && id.bytes().enumerate().all(fits) && matches!(extension, "webp" | "gif")
 }

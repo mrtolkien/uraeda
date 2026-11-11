@@ -973,9 +973,9 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
     arguments, and drops the `Answer` when the call is cancelled or its connection drops.
   - A process's token: `Mcp::issue(session)` as its process starts, given to it with `mcp::url`, and
     `Mcp::revoke(token)` as it closes.
-  - `files::images::in_a_message`, which keeps `DELETE /r/:name/chat-images/:id` from deleting an
-    image a sent message holds, and `files::attach::writable`, which refuses an upload to a feature
-    an agent works on. Both are marked `JOIN(wave 6)`.
+  - `files::attach::writable`, which refuses an upload to a feature an agent works on, marked
+    `TASK 15`. The session store already answers whether a sent message holds a chat image,
+    `Store::holds_image` (ruling T99.12).
   - The cleanup of the chat images no message holds, a day after they were written, as
     `ChatImages.clean` does as the Node server starts: `files::chat_images` has no such function
     yet.
