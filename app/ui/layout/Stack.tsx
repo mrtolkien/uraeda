@@ -86,9 +86,10 @@ function tabWidth(tab: PaneTab, compact: boolean) {
 
 /**
  * The tabs as they fit in `room` points, `extra` of them taken by what follows them. The shown
- * tab keeps its title; then the others keep theirs, nearest to it first, while the row fits; past
- * that a tab draws its icon alone, its title in its tip and to screen readers, so the row never
- * runs past its pane.
+ * tab keeps its icon and title; the others first leave their icons out, and keep their titles,
+ * which say more; past that, they keep their titles nearest the shown tab first, while the row
+ * fits, and a tab past that draws its icon alone, its title in its tip and to screen readers, so the
+ * row never runs past its pane.
  */
 export function fitted(tabs: ReadonlyArray<PaneTab>, room: number, extra: number) {
   const free = room - 16 - extra;
@@ -100,6 +101,10 @@ export function fitted(tabs: ReadonlyArray<PaneTab>, room: number, extra: number
     0,
     tabs.findIndex((tab) => tab.current),
   );
+  const words = tabs.map((tab, at) => (at === shown ? tab : { ...tab, icon: undefined }));
+  if (words.reduce((sum, tab) => sum + tabWidth(tab, false), 0) <= free) {
+    return words;
+  }
   const named = new Set([shown]);
   let width = tabs.reduce((sum, tab, at) => sum + tabWidth(tab, !named.has(at)), 0);
   const nearest = tabs

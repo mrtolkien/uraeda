@@ -222,9 +222,16 @@ test("a stack's tabs keep their titles while they fit, the shown one's nearest f
     fitted(tabs, room, 0)
       .filter((one) => one.compact !== true)
       .map((one) => one.title);
+  const withIcons = (room: number) =>
+    fitted(tabs, room, 0)
+      .filter((one) => one.icon !== undefined)
+      .map((one) => one.title);
   expect(titled(0)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
   expect(titled(560)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
-  expect(titled(420)).toEqual(["Activity", "Changes", "Agents"]);
+  expect(withIcons(560)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
+  // Short of room, the others leave their icons out before any title goes.
+  expect(titled(420)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
+  expect(withIcons(420)).toEqual(["Changes"]);
   expect(titled(330)).toEqual(["Activity", "Changes"]);
   expect(titled(120)).toEqual(["Changes"]);
 });
