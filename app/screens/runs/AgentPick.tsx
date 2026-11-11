@@ -4,8 +4,11 @@
 // the effort the model takes. Left unpicked, each follows its default, which the select names: the
 // default agent of Settings › Runs, or the first one on; the agent's model; the model's effort.
 // An agent, a model, or an effort the value names that is no longer offered, off here or not
-// installed, shows as itself, with why, so a saved value is never shown as another.
+// installed, shows as itself, with why, so a saved value is never shown as another. As a picker is
+// shown, the agents are asked for their models again, at most every few minutes: a new model shows
+// in the list as the record `Agent` changes.
 import { View } from "nsh";
+import { call } from "../../store";
 import type { RuntimeRecord } from "../../store/protocol";
 import { type Option, Select, Text } from "../../ui/controls";
 import { agentsOf, type Pick, resolve } from "./options";
@@ -37,7 +40,20 @@ const both = (agent: string, model: string) => `${agent}\n${model}`;
 
 const blank = (value: string | null | undefined) => (value == null || value === "" ? null : value);
 
+/** When the agents were last asked for their models, and how often they are at most. */
+let asked = 0;
+const ASK_EVERY = 5 * 60_000;
+
+/** Asks the agents for their models again, unless that was asked a moment ago. */
+function refreshModels() {
+  if (Date.now() - asked < ASK_EVERY) return;
+  asked = Date.now();
+  // The lists that changed reach the record `Agent`; a refusal leaves the lists as they were.
+  call("agent.refreshModels", null).catch(() => undefined);
+}
+
 export function AgentPick(props: AgentPickProps) {
+  refreshModels();
   const agents = () => agentsOf(props.runtimes, props.defaultAgent);
   const shown = () => resolve(props.value, agents());
   const named = () => blank(props.value.agent);
