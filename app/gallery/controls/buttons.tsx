@@ -2,7 +2,7 @@
 // red tube, a button with its key and one with its icon, an icon button, and the key's three
 // looks; then the same on a raised card and on glass, where every button is a tube.
 import { type JSX, View } from "nsh";
-import { asked, Line, Page, Part, STATES } from "./parts";
+import { asked, Line, Page, Part, STATES } from "../parts";
 import { Button, IconButton, Kbd, Text } from "../../ui/controls";
 import { Surface } from "../../ui/surfaces";
 

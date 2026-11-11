@@ -5,6 +5,7 @@
 // stays next to what it concerns. How long one stays is its owner's.
 import { type JSX, Overlay as Layer, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { presence } from "./presence";
+import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { isNarrow } from "../width";
 import { tokens } from "../tokens";
@@ -27,7 +28,7 @@ export function Toasts(props: { children?: JSX.Element }) {
 export type ToastProps = {
   children?: JSX.Element;
   /** Before its title, on the plate. */
-  icon?: JSX.Element;
+  icon?: SurfaceIcon;
   /** Shown while true, and for its way out after: true unless given. */
   open?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -58,7 +59,7 @@ export function Toast(props: ToastProps) {
           ]}
           tab={
             <>
-              {props.icon}
+              {props.icon === undefined ? null : drawIcon(props.icon, tokens.role.action)}
               <Text
                 style={{
                   color: tokens.role.action,

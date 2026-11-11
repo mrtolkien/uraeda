@@ -14,6 +14,8 @@ export type RailPlace = {
   /** It is the place shown. */
   current?: boolean;
   icon: IconName;
+  /** The keys that go there, as typed, `g h`: shown at the row's end, faint. */
+  keys?: string;
   label: string;
   /** Its count is of what waits on the human: in `needs-you`. */
   needs?: boolean;
@@ -70,6 +72,13 @@ function PlaceRow(props: { place: RailPlace }) {
           {props.place.label}
         </Text>
       </View>
+      <If when={props.place.keys}>
+        {(keys) => (
+          <Text font="code" size="under" tone="faint">
+            {keys().replace(" ", "")}
+          </Text>
+        )}
+      </If>
       <If when={props.place.count !== undefined && props.place.count > 0}>
         <Text
           bold={props.place.needs === true}
@@ -124,14 +133,17 @@ export function Rail(props: RailSlots & { folded: boolean; onFold: (folded: bool
       }
     >
       <View style={{ gap: tokens.space.gap.wide - 2, width: RAIL.open }}>
-        <Pane body={{ gap: 0, paddingHorizontal: 0 }} title={props.title ?? "Places"}>
-          <View style={{ position: "absolute", right: 4, top: -tokens.pane.titleHeight + 2 }}>
+        <Pane
+          body={{ gap: 0, paddingHorizontal: 0 }}
+          tabs={[{ current: true, title: props.title ?? "Places" }]}
+          tabsEnd={
             <IconButton
               icon="panel-left"
               label="Fold the sidebar"
               onPress={() => props.onFold(true)}
             />
-          </View>
+          }
+        >
           <Each key={(place: RailPlace) => place.label} of={props.places}>
             {(place) => <PlaceRow place={place()} />}
           </Each>

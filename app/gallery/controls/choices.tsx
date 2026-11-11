@@ -1,6 +1,6 @@
 // What takes a value, in every state: switches, checkboxes, radios, segments, a select, and a
 // number, each also on its way to the server ("saving…") and refused, with its words under it.
-import { asked, Line, Page, Part, STATES } from "./parts";
+import { asked, Line, Page, Part, STATES } from "../parts";
 import { Checkbox, NumberInput, Radio, Segmented, Select, Switch } from "../../ui/controls";
 
 const nothing = () => {};

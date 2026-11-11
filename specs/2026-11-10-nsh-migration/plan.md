@@ -2355,26 +2355,39 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
 
 **Files:**
 
-- Create: `app/gallery/{App.tsx,pages/}`, `app/tools/{shots,frames}.ts`
-- Modify: `justfile`
+- Create, as built: `app/gallery/Gallery.tsx` (the app: an `App.tsx` there made NSH take
+  `app/gallery/` for an app of its own, without the app's crate), `catalogue.ts`, `pages.tsx`,
+  `parts.tsx`, `keys/keys.tsx`, `scenes/session.tsx`, `gallery.test.tsx`, `frames.test.tsx`;
+  `scripts/frames.sh`. No `app/tools/`: the recipes need no code beyond the tests and one script.
+  The task-by-task pages stay in their folders, each now a function of whether its stack is narrow,
+  with no `mount` of its own; `app/gallery/samples/` is gone (ruling R235).
+- Modify: `justfile`; `specs/ui/components.md`; the shell, the registry, and the components its
+  first use found wrong (ruling R237)
 
 **Interfaces:**
 
 - Consumes: every component of tasks 26 to 34.
-- Produces: `just gallery` (the gallery on GTK); `just gallery-shots` (a picture of every component,
-  in both themes, at three widths, on an invisible display); `just frames` (the frame cost of a
-  named scene, as median, 95th, 99th percentile, and worst).
+- Produces: `just gallery` (the gallery on GTK); `just gallery-shots [word]` (a picture of every
+  page, in both themes, at 1400, 900, and 390 points, in `target/shots/gallery/`, as
+  `<group>-<page>-<theme>-<width>.png`); `just frames <scene>` (the frame cost of `streaming`,
+  `scrolling`, or `glass`, as median, 95th, 99th percentile, and worst: bounds read from NSH's
+  windows of frames, ruling R236). They replace `samples-shots`, `samples-frames`, `lists-frames`,
+  and `document-frames`.
+- Produces for the screens: `app/ui/keys/index.ts` and `app/ui/text/index.ts`, each folder's entry;
+  a surface's `icon` is an icon's name or a view (`SurfaceIcon`); `RailPlace.keys`.
 
-- [ ] **Step 1: Assemble the gallery**: one page per component, and three scenes: a session with
+- [x] **Step 1: Assemble the gallery**: one page per component, and three scenes: a session with
       20,000 messages streaming, the same scrolling by itself, and a glass panel over it.
-- [ ] **Step 2: Write the two tools**, from the spike's `tools/` and its self-scrolling switch. They
+- [x] **Step 2: Write the two tools**, from the spike's `tools/` and its self-scrolling switch. They
       never open a window on the human's display.
 - [ ] **Step 3: Run `just frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
-      percentile. Record the numbers in the commit's body.
-- [ ] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
+      percentile. Record the numbers in the commit's body. In software, `streaming` passes (p99 at
+      most 6.03 ms); `scrolling` and `glass` do not (at most 10.04 and 11.93 ms), ruling R239: a
+      GPU's frames are task 53's.
+- [x] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
       what drifts. Then ask a second reviewer, with no part in building the library, to compare the
       pictures with the design language, and fix what it finds.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the component gallery`. Keep the pictures in
+- [x] **Step 5: Commit**: `feat(nsh-migration): the component gallery`. Keep the pictures in
       `target/shots/gallery/`, for the pull request.
 
 **Phase 1: the Linux app.** Every screen, on the component library, as a Linux app on GTK, then its
@@ -2573,8 +2586,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
   part of the layout shell (task 33), not of this screen.
 - **Tests:** `a streaming reply stays in view`; `a reader who scrolled up is not moved`;
   `a message typed during a reply is sent once`.
-- **Extra step, before the commit:** run `just frames session` on a session of 20,000 messages.
-  Expected: at most 8.3 ms at the 99th percentile, streaming and scrolling.
+- **Extra step, before the commit:** draw the gallery's scenes (`app/gallery/scenes/session.tsx`)
+  with the real transcript's rows, then run `just frames streaming` and `just frames scrolling` on
+  its 20,000 messages. Expected: at most 8.3 ms at the 99th percentile.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
 - [ ] **Step 2: Write the tests** this task names.
@@ -2854,7 +2868,8 @@ can become a full pane, as in a tiling window manager.
 **Files:**
 
 - Create: `app/tools/navigation.ts`
-- Modify: `packages/benchmarks/` or its successor, `app/tools/frames.ts`
+- Modify: `packages/benchmarks/` or its successor, `just frames` (task 35: `scripts/frames.sh` and
+  `app/gallery/frames.test.tsx`)
 
 **Interfaces:**
 
@@ -3026,7 +3041,8 @@ here: iOS and macOS are the human's, later.
 
 **Files:**
 
-- Modify: `app/tools/frames.ts`, `app/tools/navigation.ts` (a `--web` form of each)
+- Modify: `just frames` (task 35's `scripts/frames.sh` and `app/gallery/frames.test.tsx`),
+  `app/tools/navigation.ts` (a `--web` form of each)
 
 **Interfaces:**
 

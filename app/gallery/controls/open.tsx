@@ -1,7 +1,7 @@
 // The lists a select and a menu open, open: a select's on a popover, a sheet on a narrow window,
 // and a menu's on a popover at every width, with a key, a dangerous row, and a disabled one.
 import { View } from "nsh";
-import { Page, Part } from "./parts";
+import { Page, Part } from "../parts";
 import { Menu, Select, Text } from "../../ui/controls";
 
 const nothing = () => {};

@@ -274,3 +274,8 @@ test("a pane whose tab shows again keeps its scroll", async () => {
   await app.wait(100);
   expect(app.texts()).toContain(at);
 });
+
+test("a pane's scroll makes what it holds once", async () => {
+  const app = await page();
+  expect(app.texts()).toContain("Scroll made 1");
+});

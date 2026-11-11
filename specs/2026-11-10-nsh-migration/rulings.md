@@ -5159,3 +5159,153 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: `nsh test` runs TSX with no Node to start a server; a variable is what NSH's
   `process.env` gives a test.
 - **Where**: `scripts/sandboxed.sh`, the `justfile`'s `sandbox` and `sandboxed`.
+
+## R234: The gallery is one app in the layout shell, and its catalogue is data
+
+- **Decision**: the gallery is [`Gallery.tsx`](/app/gallery/Gallery.tsx), drawn by `Stacks`: its
+  groups are the rail's places, reached by `g` and a letter (`g s` Surfaces, `g c` Controls, `g l`
+  Lists, `g t` Text, `g d` Documents, `g k` Keys, `g p` Panes, `g x` Scenes); a group's pages are
+  panes, the main stack's tabs; the side stack holds the gallery's own pane, Look, with the theme
+  and the width, which `t` and `w` switch from anywhere. The Panes group is the layout shell's own
+  place, its sample panes in both stacks.
+  - **The catalogue is plain data**, [`catalogue.ts`](/app/gallery/catalogue.ts): the pictures' test
+    reads it, and it runs where `uraeda/native` is not. [`pages.tsx`](/app/gallery/pages.tsx) gives
+    each page its view.
+  - **The entry is `Gallery.tsx`, not the plan's `App.tsx`**: NSH takes the nearest folder up from a
+    test file that holds an `App.tsx` or an `nsh.json` for the app (`nsh-cli`'s `app_entry`), so
+    `app/gallery/App.tsx` made `app/gallery/` an app of its own, whose runner has no
+    `uraeda/native`: every page failed with `could not load module 'uraeda/native'`.
+  - **The pages stay in their folders**, one shape each: a function of whether its stack is narrow,
+    drawn in a `PaneScroll` unless it fills its pane, with no `mount` and no theme of its own. A
+    page is drawn `untracked`: what it reads as it is made, a key declared, never makes it again.
+  - **The width switch** draws the frame narrower than the window, centred: the shell measures its
+    own frame, so the width classes follow, as on a smaller window.
+- **Rationale**: the task asked the gallery to be the shell's first real use; one app is what the
+  screens will be, and one catalogue gives every page the same frame, keys, and pictures.
+- **Where**: `app/gallery/`, the `justfile`'s `gallery` and `gallery-shots`.
+
+## R235: The samples are gone, each shown by a real component
+
+- **Decision**: `app/gallery/samples/` is removed, with `just samples-shots` and
+  `just samples-frames`. Each sample is drawn by the library now: heights by the page Heights; panes
+  at rest and focused by States and the frame itself; the glass bar over a transcript by the scene
+  `glass`; buttons and keys by Buttons and Keys; the dialog by Dialog; the list by Rows; the status
+  line by the frame's own; the session by the scenes. The surfaces' pages drew with the samples'
+  hand-made `mono`, `tag`, `icon`, and `button`: they draw with `Text`, `Icon`, `Button`, `Kbd`, and
+  `Row`. The busiest page, which glass is pictured over, is `Busy` in
+  [`parts.tsx`](/app/gallery/parts.tsx).
+- **Also gone**: the per-folder roots (`Surfaces.tsx`, `Controls.tsx`, `Lists.tsx`, `Document.tsx`,
+  `Fields.tsx`, `Layout.tsx`) and their tests, `just lists-frames` and `just document-frames`: the
+  gallery's one test and `just frames` replace them. The page of the list scrolling by itself is the
+  scene `scrolling`.
+- **If wrong**: the samples' contrast check read pixels with a script the repository does not have
+  (R131); nothing in the repository ran it since.
+
+## R236: `just frames` reads Native Shell's windows of frames, and prints bounds
+
+- **Decision**: [`frames.test.tsx`](/app/gallery/frames.test.tsx) opens the gallery on a scene, at
+  1400 by 800, dark, lets it settle 4 s, and marks 30 s; [`frames.sh`](/scripts/frames.sh) reads the
+  `nsh::perf` lines between the marks. NSH logs no single frame: each line gives the main thread's
+  cost per drawn frame over its last 120 frames, as mean, p50, p95, and max. So every other line is
+  read, which at 60 frames a second covers each frame once, and each window counts as half its
+  frames at its p50, 45% at its p95, and 5% at its max. Every frame then counts at least at its
+  cost: the median, p95, and p99 printed are upper bounds, and the worst is exact. The p99 bound is
+  coarse: 5% of every window sits at its worst frame, so it reads about the 80th percentile of the
+  windows' worst frames. The per-second lines are printed too, with the machine's load before and
+  after.
+- **Rationale**: the task asks for the median, the 95th and 99th percentiles, and the worst; a bound
+  that may only overstate is honest, where an average of the windows' quantiles is not.
+- **If wrong**: an exact count needs each frame's cost, which only a hook on GTK's frame clock in
+  the app's crate would give (NSH's `fps.rs` keeps them for a second, then drops them).
+- **Where**: `scripts/frames.sh`, `app/gallery/frames.test.tsx`, the `justfile`'s `frames`.
+
+## R237: What the layout shell's first real use found, and fixed
+
+- **Decision**: fixed where the fault was, each seen in the gallery:
+  - **`PaneScroll` made every pane's content twice**: it spread its props, `children` among them,
+    into `Scroll`, and gave the children again. Every screen's pane would have made its rows and
+    declared its keys twice; the Fields page threw
+    `"mod+Enter" is bound twice, to Save and to Save`. It passes them once. A test,
+    `a pane's scroll makes what it holds once`, failed with `Scroll made 2`, and passes.
+  - **A stack drew its panes before it knew its width**: at 0 points, so as `narrow`, then again at
+    its width. It draws them once it is laid out.
+  - **The frame's tabs and a pane's own keys could not share a key**: the registry took the tabs'
+    selection and a selection in a pane (a carried row's, a picker field's) to be on together, and
+    refused `j` and `Enter` in the Order and Fields pages. The tabs hold the keys only while no pane
+    has them: a pane and a selection beside it never meet. A test says so.
+  - **The rail's fold button was clipped away**: placed over the places' pane's edge, inside a body
+    that clips. It is the pane's `tabsEnd`.
+  - **The rail shows each place's keys**, as the mockup does (`gs`): `RailPlace.keys`.
+  - **A pane's title longer than its pane ran past its edge**: it is cut with an ellipsis.
+  - **`VirtualList` passed a `keyExtractor`** that read `item.id` in TSX, for each of 20,000 rows at
+    each row that came: NSH reads `id` itself.
+- **What stays awkward, left**: a screen's `view` gets `width` as a class that changes once its
+  stack is laid out; a page written as a plain function of `narrow` is made again when it changes,
+  as the width switch does. A pane's content cannot read `props.width` before the first layout.
+- **Where**: `app/ui/layout/{panes,Stack,Rail}.tsx`, `app/ui/keys/store.ts`,
+  `app/ui/surfaces/{Pane,Surface}.tsx`, `app/ui/lists/VirtualList.tsx`, and the tests
+  `layout.test.ts` and `keys.test.ts`.
+
+## R238: A surface's icon is a name, and the keys and the text fields have an entry
+
+- **Decision**: `Pane`, a stack's tab, `Dialog`, `Overlay`, `Sheet`, and `Toast` take an icon's
+  name, as `Button`, `Card`, and `definePane` did, or a view of the caller's own:
+  `SurfaceIcon = IconName | ((colour) => JSX.Element)`, drawn by `drawIcon` in the title's colour.
+  Before, `Pane` took a function of the colour and the overlays an element, three shapes for one
+  thing. `app/ui/keys/index.ts` and `app/ui/text/index.ts` are their folders' entries, as the other
+  folders had; `app/ui/index.ts`, an extension's page's, is unchanged (R211).
+- **Where**: `app/ui/surfaces/mark.tsx`, `app/ui/{keys,text}/index.ts`.
+
+## R239: The scenes' frames, in software, and what a transcript must do to keep them
+
+- **Decision**: measured with `just frames`, once each on the final code, on the hidden display,
+  which draws in software (R131, R175, R201), at 1400 by 800, 30 s each, the machine's load 1 to 3:
+
+  | Scene       | Median | p95     | p99     | Worst    | Main thread, a second's mean                   |
+  | ----------- | ------ | ------- | ------- | -------- | ---------------------------------------------- |
+  | `streaming` | ≤ 3.45 | ≤ 4.70  | ≤ 6.03  | 6.39 ms  | paint 0.75, drain 0.28, layout 0.58 ms         |
+  | `scrolling` | ≤ 8.09 | ≤ 9.06  | ≤ 10.04 | 10.33 ms | paint 3.79, drain 2.03, layout 0.37; 122 items |
+  | `glass`     | ≤ 9.20 | ≤ 11.18 | ≤ 11.93 | 12.15 ms | paint 3.80, drain 2.38, layout 0.95; 123 items |
+
+  Streaming meets the 8.3 ms at the 99th percentile. The two scrolling scenes do not, in software,
+  by about 2 to 4 ms: the scroll is 900 points a frame, which binds every row of the window on every
+  frame (122 mount items), and GTK paints the whole window in software, 3.8 ms of it. The glass bar
+  adds about 1 ms. No measure on a GPU was taken here, as R131 says.
+
+- **Found and fixed on the way**, each for the screens to keep:
+  - **A row of a list keeps one structure for every kind of row.** Native Shell's list recycles a
+    cell for any row, and has no kinds of row: the scene's message row swapped its views with `If`
+    for a tool's call and a message, and made them again at each bind, two commits and 210 items a
+    frame, 11.6 ms at the median. One structure whose bindings change: 8.1 ms. Keeping the row's
+    text style the same across kinds changed nothing more.
+  - **A growing reply is the list's last row, not its footer.** As the footer, the list stopped
+    following its end once the reply passed the window, and the frames fell to 1 ms because nothing
+    seen changed; as the last row, `maintainVisibleContentPosition` follows it to its end.
+  - **A reply that shrinks is drawn again whole**: the first scene started its reply again every 4
+    s, a spike of 10 to 14 ms each time. A reply only grows.
+  - **`VirtualList` gives no `keyExtractor`** (R237).
+- **If wrong**: the frames on a GPU are task 53's. The first thing to try there for a fast fling is
+  fewer views per row; a scroll at a hand's speed binds a few rows a frame.
+- **Where**: `app/gallery/scenes/session.tsx`, `app/gallery/frames.test.tsx`, `scripts/frames.sh`.
+
+## R240: What the review of the pictures fixed in the library, and what it left
+
+- **Fixed in the components**, each seen in `target/shots/gallery/`:
+  - Light glass was a white card: the shader's sheen and edge glow add white over a light tint, and
+    on a small panel they covered it. They are 0.18 and 0.1, from 0.5 and 0.3; the tint, which the
+    contrast floor is measured on, is unchanged, and white only raised the contrast of dark ink.
+  - A selected row on a raised surface had its bar and no fill: its fill was the raised fill. On a
+    raised surface it is a wash of the ink, `row.selectedUp`.
+  - A banner's fill was the badge's tint, 14%, which a warm tone over a raised fill turned brown:
+    `control.wash`, 7% in a dark theme, 6% in a light one.
+  - `Tabs` wrapped their last tab to a second row in a narrow part: one row, a tab's words cut.
+  - The leader menu drew a key and a word: a chip, a `➜`, then the action, and a group `+name`, as
+    the design language has it.
+- **Left**:
+  - The main button's glow in the light theme, which the language takes from the dark theme's lamp:
+    soft and purple, it reads as light on white. The language's light theme turns light into ink for
+    a pane's focus only; it says nothing of the lamp. A question for the human.
+  - The dialog's dimming of the page behind is hard to see in the dark theme's pictures at 20%: as
+    the language has it.
+- **Where**: `app/ui/tokens/{glass,light,control}.ts`, `app/ui/lists/Row.tsx`,
+  `app/ui/controls/{Tabs,Banner}.tsx`, `app/ui/keys/LeaderMenu.tsx`.

@@ -1,7 +1,7 @@
 // Cards: a thing of several facts, in its states, the way the screens will draw a sub-agent, a
 // job, a review, and a feature; then cards that are a choice.
 import { View } from "nsh";
-import { Page, Part } from "../controls/parts";
+import { Page, Part } from "../parts";
 import { Text } from "../../ui/controls";
 import { Card, SelectableCard } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";

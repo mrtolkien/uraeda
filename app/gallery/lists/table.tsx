@@ -1,6 +1,6 @@
 // Tables, trees, and parts that fold.
 import { signal, View } from "nsh";
-import { Page, Part } from "../controls/parts";
+import { Page, Part } from "../parts";
 import { Text } from "../../ui/controls";
 import { Collapsible, createCursor, Table, Tree, type TreeNode, treeRows } from "../../ui/lists";
 import { Scoped } from "./rows";

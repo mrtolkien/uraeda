@@ -1,6 +1,6 @@
 // Every icon the app carries, each with its name: Lucide's, then the harnesses' marks.
 import { View } from "nsh";
-import { Page, Part } from "./parts";
+import { Page, Part } from "../parts";
 import { Icon, type IconName, Text } from "../../ui/controls";
 import { LUCIDE } from "../../ui/controls/icons/lucide";
 import { tokens } from "../../ui/tokens";

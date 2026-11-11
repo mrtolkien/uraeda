@@ -2,118 +2,117 @@
 // each editing mode's colour; a card, and a bar of glass over what scrolls, each with a well in
 // it; and a pane at rest, with the focus, running, and waiting on the human.
 import { View } from "nsh";
-import { busy, icon, mono, tag } from "../samples/parts";
+import { Busy, gapOf, Page } from "../parts";
+import { Text } from "../../ui/controls";
 import { Pane, Surface, Well } from "../../ui/surfaces";
-import type { Tokens } from "../../ui/tokens";
+import { tokens } from "../../ui/tokens";
 
 const MODES = ["normal", "insert", "visual", "replace"] as const;
+const WELL = { paddingHorizontal: 9, paddingVertical: 2 };
 
-export function states(v: Tokens, narrow: boolean) {
-  const well = { paddingHorizontal: 9, paddingVertical: 5 };
+function Note(props: { text: string }) {
+  return (
+    <Text size="under" tone="faint">
+      {props.text}
+    </Text>
+  );
+}
+
+export function states(narrow: boolean) {
   const column = {
     flexBasis: narrow ? "100%" : "30%",
     flexGrow: 1,
-    gap: narrow ? 14 : 22,
+    gap: gapOf(narrow) + 14,
   } as const;
+  const tall = { minHeight: narrow ? 60 : 88 };
   return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: narrow ? 14 : 22,
-        padding: narrow ? 8 : 28,
-      }}
-    >
+    <Page narrow={narrow}>
       <View style={column}>
-        <Pane title="Well" tone={v.role.heading2} body={{ gap: 10 }}>
-          <Well style={well}>
-            {mono(v, "At rest: shaded under its top edge", { color: v.role.inkFaint })}
+        <Pane body={{ gap: 10 }} height="raised" title="Well" tone={tokens.role.heading2}>
+          <Well style={WELL}>
+            <Text tone="faint">At rest: shaded under its top edge</Text>
           </Well>
           {MODES.map((mode) => (
-            <Well focused tone={v.light.mode[mode]} style={well}>
-              {mono(v, `With the focus, in ${mode} mode`)}
+            <Well focused style={WELL} tone={tokens.light.mode[mode]}>
+              <Text>With the focus, in {mode} mode</Text>
             </Well>
           ))}
         </Pane>
-        <Pane title="Card" tone={v.role.heading3} body={{ gap: 10 }}>
+        <Pane body={{ gap: 10 }} height="raised" title="Card" tone={tokens.role.heading3}>
           <Surface height="raised" style={{ gap: 8, padding: 10 }}>
-            {mono(v, "Raised: lit on its top edge, opaque")}
-            <Well style={well}>{mono(v, "A well in a card", { color: v.role.inkFaint })}</Well>
-          </Surface>
-        </Pane>
-      </View>
-      <View style={column}>
-        <Pane title="At rest" tone={v.role.heading1} style={{ minHeight: narrow ? 60 : 96 }}>
-          {tag(v, "A 1 px edge, which goes round the title.")}
-        </Pane>
-        <Pane
-          focused
-          title="With the focus"
-          more="· 3"
-          icon={(colour) => icon("chat", colour)}
-          style={{ minHeight: narrow ? 60 : 96 }}
-        >
-          {tag(v, "The two lights, and their glow: the keys go here.")}
-        </Pane>
-        <Pane
-          running
-          title="Running"
-          tone={v.role.lightRunning}
-          icon={(colour) => icon("bot", colour)}
-          style={{ minHeight: narrow ? 60 : 96 }}
-        >
-          {tag(v, "A steady line on its top edge.")}
-        </Pane>
-        <Pane
-          needs
-          title="Needs you"
-          more="· 2"
-          icon={(colour) => icon("alert", colour)}
-          style={{ minHeight: narrow ? 60 : 96 }}
-        >
-          {tag(v, "An orange title, and no light.")}
-        </Pane>
-      </View>
-      <View style={column}>
-        <Pane
-          focused
-          needs
-          running
-          title="Focused, running, needs you"
-          style={{ minHeight: narrow ? 60 : 96 }}
-        >
-          {tag(v, "The focus's light, the run's line, and the title stays orange.")}
-        </Pane>
-        <Pane title="A pane in a pane" tone={v.role.heading3}>
-          <Pane height="raised" title="Card">
-            {tag(v, "Raised. Two levels at most.")}
-          </Pane>
-        </Pane>
-        <Pane
-          title="A bar that stays"
-          tone={v.role.heading2}
-          body={{ height: narrow ? 110 : 150, padding: 0 }}
-        >
-          {busy(v, 6)}
-          <Surface
-            glass
-            height="raised"
-            style={{
-              alignItems: "center",
-              flexDirection: "row",
-              gap: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-            }}
-          >
-            {mono(v, "Glass")}
-            <Well style={{ flexBasis: 0, flexGrow: 1, paddingHorizontal: 8, paddingVertical: 2 }}>
-              {mono(v, "A well in glass", { color: v.role.inkFaint })}
+            <Text>Raised: lit on its top edge, opaque</Text>
+            <Well style={WELL}>
+              <Text tone="faint">A well in a card</Text>
             </Well>
           </Surface>
         </Pane>
       </View>
-    </View>
+      <View style={column}>
+        <Pane height="raised" style={tall} title="At rest" tone={tokens.role.heading1}>
+          <Note text="A 1 px edge, which goes round the title." />
+        </Pane>
+        <Pane
+          focused
+          height="raised"
+          icon="message-square"
+          more="· 3"
+          style={tall}
+          title="With the focus"
+        >
+          <Note text="The two lights, and their glow: the keys go here." />
+        </Pane>
+        <Pane
+          height="raised"
+          icon="bot"
+          running
+          style={tall}
+          title="Running"
+          tone={tokens.light.running}
+        >
+          <Note text="A steady line on its top edge." />
+        </Pane>
+        <Pane height="raised" icon="circle-alert" more="· 2" needs style={tall} title="Needs you">
+          <Note text="An orange title, and no light." />
+        </Pane>
+      </View>
+      <View style={column}>
+        <Pane
+          focused
+          height="raised"
+          needs
+          running
+          style={tall}
+          title="Focused, running, needs you"
+        >
+          <Note text="The focus's light, the run's line, and the title stays orange." />
+        </Pane>
+        <Pane
+          body={{ height: narrow ? 110 : 150, padding: 0 }}
+          height="raised"
+          title="A bar that stays"
+          tone={tokens.role.heading2}
+        >
+          <View style={{ flex: 1 }}>
+            <Busy times={6} />
+            <Surface
+              glass
+              height="raised"
+              style={{
+                alignItems: "center",
+                flexDirection: "row",
+                gap: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 2,
+              }}
+            >
+              <Text>Glass</Text>
+              <Well style={{ ...WELL, flexBasis: 0, flexGrow: 1 }}>
+                <Text tone="faint">A well in glass</Text>
+              </Well>
+            </Surface>
+          </View>
+        </Pane>
+      </View>
+    </Page>
   );
 }

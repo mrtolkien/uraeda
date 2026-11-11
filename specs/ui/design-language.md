@@ -5,11 +5,12 @@ corners, and its titled panes. It adds depth, glass, and light, and gives each o
 The [UI look](../decisions/ui-look.md) and [UI components](../decisions/ui-components.md) decisions
 bind; this guide says how they look. A
 [browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its values
-were tuned there, over four rounds with the human. A browser is not the real renderer: eight
-[samples](/app/gallery/samples/) then drew it on GTK, in both themes, and the values below are the
-ones that passed there. They are the tokens, in [`app/ui/tokens/`](/app/ui/tokens/), which the
-samples read, and `just samples-shots` takes the samples' pictures. Where GTK cannot draw a rule as
-written, the rule says so, with the ruling that holds the nearest look.
+were tuned there, over four rounds with the human. A browser is not the real renderer: eight samples
+then drew it on GTK, in both themes, and the values below are the ones that passed there. They are
+the tokens, in [`app/ui/tokens/`](/app/ui/tokens/). The samples are gone: the
+[gallery](/app/gallery/) draws every component with them, and `just gallery-shots` takes its
+pictures. Where GTK cannot draw a rule as written, the rule says so, with the ruling that holds the
+nearest look.
 
 ## The idea
 
@@ -181,7 +182,9 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
 - **On GTK each glass takes its own picture** of what is behind it, at full size, each time that
   changes: there is no shared copy, and no smaller one. The frost is one pass of 64 taps, turned at
   each pixel so their gaps make no ghost (ruling R129). A bar over a transcript that scrolls fast
-  cost 0.3 ms a frame, and its frames stayed under 8.3 ms at the 99th percentile.
+  cost 0.3 to 1 ms a frame, in software. Over the gallery's transcript of 20,000 messages, flung 900
+  points a frame, the frames pass 8.3 ms at the 99th percentile in software, with the bar and
+  without it: the rows and the painting cost, not the glass (ruling R239).
 - **What moves by itself stays away from glass.** Glass draws again whenever what is behind it
   changes: a breathing glow under a bar would make the bar draw a frame for each of its own. A pane
   clips what it holds, so a main action's glow stays inside its pane.
@@ -288,5 +291,5 @@ the smallest complete model;
 [Hyprland's acrylic finish](https://github.com/hyprwm/Hyprland/blob/main/src/render/shaders/glsl/acrylicfinish.frag);
 [liquid-glass-studio](https://github.com/iyinchao/liquid-glass-studio/blob/main/src/shaders-wgsl/fragment-main.wgsl),
 in WGSL; and [kube.io's write-up](https://kube.io/blog/liquid-glass-css-svg) for the browser. None
-of them draws a square panel: the care for corners above is this guide's, and the samples' shader
-draws it on GTK.
+of them draws a square panel: the care for corners above is this guide's, and the glass shader,
+[`glass.wgsl.ts`](/app/ui/surfaces/glass.wgsl.ts), draws it on GTK.

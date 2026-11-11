@@ -7,6 +7,7 @@
 // slides under a resting pointer, as the list scrolls, hears nothing, so the keys' cursor is never
 // taken from under them.
 import { type JSX, type StyleProp, View, type ViewStyle } from "nsh";
+import { useHeight } from "../surfaces/height";
 import { tokens } from "../tokens";
 import { isNarrow } from "../width";
 
@@ -47,6 +48,9 @@ export function Bar() {
 }
 
 export function Row(props: RowProps) {
+  const ground = useHeight();
+  // One step up from what it sits on: the raised fill on a pane, a wash over a card.
+  const fill = () => (ground() === "raised" ? tokens.row.selectedUp : tokens.row.selected);
   return (
     <View
       accessibilityLabel={props.accessibilityLabel}
@@ -58,8 +62,7 @@ export function Row(props: RowProps) {
       style={[
         {
           alignItems: "center",
-          backgroundColor:
-            props.selected === true || props.lifted === true ? tokens.row.selected : undefined,
+          backgroundColor: props.selected === true || props.lifted === true ? fill() : undefined,
           borderBottomColor: tokens.row.rule,
           borderBottomWidth: props.rule === true ? 1 : 0,
           flexDirection: "row",

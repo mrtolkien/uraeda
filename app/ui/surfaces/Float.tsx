@@ -33,6 +33,7 @@ import {
   takeFocus,
 } from "./focus";
 import { onChange, presence } from "./presence";
+import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { KeyScope, registerKey } from "../keys/registry";
 import { tokens } from "../tokens";
@@ -53,7 +54,7 @@ export type FloatProps = {
   align?: "start" | "center" | "end";
   children?: JSX.Element;
   /** Before its title, on the plate. */
-  icon?: JSX.Element;
+  icon?: SurfaceIcon;
   /**
    * Whether it takes the keys and the focus: it is then a layer of the key registry, which owns
    * the keys while it is open. Fixed for as long as it is drawn.
@@ -155,7 +156,7 @@ export function Float(props: FloatProps) {
       tab={
         props.title === undefined ? undefined : (
           <>
-            {props.icon}
+            {props.icon === undefined ? null : drawIcon(props.icon, tokens.role.action)}
             <Text
               style={{
                 color: tokens.role.action,

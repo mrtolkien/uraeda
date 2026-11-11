@@ -3,50 +3,40 @@
 // what it is cut in, and glass stays glass. Rows are the outer surface, columns the inner one; on
 // a narrow window the cells wrap, two a row.
 import { View } from "nsh";
-import { busy, mono, tag } from "../samples/parts";
+import { Busy, gapOf } from "../parts";
+import { Text } from "../../ui/controls";
 import { Surface } from "../../ui/surfaces";
-import type { HeightName, Tokens } from "../../ui/tokens";
+import { type HeightName, tokens } from "../../ui/tokens";
 
 const NAMES: Array<HeightName> = ["recessed", "standard", "raised", "overlay"];
 
-export function heights(v: Tokens, narrow: boolean) {
-  const gap = narrow ? 6 : 10;
+export function heights(narrow: boolean) {
   return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap,
-        padding: narrow ? 8 : 24,
-      }}
-    >
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: gapOf(narrow) / 2 }}>
       {NAMES.flatMap((outer) =>
         NAMES.map((inner) => (
           <View
             style={{
-              backgroundColor: v.role.page,
-              borderColor: v.role.ruleQuiet,
+              backgroundColor: tokens.role.page,
+              borderColor: tokens.role.ruleQuiet,
               borderWidth: 1,
               flexBasis: narrow ? "40%" : "20%",
               flexGrow: 1,
-              height: narrow ? 92 : 178,
+              height: narrow ? 100 : 160,
               overflow: "hidden",
-              padding: narrow ? 6 : 14,
+              padding: narrow ? 6 : 12,
             }}
           >
-            {busy(v, 4)}
+            <Busy times={4} />
             <Surface height={outer} style={{ padding: narrow ? 6 : 12 }}>
-              {tag(v, outer, { color: v.role.inkQuiet })}
+              <Text size="under" tone="quiet">
+                {outer}
+              </Text>
               <Surface
                 height={inner}
-                style={{
-                  marginTop: narrow ? 3 : 8,
-                  paddingHorizontal: narrow ? 6 : 10,
-                  paddingVertical: narrow ? 2 : 8,
-                }}
+                style={{ marginTop: 4, paddingHorizontal: narrow ? 6 : 10, paddingVertical: 2 }}
               >
-                {mono(v, inner)}
+                <Text>{inner}</Text>
               </Surface>
             </Surface>
           </View>

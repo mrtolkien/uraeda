@@ -2,7 +2,7 @@
 // that says why. Each list's keys are in a pane of its own, as on a screen: only the long one's
 // pane has the focus here.
 import { type JSX, View } from "nsh";
-import { Page, Part } from "../controls/parts";
+import { Page, Part } from "../parts";
 import { KeyScope } from "../../ui/keys/registry";
 import { createCursor, Empty, Line, List, VirtualList } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";

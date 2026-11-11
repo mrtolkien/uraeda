@@ -38,7 +38,9 @@ const looks = (): Looks => ({
     alignItems: "center",
     flexDirection: "row",
     gap: 6,
+    flexShrink: 1,
     height: isNarrow() ? tokens.control.touch : tokens.space.row + 2,
+    minWidth: 0,
     paddingHorizontal: 10,
   },
 });
@@ -78,12 +80,13 @@ function TabOf<Value extends string>(props: {
       ref={press.ref}
       role="tab"
       selected={props.current}
-      style={press.style(looks())}
+      // The shown tab keeps its words; the others cut theirs when the row is short.
+      style={[press.style(looks()), props.current ? { flexShrink: 0 } : null]}
     >
       <If when={props.tab.icon}>
         {(icon) => <Icon colour={props.current ? tokens.role.action : undefined} name={icon()} />}
       </If>
-      <Text bold={props.current} lines={1} tone={tone()}>
+      <Text bold={props.current} lines={1} style={{ flexShrink: 1 }} tone={tone()}>
         {props.tab.label}
       </Text>
       <If when={props.tab.count !== undefined}>
@@ -114,8 +117,9 @@ export function Tabs<Value extends string>(props: TabsProps<Value>) {
       style={{
         borderBottomWidth: 1,
         borderColor: tokens.role.ruleQuiet,
+        // One row: a tab that does not fit cuts its words, as a stack's tabs do, where a second
+        // row read as tabs of another bar.
         flexDirection: "row",
-        flexWrap: "wrap",
       }}
       testID={props.testID}
     >

@@ -1,83 +1,82 @@
 # Components
 
 "Make those two the SAME component." The [UI components](../decisions/ui-components.md) decision
-holds the rule: a kind of information is drawn by one shared component everywhere. This guide names
-the component for each job, in `packages/web/src/`, so a new view reaches for it before drawing
-anything, and a change made to one is made once.
+holds the rule: a kind of information is drawn by one shared component everywhere. The library is
+[`app/ui/`](/app/ui/); a screen imports from each folder's `index.ts`, as an extension's page does
+from [`app/ui/index.ts`](/app/ui/index.ts). Every component is in the gallery, in its states, in
+both themes: `hidden-display just gallery` runs it, `just gallery-shots [word]` pictures it. Look
+there before drawing anything.
 
-## The page and its parts
+## Which component for what
 
-| Job                                        | Component                                                                                    |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| A page's width, inset, and reading measure | `layout/Page.tsx`: `kind`, `beside`, `isTight`, `isSnug`; the scale in `theme/scale.ts`      |
-| A group of content with a title            | `layout/Pane.tsx`: the title in the border, its tone, its fold, its count `· N`, its actions |
-| A document's or a session's companions     | `layout/DocumentColumn.tsx`, over `layout/SideColumn.tsx`                                    |
-| The same companions on the phone           | `layout/ColumnStatusLine.tsx` with `layout/NavBar.tsx`'s tiles, each opening a sheet         |
-| What floats over the page on the phone     | `layout/glass.ts`'s frosted glass, shared by the bottom bar and the row's bar                |
-| A separator between parts                  | `layout/rules.ts`: the rule above, the bar beside; `layout/Band.tsx`, the band between parts |
-| A picked row or card, and its focus ring   | `layout/picked.ts`, and a card's `isPicked`                                                  |
-| A button drawn as bare text                | `layout/bareButton.ts`                                                                       |
-| A count with its word read out             | `layout/SpokenCount.tsx`                                                                     |
-| Prose                                      | `Blocks.tsx` for a document's blocks; `Prose.tsx`'s styles and markdown; `Paragraph`         |
-| A key, written out                         | `keys/KeyCap.tsx`                                                                            |
+The frame, [`app/ui/layout/`](/app/ui/layout/) ([panes](panes.md), gallery group Panes):
 
-## Things the human acts on
+- A screen's parts: `definePane` and `definePlace`; in a pane, `usePane` and `PaneScroll`. The shell
+  draws the pane's frame, its tab, the rail, the status line, and the phone's bars.
 
-| Job                                        | Component                                                                                          |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| A list of rows: the priorities, the inbox  | `lists/WorkList.tsx` and `lists/Card.tsx`, their keys from `useListKeys` and `useRowKeys`          |
-| Rows nested under a row                    | `lists/Card.tsx`, through `lists/outlineRows.tsx`; edited in place by `lists/OutlineEditor.tsx`    |
-| A row's depth, parent, and children        | `lists/nesting.ts`, the one walk of an outline's rows                                              |
-| A row's actions                            | `lists/RowBar.tsx`: under the row, or floating on the phone in `NavBar`'s tiles                    |
-| A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page                 |
-| A row's whole text                         | `pane/DetailOverlay.tsx`                                                                           |
-| Choosing one of many                       | `keys/KeyPicker.tsx`, its rows with the card's icon and state; its filter `PickerEditor.tsx`       |
-| A picker's preview of its item             | `keys/PickerPreview.tsx`: markdown rendered, a list's pane and rows, or plain lines                |
-| A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers                          |
-| A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys     |
-| An undo                                    | `undo/useUndo.ts`'s `useUndo` records an action on `undo/stack.ts`, with its toast                 |
-| A button that writes to git                | `writes/WriteButton.tsx`: it shows its result at once, never blocks, and names its write           |
-| A git write still landing, or refused      | `writes/CommitToast.tsx`, fed by `writes/useWriteQueue.ts`; its refusal on the page, `RefusedHere` |
-| Any text field, Vim mode included          | `fields/editor/Editor.tsx`, under the fields below; never Astryx's text fields, which lint refuses |
-| A one-line field                           | `fields/TextLine.tsx`; edited in place, `EditableLine.tsx`'s `LineField`                           |
-| A field of several lines                   | `fields/TextField.tsx`, its height by its `kind`, with `useTextField`'s unsaved store              |
-| A file opened as a buffer                  | `buffer/BufferPage.tsx`, its top line `buffer/Bufferline.tsx`, opened by `useBufferKey`            |
-| A comment                                  | `CommentForm.tsx`                                                                                  |
-| A message to the agent                     | `Composer.tsx`                                                                                     |
-| An agent's session: its messages and calls | `SessionView.tsx`, `Transcript.tsx`, `session/ActivityPanel.tsx`, `session/PlanProgress.tsx`       |
-| A menu of actions, as a last resort        | `layout/ActionsMenu.tsx`                                                                           |
-| A key and what it does                     | the registry's `useKeys`, which the status line and the leader menu read                           |
+Surfaces, [`app/ui/surfaces/`](/app/ui/surfaces/) (gallery [Surfaces](/app/gallery/surfaces/)):
 
-## Where Astryx has none
+- A height of its own: `Surface` (`recessed`, `standard`, `raised`, `overlay`; `glass` over what
+  scrolls). The only one that draws a shadow, glass, or a glow.
+- A titled group inside a pane: `Pane` with `height="raised"`; a field's ground: `Well`.
+- Over the page: `Dialog` (a sheet on a phone), `Sheet`, `Popover`, `Overlay` (`corner` for what
+  leaves the page usable), `Toasts` with `Toast`, `Tooltip`.
 
-Uraeda is not bound to Astryx: where no Astryx component fits the job, it draws its own, with the
-reason in a comment, as the [UI components](../decisions/ui-components.md) decision allows. These
-are its own:
+Controls, [`app/ui/controls/`](/app/ui/controls/) (gallery [Controls](/app/gallery/controls/)):
 
-- `layout/NavBar.tsx`: the glass tile, an icon and its small word in the bottom bar, flat, stretched
-  to share it, or a square glass button of its own when the bar has one or two; and with its word
-  under a big icon in the phone's row actions.
-- `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text in a 1 px square
-  frame.
-- `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line; its
-  sections and their triangles in `shell/status/`, as the bundled fonts have no Powerline glyphs.
-- `fields/editor/`: every text field, over CodeMirror, as the
-  [Text editing](../decisions/text-editing.md) decision asks.
-- `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
-- `lists/OutlineEditor.tsx`: the row's field, the shared editor's one line, wrapping and growing
-  with its text.
-- `layout/Room.tsx`: a room that eases its height open and closed, so what is under it glides into
-  its place: the column's Unfold, and Home's Setup pane.
+- Words: `Text` (`tone`, `size`, `font`), `Heading`, `Link`, `Kbd` for a key, `Icon` (Lucide's
+  names, and `claude`, `openai`, `pi`).
+- Actions: `Button` (`main` for the view's one main action, a tube otherwise, `danger`),
+  `IconButton`, `Menu` as a last resort.
+- Choices: `Switch`, `Checkbox`, `Radio`, `Segmented` (two to five), `Select` (more), and
+  `NumberInput`, each with `hint` and `refusal`.
+- States: `Badge`, `StatusDot`, `Banner`, `Spinner` (with its words), `Progress`, `Tabs` inside a
+  pane, `Breadcrumbs`, `Divider`.
 
-## Rules of thumb
+Lists, [`app/ui/lists/`](/app/ui/lists/) (gallery [Lists](/app/gallery/lists/)):
 
-- **Find it before drawing it.** A view that needs a row, a pane, a picker, or a confirmation uses
-  the one above, and adds what it lacks to it, for every page.
-- **Two copies are a bug to merge.** When two pages draw the same thing their own way, such as the
-  home's Inbox beside the inbox page's list ("This should be WorkList too, why do we have a custom
-  component here?"), the fix is one component, not two that look alike.
-- **Styles shared by several components live once**, as a StyleX object exported from `layout/`,
-  such as `ruleStyles`, `legendStyles`, `glassStyles`, `pickedStyles`, and `proseStyles`, or as a
-  token in a `*.stylex.ts` file, such as `paneVars`. "Make sure it's a global variable."
-- **Astryx first.** A raw element stands in only where Astryx has no component for the job, with the
-  reason in a comment, as the [UI components](../decisions/ui-components.md) decision asks.
+- Rows of one fact: `List`, or `VirtualList` past a screen of rows, each row a `Line`; the cursor is
+  `createCursor`, its keys `listKeys`.
+- A thing of several facts: `Card`; a choice among such things: `SelectableCard`.
+- Columns: `Table`; nesting: `Tree` with `treeRows`; a part that folds: `Collapsible`; an order the
+  human sets: `DragOrder`; nothing to show: `Empty`, which says why and what to do.
+
+Text, [`app/ui/text/`](/app/ui/text/) (gallery [Text](/app/gallery/text/)):
+
+- Every field: `TextField`, one line or many, with Vim when the setting is on; a message to an
+  agent: `Composer`; a field that picks: `PickerField`; a save's state: `SaveStatus` with `saving`.
+
+Documents, [`app/ui/document/`](/app/ui/document/) (gallery [Documents](/app/gallery/document/)):
+
+- A workflow file's tree: `Document`; an agent's reply as it streams: `Reply`. Neither reads
+  Markdown in TSX.
+
+Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
+
+- Every shortcut: `registerKey`, in the scope of the pane it is drawn in; a find: `KeyPicker`.
+
+## Rules that keep screens one app
+
+- **Read the tokens only.** A colour, a size, a gap, a glow come from `tokens`, through the
+  components: never a hex value, never a raw `View` with a border or a shadow of its own.
+- **A screen is panes.** A pane draws its content only, at the width its stack gives it
+  (`props.width`), and never draws its own frame, title, tab bar, or side column.
+- **Several facts about one thing make a `Card`**: a title a person would say, its state, its times,
+  in the order things happened. Never a row of grey words, never an id in a title.
+- **A control moves at once; its refusal sits under it.** A value the server keeps goes through
+  `sent`, and its `refusal` names the way out, under that control, never in a toast.
+- **A list has one cursor**, which is its selection: `j` `k`, `g g` `G`, `Enter`, the pointer too.
+  It returns `false` at its ends, so the frame's keys move on. Keep it in the visit, with
+  `usePane().remember`.
+- **A long list's row keeps one structure.** Native Shell reuses a row's views for any other row: a
+  row whose kind changes its words, icon, or colour is cheap, one that swaps its views is made again
+  at every bind. A reply that grows is the list's last row, which the list follows; never its
+  footer.
+- **One main action per view**, a `Button` of `variant="main"`; the rest are tubes. An action that
+  starts work is a button or `Ctrl+Enter`, never Enter in a field.
+- **A key is declared where it acts**, by `registerKey` or a `Button`'s `keys`, and shown by `Kbd`:
+  a key that means two things where both are on throws as the view is made.
+- **Every state has its words**: `Empty` for nothing, `Spinner` with what it waits for, `Banner` for
+  what is wrong and the way out.
+- **Missing a component?** Add it to `app/ui/`, with its page in the gallery, before a screen uses
+  it: a component drawn in a screen is a second copy to keep right.

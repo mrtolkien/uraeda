@@ -163,16 +163,19 @@ export function PaneScroll(props: ScrollProps & { children?: JSX.Element; name?:
   const kept = positions();
   const name = `${here?.key ?? "page"}:${props.name ?? "scroll"}`;
   const start = kept.at(name);
+  // Its children are passed once: spread with the rest and given again, they were made twice,
+  // every pane's content and the keys it declares. Its other props are read once, as it opens.
+  const { children, ...rest } = props;
   return (
     <Scroll
-      {...props}
+      {...rest}
       contentOffset={start === undefined ? props.contentOffset : { x: 0, y: start }}
       onScrollEnd={(event) => {
         kept.keep(name, event.offset.y);
         props.onScrollEnd?.(event);
       }}
     >
-      {props.children}
+      {children}
     </Scroll>
   );
 }

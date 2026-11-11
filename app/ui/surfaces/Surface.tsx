@@ -145,6 +145,8 @@ export function Surface(props: SurfaceProps) {
           borderTopWidth: 1,
           height: rise() + 1,
           left: -1,
+          // A title longer than its surface is cut, with an ellipsis, at the surface's edge.
+          maxWidth: "100%",
           position: "absolute",
           top: -1 - rise(),
         };

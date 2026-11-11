@@ -5,7 +5,7 @@
 import { type JSX, type StyleProp, signal, Text, View, type ViewStyle } from "nsh";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, type PaneHere, PaneContext, type PaneMark, titleOf } from "./panes";
-import { Icon, Kbd } from "../controls";
+import { Kbd } from "../controls";
 import { KeyScope } from "../keys/registry";
 import { Pane, type PaneTab } from "../surfaces";
 import { tokens } from "../tokens";
@@ -61,7 +61,7 @@ function tabOf(pane: PaneRef, current: boolean, onPress: () => void): PaneTab {
   const icon = kindOf(pane)?.icon;
   return {
     current,
-    icon: icon === undefined ? undefined : (colour) => <Icon colour={colour} name={icon} />,
+    icon,
     more: mark.count === undefined ? undefined : `· ${mark.count}`,
     needs: mark.needs,
     onPress,
@@ -133,7 +133,8 @@ const bodyOf = (pane: PaneRef) =>
   kindOf(pane)?.flush === true ? { paddingBottom: 1, paddingHorizontal: 0 } : undefined;
 
 export function StackView(props: StackViewProps) {
-  // The stack's own width, which its panes lay out by: known once it is laid out.
+  // The stack's own width, which its panes lay out by: known once it is laid out, and its panes
+  // are drawn only then, so none is made at a phone's width first, then made again.
   const room = signal(0);
   const width = () => widthClass(room());
   const has = (key: string | null) => props.stack.panes.some((pane) => pane.key === key);
@@ -171,7 +172,7 @@ export function StackView(props: StackViewProps) {
                   </>
                 }
               >
-                <Each key={(one: PaneRef) => one.key} of={[pane()]}>
+                <Each key={(one: PaneRef) => one.key} of={room() > 0 ? [pane()] : []}>
                   {(one) => (
                     <PaneBody
                       focused={props.focus === one().key && !props.onTabs}
@@ -195,7 +196,9 @@ export function StackView(props: StackViewProps) {
               style={{ flex: 1 }}
               tabs={[tabOf(one(), true, () => props.onFocus(one().key))]}
             >
-              <PaneBody focused={props.focus === one().key} pane={one()} width={width()} />
+              <If when={room() > 0}>
+                <PaneBody focused={props.focus === one().key} pane={one()} width={width()} />
+              </If>
             </Pane>
           )}
         </Each>

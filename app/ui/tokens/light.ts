@@ -46,6 +46,11 @@ export function light({ dark, role }: Source) {
 export function row({ dark, role }: Source) {
   return {
     selected: role.raised,
+    /**
+     * A selected row on a raised surface, a card or a part, whose fill `selected` is already: one
+     * step up again, as a wash of the ink over it.
+     */
+    selectedUp: alpha(role.ink, dark ? 0.07 : 0.05),
     /** The bar on a selected row's left edge, in `light.focus`. */
     bar: 2,
     /** The bar is lit; the row is not. */

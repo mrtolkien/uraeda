@@ -1,6 +1,6 @@
 // A list the human puts in order, by its grip, a long press, or `m` and the keys.
 import { signal } from "nsh";
-import { Page, Part } from "../controls/parts";
+import { Page, Part } from "../parts";
 import { createCursor, DragOrder, Line, moved } from "../../ui/lists";
 import { Scoped } from "./rows";
 

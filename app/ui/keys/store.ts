@@ -101,7 +101,12 @@ const selectionOf = (scope: Scope): Scope | null =>
 const pathOf = (scope: Scope): Array<Scope> =>
   scope.parent === null ? [scope] : [...pathOf(scope.parent), scope];
 
-/** Whether two scopes can be on together: not in two layers, and not in two panes of one parent. */
+/**
+ * Whether two scopes can be on together: not in two layers, not in two panes of one parent, and
+ * not a pane and a selection beside it. The layout shell's tabs are that selection: they hold the
+ * keys only while no pane of the frame has them, so a pane's own keys, a held row's included, may
+ * reuse the tabs' `j` and `Enter`.
+ */
 function mayMeet(a: Scope, b: Scope) {
   if (layerOf(a) !== layerOf(b)) {
     return false;
@@ -113,7 +118,8 @@ function mayMeet(a: Scope, b: Scope) {
   if (apart === -1 || ours === undefined || theirs === undefined) {
     return true;
   }
-  return !(ours.kind === "pane" && theirs.kind === "pane");
+  const kinds = [ours.kind, theirs.kind].toSorted().join(" ");
+  return kinds !== "pane pane" && kinds !== "pane selection";
 }
 
 /** What two declared keys say about each other, `null` if they agree. */

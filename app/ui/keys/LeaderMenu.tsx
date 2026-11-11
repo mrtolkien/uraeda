@@ -1,8 +1,8 @@
-// The leader menu: the keys pressed so far as its title, then what each next key does, a group
-// marked by an arrow, in alphabetical order of their keys. It floats at the window's bottom right,
-// above the status line, and on a narrow window spans its width, as a sheet does. Each row is
-// pressed as its key is, and so are the keys that go back and close. `LeaderMenuHost` draws it for
-// the registry's pending sequence, once it is shown.
+// The leader menu: the keys pressed so far as its title, then what each next key does, each a
+// chip, a `➜`, then its action, a group named after a `+`, in alphabetical order of their keys. It
+// floats at the window's bottom right, above the status line, and on a narrow window spans its
+// width, as a sheet does. Each row is pressed as its key is, and so are the keys that go back and
+// close. `LeaderMenuHost` draws it for the registry's pending sequence, once it is shown.
 import { computed, View } from "nsh";
 import { isNarrow } from "../width";
 import { Kbd, Text } from "../controls";
@@ -19,7 +19,7 @@ const said = (key: string) => (key === LEADER ? "Space" : key);
 const ROWS = 12;
 
 /** A key and what it does, pressed as the key is: the focus stays where it was. */
-function Press(props: { keys: string; word: string }) {
+function Press(props: { arrow?: boolean; keys: string; word: string }) {
   return (
     <View
       focusable={false}
@@ -33,6 +33,9 @@ function Press(props: { keys: string; word: string }) {
       }}
     >
       <Kbd keys={props.keys} />
+      <If when={props.arrow === true}>
+        <Text tone="faint">➜</Text>
+      </If>
       <Text>{props.word}</Text>
     </View>
   );
@@ -65,8 +68,9 @@ export function LeaderMenu(props: {
         >
           {(entry: () => MenuEntry) => (
             <Press
+              arrow
               keys={entry().key}
-              word={entry().isGroup === true ? `${entry().label} →` : entry().label}
+              word={entry().isGroup === true ? `+${entry().label}` : entry().label}
             />
           )}
         </Each>

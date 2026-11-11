@@ -1,7 +1,7 @@
 // What reads, not what is pressed: text in its tones and steps, headings, badges, statuses,
 // banners, a spinner, progress, links, breadcrumbs, tabs, and lines between parts.
 import { View } from "nsh";
-import { Line, Page, Part } from "./parts";
+import { Line, Page, Part } from "../parts";
 import {
   Badge,
   Banner,

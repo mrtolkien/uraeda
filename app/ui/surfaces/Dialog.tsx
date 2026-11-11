@@ -4,12 +4,13 @@
 // closes. Escape, the phone's Back, and a press outside it ask to close. On a narrow window it is
 // a sheet. It never holds a view of its own to read: that is a page.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
+import type { SurfaceIcon } from "./mark";
 import { Overlay } from "./Overlay";
 
 export type DialogProps = {
   children?: JSX.Element;
   /** Before its title, on the plate. */
-  icon?: JSX.Element;
+  icon?: SurfaceIcon;
   onClose?: () => void;
   /** Shown while true, and for its way out after: true unless given. */
   open?: boolean;

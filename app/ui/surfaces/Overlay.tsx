@@ -7,6 +7,7 @@
 //
 // On a narrow window either is a sheet: across the width, at the bottom, from where it rises.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
+import type { SurfaceIcon } from "./mark";
 import { Float, type Place } from "./Float";
 import { isNarrow } from "../width";
 import { tokens } from "../tokens";
@@ -27,7 +28,7 @@ export const sheetPlace = (scrim: boolean): Place =>
 export type OverlayProps = {
   children?: JSX.Element;
   /** Before its title, on the plate. */
-  icon?: JSX.Element;
+  icon?: SurfaceIcon;
   /** What the key map calls its layer. */
   name: string;
   /** Asked to close: Escape, the phone's Back, a press outside it. Closing is its owner's. */

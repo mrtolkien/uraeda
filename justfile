@@ -79,39 +79,29 @@ app-test:
 app-dev *args:
     {{ nsh }} run "$@"
 
-# The design language's samples as pictures, in `target/shots/samples/`, on the hidden display:
-# all of them, or those whose test's name holds a word, `just samples-shots glass`.
-samples-shots filter="":
-    mkdir -p target/shots/samples
-    hidden-display {{ nsh }} test gallery/samples/samples.test.tsx --target linux --filter "{{ filter }}"
+# An agent, and any check, runs `hidden-display just gallery`.
+# The gallery, every component of the library in one app, on GTK with hot reload.
+gallery *args:
+    {{ nsh }} run gallery/Gallery.tsx "$@"
 
-# What a frame costs with the glass bar over a transcript that scrolls by itself, then with no
-# bar, on the hidden display: Native Shell's frame timing, one `nsh::perf` line a second, for 30
-# seconds each.
-samples-frames:
-    hidden-display {{ nsh }} test gallery/samples/frames.test.tsx --target linux --fps -v
-
-# The gallery's pages as pictures, in `target/shots/gallery/`, on the hidden display, in both
-# themes and at a desktop's and a phone's width: all of them, or those whose test's name holds a
-# word, `just gallery-shots dialog`, `just gallery-shots "light, 390"`.
+# Every page in both themes, 1400, 900, and 390 points wide, as `<group>-<page>-<theme>-<width>.png`:
+# all of them, or those whose test's name holds a word, a page (`just gallery-shots dialog`) or a
+# group (`just gallery-shots surfaces`).
+# The gallery's pictures, in `target/shots/gallery/`, on the hidden display.
 gallery-shots filter="":
     mkdir -p target/shots/gallery
-    hidden-display {{ nsh }} test gallery/surfaces/gallery.test.tsx --target linux --filter "{{ filter }}"
-    hidden-display {{ nsh }} test gallery/controls/gallery.test.tsx --target linux --filter "{{ filter }}"
-    hidden-display {{ nsh }} test gallery/lists/gallery.test.tsx --target linux --filter "{{ filter }}"
-    hidden-display {{ nsh }} test gallery/text/gallery.test.tsx --target linux --filter "{{ filter }}"
-    hidden-display {{ nsh }} test gallery/layout/gallery.test.tsx --target linux --filter "{{ filter }}"
-    hidden-display {{ nsh }} test gallery/document/gallery.test.tsx --target linux --filter "{{ filter }}"
+    hidden-display {{ nsh }} test gallery/gallery.test.tsx --target linux --filter "{{ filter }}"
 
-# What a frame costs with a list of 20,000 rows that scrolls fast by itself, on the hidden display:
-# Native Shell's frame timing, one `nsh::perf` line a second, for 30 seconds.
-lists-frames:
-    hidden-display {{ nsh }} test gallery/lists/frames.test.tsx --target linux --fps -v
-
-# What a frame costs while a long reply grows by itself, its last block changing every frame, on the
-# hidden display: Native Shell's frame timing, one `nsh::perf` line a second, for 40 seconds.
-document-frames:
-    hidden-display {{ nsh }} test gallery/document/frames.test.tsx --target linux --fps -v
+# The scenes: `streaming`, a session of 20,000 messages with a reply growing; `scrolling`, the same
+# scrolling by itself; `glass`, the same under a bar of glass. Prints Native Shell's `nsh::perf`
+# line of each second, the machine's load before and after, then the median, the 95th and 99th
+# percentiles, and the worst frame. The hidden display draws in software: run it once, quiet.
+# What a frame of a scene of the gallery costs, on the hidden display: `just frames glass`.
+frames scene:
+    @echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
+    hidden-display {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}.log
+    @echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
+    @scripts/frames.sh < target/frames-{{ scene }}.log
 
 # The server over sample projects and a fake agent, without sign-in, at http://127.0.0.1:4420, its
 # state in `.sandbox-next/` until `just sandbox --reset`: `ura sandbox`'s flags, `--port 0`,

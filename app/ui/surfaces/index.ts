@@ -12,3 +12,4 @@ export { Popover, type PopoverProps } from "./Popover";
 export { Sheet, type SheetProps } from "./Sheet";
 export { Toast, type ToastProps, Toasts } from "./Toast";
 export { Tooltip, type TooltipProps } from "./Tooltip";
+export { drawIcon, type SurfaceIcon } from "./mark";

@@ -1,21 +1,11 @@
-// The text field's gallery page, on the real renderer: the field at rest, focused, in each Vim
-// mode, refused, disabled, of one line and of many, the composer, and the picker's field. Its
-// host names the theme, and `vim` turns Vim's keys on, for the typing test on the hidden display.
-// `just gallery-shots field` takes its pictures in both themes, at a desktop's and a phone's
-// width.
-import { colorScheme, host, type JSX, mount, signal, View, windowSize } from "nsh";
+// The text field's gallery page: the field at rest, focused, in each Vim mode, refused, disabled,
+// of one line and of many, the composer, and the picker's field. The gallery's host turns Vim's
+// keys on with `vim`, for the typing test on the hidden display.
+import { type JSX, signal, View } from "nsh";
 import { vimKeys } from "uraeda/native";
-import { Page, Part } from "../controls/parts";
+import { Page, Part } from "../parts";
 import { Button, Text } from "../../ui/controls";
-import { KeysHost } from "../../ui/keys/KeysHost";
-import { KeyScope } from "../../ui/keys/registry";
-import { Backdrop } from "../../ui/surfaces";
-import { Composer } from "../../ui/text/Composer";
-import { PickerField } from "../../ui/text/PickerField";
-import { SaveStatus } from "../../ui/text/SaveStatus";
-import { setVimMode, TextField, vimStatus } from "../../ui/text/TextField";
-import { applyTheme } from "../../ui/theme";
-import { DEFAULT_THEMES, type Mode } from "../../ui/tokens";
+import { Composer, PickerField, SaveStatus, TextField, vimStatus } from "../../ui/text";
 
 const NOTE = `# Recurring tasks
 
@@ -152,18 +142,7 @@ function Fields(props: { narrow: boolean }) {
   );
 }
 
-function Gallery() {
-  applyTheme(DEFAULT_THEMES[(host.params.theme as Mode | undefined) ?? colorScheme()]);
-  setVimMode(host.params.vim === "on");
-  return (
-    <KeysHost>
-      <KeyScope name="Fields">
-        <Backdrop>
-          <Fields narrow={windowSize().width < 768} />
-        </Backdrop>
-      </KeyScope>
-    </KeysHost>
-  );
+/** The page, as the gallery draws it. */
+export function fields(narrow: boolean) {
+  return <Fields narrow={narrow} />;
 }
-
-mount(Gallery);

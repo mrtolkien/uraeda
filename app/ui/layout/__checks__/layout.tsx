@@ -36,6 +36,13 @@ function Picks(props: { rows: number; title: string }) {
   );
 }
 
+/** How many times the list's scroll made what it holds: once, unless a pane's content is made twice. */
+const made = signal(0);
+function Counted() {
+  made.set(made() + 1);
+  return null;
+}
+
 const list = definePane({
   flush: true,
   icon: "list",
@@ -49,11 +56,13 @@ const list = definePane({
       <View style={{ flex: 1 }}>
         <Picks rows={rows.length} title="List" />
         <Text>List at {String(Math.round(at()))}</Text>
+        <Text>Scroll made {String(made())}</Text>
         <PaneScroll
           onScroll={(event) => at.set(event.offset.y)}
           style={{ flex: 1 }}
           testID="pane-scroll-list"
         >
+          <Counted />
           <Each of={rows}>{(row) => <Text style={{ height: 28 }}>{row()}</Text>}</Each>
         </PaneScroll>
       </View>

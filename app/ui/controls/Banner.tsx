@@ -31,7 +31,7 @@ export function Banner(props: BannerProps) {
   return (
     <View
       style={{
-        backgroundColor: tokens.control.tint(colour()),
+        backgroundColor: tokens.control.wash(colour()),
         borderColor: colour(),
         borderLeftWidth: 2,
         flexDirection: "row",

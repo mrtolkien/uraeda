@@ -131,10 +131,11 @@ export function VirtualList(props: VirtualListProps) {
       estimatedItemSize={props.rowHeight ?? rowHeight()}
       footer={props.footer}
       header={props.header}
+      // No `keyExtractor`: Native Shell reads each item's `id` itself, where a function of ours
+      // ran in TSX for each of the 20,000 rows of a transcript at every row that came.
       initialScrollIndex={
         props.follow === true && props.offset === undefined && start > 0 ? start - 1 : undefined
       }
-      keyExtractor={(item) => item.id}
       maintainVisibleContentPosition={
         props.follow === true ? { autoscrollToBottomThreshold: NEAR_END } : undefined
       }

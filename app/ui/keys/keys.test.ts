@@ -149,12 +149,12 @@ test("a sequence waits for its second key, then gives up", async () => {
   // The leader's menu goes down a group at once, back up with Backspace, and closes on Escape.
   await app.keyboard.press("space");
   await app.wait(350);
-  expect(app.texts()).toContain("New →");
+  expect(app.texts()).toContain("+New");
   await app.keyboard.press("n");
   expect(app.texts()).toContain("Space n");
   expect(app.texts()).toContain("Note");
   await app.keyboard.press("backspace");
-  expect(app.texts()).toContain("New →");
+  expect(app.texts()).toContain("+New");
   await app.keyboard.press("escape");
   await app.wait(300);
   expect(app.shows("id:leader-menu")).toBe(false);
@@ -365,4 +365,17 @@ test("the picker's search ranks a title's start over a word's, then the rest", (
   expect(found("space")).toEqual(["Keyboard"]);
   expect(found("key registry")).toEqual(["Keyboard"]);
   expect(found("zzz")).toEqual([]);
+});
+
+test("a pane's keys may reuse the keys of the frame's tabs beside it", () => {
+  // The tabs hold the keys only while no pane of the frame has them: a pane's `j`, a carried
+  // row's included, never meets the tabs' `j`.
+  const store = createKeyStore();
+  const frame = store.scope({ name: "Panes" });
+  const tabs = store.scope({ kind: "selection", name: "Tabs" }, frame);
+  const pane = store.scope({ kind: "pane", name: "Order" }, frame);
+  store.register(tabs, [key("j", "Back into the pane"), key("Enter", "Into the pane")]);
+  store.register(store.scope({ kind: "selection", name: "Carry" }, pane), [key("j", "Carry down")]);
+  store.register(pane, [key("Enter", "Pick")]);
+  expect(store.listed()).toHaveLength(4);
 });

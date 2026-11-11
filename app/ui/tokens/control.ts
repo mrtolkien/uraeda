@@ -22,6 +22,11 @@ export function control({ dark, role }: Source) {
     tone: (tone: Tone) => tones[tone],
     /** A faint block of a tone, under its own text: a badge's, a banner's. */
     tint: (colour: string) => alpha(colour, dark ? 0.14 : 0.1),
+    /**
+     * The fainter wash of a tone over a whole block of words, a banner's: at a badge's share, a
+     * warm tone over a raised fill turned brown.
+     */
+    wash: (colour: string) => alpha(colour, dark ? 0.07 : 0.06),
     /** A control's edge at rest, and under the pointer. */
     edge: role.rule,
     hotEdge: role.action,

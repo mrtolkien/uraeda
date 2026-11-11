@@ -10,6 +10,7 @@
 // It clips what it holds, so a main action's glow stays in its pane, and never reaches the glass
 // of a bar, which would draw again with each of its frames.
 import { type JSX, type StyleProp, Text, View, type ViewStyle } from "nsh";
+import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { Tooltip } from "./Tooltip";
 import { alpha, tokens } from "../tokens";
@@ -21,7 +22,7 @@ export type PaneTab = {
   /** The tab shown: it fills with light while the pane has the focus. */
   current: boolean;
   /** The title's icon, drawn in the colour the title has now. */
-  icon?: (colour: string) => JSX.Element;
+  icon?: SurfaceIcon;
   /** What follows the title, dimmer: a count, a place, "· 3". */
   more?: string;
   /** It waits on the human: its title is in `needs-you`. */
@@ -43,7 +44,7 @@ export type PaneProps = {
   /** `raised` for a pane in a pane, a card with a title: panes nest two levels deep at most. */
   height?: "standard" | "raised";
   /** The title's icon, drawn in the colour the title has now. */
-  icon?: (colour: string) => JSX.Element;
+  icon?: SurfaceIcon;
   /** What follows the title, dimmer: a count, a place, "· 3". */
   more?: string;
   /** It waits on the human: its title is in `needs-you`. */
@@ -92,7 +93,7 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
       onPress={props.tab.onPress}
       accessibilityState={props.many ? { selected: props.tab.current } : undefined}
       role={props.many ? "tab" : undefined}
-      style={{ height: tokens.pane.titleHeight - 1 }}
+      style={{ flexShrink: 1, height: tokens.pane.titleHeight - 1, minWidth: 0 }}
       testID={props.tab.testID}
     >
       <View
@@ -115,16 +116,18 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
           flexDirection: "row",
           gap: 6,
           height: tokens.pane.titleHeight - 1,
+          minWidth: 0,
           paddingLeft: tokens.pane.titlePadding[0] - 1,
           paddingRight: tokens.pane.titlePadding[1] - 1,
         }}
       >
-        <If when={props.tab.icon}>{(icon) => <>{icon()(colour())}</>}</If>
+        <If when={props.tab.icon}>{(icon) => drawIcon(icon(), colour())}</If>
         <If when={props.tab.compact !== true}>
           <Text
             style={{
               ...words(props.many && !props.tab.current ? "400" : "700"),
               color: colour(),
+              flexShrink: 1,
               numberOfLines: 1,
             }}
           >
@@ -172,7 +175,7 @@ export function Pane(props: PaneProps) {
     ];
   const many = () => props.tabs !== undefined && props.tabs.length > 1;
   const title = (
-    <View style={{ flexDirection: "row" }}>
+    <View style={{ flexDirection: "row", minWidth: 0 }}>
       <Each of={tabs()}>
         {(tab, index) => (
           <>

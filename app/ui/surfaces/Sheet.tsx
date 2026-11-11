@@ -3,12 +3,13 @@
 // is one at every width it shows. It takes the keys and the focus as a dialog does. A menu or a
 // selector is never a sheet: it stays a popover.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
+import type { SurfaceIcon } from "./mark";
 import { Float } from "./Float";
 import { sheetPlace } from "./Overlay";
 
 export type SheetProps = {
   children?: JSX.Element;
-  icon?: JSX.Element;
+  icon?: SurfaceIcon;
   /** What the key map calls its layer: its title unless given. */
   name?: string;
   onClose?: () => void;
