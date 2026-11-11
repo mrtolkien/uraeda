@@ -73,11 +73,13 @@
       # human's display. GTK prefers the session's Wayland display, so the command loses it. It
       # also gets a session bus of its own: what the app sends there, a notification first,
       # reaches no desktop. Xvfb picks its own free display number (`-d`), so several runs start
-      # at once, as the checks of `crates/app/tests/outside.rs` do.
+      # at once, as the checks of `crates/app/tests/outside.rs` do. What runs there is never a
+      # person's use of the app, so it runs through `scripts/isolated.sh`: data, configuration,
+      # cache, and state folders of its own, and a check that it wrote nothing in the person's.
       hiddenDisplayFor =
         pkgs:
         pkgs.writeShellScriptBin "hidden-display" ''
-          exec env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+          exec ${pkgs.bash}/bin/bash ${./scripts/isolated.sh} env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
             ${pkgs.dbus}/bin/dbus-run-session --config-file=${hiddenBusFor pkgs} -- \
             ${pkgs.xvfb-run}/bin/xvfb-run -d -s "-screen 0 1400x800x24 -nolisten tcp" "$@"
         '';

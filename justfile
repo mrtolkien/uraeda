@@ -7,7 +7,10 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # A recipe's arguments reach its command as they were typed, quotes and parentheses included.
 set positional-arguments := true
 
-# A test run with a temporary folder of its own, and without the host's git configuration.
+# A run that is not a person's use of the app, as every test, picture, gallery, frame, and sandbox
+# recipe is: a temporary folder of its own, with its own data, configuration, cache, and state
+# folders, a check that it wrote nothing in the person's folders of the app, and no host's git
+# configuration. Only `just app` and `just app-dev`, run by a person, use the person's folders.
 isolated := "scripts/isolated.sh"
 # The same, in one of the machine's two slots for heavy runs, shared by every checkout.
 heavy := "scripts/isolated.sh --slots 2"
@@ -103,7 +106,7 @@ app-shots what="/":
       states) filter="state " ;;
       *) filter="state $what" ;;
     esac
-    URAEDA_ROUTE="$what" hidden-display scripts/sandboxed.sh {{ nsh }} test screens/shots.test.tsx --target linux --filter "$filter"
+    URAEDA_ROUTE="$what" {{ isolated }} hidden-display scripts/sandboxed.sh {{ nsh }} test screens/shots.test.tsx --target linux --filter "$filter"
     if [ "$filter" = "route" ]; then
       name=$(echo "$what" | sed 's|^/||; s|[^A-Za-z0-9._-]|-|g; s|^$|root|')
       for shot in target/shots/app/route-*.png; do mv "$shot" "${shot/route-/$name-}"; done
@@ -113,7 +116,7 @@ app-shots what="/":
 # An agent, and any check, runs `hidden-display just gallery`.
 # The gallery, every component of the library in one app, on GTK with hot reload.
 gallery *args:
-    {{ nsh }} run gallery/Gallery.tsx "$@"
+    {{ isolated }} {{ nsh }} run gallery/Gallery.tsx "$@"
 
 # Every page in both themes, 1400, 900, and 390 points wide, as `<group>-<page>-<theme>-<width>.png`:
 # all of them, or those whose test's name holds a word, a page (`just gallery-shots dialog`) or a
@@ -121,7 +124,7 @@ gallery *args:
 # The gallery's pictures, in `target/shots/gallery/`, on the hidden display.
 gallery-shots filter="":
     mkdir -p target/shots/gallery
-    hidden-display {{ nsh }} test gallery/gallery.test.tsx --target linux --filter "{{ filter }}"
+    {{ isolated }} hidden-display {{ nsh }} test gallery/gallery.test.tsx --target linux --filter "{{ filter }}"
 
 # The scenes: `streaming`, a session of 20,000 messages with a reply growing; `scrolling`, the same
 # scrolling by itself; `glass`, the same under a bar of glass. Prints Native Shell's `nsh::perf`
@@ -130,7 +133,7 @@ gallery-shots filter="":
 # What a frame of a scene of the gallery costs, on the hidden display: `just frames glass`.
 frames scene:
     @echo "load before: $(cut -d' ' -f1-3 /proc/loadavg)"
-    hidden-display {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}.log
+    {{ isolated }} hidden-display {{ nsh }} test gallery/frames.test.tsx --target linux --fps --filter "scene {{ scene }}," 2>&1 | tee target/frames-{{ scene }}.log
     @echo "load after: $(cut -d' ' -f1-3 /proc/loadavg)"
     @scripts/frames.sh < target/frames-{{ scene }}.log
 
@@ -138,12 +141,12 @@ frames scene:
 # state in `.sandbox-next/` until `just sandbox --reset`: `ura sandbox`'s flags, `--port 0`,
 # `--sign-in`, `--long-chat`, `--folder DIR`.
 sandbox *args:
-    cargo run -q -p uraeda-cli -- sandbox "$@"
+    {{ isolated }} cargo run -q -p uraeda-cli -- sandbox "$@"
 
 # A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
 # `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
 sandboxed +command:
-    scripts/sandboxed.sh "$@"
+    {{ isolated }} scripts/sandboxed.sh "$@"
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:

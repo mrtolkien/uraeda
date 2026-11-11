@@ -179,6 +179,10 @@ Running it here:
   Every screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox
   of its own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you
   started by its process id.
+- Every test, picture, gallery, frame, and sandbox recipe, and whatever `hidden-display` runs, goes
+  through `scripts/isolated.sh`: its data, configuration, cache, and state folders are temporary,
+  and the run fails when it wrote in the person's `dev.uraeda.app` or `uraeda-next` folders. Only
+  `just app` and `just app-dev` run by a person use the person's folders (ruling T91.1).
 - The app itself, `uraeda`, is `just app`: it finds this machine's server, or starts one, and stops
   the one it started as it closes. An agent runs it on the hidden display, on folders of its own:
   `hidden-display just app --data-dir <a temporary folder> --port 0`, with the agents' commands

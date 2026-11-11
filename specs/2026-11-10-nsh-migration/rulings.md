@@ -7021,3 +7021,29 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_page_gets_the_apps_modules_from_the_data_folder` caught once the two were joined.
 - **If wrong**: `FieldRow` moves to `app/ui/layout/`, the app's own frame, beside `usePane`.
 - **Where**: `app/ui/lists/{index.ts,FieldRow.tsx}`, its callers.
+
+## T91.1: Every run that is not a person's use of the app has folders of its own, and is checked
+
+- **Decision**: `scripts/isolated.sh` is the one place: it gives the command a temporary folder,
+  removed when it ends, holding `TMPDIR` and the four XDG folders (`XDG_DATA_HOME`,
+  `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`), then compares the person's folders of the
+  app (`dev.uraeda.app` and `uraeda-next` in each of the four real ones) with what they were before,
+  and fails, naming each file, when they changed. Every test, picture, gallery, frame, and sandbox
+  recipe goes through it (`task`, `test`, `lint`, `app-test`, `app-shots`, `gallery`,
+  `gallery-shots`, `frames`, `sandbox`, `sandboxed`, `coverage`), and so does `hidden-display`, so
+  an agent's `hidden-display just app-dev` or `just app` is isolated too: only `just app` and
+  `just app-dev` run by a person use the person's folders. A run inside another passes through
+  (`URAEDA_ISOLATED`), and takes no second heavy slot (`URAEDA_SLOT`).
+  `crates/app/tests/isolated.rs` guards both halves.
+- **Rationale**: NSH's storage (`$XDG_DATA_HOME/dev.uraeda.app/storage.json`), WebKit's data and
+  cache, and `ura serve`'s configuration (`$XDG_CONFIG_HOME/uraeda`, the person's real one) were the
+  machine's for the app's tests and every picture: a mode picked there overrode the scheme a picture
+  asked for (R353), and pictures saved their theme there. The check is in the wrapper, not a step of
+  `just ready`, so every run is checked, not one pass at the end.
+- **Alternatives considered**: a temporary `HOME` too. Every tool these runs start (NSH, GLib,
+  WebKit, `ura`, fontconfig, Mesa) follows the XDG variables, and Cargo and `nsh` find their caches
+  in `HOME`: the check names any tool that does not.
+- **If wrong**: the check fails when the person's own app writes its storage during a run, or a
+  branch without this ruling runs tests beside it: run again once it is quiet.
+- **Where**: `scripts/isolated.sh`, `justfile`, `flake.nix` (`hidden-display`),
+  `crates/app/tests/isolated.rs`.
