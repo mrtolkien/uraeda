@@ -14,7 +14,7 @@ function message(
 ) {
   return (
     <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingVertical: 8 }}>
-      <View style={{ width: 22, paddingTop: 3 }}>{icon(mark, hue)}</View>
+      <View style={{ width: 22, paddingTop: 4 }}>{icon(mark, hue)}</View>
       <View style={{ flex: 1 }}>
         {mono(
           v,
@@ -62,12 +62,12 @@ function code(v: Tokens) {
         <>
           {s("type", r.action)} {s("Height", r.context)} = {s('"recessed"', r.added)} |{" "}
           {s('"standard"', r.added)} | {s('"raised"', r.added)} | {s('"overlay"', r.added)};{"\n\n"}
-          {s("export function", r.action)} {s("Surface", r.context)}(props: {"{"} height:{" "}
-          {s("Height", r.context)}; children: {s("Node", r.context)} {"}"}) {"{\n  "}
-          {s("const", r.action)} t = tokens.height[props.height];{" "}
-          {s("// fill, edge, shadow, blur, tint, glow", r.inkFaint)}
+          {s("export function", r.action)} {s("Surface", r.context)}({"{"} height, children {"}"}:{" "}
+          {s("Props", r.context)}) {"{\n  "}
+          {s("// Its fill, edge, shadow, blur, tint, and glow.", r.inkFaint)}
           {"\n  "}
-          {s("return", r.action)} {s("draw", r.context)}(t, props.children);{"\n}"}
+          {s("const", r.action)} t = tokens.height[height];{"\n  "}
+          {s("return", r.action)} {s("draw", r.context)}(t, children);{"\n}"}
         </>,
       )}
     </View>
@@ -94,7 +94,7 @@ function diff(v: Tokens) {
       }}
     >
       {line(" ", "export const tokens = {", r.inkFaint)}
-      {line("-", '  shadow: { card: "0 1px 2px #0003", dialog: "0 8px 24px #0006" },', r.removed, {
+      {line("-", '  shadow: { card: "0 1px 2px", dialog: "0 8px 24px" },', r.removed, {
         backgroundColor: alpha(r.removed, 0.14),
       })}
       {line("+", "  height: { recessed, standard, raised, overlay },", r.added, {

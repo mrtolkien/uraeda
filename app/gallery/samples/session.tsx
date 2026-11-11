@@ -68,7 +68,11 @@ function session(v: Tokens, breathes: boolean) {
       focused: true,
       running: true,
       style: { flex: 1 },
-      body: { paddingTop: 11, paddingHorizontal: 0, paddingBottom: 1 },
+      body: {
+        paddingTop: v.pane.titleHeight - v.pane.titleRise + 1,
+        paddingHorizontal: 0,
+        paddingBottom: 1,
+      },
     },
     <>
       <View style={{ flex: 1 }}>
@@ -93,7 +97,7 @@ function session(v: Tokens, breathes: boolean) {
         {field(v, {
           text: "Keep the glow off list rows, they would shout",
           active: "normal",
-          style: { minHeight: 56, alignItems: "flex-start" },
+          style: { minHeight: 2 * v.type.line + 16, alignItems: "flex-start" },
         })}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           {hint(v, "↵", "send")}
@@ -189,7 +193,7 @@ function changes(v: Tokens) {
 /** The app, with `over` drawn above its panes: a dimmed page and its dialog. */
 export function scene(v: Tokens, over?: JSX.Element) {
   const gap = v.space.gap.wide;
-  // A title stands 12 px above its pane, in the gap: stacked panes are 6 px further apart.
+  // A title stands above its pane, in the gap: stacked panes are 6 px further apart.
   const stacked = gap - 2;
   return (
     <View
@@ -202,7 +206,7 @@ export function scene(v: Tokens, over?: JSX.Element) {
         </View>
         {/* Behind an overlay that took the focus, the page's main action rests. */}
         {session(v, over === undefined)}
-        <View style={{ width: 350, gap: stacked }}>
+        <View style={{ width: 400, gap: stacked }}>
           {waiting(v)}
           {plan(v)}
           {changes(v)}

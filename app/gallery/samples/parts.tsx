@@ -1,5 +1,5 @@
 // What the samples share: text, icons, the four heights, glass, and the pane with its border round
-// its title. Plain NSH elements, with every value from `values.ts`: the component library replaces
+// its title. Plain NSH elements, with every value from the tokens: the component library replaces
 // all of this.
 import { Image, type JSX, Shader, signal, Text, type TextStyle, View, type ViewStyle } from "nsh";
 import { GLASS, GLOW } from "./shaders";
@@ -81,7 +81,7 @@ const ICONS = {
 export type IconName = keyof typeof ICONS;
 
 /** A line icon in one colour: an `<Image>` draws an SVG's shapes, so the colour is in the picture. */
-export function icon(name: IconName, color: string, size = 14) {
+export function icon(name: IconName, color: string, size = 16) {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" ` +
     `stroke="${color}" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="${ICONS[name]}"/></svg>`;
@@ -225,7 +225,7 @@ export interface PaneOptions {
 }
 
 /**
- * A pane, with its border round its title: the title stands 12 px above the pane's top edge, and
+ * A pane, with its border round its title: the title stands 14 px above the pane's top edge, and
  * the outline steps up and over it. Focused, the outline is the two lights, mauve at the bottom
  * left and blue at the top right, its glow follows the same shape, and the title fills.
  */
@@ -382,7 +382,8 @@ export function pane(v: Tokens, options: PaneOptions, children?: JSX.Element) {
             flexGrow: 1,
             flexShrink: 1,
             flexBasis: "auto",
-            paddingTop: 16,
+            // The title's lower part, `titleHeight - titleRise`, and 6 px of air under it.
+            paddingTop: p.titleHeight - p.titleRise + 6,
             paddingHorizontal: v.space.panePadding,
             paddingBottom: v.space.panePadding,
           },

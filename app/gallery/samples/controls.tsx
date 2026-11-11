@@ -215,7 +215,7 @@ export function caret(v: Tokens, color: string, width = 8) {
     <View
       style={{
         width,
-        height: 18,
+        height: v.type.line - 2,
         backgroundColor: color,
         opacity: 0.85,
         boxShadow: `0 0 10px ${alpha(color, 0.6)}`,
@@ -243,7 +243,7 @@ export function field(
     <View
       style={[
         {
-          minHeight: 32,
+          minHeight: v.type.line + 12,
           paddingHorizontal: 9,
           paddingVertical: 5,
           flexDirection: "row",
@@ -310,13 +310,17 @@ export function row(v: Tokens, options: RowOptions) {
       {options.badge ? (
         <View
           style={{
-            height: 18,
+            height: v.type.line - 2,
             paddingHorizontal: 6,
             justifyContent: "center",
             backgroundColor: v.role.needsYou,
           }}
         >
-          {mono(v, options.badge, { color: v.role.onAction, fontWeight: "700", lineHeight: 18 })}
+          {mono(v, options.badge, {
+            color: v.role.onAction,
+            fontWeight: "700",
+            lineHeight: v.type.line - 2,
+          })}
         </View>
       ) : null}
     </View>

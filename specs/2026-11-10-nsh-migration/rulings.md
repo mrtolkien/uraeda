@@ -3617,6 +3617,47 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     builds ran, and passed alone and in the two runs after.
 - **Where**: `crates/server/src/runner/{catch_ups,chain}.rs`, `crates/server/src/preview/mod.rs`.
   Tasks 20, 51, and the fixer of the pull requests' refresh.
+## T97.1: The reading size is 15 px on a 24 px line, and every step of the scale moves up one
+
+- **Decision**: the human found the samples' text too small on GTK, and asked on 2026-11-11: "Change
+  the design language's reading size from 13 to 15 px monospace, with a 24 px line, and the step
+  under from 12 to 13. Prose and titles scale up one step with it." The scale was 12, 13, 15, and 18
+  px. It is 13, 15, 18, and 22 px, and each name takes the step above the one it had.
+  - **Asked**: `type.size` 13 to 15, `type.line` 20 to 24, `type.under` 12 to 13.
+  - **One step up**: `type.over` 15 to 18, and `type.prose` 15 to 18: prose was the step over the
+    reading size, and still is.
+  - **Picked, `type.over2`: 18 to 22.** The scale had no step above 18. Its last ratio was 18 to 15,
+    1.2, and 18 times 1.2 is 21.6.
+  - **Picked, `type.proseLine`: 24 to 28.** Prose's line was 1.6 of its size, which the human's 24
+    px line is of 15 px: 1.6 of 18 is 28.8. 28 over 29, since the [reading](/specs/ui/reading.md)
+    guide found 1.5 and more "too spaced".
+  - **Heights that hold one line follow it**, each with the room it had round the line: `space.row`
+    24 to 28 (2 px over and under), `status.height` 26 to 30 (2 px, and two 1 px rims),
+    `button.height` 28 to 32 (3 px, and two 1 px edges), `pane.titleHeight` 22 to 26, and
+    `pane.titleRise` 12 to 14, the same share of the title above the pane's edge.
+  - **A key**: `key.size` 19 to 22 and `key.padding` 5 to 6. Its block was a line less 1 px, and is
+    a line less 2: even, so it sits on whole pixels in a line, a row, and a bar, and its letter is
+    `type.under`.
+  - **Not changed**: every gap and padding beside a text, `pane.titlePadding`, `status.padding`,
+    `button.padding`, `space.panePadding`, and the gap between panes: none holds a line.
+  - **The language now writes the sizes**, in "Type": it named the steps without their values, and
+    only a pane title's rise, 12 px, now 14.
+  - **In the samples**, what held a line reads it from the tokens: a pane's top padding, the caret,
+    a badge, a field, the bar over the transcript, the dialog's plate, the composer. An icon is 16
+    px, from 14. The session's right column is 400 px, from 350, where a row's actions were cut; two
+    fields' words and two lines of the transcript's code are shorter.
+  - **The browser mockup has the same values.** No recipe draws it, so it was not looked at again:
+    its panes have fixed widths, which the larger text may overflow.
+- **Rationale**: the pictures of `just samples-shots`, in both themes: nothing is cut, no row's text
+  touches its edge, and the status line and the panes' titles hold their text with the same room as
+  before.
+- **If wrong**: the reading guide says "lines are 1.4 high everywhere", which was already not the
+  language's 24 px for 15 px prose. 1.4 of 18 px is 25 px: `type.proseLine` is the one value. A
+  title two steps over at 21 px is `type.over2`.
+- **Where**: [`design-language.md`](/specs/ui/design-language.md), "Type" and "Panes, titles, and
+  light"; [`app/ui/tokens/`](/app/ui/tokens/) `type.ts`, `space.ts`, `button.ts`, `height.ts`;
+  [`app/gallery/samples/`](/app/gallery/samples/); the [mockup](mockups/design-language.html).
+
 ## T97.2: The keys' views read the tokens now, not at task 28
 
 - **Decision**: `look()` of [`app/ui/keys/look.ts`](/app/ui/keys/look.ts) reads `tokens`, where it

@@ -6,7 +6,8 @@ import type { Source } from "./source";
 
 export function button({ role }: Source) {
   return {
-    height: 28,
+    /** A line of the reading size, 3 px over and under it, and its two 1 px edges. */
+    height: 32,
     padding: 14,
     main: {
       look: choices["button.main.look"],
@@ -50,8 +51,9 @@ export function button({ role }: Source) {
 export function key({ role, mixed }: Source) {
   return {
     look: choices["key.look"],
-    size: 19,
-    padding: 5,
+    /** The block's side: 2 px less than a line, so a key never makes its line taller. */
+    size: 22,
+    padding: 6,
     text: role.action,
     /** The block: dark in a dark theme, the lightest in a light one, so the letter reads anywhere. */
     fill: mixed.keyFill,

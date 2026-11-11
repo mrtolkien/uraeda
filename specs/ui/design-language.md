@@ -68,7 +68,7 @@ default dark theme; every theme maps its own.
 - **Every line is 1 px, and square.** Corners are never rounded, at any height, on any platform
   where Uraeda draws the surface itself. Everything that inspired this look rounds its corners: not
   rounding them is what makes it Uraeda's.
-- **A pane's border goes around its title.** The title sits at the pane's top left, with its top 12
+- **A pane's border goes around its title.** The title sits at the pane's top left, with its top 14
   px above the pane's top edge, and the border steps up and over it, as a folder's tab:
   `Sessions · 3`. The title is inside the pane's outline, on the pane's own fill, with its text in
   the pane's role colour. It takes no row from the pane's content.
@@ -191,8 +191,11 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
 - **Monospace is the default voice**, in the font the human picked for each role. Long prose keeps
   its reading font and its measure, as [Reading](reading.md) says.
 - **Hierarchy comes from colour and weight before size.** Headings take their level's role colour.
-  Sizes stay on a short scale: the reading size, one step under for what reads second, one and two
-  steps over for titles.
+  Sizes stay on a short scale of four steps, 13, 15, 18, and 22 px: the reading size, 15 px
+  monospace on a 24 px line; one step under, 13 px, for what reads second; one and two steps over,
+  18 and 22 px, for titles. Long prose is one step over the reading size, 18 px on a 28 px line.
+- **Heights follow the line.** A row is a line with 2 px over and under it, 28 px. The status line
+  is 30 px high, a button 32 px, a key's block 22 px, and a pane's title 26 px.
 - **A glyph before a word, in one of six hues.** An item's kind shows as its icon in its kind's
   colour, from a small fixed set, as file icons are in LazyVim. Never one colour per item.
 - **Box-drawing is part of the alphabet**: `─ │ ┌ ┐ · » ➜` for separators and trails. Never as

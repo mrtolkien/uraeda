@@ -47,8 +47,8 @@ export function panes(v: Tokens) {
           ),
         )}
         <View style={{ flex: 1, marginTop: v.pane.titleRise, gap: 12 }}>
-          {field(v, { text: "A focused field takes the mode's colour", active: "normal" })}
-          {field(v, { placeholder: "A field at rest: a well with a border" })}
+          {field(v, { text: "Focused: the mode's colour", active: "normal" })}
+          {field(v, { placeholder: "At rest: a well with a border" })}
           {field(v, { text: "Insert mode", active: "insert" })}
         </View>
       </View>

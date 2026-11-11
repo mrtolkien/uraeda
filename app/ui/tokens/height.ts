@@ -106,8 +106,8 @@ export function pane({ role }: Source) {
     /** Where the title sits: round it goes the pane's border. */
     title: choices["pane.title"],
     /** How far the title stands above the pane's top edge, and its whole height. */
-    titleRise: 12,
-    titleHeight: 22,
+    titleRise: 14,
+    titleHeight: 26,
     titlePadding: [10, 11] as const,
   };
 }

@@ -32,8 +32,8 @@ export function dialog(v: Tokens) {
             style={{
               position: "absolute",
               left: 11,
-              top: -10,
-              height: 20,
+              top: -v.type.line / 2,
+              height: v.type.line,
               paddingHorizontal: 8,
               flexDirection: "row",
               alignItems: "center",
