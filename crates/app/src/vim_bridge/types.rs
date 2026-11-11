@@ -11,6 +11,9 @@ pub struct TextEditorProps {
     pub value: Prop<SharedString>,
     /// Shown while the text is empty.
     pub placeholder: Prop<Option<SharedString>>,
+    /// The language its text is highlighted as: a name, an extension, or a file's name, as
+    /// `main.rs`; Markdown when none is named.
+    pub language: Prop<Option<SharedString>>,
     /// The text is read and copied, not changed.
     #[prop(default)]
     pub read_only: Prop<bool>,

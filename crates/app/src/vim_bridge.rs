@@ -89,8 +89,8 @@ struct Keep {
     told: RefCell<VimStatus>,
 }
 
-/// The editor of every text field: Native Shell's editor set as a field, Markdown highlighted and
-/// wrapped, with the field's own keys, and Vim's while `vim` is on. Keys are handled in Rust.
+/// The editor of every text field: Native Shell's editor set as a field, Markdown highlighted, or
+/// the language its owner names, and wrapped, with the field's own keys, and Vim's while `vim` is on. Keys are handled in Rust.
 #[component(methods = TextEditorApi)]
 pub fn TextEditor(props: TextEditorProps, cx: Scope<TextEditorEvent>) -> impl IntoElement {
     let field = Field {
@@ -133,7 +133,14 @@ impl Field {
             .component_ref(&self.ed)
             .classes(classes)
             .value(move || Some(props.value.get()))
-            .language("markdown")
+            .language(move || {
+                Some(
+                    props
+                        .language
+                        .get()
+                        .unwrap_or_else(|| SharedString::from("markdown")),
+                )
+            })
             .soft_wrap(true)
             .line_numbers(false)
             .folding(false)

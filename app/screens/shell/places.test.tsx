@@ -30,6 +30,8 @@ const PAGES: Record<string, { address: string; words: string }> = {
   constitution: { address: "/r/realistic/decisions/constitution", words: "Core Principles" },
   "decisions-check": { address: "/r/realistic/decisions/check", words: "Decisions check" },
   git: { address: "/r/sample/git", words: "README.md" },
+  buffer: { address: "/r/realistic/buffer/specs/CONSTITUTION.md", words: "Core Principles" },
+  edit: { address: "/r/realistic/edit/specs/CONSTITUTION.md", words: "Core Principles" },
   settings: { address: "/r/sample/settings/appearance", words: "Catppuccin Mocha" },
   new: { address: "/r/sample/new?kind=feature", words: "Git listener process" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },

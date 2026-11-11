@@ -15,7 +15,7 @@ import { Diff } from "../../ui/document";
 import { Empty } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import type { WidthClass } from "../../ui/width";
-import { ConflictEditor } from "./Conflict";
+import { ConflictEditor } from "../conflict";
 
 /** A binary side's size, in words. */
 const sizeWords = (bytes: number | null) =>

@@ -29,6 +29,10 @@ export type TextFieldRef = {
   blur(): void;
   /** Takes the focus, with the caret at the end of the text when it was at its start. */
   focus(): void;
+  /** Takes the focus, the caret where it was. */
+  resume(): void;
+  /** Puts the caret at the start of line `line`, from 0, in the middle of the view, focused. */
+  goToLine(line: number): void;
   /** Types `text` at the caret, as a paste: an image's link a screen dropped in. */
   insert(text: string): void;
   /** Presses a key in the field, as typed: the Escape an overlay took first. */
@@ -46,6 +50,11 @@ export type TextFieldProps = {
   hint?: string;
   /** What screen readers call it. */
   label: string;
+  /**
+   * The language its text is highlighted as: a name, an extension, or a file's path, as
+   * `crates/app/src/lib.rs`; Markdown when none is named.
+   */
+  language?: string;
   /** One line, a slug's or a search's, which wraps but never takes a line break; many by default. */
   lines?: "one" | "many";
   /** With Vim, it opens in normal mode, as a buffer: else it opens typing. */
@@ -58,6 +67,8 @@ export type TextFieldProps = {
    */
   onEnter?: () => void;
   onFocus?: () => void;
+  /** `:q` with Vim, and `:wq` after its save: leave what the field is for, as a buffer's Back. */
+  onQuit?: () => void;
   /** Ctrl+Enter, and `:w` with Vim: save what it holds, as its button does. */
   onSave?: () => void;
   placeholder?: string;
@@ -154,8 +165,14 @@ export function TextField(props: TextFieldProps) {
       case "leave":
         editor?.blur();
         return;
-      case "escape":
-      case "quit": {
+      case "quit":
+        if (props.onQuit !== undefined) {
+          props.onQuit();
+          return;
+        }
+      // Without its owner's quit, `:q` is the field's Escape.
+      // falls through
+      case "escape": {
         const escape = owner("escape");
         if (escape === undefined) {
           editor?.blur();
@@ -215,6 +232,7 @@ export function TextField(props: TextFieldProps) {
             fontFamily={tokens.type.markdown}
             fontSize={tokens.type.size}
             keys={[...ownerKeys().keys()]}
+            language={props.language}
             lineHeight={tokens.type.line}
             maxRows={rows().max}
             minRows={rows().min}

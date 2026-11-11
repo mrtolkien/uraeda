@@ -3,6 +3,7 @@
 
 mod about;
 pub mod diagram;
+mod editing;
 #[cfg(all(target_os = "linux", feature = "host"))]
 mod extension_view;
 #[cfg(all(target_os = "linux", feature = "host"))]

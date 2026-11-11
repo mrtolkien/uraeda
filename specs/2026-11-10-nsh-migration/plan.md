@@ -2809,12 +2809,28 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Routes:** `/edit/<path>`, `/buffer/<path>`
 - **Tests:** `a file changed on disk while it is edited is not overwritten silently`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): editors`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(nsh-migration): editors`.
+
+**As built** (rulings R323 to R327):
+
+- `Buffer` reads any text file of the main checkout, only read outside the Markdown of `specs/`, and
+  carries `worktree`, `checkedOut`, and `readOnly` (commit
+  `feat(nsh-migration): a buffer reads any text file of its repository`).
+- `app/screens/buffer/`: the panes `buffer` (main) and `buffer-outline` (side, Markdown only), and
+  the places `buffer` and `edit`; `/edit/<path>` goes back to its page once saved.
+- `app/screens/editor/`: `FileEditor { repo, path, onLeave, leavesOnSave }`, `bufferKey(repo, path)`
+  (the unsaved text's key), `askLine(key, line)`, and the changed-on-disk banner.
+- `app/screens/conflict/`: `ConflictEditor { repo, path }`, which the Git page's Diff pane draws.
+- `TextField` gains `language`, `onQuit`, and its ref's `goToLine(line)`; `uraeda/native` gains
+  `conflictBlocks`, `takeConflict`, `textPatch`, and `outline` (`crates/app/src/editing.rs`), and
+  the core `git::text_patch`.
+- Not built: `Space b`, "Open as a buffer", on a page of one file: each such page declares it, with
+  `navigate({ page: "buffer", path })`.
 
 ## Task 48: Settings
 

@@ -456,9 +456,14 @@ from the main checkout, highlighted and only read: the page says why it is not e
 asking first while the text is not saved; `:wq` saves, then goes back. With Vim mode on, a buffer
 opens in normal mode at the file's start. On the phone, the bottom bar holds Back and Save.
 
-A save is refused when the file changed since the buffer opened. A banner then offers "Copy my text"
-and "Load the new version". A feature's file is refused while its agent works: "An agent is working
-on this feature. Stop it first, or wait for it." Its edit then waits too, on the Git page.
+A file changed on disk while you edit it, by an agent or a pull, is never overwritten silently: the
+page says so at once, over your text, which it keeps, and offers "See what changed", the patch from
+the file to your text, "Take the file's version", and "Save yours over it", each asking first. While
+you have typed nothing, the buffer follows the file. A Markdown file's outline, beside it, moves the
+caret to a heading. `/edit/<path>`, a workflow file's source opened from its page, is the same
+editor, and returns to that page once saved. A feature's file is refused while its agent works: "An
+agent is working on this feature. Stop it first, or wait for it." Its edit then waits too, on the
+Git page.
 
 ## The Git page
 

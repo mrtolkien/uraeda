@@ -6498,3 +6498,79 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Test**: `leaving an edited proposal asks first, and keeps the text` failed without the fix:
   after "Leave page", the proposal's page stayed.
 - **Where**: `app/ui/text/LeaveGuard.tsx`, `app/screens/images.ts`, `app/screens/inbox/images.ts`.
+
+## R323: A buffer reads any text file of its repository, and edits only the Markdown of `specs/`
+
+- **Decision**: the Rust server was not narrower than the Node one: both read and saved only the
+  Markdown files of `specs/`, through the same core function. The decisions' links already sent a
+  done record's or code's path to `/buffer/<path>`, which refused it. `read_buffer` now reads any
+  text file of the main checkout, by a plain path (no hidden part: never `.git`, nor a `.env`) that
+  stays inside it once its links are followed, at most 2 MiB, with no NUL byte, and says why it is
+  only read in `Buffer.readOnly`. `buffer.save` refuses it as before. `Buffer` also carries
+  `worktree` and `checkedOut`, where the file lives, for the editor's head line.
+- **Rationale**: a code buffer that can be read answers a link without a dead end; one that can be
+  saved would let the app write any file of the repository, the hooks' folder's neighbours included,
+  which nothing asked for.
+- **If wrong**: a save of code is the core's `save_buffer` with a wider check, and the editor drops
+  its `readOnly` banner.
+- **Where**: `crates/core/src/api/buffer.rs`, `crates/protocol/src/writing.rs`, the tests
+  `buffer_answers_its_shape` and `a_buffer_refuses_paths_outside_specs`.
+
+## R324: An editor never saves over a file that changed under the text typed, and says so at once
+
+- **Decision**: the save sends the hash of the version the text was typed over, as the server asks;
+  the editor knows that version without keeping a hash, from the unsaved entry's `base`, the text
+  the edit began from. When it is not the file's text now, the file changed underneath: the editor
+  says so at once, before any save, in a banner over the text it keeps, with "See what changed"
+  (`d`, the patch from the file to the text, `Diff` over Rust's `textPatch`), "Take the file's
+  version" (`t`), and "Save yours over it" (`w`), the last two asking first in a `Dialog`, as the
+  undo decision asks of what loses work. Save, `Ctrl+Enter`, and `:w` are refused meanwhile, the why
+  under the field. A save's own change is told apart by its answer, `Saved { hash }`, until the
+  record catches up (`editor/disk.ts`), so the banner never flickers after a save. While nothing is
+  typed, the field shows the record, and follows the disk.
+- **Rationale**: the React UI waited for the save to be refused, then offered "Copy my text" and
+  "Load the new version": the human learnt it once their save had failed, and copying their text out
+  was the way to keep it. The text is kept on the device already: the choice is between the two
+  versions, and the patch shows it.
+- **Seen failing**: with the editor's own check removed, the save sent the record's newest hash,
+  which the server accepted: `a file changed on disk while it is edited is not overwritten silently`
+  failed on "Not saved", the agent's text overwritten.
+- **Where**: `app/screens/editor/`, `app/screens/buffer/buffer.test.tsx`.
+
+## R325: `/edit/<path>` and `/buffer/<path>` are one editor; an outline beside a Markdown file
+
+- **Decision**: both pages are the pane `buffer` in the main stack, and for a Markdown file the pane
+  `buffer-outline` in the side stack, its headings from the core's document reader (`outline` of
+  `uraeda/native`), `Enter` moving the editor's caret there (`TextField`'s new `goToLine`).
+  `/edit/<path>`, a workflow file's source opened from its page, goes back there once saved; a
+  buffer stays, as Vim's does. Both go back on Escape outside the field, `:q`, or `b`, and `:wq`
+  waits for its save. The old `/edit/<path>` was the proposal file's page, with its start: that is
+  task 38's (`/priorities/<key>`), so the address keeps the links of the inbox, the triage, the
+  priorities, and the feature page working, and opens the file's text.
+- **Rationale**: one editor of a whole file, the same keys and the same guarantee on both addresses;
+  no second component for the source of a page.
+- **Where**: `app/screens/buffer/`, `app/screens/editor/FileEditor.tsx`.
+
+## R326: A code buffer is highlighted by the editor's own language, and wraps as every field
+
+- **Decision**: `TextEditor` takes `language`, a name, an extension, or a path, which NSH's editor
+  resolves (`nsh-base` 0.4.0, `editor/language.rs`): `TextField`'s `language` is the file's path for
+  a file that is not Markdown, and Markdown otherwise. Every buffer wraps, as the React UI's did,
+  and as the text-editing decision asks of every field.
+- **Rationale**: NSH's editor already highlights by its syntect grammars, the ones `highlightCode`
+  reads (R204); its colours are its palette's, as the Markdown field's already are.
+- **Where**: `crates/app/src/vim_bridge.rs` and `vim_bridge/types.rs`, `app/ui/text/TextField.tsx`.
+
+## R327: One conflict editor, in `app/screens/conflict/`, with a bar of blocks
+
+- **Decision**: the Git page's `ConflictEditor` moved to `app/screens/conflict/`, and the Git page's
+  Diff pane imports it there. It keeps its writes in its own state, named for the Git page in the
+  write queue, so it imports nothing of the Git screen. Over its field, a bar names the block in
+  hand, "Conflict 2 of 3", with `1` use ours, `2` use theirs, `3` use both, each named by its
+  branch, and `n` the next block, the caret moved to it: the React UI's per-block bar, which
+  CodeMirror drew among the lines. The blocks are found and replaced in Rust (`conflictBlocks`,
+  `takeConflict`, `crates/app/src/editing.rs`), as `conflicts.ts` did in TSX, with its cases as unit
+  tests.
+- **Rationale**: NSH's editor draws no widget among its lines; one bar for the block in hand keeps
+  each choice one key, and the field keeps the text.
+- **Where**: `app/screens/conflict/ConflictEditor.tsx`, `crates/app/src/editing.rs`.

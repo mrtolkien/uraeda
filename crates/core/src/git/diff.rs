@@ -290,6 +290,12 @@ fn line_diff(input: &InternedInput<&[u8]>) -> Diff {
     diff_with_slider_heuristics(Algorithm::Myers, input)
 }
 
+/// The unified diff of two versions of the text at `path`, as a file's diff is written: what an
+/// editor shows between the text typed and the file as it is now on disk.
+pub fn text_patch(path: &str, before: &str, after: &str) -> String {
+    unified(path, Some(before.as_bytes()), Some(after.as_bytes()))
+}
+
 /// The unified diff of two texts, `None` a side without the file.
 fn unified(path: &str, before: Option<&[u8]>, after: Option<&[u8]>) -> String {
     let side = |prefix: &str, side: Option<&[u8]>| match side {

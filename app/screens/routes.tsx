@@ -27,6 +27,7 @@ import "./decisions";
 // Task 46: Git.
 import "./git/panes";
 // Task 47: Editors.
+import "./buffer";
 // Task 48: Settings.
 import "./settings";
 // Task 49: Previews.

@@ -1,4 +1,5 @@
-//! The methods of a field's editor, a ref's in TSX: `focus`, `blur`, `insert`, `press`.
+//! The methods of a field's editor, a ref's in TSX: `focus`, `resume`, `blur`, `insert`, `press`,
+//! `goToLine`.
 
 use nsh_base::editor::{EditorPosition, EditorSelection};
 use nsh_core::prelude::*;
@@ -26,6 +27,22 @@ impl TextEditorApi {
                 let end = api.offset_to_position(u32::MAX);
                 api.set_selections(vec![EditorSelection::new(end, end)]);
             }
+            api.focus();
+        }
+    }
+
+    /// Takes the focus, the caret where it was: a buffer's text taken up again.
+    pub fn resume(&self) {
+        if let Some(api) = self.field.api() {
+            api.focus();
+        }
+    }
+
+    /// Puts the caret at the start of line `line`, from 0, in the middle of the field's view, and
+    /// takes the focus: a heading of the outline, or the next conflict.
+    pub fn go_to_line(&self, line: u32) {
+        if let Some(api) = self.field.api() {
+            api.go_to_line(line);
             api.focus();
         }
     }
