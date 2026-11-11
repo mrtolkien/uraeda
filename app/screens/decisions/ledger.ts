@@ -1,7 +1,7 @@
 // What the decisions' panes share: the ledger read for a repository, the list's order, kept per
 // device, the words a decision's status and dates are said in, and the route each item opens.
 // Nothing here parses a file: the server sends the ledger as the core read it.
-import { device, record, type Route } from "../../store";
+import { device, record, type Route, serverDay } from "../../store";
 import type { Decision, DecisionChange, Ledger, PartChange } from "../../store/protocol";
 import type { Tone } from "../../ui/tokens";
 
@@ -43,14 +43,9 @@ export function decisionIn(ledger: Ledger | undefined, name: string): Decision |
     : (ledger.decisions.find((one) => one.name === name) ?? null);
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** A `YYYY-MM-DD` date as "Oct 16", or "Oct 16, 2025" in another year than today's. */
-export function shortDate(date: string, today = new Date()): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const words = `${MONTHS[(month ?? 1) - 1] ?? ""} ${day ?? ""}`;
-  return year === today.getFullYear() ? words : `${words}, ${year}`;
-}
+/** A `YYYY-MM-DD` date as "16 Oct", or "16 Oct 2025" in another year than the server's today. */
+export const shortDate = (date: string, today: number = Date.now()): string =>
+  serverDay(date, today);
 
 /** "1 rule", "3 rules". */
 export const ruleCount = (count: number) => `${count} rule${count === 1 ? "" : "s"}`;

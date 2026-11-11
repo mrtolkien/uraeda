@@ -73,8 +73,14 @@ pub enum SignIn {
 )]
 pub enum ServerMessage {
     /// Answers a `hello`: the connection is open. `epoch` names this start of the server, and a
-    /// sequence number means something under its own epoch only.
-    Welcome { protocol: u32, epoch: String },
+    /// sequence number means something under its own epoch only. `time_zone` is the server's zone,
+    /// an IANA name ("Europe/Paris", "UTC" when the machine names none): every time a client shows
+    /// reads in it, whatever the device's.
+    Welcome {
+        protocol: u32,
+        epoch: String,
+        time_zone: String,
+    },
     /// Answers a `hello` the server turns down, with its own version. The server then closes the
     /// connection.
     Refused { reason: Refusal, protocol: u32 },

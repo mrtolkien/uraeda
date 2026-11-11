@@ -15,7 +15,7 @@ const zone = signal<string | undefined>(undefined);
  */
 export const serverZone = () => zone();
 
-/** The shell's alone: the zone the server said, from the record `Jobs`, which carries it. */
+/** The store's alone: the zone the server's `welcome` names, at each connection. */
 export function setServerZone(next: string | undefined) {
   if (next !== undefined && next !== zone()) zone.set(next);
 }
@@ -49,4 +49,32 @@ export function serverTime(at: Instant, now: Instant = Date.now()): string {
   if (Math.abs(days) < 7) return `${DAYS[shown.weekday]} ${time}`;
   const date = `${shown.day} ${MONTHS[shown.month - 1]}`;
   return shown.year === today.year ? `${date} ${time}` : `${date} ${shown.year}`;
+}
+
+/** A calendar date with no time, `2026-10-16`: a day as written, never moved by a zone. */
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The day of `at` in the server's zone, or the day a `YYYY-MM-DD` date names. */
+function dayClock(at: Instant): { year: number; month: number; day: number } {
+  const plain = typeof at === "string" ? DATE.exec(at) : null;
+  if (plain !== null)
+    return { day: Number(plain[3]), month: Number(plain[2]), year: Number(plain[1]) };
+  return serverClock(at);
+}
+
+/**
+ * The day of `at`, in the server's zone, as `serverTime` writes a day: "12 Nov" this year, "12 Nov
+ * 2025" before. A `YYYY-MM-DD` date is the day it names.
+ */
+export function serverDay(at: Instant, now: Instant = Date.now()): string {
+  const shown = dayClock(at);
+  const date = `${shown.day} ${MONTHS[shown.month - 1]}`;
+  return shown.year === serverClock(now).year ? date : `${date} ${shown.year}`;
+}
+
+/** How many days of the server's calendar `at` is before `now`: 0 today, 1 yesterday. */
+export function serverDaysAgo(at: Instant, now: Instant = Date.now()): number {
+  const day = (clock: { year: number; month: number; day: number }) =>
+    Date.UTC(clock.year, clock.month - 1, clock.day) / 86_400_000;
+  return day(serverClock(now)) - day(dayClock(at));
 }

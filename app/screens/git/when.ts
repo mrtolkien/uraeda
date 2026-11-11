@@ -1,6 +1,6 @@
 // When something happened, in words a person says: "just now", "4 min ago", "3 h ago", then the
-// day, "yesterday" or "16 Oct".
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// day, "yesterday" or "16 Oct", in the server's zone.
+import { serverDay } from "../../store";
 
 /** `seconds`, Unix seconds, against `now`, in milliseconds. */
 export function ago(seconds: number, now: number = Date.now()): string {
@@ -9,8 +9,5 @@ export function ago(seconds: number, now: number = Date.now()): string {
   if (passed < 3600) return `${Math.floor(passed / 60)} min ago`;
   if (passed < 86_400) return `${Math.floor(passed / 3600)} h ago`;
   if (passed < 2 * 86_400) return "yesterday";
-  const day = new Date(seconds * 1000);
-  return `${day.getDate()} ${MONTHS[day.getMonth()]}${
-    day.getFullYear() === new Date(now).getFullYear() ? "" : ` ${day.getFullYear()}`
-  }`;
+  return serverDay(seconds * 1000, now);
 }

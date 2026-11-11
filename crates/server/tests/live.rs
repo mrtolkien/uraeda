@@ -533,6 +533,17 @@ async fn a_burst_of_updates_is_sent_as_one_change() {
     assert_eq!((at, &value["count"]), (seq + 1003, &json!(1009)));
 }
 
+/// The app reads every time in the server's zone, whatever the device's, from the `welcome`: with
+/// no repository and no extension on, as the record `Jobs` once had to be read for it.
+#[tokio::test]
+async fn a_welcome_names_the_servers_time_zone() {
+    let server = support::server().await;
+    let client = server.connect().await;
+
+    let machine = jiff::tz::TimeZone::system();
+    assert_eq!(client.time_zone(), machine.iana_name().unwrap_or("UTC"));
+}
+
 #[tokio::test]
 async fn an_action_knows_who_calls() {
     let server = support::server().await;

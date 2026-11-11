@@ -6261,3 +6261,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   server from any signed-in client, beyond this task. A browser's sign-out returns with the web
   build (task 56).
 - **Where**: `app/screens/settings/SignIn.tsx`.
+
+## T93.6: The server's time zone comes with its `welcome`, and every day the app shows is the store's
+
+- **Decision**: `welcome` carries `timeZone`, the server's IANA zone (the machine's, `UTC` where it
+  names none), and the store's connection hands it to `setServerZone` at each `welcome`. The frame
+  no longer reads the record `Jobs` for it. `app/store/time.ts` adds `serverDay`, "17 Oct", "17 Oct
+  2025", a `YYYY-MM-DD` date as written, and `serverDaysAgo`; the feature page's times and days, the
+  decisions' dates, Git's older days, and sign-in's days use them, so a day reads "17 Oct"
+  everywhere, where the feature page and the decisions wrote "Oct 17". Usage's reset reads "5h 58%
+  left · reset 07:11", with the app's separator.
+- **Rationale**: ruling R263's "If wrong" came true: with the Jobs extension off, times read in the
+  device's zone, and the feature page wrote device times of its own.
+- **Where**: `crates/protocol/src/message.rs`, `crates/server/src/http/socket.rs`,
+  `crates/server/tests/live.rs`, `contracts/protocol.md`, `app/store/{connection,index,time}.ts`,
+  `app/screens/feature/words.ts`, `app/screens/decisions/ledger.ts`, `app/screens/git/when.ts`,
+  `app/screens/settings/SignIn.tsx`, `app/screens/shell/{Frame.tsx,usage.ts}`.

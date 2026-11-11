@@ -57,6 +57,7 @@ async fn welcomed(
             let welcome = ServerMessage::Welcome {
                 protocol: PROTOCOL,
                 epoch: shared.epoch().to_owned(),
+                time_zone: zone_name(),
             };
             send(socket, &welcome).await.then_some(identity)
         }
@@ -65,6 +66,15 @@ async fn welcomed(
             None
         }
     }
+}
+
+/// The server's time zone, by its IANA name: the machine's, as the scheduler reads it, or `UTC`
+/// where the machine names none.
+fn zone_name() -> String {
+    jiff::tz::TimeZone::system()
+        .iana_name()
+        .unwrap_or("UTC")
+        .to_owned()
 }
 
 /// The connection's next text frame: none once the client closed it, or the server stops.

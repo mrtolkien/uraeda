@@ -17,6 +17,7 @@ pub struct TestClient {
     socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
     sign_in: SignIn,
     epoch: Option<String>,
+    time_zone: Option<String>,
     /// What the test waits for, said when nothing comes.
     waiting_for: String,
 }
@@ -39,6 +40,7 @@ impl TestClient {
             socket,
             sign_in: SignIn::Cookie,
             epoch: None,
+            time_zone: None,
             waiting_for: String::new(),
         }
     }
@@ -68,7 +70,12 @@ impl TestClient {
     /// Says `hello` at the server's version, and expects its `welcome`.
     pub async fn hello(&mut self) {
         match self.say_hello().await {
-            ServerMessage::Welcome { epoch, .. } => self.epoch = Some(epoch),
+            ServerMessage::Welcome {
+                epoch, time_zone, ..
+            } => {
+                self.epoch = Some(epoch);
+                self.time_zone = Some(time_zone);
+            }
             other => panic!("expected a welcome, got {other:?}"),
         }
     }
@@ -76,6 +83,11 @@ impl TestClient {
     /// The epoch of the `welcome` this connection got.
     pub fn epoch(&self) -> &str {
         self.epoch.as_deref().expect("a welcomed connection")
+    }
+
+    /// The server's time zone, as the `welcome` this connection got named it.
+    pub fn time_zone(&self) -> &str {
+        self.time_zone.as_deref().expect("a welcomed connection")
     }
 
     /// Sends a message.

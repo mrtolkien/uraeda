@@ -90,10 +90,10 @@ export function barWindow(agent: Agent | undefined, inView: InView | undefined) 
   return first && account && { label: `${account.name} ${first.label}`, left: leftOf(first) };
 }
 
-/** A window as Home's Usage pane says it: "5h 58% left - reset 15:08". */
+/** A window as Home's Usage pane says it: "5h 58% left · reset 15:08". */
 export type WindowUsage = {
   id: string;
-  /** "5h 58% left - reset 15:08". */
+  /** "5h 58% left · reset 15:08". */
   words: string;
   /** What is left, from 0 to 100. */
   left: number;
@@ -113,7 +113,7 @@ export type AgentUsage = {
 
 function windowWords(window: Window, now: Date): WindowUsage {
   const left = leftOf(window);
-  const reset = window.resetsAt === null ? "" : ` - reset ${serverTime(window.resetsAt, now)}`;
+  const reset = window.resetsAt === null ? "" : ` · reset ${serverTime(window.resetsAt, now)}`;
   return { id: window.label, left, words: `${window.label} ${left}% left${reset}` };
 }
 

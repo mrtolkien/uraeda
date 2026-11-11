@@ -85,7 +85,14 @@ export class Connection {
   private inbox: ServerMessage[] = [];
   private flushing: number | undefined;
 
-  constructor(options: ConnectOptions) {
+  /**
+   * `heardZone` hears the server's time zone at each `welcome`: the store's `connect` hands it to
+   * `setServerZone`, which every time the app shows reads.
+   */
+  constructor(
+    options: ConnectOptions,
+    private readonly heardZone: (zone: string) => void = () => {},
+  ) {
     this.where = signal(options.address);
     this.signIn = options.signIn;
     this.grace = options.grace ?? GRACE;
@@ -249,6 +256,7 @@ export class Connection {
   private receive(message: ServerMessage, told: Set<Entry>) {
     switch (message.type) {
       case "welcome":
+        this.heardZone(message.timeZone);
         this.welcomed(message.epoch);
         return;
       case "refused":

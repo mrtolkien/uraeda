@@ -6,28 +6,21 @@ import { signal, View } from "nsh";
 import { wordsOf } from "./categories";
 import { savedField } from "./fields";
 import { SettingRow, SettingRows } from "./Row";
-import { call, extensionHost, record } from "../../store";
+import { call, extensionHost, record, serverDay, serverDaysAgo } from "../../store";
 import type { Device } from "../../store/protocol";
 import { Banner, Button, refusalOf, Text, Under } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { Card, Empty } from "../../ui/lists";
 import { TextField } from "../../ui/text";
 
-const DAY = 24 * 60 * 60 * 1000;
-
-/** A date's day, at midnight UTC, to count whole days between two. */
-const day = (date: Date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-
-/** A day in words, from today: "today", "yesterday", "3 days ago", "on 2 Nov 2026". */
-export function dayWords(iso: string, now = new Date()): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return "on an unknown day";
-  const days = Math.round((day(now) - day(at)) / DAY);
+/** A day in words, from the server's today: "today", "yesterday", "3 days ago", "on 2 Nov". */
+export function dayWords(iso: string, now: number = Date.now()): string {
+  if (Number.isNaN(new Date(iso).getTime())) return "on an unknown day";
+  const days = serverDaysAgo(iso, now);
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   if (days < 7) return `${days} days ago`;
-  const month = at.toLocaleString("en-GB", { month: "short" });
-  return `on ${at.getDate()} ${month} ${at.getFullYear()}`;
+  return `on ${serverDay(iso, now)}`;
 }
 
 /** This device's id: the part of its token before the dot. None in a browser, signed in by cookie. */

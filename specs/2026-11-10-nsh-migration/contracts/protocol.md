@@ -38,11 +38,13 @@ The first message of a connection is the client's `hello`: its version, and how 
 - The server answers `welcome`, and the connection is open:
 
 ```json
-{ "type": "welcome", "protocol": 1, "epoch": "b7Qx2f" }
+{ "type": "welcome", "protocol": 1, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" }
 ```
 
 - `epoch` is a random text the server draws each time it starts. A
   [sequence number](#sequence-numbers) means something under its own epoch only.
+- `timeZone` is the server's time zone, by its IANA name, `UTC` where its machine names none. A
+  client shows every time in it, whatever the device's zone.
 - Or the server answers `refused`, with its own version, and closes the connection:
 
 ```json

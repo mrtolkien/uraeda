@@ -7,6 +7,7 @@ import { type ConnectOptions, Connection } from "./connection";
 import { offline } from "./errors";
 import type { ActionName, Args, Input, Live, Output, RecordName, Value } from "./records";
 import { read, watch } from "./records";
+import { setServerZone } from "./time";
 
 export { GRACE, PROTOCOL, WAITS } from "./connection";
 export type { ConnectOptions, Connection, Status } from "./connection";
@@ -40,7 +41,7 @@ let current: Connection | undefined;
  */
 export function connect(options: ConnectOptions): Connection {
   current?.close();
-  current = new Connection(options);
+  current = new Connection(options, setServerZone);
   return current;
 }
 

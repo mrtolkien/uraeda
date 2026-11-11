@@ -1,32 +1,19 @@
 // The feature page's words: times as a person reads them, the names of steps, stages, and files,
 // and what a status means. Pure, with the clock an argument: the rules they say are the server's,
 // these only put them in words.
+import { serverDay, serverTime } from "../../store";
 import type { Feature, FileSummary, Session, Turn, Wait } from "../../store/protocol";
 
 const two = (value: number) => String(value).padStart(2, "0");
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** A time as the server sends it: RFC 3339, `YYYY-MM-DD`, or milliseconds since 1970. */
 export type When = string | number;
 
-const dateOf = (when: When) => new Date(when);
+/** "17 Oct": a day, in the server's zone, as the store writes every day. */
+export const day = (when: When): string => serverDay(when);
 
-/** "Oct 17": a day. */
-export function day(when: When): string {
-  const at = dateOf(when);
-  return `${MONTHS[at.getMonth()]} ${at.getDate()}`;
-}
-
-/** "14:02" today, "Tue 14:02" within the week, "Oct 17, 14:02" before. */
-export function clock(when: When, now: number = Date.now()): string {
-  const at = dateOf(when);
-  const time = `${two(at.getHours())}:${two(at.getMinutes())}`;
-  if (at.toDateString() === new Date(now).toDateString()) return time;
-  const ago = now - at.getTime();
-  if (ago > 0 && ago < 6 * 86_400_000) return `${DAYS[at.getDay()]} ${time}`;
-  return `${day(when)}, ${time}`;
-}
+/** "14:02" today, "Tue 14:02" within the week, "17 Oct 14:02" before: the server's zone. */
+export const clock = (when: When, now: number = Date.now()): string => serverTime(when, now);
 
 /** "45 s", "12 min", "2 h 50 min", "3 d 4 h". */
 export function duration(seconds: number): string {
