@@ -3857,3 +3857,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   runs differ by more than that between themselves, and no measure on a GPU was taken.
 - **Where**: [`frames.test.tsx`](/app/gallery/samples/frames.test.tsx),
   [`gallery.test.tsx`](/app/gallery/surfaces/gallery.test.tsx), the [`justfile`](/justfile).
+
+## R163: The frame is panes in two stacks, and a screen declares its panes
+
+- **Decision**: task 33 builds the layout as data: panes, each a kind and its arguments, in two
+  stacks, main and side, shown as tabs or split. A screen declares its panes and their default
+  stacks, and the shell draws them. Task 66, new, adds the moves: a pane sent to the other stack,
+  tabs, the side stack as a full pane, zoom, and a layout kept per device.
+- **Rationale**: the human asked for it on 2026-11-11: "a clear concept of panes, tabs, and
+  sidebar", moved as in a tiling window manager, "with two stacks (the center column + right
+  sidebar)". No screen was built yet, so the model costs the screens' tasks nothing now, and would
+  cost every one of them later. Zed, VS Code, and Kiro each showed a part: panels that say where
+  they may sit, a stored location per view with a reset, and a pane as a view of a thing that holds
+  no state.
+- **Alternatives considered**: a free tree of splits, as i3 has: every layout possible, and every
+  screen must then draw at any size. Two stacks keep a main subject and what goes with it, which is
+  what each place of the app is.
+- **If wrong**: the moves are one task, 66, which can go without touching the model. The human said
+  they did not need the moves in this feature: the task is in because the screens are being written
+  now, and it is theirs to drop.
+- **Where**: tasks 33 and 66, the screens' shared rule, and the guide `specs/ui/panes.md`, which
+  task 33 writes.

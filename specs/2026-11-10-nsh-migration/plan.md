@@ -29,11 +29,11 @@ as a Linux app and a web build, on a component library of its own.
 **Architecture:** see [the spec's architecture](spec.md#architecture) for the shape. The ownership,
 the layout, and the contracts are under [code read](#code-read). The tasks come in three phases:
 
-| Phase         | Tasks       | Ends with                                          |
-| ------------- | ----------- | -------------------------------------------------- |
-| 0, core       | 1–35, 62–64 | A Rust server, a client core, and a gallery        |
-| 1, Linux, GTK | 36–55, 65   | The Linux app, packaged, at parity                 |
-| 2, web        | 56–61       | The web build, and the React and Node code removed |
+| Phase         | Tasks        | Ends with                                          |
+| ------------- | ------------ | -------------------------------------------------- |
+| 0, core       | 1–35, 62–64  | A Rust server, a client core, and a gallery        |
+| 1, Linux, GTK | 36–55, 65–66 | The Linux app, packaged, at parity                 |
+| 2, web        | 56–61        | The web build, and the React and Node code removed |
 
 iOS and macOS are not in this plan. Nothing here may close them off: see
 [global constraints](#global-constraints).
@@ -206,6 +206,12 @@ rules.
   (task 24), `registerKey` (task 32), and the records and actions of its area (tasks 7 to 18).
 - Produces: its screens, registered for their routes in `app/screens/routes.tsx`, each adding its
   own lines there.
+
+**A screen is panes, not a page.** A screen task declares the panes of its routes with `definePane`,
+and their default stacks with `placeOf` (task 33, and the panes guide, `specs/ui/panes.md`): it
+never draws a side column or a tab bar of its own. Each pane draws well in either stack, at the
+width its stack has, and keeps its scroll, its selection, and its unsaved text in the store or the
+visit's entry, so a move or a hidden tab loses nothing.
 
 **Shared steps:**
 
@@ -537,7 +543,7 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
     routes.
 20. Tasks 38, 41, 43, 47, 49, 65.
 21. Tasks 42, 44, 50.
-22. Task 51.
+22. Task 51. Then task 66, alone: it moves every screen's panes.
 23. Tasks 52, 53.
 24. Task 54.
 25. Task 55, alone.
@@ -2072,29 +2078,83 @@ ported, beyond accounts and jobs.
       structural test. Expected: PASS.
 - [x] **Step 5: Commit**: `feat(nsh-migration): the key registry and the leader menu`.
 
-## Task 33: The layout shell
+## Task 33: The layout shell: panes in two stacks
+
+Rewritten on 2026-11-11, after the human asked for "a clear concept of panes, tabs, and sidebar",
+with a behaviour "inspired by tiling WMs like hyprland or i3, with two stacks (the center column +
+right sidebar)". This task builds the model and the frame that draws it. Task 66 adds the moves.
+
+**What other apps teach**, read before designing:
+
+- **Zed** splits its window in a centre of panes, whose items are tabs, and docks at the edges,
+  whose panels have no tab bar: one shows at a time. A panel says which docks it may sit in, and any
+  pane can be zoomed to the whole window
+  ([its panel system](https://zed.dev/blog/new-panel-system)).
+- **VS Code** keeps a location per view, moved by drag between its side bars and its panel, saved
+  across sessions, with "Reset Location" for one view and for all
+  ([custom layout](https://code.visualstudio.com/docs/configure/custom-layout)). A view dragged into
+  the editor area works from one side bar and not the other: two mechanisms for one idea.
+- **Kiro** opens a chat of its panel as an editor tab: the panel and the tab show the same session,
+  and closing the tab leaves the session in the panel
+  ([chat in the editor](https://kiro.dev/docs/chat/chat-in-editor/)). A pane is a view of a thing,
+  never the thing: it holds no state of its own.
+- **Tiling window managers** move by the keyboard: focus goes in a direction, the focused window
+  moves to the other stack or swaps with the main one, and a group shows its windows as tabs or side
+  by side. Nothing needs a drag.
+
+**The model**, small on purpose:
+
+- **A pane** is a kind and its arguments, like a route: `{ kind: "transcript", session }`. Its kind
+  is declared once, with `definePane`: its title, its icon, the component that draws it, and where
+  it sits by default. Two panes with equal kind and arguments are the same pane.
+- **A stack** is an ordered list of panes, shown as tabs, one at a time, or split, all at once.
+  There are two: **main**, the centre, and **side**, at the right. The side stack folds away, and on
+  a narrow window both become one stack of tabs.
+- **A layout** is the two stacks, which pane each shows, which pane has the focus, and whether one
+  is zoomed to the whole window. It is plain data, and every change of it is a pure function:
+  `focus`, `show`, `move`, `reorder`, `split`, `fold`, `zoom`, `reset`.
+- **A place declares its panes, and never places them.** A screen gives the panes of its route and
+  their default stacks: a session's transcript in main; its activity, changes, sub-agents, and plan
+  as tabs of side. The shell draws them. So a pane works in either stack, at any width its stack may
+  have, and keeps what it shows in the store and the visit's entry, never in a component that a move
+  would unmount.
+- **The navigation rail, the status line, and overlays are not panes**: they are the frame.
 
 **Files:**
 
-- Create: `app/ui/layout/{Page,Panes,SideColumn,Rail,StatusLine,NavBar,BottomBar,width}.tsx`
+- Create:
+  `app/ui/layout/{layout,panes,Stacks,Stack,PaneTabs,Rail,StatusLine,NavBar,BottomBar, width}.tsx`,
+  and the guide `specs/ui/panes.md`
+- Test: `app/ui/layout/layout.test.ts`
 
 **Interfaces:**
 
-- Consumes: surfaces, controls, `route` (24).
-- Produces: the app's frame at the three width classes of the UI layout decision: narrow below 768,
-  semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`. The side
-  column's keys are the shell's: `l` moves the focus from the page into the column, onto its first
-  row, `h` gives it back, `j` `k` move through its rows, and `k` past the first reaches its tabs, as
-  [the keyboard guide](/specs/ui/keyboard.md) says. Every screen with a side column gets them from
-  here.
+- Consumes: surfaces (27), controls (28), the key registry's pane scopes (32), `route` and a visit's
+  entry (24), the device store (24).
+- Produces:
+  - `definePane({ kind, title, icon, view, stack })`, and `Layout` with its pure functions.
+  - `placeOf(route): { main: PaneRef[], side: PaneRef[] }`, which each screen task fills for its
+    routes, and the shell, which draws the layout of the current route.
+  - The app's frame at the three width classes of the UI layout decision: narrow below 768,
+    semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`.
+  - The keys of the frame, declared in the registry: `h` `l` move the focus between the stacks,
+    unfolding the side one; in a stack of tabs `j` `k` move through the focused pane's rows, and `k`
+    past the first row reaches the tabs, where `h` `l` show the previous and the next, as
+    [the keyboard guide](/specs/ui/keyboard.md) says. The status line names them.
 
-- [ ] **Step 1: Build the frame**, following [wide](/specs/ui/wide.md),
+- [ ] **Step 1: Write the failing tests** of the layout's functions, as a table: a move to the other
+      stack; a move of a stack's last pane; the focus after a pane goes; a fold with the focus
+      inside; a narrow window's one stack, and back; `reset`.
+- [ ] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 3: Build the model and the frame**, following [wide](/specs/ui/wide.md),
       [semi-wide](/specs/ui/semi-wide.md), and [phone](/specs/ui/phone.md). Read the window's width
       after the first layout: at the first render it is 0, which chose the wrong layout in the
-      spike.
-- [ ] **Step 2: Add it to the gallery**, at each width.
-- [ ] **Step 3: Run the task's validation**. Expected: PASS.
-- [ ] **Step 4: Commit**: `feat(nsh-migration): the layout shell`.
+      spike. A pane that moves or whose tab shows again keeps its scroll and its selection.
+- [ ] **Step 4: Write the guide** `specs/ui/panes.md`: what a pane, a stack, and a layout are, what
+      a screen declares, and the keys, for the people who write screens.
+- [ ] **Step 5: Add it to the gallery**, at each width, with sample panes in both stacks.
+- [ ] **Step 6: Run the task's validation**: `just task-app`. Expected: PASS.
+- [ ] **Step 7: Commit**: `feat(nsh-migration): the layout shell, panes in two stacks`.
 
 ## Task 34: Extension pages in the client
 
@@ -2575,6 +2635,43 @@ default branch's [scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature.
 - [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
 - [ ] **Step 5: Run the task's validation**. Expected: PASS.
 - [ ] **Step 6: Commit**: `feat(nsh-migration): the Jobs place`.
+
+## Task 66: Moving panes
+
+Added on 2026-11-11, with [task 33](#task-33-the-layout-shell-panes-in-two-stacks)'s model: the
+human asked that panes move between the centre and the sidebar, open as tabs, and that the sidebar
+can become a full pane, as in a tiling window manager.
+
+**Files:**
+
+- Modify: `app/ui/layout/`, `specs/ui/panes.md`, `specs/ui/keyboard.md`
+- Test: `app/ui/layout/moves.test.tsx`
+
+**Interfaces:**
+
+- Consumes: `Layout` and its functions (33), every screen's panes (36 to 51, 65), the key registry
+  and the leader menu (32), the device store (24).
+- Produces:
+  - The moves, by keyboard first, each also in a pane's menu, by tap: send the focused pane to the
+    other stack; swap it with the main stack's shown pane; move it left or right among its tabs;
+    show a stack as tabs or split; fold the side stack; zoom the focused pane to the window and
+    back; close a pane a place does not require; reset this place's layout, and every place's.
+  - Open any pane as a tab of a stack, from where it is named: a session, a file, a diff.
+  - A layout kept per device and per kind of place, so every session page opens as the human
+    arranged the last one. A pane's location is one stored fact, as VS Code's view location is.
+  - Drag of a tab to the other stack, on a pointer, as a second way to do the same moves.
+
+- [ ] **Step 1: Write the failing tests**:
+      `a pane sent to the other stack keeps its scroll and its     text`;
+      `a layout comes back after a restart`; `reset gives the place's default`.
+- [ ] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 3: Implement.** Choose the keys with the keyboard guide's layers: the moves are a group
+      of the leader menu, and no single key is taken from a page. Every move is animated, short, as
+      the design language's motion asks: a pane never jumps.
+- [ ] **Step 4: Review it in the running app**, on the sandbox, at each width, by keyboard then by
+      touch: arrange a session page three ways, leave it, and come back.
+- [ ] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): panes move between the stacks`.
 
 ## Task 52: The sandbox, and a walk through the app
 
