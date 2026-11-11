@@ -18,7 +18,7 @@ use uraeda_core::watch::{Changes, Watcher, watch};
 
 use self::files::Target;
 use super::workspace::{self, repositories};
-use super::{extensions, features, git, previews, writing};
+use super::{extensions, features, git, previews, pulls, writing};
 use crate::Failure;
 use crate::live::locked;
 use crate::shared::Shared;
@@ -33,6 +33,7 @@ const FILES_CHANGED: &[fn(&Shared, &str, &Changes)] = &[
     git::files_changed,
     previews::files_changed,
     extensions::files_changed,
+    pulls::files_changed,
 ];
 
 /// What a domain does when the config folder changed: the settings file, or a theme file. One
@@ -45,7 +46,7 @@ const CONFIG_CHANGED: &[fn(&Shared)] = &[
 
 /// What a domain does when a repository joins the list once the server runs, or its folder
 /// comes back: it gets the repository's name. One line per domain.
-const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[git::repository_joined];
+const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[git::repository_joined, pulls::repository_joined];
 
 /// What a domain does when a repository leaves the list, or its folder goes: it gets the
 /// repository's name. One line per domain.

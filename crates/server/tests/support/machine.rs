@@ -1,10 +1,12 @@
-//! The machine's commands no test's server runs: the agents, which use their owner's accounts.
+//! The machine's commands no test's server runs, which use their owner's accounts: the agents,
+//! and `gh`.
 //!
-//! The built-in runtimes ask their agent for its models as the server starts, so a test's
-//! server that found the machine's `claude` or `codex` would start it, from every test. Each
-//! test's server has instead a folder of its own, first on its `PATH` after the test's own
-//! commands, which holds a stand-in under each of those names: `no-agents/stand-in`, which
-//! writes down that it was asked and fails at once, as a command that is not installed.
+//! The built-in runtimes ask their agent for its models as the server starts, and the pull
+//! requests' refresh asks `gh` for each listed repository, so a test's server that found the
+//! machine's `claude`, `codex`, or `gh` would start it, from every test. Each test's server
+//! has instead a folder of its own, first on its `PATH` after the test's own commands, which
+//! holds a stand-in under each of those names: `no-agents/stand-in`, which writes down that it
+//! was asked and fails at once, as a command that is not installed.
 //!
 //! This is the one home of that rule: `support::setup()` builds the `PATH` of every server of
 //! this crate's tests from here, and `crates/cli/tests/serve.rs` the one of its `ura serve`.
@@ -13,8 +15,11 @@ use std::fs;
 use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 
-/// The commands a test's server never finds on the machine.
-pub const COMMANDS: [&str; 2] = ["claude", "codex"];
+/// The agents' commands, which every server asks for their models as it starts.
+pub const AGENTS: [&str; 2] = ["claude", "codex"];
+
+/// The commands a test's server never finds on the machine: the agents', and `gh`.
+pub const COMMANDS: [&str; 3] = ["claude", "codex", "gh"];
 
 /// The stand-in every one of them is. The server's crate and the CLI's are in one folder.
 const STAND_IN: &str = concat!(

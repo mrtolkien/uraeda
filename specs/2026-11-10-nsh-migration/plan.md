@@ -493,7 +493,9 @@ dropped. Rulings R84 to R96 say what was decided. What later tasks use:
   `records::writing::undo::sent`, `live::locked`, `Store::holds_image`, `Environment::added`.
 - **The tests' support**, `crates/server/tests/support/`: `fixture(path)`, `fixture_text(path)`,
   `fixture_repo(name)`, `Hook`, `read`, `call`, `Held`, `Live`, `idle(&server, repo)`, and
-  `writes(&queue)`.
+  `writes(&queue)`. A test's own commands, as a stand-in of `gh` or of an agent, are a folder given
+  to `Setup::commands(dir)`: no test sets `PATH`, which holds a stand-in that fails for `claude`,
+  `codex`, and `gh` (rulings T98.1 and T98.3).
 
 Left for later tasks, each marked `TASK 15:`, `TASK 20:`, `TASK 51:`, or `TEMPORARY:` where it goes:
 a feature's status from its sessions, the refusal of a write while an agent works, a start's first
@@ -1130,6 +1132,15 @@ What the sessions (task 15) rely on:
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
   continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says.
+- **Starts the catch-up runs on the pull requests' refresh** (ruling T98.3), which
+  [`records/pulls.rs`](/crates/server/src/records/pulls.rs) runs: it asks `gh` for each listed
+  repository as the server starts, as a repository joins the list, after a burst of the watcher that
+  moved a branch, and every minute while a branch is past its last task, and the core keeps what it
+  answered for every read of the workspace. The sessions add one line to its list `SETTLED`, marked
+  `TASK 15:`, for `fn(&Shared, repository: &str)`: called on a blocking thread after each burst of
+  the watcher, once the refresh it asked for ended, and after each other refresh that changed what
+  is known. From there `api::read_workspace` of the repository gives each feature's `pull_request`
+  and its step, `catch-up` with its `catch_up` when its branch is behind the default branch.
 - **Finishes what task 8 left to the sessions** (ruling R61), each at a `// TASK 15:` comment of
   [`records/features/`](/crates/server/src/records/features/):
   - `feature.continueAll`, with its answer `ContinuedAll`: not declared yet, it is all runs.

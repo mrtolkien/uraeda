@@ -2788,3 +2788,39 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   both are started with the same arguments and instructions.
 - **Where**: `crates/server/src/runtimes/{mod,built_in,claude,codex}.rs`, `built_in/`,
   `claude/{folders,args,models,tools,events}.rs`, `codex/{instructions,items,events,models}.rs`.
+
+## T98.3: The pull requests' refresh is a records domain, which runs `gh` itself
+
+- **Decision**: `crates/server/src/records/pulls.rs` ports the Node server's `pulls.ts`, which no
+  task named (R57). It serves no record: the workspace's and the features' records already carry a
+  feature's pull request, from the snapshot the core keeps per repository.
+  - **When a repository is asked**: as the server starts and as it joins the list; after a burst of
+    the watcher that names a feature, or says a feature, a branch, or a worktree came or went, its
+    line in `FILES_CHANGED`; and every minute while one of its features is at `catch-up`,
+    `final-review`, `finish`, `pull-request`, `pull-request-changes`, `pull-request-unknown`, or
+    `push`.
+  - **One round at a time**, on a blocking thread, for every repository: the bursts told while a
+    round runs are the next round, each repository asked once.
+  - **The server runs `gh`**, in `pulls/gh.rs`, with `shared.environment().command("gh")` in the
+    repository's main checkout, and gives what it printed to the core's `pulls::parse`,
+    `parse_merged`, `known`, and `settle`, at `shared.now()`. The core's own `pulls::refresh` starts
+    `gh` in the process's environment, where a test's server would find the machine's.
+  - **Two differences from the core's fetch**: `gh` gives up after 30 seconds, and the merged pull
+    requests are not asked for when the open ones failed, since nothing is known without them.
+  - **A refresh that changed what is known tells the bus**: `workspace::written` and
+    `features::written` of the repository.
+  - **The server's stop** ends the rounds through `shared.on_stop`, which waits for the one that
+    runs: a `gh` that runs is killed, and none is started.
+  - **`SETTLED`**, a list of `fn(&Shared, &str)` in `pulls.rs`, is where the sessions start the
+    catch-up runs (task 15). It is empty, and marked `TASK 15:`.
+  - **In tests**, `gh` is a stand-in that fails, beside the agents' (T98.1). `tests/pulls.rs` puts
+    its own before it, a script that answers the JSON recorded in its folder. Two of its tests run
+    on tokio's paused clock, so a minute passes at once.
+  - A failure is not logged: `gh` missing or signed out is the snapshot `Unavailable`, as in the
+    core, and a repository whose folder is gone is skipped.
+- **Rationale**: without it a workspace shows no pull request, and no step past the last task moves
+  on what GitHub says.
+- **Alternatives**: a line in the git domain's fetcher, as R57 proposed. The fetcher runs every 5
+  minutes as a write of the queue; the refresh writes nothing, and runs by the minute.
+- **Where**: `crates/server/src/records/{mod,watch,pulls}.rs`, `pulls/gh.rs`,
+  `crates/server/tests/pulls.rs`, `crates/server/tests/support/machine.rs`. Task 15.

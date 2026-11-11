@@ -215,13 +215,14 @@ impl TestServer {
         self.server.shared()
     }
 
-    /// Asserts that the server runs no agent of the machine: the `claude` and the `codex` its
-    /// `PATH` finds are the test's own, or the stand-ins, which it asked as it started.
+    /// Asserts that the server runs no agent of the machine, and no `gh`: the `claude`, the
+    /// `codex`, and the `gh` its `PATH` finds are the test's own, or the stand-ins, of which it
+    /// asked each agent's as it started.
     pub async fn runs_no_agent_of_the_machine(&self) {
         let environment = self.shared().environment();
         let path = environment.var("PATH").expect("a server has a PATH");
-        for agent in machine::COMMANDS {
-            let found = machine::found(path, agent).expect("a stand-in is found");
+        for command in machine::COMMANDS {
+            let found = machine::found(path, command).expect("a stand-in is found");
             let folder = found.parent().expect("a file is in a folder");
             if self.commands.iter().any(|own| own == folder) {
                 continue;
@@ -229,9 +230,11 @@ impl TestServer {
             assert_eq!(
                 folder,
                 self.stand_ins.path(),
-                "the server would run the machine's `{agent}`"
+                "the server would run the machine's `{command}`"
             );
-            self.asked(agent).await;
+            if machine::AGENTS.contains(&command) {
+                self.asked(command).await;
+            }
         }
     }
 

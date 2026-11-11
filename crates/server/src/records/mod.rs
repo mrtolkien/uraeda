@@ -28,11 +28,14 @@
 //! - A domain whose records follow files adds its line to a list of `watch.rs`, the server's one
 //!   file watcher: `FILES_CHANGED` for a repository's files, `CONFIG_CHANGED` for the config
 //!   folder's; and to [`WRITTEN`], for the server's own writes.
+//! - A domain that acts on a repository's pull requests adds its line to `SETTLED` of
+//!   `pulls.rs`, which asks `gh` for them.
 
 mod extensions;
 mod features;
 mod git;
 mod previews;
+mod pulls;
 mod views;
 pub(crate) mod watch;
 mod workspace;
@@ -57,6 +60,7 @@ const DOMAINS: &[Register] = &[
     git::register,
     previews::register,
     extensions::register,
+    pulls::register,
 ];
 
 /// What a domain says once the server wrote to a repository: it gets the bus and the
