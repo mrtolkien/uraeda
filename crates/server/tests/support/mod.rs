@@ -128,6 +128,7 @@ impl Setup {
             allow_origins: self.allow_origins.clone(),
             clock: Clock::fixed(SystemTime::UNIX_EPOCH + START),
             no_scheduled_jobs: false,
+            sandbox: None,
         }
     }
 

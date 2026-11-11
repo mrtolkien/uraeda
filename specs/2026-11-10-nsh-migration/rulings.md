@@ -5076,3 +5076,86 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     task ports `toStored`, with this rule, to the server.
 - **Where**: the commit `feat(nsh-migration): the default agent, and what else the server gained`.
   Tasks 20, 44, 48, 62, and 63.
+
+## R229: The parity list maps every old name, read from the Node code, and freezes for task 61
+
+- **Decision**: `crates/server/parity.toml` has three tables, `records`, `actions`, and `routes`,
+  each keyed by the Node server's name (a route as `<METHOD> <Hono path>`), its value the name this
+  server serves it by, or `dropped: <why>`. `crates/server/tests/parity.rs` compares the keys with
+  the names `tests/parity/node.rs` reads: fate's `dataView<..>("Name")` and quoted `"a.b":` keys of
+  `packages/server/src/fate/*.ts`, and the routes of `app.ts` with those of each router it mounts,
+  `app.route("<prefix>", router(..))` or `router(app, ..)`, read in the module its import names. A
+  new name must be in both the protocol's `catalog()` and the live `Registry`, or in
+  `Server::routes()`. Counts: 46 records (40 mapped, 6 dropped), 114 actions (all mapped), 29 routes
+  (26 mapped, 3 dropped). Nothing was missing: tasks 7 to 19 and 62 to 64 had ported every name.
+- **Rationale**: one reader of the source, small and plain, so task 61 deletes `node.rs` and the
+  comparison of keys, and keeps the list and the check of new names.
+- **If wrong**: a router mounted another way than the two forms read is missed; the test then says
+  nothing of its routes. `fate`'s endpoints map to `/live`, the protocol that replaced them (task
+  3).
+- **Where**: `crates/server/parity.toml`, `crates/server/tests/parity.rs`, `tests/parity/node.rs`.
+
+## R230: The sandbox is an option of the server, and its builders read the checkout at run time
+
+- **Decision**: `Options::sandbox: Option<sandbox::Mode>` (`Mode { sign_in }`), which only code
+  sets, through `ura sandbox`. It registers the fake runtime as `fake`, `claude`, and `codex` in
+  place of the built-ins, locks the list (`repositories.add`, `open`, `remove`, and
+  `FolderSuggestions` are refused, closing `TASK 20:`), and, without `sign_in`, makes every request
+  and `hello` the one session `sandbox`, which never ends (`sign_in::Unguarded`). With `sign_in`, a
+  new key is shown at each start, so the sign-in and pairing screens can be reached. The guard and
+  loopback stay. `sandbox::prepare(folder, Prepare { reset, long_chat })` builds the sample projects
+  in Rust from `fixtures/` and the skill's templates, read at run time from the checkout the binary
+  was built in; `sandbox::options` gives the server its folders, a `gh` that lists the sample's pull
+  requests first on its `PATH`, no job at its times, and no folder joining its list.
+- **Rationale**: no Node runs in the new stack, so the Node builders (`packages/web/samples/`) were
+  ported, as data where they were data (`fixtures/sandbox/`). A server option, rather than a second
+  server, keeps one start path. The decision says the sandbox's code must not reach the package:
+  `ura sandbox` is hidden from `ura --help`, and outside a checkout it refuses with how to run it;
+  its fixtures never ship. A cargo feature would have taken the sandbox's tests out of `just task`.
+- **Alternatives considered**: a feature `sandbox` of `uraeda-server`; a `ura serve --no-sign-in`,
+  which a user could turn on by mistake.
+- **Where**: `crates/server/src/sandbox.rs` and `sandbox/`, `crates/cli/src/sandbox.rs`,
+  `sign_in/check.rs`, `runtimes/mod.rs`, `records/workspace/repositories.rs`.
+
+## R231: The sandbox keeps its state in `.sandbox-next/`, and what it holds
+
+- **Decision**: the sandbox's folder is `.sandbox-next/` of the checkout, not `.sandbox/`, which the
+  Node sandbox owns until task 61: the two servers never share runtime data. Its port is 4420. It is
+  built when it has no `stamp`, or on `--reset`, and kept otherwise; a stamp of other builders says
+  to reset. What it holds, from the Node builders: "sample" (the fixture repository's four features,
+  the feature page's seven, a feature at each of the eleven steps the builders made, six changes,
+  the round page's mockup feature, and an `origin` with a commit to pull and one to push), "empty",
+  "broken", "realistic" (three done features, the leader key's round and spec, two features at work,
+  priorities, inbox, and a triage), and "bare"; six chats in "sample"; two jobs; the extensions
+  `echo` (a record, actions, a route) and `hello` (a page); and Claude Code's five sample accounts.
+  Its first start sends the workflow's run of four features, which the fake plays for twelve hours,
+  two of them in "realistic" on `claude` and `codex`. `URA_TODAY` is 2026-10-21. Left out of the
+  Node builders: the stories feature with its fake Storybook, the spec page's and the questions
+  page's features, the feature page's past runs, and the leader key's live session, which needs the
+  old store's items turned into events; a screen task adds the one it needs.
+- **Rationale**: the builders are a fraction of what the Node one made, covering every step and
+  state the screens show, and a build takes about two seconds.
+- **Where**: `crates/server/src/sandbox/`, `fixtures/sandbox/`.
+
+## R232: The fake answers a message `slowly`, a workflow's run at work, and the long chat on demand
+
+- **Decision**: the sandbox's agent answers a message with the canned reply over 3 s; a message
+  holding the word `slowly` with a reply of about 1,500 words over 60 s; and a message starting
+  `/uraeda ` (the workflow's) with a turn at work: three sub-agents, then a tool call every 15 s for
+  twelve hours. `--long-chat` adds to "sample" the chat "A very long chat", 20,000 messages in
+  10,000 turns, kept until a reset.
+- **Rationale**: the frame benchmarks of tasks 35, 43, and 53 need a long transcript and a reply
+  that streams slowly; every other sandbox stays light.
+- **Where**: `crates/server/src/sandbox/agent.rs` and `sessions.rs`.
+
+## R233: `just sandboxed <command>` gives a command a fresh sandbox
+
+- **Decision**: `scripts/sandboxed.sh` builds `ura`, starts `ura sandbox --port 0` in a new
+  temporary folder, waits for its address line, runs the command with `URAEDA_SANDBOX` (the address)
+  and `URAEDA_SANDBOX_FOLDER`, and stops the server by its process id and removes the folder when
+  the command ends. Task 23 runs its tests with it, as
+  `{{ heavy }} scripts/sandboxed.sh {{ nsh }} test` in `app-test`, and reads the address in TSX from
+  `process.env.URAEDA_SANDBOX`, which `capabilities.process.env` of `app/nsh.json` must grant.
+- **Rationale**: `nsh test` runs TSX with no Node to start a server; a variable is what NSH's
+  `process.env` gives a test.
+- **Where**: `scripts/sandboxed.sh`, the `justfile`'s `sandbox` and `sandboxed`.

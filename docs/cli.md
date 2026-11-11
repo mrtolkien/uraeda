@@ -75,6 +75,11 @@ code holding both. The device scans it, or you enter the code there. It then sig
 of its own, which you can revoke alone. `--data-dir` names the server's data folder when `ura serve`
 was given one.
 
+`ura sandbox` is for working on Uraeda itself, from a checkout of it: the server over sample
+projects and a fake agent, without sign-in, on http://127.0.0.1:4420. It keeps the projects and
+their data in `.sandbox-next/` of the checkout until `--reset` builds them again, and never reads
+your projects, your data, or your config. [CONTRIBUTING.md](../CONTRIBUTING.md) says how to run it.
+
 `ura import-sessions` copies the sessions of the web UI's server, with their transcripts and the
 images in their messages, into the store of `ura serve`. It is a one-time tool, which goes away with
 the web UI's server.

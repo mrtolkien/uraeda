@@ -18,6 +18,7 @@ mod output;
 mod pair;
 mod picker;
 mod review;
+mod sandbox;
 mod serve;
 mod shell;
 mod start;
@@ -207,6 +208,10 @@ enum Command {
         #[arg(long)]
         no_scheduled_jobs: bool,
     },
+    /// Run the server over sample projects and a fake agent, without sign-in, for Uraeda's own
+    /// development: from a checkout of Uraeda, until it is stopped
+    #[command(hide = true)]
+    Sandbox(sandbox::Args),
     /// Show a one-time code, and its QR code, that pairs another device with the running server
     Pair {
         /// The data folder of the server to pair with
@@ -288,6 +293,7 @@ fn main() -> ExitCode {
             data_dir,
             no_scheduled_jobs,
         } => serve::run(port, data_dir, no_scheduled_jobs),
+        Command::Sandbox(args) => sandbox::run(args),
         Command::Pair { data_dir } => pair::run(data_dir),
         Command::ImportSessions {
             from,

@@ -25,6 +25,7 @@ pub fn run(
         allow_origins: Vec::new(),
         clock: Clock::system(),
         no_scheduled_jobs,
+        sandbox: None,
     };
     match uraeda_server::run(options) {
         Ok(()) => Ok(ExitCode::SUCCESS),

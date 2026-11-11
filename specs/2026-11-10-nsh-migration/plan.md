@@ -1625,15 +1625,29 @@ ported, beyond accounts and jobs.
     sign-in, as the [sandbox](../decisions/sandbox.md) decision describes. Phase 1 reviews screens
     on it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
       `every old record, mutation, and route is mapped or     dropped`: it reads the names from
       `packages/server/src/fate/` and `app.ts`, and fails on one missing from `parity.toml` or
       unknown to the registry.
-- [ ] **Step 2: Run it**. Expected: FAIL, naming what is missing.
-- [ ] **Step 3: Fill the list, port what it shows missing, and write the sandbox.**
-- [ ] **Step 4: Run the task's validation**, then `ura sandbox` once. Expected: PASS, and a server
+- [x] **Step 2: Run it**. Expected: FAIL, naming what is missing.
+- [x] **Step 3: Fill the list, port what it shows missing, and write the sandbox.**
+- [x] **Step 4: Run the task's validation**, then `ura sandbox` once. Expected: PASS, and a server
       that answers `Workspace`.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the parity list and the sandbox`.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the parity list and the sandbox`.
+
+**As built** (rulings R229 to R233):
+
+- `parity.toml` maps 40 records, 114 actions, and 26 routes, and drops 6 records (answers, no
+  records) and 3 routes (the React UI's files, two links without a repository). Nothing was left to
+  port. Task 61 deletes `tests/parity/node.rs` and keeps the list.
+- `ura sandbox [--reset] [--port N] [--folder DIR] [--sign-in] [--long-chat]`, hidden from
+  `ura --help`; `just sandbox` runs it on http://127.0.0.1:4420, its state in `.sandbox-next/`.
+  `Options::sandbox: Option<sandbox::Mode>`, `sandbox::prepare`, `sandbox::options`,
+  `sandbox::default_folder`, `sandbox::PORT`.
+- For the app's tests (task 23): `just sandboxed <command>`, `scripts/sandboxed.sh`, runs a command
+  beside a fresh sandbox on a free port, its address in `URAEDA_SANDBOX`: `app-test` becomes
+  `{{ heavy }} scripts/sandboxed.sh {{ nsh }} test`, and the TSX reads `process.env.URAEDA_SANDBOX`,
+  granted by `capabilities.process.env` in `app/nsh.json`.
 
 ## Task 21: The native module
 

@@ -149,6 +149,9 @@ pub fn require(shared: &Shared, headers: &HeaderMap) -> Result<Identity, Refusal
 ///
 /// The [`Refusal`] to answer, as a `refused`, before closing the connection.
 pub fn check(shared: &Shared, headers: &HeaderMap, sign_in: &SignIn) -> Result<Identity, Refusal> {
+    if let Some(open) = shared.find::<Unguarded>() {
+        return Ok(Identity::from(open.found()));
+    }
     let found = match sign_in {
         SignIn::Cookie => by_cookie(shared, headers),
         SignIn::Token(token) => by_token(shared, token),
@@ -171,6 +174,9 @@ fn by_token(shared: &Shared, token: &str) -> Option<Found> {
 
 /// The sign-in of a request: its cookie's session, or else its token's device.
 fn found(shared: &Shared, headers: &HeaderMap) -> Result<Found, Refusal> {
+    if let Some(open) = shared.find::<Unguarded>() {
+        return Ok(open.found());
+    }
     let bearer = || {
         let given = headers.get(AUTHORIZATION)?.to_str().ok()?;
         by_token(shared, given.strip_prefix("Bearer ")?)
@@ -244,5 +250,32 @@ impl<S: Send + Sync> FromRequestParts<S> for Identity {
         let extensions = &parts.extensions;
         let refusal = || extensions.get::<Refusal>().copied().unwrap_or_default();
         extensions.get::<Identity>().cloned().ok_or_else(refusal)
+    }
+}
+
+/// A server without sign-in, as `ura sandbox` starts one: every request and every `hello` is
+/// the one browser session `sandbox`, which never ends. Only code provides it, through
+/// [`crate::Options::sandbox`]; the guard still keeps every other site and machine out.
+pub(crate) struct Unguarded {
+    /// Never sent: the session's end, which never comes.
+    never: watch::Sender<bool>,
+}
+
+impl Unguarded {
+    /// The sign-in of a server without one.
+    pub(crate) fn new() -> Unguarded {
+        Unguarded {
+            never: watch::channel(false).0,
+        }
+    }
+
+    /// The one session every request is.
+    fn found(&self) -> Found {
+        Found {
+            kind: Kind::Session,
+            id: "sandbox".to_owned(),
+            ended: self.never.subscribe(),
+            recorded: false,
+        }
     }
 }

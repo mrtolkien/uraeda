@@ -8,7 +8,8 @@ coverage/
 packages/web/storybook-static/
 storybook-static/
 debug-storybook.log
-# `vp run sandbox`'s sample projects and data, the folders a seed builds them in, and its lock.
+# `vp run sandbox`'s sample projects and data, the folders a seed builds them in, and its lock;
+# `ura sandbox`'s, `.sandbox-next/`.
 /.sandbox/
 /.sandbox-*
 /.sandbox.lock

@@ -113,6 +113,17 @@ lists-frames:
 document-frames:
     hidden-display {{ nsh }} test gallery/document/frames.test.tsx --target linux --fps -v
 
+# The server over sample projects and a fake agent, without sign-in, at http://127.0.0.1:4420, its
+# state in `.sandbox-next/` until `just sandbox --reset`: `ura sandbox`'s flags, `--port 0`,
+# `--sign-in`, `--long-chat`, `--folder DIR`.
+sandbox *args:
+    cargo run -q -p uraeda-cli -- sandbox "$@"
+
+# A command beside a fresh sandbox of its own, on a free port, its address in `URAEDA_SANDBOX`:
+# `just sandboxed scripts/nsh.sh test`. The sandbox stops, and its folder goes, when the command ends.
+sandboxed +command:
+    scripts/sandboxed.sh "$@"
+
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:
     {{ nsh }} "$@"

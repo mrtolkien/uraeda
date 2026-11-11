@@ -171,9 +171,16 @@ Running it here:
 - In a new worktree, the dev shell clones the `target/` of the closest checkout once, the feature's
   worktree for a task's, so the first build compiles only the workspace's crates: see
   `scripts/worktree-seed.sh`. `du` counts the clone's shared blocks; `btrfs filesystem du` does not.
-- To review UI changes in the whole app, run `vp run sandbox`: it serves this checkout's app over
-  sample projects and a fake agent, without sign-in, at the address it prints, and keeps their state
-  in `.sandbox/` until `vp run sandbox --reset` rebuilds them.
+- The sandbox is the Rust server over sample projects and a fake agent, without sign-in:
+  `nix develop -c just sandbox` runs `ura sandbox` at http://127.0.0.1:4420, keeps its state in
+  `.sandbox-next/` until `just sandbox --reset` rebuilds it, and never reads the human's folders or
+  runs a real agent. `--port 0` takes a free port, `--sign-in` keeps sign-in on with a new key at
+  each start, `--long-chat` adds a chat of 20,000 messages, and `--folder DIR` puts it elsewhere.
+  Every screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox
+  of its own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you
+  started by its process id.
+- `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
+  migration removes it (task 61).
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
   it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
   version from `node_modules/vite-plus/AGENTS.md`.

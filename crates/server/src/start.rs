@@ -55,9 +55,13 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
         .token;
     let folder = options.folder.clone();
     let no_scheduled_jobs = options.no_scheduled_jobs;
+    let sandbox = options.sandbox;
     let shared = Shared::new(options, port, token);
     if no_scheduled_jobs {
         shared.provide(crate::jobs::NoScheduledJobs);
+    }
+    if let Some(mode) = sandbox {
+        shared.provide(mode);
     }
     // The core starts git itself, in the process's environment: it adds the config folder's
     // secrets, so a hook gets what every process the server runs gets, until the server stops.

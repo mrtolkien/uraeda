@@ -53,6 +53,7 @@ pub(super) fn register(shared: &Shared, registry: &Registry) {
         Ok(record(shared))
     });
     registry.record::<FolderSuggestions>(|shared, args| {
+        unlocked(shared)?;
         let rows = folders::suggest(&args.text, folders::home(shared).as_deref());
         Ok(FolderSuggestions { rows })
     });
@@ -198,12 +199,20 @@ fn record(shared: &Shared) -> Repositories {
     }
 }
 
+/// Refuses a change of the list, and a look at the machine's folders, on a server whose list is
+/// locked: the sandbox's, which serves its sample projects alone.
+fn unlocked(shared: &Shared) -> Result<(), Fault> {
+    match shared.find::<crate::sandbox::Mode>() {
+        Some(_) => Err(Fault::refused("this server's list is locked")),
+        None => Ok(()),
+    }
+}
+
 /// The action `repositories.add`: lists the git repository holding a typed folder, or opens it
 /// when it is listed, and answers its name.
-// TASK 20: the sandbox's locked list refuses the list's three actions and the folder
-// suggestions.
 fn add(call: &Call, input: RepositoriesAdd) -> Result<RepositoriesAdded, Fault> {
     let shared = call.shared();
+    unlocked(shared)?;
     let folder = folders::typed(&input.folder, folders::home(shared).as_deref())?;
     let added = repositories::add(shared.data_dir(), &folder, shared.now())?;
     reload(shared);
@@ -215,6 +224,7 @@ fn add(call: &Call, input: RepositoriesAdd) -> Result<RepositoriesAdded, Fault> 
 /// The action `repositories.open`: the repository was opened now, and moves first.
 fn open(call: &Call, input: RepositoriesOpen) -> Result<(), Fault> {
     let shared = call.shared();
+    unlocked(shared)?;
     repositories::touch(shared.data_dir(), &input.name, shared.now())?;
     reload(shared);
     Ok(())
@@ -224,6 +234,7 @@ fn open(call: &Call, input: RepositoriesOpen) -> Result<(), Fault> {
 /// its sessions as they are. Refused while an agent works in it: its run would show nowhere.
 fn remove(call: &Call, input: RepositoriesRemove) -> Result<(), Fault> {
     let shared = call.shared();
+    unlocked(shared)?;
     let listed = locked(&shared.get::<List>().read).rows.clone();
     let row = listed.into_iter().find(|row| row.name == input.name);
     let busy = row

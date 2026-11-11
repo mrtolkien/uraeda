@@ -55,6 +55,7 @@ url.workspace = true
 [dev-dependencies]
 futures-util.workspace = true
 tempfile.workspace = true
+toml_edit.workspace = true
 # The paused clock: the live engine's pacing is tested without a wait.
 tokio = { workspace = true, features = ["test-util"] }
 tokio-tungstenite.workspace = true

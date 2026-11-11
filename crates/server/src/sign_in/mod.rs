@@ -45,8 +45,8 @@ use crate::http::Routes;
 use crate::shared::Shared;
 use crate::{Failure, secret};
 
-pub(crate) use check::layer;
 pub use check::{Identity, OPEN, Open, Refusal, check, require};
+pub(crate) use check::{Unguarded, layer};
 use once::Once;
 pub use pairing::{Pairing, pairing_code};
 pub use store::Kind;
@@ -88,6 +88,16 @@ fn state(shared: &Shared) -> Arc<State> {
 /// not start without knowing who may reach it.
 pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure> {
     let (store, key) = Store::open(shared.data_dir())?;
+    // The sandbox's server: without sign-in unless its mode keeps it, and then with a new key
+    // shown at each start, so its sign-in and pairing screens can be reached any time.
+    let key = match shared.find::<crate::sandbox::Mode>() {
+        Some(mode) if !mode.sign_in => {
+            shared.provide(Unguarded::new());
+            key
+        }
+        Some(_) if key.is_none() => Some(store.replace_key()?),
+        _ => key,
+    };
     shared.provide(State {
         store,
         links: Once::new(LINK),
@@ -126,6 +136,10 @@ async fn sweeps(shared: Shared) {
 /// The access key, when this start of the server made it: given once, to be shown, and never
 /// again. A server that stops without having given it forgets it, so its next start makes one.
 pub fn first_key(shared: &Shared) -> Option<String> {
+    // Without sign-in the key is never shown: kept unseen, it is forgotten as the server stops.
+    if shared.find::<Unguarded>().is_some() {
+        return None;
+    }
     let state = state(shared);
     let mut key = state
         .first_key

@@ -211,6 +211,11 @@ pub(crate) fn mount(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
     });
     let given = built_in::Given::new(shared.config_dir(), shared.data_dir());
     shared.provide(given);
+    // The sandbox runs no agent of the machine: its fake alone answers, under each built-in's
+    // name.
+    if shared.find::<crate::sandbox::Mode>().is_some() {
+        return crate::sandbox::register_agents(shared);
+    }
     claude::register(shared)?;
     codex::register(shared)?;
     Ok(())

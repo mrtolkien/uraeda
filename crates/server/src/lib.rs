@@ -35,6 +35,7 @@ mod records;
 mod run;
 pub mod runner;
 pub mod runtimes;
+pub mod sandbox;
 pub mod secret;
 mod shared;
 pub mod sign_in;
@@ -84,6 +85,7 @@ const DOMAINS: &[Mount] = &[
     extensions::mount,
     runner::serve,
     jobs::mount,
+    sandbox::mount,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with
@@ -117,6 +119,9 @@ pub struct Options {
     pub clock: Clock,
     /// `ura serve --no-scheduled-jobs`: no job starts at its times, whatever the settings say.
     pub no_scheduled_jobs: bool,
+    /// `ura sandbox`: the sample projects' server, on the fake agent alone, its list locked, and
+    /// without sign-in unless its mode keeps it. Only code sets it.
+    pub sandbox: Option<sandbox::Mode>,
 }
 
 /// A running server.

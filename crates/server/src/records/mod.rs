@@ -37,7 +37,7 @@ mod git;
 mod jobs;
 mod previews;
 mod pulls;
-mod sessions;
+pub(crate) mod sessions;
 mod views;
 pub(crate) mod watch;
 mod workspace;

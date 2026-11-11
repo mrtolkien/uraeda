@@ -39,6 +39,9 @@ vp run app:check   # cargo check of the app's crate, then the types of its TSX
 vp run app:test    # the app's tests, app/**/*.test.tsx, with no display
 vp run app:dev     # the app in a GTK window, reloading as its TSX changes
 hidden-display vp run app:dev          # the same, on a display no screen shows
+just sandbox                           # the Rust server over sample projects and a fake agent, on 4420
+just sandbox --reset                   # the same, its sample projects built again
+just sandboxed scripts/nsh.sh test     # a command beside a fresh sandbox, its address in URAEDA_SANDBOX
 cargo nextest run -p uraeda-server     # one crate's tests: also uraeda-protocol, uraeda-vim, uraeda-app
 cargo clippy -p uraeda-server --all-targets -- -D warnings
 ```

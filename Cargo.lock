@@ -9142,6 +9142,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tokio-tungstenite 0.28.0",
+ "toml_edit 0.23.10+spec-1.0.0",
  "ts-rs",
  "uraeda-app",
  "uraeda-compile",

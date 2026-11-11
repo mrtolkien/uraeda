@@ -43,6 +43,12 @@ impl TestClient {
         }
     }
 
+    /// Opens a connection to any server on `port`, with no cookie, and says nothing: a server
+    /// without sign-in, as the sandbox's, welcomes it.
+    pub async fn unsigned(port: u16) -> TestClient {
+        TestClient::open(port, None).await
+    }
+
     /// How this client's `hello` signs in: with the cookie of its request, until a test gives a
     /// device's token.
     pub fn sign_in(&mut self, sign_in: SignIn) {
