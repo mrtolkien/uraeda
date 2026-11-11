@@ -5,12 +5,17 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 
-use uraeda_core::api::{self, ApiError};
-use uraeda_protocol::{ErrorCode, QueuedWrite, StartStep, WriteFailure, WriteQueue, WriteState};
+use uraeda_core::api;
+use uraeda_protocol::{QueuedWrite, StartStep, WriteQueue, WriteState};
 
+pub(crate) use self::landing::Landing;
+use self::landing::Refusal;
+pub(super) use self::landing::stopped;
 use super::{Key, Write};
 use crate::live::{self, Bus, Fault};
 use crate::records;
+
+mod landing;
 
 /// What lands a write of its own, on the queue's thread: it is given the write as it lands.
 pub(super) type Land = Box<dyn FnOnce(&Landing<'_>) -> Landed + Send>;
@@ -466,72 +471,4 @@ struct Next {
     work: Work,
     by: Write,
     repository: String,
-}
-
-/// A write of its own, as it lands: what its landing says of it in the record.
-pub(crate) struct Landing<'a> {
-    queue: &'a Queue,
-    id: &'a str,
-}
-
-impl Landing<'_> {
-    /// The repository's main checkout.
-    pub(crate) fn path(&self) -> &Path {
-        &self.queue.path
-    }
-
-    /// Adds a line git or a hook printed to the write's output.
-    pub(crate) fn printed(&self, line: &str) {
-        self.queue.printed(self.id, line);
-    }
-
-    /// Shows a start's steps as they are now.
-    pub(crate) fn steps(&self, steps: Vec<StartStep>) {
-        self.queue.set_steps(self.id, steps);
-    }
-
-    /// Lets the lists' writes stop waiting for this one, which goes on: a start whose commit
-    /// landed, as it makes its branch.
-    pub(crate) fn free_lists(&self) {
-        self.queue.free_lists(self.id);
-    }
-}
-
-/// Why a write is refused once the server stops.
-pub(super) fn stopped() -> Fault {
-    Fault::refused("The server is stopping: nothing is written any more.")
-}
-
-/// Why a write did not land, as the record keeps it.
-struct Refusal {
-    failure: WriteFailure,
-    output: String,
-}
-
-impl Refusal {
-    /// A deferred commit's: only a hook's refusal, which the core undid, is `hook`. Its output
-    /// is what failed, then what git and the hooks printed.
-    fn of_commit(refusal: ApiError) -> Refusal {
-        let failure = match refusal.code {
-            "hook" => WriteFailure::Hook,
-            _ => WriteFailure::Failed,
-        };
-        let output = match refusal.output.filter(|output| !output.is_empty()) {
-            Some(output) => format!("{}\n\n{output}", refusal.message),
-            None => refusal.message,
-        };
-        Refusal { failure, output }
-    }
-
-    /// A write of its own's: its fault, whose message is a hook's output for a hook's refusal.
-    fn of_fault(fault: Fault) -> Refusal {
-        let failure = match fault.code() {
-            ErrorCode::Hook => WriteFailure::Hook,
-            _ => WriteFailure::Failed,
-        };
-        Refusal {
-            failure,
-            output: fault.message().to_owned(),
-        }
-    }
 }

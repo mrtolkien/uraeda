@@ -5509,7 +5509,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   found. No `app/tools/shots.ts`: the recipe needs no code beyond the test.
 - **Where**: `justfile`, `app/screens/shots.test.tsx`, `app/screens/shell/boot.ts`.
 
-## T95.1: An import refuses a running server, and takes back the images of a failed one
+## R254: An import refuses a running server, and takes back the images of a failed one
 
 - **Decision**: `runner::import` is refused, with `ImportError::Running`, while a server runs on the
   new store's data folder: its status file names a process that is alive (`status::running`). The
@@ -5527,7 +5527,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_failed_import_leaves_no_image_behind` ("no image is left").
 - **Where**: `crates/server/src/{status.rs,runner/import.rs}`.
 
-## T95.2: A landing takes the repository's turn, and no queue opens once the stop began
+## R255: A landing takes the repository's turn, and no queue opens once the stop began
 
 - **Decision**: a deferred commit lands in the repository's turn, as a write of its own already did:
   one writer touches the main checkout at a time, git's hooks included. A write that arrives while a
@@ -5556,12 +5556,12 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs,queue/tests.rs}`,
   `crates/server/src/live/mod.rs` (`test_bus`).
 
-## T95.3: A write checks its feature's agent again once its turn came
+## R256: A write checks its feature's agent again once its turn came
 
 - **Decision**: `writing::write` refuses a write of a feature's files while its agent works twice:
   as it arrives, so a refused write is refused at once, and again once its turn came, right before
   it runs. No reservation is held through the write.
-- **Rationale**: the turn may wait for a commit's hooks (T95.2), and an agent may start meanwhile
+- **Rationale**: the turn may wait for a commit's hooks (R255), and an agent may start meanwhile
   (Codex's P2): the second check closes that wait. What is left is the write's own run, a few
   milliseconds of a save, during which a session's start does not wait for it. A reservation that
   start would wait on (`Runner::hold`, the moves' hold) refuses a message with "The agent is
@@ -5572,7 +5572,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   as written.
 - **Where**: `crates/server/src/records/writing/queue.rs`.
 
-## T95.4: Code that is not the server's gets no credential and sets no cookie, by one rule
+## R257: Code that is not the server's gets no credential and sets no cookie, by one rule
 
 - **Decision**: `crate::http::foreign` holds the rule the previews' proxy kept for itself: a
   request's `Authorization` and `Cookie` never reach code that is not the server's own, and an
@@ -5590,7 +5590,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/http/foreign.rs`, `crates/server/src/extensions/routes.rs`,
   `crates/server/src/preview/proxy.rs`, `fixtures/extensions/echo/server.ts`.
 
-## T95.5: An extension reads a file up to 64 MB
+## R258: An extension reads a file up to 64 MB
 
 - **Decision**: `uraeda:fs`'s `readText` and `readBytes` refuse a file over 64 MB before reading it,
   by its size, and a file that grows past it while read, through a read bounded at one byte over:
@@ -5604,7 +5604,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   a sparse file one byte over the limit, which the read accepted.
 - **Where**: `crates/server/src/extensions/{fs.rs,api/server.d.ts}`.
 
-## T95.6: The session store reads on a connection of its own
+## R259: The session store reads on a connection of its own
 
 - **Decision**: `Store` opens `sessions.sqlite` twice: the connection that writes, as before, and a
   read-only one, opened once the writer made the file and its schema, which every `Store::read` uses
@@ -5624,7 +5624,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   transaction begins after the write committed.
 - **Where**: `crates/server/src/runner/store.rs`.
 
-## T95.7: The session store's schema is one first step
+## R260: The session store's schema is one first step
 
 - **Decision**: the four steps of `sessions.sqlite`'s schema (the first tables, the lines' numbers,
   the session's account, the jobs' runs) are one first step, schema 1, with no `steps_taken` shim
