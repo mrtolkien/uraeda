@@ -40,6 +40,8 @@ pub(crate) struct Message {
     pub images: Vec<Image>,
     pub opening: Option<String>,
     pub workflow: Option<Run>,
+    /// For a scheduled job's run, the line its turn opens with: a chat of the workflow's.
+    pub job: Option<String>,
 }
 
 /// What makes a message the workflow's: what started it, the step its message was read at,
@@ -71,6 +73,7 @@ pub(super) struct Checked {
     text: String,
     opening: Option<String>,
     workflow: Option<Run>,
+    job: Option<String>,
 }
 
 /// Where a message goes: its feature's branch, and for the workflow's, the step its run
@@ -145,6 +148,7 @@ pub(super) fn check_send(input: Message, reads_images: bool) -> Result<Checked, 
         },
         opening: input.opening,
         workflow: input.workflow,
+        job: input.job,
     })
 }
 
@@ -254,11 +258,16 @@ fn starting(
         step: place.step.clone(),
         allowed: None,
         caught_up_to: place.caught_up_to.clone(),
-        lines: run.and_then(|run| run.line.clone()).into_iter().collect(),
+        lines: run
+            .and_then(|run| run.line.clone())
+            .or_else(|| checked.job.clone())
+            .into_iter()
+            .collect(),
         after: place.as_chat.clone().into_iter().collect(),
         shown: Shown {
             origin: match run {
                 Some(_) => Origin::Workflow,
+                None if checked.job.is_some() => Origin::Workflow,
                 None => Origin::Human,
             },
             text: checked.text,

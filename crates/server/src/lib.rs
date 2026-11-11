@@ -26,6 +26,7 @@ mod files;
 pub mod guard;
 mod handoff;
 mod http;
+pub mod jobs;
 pub mod live;
 pub mod mcp;
 pub mod preview;
@@ -82,6 +83,7 @@ const DOMAINS: &[Mount] = &[
     preview::mount,
     extensions::mount,
     runner::serve,
+    jobs::mount,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with
@@ -113,6 +115,8 @@ pub struct Options {
     pub allow_origins: Vec<String>,
     /// The server's clock: the system's, but in tests.
     pub clock: Clock,
+    /// `ura serve --no-scheduled-jobs`: no job starts at its times, whatever the settings say.
+    pub no_scheduled_jobs: bool,
 }
 
 /// A running server.

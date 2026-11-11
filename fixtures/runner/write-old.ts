@@ -9,8 +9,8 @@
 // writes the same sessions: the test asserts their IDs, their times, and their texts.
 //
 // What it holds, so that the import is tested on each:
-// - a feature's session with a model, an effort, a step, and an account; a sub-session of it; a chat without
-//   a folder, archived and seen; a session another server's process holds;
+// - a feature's session with a model, an effort, a step, and an account; a sub-session of it; a
+//   chat without a folder, archived and seen; a session another server's process holds;
 // - turns of each kind (workflow, chat, allow) and each state (done, failed, stopped, queued,
 //   running), with tokens, a dismissal, a catch-up's commit, a continue that waits, one past the
 //   cap, and a run the server's stop cut;
@@ -19,6 +19,8 @@
 //   completed, failed, and left in progress, a sub-agent's and its own calls; thoughts with and
 //   without a text; system lines; blocked actions, one waiting to be allowed, one allowed, one no
 //   rule can allow;
+// - the scheduled jobs' runs: started with its offer refused, skipped for an open change, failed
+//   to start, and run by hand;
 // - text outside ASCII.
 import crypto from "node:crypto";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
@@ -361,6 +363,53 @@ cache.endTurn(cut, { reason: SERVER_STOPPED, state: "stopped" });
 // The account the feature's session runs on, a configuration folder: set last, as a session's
 // first turn stores it, so that nothing above changes.
 cache.updateSession(spec.id, { account: "/home/sample/.claude-b" });
+
+// --- The scheduled jobs' runs, after the rest: a run that started the chat and had its offer
+// refused, a time skipped for an open change, a start that failed, and a run by hand. ---
+const due = (hour: number) => SystemDate.UTC(2026, 10, 1, hour, 0, 0);
+const run = cache.jobs.add({
+  at: due(3),
+  due: due(3),
+  job: "Dépendances",
+  outcome: "started",
+  reason: null,
+  repository: repo,
+  session: question.id,
+  trigger: "schedule",
+});
+cache.jobs.setRefusal(run!.id, { text: "A branch named fix-login exists.", turn: answer });
+cache.jobs.add({
+  at: due(4),
+  blockedBy: "changes/2026-10-30-fix-login",
+  due: due(4),
+  job: "Dépendances",
+  outcome: "skipped",
+  reason: "change-open",
+  repository: repo,
+  session: null,
+  trigger: "schedule",
+});
+cache.jobs.add({
+  at: due(5),
+  due: due(5),
+  error: "the model opus-9 is not listed",
+  job: "Dépendances",
+  outcome: "failed",
+  reason: null,
+  repository: repo,
+  session: null,
+  trigger: "schedule",
+});
+cache.jobs.add({
+  at: due(6),
+  due: null,
+  job: "Performance",
+  outcome: "started",
+  reason: null,
+  repository: repo,
+  session: running.id,
+  trigger: "manual",
+});
 
 // One file, as a server that stopped leaves it: the write-ahead log is folded in.
 cache.db.exec("PRAGMA wal_checkpoint(TRUNCATE)");

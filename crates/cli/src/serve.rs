@@ -8,8 +8,12 @@ use uraeda_server::{Clock, DEFAULT_PORT, NotStarted, Options, default_data_dir};
 
 /// Runs the server on `port`, with its files in `data_dir`, and the repository of the current
 /// folder in its list. When this data folder's server already runs, it gets the folder instead,
-/// and its address is printed.
-pub fn run(port: Option<u16>, data_dir: Option<PathBuf>) -> Result<ExitCode, String> {
+/// and its address is printed. `no_scheduled_jobs` starts no job at its times.
+pub fn run(
+    port: Option<u16>,
+    data_dir: Option<PathBuf>,
+    no_scheduled_jobs: bool,
+) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let options = Options {
         port: port.unwrap_or(DEFAULT_PORT),
@@ -20,6 +24,7 @@ pub fn run(port: Option<u16>, data_dir: Option<PathBuf>) -> Result<ExitCode, Str
         environment: environment(),
         allow_origins: Vec::new(),
         clock: Clock::system(),
+        no_scheduled_jobs,
     };
     match uraeda_server::run(options) {
         Ok(()) => Ok(ExitCode::SUCCESS),

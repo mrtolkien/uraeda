@@ -10,6 +10,7 @@ mod diff;
 mod extensions;
 mod features;
 mod git;
+mod jobs;
 mod message;
 mod previews;
 mod registry;
@@ -32,6 +33,7 @@ pub use git::{
     GitPush, GitRemoveWorktree, GitResolve, GitSaveConflict, GitStage, GitStopped, GitSummary,
     GitUnstage, GitWorktree,
 };
+pub use jobs::*;
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
 pub use previews::{
     Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryHrefArgs,

@@ -15,6 +15,7 @@ mod continuer;
 mod edits;
 mod event;
 mod import;
+mod job_runs;
 mod live;
 mod log;
 pub(crate) mod manager;
@@ -44,6 +45,7 @@ pub use event::{
     Subagent, TokenCounts, ToolKind, UsageWindow,
 };
 pub use import::{IMPORTED, ImportError, Imported, Replace, import};
+pub use job_runs::{JobRun, KEPT as JOB_RUNS_KEPT, NewJobRun};
 pub use log::{Appended, Growth, Logged};
 pub use manager::{IDLE_CLOSE, SERVER_STOPPED, Sessions, TAKEN_BACK, TERMINATE_AFTER, WATCHDOG};
 pub(crate) use manager::{Runner, Target, refusals};

@@ -34,6 +34,7 @@
 mod extensions;
 pub(crate) mod features;
 mod git;
+mod jobs;
 mod previews;
 mod pulls;
 mod sessions;
@@ -42,6 +43,7 @@ pub(crate) mod watch;
 mod workspace;
 pub(crate) mod writing;
 
+pub(crate) use sessions::move_to_change;
 pub(crate) use views::word;
 pub(crate) use workspace::repositories;
 pub(crate) use workspace::settings;
@@ -64,6 +66,7 @@ const DOMAINS: &[Register] = &[
     extensions::register,
     pulls::register,
     sessions::register,
+    jobs::register,
 ];
 
 /// What a domain says once the server wrote to a repository: it gets the bus and the

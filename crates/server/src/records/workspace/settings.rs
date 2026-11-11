@@ -38,7 +38,8 @@ struct InForce {
 ///
 /// When a variable of the server's environment is not a value of its setting.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
-    let given = Given::read(shared.environment())?;
+    let mut given = Given::read(shared.environment())?;
+    given.no_scheduled_jobs = shared.find::<crate::jobs::NoScheduledJobs>().is_some();
     let (settings, problem) = read(shared, &given);
     problem.iter().for_each(|problem| report(problem));
     shared.allow_hosts(settings.server.allowed_hosts.in_force.clone());
@@ -153,9 +154,23 @@ fn runs(given: &Given, file: core::RunSettings) -> RunSettings {
         catch_up_pull_requests: setting(given.catch_up, file.catch_up_pull_requests, false),
         continue_after_limit: setting(given.after_limit, file.continue_after_limit, true),
         continue_after_restart: setting(given.after_restart, file.continue_after_restart, true),
+        scheduled_jobs: scheduled_jobs(given, file.scheduled_jobs),
         claude_effort_from_env: given.claude_effort.clone(),
         options: options::sent(file.options),
     }
+}
+
+/// The switch of the scheduled jobs: `--no-scheduled-jobs`, else its variable, else the file,
+/// else on.
+fn scheduled_jobs(given: &Given, saved: Option<bool>) -> Setting<bool> {
+    let mut switch = setting(given.scheduled_jobs, saved, true);
+    if given.no_scheduled_jobs {
+        switch.in_force = false;
+        switch.source = Source::Flag {
+            name: "--no-scheduled-jobs".to_owned(),
+        };
+    }
+    switch
 }
 
 /// The `[keyboard]` table, in force: no variable gives a key's behaviour.

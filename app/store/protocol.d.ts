@@ -533,7 +533,7 @@ blocks: Array<number>, };
 /**
  * A kind of automatic run, each with its switch in the settings.
  */
-export type ContinueKind = "catch-up" | "limit" | "restart";
+export type ContinueKind = "catch-up" | "limit" | "restart" | "jobs";
 
 /**
  * What Continue all could not continue.
@@ -2747,6 +2747,189 @@ label?: string | null, };
  */
 export type Items = { clarifications: RoundItems | null, spec: SpecItems | null, plan: PlanItems | null, dataModel: DataModelItems | null, review: ReviewItems | null, rulings: Array<Ruling> | null, };
 
+/**
+ * A job the repository lists: one that names it, or one that names no repository of the list.
+ */
+export type Job = { name: string, 
+/**
+ * Its place in the file, which tells two jobs of one name apart.
+ */
+index: number, prompt: string, 
+/**
+ * The schedule as written.
+ */
+scheduleText: string, 
+/**
+ * The schedule, none when it is not understood.
+ */
+schedule: JobSchedule | null, repositories: Array<string>, 
+/**
+ * Whether it runs at its times: false when paused.
+ */
+on: boolean, reportOnly: boolean, agent: string | null, model: string | null, effort: string | null, 
+/**
+ * Why it does not run here, in the card's words.
+ */
+problem: string | null, next: JobNext, 
+/**
+ * The latest run here: the latest that started a session, or a start that failed when it is
+ * newer. A skipped time is no run.
+ */
+last: JobRun | null, 
+/**
+ * Its runs here, the newest first, 50 at most.
+ */
+history: Array<JobRun>, };
+
+/**
+ * The open change that blocked a skipped time, by the workspace's title for it.
+ */
+export type JobBlockedBy = { folder: string, title: string, };
+
+/**
+ * A job, as the form writes it.
+ */
+export type JobInput = { name: string, repositories: Array<string>, 
+/**
+ * The schedule's text, one of the four forms.
+ */
+schedule: string, prompt: string, reportOnly: boolean, agent: string | null, model: string | null, effort: string | null, };
+
+/**
+ * When a job runs next here, or why it does not.
+ */
+export type JobNext = { 
+/**
+ * The time, in RFC 3339, when it runs.
+ */
+at: string | null, why: JobNotNext | null, 
+/**
+ * For `agent-off`, the server's words, like "Not running here: Claude Code is off in this
+ * repository.".
+ */
+text: string | null, };
+
+/**
+ * Why a job does not run next.
+ */
+export type JobNotNext = "problem" | "paused" | "off" | "agent-off" | "change-open";
+
+/**
+ * What a run of a job came to.
+ */
+export type JobOutcome = "started" | "skipped" | "failed";
+
+/**
+ * A run of a job in the repository, a time it skipped, or a time whose run could not start.
+ */
+export type JobRun = { id: string, 
+/**
+ * When it started, was skipped, or failed, in RFC 3339.
+ */
+at: string, 
+/**
+ * The scheduled time it answers; none for "Run now".
+ */
+due: string | null, trigger: JobTrigger, outcome: JobOutcome, reason: JobSkip | null, 
+/**
+ * The change that blocked a time skipped as `change-open`, while the workspace lists it.
+ */
+blockedBy: JobBlockedBy | null, 
+/**
+ * Why a scheduled start failed.
+ */
+error: string | null, 
+/**
+ * Why the change its run offered could not start by itself: the offer's card waits.
+ */
+refusal: string | null, 
+/**
+ * The session it started: none once it is gone.
+ */
+session: string | null, 
+/**
+ * Its session's title.
+ */
+title: string | null, 
+/**
+ * The folder of the change its session became, when it did.
+ */
+folder: string | null, };
+
+/**
+ * When a job runs, as the core reads its schedule.
+ */
+export type JobSchedule = { 
+/**
+ * `hourly`, `daily`, `weekdays`, or `weekly`.
+ */
+kind: string, 
+/**
+ * The day of a weekly schedule, 1 for Monday to 7 for Sunday.
+ */
+day: number | null, hour: number, minute: number, };
+
+/**
+ * Why a time was skipped.
+ */
+export type JobSkip = "working" | "change-open";
+
+/**
+ * What started a run.
+ */
+export type JobTrigger = "schedule" | "manual";
+
+/**
+ * A repository's jobs.
+ */
+export type Jobs = { 
+/**
+ * The switch for all jobs, in force.
+ */
+enabled: boolean, 
+/**
+ * The jobs here, in the file's order.
+ */
+jobs: Array<Job>, 
+/**
+ * Why no job is read: the settings file cannot be read, or `jobs` is not a list of tables.
+ */
+problem: string | null, 
+/**
+ * The IANA zone of the server, which the schedules run in and the times read in.
+ */
+timeZone: string, };
+
+/**
+ * Adds a job, at the end of the file.
+ */
+export type JobsAdd = { repo: string, job: JobInput, };
+
+/**
+ * The session a run by hand started.
+ */
+export type JobsRan = { session: string, };
+
+/**
+ * Removes a job: its sessions stay.
+ */
+export type JobsRemove = { repo: string, name: string, };
+
+/**
+ * Runs a job in the repository now, whatever its schedule, its pause, or the switch.
+ */
+export type JobsRunNow = { repo: string, name: string, };
+
+/**
+ * Pauses or resumes a job.
+ */
+export type JobsSetOn = { repo: string, name: string, on: boolean, };
+
+/**
+ * Rewrites the job of a name: a rename moves its history too.
+ */
+export type JobsUpdate = { repo: string, name: string, job: JobInput, };
+
 export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
 
 /**
@@ -4064,6 +4247,10 @@ continueAfterLimit: Setting<boolean>,
  * Whether a run the server's restart cut continues.
  */
 continueAfterRestart: Setting<boolean>, 
+/**
+ * Whether the scheduled jobs start at their times. "Run now" works either way.
+ */
+scheduledJobs: Setting<boolean>, 
 /**
  * `CLAUDE_CODE_EFFORT_LEVEL` of the server's environment when set, which every Claude Code
  * session inherits, over any effort picked.
@@ -5916,6 +6103,7 @@ export type Records = {
   GitSummary: { args: RepositoryArgs; value: GitSummary };
   History: { args: ItemArgs; value: HistoryView };
   Inbox: { args: RepositoryArgs; value: Inbox };
+  Jobs: { args: RepositoryArgs; value: Jobs };
   Ledger: { args: RepositoryArgs; value: Ledger };
   NeedsYouList: { args: null; value: NeedsYouList };
   Preview: { args: PreviewArgs; value: Preview };
@@ -5999,6 +6187,11 @@ export type Actions = {
   "inbox.toProposalFile": { input: InboxToProposalFile; output: FileWritten };
   "inbox.underProposal": { input: InboxUnderProposal; output: NoteMoved };
   "item.settings": { input: ItemSettings; output: null };
+  "jobs.add": { input: JobsAdd; output: null };
+  "jobs.remove": { input: JobsRemove; output: null };
+  "jobs.runNow": { input: JobsRunNow; output: JobsRan };
+  "jobs.setOn": { input: JobsSetOn; output: null };
+  "jobs.update": { input: JobsUpdate; output: null };
   "notes.save": { input: NotesSave; output: null };
   "preview.restart": { input: PreviewRestart; output: Preview };
   "priorities.commit": { input: PrioritiesCommit; output: ListWritten };

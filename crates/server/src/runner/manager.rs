@@ -475,6 +475,8 @@ impl Runner {
         let Some(ended) = ended else {
             return;
         };
+        let (chat, done) = (change.folder.is_none(), ended == TurnState::Done);
+        crate::jobs::turn_ended(self, &change.session, chat, change.turn, done);
         let happened = Happened::TurnEnded {
             repository: repo.clone(),
             session: change.session.clone(),

@@ -699,6 +699,7 @@ fn an_old_store_imports_with_every_session_and_event() {
             stopped: 3,
             continues: 1,
             images: 1,
+            job_runs: 4,
         }
     );
     assert_eq!(store.session(&id(1)).unwrap(), Some(feature_session()));

@@ -16,6 +16,8 @@ const AFTER_RESTART: &str = "URAEDA_CONTINUE_AFTER_RESTART";
 const AFTER_LIMIT: &str = "URAEDA_CONTINUE_AFTER_LIMIT";
 /// The variable turning the catch-up of open pull requests on or off.
 const CATCH_UP: &str = "URAEDA_CATCH_UP_PULL_REQUESTS";
+/// The variable turning the scheduled jobs on or off.
+const SCHEDULED_JOBS: &str = "URAEDA_SCHEDULED_JOBS";
 /// The variable every Claude Code session inherits its effort from, over any effort picked.
 const CLAUDE_EFFORT: &str = "CLAUDE_CODE_EFFORT_LEVEL";
 
@@ -29,6 +31,9 @@ pub(super) struct Given {
     pub after_restart: Named<bool>,
     pub after_limit: Named<bool>,
     pub catch_up: Named<bool>,
+    pub scheduled_jobs: Named<bool>,
+    /// `ura serve --no-scheduled-jobs`, over the variable and the file.
+    pub no_scheduled_jobs: bool,
     /// Not a setting of Uraeda's: the settings show it, since it wins over the effort picked.
     pub claude_effort: Option<String>,
 }
@@ -50,6 +55,8 @@ impl Given {
             after_restart: named(AFTER_RESTART).map(switch).transpose()?,
             after_limit: named(AFTER_LIMIT).map(switch).transpose()?,
             catch_up: named(CATCH_UP).map(switch).transpose()?,
+            scheduled_jobs: named(SCHEDULED_JOBS).map(switch).transpose()?,
+            no_scheduled_jobs: false,
             claude_effort: effort
                 .filter(|effort| !effort.is_empty())
                 .map(str::to_owned),

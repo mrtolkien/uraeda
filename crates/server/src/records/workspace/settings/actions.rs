@@ -79,5 +79,6 @@ fn key(kind: ContinueKind) -> ContinueKey {
         ContinueKind::CatchUp => ContinueKey::CatchUp,
         ContinueKind::Limit => ContinueKey::Limit,
         ContinueKind::Restart => ContinueKey::Restart,
+        ContinueKind::Jobs => ContinueKey::Jobs,
     }
 }

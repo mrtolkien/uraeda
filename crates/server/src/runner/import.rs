@@ -69,6 +69,8 @@ pub struct Imported {
     pub continues: u64,
     /// The chat images copied to the new data folder.
     pub images: u64,
+    /// The scheduled jobs' runs, each time a job started, skipped, or failed to start.
+    pub job_runs: u64,
 }
 
 /// Why nothing was imported.
@@ -142,6 +144,10 @@ pub fn import(
             imported.unread += left_out;
         }
         imported.images = copy_images(from, store.data_dir(), &images)?;
+        imported.job_runs = old
+            .copy_job_runs(new)
+            .map_err(unread)?
+            .map_err(StoreError::from)?;
         Ok(imported)
     })
 }
@@ -162,7 +168,9 @@ fn held(new: &Transaction) -> Result<u64, StoreError> {
 
 /// Removes every session, with its turns and their logs.
 fn emptied(new: &Transaction) -> Result<(), StoreError> {
-    Ok(new.execute_batch("DELETE FROM events; DELETE FROM turns; DELETE FROM sessions;")?)
+    Ok(new.execute_batch(
+        "DELETE FROM job_runs; DELETE FROM events; DELETE FROM turns; DELETE FROM sessions;",
+    )?)
 }
 
 /// Makes a turn one that nothing runs or continues here: the Node server may still do both.

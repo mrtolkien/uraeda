@@ -86,6 +86,8 @@ pub struct RunSettings {
     pub continue_after_limit: Setting<bool>,
     /// Whether a run the server's restart cut continues.
     pub continue_after_restart: Setting<bool>,
+    /// Whether the scheduled jobs start at their times. "Run now" works either way.
+    pub scheduled_jobs: Setting<bool>,
     /// `CLAUDE_CODE_EFFORT_LEVEL` of the server's environment when set, which every Claude Code
     /// session inherits, over any effort picked.
     pub claude_effort_from_env: Option<String>,
@@ -184,6 +186,8 @@ pub enum ContinueKind {
     Limit,
     /// The continue after a restart of the server.
     Restart,
+    /// The scheduled jobs, started at their times.
+    Jobs,
 }
 
 /// Sets whether a start opens a browser.

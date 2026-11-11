@@ -4,6 +4,7 @@
 //! sessions' manager keeps in memory of a turn that runs; each action is a call of the manager.
 
 mod actions;
+pub(crate) use actions::move_to_change;
 mod agent;
 pub(crate) mod feature;
 mod images;

@@ -268,6 +268,7 @@ async fn settings_answers_its_shape() {
         "catchUpPullRequests": unset(json!(false)),
         "continueAfterLimit": { "inForce": true, "saved": false, "source": variable },
         "continueAfterRestart": unset(json!(true)),
+        "scheduledJobs": unset(json!(true)),
         "claudeEffortFromEnv": "high",
         "options": { "steps": [], "implementers": null, "reviewers": null, "reviewDepth": null },
     });
@@ -530,6 +531,12 @@ fn settings_writes() -> Vec<(&'static str, Value, [&'static str; 2], Value)> {
             json!({ "key": "catch-up", "on": true }),
             ["runs", "catchUpPullRequests"],
             json!(true),
+        ),
+        (
+            "settings.setContinue",
+            json!({ "key": "jobs", "on": false }),
+            ["runs", "scheduledJobs"],
+            json!(false),
         ),
         (
             "settings.setSingleKeyShortcuts",

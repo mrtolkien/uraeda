@@ -128,6 +128,7 @@ fn send(call: &Call, input: SessionSend) -> Result<Sent, Fault> {
         images: images::sent(shared, input.images, workflow.is_some(), reads)?,
         opening: None,
         workflow,
+        job: None,
     };
     // A feature whose start is still in the queue keeps the message until it lands.
     if let Some(folder) = folder
@@ -208,17 +209,31 @@ fn new_chat(call: &Call, input: SessionNewChat) -> Result<Made, Fault> {
 /// without a workflow, and the refusal names the change.
 fn to_change(call: &Call, input: SessionToChange) -> Result<MovedToChange, Fault> {
     let (runner, row) = owned(call, &input.repo, &input.session)?;
+    move_to_change(&runner, &input.repo, &row, input.text, input.slug)
+}
+
+/// Makes a session without a workflow the change of a text and a slug, as `session.toChange`
+/// does: the offer's card and a scheduled job's run both start a change through it. A job's
+/// run that could not start its change no longer asks once the session moved.
+pub(crate) fn move_to_change(
+    runner: &Runner,
+    repo: &str,
+    row: &crate::runner::Session,
+    text: String,
+    slug: Option<String>,
+) -> Result<MovedToChange, Fault> {
+    let shared = &runner.shared;
     if let Some(folder) = &row.folder {
         let refusal = format!("the session already belongs to {folder}");
         return Err(Fault::refused(refusal));
     }
     // Without its runtime, the run telling it where it works now could not be sent: the move
     // waits for it, as a run does.
-    picks::message_runtime(&runner, &row.repo, Some(&row), None)?;
+    picks::message_runtime(runner, &row.repo, Some(row), None)?;
     let started = {
         let _moving = runner.hold(&row.repo, Target::Session(&row.id))?;
-        let started = start_typed_change(call, &input.repo, input.text, input.slug)?;
-        runner.attach(&row, &started.folder).map_err(|fault| {
+        let started = start_typed_change(shared, repo, text, slug)?;
+        runner.attach(row, &started.folder).map_err(|fault| {
             Fault::refused(format!(
                 "The change {} started, but this session could not move to it: {}",
                 started.folder,
@@ -246,13 +261,8 @@ fn to_change(call: &Call, input: SessionToChange) -> Result<MovedToChange, Fault
         )),
         ..First::default()
     };
-    runs::sent_or_said(
-        call.shared(),
-        &input.repo,
-        &started.folder,
-        Trigger::Start,
-        first,
-    );
+    crate::jobs::moved(shared, &row.id);
+    runs::sent_or_said(shared, repo, &started.folder, Trigger::Start, first);
     Ok(MovedToChange {
         folder: started.folder,
     })

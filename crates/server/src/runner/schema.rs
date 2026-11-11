@@ -107,8 +107,35 @@ WHERE numbered.turn_id = events.turn_id AND numbered.seq = events.seq AND number
 /// Claude Code: none for a session made before, and for one on the server's own login.
 const ACCOUNT: &str = "ALTER TABLE sessions ADD COLUMN account TEXT;";
 
+/// The fourth step: the runs of the scheduled jobs, one row per time a job was due in a
+/// repository, run, skipped, or failed to start, or per run by hand (see
+/// [`job_runs`](super::job_runs)). A time is recorded once: the unique index of a job, a
+/// repository, and a time is what stops two ticks, two servers, or a clock set back from
+/// starting it twice. It is plain, not partial: an insert's `ON CONFLICT` cannot use a partial
+/// index, and SQLite counts each null as distinct, so runs by hand, whose `due` is null, never
+/// conflict.
+const JOB_RUNS: &str = "
+CREATE TABLE job_runs (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  job          TEXT NOT NULL,
+  repository   TEXT NOT NULL,
+  due          INTEGER,
+  at           INTEGER NOT NULL,
+  trigger      TEXT NOT NULL,
+  outcome      TEXT NOT NULL,
+  reason       TEXT,
+  session      TEXT,
+  refusal      TEXT,
+  refused_turn INTEGER,
+  blocked_by   TEXT,
+  error        TEXT
+) STRICT;
+CREATE UNIQUE INDEX job_runs_due ON job_runs (job, repository, due);
+CREATE INDEX job_runs_session ON job_runs (session);
+";
+
 /// The schema's steps, in order: the store's number is how many it has taken.
-const STEPS: &[&str] = &[FIRST, ITEMS, ACCOUNT];
+const STEPS: &[&str] = &[FIRST, ITEMS, ACCOUNT, JOB_RUNS];
 
 /// The number of the schema this version reads and writes.
 pub(super) fn known() -> u32 {

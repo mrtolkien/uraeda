@@ -288,7 +288,7 @@ fn forget(store: &options::Store, root: &Path, folder: &str) {
 /// leaves the queue's record. Its slug, when named, is taken while it is in the queue. Once it
 /// ran, `then` starts its agent.
 fn landed(
-    call: &Call,
+    shared: &Shared,
     repo: &str,
     slug: Option<String>,
     run: impl Run,
@@ -302,7 +302,7 @@ fn landed(
         branch: None,
         slug,
     };
-    queued::queue(call.shared(), repo, start, run, then)?.answered()
+    queued::queue(shared, repo, start, run, then)?.answered()
 }
 
 /// What follows a change that started: its own run options kept, then its first run sent to a
@@ -392,7 +392,7 @@ fn taken_name(message: &str) -> Option<&str> {
 /// refused in the card's words. The session's own run follows its move, so the start sends
 /// none.
 pub(crate) fn start_typed_change(
-    call: &Call,
+    shared: &Shared,
     repo: &str,
     text: String,
     slug: Option<String>,
@@ -406,7 +406,7 @@ pub(crate) fn start_typed_change(
     };
     let named = slug.clone();
     let landed = landed(
-        call,
+        shared,
         repo,
         slug,
         move |root, on_step| api::start_text(root, &typed.start(), named.as_deref(), None, on_step),
@@ -442,7 +442,7 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
         api::start_text(root, &typed.start(), slug.as_deref(), None, on_step)
     };
     let then = first_run(call.shared(), &input.repo, input.options);
-    landed(call, &input.repo, input.slug, run, then).map(change_started)
+    landed(call.shared(), &input.repo, input.slug, run, then).map(change_started)
 }
 
 /// The action `change.startProposal`: starts a proposal file as a change.
@@ -452,7 +452,7 @@ fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeS
         api::start_feature(root, &proposal, slug.as_deref(), Kind::Change, on_step)
     };
     let then = first_run(call.shared(), &input.repo, None);
-    landed(call, &input.repo, input.slug, run, then).map(change_started)
+    landed(call.shared(), &input.repo, input.slug, run, then).map(change_started)
 }
 
 /// The action `change.fromNote`: starts a change from a note of the inbox, as from a typed text
@@ -474,7 +474,14 @@ fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault>
         api::start_text(root, &typed.start(), slug.as_deref(), None, on_step)
     };
     // Its first run follows the note's removal, whose commit it would otherwise start under.
-    let started = landed(call, &input.repo, input.slug, run, |_: &StartedView| None)?.started;
+    let started = landed(
+        call.shared(),
+        &input.repo,
+        input.slug,
+        run,
+        |_: &StartedView| None,
+    )?
+    .started;
     let removed = write(call.shared(), &input.repo, Write::of_lists(), |root| {
         Ok(api::remove_note_and_commit(root, &input.note, &input.hash)?)
     });

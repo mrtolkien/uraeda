@@ -17,6 +17,7 @@ pub mod history;
 pub mod images;
 pub mod jobs;
 pub mod moves;
+pub mod offers;
 pub mod pulls;
 pub mod repositories;
 pub mod settings;

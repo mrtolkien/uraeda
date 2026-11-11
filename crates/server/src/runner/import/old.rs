@@ -7,13 +7,15 @@ use std::time::{Duration, SystemTime};
 use rusqlite::{Connection, OpenFlags, Row};
 
 use super::lines;
+
+mod jobs;
 use crate::runner::event::TokenCounts;
 use crate::runner::session::Session;
 use crate::runner::store::time;
 use crate::runner::turn::Turn;
 
 /// The schema of the Node server's store this import reads: its last. Its 13th step added a
-/// session's account; its 14th, the scheduled jobs' runs, which this import does not read.
+/// session's account; its 14th, the scheduled jobs' runs.
 pub(super) const SCHEMA: u32 = 14;
 
 /// The old store, read at one moment of it: what another process writes meanwhile is not read.

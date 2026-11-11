@@ -203,6 +203,9 @@ enum Command {
         /// The folder the server keeps its data in
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         data_dir: Option<std::path::PathBuf>,
+        /// Start no scheduled job at its times, whatever the settings say; "Run now" still works
+        #[arg(long)]
+        no_scheduled_jobs: bool,
     },
     /// Show a one-time code, and its QR code, that pairs another device with the running server
     Pair {
@@ -280,7 +283,11 @@ fn main() -> ExitCode {
         Command::Upgrade => upgrade::run(),
         Command::Add { folder } => add::run(folder),
         Command::Extension(args) => extension::run(args),
-        Command::Serve { port, data_dir } => serve::run(port, data_dir),
+        Command::Serve {
+            port,
+            data_dir,
+            no_scheduled_jobs,
+        } => serve::run(port, data_dir, no_scheduled_jobs),
         Command::Pair { data_dir } => pair::run(data_dir),
         Command::ImportSessions {
             from,

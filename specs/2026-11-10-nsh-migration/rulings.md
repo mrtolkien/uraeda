@@ -4412,3 +4412,81 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   structural change of its own, which would collide with theirs.
 - **If wrong**: the split is one commit after the wave's merge, by module.
 - **Where**: [`structure.rs`](/crates/cli/tests/structure.rs).
+
+## T63.1: The minute between two starts is on the server's clock
+
+- **Decision**: the scheduler keeps no sleeping queue. A look (every 30 seconds, after each change
+  of the settings file, and after each `jobs.*` write) queues the times due, then starts the queue's
+  head when the minute since the last start has passed on `shared.now()`, else arms one wake at the
+  minute's end. A time is read again, job and guards, when its turn comes, and skipped then; Node
+  read the skip before the minute's wait, and again after it. A minute that took more than 5 minutes
+  beyond its length (the machine slept) drops the queue, recording nothing, as Node did.
+- **Rationale**: the tests move time by setting the fixed clock and ticking, as the task asks, and
+  one rule decides the order of starts: no wait to cut short at the stop, and no second reading of
+  the guards.
+- **If wrong**: a run due with others starts at the wake, within a second of its minute.
+- **Where**: [`jobs/scheduler.rs`](/crates/server/src/jobs/scheduler.rs).
+
+## T63.2: The offers' grammar is in the core
+
+- **Decision**: `uraeda_core::offers` holds the grammar of an offer block (`last_offer`, which the
+  card draws, `ending_offer`, which a job's acceptance reads, at column 0 only, and
+  `proposal_title`). The app's crate already takes the core, so the offer card's native code reads
+  the same rule.
+- **Rationale**: parsing lives in the core (the stack decision), and one rule serves both readers.
+- **Where**: [`offers.rs`](/crates/core/src/offers.rs).
+
+## T63.3: The jobs' actions answer nothing, and "Run now" its session
+
+- **Decision**: `Jobs { repo }` is a live record: `jobs.add`, `jobs.update`, `jobs.setOn`, and
+  `jobs.remove` answer `()`, as the settings' writes do, and `jobs.runNow` answers
+  `JobsRan { session }`. Node's mutations answered the whole record, and "Run now" the record with
+  the session, for fate's cache; here the subscription shows the change. The record drops fate's
+  `id`, and a run's view gains `refusal`, why the change its run offered could not start.
+- **Where**: [`protocol/src/jobs.rs`](/crates/protocol/src/jobs.rs),
+  [`records/jobs.rs`](/crates/server/src/records/jobs.rs).
+
+## T63.4: A job's run is a chat whose message is the workflow's
+
+- **Decision**: `send::Message` gains `job`, the line a run's turn opens with: the turn is a chat (a
+  chat has no step to continue), and its message's origin is the workflow's, so "the human wrote in
+  the session" reads only the human's messages. `session.toChange` became
+  `records::move_to_change(runner, repo, row, text, slug)`, with `start_typed_change` taking
+  `&Shared`, so the acceptance starts a change through the card's own path, with no client's call. A
+  turn's end reaches the jobs from `Runner::publish`, one line, which holds the job busy before
+  anything else reads the session.
+- **Where**: [`runner/send.rs`](/crates/server/src/runner/send.rs),
+  [`records/sessions/actions.rs`](/crates/server/src/records/sessions/actions.rs),
+  [`jobs/accept.rs`](/crates/server/src/jobs/accept.rs).
+
+## T63.5: `--no-scheduled-jobs` is an option of the server
+
+- **Decision**: `Options::no_scheduled_jobs`, set by `ura serve --no-scheduled-jobs`, wins over
+  `URAEDA_SCHEDULED_JOBS` and `[runs] scheduled_jobs`, and the setting says its source is the flag.
+  `settings.setContinue` takes the key `jobs`, as Node's did.
+- **Where**: [`start.rs`](/crates/server/src/start.rs),
+  [`settings.rs`](/crates/server/src/records/workspace/settings.rs).
+
+## T63.6: The job runs' table, and its import
+
+- **Decision**: the store's fourth schema step, after the accounts' third (R181 to R186), adds
+  `job_runs`, as Node's: one row per run, skipped time, or failed start, a plain unique index on
+  `(job, repository, due)`, pruned to the 50 latest of a job in a repository but the latest started
+  run, the latest failed start newer than it, and the runs whose session is a change's. The import
+  reads Node's store at schema 14, the one with both the accounts' column and `job_runs`, and copies
+  the rows as they are, ids kept, in `import/old/jobs.rs`. `fixtures/runner/write-old.ts` writes
+  four runs after everything else, the feature's session's account included, and the fixture was
+  written again with it.
+- **Where**: [`schema.rs`](/crates/server/src/runner/schema.rs),
+  [`job_runs.rs`](/crates/server/src/runner/job_runs.rs),
+  [`import/old/jobs.rs`](/crates/server/src/runner/import/old/jobs.rs).
+
+## T63.7: What of the record is not ported
+
+- **Decision**: a session whose job's offer was refused does not show the attention "The change
+  could not start by itself." of Node's session status: the refusal is kept, and shown on the run in
+  the `Jobs` record's history (`refusal`). The session's status and its banner are the sessions'
+  record's (task 15's), whose `StatusReason` is shared with the features' statuses; the Jobs place
+  (task 65) shows the refusal with the run.
+- **If wrong**: a reason `change-refused` in `StatusReason`, read from `Store::job_run_of` in
+  `runner/reads.rs`, the turn the refusal names still the session's latest.

@@ -1535,19 +1535,40 @@ gotchas: each is a bug the Node code met.
   only code that starts a scheduled run; "Run now"; the acceptance of a run's change offer; the
   switches `[runs] scheduled_jobs`, `ura serve --no-scheduled-jobs`, and `URAEDA_SCHEDULED_JOBS`.
 
-- [ ] **Step 1: Write the failing tests**, on the server's fixed clock and the fake runtime, reusing
+- [x] **Step 1: Write the failing tests**, on the server's fixed clock and the fake runtime, reusing
       the Node tests' cases: `a job runs at its time, once`, with rows for two ticks, a clock set
       back, and a time more than 5 minutes past;
       `a time is skipped while the last run works or     its change is open`;
       `a run starts the change it offers, and only then`, with the record's rows of offers that
       start nothing; `a job is never read from a repository`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, porting [`packages/server/src/jobs/`](/packages/server/src/jobs/). The
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement**, porting [`packages/server/src/jobs/`](/packages/server/src/jobs/). The
       run's row is written with nothing awaited after its last guard. The scheduler stops through
       `shared.on_stop`, waiting for an acceptance in flight.
 - [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
-      PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): scheduled jobs`.
+      PASS. Seen, with `uraeda-cli` and `uraeda-core`: formatting and Clippy pass, and 1,767 of
+      1,768 tests; `rust_source_files_stay_under_500_lines` fails, as it did before this task, on
+      nine files of the runner, the protocol's sessions, and the core (task 15's and earlier),
+      `runner/manager.rs` and `runner/send.rs` among them, which this task grew by 2 and 9 lines.
+- [x] **Step 5: Commit**: `feat(nsh-migration): scheduled jobs`.
+
+As built (rulings T63.1 to T63.7):
+
+- The record `Jobs { repo }`: `{ enabled, jobs, problem, timeZone }`, each job
+  `{ name, index, prompt, scheduleText, schedule, repositories, on, reportOnly, agent, model, effort, problem, next: { at, why, text }, last, history }`,
+  each run
+  `{ id, at, due, trigger, outcome, reason, blockedBy: { folder, title }, error, refusal, session, title, folder }`,
+  in [`protocol/src/jobs.rs`](/crates/protocol/src/jobs.rs).
+- The actions `jobs.add { repo, job }`, `jobs.update { repo, name, job }`,
+  `jobs.setOn { repo, name, on }`, and `jobs.remove { repo, name }` answer nothing: the record shows
+  the change. `jobs.runNow { repo, name }` answers `JobsRan { session }`. `settings.setContinue`
+  takes the key `jobs`, and `Settings.runs.scheduledJobs` is the switch.
+- The offers' grammar is `uraeda_core::offers`: `last_offer` for the card, `ending_offer` for the
+  acceptance, `proposal_title`.
+- `crates/server/src/jobs/` (times, scheduler, guards, place, problem, run, run_now, accept) and
+  `records/jobs.rs`; the store's `job_runs`, schema step 4 (after the accounts' 3), in
+  `runner/job_runs.rs`; its import in `runner/import/old/jobs.rs`, of Node's store at schema 14.
+  Tests in `crates/server/tests/jobs.rs` and the modules' own.
 
 ## Task 64: What else the Node server gained
 

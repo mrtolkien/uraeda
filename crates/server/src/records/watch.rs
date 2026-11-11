@@ -18,7 +18,7 @@ use uraeda_core::watch::{Changes, Watcher, watch};
 
 use self::files::Target;
 use super::workspace::{self, repositories};
-use super::{extensions, features, git, previews, pulls, sessions, writing};
+use super::{extensions, features, git, jobs, previews, pulls, sessions, writing};
 use crate::Failure;
 use crate::live::locked;
 use crate::shared::Shared;
@@ -44,6 +44,7 @@ const CONFIG_CHANGED: &[fn(&Shared)] = &[
     features::config_changed,
     extensions::config_changed,
     sessions::config_changed,
+    jobs::config_changed,
 ];
 
 /// What a domain does when a repository joins the list once the server runs, or its folder

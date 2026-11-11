@@ -133,7 +133,7 @@ fn add(kind: &str, entries: &mut Vec<Entry>, entry: Entry) {
 #[must_use]
 pub fn catalog() -> Catalog {
     let domains = [
-        devices, workspace, features, writing, git, previews, extensions, sessions,
+        devices, workspace, features, writing, git, previews, extensions, sessions, jobs,
     ];
     domains
         .into_iter()
@@ -303,6 +303,17 @@ fn extensions(catalog: Catalog) -> Catalog {
         .action::<extensions::ExtensionsReportPageProblem>()
         .action::<extensions::ExtensionsSetOn>()
         .action::<extensions::ExtensionsSetSetting>()
+}
+
+/// The scheduled jobs (task 63): a repository's jobs, their writes, and "Run now".
+fn jobs(catalog: Catalog) -> Catalog {
+    catalog
+        .record::<crate::jobs::Jobs>()
+        .action::<crate::jobs::JobsAdd>()
+        .action::<crate::jobs::JobsRemove>()
+        .action::<crate::jobs::JobsRunNow>()
+        .action::<crate::jobs::JobsSetOn>()
+        .action::<crate::jobs::JobsUpdate>()
 }
 
 /// The sessions (task 15): the runtimes, a session, its turns and their transcripts, the

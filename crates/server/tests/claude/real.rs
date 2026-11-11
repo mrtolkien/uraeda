@@ -53,6 +53,7 @@ async fn server(folders: &Path) -> Server {
         environment: environment(),
         allow_origins: Vec::new(),
         clock: Clock::fixed(SystemTime::now()),
+        no_scheduled_jobs: false,
     };
     Server::start(start).await.expect("the server starts")
 }
