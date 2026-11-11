@@ -6,7 +6,6 @@ import { Input } from "nsh/base";
 import { KeyPicker } from "../KeyPicker";
 import { KeysHost } from "../KeysHost";
 import { tokens } from "../../tokens";
-import { Words } from "../parts";
 import { keyHints, KeyScope, registerKey, singleKeys } from "../registry";
 
 const ran = signal<Array<string>>([]);
@@ -49,10 +48,10 @@ function Page() {
   const picked = signal("nothing");
   return (
     <View style={{ backgroundColor: tokens.role.page, flex: 1, gap: 8, padding: 16 }}>
-      <Words>Ran: {ran().join(", ") || "nothing"}</Words>
-      <Words>Hints: {hints() || "none"}</Words>
-      <Words>Field: {typed()}</Words>
-      <Words>Picked: {picked()}</Words>
+      <Text>Ran: {ran().join(", ") || "nothing"}</Text>
+      <Text>Hints: {hints() || "none"}</Text>
+      <Text>Field: {typed()}</Text>
+      <Text>Picked: {picked()}</Text>
       <Input onChange={({ value }) => typed.set(value)} testID="field" />
       <Text onPress={() => hasRow.set(false)}>Remove the row</Text>
       <Text onPress={() => singleKeys.set(false)}>Turn single keys off</Text>

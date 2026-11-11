@@ -97,6 +97,7 @@ samples-frames:
 gallery-shots filter="":
     mkdir -p target/shots/gallery
     hidden-display {{ nsh }} test gallery/surfaces/gallery.test.tsx --target linux --filter "{{ filter }}"
+    hidden-display {{ nsh }} test gallery/controls/gallery.test.tsx --target linux --filter "{{ filter }}"
 
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:

@@ -4,8 +4,9 @@
 // pressed as its key is, and so are the keys that go back and close. `LeaderMenuHost` draws it for
 // the registry's pending sequence, once it is shown.
 import { computed, View } from "nsh";
-import { isNarrow, look } from "./look";
-import { KeyCap, Words } from "./parts";
+import { isNarrow } from "../width";
+import { Kbd, Text } from "../controls";
+import { tokens } from "../tokens";
 import { keysOn, pendingKeys, pressKeys } from "./registry";
 import { entriesAt, type MenuEntry, sortedEntries } from "./sequence";
 import { LEADER } from "./token";
@@ -28,11 +29,11 @@ function Press(props: { keys: string; word: string }) {
         flexDirection: "row",
         gap: 8,
         // A finger's target on a narrow window, a row's height elsewhere.
-        minHeight: isNarrow() ? 44 : look().row,
+        minHeight: isNarrow() ? 44 : tokens.space.row,
       }}
     >
-      <KeyCap token={props.keys} />
-      <Words>{props.word}</Words>
+      <Kbd keys={props.keys} />
+      <Text>{props.word}</Text>
     </View>
   );
 }
@@ -54,7 +55,7 @@ export function LeaderMenu(props: {
           columnGap: 24,
           flexDirection: "column",
           flexWrap: isNarrow() ? "nowrap" : "wrap",
-          maxHeight: isNarrow() ? undefined : ROWS * look().row,
+          maxHeight: isNarrow() ? undefined : ROWS * tokens.space.row,
           minWidth: isNarrow() ? undefined : 240,
         }}
       >

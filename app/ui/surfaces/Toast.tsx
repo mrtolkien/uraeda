@@ -6,7 +6,7 @@
 import { type JSX, Overlay as Layer, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { presence } from "./presence";
 import { Surface } from "./Surface";
-import { isNarrow } from "../keys/look";
+import { isNarrow } from "../width";
 import { tokens } from "../tokens";
 
 /** The stack: at the window's top right, and across its top on a narrow window. */

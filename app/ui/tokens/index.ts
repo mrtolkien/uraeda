@@ -10,6 +10,7 @@ import { type Accessor, signal } from "nsh";
 import { backdrop } from "./backdrop";
 import { button, key } from "./button";
 import { choices } from "./choices";
+import { control } from "./control";
 import { DEFAULT_FONTS, type Fonts } from "./fonts";
 import { glass } from "./glass";
 import { height, pane } from "./height";
@@ -21,6 +22,7 @@ import { radius, space, status } from "./space";
 import { type } from "./type";
 
 export { choices } from "./choices";
+export type { Tone } from "./control";
 export {
   DEFAULT_FONTS,
   FONT_ROLES,
@@ -57,6 +59,7 @@ export function tokensOf(theme: ThemeSource, fonts: Fonts = DEFAULT_FONTS) {
     glass: glass(source),
     button: button(source),
     key: key(source),
+    control: control(source),
     status,
     motion,
     choices,

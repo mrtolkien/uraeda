@@ -20,8 +20,9 @@ import {
   View,
 } from "nsh";
 import { Input } from "nsh/base";
-import { isNarrow, look } from "./look";
-import { KeyCap, Words } from "./parts";
+import { isNarrow } from "../width";
+import { Kbd, Text } from "../controls";
+import { tokens } from "../tokens";
 import { searchRanked } from "./pickerSearch";
 import { registerKey } from "./registry";
 import { focusStop, Overlay } from "../surfaces";
@@ -40,7 +41,7 @@ export type PickerItem = {
 };
 
 /** A row's height: a finger's target on a narrow window, a row's elsewhere. */
-const rowHeight = () => (isNarrow() ? 44 : look().row);
+const rowHeight = () => (isNarrow() ? 44 : tokens.space.row);
 
 /** What a picker takes. */
 export type KeyPickerProps<Item extends PickerItem> = {
@@ -133,14 +134,14 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
             placeholder={picker.placeholder ?? "Find…"}
             ref={(node: InputRef) => (filter = node)}
             style={{
-              borderColor: look().edge,
+              borderColor: tokens.role.rule,
               borderWidth: 1,
-              color: look().text,
-              fontFamily: look().type.mono,
-              fontSize: look().type.size,
-              height: look().row + 8,
+              color: tokens.role.ink,
+              fontFamily: tokens.type.body,
+              fontSize: tokens.type.size,
+              height: tokens.space.row + 8,
               paddingHorizontal: 8,
-              placeholderColor: look().quiet,
+              placeholderColor: tokens.role.inkQuiet,
             }}
             submitBehavior="submit"
             testID="key-picker-filter"
@@ -149,7 +150,7 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
             ref={(node: ScrollRef) => (list = node)}
             style={{ flexShrink: 1, maxHeight: 16 * rowHeight() }}
           >
-            <If when={found().length > 0} else={<Words tone="quiet">{empty()}</Words>}>
+            <If when={found().length > 0} else={<Text tone="quiet">{empty()}</Text>}>
               <Each key={(item: Item) => item.id} of={found()}>
                 {(item: () => Item) => (
                   <View
@@ -157,18 +158,18 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
                     onPress={() => pick(item())}
                     style={{
                       alignItems: "center",
-                      backgroundColor: held()?.id === item().id ? look().selected : undefined,
+                      backgroundColor: held()?.id === item().id ? tokens.row.selected : undefined,
                       flexDirection: "row",
                       gap: 8,
                       minHeight: rowHeight(),
                       paddingHorizontal: 8,
                     }}
                   >
-                    <If when={item().mark}>{(mark) => <Words tone="quiet">{mark()}</Words>}</If>
+                    <If when={item().mark}>{(mark) => <Text tone="quiet">{mark()}</Text>}</If>
                     <View style={{ flexGrow: 1, flexShrink: 1 }}>
-                      <Words>{item().title}</Words>
+                      <Text>{item().title}</Text>
                     </View>
-                    <If when={item().aside}>{(aside) => <Words tone="quiet">{aside()}</Words>}</If>
+                    <If when={item().aside}>{(aside) => <Text tone="quiet">{aside()}</Text>}</If>
                   </View>
                 )}
               </Each>
@@ -176,13 +177,13 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
           </Scroll>
           <If when={!isNarrow()}>
             <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
-              <KeyCap token="ArrowUp" />
-              <KeyCap token="ArrowDown" />
-              <Words tone="quiet">move</Words>
-              <KeyCap token="Enter" />
-              <Words tone="quiet">open</Words>
-              <KeyCap token="Escape" />
-              <Words tone="quiet">close</Words>
+              <Kbd keys="ArrowUp" />
+              <Kbd keys="ArrowDown" />
+              <Text tone="quiet">move</Text>
+              <Kbd keys="Enter" />
+              <Text tone="quiet">open</Text>
+              <Kbd keys="Escape" />
+              <Text tone="quiet">close</Text>
             </View>
           </If>
         </View>

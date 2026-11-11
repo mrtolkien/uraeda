@@ -22,7 +22,7 @@ import {
   type ViewRef,
   type ViewStyle,
 } from "nsh";
-import { focusFirst, focusNext, type Stops, StopsContext, takeFocus } from "./focus";
+import { focusFirst, focusNext, pressHeld, type Stops, StopsContext, takeFocus } from "./focus";
 import { onChange, presence } from "./presence";
 import { Surface } from "./Surface";
 import { KeyScope, registerKey } from "../keys/registry";
@@ -90,6 +90,12 @@ function LayerKeys(props: { onClose: () => void; stops: Stops; trap: boolean }) 
         label: "Previous field",
         run: () => focusNext(props.stops, true),
       },
+    ]);
+    // Enter and Space press the control Tab reached, where nothing of the layer's own took them.
+    const press = () => (pressHeld(props.stops) ? undefined : false);
+    registerKey([
+      { fallback: true, keys: "Enter", label: "Press", run: press },
+      { fallback: true, keys: "space", label: "Press", run: press },
     ]);
   }
   // Once what it holds is there, the focus goes to its first stop.

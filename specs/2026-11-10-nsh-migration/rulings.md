@@ -3878,3 +3878,133 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   now, and it is theirs to drop.
 - **Where**: tasks 33 and 66, the screens' shared rule, and the guide `specs/ui/panes.md`, which
   task 33 writes.
+
+## R164: Icons are Lucide's and Codicons' shapes, kept in the repository, drawn as one SVG each
+
+- **Decision**: `Icon` takes a Lucide name, `file-text`, or a harness's mark, `claude`, `openai`,
+  `pi`. The shapes are tables of TSX in [`app/ui/controls/icons/`](/app/ui/controls/icons/):
+  `lucide.ts`, each icon as the elements inside its SVG, and `marks.ts`. `Icon` makes an SVG of the
+  name in its colour and size, and draws it with an `<Image>`, which takes no CSS variable.
+  - **Where they come from**: the 120 Lucide icons the React UI uses, its controls need, or Astryx
+    drew for it, read once from `lucide-react` 1.55.0, the package `pnpm-lock.yaml` pinned for
+    `packages/web/`, in the main checkout's `node_modules`, unchanged. Lucide is under the ISC
+    licence, the icons it took from Feather under MIT; Codicons' two marks under CC BY 4.0, copied
+    from `packages/web/src/theme/icons.ts`; Pi's mark is Uraeda's, on Lucide's grid. The licences
+    are in [`LICENSES.md`](/app/ui/controls/icons/LICENSES.md). Nothing is loaded at run or build
+    time.
+  - **To add one**: "Copy SVG" on lucide.dev, and one line in `lucide.ts`, in order, with what is
+    between `<svg>` and `</svg>`. The generator that read `lucide-react` ran once and is not kept:
+    the package goes with the React UI (task 61), and the table is the record.
+  - **Names are Lucide's**, not the React UI's `uraeda:*`: which icon stands for a workflow step or
+    a decision's strength is the screen's word, not the library's. `iconNamed(name, fallback)` gives
+    a name read at run time, a decision's frontmatter's, or `file-text`; `isIconName` says whether
+    the app carries one, as the key map does before it draws a key's icon.
+  - Lucide's own round caps and joins are kept: the language squares the corners of what Uraeda
+    draws, and an icon is Lucide's drawing.
+- **Rationale**: the app has no npm package (ruling R123); a table of strings costs 19 KB and no
+  build step.
+- **If wrong**: an icon's picture is made anew for each colour. A page of hundreds of icons in many
+  colours decodes as many pictures: a cache by name, colour, and size is a few lines.
+- **Where**: [`Icon.tsx`](/app/ui/controls/Icon.tsx), `app/ui/controls/icons/`, the gallery's page
+  `icons`.
+
+## R165: On GTK the focus ledger is a control's focus, and Enter or Space in a dialog presses it
+
+- **Decision**: on GTK a view never takes the platform's focus (`view.rs`: "Views never take
+  keyboard focus themselves"), so a button, a switch, or a select cannot be reached by Tab there.
+  The focus ledger of [`focus.ts`](/app/ui/surfaces/focus.ts) becomes the focus of the controls:
+  - its stop that has the focus is a signal, and `focusStop` answers `focused`, which a control
+    draws as its ring;
+  - a stop says when it is `disabled`, which Tab and an overlay's first focus pass, and what Enter
+    and Space do on it, `press`;
+  - a control's `focus()` takes the focus off any field (`Keyboard.dismiss()`), asks the platform
+    for it where it gives views one, and marks itself in the ledger;
+  - a dialog's and a sheet's layer declares Enter and Space as fallbacks that press the control with
+    the focus: a field's own Enter and an overlay's own keys come first. `press.ts` is the one home
+    of this for every control, with the states' looks: hover and pressed are the platform's
+    `hoverStyle` and `activeStyle` of `nsh/base`'s parts, so the pointer costs no render; the focus
+    is drawn from the ledger, and from `focusStyle` where the platform focuses.
+- **Not built**: a Tab order through a page's controls outside an overlay. On a page the keys go
+  through the registry, as the screens declare them; a form that wants Tab on a page wraps its
+  controls in the same ledger as a dialog (`StopsContext`, and Float's `LayerKeys` keys).
+- **Rationale**: the tests run headless, where only the ledger is the app's; and a control that
+  draws its focus from one place draws it the same on every platform.
+- **Seen failing**: without the control marking itself as it takes the focus, "a select picks by
+  keyboard, and gives the focus back" failed, Enter in the dialog opening nothing; with Tab not
+  passing a disabled stop, "a disabled control takes neither a tap nor the focus" failed, "Kept: 1"
+  never shown.
+- **Where**: `app/ui/surfaces/focus.ts`, `Float.tsx`, `app/ui/controls/press.ts`.
+
+## R166: A value the server keeps is `sent`, and its refusal is under the control
+
+- **Decision**: a control that takes a value, `Switch`, `Checkbox`, `Radio`, `Segmented`, `Select`,
+  takes `value`, `onChange`, `pending`, and `refusal`, and draws `Under`: its refusal with a mark in
+  the removed role, or its `hint`. `sent(truth, send)` in [`sent.ts`](/app/ui/controls/sent.ts) is
+  what a form gives it: the value set last shows at once, changes go to the server one after
+  another, in order, and a refusal (`send` throws, its message the words) puts back the server's
+  value unless a later change stands over it. A value the server normalises replaces the one shown
+  once the change landed.
+- **Rationale**: "a control moves the moment it is touched; a refusal puts it back and says why
+  under it" is the human's, and was sent back until every form did it the same way.
+- **Seen failing**: without the putting back, "a refused switch goes back, and says why under
+  itself" failed with `["Night: on", ...] to contain "Night: off"`.
+- **Where**: `sent.ts`, `Under.tsx`, the controls that take a value.
+
+## R167: A button's key is declared by the button, and a picture of a state takes nothing
+
+- **Decision**: `keys` on `Button` and `IconButton` shows the key as a `Kbd` and declares it in the
+  key registry, with the button's label, where the button is mounted, off while it is disabled. The
+  key shown is the key that works, and the key map and the status line list it. A control drawn in a
+  `state` for the gallery takes no press, no focus, and declares no key: a page of pictures shows
+  one key in many states without a clash.
+- **Rationale**: a key written on a button and declared elsewhere drifts from it, which the keyboard
+  decision was made against.
+- **If wrong**: a screen that mounts the same button twice where both are on fails as it renders,
+  with the registry's "bound twice": it gives the key to one of them.
+- **Where**: [`Button.tsx`](/app/ui/controls/Button.tsx), `IconButton.tsx`.
+
+## R168: The controls, against the Astryx components the React UI imports
+
+- **Decision**: one control for each Astryx component of `packages/web/` that is a control, mark, or
+  line of words: `Button`, `IconButton`, `ToggleButton` (a `Button` that is `selected`), `Switch`,
+  `SegmentedControl` (`Segmented`), `Selector` (`Select`), `CheckboxInput` (`Checkbox`),
+  `NumberInput`, `Badge`, `Banner`, `Spinner`, `ProgressBar` (`Progress`), `StatusDot`, `Kbd`,
+  `TabList` and `Tab` (`Tabs`), `DropdownMenu` and `MoreMenu` (`Menu`), `Breadcrumbs`, `Divider`,
+  `Icon`, `Link`, `Heading`, `Text`, `Code` (`Text` with `font="code"`), and `FieldStatus`
+  (`Under`). `Radio` is built though the React UI imports none: settings choose one of a few options
+  with words of their own.
+  - **Built elsewhere**: `Dialog`, `BottomSheet`, `Tooltip`, and the toasts are the surfaces' (task
+    27); `List`, `ListItem`, `CheckboxList`, `Card`, `SelectableCard`, and `Table` the lists' (29);
+    `TextInput`, `Field`, and the chat's composer the text field's (30) and the sessions';
+    `Markdown`, `CodeBlock`, and `Blockquote` the document renderer's (31); `CommandPalette` the
+    keys' picker (32); `Layout`, `SideNavItem`, `ResizeHandle`, and `Collapsible` the layout shell's
+    (33).
+  - **Not built**: `HStack`, `VStack`, and `Grid`, which are a `View`'s style; `VisuallyHidden`,
+    which is `accessibilityLabel`; `Thumbnail`, an image, for the screens that show one.
+  - **`Select` and `Menu` are not `nsh/base`'s**: those open the platform's own popup, decide Escape
+    natively, before the registry, and a menu becomes a sheet on a phone. They open on the surfaces'
+    `Popover` (and a select on a `Sheet` on a narrow window), with their rows in `Options.tsx` and
+    its keys in the overlay's layer. `Button`, `Switch`, `Checkbox`, `Radio`, `Link`, `Progress`,
+    and `NumberInput` are `nsh/base`'s parts, which give the role and state screen readers hear.
+- **Where**: [`app/ui/controls/`](/app/ui/controls/).
+
+## R169: What the controls draw where the design language says nothing
+
+- **Decision**:
+  - **Square, as every corner**: a switch is a square track with a square thumb; a checkbox a box
+    with Lucide's check; a radio a box with a square dot, which tells it from a checkbox.
+  - **On is the accent, filled; off is the well**; disabled is a dashed, quiet edge and faint words,
+    never opacity alone. Under the pointer a row of a choice takes a faint block of the accent; a
+    picked segment or tab stands a step up, or is bold, over a line of `light.focus`.
+  - **Badges, banners, and statuses are text colours on a faint block of themselves**, not white on
+    a fill: `on-action` is measured on the accent alone (ruling R135). The tint is
+    `tokens.control.tint`, a new part of the tokens, `tokens.control`, with the tones, the controls'
+    sizes, and the ring; `Tone` names them.
+  - **A spinner is a terminal's braille**, with its words, and an ellipsis with reduced motion.
+  - **The focus ring** is 1 px, 2 points outside the control, in `button.focusRing`.
+  - **On a narrow window** a button, a select, a segment, a tab, and a list's row are 44 points
+    high, and a choice's row 44 at least.
+  - `look.ts` and `parts.tsx` of the keys are gone: their views draw with `Kbd` and `Text`, and the
+    key map draws a key's icon where the app carries it. `isNarrow` moved to
+    [`app/ui/width.ts`](/app/ui/width.ts), still marked `TASK 33:`.
+- **Where**: `app/ui/controls/`, `app/ui/tokens/control.ts`, `app/ui/keys/`.

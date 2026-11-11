@@ -8,7 +8,7 @@
 // On a narrow window either is a sheet: across the width, at the bottom, from where it rises.
 import type { JSX, StyleProp, ViewStyle } from "nsh";
 import { Float, type Place } from "./Float";
-import { isNarrow } from "../keys/look";
+import { isNarrow } from "../width";
 import { tokens } from "../tokens";
 
 /** The gap a sheet, or a corner's overlay, keeps from the window's edges. */

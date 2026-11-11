@@ -1926,15 +1926,38 @@ ported, beyond accounts and jobs.
 - Produces: one component for each Astryx component the React UI imports, listed in
   [`packages/web/`](/packages/web/)'s imports of `@astryxdesign/core`, built on `nsh/base`'s
   unstyled parts where one exists.
+- Produces, as built (rulings R164 to R169), all from `app/ui/controls`:
+  - `Text` (`tone`, `colour`, `size` "under" | "size" | "over" | "over2", `bold`, `font` "body" |
+    "code" | "heading", `lines`), `textStyle`, `inkOf`, and `Heading` (`level` 1 to 3).
+  - `Icon` (`name`, `colour`, `size`), `IconName`, `iconNamed`, `isIconName`: Lucide's names and the
+    marks `claude`, `openai`, `pi`, from `icons/` (R164).
+  - `Kbd` (`keys`, a key or a sequence as typed; `onMain`; `look`; `state`).
+  - `pressable(props)`, `ring`, `PressState`: press, hover, focus, and disabled for every control
+    (R165). `focusStop` gains `disabled` and `press`, and answers `focused`.
+  - `sent(truth, send)`, `Under` (`hint`, `refusal`), `Refusal`: a value the server keeps, and its
+    refusal under the control (R166).
+  - `Button` (`label`, `variant` "main" | "tube" | "danger", `icon`, `keys`, `breathes`, `pending`,
+    `selected`), `IconButton` (`icon`, `label`, `keys`, `danger`, `selected`): `keys` declares the
+    key (R167). Every control also takes `disabled`, `first`, `state`, `testID`.
+  - `Switch`, `Checkbox` (`mixed`), `Radio`, `Segmented`, `Select` (`options`, `placeholder`,
+    `width`): `value`, `onChange`, `label`, `hint`, `pending`, `refusal`. `NumberInput` (`min`,
+    `max`, `step`, `unit`).
+  - `Menu` (`entries` of `{ label, run, icon?, keys?, danger?, disabled?, ruled? }`, `label`,
+    `icon`), `Tabs` (`tabs` of `{ value, label, icon?, count?, disabled? }`), `Breadcrumbs`
+    (`crumbs`), `Link` (`href` or `onPress`), `Divider` (`edge`, `vertical`, `label`), `Badge`
+    (`tone`), `StatusDot` (`tone`, `label`), `Banner` (`tone`, `title`, `action`), `Spinner`
+    (`label`), `Progress` (`label`, `value`, `words`).
+  - `tokens.control` and the type `Tone`, in `app/ui/tokens/`; `isNarrow` in `app/ui/width.ts`.
+  - The gallery's pages, `app/gallery/controls/`, which `just gallery-shots` draws too.
 
-- [ ] **Step 1: Build each control**, with its keyboard behaviour and its 44-point touch target on a
+- [x] **Step 1: Build each control**, with its keyboard behaviour and its 44-point touch target on a
       narrow window. Buttons and keys follow the design language's
       [buttons and keys](/specs/ui/design-language.md#buttons-and-keys): a lamp, tubes, and chips,
       with their variants behind `key.look` and `button.main.look`. `Kbd` is the one key. Icons are
       Lucide, and Codicons for harness marks, as today.
-- [ ] **Step 2: Add each to the gallery**, in every state: rest, hover, focus, pressed, disabled.
-- [ ] **Step 3: Run the task's validation**. Expected: PASS.
-- [ ] **Step 4: Commit**: `feat(nsh-migration): controls`.
+- [x] **Step 2: Add each to the gallery**, in every state: rest, hover, focus, pressed, disabled.
+- [x] **Step 3: Run the task's validation**. Expected: PASS.
+- [x] **Step 4: Commit**: `feat(nsh-migration): controls`.
 
 ## Task 29: Lists, cards, tables, and trees
 
