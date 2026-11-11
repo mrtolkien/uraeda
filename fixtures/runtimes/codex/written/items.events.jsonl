@@ -1,0 +1,55 @@
+{"sessionId":"01a1bba7-37d5-70b2-a846-298e7aa9fa2a","type":"init"}
+{"model":"GPT-6-Luna","type":"runsOn","effort":"Medium"}
+{"id":"m1","type":"accepted"}
+{"activity":{"kind":"thinking"},"type":"activity"}
+{"type":"thought","text":"Reading the plan\n\nThen the tests"}
+{"type":"thought","text":"The raw thought."}
+{"type":"thought"}
+{"text":"Looking at the tests.","type":"text"}
+{"text":"Do","type":"textDelta"}
+{"text":"ne","type":"textDelta"}
+{"text":"Done","type":"text"}
+{"id":"patch-1","type":"toolStart","input":{"changes":[{"kind":{"type":"add"},"path":"/session-dir/a.txt"},{"kind":{"type":"update"},"path":"/elsewhere/b.txt"}]},"kind":"edit","name":"Edit","target":"a.txt, /elsewhere/b.txt"}
+{"id":"patch-1","type":"toolEnd","isError":false,"output":"+hi\n\n-old\n+new\n"}
+{"id":"patch-2","type":"toolStart","input":{"changes":[]},"kind":"edit","name":"Edit"}
+{"id":"patch-2","type":"toolEnd","isError":true,"output":""}
+{"id":"mcp-1","type":"toolStart","input":{"path":"/session-dir/src/main.rs","prompt":"Review it"},"kind":"other","name":"mcp__uraeda__run_agent","target":"src/main.rs"}
+{"id":"mcp-1","type":"toolEnd","isError":false,"output":"Done.\nTwice."}
+{"id":"mcp-2","type":"toolStart","input":{"url":"https://example.com/a"},"kind":"other","name":"mcp__docs__fetch","target":"https://example.com/a"}
+{"id":"mcp-2","type":"toolEnd","isError":true,"output":"No such tool"}
+{"id":"dyn-1","type":"toolStart","input":{"pattern":"TODO"},"kind":"other","name":"grep","target":"TODO"}
+{"id":"dyn-1","type":"toolEnd","isError":true,"output":"Nothing found."}
+{"id":"ws-1","type":"toolStart","input":{"query":"codex app-server"},"kind":"fetch","name":"WebSearch","target":"codex app-server"}
+{"id":"ws-1","type":"toolEnd","isError":false,"output":""}
+{"id":"ws-2","type":"toolStart","input":{"query":"rust serde"},"kind":"fetch","name":"WebSearch","target":"rust serde"}
+{"id":"ws-3","type":"toolStart","input":{"query":"https://example.com"},"kind":"fetch","name":"WebSearch","target":"https://example.com"}
+{"id":"ws-4","type":"toolStart","input":{"query":""},"kind":"fetch","name":"WebSearch"}
+{"id":"exec-1","type":"toolStart","input":{"command":"git status","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"git status"}
+{"id":"exec-1","type":"toolEnd","isError":true,"output":"fatal: not a git repository"}
+{"id":"exec-2","type":"toolStart","input":{"command":"/usr/bin/zsh -lc \"echo \\\"hi\\\" && echo \\$HOME \\\\ \\`date\\`\"","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"echo \"hi\" && echo $HOME \\ `date`"}
+{"id":"exec-2","type":"toolEnd","isError":false,"output":"hi\n"}
+{"id":"exec-3","type":"toolStart","input":{"command":"sh -lc 'echo '\\''quoted'\\'' text'","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"echo 'quoted' text"}
+{"id":"exec-3","type":"toolEnd","isError":true,"output":""}
+{"id":"exec-4","type":"toolStart","input":{"command":"python3 script.py --flag","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"python3 script.py --flag"}
+{"id":"exec-5","type":"toolStart","input":{"command":"bash -lc unquoted","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"bash -lc unquoted"}
+{"id":"exec-6","type":"toolStart","input":{"command":"/bin/bash -lc 'two\nlines'","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"two\nlines"}
+{"id":"call-spawn","type":"toolStart","input":{"model":"gpt-6-luna","prompt":"Read the tests"},"kind":"other","name":"spawnAgent","subagent":{"description":"Read the tests"}}
+{"id":"call-spawn","type":"toolEnd","isError":false,"output":"Started"}
+{"id":"exec-c1","type":"toolStart","input":{"command":"ls","cwd":"/session-dir"},"kind":"execute","name":"Shell","target":"ls","parent":"call-spawn"}
+{"type":"thought","parent":"call-spawn","text":"Listing the files"}
+{"id":"exec-c1","type":"toolEnd","isError":false,"output":"a.txt\n"}
+{"id":"call-wait","type":"toolStart","input":{"model":"gpt-6-luna","prompt":"Read the tests"},"kind":"other","name":"wait"}
+{"id":"call-wait","type":"toolEnd","isError":false,"output":""}
+{"id":"call-failed","type":"toolStart","input":{"model":"gpt-6-luna","prompt":"Read the tests"},"kind":"other","name":"closeAgent"}
+{"id":"call-failed","type":"toolEnd","isError":true,"output":""}
+{"text":"Automatic review denied (risk: high): It pushes to a remote.","type":"notice"}
+{"text":"Automatic review timed out: The reviewer did not answer in time.","type":"notice"}
+{"text":"Automatic review aborted","type":"notice"}
+{"text":"Automatic review approved (risk: unknown)","type":"notice"}
+{"model":"GPT-6-Luna","type":"runsOn","effort":"Extra high"}
+{"model":"GPT-6-Luna","type":"runsOn","effort":"Medium"}
+{"model":"gpt-unlisted","type":"runsOn","effort":"weird"}
+{"total":{"cacheRead":900,"cacheWrite":0,"input":100,"output":20},"type":"tokens"}
+{"total":{"cacheRead":50,"cacheWrite":0,"input":0,"output":0},"type":"tokens"}
+{"denials":[],"errors":[],"interrupted":true,"ok":false,"type":"result"}
+{"code":0,"stderr":"","type":"exit"}

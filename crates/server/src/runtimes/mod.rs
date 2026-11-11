@@ -69,6 +69,7 @@
 
 mod child;
 mod claude;
+pub mod codex;
 mod events;
 pub mod fake;
 mod options;
@@ -199,5 +200,6 @@ pub(crate) fn mount(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
         stopping.get::<child::Children>().stop().await;
     });
     claude::register(shared)?;
+    codex::register(shared)?;
     Ok(())
 }

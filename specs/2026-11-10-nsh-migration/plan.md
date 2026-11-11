@@ -1045,17 +1045,38 @@ Follows [what every records task does](#what-every-records-task-does).
 
 ## Task 14: The Codex runtime
 
-As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`, tested in
-`crates/server/tests/codex.rs` on recorded streams. It ports
-[`codex.ts`](/packages/server/src/runner/codex.ts) and `codex-rpc.ts`, and produces
-`runtimes::codex()`. Its steps and tests are task 13's, with Codex's streams.
+As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and the folder `runtimes/codex/`, one
+small file per part (ruling R110), tested in `crates/server/tests/codex.rs` and `tests/codex/` on
+the exchanges of `fixtures/runtimes/codex/` (ruling R107). It ports
+[`codex.ts`](/packages/server/src/runner/codex.ts) and `codex-rpc.ts`, with what they import, and
+produces `runtimes::codex::codex(&shared)`, which `runtimes::mount` registers as the built-in
+`codex`. Its steps and tests are task 13's, with Codex's streams.
 
-- [ ] **Step 1: Write the failing tests**, as task 13's.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**, then one manual run against the real CLI. Expected:
+What the sessions (task 15) rely on:
+
+- The runtime is `shared.get::<Runtimes>().get("codex")`. `open` is called on a blocking thread,
+  where tokio is.
+- A process says one `init`, once its thread started: its `sessionId` is the thread's id, the native
+  id to store and to resume by, with `has_session`. An `init` with a `problem` has an empty
+  `sessionId`: the process runs no turn, and is closed.
+- A message's `accepted` can follow its turn's `result`, when Codex ends a turn before it answers
+  its start.
+- After a turn that failed or was stopped, the messages still queued stay in the runtime: the
+  sessions take each back, and get its `cancelled`.
+- `set_effort` answers `true`: no process is reopened for an effort. A review is the message
+  `review_message` gives, sent with `review` set, on a thread opened on the reviewer's effort.
+- A result names no denial, and `allow_rule` gives no rule: Codex asks its own reviewer, whose
+  verdict is a `notice` (ruling R109). `Options::allowed` is not read.
+- `close` ends the process once its turn is over, with code 0. A process dropped has its stdin
+  closed.
+
+- [x] **Step 1: Write the failing tests**, as task 13's. They were written after the port, against
+      the brief's order, and seen failing with the registration removed.
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**, then one manual run against the real CLI. Expected:
       PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the codex runtime`.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the codex runtime`.
 
 ## Task 15: Sessions
 

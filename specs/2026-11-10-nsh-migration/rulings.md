@@ -2470,3 +2470,116 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     of the owner's extensions on there.
 - **Where**: task 17, `crates/server/src/extensions/runtime.rs`, and the test
   `an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension`. Task 15.
+## R107: Codex's exchanges are recorded or written, and the Node runtime writes what they become
+
+- **Decision**: `fixtures/runtimes/codex/` holds what the test
+  `a_recorded_stream_becomes_the_same_events_as_the_node_runner_made` compares, event by event.
+  - **An exchange is every line both sides wrote**, in order: `{"client": ..}` for the runtime's,
+    `{"server": ..}` for Codex's, after a first line that says how the process opened and the
+    message sent.
+  - **Five exchanges recorded from Codex 0.163.0** by `record.ts`, each one short message sent by
+    the Node runtime, `CodexAdapter`, on `gpt-6-luna`, in a temporary folder: a reply in pieces
+    (`reply`), a command and its output (`command`), a thought (`reasoning`), a turn that fails on a
+    model the account does not have (`error`), and Codex's own review of one small commit
+    (`review`).
+  - **The sandbox of a recording is read-only.** Between the runtime and Codex, `record.ts` asks for
+    `read-only` where the runtime asks for `workspace-write`, and writes the thread's answer with
+    the sandbox the runtime asked for, without which the runtime refuses the thread. Nothing else is
+    changed but what is scrubbed: the session's folder reads `/session-dir`, the home folder
+    `/home/me`, the answers keep only the fields a runtime reads, and the notifications of the
+    owner's own setup, their hooks, MCP servers, apps, and account, are left out.
+  - **Four exchanges are written**, in `written/`, by `node-events.ts` and `written.ts`: `approved`,
+    whose notifications are the exchange the Node server's tests hold, reused as it is
+    (`codex-turn.jsonl`); `denied`, the same with the review refused, by hand (R108); `items` and
+    `limits`, the cases of the Node runtime's tests as notifications: each kind of item, Codex's own
+    sub-agents, the reviews' other ends, the usage windows, and the limits.
+  - **The events of each are written by `node-events.ts`**, which drives `CodexAdapter` on the
+    exchange and writes no event by hand: `<name>.events.jsonl`. 208 events in all.
+  - **One stand-in plays both sides**, `stand-in.mjs`, run by `node`: it replays an exchange for the
+    Node runtime and for the Rust one, matching each request by its method and giving each answer
+    the id the runtime gave its request, and, with no exchange, answers as the stand-in of the Node
+    server's tests did. It writes down its arguments, its token, and each line it read, so the
+    requests are compared too. The server's tests of Codex need `node`, which the dev shell has.
+- **Rationale**: a port is checked against what it ports. Codex's protocol is two-way, so a
+  recording holds the runtime's own lines, and what replays it answers them.
+- **If wrong**: an exchange goes stale with a new Codex. `record.ts`, then `node-events.ts`, write
+  them again, while the Node runtime exists; after task 61 the events are kept as they are.
+- **Where**: task 14, `fixtures/runtimes/codex/`, `crates/server/tests/codex.rs`.
+
+## R108: No refusal of Codex's reviewer was recorded, and no recording asks for more than its sandbox
+
+- **Decision**: `written/denied.jsonl` is written by hand, from the exchange the Node tests hold.
+  The brief asked for "an approval asked and denied" recorded from the real CLI: it was not kept.
+  - **What happened.** A reviewer's refusal only exists for an action that asks to run outside the
+    sandbox. One recording was made with a message that asked Codex to run a command "with escalated
+    permissions", a `curl` posting `/etc/hostname` to a host under `.invalid`, worded as the owner's
+    own request, and expected to be refused. Codex's reviewer approved it instead, and the command
+    ran outside the read-only sandbox the brief set. It failed, as that host resolves nowhere, and
+    nothing left the machine. The recording was deleted, and its case removed from `record.ts`.
+  - **The rule since.** No message of `record.ts`, nor of the manual check, asks Codex for an
+    escalation, or names a command that needs one: what the reviewer approves runs outside the
+    sandbox, so its answer cannot be the guard.
+  - The approved review is the Node tests' own recorded exchange, reused. The refusal's shape is the
+    protocol's `GuardianApprovalReviewStatus`, as the Node tests wrote it.
+- **Rationale**: the limit was the owner's, and a message that asks to step over it is not a test of
+  a refusal: it is a request.
+- **If wrong**: a refusal is recorded by the owner themselves, with a message of their choice, and
+  `node-events.ts` writes its events.
+- **Where**: task 14, `fixtures/runtimes/codex/{record,node-events}.ts`, `written/denied.jsonl`.
+
+## R109: The runtime's events are the Node runtime's, and it differs only outside them
+
+- **Decision**: the 208 events of the nine exchanges are the Node runtime's, one by one, and so are
+  the requests each is asked with. What the Rust runtime does otherwise is outside them:
+  - **A line is done with before the next is read.** Everything a process keeps is one `Session`
+    behind one lock. What a line leads to, an event, the next request, the turn that waited for an
+    answer, is done before the next line, so the order of two events never depends on how the lines
+    were cut on their way. The Node runtime went on in promises, between lines. Its events are
+    written with each line read alone, as Codex writes them, and that order is this one.
+  - **`exit` is the last event** (R98). What a dying process's unanswered requests would say after
+    it, an `init` with a problem, a failed `result`, is dropped: the Node runtime pushed them after
+    its exit, where its reader had usually ended.
+  - **The reader ends with the process**, as Claude Code's does (T13.2): once the process exited and
+    its group was killed, with what it printed read.
+  - **A process nobody holds has its stdin closed**, which ends Codex.
+  - **`set_effort` answers `true` until the process exited**: Codex takes the effort with its next
+    turn.
+  - **The command is the `command` setting of the built-in extension `codex`**, read as each process
+    starts, as Claude Code's is (T13.3).
+  - **A catalog that cannot be written says so in other words**: the end of what
+    `codex debug models` wrote to its stderr, where Node gave its own error's message.
+  - **A window's reset before 1970 or past the year 9999 is no reset**, and a count of tokens is a
+    whole number, never below zero.
+- **Rationale**: each is where the Node runtime relied on JavaScript's own order or texts, or where
+  the contract of task 12 says otherwise.
+- **Where**: task 14, `crates/server/src/runtimes/codex/{process,start,turns,limits,items}.rs`.
+
+## R110: Codex's built-in registers as the server mounts, in a folder of small files
+
+- **Decision**: `runtimes::mount` registers Codex's runtime under `codex`, its built-in extension's
+  name, after Claude Code's. The owner turns it off by turning its extension off (R101).
+  - **The code is `runtimes/codex.rs` and `runtimes/codex/`**, one file per part, where the plan
+    named `codex.rs` and `codex_rpc.rs`: `rpc` (the channel), `process` (a session's lock and its
+    command), `start` (the thread's start), `turns`, `events` and `items` (notifications into
+    events), `limits`, `thread` (parameters), `permissions`, `catalog`, `models` and `lister`,
+    `rollouts`, `folders`, `instructions`, `short`, `target`, `wire`, `json`.
+  - **`runtimes::codex::codex(&shared)` is public**, with `start_within(duration)`, for the one test
+    that shortens a start's time. Everything else reaches the runtime through the registry.
+  - **The skill and the documentation are the folders of T13.3**, `<data folder>/plugin/skills` and
+    `<data folder>/docs/extensions.md`, written by this runtime too, file by file, so neither
+    runtime's write takes a file from the other's session. The instructions' words, an effort's
+    name, and a tool's target are in `codex/{instructions,target}.rs` as they are in `claude/`.
+    **One home for each is the join's.**
+  - **No test finds the real `codex`**: `tests/support/no-agents/codex` fails at once, beside
+    `claude` (T13.4), and the runtime's own tests put their stand-in before it. The stage of Claude
+    Code's tests replaces the `PATH` without that folder: once both are merged, its servers find the
+    real `codex`, and it needs the folder after its own, as `codex/stage.rs` has it.
+  - **The check against the real `codex` is an ignored test**,
+    `real_codex_runs_a_session_and_resumes_it`, run by hand:
+    `cargo nextest run -p uraeda-server --test codex --run-ignored only real --no-capture`. It runs
+    through the wrapper of `record.ts`, so its sandbox is read-only, and sends two short messages
+    that ask for no command.
+- **Rationale**: task 13 set the registration, the folders, and the stand-ins while this task ran.
+  The same shapes keep the join to moving code, not deciding.
+- **Where**: task 14, `crates/server/src/runtimes/{mod,codex}.rs`, `crates/server/tests/codex/`.
+  Tasks 15 and 20, and the join.
