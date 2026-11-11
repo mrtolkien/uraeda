@@ -29,14 +29,21 @@ as a Linux app and a web build, on a component library of its own.
 **Architecture:** see [the spec's architecture](spec.md#architecture) for the shape. The ownership,
 the layout, and the contracts are under [code read](#code-read). The tasks come in three phases:
 
-| Phase         | Tasks | Ends with                                          |
-| ------------- | ----- | -------------------------------------------------- |
-| 0, core       | 1–35  | A Rust server, a client core, and a gallery        |
-| 1, Linux, GTK | 36–55 | The Linux app, packaged, at parity                 |
-| 2, web        | 56–61 | The web build, and the React and Node code removed |
+| Phase         | Tasks       | Ends with                                          |
+| ------------- | ----------- | -------------------------------------------------- |
+| 0, core       | 1–35, 62–64 | A Rust server, a client core, and a gallery        |
+| 1, Linux, GTK | 36–55, 65   | The Linux app, packaged, at parity                 |
+| 2, web        | 56–61       | The web build, and the React and Node code removed |
 
 iOS and macOS are not in this plan. Nothing here may close them off: see
 [global constraints](#global-constraints).
+
+**Caught up with the default branch on 2026-11-11.** While the plan was built, two features and a
+round of fixes merged there: [several accounts](../done/2026-11-10-multi-accounts.md) for one agent,
+[scheduled jobs](../done/2026-11-10-scheduled-jobs.md) with their Jobs place, a run a usage limit
+refused going on at once on another account, and fixes to the screens the human uses every day. The
+branch is rebased on them, and the plan gains four tasks, 62 to 65, and new rules in the screens'
+tasks: see [what makes a screen good](#what-makes-a-screen-good) and ruling R124.
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 
@@ -175,8 +182,9 @@ function the binding wraps today. Each adds its line `mod <domain>;` and its lin
 
 ### What every screen task does
 
-Tasks 37 to 51 each port one area of the React UI. They share one shape, so each task below lists
-only what differs: its files, the old code to read, its records and actions, and its own rules.
+Tasks 37 to 51, and 65, each port one area of the React UI. They share one shape, so each task below
+lists only what differs: its files, the old code to read, its records and actions, and its own
+rules.
 
 **Shared interfaces:**
 
@@ -200,6 +208,73 @@ only what differs: its files, the old code to read, its records and actions, and
       new screen goes in the pull request, none in the repository.
 - [ ] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 6: Commit**: `feat(nsh-migration): <area>`.
+
+### What makes a screen good
+
+A port that copies the old screen's pixels also copies its mistakes. In the week this plan was
+built, the human sent back a round of fixes to the React UI, each for something that hurt in daily
+use. They are listed here with the complaint behind each, because the complaint is the rule: a
+screen is judged by what its owner can do with it at the end of a long day, on a phone, with the
+keyboard, not by whether it shows the right data.
+
+Every screen task, and every component task, checks its work against these before its review step,
+and says in its commit body how each applies:
+
+1. **The thing done most is one tap or one key away, and nothing costly sits beside it.** "Adding
+   notes on mobile is clunky. I clicked 'add a category' by mistake the first time I navigated
+   there. It's the inbox: it should be accessible in one click." The inbox's add now comes first, as
+   one row of icons beside the title, and "New category" comes after the notes. Name the one action
+   a view exists for, give it the best place, and put rare or structural actions where a thumb does
+   not land by mistake.
+2. **An action that commits, starts a branch, or spends an agent's time is deliberate.** "Pressing
+   enter when modifying the slug or body of a proposal starts it, which is often too early. Starting
+   work should be deliberate since it starts a branch and makes commits." Enter in a field never
+   starts work: only the Start button does, or `Ctrl+Enter` in the field whose whole purpose is the
+   start. Saving text (`Ctrl+Enter`, `:w`) and starting work are never the same key in the same
+   place.
+3. **Show the whole thing, at the size it needs, with the one component that draws it.** Of the
+   one-line strip of run options in the start dialog: "This should be a much bigger view, it's super
+   hard to read. Should be the same as settings pretty much." Then: "Put the full map in the dialog,
+   and make it almost full screen if necessary. Only one component to maintain that way." A cramped
+   summary of something the human must read and decide on is a second component to keep right, and
+   it is harder to read. Reuse the full one, and let the dialog grow to fit it.
+4. **Several facts about one thing make a card, in the order things happened, with their times.**
+   "Subagent sidebar should have start time, at least. Likely nicer cards. Also remove the commit
+   hash from review agents' titles." A row of grey text hides which fact matters. A card has a title
+   a person would say aloud, the state, and when it started and ended; lists of things that happen
+   read in the order they happened, and follow their end as the activity does. Internal names,
+   hashes, and ids stay out of titles.
+5. **Every part of a screen is reached by the keyboard, with the keys the rest of the app uses.**
+   "There's no way to navigate, focus, or move into the sidebar of a session with the keyboard." `l`
+   now crosses into a session's column and `h` back, `j` `k` move through its rows, as on every page
+   of columns. Before a screen is done, cross it without the pointer: every pane, every row, every
+   action, and the way back. The status line names the keys that work where the focus is.
+6. **A control moves the moment it is touched, and a refusal comes back to where the hand was.** The
+   jobs' form was sent back until "a job's switch shows its value at once", "a form's changes are
+   queued patches, and its controls move at once", and a refused value "shows under its field". The
+   screen never waits for the server to show what the human just did: it shows it, sends it in
+   order, and when the server refuses, puts the control back and says why under that control, in
+   words that name the way out ("A time is from 00:00 to 23:59.").
+7. **Take what a person types.** "A time typed as 3:00 is sent as 03:00." A field accepts the forms
+   a person writes, and normalises them itself, before it ever refuses.
+8. **Say what is true, and why not.** A job's card says "Next run: Tomorrow at 3:00", or why it does
+   not run: "Paused", "Not running here: Claude Code is off in this repository." A session's header
+   names the account it runs on now. A skipped time "names the change that blocked it", a run whose
+   session is gone reads "Its session is gone." Times read in the server's time zone, whatever the
+   device's. Never an empty space, a spinner with no end, or a state the human must guess: each
+   state has its words, and the words name the cause.
+9. **No dead end.** "Unticking the page's own repository says so, and offers the way back": the page
+   tells what just happened and gives "Run it here again". After any action that takes the human's
+   subject away from under them, the screen says where it went and how to return.
+10. **A default the human can explain.** "How do we define the default model? Why is it Codex?" A
+    default came from the order runtimes happened to register in. Now a setting names it, and the
+    first agent on is the default when it is unset. Where the app chooses for the human, the choice
+    follows a rule they can read in the settings, and stays the same from one start to the next.
+
+The implementer of a screen uses it as its owner would before handing it over: from the sandbox, a
+whole errand through that screen by keyboard, then the same by touch at a phone's width, in both
+themes. What made them hesitate, look twice, or reach for the pointer is fixed, or written in the
+commit body for the walk through the app (task 52).
 
 ## Code read
 
@@ -433,7 +508,8 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
    Then [their join](#the-join-of-wave-6), alone.
 7. Task 12, alone: the runtimes and the extension VM implement its contract.
 8. Tasks 13, 14, 17: two runtimes and the extension VM.
-9. Tasks 15, 19.
+9. Tasks 15, 19. Then tasks 62, 63, 64, added on 2026-11-11: accounts, scheduled jobs, and what else
+   the Node server gained, in separate modules, each on the sessions of task 15.
 10. Task 20, alone: the store's tests and every screen's review run on its sandbox.
 11. Tasks 23, 24, 25: the client store, its routes, and the design language's samples.
 12. Task 26, alone: every component reads its tokens.
@@ -445,7 +521,7 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 18. Task 36, alone: every screen lives in its shell.
 19. Tasks 37, 39, 40, 45, 46, 48: areas with no screen in common, each adding its lines to the
     routes.
-20. Tasks 38, 41, 43, 47, 49.
+20. Tasks 38, 41, 43, 47, 49, 65.
 21. Tasks 42, 44, 50.
 22. Task 51.
 23. Tasks 52, 53.
@@ -1337,6 +1413,120 @@ What the sessions (task 15) rely on:
 - [x] **Step 4: Run the task's validation**. Expected: PASS.
 - [x] **Step 5: Commit**: `feat(nsh-migration): build, sign, and serve extension pages`.
 
+## Task 62: Accounts
+
+Added on 2026-11-11, from the default branch's
+[multi-accounts](../done/2026-11-10-multi-accounts.md) feature, which this plan's port of the runner
+predates. Read its record first: it is the specification.
+
+**Files:**
+
+- Create: `crates/server/src/runtimes/accounts.rs` (the contract and the pick),
+  `crates/server/src/runtimes/claude/accounts.rs`, `crates/server/src/runner/{account,moves}.rs`
+- Modify: the store's schema (a session's account), the import (the Node store's account columns),
+  the records Agent and Session
+- Test: `crates/server/tests/accounts.rs`
+
+**Interfaces:**
+
+- Consumes: `Runtime` (12), the Claude runtime (13), sessions and the continuer (15).
+- Produces:
+  - Accounts in the runtime's contract, as
+    [`extension-api.ts`](/packages/server/src/extension-api.ts) has them now, so an extension's
+    runtime lists its own; and the pick's rule, one function, as
+    [`account-pick.ts`](/packages/server/src/runner/account-pick.ts) has it.
+  - Claude Code's accounts from the configuration folders of `[extensions.claude] accounts`, each
+    reaching the process only as `CLAUDE_CONFIG_DIR`, never for `~/.claude`
+    ([`claude-accounts.ts`](/packages/server/src/runner/claude-accounts.ts)).
+  - Each account's usage, asked in short processes that spend nothing, at most once a minute per
+    account ([`account-usage.ts`](/packages/server/src/runner/account-usage.ts)), in the record
+    Agent; a session's account in the record Session.
+  - A run a usage limit refused goes on at once on the account with the most room among those that
+    hold its conversation, with a line naming the account; with no room elsewhere it waits for its
+    own reset ([`account-move.ts`](/packages/server/src/runner/account-move.ts), and the
+    [models](../decisions/models.md) and [run lifecycle](../decisions/run-lifecycle.md) decisions).
+  - An account's problems, for the settings' banners.
+
+- [ ] **Step 1: Write the failing tests**, on the fake runtime with scripted accounts, reusing the
+      cases of the Node tests:
+      `a session picks the account with the most of its five hours left,     and keeps it`, with the
+      record's rows for ties, an unknown usage, a used-up week, and none signed in;
+      `a run a limit refused goes on at once on another account`, with a row where no other has
+      room; `an account reaches the agent only as its configuration folder`.
+- [ ] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 3: Implement**, porting the files above. Uraeda never reads or writes a credential. No
+      test and no step asks a real account for its usage.
+- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+      PASS.
+- [ ] **Step 5: Commit**: `feat(nsh-migration): accounts, their usage, and a limit's move`.
+
+## Task 63: Scheduled jobs
+
+Added on 2026-11-11, from the default branch's
+[scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature. Read its record first, with its
+gotchas: each is a bug the Node code met.
+
+**Files:**
+
+- Create: `crates/server/src/jobs/` (times, scheduler, starts, run, run_now, accept, guards,
+  problem, announce), `crates/server/src/records/jobs.rs`, the store's `job_runs` table
+- Modify: the import (the Node store's `job_runs`)
+- Test: `crates/server/tests/jobs.rs`
+
+**Interfaces:**
+
+- Consumes: the core's [`jobs.rs`](/crates/core/src/jobs.rs), which owns a job's format and every
+  write; sessions, `session.toChange`, and the offers' grammar (15); the store (11); the catch-ups'
+  scheduler beside which it runs.
+- Produces: the record Jobs and its actions, with the names of
+  [`fate/jobs.ts`](/packages/server/src/fate/jobs.ts) and `job-mutations.ts`; the scheduler, the
+  only code that starts a scheduled run; "Run now"; the acceptance of a run's change offer; the
+  switches `[runs] scheduled_jobs`, `ura serve --no-scheduled-jobs`, and `URAEDA_SCHEDULED_JOBS`.
+
+- [ ] **Step 1: Write the failing tests**, on the server's fixed clock and the fake runtime, reusing
+      the Node tests' cases: `a job runs at its time, once`, with rows for two ticks, a clock set
+      back, and a time more than 5 minutes past;
+      `a time is skipped while the last run works or     its change is open`;
+      `a run starts the change it offers, and only then`, with the record's rows of offers that
+      start nothing; `a job is never read from a repository`.
+- [ ] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 3: Implement**, porting [`packages/server/src/jobs/`](/packages/server/src/jobs/). The
+      run's row is written with nothing awaited after its last guard. The scheduler stops through
+      `shared.on_stop`, waiting for an acceptance in flight.
+- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+      PASS.
+- [ ] **Step 5: Commit**: `feat(nsh-migration): scheduled jobs`.
+
+## Task 64: What else the Node server gained
+
+Added on 2026-11-11: the small behaviours the default branch gained in the code tasks 7 to 19
+ported, beyond accounts and jobs.
+
+**Files:**
+
+- Modify: `crates/server/src/mcp/`, `crates/server/src/records/sessions/`,
+  `crates/server/src/records/workspace/settings/`, `crates/server/src/runtimes/registry.rs`
+- Test: in those domains' test files
+
+**Interfaces:**
+
+- Produces:
+  - `runs.default_agent` names the agent a new session runs on, the first agent on when unset, with
+    its action. A runtime registered again keeps its place in the order.
+  - Uraeda's MCP tools are listed with `readOnlyHint`, so an agent runs the `run_agent` calls of one
+    turn at once, and a wave's implementers run together. A `run_agent` call's target is its task.
+  - A sub-session's view carries when it started and ended, and a reviewer's title no commit.
+  - Anything else `git diff e15482f6 main -- packages/server/src` shows that tasks 62 and 63 do not
+    own: list each in the commit body, ported or dropped with its reason.
+
+- [ ] **Step 1: Write the failing tests**: `a new session runs on the default agent`;
+      `a runtime registered again keeps its place`; `the tools say they change nothing`.
+- [ ] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
+      PASS.
+- [ ] **Step 5: Commit**: `feat(nsh-migration): the default agent, and what else the server gained`.
+
 ## Task 20: The parity list, and the server's sandbox
 
 **Files:**
@@ -1741,7 +1931,11 @@ What the sessions (task 15) rely on:
 
 - Consumes: surfaces, controls, `route` (24).
 - Produces: the app's frame at the three width classes of the UI layout decision: narrow below 768,
-  semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`.
+  semi-wide from 768, wide from 1280. `width: Signal<"narrow"|"semi-wide"|"wide">`. The side
+  column's keys are the shell's: `l` moves the focus from the page into the column, onto its first
+  row, `h` gives it back, `j` `k` move through its rows, and `k` past the first reaches its tabs, as
+  [the keyboard guide](/specs/ui/keyboard.md) says. Every screen with a side column gets them from
+  here.
 
 - [ ] **Step 1: Build the frame**, following [wide](/specs/ui/wide.md),
       [semi-wide](/specs/ui/semi-wide.md), and [phone](/specs/ui/phone.md). Read the window's width
@@ -1839,6 +2033,10 @@ package. It starts once the gallery (task 35) is done.
   - `uraeda --server <address>`: connect to another machine's server, pairing on the first run.
   - The frame every screen draws in: the sidebar or rail, the tabs, the side column, the status line
     with the Vim mode, the connection's state.
+  - The sidebar's Usage pane, one line per login with its five hours, "default 5h 58% · 15:08", "b
+    signed out", and the closed rail's bar for the account of the session in view, as
+    [`sidebar/Allowance.tsx`](/packages/web/src/sidebar/Allowance.tsx) and the
+    [multi-accounts record](../done/2026-11-10-multi-accounts.md) have them.
   - The sign-in and pairing screens; the first-run, unknown-repository, and missing-folder pages;
     "Nothing here"; the server-error banner; the "update this side" page for a refused version.
   - `just app-shots <route>`: a picture of a route on the sandbox, on an invisible display.
@@ -1866,7 +2064,12 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `proposals.move`, `proposals.outline`
 - **Routes:** `/`, `/priorities`, `/priorities/<key>`
 - **Its own rules:** priorities show as columns or one list, switched with `v`. Order changes by
-  drag, by long press, and by keys.
+  drag, by long press, and by keys. Home's inbox pane adds a note in one tap. Home's Usage pane
+  lists each account under its agent's mark, by name, with its five hours and its week, as
+  [`home/Usage.tsx`](/packages/web/src/home/Usage.tsx) and the
+  [multi-accounts record](../done/2026-11-10-multi-accounts.md) word it: "5h 58% left - reset
+  15:08", a used-up week in the error colour, "b · signed out", "c · no folder".
+- **Records and actions, also:** Agent, with its accounts (task 62).
 - **Tests:** `a reorder is saved once, in the order shown`.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
@@ -1886,7 +2089,14 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** ProposalFile, StartPlan, SlugProposal, FolderSuggestions; `proposals.*`,
   `feature.start`, `feature.startText`, `change.start`, `session.new`
 - **Routes:** `/priorities/<key>` as an overlay or a page, `/new?kind=session|change|feature`
-- **Tests:** `leaving an edited proposal asks first, and keeps the text`.
+- **Its own rules:** Enter in a proposal's slug starts nothing, and `Ctrl+Enter` or `:w` in its text
+  saves it: only the Start button, or `Ctrl+Enter` in the slug, starts. A feature's and a change's
+  start dialog holds the run map under its field, the settings' own component (task 44's, as
+  [`runs/RunMap.tsx`](/packages/web/src/runs/RunMap.tsx) is today), in a dialog as large as the map
+  needs, up to most of the window. The field keeps the first focus and Enter, and the map its keys.
+  There is no one-line strip of run options. A new session runs on `runs.default_agent`.
+- **Tests:** `leaving an edited proposal asks first, and keeps the text`;
+  `Enter in a proposal's slug starts nothing`.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
 - [ ] **Step 2: Write the tests** this task names.
@@ -1904,7 +2114,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** Inbox, Dropped; `inbox.*`
 - **Routes:** `/inbox`, `/inbox/<key>`, `/inbox/triage`
 - **Its own rules:** an image is added by drop, by paste, and by a picker, and uploaded through
-  `POST /r/:name/inbox/note-image`.
+  `POST /r/:name/inbox/note-image`. The inbox's actions are one row of icons beside its title:
+  Organize with AI, New category, and a note's add, which comes first and takes one tap. "New
+  category" among the categories comes after the notes, never where the add is expected.
 - **Tests:** none: using the screen shows every behaviour.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
@@ -1986,7 +2198,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Consumes also:** `Reply` (31), `VirtualList` (29), `TextField` (30), `text()` (23).
 - **Its own rules:** the transcript opens at its newest message and follows it while a reply
   streams, unless the reader scrolled away. Each message has its own signal. A reply is drawn as
-  blocks. Images are attached through `POST /r/:name/attach`.
+  blocks. Images are attached through `POST /r/:name/attach`. The header names the account after the
+  agent, "Claude Code · b · Opus 5.5 · High", and follows it when a limit moves the session to
+  another account. `l` crosses from the page into the session's side column, unfolding it, and `h`
+  back; there `j` `k` move from row to row, and `k` past the first row reaches the tabs, as
+  [the keyboard guide](/specs/ui/keyboard.md) says and
+  [`layout/columnKeys.ts`](/packages/web/src/layout/columnKeys.ts) does. The column's keys are a
+  part of the layout shell (task 33), not of this screen.
 - **Tests:** `a streaming reply stays in view`; `a reader who scrolled up is not moved`;
   `a message typed during a reply is sent once`.
 - **Extra step, before the commit:** run `just frames session` on a session of 20,000 messages.
@@ -2004,10 +2222,15 @@ Follows [what every screen task does](#what-every-screen-task-does).
 Follows [what every screen task does](#what-every-screen-task-does).
 
 - **Files:** `app/screens/session/panels/`, `app/screens/runs/`
-- **Read:** `session/` (activity, changes, subagents, start steps), `runs/` (run map, strip,
-  sub-sessions)
+- **Read:** `session/` (activity, changes, subagents, start steps, `AgentCall.tsx`), `runs/` (the
+  run map, `AgentCard.tsx`, sub-sessions)
 - **Records and actions:** Session, Turn, BranchChanges, AllBranchChanges; `session.allow`,
   `session.allowAll`, `session.toChange`
+- **Its own rules:** the run map is one component, used by the settings and by the start dialogs
+  (task 38). A session's sub-agents are framed cards, with their start and their end, in the order
+  they started; the tab follows its end as the Activity does, and has no Changes under it. A
+  reviewer's title shows no commit. In the Activity, a `run_agent` call shows its sub-session on one
+  line, a link to its page, and its target is its task.
 - **Tests:** none.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
@@ -2085,7 +2308,11 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Routes:** `/settings/<category>`, for server, appearance, fonts, keyboard, sign-in, runs, and
   extensions
 - **Its own rules:** the theme and the fonts are chosen per device. The sign-in category lists
-  paired devices, and revokes one.
+  paired devices, and revokes one. The runs category holds the run map, the default agent's row
+  (`runs.default_agent`, the first agent on when unset), and "Run scheduled jobs". The extensions
+  category shows a banner per problem of an account, for the built-in agents and any extension's:
+  "Claude Code: account b is signed out, in ~/.claude-b". A setting's control moves at once, and a
+  refusal puts it back and shows under it.
 - **Tests:** none.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
@@ -2143,8 +2370,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
 
 Follows [what every screen task does](#what-every-screen-task-does).
 
-- **Files:** `app/extensions/builtins/` (decisions, git, inbox, priorities, sessions, notifications,
-  previews), `app/screens/extension/`, `docs/extensions.md`
+- **Files:** `app/extensions/builtins/` (decisions, git, inbox, jobs, priorities, sessions,
+  notifications, previews), `app/screens/extension/`, `docs/extensions.md`
 - **Read:** [`extensions/builtins/`](/packages/web/src/extensions/builtins/),
   `extensions/routes.tsx`, [`docs/extensions.md`](/docs/extensions.md)
 - **Routes:** `/e/<name>/<rest>`
@@ -2163,6 +2390,40 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
 - [ ] **Step 5: Run the task's validation**. Expected: PASS.
 - [ ] **Step 6: Commit**: `feat(nsh-migration): built-in extensions, and extension places`.
+
+## Task 65: The Jobs place
+
+Follows [what every screen task does](#what-every-screen-task-does). Added on 2026-11-11, from the
+default branch's [scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature.
+
+- **Files:** `app/screens/jobs/`, and its line in `app/extensions/builtins/`
+- **Read:** [`packages/web/src/jobs/`](/packages/web/src/jobs/), `extensions/builtins/jobs.tsx`, and
+  "Scheduled jobs" in [`docs/web-ui.md`](/docs/web-ui.md), which words every state of the place
+- **Records and actions:** Jobs and its actions (task 63); Agent, for the agent, model, and effort
+- **Routes:** `/jobs`, `/jobs/<name>`, where a name the address cannot carry is written with a `~`
+  before it
+- **Its own rules:**
+  - The place is a built-in extension, reached with `Space j` or `g j`, turned off like the others.
+  - A job is a card: its name, its schedule in words, the pause switch, "Next run" or why it does
+    not run, and "Last run". `j` `k` move the selection, Enter opens the job, `r` runs it now, `p`
+    pauses or resumes it, `d` deletes it after a confirmation, `a` adds one, each also by tap. A
+    refusal shows under its card until it is dismissed.
+  - A job's page is a form whose fields save as they are left, and a choice as it is made. A control
+    moves at once; changes made while a save is under way wait their turn; a refusal puts the
+    control back and shows under its field. A time typed `3:00` is sent as `03:00`. The page ends
+    with the job's history, newest first.
+  - On a narrow window the schedule's kind and day are two selectors that open as sheets, and "Run
+    now" is the bottom bar's one action.
+  - Times read in the server's time zone.
+- **Tests:** `a field refused by the server goes back, and says why under itself`;
+  `changes made during a save are sent in order`.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): the Jobs place`.
 
 ## Task 52: The sandbox, and a walk through the app
 

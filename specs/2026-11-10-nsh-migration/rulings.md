@@ -2863,8 +2863,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   cache of their own.
 - **If wrong**: a check that only `vp run ready` held is lost until task 61 rewrites or drops it:
   the toolchain configuration's tests, and the lint rules of the old packages' shared configuration,
-  which `.oxlintrc.json` does not carry. The [toolchain](../decisions/toolchain.md) decision still
-  names `vp run ready`: the human amends it.
+  which `.oxlintrc.json` does not carry. The human amended the
+  [toolchain](../decisions/toolchain.md) decision to the recipes on 2026-11-11.
 - **Where**: `justfile`, `flake.nix`, `scripts/`, the plan's [validation](plan.md#validation), and
   task 61. It replaces the commands of ruling R111, whose rules stay.
 
@@ -2892,5 +2892,24 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   a second `usvg`, 0.47, beside NSH's 0.46. Not checked: a diagram's links, which a picture cannot
   follow, and the web build.
 - **Where**: `a_diagram_is_drawn_without_a_browser`, `crates/app/tests/outside/diagram.rs`,
-  `app/__checks__/diagram.tsx`. Task 31. The [diagrams](../decisions/diagrams.md) decision still
-  names Pele: the human amends it.
+  `app/__checks__/diagram.tsx`. Task 31. The human amended the [diagrams](../decisions/diagrams.md)
+  decision to Merman on 2026-11-11.
+
+## R124: The branch caught up with the default branch before its last server tasks
+
+- **Decision**: the branch was rebased on the default branch on 2026-11-11, after task 19 and before
+  task 20, rather than at the final review. The plan gains tasks 62 (accounts), 63 (scheduled jobs),
+  64 (what else the Node server gained), and 65 (the Jobs place), new rules in the screens' tasks,
+  and the section [what makes a screen good](plan.md#what-makes-a-screen-good).
+- **Rationale**: the human asked for it. The default branch gained multi-accounts, scheduled jobs, a
+  limit's move to another account, and a round of fixes to the screens, all in the code this feature
+  ports and then removes. The parity lists of tasks 20 and 55 read that code, so with it on the
+  branch a record or a route nobody ported fails a test. The decisions it changed,
+  [models](../decisions/models.md), [run lifecycle](../decisions/run-lifecycle.md), and
+  [agents](../decisions/agents.md), apply to the Rust runner: tasks 62 and 63 meet them.
+- **One conflict, in a decision**: both branches changed [toolchain](../decisions/toolchain.md). The
+  two changes do not disagree: this branch removes the React Compiler rules, and the default branch
+  allows a test that failed on a saturated machine to run again. The text keeps both.
+- **If wrong**: task 15 was built on the code before the catch-up, so what it ported of the runner
+  is a day older than what tasks 62 to 64 read. Task 64 lists what the difference holds.
+- **Where**: the plan's tasks 33, 36 to 39, 43, 44, 48, 51, and 62 to 65.
