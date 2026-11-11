@@ -2,12 +2,13 @@
 // it stands, its words, then by what it is: a started or merged one opens its feature; one with a
 // file of its own is that file, edited in place, with its start; a line alone is written into a
 // file, or started from the New page with its words. Then the moves to another section, which a
-// touch screen has no other way to, and its removal. After a start, the pane follows the feature's
-// steps as they land, and opens its page (rule 9).
-import { signal, View } from "nsh";
-import { call, type Live, navigate, record } from "../../store";
+// touch screen has no other way to, and its removal. Its line's words are edited by `e`, or its
+// link, and the pane follows the line to its new address. After a start, the pane follows the
+// feature's steps as they land, and opens its page (rule 9).
+import { effect, signal, View } from "nsh";
+import { call, type Live, navigate, record, redirect } from "../../store";
 import type { Priorities, ProposalItem } from "../../store/protocol";
-import { Button, Heading, Refusal, Spinner, Text } from "../../ui/controls";
+import { Button, Heading, Link, Refusal, Spinner, Text } from "../../ui/controls";
 import { PaneScroll, usePane } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
 import { Landing, rememberStarted, type Started } from "../new/Landing";
@@ -17,6 +18,8 @@ import { byKey } from "../priorities/order";
 import { plain, stepWords } from "../priorities/Section";
 import { FileEditor } from "./FileEditor";
 import { remember } from "../shell/undo";
+import { NameDialog } from "../NameDialog";
+import { registerKey } from "../../ui/keys";
 
 const toList = () => navigate({ page: "priorities" });
 
@@ -141,6 +144,64 @@ function Moves(props: {
   );
 }
 
+/**
+ * "Edit its line": the proposal's words in the priorities, as one line of Markdown. Its address
+ * follows its words, so once the list shows the new line at its place, the pane opens it there.
+ */
+function EditLine(props: { repo: string; proposal: ProposalItem; priorities: Live<Priorities> }) {
+  const asking = signal(false);
+  const moved = signal<string | null>(null);
+  registerKey({
+    hint: "e",
+    hintLabel: "edit its line",
+    icon: "pencil",
+    keys: "e",
+    label: "Edit the proposal's line",
+    run: () => void asking.set(true),
+  });
+  effect(() => {
+    const id = moved();
+    const now = props.priorities();
+    if (id === null || now === undefined) return;
+    const line = now.sections.flatMap((one) => one.proposals).find((one) => one.id === id);
+    if (line !== undefined && line.key !== props.proposal.key) {
+      moved.set(null);
+      redirect({ key: line.key, page: "proposal", repo: props.repo });
+    }
+  });
+  return (
+    <>
+      <Link onPress={() => asking.set(true)} size="under">
+        Edit its line
+      </Link>
+      <If when={asking()}>
+        <NameDialog
+          blank="A proposal needs words."
+          icon="pencil"
+          initial={props.proposal.text}
+          label="Its line"
+          onClose={() => asking.set(false)}
+          onSave={async (text) => {
+            const written = await call("proposals.edit", {
+              hash: props.priorities()?.hash ?? "",
+              proposal: props.proposal.id,
+              repo: props.repo,
+              text,
+            });
+            moved.set(props.proposal.id);
+            remember(written.change, `Edited “${plain(props.proposal)}”.`, {
+              repo: props.repo,
+              subject: plain(props.proposal),
+            });
+          }}
+          title="Edit the proposal's line"
+          words="One line of Markdown, as the priorities show it."
+        />
+      </If>
+    </>
+  );
+}
+
 function Body(props: {
   repo: string;
   proposal: ProposalItem;
@@ -158,6 +219,9 @@ function Body(props: {
           {standing(props.proposal, props.priorities()!, where())}
         </Text>
         <Heading level={2}>{plain(props.proposal)}</Heading>
+        <If when={!props.proposal.running && !props.proposal.merged}>
+          <EditLine priorities={props.priorities} proposal={props.proposal} repo={props.repo} />
+        </If>
         <If when={props.proposal.file}>
           {(file) => (
             <Text font="code" size="under" tone="faint">
