@@ -7,7 +7,7 @@ use std::thread::ThreadId;
 use std::time::{Duration, Instant};
 
 use gtk::prelude::*;
-use nsh_platform_linux::gtk4::{self as gtk, glib};
+use nsh_platform_linux::gtk4::{self as gtk, glib, gsk};
 use nsh_platform_linux::{App, AppOptions, AppView};
 use serde_json::Value;
 
@@ -71,18 +71,22 @@ impl Stage {
         receiver
     }
 
-    /// What the window shows now, as GTK draws it.
-    pub fn picture(&self) -> Picture {
-        let (width, height) = (self.window.width(), self.window.height());
+    /// What the window draws now, as GTK's render nodes: none before it has drawn anything.
+    pub fn nodes(&self) -> Option<gsk::RenderNode> {
         let snapshot = gtk::Snapshot::new();
         gtk::WidgetPaintable::new(Some(&self.window)).snapshot(
             &snapshot,
-            f64::from(width),
-            f64::from(height),
+            f64::from(self.window.width()),
+            f64::from(self.window.height()),
         );
-        let node = snapshot.to_node().expect("a window that draws something");
+        snapshot.to_node()
+    }
+
+    /// What the window shows now, as GTK draws it.
+    pub fn picture(&self) -> Picture {
         let renderer = self.window.renderer().expect("the window's renderer");
-        let texture = renderer.render_texture(node, None);
+        let nodes = self.nodes().expect("a window that draws something");
+        let texture = renderer.render_texture(nodes, None);
         let (width, height) = (texture.width() as usize, texture.height() as usize);
         let mut pixels = vec![0; width * height * 4];
         texture.download(&mut pixels, width * 4);

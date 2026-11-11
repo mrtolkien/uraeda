@@ -3671,3 +3671,42 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the views follow the theme `applyTheme` shows, where they followed the system's
   colour scheme. Until task 36 calls it, that is the default dark theme.
 - **Where**: `app/ui/keys/look.ts`. The rest of the seam, `TASK 28:` in `parts.tsx`, stays.
+
+## T97.3: The bundled fonts are the ones drawn on GTK, from the app's files alone, and a check says so
+
+- **Decision**: `the_bundled_fonts_are_the_ones_drawn`, the sixth check of
+  [`crates/app/tests/outside.rs`](/crates/app/tests/outside.rs), reads in what GTK draws the font of
+  a line of text in each part's token (`tokens.type.body`, `heading`, `reading`, `code`, `markdown`)
+  and in each of the nine bundled fonts, and fails when one is not the family the line names first.
+  Nothing was wrong: the fonts task 26 registered are the ones drawn.
+  - **How Native Shell finds a font on GTK**, read in `nsh-platform-linux` 0.4.0, `text.rs`: Pango
+    over Fontconfig. The engine registers each font file a UI set's crate ships, before anything is
+    measured: it unpacks a WOFF2 file, writes it in the user's cache folder, `nsh/fonts/`, loads a
+    Fontconfig configuration of its own from the system's, adds the files to it as the app's fonts
+    (`FcConfigAppFontAddFile`), and gives it to its font map. The engine's thread lays the text out
+    with that map, and keeps for each run of glyphs the description of the font the layout chose, a
+    fallback included. GTK's thread gives its own font map the same files, loads each run's font by
+    that description, and draws the run as a text node.
+  - **So a registered font needs nothing of the machine**: neither `FONTCONFIG_FILE` nor an
+    installed font. The dev shell's fonts hold only DejaVu, and all nine families are drawn there.
+  - **What the human saw**: the samples of task 25 named JetBrains Mono and Atkinson Hyperlegible
+    before any font was bundled, and drew DejaVu, as
+    [R137](#r137-fonts-ship-in-the-apps-crate-neon-whole-and-the-others-as-the-react-ui-shipped-them)
+    says. Since task 26 they read the tokens.
+  - **How the check tells a fallback**: it serialises the window's render nodes, and reads each text
+    node's font, which is the face on screen. Each line has a colour of its own, by which the check
+    finds it. Before the lines are drawn, it asks GTK's font map for each family: if the display's
+    own fonts hold one, the check fails, since it could not tell the app's file from the machine's.
+    That also fails a dev shell to which someone adds the fonts.
+  - **It runs the app's module as the app's runner does**: `uraeda_app::registry()` beside
+    `nsh_base::registry()`, and the crate's `assets/` under `@uraeda-app/`, as a package holds them.
+- **Seen failing**: with `registry.assets(assets!())` removed, every line: "tokens.type.code names
+  JetBrains Mono, and is drawn in {"DejaVu Sans Mono"}", and "DejaVu Sans" and "DejaVu Serif" for
+  the proportional ones. With the token naming a family that is not bundled, "JetBrains Mono NL":
+  "code's font is JetBrains Mono until another is picked".
+- **Alternatives considered**: comparing a line's width with the font file's advances: JetBrains
+  Mono's is 600 of 1000, DejaVu Sans Mono's 602, and most monospace fonts' 600.
+- **If wrong**: GTK's text form of a node is not a stable format. `gsk::TextNode::font()` gives the
+  same font, at the cost of walking every kind of node.
+- **Where**: `crates/app/tests/outside.rs`, `crates/app/tests/outside/fonts.rs`,
+  [`app/__checks__/fonts.tsx`](/app/__checks__/fonts.tsx).

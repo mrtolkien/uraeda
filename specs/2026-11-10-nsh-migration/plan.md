@@ -1805,7 +1805,8 @@ ported, beyond accounts and jobs.
   `crates/app/src/fonts.rs`, `crates/app/assets/fonts/`
 - Modify: the core's theme reader, for the new roles; every shipped theme; the samples, which read
   the tokens
-- Test: `crates/app/tests/theme.rs`, `app/ui/tokens/tokens.test.ts`
+- Test: `crates/app/tests/theme.rs`, `app/ui/tokens/tokens.test.ts`, and
+  `the_bundled_fonts_are_the_ones_drawn` in `crates/app/tests/outside.rs` (ruling T97.3)
 
 **Interfaces:**
 

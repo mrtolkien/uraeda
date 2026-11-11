@@ -1,8 +1,8 @@
 //! What the migration assumes of Native Shell and of the Linux desktop, which the spikes did not
 //! verify: each test runs the real library in a GTK window, on a display no screen shows. A test
 //! that fails after an upgrade of NSH names an assumption that no longer holds: the rulings R22 to
-//! R26 of `specs/2026-11-10-nsh-migration/rulings.md` say what was built on each, and R21 how the
-//! tests run.
+//! R26 of `specs/2026-11-10-nsh-migration/rulings.md`, and T97.3 for the fonts, say what was built
+//! on each, and R21 how the tests run.
 //!
 //! Each test's body runs in a process of its own, which `display.rs` starts: GTK keeps the thread
 //! that started it, and a check's clicks and keys go to its own display.
@@ -14,6 +14,8 @@ mod diagram;
 mod display;
 #[path = "outside/errors.rs"]
 mod errors;
+#[path = "outside/fonts.rs"]
+mod fonts;
 #[path = "outside/notify.rs"]
 mod notify;
 #[path = "outside/pages.rs"]
@@ -28,7 +30,7 @@ mod web;
 use display::on_hidden_display;
 use nsh_package::Error;
 use nsh_platform_linux::gtk4::gio;
-use nsh_platform_linux::{AppOptions, Bundle, Limits};
+use nsh_platform_linux::{AppOptions, AssetBase, Bundle, Limits};
 use serde_json::{Value, json};
 use signing::Keys;
 use stage::{Stage, wait_for};
@@ -328,4 +330,73 @@ fn a_system_notification_is_sent_and_its_click_comes_back() {
             assert_eq!(clicked, id);
         },
     );
+}
+
+/// Check 6. Each part of the UI is drawn in the font the app bundles for it, read from the app's
+/// own files: the display's fonts hold none of them. A font the app does not register, or a token
+/// naming a family the app does not bundle, is drawn in another font, and fails here.
+#[test]
+fn the_bundled_fonts_are_the_ones_drawn() {
+    on_hidden_display("the_bundled_fonts_are_the_ones_drawn", || {
+        // As the runner `nsh` generates for the app: the app's module, with its fonts, beside
+        // Native Shell's own, and the app's files where a package holds them.
+        nsh_platform_linux::set_ui_sets(vec![nsh_base::registry(), uraeda_app::registry()]);
+        let shipped = fonts::shipped();
+        let stage = Stage::open(AppOptions {
+            asset_base: Some(AssetBase::Directory(shipped.path().to_owned())),
+            ..AppOptions::default()
+        });
+        let named = stage.posts("named");
+        stage.load(
+            Bundle::source(pages::of_the_app("fonts.tsx"))
+                .with_capabilities_json(Some(r#"{ "host": ["named"] }"#))
+                .expect("the page's capabilities"),
+        );
+        let named = wait_for("the page names its fonts", 30, || named.try_recv().ok());
+        // Each line's name, and the family it names first: the one to draw it.
+        let lines: Vec<(String, String)> = named
+            .as_array()
+            .expect("the page's lines")
+            .iter()
+            .map(|line| {
+                let text = |key: &str| line[key].as_str().unwrap_or_default();
+                let first = text("family").split(',').next().unwrap_or_default();
+                (text("name").to_owned(), first.trim().to_owned())
+            })
+            .collect();
+        assert!(
+            lines
+                .iter()
+                .any(|(name, family)| { name == "tokens.type.code" && family == "JetBrains Mono" }),
+            "code's font is JetBrains Mono until another is picked: {lines:?}"
+        );
+        for (name, family) in &lines {
+            assert_ne!(
+                &fonts::on_display(&stage, family),
+                family,
+                "the display's own fonts hold {family}, which {name} names: this check could not \
+                 tell the app's file from the machine's"
+            );
+        }
+
+        stage.send("draw");
+        let reds = || (1..=u8::MAX).zip(&lines);
+        let drawn = wait_for("GTK draws every line", 30, || {
+            let drawn = fonts::drawn(&stage);
+            reds()
+                .all(|(red, _)| drawn.contains_key(&red))
+                .then_some(drawn)
+        });
+        let fallen: Vec<String> = reds()
+            .filter(|(red, (_, family))| !drawn[red].iter().eq([family]))
+            .map(|(red, (name, family))| {
+                format!("{name} names {family}, and is drawn in {:?}", drawn[&red])
+            })
+            .collect();
+        assert_eq!(
+            fallen,
+            Vec::<String>::new(),
+            "a text is drawn in another font than the bundled one it names"
+        );
+    });
 }

@@ -142,10 +142,11 @@ Running it here:
   of 1400 by 800 that no screen shows, with a session bus of its own, so a notification sent there
   reaches no desktop, and shaders draw on it.
 - **`crates/app/tests/outside.rs` guards what the migration assumes of NSH on GTK**: signed
-  packages, a page's errors, web views, diagrams, and notifications. Each test starts a hidden
-  display of its own, so `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages
-  are in `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that
-  broke: the rulings R22 to R26 say what was built on each.
+  packages, a page's errors, web views, diagrams, notifications, and the bundled fonts being the
+  ones drawn. Each test starts a hidden display of its own, so
+  `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages are in
+  `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that broke: the
+  rulings R22 to R26, and T97.3 for the fonts, say what was built on each.
 - **In a new worktree, run `vp run app:check` before `vp check`**: it writes NSH's types in
   `app/.nsh/`, without which `vp check` fails with `Invalid tsconfig`. `vp run fast` and
   `vp run ready` do it themselves.
