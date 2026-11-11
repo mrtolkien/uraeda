@@ -159,11 +159,14 @@ Running it here:
 - Commands run in zsh or fish, where an unquoted glob that matches no file fails the whole command
   (`no matches found: --include=*.ts`). Quote globs, `--include='*.ts'`, or use `rg -g '*.ts'`.
 - Run the toolchain inside the dev shell, `nix develop -c <command>`: outside it, `cargo nextest`,
-  `stylua`, and other pinned tools are missing.
-- In a new worktree, the dev shell clones the main checkout's `target/` and Vite Task cache once, so
-  the first build compiles only the workspace's crates: see
-  `packages/server/scripts/worktree-seed.ts`. `du` counts the clone's shared blocks;
-  `btrfs filesystem du` does not.
+  `just`, and other pinned tools are missing.
+- The new stack's checks are recipes of the `justfile`, `nix develop -c just <recipe>`, and `just`
+  lists them: `just task <crates>` after a Rust task, `just task-app` after an app task,
+  `just check` after a merge, `just ready` for the full pass. They need no `vp`, `pnpm`, or `node`,
+  which stay only for the old UI until the migration removes it.
+- In a new worktree, the dev shell clones the `target/` of the closest checkout once, the feature's
+  worktree for a task's, so the first build compiles only the workspace's crates: see
+  `scripts/worktree-seed.sh`. `du` counts the clone's shared blocks; `btrfs filesystem du` does not.
 - To review UI changes in the whole app, run `vp run sandbox`: it serves this checkout's app over
   sample projects and a fake agent, without sign-in, at the address it prints, and keeps their state
   in `.sandbox/` until `vp run sandbox --reset` rebuilds them.

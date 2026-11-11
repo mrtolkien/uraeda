@@ -118,6 +118,11 @@
               # The Rust tests' runner, and their coverage.
               cargo-nextest
               cargo-llvm-cov
+              # The recipes of the `justfile`: every check and build is a `just <recipe>`.
+              just
+              # The formatter and linter of what Cargo does not read: TSX, Markdown, JSON, TOML.
+              oxfmt
+              oxlint
             ]
             # The app, on Native Shell: GTK's build tools, clang for QuickJS' bindings, and the
             # display no screen shows.
@@ -144,11 +149,11 @@
               export TMPDIR TMP="$TMPDIR" TEMP="$TMPDIR" TEMPDIR="$TMPDIR"
               unset NIX_BUILD_TOP
             fi
-            # A worktree, whose `.git` is a file, without a build or a task cache yet starts from
-            # the main checkout's: see `packages/server/scripts/worktree-seed.ts`.
+            # A worktree, whose `.git` is a file, without a build yet starts from the closest
+            # checkout's: see `scripts/worktree-seed.sh`.
             root=$(git rev-parse --show-toplevel 2>/dev/null)
-            if [ -f "$root/.git" ] && { [ ! -e "$root/target" ] || [ ! -e "$root/node_modules/.vite/task-cache" ]; }; then
-              node "$root/packages/server/scripts/worktree-seed.ts" "$root" || true
+            if [ -f "$root/.git" ] && [ ! -e "$root/target" ]; then
+              "$root/scripts/worktree-seed.sh" "$root" || true
             fi
             unset root
           '';

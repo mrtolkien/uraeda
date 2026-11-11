@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxfmt/configuration_schema.json",
+  "proseWrap": "always",
+  "ignorePatterns": [
+    ".github/workflows/release.yml",
+    "app/store/protocol.d.ts",
+    "fixtures/**",
+    "packages/**",
+    "pnpm-lock.yaml",
+    "vite.config.ts",
+    "vite.fast.config.ts",
+    "vite.tasks.ts",
+    "scripts/**/*.ts",
+    ".sandbox/**",
+    ".sandbox-*/**"
+  ]
+}
