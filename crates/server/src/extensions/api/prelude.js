@@ -94,6 +94,7 @@ const api = {
       models: typeof value.models === "function",
       name: String(value.name ?? name),
       review: typeof value.reviewMessage === "function",
+      accounts: typeof value.accounts === "object" && value.accounts !== null,
     });
     registered = value;
   },
@@ -252,7 +253,13 @@ const asked = {
   record: ({ name: key, repository }) => named(records, "record", key)(repository),
   route: routed,
   "runtime.allowRule": ({ denial }) => registered.allowRule(denial) ?? null,
-  "runtime.hasSession": ({ nativeId }) => Boolean(registered.hasSession(nativeId)),
+  "runtime.accounts.list": () => registered.accounts.list(),
+  "runtime.accounts.nameOf": ({ account }) => String(registered.accounts.nameOf(account)),
+  "runtime.accounts.problems": () => registered.accounts.problems(),
+  "runtime.accounts.refresh": ({ maxAgeMs }) =>
+    Promise.resolve(registered.accounts.refresh(maxAgeMs)).then(() => null),
+  "runtime.hasSession": ({ account, nativeId }) =>
+    Boolean(registered.hasSession(nativeId, account ?? undefined)),
   "runtime.models": () => registered.models(),
   "runtime.open": ({ options, process }) => open(process, options),
   "runtime.reviewMessage": ({ ask: review }) => registered.reviewMessage(review) ?? null,

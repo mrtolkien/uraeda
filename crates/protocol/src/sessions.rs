@@ -85,8 +85,11 @@ pub struct RuntimeRecord {
     /// Its last model list, kept through a refresh that failed: none before one, or for a
     /// runtime that lists none.
     pub models: Option<ModelList>,
-    /// Its usage windows, each from the freshest report of an open process: none before one.
+    /// Its usage windows, each from the freshest report of an open process on no account: none
+    /// before one.
     pub usage: Vec<UsageWindow>,
+    /// Its accounts, in the listed order: none for a runtime that lists none.
+    pub accounts: Vec<crate::AccountRecord>,
 }
 
 /// One usage window a runtime reports, like five hours or a week.
@@ -139,6 +142,10 @@ pub struct Session {
     pub ran_model: Option<String>,
     /// The effort the agent last said it runs on, by its name for people.
     pub ran_effort: Option<String>,
+    /// The account it runs on, by its runtime's name for it: none on the server's own login.
+    pub account: Option<String>,
+    /// That account's id, which finds it among the runtime's accounts: two may share a name.
+    pub account_id: Option<String>,
     pub started_at: u64,
     pub archived: bool,
     /// Its automatic continues in a row.

@@ -105,6 +105,8 @@ fn record(runner: &Runner, row: &runner::Session) -> Result<Session, Fault> {
         effort: row.effort.clone(),
         ran_model: row.ran_model.clone(),
         ran_effort: row.ran_effort.clone(),
+        account: runner.account_name(row),
+        account_id: row.account.clone(),
         started_at: sent(row.created_at),
         archived: row.archived_at.is_some(),
         continues: row.continues,

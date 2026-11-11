@@ -83,8 +83,8 @@ async fn an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension() {
             asked.kind(),
             asked.capabilities().take_back,
             asked.version(),
-            asked.has_session("known"),
-            asked.has_session("other"),
+            asked.has_session("known", None),
+            asked.has_session("other", None),
             asked.allow_rule(&denial),
             asked
                 .models()
@@ -103,6 +103,7 @@ async fn an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension() {
         Some("small".to_owned()),
     );
     assert_eq!(described.await.unwrap(), expected);
+    its_accounts(runtime.clone()).await;
     assert!(runtimes.is_on("agent", Some(REPO)));
 
     let options = Options {
@@ -111,6 +112,7 @@ async fn an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension() {
         resume: false,
         model: None,
         effort: None,
+        account: None,
         allowed: Vec::new(),
         skills: Vec::new(),
         tools: Tools::Own,
@@ -261,4 +263,35 @@ async fn a_runtimes_reload_waits_for_the_session_at_work_on_it() {
         "the saved version runs"
     );
     server.stop().await;
+}
+
+/// The accounts of the extension's runtime, an optional part of the contract, each a call into
+/// its VM: listed, named, with their problems, and the transcripts of each.
+async fn its_accounts(runtime: std::sync::Arc<dyn uraeda_server::runtimes::Runtime>) {
+    let asked = runtime;
+    let accounts = tokio::task::spawn_blocking(move || {
+        let accounts = asked.accounts().expect("its accounts");
+        accounts.refresh(std::time::Duration::from_secs(60));
+        let listed = accounts.list();
+        (
+            listed
+                .iter()
+                .map(|account| (account.name.clone(), account.windows[0].used))
+                .collect::<Vec<_>>(),
+            listed[0].asked_at.is_some() && listed[0].known,
+            accounts.name_of("/accounts/one"),
+            accounts.problems(),
+            asked.has_session("known", Some("/accounts/apart")),
+        )
+    });
+    assert_eq!(
+        accounts.await.unwrap(),
+        (
+            vec![("one".to_owned(), 0.25)],
+            true,
+            "one".to_owned(),
+            vec!["account two is signed out".to_owned()],
+            false,
+        )
+    );
 }

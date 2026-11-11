@@ -138,6 +138,8 @@ fn row(shared: &Shared, shown: Shown, repo: Option<&str>) -> ExtensionRow {
         line: problem.line,
         message: problem.message,
     });
+    // Its runtime's accounts' problems are its own, a built-in's or the owner's.
+    let problems = problems.chain(account_problems(shared, &extension.name));
     ExtensionRow {
         id: extension.name.clone(),
         name: extension.name,
@@ -164,4 +166,19 @@ fn row(shared: &Shared, shown: Shown, repo: Option<&str>) -> ExtensionRow {
         values_here,
         repository_values,
     }
+}
+
+/// The problems of the accounts of the runtime an extension registered, for its banners.
+fn account_problems(shared: &Shared, name: &str) -> Vec<ExtensionProblem> {
+    let runtime = shared.get::<crate::runtimes::Runtimes>().get(name);
+    let accounts = runtime.and_then(|runtime| runtime.accounts());
+    let problems = accounts
+        .map(|accounts| accounts.problems())
+        .unwrap_or_default();
+    let problem = |message| ExtensionProblem {
+        file: String::new(),
+        line: None,
+        message,
+    };
+    problems.into_iter().map(problem).collect()
 }

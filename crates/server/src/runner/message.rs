@@ -80,14 +80,25 @@ pub(super) fn continue_message(reason: ContinueReason) -> &'static str {
             "The server restarted while you worked. Continue where you left off."
         }
         ContinueReason::Limit => "The usage limit has reset. Continue where you left off.",
+        ContinueReason::Account => {
+            "The usage limit was reached, and the session moved to another account. Continue \
+             where you left off."
+        }
     }
 }
 
 /// The line an automatic continue's turn opens with, which tells the human why it happened.
-pub(super) fn continued_line(reason: ContinueReason) -> &'static str {
-    match reason {
-        ContinueReason::Restart => "Continued after the server restarted.",
-        ContinueReason::Limit => "Continued after the usage limit's reset.",
+/// A move names the account it went to.
+pub(super) fn continued_line(reason: ContinueReason, account: Option<&str>) -> String {
+    match (reason, account) {
+        (ContinueReason::Restart, _) => "Continued after the server restarted.".to_owned(),
+        (ContinueReason::Limit, _) => "Continued after the usage limit's reset.".to_owned(),
+        (ContinueReason::Account, Some(account)) => {
+            format!("Continued on account {account}, after a usage limit.")
+        }
+        (ContinueReason::Account, None) => {
+            "Continued on another account, after a usage limit.".to_owned()
+        }
     }
 }
 

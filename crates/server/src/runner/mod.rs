@@ -8,6 +8,7 @@
 //!   [`Store::append`], read from any place with [`Store::log`], and never changed.
 //! - [`import`] copies the Node server's sessions into the store, once.
 
+mod account;
 mod catch_ups;
 mod chain;
 mod continuer;
@@ -18,6 +19,7 @@ mod live;
 mod log;
 pub(crate) mod manager;
 mod message;
+mod moves;
 mod page;
 pub(crate) mod picks;
 mod processes;
@@ -93,6 +95,7 @@ pub(crate) fn serve(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
     let store = shared.get::<Store>();
     // One server owns the data folder: a turn still running or queued there runs nowhere.
     store.interrupted(SERVER_STOPPED, shared.now())?;
+    shared.provide(account::Kept::default());
     shared.provide(Sessions::new());
     let runner = Runner::of(shared);
     let tools = reviews::Tools::of(runner.clone());

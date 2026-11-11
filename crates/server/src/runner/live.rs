@@ -34,6 +34,8 @@ pub(super) struct Proc {
     pub runtime: Arc<dyn Runtime>,
     /// The name its runtime is registered as: its session's stored `agent`.
     pub kind: String,
+    /// The account it runs on, by its runtime's id: none on the server's own login.
+    pub account: Option<String>,
     /// The agent's name for people, and what it can do, as they were when it opened.
     pub name: String,
     pub capabilities: Capabilities,

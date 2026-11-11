@@ -41,8 +41,8 @@ impl Store {
             db.prepare_cached(
                 "UPDATE sessions SET folder = ?1, step = ?2, agent = ?3, native_id = ?4,
                    title = ?5, model = ?6, effort = ?7, ran_model = ?8, ran_effort = ?9,
-                   seen_at = ?10, archived_at = ?11
-                 WHERE id = ?12",
+                   seen_at = ?10, archived_at = ?11, account = ?12
+                 WHERE id = ?13",
             )?
             .execute((
                 &row.folder,
@@ -56,6 +56,7 @@ impl Store {
                 &row.ran_effort,
                 row.seen_at.map(millis),
                 row.archived_at.map(millis),
+                &row.account,
                 id,
             ))?;
             Ok::<_, StoreError>(Some(row))

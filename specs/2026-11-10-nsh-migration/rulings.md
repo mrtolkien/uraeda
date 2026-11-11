@@ -4218,6 +4218,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     with Escape, which is the screens'.
 - **Rationale**: the plan's names, each kept small; the rest is what a screen owns.
 - **Where**: `app/ui/text/`, `app/gallery/text/`, `app/store/device.ts` (its two lines).
+
 ## R176: The layout is data in the visit, and a place lists its panes in order
 
 - **Decision**: the model is the plan's, with these changes, each in
@@ -4331,3 +4332,83 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Not built**: zoom, split, close, and the moves have no key or button yet: task 66. The frame
   draws a zoomed pane and a split stack already.
 - **Where**: `app/ui/layout/`.
+
+## R181: Accounts are a second trait the runtime hands out, and a session's account crosses the contract
+
+- **Decision**: `Runtime::accounts() -> Option<Arc<dyn Accounts>>`, none by default, with
+  `Accounts { list, name_of, problems, refresh(max_age) }` and
+  `Account { id, name, state, windows, asked_at, known }` in `runtimes/accounts.rs`, as
+  `uraeda/server` has them. `has_session` takes the account, and `Options` gains `account`. The
+  pick's rule is one pure function, `accounts::pick`, with `pick_with_room` for a move and `merged`
+  for an ask merged with a process's reports, all three tested row by row.
+- **Rationale**: a handle rather than methods on `Runtime`, because Claude Code's accounts are built
+  again when the `accounts` setting changes, and a VM's are calls into the VM: both hand out an
+  object, as the Node adapter's optional `accounts` field was. `AccountState` and `AccountWindow`
+  are the protocol's own types, so the record sends what the contract holds.
+- **Where**: [`runtimes/accounts.rs`](/crates/server/src/runtimes/accounts.rs),
+  [`extensions/accounts.rs`](/crates/server/src/extensions/accounts.rs),
+  [`server.d.ts`](/crates/server/src/extensions/api/server.d.ts).
+
+## R182: One pick per open, before the process is looked at
+
+- **Decision**: `Runner::account_for` runs as a process opens, before the session's lock: a session
+  with a started turn keeps its stored account, listed or not; else it picks, after asking stale
+  usage for at most 10 s, and stores the pick, or clears it when the runtime lists none. An open
+  process on another account is closed and opened again, as for an effort it cannot change.
+- **Rationale**: the Node server picked twice, once "while idle" to decide whether to reuse the
+  process and once to open it. One pick gives the same rule with half the asks and no window between
+  them.
+- **Where**: [`runner/account.rs`](/crates/server/src/runner/account.rs),
+  [`runner/processes.rs`](/crates/server/src/runner/processes.rs).
+
+## R183: A move continues at once, as a continue of its own reason
+
+- **Decision**: a turn a limit failed is decided by the continuer when the limit is a session's, or
+  when the session runs on an account of a runtime that lists accounts: a weekly limit then moves
+  too. `move_account` picks, among the other listed accounts that hold the transcript, the one with
+  room in every window and a known usage; the session's account changes whether or not the run
+  continues, and the run continues at once with the reason `account`, under the
+  `continue_after_limit` switch and the cap, opening on "Continued on account b, after a usage
+  limit." With no account with room, a session's limit waits for its reset, and any other stops.
+- **Rationale**: the models and run lifecycle decisions as they stand, ported from
+  `account-move.ts`.
+- **Where**: [`runner/moves.rs`](/crates/server/src/runner/moves.rs),
+  [`runner/continuer.rs`](/crates/server/src/runner/continuer.rs).
+
+## R184: The import reads the Node store at schema 14, and its fixture is written again
+
+- **Decision**: the import reads `runner.sqlite` at schema 14 only: its 13th step added a session's
+  `account`, which is imported, and its 14th the scheduled jobs' `job_runs`, which this import does
+  not read. `fixtures/runner/old.sqlite` was written again with `write-old.ts`, whose feature
+  session now runs on an account, set last so that no other row changed. The store's schema gains
+  its third step, `sessions.account`.
+- **Rationale**: the task asks for the fixture from its script, which runs on Node: it was run once,
+  through the dev shell, against the shared brief's rule that no task runs `node`.
+- **If wrong**: task 63, which ports the scheduled jobs, imports `job_runs` from the same fixture.
+- **Where**: [`import/old.rs`](/crates/server/src/runner/import/old.rs),
+  [`write-old.ts`](/fixtures/runner/write-old.ts).
+
+## R185: Claude Code's short processes share one helper
+
+- **Decision**: `claude/usage.rs` holds `short`, the process that writes control requests and reads
+  their answers within 10 s, used by `models` and by an account's `get_usage`;
+  `claude auth status --json` runs beside it. `models` runs in the first listed account signed in,
+  else the first, after waiting at most 4 s for their ask. An account's asks run at once on blocking
+  threads, one at a time per account, at most once a minute.
+- **Where**: [`claude/usage.rs`](/crates/server/src/runtimes/claude/usage.rs),
+  [`claude/accounts.rs`](/crates/server/src/runtimes/claude/accounts.rs).
+
+## R186: The file-length test failed before this task, and still does
+
+- **Decision**: `rust_source_files_stay_under_500_lines` of `uraeda-cli` failed on this branch
+  before the task, on nine files over 500 lines: `core/src/check/mod.rs`, `core/src/settings.rs`,
+  `protocol/src/sessions.rs`, and six of `server/src/runner/` (`continuer.rs`, `manager.rs`,
+  `page.rs`, `running.rs`, `send.rs`, `transcript.rs`). The task added its code in new files, and
+  only the lines it must to three of them: `sessions.rs` from 815 to 822 (a session's account and a
+  runtime's accounts), `continuer.rs` from 641 to 649 (the move), `manager.rs` from 764 to 765 (the
+  accounts asked with each check). So `just task uraeda-server uraeda-protocol uraeda-cli` fails on
+  that test alone: the other 561 tests of the three crates pass.
+- **Rationale**: splitting six modules of the runner that tasks 63 and 64 edit at the same time is a
+  structural change of its own, which would collide with theirs.
+- **If wrong**: the split is one commit after the wave's merge, by module.
+- **Where**: [`structure.rs`](/crates/cli/tests/structure.rs).

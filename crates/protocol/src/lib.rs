@@ -3,6 +3,7 @@
 //!
 //! Its contract is `specs/2026-11-10-nsh-migration/contracts/protocol.md`.
 
+mod accounts;
 mod change;
 mod devices;
 mod diff;
@@ -18,6 +19,7 @@ mod typescript;
 mod workspace;
 mod writing;
 
+pub use accounts::{AccountRecord, AccountState, AccountWindow};
 pub use change::{ApplyError, Op, Path, apply, get};
 pub use devices::{Device, Devices, DevicesRename, DevicesRevoke};
 pub use diff::diff;

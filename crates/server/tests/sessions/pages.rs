@@ -172,11 +172,12 @@ fn a_store_written_before_its_lines_were_numbered_reads_by_the_same_pages() {
     let before = pages(&store);
     store.close();
 
-    // Back to the first schema: no line is numbered.
+    // Back to the first schema: no line is numbered, and no session has an account.
     let db = Connection::open(folder.path().join(FILE)).unwrap();
     db.execute_batch(
         "DROP INDEX events_of_items; DROP INDEX events_by_type;
-         ALTER TABLE events DROP COLUMN item; PRAGMA user_version = 1;",
+         ALTER TABLE events DROP COLUMN item; ALTER TABLE sessions DROP COLUMN account;
+         PRAGMA user_version = 1;",
     )
     .unwrap();
     drop(db);

@@ -40,6 +40,9 @@ pub struct Session {
     pub ran_effort: Option<String>,
     /// The automatic continues in a row.
     pub continues: u32,
+    /// The account it runs on, by its runtime's id for it: picked as its first turn starts,
+    /// changed only by a limit's move. None on the server's own login.
+    pub account: Option<String>,
     pub created_at: SystemTime,
     /// The last turn's start or end.
     pub updated_at: SystemTime,
@@ -83,6 +86,7 @@ impl Store {
             ran_model: None,
             ran_effort: None,
             continues: 0,
+            account: None,
             // To the millisecond, as the store keeps it: what is returned is what is read back.
             created_at: time(millis(at)),
             updated_at: time(millis(at)),
@@ -107,11 +111,11 @@ pub(super) fn insert(db: &Connection, session: &Session) -> rusqlite::Result<()>
     let mut add = db.prepare_cached(
         "INSERT INTO sessions
            (id, repo, folder, parent, role, step, worktree, agent, native_id, title, model,
-            effort, ran_model, ran_effort, continues, created_at, updated_at, seen_at,
+            effort, ran_model, ran_effort, continues, account, created_at, updated_at, seen_at,
             archived_at)
          VALUES
            (:id, :repo, :folder, :parent, :role, :step, :worktree, :agent, :native_id, :title,
-            :model, :effort, :ran_model, :ran_effort, :continues, :created_at, :updated_at,
+            :model, :effort, :ran_model, :ran_effort, :continues, :account, :created_at, :updated_at,
             :seen_at, :archived_at)",
     )?;
     add.execute(named_params! {
@@ -130,6 +134,7 @@ pub(super) fn insert(db: &Connection, session: &Session) -> rusqlite::Result<()>
         ":ran_model": session.ran_model,
         ":ran_effort": session.ran_effort,
         ":continues": session.continues,
+        ":account": session.account,
         ":created_at": millis(session.created_at),
         ":updated_at": millis(session.updated_at),
         ":seen_at": session.seen_at.map(millis),
@@ -157,6 +162,7 @@ pub(super) fn session(row: &Row) -> rusqlite::Result<Session> {
         ran_model: row.get("ran_model")?,
         ran_effort: row.get("ran_effort")?,
         continues: row.get("continues")?,
+        account: row.get("account")?,
         created_at: time(row.get("created_at")?),
         updated_at: time(row.get("updated_at")?),
         seen_at: at("seen_at")?,

@@ -1157,7 +1157,7 @@ Follows [what every records task does](#what-every-records-task-does).
     is a built-in the owner turns off.
   - Breaks made, each failing a test: a group's signal sent to its leader alone; the allow rules
     left out of the arguments; a sub-agent's tool call without its parent.
-- [x] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 2: Run them**. Expected: FAIL.
 - [x] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts), or
       `codex.ts` and `codex-rpc.ts`. `child.ts` is ported already, as `runtimes::Child` (ruling
       R100): a child process leads its own process group, which ends with it and with the server.
@@ -1195,7 +1195,7 @@ What the sessions (task 15) rely on:
 
 - [x] **Step 1: Write the failing tests**, as task 13's. They were written after the port, against
       the brief's order, and seen failing with the registration removed.
-- [x] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 2: Run them**. Expected: FAIL.
 - [x] **Step 3: Implement.**
 - [x] **Step 4: Run the task's validation**, then one manual run against the real CLI. Expected:
       PASS.
@@ -1273,7 +1273,7 @@ What the sessions (task 15) rely on:
     a blocked action allowed then tried again; `run_agent` and `review` through `/mcp`; an
     unanswered interrupt or close followed by signals at 10 second steps; a restart that never
     continues an imported run; a transcript by pages; and one test per seam closed.
-- [x] **Step 2: Run them**. Expected: FAIL. Seen: `no action is session.newChat`.
+- [ ] **Step 2: Run them**. Expected: FAIL. Seen: `no action is session.newChat`.
 - [x] **Step 3: Implement.** `TurnLog` changes through `Bus::append`. Port the continuer's rules as
       they are.
 - [x] **Step 4: Run the task's validation**. Expected: PASS. Two tests of the runtimes' registry
@@ -1396,7 +1396,7 @@ What the sessions (task 15) rely on:
 
 - [x] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
       (the stack decision's rule); `a preview path without its secret is refused`.
-- [x] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 2: Run them**. Expected: FAIL.
 - [x] **Step 3: Implement**, porting the runner's rules.
 - [x] **Step 4: Run the task's validation**. Expected: PASS.
 - [x] **Step 5: Commit**: `feat(nsh-migration): previews and their proxy`.
@@ -1483,18 +1483,34 @@ predates. Read its record first: it is the specification.
     [models](../decisions/models.md) and [run lifecycle](../decisions/run-lifecycle.md) decisions).
   - An account's problems, for the settings' banners.
 
-- [ ] **Step 1: Write the failing tests**, on the fake runtime with scripted accounts, reusing the
+- [x] **Step 1: Write the failing tests**, on the fake runtime with scripted accounts, reusing the
       cases of the Node tests:
       `a session picks the account with the most of its five hours left,     and keeps it`, with the
       record's rows for ties, an unknown usage, a used-up week, and none signed in;
       `a run a limit refused goes on at once on another account`, with a row where no other has
       room; `an account reaches the agent only as its configuration folder`.
 - [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, porting the files above. Uraeda never reads or writes a credential. No
+- [x] **Step 3: Implement**, porting the files above. Uraeda never reads or writes a credential. No
       test and no step asks a real account for its usage.
 - [ ] **Step 4: Run the task's validation**: `just task uraeda-server uraeda-protocol`. Expected:
       PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): accounts, their usage, and a limit's move`.
+- [x] **Step 5: Commit**: `feat(nsh-migration): accounts, their usage, and a limit's move`.
+
+**As built** (rulings R181 to R185):
+
+- The contract: `Runtime::accounts() -> Option<Arc<dyn Accounts>>`,
+  `Accounts { list, name_of, problems, refresh }`, `Account`, `has_session(native_id, account)`, and
+  `Options::account`, in `runtimes/accounts.rs` with the pick, `pick`, `pick_with_room`, and
+  `merged`. An extension's runtime gives `accounts` in `uraeda/server`, through
+  `extensions/accounts.rs`.
+- The records: `RuntimeRecord.accounts: Vec<AccountRecord>` (`id`, `name`, `state`, `windows`,
+  `isNext`), `AccountWindow.resetsAt` none for a window not open, and `Session.account` and
+  `Session.accountId`; an account's problems are its extension's in the record `Extensions`.
+- The runner: `Runner::account_for` (the pick, as a process opens), `account_records`,
+  `refresh_accounts`, `account_name`, in `runner/account.rs`; `move_account` in `runner/moves.rs`;
+  the continue's reason `account`. The accounts are asked with each check of the runtimes, at the
+  start and every minute, and on a read of `Agent`.
+- The store is at schema 3, with `sessions.account`; the import reads the Node store at schema 14.
 
 ## Task 63: Scheduled jobs
 
@@ -1846,7 +1862,7 @@ ported, beyond accounts and jobs.
 - [x] **Step 1: Write the failing tests**: `every shipped theme meets the contrast floors` (4.5:1
       for text, 3:1 for borders, as today, and for text over glass at each height);
       `a theme without the new roles inherits them`; `a broken theme never blocks the others`.
-- [x] **Step 2: Run them**. Expected: FAIL.
+- [ ] **Step 2: Run them**. Expected: FAIL.
 - [x] **Step 3: Implement.** Themes stay one TOML file each. A role missing from a user's theme
       comes from the default of its mode.
 - [x] **Step 4: Run the task's validation**. Expected: PASS.
@@ -2128,7 +2144,7 @@ ported, beyond accounts and jobs.
       `single-key     shortcuts can be switched off, and a chord then opens the leader menu`;
       `a text field with the focus gets keys first`;
       `a key registered by a view goes when the view goes`.
-- [x] **Step 2: Run them**. Expected: FAIL. They failed with `Could not resolve './store'`.
+- [ ] **Step 2: Run them**. Expected: FAIL. They failed with `Could not resolve './store'`.
 - [x] **Step 3: Implement.** A text field with the focus gets keys first.
 - [x] **Step 4: Run the task's validation**: `just task-app`, and `just task uraeda-app` for the
       structural test. Expected: PASS.

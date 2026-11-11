@@ -173,7 +173,7 @@ impl Runtime for Codex {
     }
 
     /// Whether the thread's file is in Codex's home, unread.
-    fn has_session(&self, native_id: &str) -> bool {
+    fn has_session(&self, native_id: &str, _account: Option<&str>) -> bool {
         rollouts::has_rollout(&codex_home(&self.shared), native_id)
     }
 

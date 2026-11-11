@@ -30,6 +30,7 @@
 //! An extension's page is built, signed, and served by [`pages`], with the keys of
 //! [`signing`]: a client runs it only when it is signed under the key this server gave it.
 
+mod accounts;
 mod api;
 mod builds;
 mod events;

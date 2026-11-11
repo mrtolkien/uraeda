@@ -418,10 +418,10 @@ async fn a_thread_exists_when_its_rollout_is_found_and_the_owner_turns_the_built
     })
     .await;
     let runtime = stage.runtime();
-    assert!(runtime.has_session("01a1bba7-37d5"));
-    assert!(runtime.has_session("37d5"));
-    assert!(!runtime.has_session("01a1bba7"));
-    assert!(!runtime.has_session("other"));
+    assert!(runtime.has_session("01a1bba7-37d5", None));
+    assert!(runtime.has_session("37d5", None));
+    assert!(!runtime.has_session("01a1bba7", None));
+    assert!(!runtime.has_session("other", None));
 
     // It is its extension's: on where the owner left it on.
     let runtimes = stage.server.shared().get::<Runtimes>();

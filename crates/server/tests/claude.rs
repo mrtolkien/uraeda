@@ -5,6 +5,8 @@
 //! test's server, which plays lines recorded from the real one, and writes down its arguments
 //! and what it read. See `claude/stage.rs`.
 
+#[path = "claude/accounts.rs"]
+mod accounts;
 #[path = "claude/asked.rs"]
 mod asked;
 #[path = "claude/process.rs"]

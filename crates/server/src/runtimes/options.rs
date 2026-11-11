@@ -36,6 +36,9 @@ pub struct Options {
     /// The effort to run on, by the agent's id: none for the agent's default.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<String>,
+    /// The account to run on, by the runtime's id for it: none for the agent's own login.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account: Option<String>,
     /// The allow rules for this process only, from "Allow and retry" or "Allow all".
     pub allowed: Vec<String>,
     /// The skill folders to give the agent, beside Uraeda's own.

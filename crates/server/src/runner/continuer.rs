@@ -39,7 +39,7 @@ struct Runs {
 impl Runs {
     fn on(&self, reason: ContinueReason) -> bool {
         match reason {
-            ContinueReason::Limit => self.after_limit,
+            ContinueReason::Limit | ContinueReason::Account => self.after_limit,
             ContinueReason::Restart => self.after_restart,
         }
     }
@@ -126,8 +126,13 @@ impl Decision {
                 taken,
                 parent,
             } => {
-                let at = |runner: &Runner| runner.limit_continue_at(&limit);
-                runner.decide(&turn, ContinueReason::Limit, at, taken);
+                // A move goes on at once, whatever the limit; else a session's limit waits.
+                if runner.move_account(session).is_some() {
+                    runner.decide(&turn, ContinueReason::Account, Runner::now, taken);
+                } else if limit.kind == LimitKind::Session {
+                    let at = |runner: &Runner| runner.limit_continue_at(&limit);
+                    runner.decide(&turn, ContinueReason::Limit, at, taken);
+                }
                 let mut state = runner.state();
                 runner.sub_ended(&mut state, parent.as_deref());
             }
@@ -189,8 +194,8 @@ impl Runner {
         }
         let (parent, folder) = (live.parent.clone(), live.folder.clone());
         let taken = state.continues.taken(session);
-        let limit = limit
-            .filter(|limit| turn.state == TurnState::Failed && limit.kind == LimitKind::Session);
+        let decides = |limit: &Limit| self.limit_decides(session, limit);
+        let limit = limit.filter(|limit| turn.state == TurnState::Failed && decides(limit));
         if let Some(limit) = limit {
             return Some(Decision::Limit {
                 turn: Box::new(turn),
@@ -362,9 +367,9 @@ impl Runner {
         let queued = match refused {
             true => None,
             false => {
-                let opens_with = continued_line(reason);
+                let opens_with = continued_line(reason, self.account_name(&row).as_deref());
                 let queued =
-                    self.deliver_continue(&mut state, &row.id, opens_with, reason, &claimed);
+                    self.deliver_continue(&mut state, &row.id, &opens_with, reason, &claimed);
                 queued
                     .inspect_err(|fault| {
                         let why = fault.message();
@@ -459,10 +464,9 @@ impl Runner {
             sessions.partition(|(_, session)| session.parent.is_some());
         for (turn, session) in subs.into_iter().chain(parents) {
             let kept = picks::runs_on(self, &session)
-                && self
-                    .runtimes()
-                    .get(&session.agent)
-                    .is_some_and(|runtime| runtime.has_session(&session.native_id));
+                && self.runtimes().get(&session.agent).is_some_and(|runtime| {
+                    runtime.has_session(&session.native_id, session.account.as_deref())
+                });
             if kept {
                 let taken = self.takeovers(&session.id);
                 self.decide(&turn, ContinueReason::Restart, Runner::now, taken);
@@ -474,7 +478,11 @@ impl Runner {
     pub(crate) fn runs_changed(&self) {
         let runs = self.runs();
         let store = self.store();
-        for reason in [ContinueReason::Limit, ContinueReason::Restart] {
+        for reason in [
+            ContinueReason::Limit,
+            ContinueReason::Account,
+            ContinueReason::Restart,
+        ] {
             if runs.on(reason) {
                 continue;
             }

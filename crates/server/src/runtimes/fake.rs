@@ -26,6 +26,7 @@
 //! - **Waits are on tokio's clock**, so a test that pauses it waits for nothing.
 //! - **It needs tokio**: `open` starts the task that plays the process, which ends with it.
 
+mod accounts;
 mod process;
 mod script;
 
@@ -36,7 +37,10 @@ use std::sync::{Arc, Mutex, Weak};
 pub use script::{Script, Step, Work};
 use uraeda_protocol::{AgentModel, Capabilities, ModelDefaults, ModelEffort, ModelList};
 
-use super::{AgentProcess, Options, Outgoing, ReviewAsk, ReviewMessage, Runtime, RuntimeError};
+use super::{
+    Account, Accounts, AgentProcess, Options, Outgoing, ReviewAsk, ReviewMessage, Runtime,
+    RuntimeError,
+};
 use crate::live::locked;
 use crate::process::Signal;
 use crate::runner::{Denial, Event};
@@ -82,6 +86,12 @@ pub struct Behaviour {
     pub reports_runs_on: bool,
     /// The agent's own review: none by default.
     pub review: Option<Review>,
+    /// The accounts it lists, as last asked: none by default, and then it offers none.
+    pub accounts: Vec<Account>,
+    /// What its accounts say needs the human.
+    pub account_problems: Vec<String>,
+    /// The accounts that hold no transcript of a session opened in another.
+    pub apart: BTreeSet<String>,
 }
 
 impl Default for Behaviour {
@@ -109,6 +119,9 @@ impl Default for Behaviour {
             auto_init: true,
             reports_runs_on: false,
             review: None,
+            accounts: Vec::new(),
+            account_problems: Vec::new(),
+            apart: BTreeSet::new(),
         }
     }
 }
@@ -211,6 +224,9 @@ struct Inner {
     current: Mutex<Weak<Core>>,
     running: AtomicUsize,
     model_asks: AtomicUsize,
+    account_asks: AtomicUsize,
+    /// The accounts as the last refresh read them: the behaviour's before one.
+    asked: Mutex<Option<Vec<Account>>>,
 }
 
 impl Inner {
@@ -249,6 +265,8 @@ impl Fake {
             current: Mutex::default(),
             running: AtomicUsize::new(0),
             model_asks: AtomicUsize::new(0),
+            account_asks: AtomicUsize::new(0),
+            asked: Mutex::default(),
         }))
     }
 
@@ -325,6 +343,11 @@ impl Fake {
         self.0.model_asks.load(Ordering::SeqCst)
     }
 
+    /// How many times its accounts' usage was asked for.
+    pub fn account_asks(&self) -> usize {
+        self.0.account_asks.load(Ordering::SeqCst)
+    }
+
     /// How many of its processes have not exited: each has a task that plays it.
     pub fn running(&self) -> usize {
         self.0.running.load(Ordering::SeqCst)
@@ -372,8 +395,16 @@ impl Runtime for Fake {
         Box::new(process)
     }
 
-    fn has_session(&self, native_id: &str) -> bool {
-        locked(&self.0.behaviour).sessions.contains(native_id)
+    /// A session the fake opened, in any account but those that hold no other's transcripts.
+    fn has_session(&self, native_id: &str, account: Option<&str>) -> bool {
+        let behaviour = locked(&self.0.behaviour);
+        let apart = account.is_some_and(|account| behaviour.apart.contains(account));
+        behaviour.sessions.contains(native_id) && !apart
+    }
+
+    fn accounts(&self) -> Option<Arc<dyn Accounts>> {
+        let listed = !locked(&self.0.behaviour).accounts.is_empty();
+        listed.then(|| Arc::new(accounts::Scripted(self.0.clone())) as Arc<dyn Accounts>)
     }
 
     fn allow_rule(&self, denial: &Denial) -> Option<String> {

@@ -87,10 +87,10 @@ async fn a_session_can_be_resumed_when_claude_code_kept_its_transcript() {
     };
     // Claude Code's own folder is `.claude` in the home folder: without it, no session is.
     let stage = stage(SILENT).await;
-    assert!(!stage.runtime().has_session("3f2c"));
+    assert!(!stage.runtime().has_session("3f2c", None));
     transcript(&stage.claude_dir);
-    assert!(stage.runtime().has_session("3f2c"));
-    assert!(!stage.runtime().has_session("9a9a"));
+    assert!(stage.runtime().has_session("3f2c", None));
+    assert!(!stage.runtime().has_session("9a9a", None));
     stage.server.stop().await;
 
     // Unless the server's environment names another.
@@ -98,9 +98,9 @@ async fn a_session_can_be_resumed_when_claude_code_kept_its_transcript() {
     let path = named.path().to_str().unwrap().to_owned();
     let stage = staged(SILENT, |setup| setup.env("CLAUDE_CONFIG_DIR", &path)).await;
     transcript(&stage.claude_dir);
-    assert!(!stage.runtime().has_session("3f2c"));
+    assert!(!stage.runtime().has_session("3f2c", None));
     transcript(named.path());
-    assert!(stage.runtime().has_session("3f2c"));
+    assert!(stage.runtime().has_session("3f2c", None));
     stage.server.stop().await;
 }
 

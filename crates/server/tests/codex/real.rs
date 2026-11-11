@@ -100,7 +100,7 @@ async fn real_codex_runs_a_session_and_resumes_it() {
     let exit = until(&mut events, "exit").await;
     assert_eq!(exit.last().unwrap()["code"], 0, "{exit:?}");
     assert!(
-        runtime.has_session(&id),
+        runtime.has_session(&id, None),
         "its thread's file is in Codex's home"
     );
 

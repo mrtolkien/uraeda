@@ -67,6 +67,7 @@
 //! takes it away again, as an extension's does when it unloads. The sessions read
 //! `shared.get::<Runtimes>()`.
 
+pub mod accounts;
 mod built_in;
 mod child;
 mod claude;
@@ -78,6 +79,7 @@ mod registry;
 
 use std::sync::Arc;
 
+pub use accounts::{Account, AccountState, AccountWindow, Accounts};
 pub use child::{Child, KILL_AFTER, Lines, Spawn};
 pub use events::{Emitter, Events, events};
 pub use options::{
@@ -116,8 +118,15 @@ pub trait Runtime: Send + Sync + 'static {
     /// cannot run says so as its `exit`, or as an `init` with a `problem`.
     fn open(&self, options: Options) -> Box<dyn AgentProcess>;
 
-    /// Whether the agent still has the session's transcript, so it can be resumed.
-    fn has_session(&self, native_id: &str) -> bool;
+    /// Whether the agent still has the session's transcript, so it can be resumed: in its
+    /// account, for a session that runs on one.
+    fn has_session(&self, native_id: &str, account: Option<&str>) -> bool;
+
+    /// The accounts the agent runs on, when it offers several: none without them. See
+    /// [`accounts`].
+    fn accounts(&self) -> Option<Arc<dyn Accounts>> {
+        None
+    }
 
     /// The narrowest rule that allows a blocked action, given to `open` in
     /// [`Options::allowed`]: none when no rule allows that action alone. A rule is one line.

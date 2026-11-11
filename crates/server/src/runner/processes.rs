@@ -125,6 +125,12 @@ impl Runner {
             return;
         }
         let kind = proc.kind.clone();
+        // An account's reports are its own, kept after the process: see `account.rs`.
+        if let Some(account) = proc.account.clone() {
+            drop(state);
+            let reported = |window| self.account_report(&kind, &account, window);
+            return windows.into_iter().for_each(reported);
+        }
         for window in windows {
             state.usage.reports.retain(|(of, from, known)| {
                 !(*of == kind && *from == serial && known.id == window.id)
@@ -146,6 +152,7 @@ impl Runner {
         allowed: Option<Vec<String>>,
     ) -> Result<Opened, Fault> {
         let row = self.row(session)?;
+        let account = self.account_for(&row)?;
         let (held, closing) = {
             let mut state = self.state();
             let gone = || Fault::internal(format!("session {session} is not kept"));
@@ -155,7 +162,9 @@ impl Runner {
                 Some(proc) => {
                     // A turn taken back while the process opened left its line to the next one.
                     let held = proc.line.clone();
-                    if !proc.closing && allowed.is_none() && effort_set(proc, &row) {
+                    // A process opened on an older pick, or before a move, opens again.
+                    let same = proc.account == account;
+                    if !proc.closing && allowed.is_none() && same && effort_set(proc, &row) {
                         proc.line = None;
                         return Ok(Opened { line: held });
                     }
@@ -171,7 +180,8 @@ impl Runner {
         if self.state().closed {
             return Err(Fault::refused("The server is stopping."));
         }
-        self.start(session, &row, held, allowed.unwrap_or_default())
+        let allowed = allowed.unwrap_or_default();
+        self.start(session, &row, held, allowed, account)
     }
 
     /// Starts a session's process, with the rules allowed for it, and the line a process
@@ -182,6 +192,7 @@ impl Runner {
         row: &Session,
         held: Option<String>,
         allowed: Vec<String>,
+        account: Option<String>,
     ) -> Result<Opened, Fault> {
         let folder = {
             let mut state = self.state();
@@ -197,7 +208,7 @@ impl Runner {
         // The session's own runtime, never another: one unregistered or turned off since
         // leaves it read-only.
         let runtime = picks::session_runtime(self, row)?;
-        let resume = runtime.has_session(&row.native_id);
+        let resume = runtime.has_session(&row.native_id, account.as_deref());
         let store = self.store();
         let ran = store
             .turns(session)?
@@ -231,6 +242,7 @@ impl Runner {
             resume,
             model: row.model.clone(),
             effort: row.effort.clone(),
+            account: account.clone(),
             allowed,
             skills,
             tools,
@@ -253,6 +265,7 @@ impl Runner {
                 agent,
                 runtime,
                 kind: row.agent.clone(),
+                account,
                 name,
                 capabilities,
                 cwd,

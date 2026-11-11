@@ -12,8 +12,9 @@ use crate::runner::session::Session;
 use crate::runner::store::time;
 use crate::runner::turn::Turn;
 
-/// The schema of the Node server's store this import reads: its last.
-pub(super) const SCHEMA: u32 = 12;
+/// The schema of the Node server's store this import reads: its last. Its 13th step added a
+/// session's account; its 14th, the scheduled jobs' runs, which this import does not read.
+pub(super) const SCHEMA: u32 = 14;
 
 /// The old store, read at one moment of it: what another process writes meanwhile is not read.
 pub(super) struct Old(Connection);
@@ -51,7 +52,7 @@ impl Old {
         let mut read = self.0.prepare(&format!(
             "SELECT id, repo, folder, parent, role, step, worktree, agent, native_id, title,
                model, effort, ran_model, ran_effort,
-               CAST(automatic_continues AS INTEGER) AS continues,
+               CAST(automatic_continues AS INTEGER) AS continues, account,
                {} AS created_at, {} AS updated_at, {} AS seen_at, {} AS archived_at
              FROM sessions ORDER BY rowid",
             ms("created_at"),
@@ -122,6 +123,7 @@ fn session(row: &Row) -> rusqlite::Result<Session> {
         ran_model: row.get("ran_model")?,
         ran_effort: row.get("ran_effort")?,
         continues: row.get("continues")?,
+        account: row.get("account")?,
         created_at: created,
         updated_at: at(row, "updated_at")?.unwrap_or(created),
         seen_at: at(row, "seen_at")?,

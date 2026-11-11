@@ -132,7 +132,10 @@ async fn real_claude_runs_a_session_and_resumes_it() {
     assert_eq!(find(&turn, "result")["ok"], true);
     assert_eq!(find(&turn, "exit")["code"], 0);
     assert!(said(&turn).contains("ready"));
-    assert!(claude.has_session(&id), "Claude Code kept its transcript");
+    assert!(
+        claude.has_session(&id, None),
+        "Claude Code kept its transcript"
+    );
 
     // A resumed run keeps the session, and what was said in it.
     let again = "Which single word did you just reply with? Reply with it.";

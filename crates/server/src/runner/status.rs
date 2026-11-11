@@ -72,6 +72,7 @@ pub(crate) fn wait_of(turn: Option<&Turn>) -> Option<Wait> {
         reason: match reason {
             ContinueReason::Restart => "restart".to_owned(),
             ContinueReason::Limit => "limit".to_owned(),
+            ContinueReason::Account => "account".to_owned(),
         },
     })
 }

@@ -546,6 +546,7 @@ fn feature_session() -> Session {
         ran_model: Some("Opus 5".to_owned()),
         ran_effort: Some("High".to_owned()),
         continues: 2,
+        account: Some("/home/sample/.claude-b".to_owned()),
         created_at: at(9, 0, 0, 0),
         updated_at: at(9, 0, 26, 0),
         seen_at: None,

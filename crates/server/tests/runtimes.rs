@@ -30,6 +30,7 @@ fn options(native_id: &str) -> Options {
         resume: false,
         model: None,
         effort: None,
+        account: None,
         allowed: Vec::new(),
         skills: Vec::new(),
         tools: Tools::Own,
@@ -495,8 +496,8 @@ async fn a_fake_process_says_what_it_runs_on_and_takes_a_new_effort() {
         "a runtime that cannot is reopened"
     );
     assert_eq!(fake.efforts(), [None]);
-    assert!(fake.has_session("native") && fake.has_session("other"));
-    assert!(!fake.has_session("never-opened"));
+    assert!(fake.has_session("native", None) && fake.has_session("other", None));
+    assert!(!fake.has_session("never-opened", None));
 }
 
 #[tokio::test]

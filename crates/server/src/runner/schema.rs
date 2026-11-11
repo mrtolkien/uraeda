@@ -103,8 +103,12 @@ UPDATE events SET item = numbered.item FROM (
 WHERE numbered.turn_id = events.turn_id AND numbered.seq = events.seq AND numbered.starts = 1;
 ";
 
+/// The third step: the account a session runs on, by its runtime's id for it, a folder for
+/// Claude Code: none for a session made before, and for one on the server's own login.
+const ACCOUNT: &str = "ALTER TABLE sessions ADD COLUMN account TEXT;";
+
 /// The schema's steps, in order: the store's number is how many it has taken.
-const STEPS: &[&str] = &[FIRST, ITEMS];
+const STEPS: &[&str] = &[FIRST, ITEMS, ACCOUNT];
 
 /// The number of the schema this version reads and writes.
 pub(super) fn known() -> u32 {

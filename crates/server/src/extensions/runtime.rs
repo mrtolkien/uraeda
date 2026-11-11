@@ -15,12 +15,13 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
+use super::accounts::VmAccounts;
 use super::vm::{CALL, CallError, Vm};
 use crate::live::locked;
 use crate::runner::{Denial, Event};
 use crate::runtimes::{
-    self, AgentProcess, Capabilities, Emitter, Events, ModelList, Options, Outgoing, Registered,
-    ReviewAsk, ReviewMessage, Runtime, RuntimeError, Signal,
+    self, Accounts, AgentProcess, Capabilities, Emitter, Events, ModelList, Options, Outgoing,
+    Registered, ReviewAsk, ReviewMessage, Runtime, RuntimeError, Signal,
 };
 use crate::shared::Shared;
 
@@ -41,6 +42,9 @@ struct Described {
     models: bool,
     /// Whether it has a review of its own.
     review: bool,
+    /// Whether it lists accounts.
+    #[serde(default)]
+    accounts: bool,
 }
 
 /// The runtime one VM registered, if any, and its processes' streams.
@@ -127,14 +131,21 @@ impl VmRuntime {
         with: Value,
         limit: Duration,
     ) -> Result<T, String> {
-        let mut payload = with;
-        payload["what"] = json!(format!("runtime.{what}"));
-        let answer = self
-            .vm
-            .call(payload, limit)
-            .map_err(|error| words(&error))?;
-        serde_json::from_value(answer).map_err(|error| format!("{what}: {error}"))
+        asked(&self.vm, what, with, limit)
     }
+}
+
+/// Asks a VM's runtime `runtime.<what>`, and reads its answer.
+pub(super) fn asked<T: DeserializeOwned>(
+    vm: &Vm,
+    what: &str,
+    with: Value,
+    limit: Duration,
+) -> Result<T, String> {
+    let mut payload = with;
+    payload["what"] = json!(format!("runtime.{what}"));
+    let answer = vm.call(payload, limit).map_err(|error| words(&error))?;
+    serde_json::from_value(answer).map_err(|error| format!("{what}: {error}"))
 }
 
 /// Why a call into a VM gave nothing, for a person.
@@ -190,9 +201,16 @@ impl Runtime for VmRuntime {
         })
     }
 
-    fn has_session(&self, native_id: &str) -> bool {
-        let asked = self.ask("hasSession", json!({ "nativeId": native_id }), CALL);
-        asked.unwrap_or(false)
+    fn has_session(&self, native_id: &str, account: Option<&str>) -> bool {
+        let with = json!({ "nativeId": native_id, "account": account });
+        self.ask("hasSession", with, CALL).unwrap_or(false)
+    }
+
+    fn accounts(&self) -> Option<Arc<dyn Accounts>> {
+        let accounts = VmAccounts(self.vm.clone());
+        self.described
+            .accounts
+            .then(|| Arc::new(accounts) as Arc<dyn Accounts>)
     }
 
     fn allow_rule(&self, denial: &Denial) -> Option<String> {

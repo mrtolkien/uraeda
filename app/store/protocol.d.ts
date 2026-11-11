@@ -5,6 +5,54 @@
 export type Protocol = 1;
 
 /**
+ * An account of a runtime, for the UI.
+ */
+export type AccountRecord = { 
+/**
+ * What a session stores as its account: for Claude Code, its configuration folder.
+ */
+id: string, 
+/**
+ * Its name for people: `b` for `~/.claude-b`, `default` for `~/.claude`.
+ */
+name: string, state: AccountState, 
+/**
+ * Shortest first, each the freshest read of an ask or of a running process; a window past
+ * its reset reads as unused.
+ */
+windows: Array<AccountWindow>, 
+/**
+ * Whether a new session would start on it now.
+ */
+isNext: boolean, };
+
+/**
+ * Whether an account can run a session: signed in, signed out, or without its folder.
+ */
+export type AccountState = "ready" | "signed-out" | "missing";
+
+/**
+ * A usage window of an account, like five hours or a week.
+ */
+export type AccountWindow = { 
+/**
+ * The agent's id for it: `five_hour`, `seven_day`.
+ */
+id: string, 
+/**
+ * Its name for people: `5h`, `Week`.
+ */
+label: string, 
+/**
+ * When it resets, in ISO 8601: none while the window is not open.
+ */
+resetsAt: string | null, 
+/**
+ * The share used, from 0 to 1.
+ */
+used: number, };
+
+/**
  * The agent runtimes sessions run on, in the order they registered: the first one on is the one
  * a new session runs on until another is picked.
  */
@@ -4073,9 +4121,14 @@ isOn: boolean, capabilities: Capabilities,
  */
 models: ModelList | null, 
 /**
- * Its usage windows, each from the freshest report of an open process: none before one.
+ * Its usage windows, each from the freshest report of an open process on no account: none
+ * before one.
  */
-usage: Array<UsageWindow>, };
+usage: Array<UsageWindow>, 
+/**
+ * Its accounts, in the listed order: none for a runtime that lists none.
+ */
+accounts: Array<AccountRecord>, };
 
 /**
  * What a save answers: the hash of the text as written, which the next save takes.
@@ -4207,7 +4260,15 @@ ranModel: string | null,
 /**
  * The effort the agent last said it runs on, by its name for people.
  */
-ranEffort: string | null, startedAt: number, archived: boolean, 
+ranEffort: string | null, 
+/**
+ * The account it runs on, by its runtime's name for it: none on the server's own login.
+ */
+account: string | null, 
+/**
+ * That account's id, which finds it among the runtime's accounts: two may share a name.
+ */
+accountId: string | null, startedAt: number, archived: boolean, 
 /**
  * Its automatic continues in a row.
  */

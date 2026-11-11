@@ -62,6 +62,21 @@ function open(options: OpenOptions): AgentProcess {
 
 export default function activate(api: ServerApi) {
   api.runtime({
+    accounts: {
+      list: () => [
+        {
+          askedAt: 1_794_301_200_000,
+          id: "/accounts/one",
+          known: true,
+          name: "one",
+          state: "ready",
+          windows: [{ id: "five_hour", label: "5h", resetsAt: null, used: 0.25 }],
+        },
+      ],
+      nameOf: (id) => (id === "/accounts/one" ? "one" : id),
+      problems: () => ["account two is signed out"],
+      refresh: async () => {},
+    },
     allowRule: (denial) => `allow ${denial.tool}`,
     capabilities: {
       approvals: false,
@@ -71,7 +86,7 @@ export default function activate(api: ServerApi) {
       subagents: false,
       takeBack: true,
     },
-    hasSession: (nativeId) => nativeId === "known",
+    hasSession: (nativeId, account) => nativeId === "known" && account !== "/accounts/apart",
     icon: "uraeda:plug",
     kind: "echo",
     models: async () => ({

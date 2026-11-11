@@ -9,7 +9,7 @@
 // writes the same sessions: the test asserts their IDs, their times, and their texts.
 //
 // What it holds, so that the import is tested on each:
-// - a feature's session with a model, an effort, and a step; a sub-session of it; a chat without
+// - a feature's session with a model, an effort, a step, and an account; a sub-session of it; a chat without
 //   a folder, archived and seen; a session another server's process holds;
 // - turns of each kind (workflow, chat, allow) and each state (done, failed, stopped, queued,
 //   running), with tokens, a dismissal, a catch-up's commit, a continue that waits, one past the
@@ -357,6 +357,10 @@ const cut = cache.addTurn({
 });
 cache.appendItem(cut, { kind: "text", streaming: false, text: "Starting task 4." });
 cache.endTurn(cut, { reason: SERVER_STOPPED, state: "stopped" });
+
+// The account the feature's session runs on, a configuration folder: set last, as a session's
+// first turn stores it, so that nothing above changes.
+cache.updateSession(spec.id, { account: "/home/sample/.claude-b" });
 
 // One file, as a server that stopped leaves it: the write-ahead log is folded in.
 cache.db.exec("PRAGMA wal_checkpoint(TRUNCATE)");

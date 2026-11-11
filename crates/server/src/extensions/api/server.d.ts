@@ -160,8 +160,47 @@ declare module "uraeda/server" {
     models: Array<AgentModel>;
   };
 
+  /** A usage window of an account: no reset while the window is not open. */
+  export type AccountWindow = { id: string; label: string; resetsAt: string | null; used: number };
+
+  /** Whether an account can run a session: signed in, signed out, or without its folder. */
+  export type AccountState = "ready" | "signed-out" | "missing";
+
+  /** An account a runtime offers. `windows` are shortest first. */
+  export type Account = {
+    /**
+     * When its windows were last read, in milliseconds since 1970: null while they never were.
+     * Kept after an ask that could not read them, as `windows` are.
+     */
+    askedAt: number | null;
+    /** What a session stores as its account. */
+    id: string;
+    /** Whether its usage is known: false while never read, or while its last ask failed. */
+    known: boolean;
+    name: string;
+    state: AccountState;
+    windows: Array<AccountWindow>;
+  };
+
+  /**
+   * The accounts a runtime offers, an optional part of its contract: a new session starts on
+   * the one with the most of its first window left, and keeps it until a usage limit moves it.
+   */
+  export interface Accounts {
+    /** The accounts as last asked, in the listed order. */
+    list(): ReadonlyArray<Account>;
+    /** The name of the account `id`, listed or not. */
+    nameOf(id: string): string;
+    /** What needs the human, in the runtime's words, shown in the settings. */
+    problems(): ReadonlyArray<string>;
+    /** Asks again each account whose last ask is older than `maxAgeMs`; settles once answered. */
+    refresh(maxAgeMs: number): void | Promise<void>;
+  }
+
   /** How to open a session's process. */
   export type OpenOptions = {
+    /** The account to run on, by its id: none for the agent's own login. */
+    account?: string;
     /** The allow rules for this process only. */
     allowed: ReadonlyArray<string>;
     /** The feature's worktree, or the main checkout. */
@@ -289,8 +328,10 @@ declare module "uraeda/server" {
     /** The narrowest rule that allows a blocked action, or undefined when none does alone. */
     allowRule(denial: Denial): string | undefined;
     readonly capabilities: Capabilities;
-    /** Whether the agent still has the session's transcript, so it can be resumed. */
-    hasSession(nativeId: string): boolean;
+    /** The accounts the agent runs on, when it offers several. */
+    readonly accounts?: Accounts;
+    /** Whether the agent still has the session's transcript, in its account if it has one. */
+    hasSession(nativeId: string, account?: string): boolean;
     /** The icon of its mark, a name of the app's icon set. */
     readonly icon: string;
     /** The agent's own kind, like "claude". */

@@ -22,6 +22,11 @@ pub(super) fn changed(shared: &Shared) {
 fn read(shared: &Shared, args: AgentArgs) -> Result<Agent, Fault> {
     let runtimes = shared.get::<Runtimes>();
     let runner = Runner::find(shared);
+    // Each read asks the accounts' stale usage, at most once a minute per account: an answer
+    // that changed one says so again.
+    if let Some(runner) = &runner {
+        runner.refresh_all_accounts();
+    }
     let records = runtimes.names().into_iter().filter_map(|id| {
         let runtime = runtimes.get(&id)?;
         let status = runtimes.status(&id);
@@ -42,6 +47,10 @@ fn read(shared: &Shared, args: AgentArgs) -> Result<Agent, Fault> {
             capabilities: runtime.capabilities(),
             models: runtimes.models(&id),
             usage: usage.unwrap_or_default().into_iter().map(window).collect(),
+            accounts: runner
+                .as_ref()
+                .map(|runner| runner.account_records(&id))
+                .unwrap_or_default(),
             id,
         })
     });

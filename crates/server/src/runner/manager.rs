@@ -252,6 +252,7 @@ impl Runner {
         if self.state().closed {
             return;
         }
+        self.refresh_all_accounts();
         let found = self.runtimes().check();
         if found.changed {
             self.agent_changed();

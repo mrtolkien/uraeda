@@ -84,6 +84,8 @@ named! {
         Restart = "restart",
         /// A usage limit that failed it has reset.
         Limit = "limit",
+        /// A usage limit failed it, and the session moved to another account.
+        Account = "account",
     }
 }
 

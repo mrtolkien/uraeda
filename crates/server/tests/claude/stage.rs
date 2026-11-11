@@ -172,6 +172,7 @@ pub fn options(cwd: &Path) -> Options {
         resume: false,
         model: None,
         effort: None,
+        account: None,
         allowed: Vec::new(),
         skills: Vec::new(),
         tools: Tools::Own,
