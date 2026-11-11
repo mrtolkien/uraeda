@@ -3284,21 +3284,39 @@ can become a full pane, as in a tiling window manager.
 
 **Files:**
 
-- Create: `app/screens/parity.toml`, `app/screens/parity.test.ts`
+- Create: `app/screens/parity.toml`, `crates/app/tests/parity.rs` (in place of
+  `app/screens/parity.test.ts`: a test under `nsh test` reads no file, ruling R402)
 
 **Interfaces:**
 
 - Produces: the list of every route of [`routeTable.ts`](/packages/web/src/routeTable.ts), each with
-  its new screen, or `dropped` and why.
+  its new screen, or `dropped` and why; and `[[left]]`, what the old screens did that the new ones
+  do not, each brought back, left, or replaced.
 
-- [ ] **Step 1: Write the failing test** `every old route is mapped or dropped`: it reads the old
+- [x] **Step 1: Write the failing test** `every old route is mapped or dropped`: it reads the old
       route table and fails on a route missing from `parity.toml`, or mapped to a route that draws
       "Nothing here".
-- [ ] **Step 2: Run it**. Expected: FAIL, naming what is missing.
-- [ ] **Step 3: Fill the list, and build what it shows missing.** A route dropped on purpose names
+- [x] **Step 2: Run it**. Expected: FAIL, naming what is missing.
+- [x] **Step 3: Fill the list, and build what it shows missing.** A route dropped on purpose names
       the human's request or the decision behind it.
-- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
-- [ ] **Step 5: Commit**: `test(nsh-migration): every old route has a screen`.
+- [x] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
+- [x] **Step 5: Commit**: `test(nsh-migration): every old route has a screen`.
+
+**As built** (ruling R402):
+
+- `parity.toml` maps 29 of the React UI's 31 pages and drops 2 (`moved`, `first-run`); `[[left]]`
+  holds 8 things brought back, 16 left, and 14 replaced. The test is
+  `every_old_route_is_mapped_or_dropped` in `crates/app/tests/parity.rs`, run by
+  `just task uraeda-app`. Task 61 deletes its `old_pages()` and the two checks that read it.
+- Brought back, a commit per screen: Continue all on Home (`NeedsYouRow.continued`, new, from
+  `Runner::continued_by_all`); a session's Rename (`R`) and effort (`m`); a feature's Rename (`R`)
+  and "Commit the proposal" at its gate; a proposal's "Edit its line" (`e`); Start over on a review
+  on an older version; `agent.refreshModels` as a picker shows. `app/screens/NameDialog.tsx` is the
+  one name dialog.
+- Actions of the protocol no screen calls: `inbox.drop`, `inbox.outline`, `inbox.place`,
+  `inbox.intoProposalLine`, `proposals.drop`, `proposals.outline`, `settled.edit`,
+  `defaultRound.retry`, `settings.editHost` (each a `left` line); `change.fromNote`,
+  `priorities.commit`, `priorities.discard`, and `session.new`, which no old screen called either.
 
 **Phase 2: the web build.** The same app in a browser, served by `ura serve`, then the removal of
 the React UI and the Node server. Read NSH's web pages before each task:

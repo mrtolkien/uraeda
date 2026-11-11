@@ -1,0 +1,339 @@
+# The screens' parity list, the spec's first success criterion: "Every route of the React UI has a
+# screen in the new app, or a line saying why it went". `crates/app/tests/parity.rs` reads it.
+#
+# `[routes]`: each page of the React UI's route table (`packages/web/src/routeTable.ts`), by its
+# name there, with its paths, the page of `app/store/routes.ts` that draws it now and the screen
+# that gives that page its place, or `dropped` and why. The test fails on an old page without a
+# line, a line of no old page, a page no screen places, and a page mapped to `missing`, which draws
+# "Nothing here". That each placed page mounts is `app/screens/shell/places.test.tsx`'s.
+#
+# TASK 61: the React UI goes. The keys of `[routes]` are then the frozen list of its pages: drop the
+# test's read of `routeTable.ts`, and keep this list and its checks.
+#
+# `[[left]]`: what the old screens did that the screens of tasks 36 to 51 and 65 did not, from their
+# commits and rulings, most used first: `brought-back` by task 55 (where it is `now`), `replaced` by
+# something the rewrite does otherwise (`now`), or `left`, with what bringing it back `needs` and
+# whether a person will miss it (`missed`).
+
+[routes]
+home = { path = "/", page = "home", screen = "app/screens/home" }
+feature = { path = "/f/<folder>", page = "feature", screen = "app/screens/feature" }
+file = { path = "/f/<folder>/<file>", page = "file", screen = "app/screens/file" }
+mockup = { path = "/f/<folder>/mockups/<name>", page = "mockup", screen = "app/screens/preview" }
+branch-decision = { path = "/f/<folder>/decisions/<name>", page = "branch-decision", screen = "app/screens/decisions" }
+session = { path = "/f/<folder>/session", page = "session", screen = "app/screens/session" }
+storybook = { path = "/f/<folder>/storybook?story=, /storybook?story=", page = "storybook", screen = "app/screens/preview" }
+# An old run's address opens its feature's session, at its newest message: `#turn-<id>` is kept in
+# the address, and the transcript does not scroll to it (see `[[left]]`).
+run = { path = "/f/<folder>/runs/<id>", page = "session", screen = "app/screens/session" }
+priorities = { path = "/priorities", page = "priorities", screen = "app/screens/priorities" }
+proposal = { path = "/priorities/<key>", page = "proposal", screen = "app/screens/proposal" }
+inbox = { path = "/inbox", page = "inbox", screen = "app/screens/inbox" }
+note = { path = "/inbox/<key>", page = "note", screen = "app/screens/inbox" }
+triage = { path = "/inbox/triage", page = "triage", screen = "app/screens/triage" }
+decisions = { path = "/decisions", page = "decisions", screen = "app/screens/decisions" }
+decisions-check = { path = "/decisions/check", page = "decisions-check", screen = "app/screens/decisions" }
+decision = { path = "/decisions/<name>", page = "decision", screen = "app/screens/decisions" }
+constitution = { path = "/decisions/constitution, /decisions/constitution/<slug>", page = "constitution", screen = "app/screens/decisions" }
+git = { path = "/git", page = "git", screen = "app/screens/git" }
+jobs = { path = "/jobs", page = "jobs", screen = "app/screens/jobs" }
+job = { path = "/jobs/<name>, /jobs/~<name>", page = "job", screen = "app/screens/jobs" }
+job-new = { path = "/jobs/new", page = "job-new", screen = "app/screens/jobs" }
+sessions = { path = "/sessions", page = "sessions", screen = "app/screens/session" }
+session-id = { path = "/sessions/<id>", page = "session-id", screen = "app/screens/session" }
+new = { path = "/new?kind=session|change|feature", page = "new", screen = "app/screens/new" }
+settings = { path = "/settings, /settings/<category>", page = "settings", screen = "app/screens/settings" }
+edit = { path = "/edit/<path>", page = "edit", screen = "app/screens/buffer" }
+buffer = { path = "/buffer/<path>", page = "buffer", screen = "app/screens/buffer" }
+extension = { path = "/e/<name>/<id>…", page = "extension", screen = "app/screens/extension" }
+missing = { path = "any other path", page = "missing", screen = "app/screens/shell" }
+moved = { path = "/chats/<id>, /chats/new, /changes/new, /commit", dropped = "no page any more: the old addresses parse to the pages they moved to (`app/store/routes.ts`: a session, the New page, the Git page), so no page redirects them (task 24)" }
+first-run = { path = "none: the React UI set it when the server listed no repository", dropped = "a state, not an address: the frame draws its first-run pane when the server lists no repository (`app/screens/repository/`, task 36, R251)" }
+
+# --- Brought back by task 55 ---------------------------------------------------------------------
+
+[[left]]
+what = "Continue all, with the runs it continues named"
+old = "Home (Needs you)"
+why = "its rule was the Node server's alone, with no field in the protocol to read (R274)"
+fate = "brought-back"
+now = "Home's Needs you: \"Continue all (N)\" and `C`, from `NeedsYouRow.continued`, the server's rule; the runs it could not continue told under it"
+
+[[left]]
+what = "A session's rename"
+old = "Session (its actions menu, the sidebar's Rename)"
+why = "a later pass: rename needed a dialog (R337)"
+fate = "brought-back"
+now = "the session's head: Rename and `R`, in the app's name dialog (`app/screens/NameDialog.tsx`)"
+
+[[left]]
+what = "The effort of a running session's next turns"
+old = "Session (the composer's picker, `m`)"
+why = "left to task 38's run picker, whose component it is (R337)"
+fate = "brought-back"
+now = "the session's head: an Effort select of its model's efforts, `m`"
+
+[[left]]
+what = "A feature's or a change's name in the lists"
+old = "Feature page and sidebar (Rename, `item.settings`)"
+why = "the sidebar card's settings belonged to the sidebar's task (R287)"
+fate = "brought-back"
+now = "the feature page's Overview: Rename and `R`; a blank name gives back its title"
+
+[[left]]
+what = "Commit the proposal, at a feature's proposal gate"
+old = "Proposal editor (Commit, Commit and continue)"
+why = "the new editor saves only, and the gate ends once the proposal is committed"
+fate = "brought-back"
+now = "the feature page's Next, at the proposal's gate: \"Commit the proposal\"; Next then offers the agent's run, in the continue dialog"
+
+[[left]]
+what = "A proposal's line edited"
+old = "Priorities (the proposal's overlay, `proposals.edit`)"
+why = "not built by task 37 nor 38"
+fate = "brought-back"
+now = "the proposal's pane: \"Edit its line\" and `e`, the pane following the line to its new address; Undo takes it back"
+
+[[left]]
+what = "Start a review over, when its comments are on an older version"
+old = "Spec and plan pages (the stale review's banner)"
+why = "the banner was ported without its button"
+fate = "brought-back"
+now = "the reader's banner \"Your review is on an older version\": Start over (`review.startOver`), on the undo stack"
+
+[[left]]
+what = "The agents asked for their models as a picker opens"
+old = "Session picker (`agent.refreshModels`)"
+why = "the new picker reads the record only"
+fate = "brought-back"
+now = "`AgentPick`, once every five minutes at most as one shows"
+
+# --- Left: each with what it needs, and who misses it ---------------------------------------------
+
+[[left]]
+what = "Ask the agent about a question, a block, or a settled point"
+old = "Rounds, spec pages, documents (`?ask=` quotes into the session's composer)"
+why = "the composer is the session's: a quote handed to it from another page was not built (R337, R379)"
+fate = "left"
+needs = "a session page that takes a quote (`?ask=`, as `?new` is read) into its composer, and an Ask button on a question, a settled point, and a selected block"
+missed = "a person will miss this: asking the agent about a question was the way to get a better option without leaving the round"
+
+[[left]]
+what = "Postpone a feature"
+old = "Feature page (its menu)"
+why = "its message was written in the React UI's TSX: the workflow's words belong to the server, which has none (R287)"
+fate = "left"
+needs = "a server action that writes the postponement and moves its line, with its message, then a button beside Drop"
+missed = "a person will miss this now and then: today the feature is dropped or left as it is"
+
+[[left]]
+what = "Pick mode and comments on a story or a mockup"
+old = "Previews (StoryEmbed, MockupPage)"
+why = "a comment there is a review comment, which task 42 attached to the embedding block (R345, R379)"
+fate = "left"
+needs = "the web view's `picked` message turned into a review comment on the element's lines, in `MockupPage.tsx` and the embeds"
+missed = "a person will miss this on UI features: a comment says where in the page, not which element"
+
+[[left]]
+what = "\"Review with AI\" on the decisions check"
+old = "Decisions check page"
+why = "its message was the Node server's (`round-messages`), and the Rust server serves none (R292)"
+fate = "left"
+needs = "the server's message for a decisions check run, and an action that starts it"
+missed = "a person who runs the check will miss it: the check is started from a session by hand"
+
+[[left]]
+what = "The inbox's outliner: indent, outdent, nested drags, an add beside each row"
+old = "Inbox (`inbox.outline`, `inbox.drop`, `inbox.place`)"
+why = "rare, and the largest and most fragile part of the old page; a note's sub-items are read in its pane (R278)"
+fate = "left"
+needs = "an outline of a note in its pane over `inbox.outline`, and order within a category over `inbox.place`"
+missed = "nobody much: notes are sorted by category, and nested lines are edited in `INBOX.md`, one press away"
+
+[[left]]
+what = "A proposal's nested lines edited in place, and dropped across proposals"
+old = "Priorities (`proposals.outline`, `proposals.drop`)"
+why = "left by task 37 to task 38, which built the proposal's file instead"
+fate = "left"
+needs = "an outline field in the proposal's pane over `proposals.outline`"
+missed = "nobody much: a proposal with more than a line is written into its file, which the pane edits"
+
+[[left]]
+what = "Recent: the features merged lately"
+old = "Home"
+why = "a merged feature carries no date to order by (R274)"
+fate = "left"
+needs = "the merge's date on the workspace's done features, then a pane of Home"
+missed = "nobody much: the sidebar's Features and the Git page's history show what merged"
+
+[[left]]
+what = "`#turn-<id>` anchors, and the transcript's place kept by Back"
+old = "Session"
+why = "a transcript opens at its newest message, the rule of task 43 (R337)"
+fate = "left"
+needs = "the transcript's window opened around a turn's page, as `DocumentScroll.toAnchor` does for a heading"
+missed = "nobody much: old run links still open their session, at its end"
+
+[[left]]
+what = "The New page's `/` search over its entries"
+old = "New page"
+why = "its source lists are short, and the extensions' New sections lost `search` with React (R389)"
+fate = "left"
+needs = "a filter field over the `new-sources` pane's entries"
+missed = "nobody will: the lists fit a screen"
+
+[[left]]
+what = "A host name edited in place"
+old = "Settings (Server, `settings.editHost`)"
+why = "removing and adding a name does the same, in two presses (T48)"
+fate = "left"
+needs = "an Edit on the host's row, in the name dialog, over `settings.editHost`"
+missed = "nobody will: host names are set once"
+
+[[left]]
+what = "A settled comment's text edited"
+old = "Rounds (`settled.edit`)"
+why = "a settled point's comment is removed and written again, on the undo stack (task 42, task 50)"
+fate = "left"
+needs = "an Edit beside Remove on a settled comment"
+missed = "nobody much"
+
+[[left]]
+what = "Retry a refused write of the triage or the decisions check"
+old = "The commit toast (`defaultRound.retry`)"
+why = "the refused write's card retries a feature's file only; a default round's has Open, whose page submits again"
+fate = "left"
+needs = "Retry on the card for a default round's write, over `defaultRound.retry`"
+missed = "nobody much: Open, then submit, does it"
+
+[[left]]
+what = "The screen-reader announcer"
+old = "Session"
+why = "Native Shell 0.4.0 has no live region to speak through (R337)"
+fate = "left"
+needs = "a live region in Native Shell, then the transcript's new turns told through it"
+missed = "nobody now: its one user reads the screen"
+
+[[left]]
+what = "The reply's frame on a done turn's last text"
+old = "Session"
+why = "a look, not a fact: the turn's end is its own row (R337)"
+fate = "left"
+needs = "a frame around the last text of a done turn, in `Rows.tsx`"
+missed = "nobody will"
+
+[[left]]
+what = "Selecting what came back after an undo"
+old = "Undo"
+why = "each pane keeps its own cursor (task 50)"
+fate = "left"
+needs = "the remembered action naming the row it changed, and the pane moving its cursor there"
+missed = "nobody much: the page where it happened opens"
+
+[[left]]
+what = "Full screen, and a preview growing past its column"
+old = "Previews (LiveWindow)"
+why = "a pane is zoomed by the frame (R345)"
+fate = "left"
+needs = "task 66's zoom of a pane"
+missed = "a person reviewing a desktop mockup will, until task 66 lands"
+
+# --- Replaced by something the rewrite does otherwise --------------------------------------------
+
+[[left]]
+what = "\"Drop the change…\" in a session's actions"
+old = "Session"
+why = "drop is the feature page's (R337)"
+fate = "replaced"
+now = "the feature page's Drop, behind its question; the session's banner opens the page"
+
+[[left]]
+what = "The hand-over and recommended messages put in the composer (`?continue=`)"
+old = "Session, feature page"
+why = "the message was sent unseen from the composer"
+fate = "replaced"
+now = "the feature page's Next opens the continue dialog: the message readable, the feature's run map beside it (R285, R320)"
+
+[[left]]
+what = "A round as a page of every question"
+old = "Rounds, triage"
+why = "one question at a time, a letter answering and going on (R280, R375)"
+fate = "replaced"
+now = "`app/screens/round/`, for a feature's round, the triage, and the decisions check"
+
+[[left]]
+what = "The spec page's groups of cards (stories, replaced behaviour, data model, built parts, history)"
+old = "Spec page"
+why = "a second summary of the file, drawn otherwise than it is written (R328)"
+fate = "replaced"
+now = "the file read whole in its order, with Outline, Review, and Decisions panes"
+
+[[left]]
+what = "The feature page's picker of sessions on `s`, and the phone's bar of sheets"
+old = "Feature page"
+why = "panes replace a page's own lists and sheets (R287)"
+fate = "replaced"
+now = "the Sessions pane's cards, and the frame's tabs"
+
+[[left]]
+what = "Expanding a proposal into a file with `e`"
+old = "Priorities"
+why = "the proposal's pane holds its file"
+fate = "replaced"
+now = "\"Write it in a file\", `w`, on a line's pane; `e` now edits its line"
+
+[[left]]
+what = "The Setup pane, the Overview line, and the drop banners of Home"
+old = "Home"
+why = "each has a place of its own (R274)"
+fate = "replaced"
+now = "the frame's first-run pane, the panes' counts on their tabs, and the feature page's note of what a drop left"
+
+[[left]]
+what = "Idle chats on Home"
+old = "Home"
+why = "Home lists what waits on the human and what runs (R274)"
+fate = "replaced"
+now = "the Sessions place, every session as a card with search"
+
+[[left]]
+what = "A decision's Rules drawn as rule lines"
+old = "Decisions"
+why = "a decision is read whole by the one document renderer (R291)"
+fate = "replaced"
+now = "the decision's file through `DocumentScroll`, its branches' changes as cards"
+
+[[left]]
+what = "The Activity's earlier runs at a stretch (`?stretch=`, \"Show earlier runs\")"
+old = "Session panels"
+why = "the panes read the transcript by pages (R364)"
+fate = "replaced"
+now = "the Activity pane, a list that reads its pages as it scrolls"
+
+[[left]]
+what = "The picked Git row in the address"
+old = "Git"
+why = "a pane keeps its place in the visit (R294)"
+fate = "replaced"
+now = "the visit's memory: Back returns to the row"
+
+[[left]]
+what = "The browser's notification permission banner, and Web Locks across tabs"
+old = "Notifications"
+why = "one app, which asks its desktop itself (R370, R389)"
+fate = "replaced"
+now = "a toast at the first item, and the settings' Appearance row"
+
+[[left]]
+what = "The React page API of extensions: React components, `count` hooks, a place's own rows and tabs, `phoneTab`, a page's own keys"
+old = "Extensions"
+why = "a page is Native Shell TSX over `uraeda/ui`, and every place is drawn alike (R389)"
+fate = "replaced"
+now = "`app/extensions/page.tsx`, documented in `docs/extensions.md`"
+
+[[left]]
+what = "The sign-out rows of Sign-in"
+old = "Settings"
+why = "a device is revoked from the paired devices' list (R306)"
+fate = "replaced"
+now = "the paired devices as cards, with rename and revoke"

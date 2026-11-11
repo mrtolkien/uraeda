@@ -7762,3 +7762,27 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: `release` is tuned for `ura`'s size (`opt-level = "z"`, full LTO, one unit), which
   slows the app's drawing and makes its build far longer. One run builds the crates they share once.
 - **Where**: `Cargo.toml`, `scripts/package.sh`.
+
+## R402: The parity list is a Rust test, and lists what the old screens did as well as their routes
+
+- **Decision**: `app/screens/parity.toml` maps each of the React UI's 31 pages to the page and the
+  screen that draw it now (29), or drops it with why (2: `moved`, whose old addresses parse to their
+  pages directly, and `first-run`, a state the frame draws, never an address). Its second part,
+  `[[left]]`, lists what the old screens did that the screens of tasks 36 to 51 and 65 did not, each
+  `brought-back`, `left` (with what it `needs`, and whether a person will miss it), or `replaced`
+  (with what does it now). The test, `every_old_route_is_mapped_or_dropped`, is
+  `crates/app/tests/parity.rs`: a test under `nsh test` reads no file the app is not granted, and
+  this one reads `packages/web/src/routeTable.ts`, the list, and the screens' `definePlace` calls. A
+  mapped page must be one a screen places, and never `missing`, the page that draws "Nothing here";
+  that each placed page mounts stays `places.test.tsx`'s, the one home for it.
+- **Rationale**: the route list alone shows nothing lost: every old page had a new one. What the
+  human relied on was in what each screen did, which only the screen tasks' "left" lines said.
+- **Brought back** (one commit per screen): Continue all on Home, from a new `NeedsYouRow.continued`
+  that the server computes with the rule `feature.continueAll` follows (`Runner::continued_by_all`);
+  a session's rename (`R`) and its effort (`m`); a feature's rename (`R`) and "Commit the proposal"
+  at its proposal's gate; a proposal's line edited (`e`); Start over on a review written on an older
+  version; the agents' models asked again as a picker shows. One name dialog,
+  `app/screens/NameDialog.tsx`, serves the inbox's categories, a session, and a feature.
+- **If wrong**: a `left` line names what bringing it back needs.
+- **Where**: `app/screens/parity.toml`, `crates/app/tests/parity.rs`. Task 61 deletes `old_pages()`
+  and the two checks that read it.

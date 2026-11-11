@@ -64,6 +64,8 @@ tokio = { workspace = true, optional = true }
 nsh-core = { workspace = true, features = ["declarations"] }
 # `tests/theme.rs` measures the shipped themes, which the core reads, from a temporary folder.
 tempfile.workspace = true
+# `tests/parity.rs` reads the screens' parity list, `app/screens/parity.toml`.
+toml_edit.workspace = true
 
 # `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
 # display: it builds pages as the server will, and embeds them as the Linux host will.
