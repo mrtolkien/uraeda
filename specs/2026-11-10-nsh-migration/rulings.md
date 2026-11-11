@@ -3408,3 +3408,20 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the tokens, the surfaces, and the controls were built beside this task, and one
   small file to switch is cheaper than a second look to keep.
 - **Where**: `app/ui/keys/`, [`crates/app/tests/keys.rs`](/crates/app/tests/keys.rs).
+
+## R143: A rewrite follows what is right, and its tests earn their place
+
+- **Decision**: for this feature, a decision's rule, a guide, the old code, and the plan's own file
+  lists are where a task starts, not a limit. A task departs from one when the result is a better
+  screen or simpler, sounder code, and writes a ruling saying what it left and why. A direct request
+  of the human, the constitution, and what protects the owner stay binding. Tests are kept for what
+  they catch, run fast, and are fixed or removed when they do not. Implementers run on Opus 5.5 at
+  medium effort from task 27 on.
+- **Rationale**: the human ruled it on 2026-11-11: "this is a full rewrite, so make sure that the
+  implementers have some freedom to do what they think is right to make a great UI and high code
+  quality. While keeping development velocity of course, so make sure the tests stay decently fast
+  and run smoothly, and actually pull their weight. Same goes for you. Decisions are more guidelines
+  than rules for this rewrite." The earlier implementers used up the usage limit.
+- **If wrong**: each departure is a ruling, so the final review reads them all in one place, and the
+  human can send one back.
+- **Where**: the plan's [global constraints](plan.md#global-constraints), and every task from 27 on.

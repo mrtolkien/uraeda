@@ -104,6 +104,20 @@ From [Testing](../decisions/testing.md):
 
 Set by this plan, from the human's answers on 2026-11-10:
 
+- **This is a rewrite: do what is right.** The human ruled on 2026-11-11 that, for this feature, the
+  decisions are "more guidelines than rules", and that implementers have "some freedom to do what
+  they think is right to make a great UI and high code quality". The old screens, the guides, the
+  plan's file lists and names, and a decision's rule say where to start, not where to end: a task
+  may depart from any of them for a better screen or simpler, sounder code, and says so in a ruling,
+  with what it left and why the result is better. Three things stay binding: a direct request of the
+  human, the constitution, and what protects the owner, which is sign-in, loopback, hashed secrets,
+  extensions loaded only from the config folder, and the safety of stored data.
+- **Tests pull their weight, and stay fast.** A test is kept for what it would catch: a guarantee
+  that is costly to lose and that using the app would not show. It runs on a fake, a fixed or paused
+  clock, and temporary folders, never on a sleep, a real agent, or the network. A test that is slow,
+  that fails by timing, or that only pins how the code is written is fixed or removed, with a
+  ruling, by the task that meets it: development speed is a goal of this rewrite, and a suite nobody
+  wants to run guards nothing.
 - **No task waits for the human.** A task that cannot do what it says takes the fallback it names,
   or the simplest design that keeps its tests, writes a ruling, and goes on. It never asks, and
   never leaves the build stopped.
