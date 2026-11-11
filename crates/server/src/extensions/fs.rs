@@ -1,7 +1,7 @@
 //! `uraeda:fs`: the owner's files, read and written whole, on the extension's own thread.
 //!
 //! An extension is the owner's code and reaches any path the owner does, as it did through
-//! Node's `fs` (ruling R210). Only whole files and folders: a path that is neither, as a
+//! Node's `fs` (ruling R224). Only whole files and folders: a path that is neither, as a
 //! pipe, is refused, since reading one could hold the VM's thread for ever.
 
 use std::fs;

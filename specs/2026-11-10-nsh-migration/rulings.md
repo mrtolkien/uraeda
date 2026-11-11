@@ -2312,7 +2312,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 13, `crates/server/src/runtimes/{mod,claude}.rs`,
   `crates/server/tests/support/mod.rs`, `crates/server/tests/claude/real.rs`. Tasks 14, 15, and 20.
 
-## R207: An extension's records and actions are two names of the catalog, keyed at run time
+## R221: An extension's records and actions are two names of the catalog, keyed at run time
 
 - **Decision**: an extension names its records and actions as it loads, so none is an entry of the
   catalog. Three records and four actions serve them all.
@@ -2340,7 +2340,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 17, `crates/protocol/src/extensions.rs`,
   `crates/server/src/records/extensions.rs`. Tasks 19, 20, 34, 48, and 51.
 
-## R208: One VM per loaded version, on a thread of its own, run in pieces with limits
+## R222: One VM per loaded version, on a thread of its own, run in pieces with limits
 
 - **Decision**: `extensions/vm.rs` is the only code that touches QuickJS.
   - A version of an extension is one VM, one thread named `vm:<name>`, which owns the engine, the
@@ -2370,7 +2370,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   rejection handled only in a later piece breaks its extension, as it ended a Node process.
 - **Where**: task 17, `crates/server/src/extensions/{vm.rs,vm/machine.rs}`.
 
-## R209: The server API is rebuilt over one host function, in four modules of the VM
+## R223: The server API is rebuilt over one host function, in four modules of the VM
 
 - **Decision**: `api = 1` keeps its methods, `record`, `action`, `route`, `on`, `runtime`,
   `settings`, `repositories`, and `log`, with these changes, and no path from the Node API.
@@ -2394,7 +2394,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: task 17, `crates/server/src/extensions/api/`, `api.rs`. Task 51 documents it, and
   rewrites `examples/extensions/wiki/`, which is still the Node API's.
 
-## R210: What an extension can touch
+## R224: What an extension can touch
 
 - **Decision**: an extension's server code runs with the owner's rights, as it did in Node's `vm`:
   where it comes from is the guard (the extensions decision). It reaches the machine through three
@@ -2423,7 +2423,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: an extension that needs a socket, or a stream it writes text to, has no door yet.
 - **Where**: task 17, `crates/server/src/extensions/{fs,process,fetch}.rs`. Task 51.
 
-## R211: The loader is one thread, and loads in the background of the server's start
+## R225: The loader is one thread, and loads in the background of the server's start
 
 - **Decision**: `extensions/loader.rs` holds every extension's state, changed by one thread.
   - It reads the config folder through the core, `<config>/extensions/`, and no other path.
@@ -3543,7 +3543,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the continues are armed, and the pull requests behind the default branch are caught up. The check
   runs again every 60 seconds, and one second after a runtime registered, left, or was turned on or
   off: one that came back continues the runs a restart cut.
-- **Rationale**: an extension's runtime registers after the start, in the background (R211), and a
+- **Rationale**: an extension's runtime registers after the start, in the background (R225), and a
   session on it would be refused as not available until the next minute's check. The second's wait
   leaves whoever registered it the first check, as the registry's own tests do.
 - **A test of the registry changed with it**: `a_runtimes_status_and_models_follow_what_it_answers`
