@@ -113,6 +113,10 @@ export function definePlace<P extends Route["page"]>(
   });
 }
 
+/** The pages a screen declared a place for, as `definePlace` was called: what the app can open. */
+export const placedPages = (): ReadonlyArray<Route["page"]> =>
+  [...places.keys()] as ReadonlyArray<Route["page"]>;
+
 /** The panes of a route, by their default stacks: none for a page no screen declared. */
 export function placeOf(route: Route): Place {
   const declared = places.get(route.page);

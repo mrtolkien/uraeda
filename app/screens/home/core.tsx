@@ -4,8 +4,7 @@
 // lists. In progress is the features in flight that wait on no one but an agent, and the chats at
 // work, the oldest started first.
 import { type HomeCard, Cards, Nothing } from "./Cards";
-import { resetWords } from "../shell/usage";
-import { navigate, parseRoute, record } from "../../store";
+import { navigate, parseRoute, record, serverTime } from "../../store";
 import type { NeedsYouRow, SessionRow, WorkspaceFeature } from "../../store/protocol";
 import type { IconName } from "../../ui/controls";
 import type { Tone } from "../../ui/tokens";
@@ -18,8 +17,8 @@ const REASONS: Record<NeedsYouRow["reason"], { icon: IconName; label: string; to
   step: { icon: "circle-dot", label: "Waits on you", tone: "needs" },
 };
 
-/** When a run started, as the cards say it: "14:02" today, "Tue 14:02" before. */
-const started = (at: number) => ({ started: resetWords(new Date(at).toISOString(), new Date()) });
+/** When a run started, in the server's zone: "14:02" today, "Tue 14:02" before. */
+const started = (at: number) => ({ started: serverTime(at) });
 
 /** A feature's name, as the human gave it in the sidebar, else its title. */
 const nameOf = (feature: WorkspaceFeature) => feature.label ?? feature.title;

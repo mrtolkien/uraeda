@@ -5918,7 +5918,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 ## R281: A list's first row is `Home`, not `g g`, which goes to Git
 
-- **Decision**: `listKeys` no longer binds `g g`. `G`, `Home`, and `End` stay.
+- **Decision**: `listKeys` no longer binds `g g`. `G`, `Home`, and `End` stay. The join of tasks 40
+  to 48 replaced it: Git's place is `g c` (R270), and `listKeys` binds `g g` to the first row again,
+  as an ordinary key.
 - **Rationale**: the shell binds `g g` to the Git place (`g` then a place's key, Git's being `g`),
   on in every pane, so the first `List` drawn in a pane threw "A key means two things in Inbox: "g
   g" is bound twice, to Git and to first row". One of the two had to yield; a place's key is reached
@@ -5942,7 +5944,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   Undo, by driving the app with its keys.
 - **Where**: `app/ui/controls/Banner.tsx`.
 
-## T40.1: The feature page is five panes, its subject and steps in the main stack
+## R284: The feature page is five panes, its subject and steps in the main stack
 
 - **Decision**: `/f/<folder>` declares five panes, in this order: `feature-overview` ("Overview":
   the title and its facts, the status, what stops it, **Next** with the one main action, the message
@@ -5961,7 +5963,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/screens/feature/panes.tsx`, and task 66's moves let the human keep another.
 - **Where**: `app/screens/feature/`.
 
-## T40.2: "Next"'s continue starts the run from the page, its message readable above it
+## R285: "Next"'s continue starts the run from the page, its message readable above it
 
 - **Decision**: when the agent's step has a recommended message, **Next**'s main action, labelled
   with the message's name ("Continue, write the plan"), sends it with `session.send` (`folder`,
@@ -5977,7 +5979,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   43's composer takes a message to offer.
 - **Where**: `app/screens/feature/{Overview,next}.ts*`.
 
-## T40.3: The decisions a live feature touches are read from its branch's changed files
+## R286: The decisions a live feature touches are read from its branch's changed files
 
 - **Decision**: the Decisions pane of a merged feature lists `History.decisions`, which the core
   fills for a done item only. Before the merge it lists the files under `specs/decisions/` that
@@ -5990,7 +5992,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reads `History.decisions` alone.
 - **Where**: `app/screens/feature/Decisions.tsx`.
 
-## T40.4: What the old feature page did that this one leaves out, and why
+## R287: What the old feature page did that this one leaves out, and why
 
 - **Decision**: left out: **Rename** (the sidebar card's settings, `item.settings`, belong to the
   sidebar's own task), **Postpone** (its message was written in the React UI's TSX: the workflow's
@@ -6002,7 +6004,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: each is a button of the Overview's foot, beside Drop, once its action exists.
 - **Where**: `app/screens/feature/`.
 
-## T40.5: Git's go key is `g c`, and `g g` a list's first row
+## R288: Git's go key is `g c`, and `g g` a list's first row
 
 - **Decision**: the rail's Git place goes by `g c` and `Space c`, where task 36 gave it `g g` and
   `Space g`.
@@ -6014,7 +6016,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a pane's key shadows the shell's in the registry, and Git takes `g g` back.
 - **Where**: `app/screens/shell/places.ts`.
 
-## T40.6: A card's fact wraps under its icon's line
+## R289: A card's fact wraps under its icon's line
 
 - **Decision**: a fact of `Card` shrinks to the card's width, its words wrapping, its icon on the
   first line. It was a row that did not shrink: in the side stack, a session's "Last run: Build,
@@ -6022,7 +6024,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   it, would have been too.
 - **Where**: `app/ui/lists/Card.tsx`.
 
-## T45.1: The decisions are a reader in the main stack and the ledger's list in the side stack
+## R290: The decisions are a reader in the main stack and the ledger's list in the side stack
 
 - **Decision**: every page of the decisions is two panes: the reader (`decision`, `constitution`,
   `branch-decision`, `decisions-check`) in the main stack, and the list (`decisions-list`) in the
@@ -6044,7 +6046,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   within a visit.
 - **Where**: `app/screens/decisions/{index,List}.tsx`.
 
-## T45.2: A decision is read whole by the document renderer, its branches' changes as cards
+## R291: A decision is read whole by the document renderer, its branches' changes as cards
 
 - **Decision**: a decision's reader is its head (icon, title, status with its cause, rules and its
   last change), the problem `ura check` finds, one card per feature whose branch changes it
@@ -6063,7 +6065,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `/buffer/<path>`, task 47's page, which the server limits to `specs/` today.
 - **Where**: `app/screens/decisions/{Reader,Branch,Branches,links}.tsx`.
 
-## T45.3: The decisions check's page reads the round, and its answers wait for task 42's cards
+## R292: The decisions check's page reads the round, and its answers wait for task 42's cards
 
 - **Decision**: `/decisions/check` reads `WorkflowFile { id: "decisions-check" }`: its state and how
   many questions are answered, then the file through `Document`, each question's answer under its
@@ -6076,16 +6078,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reader shows a feature proposing a change to an active decision.
 - **Where**: `app/screens/decisions/Check.tsx`, `crates/server/src/sandbox/others.rs`.
 
-## T45.4: A list's keys leave `g g` to the shell
+## R293: A list's keys leave `g g` to the shell
 
 - **Decision**: `listKeys` no longer binds `g g` to the first row: `Home` does. The shell binds
   `g g` to the Git place, and the key store refuses a key bound twice where both are on, so the
   first pane to hold a list in the app threw as it was drawn ("A key means two things in Decisions:
-  "g g" is bound twice, to Git and to first row").
+  "g g" is bound twice, to Git and to first row"). The join of tasks 40 to 48 replaced it: Git's
+  place is `g c` (R270), and `listKeys` binds `g g` to the first row again, as an ordinary key.
 - **Rationale**: the places' `g` keys are the app's, everywhere; `G` and `End` keep the last row.
 - **Where**: `app/ui/lists/keys.ts`.
 
-## T46.1: The Git page's lists are the side stack, its diff the main one, and the page opens in Changes
+## R294: The Git page's lists are the side stack, its diff the main one, and the page opens in Changes
 
 - **Decision**: `/git` declares four panes: `git-diff` (Diff) in the main stack, and `git-changes`
   (Changes), `git-history` (History), and `git-worktrees` (Worktrees) as tabs of the side stack. The
@@ -6106,13 +6109,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `Place.focus` cost nothing to a place that does not use them.
 - **Where**: `app/screens/git/panes.tsx`, `app/ui/layout/{layout.ts,panes.tsx,Stacks.tsx}`.
 
-## T46.2: `s` stages, since Space is the leader; the Git place is `g G`
+## R295: `s` stages, since Space is the leader; the Git place is `g c`
 
 - **Decision**: in Changes, `s` stages or unstages the row (a file, a folder's files, a checkout's),
   and a press on a file's mark does the same; `a` every file of the checkout; `c` goes to the
   message, and `Ctrl+Enter` there, or Commit, commits; `d` asks, then discards; `o` and `t` take a
-  side of a conflict. `f` `p` `P` `M` sync from every pane of the page. The rail's Git is `g G`,
-  `Space G`, as the old web UI had it, in place of `g g`.
+  side of a conflict. `f` `p` `P` `M` sync from every pane of the page. The rail's Git was `g G`,
+  `Space G`, as the old web UI had it: the join of tasks 40 to 48 made it `g c`, `Space c` (R270),
+  the keyboard guide's letter for the page Git replaced.
 - **Rationale**: Space starts every leader sequence, and the registry hears no single Space beside
   them; the old page's Space was a focused checkbox's own, which a list row here is not. `g g` is
   every list's first row (`listKeys`): with the Git place on `g g`, the registry threw "a key means
@@ -6120,7 +6124,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: a list could give `g g` up instead; the place's key is one line of `places.ts`.
 - **Where**: `app/screens/git/{Changes,CommitBox,Sync}.tsx`, `app/screens/shell/places.ts`.
 
-## T46.3: The Git page ports what the server has: no hunk staging, amend, or stash
+## R296: The Git page ports what the server has: no hunk staging, amend, or stash
 
 - **Decision**: the page stages and unstages whole files and folders, commits, discards, fetches,
   pulls, pushes, merges, resolves conflicts by a side or by editing, continues or aborts, and
@@ -6129,7 +6133,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the task ports what exists. Each missing one is a server action first.
 - **Where**: `app/screens/git/`.
 
-## T46.4: Discard, Remove, and Clean ask first; a write names itself in the queue
+## R297: Discard, Remove, and Clean ask first; a write names itself in the queue
 
 - **Decision**: `git.discard`, `git.removeWorktree`, and `git.clean` are not in the server's undo,
   so each asks in a dialog that says what goes and that nothing brings it back. Every write of the
@@ -6139,7 +6143,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   until the next write from there.
 - **Where**: `app/screens/git/{writes.ts,Changes.tsx,Worktrees.tsx}`.
 
-## T46.5: `Diff` draws one file's patch, or several, with Native Shell's `DiffView`
+## R298: `Diff` draws one file's patch, or several, with Native Shell's `DiffView`
 
 - **Decision**: `app/ui/document/Diff.tsx` draws a unified patch with `DiffView`, unified, in the
   code font at the under size on 20-point rows, its parts in the theme's roles (`added`, `removed`,
@@ -6149,15 +6153,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   it.
 - **Where**: `app/ui/document/Diff.tsx`, `app/gallery/document/diff.tsx`.
 
-## T46.6: `Banner` makes its action once
+## R299: `Banner` makes its action once
 
-- **Decision**: `Banner` reads its `action` once, as it is made. It read it in its `If`'s condition
-  and again to draw it, and the condition ran again at each change of what the action read: the
-  stopped pull's Continue, a button with a key, was made twice, and the registry threw "`m` is bound
-  twice".
+- **Decision**: `Banner` reads its `action` once, as it is made. The join of tasks 40 to 48 kept
+  R283's fix instead, the action and the words each in a `computed`, which declares the key once and
+  still follows an action that changes; the stopped pull's Continue works with it. It read it in its
+  `If`'s condition and again to draw it, and the condition ran again at each change of what the
+  action read: the stopped pull's Continue, a button with a key, was made twice, and the registry
+  threw "`m` is bound twice".
 - **Where**: `app/ui/controls/Banner.tsx`.
 
-## T46.7: The sandbox's `sample` leaves two changes in its main checkout
+## R300: The sandbox's `sample` leaves two changes in its main checkout
 
 - **Decision**: the sample's builder ends with `specs/README.md` changed and `notes/standup.md` new,
   uncommitted, for the Git page and its test; the builders' stamp is `2`, so an older sandbox is
@@ -6165,7 +6171,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   display.
 - **Where**: `crates/server/src/sandbox/{origin,sample}.rs`, `crates/server/src/sandbox.rs`.
 
-## T48.1: An option left to the agent's default is sent empty, and the server stores that default
+## R301: An option left to the agent's default is sent empty, and the server stores that default
 
 - **Decision**: a pick's `model` or `effort` sent as `""` means "the agent's own default".
   `settings::options::left_to_agents` turns it into what is stored, before the core checks it: over
@@ -6187,7 +6193,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/workspace/settings/options.rs`,
   `crates/server/src/records/features/options.rs`, `crates/protocol/src/shared/run_options.rs`.
 
-## T48.2: Settings are a category pane and an index pane, and `/settings` is the index
+## R302: Settings are a category pane and an index pane, and `/settings` is the index
 
 - **Decision**: `settings-category({ category })` in the main stack, the page's subject, and
   `settings-index` in the side stack: the search across every setting, then the seven categories,
@@ -6201,7 +6207,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   would have moved order with the route, as the first main pane is the subject.
 - **Where**: `app/screens/settings/panes.tsx`, `Index.tsx`, `categories.ts`.
 
-## T48.3: Every setting is one `SettingRow`, on one cursor, and Enter changes it
+## R303: Every setting is one `SettingRow`, on one cursor, and Enter changes it
 
 - **Decision**: `SettingRow` draws every setting, an extension's too: its icon and name, what it
   does, where its value comes from ("Set in config.toml", "The default, on", "Set by --port for this
@@ -6219,17 +6225,18 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the words were not on screen.
 - **Where**: `app/screens/settings/Row.tsx`, `app/ui/controls/Select.tsx`.
 
-## T48.4: A list's `g g` yields to the shell's Git
+## R304: A list's `g g` yields to the shell's Git
 
 - **Decision**: `listKeys` declares `g g` as a fallback: the shell's `g g` goes to Git on every
-  page, and `Home` is a list's first row.
+  page, and `Home` is a list's first row. The join of tasks 40 to 48 replaced it: Git's place is
+  `g c` (R270), and `listKeys` binds `g g` to the first row again, as an ordinary key.
 - **Rationale**: the first list drawn in a pane threw "A key means two things: "g g" is bound twice,
   to Git and to first row", and the frame drew nothing. Of the two, the place key is the one the
   status line and the rail teach, and it means the same everywhere.
 - **If wrong**: the place of Git takes another key, and the list gets `g g` back.
 - **Where**: `app/ui/lists/keys.ts`.
 
-## T48.5: The device's look is picked in one place, and the keyboard's settings are followed app-wide
+## R305: The device's look is picked in one place, and the keyboard's settings are followed app-wide
 
 - **Decision**: `app/screens/settings/look.ts` holds `chooseMode`, `chooseTheme`, and `chooseFont`;
   the leader's `Space u m`, `Space u t`, and `Space u f` call them, and the settings too. A theme
@@ -6243,7 +6250,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/screens/settings/look.ts`, `follow.tsx`,
   `app/screens/shell/{Frame,keys,pickers}.tsx`.
 
-## T48.6: Sign-in lists the paired devices, and says how to pair; no sign-out rows
+## R306: Sign-in lists the paired devices, and says how to pair; no sign-out rows
 
 - **Decision**: each paired device is a card, with when it paired and was last seen, "This device"
   for the one whose token the app holds, Rename in place, and Revoke after a second press, whose

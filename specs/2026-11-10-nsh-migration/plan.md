@@ -211,7 +211,9 @@ rules.
 the panes of its routes with `definePlace` (task 33, and the panes guide, `specs/ui/panes.md`): it
 never draws a side column or a tab bar of its own. Each pane draws well in either stack, at the
 width its stack has, and keeps its scroll, its selection, and its unsaved text in the store or the
-visit's entry, so a move or a hidden tab loses nothing.
+visit's entry, so a move or a hidden tab loses nothing. Each page it places gets one address in
+`app/screens/shell/places.test.tsx`, which opens every place in turn and fails on a page without
+one, or on a key that means two things once its panes are drawn.
 
 **Shared steps:**
 
@@ -2577,8 +2579,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
   note; `triage` the triage and the list in side. `openNote(repo, key)` opens a note's pane.
 - `Space n i` (`app/screens/shell/keys.tsx`) opens the inbox with its add field focused.
 - `app/nsh.json` reads files dropped from the home folder and `/tmp` (`fs.read`).
-- In `app/ui/`: `listKeys` has no `g g` (R281); `SelectableCard`'s title wraps (R282); `Banner`
-  reads its action once (R283); the icons `image-plus` and `sparkles`.
+- In `app/ui/`: `listKeys` had no `g g` (R281), back since the join of tasks 40 to 48;
+  `SelectableCard`'s title wraps (R282); `Banner` reads its action once (R283); the icons
+  `image-plus` and `sparkles`.
 - Left for task 50 (`TASK 50:` in `app/screens/inbox/actions.ts`): the inbox's last action and its
   `u` go to the app's undo stack.
 
@@ -2602,7 +2605,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 103 tests passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): the feature page`.
 
-**As built** (rulings T40.1 to T40.6):
+**As built** (rulings R284 to R289):
 
 - `app/screens/feature/panes.tsx` declares `feature-overview` and `feature-steps` (main),
   `feature-sessions`, `feature-decisions`, and `feature-figures` (side), each with
@@ -2613,7 +2616,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   takes the Steps pane's place. A workflow file opens by `navigate({ page: "file", folder, name })`
   and a mockup by `page: "mockup"`: task 41 declares their panes.
 - Keys: `n` the next action (Overview), `m` and `f` its folds, `S` a new session, `Enter` on a card,
-  a step's file, or a decision. Git's go key became `g c` (T40.5).
+  a step's file, or a decision. Git's go key became `g c` (R288).
 
 ## Task 41: Workflow files
 
@@ -2732,7 +2735,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       `just task uraeda-server`: 312 passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): decisions`.
 
-**As built** (rulings T45.1 to T45.4):
+**As built** (rulings R290 to R293):
 
 - Panes: `decision { name, repo }`, `constitution { repo }`,
   `branch-decision { folder, name, repo }`, and `decisions-check { repo }` in the main stack;
@@ -2740,8 +2743,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `/f/<folder>/decisions/<name>`. On a phone, `/decisions` shows the list first.
 - The redirect R126 left: a branch with no such decision opens `/decisions/<name>`, in the visit.
 - The order is the device's `decisions.sort`. The check's question cards are task 42's, where
-  `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (T45.3).
-- `listKeys` binds no `g g` (T45.4); the icon `cable` joins `app/ui/controls/icons/lucide.ts`.
+  `Check.tsx` is marked `TASK 42:`; "Review with AI" is not built (R292).
+- `listKeys` bound no `g g` (R293), back since the join of tasks 40 to 48; the icon `cable` joins
+  `app/ui/controls/icons/lucide.ts`.
 
 ## Task 46: Git
 
@@ -2764,7 +2768,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       `just task uraeda-server`: 312 passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): git`.
 
-**As built** (rulings T46.1 to T46.7):
+**As built** (rulings R294 to R300):
 
 - `app/screens/git/panes.tsx`: the place `git` shows `git-diff` (Diff) in the main stack, and
   `git-changes` (Changes), `git-history` (History), `git-worktrees` (Worktrees) as tabs of the side
@@ -2775,7 +2779,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   several, which the session's changes (task 44) can draw too; its gallery page is Documents, "A
   diff".
 - `app/ui/lists/Tree.tsx`: a node's `markLabel` with the tree's `onMark` makes its icon a button.
-- The Git place's key is `g G`. The sandbox's `sample` has two uncommitted changes.
+- The Git place's key is `g c` since the join of tasks 40 to 48 (R295). The sandbox's `sample` has
+  two uncommitted changes.
 
 ## Task 47: Editors
 
@@ -2822,7 +2827,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       `just task uraeda-server uraeda-protocol`: 319 passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): settings`.
 
-**As built** (rulings T48.1 to T48.6):
+**As built** (rulings R301 to R306):
 
 - `app/screens/settings/`: the panes `settings-category({ category })` (main) and `settings-index`
   (side; main alone at `/settings`), each category a module, every setting one `SettingRow` on one
@@ -2830,8 +2835,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
   under the row "How each step runs", marked `TASK 44:` in `Runs.tsx`.
 - `look.ts`: `chooseMode`, `chooseTheme`, `chooseFont`, `themeChoice`, `fontPicked`, which the
   shell's leader keys and pickers call. `follow.tsx`: `FollowKeyboard`, drawn by the frame.
-- `app/ui/lists/ThemeSample.tsx`, a theme in its own colours; `Select`'s `opener`; a list's `g g` is
-  a fallback, the shell's Git first.
+- `app/ui/lists/ThemeSample.tsx`, a theme in its own colours; `Select`'s `opener`; a list's `g g`
+  was a fallback, the shell's Git first, until the join of tasks 40 to 48 made Git `g c` (R304).
 - The server: a run option's model or effort sent as `""` is the agent's own default, stored as that
   default over a fallback that sets one on the same agent (`settings::options::left_to_agents`): the
   run map (task 44) sends `""` for "the agent's default".

@@ -67,6 +67,7 @@ export function DragOrder(props: DragOrderProps) {
   listKeys(cursor, { onOpen: props.onOpen });
   registerKey({
     hint: "m",
+    hintLabel: "reorder",
     keys: "m",
     label: "move",
     run: () => {

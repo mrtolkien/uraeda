@@ -159,6 +159,7 @@ function Add(props: { active: () => boolean; repo: string; section: string }) {
   const priorities = record("Priorities", { repo: props.repo });
   registerKey({
     hint: "a",
+    hintLabel: "add",
     keys: "a",
     label: "add a proposal",
     run: () => {

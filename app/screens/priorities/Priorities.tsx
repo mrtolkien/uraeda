@@ -98,6 +98,7 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
   registerKey([
     {
       hint: "v",
+      hintLabel: "view",
       keys: "v",
       label: "columns or one list",
       run: flip,

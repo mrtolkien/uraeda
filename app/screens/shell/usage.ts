@@ -113,7 +113,7 @@ export type AgentUsage = {
 
 function windowWords(window: Window, now: Date): WindowUsage {
   const left = leftOf(window);
-  const reset = window.resetsAt === null ? "" : ` - reset ${resetWords(window.resetsAt, now)}`;
+  const reset = window.resetsAt === null ? "" : ` - reset ${serverTime(window.resetsAt, now)}`;
   return { id: window.label, left, words: `${window.label} ${left}% left${reset}` };
 }
 

@@ -11,7 +11,8 @@ test("every pane of the feature page draws, and the keys reach each", async () =
   const app = await open("../../App.tsx", { height: 800, network: "live", width: 1400 });
   // The sandbox's feature at work, task 7 of 11 of its plan, in the sidebar once it is read.
   await app.waitFor("text:Redesign clarifications", { timeout: 30_000 });
-  await app.press("text:Redesign clarifications");
+  // The sidebar's row, the first: Home's In progress lists the feature too.
+  await app.press("text:Redesign clarifications >> nth=0");
   await says(app, "The agent builds the plan");
   await says(app, "Follow the session");
   // The side stack's first pane, shown beside: the feature's session at work, and its run.

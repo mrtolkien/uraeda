@@ -155,7 +155,7 @@ export function Changes(props: { narrow: boolean; onOpen: () => void; repo: stri
     },
     {
       hint: "a",
-      hintLabel: "stage all",
+      hintLabel: "all",
       keys: "a",
       label: "stage or unstage every file of the checkout",
       run: () => {

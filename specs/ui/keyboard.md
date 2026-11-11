@@ -9,29 +9,29 @@ keymap, and a switch to turn single keys off. This guide says how a view uses th
 
 Every view keeps the habits that apply to what it shows; a page adds the ones its content needs.
 
-| Key                       | Does                                                                                                                      | Where                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `j` `k`, `↑` `↓`          | Move the selection or the cursor, or scroll a page with neither, gliding as a browser's arrows do                         | Every page                            |
-| `h` `l`, `←` `→`          | Move between columns or panes                                                                                             | Columns: home, priorities, a session  |
-| `Enter`                   | The selection's obvious action: open it, or the page's next step                                                          | Every page with a selection or a step |
-| `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                       | Every editable selection              |
-| `a`, `o`                  | Add: `a` in the selected row's section on the priorities, else at the page's default place; `o` beside the selection      | A list of rows: priorities, inbox     |
-| `d`                       | Delete the selection at once, undone with `u`                                                                             | A list of rows                        |
-| `m`                       | Move mode: the row moves with the move keys, across sections, until `Enter` or `Escape`                                   | A list of rows                        |
-| `u`, `Ctrl+Z`             | Undo the tab's latest action, outside text fields (see [Surfaces](surfaces.md#undo))                                      | Every page                            |
-| `U`, `Ctrl+Shift+Z`       | Redo the latest undone action. On a Mac, `Cmd` replaces `Ctrl` in both chords                                             | Every page                            |
-| `/`                       | Search or filter the page's list                                                                                          | A page with a list to filter          |
-| `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`                                                         | Every page                            |
-| `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` commit, `r` a repository | Every page                            |
-| `Space`                   | The leader menu                                                                                                           | Every page                            |
-| `Space b`                 | Open the page's file as a buffer, the whole file to edit                                                                  | Every page showing one file           |
-| `?`                       | The key map: every key that works where the focus is, with a search                                                       | Every page                            |
-| `b`                       | Back                                                                                                                      | Every page                            |
-| `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                    | Every page                            |
-| `[`, `]`                  | Fold the sidebar, and the right column                                                                                    | `[` everywhere; `]` on wide screens   |
-| `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first        | Every page                            |
-| `y`, `n`                  | Answer a confirmation                                                                                                     | The shared confirmation               |
-| `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                               | Every field of several lines          |
+| Key                       | Does                                                                                                                   | Where                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `j` `k`, `↑` `↓`          | Move the selection or the cursor, or scroll a page with neither, gliding as a browser's arrows do                      | Every page                            |
+| `h` `l`, `←` `→`          | Move between columns or panes                                                                                          | Columns: home, priorities, a session  |
+| `Enter`                   | The selection's obvious action: open it, or the page's next step                                                       | Every page with a selection or a step |
+| `i`                       | Edit the selection in place ("use `i` to start editing like we do everywhere else")                                    | Every editable selection              |
+| `a`, `o`                  | Add: `a` in the selected row's section on the priorities, else at the page's default place; `o` beside the selection   | A list of rows: priorities, inbox     |
+| `d`                       | Delete the selection at once, undone with `u`                                                                          | A list of rows                        |
+| `m`                       | Move mode: the row moves with the move keys, across sections, until `Enter` or `Escape`                                | A list of rows                        |
+| `u`, `Ctrl+Z`             | Undo the tab's latest action, outside text fields (see [Surfaces](surfaces.md#undo))                                   | Every page                            |
+| `U`, `Ctrl+Shift+Z`       | Redo the latest undone action. On a Mac, `Cmd` replaces `Ctrl` in both chords                                          | Every page                            |
+| `/`                       | Search or filter the page's list                                                                                       | A page with a list to filter          |
+| `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`; no other key takes `g g`                            | Every page                            |
+| `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` Git, `r` a repository | Every page                            |
+| `Space`                   | The leader menu                                                                                                        | Every page                            |
+| `Space b`                 | Open the page's file as a buffer, the whole file to edit                                                               | Every page showing one file           |
+| `?`                       | The key map: every key that works where the focus is, with a search                                                    | Every page                            |
+| `b`                       | Back                                                                                                                   | Every page                            |
+| `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                 | Every page                            |
+| `[`, `]`                  | Fold the sidebar, and the right column                                                                                 | `[` everywhere; `]` on wide screens   |
+| `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first     | Every page                            |
+| `y`, `n`                  | Answer a confirmation                                                                                                  | The shared confirmation               |
+| `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                            | Every field of several lines          |
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
 for its sessions, a review's `n` for its verdict, the inbox's `c` to move a note to a category and

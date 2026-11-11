@@ -128,6 +128,9 @@ The rules that make a pane work everywhere:
   while the pane has the focus, so two panes may both have `j`. The frame's `h` `l` `j` `k` are
   fallbacks: a pane may declare them too, for columns or rows, and return `false` at its edge so the
   focus moves on.
+- **Every place is opened by a test**: a page given a place gets an address, and words its records
+  draw, in `app/screens/shell/places.test.tsx`, which fails without one, and when a key of the page
+  means two things.
 - **A page read at a glance splits its stacks**: `definePlace(page, panes, { split: ["main"] })`
   shows all of a stack's panes at once, one under the other, until the human makes them tabs, as
   Home does. Most pages leave their stacks as tabs.

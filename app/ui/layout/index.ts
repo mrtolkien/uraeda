@@ -14,6 +14,7 @@ export {
   type PaneSpec,
   type PaneViewProps,
   type Placed,
+  placedPages,
   placeOf,
   type Remembered,
   titleOf,
