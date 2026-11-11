@@ -58,7 +58,8 @@ export function Banner(props: BannerProps) {
         </View>
       </View>
       <If when={action() !== undefined}>
-        <View style={{ alignSelf: "center" }}>{action()}</View>
+        {/* Never wider than the banner: a long label is cut at its end, not past the edge. */}
+        <View style={{ alignSelf: "center", maxWidth: "100%" }}>{action()}</View>
       </If>
     </View>
   );

@@ -107,8 +107,12 @@ function Parts(props: { args: FileArgs; file: () => FileView }) {
         {(review) => (
           <ReviewCard
             review={review()}
-            title="Your review, not sent"
-            who={`${plural(review().comments.length, "comment")}, sent with your verdict`}
+            title={review().verdict === "pending" ? "Your review, not sent" : "Your review"}
+            who={
+              review().verdict === "pending"
+                ? `${plural(review().comments.length, "comment")}, sent with your verdict`
+                : `${plural(review().comments.length, "comment")}, sent with it`
+            }
           />
         )}
       </If>

@@ -3,6 +3,7 @@
 // the decisions its branch changes; a plan, its tasks and their progress. Which panes a page has
 // follows the file's name, so they are there before the file is read, and stay put.
 import { definePane, definePlace, focusPane } from "../../ui/layout";
+import { reviewable } from "../review/Marks";
 import { roundPane, roundQuestionsPane } from "../round";
 import { Outline } from "./Outline";
 import { fileOf, type FileArgs, tabWord } from "./read";
@@ -12,6 +13,12 @@ import { SpecReview } from "./SpecReview";
 import { Tasks } from "./Tasks";
 
 export const readerPane = definePane<FileArgs>({
+  // On a phone, where the Review pane is a tab away, the bottom bar leads to the verdict.
+  action: (args) => {
+    const file = fileOf(args)();
+    if (file === null || file === undefined || !reviewable(file)) return undefined;
+    return { icon: "badge-check", label: "Verdict", run: () => focusPane(reviewPane(args)) };
+  },
   icon: "file-text",
   kind: "file-reader",
   mark: (args) => ({ needs: fileOf(args)()?.status === "awaiting-human" }),

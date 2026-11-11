@@ -3,8 +3,8 @@
 // takes comments on its points (`settled.comment`), each saved with its button or Ctrl+Enter and
 // kept on the device until then; a round of the default branch reads them only.
 import { signal, View } from "nsh";
-import type { Block, FileView, RoundItems } from "../../store/protocol";
-import { Button, Text } from "../../ui/controls";
+import type { Block, FileView, RoundItems, SettledComment } from "../../store/protocol";
+import { Button, Refusal, Text } from "../../ui/controls";
 import { TextField, unsavedText } from "../../ui/text";
 import { fieldKey, type RoundArgs, type Saves, settledField, targetOf } from "./saves";
 
@@ -40,6 +40,7 @@ function Comment(props: { args: RoundArgs; path: string; saves: Saves; subject: 
         placeholder="What the agent should change or keep in mind"
         refusal={refusal()}
         rows={{ max: 8, min: 2 }}
+        testID="settled-comment"
         value={text.text()}
       />
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -51,6 +52,34 @@ function Comment(props: { args: RoundArgs; path: string; saves: Saves; subject: 
         />
         <Button label="Close" onPress={close} />
       </View>
+    </View>
+  );
+}
+
+/** A comment of the human's on a point, with its removal where the round takes comments. */
+function Given(props: { comment: SettledComment; saves: Saves; takes: boolean }) {
+  const refusal = signal<string | null>(null);
+  const pending = signal(false);
+  const remove = () => {
+    pending.set(true);
+    refusal.set(null);
+    props.saves.unsettle(props.comment).then(
+      () => pending.set(false),
+      (error: Error) => {
+        pending.set(false);
+        refusal.set(`Not removed: ${error.message}`);
+      },
+    );
+  };
+  return (
+    <View style={{ gap: 4 }}>
+      <View style={{ alignItems: "center", columnGap: 8, flexDirection: "row", flexWrap: "wrap" }}>
+        <Text style={{ flexShrink: 1 }} tone="info">{`Your comment: ${props.comment.text}`}</Text>
+        <If when={props.takes}>
+          <Button icon="trash-2" label="Remove" onPress={remove} pending={pending()} />
+        </If>
+      </View>
+      <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
     </View>
   );
 }
@@ -77,8 +106,11 @@ export function settledMark(props: {
     const open = () => opened()[props.args.id] === point()?.subject;
     return (
       <View style={{ gap: 4, paddingLeft: 4, paddingTop: 4 }}>
-        <Each of={comments()}>
-          {(comment) => <Text tone="info">{`Your comment: ${comment().text}`}</Text>}
+        <Each
+          key={(comment: SettledComment) => `${comment.number}:${comment.text}`}
+          of={comments()}
+        >
+          {(comment) => <Given comment={comment()} saves={props.saves} takes={takes()} />}
         </Each>
         <If when={takes() ? point() : undefined}>
           {(shown) => (

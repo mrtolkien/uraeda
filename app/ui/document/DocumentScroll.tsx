@@ -70,7 +70,12 @@ function topOf(tree: Tree, id: number): number {
 }
 
 export function DocumentScroll(props: DocumentScrollProps) {
-  const tree = computed(() => read(props.document));
+  // A record read again brings the same document as a new object, a review's comment saved
+  // included: the same hash keeps the tree, so no cell is made again and the scroll stays put.
+  const document = computed(() => props.document, {
+    equals: (before, after) => before.hash === after.hash,
+  });
+  const tree = computed(() => read(document()));
   const items = computed<ReadonlyArray<Item>>(() =>
     (
       props.ids ??

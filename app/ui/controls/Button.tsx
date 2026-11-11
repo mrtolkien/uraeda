@@ -136,7 +136,8 @@ export function Button(props: ButtonProps) {
       onPress={press.press}
       ref={press.ref}
       selected={props.selected === true}
-      style={[{ alignSelf: "flex-start" }, press.style(looks()), props.style]}
+      // Never wider than where it stands: a label with no room left is cut at its end.
+      style={[{ alignSelf: "flex-start", maxWidth: "100%" }, press.style(looks()), props.style]}
       testID={props.testID}
     >
       <If when={breathes()}>
@@ -149,7 +150,12 @@ export function Button(props: ButtonProps) {
       </If>
       {mark()}
       <If when={props.compact !== true || props.icon === undefined}>
-        <Text bold={variant() === "main"} colour={ink()} lines={1} style={{ letterSpacing: 0.26 }}>
+        <Text
+          bold={variant() === "main"}
+          colour={ink()}
+          lines={1}
+          style={{ flexShrink: 1, letterSpacing: 0.26 }}
+        >
           {props.label}
         </Text>
       </If>

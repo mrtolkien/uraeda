@@ -129,6 +129,7 @@ export function Verdict(props: { args: FileArgs; file: () => FileView }) {
       </If>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Button
+          breathes
           icon="badge-check"
           label="Approve"
           onPress={() => void send(true)}

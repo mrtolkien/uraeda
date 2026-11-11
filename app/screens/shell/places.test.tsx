@@ -56,6 +56,19 @@ const PAGES: Record<string, { address: string; words: string }> = {
   },
 };
 
+/**
+ * More addresses of a place whose pages differ by what they open: a feature's round of questions
+ * is the file place, with the round's panes in place of the reader's. The change Date format's
+ * round waits in the sample, and no test answers it.
+ */
+const MORE: ReadonlyArray<{ page: string; address: string; words: string }> = [
+  {
+    address: "/r/sample/f/2026-10-19-date-format/clarifications-01.md",
+    page: "file",
+    words: "Context and points to check",
+  },
+];
+
 const posted = (app: App, name: string) =>
   app.host
     .posts()
@@ -65,8 +78,8 @@ const posted = (app: App, name: string) =>
 const problems = (app: App) => posted(app, "problem").map(String);
 
 /** Opens `page`'s address, and waits for its focused pane's tab and its words, or a problem. */
-async function visit(app: App, page: string) {
-  const { address, words } = PAGES[page];
+async function visit(app: App, page: string, at = PAGES[page]) {
+  const { address, words } = at;
   const before = posted(app, "shown").length;
   await app.host.send("go", address);
   await app.waitUntil(() => posted(app, "shown").length > before, { timeout: 10_000 });
@@ -95,6 +108,10 @@ test("every place of the app mounts with its keys", async () => {
   // One page after the other, as a person goes.
   await places.reduce<Promise<void>>(
     (done, page) => done.then(() => visit(app, page)),
+    Promise.resolve(),
+  );
+  await MORE.reduce<Promise<void>>(
+    (done, more) => done.then(() => visit(app, more.page, more)),
     Promise.resolve(),
   );
 }, 120_000);

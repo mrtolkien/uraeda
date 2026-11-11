@@ -28,6 +28,12 @@ export const stopsOf = (round: RoundItems | null | undefined): ReadonlyArray<str
 
 const keyOf = (args: RoundArgs) => `round.at:${args.repo}\n${args.id}` as const;
 
+/**
+ * Where a round with no place kept opened, by its key, for the run of the app: chosen once, so an
+ * answer saved never moves the round from under the human, as "the first question left" would.
+ */
+const opened = new Map<string, string>();
+
 export type Position = {
   /** The place shown: a question's id, `START`, or `END`. */
   at: Accessor<string>;
@@ -45,9 +51,17 @@ export function positionOf(args: RoundArgs, round: () => RoundItems | null | und
     return asked.find((question) => !answered(question))?.id ?? END;
   };
   const at = () => {
-    const kept = device.get(keyOf(args));
+    const key = keyOf(args);
+    const kept = device.get(key);
     // A question no longer asked, a follow-up whose parent's answer changed, opens its round anew.
-    return kept !== undefined && stops().includes(kept) ? kept : first();
+    if (kept !== undefined && stops().includes(kept)) return kept;
+    const chosen = opened.get(key);
+    if (chosen !== undefined && stops().includes(chosen)) return chosen;
+    // Before the round is read, nothing is chosen: its opening shows only once it is.
+    if (untracked(round) == null) return START;
+    const made = first();
+    opened.set(key, made);
+    return made;
   };
   const go = (to: string) => device.set(keyOf(args), to);
   return {

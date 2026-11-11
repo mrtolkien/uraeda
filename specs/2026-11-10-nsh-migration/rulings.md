@@ -7298,7 +7298,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/surfaces/Toast.tsx`, `app/ui/controls/icons/lucide.ts`,
   `crates/server/src/sandbox/others.rs`.
 
-## T42.1: One round component answers every round, one question at a time, where the device left it
+## R375: One round component answers every round, one question at a time, where the device left it
 
 - **Decision**: `app/screens/round/` draws a round of questions for a feature's round
   (`/f/<folder>/clarifications-NN.md`), the inbox's triage, and the decisions check: `Answering`,
@@ -7322,7 +7322,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   scroll's; the saves and the end stay.
 - **Where**: `app/screens/round/`, `app/screens/{triage,decisions,file}/`.
 
-## T42.2: An answer's save says the answer written; one queue per round; a submit sends each answer once
+## R376: An answer's save says the answer written; one queue per round; a submit sends each answer once
 
 - **Decision**: `answer.save` and `defaultRound.answer` answer `AnswerSaved { answer, hash }`: the
   answer as the core composed it from the letters and the comment, which the question's next save
@@ -7345,7 +7345,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/writing.rs`, `crates/server/src/records/writing/rounds.rs`,
   `app/screens/round/saves.ts`.
 
-## T42.3: The submit is pressed, says what it commits, and names the questions left
+## R377: The submit is pressed, says what it commits, and names the questions left
 
 - **Decision**: the round's end has the one main action, "Commit 4 answers" for a feature's round
   ("Submit 4 answers" for the default branch's), and a line saying what it commits and what follows;
@@ -7359,7 +7359,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   unseen; rule 9: after the commit, the way on is in view.
 - **Where**: `app/screens/round/{End,RoundPage,NextRun,index}.tsx`.
 
-## T42.4: A review is the reader with a cursor on its parts, and its verdict in the Review pane
+## R378: A review is the reader with a cursor on its parts, and its verdict in the Review pane
 
 - **Decision**: while a spec or a plan waits for the human, its reader holds a cursor on its
   top-level blocks (its bar on the block's left), which follows the block at the top as the reader
@@ -7380,7 +7380,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   cursor that enters a block; a decision's lines are commented on in the decision's own reader.
 - **Where**: `app/screens/review/`, `app/screens/file/{Reader,SpecReview,panes}.tsx`.
 
-## T42.5: What the library gained, and what this task leaves
+## R379: What the library gained, and what this task leaves
 
 - **Decision**: `SelectableCard` takes `children` under its words; `app/ui/document` exports
   `Phrase` (spans as prose outside a document); `DocumentHands` take `onPress` and `selected` for
@@ -7391,3 +7391,66 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   "Ask AI" on a settled point, wait on the session's composer of a feature's page; comments on a
   decision's lines from a spec's review are not built.
 - **Where**: `app/ui/{lists/SelectableCard.tsx,document/}`, `app/screens/preview/MockupPage.tsx`.
+
+## R380: A review's comments and a round's settled comments go on the app's undo stack
+
+- **Decision**: every write of a review that answers `Recorded { change }` goes through
+  `app/screens/review/writes.ts`, which gives its change to `remember` in words a person says:
+  "Removed your comment on Architecture." shows its toast with Undo; "Commented on …" and "Edited
+  your comment on …" are kept quietly, as the comment shows where it was written. A settled point's
+  comment gains a Remove (`Saves.unsettle`, through the round's one queue), remembered as "Removed
+  your comment on “Undoing a completion”.". A removal refused says why under its buttons.
+  `review.startOver` has no control yet, so nothing calls it. Test:
+  `a removed comment comes back with undo` (`app/screens/review/review.test.tsx`), on the sample's
+  Recurring reminders spec, which no other test reviews; without the `remember` of a removal, it
+  fails waiting for the comment.
+- **Rationale**: task 50's stack is the one undo; a comment removed by a slip of the thumb is the
+  write a person most wants back, and a toast with Undo is where they look for it.
+- **Where**: `app/screens/review/{writes.ts,Comment.tsx,Marks.tsx}`,
+  `app/screens/round/{saves.ts,Settled.tsx}`.
+
+## R381: The Review pane's Approve is the spec page's one main action
+
+- **Decision**: the verdict is the act, so the Review pane's Approve is the page's one main button,
+  and it breathes. The reader's head keeps a quiet "Go to your verdict" on wider windows, where the
+  Review pane is first in the side stack (or its rail's first icon, the stack folded), and says how
+  comments are made. On a phone, where the Review pane is a tab away, the reader's pane declares the
+  page's `action`, "Verdict", which the bottom bar draws and which shows the Review pane; the head
+  then has no button.
+- **Rationale**: two main-styled buttons on one page, one of which only leads to the other, split
+  the eye; the one that commits is the one that breathes.
+- **If wrong**: the reader's button goes, once the side stack can no longer be folded away.
+- **Where**: `app/screens/file/{Reader,panes}.tsx`, `app/screens/review/Verdict.tsx`.
+
+## R382: A held selection's keys are named in the status line while it holds
+
+- **Decision**: the status line hints a key of a held selection scope, first, while the scope is on;
+  it no longer leaves them out. A round's question says `a–f answer` (a press on it opens the key
+  map, never answers A), `n p move`, and `i comment`.
+- **Rationale**: rule 5 names the keys that work where the focus is; the letters are what works on a
+  question, and were only drawn under its options. No other selection declared a hint.
+- **Where**: `app/ui/keys/{store.ts,keys.test.ts}`, `app/screens/round/Round.tsx`.
+
+## R383: What a walk by touch at 390 points showed, and what changed
+
+- **Decision**: one round and one review were walked by presses on the hidden display, a picture at
+  each step (a test deleted after). Fixed:
+  - a round with no place kept opens at its first question left, now chosen once per run: a press
+    that answered it moved the round to the next question left as the record came back, under the
+    human's finger, with the old question still drawn (`position.test.ts` fails without it);
+  - a comment's field opened under the fold: a part commented on comes to the top, its field under
+    it, as `J` and `K` bring it;
+  - a saved comment jumped out of view: each record read again rebuilt `DocumentScroll`'s tree, and
+    every cell was made again at its estimated height; the same document hash now keeps the tree;
+  - a button never grows wider than where it stands, its label cut at its end (the next run's
+    "Continue, revise the spec from my review" ran past a phone's edge), and a banner's action keeps
+    inside the banner;
+  - "Saved in the review, sent with your verdict" wraps; a pending comment's well has room inside;
+  - a review once sent no longer says "Your review, not sent";
+  - a round's tab reads "Questions, round 1", as the file's tabs do.
+  - the inbox's triage and the decisions check declare the round's bottom-bar action
+    (`roundAction`), "Next: Q1" then "To the submit", as a feature's round did alone.
+- **Where**: `app/screens/round/position.ts`, `app/screens/file/{Reader,SpecReview}.tsx`,
+  `app/ui/document/DocumentScroll.tsx`, `app/ui/controls/{Button,Banner}.tsx`,
+  `app/screens/review/{Comment,Marks}.tsx`, `app/screens/round/index.tsx`,
+  `app/screens/{triage/index,decisions/Check}.tsx`.

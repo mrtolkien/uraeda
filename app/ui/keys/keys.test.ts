@@ -379,6 +379,14 @@ test("the status line hints a guarded key only where its guard holds", () => {
   expect(store.hints().map((hint) => hint.label)).toEqual(["stage"]);
   conflicted = true;
   expect(store.hints().map((hint) => hint.label)).toEqual(["stage", "take ours"]);
+
+  // A held selection's keys work where the focus is, so the line names them, first, while it holds.
+  let asked = true;
+  const question = store.scope({ kind: "selection", name: "Question", on: () => asked }, git);
+  store.register(question, [key("a", "Answer A", { hint: "a–f", hintLabel: "answer" })]);
+  expect(store.hints().map((hint) => hint.label)).toEqual(["answer", "stage", "take ours"]);
+  asked = false;
+  expect(store.hints().map((hint) => hint.label)).toEqual(["stage", "take ours"]);
 });
 
 test("a pane's keys may reuse the keys of the frame's tabs beside it", () => {

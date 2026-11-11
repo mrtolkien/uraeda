@@ -4,11 +4,11 @@
 // Ctrl+Enter, or as the field leaves. A comment is a write of the review alone: nothing commits
 // before the verdict.
 import { signal, View } from "nsh";
-import { call } from "../../store";
 import type { CommentItem, FileView } from "../../store/protocol";
 import { Button, Text } from "../../ui/controls";
 import { TextField, unsavedKey, unsavedText } from "../../ui/text";
 import type { FileArgs } from "../file/read";
+import { addComment, editComment, removeComment } from "./writes";
 
 /** Where a new comment points: lines of the file as reviewed, or the whole file. */
 export type Lines = { endLine: number; startLine: number } | null;
@@ -19,6 +19,8 @@ export type CommentFieldProps = {
   /** A pending comment edited, or a new one on `lines`. */
   editing?: CommentItem;
   lines: Lines;
+  /** The heading of the part a new comment is on, as its undo names it: none for the general one. */
+  heading?: string | null;
   label: string;
   /** Closes the field: its text, if not saved, stays on the device. */
   onClose?: () => void;
@@ -46,14 +48,13 @@ export function CommentField(props: CommentFieldProps) {
     if (pending() || !text.dirty()) return;
     pending.set(true);
     refusal.set(null);
-    const where = { file: props.args.name, folder: props.args.folder, repo: props.args.repo };
     try {
       if (props.editing !== undefined) {
         await (words === ""
-          ? call("review.remove", { ...where, number: props.editing.number })
-          : call("review.edit", { ...where, number: props.editing.number, text: words }));
+          ? removeComment(props.args, props.editing)
+          : editComment(props.args, props.editing, words));
       } else if (words !== "") {
-        await call("review.comment", { ...where, ...props.lines, text: words });
+        await addComment(props.args, props.lines, props.heading ?? null, words);
       }
       text.discard();
       props.onClose?.();
@@ -88,7 +89,9 @@ export function CommentField(props: CommentFieldProps) {
         <If when={props.onClose}>
           {(close) => <Button label="Close" onPress={() => close()()} />}
         </If>
-        <Text tone="faint">Saved in the review, sent with your verdict.</Text>
+        <Text style={{ flexShrink: 1 }} tone="faint">
+          Saved in the review, sent with your verdict.
+        </Text>
       </View>
     </View>
   );

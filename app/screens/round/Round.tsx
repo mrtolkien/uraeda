@@ -51,7 +51,7 @@ export function Answering(props: {
   registerKey([
     {
       hint: "n p",
-      hintLabel: "question",
+      hintLabel: "move",
       keys: "n",
       label: "Next question",
       run: () => position.step(1),
@@ -68,13 +68,21 @@ export function Answering(props: {
   registerKey(
     [
       ...LETTERS.map((key, place): KeySpec => ({
-        hint: place === 0 ? "a b c" : undefined,
+        // One hint for the six letters: a press on it opens the key map, never answers A.
+        hint: place === 0 ? "a–f" : undefined,
         hintLabel: place === 0 ? "answer" : undefined,
+        hintPress: place === 0 ? "?" : undefined,
         keys: key,
         label: `Answer ${key.toUpperCase()}, and go on`,
         run: () => hands.pick?.(key) ?? false,
       })),
-      { hint: "i", keys: "i", label: "Write a comment", run: () => hands.comment?.() },
+      {
+        hint: "i",
+        hintLabel: "comment",
+        keys: "i",
+        label: "Write a comment",
+        run: () => hands.comment?.(),
+      },
     ],
     shown,
   );

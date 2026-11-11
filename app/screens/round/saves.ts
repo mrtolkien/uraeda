@@ -6,8 +6,9 @@
 // the app, out of any pane: a pane moved or a tab hidden loses no save on its way.
 import { type Accessor, signal, untracked } from "nsh";
 import { call } from "../../store";
-import type { FileView, QuestionItem, WriteName } from "../../store/protocol";
+import type { FileView, QuestionItem, SettledComment, WriteName } from "../../store/protocol";
 import { dropUnsaved, readUnsaved, unsavedKey } from "../../ui/text";
+import { remember } from "../shell/undo";
 
 /** A round, as the record `WorkflowFile` names it: `<folder>/<name>`, or `inbox-triage`. */
 export type RoundArgs = { repo: string; id: string };
@@ -55,6 +56,8 @@ export type Saves = {
   notes: (text: string) => Promise<void>;
   /** Adds a comment on a settled point: a feature's round only. */
   settled: (subject: string, text: string) => Promise<void>;
+  /** Removes a comment on a settled point, which the undo stack keeps: a feature's round only. */
+  unsettle: (comment: SettledComment) => Promise<void>;
   /**
    * Saves every comment typed and not saved yet, each once, then submits the round: its write
    * named `write`, a feature's continuing its implementation with `resumes`.
@@ -141,6 +144,18 @@ function createSaves(
       await call("settled.comment", { folder: target.folder, repo: target.repo, subject, text });
     });
 
+  const unsettle = (comment: SettledComment) =>
+    queue(async () => {
+      if (target.kind !== "feature") throw new Error("This round takes no comments on its points.");
+      const { number, subject, text } = comment;
+      const where = { folder: target.folder, repo: target.repo };
+      const removed = await call("settled.remove", { ...where, number, previous: text, subject });
+      remember(removed.change, `Removed your comment on “${subject}”.`, {
+        repo: target.repo,
+        subject: text,
+      });
+    });
+
   /** Saves an answer, once: the same answer queued and not answered yet is that save. */
   const answer = (question: QuestionItem, value: Answer) => {
     const last = queued.get(question.id);
@@ -191,6 +206,7 @@ function createSaves(
     },
     holds: (question) => queued.has(question) || (written.get(question)?.trim() ?? "") !== "",
     settled,
+    unsettle,
     async submit(options) {
       // A comment typed and not saved, in any question, is saved first, with its letters.
       const path = now()?.path ?? "";

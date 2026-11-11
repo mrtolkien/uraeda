@@ -2,11 +2,12 @@
 // question names is read where it sits. On a phone the inbox is one tile away.
 import { definePane, definePlace } from "../../ui/layout";
 import { inboxList } from "../inbox";
-import { roundMains, roundQuestionsPane } from "../round";
+import { roundAction, roundMains, roundQuestionsPane } from "../round";
 import { TRIAGE_ID } from "./chat";
 import { TriageView } from "./TriagePane";
 
 export const triage = definePane<{ repo: string }>({
+  action: (args) => roundAction({ id: TRIAGE_ID, repo: args.repo }),
   icon: "message-circle-question",
   kind: "inbox-triage",
   stack: "main",

@@ -11,7 +11,7 @@ import type { Block, Candidate, FileView, QuestionItem } from "../../store/proto
 import { StatusDot, Text } from "../../ui/controls";
 import { Document } from "../../ui/document";
 import { definePane } from "../../ui/layout";
-import { Answering, roundMains, roundQuestionsPane } from "../round";
+import { Answering, roundAction, roundMains, roundQuestionsPane } from "../round";
 import { Empty } from "../../ui/lists";
 import { changeCounts, checkWords } from "./ledger";
 import { follow } from "./links";
@@ -165,6 +165,7 @@ function CheckRead(props: { repo: string }) {
 }
 
 export const checkPane = definePane<{ repo: string }>({
+  action: (args) => roundAction({ id: CHECK_ID, repo: args.repo }),
   icon: "message-circle-question",
   kind: "decisions-check",
   mark: ({ repo }) => ({

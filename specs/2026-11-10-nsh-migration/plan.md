@@ -2715,7 +2715,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
       `just task uraeda-server uraeda-protocol`: passed.
 - [x] **Step 6: Commit**: `feat(nsh-migration): rounds and reviews`.
 
-**As built** (rulings T42.1 to T42.5):
+**As built** (rulings R375 to R379):
 
 - `app/screens/round/` exports `Answering` (`{ args: { repo, id }, file, optionExtra? }`, a round
   waiting), `Answers` (read-only), `roundPane` (`round`, main, a feature's round), and
@@ -2729,6 +2729,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
   on a button, opening the continue dialog.
 - The device keeps `round.at:<repo>\n<id>`. `SelectableCard` takes `children`; `app/ui/document`
   exports `Phrase`; `DocumentHands` take `onPress` and `selected`.
+- With task 50 (R380 to R383): `app/screens/review/writes.ts` (`addComment`, `editComment`,
+  `removeComment`) and `Saves.unsettle` give their changes to `remember`; the reader's pane declares
+  the page's `action`, "Verdict", on a phone; a held selection's keys are hinted in the status line.
 
 ## Task 43: Sessions
 

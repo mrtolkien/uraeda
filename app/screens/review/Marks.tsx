@@ -1,14 +1,14 @@
 // What a review hangs under a block of the reader: its pending comments, each with its edit and
 // its removal, and the comment being written on it. A comment that spans blocks hangs under the
 // last of them; a general comment, or one on a decision, is the Review pane's.
-import { View } from "nsh";
-import { call } from "../../store";
+import { signal, View } from "nsh";
 import type { Block, CommentItem, FileView } from "../../store/protocol";
-import { Button, Text } from "../../ui/controls";
+import { Button, Refusal, Text } from "../../ui/controls";
 import { Well } from "../../ui/surfaces";
 import type { FileArgs } from "../file/read";
 import { CommentField } from "./Comment";
 import { reviewOf } from "./state";
+import { removeComment } from "./writes";
 
 /** Whether a file waits for the human's review: a spec or a plan, committed for it. */
 export const reviewable = (file: FileView) =>
@@ -27,11 +27,17 @@ export const hangsUnder = (comment: CommentItem, block: Block) =>
 
 function Pending(props: { args: FileArgs; comment: CommentItem; file: () => FileView }) {
   const review = reviewOf(props.args);
+  const refusal = signal<string | null>(null);
+  const remove = () => {
+    refusal.set(null);
+    removeComment(props.args, props.comment).catch((error: Error) =>
+      refusal.set(`Not removed: ${error.message}`),
+    );
+  };
   const editing = () => {
     const writing = review.writing();
     return writing !== null && "number" in writing && writing.number === props.comment.number;
   };
-  const where = { file: props.args.name, folder: props.args.folder, repo: props.args.repo };
   return (
     <If
       when={!editing()}
@@ -47,7 +53,7 @@ function Pending(props: { args: FileArgs; comment: CommentItem; file: () => File
         />
       }
     >
-      <Well style={{ gap: 4 }}>
+      <Well style={{ gap: 8, padding: 10 }}>
         <Text tone="info">{props.comment.text}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Button
@@ -55,12 +61,9 @@ function Pending(props: { args: FileArgs; comment: CommentItem; file: () => File
             label="Edit"
             onPress={() => review.writing.set({ number: props.comment.number })}
           />
-          <Button
-            icon="trash-2"
-            label="Remove"
-            onPress={() => void call("review.remove", { ...where, number: props.comment.number })}
-          />
+          <Button icon="trash-2" label="Remove" onPress={remove} />
         </View>
+        <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
       </Well>
     </If>
   );
@@ -87,6 +90,7 @@ export function reviewMark(args: FileArgs, file: () => FileView) {
             args={args}
             autoFocus
             file={file()}
+            heading={block.heading}
             label={`Your comment on lines ${block.startLine} to ${block.endLine}`}
             lines={{ endLine: block.endLine, startLine: block.startLine }}
             onClose={() => review.writing.set(null)}

@@ -235,18 +235,18 @@ export function createKeyStore() {
   return {
     active,
     /**
-     * The status line's hints, each once: the page's first, then the shell's, after the leader's,
-     * the key map's, and the folds'. A selection's are drawn on its stop, beside what they act on.
+     * The status line's hints, each once: a held selection's first, then the page's, then the
+     * shell's, after the leader's, the key map's, and the folds'. A selection's keys are hinted
+     * only while it holds, as a round's letters while a question is shown.
      */
     hints(): Array<StatusHint> {
       const seen = new Set<string>();
       const found = active().flatMap((key) => {
-        const { scope, spec } = key;
+        const { spec } = key;
         const label = spec.hintLabel ?? spec.label;
         const id = `${spec.hint} ${label}`;
         // A guarded key is hinted only where its guard holds: on the row it acts on.
-        const elsewhere = selectionOf(scope) !== null || !allowed(key);
-        if (spec.hint === undefined || elsewhere || seen.has(id)) {
+        if (spec.hint === undefined || !allowed(key) || seen.has(id)) {
           return [];
         }
         seen.add(id);

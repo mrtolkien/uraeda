@@ -74,18 +74,20 @@ function Head(props: { file: FileView; onVerdict?: () => void }) {
       </View>
       <If when={props.onVerdict !== undefined && reviewable(props.file)}>
         <View style={{ alignItems: "flex-start", gap: 6 }}>
-          <Button
-            breathes
-            icon="badge-check"
-            label="Approve or request changes"
-            onPress={() => props.onVerdict?.()}
-            testID="review-verdict"
-            variant="main"
-          />
+          {/* The verdict is the Review pane's, the page's one main action: this only leads there,
+              and on a phone the bottom bar's Verdict does. */}
+          <If when={!isNarrow()}>
+            <Button
+              icon="badge-check"
+              label="Go to your verdict"
+              onPress={() => props.onVerdict?.()}
+              testID="review-verdict"
+            />
+          </If>
           <Text tone="quiet">
             {isNarrow()
-              ? "Tap a part to comment on it. Your verdict is in the Review pane."
-              : "Press a part, or c on the one at the top, to comment on it; J and K move between parts. Your verdict is in the Review pane."}
+              ? "Tap a part to comment on it. Your verdict is under Verdict, at the bottom."
+              : "Press a part, or c on the one at the cursor, to comment on it; J and K move between parts. Your verdict is in the Review pane."}
           </Text>
         </View>
       </If>
@@ -127,6 +129,12 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
     scroll?.toBlock(next.id);
     return undefined;
   };
+  /** Opens a comment on a part: it comes to the top, its field under it, as J and K bring it. */
+  const comment = (block: number) => {
+    review.cursor.set(block);
+    review.writing.set({ block });
+    scroll?.toBlock(block);
+  };
   registerKey([
     {
       hint: "c",
@@ -136,8 +144,7 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
       run: () => {
         const at = review.cursor() ?? tops()[0]?.id;
         if (at === undefined) return false;
-        review.cursor.set(at);
-        review.writing.set({ block: at });
+        comment(at);
         return undefined;
       },
       when: reviewing,
@@ -188,8 +195,7 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
       }}
       onPress={(block) => {
         if (!untracked(reviewing)) return;
-        review.cursor.set(block.id);
-        review.writing.set({ block: block.id });
+        comment(block.id);
       }}
       selected={(block) => reviewing() && review.cursor() === block.id}
       offset={opened}
