@@ -15,6 +15,8 @@ type Stop = {
   isDisabled: () => boolean;
   /** What Enter or Space does on it, for a control: a field has none. */
   press?: () => void;
+  /** What Escape does in it, for a field: Vim's first, then the field's. */
+  escape?: () => void;
 };
 
 /** The stops of one overlay, in the order they were made, which is the order Tab goes through. */
@@ -41,13 +43,20 @@ const heldNow = () => untracked(holder);
  * In an overlay, the one that says `first` takes the focus as the overlay opens, the first made
  * without one. A control (`app/ui/controls/press.ts`) also says what Enter and Space do on it,
  * `press`, and when it is `disabled`, which Tab then passes; its `focus()` calls `onFocus` itself,
- * since on GTK a view never takes the platform's focus.
+ * since on GTK a view never takes the platform's focus. A field says what Escape does in it,
+ * `escape`, which an overlay gives it first (`escapeHeld`).
  */
 export function focusStop(
   node: () => Focusable | undefined,
-  options?: { disabled?: () => boolean; first?: boolean; press?: () => void },
+  options?: {
+    disabled?: () => boolean;
+    escape?: () => void;
+    first?: boolean;
+    press?: () => void;
+  },
 ) {
   const stop: Stop = {
+    escape: options?.escape,
     isDisabled: options?.disabled ?? (() => false),
     isFirst: options?.first === true,
     isThere: true,
@@ -124,5 +133,23 @@ export function pressHeld(stops: Stops): boolean {
     return false;
   }
   held.press();
+  return true;
+}
+
+/**
+ * Gives Escape to the field among `stops` that has the focus, as its own Escape: Vim's first,
+ * then the field's, which is the overlay's own Escape once Vim is done with it. Says whether a
+ * field took it.
+ *
+ * Native Shell 0.4.0 binds an overlay's `onCancel` after every view's binding
+ * (`nsh-core/src/core/overlay.rs`, `overlay_key_binding`, chained last in `keymap()`), so it wins
+ * over the field's own Escape: the overlay hands the key back here. Upstream report: ruling T96.1.
+ */
+export function escapeHeld(stops: Stops): boolean {
+  const held = heldNow();
+  if (held === null || !stops.includes(held) || held.escape === undefined) {
+    return false;
+  }
+  held.escape();
   return true;
 }

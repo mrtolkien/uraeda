@@ -4504,3 +4504,80 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   reads them.
 - **Where**: [`schema.rs`](/crates/server/src/runner/schema.rs),
   [`pages.rs`](/crates/server/tests/sessions/pages.rs).
+## T96.1: An overlay gives Escape to its field first, and Native Shell's order is reported upstream
+
+- **Decision**: an overlay's `onCancel` (Escape, the phone's Back) goes first to the field of its
+  own that has the focus: `focusStop` takes an `escape` from a field, `escapeHeld(stops)` in
+  [`focus.ts`](/app/ui/surfaces/focus.ts) calls it, and `Float` closes only when no field took it.
+  The field's `escape` is the bridge's new ref method `press("escape")`, the key as if typed: Vim's
+  first, so insert mode goes to normal mode, then the field's own Escape, which in an overlay is the
+  layer's Escape of the registry, and closes it. It replaces the `takeEscape(take)` hook that ruling
+  R176 proposed: no state follows Vim's mode in TSX, since the bridge already decides Escape, and a
+  field with Vim off closes the overlay through the same path as before. The test
+  `Escape in a dialog's field leaves insert mode first, and closes the dialog second` failed without
+  it (`expected [... "Dialog closed" ...] to contain "Mode: NORMAL"`), and passes.
+- **Rationale**: the cause is as task 30 found it, read again at the pin. `Core::keymap()`
+  (`nsh-core/src/core/components.rs`) builds the key table from the script's bindings, then the
+  views' (`keys.list`), then `overlay_key_binding()` (`nsh-core/src/core/overlay.rs`), an Escape of
+  `When::Always`; `Keymap::find` (`nsh-core/src/keymap.rs`) fires the newest binding of a keystroke.
+  So while any overlay listens to `onCancel`, no view's Escape fires, the editor's own included.
+- **If wrong**: the phone's Back in a dialog's field with Vim in insert mode goes to normal mode
+  first, as Escape does. Once Native Shell orders the overlay's binding under the views', the
+  hand-over still works: the field's own binding takes Escape, and `onCancel` is not called.
+- **Upstream report**, for the human to file at <https://github.com/longbridge/nsh/issues>:
+
+  > **An overlay's `onCancel` takes Escape from the views inside it**
+  >
+  > Version 0.4.0 (`e626a8dd`), every platform with a keyboard (seen on GTK and in `nsh test`).
+  >
+  > The docs say `onCancel` "fires on Escape, the Android back button and VoiceOver's escape gesture
+  > on iOS, for the top overlay that listens to it only. It takes them before the pages and
+  > `BackHandler`" (`website/elements/overlay.md`), and the coding guide that "Overlays dismiss from
+  > the top" (`website/docs/coding-guides.md`). Nothing says it also takes Escape before the views
+  > inside the overlay, and the `Command` element's own docs expect the opposite: its Escape is
+  > bound "before it propagates to a hosting `Dialog`" (`docs/dev/api-naming.md`).
+  >
+  > What the code does: `Core::keymap()` (`crates/nsh-core/src/core/components.rs`) chains the
+  > script's bindings, then every view's (`on_key`), then `overlay_key_binding()`
+  > (`crates/nsh-core/src/core/overlay.rs`), which binds Escape with `When::Always`. `Keymap::find`
+  > fires the newest binding, so the overlay's Escape always wins: a view's `on_key("escape", ..)`
+  > inside the overlay, an `Editor`'s own Escape, or any focused component that wants Escape for
+  > itself (a text field leaving a mode, a combobox closing its list) never sees it while an overlay
+  > listens to `onCancel`.
+  >
+  > Reproduction, with the `Editor` of `nsh/base`, whose keymap binds Escape to `SingleSelection`
+  > (`crates/nsh-base/src/editor/keymap.rs`):
+  >
+  > ```tsx
+  > import { mount, Overlay, signal, Text, View } from "nsh";
+  > import { Editor } from "nsh/base";
+  >
+  > mount(() => {
+  >   const said = signal("nothing");
+  >   return (
+  >     <View>
+  >       <Text>{said()}</Text>
+  >       <Overlay onCancel={() => said.set("overlay")}>
+  >         <Editor value={"one\ntwo\nthree"} />
+  >       </Overlay>
+  >     </View>
+  >   );
+  > });
+  > ```
+  >
+  > Focus the editor, put a cursor on each line (`mod+a`, then `shift+alt+i`), and press Escape.
+  > Expected: the editor goes back to one selection, and the overlay hears nothing, as the editor's
+  > binding is the newest. Seen: `overlay`, and the three cursors stay. The same with any Rust
+  > component inside the overlay that calls `on_key("escape", ..)` while it has the focus.
+  >
+  > Suggested fix: put the overlay's binding first in the table, under the views' bindings
+  > (`.chain(overlay)` before `.chain(keys.list...)`), so `onCancel` fires when no view inside took
+  > Escape, as the back button already falls through to the views' listeners.
+
+  The app's field is the second case: it binds its keys in Rust with `on_key_with`, in
+  [`vim_bridge.rs`](/crates/app/src/vim_bridge.rs).
+
+- **Where**: [`focus.ts`](/app/ui/surfaces/focus.ts), [`Float.tsx`](/app/ui/surfaces/Float.tsx),
+  [`TextField.tsx`](/app/ui/text/TextField.tsx),
+  [`vim_bridge/api.rs`](/crates/app/src/vim_bridge/api.rs) (moved out of `vim_bridge.rs`, which had
+  reached 507 lines), [`text.test.tsx`](/app/ui/text/text.test.tsx).

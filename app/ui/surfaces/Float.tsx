@@ -5,7 +5,8 @@
 //
 // - It rises and fades in as it opens, and fades out as it closes: it stays drawn for its way
 //   out, while its keys and the focus go back at once.
-// - Escape, the phone's Back, and a press outside it ask to close: closing is its owner's.
+// - Escape, the phone's Back, and a press outside it ask to close: closing is its owner's. A
+//   field of its own with the focus has Escape first: Vim's insert mode leaves before it closes.
 // - The focus goes into it as it opens, on its first stop (`focus.ts`), and back where it was as
 //   it closes. One that traps keeps Tab among its own stops.
 import {
@@ -22,7 +23,15 @@ import {
   type ViewRef,
   type ViewStyle,
 } from "nsh";
-import { focusFirst, focusNext, pressHeld, type Stops, StopsContext, takeFocus } from "./focus";
+import {
+  escapeHeld,
+  focusFirst,
+  focusNext,
+  pressHeld,
+  type Stops,
+  StopsContext,
+  takeFocus,
+} from "./focus";
 import { onChange, presence } from "./presence";
 import { Surface } from "./Surface";
 import { KeyScope, registerKey } from "../keys/registry";
@@ -106,6 +115,13 @@ function LayerKeys(props: { onClose: () => void; stops: Stops; trap: boolean }) 
 export function Float(props: FloatProps) {
   const open = () => props.open !== false;
   const close = () => props.onClose?.();
+  // Escape and the phone's Back, which Native Shell gives the overlay before any view: a field of
+  // its own with the focus takes them first, and closes it from its own Escape when it is done.
+  const cancel = () => {
+    if (!escapeHeld(stops)) {
+      close();
+    }
+  };
   const there = presence(open, () => ({ y: props.place().rise }));
   const stops: Stops = [];
   const takesKeys = props.keys;
@@ -173,7 +189,7 @@ export function Float(props: FloatProps) {
   );
   const floating = () =>
     props.scrim ? (
-      <Layer onCancel={close} style={[WHOLE, props.place().window]}>
+      <Layer onCancel={cancel} style={[WHOLE, props.place().window]}>
         <View
           focusable={false}
           onPress={close}
@@ -187,7 +203,7 @@ export function Float(props: FloatProps) {
         anchor={props.anchor}
         margin={8}
         offset={4}
-        onCancel={takesKeys ? close : undefined}
+        onCancel={takesKeys ? cancel : undefined}
         onPressOutside={takesKeys ? close : undefined}
         placement={props.placement}
         style={[

@@ -26,9 +26,11 @@ use nsh_core::prelude::*;
 use nsh_core::time::Instant;
 use uraeda_vim::{Edit, Key, Lines, Mode, TextView, Vim};
 
+mod api;
 mod keys;
 mod types;
 
+pub use api::TextEditorApi;
 use keys::{editor_position, position, vim_key, vim_strokes};
 pub use types::*;
 
@@ -39,40 +41,6 @@ thread_local! {
     /// The calls into the layer since the app started, and the microseconds they took with their
     /// edits carried out.
     static COUNT: Cell<(u64, u64)> = const { Cell::new((0, 0)) };
-}
-
-/// The methods of a field's editor.
-pub struct TextEditorApi {
-    field: Field,
-}
-
-#[methods]
-impl TextEditorApi {
-    /// Takes the focus, the caret at the text's end when it was at its start.
-    pub fn focus(&self) {
-        if let Some(api) = self.field.api() {
-            let at = api.selections().last().copied().unwrap_or_default();
-            if at.head == EditorPosition::default() {
-                let end = api.offset_to_position(u32::MAX);
-                api.set_selections(vec![EditorSelection::new(end, end)]);
-            }
-            api.focus();
-        }
-    }
-
-    /// Gives the focus up.
-    pub fn blur(&self) {
-        if let Some(api) = self.field.api() {
-            api.blur();
-        }
-    }
-
-    /// Types `text` at the caret, as a paste does: an image's link a screen dropped in.
-    pub fn insert(&self, text: String) {
-        if let Some(api) = self.field.api() {
-            api.insert(text);
-        }
-    }
 }
 
 /// What the Vim layer costs.
@@ -134,9 +102,7 @@ pub fn TextEditor(props: TextEditorProps, cx: Scope<TextEditorEvent>) -> impl In
         caret: signal(EditorPosition::default()),
         keep: Rc::new(Keep::default()),
     };
-    cx.methods(TextEditorApi {
-        field: field.clone(),
-    });
+    cx.methods(TextEditorApi::new(field.clone()));
     field.bind_keys();
     field.view()
 }

@@ -1,5 +1,5 @@
 // What the text field guarantees that using it would not show at once: unsaved text survives a
-// restart, Escape in Vim's normal mode is the field's own Escape, a yank reaches the system
+// restart, Escape in Vim's normal mode is the field's own Escape, in a page and in a dialog, a yank reaches the system
 // clipboard, and a field with Vim off never reaches the Vim layer.
 import { type App, expect, open, test } from "nsh/test";
 
@@ -43,6 +43,19 @@ test("Escape in normal mode does what Escape does without Vim", async () => {
   await vim.keyboard.press("escape");
   expect(vim.texts()).toContain("Not typing");
   expect(vim.texts()).toContain("Note: A Saved text");
+});
+
+test("Escape in a dialog's field leaves insert mode first, and closes the dialog second", async () => {
+  const app = await page("on");
+  await app.press("id:ask");
+  expect(app.texts()).toContain("Dialog open");
+  await app.type("id:name", "Ada");
+  expect(app.texts()).toContain("Mode: INSERT");
+  await app.keyboard.press("escape");
+  expect(app.texts()).toContain("Mode: NORMAL");
+  expect(app.texts()).toContain("Dialog open");
+  await app.keyboard.press("escape");
+  expect(app.texts()).toContain("Dialog closed");
 });
 
 test("a yank reaches the system clipboard", async () => {

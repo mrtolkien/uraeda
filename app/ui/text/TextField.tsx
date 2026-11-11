@@ -5,7 +5,8 @@
 //
 // Its keys, the keyboard guide's "In a field":
 // - Escape leaves the field, keeping its text, or is the layer's Escape in an overlay. With Vim,
-//   insert mode goes to normal mode first, and Escape in normal mode is the field's own.
+//   insert mode goes to normal mode first, and Escape in normal mode is the field's own, in an
+//   overlay too, which hands its Escape to the field that has the focus (`escapeHeld`).
 //   Shift+Escape leaves from any mode.
 // - Ctrl+Enter, and `:w` with Vim, save: `onSave`. Plain Enter never saves: in a field of several
 //   lines it adds a line, unless the field is a send and says so with `onEnter`; in a one-line
@@ -30,6 +31,8 @@ export type TextFieldRef = {
   focus(): void;
   /** Types `text` at the caret, as a paste: an image's link a screen dropped in. */
   insert(text: string): void;
+  /** Presses a key in the field, as typed: the Escape an overlay took first. */
+  press(stroke: string): void;
 };
 
 export type TextFieldProps = {
@@ -126,6 +129,7 @@ export function TextField(props: TextFieldProps) {
   let editor: TextFieldRef | undefined;
   const stop = focusStop(() => (props.disabled === true ? undefined : editor), {
     disabled: () => props.disabled === true,
+    escape: () => editor?.press("escape"),
     first: props.first,
   });
   const status = signal<VimStatus>(NO_FIELD);
