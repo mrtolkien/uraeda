@@ -8,12 +8,16 @@
 
 Human reviews:
 
-- [Scheduled jobs](/specs/2026-11-10-scheduled-jobs/proposal.md)
-
 - Review the UI guidelines properly
-- Once CRON jobs exist: daily persona run, performance run, code quality run, ...
-
 - Better settings: they're long now, need better navigation
+- Once CRON jobs exist:
+  - daily persona run: one persona per day
+    - Focus on COHERENCE, that's what makes or breaks a UI
+  - performance run: focus on different parts of the code each day
+  - weekly code quality pass: focus on having the right level of abstraction and testing. Ideally
+    _reduces_ the codebase sizes.
+  - weekly unixporn check: checks for inspiration in the top 10 posts of the week, proposes changes
+    to our look and feel based on it.
 
 ## Next
 
@@ -22,7 +26,6 @@ Human reviews:
 > Features for public release
 
 - Break the components in their own library I can re-use in other places
-  - Check if full Rust (Dioxus, or GPUI), is doable
 
 - Cooler home view: logo, progress, gauges, ...
   - Home should be an extension or have widgets
@@ -40,7 +43,7 @@ Human reviews:
 - Proper security: Passkeys to sign in, on top of the access key of basic security
 
 - [Docker Sandboxes for agents](/specs/proposals/docker-sandboxes.md)
-- Dedicated Pi-durable runtime with basic tooling
+- Pi sub-agent example. Should be driven as an external agent, like claude and codex
   - Web tools in pi-durable -> "pi web access"
   - Model settings -> allow for local models and Synthetic, at least
 - Monorepo support: multiple `specs` folders, principles per package, ...

@@ -11,6 +11,12 @@
 - [nsh-migration] Remove `ura import-sessions` and its importer once the port to the Rust server is
   done: it is a one-time tool.
 - [Subagent sidebar should have start time, at least. Likely nicer cards. Also remove the commit hash from review agents titles.](notes/subagent-sidebar-should-have-start-time-at-least/note.md)
+- [cron-jobs] Pressing enter when modifying the slug or ?body? of a proposal starts it, which is
+  often too early. Starting work on a proposal should be deliberate since it starts a branch and
+  makes commits (making it annoying to edit)
+- How do we define the default model? Why is it Codex atm?
+- [nsh-migration] There's no way to navigate/focus/move into the sidebar of a session with the
+  keyboard
 
 ## Bugfix
 
