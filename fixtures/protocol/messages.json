@@ -26,7 +26,7 @@
     }
   ],
   "server": [
-    { "type": "welcome", "protocol": 1, "epoch": "b7Qx2f" },
+    { "type": "welcome", "protocol": 1, "epoch": "b7Qx2f", "timeZone": "Europe/Paris" },
     { "type": "refused", "reason": "client-too-old", "protocol": 2 },
     { "type": "refused", "reason": "server-too-old", "protocol": 1 },
     { "type": "refused", "reason": "not-signed-in", "protocol": 1 },

@@ -34,7 +34,8 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const two = (value: number) => String(value).padStart(2, "0");
 /** Days since 1970 of a clock's date, to count the days between two. */
-const dayOf = (clock: ZonedClock) => Date.UTC(clock.year, clock.month - 1, clock.day) / 86_400_000;
+const dayOf = (clock: Pick<ZonedClock, "day" | "month" | "year">) =>
+  Date.UTC(clock.year, clock.month - 1, clock.day) / 86_400_000;
 
 /**
  * `at` as a person reads it, in the server's zone, as close to `now` as it is: "15:08" today,
@@ -74,7 +75,5 @@ export function serverDay(at: Instant, now: Instant = Date.now()): string {
 
 /** How many days of the server's calendar `at` is before `now`: 0 today, 1 yesterday. */
 export function serverDaysAgo(at: Instant, now: Instant = Date.now()): number {
-  const day = (clock: { year: number; month: number; day: number }) =>
-    Date.UTC(clock.year, clock.month - 1, clock.day) / 86_400_000;
-  return day(serverClock(now)) - day(dayClock(at));
+  return dayOf(serverClock(now)) - dayOf(dayClock(at));
 }
