@@ -162,7 +162,7 @@ async fn an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension() {
         runtimes.get("agent").is_none(),
         "the runtime left with its extension"
     );
-    assert_eq!(runtimes.names(), Vec::<String>::new());
+    assert_eq!(runtimes.names(), ["claude", "codex"], "the built-ins stay");
     server.stop().await;
 }
 

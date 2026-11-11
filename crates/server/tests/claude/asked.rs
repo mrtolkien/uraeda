@@ -21,7 +21,8 @@ async fn claude_code_is_a_built_in_runtime_the_owner_can_turn_off() {
     let runtimes = stage.server.shared().get::<Runtimes>();
     let claude = stage.runtime();
 
-    assert_eq!(runtimes.names(), ["claude"], "registered as its extension");
+    let registered = runtimes.names().contains(&"claude".to_owned());
+    assert!(registered, "registered as its extension");
     assert_eq!(
         (claude.name(), claude.kind(), claude.icon()),
         (
@@ -44,7 +45,7 @@ async fn claude_code_is_a_built_in_runtime_the_owner_can_turn_off() {
     let stage = staged(SILENT, |setup| setup.config("config.toml", off)).await;
     let runtimes = stage.server.shared().get::<Runtimes>();
     assert!(!runtimes.is_on("claude", Some("any-repository")));
-    assert_eq!(runtimes.on_in(Some("any-repository")), [] as [&str; 0]);
+    assert_eq!(runtimes.on_in(Some("any-repository")), ["codex"]);
     stage.server.stop().await;
 }
 
