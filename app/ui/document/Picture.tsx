@@ -43,35 +43,40 @@ export function Pictured(props: { alt: string; image: SpanImage }) {
   // As wide as the document's room, up to its own width, at its own shape.
   const width = () =>
     Math.min(size().width, Math.max(0, hands.width() - hands.inset()) || size().width);
-  const src = hands.image?.(props.image);
-  if (src === undefined) {
-    const span: Span = {
-      code: false,
-      emphasis: false,
-      image: null,
-      link: {
-        anchor: null,
-        path: props.image.path,
-        story: null,
-        target: props.image.target,
-        wiki: false,
-      },
-      strike: false,
-      strong: false,
-      text: props.alt || props.image.target,
-    };
-    return (
-      <Text style={prose()}>
-        <Linked span={span} text={span.text} />
-      </Text>
-    );
-  }
+  // The address may come later, as an image fetched with the sign-in: a link to it until then.
+  const src = () => hands.image?.(props.image);
+  const span: Span = {
+    code: false,
+    emphasis: false,
+    image: null,
+    link: {
+      anchor: null,
+      path: props.image.path,
+      story: null,
+      target: props.image.target,
+      wiki: false,
+    },
+    strike: false,
+    strong: false,
+    text: props.alt || props.image.target,
+  };
   return (
-    <Image
-      accessibilityLabel={props.alt}
-      onLoad={(event) => size.set(event.size)}
-      src={src}
-      style={{ height: (width() * size().height) / Math.max(1, size().width), width: width() }}
-    />
+    <If
+      when={src()}
+      else={
+        <Text style={prose()}>
+          <Linked span={span} text={span.text} />
+        </Text>
+      }
+    >
+      {(shown) => (
+        <Image
+          accessibilityLabel={props.alt}
+          onLoad={(event) => size.set(event.size)}
+          src={shown()}
+          style={{ height: (width() * size().height) / Math.max(1, size().width), width: width() }}
+        />
+      )}
+    </If>
   );
 }

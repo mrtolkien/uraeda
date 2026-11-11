@@ -3,7 +3,7 @@
 // deleted, at once, with Undo. A note that leaves the inbox leaves its pane saying where it went,
 // with Undo and the way back to the list.
 import { Clipboard, effect, Image, signal, View } from "nsh";
-import { call, navigate, record, redirect } from "../../store";
+import { call, imageOf, navigate, record, redirect } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
 import { Button, Heading, IconButton, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
@@ -11,7 +11,8 @@ import { PaneScroll } from "../../ui/layout";
 import { Empty } from "../../ui/lists";
 import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
 import { deleteNote } from "./actions";
-import { droppedImages, type Held, imageOf, pastedImage, pickImages, sendImages } from "./images";
+import { droppedImages, type Held, pastedImage, pickImages } from "../images";
+import { sendImages } from "./images";
 import { LastAction } from "./LastAction";
 import { noteOf, plain } from "./model";
 import { NotePicker, type Picking } from "./Pickers";

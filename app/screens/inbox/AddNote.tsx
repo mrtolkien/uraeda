@@ -7,7 +7,8 @@ import { call } from "../../store";
 import type { Inbox } from "../../store/protocol";
 import { IconButton, Text } from "../../ui/controls";
 import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/text";
-import { type Held, sendImages } from "./images";
+import type { Held } from "../images";
+import { sendImages } from "./images";
 import { quoted } from "./model";
 
 /** The images held for each repository's next note, while the app runs: bytes, not text. */

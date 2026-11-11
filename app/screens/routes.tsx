@@ -19,6 +19,7 @@ import "./triage";
 // Task 40: The feature page.
 import "./feature/panes";
 // Task 41: Workflow files.
+import "./file/panes";
 // Task 42: Rounds and reviews.
 // Task 43: Sessions.
 // Task 44: Session panels and runs.

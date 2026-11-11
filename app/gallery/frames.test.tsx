@@ -8,7 +8,7 @@ import { open, test } from "nsh/test";
 const SETTLE = 4;
 const SECONDS = 30;
 
-for (const scene of ["streaming", "scrolling", "glass"]) {
+for (const scene of ["streaming", "scrolling", "glass", "reading"]) {
   test(
     `the scene ${scene}, for its frames`,
     async () => {

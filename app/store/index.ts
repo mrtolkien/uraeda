@@ -29,6 +29,7 @@ export type {
 } from "./records";
 export * from "./device";
 export * from "./history";
+export * from "./images";
 export * from "./routes";
 export * from "./time";
 

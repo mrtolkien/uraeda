@@ -2644,14 +2644,29 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Consumes also:** `Document` (task 31).
 - **Its own rules:** a file is drawn from the core's document tree. The spec page keeps its review
   tab, its decision cards, its history, and what changed since the last review.
-- **Tests:** none.
+- **Tests:** none named; one added, `a link to a heading scrolls the reader to it`, in
+  `app/ui/document/document.test.tsx`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): workflow files`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names. The added one failed with the scroll removed.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 118 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): workflow files`.
+
+**As built** (rulings T41.1 to T41.3):
+
+- `app/screens/file/panes.tsx` declares `file-reader` (main), `file-outline`, `file-tasks`,
+  `file-review`, and `file-decisions` (side), each with `{ folder, name, repo }`, and
+  `definePlace("file", ...)`: `spec.md` has the reader, Outline, Review, and Decisions; `plan.md`
+  the reader, Tasks, and Outline; any other file the reader and Outline. One `Reader` draws every
+  kind (`DocumentPage`, `SpecPage`, `PlanPage`, and `DataModelPage` are not separate files).
+- `app/ui/document` exports `DocumentScroll` and `DocumentScrollRef` (`toBlock`, `toAnchor`,
+  `scrollTo`); `app/store` exports `imageOf`, `signIn`, and `repositoryAddress`, moved from the
+  inbox. The gallery's scene `reading`, and `just frames reading`, time a plan of 2,700 lines.
+- Seams left: `TASK 42:` in `Reader.tsx` (the main action, and comments and question cards under
+  their blocks through `mark`) and in `panes.tsx` (a round's pane, a review's pane); `TASK 49:` in
+  `Reader.tsx` (`override`) and `links.ts` (a story link).
 
 ## Task 42: Rounds and reviews
 

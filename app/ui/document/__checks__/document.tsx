@@ -1,10 +1,10 @@
 // What `document.test.tsx` opens: the check its host names, each saying on the page what a test
 // reads. `diagrams` draws a document with a diagram Merman draws and one it cannot read;
 // `reply` grows a reply by the pieces its host sends, and counts the blocks made.
-import { host, mount, signal, Text, View } from "nsh";
+import { host, type JSX, mount, signal, Text, View } from "nsh";
 import { markdownTree } from "uraeda/native";
 import type { Document as Tree } from "../../../store/protocol";
-import { Document, Reply } from "..";
+import { Document, DocumentScroll, type DocumentScrollRef, Reply } from "..";
 
 const DIAGRAMS = `Two diagrams:
 
@@ -86,4 +86,29 @@ function Growing() {
   );
 }
 
-mount(() => (host.params.check === "reply" ? <Growing /> : <Diagrams />));
+/** Sixty sections, each a heading and two paragraphs, after a link to the fiftieth. */
+const LONG = [
+  "[Read section 50](#section-50)",
+  ...Array.from(
+    { length: 60 },
+    (_, at) => `## Section ${at + 1}\n\nBody of section ${at + 1}.\n\nMore of section ${at + 1}.`,
+  ),
+].join("\n\n");
+
+function Long() {
+  const tree = JSON.parse(markdownTree(LONG)) as Tree;
+  let scroll: DocumentScrollRef | undefined;
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <DocumentScroll
+        document={tree}
+        onLink={(link) => scroll?.toAnchor(link.anchor ?? link.target.replace(/^#/, ""))}
+        ref={(ref) => (scroll = ref)}
+      />
+    </View>
+  );
+}
+
+const CHECKS: Record<string, () => JSX.Element> = { heading: Long, reply: Growing };
+
+mount(() => (CHECKS[String(host.params.check)] ?? Diagrams)());

@@ -2,10 +2,10 @@
 // the server sends the tree the core read (the stack decision). Its prose keeps a measure of about
 // 80 characters, centred in a wider pane, or from its left edge with `align="start"`; code,
 // tables, and diagrams may take the room to its right edge.
-import { computed, type JSX, signal, View } from "nsh";
+import { type Accessor, computed, type JSX, signal, View } from "nsh";
 import type { Document as Tree } from "../../store/protocol";
 import { Blocks, read } from "./Blocks";
-import { DocumentContext, type DocumentHands } from "./context";
+import { DocumentContext, type DocumentHands, type Shared } from "./context";
 import { measure } from "./look";
 
 export type DocumentProps = DocumentHands & {
@@ -22,17 +22,19 @@ export type DocumentProps = DocumentHands & {
  * What a `Document` and a `Reply` share: the width they are laid out at, and where their prose
  * starts, given to every block with the screen's hands.
  */
-export function Measured(
-  props: DocumentHands & { align?: "center" | "start"; children?: JSX.Element; testID?: string },
-) {
-  const width = signal(0);
-  const inset = () =>
-    props.align === "start" ? 0 : Math.max(0, Math.floor((width() - measure()) / 2));
-  const shared = {
+/**
+ * What the blocks of a document laid out `width` wide are given: the screen's hands, and where
+ * the prose starts, centred unless `align` is `start`.
+ */
+export function shared(
+  props: DocumentHands & { align?: "center" | "start" },
+  width: Accessor<number>,
+): Shared {
+  return {
     get image() {
       return props.image;
     },
-    inset,
+    inset: () => (props.align === "start" ? 0 : Math.max(0, Math.floor((width() - measure()) / 2))),
     get mark() {
       return props.mark;
     },
@@ -44,8 +46,16 @@ export function Measured(
     },
     width,
   };
+}
+
+export function Measured(
+  props: DocumentHands & { align?: "center" | "start"; children?: JSX.Element; testID?: string },
+) {
+  const width = signal(0);
+  const hands = shared(props, width);
+  const inset = hands.inset;
   return (
-    <DocumentContext.Provider value={shared}>
+    <DocumentContext.Provider value={hands}>
       <View
         onLayout={(event) => width.set(event.bounds.size.width)}
         style={{ paddingLeft: inset() }}

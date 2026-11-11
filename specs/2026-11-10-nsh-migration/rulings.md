@@ -6574,3 +6574,61 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: NSH's editor draws no widget among its lines; one bar for the block in hand keeps
   each choice one key, and the field keeps the text.
 - **Where**: `app/screens/conflict/ConflictEditor.tsx`, `crates/app/src/editing.rs`.
+## T41.1: A workflow file is read as it is written, beside its panes, not rebuilt into parts
+
+- **Decision**: every workflow file, a spec and a plan included, is one reader in the main stack:
+  the file drawn from the core's tree, in its own order, at the reading measure, under a head that
+  says its kind, its status, and its facts ("6 of 11 tasks done", "1 decision changed on its
+  branch"). What helps reading it sits in the side stack, in this order: for a spec, Outline,
+  Review, and Decisions; for a plan, Tasks and Outline; for any other file, Outline. Which panes a
+  page has follows the file's name, before the record comes. The old screen's four pages
+  (`DocumentPage`, `SpecPage`, `PlanPage`, `DataModelPage`) are one `Reader`; the spec's groups of
+  cards (stories, built parts, the data model drawn in the spec), its folds, and the plan's lead
+  panes are not built.
+- **Rationale**: the old spec page re-arranged the file into groups, each drawn by a component of
+  its own, so a spec read differently on the page and in the file, and every new part of the
+  template needed a new component. The file's own order is the one its writer chose and the one the
+  review comments on; the side panes give the overview the groups gave, without a second way to draw
+  the same text. A plan's waves are not in the record (`PlanItems` holds its lead and its tasks): a
+  plan's "Waves" section is in its outline.
+- **If wrong**: a pane of the side stack draws one part of the spec as cards, reading `SpecItems`,
+  and the reader stays as it is.
+- **Where**: `app/screens/file/`.
+
+## T41.2: A long document scrolls by its top-level blocks, and a heading is brought to the top by id
+
+- **Decision**: `DocumentScroll` (`app/ui/document/`) draws a document as Native Shell's list of its
+  top-level blocks, with a header and a footer at the measure, its reading keys (`j` `k` and the
+  arrows by three lines, `mod+d` `mod+u` by half a screen, `g g` `G` `Home` `End`), its place kept
+  by the caller (`offset`, `onOffset` once it comes to rest), the block at its top heard
+  (`onPlace`), and a ref with `toBlock(id)`, `toAnchor(anchor)`, and `scrollTo(offset)`. `Document`
+  stays for a document inside a page that scrolls. The file's panes share the reader's place and
+  their jumps through `app/screens/file/place.ts`; a link to a heading of the page, the address's
+  `#heading`, an outline's entry, and a plan's task all call `toBlock`. `Pictured` takes an image's
+  address as it comes, so an image fetched with the sign-in (`imageOf`, moved from the inbox to
+  `app/store/images.ts`) draws once it is there.
+- **Rationale**: a plan of 2,700 lines drawn whole made every block at once; the list makes those
+  near the screen. The scene `reading` of `just frames` scrolls such a plan (82 tasks of 33 lines)
+  at 900 points a frame: 1,430 frames, median under 14.1 ms, 95th percentile under 25.6 ms, 99th
+  under 31.9 ms, worst 44.5 ms, in software on the hidden display while other builds held the
+  machine's load at 18 to 28. A cell reused for another block is made again (`Each` keyed by the
+  block), as blocks differ in kind. The test `a link to a heading scrolls the reader to it`
+  (`app/ui/document/document.test.tsx`) failed with the scroll removed: section 50 never showed.
+- **If wrong**: `Document` takes the list's way of drawing, and `DocumentScroll` goes.
+- **Where**: `app/ui/document/DocumentScroll.tsx`, `Document.tsx`, `Picture.tsx`;
+  `app/gallery/scenes/reading.tsx`; `app/screens/file/{place.ts,Reader.tsx}`.
+
+## T41.3: Approving, answering, and live embeds stay with their tasks
+
+- **Decision**: the file's one main action, approving a spec or a plan or answering a round, is task
+  42's, at the seam `TASK 42:` in `Reader.tsx`'s head, beside its `mark` slot for comments and
+  question cards, and in `panes.tsx` for a round's pane and a review's. A story or a mockup drawn
+  live is task 49's (`TASK 49:` at `override`, and a story link opens its file until then). The
+  Review pane shows the review not sent, the review a revision answers, and the parts changed since,
+  never a verdict of its own. `Space b`, the page's file as a buffer, is task 47's. The decision as
+  a branch has it, `/f/<folder>/decisions/<name>`, is task 45's, as built: nothing was left for this
+  task there; it scrolls to its `#heading` only once it reads with `DocumentScroll`, more than the
+  one line the task allowed, and is left as it is.
+- **Rationale**: one approve button, the review's, as the task asks; a second one here would be a
+  second component to keep right.
+- **Where**: `app/screens/file/{Reader,panes}.tsx`.

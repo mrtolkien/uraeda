@@ -15,6 +15,7 @@ import { cards } from "./lists/cards";
 import { order } from "./lists/order";
 import { rows } from "./lists/rows";
 import { table } from "./lists/table";
+import { reading } from "./scenes/reading";
 import { scene } from "./scenes/session";
 import { corner, dialog, popover, sheet, tip, toasts } from "./surfaces/overlays";
 import { heights } from "./surfaces/heights";
@@ -39,6 +40,7 @@ const VIEWS: Record<string, (narrow: boolean) => JSX.Element> = {
   menu,
   order,
   popover,
+  reading: () => reading(),
   reply,
   rows,
   scrolling: () => scene("scrolling"),

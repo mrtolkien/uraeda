@@ -14,7 +14,7 @@ import { ORGANIZE_INBOX, startChat } from "../triage/chat";
 import { deleteNote, remember } from "./actions";
 import { AddNote, heldFor, holdImages } from "./AddNote";
 import { CategoryDialog } from "./CategoryDialog";
-import { droppedImages, pastedImage, pickImages } from "./images";
+import { droppedImages, pastedImage, pickImages } from "../images";
 import { LastAction } from "./LastAction";
 import { categoryAt, type InboxRow, marksOf, plain, plural, rowsOf } from "./model";
 import { NotePicker, type Picking } from "./Pickers";

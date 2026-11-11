@@ -1,6 +1,6 @@
 // What the document renderer does that a look at the gallery would not show: a diagram that
-// cannot be drawn shows its source, and a reply that grows draws each finished block once, only
-// its last block changing as pieces come.
+// cannot be drawn shows its source, a reply that grows draws each finished block once, only its
+// last block changing as pieces come, and a link to a heading of a long document scrolls to it.
 import { type App, expect, open, test } from "nsh/test";
 
 const page = (check: string) =>
@@ -51,4 +51,18 @@ test("a growing reply redraws its last block only", async () => {
   // The reply ends: its last block is finished, and made once.
   await app.host.send("end");
   expect(said(app, "Made: ")).toBe(blocks);
+});
+
+test("a link to a heading scrolls the reader to it", async () => {
+  const app = await page("heading");
+  const shown = () => app.texts().join("\n");
+  await app.waitUntil(() => shown().includes("Body of section 1."));
+  // A long document makes only the blocks near the screen: the fiftieth section is not made yet.
+  expect(shown()).not.toContain("Body of section 50.");
+  await app.press("text:Read section 50");
+  await app.waitUntil(() => shown().includes("Body of section 50."));
+  // The heading is at the top: what was at the top is gone, and what follows the heading shows.
+  await app.waitUntil(() => !shown().includes("Body of section 1."));
+  expect(shown()).toContain("Section 50");
+  expect(shown()).toContain("More of section 51.");
 });

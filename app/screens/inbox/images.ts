@@ -1,8 +1,7 @@
 // A note's images, sent with `POST /r/<name>/inbox/note-image`; the rest of an image's way, drawn,
-// picked, pasted, or dropped, is every screen's (`../images.ts`).
-import { at, type Held, signIn } from "../images";
-
-export { droppedImages, type Held, imageOf, pastedImage, pickImages } from "../images";
+// picked, pasted, or dropped, is every screen's (`../images.ts`, `imageOf` in the store).
+import { repositoryAddress, signIn } from "../../store";
+import type { Held } from "../images";
 
 /** What a note's images are sent with: a new note's text and place, or the note that gets them. */
 export type NoteImages =
@@ -31,7 +30,7 @@ export async function sendImages(
   for (const image of images) body.append("file", image.blob, image.name || "image.png");
   const names = images.map((image) => `name=${encodeURIComponent(image.name)}`).join("&");
   const { headers } = signIn();
-  const answer = await fetch(at(repo, `/inbox/note-image?${names}`), {
+  const answer = await fetch(repositoryAddress(repo, `/inbox/note-image?${names}`), {
     body,
     headers,
     method: "POST",

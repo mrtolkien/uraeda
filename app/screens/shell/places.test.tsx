@@ -23,6 +23,10 @@ const PAGES: Record<string, { address: string; words: string }> = {
     address: "/r/realistic/decisions/git",
     words: "Rust tools MUST read git with the gix library",
   },
+  file: {
+    address: "/r/realistic/f/2026-10-19-leader-key/spec.md",
+    words: "Leader key/shortcut map",
+  },
   "branch-decision": {
     address: "/r/realistic/f/2026-10-18-due-reminders/decisions/notifications",
     words: "As the branch of Due date reminders has it",

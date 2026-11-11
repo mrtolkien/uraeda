@@ -116,6 +116,13 @@ export const CATALOGUE: ReadonlyArray<GroupEntry> = [
       },
       { fills: true, icon: "chevrons-down", name: "scrolling", shows: "Read", title: "Scrolling" },
       { fills: true, icon: "layers", name: "glass", shows: "working", title: "Glass over it" },
+      {
+        fills: true,
+        icon: "file-text",
+        name: "reading",
+        shows: "The part number",
+        title: "Reading",
+      },
     ],
   },
 ];
