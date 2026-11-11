@@ -9,9 +9,9 @@
 Human reviews:
 
 - [Scheduled jobs](/specs/2026-11-10-scheduled-jobs/proposal.md)
-- [Once CRON jobs exist: daily persona run, performance run, code quality run, ...](/specs/2026-11-11-cron-jobs/proposal.md)
 
 - Review the UI guidelines properly
+- Once CRON jobs exist: daily persona run, performance run, code quality run, ...
 
 - Better settings: they're long now, need better navigation
 
