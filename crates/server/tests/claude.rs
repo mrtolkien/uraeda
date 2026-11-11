@@ -304,3 +304,12 @@ async fn closing_a_session_leaves_no_claude_process() {
     );
     assert_eq!(rest(&mut open_events).await.len(), 1, "its exit");
 }
+
+// No test's server starts the machine's agents (ruling T98.1): the other built-in's command is
+// a stand-in on this stage too, which the server asked for its models as it started.
+#[tokio::test]
+async fn the_stage_runs_no_agent_of_the_machine() {
+    let stage = stage(stage::SILENT).await;
+
+    stage.server.runs_no_agent_of_the_machine().await;
+}

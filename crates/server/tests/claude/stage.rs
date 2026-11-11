@@ -1,7 +1,8 @@
 //! What the tests of Claude Code's runtime run on: a server whose `claude` is a shell script,
 //! which runs no agent, and the built-in runtime the server registered.
 //!
-//! The script is first on the `PATH` of the server's environment. It writes what it was started
+//! The script is first on the `PATH` of the server's environment, before the stand-ins of the
+//! agents this file's tests do not run: see `support/machine.rs`. It writes what it was started
 //! with in the folder it runs in, a session's: `args`, its arguments with a NUL after each,
 //! `token`, its token for Uraeda's tools, and `stdin`, each line it read.
 
@@ -104,9 +105,8 @@ pub async fn staged(body: &str, prepare: impl FnOnce(Setup) -> Setup) -> Stage {
     let command = bin.join("claude");
     fs::write(&command, format!("{START}{body}")).unwrap();
     fs::set_permissions(&command, fs::Permissions::from_mode(0o755)).unwrap();
-    let path = format!("{}:{}", bin.display(), std::env::var("PATH").unwrap());
     let setup = support::setup()
-        .env("PATH", &path)
+        .commands(&bin)
         .env("TZ", "Asia/Tokyo")
         .env("HOME", home.to_str().unwrap());
     Stage {

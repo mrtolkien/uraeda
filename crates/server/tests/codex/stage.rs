@@ -2,7 +2,8 @@
 //! no agent, and the built-in runtime the server registered.
 //!
 //! The stand-in is `fixtures/runtimes/codex/stand-in.mjs`, first on the `PATH` of the server's
-//! environment, run by `node`. In the folder it runs in, a session's, it writes `argv`, its
+//! environment, before the stand-ins of the agents this file's tests do not run (see
+//! `support/machine.rs`), and run by `node`. In the folder it runs in, a session's, it writes `argv`, its
 //! arguments, `token`, its token for Uraeda's tools, `pid`, and `stdin`, each line it read. With
 //! `exchange.jsonl` there, it replays that exchange; without, it answers as Codex does, as
 //! `options.json` beside it says.
@@ -24,9 +25,6 @@ use crate::support::{self, Setup, TestServer};
 
 /// How long a stand-in gets to say what a test waits for.
 const PATIENCE: Duration = Duration::from_secs(30);
-
-/// The stand-ins of the agents no test of this file runs: see `support::setup`.
-const NO_AGENTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/support/no-agents");
 
 /// The fixtures of Codex's runtime: the stand-in, and the exchanges it replays.
 pub fn fixtures() -> PathBuf {
@@ -67,10 +65,8 @@ pub async fn staged(options: Value, prepare: impl FnOnce(Setup) -> Setup) -> Sta
     fs::write(&command, script).unwrap();
     fs::set_permissions(&command, fs::Permissions::from_mode(0o755)).unwrap();
     fs::write(bin.join("options.json"), options.to_string()).unwrap();
-    let path = std::env::var("PATH").unwrap();
-    let path = format!("{}:{NO_AGENTS}:{path}", bin.display());
     let setup = support::setup()
-        .env("PATH", &path)
+        .commands(&bin)
         .env("HOME", home.to_str().unwrap());
     Stage {
         server: prepare(setup).start().await,

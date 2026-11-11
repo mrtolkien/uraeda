@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use support::{Held, TestRepo, TestServer, call, fixture_repo, read};
 use uraeda_core::repositories;
 use uraeda_protocol::{ErrorCode, NeedsYouList, Repositories, Settings, Themes, Workspace};
-use uraeda_server::{Clock, Options, Server};
+use uraeda_server::Server;
 
 /// The fixture's feature that waits on the human: its questions are not answered.
 const HUMAN: &str = "2026-10-11-web-ui";
@@ -727,17 +727,8 @@ async fn a_variable_that_is_no_value_stops_the_start() {
         ),
     ];
     for (name, value, problem) in rows {
-        let (config, data) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
-        let options = Options {
-            port: 0,
-            config_dir: config.path().to_owned(),
-            data_dir: data.path().to_owned(),
-            folder: None,
-            environment: vec![(name.to_owned(), value.to_owned())],
-            allow_origins: Vec::new(),
-            clock: Clock::system(),
-        };
-        let Err(error) = Server::start(options).await else {
+        let setup = support::setup().env(name, value);
+        let Err(error) = Server::start(setup.options()).await else {
             panic!("{name}={value} stops the start");
         };
         assert!(

@@ -2731,3 +2731,33 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_page_that_does_not_compile_keeps_the_last_one_and_says_why` fails on `pageVersion`, null where
   it was 1.
 - **Where**: task 19, `crates/server/src/extensions/{signing,pages,loader}.rs`. Tasks 34 and 58.
+## T98.1: A test's server gets its `PATH` from one place, which holds a stand-in for each agent
+
+- **Decision**: `crates/server/tests/support/machine.rs` is the one home of "no test's server starts
+  the machine's agents". It replaces the parts of R106 and R110 on the folder `no-agents/`.
+  - **Every test's server has a folder of stand-ins of its own**, with a link `claude` and a link
+    `codex` to the one script `tests/support/no-agents/stand-in`. The script writes its name and its
+    arguments in that folder's `asked`, and fails at once, as a command that is not installed.
+  - **`support::setup()` builds the `PATH`**: the test's own commands, then the stand-ins, then the
+    machine's. A test's own commands are a folder given to `Setup::commands(dir)`, as the two
+    stages' `bin`. `Setup::env` refuses `PATH`, so no test takes the stand-ins off it.
+  - **`Setup::options()`** gives the options of a start the test makes itself, as one that must
+    fail: no test builds an environment by hand. `crates/cli/tests/serve.rs` builds the `PATH` of
+    its `ura serve` with the same module.
+  - **`TestServer::runs_no_agent_of_the_machine()`** asserts it: the `claude` and the `codex` the
+    server's `PATH` finds are in a folder the test gave or among the stand-ins, and each stand-in
+    was asked, as the built-in runtimes ask for their models at the start. One test calls it on a
+    plain server, and one on each stage. Before the stages were moved, both failed.
+  - The two checks against the real agents, which are ignored, are the only starts outside it:
+    `claude/real.rs` builds its server in the process's environment, and `codex/real.rs` names the
+    real `codex` by its path.
+- **Rationale**: the stage of Claude Code's tests replaced the `PATH` without the stand-ins, so once
+  Codex's runtime was merged each of its servers started the machine's `codex` for its models, on
+  its owner's account. A rule every stage must remember is forgotten by the next one. Links, not
+  scripts written per server: a script written and run at once can be refused as busy while another
+  thread starts a process.
+- **If wrong**: the pull requests' refresh runs `gh` (T98.3), which is a command of the machine that
+  uses its owner's account too: it has a stand-in in the same folder. The sandbox's server (task 20)
+  needs its own answer, as R106 says.
+- **Where**: `crates/server/tests/support/{mod,machine}.rs` and `no-agents/stand-in`,
+  `crates/server/tests/{claude,codex}/stage.rs`, `crates/cli/tests/serve.rs`.

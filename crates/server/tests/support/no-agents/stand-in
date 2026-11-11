@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stands in for a command of the machine that a test's server never runs, as `claude` or `codex`,
+# which use their owner's accounts. A test's server finds it under each of their names, linked in
+# a folder of its own, first on its `PATH`: see `../machine.rs`. It writes down that it was asked
+# in that folder's `asked`, a line with its name and its arguments, and fails at once, as a
+# command that is not installed.
+printf '%s\n' "${0##*/} $*" >> "${0%/*}/asked"
+exit 127

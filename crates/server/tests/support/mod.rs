@@ -9,7 +9,9 @@
 //! ```
 //!
 //! `support::setup()` prepares a start that differs: a file in the config folder, a variable of
-//! the server's environment, the folder it starts in.
+//! the server's environment, the folder it starts in, a folder of commands of the test's own.
+//!
+//! No server started here finds the machine's agents: see `machine.rs`.
 //!
 //! Beside it: `fixture_repo(name)`, the git repository built from `fixtures/repo/`, `Hook`, its
 //! pre-commit hook as a test holds it, and `read`, `call`, `Held`, `Live`, and `idle`, which read
@@ -29,6 +31,7 @@ mod client;
 mod fixture;
 mod hook;
 mod live;
+pub mod machine;
 mod process;
 mod request;
 
@@ -59,33 +62,27 @@ pub async fn server() -> TestServer {
 
 /// A start to prepare, on new temporary folders.
 pub fn setup() -> Setup {
-    let path = std::env::var("PATH").unwrap_or_default();
-    let environment = vec![path_of(format!("{NO_AGENTS}:{path}"))];
+    let stand_ins = TempDir::new().expect("a temporary folder");
+    machine::stand_ins(stand_ins.path());
     Setup {
         config: TempDir::new().expect("a temporary folder"),
         data: TempDir::new().expect("a temporary folder"),
+        stand_ins,
+        commands: Vec::new(),
         folder: None,
-        environment,
+        environment: Vec::new(),
         allow_origins: Vec::new(),
     }
-}
-
-/// A folder of stand-ins for the agents' commands, each of which fails at once, as a command
-/// that is not installed: first on the `PATH` of a test's server, so no test runs the machine's
-/// real `claude`, with its owner's account. The built-in runtimes ask their agent for its models
-/// as the server starts.
-const NO_AGENTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/support/no-agents");
-
-/// `PATH`, the one variable a test's server takes from the test's own environment: the commands
-/// it runs are found as the test's are, after the stand-ins of [`NO_AGENTS`].
-fn path_of(path: String) -> (String, String) {
-    ("PATH".to_owned(), path)
 }
 
 /// A start being prepared: its folders exist, and nothing runs yet.
 pub struct Setup {
     config: TempDir,
     data: TempDir,
+    /// The stand-ins of the machine's agents, which the server finds in their place.
+    stand_ins: TempDir,
+    /// The folders of the test's own commands, found before anything else.
+    commands: Vec<PathBuf>,
     folder: Option<PathBuf>,
     environment: Vec<(String, String)>,
     allow_origins: Vec<String>,
@@ -100,10 +97,37 @@ impl Setup {
         self
     }
 
-    /// Sets a variable of the environment the server starts in.
+    /// Sets a variable of the environment the server starts in. Its `PATH` is not one to set:
+    /// a test's own commands are a folder given to [`Setup::commands`], so that no test takes
+    /// the stand-ins of the machine's agents off it.
     pub fn env(mut self, name: &str, value: &str) -> Self {
+        assert_ne!(name, "PATH", "give the folder to `Setup::commands`");
         self.environment.push((name.to_owned(), value.to_owned()));
         self
+    }
+
+    /// Puts a folder of the test's own commands on the server's `PATH`, before the stand-ins
+    /// of the machine's agents and the machine's commands: the first given is found first.
+    pub fn commands(mut self, dir: &Path) -> Self {
+        self.commands.push(dir.to_owned());
+        self
+    }
+
+    /// The options the server starts with. `PATH` is the one variable it takes from the test's
+    /// own environment, after the test's commands and the stand-ins: see `machine.rs`.
+    pub fn options(&self) -> Options {
+        let path = machine::path(&self.commands, self.stand_ins.path());
+        let mut environment = vec![("PATH".to_owned(), path)];
+        environment.extend(self.environment.iter().cloned());
+        Options {
+            port: 0,
+            config_dir: self.config.path().to_owned(),
+            data_dir: self.data.path().to_owned(),
+            folder: self.folder.clone(),
+            environment,
+            allow_origins: self.allow_origins.clone(),
+            clock: Clock::fixed(SystemTime::UNIX_EPOCH + START),
+        }
     }
 
     /// The folder the server starts in, whose repository joins its list.
@@ -120,27 +144,20 @@ impl Setup {
 
     /// Starts the server, on a free port.
     pub async fn start(self) -> TestServer {
-        let clock = Clock::fixed(SystemTime::UNIX_EPOCH + START);
-        let options = Options {
-            port: 0,
-            config_dir: self.config.path().to_owned(),
-            data_dir: self.data.path().to_owned(),
-            folder: self.folder,
-            environment: self.environment,
-            allow_origins: self.allow_origins,
-            clock: clock.clone(),
-        };
+        let options = self.options();
         let server = Server::start(options.clone())
             .await
             .expect("the server starts");
         let key = sign_in::first_key(server.shared()).expect("a first start shows its key");
         TestServer {
             server,
+            clock: options.clock.clone(),
             options,
-            clock,
             key,
             config: self.config,
             data: self.data,
+            stand_ins: self.stand_ins,
+            commands: self.commands,
         }
     }
 }
@@ -153,6 +170,8 @@ pub struct TestServer {
     key: String,
     config: TempDir,
     data: TempDir,
+    stand_ins: TempDir,
+    commands: Vec<PathBuf>,
 }
 
 impl TestServer {
@@ -194,6 +213,39 @@ impl TestServer {
     /// The state the server's domains share.
     pub fn shared(&self) -> &Shared {
         self.server.shared()
+    }
+
+    /// Asserts that the server runs no agent of the machine: the `claude` and the `codex` its
+    /// `PATH` finds are the test's own, or the stand-ins, which it asked as it started.
+    pub async fn runs_no_agent_of_the_machine(&self) {
+        let environment = self.shared().environment();
+        let path = environment.var("PATH").expect("a server has a PATH");
+        for agent in machine::COMMANDS {
+            let found = machine::found(path, agent).expect("a stand-in is found");
+            let folder = found.parent().expect("a file is in a folder");
+            if self.commands.iter().any(|own| own == folder) {
+                continue;
+            }
+            assert_eq!(
+                folder,
+                self.stand_ins.path(),
+                "the server would run the machine's `{agent}`"
+            );
+            self.asked(agent).await;
+        }
+    }
+
+    /// Waits until the stand-in of a command was asked, as the server's start asks an agent
+    /// for its models.
+    async fn asked(&self, command: &str) {
+        let asked = || machine::asked(self.stand_ins.path());
+        let named = |line: &String| line.split(' ').next() == Some(command);
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+        while !asked().iter().any(named) {
+            let waited = tokio::time::Instant::now() > deadline;
+            assert!(!waited, "the stand-in of `{command}` was not asked");
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
     }
 
     /// The paths of the server's routes, as their domains declared them.

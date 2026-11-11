@@ -1010,7 +1010,9 @@ Follows [what every records task does](#what-every-records-task-does).
   `codex_rpc.rs` (task 14)
 - Test: `crates/server/tests/claude.rs` and `claude/{stage,process,asked,real}.rs`,
   `crates/server/tests/codex.rs`, with recorded streams in `fixtures/runtimes/`, and the stand-ins
-  of `crates/server/tests/support/no-agents/`
+  of the machine's agents, in `crates/server/tests/support/machine.rs`: every test's server gets its
+  `PATH` from `support::setup()`, and a test's own commands are a folder given to `Setup::commands`
+  (ruling T98.1)
 
 **Interfaces:**
 
