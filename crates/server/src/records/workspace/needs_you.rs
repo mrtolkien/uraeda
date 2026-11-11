@@ -63,6 +63,7 @@ fn chats_of(shared: &Shared, repository: &Repository) -> Vec<NeedsYouRow> {
             title,
             message: REFUSED.to_owned(),
             reason: NeedsYouReason::Blocked,
+            continued: false,
             id,
         }
     });
@@ -116,6 +117,9 @@ fn row(shared: &Shared, repository: &Repository, feature: &FeatureView) -> Optio
     ]
     .join(":");
     let label = repositories::label(repository, &feature.folder);
+    let root = repository.path.to_string_lossy();
+    let continued =
+        Runner::find(shared).is_some_and(|runner| runner.continued_by_all(&root, feature, &status));
     Some(NeedsYouRow {
         key,
         repository: repository.name.clone(),
@@ -125,6 +129,7 @@ fn row(shared: &Shared, repository: &Repository, feature: &FeatureView) -> Optio
         title: feature.title.clone(),
         message: message(feature, reason, status.reason),
         reason,
+        continued,
         id,
     })
 }

@@ -4,6 +4,7 @@
 // lists. In progress is the features in flight that wait on no one but an agent, and the chats at
 // work, the oldest started first.
 import { type HomeCard, Cards, Nothing } from "./Cards";
+import { ContinueAll } from "./ContinueAll";
 import { navigate, parseRoute, record, serverTime } from "../../store";
 import type { NeedsYouRow, SessionRow, WorkspaceFeature } from "../../store/protocol";
 import type { IconName } from "../../ui/controls";
@@ -68,15 +69,18 @@ export function NeedsYou(props: { repo: string }) {
     ];
   };
   return (
-    <Cards
-      cards={cards}
-      empty={
-        <Nothing
-          title="Nothing waits on you"
-          words="A feature that asks a question, or waits for a review, shows here."
-        />
-      }
-    />
+    <>
+      <ContinueAll repo={props.repo} />
+      <Cards
+        cards={cards}
+        empty={
+          <Nothing
+            title="Nothing waits on you"
+            words="A feature that asks a question, or waits for a review, shows here."
+          />
+        }
+      />
+    </>
   );
 }
 

@@ -370,6 +370,20 @@ async fn continue_all_continues_the_runs_that_stopped_and_ask() {
         .as_str()
         .expect("its step's message")
         .to_owned();
+    // Needs you counts what Continue all sends: the run that stopped, not the gate.
+    let mut needs = Held::open(&stage.server, "NeedsYouList", Value::Null).await;
+    let continued_of = |list: &Value, folder: &str| {
+        let rows = list["rows"].as_array().cloned().unwrap_or_default();
+        let row = rows.into_iter().find(|row| row["folder"] == folder);
+        row.map(|row| row["continued"].clone())
+    };
+    let list = needs
+        .until("the stopped run to be continued by all", |list| {
+            continued_of(list, AGENT) == Some(json!(true))
+        })
+        .await
+        .clone();
+    assert_eq!(continued_of(&list, HUMAN), Some(json!(false)));
 
     let continued = stage.done("feature.continueAll", json!({})).await;
     assert_eq!(continued["refused"], json!([]));

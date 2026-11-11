@@ -193,6 +193,7 @@ async fn needs_you_list_answers_its_shape() {
         "title": row.unwrap()["title"],
         "message": "Questions to answer",
         "reason": "step",
+        "continued": false,
     });
     assert_eq!(**row.unwrap(), expected);
     assert!(

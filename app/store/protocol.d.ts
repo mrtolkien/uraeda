@@ -3227,7 +3227,12 @@ message: string,
 /**
  * Why it needs the human.
  */
-reason: NeedsYouReason, };
+reason: NeedsYouReason, 
+/**
+ * Whether Continue all goes on with it: a feature's run that stopped and asks, at a step
+ * that waits on the agent.
+ */
+continued: boolean, };
 
 /**
  * An item nested under a list's item, for editing: its address, its depth, and its text.

@@ -108,14 +108,10 @@ impl Runner {
         super::picks::message_runtime(self, root, None, None)?;
         let mut refused = Vec::new();
         for (feature, status) in self.feature_statuses(root) {
-            let asks = status_of_feature(&status);
             let Some(session) = &status.session else {
                 continue;
             };
-            // A conflict dismissed reads idle, and would be sent again: a catch-up runs once
-            // per tip. A run that asks, as one the human stopped, is continued all the same.
-            let ran = !asks.continuable() && self.ran_for(root, &feature);
-            if !continued_by_all(&asks, &feature.step.name, &feature.step.waits_on) || ran {
+            if !self.continued_by_all(root, &feature, &status) {
                 continue;
             }
             if let Err(fault) = self.continue_one(root, &feature, session, None) {
@@ -135,6 +131,21 @@ impl Runner {
     }
 
     /// Whether a feature at `catch-up` already had its catch-up for the tip it reads.
+    /// Whether Continue all goes on with a feature of the repository at `root`, whose status
+    /// is `status`: what its button counts, and what it sends.
+    pub(crate) fn continued_by_all(
+        &self,
+        root: &str,
+        feature: &FeatureView,
+        status: &FeatureStatus,
+    ) -> bool {
+        let asks = status_of_feature(status);
+        // A conflict dismissed reads idle, and would be sent again: a catch-up runs once per
+        // tip. A run that asks, as one the human stopped, is continued all the same.
+        let ran = !asks.continuable() && self.ran_for(root, feature);
+        continued_by_all(&asks, &feature.step.name, &feature.step.waits_on) && !ran
+    }
+
     fn ran_for(&self, root: &str, feature: &FeatureView) -> bool {
         let Some(catch_up) = feature.step.catch_up.as_ref() else {
             return false;

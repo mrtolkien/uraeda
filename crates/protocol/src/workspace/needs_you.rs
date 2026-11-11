@@ -35,6 +35,9 @@ pub struct NeedsYouRow {
     pub message: String,
     /// Why it needs the human.
     pub reason: NeedsYouReason,
+    /// Whether Continue all goes on with it: a feature's run that stopped and asks, at a step
+    /// that waits on the agent.
+    pub continued: bool,
 }
 
 /// Why an item needs the human, in the order a notification picks it.
