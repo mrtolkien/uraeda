@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use uraeda_core::api;
+use uraeda_core::files::stories::StoryLink;
 
 use super::Previews;
 use super::runner::Checkout;
@@ -57,12 +58,19 @@ pub(crate) fn runnable(
 /// and embeds a story, which shows at once when the human arrives. Never the main checkout's,
 /// nor a folder the core cannot read.
 pub(super) fn waits_with_a_story(shared: &Shared, repository: &str, folder: &str) -> bool {
+    !waiting_stories(shared, repository, folder).is_empty()
+}
+
+/// The stories the folder's file waiting for the human embeds, as their links name them: none
+/// when its step does not wait on the human with a file, for the main checkout, and for a folder
+/// the core cannot read.
+pub(super) fn waiting_stories(shared: &Shared, repository: &str, folder: &str) -> Vec<StoryLink> {
     let waiting = || {
         let root = main_checkout(shared, repository).filter(|_| folder != MAIN)?;
         let step = api::read_feature(&root, folder).ok()?.step;
         let file = step.file.filter(|_| step.waits_on == "human")?;
         let file = api::read_file(&root, folder, &file).ok()?;
-        Some(!file.current.stories.is_empty())
+        Some(file.current.stories)
     };
-    waiting().unwrap_or(false)
+    waiting().unwrap_or_default()
 }

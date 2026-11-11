@@ -7454,3 +7454,22 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/ui/document/DocumentScroll.tsx`, `app/ui/controls/{Button,Banner}.tsx`,
   `app/screens/review/{Comment,Marks}.tsx`, `app/screens/round/index.tsx`,
   `app/screens/{triage/index,decisions/Check}.tsx`.
+## T51.1: The previews of what waits warm on one queue, as each repository joins, stories and all
+
+- **Decision**: R83's two rules of `preview-waiting.ts` are ported whole, in
+  `crates/server/src/preview/ahead.rs`. One queue, until the server stops, takes each ask in turn: a
+  repository as it joins the list (`REPOSITORY_JOINED`, the server's start included, and the start's
+  `warm_all_waiting`), or a feature's folder as its turn ends done (`warm_waiting`). For each folder
+  whose file waits for the human and embeds a story, and whose preview folder has its
+  `node_modules`, it starts the preview (again, after a failure), waits for it to be ready, then
+  compiles each linked story the index holds (`Runner::compiled`), before the next folder, within 3
+  minutes a folder.
+- **Rationale**: the start's own call read the list before the repositories were in it, so nothing
+  warmed: the test saw no start at all. The Node server started the previews one after the other,
+  each once its stories compiled, since several Storybooks at once load the machine for minutes;
+  starting them all at once, without compiling, kept neither rule.
+- **Seen failing**: before,
+  `a_waiting_folders_preview_starts_with_the_server_and_compiles_its_stories` found no start; with
+  the compile left out, a start whose fake served only `/index.json`.
+- **Where**: `crates/server/src/preview/{ahead,checkout,mod}.rs`, `records/{previews,watch}.rs`,
+  `crates/server/tests/preview.rs`.

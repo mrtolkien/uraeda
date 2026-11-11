@@ -48,7 +48,11 @@ const CONFIG_CHANGED: &[fn(&Shared)] = &[
 
 /// What a domain does when a repository joins the list once the server runs, or its folder
 /// comes back: it gets the repository's name. One line per domain.
-const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[git::repository_joined, pulls::repository_joined];
+const REPOSITORY_JOINED: &[fn(&Shared, &str)] = &[
+    git::repository_joined,
+    pulls::repository_joined,
+    previews::repository_joined,
+];
 
 /// What a domain does when a repository leaves the list, or its folder goes: it gets the
 /// repository's name. One line per domain.

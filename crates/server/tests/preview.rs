@@ -720,6 +720,57 @@ async fn a_killed_servers_preview_commands_are_stopped_by_the_next_start() {
     server.stop().await;
 }
 
+// The review watch (ruling R83): a folder whose file waits for the human and embeds a story has
+// its preview started as the server starts, and its linked stories compiled ahead, with no page
+// read, so the story shows at once when the human arrives. Without it, the first look at a round
+// waits for Storybook to start, then for the story to compile.
+#[tokio::test]
+async fn a_waiting_folders_preview_starts_with_the_server_and_compiles_its_stories() {
+    let project = project("repo", "ok");
+    add_feature(&project.repo);
+    // Its preview folder has its dependencies: without them, nothing starts ahead.
+    let modules = format!(".worktrees/{FEATURE}/packages/web/node_modules");
+    fs::create_dir_all(project.repo.path().join(modules)).unwrap();
+    let server = serving(&project).await;
+
+    // Nothing reads a record: the server starts the preview by itself, in the feature's worktree.
+    let deadline = tokio::time::Instant::now() + MINUTE;
+    let story = "/iframe.html";
+    let requested = loop {
+        let requests = project.starts().first().and_then(|start| {
+            let port = start["port"].as_u64()?;
+            let url = format!("http://127.0.0.1:{port}/__requests");
+            let answer = ureq::get(&url)
+                .call()
+                .ok()?
+                .body_mut()
+                .read_to_string()
+                .ok()?;
+            serde_json::from_str::<Vec<String>>(&answer).ok()
+        });
+        let compiled = requests.as_ref().is_some_and(|paths| {
+            paths.iter().any(|path| path.ends_with(story))
+                && paths.iter().any(|path| path.ends_with("/story.js"))
+        });
+        if compiled {
+            break requests.unwrap_or_default();
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "the story was not compiled ahead: {:?} starts, {requests:?}",
+            project.starts().len()
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    };
+    let cwd = project.starts()[0]["cwd"].as_str().unwrap().to_owned();
+    assert!(
+        cwd.ends_with(&format!(".worktrees/{FEATURE}/packages/web")),
+        "{cwd}"
+    );
+    assert_eq!(project.starts().len(), 1, "{requested:?}");
+    server.stop().await;
+}
+
 // A preview stops 30 minutes after its last view, telling nobody: a client that held its
 // records all along still shows it ready. When it shows the page again, the frame's request
 // starts it again, its records say so, and the page answers once it is ready. Without it, a

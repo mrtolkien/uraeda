@@ -47,6 +47,12 @@ pub(super) fn files_changed(shared: &Shared, repository: &str, _: &Changes) {
     bus.changed_where::<Mockup>(|args| args.repo == repository);
 }
 
+/// A repository joined the list, the server's start included: the previews of its folders that
+/// wait for the human with a story start ahead.
+pub(super) fn repository_joined(shared: &Shared, repository: &str) {
+    preview::warm_repository(shared, repository);
+}
+
 /// A repository left the list, or its folder went: its previews stop.
 pub(super) fn repository_left(shared: &Shared, repository: &str) {
     preview::repository_removed(shared, repository);

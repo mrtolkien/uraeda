@@ -16,6 +16,7 @@
 //!
 //! The records and the action are in `records/previews.rs`.
 
+mod ahead;
 pub(crate) mod checkout;
 mod command;
 mod entry;
@@ -198,6 +199,7 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
         ended.renew.notify_one();
     });
     tokio::spawn(follow(shared.clone(), previews));
+    ahead::mount(shared);
     shared.on_stop("previews", async move { runner.close().await });
     Ok(())
 }
@@ -251,51 +253,23 @@ pub fn sweep(shared: &Shared) {
 }
 
 /// Starts a folder's preview ahead of any page, as its feature's turn ends done, when its file
-/// then waits for the human and embeds a story, and once its preview folder has its
-/// dependencies, `node_modules`: without them it would only fail, and its stories show the
-/// failure. One that failed starts again. The sweep keeps it up while the folder waits. It reads
-/// files: call it from a blocking thread.
+/// then waits for the human and embeds a story, and compiles those stories: see [`ahead`].
 pub(crate) fn warm_waiting(shared: &Shared, repository: &str, folder: &str) {
-    let Some(previews) = shared.find::<Previews>() else {
-        return;
-    };
-    if !checkout::waits_with_a_story(shared, repository, folder) {
-        return;
-    }
-    let Some(checkout) = checkout::runnable(shared, &previews, repository, folder) else {
-        return;
-    };
-    if !checkout
-        .dir
-        .join(&checkout.folder)
-        .join("node_modules")
-        .is_dir()
-    {
-        return;
-    }
-    let reader = Reader {
-        repository: repository.to_owned(),
-        folder: folder.to_owned(),
-        story: None,
-    };
-    let failed = previews.runner.state(&checkout.base);
-    match failed {
-        Some(State::Failed { .. }) => previews.restart(shared, &checkout, reader),
-        _ => previews.view(shared, &checkout, reader),
-    };
+    ahead::ask(shared, repository, Some(folder));
+}
+
+/// Starts the previews of a repository's folders that wait for the human with a story, one after
+/// the other, as it joins the list: see [`ahead`].
+pub(crate) fn warm_repository(shared: &Shared, repository: &str) {
+    ahead::ask(shared, repository, None);
 }
 
 /// Starts the previews of every listed repository's folders that wait for the human with a
-/// story, as the server starts, one after the other: see [`warm_waiting`].
+/// story, as the server starts, one after the other: see [`ahead`].
 pub(crate) fn warm_all_waiting(shared: &Shared) {
     let listed = crate::records::repositories::all(shared);
     for repository in listed.into_iter().filter(|repository| !repository.missing) {
-        let Ok(workspace) = uraeda_core::api::read_workspace(&repository.path) else {
-            continue;
-        };
-        for feature in workspace.features {
-            warm_waiting(shared, &repository.name, &feature.folder);
-        }
+        warm_repository(shared, &repository.name);
     }
 }
 
