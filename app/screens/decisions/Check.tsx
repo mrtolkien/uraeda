@@ -1,19 +1,17 @@
 // The decisions check, `specs/DECISIONS-CHECK.md`, at `/decisions/check`: a round of questions an
 // agent asks about the decisions, answered on the default branch like the inbox's triage. Its
-// frame is here: its head with its state and how far it is answered, then its file, each question's
-// answer under its heading and each option's candidate decisions under the option, read-only.
-//
-// TASK 42: the question cards of rounds and reviews replace the read-only answers: each question
-// answered in its card (`defaultRound.answer`, `defaultRound.notes`), and the round submitted by
-// its own button (`defaultRound.submit`, `defaultRound.retry`), as the triage's is. The
-// `mark` below is where each card goes. "Review with AI", which asks an agent for a check, waits
-// on the round's message, which only the Node server holds (`uraeda-server/round-messages`).
+// frame is here: while it waits, the round answered one question at a time, as every round is
+// (`app/screens/round/`), each option's candidate decisions under the option; once answered, its
+// head with its state, then its file, each question's answer under its heading, read-only. "Review
+// with AI", which asks an agent for a check, waits on the round's message, which only the Node
+// server holds (`uraeda-server/round-messages`).
 import { View } from "nsh";
 import { navigate, record } from "../../store";
 import type { Block, Candidate, FileView, QuestionItem } from "../../store/protocol";
 import { StatusDot, Text } from "../../ui/controls";
 import { Document } from "../../ui/document";
 import { definePane } from "../../ui/layout";
+import { Answering, roundMains, roundQuestionsPane } from "../round";
 import { Empty } from "../../ui/lists";
 import { changeCounts, checkWords } from "./ledger";
 import { follow } from "./links";
@@ -91,17 +89,39 @@ function markOf(file: FileView, block: Block) {
   for (const question of questions) {
     const choice = question.options.find((option) => option.block === block.id);
     if (choice !== undefined) {
-      const candidates = file.candidates.filter(
-        (one) =>
-          one.question === question.id.toLowerCase() && one.option === choice.letter.toLowerCase(),
-      );
-      return candidates.length === 0 ? undefined : <Candidates candidates={candidates} />;
+      return candidatesOf(file, question, choice.letter);
     }
   }
   return undefined;
 }
 
+/** The candidates under an option of the check, as its round's cards show them. */
+function candidatesOf(file: FileView, question: QuestionItem, letter: string) {
+  const candidates = file.candidates.filter(
+    (one) => one.question === question.id.toLowerCase() && one.option === letter.toLowerCase(),
+  );
+  return candidates.length === 0 ? undefined : <Candidates candidates={candidates} />;
+}
+
 function CheckReader(props: { repo: string }) {
+  const read = record("WorkflowFile", { id: CHECK_ID, repo: props.repo });
+  return (
+    <If
+      when={read()?.status === "awaiting-human" ? read() : null}
+      else={<CheckRead repo={props.repo} />}
+    >
+      {(file) => (
+        <Answering
+          args={{ id: CHECK_ID, repo: props.repo }}
+          file={file}
+          optionExtra={(question, choice) => candidatesOf(file(), question, choice.letter)}
+        />
+      )}
+    </If>
+  );
+}
+
+function CheckRead(props: { repo: string }) {
   const read = record("WorkflowFile", { id: CHECK_ID, repo: props.repo });
   return (
     <Column>
@@ -154,3 +174,8 @@ export const checkPane = definePane<{ repo: string }>({
   title: "Decisions check",
   view: (props) => <CheckReader repo={props.args.repo} />,
 });
+
+roundMains.set(CHECK_ID, (args) => checkPane({ repo: args.repo }));
+
+/** The check's questions beside it, while it waits. */
+export const checkQuestions = (repo: string) => roundQuestionsPane({ id: CHECK_ID, repo });

@@ -109,6 +109,13 @@ failed: boolean, };
 export type AnswerSave = { repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string, };
 
 /**
+ * What an answer's save answers: the answer as the core wrote it, from its letters and comment,
+ * which the next save of that question takes as `previous`, and the round's hash as written,
+ * which the next save of a round of the default branch takes as `base`.
+ */
+export type AnswerSaved = { answer: string, hash: string, };
+
+/**
  * Submits a feature's latest round, and commits it.
  */
 export type AnswersSubmit = { repo: string, folder: string, 
@@ -6206,14 +6213,14 @@ export type Records = {
 /** Every action, by the name a `call` gives: its input, and its output. */
 export type Actions = {
   "agent.refreshModels": { input: null; output: null };
-  "answer.save": { input: AnswerSave; output: null };
+  "answer.save": { input: AnswerSave; output: AnswerSaved };
   "answers.submit": { input: AnswersSubmit; output: null };
   "buffer.save": { input: BufferSave; output: Saved };
   "change.fromNote": { input: ChangeFromNote; output: ChangeStarted };
   "change.start": { input: ChangeStart; output: ChangeStarted };
   "change.startProposal": { input: ChangeStartProposal; output: ChangeStarted };
   "commit.retry": { input: CommitRetry; output: null };
-  "defaultRound.answer": { input: DefaultRoundAnswer; output: Saved };
+  "defaultRound.answer": { input: DefaultRoundAnswer; output: AnswerSaved };
   "defaultRound.dismiss": { input: DefaultRoundDismiss; output: null };
   "defaultRound.notes": { input: DefaultRoundNotes; output: Saved };
   "defaultRound.retry": { input: DefaultRoundRetry; output: null };

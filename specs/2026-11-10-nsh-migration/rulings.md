@@ -7297,3 +7297,97 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   built, printing two lines, so a refused write can be seen and tested.
 - **Where**: `app/ui/surfaces/Toast.tsx`, `app/ui/controls/icons/lucide.ts`,
   `crates/server/src/sandbox/others.rs`.
+
+## T42.1: One round component answers every round, one question at a time, where the device left it
+
+- **Decision**: `app/screens/round/` draws a round of questions for a feature's round
+  (`/f/<folder>/clarifications-NN.md`), the inbox's triage, and the decisions check: `Answering`,
+  over `WorkflowFile`, shows one place at a time, the round's opening (its block, its context, and
+  "Check these"), each question asked, then its end (the points settled without the human, the
+  notes, the questions left, and the submit). A question shows its context through `Document`, its
+  example, why it matters, and its options as `SelectableCard`s with their pros and cons, the
+  recommended one marked and why, in the reading font. A letter (`a` to `f`, in a selection's scope)
+  picks that option alone and goes on; a press toggles it, for an answer of several letters; `n` `p`
+  move; `i` focuses the comment. The place shown is kept on the device (`round.at:<repo>\n<id>`),
+  and a round never visited opens at its opening, one with answers at its first question left.
+  Beside it, `round-questions` lists every place with its state, its answer in a few words, and
+  "recommended" when it follows the recommendation; `Enter` shows one. The triage's own question
+  view and end (`triage/Question.tsx`, `TriageEnd.tsx`) are gone; the check adds each option's
+  candidate decisions under it (`optionExtra`).
+- **Rationale**: the task asks for one way to answer a question in the app. The old round page drew
+  every question at once, its cards mounted one by one; a round of 12 questions read for 30 minutes
+  is one decision at a time, with what it needs in view, and the list beside it says where the
+  others stand.
+- **If wrong**: `Answering` draws every question in a `DocumentScroll`, the position becoming the
+  scroll's; the saves and the end stay.
+- **Where**: `app/screens/round/`, `app/screens/{triage,decisions,file}/`.
+
+## T42.2: An answer's save says the answer written; one queue per round; a submit sends each answer once
+
+- **Decision**: `answer.save` and `defaultRound.answer` answer `AnswerSaved { answer, hash }`: the
+  answer as the core composed it from the letters and the comment, which the question's next save
+  takes as `previous`, and the round's hash, which a default round's next save takes as `base`.
+  `savesOf(args)` keeps one queue per round for the app's run: answers, notes, settled comments, and
+  the submit, in the order made, each on what the one before wrote until the record shows it; a
+  refusal makes the record the truth again. A pick shows at once (`sent`) and its refusal goes under
+  the options; a comment and the notes are the device's as typed (`unsavedText`) and saved after a
+  pause of 1.2 s, as the field leaves, or with Ctrl+Enter. The submit saves every comment typed and
+  not saved, in any question, and every settled point's comment, then submits; the same answer
+  queued twice is one save.
+- **Rationale**: the client composed the answer itself in the React UI (`composed`), a copy of the
+  core's format; the triage's port used the record's answer as `previous`, which a second save sent
+  before the record came back read as changed elsewhere. The server knows what it wrote.
+- **Seen failing**: with the queue's guard against a second save of one answer removed,
+  `submitting sends every answer once` failed with `["Q3",[],"Never, for now."]` sent twice; with
+  the comment not kept on the device, `an answer typed and not submitted is there after a restart`
+  failed. A first run of the submit's test pressed it while the record had not shown Q2's saved
+  answer: the end now counts an answer written and not shown yet (`holds`).
+- **Where**: `crates/protocol/src/writing.rs`, `crates/server/src/records/writing/rounds.rs`,
+  `app/screens/round/saves.ts`.
+
+## T42.3: The submit is pressed, says what it commits, and names the questions left
+
+- **Decision**: the round's end has the one main action, "Commit 4 answers" for a feature's round
+  ("Submit 4 answers" for the default branch's), and a line saying what it commits and what follows;
+  a round asked during the implementation has "Commit and continue implementing" and "Commit and
+  revise the spec". Pressed while a question has no answer, it says which ("Q1.B and Q3 have no
+  answer yet: the agent goes on only once every question has one.") and shows the first. A committed
+  feature's round reads its answers under "Your answers are committed", with the agent's next run on
+  a button that opens the continue dialog (`NextRun`): the run never starts by itself. On a phone
+  the bar's action is "Next: Q3", then "To the submit", never the submit itself.
+- **Rationale**: rule 2 and the flows guide: the commit is deliberate, and the agent never starts
+  unseen; rule 9: after the commit, the way on is in view.
+- **Where**: `app/screens/round/{End,RoundPage,NextRun,index}.tsx`.
+
+## T42.4: A review is the reader with a cursor on its parts, and its verdict in the Review pane
+
+- **Decision**: while a spec or a plan waits for the human, its reader holds a cursor on its
+  top-level blocks (its bar on the block's left), which follows the block at the top as the reader
+  scrolls; `J` `K` move it a part at a time, `c` or a press on a part opens a comment's field under
+  it. Pending comments hang under the block their lines end in, each with Edit and Remove. A
+  comment's text is the device's as typed, so it is never lost and leaving asks first, and goes into
+  the review with its button, Ctrl+Enter, or as the field leaves. The Review pane, now on a plan's
+  page too and first in the side stack, holds the verdict: the general comment, always there; a
+  spec's risk tier and plan review; what an approval accepts of the decisions the branch changes;
+  then Approve (main) and Request changes, which without a comment says so under the buttons. The
+  reader's head has "Approve or request changes", which focuses the Review pane. Once given, the
+  pane says the verdict and offers the agent's next run (`NextRun`). No summary is sent: the general
+  comment is it, as the flows guide asks.
+- **Rationale**: the old review was a page of its own around the file; here the reader task 41 built
+  is extended, so the file reads the same reviewed or not, and the verdict sits beside it in one
+  place, never repeated.
+- **If wrong**: comments on a list's items or a table's rows, which `mark` already reaches, need a
+  cursor that enters a block; a decision's lines are commented on in the decision's own reader.
+- **Where**: `app/screens/review/`, `app/screens/file/{Reader,SpecReview,panes}.tsx`.
+
+## T42.5: What the library gained, and what this task leaves
+
+- **Decision**: `SelectableCard` takes `children` under its words; `app/ui/document` exports
+  `Phrase` (spans as prose outside a document); `DocumentHands` take `onPress` and `selected` for
+  top-level blocks, the cursor drawn with the lists' `Bar`. Left: a comment on a story or a mockup
+  is a review comment on the block that embeds it in the reader, and the mockup's own page and pick
+  mode take none (`MockupPage.tsx` says so); the undo of a removed comment is task 50's
+  (`review.remove` and `settled.remove` answer their change); asking the agent about a question, and
+  "Ask AI" on a settled point, wait on the session's composer of a feature's page; comments on a
+  decision's lines from a spec's review are not built.
+- **Where**: `app/ui/{lists/SelectableCard.tsx,document/}`, `app/screens/preview/MockupPage.tsx`.

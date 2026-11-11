@@ -307,7 +307,8 @@ async fn a_write_and_its_landing_reach_the_records_of_every_domain() {
     let answer = json!({
         "folder": WEB, "question": "Q1", "letters": ["A"], "comment": "", "previous": "",
     });
-    fx.call("answer.save", answer).await;
+    let saved = fx.call("answer.save", answer).await;
+    assert_eq!(saved["answer"], "A");
     fx.until(round, |file| *file != asked).await;
 
     // A commit is written at once: the proposal's record has the text while its hooks run.
@@ -500,6 +501,8 @@ async fn a_round_of_the_default_branch_is_answered_and_committed() {
     let first = fx
         .call("defaultRound.answer", answer("Q1", &hash_of(&read)))
         .await;
+    // It says the answer as written, which the question's next save takes as `previous`.
+    assert_eq!(first["answer"], "A");
     let stale = fx
         .refused("defaultRound.answer", answer("Q2", &hash_of(&read)))
         .await;

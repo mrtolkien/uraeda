@@ -1,7 +1,7 @@
-// A spec's review, beside it: the review not sent yet, the review its revision answers, and every
+// A spec's or a plan's review, beside it: the verdict while it waits (`app/screens/review/`), then
+// the review not sent yet, the review its revision answers, and every
 // part changed since that review, one row each. `Enter` or a press on a changed part brings it to
-// the reader's top; a removed part says its words, which the reader no longer holds. Sending a
-// verdict is task 42's review, never this pane's.
+// the reader's top; a removed part says its words, which the reader no longer holds.
 import { View } from "nsh";
 import type { FileView, ReviewItems, SinceChange } from "../../store/protocol";
 import { Banner, Heading, type IconName } from "../../ui/controls";
@@ -11,6 +11,8 @@ import { plural } from "./facts";
 import { readerPane } from "./panes";
 import { jumpTo } from "./place";
 import { type FileArgs, shownOf, WithFile } from "./read";
+import { reviewable } from "../review/Marks";
+import { Given, Verdict } from "../review/Verdict";
 
 /** A review's verdict, in words. */
 const VERDICTS: Readonly<Record<string, string>> = {
@@ -94,8 +96,13 @@ function Since(props: { args: FileArgs; file: () => FileView }) {
 function Parts(props: { args: FileArgs; file: () => FileView }) {
   const pending = () => props.file().review?.review ?? null;
   const since = () => props.file().sinceReview;
+  const what = () => (props.file().kind === "plan" ? "plan" : "spec");
   return (
     <View style={{ gap: 16 }}>
+      <If when={reviewable(props.file())}>
+        <Verdict args={props.args} file={props.file} />
+      </If>
+      <Given args={props.args} file={props.file} />
       <If when={pending()}>
         {(review) => (
           <ReviewCard
@@ -136,14 +143,21 @@ function Parts(props: { args: FileArgs; file: () => FileView }) {
           </View>
         )}
       </If>
-      <If when={pending() === null && props.file().answered === null && since() === null}>
+      <If
+        when={
+          !reviewable(props.file()) &&
+          pending() === null &&
+          props.file().answered === null &&
+          since() === null
+        }
+      >
         <Empty
           icon="badge-check"
           title="No review yet"
           words={
             props.file().status === "awaiting-human"
-              ? "The spec waits for your first review."
-              : "The spec has not been sent for review: its agent is writing it."
+              ? `The ${what()} waits for your first review.`
+              : `The ${what()} has not been sent for review: its agent is writing it.`
           }
         />
       </If>

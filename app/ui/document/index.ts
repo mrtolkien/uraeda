@@ -6,3 +6,4 @@ export { Diff, type DiffProps } from "./Diff";
 export { Document, type DocumentProps } from "./Document";
 export { DocumentScroll, type DocumentScrollProps, type DocumentScrollRef } from "./DocumentScroll";
 export { Reply, type ReplyProps } from "./Reply";
+export { Phrase } from "./Spans";

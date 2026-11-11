@@ -78,6 +78,16 @@ pub struct Saved {
     pub hash: String,
 }
 
+/// What an answer's save answers: the answer as the core wrote it, from its letters and comment,
+/// which the next save of that question takes as `previous`, and the round's hash as written,
+/// which the next save of a round of the default branch takes as `base`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct AnswerSaved {
+    pub answer: String,
+    pub hash: String,
+}
+
 /// Saves one answer of a feature's latest round, from the letters picked and a comment, over
 /// the answer last read.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -91,7 +101,7 @@ pub struct AnswerSave {
     pub previous: String,
 }
 
-action!(AnswerSave, "answer.save", ());
+action!(AnswerSave, "answer.save", AnswerSaved);
 
 /// Submits a feature's latest round, and commits it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -285,7 +295,7 @@ pub struct DefaultRoundAnswer {
     pub base: String,
 }
 
-action!(DefaultRoundAnswer, "defaultRound.answer", Saved);
+action!(DefaultRoundAnswer, "defaultRound.answer", AnswerSaved);
 
 /// Saves the notes of a round of the default branch, as an answer is.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]

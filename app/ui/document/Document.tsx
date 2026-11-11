@@ -41,6 +41,12 @@ export function shared(
     get onLink() {
       return props.onLink;
     },
+    get onPress() {
+      return props.onPress;
+    },
+    get selected() {
+      return props.selected;
+    },
     get override() {
       return props.override;
     },

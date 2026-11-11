@@ -90,7 +90,8 @@ export const mockupPane = definePane<Of>({
   view: (props) => (
     <View style={{ flex: 1, gap: 8 }}>
       <Text tone="quiet">{pathOf(props.args)}</Text>
-      {/* TASK 42: a comment on the spec's line that links the mockup, while the spec waits. */}
+      {/* A comment on a mockup is the review's, on the line of the file that links it: written
+          under its embed in the reader (`app/screens/review/`). Pick mode is not built. */}
       <MockupLive
         keys
         path={pathOf(props.args)}

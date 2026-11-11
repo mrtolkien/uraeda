@@ -2704,12 +2704,31 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Tests:** `an answer typed and not submitted is there after a restart`;
   `submitting sends every answer once`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): rounds and reviews`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names, in `app/screens/round/round.test.tsx`, over the
+      sample's `2026-10-17-round-mockup` round (its submit refused by the check page). Each failed
+      with its guard removed.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says:
+      `just     app-shots` of the sample's round and the realistic leader key's spec.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 131 tests passed;
+      `just task uraeda-server uraeda-protocol`: passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): rounds and reviews`.
+
+**As built** (rulings T42.1 to T42.5):
+
+- `app/screens/round/` exports `Answering` (`{ args: { repo, id }, file, optionExtra? }`, a round
+  waiting), `Answers` (read-only), `roundPane` (`round`, main, a feature's round), and
+  `roundQuestionsPane` (`round-questions`, side); `roundMains` maps a default round's id to its
+  screen's main pane. `id` is the `WorkflowFile` id: `<folder>/<name>`, `inbox-triage`, or
+  `decisions-check`. The file place gives `clarifications-NN.md` the round's two panes; a plan's
+  page gains the Review pane; the Review pane comes first in the side stack.
+- `answer.save` and `defaultRound.answer` answer `AnswerSaved { answer, hash }`.
+- `app/screens/review/`: `reviewMark`, `reviewable`, `CommentField`, `Verdict`, `Given`, and the
+  reader's cursor (`J` `K`, `c`, a press). `app/screens/round/NextRun.tsx` is the agent's next run
+  on a button, opening the continue dialog.
+- The device keeps `round.at:<repo>\n<id>`. `SelectableCard` takes `children`; `app/ui/document`
+  exports `Phrase`; `DocumentHands` take `onPress` and `selected`.
 
 ## Task 43: Sessions
 

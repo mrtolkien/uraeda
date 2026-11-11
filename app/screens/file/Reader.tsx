@@ -7,10 +7,13 @@
 import { effect, untracked, View } from "nsh";
 import { imageOf, navigate, positions, route } from "../../store";
 import type { Block, FileView, SinceChange, SpanImage, VersionView } from "../../store/protocol";
-import { Banner, StatusDot, Text } from "../../ui/controls";
+import { Banner, Button, StatusDot, Text } from "../../ui/controls";
 import { DocumentScroll, type DocumentScrollRef } from "../../ui/document";
 import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
+import { isNarrow } from "../../ui/width";
+import { reviewMark, reviewable } from "../review/Marks";
+import { reviewOf } from "../review/state";
 import { MockupEmbed, StoryEmbed } from "../preview";
 import { follow, headingAt } from "./links";
 import { atTop, jumps } from "./place";
@@ -40,13 +43,13 @@ function Since(props: { kind: string }) {
 }
 
 /** An image of the file: one of the repository's, fetched with the sign-in, or one of the web. */
-function imageFor(repo: string, image: SpanImage): string | undefined {
+export function imageFor(repo: string, image: SpanImage): string | undefined {
   if (image.path !== null) return imageOf(repo, image.path)() ?? undefined;
   return /^https?:\/\//.test(image.target) ? image.target : undefined;
 }
 
 /** A story or a mockup its paragraph links alone, live in place, in the feature's checkout. */
-function embedAt(args: FileArgs, version: VersionView, block: Block) {
+export function embedAt(args: FileArgs, version: VersionView, block: Block) {
   const link = version.stories.find((one) => one.block === block.id);
   if (link !== undefined) return <StoryEmbed folder={args.folder} link={link} repo={args.repo} />;
   const mockup = version.mockups.find((one) => one.block === block.id);
@@ -57,7 +60,7 @@ function embedAt(args: FileArgs, version: VersionView, block: Block) {
 }
 
 /** What the file is, where it stands, and what it asks of the human. */
-function Head(props: { file: FileView }) {
+function Head(props: { file: FileView; onVerdict?: () => void }) {
   const status = () => statusOf(props.file);
   const said = () => facts(props.file);
   return (
@@ -69,9 +72,23 @@ function Head(props: { file: FileView }) {
         />
         <Each of={said()}>{(fact) => <Text tone="faint">{`· ${fact()}`}</Text>}</Each>
       </View>
-      {/* TASK 42: the file's one main action goes here, a `Button` of `variant="main"`: "Review
-          the spec" or "Answer the round" while it waits for the human, which opens task 42's
-          review, its approval and its request for changes. Never a second approve button. */}
+      <If when={props.onVerdict !== undefined && reviewable(props.file)}>
+        <View style={{ alignItems: "flex-start", gap: 6 }}>
+          <Button
+            breathes
+            icon="badge-check"
+            label="Approve or request changes"
+            onPress={() => props.onVerdict?.()}
+            testID="review-verdict"
+            variant="main"
+          />
+          <Text tone="quiet">
+            {isNarrow()
+              ? "Tap a part to comment on it. Your verdict is in the Review pane."
+              : "Press a part, or c on the one at the top, to comment on it; J and K move between parts. Your verdict is in the Review pane."}
+          </Text>
+        </View>
+      </If>
       <If when={props.file.status === "awaiting-human" && props.file.committed !== null}>
         <Banner title="This is the version committed for your review" tone="info">
           The file on disk changed since: an agent is writing it again. What you review is what was
@@ -88,7 +105,7 @@ function Head(props: { file: FileView }) {
   );
 }
 
-function Read(props: { args: FileArgs; file: () => FileView }) {
+function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => void }) {
   const pane = usePane();
   const kept = positions();
   const name = `${pane.key}:document`;
@@ -96,6 +113,45 @@ function Read(props: { args: FileArgs; file: () => FileView }) {
   const shown = () => shownOf(props.file());
   const since = () => props.file().sinceReview?.parts ?? [];
   let scroll: DocumentScrollRef | undefined;
+  const review = reviewOf(props.args);
+  const reviewing = () => reviewable(props.file());
+  const hung = reviewMark(props.args, props.file);
+  /** The top-level blocks, in order: what the review's cursor moves through. */
+  const tops = () => shown().document.blocks.filter((block) => block.parent === null);
+  const moveCursor = (by: number) => {
+    const all = tops();
+    const at = all.findIndex((block) => block.id === review.cursor());
+    const next = all[Math.max(0, Math.min(all.length - 1, (at === -1 ? 0 : at) + by))];
+    if (next === undefined) return false;
+    review.cursor.set(next.id);
+    scroll?.toBlock(next.id);
+    return undefined;
+  };
+  registerKey([
+    {
+      hint: "c",
+      hintLabel: "comment",
+      keys: "c",
+      label: "Comment on the part at the cursor",
+      run: () => {
+        const at = review.cursor() ?? tops()[0]?.id;
+        if (at === undefined) return false;
+        review.cursor.set(at);
+        review.writing.set({ block: at });
+        return undefined;
+      },
+      when: reviewing,
+    },
+    {
+      hint: "J K",
+      hintLabel: "part",
+      keys: "J",
+      label: "Next part",
+      run: () => moveCursor(1),
+      when: reviewing,
+    },
+    { keys: "K", label: "Previous part", run: () => moveCursor(-1), when: reviewing },
+  ]);
   registerKey({
     icon: "file-pen-line",
     keys: "space b",
@@ -119,17 +175,30 @@ function Read(props: { args: FileArgs; file: () => FileView }) {
   return (
     <DocumentScroll
       document={shown().document}
-      header={<Head file={props.file()} />}
+      header={<Head file={props.file()} onVerdict={props.onVerdict} />}
       image={(image) => imageFor(props.args.repo, image)}
       mark={(block) => {
-        // TASK 42: a review's comments and a round's question cards hang under their blocks here.
         const part = sinceAt(since(), block);
-        return part === undefined ? undefined : <Since kind={part.kind} />;
+        return (
+          <>
+            {part === undefined ? undefined : <Since kind={part.kind} />}
+            {hung(block)}
+          </>
+        );
       }}
+      onPress={(block) => {
+        if (!untracked(reviewing)) return;
+        review.cursor.set(block.id);
+        review.writing.set({ block: block.id });
+      }}
+      selected={(block) => reviewing() && review.cursor() === block.id}
       offset={opened}
       onLink={(link) => follow(link, props.args, props.file().path, shown().document)}
       onOffset={(offset) => kept.keep(name, offset)}
-      onPlace={(block) => atTop(props.args, block)}
+      onPlace={(block) => {
+        atTop(props.args, block);
+        if (untracked(review.writing) === null) review.cursor.set(block);
+      }}
       override={(block) => embedAt(props.args, shown(), block)}
       ref={(ref) => {
         scroll = ref;
@@ -142,6 +211,10 @@ function Read(props: { args: FileArgs; file: () => FileView }) {
 }
 
 /** The pane of a file's document. */
-export function Reader(props: { args: FileArgs }) {
-  return <WithFile args={props.args}>{(file) => <Read args={props.args} file={file} />}</WithFile>;
+export function Reader(props: { args: FileArgs; onVerdict?: () => void }) {
+  return (
+    <WithFile args={props.args}>
+      {(file) => <Read args={props.args} file={file} onVerdict={props.onVerdict} />}
+    </WithFile>
+  );
 }

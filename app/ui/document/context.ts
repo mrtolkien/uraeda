@@ -22,6 +22,13 @@ export type DocumentHands = {
    * list's item, and each table's row; `block.id` is stable for a tree.
    */
   mark?: (block: Block) => JSX.Element | undefined;
+  /**
+   * A press on a block of the top level: a review starts a comment on it. A link inside it still
+   * goes where it leads.
+   */
+  onPress?: (block: Block) => void;
+  /** Whether a block of the top level holds the screen's cursor: its bar on its left edge. */
+  selected?: (block: Block) => boolean;
   /** A block the screen draws its own way, as a story or a mockup embedded live, or none. */
   override?: (block: Block) => JSX.Element | undefined;
 };

@@ -4,13 +4,15 @@
 // whose bar it leaves to the cursor. It takes the focus and presses as every control does
 // (`press.ts`): Tab reaches it in a dialog, Enter or Space picks it, and its ring shows where the
 // focus is.
-import { View } from "nsh";
+import { type JSX, View } from "nsh";
 import { Button as Base } from "nsh/base";
 import { Icon, type IconName, type PressState, pressable, Text } from "../controls";
 import { Surface } from "../surfaces";
 import { tokens } from "../tokens";
 
 export type SelectableCardProps = {
+  /** What its words cannot hold, under them: an option's pros and cons, drawn rich. */
+  children?: JSX.Element;
   disabled?: boolean;
   /** In an overlay, it takes the focus as the overlay opens. */
   first?: boolean;
@@ -76,6 +78,7 @@ export function SelectableCard(props: SelectableCardProps) {
         <If when={props.words}>
           {(words) => <Text tone={off() ? "faint" : "quiet"}>{words()}</Text>}
         </If>
+        {props.children}
       </Surface>
     </Base>
   );

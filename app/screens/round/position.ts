@@ -1,0 +1,62 @@
+// Where the human is in a round: its opening, a question, or its end. Kept on the device, by the
+// round, so a round of 12 questions answered over a day, on the desktop or on the phone, opens
+// where that device left it. A round never visited opens at its opening, its context before its
+// first question; one with answers at its first question left without one.
+import { type Accessor, untracked } from "nsh";
+import { device } from "../../store";
+import type { QuestionItem, RoundItems } from "../../store/protocol";
+import type { RoundArgs } from "./saves";
+
+/** The round's opening: its verdict, its context, and the points to check. */
+export const START = "start";
+/** The round's end: the points settled without the human, the notes, and the submit. */
+export const END = "end";
+
+/** The questions the round asks now, in the file's order, each follow-up after its parent. */
+export const askedOf = (round: RoundItems | null | undefined): ReadonlyArray<QuestionItem> =>
+  round?.questions.filter((question) => question.asked) ?? [];
+
+/** Whether a question has an answer in the file. */
+export const answered = (question: QuestionItem) => question.answer.trim() !== "";
+
+/** Every place of a round, in order: its opening, each question asked, its end. */
+export const stopsOf = (round: RoundItems | null | undefined): ReadonlyArray<string> => [
+  START,
+  ...askedOf(round).map((question) => question.id),
+  END,
+];
+
+const keyOf = (args: RoundArgs) => `round.at:${args.repo}\n${args.id}` as const;
+
+export type Position = {
+  /** The place shown: a question's id, `START`, or `END`. */
+  at: Accessor<string>;
+  /** Shows a place. */
+  go: (to: string) => void;
+  /** Shows the place `by` steps after the one shown, or before it. */
+  step: (by: number) => void;
+};
+
+export function positionOf(args: RoundArgs, round: () => RoundItems | null | undefined): Position {
+  const stops = () => stopsOf(round());
+  const first = () => {
+    const asked = askedOf(untracked(round));
+    if (!asked.some(answered)) return START;
+    return asked.find((question) => !answered(question))?.id ?? END;
+  };
+  const at = () => {
+    const kept = device.get(keyOf(args));
+    // A question no longer asked, a follow-up whose parent's answer changed, opens its round anew.
+    return kept !== undefined && stops().includes(kept) ? kept : first();
+  };
+  const go = (to: string) => device.set(keyOf(args), to);
+  return {
+    at,
+    go,
+    step(by) {
+      const all = untracked(stops);
+      const index = all.indexOf(untracked(at));
+      go(all[Math.max(0, Math.min(all.length - 1, index + by))] ?? START);
+    },
+  };
+}

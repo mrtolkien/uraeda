@@ -6,9 +6,9 @@ use uraeda_core::api::{self, undo};
 use uraeda_core::files::document::hash;
 use uraeda_core::view::FileView;
 use uraeda_protocol::{
-    AnswerSave, AnswersSubmit, DefaultRoundAnswer, DefaultRoundDismiss, DefaultRoundNotes,
-    DefaultRoundRetry, DefaultRoundSubmit, NotesSave, Saved, SettledAddComment, SettledEdit,
-    SettledRemove,
+    AnswerSave, AnswerSaved, AnswersSubmit, DefaultRoundAnswer, DefaultRoundDismiss,
+    DefaultRoundNotes, DefaultRoundRetry, DefaultRoundSubmit, NotesSave, Saved, SettledAddComment,
+    SettledEdit, SettledRemove,
 };
 
 use super::undo::recorded;
@@ -31,8 +31,9 @@ fn answers(registry: &Registry) {
         write(call.shared(), &input.repo, saving, |repo| {
             let (folder, question) = (&input.folder, &input.question);
             let (letters, comment) = (&input.letters, &input.comment);
-            api::save_answer(repo, folder, question, letters, comment, &input.previous)?;
-            Ok(())
+            let saved =
+                api::save_answer(repo, folder, question, letters, comment, &input.previous)?;
+            Ok(answered(&saved, question))
         })
     });
     registry.action::<NotesSave>(|call, input| {
@@ -95,7 +96,7 @@ fn default_saves(registry: &Registry) {
             let base = &input.base;
             let saved =
                 api::save_round_answer(repo, round, question, letters, comment, previous, base)?;
-            Ok(written(&saved))
+            Ok(answered(&saved, question))
         })
     });
     registry.action::<DefaultRoundNotes>(|call, input| {
@@ -132,6 +133,22 @@ fn default_commits(registry: &Registry) {
             Ok(())
         })
     });
+}
+
+/// What an answer's save answers: the answer as written, and the round's hash.
+fn answered(round: &FileView, question: &str) -> AnswerSaved {
+    let answer = round
+        .current
+        .items
+        .clarifications
+        .as_ref()
+        .and_then(|items| items.questions.iter().find(|one| one.id == question))
+        .map(|one| one.answer.clone())
+        .unwrap_or_default();
+    AnswerSaved {
+        answer,
+        hash: hash(&round.current.text),
+    }
 }
 
 /// What a save of a round answers: the hash of its text as written.

@@ -6,7 +6,7 @@ import { route } from "../../store";
 import { definePlace } from "../../ui/layout";
 import { isNarrow } from "../../ui/width";
 import { branchDecisionPane } from "./Branch";
-import { checkPane } from "./Check";
+import { checkPane, checkQuestions } from "./Check";
 import { listPane } from "./List";
 import { constitutionPane, decisionPane } from "./Reader";
 
@@ -37,5 +37,6 @@ definePlace("branch-decision", (shown) => [
 ]);
 definePlace("decisions-check", (shown) => [
   checkPane({ repo: repoOf(shown) }),
+  checkQuestions(repoOf(shown)),
   listPane({ repo: repoOf(shown) }),
 ]);

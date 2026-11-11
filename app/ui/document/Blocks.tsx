@@ -4,6 +4,7 @@
 import { type JSX, Text, View } from "nsh";
 import type { Block, Document as Tree, Span } from "../../store/protocol";
 import { Divider } from "../controls";
+import { Bar } from "../lists/Row";
 import { Callout, Quote } from "./Callout";
 import { Code } from "./Code";
 import { DocumentContext } from "./context";
@@ -90,6 +91,7 @@ export function BlockView(props: { block: Block; first: boolean; read: Read }) {
   const block = props.block;
   const own = hands.override?.(block);
   const mark = hands.mark?.(block);
+  const top = block.parent === null;
   const air = block.kind === "heading" && !props.first ? (HEADING_AIR[block.level ?? 2] ?? 6) : 0;
   return (
     <View
@@ -97,8 +99,14 @@ export function BlockView(props: { block: Block; first: boolean; read: Read }) {
         marginTop: (props.first ? 0 : BLOCK_GAP) + air,
         maxWidth: PROSE.has(block.kind) ? measure() : undefined,
       }}
+      onPress={top && hands.onPress !== undefined ? () => hands.onPress?.(block) : undefined}
       testID={`block-${block.id}`}
     >
+      <If when={top && hands.selected?.(block) === true}>
+        <View style={{ bottom: 0, left: -10, position: "absolute", top: 0, width: 2 }}>
+          <Bar />
+        </View>
+      </If>
       {own ?? <Kind block={block} read={props.read} />}
       {mark}
     </View>

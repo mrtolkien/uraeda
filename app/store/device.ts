@@ -35,6 +35,8 @@ export type DeviceKeys = {
   "decisions.sort": "changed-desc" | "changed-asc" | "title";
   /** Whether the desktop's notifications are on, once asked (`app/screens/shell/Notifications.tsx`). */
   notifications: boolean;
+  /** Where the human is in a round of questions, by its repository and id (`app/screens/round/`). */
+  [round: `round.at:${string}`]: string;
   /** The width a story and a mockup show at, once picked (`app/screens/preview/`). */
   "preview.width": { mockup?: "phone" | "desktop" | "fit"; story?: "phone" | "desktop" | "fit" };
 };

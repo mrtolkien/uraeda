@@ -1,0 +1,95 @@
+// A comment of a review, written where it points: under its block in the reader, or the general
+// one in the Review pane. Its text is the device's as it is typed, so nothing typed is lost, and
+// leaving the page with some asks first; it goes into the review file with its button,
+// Ctrl+Enter, or as the field leaves. A comment is a write of the review alone: nothing commits
+// before the verdict.
+import { signal, View } from "nsh";
+import { call } from "../../store";
+import type { CommentItem, FileView } from "../../store/protocol";
+import { Button, Text } from "../../ui/controls";
+import { TextField, unsavedKey, unsavedText } from "../../ui/text";
+import type { FileArgs } from "../file/read";
+
+/** Where a new comment points: lines of the file as reviewed, or the whole file. */
+export type Lines = { endLine: number; startLine: number } | null;
+
+export type CommentFieldProps = {
+  args: FileArgs;
+  file: FileView;
+  /** A pending comment edited, or a new one on `lines`. */
+  editing?: CommentItem;
+  lines: Lines;
+  label: string;
+  /** Closes the field: its text, if not saved, stays on the device. */
+  onClose?: () => void;
+  autoFocus?: boolean;
+  testID?: string;
+};
+
+/** The field's key on the device: one per place a comment is written. */
+function keyOf(props: CommentFieldProps) {
+  const where =
+    props.editing !== undefined
+      ? `edit:${props.editing.number}`
+      : props.lines === null
+        ? "general"
+        : `lines:${props.lines.startLine}-${props.lines.endLine}`;
+  return unsavedKey(props.args.repo, `${props.file.path}#review:${where}`);
+}
+
+export function CommentField(props: CommentFieldProps) {
+  const text = unsavedText(keyOf(props), () => props.editing?.text ?? "");
+  const refusal = signal<string | null>(null);
+  const pending = signal(false);
+  const save = async () => {
+    const words = text.text().trim();
+    if (pending() || !text.dirty()) return;
+    pending.set(true);
+    refusal.set(null);
+    const where = { file: props.args.name, folder: props.args.folder, repo: props.args.repo };
+    try {
+      if (props.editing !== undefined) {
+        await (words === ""
+          ? call("review.remove", { ...where, number: props.editing.number })
+          : call("review.edit", { ...where, number: props.editing.number, text: words }));
+      } else if (words !== "") {
+        await call("review.comment", { ...where, ...props.lines, text: words });
+      }
+      text.discard();
+      props.onClose?.();
+    } catch (error) {
+      refusal.set(`Not saved: ${(error as Error).message} Your text stays on this device.`);
+    }
+    pending.set(false);
+  };
+  return (
+    <View style={{ gap: 6, paddingTop: 6 }}>
+      <TextField
+        autoFocus={props.autoFocus}
+        hint={text.dirty() ? "Kept on this device until it is saved" : undefined}
+        label={props.label}
+        onBlur={() => void save()}
+        onQuit={props.onClose}
+        onSave={() => void save()}
+        onChange={text.change}
+        placeholder="What should change, or be kept in mind"
+        refusal={refusal()}
+        rows={{ max: 10, min: 2 }}
+        testID={props.testID}
+        value={text.text()}
+      />
+      <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Button
+          icon="check"
+          label={props.editing !== undefined ? "Save the change" : "Save the comment"}
+          onPress={() => void save()}
+          pending={pending()}
+        />
+        <If when={props.onClose}>
+          {(close) => <Button label="Close" onPress={() => close()()} />}
+        </If>
+        <Text tone="faint">Saved in the review, sent with your verdict.</Text>
+      </View>
+    </View>
+  );
+}
