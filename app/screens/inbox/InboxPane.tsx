@@ -11,11 +11,11 @@ import { createCursor, Empty, Line, type LineProps, List } from "../../ui/lists"
 import type { TextFieldRef } from "../../ui/text";
 import { TriageBanner } from "../triage/TriageBanner";
 import { ORGANIZE_INBOX, startChat } from "../triage/chat";
-import { deleteNote, remember } from "./actions";
+import { deleteNote } from "./actions";
+import { remember } from "../shell/undo";
 import { AddNote, heldFor, holdImages } from "./AddNote";
 import { CategoryDialog } from "./CategoryDialog";
 import { droppedImages, pastedImage, pickImages } from "../images";
-import { LastAction } from "./LastAction";
 import { categoryAt, type InboxRow, marksOf, plain, plural, rowsOf } from "./model";
 import { NotePicker, type Picking } from "./Pickers";
 
@@ -157,7 +157,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
             repo: props.repo,
           });
           const label = `Deleted the category ${name}${one.count > 0 ? ": its notes stay, without a category" : ""}.`;
-          remember({ change: written.change, label, repo: props.repo, subject: name });
+          remember(written.change, label, { repo: props.repo, subject: name });
         });
       },
     },
@@ -258,7 +258,6 @@ function Notes(props: { inbox: Inbox; repo: string }) {
           <If when={route().page === "triage" ? null : props.inbox.triage}>
             {(status) => <TriageBanner repo={props.repo} status={status()} />}
           </If>
-          <LastAction repo={props.repo} />
           <If when={props.inbox.count === 0 && heldFor(props.repo).length === 0}>
             <Empty
               icon="inbox"
@@ -293,14 +292,26 @@ function Notes(props: { inbox: Inbox; repo: string }) {
             onSave={async (name) => {
               const now = shown();
               if (now.kind === "rename") {
-                await call("inbox.renameCategory", {
+                const written = await call("inbox.renameCategory", {
                   from: now.name,
                   hash: props.inbox.hash,
                   repo: props.repo,
                   to: name,
                 });
+                remember(written.change, `Renamed the category ${now.name} to ${name}.`, {
+                  repo: props.repo,
+                  subject: name,
+                });
               } else {
-                await call("inbox.addCategory", { hash: props.inbox.hash, name, repo: props.repo });
+                const written = await call("inbox.addCategory", {
+                  hash: props.inbox.hash,
+                  name,
+                  repo: props.repo,
+                });
+                remember(written.change, `Added the category ${name}.`, {
+                  repo: props.repo,
+                  subject: name,
+                });
               }
             }}
             title={shown().kind === "rename" ? "Rename the category" : "New category"}

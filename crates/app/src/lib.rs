@@ -13,6 +13,7 @@ mod highlight;
 #[cfg(all(target_os = "linux", feature = "host"))]
 pub mod host;
 mod native;
+pub mod notify;
 mod patch;
 mod reply;
 #[cfg(all(target_os = "linux", feature = "host"))]

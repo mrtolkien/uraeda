@@ -7,6 +7,7 @@ import { type Arrangement, arrangementOf, byKey, type Move, moveOf } from "./ord
 import { call, type Live, StoreError } from "../../store";
 import type { Priorities, ProposalsMove } from "../../store/protocol";
 import { sent } from "../../ui/controls";
+import { remember } from "../shell/undo";
 
 /** What the page shows: an order, and the write that made it, for one the human made. */
 type Shown = { order: Arrangement; write?: Omit<ProposalsMove, "repo" | "hash"> };
@@ -56,6 +57,12 @@ export function createOrder(repo: Accessor<string>, priorities: Live<Priorities 
     try {
       const written = await call("proposals.move", { ...next.write, hash: over, repo: repo() });
       wrote = { now: written.hash, over };
+      // Moves a second apart are one action on the stack, and say nothing: the row moved.
+      remember(written.change, "Moved a proposal in the priorities.", {
+        quiet: true,
+        repo: repo(),
+        run: `priorities:${repo()}`,
+      });
     } catch (error) {
       throw new Error(words(error), { cause: error });
     }

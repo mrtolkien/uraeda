@@ -4,6 +4,7 @@
 import { type Accessor, computed, View } from "nsh";
 import type { Order } from "./moves";
 import { shownIn } from "./order";
+import { remember } from "../shell/undo";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
 import { Refusal } from "../../ui/controls";
@@ -194,7 +195,17 @@ function Add(props: { active: () => boolean; repo: string; section: string }) {
     if (text === "" || hash === undefined) return;
     typed.set("");
     try {
-      await call("proposals.add", { hash, repo: props.repo, section: props.section, text });
+      const written = await call("proposals.add", {
+        hash,
+        repo: props.repo,
+        section: props.section,
+        text,
+      });
+      remember(written.change, `Added “${text}” to the priorities.`, {
+        quiet: true,
+        repo: props.repo,
+        subject: text,
+      });
       refusal.set(null);
     } catch (error) {
       typed.set(text);

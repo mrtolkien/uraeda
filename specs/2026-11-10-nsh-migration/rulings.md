@@ -7213,3 +7213,87 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the sandbox starts only while it has no session: seeded there, it lost its run and the feature
   page's tests failed.
 - **Where**: `crates/server/src/sandbox/{feature_runs,sessions}.rs`.
+
+## R370: The app tells of what comes to need the human by a toast, and the desktop by its own switch
+
+- **Decision**: `app/screens/shell/Notifications.tsx` ports the web notifier's rule over
+  `NeedsYouList`: the first list read is seen, and tells nothing; each `key` that comes after tells
+  once; nothing tells of the page looked at while the window is focused (`lifecycle()` is `active`).
+  What tells is a toast in the app, always, with Open and Close, which goes once its page is opened
+  or the item no longer needs the human, at most three shown; and, while the window is not focused,
+  a notification of the desktop, whose click brings the window up (`orderFront`) on the item's page.
+  The desktop's notifications are a switch kept on the device (`notifications`), asked once by a
+  toast that says what will notify, at the first item that comes, never again after "Not now"; the
+  settings' Appearance has its row. Only the Linux host sends to the desktop: a test, a picture, or
+  `just app-dev` never does. The window's title counts what waits.
+- **Rationale**: the decision keeps a notification for an ask, and asks permission only after saying
+  why. Linux has no permission (R26), so the app's own switch stands for it; per device, as the
+  browser's was. The old web notifier had no toast in the page: a toast tells the human who looks at
+  another page of the app, which the desktop's notification would not, the window being focused.
+- **If wrong**: the toast is one component, `NeedsYouToasts`; the switch one device value.
+- **Where**: `app/screens/shell/Notifications.tsx`,
+  `app/screens/settings/{Appearance,categories}.ts*`, `app/store/device.ts`.
+
+## R371: The desktop's notifications are spoken from a thread of their own, with GLib's main loop
+
+- **Decision**: `crates/app/src/notify.rs` holds `send` and `clicks`, moved from the outside test
+  (which now calls them), each with a callback; and the module `Notifications`, exported flat:
+  `notifyDesktop(title, body)`, answering the notification's id, and `nextNotificationClick()`,
+  answering the id of the next one clicked, which the TSX awaits in a loop once it sent one. A
+  thread named `notifications` runs a GLib `MainContext` of its own with the session bus, at first
+  use; `notify` reaches it by `MainContext::invoke`, and the clicks come back on a `tokio` channel,
+  which needs no runtime. A build without the Linux host answers both with a refusal.
+- **Rationale**: NSH's engine runs on a thread of its own that runs no GLib loop, so `gio`'s answers
+  and signals, delivered on the context they were made on, would never come there; NSH's `Callback`
+  is not `Send`, so the click is handed over as a value the engine awaits.
+- **Where**: `crates/app/src/notify.rs`, `crates/app/tests/outside.rs`.
+
+## R372: One undo stack for the app, fed by `remember(change, words)`, its refusal kept in its toast
+
+- **Decision**: `app/screens/shell/undo.ts` is the app's one stack of the last 50 actions, of every
+  page and repository, until the app closes;
+  `remember(change, words, { repo, subject, place, went, run, quiet })` is what a screen calls with
+  its action's answer. `Undo.tsx` declares `u`, `Ctrl+Z`, `U`, and `Ctrl+Shift+Z` at the shell's
+  scope, each only while it has something to do, and draws the toast: "Done" with Undo and its key,
+  "Undone" with Redo, for 5 s; an undo of an action committed since asks first, in a dialog; after a
+  replay the page where the action happened opens. An undo the server refuses says why and that the
+  files stay as they are, in its toast, which stays until closed: it concerns no control on the
+  screen. The inbox's banner and its `u` (R278) are gone; the inbox's writes, the priorities' add
+  and moves (a run of moves within a second is one action), a proposal's expand and remove, and the
+  home's note call `remember`. A proposal's Remove no longer asks for a second press: Undo takes it
+  back, as the decision asks. Additions and edits whose field says so already are kept with `quiet`,
+  without a toast, and so are moves.
+- **Rationale**: one function, called with the server's answer, keeps every screen's undo one rule;
+  a refusal from a key pressed anywhere has no control to sit under.
+- **Left**: a review's and a round's undoable writes (`review.*`, `settled.remove`) answer
+  `Recorded { change }`: task 42 calls `remember` with them.
+- **Where**: `app/screens/shell/{undo.ts,Undo.tsx}`,
+  `app/screens/{inbox,priorities,proposal,home}/`.
+
+## R373: A refused write is a card of the toasts that stays until handled, in every repository
+
+- **Decision**: `app/screens/shell/Writes.tsx` reads `WriteQueue` of every repository listed. While
+  writes land, one quiet toast names the one running, a start's running step ("2 of 4: ..."), and
+  how many wait; once one leaves the queue unrefused, "Committed" (or "Pushed", "Pulled", ...) names
+  it for 2.5 s. A refused write is a card first in the stack, its plate in the danger tone: what was
+  refused (and in which repository, when not the one shown), where its files are (a hook's refusal
+  of an action's commit put them back; of the Git page's, they stay staged; a failure left them
+  written, not committed), the output whole in a well that scrolls, Dismiss (`writes.dismiss`), and
+  Retry (`commit.retry`, then the old one dismissed) where it applies, a feature's file left
+  written; any other offers Open, its page, which tries it again. On the Git page it was made on,
+  which shows the refusal under its commit box (R297), the card stays out of the way.
+- **Rationale**: a card in the stack is impossible to miss, takes no focus, and moves nothing; a
+  part of the status line that opens a list would hide the hook's output behind a press.
+  `commit.retry` commits a feature's file again, which a hook's refusal no longer holds: Retry there
+  would refuse.
+- **Where**: `app/screens/shell/Writes.tsx`.
+
+## R374: Toasts stand under the panes' titles, and take a tone; `broken` refuses every commit
+
+- **Decision**: `Toasts` starts a pane's title lower than before, so the tabs of the top pane under
+  it stay in reach (task 27 noted they covered the top pane's title), and on a narrow window under
+  the phone's bar of places; `Toast` takes `tone`, its plate's colour. `redo-2` joins the icons. The
+  sandbox's `broken` repository has a pre-commit hook that refuses every commit made once it is
+  built, printing two lines, so a refused write can be seen and tested.
+- **Where**: `app/ui/surfaces/Toast.tsx`, `app/ui/controls/icons/lucide.ts`,
+  `crates/server/src/sandbox/others.rs`.

@@ -3003,14 +3003,30 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Its own rules:** the app asks for notifications only after saying why, and never again after a
   refusal. `u` and `Ctrl+Z` undo, `U` and `Ctrl+Shift+Z` redo, on a stack of the last 50 actions. An
   undoable action never asks to confirm.
-- **Tests:** `undo puts back what the action changed`.
+- **Tests:** `undo puts back what the action changed`, and
+  `a refused commit stays shown until it is retried or dismissed`
+  (`app/screens/shell/frame.test.tsx`).
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): notifications, undo, and writes`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(nsh-migration): notifications, undo, and writes`.
+
+**As built** (rulings R370 to R374):
+
+- The frame mounts, once: `UndoKeys`, `Notifier`, and `Toasts` holding `RefusedWrites`,
+  `NeedsYouToasts`, `UndoToast`, and `LandingWrites`, then `UndoQuestion`
+  (`app/screens/shell/{Undo,Notifications,Writes}.tsx`).
+- **A screen calls `remember(change, words, options?)`** from `app/screens/shell/undo.ts` with an
+  undoable action's `change` (`Recorded`, `ListWritten`, `FileWritten`, `NoteMoved`): `repo` (the
+  one shown unless given), `subject`, `place`, `went`, `run` (moves of one list a second apart
+  join), `quiet` (no toast). Task 42 calls it for `review.*` and `settled.remove`.
+- `uraeda/native` exports `notifyDesktop(title, body)` and `nextNotificationClick()`
+  (`crates/app/src/notify.rs`, which also holds `send` and `clicks`); the device keeps
+  `notifications`; the settings' Appearance has "Desktop notifications".
+- `Toast` takes `tone`; the sandbox's `broken` refuses every commit by its pre-commit hook.
 
 ## Task 51: Built-in extensions, and extension places
 

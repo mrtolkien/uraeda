@@ -526,7 +526,7 @@ next to what it concerns.
 Every edit you make to your lists and texts can be taken back, in the order you made it, with no
 question first. So `d` deletes a row at once. Each tab keeps its last 50 actions, minutes or hours
 old. A reload, or another tab, starts with none: what they held stays in the files and on the Git
-page.
+page. The app keeps one stack for all its pages and repositories, until it closes.
 
 These can be undone:
 
@@ -559,7 +559,8 @@ history. Two cases stop it:
   as a new change, and Keep it leaves the action on the stack.
 - An undo is refused once the file changed since, from another tab, an agent, or a hand edit.
   Nothing is written, and "Could not undo: “Color themes” changed since in PRIORITIES.md." shows
-  under the top bar. The action leaves the stack.
+  under the top bar; in the app, in the undo's toast, which stays until closed. The action leaves
+  the stack.
 
 Only what loses work for good asks first, like discarding a file's changes on the Git page. A
 category that holds notes asks what to do with them, then its delete can be undone too.

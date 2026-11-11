@@ -54,7 +54,8 @@ pub(super) fn bare(path: &Path) -> Result<(), String> {
 }
 
 /// A project set up, then one feature per file of `fixtures/broken/`, each on its branch: its
-/// proposal, and that file, copied byte for byte.
+/// proposal, and that file, copied byte for byte. Its pre-commit hook refuses every commit made
+/// once it is built, so the app's refused writes can be seen and tested.
 pub(super) fn broken(path: &Path) -> Result<(), String> {
     let repo = empty(path)?;
     let source = fixture("broken");
@@ -80,6 +81,27 @@ pub(super) fn broken(path: &Path) -> Result<(), String> {
         ];
         let message = format!("docs({folder}): proposal");
         repo.commits(&folder, vec![Commit::new(message, None, files)])?;
+    }
+    refusing_hook(path)
+}
+
+/// What the `broken` repository's pre-commit hook prints as it refuses a commit.
+const REFUSAL: &str = "#!/bin/sh
+echo \"lint: the sandbox's broken repository refuses every commit\" >&2
+echo \"pre-commit: 1 check failed. Fix it, or dismiss this write.\" >&2
+exit 1
+";
+
+/// A pre-commit hook that refuses every commit, in the repository at `path`.
+fn refusing_hook(path: &Path) -> Result<(), String> {
+    let hook = path.join(".git/hooks/pre-commit");
+    fs::create_dir_all(path.join(".git/hooks")).map_err(|error| error.to_string())?;
+    fs::write(&hook, REFUSAL).map_err(|error| error.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&hook, fs::Permissions::from_mode(0o755))
+            .map_err(|error| error.to_string())?;
     }
     Ok(())
 }

@@ -3,6 +3,7 @@
 import { computed, View } from "nsh";
 import { Cards, Nothing } from "./Cards";
 import { type AgentUsage, usageByAgent, LOW } from "../shell/usage";
+import { remember } from "../shell/undo";
 import { call, navigate, record } from "../../store";
 import type { Inbox, InboxNote } from "../../store/protocol";
 import { Icon, type IconName, iconNamed, Link, Text } from "../../ui/controls";
@@ -42,7 +43,8 @@ export function InboxWidget(props: { repo: string }) {
     typed.set("");
     refusal.set(null);
     try {
-      await call("inbox.add", { hash, repo: props.repo, text });
+      const written = await call("inbox.add", { hash, repo: props.repo, text });
+      remember(written.change, `Added “${text}” to the inbox.`, { quiet: true, repo: props.repo });
       added.set(`Added “${text}” to the inbox.`);
     } catch (error) {
       typed.set(text);

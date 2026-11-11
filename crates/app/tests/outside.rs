@@ -297,9 +297,12 @@ fn a_system_notification_is_sent_and_its_click_comes_back() {
             let shown = notify::serve();
             let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE)
                 .expect("the session bus");
-            let (_subscription, clicked) = notify::clicks(&bus);
+            let (clicker, clicked) = std::sync::mpsc::channel();
+            let _subscription = uraeda_app::notify::clicks(&bus, move |id| {
+                let _ = clicker.send(id);
+            });
             let (sender, sent) = std::sync::mpsc::channel();
-            notify::send(
+            uraeda_app::notify::send(
                 &bus,
                 "Recurring tasks needs you",
                 "1 question, about 3 minutes.",
@@ -323,7 +326,8 @@ fn a_system_notification_is_sent_and_its_click_comes_back() {
             );
             let id = wait_for("the app gets the notification's id", 10, || {
                 sent.try_recv().ok()
-            });
+            })
+            .expect("the desktop takes the notification");
             let clicked = wait_for("the app hears the click", 10, || clicked.try_recv().ok());
             assert_eq!(clicked, id);
         },

@@ -33,6 +33,8 @@ export type DeviceKeys = {
   "priorities.view": "columns" | "list";
   /** The decisions' order in their list (`app/screens/decisions/`). */
   "decisions.sort": "changed-desc" | "changed-asc" | "title";
+  /** Whether the desktop's notifications are on, once asked (`app/screens/shell/Notifications.tsx`). */
+  notifications: boolean;
   /** The width a story and a mockup show at, once picked (`app/screens/preview/`). */
   "preview.width": { mockup?: "phone" | "desktop" | "fit"; story?: "phone" | "desktop" | "fit" };
 };

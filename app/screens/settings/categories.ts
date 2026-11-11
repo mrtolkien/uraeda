@@ -29,7 +29,7 @@ const THEMES = ["colour scheme", "color scheme", "theme", "dark", "light"];
 
 export const CATEGORIES: ReadonlyArray<Category> = [
   {
-    about: "The mode and the theme of each, kept on this device.",
+    about: "The mode, the theme of each, and the desktop's notifications, kept on this device.",
     icon: "palette",
     id: "appearance",
     label: "Appearance",
@@ -49,6 +49,11 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         help: "One TOML file per theme in the themes folder, beside config.toml: a file saved there shows in its mode's list at once.",
         label: "Your themes",
         terms: ["colour", "color", "custom", "file"],
+      },
+      {
+        help: "While the app's window is in the background, the desktop tells you when questions, a review, a pull request, or a blocked agent wait; a click opens it. In the app, a toast tells you either way.",
+        label: "Desktop notifications",
+        terms: ["notify", "alert", "needs you"],
       },
     ],
   },

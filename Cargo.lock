@@ -9010,6 +9010,7 @@ dependencies = [
  "serde_json",
  "syntect",
  "tempfile",
+ "tokio",
  "two-face",
  "uraeda-core",
  "uraeda-protocol",

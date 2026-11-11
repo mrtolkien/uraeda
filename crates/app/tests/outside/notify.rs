@@ -1,6 +1,6 @@
-//! A system notification on Linux. NSH has no notification API, so the app speaks the desktop's
-//! own: the `org.freedesktop.Notifications` service of the session bus, through GTK's `gio`. The
-//! test's service takes that name on the hidden display's bus, where no desktop listens.
+//! A notification service for the test of the app's system notifications (`uraeda_app::notify`):
+//! it takes the name `org.freedesktop.Notifications` on the hidden display's bus, where no desktop
+//! listens.
 
 use std::collections::HashMap;
 use std::sync::mpsc::{self, Receiver};
@@ -10,8 +10,6 @@ use nsh_platform_linux::gtk4::{gio, glib};
 
 const SERVICE: &str = "org.freedesktop.Notifications";
 const PATH: &str = "/org/freedesktop/Notifications";
-/// The app's id, which names its desktop entry: the desktop shows the app's name and icon.
-const APP_ID: &str = "dev.uraeda.app";
 /// The id the test's service gives the notification it gets.
 const SHOWN_ID: u32 = 7;
 
@@ -47,66 +45,6 @@ type Notify = (
     HashMap<String, glib::Variant>,
     i32,
 );
-
-/// Sends a notification as the app will: one default action, which a click on the notification
-/// invokes, and no timeout of its own. `sent` gets the id the desktop gives it.
-pub fn send(
-    bus: &gio::DBusConnection,
-    summary: &str,
-    body: &str,
-    sent: impl FnOnce(u32) + 'static,
-) {
-    let hints = HashMap::from([("desktop-entry", APP_ID.to_variant())]);
-    let notification = (
-        "Uraeda",
-        0_u32,
-        "",
-        summary,
-        body,
-        vec!["default", "Open"],
-        hints,
-        -1_i32,
-    );
-    bus.call(
-        Some(SERVICE),
-        PATH,
-        SERVICE,
-        "Notify",
-        Some(&notification.to_variant()),
-        Some(glib::VariantTy::new("(u)").expect("a type")),
-        gio::DBusCallFlags::NONE,
-        5000,
-        gio::Cancellable::NONE,
-        move |reply| {
-            let (id,) = reply
-                .expect("the desktop takes the notification")
-                .get::<(u32,)>()
-                .expect("the notification's id");
-            sent(id);
-        },
-    );
-}
-
-/// The ids of the notifications the human clicks, from now on, while the subscription is kept.
-pub fn clicks(bus: &gio::DBusConnection) -> (gio::SignalSubscription, Receiver<u32>) {
-    let (sender, receiver) = mpsc::channel();
-    let subscription = bus.subscribe_to_signal(
-        Some(SERVICE),
-        Some(SERVICE),
-        Some("ActionInvoked"),
-        Some(PATH),
-        None,
-        gio::DBusSignalFlags::NONE,
-        move |signal| {
-            if let Some((id, action)) = signal.parameters.get::<(u32, String)>()
-                && action == "default"
-            {
-                let _ = sender.send(id);
-            }
-        },
-    );
-    (subscription, receiver)
-}
 
 /// What the test's notification service was asked to show.
 #[derive(Debug, PartialEq, Eq)]

@@ -8,16 +8,20 @@
 import { computed, effect, Scroll, untracked, View } from "nsh";
 import { deviceTheme, keepsShownTheme, scheme } from "./boot";
 import { ShellKeys } from "./keys";
+import { NeedsYouToasts, Notifier } from "./Notifications";
 import { nothingFor } from "./panes";
 import { openPicker, Pickers } from "./pickers";
 import { PLACES, placeOfPage } from "./places";
 import { Sidebar, UsageBar } from "./Sidebar";
 import { Branch, modeSlot, StatusEnd } from "./Status";
+import { UndoKeys, UndoQuestion, UndoToast } from "./Undo";
+import { LandingWrites, RefusedWrites } from "./Writes";
 import "../routes";
 import { FollowKeyboard } from "../settings/follow";
 import { firstRun, missingFolder, unknownRepository } from "../repository/panes";
 import { call, device, navigate, record, redirect, route } from "../../store";
 import { type Place, placeOf, Stacks } from "../../ui/layout";
+import { Toasts } from "../../ui/surfaces";
 import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 
 /** The repository the address names. */
@@ -114,6 +118,17 @@ export function Frame() {
         status={{ end, mode: modeSlot(), place: repo(), start }}
       />
       <Pickers repo={shown()} />
+      <UndoKeys />
+      <Notifier />
+      {/* The toasts, the most important first: what was refused, what needs the human, what
+          was done, and what lands. */}
+      <Toasts>
+        <RefusedWrites />
+        <NeedsYouToasts />
+        <UndoToast />
+        <LandingWrites />
+      </Toasts>
+      <UndoQuestion />
     </>
   );
 }

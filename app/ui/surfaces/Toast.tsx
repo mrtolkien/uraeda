@@ -8,16 +8,25 @@ import { presence } from "./presence";
 import { drawIcon, type SurfaceIcon } from "./mark";
 import { Surface } from "./Surface";
 import { isNarrow } from "../width";
-import { tokens } from "../tokens";
+import { type Tone, tokens } from "../tokens";
 
-/** The stack: at the window's top right, and across its top on a narrow window. */
+/** Where the stack starts under the top of the window, or of the phone's bar of places. */
+const top = () => tokens.space.row + tokens.pane.titleHeight;
+
+/**
+ * The stack: at the window's top right, and across its top on a narrow window, under the phone's
+ * bar of places, which stays in reach.
+ */
 export function Toasts(props: { children?: JSX.Element }) {
   return (
     <Layer
       style={[
         // A toast's plate stands over its top edge: the gap leaves it room.
-        { gap: tokens.type.line / 2 + 10, position: "absolute", top: tokens.space.row },
-        isNarrow() ? { left: 8, right: 8 } : { right: 12, width: 360 },
+        { gap: tokens.type.line / 2 + 10, position: "absolute" },
+        // Under the panes' titles, which stay in reach: the stack's top pane's title, its tabs.
+        isNarrow()
+          ? { left: 8, right: 8, top: tokens.control.touch + top() }
+          : { right: 12, top: top(), width: 360 },
       ]}
     >
       {props.children}
@@ -35,10 +44,14 @@ export type ToastProps = {
   testID?: string;
   /** What happened, as its button would say it: on the plate. */
   title: string;
+  /** The plate's colour, for what went wrong and waits: the action's colour unless given. */
+  tone?: Tone;
 };
 
 /** One toast of the stack: it drops in from above, and fades out. */
 export function Toast(props: ToastProps) {
+  const plate = () =>
+    props.tone === undefined ? tokens.role.action : tokens.control.tone(props.tone);
   const there = presence(
     () => props.open !== false,
     () => ({ y: -tokens.motion.rise }),
@@ -59,10 +72,10 @@ export function Toast(props: ToastProps) {
           ]}
           tab={
             <>
-              {props.icon === undefined ? null : drawIcon(props.icon, tokens.role.action)}
+              {props.icon === undefined ? null : drawIcon(props.icon, plate())}
               <Text
                 style={{
-                  color: tokens.role.action,
+                  color: plate(),
                   fontFamily: tokens.type.body,
                   fontSize: tokens.type.size,
                   fontWeight: "700",

@@ -13,8 +13,8 @@ import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/
 import { deleteNote } from "./actions";
 import { droppedImages, type Held, pastedImage, pickImages } from "../images";
 import { sendImages } from "./images";
-import { LastAction } from "./LastAction";
-import { noteOf, plain } from "./model";
+import { noteOf, plain, quoted } from "./model";
+import { remember } from "../shell/undo";
 import { NotePicker, type Picking } from "./Pickers";
 
 /** A note saved under a new text has a new key: its pane follows it there, by its id. */
@@ -60,7 +60,13 @@ function ImageRow(props: {
                   hash: held()?.hash ?? "",
                   image: path(),
                   repo: props.repo,
-                }).catch((error: Error) => props.onRefused(error.message))
+                })
+                  .then((written) =>
+                    remember(written.change, "Removed an image of the note.", {
+                      repo: props.repo,
+                    }),
+                  )
+                  .catch((error: Error) => props.onRefused(error.message))
               }
             />
           </View>
@@ -89,11 +95,17 @@ function Note(props: { category: string | null; inbox: Inbox; note: InboxNote; r
       const text = field.text().trim();
       if (text === props.note.text) return;
       renamed.set({ from: props.note.key, id: props.note.id });
-      await call("inbox.edit", {
+      const written = await call("inbox.edit", {
         hash: props.inbox.hash,
         note: props.note.id,
         repo: props.repo,
         text,
+      });
+      // The field says it was saved: the stack keeps it for `u`, without a toast.
+      remember(written.change, `Edited ${quoted(text)}.`, {
+        quiet: true,
+        repo: props.repo,
+        subject: text,
       });
       field.saved(text);
       saved.set(true);
@@ -224,11 +236,10 @@ function Note(props: { category: string | null; inbox: Inbox; note: InboxNote; r
   );
 }
 
-/** A note gone from the inbox: where it went, with Undo, and the way back to the list. */
+/** A note gone from the inbox: the way back to the list; the undo toast says where it went. */
 function Gone(props: { repo: string }) {
   return (
     <View style={{ gap: 12 }}>
-      <LastAction repo={props.repo} />
       <Empty
         action={{
           icon: "inbox",

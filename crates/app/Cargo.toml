@@ -21,7 +21,7 @@ default = ["host"]
 # The Linux host's native component `uraeda.extension`, which runs an extension's page in a view
 # of its own. The server takes the module list of `uraeda/native` alone, without GTK.
 # The Linux host, `uraeda`, and its server start and secret store (`host.rs`, `server_start.rs`).
-host = ["dep:libc", "dep:nsh-engine", "dep:nsh-platform-linux", "dep:ureq"]
+host = ["dep:libc", "dep:nsh-engine", "dep:nsh-platform-linux", "dep:tokio", "dep:ureq"]
 
 [dependencies]
 nsh-base.workspace = true
@@ -55,6 +55,8 @@ nsh-platform-linux = { workspace = true, features = ["js", "webview"], optional 
 ureq = { workspace = true, optional = true }
 # The host stops the server it started with a signal (`server_start.rs`).
 libc = { workspace = true, optional = true }
+# The desktop's notifications are answered on a thread of their own (`notify.rs`).
+tokio = { workspace = true, optional = true }
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.

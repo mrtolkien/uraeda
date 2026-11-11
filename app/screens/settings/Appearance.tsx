@@ -3,12 +3,14 @@
 // Enter on a theme's row opens the leader's theme picker, `Space u t`, which picks the same way.
 import { View } from "nsh";
 import { wordsOf } from "./categories";
+import { onOff } from "./Row";
 import { chooseMode, chooseTheme, themeChoice } from "./look";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
+import { desktopNotifications, setDesktopNotifications } from "../shell/Notifications";
 import { openPicker } from "../shell/pickers";
 import { record } from "../../store";
 import type { Theme, ThemeFile } from "../../store/protocol";
-import { Banner, type Option, Segmented, Text } from "../../ui/controls";
+import { Banner, type Option, Segmented, Switch, Text } from "../../ui/controls";
 import { usePane } from "../../ui/layout";
 import { ThemeSample } from "../../ui/lists";
 import type { ThemeChoice } from "../../ui/theme";
@@ -114,6 +116,7 @@ export function Appearance() {
     { act: () => openPicker("themes"), id: "dark" },
     { act: () => openPicker("themes"), id: "light" },
     { id: "yours" },
+    { act: () => setDesktopNotifications(!desktopNotifications()), id: "notify" },
   ];
   const yours = wordsOf("appearance", "Your themes");
   return (
@@ -162,6 +165,19 @@ export function Appearance() {
             </View>
           </If>
         }
+      />
+      <FieldRow
+        {...wordsOf("appearance", "Desktop notifications")}
+        control={
+          <Switch
+            label={onOff(desktopNotifications())}
+            onChange={setDesktopNotifications}
+            value={desktopNotifications()}
+          />
+        }
+        from={ON_DEVICE}
+        icon="bell"
+        id="notify"
       />
     </FieldRows>
   );

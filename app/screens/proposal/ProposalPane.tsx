@@ -16,6 +16,7 @@ import { createOrder } from "../priorities/moves";
 import { byKey } from "../priorities/order";
 import { plain, stepWords } from "../priorities/Section";
 import { FileEditor } from "./FileEditor";
+import { remember } from "../shell/undo";
 
 const toList = () => navigate({ page: "priorities" });
 
@@ -35,10 +36,14 @@ function LineOnly(props: { repo: string; proposal: ProposalItem; hash: string })
     pending.set(true);
     refusal.set(null);
     try {
-      await call("proposals.expand", {
+      const written = await call("proposals.expand", {
         hash: props.hash,
         proposal: props.proposal.id,
         repo: props.repo,
+      });
+      remember(written.change, `Wrote “${plain(props.proposal)}” in a file of its own.`, {
+        repo: props.repo,
+        subject: plain(props.proposal),
       });
     } catch (error) {
       refusal.set((error as Error).message);
@@ -84,22 +89,22 @@ function Moves(props: {
   where: () => string | undefined;
   order: ReturnType<typeof createOrder>;
 }) {
-  const removing = signal(false);
   const refusal = signal<string | null>(null);
+  // Undone by Undo, so never asked first (the undo decision).
   const remove = async () => {
-    if (!removing()) {
-      removing.set(true);
-      return;
-    }
     try {
-      await call("proposals.remove", {
+      const written = await call("proposals.remove", {
         hash: props.priorities()?.hash ?? "",
         proposal: props.proposal.id,
         repo: props.repo,
       });
+      remember(written.change, `Removed “${plain(props.proposal)}” from the priorities.`, {
+        place: { page: "priorities", repo: props.repo },
+        repo: props.repo,
+        subject: plain(props.proposal),
+      });
     } catch (error) {
       refusal.set((error as Error).message);
-      removing.set(false);
     }
   };
   return (
@@ -124,7 +129,7 @@ function Moves(props: {
         <If when={!props.proposal.merged}>
           <Button
             icon="trash-2"
-            label={removing() ? "Press again to remove it" : "Remove from the priorities"}
+            label="Remove from the priorities"
             onPress={() => void remove()}
             variant="danger"
           />

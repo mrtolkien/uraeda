@@ -10,6 +10,7 @@ import { TextField, type TextFieldRef, unsavedKey, unsavedText } from "../../ui/
 import type { Held } from "../images";
 import { sendImages } from "./images";
 import { quoted } from "./model";
+import { remember } from "../shell/undo";
 
 /** The images held for each repository's next note, while the app runs: bytes, not text. */
 const held = signal<Readonly<Record<string, ReadonlyArray<Held>>>>({});
@@ -91,11 +92,17 @@ export function AddNote(props: AddNoteProps) {
         await sendImages(props.repo, props.inbox.hash, { category: props.category, text }, sent);
         release(props.repo, (image) => !sent.includes(image));
       } else {
-        await call("inbox.add", {
+        const written = await call("inbox.add", {
           category: props.category,
           hash: props.inbox.hash,
           repo: props.repo,
           text,
+        });
+        // The field says it was added: the stack keeps it for `u`, without a toast.
+        remember(written.change, `Added ${quoted(text)}.`, {
+          quiet: true,
+          repo: props.repo,
+          subject: text,
         });
       }
       field.discard();
