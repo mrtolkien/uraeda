@@ -7,7 +7,7 @@ import { createOrder } from "./moves";
 import { byKey } from "./order";
 import { plain, stepWords } from "./Section";
 import { navigate, record } from "../../store";
-import { Banner, Button, Heading, Spinner, Text } from "../../ui/controls";
+import { Button, Heading, Refusal, Spinner, Text } from "../../ui/controls";
 import { Empty } from "../../ui/lists";
 
 const toList = () => navigate({ page: "priorities" });
@@ -114,11 +114,7 @@ export function Proposal(props: { repo: string; id: string }) {
                   </Each>
                 </View>
                 <If when={order.refusal()}>
-                  {(refused) => (
-                    <Banner tone="danger" title="Not moved">
-                      {refused().words}
-                    </Banner>
-                  )}
+                  {(refused) => <Refusal words={`Not moved: ${refused().words}`} />}
                 </If>
               </View>
             </If>

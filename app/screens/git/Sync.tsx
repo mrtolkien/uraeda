@@ -143,13 +143,13 @@ function Holds(props: { page: GitPage; repo: string }) {
   return (
     <>
       <If when={props.page.agentWorking}>
-        <Banner title="An agent works in this checkout.">
+        <Banner title="An agent works in this checkout">
           Pull, push, merge, staging, and commits here come back once its turn ends.
         </Banner>
       </If>
       <If when={props.page.fetchFailure}>
         {(why) => (
-          <Banner title="The last fetch failed." tone="caution">
+          <Banner title="The last fetch failed" tone="caution">
             {why()}
           </Banner>
         )}

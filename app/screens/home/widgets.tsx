@@ -88,6 +88,8 @@ export function InboxWidget(props: { repo: string }) {
   );
 }
 
+const openPriorities = () => navigate({ page: "priorities" });
+
 /** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const NOW_SHOWN = 5;
 
@@ -110,10 +112,16 @@ export function NowWidget(props: { repo: string }) {
       <Cards
         cards={cards}
         empty={
-          <Nothing title="Nothing in Now" words="Move a proposal to Now on the priorities page." />
+          <Nothing
+            action={{ icon: "list", label: "Open the priorities", run: openPriorities }}
+            title="Nothing in Now"
+            words="A proposal moved to Now on the priorities shows here."
+          />
         }
       />
-      <Link onPress={() => navigate({ page: "priorities" })}>Open the priorities</Link>
+      <If when={cards().length > 0}>
+        <Link onPress={openPriorities}>Open the priorities</Link>
+      </If>
     </View>
   );
 }

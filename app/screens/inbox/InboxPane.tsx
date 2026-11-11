@@ -4,7 +4,7 @@
 import { Clipboard, computed, effect, signal, untracked, View } from "nsh";
 import { call, entry, navigate, record, redirect, route } from "../../store";
 import type { Inbox } from "../../store/protocol";
-import { Banner, Heading, Icon, IconButton, Spinner, Text } from "../../ui/controls";
+import { Banner, Heading, Icon, IconButton, Refusal, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
 import { focus, layoutOf, PaneScroll, placeOf, usePane } from "../../ui/layout";
 import { createCursor, Empty, Line, type LineProps, List } from "../../ui/lists";
@@ -253,9 +253,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
               onPress={() => naming.set({ kind: "new" })}
             />
           </View>
-          <If when={refusal()}>
-            {(words) => <Banner icon="circle-alert" title={words()} tone="danger" />}
-          </If>
+          <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
           {/* Beside the triage itself, its banner would lead where the human is. */}
           <If when={route().page === "triage" ? null : props.inbox.triage}>
             {(status) => <TriageBanner repo={props.repo} status={status()} />}
@@ -264,7 +262,7 @@ function Notes(props: { inbox: Inbox; repo: string }) {
           <If when={props.inbox.count === 0 && heldFor(props.repo).length === 0}>
             <Empty
               icon="inbox"
-              title="The inbox is empty"
+              title="Nothing in the inbox"
               words="A note you add above lands here: something noticed while doing something else, kept until you decide what it becomes."
             />
           </If>

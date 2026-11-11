@@ -1,15 +1,23 @@
-// What a list shows while it has no row: never an empty space. Its title says what is not there,
-// its words say why, naming the cause ("No session ran in this repository yet."), and its action,
-// when there is one, is the way to the first row.
+// What a list or a pane shows while it has nothing: never an empty space. Every one says three
+// things, in one voice across the app:
+//
+// - its `title`, what is not here, short, with no full stop: "No sessions yet", "Nothing waits on
+//   you", "No setting holds “vim”";
+// - its `words`, why, naming the cause, then what brings one, in sentences: "An agent's session
+//   starts with its first message.";
+// - its `action`, the one thing to do, with its key where it has one: "New session" `S`. A refusal
+//   of that action sits under it, in the server's words, never in place of the words above.
 import { View } from "nsh";
-import { Button, Icon, type IconName, Text } from "../controls";
+import { Button, Icon, type IconName, Refusal, Text } from "../controls";
 
 export type EmptyProps = {
   /** The way to the first row: "New session". */
   action?: { label: string; icon?: IconName; keys?: string; run: () => void };
   icon?: IconName;
+  /** Why the action was refused, under it: the server's words, and the way out. */
+  refusal?: string | null;
   testID?: string;
-  /** What is not there: "No sessions". */
+  /** What is not there, with no full stop: "No sessions yet". */
   title: string;
   /** Why, naming the cause, and what brings one. */
   words?: string;
@@ -23,14 +31,14 @@ export function Empty(props: EmptyProps) {
     >
       <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
         <Icon name={props.icon ?? "square-dashed"} />
-        <Text bold tone="quiet">
+        <Text bold style={{ flexShrink: 1 }} tone="quiet">
           {props.title}
         </Text>
       </View>
       <If when={props.words}>{(words) => <Text tone="faint">{words()}</Text>}</If>
       <If when={props.action}>
         {(action) => (
-          <View style={{ paddingTop: 8 }}>
+          <View style={{ gap: 4, paddingTop: 8 }}>
             <Button
               icon={action().icon}
               keys={action().keys}
@@ -41,6 +49,7 @@ export function Empty(props: EmptyProps) {
           </View>
         )}
       </If>
+      <If when={props.refusal}>{(words) => <Refusal words={words()} />}</If>
     </View>
   );
 }

@@ -186,10 +186,8 @@ export function TriageView(props: { repo: string }) {
                 }}
                 icon="inbox"
                 title="No inbox triage waits"
-                words={
-                  refusal() ??
-                  "An agent proposes where each note goes, as questions you answer here. The inbox stays as it is until you do."
-                }
+                refusal={refusal()}
+                words="An agent proposes where each note goes, as questions you answer here. The inbox stays as it is until you do."
               />
             }
           >

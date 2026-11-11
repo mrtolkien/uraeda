@@ -6,9 +6,9 @@ import type { Order } from "./moves";
 import { shownIn } from "./order";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
-import { Text } from "../../ui/controls";
+import { Refusal, Text } from "../../ui/controls";
 import { KeyScope, registerKey } from "../../ui/keys/registry";
-import { type Cursor, createCursor, DragOrder, Line, List, Row } from "../../ui/lists";
+import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import { TextField } from "../../ui/text";
 
@@ -56,6 +56,8 @@ export type SectionProps = {
   repo: string;
   /** The row the visit left the cursor on. */
   start?: string;
+  /** Its heading: "Now". */
+  title: string;
 };
 
 /** The section's rows, which the human orders: by keys, the grip, or a long press. */
@@ -87,20 +89,17 @@ export function Section(props: SectionProps) {
           testID={`section-${props.id}`}
         />
         <If when={keys().length === 0}>
-          <Text size="under" tone="faint" style={{ paddingHorizontal: 8 }}>
-            Nothing here yet.
-          </Text>
+          <Empty
+            icon="list"
+            title={`Nothing in ${props.title}`}
+            words="Add a proposal below, or send one here from the section beside with H or L."
+          />
         </If>
         <If when={refusal()}>
           {(words) => (
-            <Text
-              size="under"
-              testID={`refusal-${props.id}`}
-              tone="danger"
-              style={{ paddingHorizontal: 8 }}
-            >
-              {words()}
-            </Text>
+            <View style={{ paddingHorizontal: 8 }}>
+              <Refusal testID={`refusal-${props.id}`} words={words()} />
+            </View>
           )}
         </If>
         <Add active={props.active} repo={props.repo} section={props.id} />

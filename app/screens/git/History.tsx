@@ -66,7 +66,13 @@ export function History(props: { narrow: boolean; onOpen: () => void; repo: stri
       <View style={{ paddingBottom: 16 }}>
         <List
           cursor={cursor}
-          empty={<Empty icon="history" title="No commits yet" words="The branch has no commit." />}
+          empty={
+            <Empty
+              icon="history"
+              title="No commits yet"
+              words="The branch has no commit: the first one made in Changes shows here."
+            />
+          }
           onOpen={open}
           openLabel="open"
           row={(id) => (

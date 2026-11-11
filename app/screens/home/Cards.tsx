@@ -1,6 +1,7 @@
 // Home's cards, as a list: one cursor over them, `j` `k` and `Enter` in the pane's scope, a press
 // opens one. Each pane of Home that lists things of several facts draws them here.
 import { type Accessor, computed, type JSX, View } from "nsh";
+import type { IconName } from "../../ui/controls";
 import { Card, type CardProps, createCursor, Empty, listKeys } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 
@@ -49,7 +50,9 @@ export function Cards(props: {
   );
 }
 
-/** "Nothing waits on you.", with what brings one. */
-export const Nothing = (props: { title: string; words?: string }) => (
-  <Empty icon="circle-check" title={props.title} words={props.words} />
-);
+/** "Nothing waits on you", with what brings one, and the way there. */
+export const Nothing = (props: {
+  action?: { icon?: IconName; label: string; run: () => void };
+  title: string;
+  words?: string;
+}) => <Empty action={props.action} icon="circle-check" title={props.title} words={props.words} />;

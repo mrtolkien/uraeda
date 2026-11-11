@@ -163,6 +163,7 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
         order={order}
         proposals={proposals}
         repo={props.repo}
+        title={shown.title}
         start={home() === shown.id ? props.open : undefined}
       />
     );

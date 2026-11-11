@@ -6330,3 +6330,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   does not gets the row.
 - **If wrong**: the end goes to a head line over the title in every narrow pane, as on the phone.
 - **Where**: `app/ui/lists/{Line,Card}.tsx`.
+
+## T93.3: Empty states and refusals speak in one voice
+
+- **Decision**: an `Empty` says what is not here (a title, no full stop), why and what brings one
+  (words), and the one thing to do (an action, with its key where it has one); its `refusal` sits
+  under the action. A refused action is a `Refusal` under its control: the inbox's (was a danger
+  banner), a proposal's move (was a banner "Not moved"), a priorities section's (was red text), and
+  the triage's start (was put in place of the empty state's words). A banner's title has no full
+  stop. "Nothing here yet." becomes "Nothing in Now", with how one comes; Home's empty Now gets its
+  action, "Open the priorities", in place of a link under it; "The inbox is empty" becomes "Nothing
+  in the inbox"; "The branch has no commit." says where the first comes from.
+- **Rationale**: rule 8 of a good screen, and the join's example: "Nothing here yet." beside
+  "Nothing in Now". The rule is written in `specs/ui/components.md` so the next screens follow it.
+- **Where**: `app/ui/lists/Empty.tsx`, the screens named, `specs/ui/components.md`.
