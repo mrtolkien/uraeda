@@ -4219,7 +4219,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the plan's names, each kept small; the rest is what a screen owns.
 - **Where**: `app/ui/text/`, `app/gallery/text/`, `app/store/device.ts` (its two lines).
 
-## R176: The layout is data in the visit, and a place lists its panes in order
+## R187: The layout is data in the visit, and a place lists its panes in order
 
 - **Decision**: the model is the plan's, with these changes, each in
   [`layout.ts`](/app/ui/layout/layout.ts) and [`panes.tsx`](/app/ui/layout/panes.tsx):
@@ -4255,7 +4255,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/layout/`, `Kept` in [`history.ts`](/app/store/history.ts), `frame` in
   [`device.ts`](/app/store/device.ts).
 
-## R177: The frame's keys are fallbacks, and a stack's tabs are a selection
+## R188: The frame's keys are fallbacks, and a stack's tabs are a selection
 
 - **Decision**: the frame declares its keys in a page scope, `Panes`, around every pane
   ([`keys.tsx`](/app/ui/layout/keys.tsx)):

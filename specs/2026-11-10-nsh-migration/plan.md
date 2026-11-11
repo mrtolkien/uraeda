@@ -2206,7 +2206,7 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
 
 - Consumes: surfaces (27), controls (28), the key registry's pane scopes (32), `route` and a visit's
   entry (24), the device store (24).
-- Produces, as built (rulings R176 to R180), all from `app/ui/layout` (`index.ts`):
+- Produces, as built (rulings R187, R188, and R178 to R180), all from `app/ui/layout` (`index.ts`):
   - `definePane<Args>({ kind, title, icon, view, stack, closes?, flush?, mark? }): PaneKind<Args>`,
     a factory: `transcript({ session })` is a `PaneRef` (`kind`, `args`, `key`, `closes`). `view`
     gets `{ args, focused, width }`, `width` its stack's class. `mark(args)` gives
