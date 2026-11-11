@@ -107,6 +107,13 @@ Set by this plan, from the human's answers on 2026-11-10:
   shell, and data from temporary folders and the sandbox.
 - **The React UI and the Node server are frozen.** No task changes `packages/web/` or
   `packages/server/`, except task 61, which removes them. A critical fix there is a separate change.
+- **Out of validation: the old UI and the Node server.** No task, no wave, and no final pass runs
+  `ts:test`, `web:build`, `ui:build`, `ui:smoke`, `storybook:build`, or `web:theme`, at any point,
+  the end included, and so never `vp run ready` whole, which runs them. They prove nothing about the
+  new code, and cost every run (ruling R111).
+- **No task loads the machine, or runs a test in a loop**, to reproduce a failure of timing. A test
+  that fails while other builds saturate the machine is rerun once it is quiet, at most twice: when
+  it passes then, it passed, and a ruling names it.
 - **The two servers never share runtime data.** The Rust server has its own data folder and its own
   default port, until task 61.
 - **Nothing may close off iOS and macOS.** No screen calls a GTK or web API directly: platform
@@ -127,10 +134,18 @@ Set by this plan, from the human's answers on 2026-11-10:
 
 ### Validation
 
-Unless a task says otherwise, its validation is `vp check`, then `cargo nextest run -p <its crate>`
-for Rust, or `vp run app:check` and `vp run app:test` for the app. It leaves `vp run ready` to the
-push. In a new worktree, run `vp run app:check` once before `vp check`: it writes the types of `nsh`
-in `app/.nsh/`, which `vp check` reads.
+- **A task's validation**, unless it says otherwise: `vp check`, then
+  `cargo nextest run -p <its crate>` for Rust, or `vp run app:check` and `vp run app:test` for the
+  app. In a new worktree, run `vp run app:check` once before `vp check`: it writes the types of
+  `nsh` in `app/.nsh/`, which `vp check` reads.
+- **After a wave's merge**: `cargo check --workspace --all-targets` and `vp run app:check`, in the
+  background. The next wave starts at once, without waiting for them. A failure, like a review's
+  finding, goes to a fixer that works beside the next wave. A wave is held only when the merged code
+  does not build, or an interface the wave consumes is wrong.
+- **The full pass** is `vp run ready:rust`, `vp run ready:app`, and `vp run ts:check`. It runs once,
+  at the end of the feature, in task 61's last step, and before the push.
+- **The checks of `crates/app/tests/outside.rs`** draw in real windows, and are retried twice, in
+  `.config/nextest.toml`.
 
 ### What every records task does
 
@@ -208,9 +223,10 @@ only what differs: its files, the old code to read, its records and actions, and
   `App.tsx`. Routing is the app's own, with no library.
 - **The UI's guides**: [`specs/ui/`](/specs/ui/), which the new screens follow where the design
   language does not replace them.
-- **Tests and checks**: `vp run ready` runs every check ([`vite.tasks.ts`](/vite.tasks.ts)); Rust
-  tests run with `cargo nextest run`. The core has about 1,180 tests, the server about 960, the web
-  UI about 1,000.
+- **Tests and checks**: `vp run ready` runs every check ([`vite.tasks.ts`](/vite.tasks.ts)), the old
+  UI's and the Node server's included, which this plan leaves
+  [out of validation](#global-constraints); Rust tests run with `cargo nextest run`. The core has
+  about 1,180 tests, the server about 960, the web UI about 1,000.
 - **The spikes**: `spikes/nsh/` on `spike/nsh` holds the Vim layer (`src/vim.rs`), the extension
   view (`src/ext.rs`), both transcripts (`src/session.rs`, `tsx/Transcript.tsx`), and the glass
   shader. `spikes/uraeda-exact/tools/` on `spike/exact` holds the session feed used for
@@ -1809,6 +1825,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   drag, by long press, and by keys.
 - **Tests:** `a reorder is saved once, in the order shown`.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): home and priorities`.
+
 ## Task 38: Proposals, and starting work
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1820,6 +1843,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `feature.start`, `feature.startText`, `change.start`, `session.new`
 - **Routes:** `/priorities/<key>` as an overlay or a page, `/new?kind=session|change|feature`
 - **Tests:** `leaving an edited proposal asks first, and keeps the text`.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): proposals, and starting work`.
 
 ## Task 39: Inbox and triage
 
@@ -1833,6 +1863,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `POST /r/:name/inbox/note-image`.
 - **Tests:** none: using the screen shows every behaviour.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): inbox and triage`.
+
 ## Task 40: The feature page
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1843,6 +1880,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `feature.*`
 - **Routes:** `/f/<folder>`, `/f/<folder>/runs/<id>`
 - **Tests:** none.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): the feature page`.
 
 ## Task 41: Workflow files
 
@@ -1858,6 +1902,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   tab, its decision cards, its history, and what changed since the last review.
 - **Tests:** none.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): workflow files`.
+
 ## Task 42: Rounds and reviews
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1871,6 +1922,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   it commits. The position in a round is kept per device.
 - **Tests:** `an answer typed and not submitted is there after a restart`;
   `submitting sends every answer once`.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): rounds and reviews`.
 
 ## Task 43: Sessions
 
@@ -1890,6 +1948,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Extra step, before the commit:** run `vp run frames session` on a session of 20,000 messages.
   Expected: at most 8.3 ms at the 99th percentile, streaming and scrolling.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): sessions`.
+
 ## Task 44: Session panels and runs
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1900,6 +1965,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** Session, Turn, BranchChanges, AllBranchChanges; `session.allow`,
   `session.allowAll`, `session.toChange`
 - **Tests:** none.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): session panels and runs`.
 
 ## Task 45: Decisions
 
@@ -1912,6 +1984,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Its own rules:** the list sits beside the reader when there is room. The sort is kept per
   device.
 - **Tests:** none.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): decisions`.
 
 ## Task 46: Git
 
@@ -1926,6 +2005,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   `app/ui/`.
 - **Tests:** `a commit holds exactly the staged files`.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): git`.
+
 ## Task 47: Editors
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1935,6 +2021,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** Buffer, ConflictFile; `buffer.save`, `text.*`, `git.saveConflict`
 - **Routes:** `/edit/<path>`, `/buffer/<path>`
 - **Tests:** `a file changed on disk while it is edited is not overwritten silently`.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): editors`.
 
 ## Task 48: Settings
 
@@ -1951,6 +2044,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   paired devices, and revokes one.
 - **Tests:** none.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): settings`.
+
 ## Task 49: Previews
 
 Follows [what every screen task does](#what-every-screen-task-does).
@@ -1964,6 +2064,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Its own rules:** `WebFrame` is the only component that shows a web page: a web view on GTK, a
   frame on the web. A preview's address carries its frame secret.
 - **Tests:** none.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): previews`.
 
 ## Task 50: Notifications, undo, and writes
 
@@ -1980,6 +2087,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   refusal. `u` and `Ctrl+Z` undo, `U` and `Ctrl+Shift+Z` redo, on a stack of the last 50 actions. An
   undoable action never asks to confirm.
 - **Tests:** `undo puts back what the action changed`.
+
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): notifications, undo, and writes`.
 
 ## Task 51: Built-in extensions, and extension places
 
@@ -1999,6 +2113,13 @@ Follows [what every screen task does](#what-every-screen-task-does).
   extension from it alone.
 - **Tests:** `turning a built-in off removes its place, and the app goes on`.
 
+- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [ ] **Step 2: Write the tests** this task names.
+- [ ] **Step 3: Build the screens**, as the shared step 3 says.
+- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [ ] **Step 5: Run the task's validation**. Expected: PASS.
+- [ ] **Step 6: Commit**: `feat(nsh-migration): built-in extensions, and extension places`.
+
 ## Task 52: The sandbox, and a walk through the app
 
 **Files:**
@@ -2017,7 +2138,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
       hurts its looks, readability, behaviour, and coherence, with pictures.
 - [ ] **Step 3: Fix what is clearly wrong.** Propose the rest as changes to the guides, in the pull
       request.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
+      Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): what a walk through the app found`.
 
 ## Task 53: Performance
@@ -2082,7 +2204,8 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [ ] **Step 2: Run it**. Expected: FAIL, naming what is missing.
 - [ ] **Step 3: Fill the list, and build what it shows missing.** A route dropped on purpose names
       the human's request or the decision behind it.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
+      Expected: PASS.
 - [ ] **Step 5: Commit**: `test(nsh-migration): every old route has a screen`.
 
 **Phase 2: the web build.** The same app in a browser, served by `ura serve`, then the removal of
@@ -2185,7 +2308,8 @@ here: iOS and macOS are the human's, later.
       for pickers and short forms, 44-point targets, prose at 16 points, wrapping text on the full
       width. Walk through one persona's journey with touches.
 - [ ] **Step 3: Fix what fails**, in `app/ui/` where the cause is a component.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
+      Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): the app on a phone`.
 
 ## Task 60: Web performance
@@ -2203,7 +2327,8 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 2: Compare with the spike's numbers**: 57 frames a second streaming, 37 scrolling.
       Expected: no worse, and no frame over 100 ms while a long reply streams.
 - [ ] **Step 3: Fix what misses**, then run them again and record the numbers in the commit's body.
-- [ ] **Step 4: Run `vp run ready`**. Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
+      Expected: PASS.
 - [ ] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
 
 ## Task 61: Remove the React UI and the Node server
@@ -2233,6 +2358,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or
       the browser.
-- [ ] **Step 4: Run `vp run ready`, and a release to a test tag.** Expected: PASS, and artifacts
-      with no Node in them.
+- [ ] **Step 4: Run the full pass** (`vp run ready:rust`, `vp run ready:app`, `vp run ts:check`),
+      **and a release to a test tag.** `vp run ready` is then these three. Expected: PASS, and
+      artifacts with no Node in them.
 - [ ] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.

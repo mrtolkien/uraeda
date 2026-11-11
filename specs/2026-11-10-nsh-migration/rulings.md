@@ -2470,6 +2470,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     of the owner's extensions on there.
 - **Where**: task 17, `crates/server/src/extensions/runtime.rs`, and the test
   `an_extensions_runtime_runs_a_turn_and_leaves_with_its_extension`. Task 15.
+
 ## R107: Codex's exchanges are recorded or written, and the Node runtime writes what they become
 
 - **Decision**: `fixtures/runtimes/codex/` holds what the test
@@ -2583,3 +2584,29 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   The same shapes keep the join to moving code, not deciding.
 - **Where**: task 14, `crates/server/src/runtimes/{mod,codex}.rs`, `crates/server/tests/codex/`.
   Tasks 15 and 20, and the join.
+
+## R111: The old UI and the Node server are out of validation, and a wave's gate is light
+
+- **Decision**: no task, wave, or final pass runs `ts:test`, `web:build`, `ui:build`, `ui:smoke`,
+  `storybook:build`, or `web:theme`. The full pass is `vp run ready:rust`, `vp run ready:app`, and
+  `vp run ts:check`, once, at the end of the feature. After a wave's merge,
+  `cargo check --workspace --all-targets` and `vp run app:check` run in the background, and the next
+  wave starts at once. A failure or a review's finding goes to a fixer beside the next wave; a wave
+  is held only when the merged code does not build, or an interface it consumes is wrong. A test
+  that fails while the machine is saturated is rerun once it is quiet, at most twice, and named in a
+  ruling when it passes. The checks of `crates/app/tests/outside.rs` are retried twice, in
+  `.config/nextest.toml`. No task loads the machine or loops a test.
+- **Rationale**: the human ruled it on 2026-11-11, with the skill's new wave gate. The suites of the
+  code this feature replaces prove nothing about the new code, and the complete validation after
+  each wave held every wave for a drawing check that fails only under other builds' load:
+  `a_diagram_is_drawn_without_a_browser` failed twice so, and passed three times of three on a quiet
+  machine.
+- **If wrong**: `ts:test` also runs the tests of `scripts/`, the toolchain configuration's among
+  them, which no pass runs any more until task 61 gives them a place in `ready`. The retries are an
+  exception to the [toolchain](../decisions/toolchain.md) decision's "never retried", which the
+  human asked for, and its text still says otherwise. The toolchain configuration's test `retried`
+  refuses a `retries` line in `.config/nextest.toml`: it is in `ts:test`, so nothing runs it now,
+  and task 61 changes it or the retries when it gives that test a place.
+- **Where**: the plan's [global constraints](plan.md#global-constraints) and
+  [validation](plan.md#validation), tasks 52, 55, 59, 60, and 61, and `.config/nextest.toml`. It
+  replaces ruling R20: no pass runs the test R20 excused.
