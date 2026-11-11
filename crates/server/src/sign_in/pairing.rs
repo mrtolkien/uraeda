@@ -59,15 +59,23 @@ async fn code(State(shared): State<Shared>, headers: HeaderMap) -> Response {
 }
 
 /// `POST /pair` with `{ code, name }`: pairs a device with a code that was not used yet, and
-/// answers `{ token, id }`, the only time its token is shown. Any other code waits a second, then
-/// gets 401.
+/// answers `{ token, id }`, the only time its token is shown. `{ key, name }` pairs one with the
+/// access key, which signs a browser in already: the app has no cookie to keep. Any other code or
+/// key waits a second, then gets 401.
 async fn pair(State(shared): State<Shared>, headers: HeaderMap, body: Bytes) -> Response {
     let state = state(&shared);
-    let code = text(&body, "code");
-    let known = |code: String| state.codes.take(&typed(&code), shared.now());
-    if code.and_then(known).is_none() {
-        let error = "This pairing code is not valid: run `ura pair` again for a new one.";
-        return slowed(&shared, &headers, "pairing", error).await;
+    if let Some(key) = text(&body, "key") {
+        if !state.store.is_key(&key) {
+            let error = "This is not Uraeda's access key.";
+            return slowed(&shared, &headers, "pairing", error).await;
+        }
+    } else {
+        let code = text(&body, "code");
+        let known = |code: String| state.codes.take(&typed(&code), shared.now());
+        if code.and_then(known).is_none() {
+            let error = "This pairing code is not valid: run `ura pair` again for a new one.";
+            return slowed(&shared, &headers, "pairing", error).await;
+        }
     }
     let name = text(&body, "name").and_then(|name| devices::named(&name));
     let name = name.unwrap_or_else(|| "A device".to_owned());

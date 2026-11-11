@@ -7,8 +7,12 @@ pub mod diagram;
 mod extension_view;
 mod fonts;
 mod highlight;
+#[cfg(all(target_os = "linux", feature = "host"))]
+pub mod host;
 mod native;
 mod reply;
+#[cfg(all(target_os = "linux", feature = "host"))]
+pub mod server_start;
 pub mod theme;
 mod vim_bridge;
 

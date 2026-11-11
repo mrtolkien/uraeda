@@ -2436,17 +2436,43 @@ package. It starts once the gallery (task 35) is done.
     "Nothing here"; the server-error banner; the "update this side" page for a refused version.
   - `just app-shots <route>`: a picture of a route on the sandbox, on an invisible display.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `the app starts a server when none runs`, with a row where the server stops while the app is
     open: the app says so, then starts or waits for one.
   - `a refused version shows which side to update`.
 - [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Build the host and the shell.** The app owns a server it started, and stops it when
+- [x] **Step 3: Build the host and the shell.** The app owns a server it started, and stops it when
       the last window closes; it never stops a server it found running. The device's token is kept
       in the system's secret store, never in a plain file.
-- [ ] **Step 4: Review it in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): the app's shell and its server start`.
+- [x] **Step 4: Review it in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 102 tests passed;
+      `just task uraeda-app uraeda-server`: 349 passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): the app's shell and its server start`.
+
+**As built** (rulings R246 to R253):
+
+- `uraeda [--server <address>] [--data-dir <folder>] [--port <port>] [--ura <command>] [--app <folder>]`,
+  `just app`. The host answers the TSX's `host.call` of `uraeda.server`, `uraeda.token`,
+  `uraeda.pair`, and `uraeda.forget`; `crates/app/src/server_start.rs` has `Local`, `LocalOptions`,
+  `Running`, `answers`; `crates/app/src/host.rs` has `Host`, `Target`, `Pairing`, `Args`, `run`. The
+  token is in the Secret Service (`host/secrets.rs`). `POST /pair` takes `{ key }` too.
+- `app/App.tsx` boots (`app/screens/shell/boot.ts`: the device, the theme shown last, the fonts),
+  then mounts `Root` (`app/screens/shell/Root.tsx`), which mounts `KeysHost` and `LeaveGuard` once,
+  and draws, in order: "Starting Uraeda's server", the pairing page, "Reaching Uraeda's server", the
+  "Update this app" or "Update the server" page, or the frame (`Frame.tsx`), drawn again under each
+  new connection, with the "server stopped" banner over it while the server is gone.
+- **A screen task adds one line to `app/screens/routes.tsx`**, an import of its folder under its own
+  comment: `import "./inbox";` under `// Task 39: Inbox and triage.`. Its modules call `definePane`
+  and `definePlace` (`specs/ui/panes.md`); a page with no place shows "Nothing here".
+- **Its pictures**: `just app-shots /r/sample/inbox`, both themes at 1400 and 390 points, as
+  `target/shots/app/r-sample-inbox-<theme>-<width>.png`; `just app-shots states` for the shell's
+  own.
+- The frame's slots: the rail's places from `app/screens/shell/places.ts` (a place has its `g` key,
+  and `Space` with it but for New); the sidebar's Needs you, Features, and Usage (`Sidebar.tsx`,
+  `usage.ts`); the status line's branch, "N need you", extensions' status items, and the connection
+  (`Status.tsx`). The leader's tree is `keys.tsx`, its pickers `pickers.tsx`.
+- `app/ui/layout/`: `RailSlots.bar` and `RailSlots.onTitle`; the status line's slots read one by
+  one; the phone's bar of places scrolls sideways.
 
 ## Task 37: Home and priorities
 

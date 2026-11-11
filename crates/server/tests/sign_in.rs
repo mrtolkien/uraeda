@@ -162,6 +162,27 @@ async fn a_paired_device_signs_in_until_it_is_revoked() {
     assert_eq!(again.status, 401);
     assert_eq!(again.header("set-cookie"), None);
 
+    // The access key pairs a device too, as often as it is given: it signs a browser in already,
+    // and the app has no cookie.
+    let by_key = |key: &str| {
+        server
+            .post("/pair")
+            .json(&json!({ "key": key, "name": "Laptop" }))
+            .send()
+    };
+    let (first, second) = (by_key(server.key()).await, by_key(server.key()).await);
+    assert_eq!(
+        (first.status, second.status),
+        (200, 200),
+        "{}",
+        first.text()
+    );
+    assert_ne!(first.json()["token"], second.json()["token"]);
+    for paired in [&first, &second] {
+        let id = paired.json()["id"].as_str().unwrap().to_owned();
+        assert!(devices::revoke(server.shared(), &DevicesRevoke { id }).is_ok());
+    }
+
     // A code is refused once its 10 minutes passed, by the server's clock alone.
     let late = server.pairing_code().await;
     server.clock().advance(10 * MINUTE + Duration::from_secs(1));
@@ -218,8 +239,9 @@ async fn a_paired_device_signs_in_until_it_is_revoked() {
     assert_eq!(devices::list(server.shared()).devices, []);
     let gone = devices::revoke(server.shared(), &revoke).map_err(|fault| fault.code());
     assert_eq!(gone, Err(ErrorCode::Refused));
-    // Whoever shows the devices heard each change: paired, renamed, revoked.
-    assert_eq!(*changes.lock().unwrap(), 3);
+    // Whoever shows the devices heard each change: two paired by the key and revoked, then the
+    // phone paired, renamed, and revoked.
+    assert_eq!(*changes.lock().unwrap(), 7);
 }
 
 // US5: the owner's list of devices is live, and its actions are called over `/live`.
@@ -396,15 +418,20 @@ async fn a_wrong_key_is_slowed_never_locked_out() {
         server.post("/session").body("not json").send(),
         code("AAAA-AAAA-AAAA"),
         server.post("/pair").json(&json!({})).send(),
+        server
+            .post("/pair")
+            .json(&json!({ "key": "ura_wrong" }))
+            .send(),
     );
     let waited = started.elapsed();
 
-    let (wrong_key, .., wrong_code, _) = &wrong;
+    let (wrong_key, .., wrong_code, _, wrong_pairing_key) = &wrong;
     let not_the_key = json!({ "error": "This is not Uraeda's access key." });
     assert_eq!(wrong_key.json(), not_the_key);
+    assert_eq!(wrong_pairing_key.json(), not_the_key);
     let not_a_code = "This pairing code is not valid: run `ura pair` again for a new one.";
     assert_eq!(wrong_code.json(), json!({ "error": not_a_code }));
-    for answer in [&wrong.0, &wrong.1, &wrong.2, &wrong.3, &wrong.4] {
+    for answer in [&wrong.0, &wrong.1, &wrong.2, &wrong.3, &wrong.4, &wrong.5] {
         assert_eq!(answer.status, 401);
         assert_eq!(answer.header("set-cookie"), None);
         assert_eq!(answer.header("cache-control"), Some("no-store"));

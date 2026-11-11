@@ -179,6 +179,12 @@ Running it here:
   Every screen is reviewed on it. `just sandboxed <command>` runs a command beside a fresh sandbox
   of its own, its address in `URAEDA_SANDBOX`, as the app's tests need one. Stop a sandbox you
   started by its process id.
+- The app itself, `uraeda`, is `just app`: it finds this machine's server, or starts one, and stops
+  the one it started as it closes. An agent runs it on the hidden display, on folders of its own:
+  `hidden-display just app --data-dir <a temporary folder> --port 0`, with the agents' commands
+  stood in for on its `PATH`. `just app-dev` runs the TSX with hot reload over the sandbox at 4420.
+  A screen's pictures are `just app-shots <route>`, `/r/sample/inbox`, on a fresh sandbox, in
+  `target/shots/app/`.
 - `vp run sandbox` still serves the old web UI over the old sandbox, in `.sandbox/`, until the
   migration removes it (task 61).
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:

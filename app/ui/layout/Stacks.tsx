@@ -213,7 +213,9 @@ export function Stacks(props: StacksProps) {
                   <If when={props.rail}>
                     {(rail) => (
                       <Rail
+                        bar={rail().bar}
                         folded={railFolded()}
+                        onTitle={rail().onTitle}
                         onFold={(folded) => choices.set({ rail: folded })}
                         places={rail().places}
                         sidebar={rail().sidebar}
@@ -250,7 +252,13 @@ export function Stacks(props: StacksProps) {
                     paddingHorizontal: tokens.space.gap.wide,
                   }}
                 >
-                  <StatusLine {...props.status} />
+                  {/* Each slot read where it is drawn: a spread would read them once. */}
+                  <StatusLine
+                    end={props.status?.end}
+                    mode={props.status?.mode}
+                    place={props.status?.place}
+                    start={props.status?.start}
+                  />
                 </View>
               </View>
             </If>

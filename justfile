@@ -80,6 +80,36 @@ app-test:
 app-dev *args:
     {{ nsh }} run "$@"
 
+# The app on Linux, `uraeda`, built with `ura` beside it: it finds this machine's server, or starts
+# it, and stops the one it started when its window closes. Its flags: `--server <address>` for
+# another machine's, `--data-dir <folder>` for another data folder. An agent runs it on the hidden
+# display only, `hidden-display just app --data-dir <a temporary folder>`.
+app *args:
+    {{ nsh }} build -o ../target/app/nsh
+    cargo build -q -p uraeda-cli -p uraeda-app --bin ura --bin uraeda
+    target/debug/uraeda --app target/app/nsh "$@"
+
+# A screen's pictures, for its review: `just app-shots /r/<repository>/inbox` opens the app on a
+# fresh sandbox at that address; `just app-shots <state>` the shell in one of its own states,
+# `pairing`, `refused`, `stopped`, `starting`, or `states` for all four. Each in both themes, 1400
+# and 390 points wide, as `target/shots/app/<name>-<theme>-<width>.png`, on the hidden display.
+app-shots what="/":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p target/shots/app
+    what="{{ what }}"
+    case "$what" in
+      /*) filter="route" ;;
+      states) filter="state " ;;
+      *) filter="state $what" ;;
+    esac
+    URAEDA_ROUTE="$what" hidden-display scripts/sandboxed.sh {{ nsh }} test screens/shots.test.tsx --target linux --filter "$filter"
+    if [ "$filter" = "route" ]; then
+      name=$(echo "$what" | sed 's|^/||; s|[^A-Za-z0-9._-]|-|g; s|^$|root|')
+      for shot in target/shots/app/route-*.png; do mv "$shot" "${shot/route-/$name-}"; done
+    fi
+    ls target/shots/app
+
 # An agent, and any check, runs `hidden-display just gallery`.
 # The gallery, every component of the library in one app, on GTK with hot reload.
 gallery *args:

@@ -5387,3 +5387,124 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   pays nothing. Building `ura` with the feature's `just check` after a merge would give it to every
   task's worktree.
 - **Where**: `justfile`, `scripts/sandboxed.sh`.
+
+## R246: The host does what touches the machine, and the TSX asks it over NSH's host channel
+
+- **Decision**: the Linux host, `uraeda` (`crates/app/src/bin/uraeda.rs`, `host.rs`,
+  `server_start.rs`), finds or starts the server, pairs the device, and keeps its token. The app's
+  TSX asks it with `host.call` of four names, granted by `capabilities.host` in `app/nsh.json`:
+  `uraeda.server` (`{ address, local }`, once it answers), `uraeda.token` (the token, or `null`),
+  `uraeda.pair` (`{ code }`, `{ key }`, or `{}` to pair with its own machine's server), and
+  `uraeda.forget`. The shell reads them through `ShellHost` (`app/screens/shell/host.ts`). Without
+  the Linux host, as under `just app-dev` or a test's picture, the app connects to a sandbox,
+  `URAEDA_SANDBOX` or `http://127.0.0.1:4420`, with no token.
+- **Rationale**: a process, a D-Bus call, and a wait of a minute are Rust's, and the host channel
+  answers from any thread, so a start never holds the engine. A native module's function would have
+  been importable by every extension page, which loads `uraeda/native`; an extension's page runs in
+  a view with a host channel of its own (`extension_view.rs`), so it reaches none of these.
+- **Alternatives considered**: `uraeda/native` functions, rejected for the reason above; the TSX
+  pairing with `fetch`, rejected: the host keeps the token, so the host pairs.
+- **Where**: `crates/app/src/host.rs`, `host/window.rs`, `app/screens/shell/host.ts`.
+
+## R247: The token is an item of the Secret Service, over gio's D-Bus, or held for one run
+
+- **Decision**: the token is an item of the session bus's Secret Service (GNOME's keyring, KDE's
+  wallet, KeePassXC), in its default collection, found by `application = dev.uraeda.app` and
+  `server`: `local <data folder>` for this machine's server, whose port may change between starts,
+  or the remote address. The client is gio's `DBusConnection`, which GTK already brings: no new
+  crate. A locked store shows its own prompt, which the call waits for, two minutes at most. With no
+  store on the bus, the host pairs for the run alone, holds the token in memory, and unpairs it
+  (`DELETE /session`) as the app closes: no file holds it, and no device is left behind.
+- **Rationale**: the plan's rule, "never in a plain file". `keyring` and `oo7` would each bring a
+  second D-Bus stack beside GTK's.
+- **Seen failing**: `a device pairs once, and its token is in the secret store, not a file` ran on
+  the hidden display's private bus, against a stand-in of the Secret Service
+  (`crates/app/tests/host/secret_service.rs`), which refuses any other bus; with the host's
+  functions stubbed it failed with `a server starts: "not built"`.
+- **Where**: `crates/app/src/host/secrets.rs`.
+
+## R248: `POST /pair` takes the access key as well as a code
+
+- **Decision**: `POST /pair { key, name }` pairs a device with Uraeda's access key, as often as it
+  is given; a wrong key waits its second and gets 401, "This is not Uraeda's access key.", as
+  `POST /session` does. The pairing page takes either in one field: text starting with `ura_` is a
+  key, anything else a code, whose letters and digits alone are sent, in capitals.
+- **Rationale**: the task asks that a device pair with "the code `ura pair` printed, or the access
+  key". The key already signs a browser in, for 30 days at a time: a device paired with it gains
+  nothing the key did not give. The app has no cookie to keep, so the key's session could not serve
+  it.
+- **Seen failing**: the two rows added to `a_paired_device_signs_in_until_it_is_revoked` and
+  `a_wrong_key_is_slowed_never_locked_out` failed with 401 for the key before the change.
+- **Where**: `crates/server/src/sign_in/pairing.rs`, `crates/server/tests/sign_in.rs`.
+
+## R249: The app stops only the server it started, and starts none once it closes
+
+- **Decision**: `Local` keeps the `ura serve` process it started; `ensure` finds the data folder's
+  server through `run/server.json` and believes it once `GET /session` answers 204 or 401, else
+  starts one, its output in `run/server.log`, and waits up to a minute. A server that died is reaped
+  and started again. `stop` stops only the process it started (SIGTERM, then SIGKILL after 10 s),
+  and sets a flag after which `ensure` starts nothing. The window's close, and `SIGTERM`, `SIGINT`,
+  or `SIGHUP` to `uraeda`, end the app the same way: a signal sets a flag the main loop reads five
+  times a second. `--port` names the port of a server the app starts (4320 unless given).
+- **Seen failing**: on the hidden display, a late `uraeda.server` call of the closing window, made
+  as the connection dropped with the stopped server, started a third server after the app had
+  stopped its own; it was left running until stopped by hand. The flag ends it. A killed server is a
+  zombie until reaped, so the test reads its state in `/proc`, not `kill -0`.
+- **Where**: `crates/app/src/server_start.rs`, `crates/app/src/host/window.rs`.
+
+## R250: `routes.tsx` is a list of imports, one line per screen task
+
+- **Decision**: `app/screens/routes.tsx` imports each screen's folder for its `definePlace` calls,
+  one line under a comment of its own per screen task, so tasks that land at once change lines
+  apart. A page no screen declared draws "Nothing here" in the frame, naming its place ("This app
+  has no Inbox screen yet"), with the way home; an address of no page names it.
+- **Rationale**: `definePlace` already ties a page to its panes; a second table would say it twice.
+  A table typed over every page would fail the type check until the sixteen screen tasks landed.
+- **Where**: `app/screens/routes.tsx`, `app/screens/shell/panes.tsx`.
+
+## R251: What the frame shows, and what the layout shell gained
+
+- **Decision**:
+  - The rail: the places of `places.ts` (Home, Priorities, Inbox, Sessions, Decisions, Git, Jobs,
+    New, Settings), each with its `g` key; its title is the repository, pressed for the switcher.
+    Unfolded, under them: Needs you (every repository's), Features (the repository's), and Usage
+    (one line per login), each only when it has a row, in a scroll. A row is two lines, its name,
+    then its state in the state's colour: one line crushed the name to a letter a line.
+  - Folded, the rail's foot is the bar of the account of the session in view, else the one a new
+    session starts on (`barWindow`).
+  - The status line: the mode, the branch, the hints, "N need you", the extensions' items, the
+    connection's word, and the repository at the right end.
+  - "Server stopped": a banner on a raised, opaque surface above the status line: at the top, and as
+    glass, it covered the panes' titles and let their text through.
+  - In `app/ui/layout/`: `RailSlots` gained `bar` and `onTitle`; `Stacks` reads the status line's
+    slots one by one, as its spread read them once and left the repository's block empty; the
+    phone's bar of places scrolls sideways, nine places being wider than 390 points.
+- **Where**: `app/screens/shell/{Frame,Sidebar,Status,places,usage}.tsx`, `app/ui/layout/`.
+
+## R252: The shell's tests run on a played host, and the host's on the real `ura serve`
+
+- **Decision**: `app/screens/shell/shell.test.tsx` opens `__checks__/Shell.tsx`, the real shell with
+  a `ShellHost` the test plays through host events (`started`, `stops`) and the store's line seam (a
+  `hello` one version off), over the sandbox; the folder has its own `nsh.json`, as R241's harness
+  does. `crates/app/tests/host.rs` runs the real `ura serve`, built by the test with
+  `cargo build -p uraeda-cli`, on temporary folders, with the agents' stand-ins first on its `PATH`.
+- **Rationale**: the guarantees are the host's processes and the store's refusals, which a stand-in
+  of either would not prove.
+- **Measured**: the test builds `ura` in `target/host-tests/`, a target folder of its own. In the
+  workspace's, a `cargo build -p uraeda-cli` resolves the features of the crates it shares with the
+  app's tests otherwise (their dev-dependencies turn more on), and each build undid the other's: 35
+  s per run, every run. Now the first run in a worktree builds it, 75 s, and later runs take 0.8 s
+  and 3.5 s, for 4.1 GB of disk, which a new worktree clones. The shell's two take 3.6 s.
+- **Seen failing**: the shell's two tests with `Root` drawing nothing (`on screen: []`); the host's
+  two with `not built`.
+- **Where**: `app/screens/shell/`, `crates/app/tests/host.rs`.
+
+## R253: `just app-shots` reads a route from the app's environment, and a theme from its host
+
+- **Decision**: `just app-shots /r/<repository>/<page>` sets `URAEDA_ROUTE`, which the app reads as
+  it starts, and runs `app/screens/shots.test.tsx` beside a fresh sandbox on the hidden display; a
+  word, `pairing`, `refused`, `stopped`, `starting`, or `states`, pictures the shell's own states
+  through its checks' app. The theme is `host.params.theme`, which the app's `scheme()` reads before
+  the system's: a light picture came out dark with `open`'s `colorScheme` alone, as the gallery
+  found. No `app/tools/shots.ts`: the recipe needs no code beyond the test.
+- **Where**: `justfile`, `app/screens/shots.test.tsx`, `app/screens/shell/boot.ts`.

@@ -2,7 +2,7 @@
 // the sidebar's toggle on its far left; at the foot the panes of the one stack, as tiles of glass,
 // an icon over a word each, the shown one in the accent, or icons alone where the words do not fit. Both are the frame's, as the rail and the
 // status line are on a wider window.
-import { signal, View } from "nsh";
+import { Scroll, signal, View } from "nsh";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, titleOf } from "./panes";
 import type { RailPlace } from "./Rail";
@@ -42,52 +42,55 @@ export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<Ra
           </View>
         )}
       </If>
-      <Each key={(place: RailPlace) => place.label} of={props.places}>
-        {(place) => {
-          const current = () => place().current === true;
-          return (
-            <View
-              accessibilityLabel={place().label}
-              accessibilityState={{ selected: current() }}
-              onPress={place().onPress}
-              role="tab"
-              style={{
-                alignItems: "center",
-                flexDirection: "row",
-                gap: 3,
-                justifyContent: "center",
-                minWidth: tokens.control.touch,
-                paddingHorizontal: 6,
-              }}
-            >
-              <Icon
-                colour={current() ? tokens.role.action : tokens.role.inkQuiet}
-                name={place().icon}
-              />
-              <If when={place().count !== undefined && (place().count ?? 0) > 0}>
-                <Text
-                  bold={place().needs === true}
-                  colour={place().needs === true ? tokens.light.needs : undefined}
-                  size="under"
-                  tone="quiet"
-                >
-                  {String(place().count)}
-                </Text>
-              </If>
+      {/* More places than a phone's width holds scroll sideways, never cut. */}
+      <Scroll horizontal scrollbar={false} style={{ flex: 1 }}>
+        <Each key={(place: RailPlace) => place.label} of={props.places}>
+          {(place) => {
+            const current = () => place().current === true;
+            return (
               <View
+                accessibilityLabel={place().label}
+                accessibilityState={{ selected: current() }}
+                onPress={place().onPress}
+                role="tab"
                 style={{
-                  backgroundColor: current() ? tokens.role.action : "transparent",
-                  bottom: -1,
-                  height: 2,
-                  left: 0,
-                  position: "absolute",
-                  right: 0,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  gap: 3,
+                  justifyContent: "center",
+                  minWidth: tokens.control.touch,
+                  paddingHorizontal: 6,
                 }}
-              />
-            </View>
-          );
-        }}
-      </Each>
+              >
+                <Icon
+                  colour={current() ? tokens.role.action : tokens.role.inkQuiet}
+                  name={place().icon}
+                />
+                <If when={place().count !== undefined && (place().count ?? 0) > 0}>
+                  <Text
+                    bold={place().needs === true}
+                    colour={place().needs === true ? tokens.light.needs : undefined}
+                    size="under"
+                    tone="quiet"
+                  >
+                    {String(place().count)}
+                  </Text>
+                </If>
+                <View
+                  style={{
+                    backgroundColor: current() ? tokens.role.action : "transparent",
+                    bottom: -1,
+                    height: 2,
+                    left: 0,
+                    position: "absolute",
+                    right: 0,
+                  }}
+                />
+              </View>
+            );
+          }}
+        </Each>
+      </Scroll>
     </View>
   );
 }

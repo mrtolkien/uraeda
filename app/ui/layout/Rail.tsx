@@ -24,6 +24,10 @@ export type RailPlace = {
 
 /** What the app's shell puts in the rail: its slots. */
 export type RailSlots = {
+  /** At the folded rail's foot, under the places' icons: what stands in for the sidebar. */
+  bar?: JSX.Element;
+  /** A press on the title: the repositories' switcher. */
+  onTitle?: () => void;
   places: ReadonlyArray<RailPlace>;
   /** Under the places, unfolded: the shell's own panes, as Features and Usage. */
   sidebar?: JSX.Element;
@@ -129,13 +133,21 @@ export function Rail(props: RailSlots & { folded: boolean; onFold: (folded: bool
               />
             )}
           </Each>
+          {props.bar}
         </View>
       }
     >
       <View style={{ gap: tokens.space.gap.wide - 2, width: RAIL.open }}>
         <Pane
           body={{ gap: 0, paddingHorizontal: 0 }}
-          tabs={[{ current: true, title: props.title ?? "Places" }]}
+          tabs={[
+            {
+              current: true,
+              icon: props.onTitle === undefined ? undefined : "folder-git-2",
+              onPress: props.onTitle,
+              title: props.title ?? "Places",
+            },
+          ]}
           tabsEnd={
             <IconButton
               icon="panel-left"

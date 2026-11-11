@@ -5,5 +5,20 @@
   "build": 1,
   "minRuntime": "0.4.0",
   "rust": "../crates/app",
-  "theme": "theme.json"
+  "theme": "theme.json",
+  "capabilities": {
+    "network": {
+      "hosts": ["*"]
+    },
+    "webview": {
+      "hosts": ["*"]
+    },
+    "clipboard": true,
+    "picker": true,
+    "openUrl": true,
+    "host": ["uraeda.*"],
+    "process": {
+      "env": ["URAEDA_SANDBOX", "URAEDA_ROUTE"]
+    }
+  }
 }
