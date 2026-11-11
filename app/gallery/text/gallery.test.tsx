@@ -1,8 +1,8 @@
 // The text field's gallery page as pictures, and typed in with real keys. Without a display,
 // `just app-test` only checks that it mounts and takes typing. On the hidden display,
 // `just gallery-shots field` saves its pictures in `target/shots/gallery/`, in both themes, at a
-// desktop's and a phone's width, and pictures of a field typed in with Vim on and off, a jump's
-// trail caught as it closes.
+// desktop's and a phone's width, and pictures of a field typed in with Vim on and off. The caret's
+// trail is over before a picture is taken: a key's step runs its animation to the end (T96.3).
 import { type App, expect, open, test } from "nsh/test";
 
 const SHOTS = "../target/shots/gallery";
@@ -56,10 +56,9 @@ for (const vim of ["off", "on"]) {
     );
     expect(app.texts().join(" ")).toContain(vim === "on" ? "Live: INSERT" : "Live: no field");
     if (vim === "on") {
-      // Back to normal mode, a jump to the line's start, and its trail as it closes.
+      // Back to normal mode, and a jump to the line's start.
       await app.keyboard.press("escape");
       await app.keyboard.press("0");
-      if (shots) await app.screenshot(`${SHOTS}/field-typed-vim-trail.png`);
       await press(app, ["d", "w"]);
       expect(app.texts().join(" ")).toContain("Live: NORMAL");
       console.log(app.texts().find((text) => text.startsWith("Vim:")));

@@ -4609,3 +4609,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   lets trailing whitespace hang, as Pango and CSS do, or the editor's rows never wrap. Until one is
   released, the class stays.
 - **Where**: [`vim_bridge.rs`](/crates/app/src/vim_bridge.rs), `Field::view`.
+
+## T96.3: The caret's trail compiles, draws, and is a thin line
+
+- **Decision**: the trail stays on, behind its token `caret.trail`. Two changes:
+  - **Its shader never compiled**: its uniforms were named `from` and `to`, and `from` is a word
+    WGSL keeps. Native Shell compiles a `<Shader>`'s source as the page draws it, and a failure is a
+    warning in the log, `the shader of node 84: 3:3: name 'from' is a reserved keyword`: the view
+    draws nothing. They are `was` and `now`. A test, [`shaders.rs`](/crates/app/tests/shaders.rs),
+    compiles every `.wgsl.ts` shader of the app with Native Shell's own `Shader::compile`, as the
+    page would: it failed on `TRAIL` with that error, and passes. The other four compiled already.
+  - **Its head was a blot**: the wedge widened to half the caret's height, 12 points, at the head, a
+    teardrop over the first character where the caret landed, which stayed there, fading, for most
+    of the 480 ms, since its tail closes on a cubic ease. The design language asks for "a thin
+    wedge", from the terminal cursor shaders, whose head is the cursor's block. It now widens from
+    0.4 to 1.25 times the caret's width, at least 1.5 points: a line that tapers onto the caret.
+- **Rationale**: seen on the hidden display. The field reports both jumps (`G`: from y 0 to 144;
+  `gg`: from 168 to 0), and with the duration set to 6 s for one run, the pictures showed the wedge
+  moving. Still frames of the shader at `t` 0, 0.05, 0.15, 0.3, 0.5, and 0.75, over a field in both
+  themes, read as a hint of motion at every step, never a smear. It draws only while it closes, one
+  pass over the field's box with no texture read: not measured, as no frame of it can be caught.
+- **Not done**: a picture of it in the gallery. On the system's clock, the hidden display's pictures
+  came about 2 s after the key on the loaded machine; on a manual clock a key's step runs every
+  animation to its end. The gallery's `field-typed-vim-trail.png` never showed it, and is gone.
+- **If wrong**: the token turns it off. After `G` in a field whose text ends with a line break, the
+  trail ends a row above where the caret then sits (144, then 168): the Vim layer's last line and
+  the editor's differ by that empty line, which this task left alone.
+- **Where**: [`trail.wgsl.ts`](/app/ui/text/trail.wgsl.ts), [`Trail.tsx`](/app/ui/text/Trail.tsx),
+  [`shaders.rs`](/crates/app/tests/shaders.rs).

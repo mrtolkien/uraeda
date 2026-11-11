@@ -39,7 +39,7 @@ export function Trail(props: { jump: CaretTrail | null; tone: string }) {
         <Shader
           source={TRAIL}
           style={WHOLE}
-          uniforms={{ from: box(jump().from), t, to: box(jump().to), tone: props.tone }}
+          uniforms={{ now: box(jump().to), t, tone: props.tone, was: box(jump().from) }}
         />
       )}
     </If>
