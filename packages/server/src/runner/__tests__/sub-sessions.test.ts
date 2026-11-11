@@ -15,7 +15,7 @@ import { CONTINUES_ON, type ContinueSettings } from "../continuer.ts";
 import { FakeAdapter, type FakeStep } from "../fake.ts";
 import { Runtimes } from "../runtimes.ts";
 import { SERVER_STOPPED, type Sessions } from "../sessions.ts";
-import { WATCHDOG_MS } from "../session-state.ts";
+import { QUIET_MS, UNANSWERED, WATCHDOG_MS } from "../session-state.ts";
 import { runAgentTool } from "../sub-sessions.ts";
 import { flush, limitTurn, restart, testSessions } from "./helpers.ts";
 
@@ -243,6 +243,34 @@ test.each([
   await expect(tool.call(parent.id, input, signal)).rejects.toThrow(row.error ?? /worktree/);
   expect(other.opens).toHaveLength(0);
   expect(sessions.subSessions.ofParent(parent.id)).toHaveLength(0);
+});
+
+test("an implementer stuck on a background command fails its call, which gives its last message", async () => {
+  const { cache, call, other, parent, sessions } = await building();
+  // It reports, a background command of its own still running, and never answers the check.
+  other.fallback = () => {
+    other.fallback = undefined;
+    return [
+      { tasks: [{ kind: "command", tool: "bash-1" }], type: "background" },
+      { text: "Task 4 is done.", type: "text" },
+    ];
+  };
+  const answer = call(4);
+  const failed = expect(answer).rejects.toThrow(
+    `The implementer of Task 4 failed: ${UNANSWERED}\nIts last message:\nTask 4 is done.`,
+  );
+  await until(() => other.sent.length === 1);
+  await flush();
+
+  vi.advanceTimersByTime(QUIET_MS);
+  expect(other.sent.at(-1)?.text).toMatch(/^Uraeda's check: /);
+  vi.advanceTimersByTime(QUIET_MS);
+  await failed;
+  const [sub] = sessions.subSessions.ofParent(parent.id);
+  expect(latest(cache, sub.id)?.state).toBe("failed");
+  expect(other.closes).toBe(1);
+  // The parent still runs: it reads the failure, and decides.
+  expect(latest(cache, parent.id)?.state).toBe("running");
 });
 
 test("a sub-session's continue after its limit starts while its parent works", async () => {

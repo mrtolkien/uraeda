@@ -6,9 +6,11 @@ import type { AgentEvent } from "../events.ts";
 import {
   IDLE_CLOSE_MS,
   OUTPUT_LIMIT,
+  QUIET_MS,
   RESUMED,
   type SendInput,
   TERMINATE_AFTER_MS,
+  UNANSWERED,
   WATCHDOG_MS,
 } from "../sessions.ts";
 import { CLEARED, REPLACED } from "../session-state.ts";
@@ -244,8 +246,13 @@ test("a background command holds its turn and its process, and the watchdog wait
 
   expect(cache.turn(turn)).toMatchObject({ endedAt: null, state: "running" });
   expect(sessions.backgroundCommands(session.id)).toBe(1);
-  vi.advanceTimersByTime(WATCHDOG_MS + IDLE_CLOSE_MS);
-  await flush();
+  // The agent answers each check of its command: it still runs.
+  adapter.fallback = () => [{ text: "It still runs.", type: "text" }];
+  for (let waited = 0; waited < WATCHDOG_MS + IDLE_CLOSE_MS; waited += QUIET_MS) {
+    vi.advanceTimersByTime(QUIET_MS);
+    await flush();
+  }
+  adapter.fallback = undefined;
   expect(cache.turn(turn)?.state).toBe("running");
   expect(adapter.closes).toBe(0);
 
@@ -258,6 +265,47 @@ test("a background command holds its turn and its process, and the watchdog wait
   expect(sessions.backgroundCommands(session.id)).toBe(0);
   vi.advanceTimersByTime(IDLE_CLOSE_MS);
   expect(adapter.closes).toBe(1);
+});
+
+test("a reply waiting for a background command is asked about it after 10 quiet minutes, and fails 10 minutes later without an answer", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Review it" });
+  adapter.emit(command(true));
+  adapter.emit({ text: "The review passed.", type: "text" });
+  adapter.emit(done());
+  await flush();
+
+  vi.advanceTimersByTime(QUIET_MS - 1);
+  expect(adapter.sent).toHaveLength(1);
+  vi.advanceTimersByTime(1);
+  const check = adapter.sent.at(-1)!;
+  expect(check).toMatchObject({ when: "steer" });
+  expect(check.text).toMatch(/^Uraeda's check: .* Waiting for 1 background command\. /);
+  expect(cache.itemsOf(turn, "message").at(-1)).toMatchObject({
+    id: check.id,
+    origin: "workflow",
+    state: "pending",
+  });
+  expect(cache.turn(turn)?.state).toBe("running");
+
+  // No answer: the turn fails, its check taken back, and its process closes, with its command.
+  vi.advanceTimersByTime(QUIET_MS);
+  await sessions.settled(turn);
+  expect(cache.turn(turn)).toMatchObject({ reason: UNANSWERED, state: "failed" });
+  expect(adapter.takenBack).toEqual([check.id]);
+  expect(adapter.closes).toBe(1);
+});
+
+test("a reply that ended with no background task is never asked about one", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  await sessions.send(repo, session.id, { text: "Review it" });
+  adapter.emit({ text: "Reviewing.", type: "text" });
+  await flush();
+
+  vi.advanceTimersByTime(2 * QUIET_MS);
+  expect(adapter.sent).toHaveLength(1);
 });
 
 test("US6.1: a pending wakeup keeps the idle process open until it fires", async () => {

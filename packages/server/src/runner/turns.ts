@@ -1,13 +1,16 @@
-import { working } from "./activity.ts";
+import { randomUUID } from "node:crypto";
+import { waitingLabel, working } from "./activity.ts";
 import type { Outgoing } from "./adapter.ts";
 import type { Limit, Trigger, TurnKind, TurnState } from "./events.ts";
-import { recheckQueued } from "./send-input.ts";
+import { messageItem, recheckQueued } from "./send-input.ts";
 import {
   IDLE_CLOSE_MS,
   type Live,
   type Message,
   type Proc,
   type Queued,
+  QUIET_MS,
+  quietCheck,
   RESUMED,
   runtimeOf,
   SERVER_STOPPED,
@@ -16,6 +19,7 @@ import {
   type SessionContext,
   TERMINATE_AFTER_MS,
   type TurnEnd,
+  UNANSWERED,
   WAKEUP_GRACE_MS,
   WATCHDOG_MS,
   wakeupPending,
@@ -140,19 +144,62 @@ export class Turns {
   }
 
   /**
-   * Restarts the turn's watchdog, which waits while a background task runs, the agent's own limit
-   * stopping a background command, and while the session's sub-sessions work or one of its tool
-   * calls waits for them: their own watchdogs stop them.
+   * Restarts the turn's watchdog, as it shows something new. It waits while a background task
+   * runs, and while the session's sub-sessions work or one of its tool calls waits for them: their
+   * own watchdogs stop them. A reply that ended and waits for its background tasks is checked
+   * instead, `#check`.
    */
   watch(live: Live, turn: Running) {
+    turn.asked = undefined;
+    this.#watchdog(live, turn);
+    this.#check(live, turn);
+  }
+
+  #watchdog(live: Live, turn: Running) {
     clearTimeout(turn.watchdog);
     turn.watchdog = setTimeout(() => {
       if ((live.proc?.background.size ?? 0) > 0 || this.#context.subSessions.busy(live.id)) {
-        this.watch(live, turn);
+        this.#watchdog(live, turn);
         return;
       }
       this.halt(live, turn, { reason: "No output for 30 minutes.", state: "failed" });
     }, WATCHDOG_MS);
+  }
+
+  /**
+   * Checks a turn whose reply ended and that waits for its background tasks, after `QUIET_MS`
+   * without output: a command that never ends would hold it forever, and its parent's call with
+   * it. The agent is asked to look at them, in a message steered into the turn; with no output
+   * `QUIET_MS` after it, the turn fails, and its process closes, which ends its commands. Nothing
+   * for an agent that cannot be steered.
+   */
+  #check(live: Live, turn: Running) {
+    clearTimeout(turn.quiet);
+    turn.quiet = setTimeout(() => {
+      const proc = live.proc;
+      if (live.turn !== turn || turn.stop) {
+        return;
+      }
+      const waits = turn.replied && proc && !proc.closing && proc.background.size > 0;
+      if (!waits || !proc.runtime.capabilities.steer) {
+        this.#check(live, turn);
+        return;
+      }
+      if (turn.asked) {
+        this.halt(live, turn, { reason: UNANSWERED, state: "failed" });
+        this.#context.processes.close(proc);
+        return;
+      }
+      turn.asked = true;
+      const id = randomUUID();
+      const text = quietCheck(waitingLabel(proc.background));
+      const item = messageItem(id, "workflow", text);
+      const seq = this.#context.cache.appendItem(turn.id, item);
+      live.messages.set(id, { item, seq, turn: turn.id, written: true });
+      this.#context.changed(live, turn.id);
+      proc.agent.send({ id, images: [], text, when: "steer" });
+      this.#check(live, turn);
+    }, QUIET_MS);
   }
 
   /**
@@ -166,6 +213,7 @@ export class Turns {
     }
     turn.stop = end;
     clearTimeout(turn.watchdog);
+    clearTimeout(turn.quiet);
     const proc = live.proc;
     if (!proc) {
       return;
@@ -204,6 +252,7 @@ export class Turns {
     const running = live.turn?.id === id ? live.turn : undefined;
     if (running) {
       clearTimeout(running.watchdog);
+      clearTimeout(running.quiet);
       running.terminate.forEach(clearTimeout);
       if (live.proc) {
         live.proc.ended = { first: running.first, id };
@@ -370,6 +419,7 @@ export class Turns {
   clearTimers(live: Live) {
     if (live.turn) {
       clearTimeout(live.turn.watchdog);
+      clearTimeout(live.turn.quiet);
       live.turn.terminate.forEach(clearTimeout);
     }
   }

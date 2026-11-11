@@ -330,7 +330,10 @@ export class SubSessions {
     }
   }
 
-  /** The sub-session's answer: the last text of its latest turn, or why that turn did not end done. */
+  /**
+   * The sub-session's answer: the last text of its latest turn, or why that turn did not end done,
+   * with the last text it gave, which may hold its whole report.
+   */
   #answer(row: SessionRow): string {
     const { cache } = this.#context;
     const turn = latestTurn(cache.turns(row.id));
@@ -338,10 +341,12 @@ export class SubSessions {
     if (!turn) {
       throw new Error(`${name} did not start.`);
     }
+    const said = cache.itemsOf(turn.id, "text").at(-1)?.text ?? "";
     if (turn.state !== "done") {
-      throw new Error(`${name} ${turn.state}${turn.reason === null ? "." : `: ${turn.reason}`}`);
+      const why = `${name} ${turn.state}${turn.reason === null ? "." : `: ${turn.reason}`}`;
+      throw new Error(said === "" ? why : `${why}\nIts last message:\n${said}`);
     }
-    return cache.itemsOf(turn.id, "text").at(-1)?.text ?? "";
+    return said;
   }
 }
 

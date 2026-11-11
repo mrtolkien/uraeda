@@ -28,6 +28,11 @@ export const WAKEUP_HORIZON_MS = 24 * 60 * 60_000;
 /** A turn without any output for this long is stopped, and fails. */
 export const WATCHDOG_MS = 30 * 60_000;
 /**
+ * A turn whose reply ended, waiting for its background tasks, is asked about them after this long
+ * without any output, and fails as long after without an answer.
+ */
+export const QUIET_MS = 10 * 60_000;
+/**
  * SIGINT follows an unanswered interrupt after this long, and SIGTERM as long after SIGINT. A
  * closed process still running this long after gets SIGTERM, and SIGKILL as long after.
  */
@@ -38,6 +43,19 @@ export { MAX_IMAGES } from "../limits.ts";
 
 /** Why a turn stopped as the server stopped, or as the next start found it left running. */
 export const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
+
+/** Why a turn failed: its agent never answered the check of the background tasks it waits for. */
+export const UNANSWERED = "No answer for 10 minutes to the check of its background tasks.";
+
+/**
+ * The check of a turn that waits, `waiting` saying for what, as "Waiting for 1 background command":
+ * the agent looks at it, and ends with its answer again, the text its turn is read by.
+ */
+export const quietCheck = (waiting: string) =>
+  `Uraeda's check: your reply ended, and nothing new came for 10 minutes. ${waiting}. Look at ` +
+  "what it does now. If it still makes progress, say so in one line, and wait for its notice. " +
+  "If it is stuck, or you no longer need it, stop it, then give your final answer again, whole: " +
+  "your turn ends with your last message, and that message is what gets read.";
 
 /** Why a queued turn stopped as the human took its message back: it never asks for them. */
 export const TAKEN_BACK = "Taken back.";
@@ -176,6 +194,8 @@ export type Proc = {
 export type Running = {
   /** What it does now, which the line at its end says, and since when nothing new showed. */
   activity: TurnActivity;
+  /** Asked about the background tasks it waits for, with no output since: `QUIET_MS`. */
+  asked?: boolean;
   /** The ID of the message that started it. */
   first: string;
   id: number;
@@ -184,6 +204,8 @@ export type Running = {
    * fails.
    */
   limit?: Limit;
+  /** Asks about its background tasks once it waited for them without output, then fails it. */
+  quiet?: Timer;
   /** Its reply ended, and it waits for its background sub-agents to report back. */
   replied?: boolean;
   skipped?: { count: number; seq: number };

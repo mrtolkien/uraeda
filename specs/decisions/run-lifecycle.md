@@ -26,6 +26,8 @@ runs the jobs the human scheduled. Each automatic run says why in its session an
 - Each automatic run MUST say in its session why it happened. Checked by the runner's tests.
 - A run the human stopped or dismissed MUST NOT continue by itself. Checked by the runner's tests.
 - Each kind of automatic run MUST have a setting that turns it off. Checked by the core's tests.
+- A reply that ended and waits for its background work MUST be asked about it after 10 minutes
+  without output, and MUST fail 10 minutes later without an answer. Checked by the runner's tests.
 - Agents SHOULD wait for their background work by its notice, never by polling it.
 
 ## Why
@@ -34,7 +36,9 @@ A run that stops for something outside the work costs hours until the human noti
 nobody starts does not happen. Continuing and scheduling keep the workflow asynchronous. Continues
 without a cap could loop, and catching up spends usage on every merge, so the human sets both. A job
 read from a repository would let whoever pushes there run an agent on the human's machine. A run
-that polls cannot read the human's messages. History:
+that polls cannot read the human's messages. A background command that never ends holds its reply
+forever, and the run that waits for that reply with it: only the agent can tell a long build from
+one that is stuck, so it is asked first. History:
 [Scheduled jobs](../done/2026-11-10-scheduled-jobs.md).
 
 ## Alternatives considered
@@ -52,6 +56,9 @@ that polls cannot read the human's messages. History:
   asks for the human.
 - A run that ends before its next human gate asks for the human: Uraeda never asks it to go on, as
   that misfired almost every time.
+- A long background command costs its agent one short answer every 10 minutes it stays silent.
+- A sub-agent's call that fails or stops answers with its last message, which may hold its whole
+  report.
 - Every later agent runtime must report restarts, limits, and their reset time for runs to continue.
 
 ## Applies to
