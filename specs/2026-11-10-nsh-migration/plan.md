@@ -1324,7 +1324,7 @@ What the sessions (task 15) rely on:
 
 - Consumes: `Registry`, `Bus` (6); `Runtime` (12); `compile` of
   [`crates/compile/`](/crates/compile/).
-- Produces (rulings R107 to R113):
+- Produces (rulings R207 to R211, R112, and R113):
   - The server API, for `server.ts`: `record`, `action`, `route`, `on`, `runtime`, `settings`,
     `repositories`, `log`, as today, and `uraeda:process`, `uraeda:fs`, `fetch` in place of `node:`
     imports. Its declarations are [`server.d.ts`](/crates/server/src/extensions/api/server.d.ts).
