@@ -15,7 +15,7 @@ import { Sidebar, UsageBar } from "./Sidebar";
 import { Branch, modeSlot, StatusEnd } from "./Status";
 import "../routes";
 import { firstRun, missingFolder, unknownRepository } from "../repository/panes";
-import { call, device, navigate, record, redirect, route } from "../../store";
+import { call, device, navigate, record, redirect, route, setServerZone } from "../../store";
 import { type Place, placeOf, Stacks } from "../../ui/layout";
 import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 
@@ -30,6 +30,7 @@ function places() {
     icon: one.icon,
     keys: `g ${one.key}`,
     label: one.label,
+    onPhone: one.onPhone,
     onPress: () => navigate(one.to),
   }));
 }
@@ -81,6 +82,12 @@ export function Frame() {
   });
 
   const shown = () => (row()?.missing === false ? repo() : undefined);
+  // The server's time zone, which every time the app shows reads in: the record `Jobs` says it.
+  const jobs = computed(() => {
+    const name = shown();
+    return name === undefined ? undefined : record("Jobs", { repo: name });
+  });
+  effect(() => setServerZone(jobs()?.()?.timeZone));
   const end = <StatusEnd repo={shown()} />;
   const start = <Branch repo={shown()} />;
   const sidebar = (

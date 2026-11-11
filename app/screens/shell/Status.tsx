@@ -1,9 +1,9 @@
 // What the shell puts in the status line: the editing mode at its left end, the branch of the
 // repository shown, what waits on the human, the extensions' items, the connection's state, and
 // the repository at its right end. The hints of the keys between them are the line's own.
-import { signal, View } from "nsh";
-import { ExtensionPlace } from "../../extensions/ExtensionPlace";
-import type { Declarations } from "../../extensions/page";
+import { View } from "nsh";
+import { declaredBy } from "../../extensions/declared";
+import { ExtensionPlace, ReadDeclarations } from "../../extensions/ExtensionPlace";
 import { connection, extensionHost, record } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import { Icon, Text } from "../../ui/controls";
@@ -47,19 +47,12 @@ function NeedsYou() {
 
 /** An extension's items of the status line, once its page said which it has. */
 function ExtensionItems(props: { extension: ExtensionRow; repo: string }) {
-  const items = signal<Declarations["statusItems"]>([]);
   const host = extensionHost();
+  const items = () =>
+    declaredBy(props.extension.name, props.extension.pageVersion)?.statusItems ?? [];
   return (
     <>
-      {/* The page run once, unseen, for what it declares. */}
-      <View style={{ height: 0, overflow: "hidden", width: 0 }}>
-        <ExtensionPlace
-          extension={() => props.extension}
-          host={host}
-          onReady={(declared) => items.set(declared.statusItems)}
-          repo={props.repo}
-        />
-      </View>
+      <ReadDeclarations extension={props.extension} host={host} repo={props.repo} />
       <Each key={(item: { id: string }) => item.id} of={items()}>
         {(item) => (
           <View style={{ height: tokens.status.height, width: 160 }}>

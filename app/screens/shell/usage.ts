@@ -3,6 +3,7 @@
 // hours. And the one window the folded rail's bar shows: the account of the session in view, else
 // the one a new session would start on. The multi-accounts record has the rules
 // (`specs/done/2026-11-10-multi-accounts.md`).
+import { serverTime } from "../../store";
 import type { Agent, RuntimeRecord } from "../../store/protocol";
 
 /** The agents' id of their five hours. */
@@ -20,7 +21,7 @@ export type UsageLine = {
   label: string;
   /** What is left, from 0 to 100: none for a login that cannot run. */
   left?: number;
-  /** When it resets, as a person reads it: "15:08", "Tue 09:00". */
+  /** When it resets, as a person reads it in the server's zone: "15:08", "Tue 09:00". */
   resets?: string;
   /** Why a login cannot run: "signed out", "no folder". */
   trouble?: string;
@@ -31,22 +32,13 @@ type Window = { label: string; resetsAt: string | null; used: number };
 /** What is left of `window`, in whole percent. */
 const leftOf = (window: Window) => Math.round(Math.min(100, Math.max(0, 100 - window.used * 100)));
 
-/** When a window resets: its time today, or its day and time on another day. */
-export function resetWords(resetsAt: string, now: Date): string {
-  const at = new Date(resetsAt);
-  const time = `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
-  if (at.toDateString() === now.toDateString()) return time;
-  const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][at.getDay()];
-  return `${day} ${time}`;
-}
-
 function line(id: string, icon: string, label: string, window: Window, now: Date): UsageLine {
   return {
     icon,
     id,
     label: `${label} ${window.label}`,
     left: leftOf(window),
-    resets: window.resetsAt === null ? undefined : resetWords(window.resetsAt, now),
+    resets: window.resetsAt === null ? undefined : serverTime(window.resetsAt, now),
   };
 }
 

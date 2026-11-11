@@ -20,6 +20,11 @@ export type RailPlace = {
   /** Its count is of what waits on the human: in `needs-you`. */
   needs?: boolean;
   onPress: () => void;
+  /**
+   * Where the phone's bar puts it: on the bar unless given; `more` in the menu of its `…`, for a
+   * place seldom visited; `end` after the `…`, as New.
+   */
+  onPhone?: "more" | "end";
 };
 
 /** What the app's shell puts in the rail: its slots. */

@@ -3,6 +3,7 @@
 // server's. `Storage` answers with promises, so the store reads it once, as the app starts, and
 // then answers at once, from memory.
 import { type Accessor, type Signal, signal, Storage } from "nsh";
+import type { Declarations } from "../extensions/page";
 import type { ThemeChoice } from "../ui/theme";
 import type { Unsaved } from "../ui/text/unsaved";
 import type { Fonts, ThemeSource } from "../ui/tokens";
@@ -24,6 +25,8 @@ export type DeviceKeys = {
   unsaved: ReadonlyArray<string>;
   /** A field's text typed and not saved, by the field's key. */
   [entry: `unsaved:${string}`]: Unsaved;
+  /** What an extension's page declared, by its name, for its version (`app/extensions/declared.tsx`). */
+  [declared: `declared:${string}`]: { version: number; declarations: Declarations };
   /** The frame: the side stack's width and fold, and the rail's fold (`app/ui/layout/`). */
   frame: { rail?: boolean; side?: boolean; sideWidth?: number };
 };

@@ -4,7 +4,9 @@
 // what the owner can do: the server starting, the device to pair, a version to update.
 //
 // After the server stopped, the frame stays, with its records as they were, under a banner that
-// says so, while the host starts this machine's server again or the store tries another's.
+// says so, while the host starts this machine's server again or the store tries another's. A
+// server started again on another port takes the same connection there, so the frame keeps its
+// values, marked stale, until the server gives its own.
 import { batch, effect, signal, untracked, View } from "nsh";
 import { Frame } from "./Frame";
 import { failureWords, type Server, type ShellHost } from "./host";
@@ -65,7 +67,8 @@ export function Root(props: RootProps) {
       void props.host.forget();
       phase.set({
         is: "pairing",
-        server: now.server,
+        // Where the connection went last: the server may have moved since it was found.
+        server: { ...now.server, address: now.conn.address },
         why: "This device was unpaired from the server, or the server's access key changed.",
       });
     });
@@ -121,27 +124,17 @@ export function Root(props: RootProps) {
         )}
       </If>
       <Each key={(now) => now.generation} of={connected()}>
-        {(now) => (
-          <Connected
-            conn={now().conn}
-            host={props.host}
-            restart={(server) => start(server, now().conn.signIn)}
-            server={now().server}
-          />
-        )}
+        {(now) => <Connected conn={now().conn} host={props.host} server={now().server} />}
       </Each>
     </KeysHost>
   );
 }
 
 /** The app under one connection: the frame once welcomed, else why not. */
-function Connected(props: {
-  conn: Connection;
-  host: ShellHost;
-  server: Server;
-  restart: (server: Server) => void;
-}) {
+function Connected(props: { conn: Connection; host: ShellHost; server: Server }) {
   const conn = props.conn;
+  // The server reached now: this machine's may start again on another port.
+  const server = signal(props.server);
   // The server stopped while the app was open: this machine's is started again by the host.
   const recovering = signal(false);
   const failed = signal<string | undefined>(undefined);
@@ -151,16 +144,17 @@ function Connected(props: {
       failed.set(undefined);
     });
     try {
-      const server = await props.host.server();
-      if (server.address === props.server.address) conn.reconnect();
-      else props.restart(server);
+      const found = await props.host.server();
+      // Its records keep their values, marked stale, until the server found gives its own.
+      if (found.address !== conn.address) server.set(found);
+      conn.moveTo(found.address);
     } catch (error) {
       failed.set(failureWords(error));
     }
     recovering.set(false);
   };
   effect(() => {
-    if (conn.stale() && props.server.local) untracked(() => void recover());
+    if (conn.stale() && server().local) untracked(() => void recover());
   });
 
   const refused = () => {
@@ -172,16 +166,16 @@ function Connected(props: {
 
   return (
     <>
-      <If when={refused()}>{(why) => <Update refused={why()} server={props.server} />}</If>
+      <If when={refused()}>{(why) => <Update refused={why()} server={server()} />}</If>
       <If when={shown()}>
         <Frame />
         <If when={conn.stale()}>
           <Stopped
             failed={failed()}
-            local={props.server.local}
-            onRetry={() => (props.server.local ? void recover() : conn.reconnect())}
+            local={server().local}
+            onRetry={() => (server().local ? void recover() : conn.reconnect())}
             recovering={recovering()}
-            server={props.server}
+            server={server()}
           />
         </If>
       </If>
@@ -191,8 +185,8 @@ function Connected(props: {
           title="Reaching Uraeda's server"
           words={
             conn.status() === "offline"
-              ? `It does not answer at ${props.server.address} yet. The app tries again every few seconds.`
-              : `At ${props.server.address}.`
+              ? `It does not answer at ${server().address} yet. The app tries again every few seconds.`
+              : `At ${server().address}.`
           }
         >
           <View style={{ alignItems: "center", flexDirection: "row", gap: 12 }}>

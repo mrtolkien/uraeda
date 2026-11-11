@@ -5,6 +5,8 @@ mod about;
 pub mod diagram;
 #[cfg(all(target_os = "linux", feature = "host"))]
 mod extension_view;
+#[cfg(all(target_os = "linux", feature = "host"))]
+pub use extension_view::share_app_assets;
 mod fonts;
 mod highlight;
 #[cfg(all(target_os = "linux", feature = "host"))]
@@ -14,6 +16,7 @@ mod reply;
 #[cfg(all(target_os = "linux", feature = "host"))]
 pub mod server_start;
 pub mod theme;
+mod time;
 mod vim_bridge;
 
 use nsh_core::prelude::*;

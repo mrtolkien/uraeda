@@ -1,7 +1,8 @@
 // The app's places, each named once, with its icon, its key, and the pages that belong to it: the
 // rail, the phone's bar, and the leader's tree read them, so a place is drawn and reached the same
 // everywhere. `g <key>` goes to a place, and so does `Space <key>`, but for New, whose `Space n` is
-// the New group of the leader's menu.
+// the New group of the leader's menu. On the phone's bar, the places visited most are one tap away,
+// Decisions, Jobs, and Settings wait in its `…`, and New ends it.
 import type { Route } from "../../store";
 import type { IconName } from "../../ui/controls";
 
@@ -16,6 +17,8 @@ export type Place = {
   to: Route;
   /** Its key goes after `g` alone: `Space` and the key is a group of the menu. */
   goOnly?: boolean;
+  /** Where the phone's bar puts it (`RailPlace`): the bar, the `…`'s menu, or after the `…`. */
+  onPhone?: "more" | "end";
 };
 
 export const PLACES: ReadonlyArray<Place> = [
@@ -45,6 +48,7 @@ export const PLACES: ReadonlyArray<Place> = [
     icon: "scale",
     key: "d",
     label: "Decisions",
+    onPhone: "more",
     pages: ["decisions", "decision", "decisions-check", "constitution"],
     to: { page: "decisions" },
   },
@@ -53,11 +57,27 @@ export const PLACES: ReadonlyArray<Place> = [
     icon: "clock",
     key: "j",
     label: "Jobs",
+    onPhone: "more",
     pages: ["jobs", "job", "job-new"],
     to: { page: "jobs" },
   },
-  { goOnly: true, icon: "plus", key: "n", label: "New", pages: ["new"], to: { page: "new" } },
-  { icon: "settings", key: ",", label: "Settings", pages: ["settings"], to: { page: "settings" } },
+  {
+    goOnly: true,
+    icon: "plus",
+    key: "n",
+    label: "New",
+    onPhone: "end",
+    pages: ["new"],
+    to: { page: "new" },
+  },
+  {
+    icon: "settings",
+    key: ",",
+    label: "Settings",
+    onPhone: "more",
+    pages: ["settings"],
+    to: { page: "settings" },
+  },
 ];
 
 /** The place a page belongs to, if any. */

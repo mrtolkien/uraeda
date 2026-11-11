@@ -38,6 +38,8 @@ base64.workspace = true
 merman.workspace = true
 merman-export.workspace = true
 usvg.workspace = true
+# Times in the server's zone, with the system's time zone database: `time.rs`.
+jiff.workspace = true
 # The names of an extension page's host channel.
 uraeda-protocol.workspace = true
 # The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.

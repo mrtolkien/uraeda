@@ -10,6 +10,8 @@
 // - **A gap** in a record's numbers means `unsub`, then `resume` from the last change applied,
 //   under a new id; **a change that does not fit** means `unsub`, then `sub`, for the whole value.
 // - **Offline**, the records keep their last values, and say they are stale; a call fails at once.
+// - **Moved**, to a server found at another address, as this machine's started again on another
+//   port, the records keep their values, stale, until that server's come.
 // - **Refused**, nothing tries again: `refused()` says which side to update, or to sign in.
 import { type Accessor, batch, type Signal, signal, untracked } from "nsh";
 import { dropped, offline, type Refused, refusedBy, StoreError } from "./errors";
@@ -64,7 +66,7 @@ export type Entry = {
 type Waiting = { resolve: (output: unknown) => void; reject: (error: StoreError) => void };
 
 export class Connection {
-  readonly address: string;
+  private readonly where: Signal<string>;
   readonly signIn: SignIn;
   private readonly statusSignal = signal<Status>("connecting");
   private readonly refusedSignal = signal<Refused | undefined>(undefined);
@@ -84,11 +86,16 @@ export class Connection {
   private flushing: number | undefined;
 
   constructor(options: ConnectOptions) {
-    this.address = options.address;
+    this.where = signal(options.address);
     this.signIn = options.signIn;
     this.grace = options.grace ?? GRACE;
     this.opener = options.open ?? openSocket;
     this.open();
+  }
+
+  /** The server's address, as `http://127.0.0.1:4420`: the last one `moveTo` gave. A signal. */
+  get address(): string {
+    return this.where();
   }
 
   /** Where the connection is: `live` once welcomed, `offline` between tries, `refused` for good. */
@@ -108,6 +115,24 @@ export class Connection {
   /** Tries again now, while offline, rather than at the end of the wait. */
   reconnect() {
     if (this.closed || this.statusSignal() !== "offline") return;
+    clearTimeout(this.retry);
+    this.retry = undefined;
+    this.open();
+  }
+
+  /**
+   * Connects to the server at `address` from now on, as this machine's server started again on
+   * another port: the records keep their last values, stale, until that server gives its own.
+   */
+  moveTo(address: string) {
+    if (this.closed || this.statusSignal() === "refused") return;
+    if (address === untracked(this.where)) return this.reconnect();
+    this.where.set(address);
+    const line = this.line;
+    if (line !== undefined) {
+      this.lost();
+      line.close();
+    }
     clearTimeout(this.retry);
     this.retry = undefined;
     this.open();
@@ -178,7 +203,7 @@ export class Connection {
   private open() {
     this.statusSignal.set("connecting");
     let line: Line | undefined;
-    line = this.opener(liveUrl(this.address), {
+    line = this.opener(liveUrl(untracked(this.where)), {
       closed: () => {
         if (this.line === line) this.lost();
       },

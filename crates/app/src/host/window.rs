@@ -103,11 +103,13 @@ pub fn run(args: Args) -> ExitCode {
     params.insert("local".into(), JsonValue::from(host.is_local()));
     channel.set_params(params);
     handle(&channel, &host);
+    let assets = AssetBase::Directory(app.join("assets"));
+    crate::share_app_assets(assets.clone());
     let options = AppOptions {
         app_id: "dev.uraeda.app".to_owned(),
         title: "Uraeda".to_owned(),
         size: (1400, 900),
-        asset_base: Some(AssetBase::Directory(app.join("assets"))),
+        asset_base: Some(assets),
         // The app is the owner's own, not a module of another's.
         limits: Limits::standalone(),
         host: channel,

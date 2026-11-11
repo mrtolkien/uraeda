@@ -15,6 +15,7 @@ import {
   untracked,
   View,
 } from "nsh";
+import { declared, declaredBy } from "./declared";
 import { Banner } from "../ui/controls";
 import { Empty } from "../ui/lists";
 import { pickedFonts, shownTheme } from "../ui/theme";
@@ -88,7 +89,8 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
   effect(() => {
     if (props.props) line.send("props", props.props());
   });
-  const server = untracked(() => props.host.server());
+  // Followed: this machine's server started again on another port moves the connection there.
+  const server = () => props.host.server();
   const words = () => {
     const shown = problem();
     return shown && problemWords(props.extension().title || name(), shown);
@@ -132,6 +134,7 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
         onMessage={(message) => channel.heard(message)}
         onProblem={heard}
         onReady={(drawn) => {
+          declared(name(), drawn.version, drawn.declarations);
           ready.set(true);
           if (problem()?.kind !== "slow") problem.set(undefined);
           props.onReady?.(drawn.declarations);
@@ -140,11 +143,29 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
         ref={(node) => {
           view = node;
         }}
-        server={server.address}
+        server={server().address}
         style={{ flex: words()?.gone ? 0 : 1 }}
-        token={server.token}
+        token={server().token}
         version={props.extension().pageVersion ?? undefined}
       />
     </View>
+  );
+}
+
+/**
+ * Runs the page of `extension`, unseen, for what it declares, while the device does not know it
+ * for its version: nothing once it does.
+ */
+export function ReadDeclarations(props: {
+  extension: { name: string; title: string; pageVersion: number | null };
+  host: ExtensionHost;
+  repo: string;
+}) {
+  return (
+    <If when={declaredBy(props.extension.name, props.extension.pageVersion) === undefined}>
+      <View style={{ height: 0, overflow: "hidden", width: 0 }}>
+        <ExtensionPlace extension={() => props.extension} host={props.host} repo={props.repo} />
+      </View>
+    </If>
   );
 }

@@ -15,6 +15,8 @@
 mod checks;
 #[path = "outside/display.rs"]
 mod display;
+#[path = "outside/fonts.rs"]
+mod fonts;
 #[path = "extensions/pages.rs"]
 mod pages;
 #[path = "extensions/served.rs"]
@@ -30,7 +32,7 @@ use std::fs;
 use std::sync::mpsc::Receiver;
 
 use display::on_hidden_display;
-use nsh_platform_linux::{AppOptions, Bundle};
+use nsh_platform_linux::{AppOptions, AssetBase, Bundle};
 use pages::{Signer, fixture};
 use serde_json::{Value, json};
 use served::{Served, TOKEN};
@@ -327,5 +329,33 @@ fn a_page_fetched_after_its_place_closed_never_runs() {
         app.show(&["counter"]);
         app.next_ready();
         assert_eq!(engines(), before + 1, "a page ran after its place closed");
+    });
+}
+
+// A page draws in the app's bundled fonts, which its view reads where the app's own view does.
+#[test]
+fn a_page_draws_in_the_app_s_bundled_font() {
+    on_hidden_display("a_page_draws_in_the_app_s_bundled_font", || {
+        let shipped = fonts::shipped();
+        uraeda_app::share_app_assets(AssetBase::Directory(shipped.path().to_owned()));
+        let (_, served) = served(&["counter"]);
+        // The page waits while the display's own fonts are asked: once it runs, it adds the app's.
+        let gate = served.hold("counter");
+        let app = App::open(&["counter"], &served);
+        let neon = "Monaspace Neon";
+        assert_ne!(
+            fonts::on_display(&app.stage, neon),
+            neon,
+            "the display's own fonts hold {neon}: this check could not tell the app's file from the machine's"
+        );
+        gate.send(()).expect("the gate opens");
+        app.next_ready();
+        wait_for("the page's text is drawn in the app's font", 30, || {
+            let drawn = fonts::drawn(&app.stage);
+            drawn
+                .values()
+                .any(|families| families.contains(neon))
+                .then_some(())
+        });
     });
 }

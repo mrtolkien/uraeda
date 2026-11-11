@@ -107,6 +107,14 @@ A session is `Session` (its turns' ids), each turn a `Turn` (its `pages`), and e
 - **A row** reads its item from its own page, `list(page, "items").item(id)`, and its reply with
   `text`, as above. The reply that grows is the last row, which the list follows (`follow`).
 
+## A time
+
+`serverTime(at)` writes an instant of a record, an RFC 3339 text or milliseconds, in the server's
+time zone, as near to now as it is: "15:08", "Tue 15:08", "12 Nov 15:08", "12 Nov 2025".
+`serverClock(at)` gives its year, month, day, hour, minute, and day of the week. The shell reads the
+server's zone from the repository shown; until it has, times read in the device's own. `Date`'s
+`getHours` and its kin read the device's zone: never show them.
+
 ## Never
 
 - **Keep a record's value in a component's state, or copy it into a signal.** Read it where it is

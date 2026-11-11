@@ -5655,3 +5655,71 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   answer, for 4.
 - **Where**: `crates/app/src/extension_view.rs`, `extension_view/channel.rs`,
   `crates/app/tests/extensions.rs`.
+
+## T94.2: The phone's bar holds the places visited most, a `…` for the others, and New last
+
+- **Decision**: on a narrow window the top bar shows Home, Priorities, Inbox, Sessions, and Git,
+  then a `…` whose menu holds Decisions, Jobs, and Settings, then New. A place says where it goes
+  with `onPhone` (`RailPlace`, `app/screens/shell/places.ts`): on the bar unless given, `more`, or
+  `end`. The `…` is the current tab while one of its places shows, and carries their count.
+- **Rationale**: nine places at 44 points each, beside the sidebar's toggle, are wider than 390
+  points: Settings was off-screen until the bar was scrolled. `specs/ui/phone.md` puts the least
+  visited places in a `…`, as the old phone did, and rule 1 keeps the places used most one tap away.
+  Eight controls fit from 375 points; narrower, the bar still scrolls rather than cut.
+- **Where**: `app/ui/layout/bars.tsx`, `Rail.tsx`, `app/screens/shell/places.ts`, `Frame.tsx`.
+
+## T94.3: Every time the app shows reads in the server's zone, through `serverTime`
+
+- **Decision**: `app/store/time.ts` exports `serverTime(at, now?)`, "15:08" today, "Tue 15:08"
+  within a week, "12 Nov 15:08" this year, "12 Nov 2025" before, and `serverClock(at)`, the parts.
+  The wall clock is read in Rust (`zonedClock`, `crates/app/src/time.rs`, with jiff and the system's
+  time zone database): NSH's JavaScript has none. The zone is the record `Jobs`'s `timeZone`, which
+  the frame reads for the repository shown and hands to `setServerZone`; until then, times read in
+  the device's zone. The sidebar's usage resets use it.
+- **Rationale**: rule 8. One helper, in the store every screen imports, so no screen reads `Date`'s
+  hours, which are the device's.
+- **If wrong**: the zone belongs in the server's `welcome`, server-wide, with no repository: a
+  change of the protocol and of `crates/server/`, left to the server's side.
+- **Where**: `app/store/time.ts`, `crates/app/src/time.rs`, `app/screens/shell/Frame.tsx`.
+
+## T94.4: An extension page's view reads the app's files, and its fonts with them
+
+- **Decision**: `uraeda.extension` makes each page's view with the app's asset location: the one the
+  Linux host gives at its start (`share_app_assets`), else, under NSH's development host
+  (`just app-dev`, `just app-shots`), the development server's `/assets/`, by the same rule that
+  host applies to the app's own view.
+- **Rationale**: "font failed: asset:/@uraeda-app/…: no asset location configured" in the route
+  pictures came from the pages' views, made with no location: each page engine registers the UI
+  sets' fonts, the app's bundled ones, and failed, so a page drew in the system's fonts. The app's
+  own view was not concerned: R156's check guards it, with the location a package has; the new
+  `a_page_draws_in_the_app_s_bundled_font` guards the pages'.
+- **Seen failing**: with the view's location taken away, the new test timed out with no text in
+  Monaspace Neon; after the fix, `just app-shots /` logged no font failure.
+- **Where**: `crates/app/src/extension_view.rs`, `crates/app/src/host/window.rs`.
+
+## T94.5: What a page declares is kept on the device, by the page's version
+
+- **Decision**: every `ready` of a page's view keeps its declarations under `declared:<name>` on the
+  device, with the page's version (`app/extensions/declared.ts`). `ReadDeclarations` runs a page
+  unseen only while the device knows nothing for its current version; the status line's items read
+  `declaredBy`.
+- **Rationale**: each extension with a page ran one hidden view at every start, for its declarations
+  alone. Now that happens once per version per device. The server reporting them in its record would
+  stop even that, but the server would have to run the page to learn them.
+- **If wrong**: a version number reused by a server built anew could show the old declarations,
+  until any part of the page draws and says them again.
+- **Where**: `app/extensions/declared.ts`, `ExtensionPlace.tsx`, `app/screens/shell/Status.tsx`.
+
+## T94.6: A server found at another address takes the same connection there
+
+- **Decision**: `Connection.moveTo(address)` reconnects at a new address, keeping every record's
+  value, `stale()` until the server there answers each. The shell moves its connection when this
+  machine's server starts again on another port, instead of making a new one; `address` is a signal,
+  which an extension page's view follows.
+- **Rationale**: a new connection drew "Reaching Uraeda's server", then a frame of empty records:
+  the Features pane and the branch vanished, and came back. A resume from an unknown epoch is
+  answered with `data`, so nothing more is needed for the new server's values.
+- **Seen failing**: with `moveTo` emptying the records,
+  `a server found at another address keeps the records' values, stale, until its own come` failed,
+  `expected false to be true`.
+- **Where**: `app/store/connection.ts`, `app/screens/shell/Root.tsx`.

@@ -21,12 +21,15 @@ mod fetch;
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::OnceLock;
 
 use gtk::prelude::WidgetExt as _;
 use nsh_core::JsonValue;
 use nsh_engine::Bundle;
 use nsh_platform_linux::gtk4::{self as gtk, gio, glib};
-use nsh_platform_linux::{AppOptions, AppView, ComponentContext, Components, NativeComponent};
+use nsh_platform_linux::{
+    AppOptions, AppView, AssetBase, ComponentContext, Components, NativeComponent,
+};
 use serde_json::Value;
 
 use self::channel::{Channel, PING};
@@ -75,9 +78,37 @@ struct ExtensionView {
     shown: Rc<Shown>,
 }
 
+/// Where the app's own files are, which each page's view reads the app's bundled fonts from: the
+/// host gives it as it starts.
+static APP_ASSETS: OnceLock<AssetBase> = OnceLock::new();
+
+/// Gives the pages' views the app's files, where the app's own view reads them: without them, a
+/// page's engine registers none of the app's fonts, and draws in the system's.
+pub fn share_app_assets(base: AssetBase) {
+    let _ = APP_ASSETS.set(base);
+}
+
+/// The app's files: the host's, else, under NSH's development host, as `just app-dev` and the
+/// app's pictures run it, the development server's, where that host's view reads them.
+fn app_assets() -> Option<AssetBase> {
+    if let Some(base) = APP_ASSETS.get() {
+        return Some(base.clone());
+    }
+    let mut args = std::env::args()
+        .skip_while(|arg| arg != "--dev-server")
+        .skip(1);
+    let server = args.next()?;
+    let host = server.strip_prefix("ws://")?.split('/').next()?;
+    Some(AssetBase::Http(format!("http://{host}/assets/")))
+}
+
 impl ExtensionView {
     fn new(context: ComponentContext) -> ExtensionView {
-        let view = AppView::new(AppOptions::default());
+        let options = AppOptions {
+            asset_base: app_assets(),
+            ..AppOptions::default()
+        };
+        let view = AppView::new(options);
         // A page draws no page of its own: the app's components are every view's, its own too.
         view.register_component(COMPONENT, Rc::new(|_| Box::new(Nothing::default())));
         let channel = Channel::answer(view.host(), context);

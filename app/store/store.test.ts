@@ -206,6 +206,23 @@ test("a reconnect resumes a reply without a gap", async () => {
   expect(openOnWire(facts(app).conns.a!)).toBe(0);
 });
 
+test("a server found at another address keeps the records' values, stale, until its own come", async () => {
+  const app = await harness();
+  await step(app, { conn: "a", do: "connect" });
+  await until(app, (f) => f.conns.a?.status === "live");
+  await step(app, { args: null, conn: "a", do: "read", key: "vim", name: "Settings", pick: VIM });
+  await until(app, (f) => typeof last(f.reads.vim?.values) === "boolean");
+  const seen = facts(app).reads.vim!.values.length;
+
+  // This machine's server, started again, answers at another address: the line moves there.
+  await step(app, { conn: "a", do: "move", to: `${app.texts()[0]}/` });
+  await until(app, (f) => f.conns.a!.status === "live" && f.conns.a!.opened === 2, 5000);
+  expect(facts(app).conns.a!.stale).toBe(false);
+  // The value was never lost on the way: no read gave nothing.
+  const values = facts(app).reads.vim!.values.slice(seen - 1);
+  expect(values.every((value) => typeof value === "boolean")).toBe(true);
+});
+
 test("a change that arrives after its unsub is ignored, and no subscription is left", async () => {
   const app = await harness();
   await step(app, { conn: "a", do: "connect" });

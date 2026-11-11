@@ -29,6 +29,7 @@ export type {
 export * from "./device";
 export * from "./history";
 export * from "./routes";
+export * from "./time";
 
 let current: Connection | undefined;
 

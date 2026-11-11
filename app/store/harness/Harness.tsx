@@ -4,7 +4,8 @@
 //
 // The test plays the host: each `step` event does one thing, and the app posts its `facts`, what a
 // caller sees, after each change. A connection's line is the platform's WebSocket, wrapped by the
-// seam to see what is sent, hold what comes, or drop it.
+// seam to see what is sent, hold what comes, or drop it. `move` sends a connection to another
+// address: the sandbox's with a slash after it, the same server under another name.
 import { effect, host, mount, signal, Text, View } from "nsh";
 import { valueAt } from "../apply";
 import { Connection } from "../connection";
@@ -27,7 +28,8 @@ type Step =
     }
   | { do: "unread"; key: string }
   | { do: "call"; conn: string; key: string; name: string; input: JsonValue }
-  | { do: "hold" | "release" | "drop" | "close"; conn: string };
+  | { do: "hold" | "release" | "drop" | "close"; conn: string }
+  | { do: "move"; conn: string; to: string };
 
 type Wire = {
   got: JsonValue[];
@@ -158,6 +160,9 @@ function step(it: Step) {
       break;
     case "close":
       conns.get(it.conn)!.close();
+      break;
+    case "move":
+      conns.get(it.conn)!.moveTo(it.to);
       break;
   }
   tell();

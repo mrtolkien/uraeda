@@ -1,18 +1,138 @@
 // The phone's two bars, on a narrow window: at the top the places, as a terminal's tab line, with
-// the sidebar's toggle on its far left; at the foot the panes of the one stack, as tiles of glass,
+// the sidebar's toggle on its far left, the places seldom visited in the menu of a `…`, so the bar
+// holds a phone's width without scrolling; at the foot the panes of the one stack, as tiles of glass,
 // an icon over a word each, the shown one in the accent, or icons alone where the words do not fit. Both are the frame's, as the rail and the
 // status line are on a wider window.
-import { Scroll, signal, View } from "nsh";
+import { Scroll, signal, View, type ViewRef } from "nsh";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, titleOf } from "./panes";
 import type { RailPlace } from "./Rail";
 import { markOf } from "./Stack";
 import { Icon, Text } from "../controls";
-import { Surface } from "../surfaces";
+import { Options } from "../controls/Options";
+import { Popover, Surface } from "../surfaces";
 import { tokens } from "../tokens";
 
-/** The top bar: the sidebar's toggle, then each place's icon and count, the current one lit. */
+/** A tab of the top bar: an icon, and its count, lit when `current`, with a line under it. */
+function Tab(props: {
+  count?: number;
+  current: boolean;
+  icon: RailPlace["icon"];
+  label: string;
+  needs?: boolean;
+  onPress: () => void;
+  ref?: (node: ViewRef) => void;
+}) {
+  return (
+    <View
+      accessibilityLabel={props.label}
+      accessibilityState={{ selected: props.current }}
+      onPress={props.onPress}
+      ref={props.ref}
+      role="tab"
+      style={{
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 3,
+        justifyContent: "center",
+        minWidth: tokens.control.touch,
+        paddingHorizontal: 6,
+      }}
+    >
+      <Icon colour={props.current ? tokens.role.action : tokens.role.inkQuiet} name={props.icon} />
+      <If when={(props.count ?? 0) > 0}>
+        <Text
+          bold={props.needs === true}
+          colour={props.needs === true ? tokens.light.needs : undefined}
+          size="under"
+          tone="quiet"
+        >
+          {String(props.count)}
+        </Text>
+      </If>
+      <View
+        style={{
+          backgroundColor: props.current ? tokens.role.action : "transparent",
+          bottom: -1,
+          height: 2,
+          left: 0,
+          position: "absolute",
+          right: 0,
+        }}
+      />
+    </View>
+  );
+}
+
+/** A place's tab. */
+function PlaceTab(props: { place: RailPlace }) {
+  return (
+    <Tab
+      count={props.place.count}
+      current={props.place.current === true}
+      icon={props.place.icon}
+      label={props.place.label}
+      needs={props.place.needs}
+      onPress={props.place.onPress}
+    />
+  );
+}
+
+/**
+ * The `…`: the places seldom visited, in a menu under it. It is the current tab while one of them
+ * is shown, and its count is theirs.
+ */
+function MoreTab(props: { places: ReadonlyArray<RailPlace> }) {
+  const open = signal(false);
+  let anchor: ViewRef | undefined;
+  const count = () => props.places.reduce((sum, place) => sum + (place.count ?? 0), 0);
+  return (
+    <>
+      <Tab
+        count={count()}
+        current={props.places.some((place) => place.current === true)}
+        icon="ellipsis"
+        label="More places"
+        needs={props.places.some((place) => place.needs === true && (place.count ?? 0) > 0)}
+        onPress={() => open.set(true)}
+        ref={(node) => (anchor = node)}
+      />
+      <Popover
+        align="end"
+        anchor={anchor}
+        name="More places"
+        onClose={() => open.set(false)}
+        open={open()}
+        style={{ minWidth: 200, paddingVertical: 4 }}
+      >
+        <Options
+          onPick={(at) => {
+            open.set(false);
+            props.places[at]?.onPress();
+          }}
+          rows={props.places.map((place) => ({
+            hint: place.count ? String(place.count) : undefined,
+            icon: place.icon,
+            label: place.label,
+            picked: place.current === true,
+          }))}
+          start={Math.max(
+            0,
+            props.places.findIndex((place) => place.current === true),
+          )}
+        />
+      </Popover>
+    </>
+  );
+}
+
+/**
+ * The top bar: the sidebar's toggle, then each place's icon and count, the current one lit; the
+ * places `onPhone: "more"` in the `…`'s menu, and those `onPhone: "end"` after it.
+ */
 export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<RailPlace> }) {
+  const on = (where: RailPlace["onPhone"]) =>
+    props.places.filter((place) => place.onPhone === where);
   return (
     <View
       role="tablist"
@@ -42,54 +162,19 @@ export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<Ra
           </View>
         )}
       </If>
-      {/* More places than a phone's width holds scroll sideways, never cut. */}
+      {/* On a phone narrower than the bar's tabs, they scroll sideways, never cut. */}
       <Scroll horizontal scrollbar={false} style={{ flex: 1 }}>
-        <Each key={(place: RailPlace) => place.label} of={props.places}>
-          {(place) => {
-            const current = () => place().current === true;
-            return (
-              <View
-                accessibilityLabel={place().label}
-                accessibilityState={{ selected: current() }}
-                onPress={place().onPress}
-                role="tab"
-                style={{
-                  alignItems: "center",
-                  flexDirection: "row",
-                  gap: 3,
-                  justifyContent: "center",
-                  minWidth: tokens.control.touch,
-                  paddingHorizontal: 6,
-                }}
-              >
-                <Icon
-                  colour={current() ? tokens.role.action : tokens.role.inkQuiet}
-                  name={place().icon}
-                />
-                <If when={place().count !== undefined && (place().count ?? 0) > 0}>
-                  <Text
-                    bold={place().needs === true}
-                    colour={place().needs === true ? tokens.light.needs : undefined}
-                    size="under"
-                    tone="quiet"
-                  >
-                    {String(place().count)}
-                  </Text>
-                </If>
-                <View
-                  style={{
-                    backgroundColor: current() ? tokens.role.action : "transparent",
-                    bottom: -1,
-                    height: 2,
-                    left: 0,
-                    position: "absolute",
-                    right: 0,
-                  }}
-                />
-              </View>
-            );
-          }}
-        </Each>
+        <View style={{ flexDirection: "row", flexGrow: 1, justifyContent: "space-between" }}>
+          <Each key={(place: RailPlace) => place.label} of={on(undefined)}>
+            {(place) => <PlaceTab place={place()} />}
+          </Each>
+          <If when={on("more").length > 0}>
+            <MoreTab places={on("more")} />
+          </If>
+          <Each key={(place: RailPlace) => place.label} of={on("end")}>
+            {(place) => <PlaceTab place={place()} />}
+          </Each>
+        </View>
       </Scroll>
     </View>
   );
