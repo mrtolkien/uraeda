@@ -19,8 +19,8 @@ never runs code in the app.
   fonts and colours.
 - A diagram MUST NOT run a script in the app, even when its text holds one. Checked by the diagram's
   tests.
-- A diagram that fails to draw, or takes more than 2 seconds, MUST show its source instead. Checked
-  by the diagram's tests.
+- A diagram that fails to draw, or is not drawn in time, MUST show its source instead. Checked by
+  the diagram's tests.
 - A diagram MUST NOT repeat what the text around it says.
 - A diagram SHOULD show a flow, a sequence, or states that a list or a table would make hard to
   follow.
