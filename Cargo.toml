@@ -121,6 +121,15 @@ thiserror = "2.0.21"
 # The client's TypeScript types, from the protocol's Rust types. NSH's bundler holds it already.
 ts-rs = { version = "12.0.1", features = ["serde-json-impl"] }
 # SVG, at the version NSH draws images with: its text as shapes, which NSH's own build leaves out.
+# Mermaid diagrams, drawn in Rust: the parser, the layout, and SVG that `usvg` reads, measured with
+# the app's own fonts. Without the ELK and Cytoscape layouts and the math renderer, which no
+# diagram of a workflow file needs.
+merman = { version = "=0.9.3", default-features = false, features = [
+  "all-diagrams",
+  "native-fonts",
+  "svg",
+] }
+merman-export = { version = "=0.9.3", default-features = false, features = ["native-fonts"] }
 usvg = { version = "0.46", default-features = false, features = ["text"] }
 # A fetched address's host, for the rule that allows it. The lockfile held it.
 url = "2"

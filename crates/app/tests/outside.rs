@@ -229,9 +229,9 @@ fn a_web_view_shows_a_local_page_and_gets_keys() {
 /// by the colour that leads in it.
 const DIAGRAM: &str = "flowchart LR\n  A[Proposal] --> B{Questions?}\n  B -- Yes --> C[Round]";
 const THEME: diagram::Theme<'static> = &[
-    ("--pele-fg", "#0000ff"),
-    ("--pele-line", "#00a000"),
-    ("--pele-surface", "#ffdca0"),
+    ("primaryTextColor", "#0000ff"),
+    ("lineColor", "#00a000"),
+    ("primaryColor", "#ffdca0"),
 ];
 fn is_text(red: u8, green: u8, blue: u8) -> bool {
     blue > 150 && red < 120 && green < 120
@@ -243,8 +243,8 @@ fn is_box(red: u8, green: u8, blue: u8) -> bool {
     (red, green, blue) == (255, 220, 160)
 }
 
-/// Check 4. Pele draws a Mermaid diagram in NSH's VM, with no browser, and NSH shows it, its
-/// boxes, its arrows, and its text, once Rust has made Pele's SVG one NSH's images draw.
+/// Check 4. Rust draws a Mermaid diagram with Merman, with no browser and no JavaScript, and NSH
+/// shows it, its boxes, its arrows, and its text, once `usvg` has made its text shapes.
 #[test]
 fn a_diagram_is_drawn_without_a_browser() {
     on_hidden_display("a_diagram_is_drawn_without_a_browser", || {
@@ -252,9 +252,10 @@ fn a_diagram_is_drawn_without_a_browser() {
         let (drawn, shown) = (stage.posts("drawn"), stage.posts("shown"));
         let failed = stage.posts("failed");
         let fonts = diagram::fonts();
-        stage.answers("picture", move |svg| {
-            let svg = svg.as_str().ok_or("Pele's SVG is a text")?;
-            diagram::picture(svg, THEME, &fonts).map(Value::String)
+        stage.answers("picture", move |source| {
+            let source = source.as_str().ok_or("a diagram's source is a text")?;
+            let picture = diagram::picture(source, THEME, &fonts)?;
+            Ok(json!({ "height": picture.height, "src": picture.src, "width": picture.width }))
         });
         let mut params = serde_json::Map::new();
         params.insert("source".to_owned(), json!(DIAGRAM));
@@ -273,7 +274,7 @@ fn a_diagram_is_drawn_without_a_browser() {
             })
         };
 
-        let size = next("Pele draws the diagram in NSH's VM", &drawn);
+        let size = next("Rust draws the diagram", &drawn);
         assert!(size["width"].as_f64() > Some(200.0), "{size}");
         next("NSH shows the picture", &shown);
         let picture = wait_for("GTK draws the diagram", 30, || {

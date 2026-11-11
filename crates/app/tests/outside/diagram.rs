@@ -1,114 +1,155 @@
-//! A diagram's picture. Pele draws a Mermaid diagram as an SVG that takes its colours from CSS
-//! variables and holds text. NSH's images draw neither: its SVG reader knows no `var()`, and
-//! leaves text out. So Rust gives each variable its value, and turns the text into shapes.
+//! A diagram's picture. Merman draws a Mermaid diagram as SVG, in Rust: no browser, and no
+//! JavaScript. NSH's images draw no text, so `usvg` then turns the text into shapes.
 
-use std::collections::HashMap;
 use std::process::Command;
 use std::sync::Arc;
+use std::time::Duration;
 
-use base64::Engine;
+use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
+use merman::svg::SvgPipeline;
+use merman::{
+    Engine, MermaidConfig, OperationControl, RenderOutput, RenderRequest, Renderer, SvgEnvironment,
+    SvgRequest,
+};
+use merman_export::{NativeFontContext, NativeFontLimits};
 use usvg::fontdb::Database;
 
-/// The colours of a diagram: Pele's variables, as `("--pele-fg", "#0000ff")`.
+/// The colours of a diagram: Mermaid's theme variables, as `("primaryColor", "#ffdca0")`.
 pub type Theme<'a> = &'a [(&'a str, &'a str)];
 
-/// Pele's `svg` as an image NSH draws, in `theme`'s colours and the fonts of `fonts`: a `data:`
-/// address of an SVG made of shapes only.
-pub fn picture(svg: &str, theme: Theme<'_>, fonts: &Arc<Database>) -> Result<String, String> {
-    let options = usvg::Options {
-        fontdb: Arc::clone(fonts),
-        ..usvg::Options::default()
-    };
-    let tree = usvg::Tree::from_str(&without_variables(svg, theme), &options)
-        .map_err(|error| error.to_string())?;
-    let shapes = tree.to_string(&usvg::WriteOptions::default());
-    Ok(format!(
-        "data:image/svg+xml;base64,{}",
-        STANDARD.encode(shapes)
-    ))
+/// How long a diagram may take: a hostile source stops there, and shows as its source.
+const PATIENCE: Duration = Duration::from_secs(2);
+
+/// The fonts of a diagram: the layout measures its labels with the fonts the picture draws them
+/// in, so no label overflows its box.
+pub struct Fonts {
+    family: String,
+    measured: NativeFontContext,
+    drawn: Arc<Database>,
 }
 
-/// The fonts a diagram's text is drawn in: here the display's sans-serif font, which fontconfig
-/// names. The app gives its own.
-pub fn fonts() -> Arc<Database> {
+/// A diagram as an image NSH draws, at its size.
+pub struct Picture {
+    /// A `data:` address of an SVG made of shapes only.
+    pub src: String,
+    pub width: f32,
+    pub height: f32,
+}
+
+/// The Mermaid `source` as a picture, in `theme`'s colours and the fonts of `fonts`.
+pub fn picture(source: &str, theme: Theme<'_>, fonts: &Fonts) -> Result<Picture, String> {
+    let variables: serde_json::Map<String, serde_json::Value> = theme
+        .iter()
+        .map(|(name, value)| ((*name).to_owned(), (*value).into()))
+        .collect();
+    // The app's settings stay outside the source: a diagram cannot name another font or theme.
+    let config = MermaidConfig::from_value(serde_json::json!({
+        "theme": "base",
+        "fontFamily": fonts.family,
+        "themeVariables": variables,
+    }));
+    let environment = SvgEnvironment::deterministic()
+        .with_native_font_context(fonts.measured.clone())
+        .map_err(|error| error.to_string())?;
+    let request = SvgRequest {
+        environment,
+        // Labels as SVG text, not HTML, which `usvg` would leave out.
+        pipeline: Some(SvgPipeline::resvg_safe()),
+        ..SvgRequest::default()
+    };
+    let control = OperationControl::new().with_deadline(PATIENCE);
+    let source = without_markup(source);
+    let output = Renderer::new()
+        .with_engine(Engine::new().with_site_config(config))
+        .render(RenderRequest::svg(&source, control, request))
+        .map_err(|error| error.to_string())?;
+    let RenderOutput::Svg(Some(svg)) = output else {
+        return Err("not a Mermaid diagram".to_owned());
+    };
+    let options = usvg::Options {
+        fontdb: Arc::clone(&fonts.drawn),
+        ..usvg::Options::default()
+    };
+    let tree = usvg::Tree::from_str(svg.svg(), &options).map_err(|error| error.to_string())?;
+    let shapes = tree.to_string(&usvg::WriteOptions::default());
+    Ok(Picture {
+        src: format!("data:image/svg+xml;base64,{}", STANDARD.encode(shapes)),
+        width: tree.size().width(),
+        height: tree.size().height(),
+    })
+}
+
+/// `source` with the angle brackets of its quoted labels as entities, but for a line break's.
+/// Merman reads a label as HTML: one that names `<name>` lost every label of its diagram.
+fn without_markup(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let mut quoted = false;
+    let mut rest = source;
+    while let Some(character) = rest.chars().next() {
+        let after = &rest[character.len_utf8()..];
+        match character {
+            '"' => quoted = !quoted,
+            '\n' => quoted = false,
+            '<' if quoted && !after.starts_with("br") => {
+                out.push_str("&lt;");
+                rest = after;
+                continue;
+            }
+            '>' if quoted && !out.ends_with("<br") && !out.ends_with("<br/") => {
+                out.push_str("&gt;");
+                rest = after;
+                continue;
+            }
+            _ => {}
+        }
+        out.push(character);
+        rest = after;
+    }
+    out
+}
+
+/// The fonts a diagram is measured and drawn in: here the display's sans-serif font, which
+/// fontconfig names. The app gives its own.
+pub fn fonts() -> Fonts {
     let found = Command::new("fc-match")
         .args(["--format=%{file}", "sans-serif"])
         .output()
         .expect("fc-match, from the dev shell");
     let file = String::from_utf8(found.stdout).expect("a font file's path");
-    let mut fonts = Database::new();
-    fonts.load_font_data(std::fs::read(&file).expect("the font file"));
-    let family = fonts
+    let bytes = std::fs::read(&file).expect("the font file");
+    let mut drawn = Database::new();
+    drawn.load_font_data(bytes.clone());
+    let family = drawn
         .faces()
         .next()
         .and_then(|face| face.families.first())
         .map(|(name, _)| name.clone())
         .expect("a font family");
-    fonts.set_sans_serif_family(family);
-    Arc::new(fonts)
+    drawn.set_sans_serif_family(family.clone());
+    let measured = NativeFontContext::from_font_bytes(
+        [bytes],
+        NativeFontLimits::default(),
+        &OperationControl::new(),
+    )
+    .expect("a font Merman reads");
+    Fonts {
+        family,
+        measured,
+        drawn: Arc::new(drawn),
+    }
 }
 
-/// `svg` in plain SVG, which `usvg` reads. Each `var()` gets its value: `theme`'s, or the fallback
-/// the SVG names. The root element declares variables of its own from the theme's,
-/// `--_fg:var(--pele-fg,#1f1f1f)`, which the rest of the SVG uses: they leave its style, where
-/// they stopped `usvg` from reading the font after them. A corner's radius, which Pele writes as
-/// a style, becomes the attribute.
-fn without_variables(svg: &str, theme: Theme<'_>) -> String {
-    let mut known: HashMap<String, String> = theme
-        .iter()
-        .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
-        .collect();
-    let Some((before, rest)) = svg.split_once("style=\"") else {
-        return resolved(svg, &known);
-    };
-    let (root_style, after) = rest.split_once('"').unwrap_or((rest, ""));
-    let mut kept = Vec::new();
-    for declaration in root_style.split(';') {
-        match declaration.split_once(':') {
-            Some((name, value)) if name.starts_with("--") => {
-                let value = resolved(value, &known);
-                known.insert(name.to_owned(), value);
-            }
-            _ => kept.push(resolved(declaration, &known)),
-        }
-    }
-    let rest = resolved(after, &known).replace(" style=\"rx:", " rx=\"");
-    format!("{before}style=\"{}\"{rest}", kept.join(";"))
-}
+#[cfg(test)]
+mod tests {
+    use super::without_markup;
 
-/// `text` with each `var(--name)` and `var(--name,fallback)` replaced by the value of `--name` in
-/// `known`, or by its fallback.
-fn resolved(text: &str, known: &HashMap<String, String>) -> String {
-    let mut out = String::new();
-    let mut rest = text;
-    while let Some(start) = rest.find("var(") {
-        out.push_str(&rest[..start]);
-        let inside = &rest[start + 4..];
-        let end = closing(inside);
-        let (name, fallback) = inside[..end]
-            .split_once(',')
-            .unwrap_or((&inside[..end], ""));
-        match known.get(name.trim()) {
-            Some(value) => out.push_str(value),
-            None => out.push_str(&resolved(fallback.trim(), known)),
-        }
-        rest = inside.get(end + 1..).unwrap_or("");
+    #[test]
+    fn a_quoted_label_keeps_its_angle_brackets_as_text() {
+        assert_eq!(
+            without_markup("A ||--o{ B : \"[extensions.<name>]\"\nA --> B"),
+            "A ||--o{ B : \"[extensions.&lt;name&gt;]\"\nA --> B"
+        );
+        assert_eq!(without_markup("A[\"one<br/>two\"]"), "A[\"one<br/>two\"]");
     }
-    out.push_str(rest);
-    out
-}
-
-/// Where the parenthesis open before `text` closes, or `text`'s end.
-fn closing(text: &str) -> usize {
-    let mut depth = 0;
-    for (index, character) in text.char_indices() {
-        match character {
-            '(' => depth += 1,
-            ')' if depth == 0 => return index,
-            ')' => depth -= 1,
-            _ => {}
-        }
-    }
-    text.len()
 }

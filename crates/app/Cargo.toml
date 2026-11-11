@@ -25,6 +25,8 @@ nsh-core = { workspace = true, features = ["declarations"] }
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 base64.workspace = true
 log = "0.4"
+merman.workspace = true
+merman-export.workspace = true
 nsh-bundler.workspace = true
 nsh-engine.workspace = true
 nsh-package.workspace = true

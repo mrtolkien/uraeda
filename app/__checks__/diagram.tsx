@@ -1,7 +1,6 @@
-// A page of `crates/app/tests/outside.rs`: it draws the Mermaid diagram its host names with Pele,
-// which runs here, in NSH's VM, and shows the picture its host makes of Pele's SVG.
+// A page of `crates/app/tests/outside.rs`: it shows the picture its host makes of the Mermaid
+// diagram it names. The host draws it in Rust, with Merman: no JavaScript draws a diagram.
 import { host, Image, mount, signal, View } from "nsh";
-import { render } from "pele";
 
 type Picture = { height: number; src: string; width: number };
 
@@ -25,11 +24,9 @@ function Page() {
 
 mount(Page);
 try {
-  const started = Date.now();
-  const { height, svg, width } = render(host.params.source as string);
-  host.post("drawn", { height, ms: Date.now() - started, width });
-  const src = (await host.call("picture", svg)) as string;
-  picture.set({ height, src, width });
+  const drawn = (await host.call("picture", host.params.source as string)) as Picture;
+  host.post("drawn", { height: drawn.height, width: drawn.width });
+  picture.set(drawn);
 } catch (error) {
   host.post("failed", String(error));
 }
