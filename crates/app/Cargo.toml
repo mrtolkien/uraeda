@@ -49,7 +49,9 @@ uraeda-vim.workspace = true
 # and run in a GTK view of its own.
 [target.'cfg(target_os = "linux")'.dependencies]
 nsh-engine = { workspace = true, optional = true }
-nsh-platform-linux = { workspace = true, features = ["js"], optional = true }
+# The Linux host shows previews in web views, which link WebKitGTK: without `webview` a web view
+# shows a placeholder (ruling R24).
+nsh-platform-linux = { workspace = true, features = ["js", "webview"], optional = true }
 ureq = { workspace = true, optional = true }
 # The host stops the server it started with a signal (`server_start.rs`).
 libc = { workspace = true, optional = true }

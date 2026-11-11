@@ -33,6 +33,7 @@ import "./buffer";
 // Task 48: Settings.
 import "./settings";
 // Task 49: Previews.
+import "./preview";
 // Task 50: Notifications, undo, and writes.
 // Task 51: Built-in extensions, and extension places.
 // Task 65: The Jobs place.

@@ -31,8 +31,9 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
+use percent_encoding::percent_decode_str;
 use tokio::sync::Notify;
-use uraeda_protocol::{Preview, PreviewArgs, Story, StoryArgs};
+use uraeda_protocol::{Mockup, Preview, PreviewArgs, Story, StoryArgs};
 
 use crate::Failure;
 use crate::http::{Routes, segment};
@@ -134,6 +135,28 @@ impl Previews {
         let readers: Vec<Readers> = self.watched().drain().map(|(_, readers)| readers).collect();
         self.runner.stop_under("");
         readers.iter().for_each(|readers| readers.tell(&self.bus));
+        // A mockup's address carries the secret too.
+        self.bus.changed_all::<Mockup>();
+    }
+
+    /// A frame asked for the page of a preview that does not run: one stopped after 30 minutes
+    /// without a view, as a client that held its records all along shows it again. The records
+    /// of its checkout somebody holds are read again, which is a view, and starts it: the frame
+    /// gets 503 until it is ready, and its records say so. Nobody holding them, nothing starts.
+    pub(crate) fn wake(&self, base: &str) {
+        let parts: Vec<String> = base
+            .trim_matches('/')
+            .split('/')
+            .map(|part| percent_decode_str(part).decode_utf8_lossy().into_owned())
+            .collect();
+        let [_, repo, _, _, folder] = parts.as_slice() else {
+            return;
+        };
+        let (repo, folder) = (repo.clone(), folder.clone());
+        let ours = format!("{folder}:");
+        self.bus
+            .changed_where::<Story>(|args| args.repo == repo && args.id.starts_with(&ours));
+        self.bus.changed::<Preview>(&PreviewArgs { repo, folder });
     }
 }
 

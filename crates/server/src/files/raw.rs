@@ -98,7 +98,7 @@ fn failed(status: StatusCode) -> Response {
 
 /// Whether `path` names a file in a `mockups` folder, at any depth below it, with no empty, `.`,
 /// or `..` segment: the only files the mockup route serves.
-fn in_mockups(path: &str) -> bool {
+pub(crate) fn in_mockups(path: &str) -> bool {
     let segments: Vec<&str> = path.split('/').collect();
     let plain = |segment: &&str| !matches!(*segment, "" | "." | "..");
     let folders = &segments[..segments.len() - 1];

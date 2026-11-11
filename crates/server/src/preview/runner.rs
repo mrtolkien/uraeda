@@ -195,6 +195,13 @@ impl Runner {
         Some(state)
     }
 
+    /// Records a view of the preview under `base`, if one lives: a frame's request for it.
+    pub(crate) fn seen(&self, shared: &Shared, base: &str) {
+        if let Some(entry) = self.0.entries().get(base).cloned() {
+            entry.live().last_view = shared.now();
+        }
+    }
+
     /// Stops the checkout's preview, if one runs, and starts it again: a view too.
     pub(crate) fn restart(&self, shared: &Shared, checkout: &Checkout) -> State {
         {

@@ -92,9 +92,15 @@ async fn answer(shared: &Shared, request: Request) -> Response {
         let allow = [(header::ALLOW, "GET, HEAD")];
         return (StatusCode::METHOD_NOT_ALLOWED, allow, "Method not allowed").into_response();
     }
-    let Some(Preview::Ready { port }) = previews.runner.state(&base) else {
+    let state = previews.runner.state(&base);
+    let Some(Preview::Ready { port }) = state else {
+        if state.is_none() {
+            previews.wake(&base);
+        }
         return not_running();
     };
+    // A page that asks for what it shows is looked at: the preview runs on.
+    previews.runner.seen(shared, &base);
     if upgrade {
         let protocols = request.headers().get_all(header::SEC_WEBSOCKET_PROTOCOL);
         let hmr = protocols

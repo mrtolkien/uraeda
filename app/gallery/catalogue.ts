@@ -40,6 +40,7 @@ export const CATALOGUE: ReadonlyArray<GroupEntry> = [
       { icon: "bell", name: "toasts", shows: "Landing in git", title: "Toasts" },
       { icon: "space", name: "corner", shows: "Keyboard shortcuts", title: "Corner" },
       { icon: "info", name: "tip", shows: "Send", title: "Tip" },
+      { icon: "globe", name: "web", shows: "A page that does not load", title: "Web frame" },
     ],
   },
   {

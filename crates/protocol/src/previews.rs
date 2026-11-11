@@ -45,6 +45,11 @@ pub struct Preview {
     pub base: Option<String>,
     /// When failed, why, as one sentence.
     pub error: Option<String>,
+    /// The command its preview decision runs, as written there, `{port}` included: none
+    /// without a preview.
+    pub command: Option<String>,
+    /// The folder it runs in, from the checkout's top level: none without a preview.
+    pub folder: Option<String>,
 }
 
 impl Record for Preview {
@@ -121,6 +126,34 @@ pub struct StoryHref {
 impl Record for StoryHref {
     const NAME: &'static str = "StoryHref";
     type Args = StoryHrefArgs;
+    type Value = Self;
+}
+
+/// Which mockup: a repository of the list, and the mockup's file.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct MockupArgs {
+    /// The repository's name in the list.
+    pub repo: String,
+    /// The file, from the repository's top level, in a `mockups/` folder:
+    /// `specs/<folder>/mockups/<name>.html`. A feature's is read from its worktree, else its
+    /// branch, as the core reads a raw file.
+    pub path: String,
+}
+
+/// A page of a `mockups/` folder, to show in a web view.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct Mockup {
+    /// Its path on the server, `/r/<name>/mockups/<secret>/<path>`, with the frame secret: none
+    /// when no such file is there, or it is in no `mockups/` folder. A link's query and anchor
+    /// go after it.
+    pub frame: Option<String>,
+}
+
+impl Record for Mockup {
+    const NAME: &'static str = "Mockup";
+    type Args = MockupArgs;
     type Value = Self;
 }
 

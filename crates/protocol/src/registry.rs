@@ -13,7 +13,7 @@ use crate::git::{
     GitFetch, GitHistoryPage, GitMerge, GitPage, GitPull, GitPush, GitRemoveWorktree, GitResolve,
     GitSaveConflict, GitStage, GitSummary, GitUnstage,
 };
-use crate::previews::{Preview, PreviewRestart, Story, StoryHref};
+use crate::previews::{Mockup, Preview, PreviewRestart, Story, StoryHref};
 use crate::sessions;
 use crate::typescript::Types;
 use crate::workspace;
@@ -291,6 +291,7 @@ fn previews(catalog: Catalog) -> Catalog {
         .record::<Preview>()
         .record::<Story>()
         .record::<StoryHref>()
+        .record::<Mockup>()
         .action::<PreviewRestart>()
 }
 

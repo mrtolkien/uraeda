@@ -430,7 +430,8 @@ async fn preview_answers_its_shape() {
 
     // A checkout without a preview decision, a folder that is no feature's, and a repository
     // that is not listed have none.
-    let none = json!({ "state": "none", "base": null, "error": null });
+    let none =
+        json!({ "state": "none", "base": null, "error": null, "command": null, "folder": null });
     for (id, repository, folder) in [
         (1, "plain", "main"),
         (2, "repo", "nothing"),
@@ -444,19 +445,17 @@ async fn preview_answers_its_shape() {
 
     // A read starts the command, in the decision's folder, under the base it is told.
     let first = records.sub(4, "Preview", preview_of("repo", "main")).await;
-    assert_eq!(
-        first,
-        json!({ "state": "starting", "base": null, "error": null })
-    );
+    // It says what runs, and where, as the decision writes them.
+    let command = first["command"].as_str().unwrap().to_owned();
+    assert!(command.starts_with("node ") && command.contains("--port {port}"));
+    let ran = |state: &str, base: Value, error: Value| json!({ "state": state, "base": base, "error": error, "command": command, "folder": "packages/web" });
+    assert_eq!(first, ran("starting", Value::Null, Value::Null));
     let ready = records
         .until(4, |preview| preview["state"] != "starting")
         .await;
     let base = ready["base"].as_str().expect("a ready preview's base");
     let secret = base.split('/').nth(4).unwrap();
-    assert_eq!(
-        ready,
-        json!({ "state": "ready", "base": base, "error": null })
-    );
+    assert_eq!(ready, ran("ready", json!(base), Value::Null));
     assert_eq!(base, format!("/r/repo/preview/{secret}/main/"));
     let starts = project.starts();
     assert_eq!(starts.len(), 1, "{starts:?}");
@@ -473,8 +472,8 @@ async fn preview_answers_its_shape() {
         .await;
     let error = "Storybook did not start: Error: Cannot find module 'storybook'";
     assert_eq!(
-        failed,
-        json!({ "state": "failed", "base": null, "error": error })
+        [&failed["state"], &failed["base"], &failed["error"]],
+        [&json!("failed"), &Value::Null, &json!(error)]
     );
     server.stop().await;
 }
@@ -594,8 +593,8 @@ async fn preview_restart_starts_the_command_again() {
         .await;
 
     assert_eq!(
-        restarted,
-        json!({ "state": "starting", "base": null, "error": null })
+        [&restarted["state"], &restarted["base"], &restarted["error"]],
+        [&json!("starting"), &Value::Null, &Value::Null]
     );
     records
         .until(1, |preview| preview["state"] == "starting")
@@ -718,5 +717,80 @@ async fn a_killed_servers_preview_commands_are_stopped_by_the_next_start() {
 
     assert_eq!(gone(leader).await, Vec::<u32>::new(), "left running");
     assert!(!file.exists(), "the record of a server that runs nothing");
+    server.stop().await;
+}
+
+// A preview stops 30 minutes after its last view, telling nobody: a client that held its
+// records all along still shows it ready. When it shows the page again, the frame's request
+// starts it again, its records say so, and the page answers once it is ready. Without it, a
+// window left open overnight shows "Storybook is not running" until a restart by hand.
+#[tokio::test]
+async fn a_preview_that_stopped_restarts_when_it_is_shown() {
+    let project = project("repo", "ok");
+    let server = serving(&project).await;
+    let mut records = Records::of(&server).await;
+    let base = ready(&mut records, 1).await;
+    let story = json!({ "repo": "repo", "id": format!("main:{STORIES}#Dragging") });
+    records.sub(2, "Story", story).await;
+    let frame = records.until(2, |story| story["state"] == "ready").await;
+    let frame = frame["frame"].as_str().unwrap().to_owned();
+    let first = group_of(project.pid(0));
+    server.clock().advance(31 * MINUTE);
+    preview::sweep(server.shared());
+    assert_eq!(gone(first).await, Vec::<u32>::new(), "the idle command");
+
+    // The story's page, shown again, is the view.
+    assert_eq!(framed(&server, &frame).await.status, 503);
+
+    records
+        .until(1, |preview| preview["state"] == "starting")
+        .await;
+    records
+        .until(1, |preview| preview["state"] == "ready")
+        .await;
+    records.until(2, |story| story["state"] == "ready").await;
+    assert_eq!(project.starts().len(), 2);
+    assert_eq!(framed(&server, &format!("{base}__echo")).await.status, 200);
+    server.stop().await;
+}
+
+// A mockup's page is shown in a web view, which sends no cookie: its record gives its address
+// with the frame secret, which opens it, and none for a file that is not a mockup's.
+#[tokio::test]
+async fn mockup_answers_its_shape() {
+    let repo = TestRepo::named("repo");
+    repo.write("specs/2026-10-20-a/mockups/My page.html", "<p>Mockup</p>\n");
+    repo.write("specs/2026-10-20-a/notes.html", "<p>Notes</p>\n");
+    repo.commit("docs: mockups");
+    let server = support::setup().folder(repo.path()).start().await;
+    let mut records = Records::of(&server).await;
+    let mockup = |path: &str| json!({ "repo": "repo", "path": path });
+
+    let found = records
+        .sub(
+            1,
+            "Mockup",
+            mockup("specs/2026-10-20-a/mockups/My page.html"),
+        )
+        .await;
+    let frame = found["frame"].as_str().unwrap();
+    let secret = frame.split('/').nth(4).unwrap();
+    assert_eq!(
+        frame,
+        format!("/r/repo/mockups/{secret}/specs/2026-10-20-a/mockups/My%20page.html")
+    );
+    let page = framed(&server, frame).await;
+    assert_eq!(
+        (page.status, page.text()),
+        (200, "<p>Mockup</p>\n".to_owned())
+    );
+
+    for (id, path) in [
+        (2, "specs/2026-10-20-a/notes.html"),
+        (3, "specs/2026-10-20-a/mockups/gone.html"),
+    ] {
+        let none = records.sub(id, "Mockup", mockup(path)).await;
+        assert_eq!(none, json!({ "frame": null }), "{path}");
+    }
     server.stop().await;
 }

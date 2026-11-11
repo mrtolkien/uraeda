@@ -13,3 +13,4 @@ export { Sheet, type SheetProps } from "./Sheet";
 export { Toast, type ToastProps, Toasts } from "./Toast";
 export { Tooltip, type TooltipProps } from "./Tooltip";
 export { drawIcon, type SurfaceIcon } from "./mark";
+export { WebFrame, type WebFrameProps, type WebFrameRef } from "./WebFrame";

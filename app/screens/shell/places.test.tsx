@@ -42,6 +42,15 @@ const PAGES: Record<string, { address: string; words: string }> = {
   "session-id": { address: "/r/sample/sessions/gone", words: "No such session" },
   session: { address: "/r/sample/f/2026-10-19-dark-mode/session", words: "Dark mode" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },
+  storybook: {
+    address:
+      "/r/sample/f/2026-10-20-sidebar-resize/storybook?story=packages%2Fweb%2Fsrc%2FSidebarHandle.stories.tsx%23Dragging",
+    words: "The stories its files link",
+  },
+  mockup: {
+    address: "/r/sample/f/2026-10-20-sidebar-resize/mockups/handle.html",
+    words: "specs/2026-10-20-sidebar-resize/mockups/handle.html",
+  },
 };
 
 const posted = (app: App, name: string) =>

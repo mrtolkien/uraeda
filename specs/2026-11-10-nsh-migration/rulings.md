@@ -6785,3 +6785,102 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the frames on a GPU are task 53's. Next to try there: a document of one paragraph
   drawn as its one text, without its measure's and blocks' views.
 - **Where**: `app/screens/session/Rows.tsx`, `app/gallery/scenes/session.tsx`.
+## T49.1: A web page is `WebFrame`, scaled to its design's width, and Tab or a press gives it the keys
+
+- **Decision**: `app/ui/surfaces/WebFrame.tsx` is the one view that shows a web page, with
+  `{ src | html, title, width?, height?, scrollable?, onMessage?, onKeys?, onScale?, ref }` and a
+  ref of `focus()`, `reload()`, and `post(value)`, which a frame on the web (task 57) also has. The
+  page lays out at `width`, CSS pixels, and is scaled down by a transform to fit its room, never up,
+  centred. Run on the hidden display, with real keys and clicks:
+  - **Overlays draw over it**: the leader menu's glass covered the page, as Native Shell's Linux
+    page says; nothing hides the web view while one is open.
+  - **A press through the scale lands where it is drawn**: a click on a button of a page drawn at
+    48% pressed that button.
+  - **The keys**: a press in the page, or Tab, GTK's own way between what takes the focus, gives the
+    page the keys: Space then pressed the page's button, and opened no leader menu. Escape, which
+    the page does not use, gives them back, and Space opened the leader again. A script run before
+    the page's own posts its window's `focus` and `blur`, so the status line says "esc back to the
+    app" while the page has the keys.
+  - **No key gives the page the keys on GTK**: Native Shell 0.4.0's `focus()` focuses its text
+    fields alone (`nsh-platform-linux`'s `mount.rs`, `Command::Focus`), and `setAccessibilityFocus`,
+    tried too, did nothing. The planned Enter, "use the page", is not declared; the frame's row says
+    "Tab or a press: the page's keys". `focus()` stays in the ref, for the web and macOS. An
+    upstream change, `Command::Focus` grabbing a hosted web view's focus, would bring Enter back.
+  - A failed load is drawn in the page's place, with "Load it again": over the white of an empty web
+    view, a banner's wash did not read.
+- **Rationale**: the plan named a frame's states and its messages; the probes said which of the
+  questions of the task's text GTK answers as hoped.
+- **If wrong**: an overlay that does not cover the page on another platform (Windows draws web views
+  over the app) hides the frame while it is open, in `WebFrame` alone.
+- **Where**: `app/ui/surfaces/WebFrame.tsx`, gallery Surfaces, "Web frame".
+
+## T49.2: A mockup's address comes from a record, and a preview says what it runs
+
+- **Decision**: the record `Mockup { repo, path }` gives `{ frame }`, the mockup's path on the
+  server under the frame secret, `/r/<name>/mockups/<secret>/<path>`, or null for a file that is not
+  in a `mockups/` folder, or not there (`api::read_raw`, as the mockups' route reads it). It is read
+  again when the repository's files change and when the secret is replaced. A link's query and
+  anchor go after it. `Preview` gains `command` and `folder`, its decision's, so a starting preview
+  says what runs and where.
+- **Rationale**: a web view sends no cookie, and the client never builds an address with the secret:
+  the old frame's `/mockups/<path>` was sent on with 303 only to a signed-in browser. No record held
+  the command, and "Starting…" alone hid what the human waits for.
+- **Where**: `crates/protocol/src/previews.rs`, `crates/server/src/records/previews.rs`, and the
+  test `mockup_answers_its_shape`.
+
+## T49.3: A frame that asks for a stopped preview starts it again, and a frame's request is a view
+
+- **Decision**: the proxy, asked for a preview that runs no more, says the checkout's held records
+  changed (`Previews::wake`): read again, they view it, which starts it, as R81 says a read does;
+  the frame gets 503 meanwhile, and the records say starting, then ready, and the page loads again.
+  Nobody holding them, nothing starts. A request to a ready preview counts as a view
+  (`Runner::seen`), so a page in use is not stopped under the human.
+- **Rationale**: a preview stops 30 minutes after its last view, telling nobody (R81), and the app
+  holds its records all along: a laptop woken in the morning showed "Storybook is not running" until
+  a restart by hand. The old UI read the story again every 5 minutes; the store cannot read a held
+  record again, and the server, which sees the frame ask, is where the view is.
+- **Seen failing**: without the wake, `a_preview_that_stopped_restarts_when_it_is_shown` waited for
+  "starting" until it timed out.
+- **Where**: `crates/server/src/preview/{mod,proxy,runner}.rs`, `crates/server/tests/preview.rs`.
+
+## T49.4: The sandbox's stories feature runs the tests' fake Storybook
+
+- **Decision**: "sample" gains `2026-10-20-sidebar-resize`, at its first round, checked out in its
+  worktree: its proposal and questions link three stories of
+  `packages/web/src/SidebarHandle.stories.tsx`, its `mockups/handle.html` is its own, and its
+  branch's preview decision runs `node fixtures/preview/serve.mjs --port {port}`, the server's
+  preview tests' fake Storybook. The main checkout has no preview decision, so `/storybook` there
+  shows how to set one. The builders' stamp is 3: an older sandbox asks for a reset.
+- **Rationale**: one fake for the tests and the sandbox; its index follows the stories file, and its
+  pages answer the pick script and Storybook's channel.
+- **If wrong**: task 61 removes `node` from the dev shell only with the server's preview tests' fake
+  rewritten, and this command with it.
+- **Where**: `crates/server/src/sandbox/stories.rs`.
+
+## T49.5: What the previews' old screens did, and what this port leaves
+
+- **Decision**: ported: a story's and a mockup's page, each live with the widths Phone (402),
+  Desktop (1440), and Fit (its room's), picked once per device; the width and scale in words; Load
+  again, Open in the browser, and Restart (`r`); the states starting (what runs, and where), failed
+  (the command's words, whole, and Restart), none (how to set a preview command, or why a feature
+  without a worktree cannot run one), and a missing story (with Restart); the stories and mockups of
+  the feature beside them, which switch the page in place; the colour mode sent to a story's pick
+  script, and an embed as tall as its story says. Left:
+  - **Pick mode and a comment on a story or a mockup**: they are review comments, task 42's. The
+    bridge already passes `picked` to `onMessage`; `MockupPage.tsx` marks the place `TASK 42:`.
+  - **Full screen and growing past the column**: a pane is zoomed by the frame (task 66).
+  - **Loading only once on screen**: a pane's frame shows when its pane does; a document's embeds
+    load as drawn.
+  - `Story.storybook`, a route of the old Storybook's own interface (`?path=`): the app's story page
+    is `?story=<path>#<export>`, as the routes of task 24 read it.
+- **Where**: `app/screens/preview/`.
+
+## T49.6: The status line leaves out a key whose guard refuses, and the app's host draws web views
+
+- **Decision**: `hints()` of the keys' store filters by `when`, as `KeySpec.when` says ("off, and
+  unlisted, while it refuses"): "esc back to the app" showed while the page had no keys. The
+  `uraeda` host's `nsh-platform-linux` takes the feature `webview`, without which its web views were
+  placeholders (R24); `nsh run` and the tests had it already.
+- **Seen once**: `a_page_fetched_after_its_place_closed_never_runs` failed once during the crates'
+  run, while the machine was loaded, and passed rerun alone.
+- **Where**: `app/ui/keys/store.ts`, `crates/app/Cargo.toml`.

@@ -38,8 +38,8 @@ pub use jobs::*;
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
 pub use page::{PAGE_HOST, page_entry};
 pub use previews::{
-    Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryHrefArgs,
-    StoryState,
+    Mockup, MockupArgs, Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs,
+    StoryHref, StoryHrefArgs, StoryState,
 };
 pub use registry::{Action, Catalog, Record, Wire, catalog};
 pub use sessions::*;

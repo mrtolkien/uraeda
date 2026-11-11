@@ -1,21 +1,25 @@
 //! The records of previews: `Preview`, a checkout's preview command, `Story`, a story of it,
-//! both of which start the command when read, and `StoryHref`, an agent's link as the core reads
-//! it; and the action `preview.restart`.
+//! both of which start the command when read, `StoryHref`, an agent's link as the core reads
+//! it, and `Mockup`, a page of a `mockups/` folder's address; and the action `preview.restart`.
 
+use uraeda_core::api;
 use uraeda_core::files::stories::story_link;
 use uraeda_core::watch::Changes;
 use uraeda_protocol::{
-    Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryState,
+    Mockup, MockupArgs, Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs,
+    StoryHref, StoryState,
 };
 
 use crate::Failure;
+use crate::files::in_mockups;
 use crate::http::segment;
-use crate::live::{self, Registry};
+use crate::live::{self, Bus, Registry};
 use crate::preview;
 use crate::preview::checkout::{MAIN, runnable};
 use crate::preview::index::{UNREADABLE, match_story};
 use crate::preview::runner::{Checkout, State};
 use crate::preview::{Previews, Reader};
+use crate::records::repositories;
 use crate::shared::Shared;
 
 /// Registers the previews' records and their action.
@@ -28,6 +32,7 @@ pub(super) fn register(_: &Shared, registry: &Registry) -> Result<(), Failure> {
             .unzip();
         Ok(StoryHref { path, export })
     });
+    registry.record::<Mockup>(|shared, args| Ok(read_mockup(shared, &args)));
     registry.action::<PreviewRestart>(|call, input| Ok(restart(call.shared(), input)));
     Ok(())
 }
@@ -37,6 +42,9 @@ pub(super) fn register(_: &Shared, registry: &Registry) -> Result<(), Failure> {
 /// code moved.
 pub(super) fn files_changed(shared: &Shared, repository: &str, _: &Changes) {
     preview::files_changed(shared, repository);
+    // A mockup's page may have come or gone.
+    let bus = shared.get::<Bus>();
+    bus.changed_where::<Mockup>(|args| args.repo == repository);
 }
 
 /// A repository left the list, or its folder went: its previews stop.
@@ -51,13 +59,21 @@ fn preview_of(checkout: &Checkout, state: State) -> Preview {
         State::Ready { .. } => (PreviewState::Ready, Some(checkout.base.clone()), None),
         State::Failed { error } => (PreviewState::Failed, None, Some(error)),
     };
-    Preview { state, base, error }
+    Preview {
+        state,
+        base,
+        error,
+        command: Some(checkout.command.clone()),
+        folder: Some(checkout.folder.clone()),
+    }
 }
 
 const NO_PREVIEW: Preview = Preview {
     state: PreviewState::None,
     base: None,
     error: None,
+    command: None,
+    folder: None,
 };
 
 /// A checkout's preview, by its folder: reading it is a view, which starts it.
@@ -146,4 +162,23 @@ fn read_story(shared: &Shared, args: &StoryArgs) -> Story {
         storybook: Some(format!("{page}?path=/story/{id}")),
         ..story(StoryState::Ready, None)
     }
+}
+
+/// A mockup's address, under the current frame secret, when its file is in a `mockups/` folder
+/// and the core finds it, as the mockup route reads it.
+fn read_mockup(shared: &Shared, args: &MockupArgs) -> Mockup {
+    let found = repositories::path(shared, &args.repo)
+        .ok()
+        .filter(|_| in_mockups(&args.path))
+        .is_some_and(|root| api::read_raw(&root, &args.path).is_ok());
+    let frame = found.then(|| {
+        let path: Vec<String> = args.path.split('/').map(segment).collect();
+        let secret = preview::frame_secret(shared);
+        format!(
+            "/r/{}/mockups/{secret}/{}",
+            segment(&args.repo),
+            path.join("/")
+        )
+    });
+    Mockup { frame }
 }

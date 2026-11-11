@@ -33,6 +33,8 @@ export type DeviceKeys = {
   "priorities.view": "columns" | "list";
   /** The decisions' order in their list (`app/screens/decisions/`). */
   "decisions.sort": "changed-desc" | "changed-asc" | "title";
+  /** The width a story and a mockup show at, once picked (`app/screens/preview/`). */
+  "preview.width": { mockup?: "phone" | "desktop" | "fit"; story?: "phone" | "desktop" | "fit" };
 };
 
 /** The values of a device, by the names of `Keys`. */

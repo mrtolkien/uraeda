@@ -3064,6 +3064,32 @@ pullRequest: PullRequestView | null, };
 export type MessageOrigin = "human" | "workflow";
 
 /**
+ * A page of a `mockups/` folder, to show in a web view.
+ */
+export type Mockup = { 
+/**
+ * Its path on the server, `/r/<name>/mockups/<secret>/<path>`, with the frame secret: none
+ * when no such file is there, or it is in no `mockups/` folder. A link's query and anchor
+ * go after it.
+ */
+frame: string | null, };
+
+/**
+ * Which mockup: a repository of the list, and the mockup's file.
+ */
+export type MockupArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The file, from the repository's top level, in a `mockups/` folder:
+ * `specs/<folder>/mockups/<name>.html`. A feature's is read from its worktree, else its
+ * branch, as the core reads a raw file.
+ */
+path: string, };
+
+/**
  * A paragraph that embeds an HTML mockup.
  */
 export type MockupEmbed = { 
@@ -3316,7 +3342,16 @@ base: string | null,
 /**
  * When failed, why, as one sentence.
  */
-error: string | null, };
+error: string | null, 
+/**
+ * The command its preview decision runs, as written there, `{port}` included: none
+ * without a preview.
+ */
+command: string | null, 
+/**
+ * The folder it runs in, from the checkout's top level: none without a preview.
+ */
+folder: string | null, };
 
 /**
  * Which checkout's preview: a repository of the list, and a feature's or a change's folder, or
@@ -6139,6 +6174,7 @@ export type Records = {
   Inbox: { args: RepositoryArgs; value: Inbox };
   Jobs: { args: RepositoryArgs; value: Jobs };
   Ledger: { args: RepositoryArgs; value: Ledger };
+  Mockup: { args: MockupArgs; value: Mockup };
   NeedsYouList: { args: null; value: NeedsYouList };
   Preview: { args: PreviewArgs; value: Preview };
   Priorities: { args: RepositoryArgs; value: Priorities };

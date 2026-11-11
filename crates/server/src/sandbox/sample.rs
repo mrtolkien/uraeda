@@ -163,6 +163,7 @@ pub(super) fn build(path: &Path) -> Result<(), String> {
     }
     changes(&repo)?;
     round_mockup(&repo)?;
+    super::stories::build(&repo)?;
     repo.worktree(folders::WORKING)?;
     // The pull requests waiting on review hold main's tip; those that catch up lack it.
     let decisions = ["code-quality.md", "testing.md"].map(|name| {

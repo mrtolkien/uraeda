@@ -20,6 +20,7 @@ import { scene } from "./scenes/session";
 import { corner, dialog, popover, sheet, tip, toasts } from "./surfaces/overlays";
 import { heights } from "./surfaces/heights";
 import { states } from "./surfaces/states";
+import { web } from "./surfaces/web";
 import { fields } from "./text/fields";
 import { definePane, PaneScroll, type PaneRef } from "../ui/layout";
 
@@ -52,6 +53,7 @@ const VIEWS: Record<string, (narrow: boolean) => JSX.Element> = {
   table,
   tip,
   toasts,
+  web,
   words,
 };
 

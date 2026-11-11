@@ -2922,12 +2922,33 @@ Follows [what every screen task does](#what-every-screen-task-does).
   frame on the web. A preview's address carries its frame secret.
 - **Tests:** none.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): previews`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names: none, and the server's
+      `a_preview_that_stopped_restarts_when_it_is_shown` and `mockup_answers_its_shape`.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 116 tests passed;
+      `just task uraeda-server uraeda-protocol uraeda-app`: 367 passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): previews`.
+
+**As built** (rulings T49.1 to T49.6):
+
+- `app/ui/surfaces/WebFrame.tsx`:
+  `WebFrame { src | html, title, width?, height?, scrollable?, onMessage?, onKeys?, onScale?, ref }`,
+  its ref `{ focus, reload, post }`; gallery Surfaces, "Web frame". Task 57 gives it a frame on the
+  web, with the same props.
+- `app/screens/preview/`: the places `storybook` (panes `preview-story`, main, and
+  `preview-stories`, side) and `mockup` (`preview-mockup` and `preview-mockups`); `LiveFrame.tsx`,
+  the live page with its widths; `states.tsx`, a preview's words and `Restart` (`r`).
+- **For task 41**, from `app/screens/preview/index.tsx`: `StoryEmbed { repo, folder, link }`, with
+  `link` a version's `StoryLink`, and `MockupEmbed { repo, folder, mockup }`, with `mockup` its
+  `MockupEmbed`; `folder` is the file's checkout, `main` for the main checkout. `Document`'s
+  `override(block)` returns one for a block that a version's `stories` or `mockups` names.
+- Records: `Mockup { repo, path }` gives `{ frame }`, a mockup's address with the frame secret;
+  `Preview` gains `command` and `folder`. The proxy starts a stopped preview again when a frame asks
+  for it, and counts a frame's request as a view.
+- The sandbox's "sample" has `2026-10-20-sidebar-resize`, with three stories, a mockup, and the fake
+  Storybook of `fixtures/preview/serve.mjs`.
 
 ## Task 50: Notifications, undo, and writes
 

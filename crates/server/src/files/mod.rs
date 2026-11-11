@@ -26,6 +26,8 @@ use crate::Failure;
 use crate::http::Routes;
 use crate::shared::Shared;
 
+pub(crate) use raw::in_mockups;
+
 /// The mockups' route, which sign-in opens to a path with the frame secret.
 pub(crate) const MOCKUPS: &str = "/r/{name}/mockups/{*path}";
 

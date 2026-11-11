@@ -131,15 +131,15 @@ function Editing(props: FileEditorProps & { buffer: Accessor<Buffer> }) {
     { keys: "i", label: "Edit the text", run: () => field?.resume() },
     { hint: "esc", hintLabel: "back", keys: "Escape", label: "Back", run: props.onLeave },
   ]);
-  // Save is named while there is something to save: the effect's keys follow what it reads.
+  // Save works, and is hinted, while there is something to save; its hint follows Vim's setting.
   const canSave = computed(() => readOnly() === null && text.dirty() && !changed());
   effect(() => {
-    if (!canSave()) return;
     registerKey({
       hint: vimMode() ? ":w" : "⌃⏎",
       keys: "mod+Enter",
       label: "Save",
       run: () => void save(),
+      when: canSave,
     });
   });
 
