@@ -24,6 +24,7 @@ import "./file/panes";
 // Task 43: Sessions.
 import "./session";
 // Task 44: Session panels and runs.
+import "./session/panels";
 // Task 45: Decisions.
 import "./decisions";
 // Task 46: Git.

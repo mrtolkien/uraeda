@@ -13,6 +13,8 @@ import type { Job } from "../../store/protocol";
 import { Button, Checkbox, type Option, Select, Switch, Text } from "../../ui/controls";
 import { FieldRow, FieldRows, type RowSpec } from "../../ui/lists/FieldRow";
 import type { TextFieldRef } from "../../ui/text";
+import { registerKey } from "../../ui/keys";
+import { usePane } from "../../ui/layout";
 
 const KINDS: ReadonlyArray<Option<Kind>> = [
   { hint: "at the hour's start", label: "Hourly", value: "hourly" },
@@ -77,6 +79,14 @@ export function JobForm(props: JobFormProps) {
   const fields: Partial<Record<"name" | "prompt" | "time", TextFieldRef>> = {};
   const opens: Openers & { kind?: () => void; day?: () => void } = {};
   const isNew = props.add !== undefined;
+  // The form's cursor, which `FieldRows` keeps: `e` on the row of what it runs on picks the effort.
+  const row = usePane().remember<string | null>("row", null);
+  registerKey({
+    keys: "e",
+    label: "Pick the effort",
+    run: () => opens.effort?.(),
+    when: () => row() === "agent",
+  });
 
   const ticked = (name: string) => values()?.repositories.includes(name) === true;
   const tick = (name: string, on: boolean) =>
@@ -100,9 +110,7 @@ export function JobForm(props: JobFormProps) {
       : []),
     { id: "repositories" },
     ...names().map((name) => ({ act: () => tick(name, !ticked(name)), id: `repo:${name}` })),
-    { act: () => opens.agent?.(), id: "agent" },
-    { act: () => opens.model?.(), id: "model" },
-    { act: () => opens.effort?.(), id: "effort" },
+    { act: () => opens.model?.(), id: "agent" },
     {
       act: () => form.set("reportOnly", "reportOnly", !(values()?.reportOnly ?? false)),
       id: "reportOnly",

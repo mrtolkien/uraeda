@@ -211,6 +211,10 @@ pub struct GitDiffArgs {
     /// Whether to give the whole diff, past 1,000 lines.
     #[serde(default)]
     pub whole: bool,
+    /// With a group's folder: the diff from where its branch left the default branch to the file
+    /// on disk, what the branch changed, committed or not, in place of its uncommitted change.
+    #[serde(default)]
+    pub branch: bool,
 }
 
 /// A file's diff.

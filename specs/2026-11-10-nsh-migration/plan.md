@@ -2779,14 +2779,29 @@ Follows [what every screen task does](#what-every-screen-task-does).
   as the Activity does, and has no Changes under it. A reviewer's title shows no commit. In the
   Activity, a `run_agent` call shows its sub-session on one line, a link to its page, and its target
   is its task.
-- **Tests:** none.
+- **Tests:** none named; one added, `app/screens/session/panels/panels.test.tsx`,
+  `the sub-agents read in the order they started`, reached by the keys alone.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): session panels and runs`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app` and
+      `just task uraeda-core uraeda-protocol uraeda-server`.
+- [x] **Step 6: Commit**: `feat(nsh-migration): session panels and runs`.
+
+**As built** (rulings R364 to R369):
+
+- `app/screens/session/panels/`: the side panes `session-activity`, `session-changes`, and
+  `session-subagents`, each `SessionArgs`, added with `addSessionPanes`; `transcriptFeed` takes
+  `{ keep, heads }` for the Activity (`pages.ts`).
+- `GitDiffArgs.branch`: a feature's file from where its branch left the default branch
+  (`api::branch_diff`).
+- `app/screens/runs/`: `AgentPick` (an agent, a model, an effort: the run map's detail, a job's
+  "Runs on", the New page's session), `FeatureMap` (the feature's Steps pane), `history.ts`
+  (`stepStates`, `isLocked`, `runsByStep`, `stepOfTurn`); `RunMap` gains `locked`, `under`,
+  `onEnter`.
+- The sandbox's "Keyboard shortcuts" has a plan and a build session, and three sub-sessions.
 
 ## Task 45: Decisions
 

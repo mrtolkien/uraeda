@@ -1,11 +1,16 @@
-// The feature's steps, as its history read them from its commits, each with when it started and how
-// long it took, and under each the files of the folder it made: one list, one cursor, `Enter`
-// opening a file in its own pane. A stage's row opens its first file.
+// The feature's steps: first its own run map (`../runs/FeatureMap.tsx`), how each step runs, the
+// steps it already ran locked, each with the sessions that ran it; then its history as its commits
+// read it, each stage with when it started and how long it took, and under each the files of the
+// folder it made, `Enter` opening a file in its own pane, a stage's row its first file. The keys
+// go through both as one: `j` past the map's last row reaches the list, `k` past the list's first
+// row the map, and `k` past the map's first row the pane's tabs.
 import { View } from "nsh";
 import { navigate, record, type Route } from "../../store";
 import type { Feature, HistoryView } from "../../store/protocol";
 import { type IconName, Spinner } from "../../ui/controls";
+import { KeyScope, registerKey } from "../../ui/keys";
 import { PaneScroll, usePane } from "../../ui/layout";
+import { FeatureMap } from "../runs/FeatureMap";
 import { createCursor, Empty, Line, List } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
@@ -176,13 +181,52 @@ function Rows(props: { args: FeatureArgs; feature: () => Feature }) {
   );
 }
 
+/** Which part of the pane has the keys: the run map, or the history's rows. */
+type Part = { (): string; set(value: string): void };
+
+/** `j` past the map's last row goes down to the history. */
+function MapKeys(props: { part: Part }) {
+  registerKey({ keys: "j", label: "Down to the history", run: () => props.part.set("list") });
+  return null;
+}
+
+/** `k` past the history's first row goes up to the map. */
+function HistoryKeys(props: { part: Part }) {
+  registerKey({ keys: "k", label: "Up to the run map", run: () => props.part.set("map") });
+  return null;
+}
+
 /** The pane "Steps". */
 export function Steps(props: { args: FeatureArgs }) {
-  // TASK 44: the run map, each step with what it runs on, takes this pane's place once it lands.
+  const pane = usePane();
+  const part = pane.remember<"map" | "list">("part", "map");
+  const cursor = pane.remember<string | null>("map", null);
+  // Two parts, each its keys' scope, on in turn: the map's `j` `k` and the rows' never meet.
   return (
     <PaneScroll style={{ flex: 1 }}>
       <WithFeature args={props.args}>
-        {(feature) => <Rows args={props.args} feature={feature} />}
+        {(feature) => (
+          <View style={{ gap: 16 }}>
+            <KeyScope kind="pane" name="Run map" on={() => part() === "map"}>
+              <MapKeys part={part} />
+              <View style={{ padding: 12 }}>
+                <FeatureMap
+                  active={() => part() === "map"}
+                  column={pane.width() !== "wide"}
+                  cursor={cursor}
+                  folder={props.args.folder}
+                  repo={props.args.repo}
+                />
+              </View>
+            </KeyScope>
+            <KeyScope kind="pane" name="History" on={() => part() === "list"}>
+              <HistoryKeys part={part} />
+              <KeyScope kind="selection" name="History's rows">
+                <Rows args={props.args} feature={feature} />
+              </KeyScope>
+            </KeyScope>
+          </View>
+        )}
       </WithFeature>
     </PaneScroll>
   );

@@ -7123,3 +7123,93 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   conflict (made by hand in a sandbox), and `/r/sample/f/2026-10-19-dark-mode/session` at 390.
 - **Where**: `app/screens/jobs/{words.ts,JobCard.tsx}`, `app/screens/conflict/ConflictEditor.tsx`,
   `app/screens/session/Head.tsx`.
+
+## R364: A session's panels are three side panes, each a list that follows its end
+
+- **Decision**: `app/screens/session/panels/` adds, with `addSessionPanes`, three side panes after
+  the sessions' list on every page of a session: `session-activity` (Activity), `session-changes`
+  (Changes), and `session-subagents` (Sub-agents). The Activity is a `VirtualList` that follows its
+  end, over the transcript's own window of pages (`transcriptFeed` with
+  `{ keep: isActivity, heads: true }`): a row for each run's head ("Run 3 · Build", its state and
+  length), then each call, thought, and blocked action, a sub-agent's own calls indented under it;
+  every row is one structure that binds, and an item's change redraws its row alone. A call of
+  `run_agent` reads "Implementer of Task 6", its sub-session on a second line ("Done · Default · 17
+  min"), and `Enter` opens that session's page. At the Activity's foot, for a feature's or a
+  change's session, the plan's progress (the tasks checked of the total, the one at work). The
+  Sub-agents are `Card`s in a `VirtualList` that follows its end, in the order they started: a title
+  a person says ("Task 6", "Review of wave 2"), the state and its cause (a failed run's reason), who
+  runs it and on which account, its start, end, and length, its tokens; `Enter` or a press opens it.
+  A chat's own sub-agents, which its turn lists only while they work, are kept as "Done" with the
+  time they left, in the visit, for as long as it lasts. The old column's split of the Activity over
+  the Changes, its recap lines' `?stretch=` addresses, and "Show earlier runs" are left: the panes
+  are tabs of the frame, and the list reads by pages, so it holds every run.
+- **Rationale**: rules 4 and 5: one list per panel, with the list's own keys, reached by `l`, `k` to
+  the tabs, `l` along them; the transcript's paging already keeps 20,000 rows cheap, and one home
+  for it serves both.
+- **Where**: `app/screens/session/panels/`, `app/screens/session/pages.ts`.
+
+## R365: A feed that leaves items out keeps every run's head, and every page of a turn near
+
+- **Decision**: with `heads`, each turn has its head row, read or not, whether or not it holds a
+  call; and a feed given `keep` reads every page of each turn near the rows shown.
+- **Rationale**: seen on the long chat, 10,000 turns with no call: a head left out once its turn was
+  read took the turn's rows away, so the window, which reads what is near the rows shown, read on
+  until every turn was read, and the app stopped; then a page read with no call held no key, was let
+  go, came back unread, and was read again, without end. Every turn now keeps one row, and a page is
+  held while its turn is near. A chat's Activity is then a run head per message, "Run 9,976 ·
+  Message · 1 s": honest, and stable as it scrolls.
+- **If wrong**: the server counts a turn's calls in `Turn`, and the Activity leaves out a run of
+  none before reading it.
+- **Where**: `app/screens/session/pages.ts`.
+
+## R366: A branch's diff is from where it left the default branch to the file on disk
+
+- **Decision**: `GitDiffArgs` gains `branch`: with a folder, the diff of a file from the merge base
+  of its branch and the default branch to the file on disk in its worktree, or to its branch's tip
+  where no worktree has it (`api::branch_diff`, `DiffOf::Since` and `DiffOf::Between`). The Changes
+  pane opens a file's diff with it, the Git page's `Diff`; a chat's file, the main checkout's change
+  since `HEAD`.
+- **Rationale**: the panel lists what the branch changed (`BranchChanges`, committed) and what the
+  agent edited (`Session.edited`, often not committed yet): one diff that covers both is what a
+  human glancing at an hour's run wants, and no record gave a branch's diff.
+- **Where**: `crates/core/src/{git/diff.rs,api/git_page.rs}`, `crates/protocol/src/git.rs`,
+  `crates/server/src/records/git/reads.rs`, `app/screens/session/panels/Changes.tsx`.
+
+## R367: A feature's run map is its Steps pane's head, with what already ran locked
+
+- **Decision**: the Steps pane draws `FeatureMap` (`app/screens/runs/FeatureMap.tsx`): the run map
+  on the feature's own options over the settings', saved at once (`feature.setRunOptions`, `sent`).
+  `RunMap` gains `locked(place)`, `under(step)`, and `onEnter(place)`: a step that started, read
+  from the history's stages (`runs/history.ts`), and the joint before it are locked, their detail
+  saying why; under each step's tile, the sessions that ran it, from their workflow turns, in the
+  order they ran ("Session 2 · Fake agent · 21 Oct 19:20 · 46 min"), each a link to it; `Enter` on a
+  step that ran opens its latest session. The history's list of stages and files stays under the
+  map: the two are sibling pane scopes on in turn, `j` past the map's last row reaching the list and
+  `k` past its first row the map.
+- **Rationale**: rule 3, one component; the old "history lock" (R318's "If wrong"). Two selection
+  scopes in one pane meet, and their `j` `k` clash; two pane scopes do not.
+- **Where**: `app/screens/runs/{FeatureMap,history,RunMap,Detail}.ts*`,
+  `app/screens/feature/Steps.tsx`.
+
+## R368: One picker of an agent, a model, and an effort
+
+- **Decision**: `AgentPick` (`app/screens/runs/AgentPick.tsx`): two selects, the agent and its model
+  in one ("Claude Code · Opus 5.5", "Claude Code · Default", and "The default agent" where a pick
+  may follow it), then the effort the model takes, and under both why the default is the one it is.
+  A value no longer offered shows as itself, with why. The run map's detail, a job's form (one row
+  "Runs on" in place of three, `Enter` opening the first select and `e` the effort), and the New
+  page's session (passed to `session.newChat`) draw it.
+- **Rationale**: task 65's three selects and the map's two said the same thing twice; a model
+  belongs to its agent, so one select picks both.
+- **Where**: `app/screens/runs/AgentPick.tsx`, `app/screens/jobs/{AgentRows,JobForm}.tsx`,
+  `app/screens/new/NewPane.tsx`.
+
+## R369: The sandbox's feature with an open pull request has its runs, and sub-sessions
+
+- **Decision**: `crates/server/src/sandbox/feature_runs.rs` seeds "Keyboard shortcuts" with a plan
+  session and a build session whose run read, edited, ran the tests, and called `run_agent` twice,
+  and two implementers and a reviewer as its sub-sessions, the reviewer's title ending with the
+  commits it read, one implementer failed with its reason. Not the feature at work, whose live run
+  the sandbox starts only while it has no session: seeded there, it lost its run and the feature
+  page's tests failed.
+- **Where**: `crates/server/src/sandbox/{feature_runs,sessions}.rs`.

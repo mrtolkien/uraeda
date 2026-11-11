@@ -24,6 +24,11 @@ pub enum DiffOf {
     Worktree,
     /// A commit's first parent, or nothing for a root commit, to the commit.
     Commit(ObjectId),
+    /// A commit, as where a branch left the default branch, to the file on disk: the branch's
+    /// commits and its edits not committed yet, together.
+    Since(ObjectId),
+    /// One commit to another, as a branch's start to its tip where no worktree has it.
+    Between(ObjectId, ObjectId),
 }
 
 /// A file's diff.
@@ -65,6 +70,11 @@ impl Git {
             DiffOf::Worktree => {
                 let path = self.checked(path)?;
                 (self.at_head(path)?, on_disk(&self.root, path)?)
+            }
+            DiffOf::Between(from, to) => (self.read_file(from, path)?, self.read_file(to, path)?),
+            DiffOf::Since(id) => {
+                let path = self.checked(path)?;
+                (self.read_file(id, path)?, on_disk(&self.root, path)?)
             }
             DiffOf::Commit(id) => {
                 let parent = self.first_parent(id)?;

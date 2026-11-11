@@ -59,11 +59,19 @@ function keysOf(rows: ReadonlyArray<RowOf>, from: number, to: number, into: Set<
   }
 }
 
+/**
+ * Which items a feed lists, the chat's unless given; and whether each turn has a row of its own
+ * first, its id the turn's, as a turn not read yet has: the Activity's runs' heads.
+ */
+export type FeedOptions = { keep?: (item: Item) => boolean; heads?: boolean };
+
 /** The rows of `session`'s transcript in `repo`, read by a window of pages. Call it in a view. */
 export function transcriptFeed(
   repo: Accessor<string>,
   session: Accessor<Session | null | undefined>,
+  options: FeedOptions = {},
 ): Feed {
+  const keep = options.keep ?? isChats;
   const shown = signal({ first: -1, last: -1 });
   /** What is read now, sorted and joined: the window changes it, as the rows and the list move. */
   const keys = signal("");
@@ -119,6 +127,7 @@ export function transcriptFeed(
         out.push(rowOf(turn));
         continue;
       }
+      if (options.heads === true) out.push(rowOf(turn));
       for (let page = 0; page < count; page += 1) {
         const key = `${turn}#${page}`;
         const items = itemsOf(key);
@@ -128,10 +137,12 @@ export function transcriptFeed(
         }
         for (const { id } of items.rows()) {
           const item = untracked(() => items.item(id));
-          if (item !== undefined && !isChats(item)) continue;
+          if (item !== undefined && !keep(item)) continue;
           out.push(rowOf(`${turn}/${id}#${key}`));
         }
       }
+      // A head stays when nothing is under it: a turn read must never take its rows away, or the
+      // window, which reads what is near the rows shown, would read on and on.
     }
     return out;
   });
@@ -149,6 +160,15 @@ export function transcriptFeed(
     keysOf(now, from - KEPT * span, to + KEPT * span, far);
     for (const key of untracked(keys).split("\n")) {
       if (key !== "" && far.has(key)) near.add(key);
+    }
+    // A feed that leaves items out reads every page of a turn near: a page of no row would hold
+    // no key, be let go, show unread, and be read again, without end.
+    if (options.keep !== undefined) {
+      for (const key of near) {
+        if (key.includes("#")) continue;
+        const count = held().turns.get(key)?.pages() ?? 0;
+        for (let page = 0; page < count; page += 1) near.add(`${key}#${page}`);
+      }
     }
     const tail = session()?.turns.at(-1);
     if (tail !== undefined) {

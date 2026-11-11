@@ -49,6 +49,11 @@ fn page(shared: &Shared, args: &RepositoryArgs) -> Result<GitPage, Fault> {
 /// A file's diff, of a commit or of a group's working tree.
 fn diff(shared: &Shared, args: GitDiffArgs) -> Result<GitDiff, Fault> {
     let path = repositories::path(shared, &args.repo)?;
+    if let (true, Some(folder)) = (args.branch, args.folder.as_deref()) {
+        return Ok(views::diff(api::branch_diff(
+            &path, folder, &args.path, args.whole,
+        )?));
+    }
     let at = GitAt {
         folder: args.folder,
         commit: args.commit,

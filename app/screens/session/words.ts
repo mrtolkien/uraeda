@@ -169,12 +169,17 @@ export function took(ms: number): string {
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
 
+/** A tool's name as a person reads it: an MCP server's tool without its server, `run_agent`. */
+const toolName = (name: string) =>
+  name.startsWith("mcp__") ? name.slice(name.lastIndexOf("__") + 2) : name;
+
 /** The line of a tool call, a thought, or the runner's notice; none for a message or a text. */
 export function lineWords(item: Item): LineWords | undefined {
   switch (item.kind) {
     case "tool": {
       const failed = item.status === "failed";
-      const words = item.target === null ? item.name : `${item.name} ${item.target}`;
+      const name = toolName(item.name);
+      const words = item.target === null ? name : `${name} ${item.target}`;
       return {
         code: item.target !== null,
         hue: failed ? "removed" : item.subagent !== null ? "subAgent" : "context",

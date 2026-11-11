@@ -1,7 +1,7 @@
 //! The sandbox's sessions, written in its data folder's store as the runner leaves a finished
 //! turn: the sample chats of `fixtures/sandbox/chats.json`, finished, failed, stopped, stopped by
-//! a usage limit, and one whose action auto mode blocked, which offers a change; and on demand a
-//! chat of 20,000 messages, for the frame benchmarks.
+//! a usage limit, and one whose action auto mode blocked, which offers a change; a feature's runs
+//! (`feature_runs.rs`); and on demand a chat of 20,000 messages, for the frame benchmarks.
 
 use std::time::{Duration, SystemTime};
 
@@ -45,9 +45,10 @@ pub(super) fn seed(store: &Store, root: &str, at: SystemTime) -> Result<(), Stri
             .map_err(|error| format!("fixtures/sandbox/chats.json: {error}"))?;
         let at = at + Duration::from_secs(60 * u64::try_from(index).unwrap_or_default());
         let session = new_chat(store, root, Some(&chat.text), at)?;
-        turn(store, &session, &chat.text, script, at).map_err(|error| error.to_string())?;
+        turn(store, &session, Opening::chat(&chat.text), script, at)
+            .map_err(|error| error.to_string())?;
     }
-    Ok(())
+    super::feature_runs::seed(store, root, at)
 }
 
 /// Writes the long chat of the project at `root`: 10,000 turns, each a question and its reply.
@@ -60,7 +61,8 @@ pub(super) fn long_chat(store: &Store, root: &str, at: SystemTime) -> Result<(),
         );
         let at = at + Duration::from_millis(u64::try_from(index).unwrap_or_default() * 500);
         let script = vec![Event::Text { text: reply }];
-        turn(store, &session, &format!("Question {index}"), script, at)
+        let question = format!("Question {index}");
+        turn(store, &session, Opening::chat(&question), script, at)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -110,20 +112,50 @@ fn uuid_like(at: SystemTime) -> u128 {
         .as_nanos()
 }
 
-/// A finished chat turn: the human's message, read, the agent's events, and its `result`, ended
-/// as the result says, a second after it started.
-fn turn(
+/// How a turn opens: the message the agent gets, a workflow's at its step, and how long it ran.
+pub(super) struct Opening<'a> {
+    pub text: &'a str,
+    pub step: Option<&'a str>,
+    pub took: Duration,
+}
+
+impl<'a> Opening<'a> {
+    /// A chat's message, its turn a second long.
+    pub fn chat(text: &'a str) -> Self {
+        Self {
+            text,
+            step: None,
+            took: Duration::from_secs(1),
+        }
+    }
+
+    /// A workflow's message at `step`, its turn `minutes` long.
+    pub fn workflow(text: &'a str, step: &'a str, minutes: u64) -> Self {
+        Self {
+            text,
+            step: Some(step),
+            took: Duration::from_secs(60 * minutes),
+        }
+    }
+}
+
+/// A finished turn: its message, read, the agent's events, and its `result`, ended as the result
+/// says, `took` after it started.
+pub(super) fn turn(
     store: &Store,
     session: &str,
-    text: &str,
+    opening: Opening<'_>,
     mut events: Vec<Event>,
     at: SystemTime,
 ) -> Result<(), StoreError> {
     let new = NewTurn {
         session_id: session.to_owned(),
-        kind: TurnKind::Chat,
-        trigger: None,
-        step: None,
+        kind: match opening.step {
+            Some(_) => TurnKind::Workflow,
+            None => TurnKind::Chat,
+        },
+        trigger: opening.step.map(|_| "manual".to_owned()),
+        step: opening.step.map(str::to_owned),
         allowed: None,
         caught_up_to: None,
         state: TurnState::Running,
@@ -133,8 +165,11 @@ fn turn(
     let mut log = vec![
         Event::Message {
             id: message.clone(),
-            origin: Origin::Human,
-            text: text.to_owned(),
+            origin: match opening.step {
+                Some(_) => Origin::Workflow,
+                None => Origin::Human,
+            },
+            text: opening.text.to_owned(),
             opening: None,
             images: Vec::new(),
         },
@@ -171,5 +206,5 @@ fn turn(
         }
         store.append(id, at, event)?;
     }
-    store.end_turn(id, &end, at + Duration::from_secs(1))
+    store.end_turn(id, &end, at + opening.took)
 }

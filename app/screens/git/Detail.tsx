@@ -74,6 +74,7 @@ function FileDiff(props: { folder: string | null; path: string; repo: string; wi
     path: props.path,
     repo: props.repo,
     whole: whole() === key(),
+    branch: false,
   });
   const group = (): GitGroup | undefined =>
     page()?.groups.find((one) => one.folder === props.folder);
@@ -168,6 +169,7 @@ function CommitDiff(props: { id: string; repo: string; width: WidthClass }) {
         path: file.path,
         repo: props.repo,
         whole: false,
+        branch: false,
       })();
       if (diff === undefined) return undefined;
       return diff?.text ?? `--- a/${file.path}\n+++ b/${file.path}\n`;

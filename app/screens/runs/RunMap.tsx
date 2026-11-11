@@ -11,7 +11,7 @@
 // adds a reviewer and `d` removes the one selected. A press on a place selects it, and its controls
 // are under the map. A change shows at once: `onChange` gets the options as the human set them,
 // and the owner sends them; its `refusal` shows under the map.
-import { signal, View } from "nsh";
+import { type JSX, signal, View } from "nsh";
 import type { RunOptions, RuntimeRecord } from "../../store/protocol";
 import { IconButton, Kbd, Text, Under } from "../../ui/controls";
 import { registerKey } from "../../ui/keys";
@@ -33,6 +33,7 @@ import {
   reviewer,
   reviewersOf,
   STEP_LOOKS,
+  type StepId,
   STEPS,
   withNewSession,
   withPick,
@@ -62,6 +63,12 @@ export type RunMapProps = {
   refusal?: string | null;
   /** Read only: nothing changes, as while a start runs. */
   disabled?: boolean;
+  /** A place that cannot change: a feature's step that already ran, and the joint before it. */
+  locked?: (place: Place) => boolean;
+  /** What a step's tile shows under it: a feature's sessions that ran it. */
+  under?: (step: StepId) => JSX.Element | undefined;
+  /** `Enter` on a place, before the map's own: `true` when it did something, as open a session. */
+  onEnter?: (place: Place) => boolean;
   testID?: string;
 };
 
@@ -102,10 +109,13 @@ function Tile(props: {
         : "";
     }
     const set = props.map.over != null && isSet(props.map.value, props.place) ? " · changed" : "";
-    return `${pickWords(resolve(pick, agents()))}${set}`;
+    const ran = props.map.locked?.(props.place) === true ? " · ran" : "";
+    return `${pickWords(resolve(pick, agents()))}${set}${ran}`;
   };
+  const under = () =>
+    props.place.kind === "step" ? props.map.under?.(props.place.step) : undefined;
   return (
-    <View style={{ flexBasis: 0, flexGrow: 1, minWidth: 128 }}>
+    <View style={{ flexBasis: 0, flexGrow: 1, gap: 6, minWidth: 128 }}>
       <SelectableCard
         disabled={props.map.disabled}
         icon={props.icon}
@@ -119,6 +129,7 @@ function Tile(props: {
         title={props.title}
         words={words()}
       />
+      <If when={under()}>{(shown) => shown()}</If>
     </View>
   );
 }
@@ -205,12 +216,14 @@ export function RunMap(props: RunMapProps) {
   const change = (next: RunOptions) => {
     if (props.disabled !== true) props.onChange(next);
   };
+  const isLocked = (here: Place) => props.locked?.(here) === true;
   let openModel: (() => void) | undefined;
   let openEffort: (() => void) | undefined;
 
   /** What `Enter`, or a press, does at a place. */
   const act = (here: Place) => {
-    if (props.disabled === true) return;
+    if (props.onEnter?.(here) === true) return;
+    if (props.disabled === true || isLocked(here)) return;
     switch (here.kind) {
       case "joint": {
         const now = joint(props.value, over(), agents(), here.index);
@@ -264,13 +277,17 @@ export function RunMap(props: RunMapProps) {
       {
         keys: "e",
         label: "Pick the effort",
-        run: () => (pickAt(props.value, over(), place()) === undefined ? false : openEffort?.()),
+        run: () =>
+          pickAt(props.value, over(), place()) === undefined || isLocked(place())
+            ? false
+            : openEffort?.(),
       },
       {
         keys: "r",
         label: "Back to what it follows",
         run: () => {
-          if (props.disabled === true || !isSet(props.value, place())) return false;
+          if (props.disabled === true || isLocked(place()) || !isSet(props.value, place()))
+            return false;
           change(reset(props.value, place()));
           return undefined;
         },
@@ -379,7 +396,10 @@ export function RunMap(props: RunMapProps) {
       </Each>
       <Detail
         agents={agents()}
-        disabled={props.disabled === true}
+        defaultAgent={props.defaultAgent}
+        runtimes={props.runtimes}
+        disabled={props.disabled === true || isLocked(place())}
+        locked={isLocked(place())}
         onChange={change}
         onPick={(here, pick) => change(withPick(props.value, over(), here, pick))}
         onRemove={(index) => void remove(index)}

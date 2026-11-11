@@ -177,7 +177,53 @@ pub fn git_diff(repo: &Path, at: &GitAt, path: &str, whole: bool) -> Result<GitD
             (diff, at.folder.clone().unwrap_or_default())
         }
     };
-    Ok(GitDiffView {
+    Ok(diff_view(diff, &of, whole))
+}
+
+/// The diff of the file at `path` on the branch of the feature or change `folder`, from where it
+/// left the default branch: to the file on disk in its worktree, what the branch changed committed
+/// or not; to its tip where no worktree has it. From `HEAD` alone when the default branch or a
+/// shared commit is unknown.
+pub fn branch_diff(repo: &Path, folder: &str, path: &str, whole: bool) -> Result<GitDiffView> {
+    let git = Git::discover(repo)?;
+    let (_, workspace) = super::open(repo)?;
+    let default = workspace.default_branch.as_deref();
+    let of = format!("branch:{folder}");
+    let Ok(root) = group_root(&git, &workspace, Some(folder)) else {
+        let main = Git::open(&git.main_root())?;
+        let feature = find(&workspace, folder)?;
+        let tip = feature
+            .branch
+            .as_deref()
+            .and_then(|branch| main.tip(branch));
+        let Some(tip) = tip else {
+            return Err(refused(format!("{folder} has no branch.")));
+        };
+        let base = match default.and_then(|branch| main.tip(branch)) {
+            Some(start) => main.merge_base(tip, start)?.unwrap_or(tip),
+            None => tip,
+        };
+        let diff = main.file_diff(DiffOf::Between(base, tip), path, whole)?;
+        return Ok(diff_view(diff, &of, whole));
+    };
+    let checkout = Git::open(&root)?;
+    let base = match (
+        checkout.head(),
+        default.and_then(|branch| checkout.tip(branch)),
+    ) {
+        (Some(head), Some(tip)) => checkout.merge_base(head, tip)?.or(Some(head)),
+        (head, _) => head,
+    };
+    let diff = match base {
+        Some(base) => checkout.file_diff(DiffOf::Since(base), path, whole)?,
+        None => checkout.file_diff(DiffOf::Worktree, path, whole)?,
+    };
+    Ok(diff_view(diff, &of, whole))
+}
+
+/// A file's diff as the page reads it, its id naming what it compares, `of`.
+fn diff_view(diff: crate::git::FileDiff, of: &str, whole: bool) -> GitDiffView {
+    GitDiffView {
         id: format!("{of}:{}{}", diff.path, if whole { ":whole" } else { "" }),
         path: diff.path,
         text: diff.text,
@@ -186,7 +232,7 @@ pub fn git_diff(repo: &Path, at: &GitAt, path: &str, whole: bool) -> Result<GitD
         added: diff.added,
         removed: diff.removed,
         is_capped: diff.is_capped,
-    })
+    }
 }
 
 /// A commit of the main checkout's history, with the files it changed.

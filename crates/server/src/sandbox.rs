@@ -16,6 +16,7 @@
 //!   templates, at run time. A build of `ura` outside a checkout has no sandbox to give.
 
 mod agent;
+mod feature_runs;
 mod git;
 mod origin;
 mod others;

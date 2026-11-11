@@ -1,6 +1,7 @@
 // The New page's subject: what to start, a session, a change, or a feature, each a card that says
 // what it makes, then the one composer the three share. A session starts with its first message,
-// Enter in the composer as in any chat, on the default agent, named under it (rule 10). A change and
+// Enter in the composer as in any chat, on the agent, model, and effort picked under it, the app's
+// one picker, which names the default agent and why while none is picked (rule 10). A change and
 // a feature start with Ctrl+Enter or the Start button, which open the start dialog: Enter adds a
 // line, as a start makes a branch and commits (rule 2). After a feature's start, the pane shows its
 // steps landing and the way to its page; a change's start answers once landed, and opens its page;
@@ -15,6 +16,7 @@ import { SelectableCard } from "../../ui/lists";
 import { Composer, type TextFieldRef } from "../../ui/text";
 import { droppedImages, pastedImage, pickImages } from "../images";
 import { HeldImages } from "../inbox/AddNote";
+import { AgentPick } from "../runs/AgentPick";
 import { agentsOf } from "../runs/options";
 import { draftOf, forgetLine, heldFor, hold, lineOf, release, sentImages } from "./draft";
 import { Landing, rememberStarted } from "./Landing";
@@ -52,23 +54,38 @@ const KINDS: ReadonlyArray<{
   },
 ];
 
-/** Which agent a new session runs on, and why, in words. */
-function AgentWords(props: { repo: string }) {
+/** What a new session runs on, as picked on the page: `null` follows the default. */
+type SessionRuns = { agent: string | null; model: string | null; effort: string | null };
+
+/**
+ * What a new session runs on, the app's one picker: the default agent unless another is picked,
+ * the select saying which it is and why (rule 10).
+ */
+function SessionPick(props: {
+  repo: string;
+  value: SessionRuns;
+  onChange: (next: SessionRuns) => void;
+}) {
   const settings = record("Settings", null);
   const agents = record("Agent", { repo: props.repo });
-  const words = () => {
-    const picked = agentsOf(agents()?.runtimes ?? [], settings()?.runs?.defaultAgent ?? null);
-    if (agents() === undefined) return "Reading the agents…";
-    if (picked.fallback === undefined)
-      return "No agent is on in this repository: Settings › Extensions turns one on.";
-    return picked.fallbackIsSet
-      ? `It runs on ${picked.fallback.name}, the default agent of Settings › Runs.`
-      : `It runs on ${picked.fallback.name}, the first agent on: Settings › Runs names a default agent.`;
-  };
   return (
-    <Text size="under" tone="quiet">
-      {words()}
-    </Text>
+    <If
+      when={agents() !== undefined}
+      else={
+        <Text size="under" tone="quiet">
+          Reading the agents…
+        </Text>
+      }
+    >
+      <AgentPick
+        defaultAgent={settings()?.runs?.defaultAgent ?? null}
+        followsDefault
+        onChange={props.onChange}
+        runtimes={agents()?.runtimes ?? []}
+        testID="new-session-agent"
+        value={props.value}
+      />
+    </If>
   );
 }
 
@@ -82,6 +99,17 @@ export function NewView(props: { repo: string; kind: NewKind }) {
   const pending = pane.remember<boolean>("pending", false);
   const settings = record("Settings", null);
   const agents = record("Agent", { repo: props.repo });
+  // What the session runs on, kept in the visit as three plain values.
+  const runs = {
+    agent: pane.remember<string | null>("agent", null),
+    effort: pane.remember<string | null>("effort", null),
+    model: pane.remember<string | null>("model", null),
+  };
+  const picked = (): SessionRuns => ({
+    agent: runs.agent(),
+    effort: runs.effort(),
+    model: runs.model(),
+  });
   let field: TextFieldRef | undefined;
   const pick = (to: NewKind) => {
     redirect({ kind: to, page: "new", repo: props.repo });
@@ -102,8 +130,10 @@ export function NewView(props: { repo: string; kind: NewKind }) {
           settings()?.runs?.defaultAgent ?? null,
         ).fallback;
         const made = await call("session.newChat", {
+          effort: picked().effort,
+          model: picked().model,
           repo: props.repo,
-          runtime: runtime?.id ?? null,
+          runtime: picked().agent ?? runtime?.id ?? null,
         });
         const images = await sentImages(props.repo);
         await call("session.send", {
@@ -262,15 +292,23 @@ export function NewView(props: { repo: string; kind: NewKind }) {
                     label="Add images"
                     onPress={() => attach(pickImages())}
                   />
-                  <If when={kind() === "session"}>
-                    <AgentWords repo={props.repo} />
-                  </If>
                   <If when={kind() !== "session" && lineOf(props.repo) !== null}>
                     <Text size="under" tone="quiet">
                       {`From the priorities' line "${lineOf(props.repo)}": its start links it.`}
                     </Text>
                   </If>
                 </View>
+                <If when={kind() === "session"}>
+                  <SessionPick
+                    onChange={(next) => {
+                      runs.agent.set(next.agent);
+                      runs.model.set(next.model);
+                      runs.effort.set(next.effort);
+                    }}
+                    repo={props.repo}
+                    value={picked()}
+                  />
+                </If>
                 <If when={kind() !== "session"}>
                   <StartDialog
                     kind={kind() as "feature" | "change"}

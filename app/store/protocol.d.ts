@@ -1745,7 +1745,12 @@ path: string,
 /**
  * Whether to give the whole diff, past 1,000 lines.
  */
-whole: boolean, };
+whole: boolean, 
+/**
+ * With a group's folder: the diff from where its branch left the default branch to the file
+ * on disk, what the branch changed, committed or not, in place of its uncommitted change.
+ */
+branch: boolean, };
 
 /**
  * Discards the changes to a file of a group's checkout.
