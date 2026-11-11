@@ -1,5 +1,5 @@
 //! A buffer: any Markdown file under `specs/`, read whole on the branch it is written on, and
-//! saved there as typed, never committed.
+//! saved there as typed, never committed; or any other text file of the main checkout, only read.
 
 use uraeda_core::api::{self, BufferView};
 use uraeda_protocol::{Buffer, BufferSave, Saved};
@@ -34,5 +34,8 @@ fn sent(view: BufferView) -> Buffer {
         text: view.text,
         hash: view.hash,
         branch: view.branch,
+        worktree: view.worktree,
+        checked_out: view.checked_out,
+        read_only: view.read_only,
     }
 }

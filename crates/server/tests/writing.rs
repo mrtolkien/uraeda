@@ -79,18 +79,33 @@ async fn buffer_answers_its_shape() {
 
     let decision = fx.read("Buffer", json!({ "path": DECISION })).await;
     let on_branch = fx.read("Buffer", json!({ "path": spec(TASKS) })).await;
-    let outside = fx.try_watch("Buffer", json!({ "path": "README.md" })).await;
+    let code = fx.read("Buffer", json!({ "path": "README.md" })).await;
+    let outside = fx
+        .try_watch("Buffer", json!({ "path": "../README.md" }))
+        .await;
 
     let text = fixture("repo/main/specs/decisions/git.md");
     let hash = hash_of(&decision);
     assert_eq!(
         decision,
-        json!({ "path": DECISION, "text": text, "hash": hash, "branch": "main" })
+        json!({
+            "path": DECISION,
+            "text": text,
+            "hash": hash,
+            "branch": "main",
+            "worktree": null,
+            "checkedOut": true,
+            "readOnly": null,
+        })
     );
     assert_eq!(hash.len(), 64, "a SHA-256 in hexadecimal: {hash}");
     // A feature's file is read on its branch, which no checkout has yet.
     assert_eq!(on_branch["branch"], TASKS);
     assert!(on_branch["text"].as_str().unwrap().contains("# Spec"));
+    assert_eq!(on_branch["checkedOut"], false);
+    // Any other text file of the main checkout is read, and says why it is not saved here.
+    assert_eq!(code["text"], "# Test\n");
+    assert!(code["readOnly"].as_str().unwrap().contains("specs/"));
     let (code, message) = outside.unwrap_err();
     assert_eq!(code, ErrorCode::Refused, "{message}");
 }

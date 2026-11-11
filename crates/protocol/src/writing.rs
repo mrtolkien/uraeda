@@ -29,7 +29,7 @@ pub use queue::{
     QueuedWrite, StartStep, StepState, WriteFailure, WriteQueue, WriteState, WritesDismiss,
 };
 
-/// Which buffer: a Markdown file under `specs/`, by its path from the repository's top level.
+/// Which buffer: a file of the repository, by its path from its top level.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BufferArgs {
@@ -38,7 +38,7 @@ pub struct BufferArgs {
 }
 
 /// A buffer: any Markdown file under `specs/`, whole, frontmatter included, as the branch it is
-/// written on has it.
+/// written on has it; or any other text file of the main checkout, only read.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Buffer {
@@ -48,6 +48,14 @@ pub struct Buffer {
     pub hash: String,
     /// The branch the file is written on: its feature's or its change's, else the default one.
     pub branch: String,
+    /// The linked worktree it is read from, by its path: `null` for the main checkout, or for a
+    /// branch no checkout has.
+    pub worktree: Option<String>,
+    /// Whether a checkout has its branch: else it is read from the branch's tip, and a save makes
+    /// the branch's worktree.
+    pub checked_out: bool,
+    /// Why it cannot be saved, with what to do instead: `null` for a Markdown file of `specs/`.
+    pub read_only: Option<String>,
 }
 
 impl Record for Buffer {

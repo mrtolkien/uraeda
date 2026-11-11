@@ -449,7 +449,8 @@ asks first while text is not saved.
 On a page showing one file, like the priorities, the inbox, a decision, or a feature's spec,
 `Space b` opens the whole file as a buffer, frontmatter included. It fills the center column, under
 a line naming the file, and the status line names its branch. A file of a feature's folder opens
-from the feature's branch.
+from the feature's branch. Any other text file of the repository, like code a decision links, opens
+from the main checkout, highlighted and only read: the page says why it is not edited there.
 
 `:w` or Ctrl+Enter saves the file, without committing it. `:q`, or `b` outside the text, goes back,
 asking first while the text is not saved; `:wq` saves, then goes back. With Vim mode on, a buffer

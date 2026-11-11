@@ -127,8 +127,8 @@ fn a_buffer_writes_a_features_file_on_its_branch() {
     );
 }
 
-/// Review focus 1. Break caught: a path that climbs out of `specs/`, by `..` or a symlink, read or
-/// written.
+/// Review focus 1. Break caught: a path that climbs out of `specs/`, by `..` or a symlink, written,
+/// or out of the repository, read. A text file of the repository outside `specs/` is only read.
 #[test]
 fn a_buffer_refuses_paths_outside_specs() {
     let repo = repo();
@@ -161,8 +161,15 @@ fn a_buffer_refuses_paths_outside_specs() {
         ("specs/tab\t.md", hash("")),
     ] {
         let message = format!("{path} is not a Markdown file of specs/");
-        let read = api::read_buffer(repo.path(), path).unwrap_err();
-        assert_eq!(read.message, message, "read {path}");
+        let read = api::read_buffer(repo.path(), path);
+        if path == "Cargo.toml" {
+            let read = read.unwrap();
+            assert_eq!(read.text, "[package]\n");
+            assert!(read.read_only.is_some(), "{path} is only read");
+        } else {
+            let refused = read.unwrap_err().message;
+            assert!(refused.starts_with(path), "read {path}: {refused}");
+        }
         let saved = api::save_buffer(repo.path(), path, "# Mine\n", &previous).unwrap_err();
         assert_eq!(saved.message, message, "save {path}");
     }

@@ -219,7 +219,7 @@ document: Document, };
 
 /**
  * A buffer: any Markdown file under `specs/`, whole, frontmatter included, as the branch it is
- * written on has it.
+ * written on has it; or any other text file of the main checkout, only read.
  */
 export type Buffer = { path: string, text: string, 
 /**
@@ -229,10 +229,24 @@ hash: string,
 /**
  * The branch the file is written on: its feature's or its change's, else the default one.
  */
-branch: string, };
+branch: string, 
+/**
+ * The linked worktree it is read from, by its path: `null` for the main checkout, or for a
+ * branch no checkout has.
+ */
+worktree: string | null, 
+/**
+ * Whether a checkout has its branch: else it is read from the branch's tip, and a save makes
+ * the branch's worktree.
+ */
+checkedOut: boolean, 
+/**
+ * Why it cannot be saved, with what to do instead: `null` for a Markdown file of `specs/`.
+ */
+readOnly: string | null, };
 
 /**
- * Which buffer: a Markdown file under `specs/`, by its path from the repository's top level.
+ * Which buffer: a file of the repository, by its path from its top level.
  */
 export type BufferArgs = { repo: string, path: string, };
 
