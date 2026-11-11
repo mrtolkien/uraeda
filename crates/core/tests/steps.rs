@@ -581,14 +581,14 @@ fn implementation_progress() {
             progress(1, 2, "One"),
         ),
         (
-            "a task without steps before the current one",
+            "a task without steps is never done: it is the current one",
             plan(
                 "auto-approved",
                 1,
                 &[("One", 1, 1), ("Empty", 0, 0), ("Three", 0, 1)],
             ),
-            "Task 3: Three".to_string(),
-            progress(2, 3, "Three"),
+            "Task 2: Empty".to_string(),
+            progress(1, 3, "Empty"),
         ),
         (
             "a title with markup",

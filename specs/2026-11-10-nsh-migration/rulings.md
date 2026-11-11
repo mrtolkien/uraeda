@@ -3617,7 +3617,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     builds ran, and passed alone and in the two runs after.
 - **Where**: `crates/server/src/runner/{catch_ups,chain}.rs`, `crates/server/src/preview/mod.rs`.
   Tasks 20, 51, and the fixer of the pull requests' refresh.
-## T97.1: The reading size is 15 px on a 24 px line, and every step of the scale moves up one
+
+## R154: The reading size is 15 px on a 24 px line, and every step of the scale moves up one
 
 - **Decision**: the human found the samples' text too small on GTK, and asked on 2026-11-11: "Change
   the design language's reading size from 13 to 15 px monospace, with a 24 px line, and the step
@@ -3658,7 +3659,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   light"; [`app/ui/tokens/`](/app/ui/tokens/) `type.ts`, `space.ts`, `button.ts`, `height.ts`;
   [`app/gallery/samples/`](/app/gallery/samples/); the [mockup](mockups/design-language.html).
 
-## T97.2: The keys' views read the tokens now, not at task 28
+## R155: The keys' views read the tokens now, not at task 28
 
 - **Decision**: `look()` of [`app/ui/keys/look.ts`](/app/ui/keys/look.ts) reads `tokens`, where it
   read the samples' `values.ts`. Its colours are the theme's roles: `action`, `rule`, `rule-quiet`,
@@ -3672,7 +3673,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   colour scheme. Until task 36 calls it, that is the default dark theme.
 - **Where**: `app/ui/keys/look.ts`. The rest of the seam, `TASK 28:` in `parts.tsx`, stays.
 
-## T97.3: The bundled fonts are the ones drawn on GTK, from the app's files alone, and a check says so
+## R156: The bundled fonts are the ones drawn on GTK, from the app's files alone, and a check says so
 
 - **Decision**: `the_bundled_fonts_are_the_ones_drawn`, the sixth check of
   [`crates/app/tests/outside.rs`](/crates/app/tests/outside.rs), reads in what GTK draws the font of

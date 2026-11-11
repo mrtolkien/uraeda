@@ -146,7 +146,7 @@ Running it here:
   ones drawn. Each test starts a hidden display of its own, so
   `cargo nextest run -p uraeda-app --test outside` opens no window. Its pages are in
   `app/__checks__/`. A test that fails after an upgrade of NSH names the assumption that broke: the
-  rulings R22 to R26, and T97.3 for the fonts, say what was built on each.
+  rulings R22 to R26, and R156 for the fonts, say what was built on each.
 - **In a new worktree, run `vp run app:check` before `vp check`**: it writes NSH's types in
   `app/.nsh/`, without which `vp check` fails with `Invalid tsconfig`. `vp run fast` and
   `vp run ready` do it themselves.

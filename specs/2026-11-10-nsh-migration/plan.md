@@ -1806,7 +1806,7 @@ ported, beyond accounts and jobs.
 - Modify: the core's theme reader, for the new roles; every shipped theme; the samples, which read
   the tokens
 - Test: `crates/app/tests/theme.rs`, `app/ui/tokens/tokens.test.ts`, and
-  `the_bundled_fonts_are_the_ones_drawn` in `crates/app/tests/outside.rs` (ruling T97.3)
+  `the_bundled_fonts_are_the_ones_drawn` in `crates/app/tests/outside.rs` (ruling R156)
 
 **Interfaces:**
 
@@ -2027,7 +2027,7 @@ ported, beyond accounts and jobs.
   - `GROUPS`, in `groups.ts`: a feature whose sequence goes through a new group of the leader's menu
     adds its line.
   - The seams, marked in the code: `TASK 28:` in `parts.tsx`, for `Kbd`, `Text`, `Icon`, and the
-    overlay's surface (`look.ts` reads the tokens already, ruling T97.2); `TASK 30:` in `KeyMap.tsx`
+    overlay's surface (`look.ts` reads the tokens already, ruling R155); `TASK 30:` in `KeyMap.tsx`
     and `KeyPicker.tsx`, for the shared text field; `TASK 33:` in `look.ts`, for the width.
   - For task 33: a side column's keys go in a `pane` scope whose `on` is the column's focus, the
     page's own movement keys in a `pane` beside it, and `h l column` is a `hint` of the key that
