@@ -5555,3 +5555,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   checks none ran before it landed.
 - **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs,queue/tests.rs}`,
   `crates/server/src/live/mod.rs` (`test_bus`).
+
+## T95.3: A write checks its feature's agent again once its turn came
+
+- **Decision**: `writing::write` refuses a write of a feature's files while its agent works twice:
+  as it arrives, so a refused write is refused at once, and again once its turn came, right before
+  it runs. No reservation is held through the write.
+- **Rationale**: the turn may wait for a commit's hooks (T95.2), and an agent may start meanwhile
+  (Codex's P2): the second check closes that wait. What is left is the write's own run, a few
+  milliseconds of a save, during which a session's start does not wait for it. A reservation that
+  start would wait on (`Runner::hold`, the moves' hold) refuses a message with "The agent is
+  working" instead of waiting, which a save of a few milliseconds should not cause.
+- **If wrong**: a start that lands inside that run: the starts would wait for a hold of the write's
+  folders, a hold that waits rather than refuses.
+- **Seen failing**: `a_write_is_refused_when_an_agent_started_while_it_waited`, the save answering
+  as written.
+- **Where**: `crates/server/src/records/writing/queue.rs`.

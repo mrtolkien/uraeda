@@ -158,6 +158,35 @@ async fn a_feature_follows_its_sessions_and_its_writes_wait_for_its_agent() {
     stage.server.stop().await;
 }
 
+// The refusal while an agent works holds when the write runs, not only when it arrives: a save
+// that waits for its turn, here behind a commit whose hook runs, while the feature's agent
+// starts, is refused once its turn comes, before it writes.
+#[tokio::test]
+async fn a_write_is_refused_when_an_agent_started_while_it_waited() {
+    let stage = stage().await;
+    let hook = Hook::held(&stage.repo);
+    let proposal = "specs/proposals/git-listener.md";
+    stage.repo.write(proposal, "# Git listener\n\nChanged.\n");
+    stage.done("text.commit", json!({ "path": proposal })).await;
+    let mut queue = Held::open(&stage.server, "WriteQueue", json!({ "repo": REPO })).await;
+    let landing = |queue: &Value| queue["writes"][0]["state"] == "running";
+    queue.until("the commit to land", landing).await;
+    let mut live = support::Live::of(&stage.server).await;
+    let notes = json!({ "repo": REPO, "folder": HUMAN, "notes": "Fine by me.", "previous": "" });
+    let save = live.send("notes.save", notes).await;
+    let waits = !live.answered_within(save, Duration::from_millis(300)).await;
+    assert!(waits, "the save waits for the commit that lands");
+
+    let (_, turn) = chat_on(&stage, HUMAN, "Why these questions?").await;
+    stage.turn_in(&turn, "running").await;
+    hook.release();
+
+    let (_, refused) = live.answer(save).await.expect_err("a refusal");
+    let busy = "An agent is working on this feature. Stop it first, or wait for it.";
+    assert_eq!(refused, busy);
+    stage.server.stop().await;
+}
+
 // The notifications decision: a chat whose agent was refused an action asks for the human, as
 // a feature does, until the action is allowed.
 #[tokio::test]

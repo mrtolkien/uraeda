@@ -220,8 +220,8 @@ impl Write {
 /// # Errors
 ///
 /// `refused` for a repository the list does not hold, for a write of a feature's files while
-/// its agent works on it, before the turn is taken, once the server stops, and whatever `run`
-/// fails with.
+/// its agent works on it, as it arrives or once its turn came, once the server stops, and
+/// whatever `run` fails with.
 pub(crate) fn write<T>(
     shared: &Shared,
     repository: &str,
@@ -229,9 +229,13 @@ pub(crate) fn write<T>(
     run: impl FnOnce(&Path) -> Result<T, Fault>,
 ) -> Result<T, Fault> {
     let path = repositories::path(shared, repository)?;
+    // Before the wait, so a write that would be refused is refused at once, and again once its
+    // turn came: an agent may have started meanwhile.
     working(shared, &path, &write.guarded)?;
+    let guarded = write.guarded.clone();
     let queue = shared.get::<Queues>().open(shared, &path)?;
     let _turn = queue.turn(repository, write)?;
+    working(shared, &path, &guarded)?;
     run(&path)
 }
 
