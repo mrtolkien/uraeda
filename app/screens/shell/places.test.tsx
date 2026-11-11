@@ -18,10 +18,14 @@ const PAGES: Record<string, { address: string; words: string }> = {
     words: "Follow the session",
   },
   decisions: { address: "/r/realistic/decisions", words: "Decisions check" },
-  decision: { address: "/r/realistic/decisions/git", words: "Decisions check" },
+  // A decision's list opens on its own card, below the check's: its words, as its reader has them.
+  decision: {
+    address: "/r/realistic/decisions/git",
+    words: "Rust tools MUST read git with the gix library",
+  },
   "branch-decision": {
     address: "/r/realistic/f/2026-10-18-due-reminders/decisions/notifications",
-    words: "Decisions check",
+    words: "As the branch of Due date reminders has it",
   },
   constitution: { address: "/r/realistic/decisions/constitution", words: "Core Principles" },
   "decisions-check": { address: "/r/realistic/decisions/check", words: "Decisions check" },

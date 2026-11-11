@@ -6,7 +6,7 @@ import type { Order } from "./moves";
 import { shownIn } from "./order";
 import { call, record } from "../../store";
 import type { ProposalItem } from "../../store/protocol";
-import { Refusal, Text } from "../../ui/controls";
+import { Refusal } from "../../ui/controls";
 import { KeyScope, registerKey } from "../../ui/keys/registry";
 import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
 import { usePane } from "../../ui/layout";

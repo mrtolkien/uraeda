@@ -1,5 +1,5 @@
-// What the lists do that a look at the gallery would not show: a key's move never leaves the
-// cursor out of sight, a transcript stops following its end once the reader scrolls away, and a
+// What the lists do that a look at the gallery would not show: a focused list shows its cursor on
+// its first row before any key, a key's move never leaves the cursor out of sight, a transcript stops following its end once the reader scrolls away, and a
 // reorder by keys moves one row and says where it went.
 import { type App, expect, open, test } from "nsh/test";
 
@@ -36,7 +36,9 @@ test("the cursor stays in view as it moves", async () => {
     expect(top).toBeGreaterThanOrEqual(offset);
     expect(top + ROW).toBeLessThanOrEqual(offset + HEIGHT);
   };
-  await pressTimes(app, "j", 40);
+  // Before any key, the cursor is on the first row: the keys go there.
+  await inView(1);
+  await pressTimes(app, "j", 39);
   await inView(40);
   await app.keyboard.press("shift+g");
   await inView(2000);
@@ -67,7 +69,7 @@ test("a list that follows its end stops when the reader scrolls away", async () 
 
 test("a reorder by keys moves one item, and says where it went", async () => {
   const app = await page("order");
-  await app.keyboard.press("j");
+  // The cursor is on the first row, Inbox, before any key.
   await app.keyboard.press("m");
   await app.keyboard.press("j");
   await app.keyboard.press("j");

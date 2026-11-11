@@ -240,12 +240,12 @@ export function createKeyStore() {
      */
     hints(): Array<StatusHint> {
       const seen = new Set<string>();
-      const found = active().flatMap((declared) => {
-        const { scope, spec } = declared;
+      const found = active().flatMap((key) => {
+        const { scope, spec } = key;
         const label = spec.hintLabel ?? spec.label;
         const id = `${spec.hint} ${label}`;
         // A guarded key is hinted only where its guard holds: on the row it acts on.
-        const elsewhere = selectionOf(scope) !== null || !allowed(declared);
+        const elsewhere = selectionOf(scope) !== null || !allowed(key);
         if (spec.hint === undefined || elsewhere || seen.has(id)) {
           return [];
         }
