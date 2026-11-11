@@ -378,8 +378,9 @@ declare module "uraeda:fs" {
   export function name(path: string): string;
   /** The folder a path is in. */
   export function parent(path: string): string;
+  /** A file's bytes: one over 64 MB is refused, with an error the extension can catch. */
   export function readBytes(path: string): Uint8Array;
-  /** A file's text: one that is not UTF-8 is refused. */
+  /** A file's text: one that is not UTF-8, or over 64 MB, is refused. */
   export function readText(path: string): string;
   /** The path from a folder to a path, as written. */
   export function relative(from: string, to: string): string;

@@ -5589,3 +5589,17 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   cookie in the headers the extension echoed.
 - **Where**: `crates/server/src/http/foreign.rs`, `crates/server/src/extensions/routes.rs`,
   `crates/server/src/preview/proxy.rs`, `fixtures/extensions/echo/server.ts`.
+
+## T95.5: An extension reads a file up to 64 MB
+
+- **Decision**: `uraeda:fs`'s `readText` and `readBytes` refuse a file over 64 MB before reading
+  it, by its size, and a file that grows past it while read, through a read bounded at one byte
+  over: "`<path>` is over 64 MB, the most an extension reads at once", thrown as every refusal of
+  `uraeda:fs` is, which the extension can catch. The API's declarations say it.
+- **Rationale**: the server held the whole file before the VM's 256 MiB limit applied, then copied
+  it as base64 or a string: a large file could exhaust the server's memory, and take every
+  extension and session down (Codex's P1), which the extensions decision forbids. 64 MB is
+  `fetch`'s limit for an answer, and leaves the VM room for the copies a read makes.
+- **Seen failing**: `extensions::fs::tests::a_file_over_the_limit_is_refused_before_it_is_read`,
+  on a sparse file one byte over the limit, which the read accepted.
+- **Where**: `crates/server/src/extensions/{fs.rs,api/server.d.ts}`.

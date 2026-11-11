@@ -2,10 +2,11 @@
 //!
 //! An extension is the owner's code and reaches any path the owner does, as it did through
 //! Node's `fs` (ruling R224). Only whole files and folders: a path that is neither, as a
-//! pipe, is refused, since reading one could hold the VM's thread for ever.
+//! pipe, is refused, since reading one could hold the VM's thread for ever. A file is read up
+//! to [`MOST_BYTES`]: the server holds it whole before the VM's limit applies.
 
 use std::fs;
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
@@ -14,6 +15,10 @@ use base64::engine::general_purpose::STANDARD;
 use serde_json::{Value, json};
 
 use super::graph::normal;
+
+/// The largest file an extension reads at once, as `fetch` reads the largest answer: it is held
+/// whole in the server's memory before the VM's own limit of 256 MiB applies.
+const MOST_BYTES: u64 = 64 * 1024 * 1024;
 
 /// Runs the operation `fs.<op>`.
 pub(super) fn op(op: &str, payload: &Value) -> Result<Value, String> {
@@ -95,9 +100,31 @@ fn whole(path: &Path) -> Result<(), String> {
     }
 }
 
+/// A file's bytes, up to [`MOST_BYTES`]: a larger one is refused before anything is held, and
+/// one that grows past it as it is read too.
 fn read(path: &Path) -> Result<Vec<u8>, String> {
     whole(path)?;
-    fs::read(path).map_err(|error| failed("read", path, &error))
+    let over = || {
+        let most = MOST_BYTES / 1024 / 1024;
+        format!(
+            "{} is over {most} MB, the most an extension reads at once",
+            path.display()
+        )
+    };
+    let unread = |error| failed("read", path, &error);
+    let file = fs::File::open(path).map_err(unread)?;
+    let size = file.metadata().map_err(unread)?.len();
+    if size > MOST_BYTES {
+        return Err(over());
+    }
+    let mut bytes = Vec::with_capacity(usize::try_from(size).unwrap_or_default());
+    file.take(MOST_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(unread)?;
+    match bytes.len() as u64 > MOST_BYTES {
+        true => Err(over()),
+        false => Ok(bytes),
+    }
 }
 
 fn write(path: &Path, bytes: &[u8], append: bool) -> std::io::Result<()> {
@@ -194,4 +221,37 @@ fn relative(from: &str, to: &str) -> String {
     }
     path.extend(&to[shared..]);
     path.to_string_lossy().into_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{MOST_BYTES, op};
+
+    // The break it catches: a read that allocates the whole file in the server's memory, outside
+    // the VM's limit, where a large file takes the server down with every extension and session.
+    // The file is sparse: it takes no room on the disk.
+    #[test]
+    fn a_file_over_the_limit_is_refused_before_it_is_read() {
+        let folder = tempfile::TempDir::new().unwrap();
+        let (large, small) = (folder.path().join("large"), folder.path().join("small"));
+        std::fs::File::create(&large)
+            .unwrap()
+            .set_len(MOST_BYTES + 1)
+            .unwrap();
+        std::fs::write(&small, "fits").unwrap();
+
+        for read in ["readText", "readBytes"] {
+            let refused = op(read, &json!({ "path": large })).unwrap_err();
+            assert_eq!(
+                refused,
+                format!(
+                    "{} is over 64 MB, the most an extension reads at once",
+                    large.display()
+                )
+            );
+        }
+        assert_eq!(op("readText", &json!({ "path": small })), Ok(json!("fits")));
+    }
 }
