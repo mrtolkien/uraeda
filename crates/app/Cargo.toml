@@ -11,6 +11,12 @@ rust-version.workspace = true
 [lib]
 doctest = false
 
+[features]
+default = ["host"]
+# The Linux host's native component `uraeda.extension`, which runs an extension's page in a view
+# of its own. The server takes the module list of `uraeda/native` alone, without GTK.
+host = ["dep:nsh-engine", "dep:nsh-platform-linux", "dep:ureq"]
+
 [dependencies]
 nsh-base.workspace = true
 nsh-core.workspace = true
@@ -26,8 +32,17 @@ base64.workspace = true
 merman.workspace = true
 merman-export.workspace = true
 usvg.workspace = true
+# The names of an extension page's host channel.
+uraeda-protocol.workspace = true
 # The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
 uraeda-vim.workspace = true
+
+# `extension_view.rs`: an extension's page, fetched whole from the server, verified under its key,
+# and run in a GTK view of its own.
+[target.'cfg(target_os = "linux")'.dependencies]
+nsh-engine = { workspace = true, optional = true }
+nsh-platform-linux = { workspace = true, features = ["js"], optional = true }
+ureq = { workspace = true, optional = true }
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.

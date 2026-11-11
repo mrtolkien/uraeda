@@ -28,7 +28,8 @@
 //! `api/prelude.js`, and served by `api.rs`.
 //!
 //! An extension's page is built, signed, and served by [`pages`], with the keys of
-//! [`signing`]: a client runs it only when it is signed under the key this server gave it.
+//! [`signing`]: a client runs it only when it is signed under the key this server gave it. It
+//! is built with the app's [`modules`], which the server writes to the data folder as it starts.
 
 mod accounts;
 mod api;
@@ -38,6 +39,7 @@ mod fetch;
 mod fs;
 mod graph;
 mod loader;
+mod modules;
 mod pages;
 mod process;
 mod routes;
@@ -116,6 +118,11 @@ pub(crate) fn mount(shared: &Shared, routes: &mut Routes) -> Result<(), Failure>
     shared.provide(extensions.clone());
     routes::mount(routes);
     pages::mount(routes);
+    // The app's modules a page is built with, before the loader builds the first page.
+    let written = modules::write(&shared.data_dir().join("extensions").join("modules"));
+    if let Err(error) = written {
+        eprintln!("uraeda: the app's modules for extension pages were not written: {error}");
+    }
     let (loading, loaded) = (shared.clone(), extensions.clone());
     let tasks = tokio::runtime::Handle::current();
     let loader = std::thread::Builder::new()

@@ -7,9 +7,8 @@
 //!   engine serves, and `uraeda/ui` and `uraeda/page`, which are built into the page from the
 //!   [modules' folder](modules). A file anywhere else fails the build: an extension loads only
 //!   from the config folder.
-//! - **Its first statement posts `start` to its host**, which is how the host knows which
-//!   engine runs which page (ruling R23): the build's entry imports a module that does it,
-//!   then the page.
+//! - **Its first statement posts `start` to its host**, then it runs the page's code and says
+//!   how that ended, `loaded` or `problem`: the entry is the protocol's [`page_entry`].
 //! - **A build that fails keeps the last package**, and says why in the extension's problems.
 //! - **A build is numbered**, by [`builds`](super::builds): the page's version, which the
 //!   record `Extensions` shows as `pageVersion`. A page built again from the same code keeps
@@ -32,6 +31,7 @@ use nsh_core::element::description::SetDescription;
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
 use uraeda_core::extensions::Extension;
+use uraeda_protocol::page_entry;
 
 use super::graph::{Problem, inside};
 use super::loader::Page;
@@ -53,10 +53,6 @@ const MODULES: [(&str, &str); 2] = [
     ("uraeda/ui", "ui/index.ts"),
     ("uraeda/page", "extensions/page.tsx"),
 ];
-
-/// The first module of every page: its post reaches the host on the thread of the page's
-/// engine, before any of the page's code runs.
-const START: &str = "import { host } from \"nsh\";\n\nhost.post(\"start\");\n";
 
 /// The files a page is built from end in one of these: an image or a font would be an asset
 /// of the package, which a page's package does not carry.
@@ -158,9 +154,10 @@ pub(super) fn forget(shared: &Shared, name: &str) {
     }
 }
 
-/// The page as one module: the build's own entry, in a folder of the data folder, imports the
-/// `start` module, then the page. The `nsh.json` beside it is the build's, never the
-/// extension's: it names where `uraeda/ui` and `uraeda/page` are.
+/// The page as one module: the build's own entry, in a folder of the data folder, posts
+/// `start`, then imports the page. The `nsh.json` beside it is the build's, never the
+/// extension's: it names where `uraeda/ui` and `uraeda/page` are. `uraeda/native`, which
+/// `uraeda/ui` calls, stays an import, which the app serves every page's engine.
 fn bundled(shared: &Shared, name: &str, folder: &Path, page: &Path) -> Result<Bundle, String> {
     let unwritten = |error: std::io::Error| format!("the page's build folder: {}", error.kind());
     let build = build_folder(shared, name).map_err(unwritten)?;
@@ -169,10 +166,8 @@ fn bundled(shared: &Shared, name: &str, folder: &Path, page: &Path) -> Result<Bu
     let alias = MODULES.map(|(module, file)| (module.to_owned(), json!(modules.join(file))));
     let alias: serde_json::Map<String, serde_json::Value> = alias.into_iter().collect();
     let setup = json!({ "resolve": { "alias": alias } });
-    let entry = format!("import \"./start\";\nimport {};\n", json!(page));
     let files = [
-        ("start.ts", START.to_owned()),
-        ("entry.ts", entry),
+        ("entry.ts", page_entry(&page.to_string_lossy())),
         ("nsh.json", setup.to_string()),
     ];
     for (file, text) in files {
@@ -183,7 +178,10 @@ fn bundled(shared: &Shared, name: &str, folder: &Path, page: &Path) -> Result<Bu
         // Readable in a client's log, which names a page's errors.
         minify: false,
         split: false,
-        ui_sets: vec![SetDescription::from(nsh_base::registry())],
+        ui_sets: vec![
+            SetDescription::from(nsh_base::registry()),
+            SetDescription::from(uraeda_app::registry()),
+        ],
     };
     bundle(&options).map_err(|error| {
         let message = error.plain.trim();

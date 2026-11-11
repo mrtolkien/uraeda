@@ -12,6 +12,7 @@ mod features;
 mod git;
 mod jobs;
 mod message;
+mod page;
 mod previews;
 mod registry;
 mod sessions;
@@ -35,6 +36,7 @@ pub use git::{
 };
 pub use jobs::*;
 pub use message::{ClientMessage, ErrorCode, PROTOCOL, Refusal, ServerMessage, SignIn, handshake};
+pub use page::{PAGE_HOST, page_entry};
 pub use previews::{
     Preview, PreviewArgs, PreviewRestart, PreviewState, Story, StoryArgs, StoryHref, StoryHrefArgs,
     StoryState,

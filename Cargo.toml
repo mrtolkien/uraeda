@@ -143,7 +143,8 @@ two-face = { version = "0.4.5", default-features = false, features = ["syntect-f
 url = "2"
 # The extensions' `fetch`: the lockfile held it, for NSH's own.
 ureq = "3.5"
-uraeda-app = { path = "crates/app" }
+# Without its Linux host by default: the server takes its module list alone.
+uraeda-app = { path = "crates/app", default-features = false }
 uraeda-compile = { path = "crates/compile" }
 uraeda-core = { path = "crates/core" }
 uraeda-lsp = { path = "crates/lsp" }

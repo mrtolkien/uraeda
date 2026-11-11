@@ -4839,3 +4839,137 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   interface's 15 px, smaller than the prose under it.
 - **Where**: [`app/ui/document/`](/app/ui/document/), the gallery's page
   [`gallery/document/`](/app/gallery/document/), `just gallery-shots document`.
+
+## R207: A page says its own errors, and its host watches it answer, never the process's log
+
+- **Decision**: R23's way, a logger of the process that keeps the target `js` by thread, is not
+  built. The host hears a page's problems from the page, and from its answers to pings:
+  - **A throw as it loads**: the build's entry, `uraeda_protocol::page_entry`, runs the page by
+    `import()`, which the bundler builds into the same module as a function run in a promise, and
+    posts `problem` with what the promise was rejected with: `Error: broken at load`.
+  - **A throw as it draws, in an effect, or in a listener**: `uraeda/page` draws the part inside
+    NSH's `ErrorBoundary`, whose fallback posts `problem`.
+  - **A call that never ends**: NSH cuts it off after 2 s, and the boundary catches the cut as
+    `InternalError: interrupted`, which the view reads as `slow`. The host also pings the page every
+    half second, from the entry's own listener, so a page that imports nothing answers: a ping
+    answered after 1.2 s says the page held its engine, and none answered for 5 s, or no `start` 10
+    s after the load, that it stopped.
+- **Rationale**: the log cannot be had. NSH's release runner (`nsh-linux-app`'s `setup`) and its
+  development host (`dev::init_logging`) set the process's logger before the app's code runs, so
+  `log::set_boxed_logger` fails in the app: R23's check passed only because its test process set
+  none. `ErrorBoundary` is in NSH 0.4.0 (`nsh`'s `index.d.ts`): the note "there is no error
+  boundary" of `AGENTS.md` was wrong, and is corrected.
+- **Seen failing**: with no cut-off (a call budget of an hour), `a_page_that_never_stops` failed on
+  `The page of loops stopped: it answered nothing for 5 s`: still named, but as stopped.
+- **If wrong**: an upgrade that changes the interruption's text names a cut-off `threw`, and the
+  pings still name it `slow`. An upstream change that gives GTK's `AppView` an error callback
+  (`on_app_error`, as GPUI's) would replace the boundary's and the entry's posts.
+- **Where**: `crates/protocol/src/page.rs`, `crates/app/src/extension_view/channel.rs`,
+  `app/extensions/page.tsx`. Supersedes R23's "What later tasks use" for task 34.
+
+## R208: The page's channel has eight names, which the protocol's crate holds with the entry
+
+- **Decision**: a page's rights are `{ "host": PAGE_HOST }`, `start`, `loaded`, `ready`, `problem`,
+  `alive`, `record`, `call`, and `navigate`, and the build's entry is `page_entry(page)`: both in
+  `crates/protocol/src/page.rs`, which the server signs and builds with (`HOST` and `START` of
+  `extensions/{signing,pages}.rs` are gone) and the app's view answers. The entry is one file now,
+  with no `start.ts` beside it. The app's events to a page are `show`, `ping`, `theme`, `props`,
+  `record`, and `key`.
+- **Rationale**: the names are a contract between what the server signs and what the app answers,
+  which is the protocol crate's. `start` stays the first statement; `loaded` and `show` let the host
+  draw the page only once its code ran whole, so a page never draws half its parts.
+- **Where**: `crates/protocol/src/page.rs`, `app/extensions/host.tsx` (the list of messages).
+
+## R209: One engine per part shown, and a place is a pane whose view is that part
+
+- **Decision**: a page declares its parts at its top level (`place`, `homePane`, `newSection`,
+  `statusItem`, `itemRenderer`, `settingsSection`, `key`), and the app draws each part in its own
+  `ExtensionPlace`, a view of its own, running the whole page and drawing the part named by its
+  launch parameter `part`, `{ kind, id }`. Once drawn, the page posts `ready` with its
+  `Declarations`, every part without what draws it, which `onReady` gives the app. A part's state is
+  the server's records, never the page's memory.
+  - **A place** is a pane kind the app declares per extension and place: `definePane` with the
+    extension's name and the place's id as its kind, the place's title and icon, `stack: "main"`,
+    and a view that draws `ExtensionPlace` with `part={{ kind: "place", id }}`. It then sits in a
+    stack like any pane, gets its width class, and is framed by the app's `Pane`.
+  - **A home pane** is a pane of Home's place, the same way, in the stack of its `column` (0 main, 1
+    side). **A status item** is an `ExtensionPlace` in the frame's `status.end` slot. A New-page
+    section and an item renderer read their `search` and `item` with `useProps`, which the app sends
+    again as they change. A key is bound by the app, which sends `key`, `{ keys }`, to a view of the
+    page.
+  - What a page declares is read by an `ExtensionPlace` with no `part`, drawn at no size: it runs
+    the page, draws nothing, and gives `onReady`.
+- **Rationale**: a view is one GTK widget, so a part drawn in two places of the frame is two views.
+  Engines start in about 15 ms (the spike's reload), and only the parts shown run.
+- **Alternatives considered**: the declarations in `extension.toml`, read by the server: a second
+  place to declare a part, against the page API the docs name.
+- **Left to tasks 36, 37, and 51**: when the declarations are read (once per page version is
+  enough), the panes' and the keys' registration, and the place's `count`, which the old API had and
+  a page cannot give the rail without a view running: a record of the extension is the way.
+- **Where**: `app/extensions/{page,ExtensionPlace}.tsx`.
+
+## R210: The view fetches the page itself, with the device's token, and trusts the server's key only
+
+- **Decision**: `uraeda.extension` takes `server` and `token` as props, and fetches
+  `GET /extensions/key` then `GET /extensions/{name}/page` itself, in Rust (`ureq`, off the main
+  thread), each time its `version` or its `params` change. It verifies the package with a
+  `TrustStore` holding the key the server gave, one per server address, in memory for the process's
+  life, and made again when the server's key changes; it refuses a package whose app id is not
+  `dev.uraeda.extension.<name>`; it accepts the build, so an older one is refused; and it runs the
+  package's bundle with the package's capabilities, never others.
+- **Rationale**: Rust takes whole responses, which is what a package is, and verifies without
+  crossing the bytes into TSX, where base64 in an interpreter would cost each load. The token goes
+  to the view, which the page never reads: its `host.params` are the app's `params` alone.
+- **Seen failing**: trusting every key a server ever gave (one store, roots added) failed
+  `a_saved_page_shows_without_a_restart` on `a page under the old key is refused`; loading with a
+  host function more than the package grants failed `a_page_reads_a_record...` on
+  `ERR_NSH_HOST_ERROR` where `ERR_ACCESS_DENIED` was expected.
+- **If wrong**: the browser (task 58) fetches with its cookie, in its player: the view's props are
+  then the page's address alone.
+- **Where**: `crates/app/src/extension_view.rs`, `extension_view/fetch.rs`.
+
+## R211: `uraeda/ui` is the library but the frame, and the server writes it from its binary
+
+- **Decision**: `app/ui/index.ts` exports the controls, lists, surfaces, tokens, `TextField`,
+  `width`, and `isNarrow`: not the layout shell and not the keys' host, which are the app's frame.
+  `uraeda/page` imports `../ui/theme` to draw in the theme the app sends. The tokens call
+  `uraeda/native`, so the server bundles pages with `uraeda_app::registry()`'s description beside
+  `nsh/base`'s: `uraeda-server` takes `uraeda-app` without its default feature `host`, which alone
+  brings GTK and the view. Every page's engine is served `uraeda/native`, as the app's runner sets
+  NSH's UI sets for the process. `extensions/modules.rs` holds `app/ui/` and `app/extensions/` in
+  the binary, and writes them, tests and `__checks__` left out, to
+  `<data folder>/extensions/modules/{ui,extensions}/` as `extensions::mount` runs, before the loader
+  starts; the files of another server's are removed.
+- **Rationale**: the tests build their pages from `app/` itself, with a `Button`, `tokens`, and a
+  colour of the light theme the app sent, and count that colour's pixels on GTK.
+- **If wrong**: a component a page wants that reads the app's store (the layout, the text field's
+  unsaved drafts) is the app's; a page gets what it needs of it through its host.
+- **Where**: `app/ui/index.ts`, `crates/server/src/extensions/{modules,pages}.rs`,
+  `crates/app/Cargo.toml`.
+
+## R212: The page API's hooks are signals, and three names were added
+
+- **Decision**: `useRecord<T>(name)` and `useExtensionSettings<T>()` give
+  `Accessor<{ value, error }>`, never throwing: a record's error is a state of the page, not a
+  problem the server keeps. `useAction<I, O>(name)` gives `(input) => Promise<O>`. Added:
+  `useProps<T>()`, what the app gives the part; `navigate(to)`, an address of the app, which the
+  channel's `navigate` names; and the part's `view`, where the old API said `component`. A place's
+  `count` and `phoneTab` are not ported (R209). `onUnload(fn)` runs as the part drawn goes: an
+  engine stops whole, with its timers and listeners.
+- **Where**: `app/extensions/page.tsx`. Task 51 rewrites `docs/extensions.md` with them.
+
+## R213: The pages' tests run on GTK, over a stand-in of the server's two routes
+
+- **Decision**: the plan's four tests are in `crates/app/tests/extensions.rs`, each in a GTK window
+  on a hidden display of its own (R21's harness): NSH's headless runner draws no native component.
+  The app's side is the real `ExtensionPlace`, in `app/extensions/__checks__/place.tsx`, over
+  stand-ins of the store. The pages are built and signed in the test as the server does it, from the
+  protocol's entry and the app's own modules, and served by a stand-in of `GET /extensions/key` and
+  `GET /extensions/{name}/page`: the server's test support is its own crate's, and starting it from
+  the app's crate would bring its agents' stand-ins too. The server's half of a save, a new version
+  on save, is task 19's test. `app/extensions/extensions.test.tsx` holds the channel's rule that a
+  page reads and acts as its own extension only.
+- **Also**: the plan's fixture `throws/` is `crashes/`: `fixtures/extensions/throws/` is task 17's
+  server part that throws.
+- **Where**: `crates/app/tests/extensions.rs`, `crates/app/tests/extensions/`,
+  `fixtures/extensions/{counter,crashes,loops}/`.

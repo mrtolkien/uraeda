@@ -9010,7 +9010,9 @@ dependencies = [
  "tempfile",
  "two-face",
  "uraeda-core",
+ "uraeda-protocol",
  "uraeda-vim",
+ "ureq",
  "usvg 0.46.0",
 ]
 
@@ -9141,6 +9143,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.28.0",
  "ts-rs",
+ "uraeda-app",
  "uraeda-compile",
  "uraeda-core",
  "uraeda-protocol",

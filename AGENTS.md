@@ -120,8 +120,9 @@ What the spikes learned, which no page says plainly:
   refuses it, and it draws no backdrop blur.
 - `backdropFilter` draws nothing on GTK: glass there is a `<Shader>` that samples what is behind it.
 - Only TSX has WebSockets and streamed `fetch`. Rust gets whole responses.
-- There is no error boundary, and a view embedded on GTK has no error callback: its engine writes a
-  page's errors to the process's log, under the target `js`, on the engine's own thread.
+- A view embedded on GTK has no error callback, and the process's log is NSH's runner's: a page says
+  its own errors, through `ErrorBoundary`, which catches a throw while drawing, in an effect or a
+  listener, and a call NSH cut off after 2 s, as `InternalError: interrupted` (ruling R207).
 - An `<Image>` draws an SVG's shapes only: no text, and no CSS variable.
 - On GTK a view's border is painted over what it holds: where a child stands on its parent's edge,
   the edge is a view of its own, under that child, as `Surface` draws it.

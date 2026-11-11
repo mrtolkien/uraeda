@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 
 use nsh_package::{App, Certificate, Contents, SecretKey, certify};
 use serde_json::json;
+use uraeda_protocol::PAGE_HOST;
 
 use crate::Failure;
 
@@ -24,11 +25,6 @@ const KEY: &str = "signing.key";
 
 /// The ids a release key may sign for: an extension's page is `dev.uraeda.extension.<name>`.
 const APPS: &str = "dev.uraeda.extension.*";
-
-/// What a page may call of its host, and nothing else of the machine: no file, no process, no
-/// network, no web view, no clipboard. `start` says which engine runs the page (ruling R23);
-/// the others are the page API's channel, which the app answers.
-const HOST: [&str; 4] = ["start", "record", "call", "navigate"];
 
 /// The data folder's `extensions/`, readable by its owner only, where the root key and the
 /// pages' build counter are kept.
@@ -122,7 +118,7 @@ impl Signer {
                 version: page.version.to_owned(),
                 build: page.build,
             },
-            capabilities: Some(json!({ "host": HOST })),
+            capabilities: Some(json!({ "host": PAGE_HOST })),
             source: page.source,
             // A package always carries its source, which loads on every runtime version.
             bytecode: None,

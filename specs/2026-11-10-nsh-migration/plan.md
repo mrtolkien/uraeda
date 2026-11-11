@@ -2284,41 +2284,51 @@ right sidebar)". This task builds the model and the frame that draws it. Task 66
 
 **Files:**
 
-- Create: `crates/app/src/extension_view.rs`, `app/extensions/{page,host,ExtensionPlace}.tsx`,
-  `fixtures/extensions/{counter,throws,loops}/`
-- Test: `app/extensions/extensions.test.tsx`
+- Create, as built: `crates/app/src/extension_view.rs` with `extension_view/{channel,fetch}.rs`,
+  `app/extensions/{page,host,ExtensionPlace}.tsx`, `app/ui/index.ts`, `crates/protocol/src/page.rs`,
+  `crates/server/src/extensions/modules.rs`, `fixtures/extensions/{counter,crashes,loops}/` (the
+  plan's `throws/` is task 17's server part: ruling R213)
+- Test: `crates/app/tests/extensions.rs` with `tests/extensions/`, and its app page
+  `app/extensions/__checks__/place.tsx`, on GTK; `app/extensions/extensions.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `/extensions/:name/page` and its key (task 19); the record Extensions (17); the result
-  of task 2's first two checks, which hold: ruling R22 names the calls that verify and load a
-  package, and ruling R23 how the host hears a page's errors, from the engine's log, and knows the
-  page from the thread.
-- Owes task 19 (ruling R116): `app/ui/index.ts`, what a page gets of `uraeda/ui`, and
-  `app/extensions/page.tsx`, `uraeda/page`, both importing only `nsh`, `nsh/base`, and files beside
-  them; and those two folders held by the server's binary, written as it mounts to
-  `<data folder>/extensions/modules/{ui,extensions}/`, where the server builds a page from.
-- Produces:
-  - The native component `uraeda.extension`, which holds a view of its own per page, with NSH's
-    limits and no rights beyond the host's functions.
+  of task 2's first two checks: ruling R22 names the calls that verify and load a package. Ruling
+  R23's log is not used: NSH's runner keeps the process's logger (ruling R207).
+- Owes task 19 (ruling R116), done (R211): `app/ui/index.ts`, what a page gets of `uraeda/ui`, and
+  `app/extensions/page.tsx`, `uraeda/page`; both folders in the server's binary, written as it
+  mounts to `<data folder>/extensions/modules/{ui,extensions}/`; `uraeda/native`'s description among
+  the page build's UI sets.
+- Produces, as built (rulings R207 to R213):
+  - The native component `uraeda.extension` (`#[native_components(linux)]` of `crates/app`, behind
+    its default feature `host`): props `server`, `token`, `name`, `version`, `params`; events
+    `ready`, `problem` (`unreachable`, `untrusted`, `load`, `threw`, `slow`, `stopped`), `message`;
+    commands `send` and `reply`. It fetches and verifies the page itself, under the server's key
+    only, and runs it with NSH's limits and the package's rights.
   - `uraeda/page`: `place`, `homePane`, `newSection`, `statusItem`, `itemRenderer`,
     `settingsSection`, `key`, `onUnload`, `useRecord`, `useAction`, `useExtensionSettings`,
-    `useRepository`, as [`docs/extensions.md`](/docs/extensions.md) names them today.
-  - A page talks to the app only through NSH's host channel: the app answers `record`, `call`, and
-    `navigate`, and sends the theme.
-  - A page's problem, shown in its place and reported with `extensions.reportPageProblem`.
+    `useRepository`, and `useProps` and `navigate` (R212). A part's view is `view`.
+  - The channel, `PAGE_HOST` and `page_entry` of `uraeda-protocol` (R208): the app answers `record`,
+    `call`, and `navigate`, and sends `show`, `ping`, `theme`, `props`, `record`, `key`.
+  - `ExtensionPlace` (`host`, `extension`, `repo`, `part`, `props`, `onReady`, `onProblem`): one
+    part of a page, its problem shown in its place and reported with `extensions.reportPageProblem`.
+    A place is a pane whose view is this (R209).
+  - `ExtensionHost` (`host.tsx`), what task 23 provides: `server()`, `read(name, args, seen)`, and
+    `call(name, input)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a saved page shows without a restart`.
   - `a page that throws at load is named, and the app goes on`.
   - `a page that never stops is cut off and named`.
   - `a page reads a record and calls an action of its extension`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, from the spike's `src/ext.rs`. The page takes the app's theme, so it
+- [x] **Step 2: Run them**. Expected: FAIL. With no component registered, all four timed out
+      (`a page is drawn`, `the page reads its record`, `crashes's problem is reported`).
+- [x] **Step 3: Implement**, from the spike's `src/ext.rs`. The page takes the app's theme, so it
       looks like the app. The client trusts only the server's key. Read NSH's embedding and sandbox
       pages first: this is the part most likely to have changed.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): extension pages in the client`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): extension pages in the client`.
 
 ## Task 35: The gallery
 

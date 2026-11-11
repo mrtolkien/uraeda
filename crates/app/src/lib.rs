@@ -3,6 +3,8 @@
 
 mod about;
 pub mod diagram;
+#[cfg(all(target_os = "linux", feature = "host"))]
+mod extension_view;
 mod fonts;
 mod highlight;
 mod native;
@@ -17,4 +19,12 @@ use nsh_core::prelude::*;
 #[native_module("uraeda/native")]
 fn uraeda_native(registry: &mut Registry) {
     native::register(registry);
+}
+
+/// The app's native components on Linux, which Native Shell's runner registers on every view:
+/// `uraeda.extension`, an extension's page in a view of its own.
+#[cfg(feature = "host")]
+#[native_components(linux)]
+fn components(components: &nsh_platform_linux::Components) {
+    extension_view::register(components);
 }

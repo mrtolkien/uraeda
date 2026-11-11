@@ -1,0 +1,6 @@
+name = "crashes"
+title = "Crashes"
+description = "A page, for the app's tests of extension pages."
+version = "0.1.0"
+api = 1
+page = "page.tsx"

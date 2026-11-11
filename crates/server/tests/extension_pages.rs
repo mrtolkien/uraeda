@@ -151,15 +151,19 @@ async fn a_saved_page_gets_a_new_version_and_a_valid_signature() {
     assert_eq!(package.app.name, "Hello");
     assert_eq!(package.app.version, "0.1.0");
     // Its rights are the host's functions of the page API, and nothing of the machine.
-    let rights = json!({ "host": ["start", "record", "call", "navigate"] });
+    let rights = json!({ "host": uraeda_protocol::PAGE_HOST });
     assert_eq!(package.capabilities, Some(rights));
     assert!(package.assets.is_empty() && package.bytecode().is_none());
 
-    // The page's first statement posts `start`, before any of its code: ruling R23.
+    // The page's first statement posts `start`, then runs the page's code in a promise, and
+    // says how it ended: its code is built in, ahead in the text, as a function that runs then.
     let source = &package.source;
     let start = source.find("host.post(\"start\")").expect(source);
-    let own = source.find("Hello from a page").expect(source);
-    assert!(start < own, "{source}");
+    let loaded = source.find("host.post(\"loaded\")").expect(source);
+    assert!(
+        source.contains("Hello from a page") && start < loaded,
+        "{source}"
+    );
     // The app's modules are built in, and only NSH's stay imports, which the engine serves.
     assert!(source.contains("a stand-in badge"), "{source}");
     let imports = source.lines().filter(|line| line.contains(" from \""));
@@ -258,8 +262,9 @@ async fn a_page_that_does_not_compile_keeps_the_last_one_and_says_why() {
     server.stop().await;
 }
 
-// What tasks 26 to 34 build on: `uraeda/ui` and `uraeda/page` are built into a page from the
-// server's modules folder, `extensions/modules/` of the data folder, laid out as `app/` is.
+// Task 34's: `uraeda/ui` and `uraeda/page` are the app's own, `app/ui/` and `app/extensions/` of
+// the server's build, which it writes to its modules folder, `extensions/modules/` of the data
+// folder, as it starts, and builds every page with.
 #[tokio::test]
 async fn a_page_gets_the_apps_modules_from_the_data_folder() {
     let setup = copied(
@@ -269,35 +274,19 @@ async fn a_page_gets_the_apps_modules_from_the_data_folder() {
     );
     let server = setup.start().await;
     let mut held = extensions(&server).await;
-
-    // A server that holds no such module yet says so, and builds no page.
-    let unheld = |row: &Value| row["problems"] != json!([]);
-    let row = until(&mut held, "the unheld module's problem", unheld).await;
-    let message = row["problems"][0]["message"].as_str().expect("a message");
-    let expected = "cannot be imported: this server holds no such module yet";
-    assert!(
-        message.starts_with("uraeda/") && message.ends_with(expected),
-        "{message}"
-    );
-    assert_eq!(row["pageVersion"], Value::Null, "{row}");
-
-    // With `ui/index.ts` and `extensions/page.tsx` there, the next save builds the page.
-    let modules = server.data_dir().join("extensions/modules");
-    for file in ["ui/index.ts", "ui/Badge.tsx", "extensions/page.tsx"] {
-        let to = modules.join(file);
-        fs::create_dir_all(to.parent().unwrap()).unwrap();
-        fs::copy(fixture("pages/modules").join(file), to).unwrap();
-    }
-    save(
-        &server,
-        "lib/greeting.ts",
-        "export const greeting = \"Saved\";\n",
-    );
     version_after(&mut held, 0).await;
+
+    let modules = server.data_dir().join("extensions/modules");
+    for file in ["ui/index.ts", "ui/tokens/index.ts", "extensions/page.tsx"] {
+        assert!(modules.join(file).is_file(), "{file} is written");
+    }
+    let test = modules.join("extensions/extensions.test.tsx");
+    assert!(!test.exists(), "the app's tests are no modules");
+    // The page holds the page API's own code, as the app's file has it.
     let client = Client::of(&server).await;
     let (_, bytes) = client.fetch().await;
     let source = client.verify(&bytes).expect("it verifies").source;
-    assert!(source.contains("a stand-in badge"), "{source}");
+    assert!(source.contains("it declares no "), "{source}");
     server.stop().await;
 }
 

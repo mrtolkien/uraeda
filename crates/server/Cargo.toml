@@ -45,6 +45,8 @@ thiserror.workspace = true
 # The previews: a command's output, and a WebSocket piped to it.
 tokio = { workspace = true, features = ["io-util", "process"] }
 ureq.workspace = true
+# The module list of `uraeda/native`, which `uraeda/ui` imports in a page: no GTK, no view.
+uraeda-app.workspace = true
 uraeda-compile.workspace = true
 uraeda-core.workspace = true
 uraeda-protocol.workspace = true

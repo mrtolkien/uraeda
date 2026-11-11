@@ -10,3 +10,7 @@ API of [`server.d.ts`](/crates/server/src/extensions/api/server.d.ts).
 - `throws/`, `endless/`, `deep/`, `greedy/`, `later/`: broken on purpose, each its own way.
 - `listener/`: the events of a repository.
 - `agent/`: an agent runtime.
+- `counter/`, `crashes/`, `loops/`: pages, which the app's tests of
+  [`extensions.rs`](/crates/app/tests/extensions.rs) build, sign, and run in `uraeda.extension`: a
+  place that reads a record and calls actions, a page that throws as it loads, and one whose place
+  never stops drawing.

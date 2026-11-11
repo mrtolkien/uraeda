@@ -350,8 +350,12 @@ verifies under the key this server gave it. Both routes ask for a sign-in, as ev
   It only grows, across the server's restarts too: a client loads the page again when it changes,
   and refuses a build older than one it ran.
 - The package's app id is `dev.uraeda.extension.<name>`. Its capabilities are
-  `{ "host": ["start", "record", "call", "navigate"] }`: the page may call these functions of its
-  host, and reaches nothing else of the machine. Its first statement is `host.post("start")`.
+  `{ "host": PAGE_HOST }`, `start`, `loaded`, `ready`, `problem`, `alive`, `record`, `call`, and
+  `navigate`: the page may call these functions of its host, and reaches nothing else of the
+  machine. Its build starts from `page_entry`, which posts `start` first, answers the host's `ping`
+  with `alive`, then runs the page's code and posts `loaded`, or `problem` with what it threw. Both
+  are in [`page.rs`](/crates/protocol/src/page.rs), and [`host.tsx`](/app/extensions/host.tsx) says
+  what each message of the channel carries.
 - A page that does not build keeps the package before it, and its problem is in the row's
   `problems`.
 
