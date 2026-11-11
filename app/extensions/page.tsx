@@ -27,8 +27,19 @@ import type { Fonts, ThemeSource } from "../ui/tokens";
 /** What draws a part of a page: `useProps` reads what the app gives it. */
 export type PageView = Component;
 
-/** A place of the app: a pane of its own, with a row in the rail and a key after `Space`. */
-export type Place = { id: string; title: string; icon: string; view: PageView; key?: string };
+/**
+ * A place of the app: a pane of its own at `/e/<extension>/<id>`, with a row in the rail and, with
+ * `key`, a key after `Space`. `count` names a record of the extension whose value, a number, the
+ * rail shows after the title: what waits there.
+ */
+export type Place = {
+  id: string;
+  title: string;
+  icon: string;
+  view: PageView;
+  key?: string;
+  count?: string;
+};
 
 /** The tone of a pane or a section, as the app's lists use: what is now, ongoing, or later. */
 export type Tone = "now" | "ongoing" | "later" | "neutral";
@@ -43,19 +54,28 @@ export type HomePane = {
   view: PageView;
 };
 
-/** A section of the New page, under the composer: `useProps` gives it `{ search }`. */
+/**
+ * A section of the New page, a pane beside the composer: `useProps` gives it `{ kind }`, what the
+ * page starts, `"session"`, `"change"`, or `"feature"`.
+ */
 export type NewSection = { id: string; title: string; tone?: Tone; view: PageView };
 
 /** An item of the status line. */
 export type StatusItem = { id: string; view: PageView };
 
-/** What draws a tool's items in a session, by the tool's name: `useProps` gives it `{ item }`. */
+/**
+ * What draws a tool's items in a session, by the tool's name, in place of their line, 160 points
+ * high: `useProps` gives it `{ item }`, the transcript's item.
+ */
 export type ItemRenderer = { tool: string; view: PageView };
 
 /** A section under the extension's row in Settings, Extensions. */
 export type SettingsSection = { id: string; title: string; icon: string; view: PageView };
 
-/** A key under the leader, `Space`: one key, `"y"`, or a sequence under a group, `"n y"`. */
+/**
+ * A key under the leader, `Space`: one key, `"y"`, or a sequence under a group, `"n y"`. The app
+ * runs `run` in a view of the page it keeps unseen, so `run` acts through `navigate` and actions.
+ */
 export type Key = { keys: string; label: string; run: () => void; icon?: string };
 
 /** The kinds of a page's parts, as the app names them in a page's launch parameters. */
@@ -171,7 +191,7 @@ export function useRepository(): string {
   return params.repo;
 }
 
-/** What the app gives the part drawn: a New-page section's `{ search }`, an item's `{ item }`. */
+/** What the app gives the part drawn: a New-page section's `{ kind }`, an item's `{ item }`. */
 export function useProps<T>(): Accessor<T> {
   return props as Accessor<T>;
 }

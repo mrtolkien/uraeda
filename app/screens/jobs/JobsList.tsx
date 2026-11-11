@@ -1,13 +1,14 @@
 // The Jobs place, `/jobs`: the jobs that name the repository, and those that name no repository of
 // Uraeda's list, each a card, in the file's order. Above them, why none run: the settings file
-// cannot be read, scheduled jobs are off, or the Jobs extension is off here, each with its way out.
+// cannot be read, or scheduled jobs are off, each with its way out. Where the Jobs extension is off,
+// the place is gone, and its address says so (`../extension`).
 // The keys act on the selected card, each also by a press: `j` `k` move the selection, Enter opens
 // the job, `r` runs it now, `p` pauses or resumes it, `d` deletes it after asking, `a` adds one.
 import { computed, signal, untracked, View } from "nsh";
 import { jobsOf, openJob, runNow } from "./actions";
 import { ticking } from "./clock";
 import { JobCard } from "./JobCard";
-import { call, navigate, record } from "../../store";
+import { call, navigate } from "../../store";
 import type { Job } from "../../store/protocol";
 import { Banner, Button, refusalOf, type Sent, Spinner, Text } from "../../ui/controls";
 import { registerKey } from "../../ui/keys/registry";
@@ -18,45 +19,10 @@ import { Dialog } from "../../ui/surfaces";
 /** A card's id in the cursor: its place in the file, since two jobs may share a name. */
 const idOf = (job: Job) => String(job.index);
 
-/** Whether the Jobs extension is on in the repository, and how to turn it on there. */
-function useExtension(repo: string) {
-  const extensions = record("Extensions", { repo });
-  const row = () => extensions()?.extensions.find((one) => one.name === "jobs");
-  const refused = signal<string | null>(null);
-  const isOff = () => {
-    const jobs = row();
-    return jobs !== undefined && !jobs.onAll && !jobs.on.includes(repo);
-  };
-  const turnOn = async () => {
-    const jobs = untracked(row);
-    if (jobs === undefined) return;
-    refused.set(null);
-    try {
-      await call("extensions.setOn", { name: "jobs", on: [...jobs.on, repo], onAll: false });
-    } catch (error) {
-      refused.set(refusalOf(error));
-    }
-  };
-  return { isOff, refused, turnOn };
-}
-
 /** Why no job runs here by itself, each with its way out, above the cards. */
 function Gates(props: { enabled: boolean; problem: string | null; repo: string }) {
-  const extension = useExtension(props.repo);
   return (
     <>
-      <If when={extension.isOff()}>
-        <Banner
-          action={<Button label="Turn Jobs on here" onPress={() => void extension.turnOn()} />}
-          title={`Jobs is off in ${props.repo}.`}
-          tone="caution"
-        >
-          <Text tone="quiet">
-            {extension.refused() ??
-              "No job starts here, and none runs now. Turn the extension on here, or in Settings, Extensions, for every repository."}
-          </Text>
-        </Banner>
-      </If>
       <If when={props.problem}>
         {(problem) => (
           <Banner title={problem()} tone="danger">

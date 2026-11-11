@@ -29,7 +29,8 @@ export function Empty(props: EmptyProps) {
       style={{ alignItems: "flex-start", gap: 4, paddingHorizontal: 8, paddingVertical: 12 }}
       testID={props.testID}
     >
-      <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
+      {/* As wide as the pane, so a long title wraps rather than runs past its edge. */}
+      <View style={{ alignItems: "center", alignSelf: "stretch", flexDirection: "row", gap: 8 }}>
         <Icon name={props.icon ?? "square-dashed"} />
         <Text bold style={{ flexShrink: 1 }} tone="quiet">
           {props.title}

@@ -1,10 +1,12 @@
 // The leader's tree and the go keys, declared where the frame is drawn: each runs what a press in
-// the frame runs. The places (`g <key>`, and `Space <key>` but for New), the repositories' switcher
-// (`Space r`, `g r`), New (`Space n s`, `c`, `f`), Find (`Space Space`, `Space f f`, `Space f s`),
+// the frame runs. The places (`g <key>`, and `Space <key>` but for New), the shell's and the
+// built-in extensions' (`app/extensions/builtins/`), the repositories' switcher (`Space r`, `g r`),
+// New (`Space n s`, `c`, `f`, and the inbox's `Space n i`), Find (`Space Space`, `Space f f`, `Space f s`),
 // the look (`Space u m` the mode, `Space u t` the theme, `Space u f <key>` a part's font, `Space u
 // f d` the default fonts), and Back (`b`). The key map's `?` is the keys' host's own.
 import { openPicker } from "./pickers";
-import { PLACES } from "./places";
+import { BUILT_INS } from "../../extensions/builtins";
+import { leaderKeys } from "../../extensions/contributions";
 import { back, device, navigate } from "../../store";
 import { type KeySpec, registerKey } from "../../ui/keys";
 import { chooseMode, themeChoice } from "../settings/look";
@@ -23,15 +25,46 @@ const FONT_KEYS: Record<string, string> = {
   reading: "p",
 };
 
-function placeKeys(): KeySpec[] {
-  return PLACES.flatMap((place) => {
-    const prefixes = place.goOnly === true ? ["g"] : ["g", "space"];
-    return prefixes.map((prefix) => ({
-      icon: place.icon,
-      keys: `${prefix} ${place.key}`,
-      label: place.label,
-      run: () => navigate(place.to),
-    }));
+/** A key that goes to a place. */
+const go = (keys: string, label: string, icon: string, to: Parameters<typeof navigate>[0]) => ({
+  icon,
+  keys,
+  label,
+  run: () => navigate(to),
+});
+
+/** The shell's own places: Home and Settings, `g` and `Space` with their key, and New, `g n`. */
+function shellPlaceKeys(): KeySpec[] {
+  return [
+    go("g h", "Home", "house", { page: "home" }),
+    go("space h", "Home", "house", { page: "home" }),
+    go("g n", "New", "plus", { page: "new" }),
+    go("g ,", "Settings", "settings", { page: "settings" }),
+    go("space ,", "Settings", "settings", { page: "settings" }),
+  ];
+}
+
+/**
+ * The built-ins' keys, their places' and their own, each listed and on only while its extension is
+ * on in the repository shown, and kept for it while it is off: no extension of the owner's takes
+ * one (`../extension/keys.tsx`), so turning a built-in on again never finds its key taken.
+ */
+function builtInKeys(on: (name: string) => boolean): KeySpec[] {
+  return BUILT_INS.flatMap((builtIn) => {
+    const when = () => on(builtIn.name);
+    const places: KeySpec[] = builtIn.places.flatMap((place) =>
+      ["g", "space"].map((prefix) => ({
+        icon: place.icon,
+        keys: `${prefix} ${place.key}`,
+        label: place.title,
+        run: () => navigate(place.to),
+        when,
+      })),
+    );
+    const own = builtIn.keys.map((key) =>
+      Object.assign({}, key, { keys: leaderKeys(key.keys), when }),
+    );
+    return places.concat(own);
   });
 }
 
@@ -62,10 +95,14 @@ function lookKeys(): KeySpec[] {
   ];
 }
 
-/** Declares the shell's keys while the frame is drawn. */
-export function ShellKeys() {
+/**
+ * Declares the shell's keys while the frame is drawn. `on` says whether an extension is on in the
+ * repository shown, read as a key comes: it reads no record itself.
+ */
+export function ShellKeys(props: { on: (name: string) => boolean }) {
   registerKey([
-    ...placeKeys(),
+    ...shellPlaceKeys(),
+    ...builtInKeys(props.on),
     {
       // The leader's one hint, "space menu": it shows while the sequences are on.
       hint: "space",
@@ -99,12 +136,6 @@ export function ShellKeys() {
       keys: "space n f",
       label: "Feature",
       run: () => navigate({ kind: "feature", page: "new" }),
-    },
-    {
-      icon: "inbox",
-      keys: "space n i",
-      label: "Note",
-      run: () => navigate({ page: "inbox" }, { focus: "text" }),
     },
     { icon: "search", keys: "space space", label: "Find anything…", run: () => openPicker("all") },
     {

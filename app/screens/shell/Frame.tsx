@@ -11,12 +11,15 @@ import { ShellKeys } from "./keys";
 import { NeedsYouToasts, Notifier } from "./Notifications";
 import { nothingFor } from "./panes";
 import { openPicker, Pickers } from "./pickers";
-import { PLACES, placeOfPage } from "./places";
+import { placesIn } from "./places";
 import { Sidebar, UsageBar } from "./Sidebar";
 import { Branch, modeSlot, StatusEnd } from "./Status";
 import { UndoKeys, UndoQuestion, UndoToast } from "./Undo";
 import { LandingWrites, RefusedWrites } from "./Writes";
 import "../routes";
+import { ExtensionKeys, offPlace } from "../extension";
+import { isOnIn } from "../../extensions/contributions";
+import { ReadAllDeclarations } from "../../extensions/ExtensionPlace";
 import { FollowKeyboard } from "../settings/follow";
 import { firstRun, missingFolder, unknownRepository } from "../repository/panes";
 import { call, device, navigate, record, redirect, route } from "../../store";
@@ -27,13 +30,15 @@ import { applyFonts, applyTheme, pickTheme } from "../../ui/theme";
 /** The repository the address names. */
 const repo = () => route().repo;
 
-/** The places, the one shown lit. */
-function places() {
-  const current = placeOfPage(route().page);
-  return PLACES.map((one) => ({
-    current: one === current,
+/** The places of the repository shown, the one shown lit. */
+function places(shownRepo: string | undefined) {
+  const now = route();
+  return placesIn(shownRepo).map((one) => ({
+    count: one.count?.(),
+    current: one.holds(now),
     icon: one.icon,
-    keys: `g ${one.key}`,
+    // As the rail writes them, tight: `gi`, and `␣w` for a key after the leader.
+    keys: one.keys[0]?.replace(/^space /, "␣ "),
     label: one.label,
     onPhone: one.onPhone,
     onPress: () => navigate(one.to),
@@ -82,11 +87,22 @@ export function Frame() {
     const found = row();
     if (found === undefined) return alone(unknownRepository({ name }));
     if (found.missing) return alone(missingFolder({ name, path: found.home }));
+    const off = offPlace(route());
+    if (off !== undefined) return off;
     const own = placeOf(route());
     return own.main.length === 0 ? alone(nothingFor()) : own;
   });
 
   const shown = () => (row()?.missing === false ? repo() : undefined);
+  // The extensions of the repository shown, held here, where the keys' guards read them.
+  const extensions = computed(() => {
+    const name = shown();
+    return name === undefined ? undefined : record("Extensions", { repo: name })()?.extensions;
+  });
+  const isOnHere = (name: string) => {
+    const here = shown();
+    return here !== undefined && isOnIn(extensions(), name, here);
+  };
   const end = <StatusEnd repo={shown()} />;
   const start = <Branch repo={shown()} />;
   const sidebar = (
@@ -104,14 +120,14 @@ export function Frame() {
 
   return (
     <>
-      <ShellKeys />
+      <ShellKeys on={isOnHere} />
       <FollowKeyboard />
       <Stacks
         place={place()}
         rail={{
           bar,
           onTitle: () => openPicker("repositories"),
-          places: places(),
+          places: places(shown()),
           sidebar,
           title: repo() ?? "Uraeda",
         }}
@@ -119,7 +135,17 @@ export function Frame() {
       />
       <Pickers repo={shown()} />
       <UndoKeys />
-      <Notifier />
+      <If when={shown()}>
+        {(name) => (
+          <>
+            <ExtensionKeys repo={name()} />
+            <ReadAllDeclarations repo={name()} />
+            <If when={isOnHere("notifications")}>
+              <Notifier />
+            </If>
+          </>
+        )}
+      </If>
       {/* The toasts, the most important first: what was refused, what needs the human, what
           was done, and what lands. */}
       <Toasts>

@@ -45,6 +45,8 @@ const PAGES: Record<string, { address: string; words: string }> = {
   job: { address: "/r/sample/jobs/Dependencies", words: "Upgrade the dependencies" },
   "job-new": { address: "/r/sample/jobs/new", words: "Add the job" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },
+  // An extension's place: its tab is the page's title, which the page draws in its own view.
+  extension: { address: "/r/sample/e/hello/hello", words: "Hello" },
   storybook: {
     address:
       "/r/sample/f/2026-10-20-sidebar-resize/storybook?story=packages%2Fweb%2Fsrc%2FSidebarHandle.stories.tsx%23Dragging",

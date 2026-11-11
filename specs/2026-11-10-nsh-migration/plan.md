@@ -3068,12 +3068,35 @@ Follows [what every screen task does](#what-every-screen-task-does).
   extension from it alone.
 - **Tests:** `turning a built-in off removes its place, and the app goes on`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): built-in extensions, and extension places`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names, and
+      `an extension whose key clashes is named, and the others keep their keys`.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says: on a sandbox
+      with the Wiki and the fixture pages `counter`, `crashes`, and `loops` loose, Decisions off in
+      `sample`.
+- [x] **Step 5: Run the task's validation**. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(nsh-migration): built-in extensions, and extension places`, after
+      `feat(nsh-migration): previews warm up for what waits`.
+
+**As built** (rulings R384 to R390):
+
+- **The one list**: `app/extensions/contributions.ts`, `contributionsIn(repo)` and its readers
+  `placesOf`, `homePanesOf`, `newSectionsOf`, `settingsSectionsOf`, `statusItemsOf`, `rendererOf`,
+  `keysOf`, with `isOn(name, repo)`, `isOnIn`, `ownerOfPage`, `paged`. The built-ins are `BUILT_INS`
+  of `app/extensions/builtins/`, one file each, in the old `order.ts` order.
+- **The shell**: `placesIn(repo)` and `placeOfPage(page)` (now the place's name) in
+  `app/screens/shell/places.ts`, which keeps Home, New, and Settings; `ShellKeys({ on })` declares
+  the built-ins' keys with a guard.
+- **`app/screens/extension/`**: the place `extension`; the pane kinds `extension-off` and
+  `e:<name>:<id>` (`partKind`); `offPlace(route)`, which the frame asks first; `homePanesIn`,
+  `newSectionsIn`, which Home and the New page list; `ExtensionKeys`, `declareExtensionKeys`,
+  `keyProblem`.
+- **The page API**: `Place.count` is a record's name; `ExtensionPlace` takes `pressed`;
+  `ReadAllDeclarations` reads every page's parts once per version.
+- **The server**: `preview/ahead.rs`, the previews of what waits, warmed one after the other.
+- `docs/extensions.md` is rewritten for this API, with `examples/extensions/wiki/` as its worked
+  example, run on the sandbox.
 
 ## Task 65: The Jobs place
 

@@ -1,9 +1,11 @@
 // Home, the first page of a day: what needs the human and what runs, in the main stack, and what
 // comes next, the inbox, and the agents' usage, in the side stack. Both stacks show all their
 // panes at once, a page read at a glance; on a phone, one pane at a time, the bar at the foot
-// switching. Extensions' home panes join the side stack later (task 51).
+// switching. The extensions' panes, the inbox's and Priorities now among them, come from the one list
+// of the extensions on in the repository (`../extension`), each in its column's stack, before Usage.
 import { InProgress, NeedsYou } from "./core";
 import { InboxWidget, NowWidget, UsageWidget } from "./widgets";
+import { homePanesIn } from "../extension";
 import { record } from "../../store";
 import { definePane, definePlace, PaneScroll } from "../../ui/layout";
 
@@ -76,7 +78,7 @@ definePlace(
   "home",
   (route) => {
     const repo = { repo: route.repo ?? "" };
-    return [needsYou(repo), inProgress(repo), inbox(repo), now(repo), usage(repo)];
+    return [needsYou(repo), inProgress(repo), ...homePanesIn(repo.repo), usage(repo)];
   },
   { split: ["main", "side"] },
 );

@@ -15,4 +15,4 @@ function Hello() {
   );
 }
 
-place({ name: "hello", title: "Hello", render: Hello });
+place({ icon: "sparkles", id: "hello", title: "Hello", view: Hello });

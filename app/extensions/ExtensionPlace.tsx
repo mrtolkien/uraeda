@@ -15,7 +15,10 @@ import {
   untracked,
   View,
 } from "nsh";
+import { paged, rowsIn } from "./contributions";
 import { declared, declaredBy } from "./declared";
+import { extensionHost } from "../store";
+import type { ExtensionRow } from "../store/protocol";
 import { Banner } from "../ui/controls";
 import { Empty } from "../ui/lists";
 import { pickedFonts, shownTheme } from "../ui/theme";
@@ -61,6 +64,8 @@ export type ExtensionPlaceProps = {
   onReady?: (declarations: Declarations) => void;
   /** A problem of the page, as it is shown in its place. */
   onProblem?: (problem: PageProblem) => void;
+  /** The last key of the page pressed, numbered: sent to the page once it is ready, to run it. */
+  pressed?: Accessor<{ keys: string; n: number } | undefined>;
 };
 
 /** The app's theme and fonts, as a page takes them. */
@@ -88,6 +93,11 @@ export function ExtensionPlace(props: ExtensionPlaceProps) {
   effect(() => line.send("theme", theme()));
   effect(() => {
     if (props.props) line.send("props", props.props());
+  });
+  // A key of the page, once the page can run it: pressed before, it waits for the page's `ready`.
+  effect(() => {
+    const key = props.pressed?.();
+    if (key !== undefined && ready()) untracked(() => line.send("key", { keys: key.keys }));
   });
   // Followed: this machine's server started again on another port moves the connection there.
   const server = () => props.host.server();
@@ -167,5 +177,21 @@ export function ReadDeclarations(props: {
         <ExtensionPlace extension={() => props.extension} host={props.host} repo={props.repo} />
       </View>
     </If>
+  );
+}
+
+/**
+ * Reads what every page of the owner's extensions on in `repo` declares, each once per version:
+ * the one list (`contributions.ts`) adds an extension's parts only once they are known.
+ */
+export function ReadAllDeclarations(props: { repo: string }) {
+  const host = extensionHost();
+  return (
+    <Each
+      key={(row: ExtensionRow) => `${row.name}@${row.pageVersion}`}
+      of={paged(rowsIn(props.repo), props.repo)}
+    >
+      {(row) => <ReadDeclarations extension={row()} host={host} repo={props.repo} />}
+    </Each>
   );
 }

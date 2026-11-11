@@ -1,7 +1,9 @@
 // The Extensions category: a banner per problem first, an account's included, what needs the human
 // above all; then the owner's extensions and the built-in ones, a row each: what it is, where it
 // comes from and where it is on, its switch, which turns it on everywhere or off, and "Only in…",
-// the repositories it is on in, ticked one by one; under it, its settings.
+// the repositories it is on in, ticked one by one; under it, its settings, and the sections its page
+// adds (`settingsSection`), each drawn by the page in its own view. A clash of its keys with another
+// extension's is a banner of its own, as its problems are.
 import { View } from "nsh";
 import { ExtensionForm } from "./ExtensionForm";
 import {
@@ -13,8 +15,11 @@ import {
   type OnIn,
   onInOf,
 } from "./extensionWords";
+import { keyProblem } from "../extension";
+import { settingsSectionsOf } from "../../extensions/contributions";
+import { ExtensionPlace } from "../../extensions/ExtensionPlace";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
-import { call, record } from "../../store";
+import { call, extensionHost, record, route } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import {
   Banner,
@@ -73,6 +78,46 @@ function OnlyIn(props: { row: ExtensionRow; where: Sent<OnIn> }) {
   );
 }
 
+/** The repository the settings are shown in. */
+const repo = () => route().repo;
+
+/** Why an extension's keys are left out, as a banner of the category. */
+function keyNotices(rows: ReadonlyArray<ExtensionRow>): Notice[] {
+  return rows.flatMap((row) => {
+    const keys = keyProblem(row.name);
+    if (keys === undefined) return [];
+    const title = `${row.title}'s keys are off: ${keys}`;
+    return [{ id: `${row.name}#keys`, title, tone: "caution" as const }];
+  });
+}
+
+/** The sections an owner's extension adds under its row, in the repository shown. */
+function Sections(props: { row: ExtensionRow }) {
+  const sections = () => {
+    const here = repo();
+    return here === undefined
+      ? []
+      : settingsSectionsOf(here).filter((one) => one.row.name === props.row.name);
+  };
+  return (
+    <Each key={(one: ReturnType<typeof sections>[number]) => one.id} of={sections()}>
+      {(one) => (
+        <View style={{ gap: 4 }}>
+          <Text bold>{one().title}</Text>
+          <View style={{ height: 240 }}>
+            <ExtensionPlace
+              extension={() => one().row}
+              host={extensionHost()}
+              part={{ id: one().id, kind: "settingsSection" }}
+              repo={repo() ?? ""}
+            />
+          </View>
+        </View>
+      )}
+    </Each>
+  );
+}
+
 /** An extension's row. */
 function Item(props: { row: ExtensionRow; where: Sent<OnIn> }) {
   const pane = usePane();
@@ -105,6 +150,9 @@ function Item(props: { row: ExtensionRow; where: Sent<OnIn> }) {
           <If when={props.row.settings.length > 0}>
             <ExtensionForm row={props.row} />
           </If>
+          <If when={!props.row.isBuiltIn}>
+            <Sections row={props.row} />
+          </If>
         </View>
       }
     />
@@ -116,7 +164,7 @@ export function Extensions() {
   const rows = () => listed(extensions()?.extensions ?? []);
   const yours = () => rows().filter((row) => !row.isBuiltIn);
   const builtIn = () => rows().filter((row) => row.isBuiltIn);
-  const notices = () => rows().flatMap(noticesOf);
+  const notices = () => [...rows().flatMap(noticesOf), ...keyNotices(rows())];
   // Each extension's switch, made once per extension, so `Enter` and a press share it.
   const wheres = new Map<string, Sent<OnIn>>();
   const where = (name: string) => {

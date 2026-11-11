@@ -1,11 +1,11 @@
-# The Wiki: a repository's documentation folder as a place of Uraeda, `Space w`. An example of the
-# extension API: see docs/extensions.md.
+# The Wiki: a repository's documentation folder as a place of Uraeda, `Space w`, and a pane of
+# Home. The worked example of docs/extensions.md.
 name = "wiki"
 title = "Wiki"
 description = "The Markdown pages of a repository's documentation folder."
-version = "0.1.0"
+version = "0.2.0"
 api = 1
-icon = "uraeda:book-open"
+icon = "book-open"
 scope = "repository"
 server = "server.ts"
 page = "page.tsx"

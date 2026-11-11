@@ -33,4 +33,4 @@ definePlace("missing", (shown) => [nothing({ path: shown.path })]);
 
 /** "Nothing here" for the page shown, whose screen declared no pane. */
 export const nothingFor = () =>
-  nothing({ path: pathOf(route()), place: placeOfPage(route().page)?.label ?? "such" });
+  nothing({ path: pathOf(route()), place: placeOfPage(route().page) ?? "such" });

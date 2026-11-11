@@ -7454,7 +7454,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/ui/document/DocumentScroll.tsx`, `app/ui/controls/{Button,Banner}.tsx`,
   `app/screens/review/{Comment,Marks}.tsx`, `app/screens/round/index.tsx`,
   `app/screens/{triage/index,decisions/Check}.tsx`.
-## T51.1: The previews of what waits warm on one queue, as each repository joins, stories and all
+
+## R384: The previews of what waits warm on one queue, as each repository joins, stories and all
 
 - **Decision**: R83's two rules of `preview-waiting.ts` are ported whole, in
   `crates/server/src/preview/ahead.rs`. One queue, until the server stops, takes each ask in turn: a
@@ -7473,3 +7474,103 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the compile left out, a start whose fake served only `/index.json`.
 - **Where**: `crates/server/src/preview/{ahead,checkout,mod}.rs`, `records/{previews,watch}.rs`,
   `crates/server/tests/preview.rs`.
+
+## R385: One list of the extensions' parts, built in and the owner's, for each repository
+
+- **Decision**: `app/extensions/contributions.ts` is the one list the rail, the leader's tree,
+  Home's panes, the New page's sections, the status line's items, the transcript's item renderers,
+  and the settings' sections are built from: the built-ins on in the repository first, in the React
+  UI's `order.ts` order (inbox, priorities, decisions, sessions, Git, Jobs, previews,
+  notifications), then the owner's extensions on there whose page declared its parts, by name.
+  - **A built-in is declared as data**, one small file each in `app/extensions/builtins/`, with the
+    page API's shapes (`place`, `homePane`, `key`, `statusItem`, from `../page.tsx`), where only
+    what draws a part differs: a place names the app's pages and where a press goes, a home pane the
+    kind of pane its screen declared. Sessions is a built-in that is no extension (`always`), so it
+    keeps its place in the order.
+  - **The shell keeps its own places**, Home, New, and Settings, in `app/screens/shell/places.ts`,
+    which reads the list for the rest: `placesIn(repo)`, each place with its keys and what it holds.
+  - **On** is the row's `onAll` or `on`; before the rows come, the built-ins are on and the owner's
+    off, so none flashes where it is off.
+- **Rationale**: R7 asks for one API for both, and a built-in that can be turned off. The rail, the
+  keys, and Home each read the same list, so turning one off takes all its parts at once, and a part
+  cannot be in the rail and missing from the leader.
+- **Where**: `app/extensions/{contributions.ts,builtins/}`, `app/screens/shell/{places,keys}.ts*`,
+  `app/screens/{home,new}/index.tsx`.
+
+## R386: An extension off in a repository answers its pages there, and a built-in keeps its keys
+
+- **Decision**: the frame asks `offPlace(route)` (`app/screens/extension/`) before a page's own
+  place: a page of a built-in off in the repository (its places' pages, and the pages it names, as
+  Previews' story and mockup), and an owner's place, show one pane, "The Decisions extension is off
+  in sample", with "Turn it on here" (Enter, `extensions.setOn` with the repository added, its
+  refusal under it) and "Settings, Extensions". The Jobs place's own banner of R350 is gone: its
+  place leaves where the extension is off. A built-in's keys are the shell's, declared once with a
+  guard (`when`), listed and on only where it is on, and kept for it while it is off.
+- **Rationale**: rule 9, no dead end, for a link or Back that leads to a page whose extension went.
+  Keeping a built-in's keys while it is off means no owner's extension takes one, and turning the
+  built-in on again never meets its key taken, which would throw in the shell's own keys.
+- **Seen failing**: `turning a built-in off removes its place, and the app goes on` failed on the
+  rail with the list's filter left out, and on "The Decisions extension is off in sample" with the
+  frame's check left out.
+- **Where**: `app/screens/extension/{index,Off}.tsx`, `app/screens/shell/{Frame,keys}.tsx`,
+  `app/screens/jobs/JobsList.tsx`.
+
+## R387: Each owner's extension declares its keys in a scope of its own; a clash leaves them out
+
+- **Decision**: an owner's place keys (`Space <key>`) and `key`s are declared together, in a scope
+  named by the extension's title, all or none (`declareExtensionKeys`). The registry's throw on a
+  key that means two things is caught there: the extension's keys are left out, the reason is kept
+  by its name (`keyProblem`), and shown above the rows in Settings, Extensions, and above its place.
+  A page's `key` runs in the page: from its first press, the app keeps one view of the page unseen
+  (a part-less `ExtensionPlace`), and sends it `key` once it is ready (`pressed`).
+- **Rationale**: the extensions decision: a broken extension never stops another, nor the app. One
+  scope per extension makes the throw name it ("A key means two things in Beta"), and the first
+  extension of the list keeps a key two want. A view kept only from the first press costs nothing
+  for keys never pressed.
+- **Seen failing**: without the catch,
+  `an extension whose key clashes is named, and the others keep their keys` failed with the app's
+  throw, "A key means two things in Beta: "space y" is bound twice".
+- **Where**: `app/screens/extension/keys.tsx`, `app/extensions/ExtensionPlace.tsx`.
+
+## R388: An owner's part is a pane kind declared as first asked, and a place's count is a record
+
+- **Decision**: an owner's place, pane of Home, and section of the New page are each a kind of pane
+  `e:<name>:<id>`, `e:<name>:homePane:<id>`, `e:<name>:newSection:<id>`, declared the first time the
+  list asks for it, with the page's icon when known, and drawn by `PagePart`: the part's
+  `ExtensionPlace`, under what the app knows is wrong (broken on the server, keys left out), or why
+  there is no part ("No extension “x”", "Hello has no place “x”"), with the way to the settings. A
+  place's `count` names a record of the extension whose value is a number (R209's way), read by the
+  rail. A New-page section gets `{ kind }`, a renderer `{ item }` and 160 points, a settings section
+  240 points, a status item 160 points wide. The transcript's one line for renderers is in
+  `app/screens/session/Rows.tsx`, `rendered()`, which draws `ToolDrawn` in place of a tool's line.
+  What every page declares is read once per version, by `ReadAllDeclarations` in the frame, where
+  the status line read it before.
+- **Rationale**: what an extension declares is known only once its page ran, so its kinds cannot be
+  declared at a module's top level. A native view takes the size it is given, so a part drawn in a
+  row has a fixed height.
+- **Where**: `app/screens/extension/{kinds,PagePart}.tsx`,
+  `app/screens/session/{Rows,ToolDrawn}.tsx`, `app/screens/settings/Extensions.tsx`,
+  `app/screens/shell/{Status,Frame}.tsx`.
+
+## R389: What of the React UI's extension features is not ported
+
+- **Decision**: left out, each by the new stack's choice: the React page API (`component`, React,
+  Astryx, StyleX: a page is Native Shell TSX over `uraeda/ui`); a place's `count` as a function run
+  as a hook (a record's name instead, R388); `phoneTab` (an owner's place is in the phone's `…`); a
+  place's `navRow`, `tab`, `action`, and `column` (the rail draws every place alike); the New-page
+  section's `search` and `onInsert` (the New page has no search: `{ kind }`); a page's own keys
+  inside its view (only the leader's, through `key`); the Notifications extension's banner asking
+  for the browser's permission (the app asks itself, task 50). The Notifications built-in now gates
+  the notifier: off in the repository shown, nothing tells, and it forgets what it saw. A document's
+  embedded story is not drawn as its link where Previews is off: the document renderer's embeds are
+  the screens', and the story's page says it is off.
+- **Where**: `app/extensions/page.tsx`, `docs/extensions.md`.
+
+## R390: The fixture `hello` declares its place in the page API's shape
+
+- **Decision**: `fixtures/pages/hello/page.tsx` and its stand-in module declared
+  `place({ name, title, render })`, the shape before task 34, so the sandbox's `hello` declared no
+  place and its view said `it declares no place "hello"`. Both now use `{ id, title, icon, view }`.
+  `places.test.tsx` opens `/r/sample/e/hello/hello`. An `Empty`'s title row is as wide as its pane,
+  so a long title wraps on a phone rather than run past the edge.
+- **Where**: `fixtures/pages/`, `app/screens/shell/places.test.tsx`, `app/ui/lists/Empty.tsx`.

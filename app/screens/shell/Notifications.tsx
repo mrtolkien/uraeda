@@ -91,6 +91,12 @@ function toDesktop(row: NeedsYouRow) {
 const rows = () => record("NeedsYouList", null)()?.rows;
 
 export function Notifier() {
+  // Turned off, as the Notifications extension is in a repository, it forgets: turned on again, it
+  // tells only of what comes after.
+  effect(() => () => {
+    seen = null;
+    asks.set([]);
+  });
   effect(() => {
     const now = rows();
     if (now === undefined) return;

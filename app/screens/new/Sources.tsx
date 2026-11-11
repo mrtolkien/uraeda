@@ -1,8 +1,10 @@
 // Beside the New page's composer, what a start is often made from: the priorities' proposals that
 // have not started, and the inbox's notes. Enter, or a press, puts a line's words in the draft, its
 // line kept so its start links it, or opens a proposal that has a file of its own, where it is
-// written and started. A note's words go in under what the draft holds.
+// written and started. A note's words go in under what the draft holds. The proposals are the
+// Priorities extension's, the notes the Inbox's: each is left out where its extension is off.
 import { View } from "nsh";
+import { isOn } from "../../extensions/contributions";
 import { navigate, record } from "../../store";
 import type { InboxNote, ProposalItem } from "../../store/protocol";
 import { Spinner, Text } from "../../ui/controls";
@@ -19,8 +21,9 @@ export function Sources(props: { repo: string; kind: "session" | "change" | "fea
   const pane = usePane();
   const priorities = record("Priorities", { repo: props.repo });
   const inbox = record("Inbox", { repo: props.repo });
+  const onHere = (name: "inbox" | "priorities") => isOn(name, props.repo);
   const sources = (): ReadonlyArray<Source> => [
-    ...(priorities()?.sections ?? []).flatMap((section) =>
+    ...((onHere("priorities") ? priorities()?.sections : undefined) ?? []).flatMap((section) =>
       section.proposals
         .filter((proposal) => proposal.running === null && proposal.merged === null)
         .map((proposal) => ({
@@ -30,7 +33,7 @@ export function Sources(props: { repo: string; kind: "session" | "change" | "fea
           section: section.title,
         })),
     ),
-    ...(inbox()?.categories ?? []).flatMap((category) =>
+    ...((onHere("inbox") ? inbox()?.categories : undefined) ?? []).flatMap((category) =>
       category.notes.map((note) => ({
         category: category.name ?? "Inbox",
         id: `n:${note.key}`,

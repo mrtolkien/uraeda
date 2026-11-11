@@ -1,17 +1,13 @@
 {
-  "extends": "../tsconfig.base.json",
+  "extends": "../app/.nsh/tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "lib": ["es2024", "dom", "dom.iterable"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
     "paths": {
-      "@astryxdesign/core/*": ["../packages/web/node_modules/@astryxdesign/core/dist/*"],
-      "uraeda/page": ["../packages/web/src/extensions/hooks.ts"],
-      "uraeda/server": ["../packages/server/src/extension-api.ts"],
-      "*": ["../packages/web/node_modules/@types/*", "../packages/web/node_modules/*"]
-    },
-    "typeRoots": ["../packages/server/node_modules/@types"]
+      "nsh": ["../app/.nsh/types/nsh/index.d.ts"],
+      "nsh/*": ["../app/.nsh/types/nsh/*.d.ts"],
+      "uraeda/page": ["../app/extensions/page.tsx"],
+      "uraeda/ui": ["../app/ui/index.ts"],
+      "*": ["../app/.nsh/types/*.d.ts"]
+    }
   },
-  "include": ["."]
+  "include": [".", "../crates/server/src/extensions/api/server.d.ts"]
 }

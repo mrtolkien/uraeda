@@ -2,8 +2,8 @@
 // repository shown, what waits on the human, the extensions' items, the connection's state, and
 // the repository at its right end. The hints of the keys between them are the line's own.
 import { View } from "nsh";
-import { declaredBy } from "../../extensions/declared";
-import { ExtensionPlace, ReadDeclarations } from "../../extensions/ExtensionPlace";
+import { statusItemsOf } from "../../extensions/contributions";
+import { ExtensionPlace } from "../../extensions/ExtensionPlace";
 import { connection, extensionHost, record } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import { Icon, Text } from "../../ui/controls";
@@ -45,35 +45,17 @@ function NeedsYou() {
   );
 }
 
-/** An extension's items of the status line, once its page said which it has. */
-function ExtensionItems(props: { extension: ExtensionRow; repo: string }) {
-  const host = extensionHost();
-  const items = () =>
-    declaredBy(props.extension.name, props.extension.pageVersion)?.statusItems ?? [];
+/** An item of an extension's in the status line, drawn by its page. */
+function ExtensionItem(props: { extension: ExtensionRow; id: string; repo: string }) {
   return (
-    <>
-      <ReadDeclarations extension={props.extension} host={host} repo={props.repo} />
-      <Each key={(item: { id: string }) => item.id} of={items()}>
-        {(item) => (
-          <View style={{ height: tokens.status.height, width: 160 }}>
-            <ExtensionPlace
-              extension={() => props.extension}
-              host={host}
-              part={{ id: item().id, kind: "statusItem" }}
-              repo={props.repo}
-            />
-          </View>
-        )}
-      </Each>
-    </>
-  );
-}
-
-/** The extensions on in `repo` whose page is built. */
-function paged(repo: string): ExtensionRow[] {
-  const all = record("Extensions", { repo })()?.extensions ?? [];
-  return all.filter(
-    (row) => row.pageVersion !== null && row.state === "on" && (row.onAll || row.on.includes(repo)),
+    <View style={{ height: tokens.status.height, width: 160 }}>
+      <ExtensionPlace
+        extension={() => props.extension}
+        host={extensionHost()}
+        part={{ id: props.id, kind: "statusItem" }}
+        repo={props.repo}
+      />
+    </View>
   );
 }
 
@@ -84,8 +66,13 @@ export function StatusEnd(props: { repo?: string }) {
       <NeedsYou />
       <If when={props.repo}>
         {(shown) => (
-          <Each key={(row: ExtensionRow) => row.name} of={paged(shown())}>
-            {(row) => <ExtensionItems extension={row()} repo={shown()} />}
+          <Each
+            key={(one: { item: { id: string }; row: ExtensionRow }) =>
+              `${one.row.name}:${one.item.id}`
+            }
+            of={statusItemsOf(shown())}
+          >
+            {(one) => <ExtensionItem extension={one().row} id={one().item.id} repo={shown()} />}
           </Each>
         )}
       </If>

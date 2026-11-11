@@ -1,7 +1,8 @@
 // The New page, `/new?kind=session|change|feature`: what to start, and its composer, in the main
 // stack, and what a start is often made from, the priorities' proposals and the inbox's notes, in
-// the side stack. `Space n s`, `c`, `f` open it (the shell's leader), and `s` `c` `f` switch the
-// kind there. The kind is the address's, read where it is drawn: a switch keeps the panes.
+// the side stack, with the sections the owner's extensions add. `Space n s`, `c`, `f` open it (the
+// shell's leader), and `s` `c` `f` switch the kind there. The kind is the address's, read where it is drawn: a switch keeps the panes.
+import { newSectionsIn } from "../extension";
 import { route } from "../../store";
 import { definePane, definePlace } from "../../ui/layout";
 import { NewView } from "./NewPane";
@@ -30,5 +31,7 @@ export const newSources = definePane<{ repo: string }>({
 });
 
 definePlace("new", (to) =>
-  to.repo === undefined ? [] : [newPane({ repo: to.repo }), newSources({ repo: to.repo })],
+  to.repo === undefined
+    ? []
+    : [newPane({ repo: to.repo }), newSources({ repo: to.repo }), ...newSectionsIn(to.repo)],
 );

@@ -14,6 +14,8 @@ import { OfferCard } from "./Offer";
 import { applies, isClosed, offerOf } from "./offers";
 import type { Entry, Feed } from "./pages";
 import { Permission } from "./Permission";
+import { ToolDrawn } from "./ToolDrawn";
+import { rendererOf } from "../../extensions/contributions";
 import { lineWords, type LineWords } from "./words";
 
 type Of<K extends Item["kind"]> = Extract<Item, { kind: K }>;
@@ -64,14 +66,19 @@ export function TranscriptRow(props: { feed: Feed; hands: RowHands; id: Accessor
     const shown = entry();
     return shown?.kind === "item" ? shown.item() : undefined;
   };
+  // A tool an extension's page draws (`itemRenderer`) has that drawing in place of its line.
+  const rendered = () => {
+    const shown = item();
+    return shown?.kind === "tool" && rendererOf(props.hands.repo, shown.name) !== undefined;
+  };
   const line = (): LineWords | undefined => {
     if (entry()?.kind === "waiting") return WAITING;
     const shown = item();
-    return shown === undefined ? undefined : lineWords(shown);
+    return shown === undefined || rendered() ? undefined : lineWords(shown);
   };
   const body = () => {
     const kind = item()?.kind;
-    return kind !== undefined && BODIED.has(kind) ? [props.id()] : [];
+    return kind !== undefined && (BODIED.has(kind) || rendered()) ? [props.id()] : [];
   };
   return (
     // The row draws its own selection, a fill and the bar of light at its left edge, as `Row`
@@ -130,6 +137,9 @@ function Body(props: { entry: Entry | undefined; hands: RowHands; row: string })
   const entry = props.entry;
   if (entry?.kind !== "item") return null;
   const kind = entry.item()?.kind;
+  if (kind === "tool") {
+    return <ToolDrawn item={entry.item as () => Of<"tool">} repo={props.hands.repo} />;
+  }
   if (kind === "message") {
     return (
       <Message
