@@ -15,6 +15,7 @@
     },
     "clipboard": true,
     "picker": true,
+    "fs": { "read": ["${homeDir}", "/tmp"] },
     "openUrl": true,
     "host": ["uraeda.*"],
     "process": {

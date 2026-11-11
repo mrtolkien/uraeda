@@ -102,6 +102,12 @@ export function ShellKeys() {
       label: "Feature",
       run: () => navigate({ kind: "feature", page: "new" }),
     },
+    {
+      icon: "inbox",
+      keys: "space n i",
+      label: "Note",
+      run: () => navigate({ page: "inbox" }, { focus: "text" }),
+    },
     { icon: "search", keys: "space space", label: "Find anything…", run: () => openPicker("all") },
     {
       icon: "flag",

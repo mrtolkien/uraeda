@@ -13,6 +13,7 @@ import "./home";
 import "./priorities";
 // Task 38: Proposals, and starting work.
 // Task 39: Inbox and triage.
+import "./triage";
 // Task 40: The feature page.
 // Task 41: Workflow files.
 // Task 42: Rounds and reviews.

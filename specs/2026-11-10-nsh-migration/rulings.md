@@ -5837,3 +5837,107 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   with the same `leftOf` and `resetWords`; `iconNamed` reads the server's names of agents' marks,
   `uraeda:harness-claude`, which drew nothing before.
 - **Where**: `app/screens/shell/usage.ts`, `app/ui/controls/Icon.tsx`.
+
+## R276: The inbox's add is a field at the top of its pane, and its rare actions are icons beside it
+
+- **Decision**: the inbox pane opens on a one-line field, "Add a note: Enter adds it", with three
+  icons after it on the same row: add images to the new note, Organize with AI (while no triage
+  exists), and New category. Enter adds the note and keeps the focus there for the next one; `a`
+  focuses it from the list, in the category of the row under the cursor, and `Space n i` opens the
+  inbox with it focused from anywhere. "New category" is also the list's last row, after every note.
+  The old page's ＋ opened a form: one tap more, and its New category icon sat where the add was
+  expected.
+- **Rationale**: the human's complaint ("It's the inbox: it should be accessible in one click") asks
+  for the add to be the first thing, one tap or one key away. A field that is always there is one
+  tap on a phone and one key on a desktop; a note typed and not added is kept on the device by the
+  shared field's unsaved store (`unsavedText`), whose own test guards it across a restart, so the
+  task adds no test of its own.
+- **Where**: `app/screens/inbox/{AddNote,InboxPane}.tsx`, `app/screens/shell/keys.tsx`.
+
+## R277: A note's pane sits beside the list, in side; on a phone it is the pane shown
+
+- **Decision**: `/inbox/<key>` shows the list in main, where it was on `/inbox`, and the note in
+  side. Enter or a press on a note from `/inbox` opens its page with the focus on the note's pane,
+  so a phone shows the note, the list one tile away; from `/inbox/<key>`, another note replaces it
+  in the same visit (`redirect`), so Back returns to the inbox, not through every note read. A note
+  saved under a new text has a new key: its pane follows it by its id. `/inbox/triage` shows the
+  triage in main and the inbox in side, so a note a question names is read where it sits.
+- **Rationale**: the list does not jump to the other stack as a note opens, and a note's pane, a
+  field and a few actions, reads well at a side stack's width. The reverse, the note in main, moved
+  the list across the window at each opening.
+- **Where**: `app/screens/inbox/{index.tsx,InboxPane.tsx,NotePane.tsx}`,
+  `app/screens/triage/index.tsx`.
+
+## R278: The inbox is a flat list, not an outliner; its last action has its own Undo until task 50
+
+- **Decision**: the list is one cursor over the notes and the categories' rows, `j` `k` and Enter,
+  with `a` add, `d` delete (a note, or a category, whose notes stay without one), `c` move to a
+  category, `p` make it a proposal (a section's line or file, under a proposal, or into a proposal
+  file), `C` new category, `R` rename. A note's sub-items show in its pane, read only: the old
+  page's outliner (indent, outdent, nested drags, an add beside each row) is not ported, and
+  `inbox.outline` and `inbox.drop` stay unused. An undoable action never asks first: the inbox's
+  banner says what it did, where the note went with the way to it, and Undo (`u`), through
+  `undo.apply`. Marked `TASK 50:` in `app/screens/inbox/actions.ts`, for the app's undo stack to
+  replace, with its `u`.
+- **Rationale**: the inbox is a place to drop and sort thoughts; editing nested outlines of a note
+  is rare, and `INBOX.md` or the note's file, one press away, does it. An outliner is the largest
+  part of the old page, and the most fragile.
+- **If wrong**: an outline of a note in its pane, over `inbox.outline`, which the server serves.
+- **Where**: `app/screens/inbox/`.
+
+## R279: Images come by picker, paste, and drop; the app reads dropped files from home and `/tmp`
+
+- **Decision**: an image is held for the new note, or sent to the note shown, through
+  `POST /r/<name>/inbox/note-image`: from NSH's `Picker.pickImages` (an open panel on GTK, the photo
+  picker on a phone), from `Clipboard.readImage` on `Ctrl+V` (heard in the fields too, which then
+  get the clipboard's text when it holds no image), and from `onFileDrop` on the pane, whose `file:`
+  URLs `fs/promises` reads. `app/nsh.json` gains `"fs": { "read": ["${homeDir}", "/tmp"] }` for that
+  read. Images are drawn by fetching them with the device's token into a `blob:` URL: an `Image`'s
+  source carries no header.
+- **Rationale**: NSH's editor inserts only the text of a paste, and drops images; and a drop gives
+  paths, not bytes. Files dropped from elsewhere than the home folder or `/tmp` are refused, with
+  NSH's words under the pane.
+- **Where**: `app/screens/inbox/images.ts`, `app/nsh.json`.
+
+## R280: The triage asks one question at a time, a letter answers and goes on
+
+- **Decision**: `/inbox/triage` shows one question at a time, with its context drawn by `Document`,
+  why it matters, its options as `SelectableCard`s with their pros and cons, and a comment. A
+  letter's key (`a` to `f`, in a selection scope, so `b` is the answer and not Back while a question
+  is shown) picks one option, saves it with `defaultRound.answer`, and goes on to the next question;
+  a press picks and stays, for a comment, which `i` focuses. `n` `p` move between questions; after
+  the last, its end lists the questions without an answer, the notes, and Submit, a button only,
+  disabled until every question has its answer. A comment and the notes are kept on the device until
+  saved, as their field leaves. An answered triage reads its answers under the banner that applies
+  them in a chat (`session.newChat`, then `session.send`), or dismisses it. The two messages,
+  organize and apply, are the old server's words, now in `app/screens/triage/chat.ts`.
+- **Rationale**: the task asks for a fast keyboard flow, one key per answer, and no answer typed
+  lost. Task 42 builds the rounds of features: this one is the triage's own, small, and its question
+  view can move there if task 42 wants one component for both.
+- **Where**: `app/screens/triage/`.
+
+## R281: A list's first row is `Home`, not `g g`, which goes to Git
+
+- **Decision**: `listKeys` no longer binds `g g`. `G`, `Home`, and `End` stay.
+- **Rationale**: the shell binds `g g` to the Git place (`g` then a place's key, Git's being `g`),
+  on in every pane, so the first `List` drawn in a pane threw "A key means two things in Inbox: "g
+  g" is bound twice, to Git and to first row". One of the two had to yield; a place's key is reached
+  from everywhere, the first row of a list by `Home` too.
+- **If wrong**: Git's place takes another key, and `g g` comes back to lists.
+- **Where**: `app/ui/lists/keys.ts`.
+
+## R282: A `SelectableCard`'s title wraps
+
+- **Decision**: the title of a `SelectableCard` takes the row's width and wraps, as its words do.
+- **Rationale**: the triage's options are sentences: in a row with no width of its own, the title
+  ran past the card's edge, cut, at every width.
+- **Where**: `app/ui/lists/SelectableCard.tsx`.
+
+## R283: A `Banner` reads its action and its words once
+
+- **Decision**: `Banner` holds `action` and `children` in a `computed`, and draws what it holds.
+- **Rationale**: a prop holding elements makes them again at each read: the banner read `action`
+  once to test it and once to draw it, so a button with `keys` in it was declared twice, and threw
+  "A key means two things in Inbox: "u" is bound twice, to Undo and to Undo". Seen in the inbox's
+  Undo, by driving the app with its keys.
+- **Where**: `app/ui/controls/Banner.tsx`.

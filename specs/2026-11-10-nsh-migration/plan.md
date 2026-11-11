@@ -2558,12 +2558,29 @@ Follows [what every screen task does](#what-every-screen-task-does).
   category" among the categories comes after the notes, never where the add is expected.
 - **Tests:** none: using the screen shows every behaviour.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): inbox and triage`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names: none, and none added. A note typed and not added
+      is kept by the shared field's unsaved store, whose own test guards it after a restart.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says:
+      `just     app-shots` of `/r/realistic/inbox`, `/inbox/<key>`, and `/inbox/triage`, and an
+      errand driven by keys on the hidden display (add, delete, undo, a triage answered by its
+      letter).
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 102 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): inbox and triage`.
+
+**As built** (rulings R276 to R283):
+
+- `app/screens/routes.tsx` imports `./triage`, which imports `./inbox`: one line for both folders.
+- Panes: `inbox` (`inboxList({ repo })`, main), `inbox-note` (`inboxNote({ repo, key })`, side),
+  `inbox-triage` (`triage({ repo })`, main). Places: `inbox` is the list; `note` the list and the
+  note; `triage` the triage and the list in side. `openNote(repo, key)` opens a note's pane.
+- `Space n i` (`app/screens/shell/keys.tsx`) opens the inbox with its add field focused.
+- `app/nsh.json` reads files dropped from the home folder and `/tmp` (`fs.read`).
+- In `app/ui/`: `listKeys` has no `g g` (R281); `SelectableCard`'s title wraps (R282); `Banner`
+  reads its action once (R283); the icons `image-plus` and `sparkles`.
+- Left for task 50 (`TASK 50:` in `app/screens/inbox/actions.ts`): the inbox's last action and its
+  `u` go to the app's undo stack.
 
 ## Task 40: The feature page
 

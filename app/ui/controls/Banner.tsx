@@ -1,7 +1,7 @@
 // A banner: a status that stays next to what it concerns until it is dealt with, never only in a
 // toast. Its icon and title in its tone, its words under them, and the way out beside them: a
 // button. A bar of its tone on its left edge, on a faint block of it.
-import { type JSX, View } from "nsh";
+import { computed, type JSX, View } from "nsh";
 import { type IconName, Icon } from "./Icon";
 import { Text } from "./Text";
 import { type Tone, tokens } from "../tokens";
@@ -28,6 +28,10 @@ const ICONS: Record<NonNullable<BannerProps["tone"]>, IconName> = {
 export function Banner(props: BannerProps) {
   const tone = () => props.tone ?? "info";
   const colour = () => tokens.control.tone(tone());
+  // Each read of a prop holding elements makes them again: read once, a button's key is declared
+  // once, as it is drawn once.
+  const action = computed(() => props.action);
+  const words = computed(() => props.children);
   return (
     <View
       style={{
@@ -48,13 +52,13 @@ export function Banner(props: BannerProps) {
           <Text bold colour={colour()}>
             {props.title}
           </Text>
-          <If when={props.children !== undefined}>
-            <Text tone="ink">{props.children}</Text>
+          <If when={words() !== undefined}>
+            <Text tone="ink">{words()}</Text>
           </If>
         </View>
       </View>
-      <If when={props.action}>
-        <View style={{ alignSelf: "center" }}>{props.action}</View>
+      <If when={action() !== undefined}>
+        <View style={{ alignSelf: "center" }}>{action()}</View>
       </If>
     </View>
   );

@@ -72,7 +72,7 @@ export function SelectableCard(props: SelectableCardProps) {
               <Icon colour={off() ? tokens.control.disabledInk : props.hue} name={name()} />
             )}
           </If>
-          <Text bold tone={off() ? "faint" : "ink"}>
+          <Text bold style={{ flex: 1, minWidth: 0 }} tone={off() ? "faint" : "ink"}>
             {props.title}
           </Text>
         </View>
