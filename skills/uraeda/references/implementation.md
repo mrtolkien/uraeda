@@ -36,7 +36,8 @@ the session: do not stop to check in between tasks. Git is the only memory: the 
    approved it with comments, `plan-review.md` holds them: carry each one out, and say how in the
    pull request's body.
 5. Run the project's complete validation once, before any change: formatter, linter, type checker,
-   tests. A failure that is already there is reported in the pull request, not fixed in passing.
+   tests, without the suites the plan leaves [out of validation](#each-task). A failure that is
+   already there is reported in the pull request, not fixed in passing.
 
 **Resuming**: start at the first wave with an unchecked step; with `ura`, `ura next` names its first
 unchecked task. The feature branch is the only progress: a task whose boxes are checked on it is
@@ -90,13 +91,22 @@ is reviewed: the review of a wave runs while the next one is built.
    built one after the other. A conflict outside the shared files the plan's **Waves** names means
    the tasks were not independent: give the later task to a fresh implementer, to rebuild on the
    merged code, and write a ruling. In `plan.md`, keep both sides' checked boxes.
-3. **Run the project's complete validation** on the merged wave. A failure its tasks passed alone is
-   a problem of their combination: give it to a fresh implementer, as
-   [the code is wrong](#each-task) says, before the next wave starts.
+3. **Check the merged wave**, in the background: that the project builds as a whole, with its
+   compiler or type checker, and the tests of the code the wave touched. This is not the complete
+   validation, which runs once, at the [final review](#final-review): a wave never waits for the
+   slow suites.
 4. **Start the review of the wave** in the background, as [review the waves](#review-the-waves)
-   says, and **start the next wave** without waiting for it.
+   says, and **start the next wave** without waiting for the check or the review.
 
-You coordinate: you merge, validate, and hand out the work. When an implementer stops or is
+**Fixes run beside the waves.** A failed check, like a review's finding, does not stop the next
+wave. Give it to a fresh implementer, a fixer, on a fixes branch, as
+[review the waves](#review-the-waves) says, while the next wave is built: a fixer and a wave's
+implementers often run together. Only a failure the next wave cannot be built on is fixed before it
+starts: merged code that does not build, or a name or an interface the next wave consumes that is
+wrong. What is still open when the last wave is merged is fixed in one pass, before the final
+review.
+
+You coordinate: you merge, check, and hand out the work. When an implementer stops or is
 interrupted, give its task to a fresh one, in the same worktree, told to resume from its commits and
 checked boxes, rather than building it in your own session. With `run_agent`, ask for the same task
 again.
@@ -160,11 +170,17 @@ again from the repository.
      changes what they cover: a UI behaviour, a layout, a route. Write the deferred checks in the
      commit body.
    - **At the final review, and before every push**: the project's complete validation, every check
-     it runs locally, slow suites included. A green fast check never stands for it.
+     it runs locally, slow suites included. It runs once for the feature, not after each wave. A
+     green fast check never stands for it.
+   - **Never**: a suite the plan's **Global constraints** leave out of validation, such as the tests
+     of code the feature replaces. No task, no wave, and no final review runs it.
 
    A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
-   at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
-   an active decision has one; otherwise name it in the pull request, as a failure that was already
+   at most twice. A test that fails while the machine is saturated, by other agents' builds and
+   tests, is rerun once the machine is quiet, at most twice: when it passes then, it passed. Name it
+   in a ruling and go on. Never load the machine, or run a test in a loop, to reproduce a failure of
+   timing. A test that fails intermittently follows the project's rule for flaky tests, when an
+   active decision has one; otherwise name it in the pull request, as a failure that was already
    there, and go on.
 
    Start long work, such as a test suite, a build, or a subagent, as background work your harness
@@ -199,15 +215,15 @@ to the tasks, and flags what the tasks grew, not sizes that were already there
 
 Its findings, in its committed `findings-NN.md`, are [graded](#grade-the-findings) like the final
 review's: the critical and important ones are fixed, with the minor ones worth fixing. Once the
-review ends, fix them at the next point between two waves, after a wave is merged and before the
-next one starts. Give them to a fresh implementer, on a branch made from the feature branch and
-named after it, like `<feature-branch>-fixes-2`, in a worktree made like a task's, and merge it like
-one. Each behaviour fix comes with a test that fails first, in its own commit. With `run_agent`,
-each round of fixes takes a new task name, like `Fixes of wave 2`: a name that already ran gets its
-first answer again. After the last wave, fix them as soon as the review ends. The next review checks
-those fix commits with its wave. Structural fixes must keep behavioural tests passing and satisfy
-explicit architectural constraints. A finding still open after two reviews is ruled on, in
-`rulings.md`.
+review ends, give them at once to a fresh implementer, on a branch made from the feature branch and
+named after it, like `<feature-branch>-fixes-2`, in a worktree made like a task's. It works while
+the waves go on, and no wave waits for it: merge it like a task at the next point between two waves,
+after a wave is merged and before the next one starts. Each behaviour fix comes with a test that
+fails first, in its own commit. With `run_agent`, each round of fixes takes a new task name, like
+`Fixes of wave 2`: a name that already ran gets its first answer again. After the last wave, fix
+them as soon as the review ends. The next review checks those fix commits with its wave. Structural
+fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
+still open after two reviews is ruled on, in `rulings.md`.
 
 ### Rulings
 

@@ -35,6 +35,9 @@ task's requirements include these:
 
 - [An approved rule, copied word for word with its source; or an existing guarantee, described with
   links to its code and tests. Use an approval comment where it explicitly replaces a spec clause.]
+- [**Out of validation**, only when the feature replaces code: the suites of the replaced code,
+  which no task, wave, or final review runs, from the task that freezes it to the one that removes
+  it.]
 
 ## Code read
 

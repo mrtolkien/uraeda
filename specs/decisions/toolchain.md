@@ -8,8 +8,8 @@ icon: wrench
 
 A fast check gives focused feedback after every task, and names the broader checks it leaves to
 `vp run ready`, the full check run before a push. Ready reruns only what a change can affect, and CI
-runs the same checks uncached. Tools are pinned, tests are never retried, and React Compiler
-optimizes the web UI.
+runs the same checks uncached. Tools are pinned, a test is run again only when the machine was
+saturated, and React Compiler optimizes the web UI.
 
 ## Rules
 
@@ -21,12 +21,15 @@ optimizes the web UI.
   configuration's test.
 - After every task, the fast check MUST cover formatting, lint, types, and the affected focused
   tests and boundary checks, naming the broader checks it leaves to `ready`.
-- An agent MUST run `vp run ready` before pushing a branch.
+- An agent MUST run `vp run ready` before pushing a branch, without the checks of replaced code that
+  the feature's approved plan leaves out.
 - Every tool and runtime MUST be pinned, with Rust tests run by cargo-nextest. Checked by CI.
 - Tests MUST be isolated, so runs in several checkouts of one machine do not collide. Checked by the
   toolchain configuration's test.
-- A test that fails without a bug MUST be fixed in the pull request that finds it, never retried.
-  Checked by the toolchain configuration's test.
+- A test that fails without a bug MUST be fixed in the pull request that finds it, never retried,
+  except one that failed on a saturated machine: it is run again, at most twice, once the machine is
+  quiet, or by its runner when it draws on a real display, and never hunted by loading the machine
+  or looping the test. The toolchain configuration's test checks that no other runner retries.
 - The web UI MUST be compiled by React Compiler.
 - New code SHOULD NOT memoize by hand for speed.
 
@@ -34,9 +37,9 @@ optimizes the web UI.
 
 Agents check their own work, and one command they cannot forget a part of keeps them honest. Running
 it after every task cost minutes, so a focused check takes that place and the full one guards the
-push. Retries hide real races, and worktrees share one machine. An instrumented second run once
-failed `main` after every check passed, so coverage is optional. React Compiler fixed typing lag on
-every page at once. History: [Fix testing](../done/2026-10-19-fix-testing.md).
+push. Retries hide real races, but a saturated shared machine fails tests alone. An instrumented
+second run once failed `main` after every check passed, so coverage is optional. React Compiler
+fixed typing lag on every page. History: [Fix testing](../done/2026-10-19-fix-testing.md).
 
 ## Alternatives considered
 

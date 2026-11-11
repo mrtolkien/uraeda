@@ -235,7 +235,10 @@ What goes in each section:
   MUST NOT call IndexedDB or the `idb` library directly", the plan says exactly that. When an
   approval comment replaces a spec clause, use that comment with its source. Explain the replacement
   in **Review comments**; do not also carry the superseded rule as a constraint. For an existing
-  guarantee established by code and tests, describe it and link the evidence.
+  guarantee established by code and tests, describe it and link the evidence. When the feature
+  replaces code, add one constraint, **Out of validation**: the suites of the replaced code, which
+  no task, wave, or final review runs, from the task that freezes that code to the task that removes
+  it. They prove nothing about the new code, and cost every run.
 - **Code read**: claims about the code rest on this section. Name the test setup and its layout, the
   validation commands, and every place that reads or writes data the feature changes.
 - **Constitution check**: a one-row table, one column per principle, all of them: principles always
