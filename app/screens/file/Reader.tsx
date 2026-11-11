@@ -14,6 +14,7 @@ import { usePane } from "../../ui/layout";
 import { isNarrow } from "../../ui/width";
 import { reviewMark, reviewable } from "../review/Marks";
 import { reviewOf } from "../review/state";
+import { StaleReview } from "../review/Stale";
 import { MockupEmbed, StoryEmbed } from "../preview";
 import { follow, headingAt } from "./links";
 import { atTop, jumps } from "./place";
@@ -60,7 +61,7 @@ export function embedAt(args: FileArgs, version: VersionView, block: Block) {
 }
 
 /** What the file is, where it stands, and what it asks of the human. */
-function Head(props: { file: FileView; onVerdict?: () => void }) {
+function Head(props: { args: FileArgs; file: FileView; onVerdict?: () => void }) {
   const status = () => statusOf(props.file);
   const said = () => facts(props.file);
   return (
@@ -98,10 +99,7 @@ function Head(props: { file: FileView; onVerdict?: () => void }) {
         </Banner>
       </If>
       <If when={props.file.reviewStale}>
-        <Banner title="Your review is on an older version" tone="caution">
-          The comments you have not sent were written on a version before this one: read them again
-          before you send them.
-        </Banner>
+        <StaleReview args={props.args} />
       </If>
     </View>
   );
@@ -187,7 +185,7 @@ function Read(props: { args: FileArgs; file: () => FileView; onVerdict?: () => v
   return (
     <DocumentScroll
       document={shown().document}
-      header={<Head file={props.file()} onVerdict={props.onVerdict} />}
+      header={<Head args={props.args} file={props.file()} onVerdict={props.onVerdict} />}
       image={(image) => imageFor(props.args.repo, image)}
       mark={(block) => {
         const part = sinceAt(since(), block);
