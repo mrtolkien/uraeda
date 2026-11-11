@@ -2,7 +2,9 @@
 //! app's native components, and the Linux host.
 
 mod about;
+mod fonts;
 mod native;
+pub mod theme;
 
 use nsh_core::prelude::*;
 

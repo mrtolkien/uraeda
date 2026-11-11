@@ -3,16 +3,16 @@
 import { host, List, type ListRef, View } from "nsh";
 import { glass, icon, mono, pane } from "./parts";
 import { BLOCKS } from "./transcript";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
 /** The bar that stays over the transcript: where the session is, and what its agent does. */
-export function stuckBar(v: Values, testID?: string) {
+export function stuckBar(v: Tokens, testID?: string) {
   return glass(
     v,
     {
       testID,
-      edge: v.role.edgeQuiet,
-      shadow: v.height.raisedGlass.shadow,
+      edge: v.role.ruleQuiet,
+      shadow: v.height.raised.glassShadow,
       style: { position: "absolute", left: 1, right: 1, top: 0, height: 34 },
       content: {
         flex: 1,
@@ -23,11 +23,11 @@ export function stuckBar(v: Values, testID?: string) {
       },
     },
     <>
-      {mono(v, "features » nsh-migration »", { color: v.role.text3 })}
+      {mono(v, "features » nsh-migration »", { color: v.role.inkFaint })}
       {mono(v, "Task 27 · Surfaces")}
       <View style={{ flex: 1 }} />
-      {icon("bot", v.role.running)}
-      {mono(v, "working · 02:14", { color: v.role.running })}
+      {icon("bot", v.role.lightRunning)}
+      {mono(v, "working · 02:14", { color: v.role.lightRunning })}
     </>,
   );
 }
@@ -37,7 +37,7 @@ export function stuckBar(v: Values, testID?: string) {
  * its host says `sweep`, it scrolls by itself: 900 points a frame one way for two seconds, then
  * back, the fast scroll the spike measured.
  */
-export function transcript(v: Values, rows: number) {
+export function transcript(v: Tokens, rows: number) {
   const items = Array.from({ length: rows }, (_, at) => ({ id: at, kind: at % BLOCKS.length }));
   let list: ListRef | undefined;
   let offset = 150;
@@ -67,7 +67,7 @@ export function transcript(v: Values, rows: number) {
   );
 }
 
-export function glassBar(v: Values, rows: number, bar: boolean) {
+export function glassBar(v: Tokens, rows: number, bar: boolean) {
   return (
     <View style={{ flex: 1, paddingHorizontal: 160, paddingTop: 20, paddingBottom: 28 }}>
       {pane(

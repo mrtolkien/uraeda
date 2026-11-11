@@ -7,9 +7,9 @@ bind; this guide says how they look. A
 [browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its values
 were tuned there, over four rounds with the human. A browser is not the real renderer: eight
 [samples](/app/gallery/samples/) then drew it on GTK, in both themes, and the values below are the
-ones that passed there. They are constants in [`values.ts`](/app/gallery/samples/values.ts), which
-the tokens lift, and `just samples-shots` takes the samples' pictures. Where GTK cannot draw a rule
-as written, the rule says so, with the ruling that holds the nearest look.
+ones that passed there. They are the tokens, in [`app/ui/tokens/`](/app/ui/tokens/), which the
+samples read, and `just samples-shots` takes the samples' pictures. Where GTK cannot draw a rule as
+written, the rule says so, with the ruling that holds the nearest look.
 
 ## The idea
 
@@ -34,12 +34,12 @@ surface that stands up catches it on its top edge, and one that sinks is shaded 
 The difference is kept small: a hint of depth, never a bevel. Values are Catppuccin Mocha's, the
 default dark theme; every theme maps its own.
 
-| Height     | What sits there                                     | Fill                 | Top edge             | Shadow                       | Glass |
-| ---------- | --------------------------------------------------- | -------------------- | -------------------- | ---------------------------- | ----- |
-| `recessed` | A field, a code block, a diff, the composer         | `well`, `#181824`    | 1 px of shade inside | None                         | No    |
-| `standard` | A pane, the page's own content                      | `surface`, `#1e1e2e` | None: it is flat     | None                         | No    |
-| `raised`   | A card, a selected row's bar, a bar that stays      | `raised`, `#2a2b3e`  | 1 px of light inside | None                         | [^1]  |
-| `overlay`  | A menu, a picker, a dialog, a sheet, a toast, a tip | Glass                | A bright rim         | Soft and deep, `0 22px 50px` | Yes   |
+| Height     | What sits there                                     | Fill                | Top edge             | Shadow                       | Glass |
+| ---------- | --------------------------------------------------- | ------------------- | -------------------- | ---------------------------- | ----- |
+| `recessed` | A field, a code block, a diff, the composer         | `well`, `#181825`   | 1 px of shade inside | None                         | No    |
+| `standard` | A pane, the page's own content                      | `page`, `#1e1e2e`   | None: it is flat     | None                         | No    |
+| `raised`   | A card, a selected row's bar, a bar that stays      | `raised`, `#2a2b3e` | 1 px of light inside | None                         | [^1]  |
+| `overlay`  | A menu, a picker, a dialog, a sheet, a toast, a tip | Glass               | A bright rim         | Soft and deep, `0 22px 50px` | Yes   |
 
 [^1]:
     A raised surface is glass only when content scrolls under it: the status line, a header once
@@ -49,9 +49,9 @@ default dark theme; every theme maps its own.
   looked wrong, worst of all under small keys. A well shaded on two sides looked too deep.
 - **Three strengths exist**, as the token `height.depth`: `tone` is the fills alone; `lips`, the
   default, adds the 1 px of shade or light; `soft` adds soft shadows.
-- **Every edge is `edge`, `#70748b`**: the dimmest line that still reaches 3:1 against every surface
+- **Every edge is `rule`, `#70748b`**: the dimmest line that still reaches 3:1 against every surface
   it borders, a raised card first, as the UI look decision asks of a border. A line that only
-  separates rows inside a pane is dimmer still: `edge.quiet`.
+  separates rows inside a pane is dimmer still: `rule-quiet`.
 - **Under them all is the backdrop**, `backdrop`, `#11111b`: the darkest colour on screen. Panes sit
   on it with a gap, as tiled windows on a desktop: 8 px on a wide window, 4 px on a narrow one, 2 px
   on a phone. The gap is the same everywhere.
@@ -142,16 +142,16 @@ were tried, and looked heavy.
 Glass is drawn by a shader that reads what is behind it. The recipe comes from open implementations
 of Apple's glass, listed under [where it comes from](#where-it-comes-from).
 
-| Part          | Dark theme                                                               | Light theme         |
-| ------------- | ------------------------------------------------------------------------ | ------------------- |
-| Frost         | A blur 14 px across, taken once from a quarter-size copy of the backdrop | The same            |
-| Tint          | The well's colour at 62%, warmed by `glass.tint`, up to 92% when bright  | The surface's, 72%  |
-| Colour kept   | Saturation raised by 80%, brightness lowered by 8%                       | Saturation by 50%   |
-| The bent edge | In a band of 12 to 22 px inside each edge, the backdrop is pulled inward | The same            |
-| Colour fringe | Red, green, and blue bent by 100%, 97.5%, and 95% of that pull           | The same            |
-| Rim           | 1 px, white at 60% at the top left and bottom right corners, 7% between  | White, 100% and 35% |
-| Light inside  | A white line under the top edge, and a shade above the bottom edge       | The same, lighter   |
-| Grain         | 5% of what is there, lighter and darker, so a blur never shows bands     | 1.5%                |
+| Part          | Dark theme                                                               | Light theme          |
+| ------------- | ------------------------------------------------------------------------ | -------------------- |
+| Frost         | A blur 14 px across, taken once from a quarter-size copy of the backdrop | The same             |
+| Tint          | `glass-tint` at 62%, the well's colour warmed, up to 92% when bright     | The raised fill, 72% |
+| Colour kept   | Saturation raised by 80%, brightness lowered by 8%                       | Saturation by 50%    |
+| The bent edge | In a band of 12 to 22 px inside each edge, the backdrop is pulled inward | The same             |
+| Colour fringe | Red, green, and blue bent by 100%, 97.5%, and 95% of that pull           | The same             |
+| Rim           | 1 px, white at 60% at the top left and bottom right corners, 7% between  | White, 100% and 35%  |
+| Light inside  | A white line under the top edge, and a shade above the bottom edge       | The same, lighter    |
+| Grain         | 5% of what is there, lighter and darker, so a blur never shows bands     | 1.5%                 |
 
 - **What makes it glass, not a grey panel**, in this order: the backdrop bends at the edge while the
   middle stays still; the rim is bright at two opposite corners and dim between; colour survives the
@@ -218,14 +218,24 @@ Glow needs darkness. In the light theme, light becomes ink:
 - The backdrop is the darkest of the light colours, and its wash is 5% at most.
 - A key's block is the lightest thing around it, the accent at 10% over white, where a dark theme's
   is the accent at 20% over the backdrop: the letter reaches 4.5:1 on both, and under the pointer.
+  In a theme where it would not, the block takes less of the accent, a hundredth at a time.
 - The accents and the faint ink are the theme's own darkened ones, as the shipped Latte has them:
   the mockup's teal, orange, and faint ink fell under 4.5:1 on a plain surface, and so on glass.
 
 ## Roles this adds to a theme
 
-`backdrop`, `backdrop.wash-1`, `backdrop.wash-2`, `well`, `surface`, `raised`, `edge`, `edge.quiet`,
-`lip`, `shade`, `glass.tint`, `glass.rim`, `light.focus`, `light.focus-2`, `light.running`. A theme
-that leaves one out inherits it, as any other role.
+A theme's file names them as its other roles: `backdrop`, `backdrop-wash-1`, `backdrop-wash-2`,
+`well`, `rule-quiet`, `lip`, `shade`, `glass-tint`, `glass-rim`, `light-focus`, `light-focus-2`,
+`light-running`. A theme that leaves one out inherits it, as any other role.
+
+Three roles a theme already had are the language's: `page` is the standard height's fill, `raised`
+the raised one's, and `rule` every edge. `mode-normal`, `mode-insert`, `mode-visual`, and
+`mode-replace` are the editing mode's colours. In the tokens, `tokens.role` holds every role under
+its file's name in camel case, `tokens.role.ruleQuiet`.
+
+Every shipped theme has them: the two defaults by hand, the others mixed from their own colours, by
+one rule. A test measures each shipped theme against the contrast floors at every height, text over
+glass included, on what the tokens mix from its roles.
 
 ## What this changes in the other guides
 
@@ -237,7 +247,7 @@ that leaves one out inherits it, as any other role.
 - [Look and feel](look-and-feel.md), "Every element earns its place": "no pulse on a running
   session" stands. A running pane's line is steady, and the one thing that breathes is a view's main
   action.
-- [Look and feel](look-and-feel.md), "Glass": the amber tint becomes the theme's `glass.tint`, glass
+- [Look and feel](look-and-feel.md), "Glass": the amber tint becomes the theme's `glass-tint`, glass
   bends its edge, and the status line joins what is glass.
 - [Space and motion](space-and-motion.md), "Room": panes gain a gap over the backdrop.
 

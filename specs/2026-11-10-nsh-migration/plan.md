@@ -1771,26 +1771,49 @@ ported, beyond accounts and jobs.
 
 **Files:**
 
-- Create: `app/ui/tokens/`, `app/ui/theme.ts`, `crates/app/src/theme.rs`
-- Modify: the core's theme reader, for the new roles
-- Test: `crates/app/tests/theme.rs`
+- Create: `app/ui/tokens/`, `app/ui/theme.ts`, `crates/app/src/theme.rs` with `theme/`,
+  `crates/app/src/fonts.rs`, `crates/app/assets/fonts/`
+- Modify: the core's theme reader, for the new roles; every shipped theme; the samples, which read
+  the tokens
+- Test: `crates/app/tests/theme.rs`, `app/ui/tokens/tokens.test.ts`
 
 **Interfaces:**
 
-- Consumes: the design language (task 25); the record Themes (task 7).
-- Produces: `applyTheme(theme)`, which maps a theme's roles onto NSH's tokens; the roles for glass
-  and glow; bundled fonts, with no file loaded from another host; `tokens`, the only source of
-  colours, radii, blur, and glow for `app/ui/`; `tokens.height[name]`, one set per height: fill,
-  border, shadow, blur, tint, and glow.
+- Consumes: the design language (task 25); the record Themes (task 7), whose `roles` is a map and
+  carries the new roles with no change of the protocol.
+- Produces, as built (rulings R133 to R138):
+  - From `app/ui/tokens`: `tokens`, the only source of colours, radii, blur, and glow for `app/ui/`.
+    Its parts: `theme`, `mode`, `role` (every role of the theme, `role.inkFaint` for `ink-faint`),
+    `black`, `type`, `space`, `radius`, `backdrop`, `height`, `pane`, `light`, `row`, `glass`,
+    `button`, `key`, `status`, `motion`, `choices`. `tokens.height[name]`, for `recessed`,
+    `standard`, `raised`, and `overlay`, holds `fill`, `border`, `lip`, `shadow`, `glass`, `blur`,
+    `tint`, and `glow`, with `fillIn` on `recessed` and `glassShadow` on `raised`.
+  - `tokens` is live: read inside a style, a memo, or an effect, a part follows the theme shown.
+    `tokensOf(theme, fonts?)` gives the same set for one theme, for a page that shows both.
+  - Also from `app/ui/tokens`: `mix` and `alpha`, mixed in Rust; `choices`, the open choices of R13,
+    each one value; `DEFAULT_THEMES`; `FONTS`, `FONT_ROLES`, `DEFAULT_FONTS`, `fontOf`; and the
+    types `Tokens`, `Roles`, `ThemeSource`, `Mode`, `Height`, `HeightName`, `Glow`, `Fonts`,
+    `FontRole`.
+  - From `app/ui/theme.ts`: `applyTheme(theme): boolean`, which shows a theme in `tokens` and maps
+    its roles onto NSH's tokens; `applyFonts(picked)`; `pickTheme(themes, choice, scheme)`;
+    `shownTheme()` and `pickedFonts()`; and `ThemeChoice`. Task 36 calls them, from the device's
+    keys `theme`, `"theme.shown"`, and `fonts`.
+  - The roles a theme gains, in its TOML: `backdrop`, `backdrop-wash-1`, `backdrop-wash-2`, `well`,
+    `rule-quiet`, `lip`, `shade`, `glass-tint`, `glass-rim`, `light-focus`, `light-focus-2`,
+    `light-running`. `page`, `raised`, and `rule` are the language's surface, raised fill, and edge.
+  - Bundled fonts, nine families, registered from the app's crate, with no file loaded from another
+    host: a component names one as `tokens.type.body`, `heading`, `reading`, `code`, or `markdown`.
+  - From `uraeda/native`: `mixColours`, `fadeColour`, `mixTheme`, `showTheme`, `bundledFonts`. Only
+    `app/ui/tokens/` and `app/ui/theme.ts` call them.
 
-- [ ] **Step 1: Write the failing tests**: `every shipped theme meets the contrast floors` (4.5:1
-      for text, 3:1 for borders, as today); `a theme without the new roles inherits them`;
-      `a     broken theme never blocks the others`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** Themes stay one TOML file each. A role missing from a user's theme
+- [x] **Step 1: Write the failing tests**: `every shipped theme meets the contrast floors` (4.5:1
+      for text, 3:1 for borders, as today, and for text over glass at each height);
+      `a theme without the new roles inherits them`; `a broken theme never blocks the others`.
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement.** Themes stay one TOML file each. A role missing from a user's theme
       comes from the default of its mode.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): tokens, themes, and fonts`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): tokens, themes, and fonts`.
 
 ## Task 27: Surfaces
 

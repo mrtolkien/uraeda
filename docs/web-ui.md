@@ -285,47 +285,57 @@ Even Better TOML, reads to complete and describe the keys and the roles.
 
 The roles, each named for where it draws or what it means, with Catppuccin Mocha's colour:
 
-| Role                                    | What it draws                                                        | Mocha                  |
-| --------------------------------------- | -------------------------------------------------------------------- | ---------------------- |
-| `page`                                  | the ground behind everything                                         | base                   |
-| `raised`                                | popovers, code blocks, a pane's surface                              | mantle                 |
-| `sunken`                                | a well below the page                                                | crust                  |
-| `chip`                                  | a neutral filled mark: a grey badge, a skeleton                      | surface0               |
-| `cursor-row`                            | the row under the cursor, or picked                                  | mauve at 14% over base |
-| `marked`                                | the block selected in a review, and its edge                         | yellow                 |
-| `rule`                                  | panes' borders, dividers, fields                                     | overlay0               |
-| `pane-title`                            | a pane's title in its border                                         | lavender               |
-| `ink`                                   | body text                                                            | text                   |
-| `ink-quiet`                             | what reads second: counts, help, labels                              | subtext0               |
-| `ink-faint`                             | disabled and faint text                                              | overlay2, lightened    |
-| `action`                                | what can be pressed: a button, focus, the active pane, the next step | mauve                  |
-| `on-action`                             | text on a filled action or status                                    | crust                  |
-| `needs-you`                             | the Needs-you pane, Home's count, since-marks, key caps              | peach                  |
-| `changed`                               | changed since you read it                                            | mauve                  |
-| `added`                                 | new, added, done, success, the repository's mark                     | green                  |
-| `removed`                               | wrong, removed, failed                                               | red                    |
-| `caution`                               | warning, waiting                                                     | yellow                 |
-| `context`                               | context notes                                                        | blue                   |
-| `yours`                                 | your own messages in a session                                       | blue                   |
-| `link`                                  | links                                                                | blue                   |
-| `working`                               | a running session's mark                                             | blue                   |
-| `live`                                  | a live window's double border and title                              | sapphire               |
-| `example`                               | an example pane                                                      | teal                   |
-| `sub-agent`                             | a sub-agent's mark, and a sub-session under its parent               | teal                   |
-| `heading-1`, `heading-2`, `heading-3`   | headings by level; deeper levels take `heading-3`                    | mauve, blue, green     |
-| `code-inline`                           | inline code in markdown                                              | peach                  |
-| `quote`                                 | a markdown quote                                                     | subtext0               |
-| `mode-normal`, `-insert`, `-visual`     | the status line's Vim mode                                           | blue, green, mauve     |
-| `mode-replace`, `mode-command`          | the status line's Vim mode                                           | red, peach             |
-| `code-ground`                           | code's background                                                    | mantle                 |
-| `syntax-keyword`, `-string`, `-comment` | code's tokens                                                        | mauve, green, overlay2 |
-| `syntax-number`, `-constant`            | code's tokens                                                        | peach, peach           |
-| `syntax-function`, `-type`, `-operator` | code's tokens                                                        | blue, yellow, sky      |
-| `syntax-property`, `-punctuation`       | code's tokens                                                        | lavender, overlay2     |
-| `syntax-tag`, `-attribute`, `-variable` | code's tokens                                                        | red, yellow, text      |
+| Role                                    | What it draws                                                         | Mocha                  |
+| --------------------------------------- | --------------------------------------------------------------------- | ---------------------- |
+| `page`                                  | the standard height's fill: a pane, the page's own content            | base                   |
+| `raised`                                | the raised height's fill: a card, a selected row, a bar that stays    | base, one step lighter |
+| `sunken`                                | a well below the page                                                 | crust                  |
+| `chip`                                  | a neutral filled mark: a grey badge, a skeleton                       | surface0               |
+| `cursor-row`                            | the row under the cursor, or picked                                   | mauve at 14% over base |
+| `marked`                                | the block selected in a review, and its edge                          | yellow                 |
+| `rule`                                  | panes' borders, dividers, fields                                      | overlay0, lightened    |
+| `pane-title`                            | a pane's title in its border                                          | lavender               |
+| `ink`                                   | body text                                                             | text                   |
+| `ink-quiet`                             | what reads second: counts, help, labels                               | subtext0               |
+| `ink-faint`                             | disabled and faint text                                               | overlay2, lightened    |
+| `action`                                | what can be pressed: a button, focus, the active pane, the next step  | mauve                  |
+| `on-action`                             | text on a filled action or status                                     | crust                  |
+| `needs-you`                             | the Needs-you pane, Home's count, since-marks, key caps               | peach                  |
+| `changed`                               | changed since you read it                                             | mauve                  |
+| `added`                                 | new, added, done, success, the repository's mark                      | green                  |
+| `removed`                               | wrong, removed, failed                                                | red                    |
+| `caution`                               | warning, waiting                                                      | yellow                 |
+| `context`                               | context notes                                                         | blue                   |
+| `yours`                                 | your own messages in a session                                        | blue                   |
+| `link`                                  | links                                                                 | blue                   |
+| `working`                               | a running session's mark                                              | blue                   |
+| `live`                                  | a live window's double border and title                               | sapphire               |
+| `example`                               | an example pane                                                       | teal                   |
+| `sub-agent`                             | a sub-agent's mark, and a sub-session under its parent                | teal                   |
+| `heading-1`, `heading-2`, `heading-3`   | headings by level; deeper levels take `heading-3`                     | mauve, blue, green     |
+| `code-inline`                           | inline code in markdown                                               | peach                  |
+| `quote`                                 | a markdown quote                                                      | subtext0               |
+| `mode-normal`, `-insert`, `-visual`     | the editing mode, on the status line's ends and the focused field     | mauve, green, blue     |
+| `mode-replace`, `mode-command`          | the status line's Vim mode                                            | red, peach             |
+| `code-ground`                           | code's background                                                     | mantle                 |
+| `syntax-keyword`, `-string`, `-comment` | code's tokens                                                         | mauve, green, overlay2 |
+| `syntax-number`, `-constant`            | code's tokens                                                         | peach, peach           |
+| `syntax-function`, `-type`, `-operator` | code's tokens                                                         | blue, yellow, sky      |
+| `syntax-property`, `-punctuation`       | code's tokens                                                         | lavender, overlay2     |
+| `syntax-tag`, `-attribute`, `-variable` | code's tokens                                                         | red, yellow, text      |
+| `backdrop`                              | what is under the panes, the darkest colour on screen                 | crust                  |
+| `backdrop-wash-1`, `backdrop-wash-2`    | the two colours the backdrop is washed with                           | mauve, blue            |
+| `well`                                  | the recessed height's fill: a field, a code block, the composer       | mantle                 |
+| `rule-quiet`                            | a line that only separates rows inside a pane                         | between surface0 and 1 |
+| `lip`, `shade`                          | the 1 px of light, or of shade, under a height's top edge, with alpha | white 9%, black 42%    |
+| `glass-tint`, `glass-rim`               | what glass is tinted with, and its bright rim                         | mantle warmed, white   |
+| `light-focus`, `light-focus-2`          | the two ends of the focused pane's light                              | mauve, blue            |
+| `light-running`                         | a running pane's line                                                 | teal                   |
 
 Everything else the page draws comes from these: tints over the page, hover and pressed overlays,
-icons in their text's colour, diff lines, and text on filled marks.
+icons in their text's colour, diff lines, and text on filled marks. The last rows are the
+[design language](/specs/ui/design-language.md)'s, which the Native Shell app draws: its heights,
+its glass, and its light. A theme written before them takes each from its mode's default.
 
 A theme of yours applies as written, as soon as it is saved. A problem never stops another theme or
 setting from applying, and Settings' Appearance section lists your files, each with its problems and
@@ -344,9 +354,9 @@ their lines:
   the lists.
 - An unknown key or role is ignored, and named.
 - A colour under the contrast floor is named, and applies as written: "ink-faint is 3.1:1 on page,
-  under 4.5." Text roles are measured at 4.5:1 on `page` and on `raised`, the `syntax-` roles at
-  4.5:1 on `code-ground`, and `rule`, `sub-agent`, and `marked` at 3:1 on `page` and on `raised`. A
-  colour with alpha is measured laid over its background.
+  under 4.5." Text roles are measured at 4.5:1 on `page`, on `raised`, and on `well`, the `syntax-`
+  roles at 4.5:1 on `code-ground`, and `rule`, `sub-agent`, and `marked` at 3:1 on `page`, on
+  `raised`, and on `well`. A colour with alpha is measured laid over its background.
 
 ## Extensions
 

@@ -3,11 +3,11 @@
 import { type JSX, View } from "nsh";
 import { act, button, hint, key, type State } from "./controls";
 import { busy, glass, pane, tag } from "./parts";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
 const STATES: State[] = ["rest", "hover", "focus", "pressed", "disabled"];
 
-export function buttons(v: Values) {
+export function buttons(v: Tokens) {
   const chip = (name: string, state?: State) => (
     <View style={{ alignSelf: "flex-start" }}>{key(v, name, state)}</View>
   );
@@ -25,7 +25,7 @@ export function buttons(v: Values) {
         v,
         {
           title: "Buttons and keys",
-          color: v.role.h2,
+          color: v.role.heading2,
           style: { width: 900 },
           body: { paddingHorizontal: 24, paddingVertical: 20 },
         },
@@ -101,9 +101,9 @@ export function buttons(v: Values) {
           style={{
             padding: 18,
             overflow: "hidden",
-            backgroundColor: v.role.surface,
+            backgroundColor: v.role.page,
             borderWidth: 1,
-            borderColor: v.role.edgeQuiet,
+            borderColor: v.role.ruleQuiet,
           }}
         >
           {busy(v, 5)}
@@ -112,7 +112,7 @@ export function buttons(v: Values) {
             { content: { padding: 14, gap: 14 } },
             <>
               {tag(v, "On glass, nothing is a filled block: its buttons are tubes.", {
-                color: v.role.text2,
+                color: v.role.inkQuiet,
               })}
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {button(v, { label: "Keep it", kind: "tube", key: "esc" })}

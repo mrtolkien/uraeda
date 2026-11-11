@@ -7,18 +7,18 @@ import { stuckBar } from "./glassbar";
 import { pane, tag } from "./parts";
 import { appStatus } from "./status";
 import { BLOCKS } from "./transcript";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
-function places(v: Values) {
+function places(v: Tokens) {
   const r = v.role;
   return pane(
     v,
-    { title: "uraeda", icon: "layers", color: r.h3 },
+    { title: "uraeda", icon: "layers", color: r.heading3 },
     <>
-      {row(v, { icon: "home", hue: r.accent, text: "Home", meta: "gh" })}
-      {row(v, { icon: "inbox", hue: r.needs, text: "Inbox", badge: "10" })}
-      {row(v, { icon: "flag", hue: r.accent2, text: "Priorities", meta: "gp" })}
-      {row(v, { icon: "chat", hue: r.running, text: "Sessions", meta: "gs", selected: true })}
+      {row(v, { icon: "home", hue: r.action, text: "Home", meta: "gh" })}
+      {row(v, { icon: "inbox", hue: r.needsYou, text: "Inbox", badge: "10" })}
+      {row(v, { icon: "flag", hue: r.context, text: "Priorities", meta: "gp" })}
+      {row(v, { icon: "chat", hue: r.lightRunning, text: "Sessions", meta: "gs", selected: true })}
       {row(v, { icon: "scale", hue: r.added, text: "Decisions", meta: "gd" })}
       {row(v, { icon: "git", hue: r.removed, text: "Git", meta: "gg" })}
       {row(v, { icon: "gear", text: "Settings", meta: "g," })}
@@ -26,17 +26,23 @@ function places(v: Values) {
   );
 }
 
-function features(v: Values) {
+function features(v: Tokens) {
   const r = v.role;
   const group = (name: string) => tag(v, name, { fontSize: v.type.size, marginBottom: 2 });
   return pane(
     v,
-    { title: "Features", more: "· 5", color: r.h2, style: { flex: 1 } },
+    { title: "Features", more: "· 5", color: r.heading2, style: { flex: 1 } },
     <>
       {group("In progress")}
-      {row(v, { icon: "dot", hue: r.running, text: "nsh-migration", meta: "plan", selected: true })}
-      {row(v, { icon: "dot", hue: r.running, text: "scheduled-jobs", meta: "6/9" })}
-      {row(v, { icon: "alert", hue: r.needs, text: "multi-accounts", meta: "q2" })}
+      {row(v, {
+        icon: "dot",
+        hue: r.lightRunning,
+        text: "nsh-migration",
+        meta: "plan",
+        selected: true,
+      })}
+      {row(v, { icon: "dot", hue: r.lightRunning, text: "scheduled-jobs", meta: "6/9" })}
+      {row(v, { icon: "alert", hue: r.needsYou, text: "multi-accounts", meta: "q2" })}
       {separator(v)}
       {group("Next")}
       {row(v, { icon: "ring", text: "remote-agents", meta: "spec" })}
@@ -49,7 +55,7 @@ function features(v: Values) {
   );
 }
 
-function session(v: Values, breathes: boolean) {
+function session(v: Tokens, breathes: boolean) {
   let scroll: ScrollRef | undefined;
   // The transcript starts scrolled, so the glass bar has text under it.
   setTimeout(() => scroll?.scrollTo({ y: 118, animated: false }), 200);
@@ -81,7 +87,7 @@ function session(v: Values, breathes: boolean) {
           paddingBottom: 12,
           gap: 8,
           borderTopWidth: 1,
-          borderColor: v.role.edgeQuiet,
+          borderColor: v.role.ruleQuiet,
         }}
       >
         {field(v, {
@@ -101,23 +107,23 @@ function session(v: Values, breathes: boolean) {
   );
 }
 
-function waiting(v: Values) {
+function waiting(v: Tokens) {
   const r = v.role;
   return pane(
     v,
     { title: "Needs you", more: "· 2", icon: "alert", needs: true },
     <>
-      {row(v, { icon: "scale", hue: r.needs, text: "Approve the spec of nsh-migration" })}
-      {row(v, { icon: "chat", hue: r.needs, text: "multi-accounts asks: rotate on a limit?" })}
+      {row(v, { icon: "scale", hue: r.needsYou, text: "Approve the spec of nsh-migration" })}
+      {row(v, { icon: "chat", hue: r.needsYou, text: "multi-accounts asks: rotate on a limit?" })}
     </>,
   );
 }
 
-function plan(v: Values) {
+function plan(v: Tokens) {
   const r = v.role;
   return pane(
     v,
-    { title: "Plan", more: "· 61 tasks", color: r.h1, style: { flex: 1 } },
+    { title: "Plan", more: "· 61 tasks", color: r.heading1, style: { flex: 1 } },
     <>
       {tag(v, "Wave 13 · surfaces and keys", { fontSize: v.type.size, marginBottom: 2 })}
       {row(v, {
@@ -127,7 +133,13 @@ function plan(v: Values) {
         quiet: true,
       })}
       {row(v, { icon: "check", hue: r.added, text: "26 Tokens, themes, and fonts", quiet: true })}
-      {row(v, { icon: "dot", hue: r.running, text: "27 Surfaces", meta: "2/5", selected: true })}
+      {row(v, {
+        icon: "dot",
+        hue: r.lightRunning,
+        text: "27 Surfaces",
+        meta: "2/5",
+        selected: true,
+      })}
       {rowBar(v, [
         ["↵", "open"],
         ["s", "session"],
@@ -138,16 +150,16 @@ function plan(v: Values) {
       {row(v, { icon: "ring", text: "29 Lists, cards, tables, and trees" })}
       {row(v, { icon: "ring", text: "30 The text field" })}
       {row(v, { icon: "ring", text: "31 The document renderer" })}
-      {row(v, { icon: "flag", hue: r.needs, text: "35 The gallery", meta: "gate" })}
+      {row(v, { icon: "flag", hue: r.needsYou, text: "35 The gallery", meta: "gate" })}
     </>,
   );
 }
 
-function changes(v: Values) {
+function changes(v: Tokens) {
   const r = v.role;
   return pane(
     v,
-    { title: "Changes", more: "· 4", icon: "git", color: r.h3 },
+    { title: "Changes", more: "· 4", icon: "git", color: r.heading3 },
     <>
       {row(v, {
         icon: "file",
@@ -158,7 +170,7 @@ function changes(v: Values) {
       })}
       {row(v, {
         icon: "file",
-        hue: r.accent2,
+        hue: r.context,
         text: "app/ui/tokens/height.ts",
         meta: "+41",
         metaColor: r.added,
@@ -175,7 +187,7 @@ function changes(v: Values) {
 }
 
 /** The app, with `over` drawn above its panes: a dimmed page and its dialog. */
-export function scene(v: Values, over?: JSX.Element) {
+export function scene(v: Tokens, over?: JSX.Element) {
   const gap = v.space.gap.wide;
   // A title stands 12 px above its pane, in the gap: stacked panes are 6 px further apart.
   const stacked = gap - 2;

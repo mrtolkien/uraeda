@@ -2,11 +2,11 @@
 // surface, columns the inner one.
 import { View } from "nsh";
 import { busy, type Height, mono, surface, tag } from "./parts";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
 const NAMES: Height[] = ["recessed", "standard", "raised", "overlay"];
 
-export function heights(v: Values) {
+export function heights(v: Tokens) {
   return (
     <View style={{ flex: 1, padding: 24, gap: 10 }}>
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -24,9 +24,9 @@ export function heights(v: Values) {
                 flex: 1,
                 padding: 14,
                 overflow: "hidden",
-                backgroundColor: v.role.surface,
+                backgroundColor: v.role.page,
                 borderWidth: 1,
-                borderColor: v.role.edgeQuiet,
+                borderColor: v.role.ruleQuiet,
               }}
             >
               {busy(v, 4)}
@@ -35,7 +35,7 @@ export function heights(v: Values) {
                 outer,
                 { style: { padding: 12 } },
                 <>
-                  {tag(v, outer, { color: v.role.text2 })}
+                  {tag(v, outer, { color: v.role.inkQuiet })}
                   {surface(
                     v,
                     inner,

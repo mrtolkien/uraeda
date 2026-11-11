@@ -4,9 +4,9 @@ import { View } from "nsh";
 import { button, field } from "./controls";
 import { glass, icon, mono, prose } from "./parts";
 import { scene } from "./session";
-import { alpha, type Values } from "./values";
+import { alpha, type Tokens } from "../../ui/tokens";
 
-export function dialog(v: Values) {
+export function dialog(v: Tokens) {
   return scene(
     v,
     <>
@@ -42,8 +42,8 @@ export function dialog(v: Values) {
               boxShadow: `inset 0 1px 0 ${alpha(v.glass.rim, 0.12)}`,
             }}
           >
-            {icon("alert", v.role.accent)}
-            {mono(v, "Delete task 27?", { color: v.role.accent, fontWeight: "700" })}
+            {icon("alert", v.role.action)}
+            {mono(v, "Delete task 27?", { color: v.role.action, fontWeight: "700" })}
           </View>
           {prose(
             v,

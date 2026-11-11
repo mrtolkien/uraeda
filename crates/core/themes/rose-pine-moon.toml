@@ -35,7 +35,18 @@ pine-floor = "#55a3c3"
 # serve both without a heavy rule: the rule takes muted's step, and faint text quiet text's, a
 # step apart from muted's.
 ink-faint = "subtle-floor"
-rule = "muted-floor"
+rule = "#7b7894"
 # Moon's love is under the floor, where Rosé Pine's is not.
 removed = "love-floor"
 mode-command = "love-floor"
+# The design language's heights, glass, and light: not published, mixed from the colours above.
+raised = "#302e43"
+backdrop = "#14131f"
+well = "#1b192a"
+rule-quiet = "#434058"
+glass-tint = "#1b192a"
+backdrop-wash-1 = "iris"
+backdrop-wash-2 = "foam"
+light-focus = "iris"
+light-focus-2 = "foam"
+light-running = "pine-floor"

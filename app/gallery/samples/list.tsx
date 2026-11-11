@@ -2,9 +2,9 @@
 import { View } from "nsh";
 import { row, rowBar, separator } from "./controls";
 import { pane, tag } from "./parts";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
-export function list(v: Values) {
+export function list(v: Tokens) {
   const r = v.role;
   const group = (name: string) => tag(v, name, { fontSize: v.type.size, marginBottom: 2 });
   return (
@@ -14,14 +14,20 @@ export function list(v: Values) {
         {
           title: "uraeda",
           icon: "layers",
-          color: r.h3,
+          color: r.heading3,
           style: { width: 250, alignSelf: "flex-start" },
         },
         <>
-          {row(v, { icon: "home", hue: r.accent, text: "Home", meta: "gh" })}
-          {row(v, { icon: "inbox", hue: r.needs, text: "Inbox", badge: "10" })}
-          {row(v, { icon: "flag", hue: r.accent2, text: "Priorities", meta: "gp" })}
-          {row(v, { icon: "chat", hue: r.running, text: "Sessions", meta: "gs", selected: true })}
+          {row(v, { icon: "home", hue: r.action, text: "Home", meta: "gh" })}
+          {row(v, { icon: "inbox", hue: r.needsYou, text: "Inbox", badge: "10" })}
+          {row(v, { icon: "flag", hue: r.context, text: "Priorities", meta: "gp" })}
+          {row(v, {
+            icon: "chat",
+            hue: r.lightRunning,
+            text: "Sessions",
+            meta: "gs",
+            selected: true,
+          })}
           {row(v, { icon: "scale", hue: r.added, text: "Decisions", meta: "gd" })}
           {row(v, { icon: "git", hue: r.removed, text: "Git", meta: "gg" })}
           {row(v, { icon: "plug", text: "Extensions", meta: "ge" })}
@@ -33,20 +39,20 @@ export function list(v: Values) {
         {
           title: "Features",
           more: "· 5",
-          color: r.h2,
+          color: r.heading2,
           style: { width: 300, alignSelf: "flex-start" },
         },
         <>
           {group("In progress")}
           {row(v, {
             icon: "dot",
-            hue: r.running,
+            hue: r.lightRunning,
             text: "nsh-migration",
             meta: "plan",
             selected: true,
           })}
-          {row(v, { icon: "dot", hue: r.running, text: "scheduled-jobs", meta: "6/9" })}
-          {row(v, { icon: "alert", hue: r.needs, text: "multi-accounts", meta: "q2" })}
+          {row(v, { icon: "dot", hue: r.lightRunning, text: "scheduled-jobs", meta: "6/9" })}
+          {row(v, { icon: "alert", hue: r.needsYou, text: "multi-accounts", meta: "q2" })}
           {separator(v)}
           {group("Next")}
           {row(v, { icon: "ring", text: "remote-agents", meta: "spec" })}
@@ -82,7 +88,7 @@ export function list(v: Values) {
           })}
           {row(v, {
             icon: "dot",
-            hue: r.running,
+            hue: r.lightRunning,
             text: "27 Surfaces",
             meta: "2/5",
             selected: true,
@@ -98,7 +104,7 @@ export function list(v: Values) {
           {row(v, { icon: "ring", text: "30 The text field" })}
           {row(v, { icon: "ring", text: "31 The document renderer" })}
           {row(v, { icon: "ring", text: "32 Keys" })}
-          {row(v, { icon: "flag", hue: r.needs, text: "35 The gallery", meta: "gate" })}
+          {row(v, { icon: "flag", hue: r.needsYou, text: "35 The gallery", meta: "gate" })}
         </>,
       )}
       {pane(
@@ -107,7 +113,7 @@ export function list(v: Values) {
           title: "Changes",
           more: "· 4",
           icon: "git",
-          color: r.h3,
+          color: r.heading3,
           style: { flex: 1, alignSelf: "flex-start" },
         },
         <>
@@ -120,17 +126,17 @@ export function list(v: Values) {
           })}
           {row(v, {
             icon: "file",
-            hue: r.accent2,
+            hue: r.context,
             text: "app/ui/tokens/height.ts",
             meta: "+41",
             metaColor: r.added,
           })}
           {row(v, {
             icon: "file",
-            hue: r.accent2,
+            hue: r.context,
             text: "app/ui/tokens/index.ts",
             meta: "+1 -1",
-            metaColor: r.text3,
+            metaColor: r.inkFaint,
           })}
           {row(v, {
             icon: "file",

@@ -2,12 +2,12 @@
 import { View } from "nsh";
 import { type Mode, statusLine } from "./controls";
 import { busy, tag } from "./parts";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
 const MODES: Mode[] = ["normal", "insert", "visual", "replace"];
 
 /** The app's own status line, as the session's sample shows it too. */
-export function appStatus(v: Values, mode: Mode, testID?: string) {
+export function appStatus(v: Tokens, mode: Mode, testID?: string) {
   return statusLine(v, {
     testID,
     mode,
@@ -15,8 +15,8 @@ export function appStatus(v: Values, mode: Mode, testID?: string) {
     left: [
       { text: "2026-11-10-nsh-migration", icon: "git", mode: true },
       { text: "session · task 27" },
-      { text: "1 working", icon: "bot", color: v.role.running },
-      { text: "2 need you", icon: "alert", color: v.role.needs },
+      { text: "1 working", icon: "bot", color: v.role.lightRunning },
+      { text: "2 need you", icon: "alert", color: v.role.needsYou },
     ],
     right: [
       { text: "menu", key: "space" },
@@ -26,7 +26,7 @@ export function appStatus(v: Values, mode: Mode, testID?: string) {
   });
 }
 
-export function status(v: Values, bare: boolean) {
+export function status(v: Tokens, bare: boolean) {
   const stage = (line: ReturnType<typeof statusLine>, words: string) => (
     <View style={{ gap: 6 }}>
       {tag(v, words)}
@@ -34,9 +34,9 @@ export function status(v: Values, bare: boolean) {
         style={{
           padding: 17,
           overflow: "hidden",
-          backgroundColor: v.role.surface,
+          backgroundColor: v.role.page,
           borderWidth: 1,
-          borderColor: v.role.edgeQuiet,
+          borderColor: v.role.ruleQuiet,
         }}
       >
         {busy(v, 3)}

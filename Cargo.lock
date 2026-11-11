@@ -9006,6 +9006,7 @@ dependencies = [
  "rolldown_tracing",
  "serde_json",
  "tempfile",
+ "uraeda-core",
  "usvg 0.46.0",
 ]
 

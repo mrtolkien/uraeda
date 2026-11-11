@@ -37,3 +37,17 @@ mauve-tint = "#3b3854"
 # Not Catppuccin's: each published colour lightened, a whole percent of HSL lightness at a time,
 # to the first step at which every pair its roles are in reaches the contrast floor.
 overlay2-floor = "#a0a6c0"
+
+[roles]
+# The design language's heights, glass, and light: not published, mixed from the colours above.
+raised = "#303347"
+rule = "#777c93"
+backdrop = "#151621"
+well = "#1c1e2d"
+rule-quiet = "#42465a"
+glass-tint = "#1c1e2d"
+backdrop-wash-1 = "mauve"
+backdrop-wash-2 = "blue"
+light-focus = "mauve"
+light-focus-2 = "blue"
+light-running = "teal"

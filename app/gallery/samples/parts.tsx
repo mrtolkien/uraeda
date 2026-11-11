@@ -3,7 +3,7 @@
 // all of this.
 import { Image, type JSX, Shader, signal, Text, type TextStyle, View, type ViewStyle } from "nsh";
 import { GLASS, GLOW } from "./shaders";
-import { alpha, mix, type Values } from "./values";
+import { alpha, mix, type Tokens } from "../../ui/tokens";
 
 export type Height = "recessed" | "standard" | "raised" | "overlay";
 
@@ -14,15 +14,15 @@ export type Height = "recessed" | "standard" | "raised" | "overlay";
 export const bare = signal(false);
 
 /** A line of monospace text at the reading size. */
-export function mono(v: Values, text: JSX.Element, style?: TextStyle) {
+export function mono(v: Tokens, text: JSX.Element, style?: TextStyle) {
   return (
     <Text
       style={[
         {
-          fontFamily: v.type.mono,
+          fontFamily: v.type.body,
           fontSize: v.type.size,
           lineHeight: v.type.line,
-          color: v.role.text,
+          color: v.role.ink,
         },
         style,
       ]}
@@ -33,12 +33,12 @@ export function mono(v: Values, text: JSX.Element, style?: TextStyle) {
 }
 
 /** A small label, one step under the reading size. */
-export function tag(v: Values, text: string, style?: TextStyle) {
-  return mono(v, text, { fontSize: v.type.under, color: v.role.text3, ...style });
+export function tag(v: Tokens, text: string, style?: TextStyle) {
+  return mono(v, text, { fontSize: v.type.under, color: v.role.inkFaint, ...style });
 }
 
 /** Long prose, in the reading font. */
-export function prose(v: Values, text: JSX.Element, style?: TextStyle) {
+export function prose(v: Tokens, text: JSX.Element, style?: TextStyle) {
   return (
     <Text
       style={[
@@ -46,7 +46,7 @@ export function prose(v: Values, text: JSX.Element, style?: TextStyle) {
           fontFamily: v.type.reading,
           fontSize: v.type.prose,
           lineHeight: v.type.proseLine,
-          color: v.role.text,
+          color: v.role.ink,
         },
         style,
       ]}
@@ -95,7 +95,7 @@ export function icon(name: IconName, color: string, size = 14) {
 
 /** Glass: the shader, with the theme's recipe. `edge` is the line under its rim. */
 export function glass(
-  v: Values,
+  v: Tokens,
   options: {
     style?: ViewStyle;
     content?: ViewStyle;
@@ -113,7 +113,7 @@ export function glass(
       uniforms={{
         tint: alpha(g.tint, g.strength),
         rim: alpha(g.rim, g.rimCorner),
-        edge: options.edge ?? v.height.overlay.edge,
+        edge: options.edge ?? v.height.overlay.border,
         shadow: alpha(v.black, g.shade),
         frost: g.frost,
         edge_frost: g.edgeFrost,
@@ -139,7 +139,7 @@ export function glass(
 
 /** A surface at a height, inside a surface at `inside`: a height keeps its recipe wherever it is. */
 export function surface(
-  v: Values,
+  v: Tokens,
   height: Height,
   options: { inside?: Height; style?: ViewStyle },
   children?: JSX.Element,
@@ -160,7 +160,7 @@ export function surface(
   return (
     <View
       style={[
-        { backgroundColor: fill, borderWidth: 1, borderColor: h.edge, boxShadow: h.lip },
+        { backgroundColor: fill, borderWidth: 1, borderColor: h.border, boxShadow: h.lip },
         options.style,
       ]}
     >
@@ -172,19 +172,19 @@ export function surface(
 const span = (text: string, style: TextStyle) => <Text style={style}>{text}</Text>;
 
 /** Words and blocks of every colour: the busiest page glass sits over. */
-export function busy(v: Values, times: number) {
+export function busy(v: Tokens, times: number) {
   const r = v.role;
   const once = () => (
     <Text>
-      {span("fn", { color: r.accent, fontWeight: "700" })} draw(surface) {"{ "}
-      {span("blur", { color: r.added })}(14); tint(0.46); {span("bend", { color: r.needs })}(22){" "}
+      {span("fn", { color: r.action, fontWeight: "700" })} draw(surface) {"{ "}
+      {span("blur", { color: r.added })}(14); tint(0.46); {span("bend", { color: r.needsYou })}(22){" "}
       {"}"} ─ features » nsh-migration » plan · 61 tasks ─{" "}
       {span("+ height: { recessed, standard, raised, overlay }", { color: r.added })}{" "}
-      {span("- shadow: { card, dialog }", { color: r.needs })}{" "}
-      {span("Session", { color: r.accent, fontWeight: "700" })} · task 27 · Surfaces{" "}
-      {span(" Approve ", { backgroundColor: r.accent, color: r.onAccent })}{" "}
+      {span("- shadow: { card, dialog }", { color: r.needsYou })}{" "}
+      {span("Session", { color: r.action, fontWeight: "700" })} · task 27 · Surfaces{" "}
+      {span(" Approve ", { backgroundColor: r.action, color: r.onAction })}{" "}
       {span("+ tokens.height", { backgroundColor: alpha(r.added, 0.14) })}{" "}
-      {span(" 10 ", { backgroundColor: r.needs, color: r.onAccent })}{" "}
+      {span(" 10 ", { backgroundColor: r.needsYou, color: r.onAction })}{" "}
       {span("- tokens.shadow", { backgroundColor: alpha(r.removed, 0.14) })}{" "}
     </Text>
   );
@@ -229,18 +229,18 @@ export interface PaneOptions {
  * the outline steps up and over it. Focused, the outline is the two lights, mauve at the bottom
  * left and blue at the top right, its glow follows the same shape, and the title fills.
  */
-export function pane(v: Values, options: PaneOptions, children?: JSX.Element) {
+export function pane(v: Tokens, options: PaneOptions, children?: JSX.Element) {
   const p = v.pane;
   const lit = options.focused === true;
   const fill = options.fill ?? p.fill;
   const [from, to] = [v.light.focus, v.light.focus2];
   const mid = mix(from, to, 0.5);
   const titleColor = lit
-    ? v.role.onAccent
+    ? v.role.onAction
     : options.needs
       ? v.light.needs
-      : (options.color ?? v.role.text2);
-  const moreColor = lit ? alpha(v.role.onAccent, 0.72) : v.role.text3;
+      : (options.color ?? v.role.inkQuiet);
+  const moreColor = lit ? alpha(v.role.onAction, 0.72) : v.role.inkFaint;
   const title = (color: string, more: string) => (
     <View
       style={{
@@ -329,7 +329,7 @@ export function pane(v: Values, options: PaneOptions, children?: JSX.Element) {
           />
         </View>
       ) : (
-        <View style={[whole, { borderWidth: 1, borderColor: p.edge }]} />
+        <View style={[whole, { borderWidth: 1, borderColor: p.border }]} />
       )}
       {options.running ? (
         <View
@@ -354,7 +354,7 @@ export function pane(v: Values, options: PaneOptions, children?: JSX.Element) {
           borderTopWidth: 1,
           borderLeftWidth: 1,
           borderRightWidth: 1,
-          borderColor: lit ? mid : p.edge,
+          borderColor: lit ? mid : p.border,
           backgroundColor: fill,
         }}
       >

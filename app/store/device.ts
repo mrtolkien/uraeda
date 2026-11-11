@@ -3,14 +3,23 @@
 // server's. `Storage` answers with promises, so the store reads it once, as the app starts, and
 // then answers at once, from memory.
 import { type Accessor, type Signal, signal, Storage } from "nsh";
+import type { ThemeChoice } from "../ui/theme";
+import type { Fonts, ThemeSource } from "../ui/tokens";
 
 /**
  * Everything the app keeps on a device: one line per value, its name in the storage and what it
  * holds, which must be plain data. A feature adds its line here and nowhere else, so a name taken
  * twice does not compile. A family of values, one per file or per field, is a pattern:
- * `[draft: \`unsaved:${string}\`]: Draft`. No feature keeps a value yet.
+ * `[draft: \`unsaved:${string}\`]: Draft`.
  */
-export type DeviceKeys = {};
+export type DeviceKeys = {
+  /** The mode the device shows, and the theme picked for each mode: `pickTheme` reads it. */
+  theme: ThemeChoice;
+  /** The theme last shown, which the app draws from its first frame, before the server answers. */
+  "theme.shown": ThemeSource;
+  /** The font picked for each part of the UI, a bundled font's id: `applyFonts` reads it. */
+  fonts: Partial<Fonts>;
+};
 
 /** The values of a device, by the names of `Keys`. */
 export type DeviceStore<Keys> = {

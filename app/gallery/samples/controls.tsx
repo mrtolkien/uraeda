@@ -11,13 +11,13 @@ import {
   type ViewStyle,
 } from "nsh";
 import { glass, icon, type IconName, mono } from "./parts";
-import { alpha, choices, type Values } from "./values";
+import { alpha, choices, type Tokens } from "../../ui/tokens";
 
 export type State = "rest" | "hover" | "focus" | "pressed" | "disabled";
 export type Mode = "normal" | "insert" | "visual" | "replace";
 
 /** A key: a chip, the key in the accent on a small dark block. */
-export function key(v: Values, name: string, state: State = "rest", onMain = false) {
+export function key(v: Tokens, name: string, state: State = "rest", onMain = false) {
   const k = v.key;
   const fill = onMain
     ? k.onMain
@@ -40,11 +40,11 @@ export function key(v: Values, name: string, state: State = "rest", onMain = fal
     >
       <Text
         style={{
-          fontFamily: v.type.mono,
+          fontFamily: v.type.body,
           fontSize: v.type.under,
           lineHeight: k.size,
           fontWeight: "700",
-          color: onMain ? v.role.onAccent : k.text,
+          color: onMain ? v.role.onAction : k.text,
         }}
       >
         {name}
@@ -54,7 +54,7 @@ export function key(v: Values, name: string, state: State = "rest", onMain = fal
 }
 
 /** A row's action: a chip and a word, with no frame. */
-export function act(v: Values, name: string, word: string, state: State = "rest") {
+export function act(v: Tokens, name: string, word: string, state: State = "rest") {
   return (
     <View
       style={{
@@ -67,17 +67,17 @@ export function act(v: Values, name: string, word: string, state: State = "rest"
       }}
     >
       {key(v, name, state)}
-      {mono(v, word, { color: state === "hover" ? v.role.text : v.role.text2 })}
+      {mono(v, word, { color: state === "hover" ? v.role.ink : v.role.inkQuiet })}
     </View>
   );
 }
 
 /** A hint: a chip and a word, on a bar or under a field. */
-export function hint(v: Values, name: string, word: string, color?: string) {
+export function hint(v: Tokens, name: string, word: string, color?: string) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
       {key(v, name)}
-      {mono(v, word, { color: color ?? v.role.text3 })}
+      {mono(v, word, { color: color ?? v.role.inkFaint })}
     </View>
   );
 }
@@ -94,7 +94,7 @@ export interface ButtonOptions {
 }
 
 /** The glow of a view's main action, which swells and settles over a breath. */
-function breath(v: Values, tone: string) {
+function breath(v: Tokens, tone: string) {
   const swell = createAnimatedValue(0);
   const half = v.motion.breath / 2;
   const curve = Easing.inOut(Easing.sin);
@@ -122,20 +122,20 @@ function breath(v: Values, tone: string) {
 }
 
 /** A button. The main one is a lamp; every other is a tube, dark until it is hot. */
-export function button(v: Values, options: ButtonOptions) {
+export function button(v: Tokens, options: ButtonOptions) {
   const b = v.button;
   const kind = options.kind ?? "main";
   const state = options.state ?? "rest";
   const hot = state === "hover" || state === "focus";
-  const tone = kind === "danger" ? v.role.removed : v.role.accent;
+  const tone = kind === "danger" ? v.role.removed : v.role.action;
   const breathes = options.breathes === true && choices["button.main.motion"] === "breathe";
   let box: ViewStyle;
-  let text = v.role.text;
+  let text = v.role.ink;
   if (state === "disabled") {
-    box = { borderColor: b.disabledEdge, borderStyle: "dashed" };
-    text = v.role.text3;
+    box = { borderColor: b.disabledBorder, borderStyle: "dashed" };
+    text = v.role.inkFaint;
   } else if (kind === "main") {
-    text = v.role.onAccent;
+    text = v.role.onAction;
     box = {
       borderColor: tone,
       backgroundImage: b.main.fill(tone),
@@ -150,9 +150,9 @@ export function button(v: Values, options: ButtonOptions) {
         filter: `brightness(${b.main.pressedBrightness})`,
       };
   } else {
-    box = { borderColor: b.tube.edge, backgroundColor: b.tube.fill };
+    box = { borderColor: b.tube.border, backgroundColor: b.tube.fill };
     if (kind === "danger") {
-      box = { ...box, borderColor: b.tube.dangerEdge, backgroundImage: b.tube.dangerLight };
+      box = { ...box, borderColor: b.tube.dangerBorder, backgroundImage: b.tube.dangerLight };
       text = v.role.removed;
     }
     if (hot) {
@@ -210,7 +210,7 @@ export function button(v: Values, options: ButtonOptions) {
 }
 
 /** The caret, a block in the mode's colour. */
-export function caret(v: Values, color: string, width = 8) {
+export function caret(v: Tokens, color: string, width = 8) {
   return (
     <View
       style={{
@@ -226,7 +226,7 @@ export function caret(v: Values, color: string, width = 8) {
 
 /** A field: a well with a border. Focused, its edge and its glow take the mode's colour. */
 export function field(
-  v: Values,
+  v: Tokens,
   options: {
     text?: string;
     placeholder?: string;
@@ -250,7 +250,7 @@ export function field(
           alignItems: "center",
           backgroundColor: options.inside === "overlay" ? v.glass.well : v.height.recessed.fill,
           borderWidth: 1,
-          borderColor: color ?? v.height.recessed.edge,
+          borderColor: color ?? v.height.recessed.border,
           boxShadow: [lip, glow].filter(Boolean).join(", "),
         },
         options.style,
@@ -258,7 +258,7 @@ export function field(
     >
       {options.text ? mono(v, options.text) : null}
       {color ? caret(v, color) : null}
-      {options.placeholder ? mono(v, options.placeholder, { color: v.role.text3 }) : null}
+      {options.placeholder ? mono(v, options.placeholder, { color: v.role.inkFaint }) : null}
     </View>
   );
 }
@@ -277,7 +277,7 @@ export interface RowOptions {
 }
 
 /** A row of a list. Selected, it has a 2 px bar of light on its left edge and a fill one step up. */
-export function row(v: Values, options: RowOptions) {
+export function row(v: Tokens, options: RowOptions) {
   return (
     <View
       style={{
@@ -304,19 +304,19 @@ export function row(v: Values, options: RowOptions) {
           }}
         />
       ) : null}
-      {options.icon ? icon(options.icon, options.hue ?? v.role.text) : null}
-      {mono(v, options.text, { flex: 1, color: options.quiet ? v.role.text3 : v.role.text })}
-      {options.meta ? mono(v, options.meta, { color: options.metaColor ?? v.role.text3 }) : null}
+      {options.icon ? icon(options.icon, options.hue ?? v.role.ink) : null}
+      {mono(v, options.text, { flex: 1, color: options.quiet ? v.role.inkFaint : v.role.ink })}
+      {options.meta ? mono(v, options.meta, { color: options.metaColor ?? v.role.inkFaint }) : null}
       {options.badge ? (
         <View
           style={{
             height: 18,
             paddingHorizontal: 6,
             justifyContent: "center",
-            backgroundColor: v.role.needs,
+            backgroundColor: v.role.needsYou,
           }}
         >
-          {mono(v, options.badge, { color: v.role.onAccent, fontWeight: "700", lineHeight: 18 })}
+          {mono(v, options.badge, { color: v.role.onAction, fontWeight: "700", lineHeight: 18 })}
         </View>
       ) : null}
     </View>
@@ -324,7 +324,7 @@ export function row(v: Values, options: RowOptions) {
 }
 
 /** The bar of a selected row's actions: raised, under the row, with the same bar of light. */
-export function rowBar(v: Values, actions: [string, string][]) {
+export function rowBar(v: Tokens, actions: [string, string][]) {
   return (
     <View
       style={{
@@ -353,14 +353,14 @@ export function rowBar(v: Values, actions: [string, string][]) {
 }
 
 /** A line between the groups of a list, dimmer than an edge. */
-export function separator(v: Values) {
+export function separator(v: Tokens) {
   return (
     <View
       style={{
         height: 1,
         marginHorizontal: -v.space.panePadding,
         marginVertical: 10,
-        backgroundColor: v.role.edgeQuiet,
+        backgroundColor: v.role.ruleQuiet,
       }}
     />
   );
@@ -380,7 +380,7 @@ export interface Segment {
  * end, and counts and hints on the glass between them.
  */
 export function statusLine(
-  v: Values,
+  v: Tokens,
   options: {
     mode: Mode;
     left: Segment[];
@@ -399,11 +399,11 @@ export function statusLine(
         backgroundColor: color,
       }}
     >
-      {mono(v, text, { color: v.role.onAccent, fontWeight: "700" })}
+      {mono(v, text, { color: v.role.onAction, fontWeight: "700" })}
     </View>
   );
   const segment = (s: Segment, first: boolean): JSX.Element => {
-    const tone = s.mode ? color : (s.color ?? v.role.text2);
+    const tone = s.mode ? color : (s.color ?? v.role.inkQuiet);
     return (
       <View
         style={{
@@ -412,7 +412,7 @@ export function statusLine(
           alignItems: "center",
           gap: 6,
           borderLeftWidth: first ? 0 : 1,
-          borderColor: v.role.edgeQuiet,
+          borderColor: v.role.ruleQuiet,
         }}
       >
         {s.icon ? icon(s.icon, tone) : null}
@@ -425,8 +425,8 @@ export function statusLine(
     v,
     {
       testID: options.testID,
-      edge: v.role.edge,
-      shadow: v.height.raisedGlass.shadow,
+      edge: v.role.rule,
+      shadow: v.height.raised.glassShadow,
       style: { height: v.status.height, padding: 1, ...options.style },
       content: { flex: 1, flexDirection: "row", alignItems: "stretch" },
     },

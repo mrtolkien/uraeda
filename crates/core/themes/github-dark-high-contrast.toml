@@ -41,3 +41,14 @@ fgColor-disabled-floor = "#7b838e"
 [roles]
 # Its bgColor-neutral-muted is opaque.
 chip = "bgColor-neutral-muted"
+# The design language's heights, glass, and light: not published, mixed from the colours above.
+raised = "#13161a"
+backdrop = "#010205"
+well = "#010307"
+rule-quiet = "#43474e"
+glass-tint = "#010307"
+backdrop-wash-1 = "fgColor-accent"
+backdrop-wash-2 = "fgColor-done"
+light-focus = "fgColor-accent"
+light-focus-2 = "fgColor-done"
+light-running = "display-teal-fgColor"

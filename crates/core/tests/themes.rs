@@ -663,7 +663,9 @@ fn a_ratio_just_under_the_floor_is_truncated_never_shown_as_the_floor() {
 #[test]
 fn a_mark_is_measured_at_three_to_one() {
     // #8a8a8a on white is 3.45:1: under the text floor, over the marks'.
-    let warnings = warnings("page = \"#ffffff\"\nraised = \"#ffffff\"\nrule = \"#8a8a8a\"\n");
+    let warnings = warnings(
+        "page = \"#ffffff\"\nraised = \"#ffffff\"\nwell = \"#ffffff\"\nrule = \"#8a8a8a\"\n",
+    );
     assert!(
         !warnings.iter().any(|warning| warning.starts_with("rule ")),
         "{warnings:?}"
@@ -726,4 +728,49 @@ fn two_reads_of_one_folder_list_their_maps_in_one_order() {
     let first = format!("{:?}", themes::read(dir.path()));
     let second = format!("{:?}", themes::read(dir.path()));
     assert!(first == second, "two reads printed apart");
+}
+
+/// The roles of the design language, glass and light among them, are roles as any other: a theme
+/// written before them takes each from the default of its mode.
+#[test]
+fn a_theme_without_the_new_roles_inherits_them() {
+    let dir = tempdir();
+    let dusk = b"mode = \"light\"\n[roles]\npage = \"#ffffff\"\n";
+    write(
+        dir.path(),
+        &[("dusk.toml", dusk), ("ember.toml", EMBER.as_bytes())],
+    );
+    let read = themes::read(dir.path());
+    for (id, default) in [("ember", DEFAULT_DARK), ("dusk", DEFAULT_LIGHT)] {
+        let (own, default) = (theme(&read, id).unwrap(), theme(&read, default).unwrap());
+        for role in [
+            "backdrop",
+            "backdrop-wash-1",
+            "backdrop-wash-2",
+            "well",
+            "rule-quiet",
+            "lip",
+            "shade",
+            "glass-tint",
+            "glass-rim",
+            "light-focus",
+            "light-focus-2",
+            "light-running",
+        ] {
+            assert!(default.roles.contains_key(role), "{role} is a role");
+            assert_eq!(own.roles.get(role), default.roles.get(role), "{id}: {role}");
+        }
+    }
+}
+
+#[test]
+fn a_text_role_is_measured_on_a_well_too() {
+    // Black passes on a white page, and fails in a dark grey well.
+    let warnings = warnings("page = \"#ffffff\"\nwell = \"#555555\"\nink = \"#000000\"\n");
+    let ink: Vec<_> = warnings
+        .iter()
+        .filter(|warning| warning.starts_with("ink is "))
+        .collect();
+    assert_eq!(ink.len(), 1, "{warnings:?}");
+    assert!(ink[0].ends_with(" on well, under 4.5."), "{ink:?}");
 }

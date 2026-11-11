@@ -14,11 +14,15 @@ doctest = false
 [dependencies]
 nsh-base.workspace = true
 nsh-core.workspace = true
+serde_json.workspace = true
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.
 [dev-dependencies]
 nsh-core = { workspace = true, features = ["declarations"] }
+# `tests/theme.rs` measures the shipped themes, which the core reads.
+tempfile.workspace = true
+uraeda-core.workspace = true
 
 # `tests/outside.rs` checks NSH's behaviours the migration relies on, in GTK windows on the hidden
 # display: it builds pages as the server will, and embeds them as the Linux host will.
@@ -37,8 +41,6 @@ rolldown_devtools_action.workspace = true
 rolldown_fs.workspace = true
 rolldown_std_utils.workspace = true
 rolldown_tracing.workspace = true
-serde_json.workspace = true
-tempfile.workspace = true
 usvg.workspace = true
 
 [lints]

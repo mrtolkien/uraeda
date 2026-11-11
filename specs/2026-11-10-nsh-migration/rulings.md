@@ -3113,3 +3113,160 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: [`design-language.md`](/specs/ui/design-language.md), and
   [`values.ts`](/app/gallery/samples/values.ts), whose `choices` holds each open choice of
   [R13](#r13-the-designs-open-choices-taken-by-default) at the value it names.
+
+## R133: The new roles are twelve, named as a theme's file names its others, and three old ones are reused
+
+- **Decision**: a theme gains twelve roles, in kebab case as its other roles: `backdrop`,
+  `backdrop-wash-1`, `backdrop-wash-2`, `well`, `rule-quiet`, `lip`, `shade`, `glass-tint`,
+  `glass-rim`, `light-focus`, `light-focus-2`, `light-running`. Three of the design language's are
+  roles a theme already had: its `surface` is `page`, its `edge` is `rule`, and `raised` keeps its
+  name. The editing mode's colours stay `mode-normal`, `mode-insert`, `mode-visual`, and
+  `mode-replace`.
+  - The language wrote the names with dots, `edge.quiet`. A TOML table cannot hold both `edge` and
+    `edge.quiet`, and themes stay in the same format.
+  - In the two default themes, `raised` becomes the language's raised fill, `#2a2b3e` and `#fbfbfd`,
+    where it was Catppuccin's mantle; `rule` in Mocha becomes `#70748b` (R132); and `mode-normal`
+    and `mode-visual` trade places, so the normal mode is the accent, as the language says.
+  - `well` is Catppuccin's mantle, `#181825` and `#e6e9ef`, where the samples drew `#181824` and
+    `#e4e7ee`: a shipped theme keeps its published colours.
+  - `glass-tint` is the tint itself, Mocha's mantle warmed by 5% of peach, `#232029`: the samples
+    mixed it from a constant.
+  - In the tokens, `tokens.role` holds every role of a theme, the old ones included, under its
+    file's name in camel case: `tokens.role.ruleQuiet`, `tokens.role.inkFaint`.
+- **Rationale**: a second role for the page's fill, or for a pane's border, would leave a theme
+  written before them with Catppuccin's page under its own text. One vocabulary from the file to the
+  screen is what the colour themes decision asks.
+- **If wrong**: the frozen React UI reads the same files. Its Catppuccin is built in, so it does not
+  change; another theme's popovers and borders take the new `raised` and `rule` there until task 61.
+- **Where**: `ROLES` in [`themes.rs`](/crates/core/src/themes.rs), the files of
+  [`crates/core/themes/`](/crates/core/themes/), [`schemas/theme.json`](/schemas/theme.json),
+  [`docs/web-ui.md`](/docs/web-ui.md), and the design language's "Roles this adds to a theme".
+
+## R134: The mixing rule lives in Rust, and the tokens read it through `uraeda/native`
+
+- **Decision**: [`crates/app/src/theme/`](/crates/app/src/theme/) is the one home of how colours are
+  mixed (`colour.rs`: `mix`, `fade`, `over`, `contrast`) and of what the language mixes from a
+  theme's roles (`mixing.rs`: glass's tint and its shares, a key's block, a well's shade, the
+  grounds text sits on at each height, and the pairs the floors are measured on).
+  - TSX reads them through four functions of `uraeda/native`: `mixColours`, `fadeColour`,
+    `mixTheme(roles, mode)`, and `showTheme(roles, sans, mono)`. The tokens mix nothing themselves:
+    `mix` and `alpha` of `app/ui/tokens/` are the first two.
+  - `tests/theme.rs` reads `mixing::floors` for every shipped theme, which the core reads, a
+    dev-dependency of the app's crate.
+  - A theme's roles cross as a JSON object: NSH converts no map.
+  - The core's own check of a user's theme, `contrast::warnings`, measures a role on a role, and
+    gains `well` as a ground. What is mixed, glass first, is not in the core: the app's crate cannot
+    be one of its dependencies, nor the reverse, since the app's crate is built for the browser too.
+    The contrast formula is WCAG's, and is written in both.
+  - `app/ui/tokens/defaults.json` holds the two default themes as the core reads them: the tokens
+    draw them before the server answers, and take from them a role a theme lacks. A test of
+    `tests/theme.rs` fails when it is stale, and writes it with `UPDATE_TOKENS=1`.
+- **Rationale**: the task's test must compute what the tokens will mix, from one rule.
+- **Alternatives considered**: a generated TypeScript file of every derived colour: a second file to
+  keep fresh for each of the user's themes, which are read at run time.
+- **If wrong**: the settings do not yet name a colour of a user's theme under the floor on glass:
+  task 48 can call `mixing::floors` through one more function of the module.
+- **Where**: `crates/app/src/theme.rs`, `crates/app/src/theme/`, `crates/app/tests/theme.rs`,
+  `app/ui/tokens/{mix,source}.ts`.
+
+## R135: What "text over glass" is measured on, and the values it changed
+
+- **Decision**: the floors are measured on seven grounds: a well, a well in a well, a well in glass,
+  a pane, a card, a bar of glass, and glass at `overlay`.
+  - **Glass is measured over the busiest page a theme draws**: half its `ink` over its `page`, as
+    the frost returns it, tinted as the shader tints it, with the tint's thickening. The light
+    inside the glass, its sheen, its rim, and its grain, is not counted: R131's measure on the
+    samples' pixels stays the check of the whole.
+  - **Every text role is measured on the three fills**, `well`, `page`, and `raised`, and `rule`,
+    `sub-agent`, and `marked` at 3:1 there. **On glass and on a well cut in another surface, the
+    roles a bar, an overlay, or a field holds**: `ink`, `ink-quiet`, `ink-faint`, `action`,
+    `needs-you`, `added`, `removed`, `caution`, `context`, `link`. Long prose never sits on glass,
+    and a pane is never glass, so headings, quotes, and panes' titles are not measured there.
+  - Also measured: a key's letter on its block, at rest and under the pointer, and `on-action` on
+    `action` and on each mode's colour.
+  - **Values that changed**: the light theme's glass is tinted with the raised fill, `#fbfbfd`,
+    where it was the surface's: over the busiest page it is then as light as the page. A well cut in
+    a well or in glass darkens it by 5% in a light theme, from 6%: Latte's green reached 4.46:1
+    there. A key's block takes less of the key's colour, a hundredth at a time, until its letter
+    reaches 4.5:1: at the language's 32% under the pointer, the letter fell under the floor in 18 of
+    the shipped themes.
+- **Rationale**: over white, Mocha's glass still passes, at 4.58:1 for its faintest text. Over
+  black, no light theme's does: Latte's lowest was 4.07:1. A theme does not draw a black page.
+- **If wrong**: a dark picture under light glass dims the text on it under the floor. The shader
+  thickens the tint there by 20% of the whole: raising `thicken` in `mixing.rs` is the one value.
+- **Where**: `mixing.rs`, `tests/theme.rs`, the design language's glass table.
+
+## R136: The 26 other shipped themes take the new roles from their own colours, by one rule
+
+- **Decision**: each shipped theme but the two defaults sets the new roles in its file, mixed once
+  from its own colours, and marked "not published" there.
+  - Dark: `backdrop` is its page at 57% over black, `well` 46% of its page over that. Light:
+    `backdrop` is its page at 88% over its ink, `well` halfway, lighter by steps until every text
+    role reaches the floor on it.
+  - `raised` stays where the theme's own is a step above its page and meets the floors. Else it is
+    its ink at 7% over its page, less by steps until the floors hold, or white at 75% over a light
+    page.
+  - `rule` moves toward the ink until it reaches 3:1 on the three fills, and `rule-quiet` is it at
+    36% over the page, 44% in a light theme.
+  - `glass-tint` is the well, or the raised fill in a light theme, moved away from the page until
+    the floors hold on glass.
+  - `light-focus` and the first wash are its `action`. `light-focus-2` and the second wash are the
+    first of `context`, `changed`, `link`, `live`, and `example` that differs from it.
+    `light-running` is its `example`.
+  - `lip`, `shade`, and `glass-rim` come from the default of its mode.
+  - GitHub Light's `fgColor-disabled-floor` and `fgColor-success-floor` are one more percent of
+    lightness darker, `#616976` and `#187733`: they reached 4.46 and 4.49:1 on a well in glass.
+- **Rationale**: a theme that inherited Catppuccin's backdrop and light would not be itself, and the
+  colour themes decision asks a new role of every shipped theme at once. The rule ran once, as a
+  test that wrote the files, and is not kept: the files are the record.
+- **If wrong**: a theme whose published palette has a darker ground or a second accent of its own
+  would look more like itself with them. Each is one line of its file.
+- **Where**: [`crates/core/themes/`](/crates/core/themes/).
+
+## R137: Fonts ship in the app's crate, Neon whole, and the others as the React UI shipped them
+
+- **Decision**: the nine families of the React UI are bundled in
+  [`crates/app/assets/fonts/`](/crates/app/assets/fonts/), each in a folder with its licence, the
+  SIL Open Font License 1.1, and registered by `registry.assets(assets!())`. `bundledFonts()` of
+  `uraeda/native` gives each family's name, read from its file when the crate compiles.
+  - **Not as TSX imports**: NSH serves an imported file from the folder of the page's entry. A page
+    with its entry in a subfolder, as the samples and later the gallery, asked for the font by an
+    absolute path, and got a 404 on GTK. A crate's assets are served for every page.
+  - **Sources**: Inter, Atkinson Hyperlegible Next, Literata, and JetBrains Mono are the variable
+    Latin files of `@fontsource-variable/*` 5.3.0, upright and italic; Monaspace Argon, Krypton,
+    Radon, and Xenon the Latin files of `@fontsource/monaspace-*` 5.3.0, in 400, 500, 600, 700, and
+    400 italic: the packages `pnpm-lock.yaml` pins for `packages/web/`, copied from the main
+    checkout's `node_modules`. Monaspace Neon is the five static faces of Monaspace 1.400, whole,
+    from nixpkgs' `monaspace` in the Nix store. Nothing was downloaded.
+  - **Why Neon whole**: the Latin files hold no `↵`, no box-drawing character, and no check mark,
+    and on the hidden display a key's `↵` drew as nothing. Neon is the interface's default, and
+    every other family is named with Neon after it, `JetBrains Mono, Monaspace Neon, monospace`, so
+    what a family lacks is drawn by a bundled font on every machine.
+  - **The five parts and their defaults are the React UI's**: `body` Neon, `heading` Xenon,
+    `reading` Atkinson, `code` JetBrains Mono, `markdown` Neon. The samples named JetBrains Mono for
+    everything, and drew in DejaVu.
+- **If wrong**: Neon has no `➜`, `⌘`, `⌫`, or `⏎`: they come from the system's fonts. The fonts are
+  3.2 MB in the repository, 1.8 MB of them Neon. Whole files of the other families need a download
+  from each font's release, and a ruling naming it.
+- **Where**: `crates/app/src/fonts.rs`, `app/ui/tokens/fonts.ts`.
+
+## R138: The library keeps nothing: who shows a theme reads the device, and calls `applyTheme`
+
+- **Decision**: `app/ui/theme.ts` holds `applyTheme(theme)`, `applyFonts(picked)`, and
+  `pickTheme(themes, choice, scheme)`. They read no storage: `app/ui/` holds no data. The device's
+  keys are three lines of `DeviceKeys`: `theme` (the mode, and the theme of each mode),
+  `"theme.shown"` (the theme last shown, for the first frame), and `fonts`.
+  - `tokens` is an object whose parts are read from a signal each time: a style, a memo, or an
+    effect that reads `tokens.height.raised.fill` runs again when the theme changes. A component's
+    body runs once, and must not keep a token in a constant.
+  - `applyTheme` also gives NSH's own tokens, shadcn's, the theme's roles, through
+    `element::set_tokens` in an `async` function of the module: NSH's text views, editors, and the
+    system's menus follow, and `font-sans` and `font-mono` are the interface's and the code's fonts.
+    It sets the app's appearance to the theme's mode.
+  - Task 36 calls them: after `device.load()`, `applyFonts(device.get("fonts"))` and
+    `applyTheme(device.get("theme.shown") ?? DEFAULT_THEMES.dark)`, then
+    `applyTheme(pickTheme(themes, device.get("theme"), colorScheme()))` in an effect over the record
+    `Themes`, keeping `"theme.shown"`. Task 48 writes the device's keys.
+- **Rationale**: an extension's page imports `uraeda/ui` in an engine of its own, with no storage of
+  the app's.
+- **Where**: `app/ui/theme.ts`, `app/ui/tokens/index.ts`, `app/store/device.ts`.

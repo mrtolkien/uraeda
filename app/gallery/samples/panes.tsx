@@ -3,15 +3,18 @@
 import { View } from "nsh";
 import { field } from "./controls";
 import { pane, type PaneOptions, tag } from "./parts";
-import type { Values } from "./values";
+import type { Tokens } from "../../ui/tokens";
 
-export function panes(v: Values) {
+export function panes(v: Tokens) {
   const demo = (options: PaneOptions, words: string) =>
     pane(v, { ...options, style: { flex: 1, minHeight: 132 } }, tag(v, words));
   return (
     <View style={{ flex: 1, padding: 32, gap: 28 }}>
       <View style={{ flexDirection: "row", gap: 16 }}>
-        {demo({ title: "At rest", color: v.role.h2 }, "A 1 px edge, which goes round the title.")}
+        {demo(
+          { title: "At rest", color: v.role.heading2 },
+          "A 1 px edge, which goes round the title.",
+        )}
         {demo(
           { title: "Focused", focused: true },
           "The two lights at 45° and their glow, round the title too. The title fills with the light.",
@@ -21,7 +24,7 @@ export function panes(v: Values) {
           "An orange title, and no light: it is not where the keys go.",
         )}
         {demo(
-          { title: "Running", icon: "bot", color: v.role.running, running: true },
+          { title: "Running", icon: "bot", color: v.role.lightRunning, running: true },
           "A steady line on its top edge. It moves only when the run starts or ends.",
         )}
       </View>
@@ -36,7 +39,7 @@ export function panes(v: Values) {
         )}
         {pane(
           v,
-          { title: "A pane in a pane", color: v.role.h3, style: { flex: 1, minHeight: 132 } },
+          { title: "A pane in a pane", color: v.role.heading3, style: { flex: 1, minHeight: 132 } },
           pane(
             v,
             { title: "Card", fill: v.role.raised, style: { minHeight: 62 } },
@@ -69,7 +72,7 @@ export function panes(v: Values) {
         )}
         {pane(
           v,
-          { title: "Plan", more: "· 61 tasks", color: v.role.h1, style: { width: 320 } },
+          { title: "Plan", more: "· 61 tasks", color: v.role.heading1, style: { width: 320 } },
           tag(v, "At rest, nothing glows."),
         )}
       </View>
