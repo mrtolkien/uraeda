@@ -445,3 +445,41 @@ async fn secrets_come_from_the_config_folders_env_only() {
     assert_eq!(host(TAILNET).await.status, 404);
     assert_eq!(host("evil.example").await.status, 403);
 }
+
+// The break it catches: git and the hooks the core runs started in the process's environment,
+// without the config folder's `.env`, so a hook that pushes or signs with a secret kept there
+// fails for the commits the server lands, and passes for the same commit made by hand.
+#[tokio::test]
+async fn a_hook_of_a_commit_the_server_lands_gets_the_config_folders_secrets() {
+    let repo = TestRepo::named("todo-app");
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n## Next\n");
+    repo.commit("chore: specs");
+    let seen = repo.parent().join("seen");
+    repo.set_hook(&format!(
+        "printf '%s|%s' \"$HOOK_KEY\" \"$PROJECT_KEY\" > '{}'",
+        seen.display()
+    ));
+    repo.write(".env", "PROJECT_KEY=from-the-project\n");
+    let server = support::setup()
+        .config(".env", "HOOK_KEY=from-the-config-folder\n")
+        .folder(repo.path())
+        .start()
+        .await;
+    let mut live = support::Live::of(&server).await;
+    let priorities = live.read("Priorities", json!({ "repo": "todo-app" })).await;
+
+    let added = json!({
+        "repo": "todo-app", "section": "next", "text": "Pair a phone", "hash": priorities["hash"],
+    });
+    live.call("proposals.add", added).await;
+    live.call("priorities.commit", json!({ "repo": "todo-app" }))
+        .await;
+    assert_eq!(
+        support::idle(&server, "todo-app").await,
+        Vec::<String>::new()
+    );
+
+    let seen = std::fs::read_to_string(seen).expect("the hook ran");
+    assert_eq!(seen, "from-the-config-folder|");
+}

@@ -15,6 +15,8 @@ pub const FILE: &str = ".env";
 #[derive(Clone, Debug, Default)]
 pub struct Environment {
     variables: BTreeMap<String, String>,
+    /// The ones the config folder's `.env` gave, which the environment given left unset.
+    added: BTreeMap<String, String>,
 }
 
 impl Environment {
@@ -23,8 +25,22 @@ impl Environment {
     pub fn load(config_dir: &Path, given: Vec<(String, String)>) -> Environment {
         let file = fs::read_to_string(config_dir.join(FILE)).unwrap_or_default();
         let mut variables: BTreeMap<String, String> = parse(&file).into_iter().collect();
-        variables.extend(given.into_iter().filter(|(_, value)| !value.is_empty()));
-        Environment { variables }
+        let mut added = variables.clone();
+        for (name, value) in given.into_iter().filter(|(_, value)| !value.is_empty()) {
+            added.remove(&name);
+            variables.insert(name, value);
+        }
+        Environment { variables, added }
+    }
+
+    /// The variables the config folder's `.env` adds to the environment the server started in:
+    /// what a process the server does not start itself, as the core's `git`, is given besides
+    /// the process's own environment, so that it runs in this one.
+    pub fn added(&self) -> Vec<(String, String)> {
+        let added = self.added.iter();
+        added
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect()
     }
 
     /// A variable's value, or none when it is unset or empty.
@@ -37,6 +53,7 @@ impl Environment {
 
     /// A command to run `program` in this environment, and in no other: every process the server
     /// runs, as an agent or a preview, starts from here, so the config folder's secrets reach it.
+    /// The core starts `git` itself: [`Environment::added`] is what it is given.
     pub fn command(&self, program: impl AsRef<OsStr>) -> Command {
         let mut command = Command::new(program);
         command.env_clear().envs(&self.variables);

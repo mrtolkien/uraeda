@@ -55,6 +55,12 @@ pub(crate) async fn start(options: Options) -> Result<Server, NotStarted> {
         .token;
     let folder = options.folder.clone();
     let shared = Shared::new(options, port, token);
+    // The core starts git itself, in the process's environment: it adds the config folder's
+    // secrets, so a hook gets what every process the server runs gets, until the server stops.
+    uraeda_core::git::set_environment(shared.environment().added());
+    shared.on_stop("environment", async {
+        uraeda_core::git::set_environment(Vec::new());
+    });
     let mut server = Server {
         shared: shared.clone(),
         routes: Vec::new(),

@@ -29,6 +29,7 @@ pub use commit::{OnOutput, Stage, others_staged};
 pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff};
 pub use history::{CommitInfo, CommitPaths, Mark, Range};
 pub use pin::{Pinned, clone_pinned};
+pub use process::set_environment;
 pub use remote::{FETCH_DEADLINE, SYNC_DEADLINE};
 pub use resolve::Resolution;
 pub use stopped::{Stopped, StoppedKind};

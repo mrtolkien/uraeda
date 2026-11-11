@@ -605,7 +605,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the same process could not see it. A value is what a test asserts: a command the test's server
   runs prints the config folder's secret, and nothing of a project's `.env`.
 - **If wrong**: a later task that starts a process with `Command::new` gives it the process's
-  environment, without the secrets. The crate's documentation names the rule; no lint does.
+  environment, without the secrets. The crate's documentation names the rule; no lint does. The
+  core's `git` is such a process: T99.13 says how it gets them.
 - **Where**: task 4, `crates/server/src/env.rs`, and the tests
   `secrets_come_from_the_config_folders_env_only` and, for the folder `ura serve` runs in,
   `serve_runs_until_it_is_stopped_and_a_second_start_hands_over`. Tasks 7, 12 to 15, and 18.
@@ -1223,8 +1224,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     either order. The join made a connection's calls reach it in the order sent (T99.9).
   - `cargo fmt` did not see a module declared inside `domains! { }`: the join made them plain `mod`
     lines (T99.3).
-  - Git and the hooks the core runs get the server process's environment, without the config
-    folder's `.env`: the core starts them itself.
+  - Git and the hooks the core runs got the server process's environment, without the config
+    folder's `.env`, since the core starts them itself: the join gives them its variables (T99.13).
 - **Where**: task 9, `crates/server/src/records/writing/queue.rs` and `queue/repository.rs`. The
   join of wave 6, and tasks 8, 10, 15, and 16.
 
@@ -2002,3 +2003,27 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   and the size limits a message's images are checked against.
 - **Where**: `crates/server/src/runner/log.rs`, `files/{images,chat_images}.rs`,
   `records/features/starts.rs`, `runner/import.rs`. Task 15.
+
+## T99.13: The core's git runs in the server's environment, the config folder's `.env` included
+
+- **Decision**: `Environment::added()` gives the variables the config folder's `.env` adds to the
+  environment the server started in, the ones that one left unset or empty. The server gives them to
+  the core as it starts, `uraeda_core::git::set_environment(added)`, and takes them back as it
+  stops. The core adds them to the environment of every `git` and `gh` it starts, in
+  `git/process.rs`, the one place it starts a process, and so to the hooks git runs.
+- **How the Node server did it**: it started no process in an environment of its own making. Git ran
+  inside its process, through the binding, and the agents and the previews were its children: all of
+  them had the server's whole environment. Here the server's environment is a value (R35), which
+  only the processes started with `environment().command(..)` got, so a hook of a commit the server
+  landed lacked what an agent in the same repository had.
+- **Rationale**: R35 keeps the server from writing its own process's environment, which is unsafe
+  once it has threads. What the core adds is only what `.env` adds: for `ura serve`, the process's
+  environment and those variables are the server's environment, whole. A test's server starts in an
+  environment of `PATH` alone, and its git keeps the test process's, with what turns the machine's
+  git configuration off.
+- **How it was checked**: `a_hook_of_a_commit_the_server_lands_gets_the_config_folders_secrets`: a
+  pre-commit hook writes two variables to a file, and the server lands a commit of the priorities.
+  The hook saw neither before; it sees the config folder's, and not the project's `.env`.
+- **If wrong**: the variables are the process's, not a server's: two servers in one process, as
+  tests run without `nextest` would have, share the last one's. `ura` never sets them.
+- **Where**: `crates/core/src/git/process.rs`, `crates/server/src/{env,start}.rs`. Tasks 13 to 15.
