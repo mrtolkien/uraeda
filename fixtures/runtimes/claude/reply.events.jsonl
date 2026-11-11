@@ -1,0 +1,9 @@
+{"id":"f6137c27-5e95-446b-afbe-0f8b04a4da6c","type":"accepted"}
+{"sessionId":"57807d18-20a2-404c-9fe6-d0cca52b3686","type":"init"}
+{"text":"The quick brown fox j","type":"textDelta"}
+{"text":"umps over the lazy d","type":"textDelta"}
+{"text":"og, twice.","type":"textDelta"}
+{"text":"The quick brown fox jumps over the lazy dog, twice.","type":"text"}
+{"type":"usage","windows":[{"id":"five_hour","label":"5h","resetsAt":"2026-11-11T05:00:00.000Z","used":0.16},{"id":"seven_day","label":"Week","resetsAt":"2026-11-11T12:00:00.000Z","used":0.25}]}
+{"total":{"cacheRead":11884,"cacheWrite":9418,"input":2,"output":23},"type":"tokens"}
+{"costUsd":0.039094399999999994,"denials":[],"errors":[],"models":["claude-sonnet-5-5"],"ok":true,"type":"result","interrupted":false}

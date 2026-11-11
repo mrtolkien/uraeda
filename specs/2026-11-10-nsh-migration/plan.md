@@ -988,29 +988,60 @@ Follows [what every records task does](#what-every-records-task-does).
 
 **Files:**
 
-- Create: `crates/server/src/runtimes/claude.rs` (task 13), `crates/server/src/runtimes/codex.rs`
-  and `codex_rpc.rs` (task 14)
-- Test: `crates/server/tests/claude.rs`, `crates/server/tests/codex.rs`, with recorded streams in
-  `fixtures/runtimes/`
+- Create: `crates/server/src/runtimes/claude.rs` and `claude/` (task 13: `args`, `folders`,
+  `instructions`, `process`, `control`, `models`, `events`, `stream`, `system`, `results`, `tools`,
+  `limits`, `wakeups`, `time`, `allow`, `json`), `crates/server/src/runtimes/codex.rs` and
+  `codex_rpc.rs` (task 14)
+- Test: `crates/server/tests/claude.rs` and `claude/{stage,process,asked,real}.rs`,
+  `crates/server/tests/codex.rs`, with recorded streams in `fixtures/runtimes/`, and the stand-ins
+  of `crates/server/tests/support/no-agents/`
 
 **Interfaces:**
 
 - Consumes: `Runtime`, `AgentProcess` (task 12).
-- Produces: `runtimes::claude()`, `runtimes::codex()`, each registered as a built-in the owner can
-  turn off.
+- Produces: the built-in runtimes `claude` and `codex`, each registered by `runtimes::mount` under
+  its extension's name, which the owner turns off: `shared.get::<Runtimes>().get("claude")` (rulings
+  R103 to R106). What the sessions rely on, for Claude Code:
+  - **Every event comes from the process**: `accepted` once Claude Code read a message, `init` at
+    each turn, with a `problem` when the skill did not load, `runsOn` as it opens and after each
+    `set_effort`, and one `exit`, which `close()` brings once the turn is over. A message sent
+    before `init` is read: the sessions need not wait.
+  - **`Options::tools`**: `Tools::Uraeda { url, token }` gives the MCP endpoint, allows
+    `mcp__uraeda__run_agent` and `mcp__uraeda__review`, and takes Claude Code's own sub-agents away;
+    the token reaches the process as `URAEDA_MCP_TOKEN` only. `Tools::None` takes the sub-agents
+    away alone.
+  - **`Options::skills`** are folders `<extensions folder>/<name>/skills`.
+  - **`Options::allowed`** are rules of `allow_rule`, given last, for that process only: a denial of
+    a `result` runs once a process is opened with its rule and asked again (ruling R99).
+  - **`set_effort` answers `true`**: the process changes its effort itself, from its next turn.
+  - **A wakeup's and a limit's times** are read on the server's clock, `shared.now()`, in the zone
+    `TZ` of its environment names.
+  - **The command** is the `command` setting of the extension `claude`, read at each start.
+  - **A message's id is new to the agent's session.** Claude Code 2.1.322 runs no turn for a message
+    whose id its transcript already holds: a resumed session sent an old id again gets no `accepted`
+    and no `result`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
       `a recorded stream becomes the same events as the Node     runner made`, on streams recorded
       from the real CLIs, compared with the events the Node code produces for them; and
       `a permission request waits for an answer`: a blocked action is a denial of its turn's
       `result`, which runs once its rule is in `Options::allowed` (ruling R99).
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts), or
+  - Also, for Claude Code: `closing a session leaves no claude process`;
+    `a line cut inside a character is read with the half replaced`; a session's arguments, a
+    workflow session's tools, an extension's skills as a plugin folder, a message as Claude Code
+    reads it, a process's events and its exit, a missing command and a folder that is gone, what a
+    process runs on and its effort, the models and their defaults, a list that fails or does not
+    come, the version, a session that can be resumed, the allow rules, its own review, and that it
+    is a built-in the owner turns off.
+  - Breaks made, each failing a test: a group's signal sent to its leader alone; the allow rules
+    left out of the arguments; a sub-agent's tool call without its parent.
+- [x] **Step 2: Run them**. Expected: FAIL.
+- [x] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts), or
       `codex.ts` and `codex-rpc.ts`. `child.ts` is ported already, as `runtimes::Child` (ruling
       R100): a child process leads its own process group, which ends with it and with the server.
-- [ ] **Step 4: Run the task's validation**, then one manual run against the real CLI, noted in the
+- [x] **Step 4: Run the task's validation**, then one manual run against the real CLI, noted in the
       commit's body. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the claude runtime`, or `the codex runtime`.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the claude runtime`, or `the codex runtime`.
 
 ## Task 14: The Codex runtime
 

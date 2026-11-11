@@ -543,6 +543,13 @@ async fn a_runtime_is_registered_under_one_name_until_it_is_removed() {
     registry.on_change(move || {
         listener.fetch_add(1, Ordering::SeqCst);
     });
+    // The names registered since the server started, which registers its built-in runtimes.
+    let built_in = registry.names();
+    let names = || {
+        let mut names = registry.names();
+        names.retain(|name| !built_in.contains(name));
+        names
+    };
 
     let first = runtimes::register(server.shared(), "fake", Arc::new(Fake::new())).unwrap();
     let other = runtimes::register(server.shared(), "other", Arc::new(Fake::new())).unwrap();
@@ -552,16 +559,16 @@ async fn a_runtime_is_registered_under_one_name_until_it_is_removed() {
         Some(RuntimeError::Taken("fake".to_owned())),
         "a second runtime of a name is refused"
     );
-    assert_eq!(registry.names(), ["fake", "other"]);
+    assert_eq!(names(), ["fake", "other"]);
     assert_eq!(registry.get("fake").unwrap().kind(), "fake");
     assert!(told.load(Ordering::SeqCst) >= 2);
 
     first.remove();
-    assert_eq!(registry.names(), ["other"]);
+    assert_eq!(names(), ["other"]);
     assert!(registry.get("fake").is_none());
     let back = runtimes::register(server.shared(), "fake", Arc::new(Fake::new()));
     assert!(back.is_ok(), "a removed name is free again");
-    assert_eq!(registry.names(), ["other", "fake"]);
+    assert_eq!(names(), ["other", "fake"]);
     other.remove();
     server.stop().await;
 }
@@ -644,8 +651,11 @@ async fn a_built_in_the_owner_turned_off_is_off_where_they_said() {
     let config = "[extensions.fake]\non = [\"todo\"]\n\n[extensions.codex]\non = []\n";
     let server = support::setup().config("config.toml", config).start().await;
     let registry = server.shared().get::<Runtimes>();
+    // The server registered its built-in runtimes itself: the others stand in for theirs.
     for name in ["claude", "codex", "fake", "mine"] {
-        runtimes::register(server.shared(), name, Arc::new(Fake::new())).unwrap();
+        if registry.get(name).is_none() {
+            runtimes::register(server.shared(), name, Arc::new(Fake::new())).unwrap();
+        }
     }
 
     assert_eq!(registry.on_in(Some("todo")), ["claude", "fake", "mine"]);

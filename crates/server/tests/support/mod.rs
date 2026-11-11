@@ -59,7 +59,8 @@ pub async fn server() -> TestServer {
 
 /// A start to prepare, on new temporary folders.
 pub fn setup() -> Setup {
-    let environment = std::env::var("PATH").map_or_else(|_| Vec::new(), |path| vec![path_of(path)]);
+    let path = std::env::var("PATH").unwrap_or_default();
+    let environment = vec![path_of(format!("{NO_AGENTS}:{path}"))];
     Setup {
         config: TempDir::new().expect("a temporary folder"),
         data: TempDir::new().expect("a temporary folder"),
@@ -69,8 +70,14 @@ pub fn setup() -> Setup {
     }
 }
 
+/// A folder of stand-ins for the agents' commands, each of which fails at once, as a command
+/// that is not installed: first on the `PATH` of a test's server, so no test runs the machine's
+/// real `claude`, with its owner's account. The built-in runtimes ask their agent for its models
+/// as the server starts.
+const NO_AGENTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/support/no-agents");
+
 /// `PATH`, the one variable a test's server takes from the test's own environment: the commands
-/// it runs are found as the test's are.
+/// it runs are found as the test's are, after the stand-ins of [`NO_AGENTS`].
 fn path_of(path: String) -> (String, String) {
     ("PATH".to_owned(), path)
 }

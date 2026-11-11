@@ -51,6 +51,9 @@ hyper = { version = "1", features = ["client", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 include_dir = "0.7.4"
+# Time zones, for the wall-clock times Claude Code gives a limit's reset and a wakeup in. gix
+# holds it already.
+jiff = "0.2"
 libc = "0.2.190"
 libwebp-sys = "0.14.4"
 lsp-server = "0.10.0"
@@ -117,6 +120,8 @@ thiserror = "2.0.21"
 ts-rs = { version = "12.0.1", features = ["serde-json-impl"] }
 # SVG, at the version NSH draws images with: its text as shapes, which NSH's own build leaves out.
 usvg = { version = "0.46", default-features = false, features = ["text"] }
+# A fetched address's host, for the rule that allows it. The lockfile held it.
+url = "2"
 uraeda-app = { path = "crates/app" }
 uraeda-compile = { path = "crates/compile" }
 uraeda-core = { path = "crates/core" }

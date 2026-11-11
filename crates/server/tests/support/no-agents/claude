@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stands in for `claude` in the server's tests, which never run the real one: it fails at once,
+# as a command that is not installed.
+exit 127

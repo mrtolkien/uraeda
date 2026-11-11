@@ -8673,6 +8673,8 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "include_dir",
+ "jiff",
  "libc",
  "notify",
  "nsh-bundler",
@@ -8694,6 +8696,7 @@ dependencies = [
  "ts-rs",
  "uraeda-core",
  "uraeda-protocol",
+ "url",
 ]
 
 [[package]]

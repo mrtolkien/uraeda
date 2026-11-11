@@ -8,6 +8,13 @@ use std::process::{Child, Command, Stdio};
 
 use common::*;
 
+/// The stand-ins for the agents' commands that the server's own tests use, first on the `PATH`
+/// of a test's `ura serve`: the server asks each agent for its models as it starts.
+const NO_AGENTS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../server/tests/support/no-agents"
+);
+
 /// A started `ura serve`, killed with the test when the test did not stop it.
 struct Running(Child);
 
@@ -54,8 +61,11 @@ impl Folders {
         let mut all = vec![name, "--data-dir", &data];
         all.extend_from_slice(args);
         let mut command = command(dir, &all);
+        // The agents' commands are stand-ins that fail at once: no test runs the real ones.
+        let path = std::env::var("PATH").unwrap_or_default();
         command
             .env("HOME", self.home.path())
+            .env("PATH", format!("{NO_AGENTS}:{path}"))
             .env("URAEDA_CONFIG_DIR", self.config())
             .env_remove("URAEDA_ALLOWED_HOSTS");
         command

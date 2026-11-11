@@ -1,0 +1,6 @@
+{"command_uuid":"m1","state":"queued","type":"command_lifecycle"}
+{"command_uuid":"m1","state":"started","type":"command_lifecycle"}
+{"command_uuid":"m1","state":"completed","type":"command_lifecycle"}
+{"command_uuid":"m2","state":"cancelled","type":"command_lifecycle"}
+{"state":"started","type":"command_lifecycle"}
+{"command_uuid":3,"state":"started","type":"command_lifecycle"}

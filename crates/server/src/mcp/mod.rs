@@ -69,6 +69,12 @@ impl Mcp {
     }
 }
 
+/// The names of the endpoint's tools, `run_agent` and `review`: a runtime that gives an agent's
+/// process the endpoint allows each, under the agent's own name for it.
+pub(crate) fn tool_names() -> Vec<&'static str> {
+    tools::names()
+}
+
 /// The endpoint's address, which a runtime gives an agent's process with its token: on the
 /// server's own machine, where the process runs.
 pub fn url(shared: &Shared) -> String {

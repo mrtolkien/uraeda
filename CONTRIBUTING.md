@@ -83,6 +83,12 @@ repositories: the model list, a commit its reviewer approves, a steered message,
 image, and that `~/.codex/config.toml` is left unchanged. Both spend a little of the account's plan,
 and neither runs in `vp test` or `vp run ready`.
 
+`ura serve` has its own runtime for Claude Code, in Rust. Its check against the installed `claude`
+is a test that only runs when asked for, with two short messages:
+`cargo nextest run -p uraeda-server --test claude --run-ignored only real`. The streams its tests
+replay are recorded with `node fixtures/runtimes/claude/record.ts`, then
+`node fixtures/runtimes/claude/node-events.ts`.
+
 ## The README's screenshots
 
 The README shows Home, a round of questions, and a spec of the sandbox's realistic project, at a

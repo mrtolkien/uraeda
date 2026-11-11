@@ -87,6 +87,11 @@ const TOOLS: [Tool; 2] = [
     },
 ];
 
+/// The names of the endpoint's tools: a runtime allows each, as its agent names it.
+pub(super) fn names() -> Vec<&'static str> {
+    TOOLS.iter().map(|tool| tool.name).collect()
+}
+
 /// The tool of this name.
 pub(super) fn find(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|tool| tool.name == name)

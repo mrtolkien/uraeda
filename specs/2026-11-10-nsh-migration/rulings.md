@@ -2207,3 +2207,107 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `an_interrupted_process_plays_its_next_message` fail.
 - **Where**: task 12, `crates/server/src/runtimes/fake.rs` and `fake/`, and
   `crates/server/tests/runtimes.rs`. Tasks 15, 17, and 20.
+
+## R103: Claude Code's streams are recorded, and the Node runner writes what they become
+
+- **Decision**: `fixtures/runtimes/claude/` holds what the test
+  `a_recorded_stream_becomes_the_same_events_as_the_node_runner_made` compares, event by event.
+  - **Six streams recorded from Claude Code 2.1.322** by `record.ts`, each one short message run
+    with the arguments the Node server gives a session, on Sonnet, in a temporary folder: a reply in
+    pieces (`reply`), a tool call and its result (`tool`), a thought (`thought`), a blocked write
+    (`denied`), a sub-agent with a tool call of its own (`sub-agent`), and a result that is an error
+    (`error`). A stream is scrubbed as it is written: the session's folder reads `/session-dir`, the
+    home folder `/home/me`, and the `init` line keeps only the fields a runtime reads.
+  - **The Node tests' own recorded lines are reused** for what no run shows on demand, a usage
+    limit, a wakeup, a retry: [`fixtures/claude/`](/fixtures/claude/), where they stay, as the Node
+    tests read them.
+  - **The cases of the Node parser's tests are lines written by hand**, in `written/`: about 200
+    lines, for a sub-agent's text, each tool's target, the results, the plugins, the background
+    tasks, the limits' words, and the crons.
+  - **The events of each are written by `node-events.ts`**, which drives the Node parser,
+    `parseLine`, over the lines, and writes no event by hand: `<name>.events.jsonl`, one event a
+    line, beside a recorded stream, in `lines/` for the Node tests' lines, and in `written/`.
+  - **The clock and the zone are fixed**: 2026-11-10 at 09:00 UTC, when a test's server starts, in
+    `Asia/Tokyo`. A stream named `<name>.at-<seconds>.jsonl` is read at that instant instead, as the
+    three that cross a change of New York's clocks.
+  - The Rust test plays each stream through a stand-in `claude`, in a session's folder of its own,
+    which stands for `/session-dir` in the stream and in its events.
+- **Rationale**: a port is checked against what it ports. An expectation typed again in Rust would
+  be a second reading of the Node code, and the Node tests' inline cases cost nothing more as data.
+  A usage limit cannot be asked for, and those lines were recorded when one came.
+- **If wrong**: a stream goes stale with a new Claude Code. `record.ts`, then `node-events.ts`,
+  write them again, while the Node parser exists; after task 61 the events are kept as they are.
+- **Where**: task 13, `fixtures/runtimes/claude/`, `crates/server/tests/claude.rs`.
+
+## R104: The runtime's events are the Node runner's, and it differs only where Node could not go on
+
+- **Decision**: the 330 events of the recorded and written streams are the Node runner's. What the
+  Rust runtime does otherwise is outside them:
+  - **Half a character is read as U+FFFD.** Claude Code cuts a long output between the two halves of
+    a character, and prints the half as an escape. A JavaScript text holds it; a Rust one does not,
+    and the line would be dropped, leaving its tool call running for ever.
+  - **A process's events end with its exit.** The Node runner read the output until it closed by
+    itself. The reader here also ends once the process exited and its group was killed (R100), with
+    what it printed read, so a command that escaped the group cannot hold a session open.
+  - **A path that is no text gives no target.** In a tool's input still being written, the Node
+    parser threw on such a path, and read nothing more of that process.
+  - **The models of a result are named in the order the line writes them**, read from the line's
+    text, not from the parsed object, whose order depends on how serde_json is built (R19).
+  - **The server's zone is `TZ` of its environment, else the machine's**, and a zone a limit's text
+    names is found in the machine's zone database, through `jiff`. Node asked `Intl`.
+  - **`set_effort` answers `false` on a process that exited**, and `true` otherwise: the process
+    changes its effort itself.
+- **Rationale**: each is a case where the Node runner stopped, hung, or relied on JavaScript's own
+  texts. None changes an event of a stream Claude Code prints whole.
+- **Where**: task 13, `crates/server/src/runtimes/claude/{json,process,stream,results,time}.rs`, and
+  the test `a_line_cut_inside_a_character_is_read_with_the_half_replaced`.
+
+## R105: The skill and the extensions' documentation are written in the data folder, from the binary
+
+- **Decision**: Claude Code is given folders the server writes itself, as the first process of each
+  start opens:
+  - `<data folder>/plugin/`, the plugin `uraeda`: `.claude-plugin/plugin.json`, and `skills/uraeda/`
+    from the skill the binary holds, `uraeda_core::embedded::SKILL`, written anew, so a file a newer
+    skill dropped is gone.
+  - `<data folder>/docs/extensions.md`, the documentation of the extension API as it was when the
+    server was built, which the instructions name.
+  - `<data folder>/extension-plugins/ext-<name>/`, a plugin for each extension of `Options::skills`,
+    as the Node server made them, and `<data folder>/images/` and `<config folder>/extensions/`,
+    which `--add-dir` refuses when missing.
+  - **The instructions appended to the system prompt are the Node server's words**, with the section
+    on extensions always: they still say "the web UI".
+  - **The command is the `command` setting of the built-in extension `claude`**, read as each
+    process starts, where the Node server read it as the extension loaded.
+- **Rationale**: the distribution decision makes `ura` one binary that needs nothing beside it, so
+  there is no package folder to point `--plugin-dir` at, as the Node server did.
+- **If wrong**: Codex's runtime needs the same plugin and the same instructions (task 14). They are
+  in `runtimes/claude/{folders,instructions}.rs` until one home is made for both, at the join. The
+  instructions' words follow the app, with the screens of the sessions.
+- **Where**: task 13, `crates/server/src/runtimes/claude/{folders,instructions,args}.rs`. Tasks 14,
+  15, and 17.
+
+## R106: The built-in registers as the server mounts, and no test finds the real `claude`
+
+- **Decision**: `runtimes::mount` registers Claude Code's runtime under `claude`, its built-in
+  extension's name, for as long as the server runs. It is reached through the registry,
+  `shared.get::<Runtimes>().get("claude")`, and nothing else constructs it: the plan's
+  `runtimes::claude()` is not public.
+  - **The owner turns it off by turning its extension off**: `Runtimes::is_on` and `on_in` then
+    leave it out (R101). It stays registered, and runs nothing by itself, but for its models.
+  - **A registration asks its models at once** (R101), which starts `claude`. So every server of the
+    tests has a folder of stand-ins first on its `PATH`, `crates/server/tests/support/no-agents/`,
+    whose `claude` fails at once, as a command that is not installed: `support::setup()` and
+    `crates/cli/tests/serve.rs` add it. The runtime's own tests put their stand-in before it.
+  - Two tests of the registry no longer assume it starts empty.
+  - **The check against the real `claude` is an ignored test**,
+    `real_claude_runs_a_session_and_resumes_it`, run by hand:
+    `cargo nextest run -p uraeda-server --test claude --run-ignored only real`. Its first form sent
+    a resumed session a message with the id of an earlier one, and hung: Claude Code runs no turn
+    for an id its transcript holds, so the sessions give each message a new one.
+- **Rationale**: a test that started the machine's `claude` would use its owner's account, from
+  every test of the server. A switch in the server's options would say the same, in every place that
+  builds them.
+- **If wrong**: the sandbox's server must start no real agent either (task 20): it needs that
+  switch, or its own stand-ins. Codex's runtime needs its stand-in in the same folder (task 14).
+- **Where**: task 13, `crates/server/src/runtimes/{mod,claude}.rs`,
+  `crates/server/tests/support/mod.rs`, `crates/server/tests/claude/real.rs`. Tasks 14, 15, and 20.

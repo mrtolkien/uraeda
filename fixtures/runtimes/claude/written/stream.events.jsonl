@@ -1,0 +1,10 @@
+{"activity":{"kind":"thinking"},"type":"activity"}
+{"activity":{"kind":"thinking"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Write"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Write","target":"specs/a/spec.md"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Edit"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Edit","target":"a \"b\".md"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Bash"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Read"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Read"},"type":"activity"}
+{"activity":{"kind":"tool","name":"Read","target":"ué.md"},"type":"activity"}

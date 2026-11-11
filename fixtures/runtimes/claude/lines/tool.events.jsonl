@@ -1,0 +1,2 @@
+{"id":"toolu_01SVEKzLxnSQyRcc45azZnG9","input":{"command":"echo ok","description":"Print ok"},"kind":"execute","name":"Bash","type":"toolStart","target":"echo ok"}
+{"id":"toolu_01SVEKzLxnSQyRcc45azZnG9","isError":false,"output":"ok","type":"toolEnd"}

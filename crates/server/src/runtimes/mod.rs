@@ -68,6 +68,7 @@
 //! `shared.get::<Runtimes>()`.
 
 mod child;
+mod claude;
 mod events;
 pub mod fake;
 mod options;
@@ -197,5 +198,6 @@ pub(crate) fn mount(shared: &Shared, _routes: &mut Routes) -> Result<(), Failure
     shared.on_stop("agents", async move {
         stopping.get::<child::Children>().stop().await;
     });
+    claude::register(shared)?;
     Ok(())
 }

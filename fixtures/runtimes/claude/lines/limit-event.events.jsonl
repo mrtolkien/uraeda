@@ -1,0 +1,2 @@
+{"type":"usage","windows":[{"id":"five_hour","label":"5h","resetsAt":"2026-11-03T23:40:00.000Z","used":1},{"id":"seven_day","label":"Week","resetsAt":"2026-10-18T05:06:40.000Z","used":0.12}]}
+{"limit":{"kind":"session","resetsAt":"2026-11-03T23:40:00.000Z"},"type":"limit"}
