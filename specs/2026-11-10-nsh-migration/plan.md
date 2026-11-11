@@ -109,8 +109,8 @@ Set by this plan, from the human's answers on 2026-11-10:
   `packages/server/`, except task 61, which removes them. A critical fix there is a separate change.
 - **Out of validation: the old UI and the Node server.** No task, no wave, and no final pass runs
   `ts:test`, `web:build`, `ui:build`, `ui:smoke`, `storybook:build`, or `web:theme`, at any point,
-  the end included, and so never `vp run ready` whole, which runs them. They prove nothing about the
-  new code, and cost every run (ruling R111).
+  the end included, and so never `vp run ready`, which runs them. They prove nothing about the new
+  code, and cost every run (rulings R111 and R122).
 - **No task loads the machine, or runs a test in a loop**, to reproduce a failure of timing. A test
   that fails while other builds saturate the machine is rerun once it is quiet, at most twice: when
   it passes then, it passed, and a ruling names it.
@@ -134,16 +134,19 @@ Set by this plan, from the human's answers on 2026-11-10:
 
 ### Validation
 
-- **A task's validation**, unless it says otherwise: `vp check`, then
-  `cargo nextest run -p <its crate>` for Rust, or `vp run app:check` and `vp run app:test` for the
-  app. In a new worktree, run `vp run app:check` once before `vp check`: it writes the types of
-  `nsh` in `app/.nsh/`, which `vp check` reads.
-- **After a wave's merge**: `cargo check --workspace --all-targets` and `vp run app:check`, in the
-  background. The next wave starts at once, without waiting for them. A failure, like a review's
-  finding, goes to a fixer that works beside the next wave. A wave is held only when the merged code
-  does not build, or an interface the wave consumes is wrong.
-- **The full pass** is `vp run ready:rust`, `vp run ready:app`, and `vp run ts:check`. It runs once,
-  at the end of the feature, in task 61's last step, and before the push.
+- **Every check is a recipe of the [`justfile`](/justfile)**, run in the dev shell:
+  `nix develop -c just <recipe>`. No task runs `vp`, `pnpm`, or `node`: the new stack needs none of
+  them, and a new worktree needs no install (ruling R122).
+- **A task's validation**, unless it says otherwise: `just task <its crates>` for Rust, which checks
+  formatting, runs Clippy, and runs the crates' tests; `just task-app` for the app, which checks
+  formatting, lints the TSX, and runs `just app-check` and `just app-test`. A task that changes both
+  runs both.
+- **After a wave's merge**: `just check`, which is `cargo check --workspace --all-targets` and
+  `just app-check`, in the background. The next wave starts at once, without waiting for them. A
+  failure, like a review's finding, goes to a fixer that works beside the next wave. A wave is held
+  only when the merged code does not build, or an interface the wave consumes is wrong.
+- **The full pass** is `just ready`. It runs once, at the end of the feature, in task 61's last
+  step, and before the push.
 - **The checks of `crates/app/tests/outside.rs`** draw in real windows, and are retried twice, in
   `.config/nextest.toml`.
 
@@ -158,7 +161,7 @@ function the binding wraps today. Each adds its line `mod <domain>;` and its lin
 - Consumes: `Registry`, `Bus`, `Fault`, `Call` (task 6, whose section and
   [`live/mod.rs`](/crates/server/src/live/mod.rs) show a whole domain); the core's functions.
 - Produces: its records and actions, typed in `crates/protocol/`, each with its line in `catalog()`
-  and the client's types written again by `vp run protocol:types`, and their rows in task 20's list.
+  and the client's types written again by `just protocol-types`, and their rows in task 20's list.
 
 - [ ] **Step 1: Write the failing contract tests**: one test per record,
       `<Record> answers its     shape`, on the fixtures in [`fixtures/`](/fixtures/); and one per
@@ -193,10 +196,9 @@ only what differs: its files, the old code to read, its records and actions, and
 - [ ] **Step 3: Build the screens** from `app/ui/` only. A missing component is added to `app/ui/`
       and the gallery, never drawn in the screen. Declare the area's keys in the registry.
 - [ ] **Step 4: Review each screen in the running app**, on `ura sandbox`, in both themes, at a
-      narrow and a wide width, with `vp run app:shots <route>`. Fix what you see. One picture of
-      each new screen goes in the pull request, none in the repository.
-- [ ] **Step 5: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
-      Expected: PASS.
+      narrow and a wide width, with `just app-shots <route>`. Fix what you see. One picture of each
+      new screen goes in the pull request, none in the repository.
+- [ ] **Step 5: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 6: Commit**: `feat(nsh-migration): <area>`.
 
 ## Code read
@@ -223,8 +225,9 @@ only what differs: its files, the old code to read, its records and actions, and
   `App.tsx`. Routing is the app's own, with no library.
 - **The UI's guides**: [`specs/ui/`](/specs/ui/), which the new screens follow where the design
   language does not replace them.
-- **Tests and checks**: `vp run ready` runs every check ([`vite.tasks.ts`](/vite.tasks.ts)), the old
-  UI's and the Node server's included, which this plan leaves
+- **Tests and checks**: the recipes of the [`justfile`](/justfile) run the new stack's checks
+  (ruling R122). Until task 61, `vp run ready` ran every check ([`vite.tasks.ts`](/vite.tasks.ts)),
+  the old UI's and the Node server's included, which this plan leaves
   [out of validation](#global-constraints); Rust tests run with `cargo nextest run`. The core has
   about 1,180 tests, the server about 960, the web UI about 1,000.
 - **The spikes**: `spikes/nsh/` on `spike/nsh` holds the Vim layer (`src/vim.rs`), the extension
@@ -618,7 +621,7 @@ fallback written under it, and later tasks build on the fallback.
     and list operations keyed by each item's `id`.
   - `trait Record` and `trait Action`, with a name, typed arguments, and a typed value;
     `catalog() -> Catalog`, the list of every one declared, with `Catalog::record::<R>()`,
-    `action::<A>()`, `records()`, and `actions()`; and `vp run protocol:types`, which writes
+    `action::<A>()`, `records()`, and `actions()`; and `just protocol-types`, which writes
     `app/store/protocol.d.ts` from it (ruling R28).
   - `fixtures/protocol/`: each message's JSON, and pairs of values with the change between them, for
     the tests of anything that applies a change.
@@ -1382,7 +1385,7 @@ What the sessions (task 15) rely on:
     in `register` of `crates/app/src/native.rs`, whose comment says the rest;
   - functions are a unit struct with `#[module]` and its `impl` with `#[module(flat)]`: TSX imports
     each `pub(crate) fn` by its name in camel case;
-  - TypeScript's types come from Rust's, written by `vp run app:check` in
+  - TypeScript's types come from Rust's, written by `just app-check` in
     `app/.nsh/types/uraeda/native.d.ts`;
   - every export has a doc comment, its documentation in TypeScript:
     `every_export_is_documented_for_typescript` fails without one.
@@ -1478,7 +1481,7 @@ What the sessions (task 15) rely on:
   - `a reconnect resumes a reply without a gap`, with a row where a change arrives after its
     `Unsub`: it is ignored, and no subscription is left.
   - `a refused connection says which side to update`.
-- [ ] **Step 2: Run them**: `vp run app:test`. Expected: FAIL.
+- [ ] **Step 2: Run them**: `just app-test`. Expected: FAIL.
 - [ ] **Step 3: Implement.** Changes that arrive within one frame are applied together, so a burst
       draws once. The list of a record keeps each item's signal across changes: a chunk of one
       message redraws that message only.
@@ -1600,7 +1603,7 @@ What the sessions (task 15) rely on:
       narrow window; a menu stays a popover at every width, as the UI layout decision says.
 - [ ] **Step 3: Add each to the gallery**, in its states, with one page that shows every height
       inside every other.
-- [ ] **Step 4: Run the task's validation**: `vp run app:check`. Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `just app-check`. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): surfaces, with glass and glow`.
 
 ## Task 28: Controls
@@ -1686,9 +1689,13 @@ What the sessions (task 15) rely on:
 
 **Interfaces:**
 
-- Consumes: the core's document tree, from the record WorkflowFile; the result of task 2's diagram
-  check, which holds: Pele draws in NSH's VM, and `crates/app/src/diagram.rs` makes its SVG one
-  NSH's images draw, as ruling R25 says.
+- Consumes: the core's document tree, from the record WorkflowFile; the diagram check, which holds:
+  Rust draws a diagram with Merman, measured and drawn in the app's fonts, and `usvg` makes its text
+  shapes, as ruling R123 says. `crates/app/src/diagram.rs` takes `picture`, `fonts`, and
+  `without_markup` from `crates/app/tests/outside/diagram.rs`, exports `picture` from
+  `uraeda/native`, and the check then calls the crate's. `Diagram.tsx` calls it with the source and
+  the theme's colours, as Mermaid's theme variables, and imports no diagram library: the app has no
+  npm package.
 - Produces: `Document`, which draws a document tree and never parses Markdown, as the stack decision
   asks. `Reply`, which draws a streamed reply as blocks: finished blocks never redraw while the last
   one grows.
@@ -1789,20 +1796,20 @@ What the sessions (task 15) rely on:
 **Files:**
 
 - Create: `app/gallery/{App.tsx,pages/}`, `app/tools/{shots,frames}.ts`
-- Modify: `vite.tasks.ts`
+- Modify: `justfile`
 
 **Interfaces:**
 
 - Consumes: every component of tasks 26 to 34.
-- Produces: `vp run gallery` (the gallery on GTK); `vp run gallery:shots` (a picture of every
-  component, in both themes, at three widths, on an invisible display); `vp run frames` (the frame
-  cost of a named scene, as median, 95th, 99th percentile, and worst).
+- Produces: `just gallery` (the gallery on GTK); `just gallery-shots` (a picture of every component,
+  in both themes, at three widths, on an invisible display); `just frames` (the frame cost of a
+  named scene, as median, 95th, 99th percentile, and worst).
 
 - [ ] **Step 1: Assemble the gallery**: one page per component, and three scenes: a session with
       20,000 messages streaming, the same scrolling by itself, and a glass panel over it.
 - [ ] **Step 2: Write the two tools**, from the spike's `tools/` and its self-scrolling switch. They
       never open a window on the human's display.
-- [ ] **Step 3: Run `vp run frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
+- [ ] **Step 3: Run `just frames`** on the three scenes. Expected: at most 8.3 ms at the 99th
       percentile. Record the numbers in the commit's body.
 - [ ] **Step 4: Review every picture yourself**, against the design language and its mockup, and fix
       what drifts. Then ask a second reviewer, with no part in building the library, to compare the
@@ -1834,7 +1841,7 @@ package. It starts once the gallery (task 35) is done.
     with the Vim mode, the connection's state.
   - The sign-in and pairing screens; the first-run, unknown-repository, and missing-folder pages;
     "Nothing here"; the server-error banner; the "update this side" page for a refused version.
-  - `vp run app:shots <route>`: a picture of a route on the sandbox, on an invisible display.
+  - `just app-shots <route>`: a picture of a route on the sandbox, on an invisible display.
 
 - [ ] **Step 1: Write the failing tests**
   - `the app starts a server when none runs`, with a row where the server stops while the app is
@@ -1982,7 +1989,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
   blocks. Images are attached through `POST /r/:name/attach`.
 - **Tests:** `a streaming reply stays in view`; `a reader who scrolled up is not moved`;
   `a message typed during a reply is sent once`.
-- **Extra step, before the commit:** run `vp run frames session` on a session of 20,000 messages.
+- **Extra step, before the commit:** run `just frames session` on a session of 20,000 messages.
   Expected: at most 8.3 ms at the 99th percentile, streaming and scrolling.
 
 - [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
@@ -2161,22 +2168,21 @@ Follows [what every screen task does](#what-every-screen-task-does).
 
 **Files:**
 
-- Modify: `AGENTS.md`, `CONTRIBUTING.md`, `vite.tasks.ts` (`vp run sandbox` starts the new app)
+- Modify: `AGENTS.md`, `CONTRIBUTING.md`, `justfile` (`just sandbox` starts the new app)
 
 **Interfaces:**
 
 - Consumes: every screen.
-- Produces: `vp run sandbox`, which opens the Linux app on `ura sandbox`. A report of what a person
+- Produces: `just sandbox`, which opens the Linux app on `ura sandbox`. A report of what a person
   meets, in the pull request.
 
-- [ ] **Step 1: Point `vp run sandbox` at the new app**, with `--reset` kept.
+- [ ] **Step 1: Point `just sandbox` at the new app**, with `--reset` kept.
 - [ ] **Step 2: Walk through the app as one persona** of [personas](/specs/ui/personas.md), from a
       new feature to an approved spec and a finished session, by keyboard and by pointer. Note what
       hurts its looks, readability, behaviour, and coherence, with pictures.
 - [ ] **Step 3: Fix what is clearly wrong.** Propose the rest as changes to the guides, in the pull
       request.
-- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
-      Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): what a walk through the app found`.
 
 ## Task 53: Performance
@@ -2188,9 +2194,9 @@ Follows [what every screen task does](#what-every-screen-task-does).
 
 **Interfaces:**
 
-- Produces: `vp run bench:navigation` (the time from a key to the next page drawn, for every page
-  and action the performance decision names) and `vp run frames <scene>`; a development build's
-  warning when an interaction passes 100 ms.
+- Produces: `just bench-navigation` (the time from a key to the next page drawn, for every page and
+  action the performance decision names) and `just frames <scene>`; a development build's warning
+  when an interaction passes 100 ms.
 
 - [ ] **Step 1: Write the navigation benchmark** over the sandbox's projects, as the performance
       decision asks.
@@ -2241,8 +2247,7 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - [ ] **Step 2: Run it**. Expected: FAIL, naming what is missing.
 - [ ] **Step 3: Fill the list, and build what it shows missing.** A route dropped on purpose names
       the human's request or the decision behind it.
-- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
-      Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 5: Commit**: `test(nsh-migration): every old route has a screen`.
 
 **Phase 2: the web build.** The same app in a browser, served by `ura serve`, then the removal of
@@ -2256,13 +2261,13 @@ here: iOS and macOS are the human's, later.
 **Files:**
 
 - Create: `crates/server/src/http/web.rs`, `app/web/` (the page that hosts the app)
-- Modify: `vite.tasks.ts`, `.github/workflows/`
+- Modify: `justfile`, `.github/workflows/`
 - Test: `crates/server/tests/web.rs`
 
 **Interfaces:**
 
 - Consumes: the app (phase 1); `sign_in` (task 5).
-- Produces: `vp run web:build`, which packages the app for the web; `ura serve` serving it at `/`,
+- Produces: `just web-build`, which packages the app for the web; `ura serve` serving it at `/`,
   with any unknown path answering the app's page; the sign-in cookie for the browser, as today.
 - `ura serve` reads the setting `open_browser`, which `settings.setOpenBrowser` writes and nothing
   reads until then, and opens the app in a browser as it starts, as
@@ -2344,13 +2349,12 @@ here: iOS and macOS are the human's, later.
 - Produces: every screen right on a phone's browser, as [the phone guide](/specs/ui/phone.md) asks.
 
 - [ ] **Step 1: Take a picture of every route** at 390 by 844, in both themes, with
-      `vp run app:shots --web --phone`.
+      `just app-shots --web --phone`.
 - [ ] **Step 2: Review each against the phone guide**: one column, top tabs, a bottom bar, sheets
       for pickers and short forms, 44-point targets, prose at 16 points, wrapping text on the full
       width. Walk through one persona's journey with touches.
 - [ ] **Step 3: Fix what fails**, in `app/ui/` where the cause is a component.
-- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
-      Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 5: Commit**: `fix(nsh-migration): the app on a phone`.
 
 ## Task 60: Web performance
@@ -2368,8 +2372,7 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 2: Compare with the spike's numbers**: 57 frames a second streaming, 37 scrolling.
       Expected: no worse, and no frame over 100 ms while a long reply streams.
 - [ ] **Step 3: Fix what misses**, then run them again and record the numbers in the commit's body.
-- [ ] **Step 4: Run the task's validation**: `vp check`, `vp run app:check`, `vp run app:test`.
-      Expected: PASS.
+- [ ] **Step 4: Run the task's validation**: `just task-app`. Expected: PASS.
 - [ ] **Step 5: Commit**: `perf(nsh-migration): the web build on a slow phone`.
 
 ## Task 61: Remove the React UI and the Node server
@@ -2379,8 +2382,11 @@ here: iOS and macOS are the human's, later.
 **Files:**
 
 - Delete: `packages/web/`, `packages/server/`, `packages/binding/`, `packages/uraeda/`,
-  `crates/binding/`, and what only they use in `package.json`, `vite.config.ts`, `flake.nix`, and
-  `.github/workflows/`
+  `crates/binding/`; and Vite+, pnpm, and Node with them (ruling R122): `package.json`,
+  `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `vite.config.ts`, `vite.fast.config.ts`, `vite.tasks.ts`,
+  `tsconfig.json`, `tsconfig.base.json`, the TypeScript files of `scripts/` with their tests, and
+  `nodejs` and `pnpm` in `flake.nix`
+- Modify: `.github/workflows/` (CI runs `nix develop -c just ready`), `.config/nextest.toml`
 - Modify: `README.md`, `INSTALL.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/`, `specs/ui/`,
   `crates/server/parity.toml`, `app/screens/parity.toml` (their tests no longer read deleted code:
   keep the lists, drop the reads)
@@ -2399,7 +2405,8 @@ here: iOS and macOS are the human's, later.
 - [ ] **Step 3: Update every page a reader meets**: what Uraeda is, how to install it, how to build
       and test it, the web UI's page in `docs/`, and the guides of `specs/ui/` that named Astryx or
       the browser.
-- [ ] **Step 4: Run the full pass** (`vp run ready:rust`, `vp run ready:app`, `vp run ts:check`),
-      **and a release to a test tag.** `vp run ready` is then these three. Expected: PASS, and
-      artifacts with no Node in them.
+- [ ] **Step 4: Run the full pass**, `just ready`, **and a release to a test tag.** Expected: PASS,
+      artifacts with no Node in them, and a dev shell with no Node in it. A check the old
+      `vp run ready` held that the new stack still needs, as the toolchain configuration's tests
+      were, is rewritten as a Rust test or a recipe, or dropped with a ruling.
 - [ ] **Step 5: Commit**: `feat(nsh-migration)!: remove the React UI and the Node server`.

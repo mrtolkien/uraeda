@@ -2836,3 +2836,61 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: the Rust server serves no page until task 56. A browser opened on it before would
   show nothing.
 - **Where**: `crates/server/src/records/workspace/settings/actions.rs`, and the plan's task 56.
+
+## R122: `just` runs the new stack's checks, and no task runs Vite+, pnpm, or Node
+
+- **Decision**: every check and build of the new stack is a recipe of the [`justfile`](/justfile),
+  run in the dev shell as `nix develop -c just <recipe>`.
+  - `just task <crates>` is a Rust task's validation, `just task-app` an app task's, `just check`
+    the wave's gate, and `just ready` the full pass. `just` lists the others.
+  - Formatting and linting of what Cargo does not read run from the dev shell's `oxfmt` and
+    `oxlint`, with [`.oxfmtrc.json`](/.oxfmtrc.json) and [`.oxlintrc.json`](/.oxlintrc.json).
+    `oxfmt` formats the 739 files it reads as Vite+ did: none changed.
+  - Three scripts became shell: [`scripts/nsh.sh`](/scripts/nsh.sh),
+    [`scripts/isolated.sh`](/scripts/isolated.sh), a test's own temporary folder, git without the
+    host's configuration, and the machine's two heavy slots, and
+    [`scripts/worktree-seed.sh`](/scripts/worktree-seed.sh).
+  - A new worktree's `target/` is cloned from the checkout whose commit is the closest, the
+    feature's worktree for a task's, and no longer from the main checkout: 18 s, with every
+    dependency the feature added already built. Seeded from the main checkout, each task's worktree
+    compiled them all, about five minutes before its first result.
+  - The app has no npm package (ruling R123), so no worktree runs `vp install`.
+  - Task 61 removes Vite+, pnpm, and Node from the repository and the dev shell, and points CI at
+    `just ready`. Until then their files stay, unused by the new stack: the old UI needs them, and
+    is frozen.
+- **Rationale**: the human asked for it on 2026-11-11: the project is no longer a JavaScript
+  program, and `just` is enough. Cargo and `nsh` skip what did not change, so the recipes need no
+  cache of their own.
+- **If wrong**: a check that only `vp run ready` held is lost until task 61 rewrites or drops it:
+  the toolchain configuration's tests, and the lint rules of the old packages' shared configuration,
+  which `.oxlintrc.json` does not carry. The [toolchain](../decisions/toolchain.md) decision still
+  names `vp run ready`: the human amends it.
+- **Where**: `justfile`, `flake.nix`, `scripts/`, the plan's [validation](plan.md#validation), and
+  task 61. It replaces the commands of ruling R111, whose rules stay.
+
+## R123: Diagrams are drawn in Rust by Merman, and Pele goes
+
+- **Decision**: `merman` 0.9.3 draws Mermaid diagrams, in Rust. It replaces Pele in NSH's VM, the
+  first step of ruling R25, whose second step stays: `usvg` writes the text as shapes.
+  - The layout measures labels with the fonts the picture is drawn in, through Merman's
+    `native-fonts`. With its own metrics, labels were cut at their box's edge.
+  - Its `resvg_safe` pipeline writes labels as SVG text. Its default writes HTML, which `usvg`
+    leaves out.
+  - Colours are Mermaid's theme variables, `primaryColor`, `lineColor`, `primaryTextColor`, and the
+    others, given as the app's configuration, on the theme `base`. A theme change makes the picture
+    again.
+  - A quoted label's angle brackets become entities before Merman reads it, but for a line break's:
+    a label naming `<name>` lost every label of its diagram.
+  - A diagram has 2 seconds, then shows as its source, like one Merman cannot read.
+- **Rationale**: the human asked for a Rust library, to drop the app's only npm package. Five were
+  tried on the 18 distinct diagrams of the repository and its history, each drawn through `usvg` as
+  NSH draws it. `merman` drew all 18, with the source's colours and wrapped labels, in 8 ms on
+  average. `ariel-rs` drew all 18 but ignores `classDef` colours, and has had no release since
+  May 2026. `selkie-rs` scrambled the largest flowchart. `mermaid-rs-renderer` overlapped labels.
+  `mmdflux` does not read `erDiagram`, five of the 18. Zed uses Merman.
+- **If wrong**: Pele in the VM still holds, as R25 measured it. Merman brings about 240 crates, and
+  a second `usvg`, 0.47, beside NSH's 0.46. Not checked: a diagram's links, which a picture cannot
+  follow, and the web build.
+- **Where**: `a_diagram_is_drawn_without_a_browser`, `crates/app/tests/outside/diagram.rs`,
+  `app/__checks__/diagram.tsx`. Task 31. The [diagrams](../decisions/diagrams.md) decision still
+  names Pele: the human amends it.
