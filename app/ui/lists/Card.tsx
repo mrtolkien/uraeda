@@ -20,7 +20,7 @@
 // icon and title in the accent. Pressed, the whole card is the target.
 import { type JSX, View } from "nsh";
 import { Button, Icon, type IconName, StatusDot, Text } from "../controls";
-import { Surface } from "../surfaces";
+import { Surface, Tooltip } from "../surfaces";
 import { type Tone, tokens } from "../tokens";
 import { isNarrow } from "../width";
 import { Bar } from "./Row";
@@ -45,6 +45,8 @@ export type CardTime = {
 export type CardFact = {
   icon: IconName;
   label: string;
+  /** The whole of what `label` shortens, shown where the pointer rests: a command's full paths. */
+  tip?: string;
   /** Its words' tone: the ink unless given. */
   tone?: Tone;
 };
@@ -219,15 +221,13 @@ export function Card(props: CardProps) {
         >
           <Each of={props.facts ?? []}>
             {(fact) => (
-              // A fact longer than the card wraps under its icon's line, as a failed run's words.
-              <View
-                style={{ alignItems: "flex-start", flexDirection: "row", flexShrink: 1, gap: 6 }}
-              >
-                <Icon name={fact().icon} size={14} style={{ marginTop: 5 }} />
-                <Text style={{ flexShrink: 1 }} tone={fact().tone ?? "ink"}>
-                  {fact().label}
-                </Text>
-              </View>
+              <If when={fact().tip} else={<Fact fact={fact()} />}>
+                {(tip) => (
+                  <Tooltip style={{ flexShrink: 1 }} text={tip()}>
+                    <Fact fact={fact()} />
+                  </Tooltip>
+                )}
+              </If>
             )}
           </Each>
         </View>
@@ -261,5 +261,17 @@ export function Card(props: CardProps) {
         </View>
       </If>
     </Surface>
+  );
+}
+
+/** One fact: its icon, and its words, which wrap under the icon's line when longer than the card. */
+function Fact(props: { fact: CardFact }) {
+  return (
+    <View style={{ alignItems: "flex-start", flexDirection: "row", flexShrink: 1, gap: 6 }}>
+      <Icon name={props.fact.icon} size={14} style={{ marginTop: 5 }} />
+      <Text style={{ flexShrink: 1 }} tone={props.fact.tone ?? "ink"}>
+        {props.fact.label}
+      </Text>
+    </View>
   );
 }

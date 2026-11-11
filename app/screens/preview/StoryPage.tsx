@@ -14,6 +14,7 @@ import { Card, type CardState, Empty } from "../../ui/lists";
 import { isNarrow } from "../../ui/width";
 import { LiveFrame, served, type Width } from "./LiveFrame";
 import { type Sibling, Siblings, show } from "./Siblings";
+import { shortCommand } from "./command";
 import { type Checkout, PreviewWords, Restart } from "./states";
 
 /** A story as a page names it, `<path>#<export>`, in its checkout. */
@@ -151,10 +152,25 @@ function PreviewCard(props: Of) {
     props.folder === MAIN_CHECKOUT
       ? null
       : record("Feature", { id: props.folder, repo: props.repo })();
+  // The checkout's top level: the main checkout's, or a feature's worktree, from the main one.
+  const root = () => {
+    const main = record("Repositories", null)()?.rows.find((row) => row.name === props.repo)?.path;
+    const worktree = feature()?.worktree;
+    if (worktree == null || worktree.startsWith("/")) return worktree ?? main;
+    return main === undefined ? undefined : `${main}/${worktree}`;
+  };
   const facts = () => {
     const shown = preview();
     return [
-      ...(shown?.command ? [{ icon: "square-terminal" as const, label: shown.command }] : []),
+      ...(shown?.command
+        ? [
+            {
+              icon: "square-terminal" as const,
+              label: shortCommand(shown.command, root()),
+              tip: shown.command,
+            },
+          ]
+        : []),
       ...(shown?.folder ? [{ icon: "folder" as const, label: `Runs in ${shown.folder}` }] : []),
       ...(feature()?.worktree
         ? [{ icon: "git-branch" as const, label: `In the worktree ${feature()!.worktree}` }]

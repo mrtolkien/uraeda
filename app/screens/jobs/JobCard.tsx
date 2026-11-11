@@ -67,7 +67,7 @@ export function JobCard(props: JobCardProps) {
           { icon: "trash-2", label: "Delete", run: props.onDelete },
         ]}
         facts={[
-          ...nextFacts(props.job, props.now),
+          ...nextFacts(props.job, props.now, true),
           lastFact(props.job, props.now, session()?.statusLabel),
         ]}
         icon="calendar-clock"

@@ -1,9 +1,9 @@
 // The outline: a file's headings, its parts and theirs, one row each, the part the reader is in
-// lit. `Enter` or a press brings the heading to the reader's top, and the focus with it.
-import { View } from "nsh";
+// lit, drawn by the library's `Outline`. `Enter` or a press brings the heading to the reader's
+// top, and the focus with it.
 import type { Block, FileView } from "../../store/protocol";
 import { focusPane, PaneScroll, usePane } from "../../ui/layout";
-import { createCursor, Empty, Line, List } from "../../ui/lists";
+import { createCursor, Outline as OutlineList } from "../../ui/lists";
 import { jumpTo, topBlock } from "./place";
 import { type FileArgs, plain, shownOf, WithFile } from "./read";
 import { readerPane } from "./panes";
@@ -34,39 +34,21 @@ function Headings(props: { args: FileArgs; file: () => FileView }) {
     focusPane(readerPane(props.args));
   };
   return (
-    <List
+    <OutlineList
       cursor={cursor}
-      empty={
-        <Empty
-          icon="list"
-          title="No parts"
-          words="The file has no heading under its title: it reads as one part."
-        />
-      }
-      onOpen={open}
-      openLabel="go to the part"
-      row={(id) => {
-        const heading = () => byId().get(id());
-        const lit = () => here() !== undefined && String(here()) === id();
-        return (
-          <View
-            style={{
-              alignItems: "center",
-              flex: 1,
-              flexDirection: "row",
-              gap: 8,
-              paddingLeft: (heading()?.level ?? 2) > 2 ? 20 : 0,
-            }}
-          >
-            <Line
-              current={lit()}
-              icon={lit() ? "circle-dot" : "minus"}
-              label={plain(heading()?.spans ?? [])}
-              quiet={!lit() && (heading()?.level ?? 2) > 2}
-            />
-          </View>
-        );
+      emptyWords="The file has no heading under its title: it reads as one part."
+      heading={(id) => {
+        const heading = byId().get(id);
+        return heading === undefined
+          ? undefined
+          : { id, level: heading.level ?? 2, title: plain(heading.spans) };
       }}
+      here={() => {
+        const id = here();
+        return id === undefined ? undefined : String(id);
+      }}
+      onOpen={open}
+      top={2}
     />
   );
 }

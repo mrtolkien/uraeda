@@ -103,9 +103,10 @@ export const failedWords = (run: Pick<JobRun, "error">) =>
  * When the job runs next, or why it does not, in the scheduler's order of reasons: its problem,
  * "Paused", "Scheduled jobs are off", the server's words for an agent that does not run it, a
  * change still open, else the time. A problem of the job that is not the reason, as a repository
- * it names that is not listed, is a fact of its own after it.
+ * it names that is not listed, is a fact of its own after it. On the list's cards, `listed`, the
+ * scheduler being off is the list's banner's to say, once: a card says what is its own.
  */
-export function nextFacts(job: Job, now: number): Array<CardFact> {
+export function nextFacts(job: Job, now: number, listed = false): Array<CardFact> {
   const { at, text, why } = job.next;
   const facts: Array<CardFact> = [];
   switch (why) {
@@ -120,7 +121,7 @@ export function nextFacts(job: Job, now: number): Array<CardFact> {
       facts.push({ icon: "pause", label: "Paused", tone: "quiet" });
       break;
     case "off":
-      facts.push({ icon: "pause", label: "Scheduled jobs are off", tone: "quiet" });
+      if (!listed) facts.push({ icon: "pause", label: "Scheduled jobs are off", tone: "quiet" });
       break;
     case "agent-off":
       facts.push({
@@ -133,10 +134,11 @@ export function nextFacts(job: Job, now: number): Array<CardFact> {
       facts.push({ icon: "hourglass", label: "Waits for the change it started to close" });
       break;
     default:
-      facts.push({
-        icon: "calendar-clock",
-        label: at === null ? "Scheduled jobs are off" : `Next run: ${whenWords(at, now)}`,
-      });
+      if (at !== null) {
+        facts.push({ icon: "calendar-clock", label: `Next run: ${whenWords(at, now)}` });
+      } else if (!listed) {
+        facts.push({ icon: "pause", label: "Scheduled jobs are off", tone: "quiet" });
+      }
   }
   if (why !== "problem" && job.problem !== null) {
     facts.push({ icon: "triangle-alert", label: job.problem, tone: "danger" });

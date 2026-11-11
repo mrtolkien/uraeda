@@ -9,6 +9,7 @@ import type { RuntimeRecord, Session } from "../../store/protocol";
 import { Banner, Button, Heading, Link, Refusal, sent, StatusDot, Text } from "../../ui/controls";
 import { movedOf } from "./offers";
 import { attentionWords, runsOnWords, statusTone, waitWords } from "./words";
+import { isNarrow } from "../../ui/width";
 
 export function SessionHead(props: {
   repo: string;
@@ -21,23 +22,39 @@ export function SessionHead(props: {
       ? shown.statusLabel
       : `${shown.statusLabel} · goes on at ${serverTime(shown.wait.at)}`;
   };
+  // On a phone the conversation needs the height: a smaller title, and who runs it and where in
+  // one small line under the state, rather than a line each.
   return (
-    <View style={{ gap: 2, paddingBottom: 6, paddingHorizontal: 12, paddingTop: 8 }}>
-      <Heading level={1} testID="session-title">
+    <View
+      style={{
+        gap: isNarrow() ? 0 : 2,
+        paddingBottom: isNarrow() ? 4 : 6,
+        paddingHorizontal: 12,
+        paddingTop: isNarrow() ? 4 : 8,
+      }}
+    >
+      <Heading level={isNarrow() ? 2 : 1} testID="session-title">
         {props.session.name ?? props.session.title}
       </Heading>
       <View style={{ alignItems: "center", columnGap: 12, flexDirection: "row", flexWrap: "wrap" }}>
         <StatusDot label={label()} tone={statusTone(props.session.status)} />
-        <Text tone="quiet" testID="runs-on">
-          {runsOnWords(props.session, props.runtime?.name)}
-        </Text>
-        <Text size="under" tone="faint">
-          {props.session.place}
-        </Text>
+        <If when={!isNarrow()}>
+          <Text tone="quiet" testID="runs-on">
+            {runsOnWords(props.session, props.runtime?.name)}
+          </Text>
+          <Text size="under" tone="faint">
+            {props.session.place}
+          </Text>
+        </If>
         <If when={props.session.folder === null && props.session.parent === null}>
           <Archive repo={props.repo} session={props.session} />
         </If>
       </View>
+      <If when={isNarrow()}>
+        <Text size="under" tone="quiet" testID="runs-on">
+          {`${runsOnWords(props.session, props.runtime?.name)} · ${props.session.place}`}
+        </Text>
+      </If>
     </View>
   );
 }
@@ -151,7 +168,9 @@ function Attention(props: { repo: string; session: Session }) {
             title={shown().title}
             tone={shown().tone}
           >
-            <Text tone="quiet">{shown().words}</Text>
+            <Text size={isNarrow() ? "under" : undefined} tone="quiet">
+              {shown().words}
+            </Text>
           </Banner>
           <If when={refusal()}>{(said) => <Refusal words={said()} />}</If>
         </View>

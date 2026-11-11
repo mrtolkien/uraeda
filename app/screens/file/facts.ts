@@ -31,9 +31,12 @@ export function sinceWords(file: FileView): string | undefined {
   return `${plural(since.parts.length, "part")} changed since your review`;
 }
 
-/** What the reader's head says after the file's status. */
+/**
+ * What the reader's head says after the file's status: its file's name first, which its tab says
+ * in words ("Questions, round 1"), then what it holds.
+ */
 export function facts(file: FileView): Array<string> {
-  const said: Array<string> = [];
+  const said: Array<string> = [file.name];
   const tasks = tasksOf(file);
   if (file.kind === "plan" && tasks.length > 0) said.push(progressWords(tasks));
   const since = sinceWords(file);

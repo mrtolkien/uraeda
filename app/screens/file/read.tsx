@@ -58,6 +58,28 @@ const KINDS: Readonly<Record<string, string>> = {
 
 export const kindWord = (file: FileView) => KINDS[file.kind] ?? file.name;
 
+/** The files of a round, by their name's stem, as a person names them. */
+const ROUNDS: Readonly<Record<string, string>> = {
+  clarifications: "Questions",
+  discovery: "Discovery",
+  findings: "Findings",
+};
+
+/**
+ * A file's tab, as a person names it, from its name alone, so the tab says it before the file is
+ * read: "Plan", "Questions, round 1", "Spec review"; a file of no known kind by its name.
+ */
+export function tabWord(name: string): string {
+  const stem = name.replace(/\.md$/, "");
+  const round = /^([a-z]+)-(\d+)$/.exec(stem);
+  if (round !== null && ROUNDS[round[1]] !== undefined) {
+    return `${ROUNDS[round[1]]}, round ${Number(round[2])}`;
+  }
+  const review = /^(spec|plan)-review$/.exec(stem);
+  if (review !== null) return `${KINDS[review[1]]} review`;
+  return (stem !== "clarifications" ? KINDS[stem] : undefined) ?? name;
+}
+
 /** A span's words, without their marks: a heading's text as a row says it. */
 export const plain = (spans: ReadonlyArray<Span>) => spans.map((span) => span.text).join("");
 

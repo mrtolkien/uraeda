@@ -6,7 +6,7 @@ import { Page, Part } from "../parts";
 import { KeyScope } from "../../ui/keys/registry";
 import { signal } from "nsh";
 import { sent, Switch } from "../../ui/controls";
-import { createCursor, Empty, Line, List, VirtualList } from "../../ui/lists";
+import { createCursor, Empty, Line, List, Outline, VirtualList } from "../../ui/lists";
 import { FieldRow, FieldRows } from "../../ui/lists/FieldRow";
 import { tokens } from "../../ui/tokens";
 
@@ -101,7 +101,16 @@ function Fields() {
   );
 }
 
+const HEADINGS = [
+  { id: "1", level: 2, title: "Goals" },
+  { id: "2", level: 2, title: "Design" },
+  { id: "3", level: 3, title: "The schedule's rules" },
+  { id: "4", level: 3, title: "What a person sees" },
+  { id: "5", level: 2, title: "Testing" },
+];
+
 export function rows(narrow: boolean) {
+  const parts = createCursor(() => HEADINGS, { initial: "4" });
   const short = createCursor(() => PLACES, { initial: "sessions" });
   const range = createCursor(() => PLACES, { range: true, initial: "priorities" });
   range.move(2, true);
@@ -112,6 +121,18 @@ export function rows(narrow: boolean) {
       <Part narrow={narrow} title="List">
         <Scoped name="List">
           <List cursor={short} row={place} />
+        </Scoped>
+      </Part>
+      <Part narrow={narrow} title="Outline · the part being read lit">
+        <Scoped name="Outline">
+          <Outline
+            cursor={parts}
+            emptyWords="The file has no heading under its title."
+            heading={(id) => HEADINGS.find((one) => one.id === id)}
+            here={() => "2"}
+            onOpen={() => {}}
+            top={2}
+          />
         </Scoped>
       </Part>
       <Part narrow={narrow} title="A range held">

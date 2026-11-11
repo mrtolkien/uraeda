@@ -86,10 +86,15 @@ export function createCursor<Row extends Item>(
   };
 
   // A row under the cursor that goes leaves the cursor where it was, on the row that takes its
-  // place: one look at the old place, a walk of the rows only when rows moved before it.
+  // place: one look at the old place, a walk of the rows only when rows moved before it. On the
+  // last row, it stays on the last: a transcript's newest turn, one row until its page is read,
+  // becomes its items, and the cursor stays on the newest of them.
+  let last: string | undefined;
   effect(() => {
     const rows = items();
     const id = untracked(at);
+    const wasLast = id !== undefined && id === last;
+    last = rows.at(-1)?.id;
     if (id === undefined) {
       return;
     }
@@ -98,8 +103,8 @@ export function createCursor<Row extends Item>(
       place = found;
       return;
     }
-    const next = rows[Math.min(place, rows.length - 1)];
-    untracked(() => put(next?.id));
+    place = wasLast ? rows.length - 1 : Math.min(place, rows.length - 1);
+    untracked(() => put(rows[place]?.id));
   });
 
   const move = (by: number, extend = false) => {

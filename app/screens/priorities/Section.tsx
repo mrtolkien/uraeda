@@ -11,6 +11,7 @@ import { KeyScope, registerKey } from "../../ui/keys/registry";
 import { type Cursor, createCursor, DragOrder, Empty, Line, List, Row } from "../../ui/lists";
 import { usePane } from "../../ui/layout";
 import { TextField } from "../../ui/text";
+import { tokens } from "../../ui/tokens";
 
 /** A proposal's words, as one line of plain text. */
 export const plain = (proposal: Pick<ProposalItem, "spans">) =>
@@ -29,12 +30,13 @@ function looks(proposal: ProposalItem | undefined) {
   return { icon: undefined, meta: undefined };
 }
 
-/** A proposal's row: its words whole, its nested lines counted. */
-export function ProposalLine(props: { proposal: ProposalItem | undefined }) {
+/** A proposal's row: its words whole, its nested lines counted; `current` while it is open. */
+export function ProposalLine(props: { current?: boolean; proposal: ProposalItem | undefined }) {
   const look = () => looks(props.proposal);
   const nested = () => props.proposal?.children.length ?? 0;
   return (
     <Line
+      current={props.current}
       icon={look().icon}
       label={props.proposal === undefined ? "" : plain(props.proposal)}
       meta={look().meta ?? (nested() > 0 ? `+${nested()}` : undefined)}
@@ -54,8 +56,8 @@ export type SectionProps = {
   order: Order;
   proposals: Accessor<ReadonlyMap<string, ProposalItem>>;
   repo: string;
-  /** The row the visit left the cursor on. */
-  start?: string;
+  /** The proposal open beside the list: marked `current`, and the keys start on it. */
+  open?: string;
   /** Its heading: "Now". */
   title: string;
 };
@@ -65,7 +67,7 @@ export function Section(props: SectionProps) {
   const keys = computed(() => shownIn(props.order.order(), props.id, props.order.runs));
   const items = computed(() => keys().map((id) => ({ id })));
   const cursor = createCursor(items, {
-    initial: props.start,
+    initial: props.open,
     onChange: (id) => id !== undefined && props.onTouched(),
   });
   props.cursor(cursor);
@@ -85,7 +87,9 @@ export function Section(props: SectionProps) {
           label={label}
           onMove={(key, to) => props.order.move({ index: to, key, section: props.id })}
           onOpen={props.onOpen}
-          row={(id) => <ProposalLine proposal={props.proposals().get(id())} />}
+          row={(id) => (
+            <ProposalLine current={id() === props.open} proposal={props.proposals().get(id())} />
+          )}
           testID={`section-${props.id}`}
         />
         <If when={keys().length === 0}>
@@ -115,9 +119,21 @@ export function stepWords(proposal: ProposalItem | undefined) {
   return step.task ?? (step.waitsOn === "human" ? "Waits on you" : "An agent's turn");
 }
 
+/** Who a running proposal's feature waits on, as its row's icon and hue: the sidebar's. */
+function stepLook(proposal: ProposalItem | undefined) {
+  return proposal?.running?.step?.waitsOn === "human"
+    ? { hue: tokens.light.needs, icon: "circle-dot" as const }
+    : { hue: tokens.light.running, icon: "activity" as const };
+}
+
 /** The running proposals, apart: each opens its feature. Nothing to order here. */
 export function Ongoing(props: {
   active: () => boolean;
+  /**
+   * A column: who it waits on is the icon's, as in the sidebar, and only a task is in words, so a
+   * row is not two lines for a state.
+   */
+  compact: () => boolean;
   cursor: (cursor: Cursor) => void;
   keys: Accessor<ReadonlyArray<string>>;
   onOpen: (key: string) => void;
@@ -137,9 +153,14 @@ export function Ongoing(props: {
           const proposal = () => props.proposals().get(id());
           return (
             <Line
-              icon="activity"
+              hue={stepLook(proposal()).hue}
+              icon={stepLook(proposal()).icon}
               label={proposal() === undefined ? "" : plain(proposal()!)}
-              meta={stepWords(proposal())}
+              meta={
+                props.compact()
+                  ? (proposal()?.running?.step?.task ?? undefined)
+                  : stepWords(proposal())
+              }
             />
           );
         }}

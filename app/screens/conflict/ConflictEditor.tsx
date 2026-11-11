@@ -81,17 +81,19 @@ export function ConflictEditor(props: { path: string; repo: string }) {
 
   return (
     <View style={{ flex: 1, gap: 10 }}>
+      {/* The words over the buttons, never in their row: a row that wraps measured the words at
+          their whole length, and sent the last button under the others with room left. */}
+      <View>
+        <Text font="code">{props.path}</Text>
+        <Text size="under" tone="faint">
+          {conflict()?.isResolved === true
+            ? "Resolved: it waits for Continue."
+            : hasMarkers(text.text())
+              ? "Take a side block by block, edit it until no marker is left, or take a side whole."
+              : "No marker is left: Ctrl+Enter saves it."}
+        </Text>
+      </View>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <View style={{ flex: 1, minWidth: 160 }}>
-          <Text font="code">{props.path}</Text>
-          <Text size="under" tone="faint">
-            {conflict()?.isResolved === true
-              ? "Resolved: it waits for Continue."
-              : hasMarkers(text.text())
-                ? "Take a side block by block, edit it until no marker is left, or take a side whole."
-                : "No marker is left: Ctrl+Enter saves it."}
-          </Text>
-        </View>
         <If when={stopped()}>
           {(sides) => (
             <>

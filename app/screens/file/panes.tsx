@@ -4,7 +4,7 @@
 // follows the file's name, so they are there before the file is read, and stay put.
 import { definePane, definePlace } from "../../ui/layout";
 import { Outline } from "./Outline";
-import { fileOf, type FileArgs } from "./read";
+import { fileOf, type FileArgs, tabWord } from "./read";
 import { Reader } from "./Reader";
 import { SpecDecisions } from "./SpecDecisions";
 import { SpecReview } from "./SpecReview";
@@ -15,7 +15,7 @@ export const readerPane = definePane<FileArgs>({
   kind: "file-reader",
   mark: (args) => ({ needs: fileOf(args)()?.status === "awaiting-human" }),
   stack: "main",
-  title: (args) => args.name,
+  title: (args) => tabWord(args.name),
   view: (props) => <Reader args={props.args} />,
 });
 

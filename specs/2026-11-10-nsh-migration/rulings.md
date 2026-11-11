@@ -7061,3 +7061,65 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/ui/controls/zz-probe.ts` was missing from a fresh sandbox's `extensions/modules/`; with it,
   it appeared, its edit reached the copy, and its removal took it away.
 - **Where**: `crates/core/build/track.rs`, `crates/{core,server}/build.rs`.
+
+## T91.3: A cursor on a list's last row stays on the last when that row becomes several
+
+- **Decision**: when the row under a list's cursor goes, and it was the list's last row, the cursor
+  takes the new last row; any other row's cursor takes the row that took its place, as before
+  (`app/ui/lists/cursor.ts`).
+- **Rationale**: a transcript's newest turn is one row until its page is read, then its items. A
+  following list put its cursor on that row, which became the turn's items, and the cursor landed on
+  the first of them: the newest row showed no fill, and the turn's opening message was lit. Seen in
+  the pictures of `/r/sample/f/2026-10-19-dark-mode/session`; the cursor's test failed with
+  `expected "t2/a" to be "t2/c"` before the change.
+- **Where**: `app/ui/lists/{cursor.ts,cursor.test.ts}`.
+
+## T91.4: Priorities: what is open is `current`, the keys start where rows are, a column's states are icons
+
+- **Decision**: the proposal open beside the priorities is marked `current` (its words in the
+  accent), and the keys start on it; otherwise in the first section that has rows, never an empty
+  Now. In a column, a running proposal's row says who it waits on by its icon and hue, the sidebar's
+  (`circle-dot` in the needs colour for you, `activity` in the running colour for an agent), and
+  only a task in words; the list view keeps the words.
+- **Rationale**: the pictures at 1400 showed every Ongoing row two lines tall, "Waits on you"
+  wrapped under each title in a column a quarter of the page wide, and no cursor at all, the keys
+  being in an empty Now. One line per row, in the sidebar's language, reads at a glance; the words
+  stay where there is room.
+- **If wrong**: the words come back under the titles, as a second quiet line.
+- **Where**: `app/screens/priorities/{Priorities,Section}.tsx`, its test's key presses.
+
+## T91.5: One outline for every reader, in the library
+
+- **Decision**: `Outline` in `app/ui/lists/` draws a document's headings, indented by level under
+  the shallowest, a dash each, the part being read marked `current` with `circle-dot`. A workflow
+  file's outline and a buffer's both draw with it; its gallery page is Lists, Rows.
+- **Where**: `app/ui/lists/Outline.tsx`, `app/screens/{file,buffer}/Outline.tsx`.
+
+## T91.6: A workflow file's tab is what a person calls it; its file name is in its head
+
+- **Decision**: a workflow file's tab reads "Plan", "Spec", "Questions, round 1", "Spec review",
+  from its name alone (`tabWord`), so the tab says it before the file is read; a file of no known
+  kind keeps its name. The reader's head names the file after its kind and status: "Plan · Approved
+  · plan.md".
+- **Where**: `app/screens/file/{read.tsx,panes.tsx,facts.ts}`.
+
+## T91.7: A card's fact may be short, with its whole in a tip
+
+- **Decision**: `CardFact` takes `tip`, shown where the pointer rests. A preview's command shows
+  each absolute path from the checkout's top level (a feature's worktree joined to the main
+  checkout), and one outside it by its file name, "node …/serve.mjs --port {port}"; the tip holds it
+  whole. The phrase under a starting preview keeps the whole command.
+- **Where**: `app/ui/lists/Card.tsx`, `app/screens/preview/{command.ts,StoryPage.tsx}`.
+
+## T91.8: The rest of the second join's loose ends
+
+- **Decision**: a job's card no longer says "Scheduled jobs are off": the list's banner says it once
+  (a job's own page, which has no banner, still does). The conflict editor's words sit over its
+  buttons, not in their row: in a wrapping row the paragraph was measured at its whole length and
+  sent Save under the others at 1400; its second row, the block's four buttons, wraps only where the
+  pane is narrower than them. On a phone, a session's head has a smaller title, and who runs it and
+  where in one small line, and an attention banner's words are small.
+- **Rationale**: seen in the pictures of `/r/sample/jobs`, the Git page with a merge stopped on a
+  conflict (made by hand in a sandbox), and `/r/sample/f/2026-10-19-dark-mode/session` at 390.
+- **Where**: `app/screens/jobs/{words.ts,JobCard.tsx}`, `app/screens/conflict/ConflictEditor.tsx`,
+  `app/screens/session/Head.tsx`.

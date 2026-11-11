@@ -62,10 +62,16 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
     Object.entries(order.order()).find(
       ([, keys]) => props.open !== undefined && keys.includes(props.open),
     )?.[0];
-  const at = pane.remember<string>("section", home() ?? "now");
+  // The section the person moved the keys to, else the open proposal's, else the first that has
+  // rows: an empty Now would hold the keys with no cursor to show.
+  const at = pane.remember<string | null>("section", null);
   const cursors = new Map<string, Cursor>();
   const ids = () => sections().map((one) => one.id);
-  const focused = () => (ids().includes(at()) ? at() : (ids()[0] ?? "now"));
+  const focused = () => {
+    const chosen = at() ?? home();
+    if (chosen !== undefined && ids().includes(chosen)) return chosen;
+    return ids().find((id) => countOf(id) > 0) ?? ids()[0] ?? "now";
+  };
   /** The focus into a section, the cursor of the one it leaves let go: one selection in the pane. */
   const enter = (id: string, where: "first" | "last" | number) => {
     const cursor = cursors.get(id);
@@ -147,6 +153,7 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
     return shown.id === "ongoing" ? (
       <Ongoing
         active={active}
+        compact={() => view() === "columns"}
         cursor={keep}
         keys={ongoing}
         onOpen={open}
@@ -164,7 +171,7 @@ export function Priorities(props: { repo: string; width: WidthClass; open?: stri
         proposals={proposals}
         repo={props.repo}
         title={shown.title}
-        start={home() === shown.id ? props.open : undefined}
+        open={props.open}
       />
     );
   };

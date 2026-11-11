@@ -33,9 +33,10 @@ const press = (app: App, keys: ReadonlyArray<string>) =>
 test("a reorder is saved once, in the order shown", async () => {
   const app = await page(false);
   await app.waitUntil(() => before(app, "Nix + Docker", "Benchmarks"), { timeout: 30_000 });
-  // Into Later, two columns right of Now; its first row lifted, carried two steps, dropped one
-  // place down: the steps past its end go nowhere.
-  await press(app, ["l", "l", "m", "j", "j", "j", "enter"]);
+  // The keys start in Ongoing, the first section with rows (Now is empty). Into Later, three
+  // columns right; its first row lifted, carried two steps, dropped one place down: the steps past
+  // its end go nowhere.
+  await press(app, ["l", "l", "l", "m", "j", "j", "j", "enter"]);
   await app.waitUntil(() => moves(app).length > 0, { timeout: 10_000 });
   // The order shows at once, and the server's own order comes back the same.
   expect(before(app, "Benchmarks", "Nix + Docker")).toBe(true);
@@ -58,7 +59,7 @@ test("a refused reorder puts the rows back and says why under them", async () =>
   await app.waitUntil(() => before(app, "Claude Code runner", "Git listener process"), {
     timeout: 30_000,
   });
-  await press(app, ["l", "m", "j", "enter"]);
+  await press(app, ["l", "l", "m", "j", "enter"]);
   await app.waitUntil(() => app.texts().join(" ").includes("changed elsewhere"), {
     timeout: 10_000,
   });

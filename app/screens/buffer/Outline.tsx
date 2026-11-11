@@ -1,12 +1,12 @@
-// A Markdown file's outline: its headings, indented by level, as the text typed has them now, so
-// it follows the edit. `Enter` or a press puts the editor's caret on the heading, and focuses it.
-import { computed, View } from "nsh";
+// A Markdown file's outline, drawn by the library's `Outline`: its headings, indented by level, as
+// the text typed has them now, so it follows the edit. `Enter` or a press puts the editor's caret on the heading, and focuses it.
+import { computed } from "nsh";
 import { outline } from "uraeda/native";
 import { askLine } from "../editor/jump";
 import { bufferKey } from "../editor/FileEditor";
 import { record } from "../../store";
 import { focusPane, PaneScroll, type PaneRef, usePane } from "../../ui/layout";
-import { createCursor, Empty, Line, List } from "../../ui/lists";
+import { createCursor, Outline as OutlineList } from "../../ui/lists";
 import { readUnsaved } from "../../ui/text";
 
 export function Outline(props: { editor: PaneRef; path: string; repo: string }) {
@@ -30,20 +30,17 @@ export function Outline(props: { editor: PaneRef; path: string; repo: string }) 
   });
   return (
     <PaneScroll style={{ flex: 1 }}>
-      <List
+      <OutlineList
         cursor={cursor}
-        empty={<Empty icon="list" title="No headings" words="A line that starts with # is one." />}
-        onOpen={open}
-        openLabel="go to"
-        row={(id) => {
-          const heading = () => headings()[Number(id())];
-          return (
-            <>
-              <View style={{ width: 12 * ((heading()?.level ?? 1) - 1) }} />
-              <Line label={heading()?.title ?? ""} />
-            </>
-          );
+        emptyWords="A line that starts with # is one."
+        heading={(id) => {
+          const heading = headings()[Number(id)];
+          return heading === undefined
+            ? undefined
+            : { id, level: heading.level, title: heading.title };
         }}
+        onOpen={open}
+        top={Math.min(...headings().map((heading) => heading.level), 6)}
         testID="buffer-outline"
       />
     </PaneScroll>

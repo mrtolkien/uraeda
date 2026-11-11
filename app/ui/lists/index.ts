@@ -20,6 +20,7 @@ export { glide } from "./glide";
 export { listKeys, type ListKeysOptions } from "./keys";
 export { Line, type LineProps } from "./Line";
 export { List, type ListProps } from "./List";
+export { Outline, type OutlineHeading, type OutlineProps } from "./Outline";
 export { moved, wentWords } from "./order";
 export { Bar, Row, type RowProps, rowHeight } from "./Row";
 export { SelectableCard, type SelectableCardProps } from "./SelectableCard";
