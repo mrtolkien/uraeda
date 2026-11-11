@@ -3,10 +3,12 @@
 // shell mounts `Stacks`. The guide is `specs/ui/panes.md`.
 export * from "./layout";
 export {
+  actionOf,
   definePane,
   definePlace,
   focusPane,
   kindOf,
+  type PaneAction,
   type PaneArgs,
   type PaneKind,
   type PaneMark,

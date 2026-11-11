@@ -6884,3 +6884,69 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Seen once**: `a_page_fetched_after_its_place_closed_never_runs` failed once during the crates'
   run, while the machine was loaded, and passed rerun alone.
 - **Where**: `app/ui/keys/store.ts`, `crates/app/Cargo.toml`.
+## T65.1: A job's form is one queue of patches, `patched`, beside `sent`
+
+- **Decision**: `app/ui/controls/patched.ts` holds what a form of several fields the server keeps
+  whole does: each field's control moves at once, its change is a patch queued behind the ones
+  before it, applied when its turn comes on what the last kept change wrote (else the record), and
+  sent whole; a refusal takes that patch out, so the field goes back unless a later change stands
+  over it, and says why under that field alone. A kept change shows until the record moves past the
+  value it was kept over. `savedForm` in `app/screens/jobs/form.ts` is the job's, over `jobs.update`
+  with the name the job had then, so a rename followed by another change writes the right job.
+- **Rationale**: `sent` keeps one value: a job's fields as one `sent` would carry a refused time
+  into the next change of another field, and a `sent` per field would build each write on the
+  record, losing the change before it while the record has not shown it yet. The React form was sent
+  back for exactly that ("a form's changes are queued patches, and its controls move at once").
+- **Seen failing**: with each save built on the record alone,
+  `changes made during a save are sent in order` failed with `sent 2: daily 09:30 over 03:00`, the
+  report-only change of the save before it lost; with a refusal leaving its patch queued,
+  `a field refused by the server goes back, and says why under itself` failed, "Runs in no
+  repository yet." still shown.
+- **Where**: `app/ui/controls/patched.ts`, `app/screens/jobs/form.ts`.
+
+## T65.2: The settings' row is the shared saved field, `FieldRow`
+
+- **Decision**: `SettingRow`, `SettingRows`, and `Unlisted` moved from
+  `app/screens/settings/Row.tsx` to `app/ui/lists/FieldRow.tsx` as `FieldRow`, `FieldRows`, and
+  `Unlisted`, unchanged, with a part in the gallery's Rows page. Where a setting's value comes from
+  (`fromWords`) stays in settings. A job's form draws every field with it: one cursor, `j` `k`,
+  Enter doing the row's act (a field takes the focus, a select opens, a box or a switch flips).
+- **Rationale**: the task asks the job's fields to save and refuse as the settings' rows do; two
+  rows would drift. On GTK a pane's controls take no Tab focus, so the rows' cursor is how the keys
+  reach every field (R303).
+- **Where**: `app/ui/lists/FieldRow.tsx`, `app/screens/settings/`, `app/screens/jobs/JobForm.tsx`.
+
+## T65.3: A page's one action is the phone's bottom bar's, declared by its pane
+
+- **Decision**: `definePane` takes `action`, `(args) => { icon, label, run }`: the bottom bar of a
+  narrow window draws the first action of its stack's panes as a tinted tile after their tiles, and
+  shows itself for one pane with an action too. The pane draws the same action by its title on a
+  wider window. The job's form and its history both declare "Run now", so it stays under the thumb
+  whichever pane is shown.
+- **Rationale**: "on the phone it is the bottom bar's one action" (`docs/web-ui.md`); the bar is the
+  frame's, so the frame draws it, from a declaration, as it draws the panes' tiles.
+- **Where**: `app/ui/layout/{panes.tsx,bars.tsx,Stacks.tsx}`, `app/screens/jobs/index.tsx`.
+
+## T65.4: What the Jobs place does otherwise than the React one
+
+- **Decision**:
+  - **The schedule's kind and day are selects at every width**, each a row of the form's cursor,
+    opened by Enter: a popover on a wider window, a sheet on a narrow one. The React form drew a
+    segmented control wide, which no key reaches here (R303), and seven days do not fit one.
+  - **The repositories are a row each**, its box flipped by Enter, under a row that says where the
+    job runs ("Runs in sample.") and takes the refusal "A job runs in one repository at least.".
+  - **The agent, model, and effort are three selects**, in place of the session picker the old form
+    reused: no shared picker exists yet (task 38's start dialog and task 44's run map build theirs).
+    "Default" on the agent clears the three; an agent off here or not installed, and a model or an
+    effort the agent no longer lists, show as themselves.
+  - **"Add the job" opens the job's own page**, the new page's visit replaced (`redirect`), so Back
+    goes to the list and the human goes on with a job that saves as they edit; the old page went to
+    the list with the job selected.
+  - **Every card carries "Run now" and "Delete" by a tap**, as a press on a card opens it (R170):
+    the old bar showed on the selected card alone, which a phone could not select without opening.
+  - **A schedule the core does not understand** reads as a sentence with its way out: "The schedule
+    “monday 03:9:30” is not understood. Type the time as HH:MM, like 03:00.". A time typed `3`,
+    `3:00`, `930`, or `9.30` is sent as `03:00` or `09:30`.
+  - **Where the Jobs extension is off**, the place says so above the cards, with "Turn Jobs on here"
+    (`extensions.setOn`, this repository added); task 51 removes the place there.
+- **Where**: `app/screens/jobs/`.

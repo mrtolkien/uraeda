@@ -30,7 +30,15 @@ export type PaneViewProps<Args extends PaneArgs> = {
   width: WidthClass;
 };
 
+/** A page's one action, which the phone's bottom bar holds: "Run now" of a job. */
+export type PaneAction = { icon: IconName; label: string; run: () => void };
+
 export type PaneSpec<Args extends PaneArgs> = {
+  /**
+   * The one action of the page it is in, which the pane draws by its title on a wider window: on a
+   * narrow one, the bottom bar holds it after the panes' tiles, the place for a thumb.
+   */
+  action?: (args: Args) => PaneAction | undefined;
   /** Whether the human may close it: a place's subject may not. `false` unless given. */
   closes?: boolean;
   /**
@@ -92,6 +100,13 @@ export function definePane<Args extends PaneArgs = Record<string, never>>(
 
 /** The kind of a pane, as declared: `undefined` for a kind no module declared. */
 export const kindOf = (pane: PaneRef): PaneSpec<PaneArgs> | undefined => kinds.get(pane.kind);
+
+/** The action of a stack's panes, the first that has one: the bottom bar's. */
+export const actionOf = (panes: ReadonlyArray<PaneRef>): PaneAction | undefined =>
+  panes.reduce<PaneAction | undefined>(
+    (found, pane) => found ?? kindOf(pane)?.action?.(pane.args),
+    undefined,
+  );
 
 /**
  * Declares the panes a page shows, in order: each in its kind's stack unless given one. The first

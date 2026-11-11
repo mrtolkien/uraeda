@@ -37,6 +37,8 @@ Lists, [`app/ui/lists/`](/app/ui/lists/) (gallery [Lists](/app/gallery/lists/)):
 
 - Rows of one fact: `List`, or `VirtualList` past a screen of rows, each row a `Line`; the cursor is
   `createCursor`, its keys `listKeys`.
+- A value the server keeps, in a form or the settings: `FieldRow` in `FieldRows`, its icon, name,
+  help, source, control, and refusal under it, on one cursor whose Enter does the row's act.
 - A thing of several facts: `Card`; a choice among such things: `SelectableCard`.
 - A theme to choose, drawn in its own colours: `ThemeSample`, the one component that draws a theme's
   colours rather than the tokens'.
@@ -71,7 +73,9 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
 - **Several facts about one thing make a `Card`**: a title a person would say, its state, its times,
   in the order things happened. Never a row of grey words, never an id in a title.
 - **A control moves at once; its refusal sits under it.** A value the server keeps goes through
-  `sent`, and its `refusal` names the way out, under that control, never in a toast.
+  `sent`, and a whole the server keeps of several fields, as a job, through `patched`, whose changes
+  are queued patches each applied on what the one before wrote; its `refusal` names the way out,
+  under that control, never in a toast.
 - **A list has one cursor**, which is its selection: `j` `k`, `g g` `G` (`Home` `End`), `Enter`, the
   pointer too, all from `listKeys` (which `List`, `VirtualList`, and `Tree` call): never a list's
   own `j` `k`. It returns `false` at its ends, so the frame's keys move on. Keep it in the visit,

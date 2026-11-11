@@ -37,4 +37,5 @@ import "./preview";
 // Task 50: Notifications, undo, and writes.
 // Task 51: Built-in extensions, and extension places.
 // Task 65: The Jobs place.
+import "./jobs";
 // The end of the screens.

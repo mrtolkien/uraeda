@@ -5,7 +5,7 @@
 // status line are on a wider window.
 import { Scroll, signal, View, type ViewRef } from "nsh";
 import type { PaneRef, Stack } from "./layout";
-import { kindOf, titleOf } from "./panes";
+import { actionOf, kindOf, titleOf } from "./panes";
 import type { RailPlace } from "./Rail";
 import { markOf } from "./Stack";
 import { Icon, Text } from "../controls";
@@ -187,13 +187,18 @@ const wordWidth = (title: string) => title.length * tokens.type.under * 0.62 + 1
  * The bottom bar: a tile per pane of the one stack, an icon over its word, pressed to show it.
  * Each tile is as wide as its word, and the bar shares what is left. When the words do not all fit,
  * as five panes on a phone, the tiles keep their icons, and only the shown one keeps its word: a
- * cut word reads worse than none, and the icon still names a pane to screen readers.
+ * cut word reads worse than none, and the icon still names a pane to screen readers. The page's
+ * one action, as a job's "Run now", ends the bar, tinted, after a rule: a press runs it.
  */
 export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }) {
   const room = signal(0);
   const worded = () =>
     room() === 0 ||
-    props.stack.panes.reduce((sum, pane) => sum + wordWidth(titleOf(pane)), 0) <= room();
+    props.stack.panes.reduce((sum, pane) => sum + wordWidth(titleOf(pane)), 0) +
+      (actionOf(props.stack.panes) === undefined
+        ? 0
+        : wordWidth(actionOf(props.stack.panes)?.label ?? "")) <=
+      room();
   return (
     <Surface
       glass
@@ -251,6 +256,31 @@ export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }
           );
         }}
       </Each>
+      <If when={actionOf(props.stack.panes)}>
+        {(action) => (
+          <View
+            accessibilityLabel={action().label}
+            onPress={() => action().run()}
+            role="button"
+            style={{
+              alignItems: "center",
+              backgroundColor: tokens.control.tint(tokens.role.action),
+              borderLeftColor: tokens.role.ruleQuiet,
+              borderLeftWidth: 1,
+              flexBasis: wordWidth(action().label),
+              flexShrink: 0,
+              gap: 1,
+              justifyContent: "center",
+            }}
+            testID="bottom-bar-action"
+          >
+            <Icon colour={tokens.role.action} name={action().icon} />
+            <Text bold colour={tokens.role.action} lines={1} size="under">
+              {action().label}
+            </Text>
+          </View>
+        )}
+      </If>
     </Surface>
   );
 }

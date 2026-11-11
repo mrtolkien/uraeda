@@ -41,6 +41,9 @@ const PAGES: Record<string, { address: string; words: string }> = {
   sessions: { address: "/r/sample/sessions", words: "Add a dark theme" },
   "session-id": { address: "/r/sample/sessions/gone", words: "No such session" },
   session: { address: "/r/sample/f/2026-10-19-dark-mode/session", words: "Dark mode" },
+  jobs: { address: "/r/sample/jobs", words: "Weekly report" },
+  job: { address: "/r/sample/jobs/Dependencies", words: "Upgrade the dependencies" },
+  "job-new": { address: "/r/sample/jobs/new", words: "Add the job" },
   missing: { address: "/r/sample/nowhere", words: "nowhere" },
   storybook: {
     address:

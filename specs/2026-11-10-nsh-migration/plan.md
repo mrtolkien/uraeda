@@ -3025,12 +3025,25 @@ default branch's [scheduled jobs](../done/2026-11-10-scheduled-jobs.md) feature.
 - **Tests:** `a field refused by the server goes back, and says why under itself`;
   `changes made during a save are sent in order`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): the Jobs place`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 117 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): the Jobs place`.
+
+**As built** (rulings T65.1 to T65.4):
+
+- `app/screens/jobs/`: the panes `jobs-list` (`/jobs`, main), `job-form` and `job-history`
+  (`/jobs/<name>`, main and side), `job-new` (`/jobs/new`). Tests in `jobs.test.tsx`, its pages in
+  `__checks__/`.
+- `app/ui/controls/patched.ts`: `patched(truth, send)`, a whole of several fields saved as queued
+  patches, each field a `Sent` by `field(at, get, set)`.
+- `app/ui/lists/FieldRow.tsx`: `FieldRow`, `FieldRows`, `Unlisted`, the settings' row moved, shared.
+- `definePane`'s `action`, `PaneAction`, `actionOf`: a page's one action, the phone's bottom bar's.
+- Left to task 51: the line in `app/extensions/builtins/` that declares the place through the page
+  API, and removing the place where the Jobs extension is off; until then the place says so, with
+  "Turn Jobs on here".
 
 ## Task 66: Moving panes
 

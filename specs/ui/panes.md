@@ -141,6 +141,9 @@ The rules that make a pane work everywhere:
 - **Its action may lead to another pane**: `focusPane(ref)` focuses it, showing it, as a list's
   Enter focuses the detail it opened in the other stack.
 - **`closes`** says the human may close it. A place's subject never closes.
+- **`action`** is the page's one action, as a job's "Run now": the pane draws it by its title on a
+  wider window, and on a narrow one the bottom bar holds it, after the panes' tiles, where a thumb
+  reaches it.
 - **`kind` is unique** across the app: `definePane` throws on a second one. Name it after its
   screen, `session-changes`.
 

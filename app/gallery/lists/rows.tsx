@@ -4,7 +4,9 @@
 import { type JSX, View } from "nsh";
 import { Page, Part } from "../parts";
 import { KeyScope } from "../../ui/keys/registry";
-import { createCursor, Empty, Line, List, VirtualList } from "../../ui/lists";
+import { signal } from "nsh";
+import { sent, Switch } from "../../ui/controls";
+import { createCursor, Empty, FieldRow, FieldRows, Line, List, VirtualList } from "../../ui/lists";
 import { tokens } from "../../ui/tokens";
 
 /** A list's keys, in a pane that has the focus only when `on`. */
@@ -66,6 +68,38 @@ export function manyRow(id: () => string) {
   );
 }
 
+/** Two saved fields: one the server keeps, one it refuses, with the way out under it. */
+function Fields() {
+  const night = sent(signal(true), () => Promise.resolve());
+  const vim = sent(signal(false), () =>
+    Promise.reject(
+      new Error("config.toml cannot be written: its folder is read-only. Make it writable."),
+    ),
+  );
+  const fields = () => [{ act: () => night.set(!night.value()), id: "night" }, { id: "vim" }];
+  return (
+    <FieldRows rows={fields}>
+      <FieldRow
+        control={<Switch label="Night" onChange={night.set} value={night.value()} />}
+        from="Set in config.toml"
+        help="Darker colours after sunset."
+        icon="eye"
+        id="night"
+        label="Night"
+      />
+      <FieldRow
+        control={<Switch label="Vim" onChange={vim.set} value={vim.value()} />}
+        from="The default, off"
+        help="Vim's keys in every text field."
+        icon="square-terminal"
+        id="vim"
+        label="Vim mode"
+        refusal="config.toml cannot be written: its folder is read-only. Make it writable."
+      />
+    </FieldRows>
+  );
+}
+
 export function rows(narrow: boolean) {
   const short = createCursor(() => PLACES, { initial: "sessions" });
   const range = createCursor(() => PLACES, { range: true, initial: "priorities" });
@@ -98,6 +132,11 @@ export function rows(narrow: boolean) {
             }
             row={place}
           />
+        </Scoped>
+      </Part>
+      <Part narrow={narrow} title="FieldRow · a saved field">
+        <Scoped name="Fields">
+          <Fields />
         </Scoped>
       </Part>
       <Part narrow={narrow} title="VirtualList · 20,000 rows" wide>

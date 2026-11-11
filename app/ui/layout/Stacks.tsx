@@ -18,7 +18,7 @@ import {
   type StackName,
   sync,
 } from "./layout";
-import { focusWanted, placeOf } from "./panes";
+import { actionOf, focusWanted, placeOf } from "./panes";
 import { Rail, type RailSlots } from "./Rail";
 import { SideRail } from "./SideRail";
 import { StackView } from "./Stack";
@@ -205,7 +205,12 @@ export function Stacks(props: StacksProps) {
                       testID="stack-one"
                     />
                   </View>
-                  <If when={narrowed(layout()).panes.length > 1}>
+                  <If
+                    when={
+                      narrowed(layout()).panes.length > 1 ||
+                      actionOf(narrowed(layout()).panes) !== undefined
+                    }
+                  >
                     <BottomBar onShow={onShow} stack={narrowed(layout())} />
                   </If>
                   <Sheet
