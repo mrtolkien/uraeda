@@ -5,8 +5,11 @@ corners, and its titled panes. It adds depth, glass, and light, and gives each o
 The [UI look](../decisions/ui-look.md) and [UI components](../decisions/ui-components.md) decisions
 bind; this guide says how they look. A
 [browser mockup](../2026-11-10-nsh-migration/mockups/design-language.html) shows it, and its values
-were tuned there, over four rounds with the human. A browser is not the real renderer: the plan's
-samples prove the values on a real window before any component is built.
+were tuned there, over four rounds with the human. A browser is not the real renderer: eight
+[samples](/app/gallery/samples/) then drew it on GTK, in both themes, and the values below are the
+ones that passed there. They are constants in [`values.ts`](/app/gallery/samples/values.ts), which
+the tokens lift, and `just samples-shots` takes the samples' pictures. Where GTK cannot draw a rule
+as written, the rule says so, with the ruling that holds the nearest look.
 
 ## The idea
 
@@ -46,9 +49,9 @@ default dark theme; every theme maps its own.
   looked wrong, worst of all under small keys. A well shaded on two sides looked too deep.
 - **Three strengths exist**, as the token `height.depth`: `tone` is the fills alone; `lips`, the
   default, adds the 1 px of shade or light; `soft` adds soft shadows.
-- **Every edge is `edge`, `#6c7086`**: the dimmest line that still reaches 3:1 against its surface,
-  as the UI look decision asks of a border. A line that only separates rows inside a pane is dimmer
-  still: `edge.quiet`.
+- **Every edge is `edge`, `#70748b`**: the dimmest line that still reaches 3:1 against every surface
+  it borders, a raised card first, as the UI look decision asks of a border. A line that only
+  separates rows inside a pane is dimmer still: `edge.quiet`.
 - **Under them all is the backdrop**, `backdrop`, `#11111b`: the darkest colour on screen. Panes sit
   on it with a gap, as tiled windows on a desktop: 8 px on a wide window, 4 px on a narrow one, 2 px
   on a phone. The gap is the same everywhere.
@@ -88,7 +91,8 @@ default dark theme; every theme maps its own.
   green, visual the second accent, replace red.
 - **Text never glows, and is never blurred.** Light belongs to edges and to the main button.
 - **A selected row** has a 2 px bar of `light.focus` on its left edge, a fill one step up, and no
-  outer glow: a list of glowing rows would shout.
+  glow round it: a list of glowing rows would shout. Only its bar is lit, by 8 px at 60%, in a dark
+  theme.
 
 ## Motion means a change of state
 
@@ -140,18 +144,23 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
 
 | Part          | Dark theme                                                               | Light theme         |
 | ------------- | ------------------------------------------------------------------------ | ------------------- |
-| Frost         | A blur of 14 px, taken once from a quarter-size copy of the backdrop     | The same            |
-| Tint          | The well's colour at 62%, warmed by `glass.tint`                         | The surface's, 72%  |
+| Frost         | A blur 14 px across, taken once from a quarter-size copy of the backdrop | The same            |
+| Tint          | The well's colour at 62%, warmed by `glass.tint`, up to 92% when bright  | The surface's, 72%  |
 | Colour kept   | Saturation raised by 80%, brightness lowered by 8%                       | Saturation by 50%   |
 | The bent edge | In a band of 12 to 22 px inside each edge, the backdrop is pulled inward | The same            |
 | Colour fringe | Red, green, and blue bent by 100%, 97.5%, and 95% of that pull           | The same            |
 | Rim           | 1 px, white at 60% at the top left and bottom right corners, 7% between  | White, 100% and 35% |
 | Light inside  | A white line under the top edge, and a shade above the bottom edge       | The same, lighter   |
-| Grain         | 5%, so a blur never shows bands                                          | 3.5%                |
+| Grain         | 5% of what is there, lighter and darker, so a blur never shows bands     | 1.5%                |
 
 - **What makes it glass, not a grey panel**, in this order: the backdrop bends at the edge while the
   middle stays still; the rim is bright at two opposite corners and dim between; colour survives the
-  tint; and the edge is sharper than the frosted middle.
+  tint; and the edge is sharper than the frosted middle: it keeps 35% of the frost, and is pulled
+  inward by 1.6 times the band's width at most.
+- **The frost is 14 px across**: a Gaussian blur whose deviation is 7 px. At a deviation of 14 px
+  the glass showed no shape of what is behind it, and read as fog.
+- **The grain is an overlay**: it lightens and darkens what is there by its share. Added as a fixed
+  amount, 5% drew sandpaper on dark glass, and 3.5% drew speckle on light glass.
 - **Square corners need care.** A lens that follows the box's edges tears along each corner's
   diagonal, and lights whole edges evenly, like an old bevel. So the pull's direction comes from a
   box with rounded corners, twice the band wide, while the shape stays square. The rim's brightness
@@ -160,13 +169,22 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
   colour, darker than a pane, and what is behind is dimmed a little.
 - **Glass shows shapes and colours, never words.** If a word behind it can be read, the frost is too
   weak. If the text on it falls under 4.5:1 over the busiest page, the tint is too thin: the tint
-  thickens where the backdrop is bright.
+  thickens where the backdrop is bright, by 30% of the whole at most, and where it is dark in a
+  light theme, by 20%. Measured on the samples' pixels, the dimmest text on glass reaches 4.7:1 in
+  both themes.
 - **Long prose never sits on glass**, and a pane is never glass.
 - **A platform's own glass replaces this recipe** where it has one, as on iOS. The height stays the
   same: only what draws it changes.
 - **Glass costs frames.** At most three glass surfaces are on screen at once, and one of them may be
   an overlay. The frost is taken once and shared. When a frame runs late, the fringe goes first,
   then the bent edge: the rim, the tint, and the grain cost nothing.
+- **On GTK each glass takes its own picture** of what is behind it, at full size, each time that
+  changes: there is no shared copy, and no smaller one. The frost is one pass of 64 taps, turned at
+  each pixel so their gaps make no ghost (ruling R129). A bar over a transcript that scrolls fast
+  cost 0.3 ms a frame, and its frames stayed under 8.3 ms at the 99th percentile.
+- **What moves by itself stays away from glass.** Glass draws again whenever what is behind it
+  changes: a breathing glow under a bar would make the bar draw a frame for each of its own. A pane
+  clips what it holds, so a main action's glow stays inside its pane.
 
 ## Type
 
@@ -196,8 +214,12 @@ of Apple's glass, listed under [where it comes from](#where-it-comes-from).
 Glow needs darkness. In the light theme, light becomes ink:
 
 - A focused edge is the same gradient, at full strength, with no outer glow. In its place sits a
-  soft shadow tinted with `light.focus`, at 18%.
+  soft shadow tinted with `light.focus`, at 24%.
 - The backdrop is the darkest of the light colours, and its wash is 5% at most.
+- A key's block is the lightest thing around it, the accent at 10% over white, where a dark theme's
+  is the accent at 20% over the backdrop: the letter reaches 4.5:1 on both, and under the pointer.
+- The accents and the faint ink are the theme's own darkened ones, as the shipped Latte has them:
+  the mockup's teal, orange, and faint ink fell under 4.5:1 on a plain surface, and so on glass.
 
 ## Roles this adds to a theme
 
@@ -253,4 +275,5 @@ the smallest complete model;
 [Hyprland's acrylic finish](https://github.com/hyprwm/Hyprland/blob/main/src/render/shaders/glsl/acrylicfinish.frag);
 [liquid-glass-studio](https://github.com/iyinchao/liquid-glass-studio/blob/main/src/shaders-wgsl/fragment-main.wgsl),
 in WGSL; and [kube.io's write-up](https://kube.io/blog/liquid-glass-css-svg) for the browser. None
-of them draws a square panel: the care for corners above is this guide's, and untested.
+of them draws a square panel: the care for corners above is this guide's, and the samples' shader
+draws it on GTK.

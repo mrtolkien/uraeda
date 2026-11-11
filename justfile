@@ -79,6 +79,18 @@ app-test:
 app-dev *args:
     {{ nsh }} run "$@"
 
+# The design language's samples as pictures, in `target/shots/samples/`, on the hidden display:
+# all of them, or those whose test's name holds a word, `just samples-shots glass`.
+samples-shots filter="":
+    mkdir -p target/shots/samples
+    hidden-display {{ nsh }} test gallery/samples/samples.test.tsx --target linux --filter "{{ filter }}"
+
+# What a frame costs with the glass bar over a transcript that scrolls by itself, then with no
+# bar, on the hidden display: Native Shell's frame timing, one `nsh::perf` line a second, for 30
+# seconds each.
+samples-frames:
+    hidden-display {{ nsh }} test gallery/samples/frames.test.tsx --target linux --fps -v
+
 # Any other command of Native Shell's CLI on the app, `just nsh build`.
 nsh *args:
     {{ nsh }} "$@"

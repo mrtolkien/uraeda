@@ -3011,3 +3011,105 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Alternatives considered**: a synchronous read through `uraeda/native`, on Rust's `Storage`: a
   second path to keep on the web build, for one read at the start.
 - **Where**: `app/store/device.ts`, `app/store/device.test.ts`.
+
+## R129: Glass on GTK is one shader pass over the picture each view gets
+
+- **Decision**: glass is a `<Shader>` that reads what is behind its box with `sample_backdrop`. The
+  language's "frost taken once from a quarter-size copy of the backdrop, and shared" is not drawn on
+  GTK: each glass view blurs its own picture, in one pass.
+  - The frost is 64 taps on a spiral, weighted as a Gaussian of 7 px, and turned by a different
+    angle at each pixel. With taps this far apart a fixed spiral drew ghosts of the text behind, as
+    the spike's grid of 49 taps did. The turn makes them a dither finer than the grain.
+  - In the bent band, each tap reads three points, one per colour, for the fringe.
+  - The rim, the sheen, the line of light, the shade, and the grain are drawn by the same shader.
+    Its drop shadow is the view's `boxShadow`.
+  - The tint thickens with the brightness of what the frost returns, so the floor holds over any
+    page: over white, the dark theme's glass is 92% tint.
+- **Rationale**: NSH gives a shader one picture of what is behind its view, at full size, with no
+  smaller level and no second pass, and takes it again whenever a view behind changes. Nothing is
+  shared between two glass views.
+- **Alternatives considered**: two shaders on one box, one blurring across and one down: a smooth
+  blur from fewer taps, at the cost of two pictures a frame and of a frame or two more of lag, since
+  a shader's frame comes back from the GPU a frame or two late. Not tried: one pass passed the
+  tests.
+- **If wrong**: the taps are read on the GPU, off the main thread, so their number shows in no frame
+  timing here. On a slow GPU the glass would lag what scrolls under it by more frames: the
+  language's order holds, the fringe goes first, then the bent edge.
+- **Where**: `GLASS` in [`app/gallery/samples/shaders.ts`](/app/gallery/samples/shaders.ts). Task 27
+  moves it to `app/ui/surfaces/glass.wgsl`.
+
+## R130: What GTK draws otherwise than a browser, and how the samples draw it
+
+- **Decision**: three parts of the language are drawn another way than the mockup's CSS.
+  - **The focused pane's glow is a shader that draws once**, from the distance to the pane's shape,
+    its title's tab included. As `filter: drop-shadow()` on the pane, GTK drew the same picture, and
+    blurred the whole pane again on some frames of a scroll: the worst frame of each second went
+    from 6.5 ms to 11.5 ms at the median, on the hidden display. The glow's shape needs the title's
+    width, which `onLayout` gives.
+  - **The focused outline is four lines of 1 px**, each a gradient along itself: mauve at the bottom
+    left corner, blue at the top right, and their mix at the two others, which is where a gradient
+    at 45° puts them on a square pane. The title's tab takes the mix. A CSS gradient cannot follow a
+    shape that is not a box, and NSH has no clip path.
+  - **A tube's inner light is a gradient** from its two long edges. As an inset shadow with a blur,
+    GTK drew it in three bands with seams between them.
+- **Rationale**: each was seen in a picture, or measured, on GTK.
+- **If wrong**: the glow's shader draws again when the pane's size changes, a frame or two late:
+  while a pane is resized by hand its glow follows it late. Not seen: no sample resizes.
+- **Where**: `GLOW` in [`app/gallery/samples/shaders.ts`](/app/gallery/samples/shaders.ts), `pane`
+  in [`parts.tsx`](/app/gallery/samples/parts.tsx), `button` in
+  [`controls.tsx`](/app/gallery/samples/controls.tsx). Tasks 27 and 28.
+
+## R131: How the samples were checked, and what the hidden display cannot say
+
+- **Decision**: the language's three tests were read from the samples' pictures and from NSH's frame
+  timing, on the hidden display.
+  - **Contrast**: each sample with text on glass is pictured twice, the second time with nothing on
+    its glass. The pixels that differ are what sits on the glass, and the second picture has the
+    glass under them. Blocks aside, they are the strokes of text and icons: each text colour written
+    on that glass is compared with the glass under every one of them. The lowest ratios: 4.70 in the
+    dark theme, the faint ink on the bar over the transcript, and 4.71 in the light one, the insert
+    mode's green on the status line over the busiest page.
+  - **Motion**: each sample is pictured again 1.5 s later. No pixel differs in any sample, in either
+    theme, but round the one main action of the two samples that have one.
+  - **Frames**: the glass bar over a transcript of 20,000 rows that scrolls 900 points a frame, for
+    30 s, with `nsh test --fps`: 1,740 frames at 60 a second, 5.34 ms a frame on average, the 95th
+    percentile of each second between 5.74 and 6.42 ms, and one second with frames over 8.3 ms, at
+    most three of them, the worst 8.96 ms. So the 99th percentile is under 8.3 ms. The same scroll
+    with no bar: 5.02 ms on average. The machine's load was about 4 during both.
+- **Rationale**: the task asks for numbers from pixels and from NSH's own timing, and
+  [R17](#r17-the-invisible-display-is-hidden-display) allows no other display.
+- **If wrong**: the hidden display draws in software, so its frame timing is not the desktop's. The
+  spike's same scroll cost 5.3 ms a frame there, and 2.0 ms on the GPU. No measure on a GPU was
+  taken here: `just frames` (task 35) and the performance task (53) need a display that draws on the
+  GPU and shows on no screen, or the human's leave to use theirs.
+- **Where**: [`samples.test.tsx`](/app/gallery/samples/samples.test.tsx) and
+  [`frames.test.tsx`](/app/gallery/samples/frames.test.tsx), run by `just samples-shots` and
+  `just samples-frames`. The script that reads the pictures' pixels is not in the repository: it was
+  Python, which the repository does not have.
+
+## R132: The values the samples corrected, and what they took that the language left open
+
+- **Decision**: the design language keeps its rules, and these values changed.
+  - **`edge`**: `#6c7086` to `#70748b`. On a raised card, `#2a2b3e`, the old one reached 2.84:1,
+    under the 3:1 a border needs. The new one reaches 3.01:1 there, measured.
+  - **Frost**: "a blur of 14 px" is 14 px across, a deviation of 7 px, which is what the mockup's
+    lens drew. At a deviation of 14 px the glass was fog.
+  - **Grain**: an overlay of 5% in the dark theme, and 1.5% in the light one, from 3.5%.
+  - **The tint's thickening** has a value: 30% of the whole at most in the dark theme, 20% in the
+    light one.
+  - **The edge of glass** keeps 35% of the frost, and is pulled inward by 1.6 bands at most.
+  - **The light theme's focus shadow**: 24%, as the mockup has it, where the guide said 18%.
+  - **A key's block**: under the pointer, the accent at 32% over the backdrop, from 38%, where the
+    letter reached 3.94:1. In the light theme, the accent at 10% over white: on the mockup's
+    lavender block the letter reached 3.14:1.
+  - **The light theme's roles** are the shipped Latte's darkened accents and faint ink. The mockup's
+    faint ink, teal, and orange reached 4.37, 4.23, and 4.18:1 on a plain surface.
+- **Left open by the language, and taken**: a pane clips what it holds, as the mockup's does, so a
+  main action's glow never reaches the status line's glass; the main action of a page rests while an
+  overlay has the focus; and a selected row's bar keeps the mockup's glow of 8 px.
+- **Not drawn by any sample**: what moves when a state changes, the light's glide, a run's line
+  drawn and faded, the caret's trail, a press. Their durations and curves are in `values.ts`, as the
+  language has them. Tasks 27, 28, and 30 draw them.
+- **Where**: [`design-language.md`](/specs/ui/design-language.md), and
+  [`values.ts`](/app/gallery/samples/values.ts), whose `choices` holds each open choice of
+  [R13](#r13-the-designs-open-choices-taken-by-default) at the value it names.

@@ -1720,9 +1720,10 @@ ported, beyond accounts and jobs.
 
 **Files:**
 
-- Create: `app/gallery/samples/` (eight rendered samples)
+- Create: `app/gallery/samples/` (eight rendered samples, their values, their shaders, and the two
+  tests that picture and time them)
 - Modify: [`specs/ui/design-language.md`](/specs/ui/design-language.md), where a sample proves a
-  value wrong
+  value wrong; the [`justfile`](/justfile), for the two recipes
 
 **Interfaces:**
 
@@ -1730,24 +1731,40 @@ ported, beyond accounts and jobs.
   of LazyVim, Zed, Hyprland, and Linux desktop setups, and its
   [browser mockup](mockups/design-language.html), which is the reference for how each sample should
   look. Its values were tuned in a browser, not on GTK.
-- Produces: the same language, with its values proven on GTK, which tasks 26 to 33 follow.
+- Produces: the same language, with its values proven on GTK, which tasks 26 to 33 follow, and:
+  - [`values.ts`](/app/gallery/samples/values.ts): every value of the language, shaped as the
+    tokens: `roles` (a theme's colours, by mode), `choices` (the open choices, by their token's
+    name), and `values(mode)`, one set per part: `height` (fill, edge, lip, shadow, glass, for each
+    of the four heights), `pane`, `light`, `row`, `glass`, `button`, `key`, `status`, `motion`,
+    `type`, `space`, `backdrop`. Task 26 lifts it.
+  - [`shaders.ts`](/app/gallery/samples/shaders.ts): `GLASS`, `GLOW` (the focused pane's), and
+    `BACKDROP` (the wash and the grain), in WGSL, with their uniforms. Task 27 lifts them.
+  - `just samples-shots [word]`: the samples' pictures in `target/shots/samples/`, on the hidden
+    display, all of them or those whose test's name holds the word (`dark`, `glass`). It is
+    `hidden-display` and `nsh test <file> --target linux`, whose tests call `app.screenshot(path)`:
+    `just app-shots` and `just gallery-shots` are built the same way.
+  - `just samples-frames`: NSH's frame timing, one `nsh::perf` line a second, of a transcript that
+    scrolls by itself, with `nsh test --target linux --fps -v`: `just frames` is built the same way.
+  - The rulings R129 to R132: how glass, the glow, and a tube's light are drawn on GTK, how the
+    tests were measured, and each value that changed.
 
-- [ ] **Step 1: Render eight samples** in a throwaway gallery page, in both themes: every height
+- [x] **Step 1: Render eight samples** in a throwaway gallery page, in both themes: every height
       nested in every other; a pane at rest beside a focused one, each with its border round its
       title; a glass bar over a scrolling transcript; buttons and keycaps in every state; a dialog
       over a dimmed page; a list with a selected row and its bar; the status line; and a session
-      with an agent running. Take their pictures on GTK, on an invisible display, with the
-      screenshot script of the spike's `tools/`.
-- [ ] **Step 2: Check each against the language's own tests**: text over glass meets the contrast
+      with an agent running. Take their pictures on GTK, on an invisible display. The spike's script
+      read the X window: NSH's test driver takes the picture itself, so the samples' test does, with
+      `just samples-shots`.
+- [x] **Step 2: Check each against the language's own tests**: text over glass meets the contrast
       floor over the busiest page; the glass bar over the scrolling transcript costs under 8.3 ms a
       frame at the 99th percentile; nothing in a sample moves unless a state just changed, but a
       view's one main action.
-- [ ] **Step 3: Compare each picture with the mockup, and correct the language's values** where a
+- [x] **Step 3: Compare each picture with the mockup, and correct the language's values** where a
       sample fails a test or drifts from the mockup. Say which in the commit. Change a value, never
       a rule: where a rule cannot be drawn on GTK, keep the nearest look that passes the tests, and
       write a ruling.
-- [ ] **Step 4: Take the open choices as written**, each behind its token, as ruling R13 says.
-- [ ] **Step 5: Commit**: `docs(nsh-migration): the design language's samples`. Keep the pictures in
+- [x] **Step 4: Take the open choices as written**, each behind its token, as ruling R13 says.
+- [x] **Step 5: Commit**: `docs(nsh-migration): the design language's samples`. Keep the pictures in
       `target/shots/samples/`, for the pull request, never in the repository.
 
 ## Task 26: Tokens, themes, and fonts
