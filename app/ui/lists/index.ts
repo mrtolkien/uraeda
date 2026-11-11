@@ -14,6 +14,7 @@ export { Collapsible, type CollapsibleProps } from "./Collapsible";
 export { createCursor, type Cursor, type CursorOptions, type Item } from "./cursor";
 export { DragOrder, type DragOrderProps } from "./DragOrder";
 export { Empty, type EmptyProps } from "./Empty";
+export { FieldRow, type FieldRowProps, FieldRows, type RowSpec, Unlisted } from "./FieldRow";
 export { glide } from "./glide";
 export { listKeys, type ListKeysOptions } from "./keys";
 export { Line, type LineProps } from "./Line";

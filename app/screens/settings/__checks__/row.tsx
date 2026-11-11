@@ -1,7 +1,7 @@
 // What `settings.test.tsx` opens: a category's rows in a pane, as the settings draw them, one a
 // switch whose server refuses every change after half a second, with the way out.
 import { mount, signal, Text, View } from "nsh";
-import { SettingRow, SettingRows } from "../Row";
+import { FieldRow, FieldRows } from "../../../ui/lists";
 import { sent, Switch } from "../../../ui/controls";
 import { KeysHost } from "../../../ui/keys/KeysHost";
 import { KeyScope } from "../../../ui/keys/registry";
@@ -18,14 +18,9 @@ function Rows() {
   const rows = () => [{ id: "other" }, { act: () => vim.set(!vim.value()), id: "vim" }];
   return (
     <View style={{ flex: 1, padding: 16 }}>
-      <SettingRows rows={rows}>
-        <SettingRow
-          help="A row before it."
-          icon="keyboard"
-          id="other"
-          label="Single-key shortcuts"
-        />
-        <SettingRow
+      <FieldRows rows={rows}>
+        <FieldRow help="A row before it." icon="keyboard" id="other" label="Single-key shortcuts" />
+        <FieldRow
           control={
             <Switch
               label={vim.value() ? "on" : "off"}
@@ -41,7 +36,7 @@ function Rows() {
           label="Vim mode"
           refusal={vim.refusal()}
         />
-      </SettingRows>
+      </FieldRows>
       <Text>{`Vim: ${vim.value() ? "on" : "off"}`}</Text>
     </View>
   );

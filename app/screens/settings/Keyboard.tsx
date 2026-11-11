@@ -3,7 +3,8 @@
 import { View } from "nsh";
 import { FileProblem, savedField, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
-import { fromWords, isOverridden, onOff, SettingRow, SettingRows } from "./Row";
+import { fromWords, isOverridden, onOff } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { call } from "../../store";
 import { Button, sent, Switch } from "../../ui/controls";
 import { pressKeys } from "../../ui/keys";
@@ -47,11 +48,11 @@ export function Keyboard() {
       <If when={settings()?.problem}>
         {(problem) => <FileProblem file={settings()!.file} problem={problem()} />}
       </If>
-      <SettingRows rows={rows}>
+      <FieldRows rows={rows}>
         <If when={writable() ? keyboard() : undefined}>
           {(shown) => (
             <>
-              <SettingRow
+              <FieldRow
                 {...words("Single-key shortcuts")}
                 control={
                   <Switch
@@ -67,7 +68,7 @@ export function Keyboard() {
                 overridden={isOverridden(shown().singleKeyShortcuts)}
                 refusal={single.refusal()}
               />
-              <SettingRow
+              <FieldRow
                 {...words("Vim mode")}
                 control={
                   <Switch
@@ -83,7 +84,7 @@ export function Keyboard() {
                 overridden={isOverridden(shown().vimMode)}
                 refusal={vim.refusal()}
               />
-              <SettingRow
+              <FieldRow
                 {...words("Vim commands")}
                 from={`${fromWords(shown().vimCommands, (lines) => `${lines.length} lines`)}. The app's Vim does not run them yet: they are kept for when it does.`}
                 icon="terminal"
@@ -113,13 +114,13 @@ export function Keyboard() {
             </>
           )}
         </If>
-        <SettingRow
+        <FieldRow
           {...words("Key map")}
           control={<Button icon="keyboard" label="Show every key" onPress={() => pressKeys("?")} />}
           icon="list"
           id="map"
         />
-      </SettingRows>
+      </FieldRows>
     </View>
   );
 }

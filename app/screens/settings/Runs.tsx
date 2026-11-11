@@ -4,7 +4,8 @@
 import { View } from "nsh";
 import { FileProblem, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
-import { fromWords, isOverridden, onOff, SettingRow, SettingRows } from "./Row";
+import { fromWords, isOverridden, onOff } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { call, record } from "../../store";
 import type { ContinueKind, RunSettings, Setting } from "../../store/protocol";
 import { NumberInput, Select, type Sent, sent, Switch, Text } from "../../ui/controls";
@@ -60,7 +61,7 @@ function ContinueRow(props: {
   const setting = (): Setting<boolean> | undefined => props.runs()?.[props.kind.field];
   const value = props.value;
   return (
-    <SettingRow
+    <FieldRow
       {...wordsOf("runs", props.kind.label)}
       control={
         <Switch
@@ -119,7 +120,7 @@ function DefaultAgent(props: {
       : `Unset: the first agent on runs, ${name} now.`;
   };
   return (
-    <SettingRow
+    <FieldRow
       {...wordsOf("runs", "Default agent")}
       control={
         <Select
@@ -149,7 +150,7 @@ function Continues(props: { runs: () => RunSettings | undefined }) {
     (continues: number) => call("settings.setAutomaticContinues", { continues: String(continues) }),
   );
   return (
-    <SettingRow
+    <FieldRow
       {...wordsOf("runs", "Automatic continues in a row")}
       control={
         <NumberInput
@@ -198,10 +199,10 @@ export function Runs() {
       <If when={settings()?.problem}>
         {(problem) => <FileProblem file={settings()!.file} problem={problem()} />}
       </If>
-      <SettingRows rows={rows}>
+      <FieldRows rows={rows}>
         <If when={runs() !== undefined}>
           <DefaultAgent opener={(open) => (openAgent = open)} runs={runs} />
-          <SettingRow
+          <FieldRow
             {...wordsOf("runs", "How each step runs")}
             icon="workflow"
             id="map"
@@ -235,7 +236,7 @@ export function Runs() {
             A change applies at once: turning a continue off cancels the waits it started.
           </Text>
         </If>
-      </SettingRows>
+      </FieldRows>
     </View>
   );
 }

@@ -5,7 +5,7 @@
 import { signal, View } from "nsh";
 import { wordsOf } from "./categories";
 import { savedField } from "./fields";
-import { SettingRow, SettingRows } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { call, extensionHost, record, serverDay, serverDaysAgo } from "../../store";
 import type { Device } from "../../store/protocol";
 import { Banner, Button, refusalOf, Text, Under } from "../../ui/controls";
@@ -139,14 +139,14 @@ const ROWS = () => [{ id: "devices" }, { id: "pair" }];
 
 export function SignIn() {
   return (
-    <SettingRows rows={ROWS}>
-      <SettingRow
+    <FieldRows rows={ROWS}>
+      <FieldRow
         {...wordsOf("sign-in", "Paired devices")}
         icon="users"
         id="devices"
         under={<Devices />}
       />
-      <SettingRow
+      <FieldRow
         {...wordsOf("sign-in", "Pair another device")}
         icon="smartphone"
         id="pair"
@@ -161,6 +161,6 @@ export function SignIn() {
           </View>
         }
       />
-    </SettingRows>
+    </FieldRows>
   );
 }

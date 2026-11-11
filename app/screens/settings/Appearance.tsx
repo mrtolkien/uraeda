@@ -4,7 +4,7 @@
 import { View } from "nsh";
 import { wordsOf } from "./categories";
 import { chooseMode, chooseTheme, themeChoice } from "./look";
-import { SettingRow, SettingRows } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { openPicker } from "../shell/pickers";
 import { record } from "../../store";
 import type { Theme, ThemeFile } from "../../store/protocol";
@@ -117,8 +117,8 @@ export function Appearance() {
   ];
   const yours = wordsOf("appearance", "Your themes");
   return (
-    <SettingRows rows={rows}>
-      <SettingRow
+    <FieldRows rows={rows}>
+      <FieldRow
         {...wordsOf("appearance", "Mode")}
         control={
           <Segmented label="Mode" onChange={chooseMode} options={MODES} value={choice().mode} />
@@ -127,21 +127,21 @@ export function Appearance() {
         icon="sun"
         id="mode"
       />
-      <SettingRow
+      <FieldRow
         {...wordsOf("appearance", "Dark theme")}
         from={ON_DEVICE}
         icon="moon"
         id="dark"
         under={<Themes choice={choice()} mode="dark" themes={listed()} />}
       />
-      <SettingRow
+      <FieldRow
         {...wordsOf("appearance", "Light theme")}
         from={ON_DEVICE}
         icon="sun"
         id="light"
         under={<Themes choice={choice()} mode="light" themes={listed()} />}
       />
-      <SettingRow
+      <FieldRow
         help={yours.help.replace("the themes folder", themes()?.folder || "the themes folder")}
         icon="swatch-book"
         id="yours"
@@ -163,6 +163,6 @@ export function Appearance() {
           </If>
         }
       />
-    </SettingRows>
+    </FieldRows>
   );
 }

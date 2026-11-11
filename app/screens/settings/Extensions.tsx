@@ -13,7 +13,7 @@ import {
   type OnIn,
   onInOf,
 } from "./extensionWords";
-import { SettingRow, SettingRows } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { call, record } from "../../store";
 import type { ExtensionRow } from "../../store/protocol";
 import {
@@ -79,7 +79,7 @@ function Item(props: { row: ExtensionRow; where: Sent<OnIn> }) {
   const picking = pane.remember<boolean>(`only-${props.row.name}`, false);
   const where = props.where;
   return (
-    <SettingRow
+    <FieldRow
       control={
         <View style={{ alignItems: "center", flexDirection: "row", gap: 10 }}>
           <Button label="Only in…" onPress={() => picking.set(!picking())} selected={picking()} />
@@ -142,7 +142,7 @@ export function Extensions() {
         <Each key={(notice: Notice) => notice.id} of={notices()}>
           {(notice) => <Banner title={notice().title} tone={notice().tone} />}
         </Each>
-        <SettingRows rows={cursor}>
+        <FieldRows rows={cursor}>
           <Heading level={3}>Yours</Heading>
           <If
             when={yours().length > 0}
@@ -160,7 +160,7 @@ export function Extensions() {
           <Each key={(row: ExtensionRow) => row.name} of={builtIn()}>
             {item}
           </Each>
-        </SettingRows>
+        </FieldRows>
       </View>
     </If>
   );

@@ -3,7 +3,7 @@
 import { View } from "nsh";
 import { CATEGORIES } from "./categories";
 import { chooseFont, fontPicked } from "./look";
-import { SettingRow, SettingRows } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { device } from "../../store";
 import { Button, Select } from "../../ui/controls";
 import { DEFAULT_FONTS, FONT_ROLES, FONTS, fontOf, type FontRole } from "../../ui/tokens";
@@ -29,10 +29,10 @@ export function Fonts() {
   ];
   const settings = CATEGORIES.find((one) => one.id === "fonts")!.settings;
   return (
-    <SettingRows rows={rows}>
+    <FieldRows rows={rows}>
       <Each key={(part: (typeof FONT_ROLES)[number]) => part.role} of={[...FONT_ROLES]}>
         {(part) => (
-          <SettingRow
+          <FieldRow
             control={
               <Select
                 label={part().label}
@@ -51,7 +51,7 @@ export function Fonts() {
           />
         )}
       </Each>
-      <SettingRow
+      <FieldRow
         control={
           <View style={{ alignItems: "flex-start" }}>
             <Button
@@ -67,6 +67,6 @@ export function Fonts() {
         id="defaults"
         label="Default fonts"
       />
-    </SettingRows>
+    </FieldRows>
   );
 }

@@ -5,7 +5,7 @@
 import { type JSX, View } from "nsh";
 import { objectOf } from "./extensionWords";
 import { savedField } from "./fields";
-import { SettingRow, Unlisted } from "./Row";
+import { FieldRow, Unlisted } from "../../ui/lists";
 import { call, record } from "../../store";
 import type { ExtensionRow, ExtensionSetting, JsonValue } from "../../store/protocol";
 import { Button, NumberInput, Select, sent, Switch, Text } from "../../ui/controls";
@@ -47,7 +47,7 @@ function AtOnce(props: Props & { clear?: JSX.Element }) {
     (next) => save(props, next),
   );
   return (
-    <SettingRow
+    <FieldRow
       control={
         isBool ? (
           <Switch
@@ -90,7 +90,7 @@ function Typed(props: Props & { clear?: JSX.Element }) {
     (text) => save(props, isList ? linesOf(text) : text),
   );
   return (
-    <SettingRow
+    <FieldRow
       from={props.own() ? `Set for ${props.repository} only` : null}
       help={props.spec.help}
       icon={isList ? "list" : "text-cursor-input"}

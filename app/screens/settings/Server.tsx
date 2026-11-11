@@ -5,7 +5,8 @@
 import { signal, View } from "nsh";
 import { FileProblem, savedField, settingsRecord } from "./fields";
 import { wordsOf } from "./categories";
-import { fromWords, isOverridden, onOff, SettingRow, SettingRows } from "./Row";
+import { fromWords, isOverridden, onOff } from "./Row";
+import { FieldRow, FieldRows } from "../../ui/lists";
 import { call, extensionHost } from "../../store";
 import { Button, IconButton, refusalOf, sent, Switch, Text } from "../../ui/controls";
 import { TextField } from "../../ui/text";
@@ -127,11 +128,11 @@ export function Server() {
       >
         {(problem) => <FileProblem file={settings()!.file} problem={problem()} />}
       </If>
-      <SettingRows rows={rows}>
+      <FieldRows rows={rows}>
         <If when={settings()?.problem === null ? server() : undefined}>
           {(shown) => (
             <>
-              <SettingRow
+              <FieldRow
                 {...words("Allowed host names")}
                 from={fromWords(shown().allowedHosts, (names) => names.join(", ") || "none")}
                 icon="globe"
@@ -142,7 +143,7 @@ export function Server() {
                   <Hosts names={shown().allowedHosts.saved ?? []} onRefused={hostsRefused.set} />
                 }
               />
-              <SettingRow
+              <FieldRow
                 {...words("Port")}
                 control={
                   <TextField
@@ -161,7 +162,7 @@ export function Server() {
                 overridden={isOverridden(shown().port)}
                 refusal={port.refusal()}
               />
-              <SettingRow
+              <FieldRow
                 {...words("Open a browser at start")}
                 control={
                   <Switch
@@ -180,7 +181,7 @@ export function Server() {
             </>
           )}
         </If>
-      </SettingRows>
+      </FieldRows>
     </View>
   );
 }
