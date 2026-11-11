@@ -6277,3 +6277,14 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/server/tests/live.rs`, `contracts/protocol.md`, `app/store/{connection,index,time}.ts`,
   `app/screens/feature/words.ts`, `app/screens/decisions/ledger.ts`, `app/screens/git/when.ts`,
   `app/screens/settings/SignIn.tsx`, `app/screens/shell/{Frame.tsx,usage.ts}`.
+
+## T93.5: A long list opens on its cursor's row; a guarded key's hint shows only where it works
+
+- **Decision**: `VirtualList` opens on the cursor's row when the visit kept no place for it, and the
+  decisions list moves its cursor to the decision a link opens with `reveal`, which scrolls it into
+  view. The key store's hints leave out a key whose `when` does not hold, as the key map already
+  did; Git's `d`, `o`, and `t` have their hints back, shown on a file, or a conflict, alone.
+- **Rationale**: a decision opened from elsewhere had its card selected below the fold; Git had
+  dropped its conflict keys' hints because they showed on every row.
+- **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/keys/store.ts`,
+  `app/screens/decisions/List.tsx`, `app/screens/git/Changes.tsx`.

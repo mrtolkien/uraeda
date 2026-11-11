@@ -367,6 +367,20 @@ test("the picker's search ranks a title's start over a word's, then the rest", (
   expect(found("zzz")).toEqual([]);
 });
 
+test("the status line hints a guarded key only where its guard holds", () => {
+  // Git's conflict keys work on a conflicted file alone: on any other row, no hint says them.
+  const store = createKeyStore();
+  const git = store.scope({ kind: "pane", name: "Changes" });
+  let conflicted = false;
+  store.register(git, [
+    key("s", "stage", { hint: "s" }),
+    key("o", "take ours", { hint: "o", when: () => conflicted }),
+  ]);
+  expect(store.hints().map((hint) => hint.label)).toEqual(["stage"]);
+  conflicted = true;
+  expect(store.hints().map((hint) => hint.label)).toEqual(["stage", "take ours"]);
+});
+
 test("a pane's keys may reuse the keys of the frame's tabs beside it", () => {
   // The tabs hold the keys only while no pane of the frame has them: a pane's `j`, a carried
   // row's included, never meets the tabs' `j`.

@@ -233,7 +233,7 @@ function LedgerList(props: { repo: string }) {
   effect(() => {
     const row = rowOf(route());
     if (row !== untracked(cursor.at)) {
-      untracked(() => cursor.set(row));
+      untracked(() => cursor.set(row, { reveal: true }));
     }
   });
   // A key's move, beside the reader: the reader follows, in this visit.

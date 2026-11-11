@@ -7,7 +7,9 @@
 //   items' array is new at each insert, remove, or move, and keeps every other row's object as it
 //   was: the list matches rows by identity (`===`), so a row keeps its cell and its size.
 // - **Cursor**: the keys and the pointer share it. A key's move keeps its row in view, scrolling
-//   only when the row is not wholly shown; the pointer's never scrolls.
+//   only when the row is not wholly shown; the pointer's never scrolls. A list opened with its
+//   cursor on a row, and no place kept, opens on that row; a move the screen makes with
+//   `cursor.set(id, { reveal: true })`, as a link followed, brings its row into view.
 // - **Follow the end**: with `follow`, a transcript opens at its end and stays there while it
 //   grows, until the reader scrolls away from it; scrolled back to the end, it follows again.
 //   `onFollowing` hears each change, for a "jump to the latest" button, and `toEnd()` jumps.
@@ -122,6 +124,22 @@ export function VirtualList(props: VirtualListProps) {
     props.onOpen?.(id);
   };
   const start = untracked(cursor.items).length;
+  // A list that opens with its cursor on a row, and no place kept, opens on that row: a decision
+  // opened by a link shows its card, wherever it sits in the list.
+  const opened = untracked(() => {
+    const id = cursor.at();
+    return id === undefined ? -1 : cursor.items().findIndex((row) => row.id === id);
+  });
+  const firstShown =
+    props.offset !== undefined
+      ? undefined
+      : props.follow === true
+        ? start > 0
+          ? start - 1
+          : undefined
+        : opened > 0
+          ? opened
+          : undefined;
 
   return (
     <List
@@ -133,9 +151,7 @@ export function VirtualList(props: VirtualListProps) {
       header={props.header}
       // No `keyExtractor`: Native Shell reads each item's `id` itself, where a function of ours
       // ran in TSX for each of the 20,000 rows of a transcript at every row that came.
-      initialScrollIndex={
-        props.follow === true && props.offset === undefined && start > 0 ? start - 1 : undefined
-      }
+      initialScrollIndex={firstShown}
       maintainVisibleContentPosition={
         props.follow === true ? { autoscrollToBottomThreshold: NEAR_END } : undefined
       }
