@@ -15,6 +15,8 @@ doctest = false
 nsh-base.workspace = true
 nsh-core.workspace = true
 serde_json.workspace = true
+# The text fields' Vim keys, which `vim_bridge.rs` carries out on Native Shell's editor.
+uraeda-vim.workspace = true
 
 # `tests/native.rs` reads the module's documentation as TypeScript gets it: Native Shell keeps that
 # text out of a build without `declarations`.

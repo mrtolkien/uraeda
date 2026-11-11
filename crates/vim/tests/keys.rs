@@ -434,3 +434,31 @@ fn a_clipboard_text_nobody_asked_for_is_not_put() {
     };
     assert_eq!(field.vim.clipboard("text", &view), Vec::new());
 }
+
+/// A field opens typing where its caret is, at a line's end too, and what is typed then is the
+/// change `.` repeats.
+#[test]
+fn a_field_opens_typing_at_its_caret() {
+    let mut field = Field::new("one|", "");
+    let lines = Lines::new(&field.text);
+    let view = TextView {
+        text: &lines,
+        anchor: field.anchor,
+        head: field.head,
+    };
+    let edits = field.vim.insert(&view);
+    assert_eq!(field.vim.status().mode, Mode::Insert);
+    assert!(
+        edits
+            .iter()
+            .all(|edit| !matches!(edit, Edit::Replace { .. })),
+        "opening types nothing: {edits:?}"
+    );
+    for key in keys(" two") {
+        field.press(key);
+    }
+    for key in keys("<Esc>.") {
+        field.press(key);
+    }
+    assert_eq!(field.marked(), "one tw tw|oo");
+}

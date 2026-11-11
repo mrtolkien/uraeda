@@ -9007,6 +9007,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "uraeda-core",
+ "uraeda-vim",
  "usvg 0.46.0",
 ]
 

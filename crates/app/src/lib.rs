@@ -5,6 +5,7 @@ mod about;
 mod fonts;
 mod native;
 pub mod theme;
+mod vim_bridge;
 
 use nsh_core::prelude::*;
 

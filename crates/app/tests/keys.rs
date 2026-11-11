@@ -21,6 +21,9 @@ const HEARS: &[&str] = &[
 const ALLOWED: &[&str] = &[
     // The registry itself: every shortcut's one listener.
     "app/ui/keys/registry.tsx",
+    // The text field's own keys, Vim's, and its owner's `inField` keys handed back to the
+    // registry: no shortcut, only what a field with the focus takes from the editor.
+    "crates/app/src/vim_bridge.rs",
 ];
 
 /// The source files under `dir`, at any depth, less what Native Shell generates.

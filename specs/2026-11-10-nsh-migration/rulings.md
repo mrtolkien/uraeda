@@ -4135,3 +4135,86 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   another kind.
 - **Where**: [`frames.test.tsx`](/app/gallery/lists/frames.test.tsx),
   [`scroll.tsx`](/app/gallery/lists/scroll.tsx), the [`justfile`](/justfile)'s `lists-frames`.
+
+## R176: The Vim bridge is a Rust component around the editor, and a key never crosses into TSX
+
+- **Decision**: every text field draws `TextEditor`, a component of `uraeda/native`
+  ([`vim_bridge.rs`](/crates/app/src/vim_bridge.rs)) that renders Native Shell's `Editor` and binds
+  the field's keys in Rust, with `on_key_with`, while the field has the focus. A key goes to
+  `Vim::key` on the editor's text and selection, read through `EditorApi`, and its edits are carried
+  out at once on the same API: `Replace` is `edit`, one step of undo, `Select` is `set_selections`,
+  `Undo` and `Redo` are `run`, then `Vim::sync`. The plan asked for "one call into Rust per key"
+  from TSX: here a key costs no call at all, and TSX hears only what changed, the text (`onChange`),
+  the mode (`onStatus`), a key given back (`onKey`), and a jump (`onTrail`).
+  - **With Vim off, the layer is not in the path**: no key of Vim is bound, and no call reaches it.
+    `vimKeys()` counts the calls, and the test `a field with Vim off never calls the bridge` holds
+    it at 0.
+  - **One `Vim` for every field**, a thread's own, reset as a field takes the focus. A field opens
+    typing, by `Vim::insert`, new in `crates/vim/`: `i` would step the caret back off a line's end.
+    `normalFirst` opens it in normal mode, as a buffer.
+  - **The field's own keys**, bound over the editor's: Escape (Vim first, then the field's: its
+    owner's Escape in an overlay, else it leaves the field), Shift+Escape leaves from any mode,
+    Ctrl+Enter saves, a one-line field's Enter never adds a line. `:w`, `:q`, `:wq`, and `:x` are a
+    small command line of the bridge, `COMMAND` in the status line: the Vim layer has no Ex
+    commands.
+  - **Keys an owner declares `inField`** reach it before the editor: the field binds them too and
+    hands them back to the registry, `pressKeys`. A dialog's Tab, a picker's arrows and Enter. In a
+    one-line field, `j` and `k` in normal mode are its down and up, as LazyVim's picker.
+  - **The field binds a moment after it takes the focus**, with a timer of no delay, so its bindings
+    are newer than the editor's, which it binds as it takes the focus. Native Shell gives a key to
+    the newest binding of a view, and any view's binding wins over the script's
+    (`nsh-core/src/core/components.rs`, `keymap()`): the field's keys always win over the
+    registry's.
+  - **Not working: Vim's Escape inside an overlay.** Native Shell 0.4.0 adds an overlay's own
+    Escape, its `onCancel`, after every view's binding (`nsh-core/src/core/overlay.rs`,
+    `overlay_key_binding`, chained last in `keymap()`), so it wins over any field inside, the
+    editor's own Escape included, where its documentation says it fires "when no binding took
+    Escape". In a dialog or the key picker, Escape closes the overlay from insert mode. Seen: the
+    first version of the test, in a dialog, ended with the dialog closed after the first Escape. The
+    fix in the app is ten lines of `app/ui/surfaces/` (task 27's files, outside this task):
+    `focus.ts` keeps one `takeEscape(take)` hook that the focused field sets while Vim is out of
+    normal mode, and `Float`'s `onCancel` calls it before closing; the field then sends the key to
+    the bridge (a ref method `press(stroke)`). Upstream, the overlay's binding belongs first in the
+    table, under the views'. The test checks the guarantee on a page's field, where Escape leaves
+    the field.
+- **Rationale**: the edits of a key land before the next key is read, with no copy of the text kept
+  in TSX, which could be stale between a TSX call and the editor's `onChange`; and no key state
+  machine sits in TSX, which the plan forbids.
+- **If wrong**: the keys of Vim are bound by the US layout's names, as R139 says Native Shell
+  matches them: on another layout, a key that types `$` without Shift reaches the editor in normal
+  mode. On Linux, `ctrl+r` is the development build's reload key, which Native Shell leaves to the
+  dev server there: redo works in a packaged build.
+- **Where**: `crates/app/src/vim_bridge.rs` and `vim_bridge/`, `app/ui/text/TextField.tsx`,
+  `crates/vim/src/state.rs` (`Vim::insert`), `crates/app/tests/keys.rs` (its line).
+
+## R177: The shared field's parts, and what they leave to the screens
+
+- **Decision**:
+  - **`TextField`** is every field, one line or many (`lines`), drawn on a `Well` whose edge takes
+    the mode's colour with Vim, with `Under` for a refusal or a hint. It wraps, grows with its text
+    (`rows`), and is marked with Markdown. `shown` draws it still, for the gallery.
+  - **The block caret**: outside insert mode the character under the caret is a decoration in the
+    mode's colour, at 45%, over the editor's own caret: Native Shell's caret has no block shape.
+  - **The caret's trail** is a `<Shader>` over the field, fed the caret's box before and after a
+    move, from `caret_bounds`, when it moved more than one cell, or to another line, with no edit in
+    the same step: typing, a new line included, draws none. An animated value closes it in
+    `motion.caretTrail`, natively. With reduced motion, or `caret.trail` off, nothing is drawn.
+  - **Unsaved text** is `unsavedText(key, saved)` in [`unsaved.ts`](/app/ui/text/unsaved.ts): one
+    entry of the device's store per field, `unsaved:<key>`, and their list under `unsaved`, which
+    `pruneUnsaved` reads as the app starts. It drops the React UI's fields of one screen (`sources`,
+    `picked`, `subject`) for one `extra` that a screen fills.
+  - **`SaveStatus`** says Unsaved changes, Saving…, Saved, or Not saved; `saving(send)` runs the
+    saves, and its `refusal()` goes to the field's `refusal`, under the field, with the why.
+  - **`LeaveGuard`** asks "Leave page?" with the shared `Dialog`, through `setLeaveGuard`, while a
+    field drawn holds unsaved text. There is no prompt as the app closes: the text stays on the
+    device.
+  - **`Composer`** says which key sends, under it: Enter, with Shift+Enter for a line, unless
+    `sendOn="mod+enter"`, and on a narrow window Enter adds a line and the Send button sends.
+    `PickerField` is a one-line field over a list, its keys a selection's scope, on while the field
+    has the focus.
+  - **Not built here**: a paste or a drop of an image (Native Shell's editor reports text only, so a
+    screen wires them around the field, and `insert` puts the link); the phone's edit menu
+    (`onContextMenu` of the editor, not forwarded yet); a confirmation before a changed row is left
+    with Escape, which is the screens'.
+- **Rationale**: the plan's names, each kept small; the rest is what a screen owns.
+- **Where**: `app/ui/text/`, `app/gallery/text/`, `app/store/device.ts` (its two lines).

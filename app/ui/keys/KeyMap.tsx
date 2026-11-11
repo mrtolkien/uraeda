@@ -3,14 +3,12 @@
 // page's key acts on the selection the map covers, and the leader menu already runs the sequences.
 // It floats in the window's middle over the page dimmed, a sheet on a narrow window, and owns the
 // keys while it is open: Escape, a press outside, and the phone's Back close it.
-//
-// TASK 30: the search is Native Shell's plain `Input` until the shared text field exists.
 import { Icon, isIconName, Kbd, Text } from "../controls";
 import { tokens } from "../tokens";
-import { type InputRef, Scroll, signal, View } from "nsh";
-import { Input } from "nsh/base";
+import { Scroll, signal, View } from "nsh";
 import { type KeyRow, type KeySection, searchKeyMap } from "./keyMap";
-import { focusStop, Overlay } from "../surfaces";
+import { Overlay } from "../surfaces";
+import { TextField } from "../text/TextField";
 
 /** What the key map is called: its layer, and the keys that open it. */
 export const KEY_MAP_TITLE = "Keyboard shortcuts";
@@ -42,30 +40,16 @@ function Row(props: { row: KeyRow }) {
 function Rows(props: { sections: ReadonlyArray<KeySection> }) {
   const query = signal("");
   const found = () => searchKeyMap(props.sections, query());
-  // The layer takes the focus where typing goes, as it opens.
-  let search: InputRef | undefined;
-  const stop = focusStop(() => search, { first: true });
   return (
     <>
-      <Input
-        accessibilityLabel="Search the keys"
-        autoFocus
-        onBlur={stop.onBlur}
-        onChange={({ value }) => query.set(value)}
-        onFocus={stop.onFocus}
+      <TextField
+        first
+        label="Search the keys"
+        lines="one"
+        onChange={(value) => query.set(value)}
         placeholder="Search…"
-        ref={(node: InputRef) => (search = node)}
-        style={{
-          borderColor: tokens.role.rule,
-          borderWidth: 1,
-          color: tokens.role.ink,
-          fontFamily: tokens.type.body,
-          fontSize: tokens.type.size,
-          height: tokens.space.row + 8,
-          paddingHorizontal: 8,
-          placeholderColor: tokens.role.inkQuiet,
-        }}
         testID="key-map-search"
+        value={query()}
       />
       <Scroll style={{ flexShrink: 1 }}>
         <If when={found().length > 0} else={<Text tone="quiet">No key matches.</Text>}>

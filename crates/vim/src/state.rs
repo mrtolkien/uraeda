@@ -147,6 +147,20 @@ impl Vim {
         self.end_command();
     }
 
+    /// Back to nothing pending, then insert mode at the caret, as a field that opens typing: the
+    /// caret stays where it is, at a line's end too, where `i` would step back onto a character.
+    /// What is typed then is the change `.` repeats, as after `i`.
+    pub fn insert(&mut self, text: &TextView<'_>) -> Vec<Edit> {
+        self.reset();
+        let doc = Doc::new(text.text);
+        let mut out = Out::new(doc);
+        self.record = vec![Key::Char('i')];
+        self.note_change(None);
+        self.start_insert(doc.snap(doc.pos(text.head)), 1, None, &mut out);
+        self.record.clear();
+        self.finish(out, text)
+    }
+
     /// The mode and the keys typed so far, for the status line.
     #[must_use]
     pub fn status(&self) -> Status {

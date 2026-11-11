@@ -2014,19 +2014,33 @@ ported, beyond accounts and jobs.
   highlights Markdown, wraps, never scrolls sideways, and runs Vim when the setting is on.
   `vimStatus: Signal<Status>` for the status line. Unsaved text kept per device, as
   [`unsaved.ts`](/packages/web/src/fields/unsaved.ts) does.
+- Produces, as built (rulings R176 and R177):
+  - `app/ui/text/TextField.tsx`: `TextField` (`value`, `onChange`, `label`, `lines: "one" | "many"`,
+    `rows`, `placeholder`, `onSave` for Ctrl+Enter and `:w`, `onEnter`, `autoFocus`, `first`,
+    `normalFirst`, `disabled`, `readOnly`, `refusal`, `hint`, `shown`, `ref` with `focus`, `blur`,
+    `insert`); `vimStatus`, a signal of `{ mode, pending }`, `mode` "" while no field has the focus;
+    `setVimMode(on)` and `vimMode()`, which the app's shell sets from the setting `vimMode`;
+    `modeTone(mode)`, a mode's colour for the status line.
+  - `crates/app/src/vim_bridge.rs`: the component `TextEditor` and `vimKeys()`, in `uraeda/native`.
+    `Vim::insert` in `crates/vim/`.
+  - `app/ui/text/unsaved.ts`: `unsavedText(key, saved, { exact?, extra? })`,
+    `unsavedKey(repo, field)`, `readUnsaved`, `writeUnsaved`, `dropUnsaved`, `pruneUnsaved(now)`,
+    `differ`, `hasDrawnUnsaved`. Two lines in `DeviceKeys`.
+  - `SaveStatus` and `saving(send)`; `LeaveGuard`, mounted once; `Composer`; `PickerField`.
 
-- [ ] **Step 1: Write the failing tests**: `unsaved text comes back after a restart`;
+- [x] **Step 1: Write the failing tests**: `unsaved text comes back after a restart`;
       `Escape in     normal mode does what Escape does without Vim`;
       `a yank reaches the system clipboard`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, on NSH's `Editor`. Keys go to `Vim::key` in Rust, in one call per key;
+- [x] **Step 2: Run them**. Expected: FAIL. They failed with
+      `uraeda/native has no export     vimKeys`.
+- [x] **Step 3: Implement**, on NSH's `Editor`. Keys go to `Vim::key` in Rust, in one call per key;
       its edits are applied as one editor transaction. Bind keys only while the field has the focus.
       On a real GTK window a field gets no focus by itself: focus it when it mounts, where the
       screen asks. The caret's trail is a `<Shader>` over the field, fed the caret's box before and
       after a move from the editor's `caret_bounds`, as the design language's
       [motion](/specs/ui/design-language.md#motion-means-a-change-of-state) says.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the shared text field, with Vim`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the shared text field, with Vim`.
 
 ## Task 31: The document renderer
 

@@ -4,6 +4,7 @@
 // then answers at once, from memory.
 import { type Accessor, type Signal, signal, Storage } from "nsh";
 import type { ThemeChoice } from "../ui/theme";
+import type { Unsaved } from "../ui/text/unsaved";
 import type { Fonts, ThemeSource } from "../ui/tokens";
 
 /**
@@ -19,6 +20,10 @@ export type DeviceKeys = {
   "theme.shown": ThemeSource;
   /** The font picked for each part of the UI, a bundled font's id: `applyFonts` reads it. */
   fonts: Partial<Fonts>;
+  /** The keys of the fields that hold unsaved text (`app/ui/text/unsaved.ts`). */
+  unsaved: ReadonlyArray<string>;
+  /** A field's text typed and not saved, by the field's key. */
+  [entry: `unsaved:${string}`]: Unsaved;
 };
 
 /** The values of a device, by the names of `Keys`. */

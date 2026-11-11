@@ -5,27 +5,16 @@
 // Ctrl+K as in LazyVim's picker, move it, from the search itself; Enter or a press on a row picks,
 // and Escape, a press outside, or the phone's Back closes. On a narrow window it is a sheet, its
 // list alone. What it lists, and where a pick goes, are its caller's.
-//
-// TASK 30: the search is Native Shell's plain `Input` until the shared text field exists, whose
-// Vim mode moves the cursor with `j` and `k` in normal mode.
-import {
-  computed,
-  effect,
-  type InputRef,
-  type JSX,
-  Scroll,
-  type ScrollRef,
-  signal,
-  untracked,
-  View,
-} from "nsh";
-import { Input } from "nsh/base";
+// With Vim, `j` and `k` in normal mode move the cursor too, as the shared field gives a one-line
+// field's owner its down and up.
+import { computed, effect, type JSX, Scroll, type ScrollRef, signal, untracked, View } from "nsh";
 import { isNarrow } from "../width";
 import { Kbd, Text } from "../controls";
 import { tokens } from "../tokens";
 import { searchRanked } from "./pickerSearch";
 import { registerKey } from "./registry";
-import { focusStop, Overlay } from "../surfaces";
+import { Overlay } from "../surfaces";
+import { TextField } from "../text/TextField";
 
 /** What a picker lists: an item of any kind, found by its title and its first sentence. */
 export type PickerItem = {
@@ -105,9 +94,6 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
   ]);
 
   effect(() => picker.onCursor?.(held()));
-  // The layer takes the focus where typing goes, as it opens.
-  let filter: InputRef | undefined;
-  const stop = focusStop(() => filter, { first: true });
   // The cursor's row stays in the list's sight.
   let list: ScrollRef | undefined;
   effect(() => list?.scrollTo({ animated: false, y: Math.max(0, (at() - 4) * rowHeight()) }));
@@ -122,29 +108,17 @@ function Picking<Item extends PickerItem>(props: { picker: KeyPickerProps<Item> 
     <>
       <View style={{ flexDirection: "row", flexShrink: 1, gap: 16 }}>
         <View style={{ flexBasis: 0, flexGrow: 1, gap: 8 }}>
-          <Input
-            accessibilityLabel={picker.title}
-            autoFocus
-            onBlur={stop.onBlur}
-            onChange={({ value }) => {
+          <TextField
+            first
+            label={picker.title}
+            lines="one"
+            onChange={(value) => {
               query.set(value);
               cursor.set(undefined);
             }}
-            onFocus={stop.onFocus}
             placeholder={picker.placeholder ?? "Find…"}
-            ref={(node: InputRef) => (filter = node)}
-            style={{
-              borderColor: tokens.role.rule,
-              borderWidth: 1,
-              color: tokens.role.ink,
-              fontFamily: tokens.type.body,
-              fontSize: tokens.type.size,
-              height: tokens.space.row + 8,
-              paddingHorizontal: 8,
-              placeholderColor: tokens.role.inkQuiet,
-            }}
-            submitBehavior="submit"
             testID="key-picker-filter"
+            value={query()}
           />
           <Scroll
             ref={(node: ScrollRef) => (list = node)}
