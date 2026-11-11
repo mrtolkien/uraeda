@@ -57,6 +57,8 @@ Keys, [`app/ui/keys/`](/app/ui/keys/) (gallery [Keys](/app/gallery/keys/)):
 
 ## Rules that keep screens one app
 
+- **Read the server through the store only**: `record`, `list`, `text`, and `call`, as
+  [`app/store/README.md`](/app/store/README.md) says; never a record's value kept in a component.
 - **Read the tokens only.** A colour, a size, a gap, a glow come from `tokens`, through the
   components: never a hex value, never a raw `View` with a border or a shadow of its own.
 - **A screen is panes.** A pane draws its content only, at the width its stack gives it

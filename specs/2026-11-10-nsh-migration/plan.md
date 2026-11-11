@@ -1760,17 +1760,33 @@ ported, beyond accounts and jobs.
   - `text(record, path): Signal<string>`: a growing text, for transcripts.
   - Reconnection with `Resume`, and a wait that grows from 0.5 s to 10 s.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a record's signal follows the server`.
   - `a reconnect resumes a reply without a gap`, with a row where a change arrives after its
-    `Unsub`: it is ignored, and no subscription is left.
+    `Unsub`: it is ignored, and no subscription is left (a test of its own, R244).
   - `a refused connection says which side to update`.
-- [ ] **Step 2: Run them**: `just app-test`. Expected: FAIL.
-- [ ] **Step 3: Implement.** Changes that arrive within one frame are applied together, so a burst
+- [x] **Step 2: Run them**: `just app-test`. Expected: FAIL. Seen: with nothing applied, the five
+      tests against the server timed out waiting for `live`.
+- [x] **Step 3: Implement.** Changes that arrive within one frame are applied together, so a burst
       draws once. The list of a record keeps each item's signal across changes: a chunk of one
       message redraws that message only.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the client store`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS. `just task-app`: 96 tests passed.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the client store`.
+
+**As built** (rulings R241 to R245), all from `app/store` (`index.ts`), with
+[`app/store/README.md`](/app/store/README.md), the guide the screens read:
+
+- `connect({ address, signIn, grace?, open? }): Connection`, which closes the one before and makes
+  this one the app's; `connection()`. `Connection`: `status()`
+  (`"connecting" | "live" | "offline" | "refused"`), `stale()`, `refused()` (`Refused`: `reason`,
+  `update` `"app" | "server" | "sign-in"`, `words`, `protocol`), `reconnect()`, `close()`,
+  `subscriptions()`, `address`, `signIn`.
+- `record<N>(name, args): Live<Value<N>>`, an accessor with `error()`; `list(source, key | path)`:
+  `rows()` of `{ id }` and `item(id)`; `text(source, path): Accessor<string>`;
+  `call<A>(name, input): Promise<Output<A>>`, rejecting with `StoreError` (`code`: the protocol's
+  `ErrorCode`, `offline`, or `dropped`; `message`); `extensionHost(): ExtensionHost`; `PROTOCOL`,
+  `GRACE`, `WAITS`; and task 24's names, re-exported.
+- The tests' seam: `open`, an `Opener` that wraps the platform's WebSocket (`line.ts`).
 
 ## Task 24: Routes and per-device storage
 

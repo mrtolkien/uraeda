@@ -71,9 +71,10 @@ specs:
 app-check:
     {{ nsh }} check
 
-# The app's tests, `*.test.tsx`, on NSH's headless runner: no display.
+# The app's tests, `*.test.tsx`, on NSH's headless runner: no display. A fresh sandbox runs beside
+# them, its address in `URAEDA_SANDBOX`, for the client store's tests against the real server.
 app-test:
-    {{ heavy }} {{ nsh }} test
+    {{ heavy }} scripts/sandboxed.sh {{ nsh }} test
 
 # The app on GTK, with hot reload. An agent, and any check, runs `hidden-display just app-dev`.
 app-dev *args:

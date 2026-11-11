@@ -9,7 +9,8 @@
 // - `glass`: the same scroll under a bar of glass, a raised surface over what scrolls, as a
 //   session's header once stuck.
 //
-// Until the client store exists (task 23), a scene feeds itself.
+// A scene feeds itself: the gallery has no server. The session screen (task 43) feeds its list from
+// the client store, as `app/store/README.md` says.
 import { type Accessor, cleanup, signal, View } from "nsh";
 import { Icon, Kbd, Text } from "../../ui/controls";
 import { Reply } from "../../ui/document";

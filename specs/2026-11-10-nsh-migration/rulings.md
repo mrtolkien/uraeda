@@ -5309,3 +5309,81 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     the language has it.
 - **Where**: `app/ui/tokens/{glass,light,control}.ts`, `app/ui/lists/Row.tsx`,
   `app/ui/controls/{Tabs,Banner}.tsx`, `app/ui/keys/LeaderMenu.tsx`.
+
+## R241: The store's server tests run in an app of their own, granted by a folder's `nsh.json`
+
+- **Decision**: `store.test.ts` opens `app/store/harness/Harness.tsx` with `network: "live"`, and
+  plays its host: each `step` event does one thing (connect, read, call, hold, release, drop), and
+  the harness posts its `facts`, what a caller sees, after each change. Its rights are in
+  `app/store/harness/nsh.json`: loopback, `URAEDA_SANDBOX`, and the host function `facts`. The
+  `app/nsh.json` R233 named is unchanged.
+- **Rationale**: measured on NSH 0.4.0. A test file's own engine has no network ("this host has no
+  network stack") and reads only the default variables of `process.env`; an app opened with
+  `network: "live"` has both. The bundler reads `capabilities` from the `nsh.json` of the entry's
+  own folder only (`nsh-bundler`'s `bundle.rs`), and a declaration denies all it does not list:
+  granting the variable in `app/nsh.json` would have restricted the app itself.
+- **If wrong**: the harness is the store's only page; the steps are the test's vocabulary.
+- **Where**: `app/store/harness/`, `app/store/store.test.ts`.
+
+## R242: A record is held by the view that read it, and its list is rows of ids
+
+- **Decision**: `record(name, args)` gives a `Live<V>`, an accessor of the value with `error`, and
+  holds the record for the owner it is called in (`cleanup`); with nobody left, the `unsub` goes
+  after the grace, 5 s, on a timer even with no grace, so a computation that runs again keeps its
+  records. `list(source, "items")` gives `rows()`, `{ id }` objects kept per id, new only on an
+  insert, a remove, or a move, and `item(id)`, from one signal per item. `text(source, path)` grows
+  by appends. A value is never changed in place: a change copies only its path.
+- **Rationale**: R171 asked rows kept by identity and one signal per item. A row that is the item
+  itself would be stale after its item's first change, and a screen would read it; a row that is
+  only an id cannot be misread. NSH has no hook for a signal's readers, so "while something reads
+  it" is the owner's lifetime, as a component's.
+- **Seen failing**: with a new `{ id }` at each insert, "a list keeps the objects of the rows that
+  did not change" failed with
+  `expected {"id":"a"} to be {"id":"a"} (an equal value, not the same one)`.
+- **If wrong**: `record` called in a listener or at a module's top level is never let go: the README
+  says so. A count of open subscriptions, `Connection.subscriptions()`, shows a leak.
+- **Where**: `app/store/{records,held,apply}.ts`, `app/store/README.md`.
+
+## R243: The connection's choices the contract leaves open
+
+- **Decision**:
+  - Ids are never reused on a connection. A gap is `unsub`, then `resume` under a new id; a change
+    that does not fit, `unsub`, then `sub`. A message for an id no longer open is dropped.
+  - The server's messages are applied together, in one `batch`, 16 ms after the first of them, on a
+    timer, not `requestAnimationFrame`: a headless engine draws no frame, and a hidden window's
+    calls would wait for one.
+  - A call fails at once, `offline`, unless the line is welcomed, while connecting too; one whose
+    line dropped fails `dropped`, "it may have been done".
+  - The line keeps its own queue: NSH's WebSocket throws past eight messages waiting to be sent, and
+    a pane reads many records at once.
+  - The waits after a drop are 0.5, 1, 2, 4, 8, then 10 s; `refused` never tries again.
+- **Rationale**: a reused id cannot tell an answer of the old subscription from the new one. The
+  rest are what the contract's rules ask, measured where NSH limits them.
+- **Seen failing**: a `resume` under another epoch made the server send the page whole, and "a
+  reconnect resumes a reply without a gap" failed with
+  `expected ["data","change",...] not to contain "data"`; one with an empty epoch failed its check
+  of the message.
+- **Where**: `app/store/{connection,line,errors}.ts`.
+
+## R244: A change after its `unsub` shows only in the count of subscriptions
+
+- **Decision**: the test holds what comes to one connection while another changes the record, lets
+  the record go, then delivers: the change is ignored, nothing is sent in answer, and both the
+  store's count and the server's (from what was sent) are 0.
+- **Rationale**: the break the plan names, a change applied after its `unsub`, was made by keeping
+  the id open in the store: the count stayed 1 (`expected 1 to be 0`). Applying the change itself to
+  the dropped record changes nothing a caller sees, since a change's number is the record's, not the
+  subscription's: the guarantee is that no subscription is left, and none is asked again.
+- **Where**: `app/store/store.test.ts`.
+
+## R245: `just app-test` starts a sandbox, for about 8 s more
+
+- **Decision**: `app-test` is `{{ heavy }} scripts/sandboxed.sh {{ nsh }} test`, as R233 said.
+  Measured warm on 2026-11-12, the machine's load about 4: 52 s for the suite before (96 tests, the
+  store's server tests failing at once without a server), 60 s after, of which the store's tests are
+  7.5 s, 4 s of it the fake's canned reply. `sandboxed.sh` builds `ura` first: nothing when it is
+  built, 1.7 s to check; the first run in a new worktree built it in 71 s, once.
+- **If wrong**: the build is the cost: a new worktree whose cloned `target/` holds a fresh `ura`
+  pays nothing. Building `ura` with the feature's `just check` after a merge would give it to every
+  task's worktree.
+- **Where**: `justfile`, `scripts/sandboxed.sh`.
