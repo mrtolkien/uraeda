@@ -18,6 +18,9 @@ Human reviews:
     _reduces_ the codebase sizes.
   - weekly unixporn check: checks for inspiration in the top 10 posts of the week, proposes changes
     to our look and feel based on it.
+- Add a background image option, and add some subtle blur/transparency to all surfaces
+- Everything should be a pane: sessions, home widgets, ... And we should be able to move them
+  between main and sidebars, with tabs too. Like a tiling DE.
 
 ## Next
 
