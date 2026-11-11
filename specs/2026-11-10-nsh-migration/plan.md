@@ -1227,7 +1227,7 @@ What the sessions (task 15) rely on:
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
   continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says. As built (rulings
-  T15.1 to T15.10):
+  R144 to R153):
   - `Session { repo, id }`, `Turn { repo, id }`, `TurnLog { repo, turn, page }`, pages of 100 items,
     each with an `id`, `SessionList { repo }`, `SessionSearch { repo, query }`, and
     `Agent { repo }`. A reply grows as an `append` at `["items", <id>, "text"]` of its page.

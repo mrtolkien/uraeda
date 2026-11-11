@@ -8,6 +8,8 @@ mod support;
 
 #[path = "sessions/escalation.rs"]
 mod escalation;
+#[path = "sessions/life.rs"]
+mod life;
 #[path = "sessions/messages.rs"]
 mod messages;
 #[path = "sessions/pages.rs"]

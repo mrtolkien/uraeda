@@ -3425,7 +3425,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: each departure is a ruling, so the final review reads them all in one place, and the
   human can send one back.
 - **Where**: the plan's [global constraints](plan.md#global-constraints), and every task from 27 on.
-## T15.1: A transcript is read by pages of 100 lines, and a reply grows by appends
+
+## R144: A transcript is read by pages of 100 lines, and a reply grows by appends
 
 - **Decision**: the sessions' records are cut so that a client subscribes to what it draws, and no
   event reads a turn again.
@@ -3467,7 +3468,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/sessions.rs`, `crates/server/src/runner/{page,log,schema}.rs`,
   `runner/transcript.rs`, `records/sessions/turn.rs`. Tasks 43, 44, and 53.
 
-## T15.2: The manager is plain functions behind one lock, and a process's events are a task's
+## R145: The manager is plain functions behind one lock, and a process's events are a task's
 
 - **Decision**: `runner::Runner::of(&shared)` is how every domain reaches the sessions. Its methods
   are plain functions, called on a blocking thread, as handlers are (R46, R97).
@@ -3491,7 +3492,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   bounded by the 20 seconds a closing process gets.
 - **Where**: `crates/server/src/runner/{manager,live,processes,running,transcript,send}.rs`.
 
-## T15.3: A queued workflow turn that starts as a chat has its log written again
+## R146: A queued workflow turn that starts as a chat has its log written again
 
 - **Decision**: `Store::retype_queued` rewrites the log of a turn still queued: the one time a log
   changes, before its turn started. A workflow message queued behind a turn is checked again as it
@@ -3503,7 +3504,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   turn is `queued`.
 - **Where**: `crates/server/src/runner/{turns,send}.rs`.
 
-## T15.4: A message to a feature waits for its queued commits, and is kept only for a start
+## R147: A message to a feature waits for its queued commits, and is kept only for a start
 
 - **Decision**: `session.send` to a change or a feature waits, in its call, until the commits queued
   for that folder landed: `records::writing::settled`. A commit refused meanwhile refuses the
@@ -3520,7 +3521,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/sessions/actions.rs`, `records/writing/queue.rs`,
   `records/features/starts.rs`, `runner/starts.rs`.
 
-## T15.5: A write of a feature's files is refused where the queue takes it
+## R148: A write of a feature's files is refused where the queue takes it
 
 - **Decision**: `Write` names the features whose files it writes: `Write::of_feature(folder)` by
   itself, a save with `.on_feature(folder)` or `.on_path(path)`. `records::writing::write` refuses
@@ -3534,7 +3535,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/writing/{queue,text,buffer,undo,rounds,review}.rs`,
   `files/attach.rs`, `records/git/working.rs`, `records/workspace/repositories.rs`.
 
-## T15.6: The runtimes are checked as the server starts, every minute, and a second after a change
+## R149: The runtimes are checked as the server starts, every minute, and a second after a change
 
 - **Decision**: `runner::serve`, the last of `DOMAINS`, starts the manager: the turns a server left
   running or queued are stopped, `Stopped: the server stopped while it ran.`, the agents' tools are
@@ -3552,7 +3553,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: `CHECK_EVERY` and `CHECK_AFTER_CHANGE` are in `runner/mod.rs`.
 - **Where**: `crates/server/src/runner/{mod,manager}.rs`, `crates/server/src/lib.rs`.
 
-## T15.7: What the sessions' actions answer, and where a turn's live facts are
+## R150: What the sessions' actions answer, and where a turn's live facts are
 
 - **Decision**: the shapes, where fate's did not carry over (R52, R63).
   - `session.send` answers `{ session, turn }`, the session it went to, which a workflow run's may
@@ -3570,7 +3571,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/sessions.rs`, `crates/server/src/records/sessions/`. Tasks 43, 44,
   37, and 50.
 
-## T15.8: The agents' tools are futures over the manager, and a review's findings land in the queue
+## R151: The agents' tools are futures over the manager, and a review's findings land in the queue
 
 - **Decision**: `runner::reviews::Tools` is the `mcp::Runner` (R76). `run_agent` and `review` start
   their sub-sessions on blocking threads, then wait for them as futures: a call dropped gives the
@@ -3582,7 +3583,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   without running a reviewer.
 - **Where**: `crates/server/src/runner/{sub_sessions,reviews}.rs`.
 
-## T15.9: A start has a third step, its agent's, and three tests say what the sessions made true
+## R152: A start has a third step, its agent's, and three tests say what the sessions made true
 
 - **Decision**: a start's write shows `Start the agent with your message` after its branch: a
   change's first run is sent there, to a session made for it, and a feature's kept messages. A
@@ -3597,7 +3598,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     only to an agent that takes it.
 - **Where**: `crates/server/src/records/features/starts/`, `crates/server/tests/{mcp,features}`.
 
-## T15.10: What the sessions leave to later tasks
+## R153: What the sessions leave to later tasks
 
 - **Decision**: built, and not exercised by a test of the server, since nothing gives their input
   yet, or left as named:
