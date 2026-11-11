@@ -1,12 +1,15 @@
-// Two parts of the feature's subject pane: what stops the workflow, at its file and line, and the
-// drop, deliberate behind its question, which says after where the feature went.
+// Parts of the feature's subject pane: what stops the workflow, at its file and line; its name, as
+// the lists show it; and the drop, deliberate behind its question, which says after where the
+// feature went.
 import { signal, View } from "nsh";
 import { call, navigate } from "../../store";
 import type { Dropped, Feature } from "../../store/protocol";
-import { Banner, Button, Refusal, Text } from "../../ui/controls";
+import { Banner, Button, Link, Refusal, Text } from "../../ui/controls";
+import { registerKey } from "../../ui/keys";
 import { usePane } from "../../ui/layout";
 import { Dialog } from "../../ui/surfaces";
 import type { FeatureArgs } from "./read";
+import { NameDialog } from "../NameDialog";
 
 /** `ura check`'s problems that stop the workflow, each at its file and line. */
 export function Problems(props: { feature: Feature }) {
@@ -25,6 +28,48 @@ export function Problems(props: { feature: Feature }) {
           .join("\n")}
       </Banner>
     </If>
+  );
+}
+
+/**
+ * Rename, `R` or its link: the name the feature shows in the sidebar, Home, and its page, kept by
+ * the server beside the repository; a blank one gives it back its title.
+ */
+export function Rename(props: { args: FeatureArgs; feature: Feature }) {
+  const asking = signal(false);
+  const what = props.feature.kind === "change" ? "change" : "feature";
+  registerKey({
+    hint: "R",
+    hintLabel: "rename",
+    icon: "pencil",
+    keys: "R",
+    label: `Rename the ${what}`,
+    run: () => void asking.set(true),
+  });
+  return (
+    <>
+      <Link onPress={() => asking.set(true)} size="under">
+        Rename
+      </Link>
+      <If when={asking()}>
+        <NameDialog
+          icon="pencil"
+          initial={props.feature.label ?? props.feature.title}
+          label="Name"
+          onClose={() => asking.set(false)}
+          onSave={async (label) => {
+            const named = label === props.feature.title ? "" : label;
+            await call("item.settings", {
+              folder: props.args.folder,
+              label: named === "" ? null : named,
+              repo: props.args.repo,
+            });
+          }}
+          title={`Rename the ${what}`}
+          words={`Left blank, it is called by its title, “${props.feature.title}”.`}
+        />
+      </If>
+    </>
   );
 }
 

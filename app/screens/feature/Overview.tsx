@@ -10,7 +10,7 @@ import { Collapsible } from "../../ui/lists";
 import { Pane, Well } from "../../ui/surfaces";
 import type { Tone } from "../../ui/tokens";
 import { type Next, type NextAction, nextOf } from "./next";
-import { Drop, DroppedNote, Problems } from "./Parts";
+import { Drop, DroppedNote, Problems, Rename } from "./Parts";
 import { ContinueDialog } from "../runs/ContinueDialog";
 import { type FeatureArgs, ticking, WithFeature } from "./read";
 import { day, endedWords, kindWord, plural, waitWords } from "./words";
@@ -68,8 +68,45 @@ const ICONS = {
   url: "external-link",
 } as const;
 
+/**
+ * At the proposal's gate, its commit: the gate ends once the proposal is committed, and Next then
+ * offers the agent's run. A button apart from Next's, as a commit is deliberate (rule 2).
+ */
+function CommitProposal(props: { args: FeatureArgs; path: string }) {
+  const pending = signal(false);
+  const refusal = signal<string | null>(null);
+  const commit = async () => {
+    pending.set(true);
+    refusal.set(null);
+    try {
+      await call("text.commit", { path: props.path, repo: props.args.repo });
+    } catch (error) {
+      refusal.set((error as Error).message);
+    }
+    pending.set(false);
+  };
+  return (
+    <View style={{ alignItems: "flex-start", gap: 4 }}>
+      <Button
+        icon="git-commit-horizontal"
+        label="Commit the proposal"
+        onPress={() => void commit()}
+        pending={pending()}
+      />
+      <If when={refusal()}>{(words) => <Refusal words={words()} />}</If>
+    </View>
+  );
+}
+
+/** The proposal file a feature's step waits on, at its gate: none at any other step. */
+function proposalAt(feature: Feature): string | undefined {
+  const { file, fileKind } = feature.step;
+  const gate = feature.step.waitsOn === "human" && fileKind === "proposal" && file !== null;
+  return gate ? `${feature.path}/${file}` : undefined;
+}
+
 /** "Next": what comes next, why, and its one button, the view's main action, with `n`. */
-function NextPart(props: { args: FeatureArgs; next: Next }) {
+function NextPart(props: { args: FeatureArgs; next: Next; proposal?: string }) {
   const pending = signal(false);
   const refusal = signal<string | null>(null);
   // The run the dialog asks about, kept after it closes so it leaves with its motion.
@@ -114,6 +151,7 @@ function NextPart(props: { args: FeatureArgs; next: Next }) {
           </View>
         )}
       </If>
+      <If when={props.proposal}>{(path) => <CommitProposal args={props.args} path={path()} />}</If>
       <If when={asked()}>
         {(next) => (
           <ContinueDialog
@@ -202,13 +240,18 @@ function Body(props: { args: FeatureArgs; feature: () => Feature }) {
       <View style={{ gap: 6 }}>
         <Heading level={1}>{feature().label ?? feature().title}</Heading>
         <Text tone="quiet">{facts(feature())}</Text>
-        {/* A merged one's status is "Merged", which Next says. */}
-        <If when={feature().step.name !== "done"}>
-          <StatusDot label={status().label} tone={toneOf(status().status)} />
-        </If>
+        <View
+          style={{ alignItems: "center", columnGap: 12, flexDirection: "row", flexWrap: "wrap" }}
+        >
+          {/* A merged one's status is "Merged", which Next says. */}
+          <If when={feature().step.name !== "done"}>
+            <StatusDot label={status().label} tone={toneOf(status().status)} />
+          </If>
+          <Rename args={props.args} feature={feature()} />
+        </View>
       </View>
       <Problems feature={feature()} />
-      <NextPart args={props.args} next={next()} />
+      <NextPart args={props.args} next={next()} proposal={proposalAt(feature())} />
       <If when={message()}>{(text) => <Message text={text()} />}</If>
       <Left feature={feature()} />
       <Notes args={props.args} feature={feature()} />
