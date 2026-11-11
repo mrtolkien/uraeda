@@ -94,6 +94,15 @@ default dark theme; every theme maps its own.
 - **A selected row** has a 2 px bar of `light.focus` on its left edge, a fill one step up, and no
   glow round it: a list of glowing rows would shout. Only its bar is lit, by 8 px at 60%, in a dark
   theme.
+- **Three marks on a list, and no other** (ruling R307). The cursor, where the keys go, is the
+  selected row above: a card takes the same fill and bar, and its edge stays `rule`. In a pane at
+  rest the cursor keeps its fill, and its bar is `rule`, unlit, since only the focused pane emits
+  light. What is open now, the place shown or the item read beside the list, is "current": its icon
+  and words in the accent, bold, with no bar and no fill, as the phone's tabs mark theirs. A choice
+  made, a picked theme or option card, has its edge in the accent and a tick where it has room: it
+  is not a cursor, and draws no bar.
+- **A focused list shows its cursor before any key**: on its first row, unless the visit left it on
+  another. A pointer user sees a quiet bar there; a keyboard user sees where `j` starts.
 
 ## Motion means a change of state
 

@@ -119,6 +119,10 @@ The rules that make a pane work everywhere:
   `mark` may read records: it is read as a signal.
 - **It draws at any width.** `props.width` is the width class of the stack it is in, not the
   window's: a side stack of 400 points is `narrow`, and so is a phone. Lay out by it.
+- **Its tab keeps its title while the row has room.** The side stack takes 440 points on a wide
+  window while the main one keeps 680; short of room, the tabs beside the shown one leave their
+  icons out first, then the farthest shrink to their icons, their titles in their tips. A short
+  title is what keeps it whole: "Figures", not "What it produced".
 - **It keeps nothing in component state that matters.** A hidden tab is not drawn, and a pane moved
   to the other stack is drawn anew. Its scroll is kept by `PaneScroll`, or a `VirtualList`'s by
   `offset` and `onOffset` with `remember`; its cursor, folds, and other small values by

@@ -6262,34 +6262,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   build (task 56).
 - **Where**: `app/screens/settings/SignIn.tsx`.
 
-## T93.6: The server's time zone comes with its `welcome`, and every day the app shows is the store's
-
-- **Decision**: `welcome` carries `timeZone`, the server's IANA zone (the machine's, `UTC` where it
-  names none), and the store's connection hands it to `setServerZone` at each `welcome`. The frame
-  no longer reads the record `Jobs` for it. `app/store/time.ts` adds `serverDay`, "17 Oct", "17 Oct
-  2025", a `YYYY-MM-DD` date as written, and `serverDaysAgo`; the feature page's times and days, the
-  decisions' dates, Git's older days, and sign-in's days use them, so a day reads "17 Oct"
-  everywhere, where the feature page and the decisions wrote "Oct 17". Usage's reset reads "5h 58%
-  left · reset 07:11", with the app's separator.
-- **Rationale**: ruling R263's "If wrong" came true: with the Jobs extension off, times read in the
-  device's zone, and the feature page wrote device times of its own.
-- **Where**: `crates/protocol/src/message.rs`, `crates/server/src/http/socket.rs`,
-  `crates/server/tests/live.rs`, `contracts/protocol.md`, `app/store/{connection,index,time}.ts`,
-  `app/screens/feature/words.ts`, `app/screens/decisions/ledger.ts`, `app/screens/git/when.ts`,
-  `app/screens/settings/SignIn.tsx`, `app/screens/shell/{Frame.tsx,usage.ts}`.
-
-## T93.5: A long list opens on its cursor's row; a guarded key's hint shows only where it works
-
-- **Decision**: `VirtualList` opens on the cursor's row when the visit kept no place for it, and the
-  decisions list moves its cursor to the decision a link opens with `reveal`, which scrolls it into
-  view. The key store's hints leave out a key whose `when` does not hold, as the key map already
-  did; Git's `d`, `o`, and `t` have their hints back, shown on a file, or a conflict, alone.
-- **Rationale**: a decision opened from elsewhere had its card selected below the fold; Git had
-  dropped its conflict keys' hints because they showed on every row.
-- **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/keys/store.ts`,
-  `app/screens/decisions/List.tsx`, `app/screens/git/Changes.tsx`.
-
-## T93.1: A list marks three things, each with one look, and a focused list shows its cursor at once
+## R307: A list marks three things, each with one look, and a focused list shows its cursor at once
 
 - **Decision**: the cursor of a list, a `Row`'s or a `Card`'s `selected`, is a fill one step up and
   a 2 px bar on its left edge. `Bar` lights it, `light.focus` and its glow, while the keys declared
@@ -6316,7 +6289,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `app/ui/keys/{store.ts,registry.tsx}`, `app/ui/tokens/light.ts`, `app/ui/layout/Rail.tsx`,
   `app/screens/shell/Sidebar.tsx`, `app/screens/home/Cards.tsx`, `app/screens/git/Worktrees.tsx`.
 
-## T93.2: A title gets the row's width first; its state wraps to a second line
+## R308: A title gets the row's width first; its state wraps to a second line
 
 - **Decision**: `Line` and `Card` lay a title and its end (a meta, a count, a state, a time) in one
   wrapping row: the title at its whole width (`flexBasis: auto`) and the end beside it while both
@@ -6331,7 +6304,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the end goes to a head line over the title in every narrow pane, as on the phone.
 - **Where**: `app/ui/lists/{Line,Card}.tsx`.
 
-## T93.3: Empty states and refusals speak in one voice
+## R309: Empty states and refusals speak in one voice
 
 - **Decision**: an `Empty` says what is not here (a title, no full stop), why and what brings one
   (words), and the one thing to do (an action, with its key where it has one); its `refusal` sits
@@ -6345,21 +6318,50 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   "Nothing in Now". The rule is written in `specs/ui/components.md` so the next screens follow it.
 - **Where**: `app/ui/lists/Empty.tsx`, the screens named, `specs/ui/components.md`.
 
-## T93.4: The side stack takes 440 points while the main one keeps 680; a pane's header is one row
+## R310: The side stack takes 440 points while the main one keeps 680; a pane's header is one row
 
 - **Decision**: on a wide window, the side stack's default width is 400 points, and up to 440 while
   the main stack keeps 680, a reading pane's prose and its room: at 1400 points it is 440. A width
   the human dragged still wins. A pane's header is one row of controls: `Button`'s `compact` draws
-  its key and icon, its label in its tip, and the decisions' Jump is compact in a narrow pane.
+  its key and icon, its label in its tip, and the decisions' Jump is compact in a narrow pane. Short
+  of room, the tabs beside the shown one first leave their icons out and keep their titles, which
+  say more, before any shrinks to its icon.
 - **Rationale**: at 1400 points, the feature page's and Git's three side tabs left the third an
-  icon, and the decisions' Jump and order wrapped onto two rows at 400 points. The tabs' rule, the
-  shown tab named first and the others while they fit, is right: the room was short by about 40
-  points, and the main stack had them to spare above its prose's measure.
+  icon, and the decisions' Jump and order wrapped onto two rows at 400 points. Three named tabs with
+  icons need about 445 points; the main stack had 40 to spare above its prose's measure, and the
+  icons beside the shown tab's say what their titles already say.
 - **Props whose meaning changed**: none; `Button`'s `compact` is new.
-- **Where**: `app/ui/layout/Stacks.tsx`, `app/ui/controls/Button.tsx`,
+- **Where**: `app/ui/layout/{Stacks,Stack}.tsx`, `app/ui/controls/Button.tsx`,
   `app/screens/decisions/List.tsx`.
 
-## T93.7: The diff's code colours are Native Shell's; a patch it cannot read shows as text
+## R311: A long list opens on its cursor's row; a guarded key's hint shows only where it works
+
+- **Decision**: `VirtualList` opens on the cursor's row when the visit kept no place for it, and the
+  decisions list moves its cursor to the decision a link opens with `reveal`, which scrolls it into
+  view. The key store's hints leave out a key whose `when` does not hold, as the key map already
+  did; Git's `d`, `o`, and `t` have their hints back, shown on a file, or a conflict, alone.
+- **Rationale**: a decision opened from elsewhere had its card selected below the fold; Git had
+  dropped its conflict keys' hints because they showed on every row.
+- **Where**: `app/ui/lists/VirtualList.tsx`, `app/ui/keys/store.ts`,
+  `app/screens/decisions/List.tsx`, `app/screens/git/Changes.tsx`.
+
+## R312: The server's time zone comes with its `welcome`, and every day the app shows is the store's
+
+- **Decision**: `welcome` carries `timeZone`, the server's IANA zone (the machine's, `UTC` where it
+  names none), and the store's connection hands it to `setServerZone` at each `welcome`. The frame
+  no longer reads the record `Jobs` for it. `app/store/time.ts` adds `serverDay`, "17 Oct", "17 Oct
+  2025", a `YYYY-MM-DD` date as written, and `serverDaysAgo`; the feature page's times and days, the
+  decisions' dates, Git's older days, and sign-in's days use them, so a day reads "17 Oct"
+  everywhere, where the feature page and the decisions wrote "Oct 17". Usage's reset reads "5h 58%
+  left · reset 07:11", with the app's separator.
+- **Rationale**: ruling R263's "If wrong" came true: with the Jobs extension off, times read in the
+  device's zone, and the feature page wrote device times of its own.
+- **Where**: `crates/protocol/src/message.rs`, `crates/server/src/http/socket.rs`,
+  `crates/server/tests/live.rs`, `contracts/protocol.md`, `app/store/{connection,index,time}.ts`,
+  `app/screens/feature/words.ts`, `app/screens/decisions/ledger.ts`, `app/screens/git/when.ts`,
+  `app/screens/settings/SignIn.tsx`, `app/screens/shell/{Frame.tsx,usage.ts}`.
+
+## R313: The diff's code colours are Native Shell's; a patch it cannot read shows as text
 
 - **Decision**: `DiffView` takes no colour for its code: NSH 0.4.0 paints each token with
   `Token::style` (`nsh-base/src/syntax.rs`), a fixed pair of colours for a light and a dark theme,
@@ -6375,7 +6377,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `app/ui/document/Diff.tsx`, `crates/app/src/{patch,native,lib}.rs`,
   `app/gallery/document/diff.tsx`.
 
-## T93.8: The status line hides a hint it cannot hold whole
+## R314: The status line hides a hint it cannot hold whole
 
 - **Decision**: the status line's hints wrap inside one line's height: a hint the line cannot hold
   is hidden whole, from the end, never cut through its key or word.

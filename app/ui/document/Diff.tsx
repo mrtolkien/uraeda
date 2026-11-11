@@ -8,7 +8,7 @@
 // `DiffView` draws nothing for a patch it cannot read, and says nothing: a patch Rust finds it
 // cannot (`patchProblem`) shows as its plain text, under a quiet line that says why. Its code's
 // colours are `DiffView`'s own, for a light or a dark theme: it takes no colour of a token's
-// (ruling T93.7). Its rows, numbers, and changed words are the theme's roles.
+// (ruling R313). Its rows, numbers, and changed words are the theme's roles.
 import { computed, Scroll, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { DiffView, type DiffViewRef } from "nsh/base";
 import { patchProblem } from "uraeda/native";
