@@ -51,6 +51,8 @@ export type Layout = {
 export type Place = {
   readonly main: ReadonlyArray<PaneRef>;
   readonly side: ReadonlyArray<PaneRef>;
+  /** The stacks that show their panes split, all at once, until the human makes them tabs. */
+  readonly split?: ReadonlyArray<StackName>;
 };
 
 const STACKS: ReadonlyArray<StackName> = ["main", "side"];
@@ -66,22 +68,26 @@ export function paneKey(kind: string, args: Readonly<Record<string, Json>>): str
   return sorted.length === 0 ? kind : `${kind}:${JSON.stringify(sorted)}`;
 }
 
-const stackOfPanes = (panes: ReadonlyArray<PaneRef>, shown?: string | null): Stack => ({
+const stackOfPanes = (
+  panes: ReadonlyArray<PaneRef>,
+  shown?: string | null,
+  splits = false,
+): Stack => ({
   panes,
   shown: panes.some((pane) => pane.key === shown) ? (shown ?? null) : (panes[0]?.key ?? null),
-  split: false,
+  split: splits,
 });
 
 /** The place's default layout: each stack's first pane shown, the main one's focused. */
 export function layoutOf(place: Place, folded = false): Layout {
-  const main = stackOfPanes(place.main);
+  const main = stackOfPanes(place.main, null, place.split?.includes("main"));
   return {
     closed: [],
     focus: main.shown,
     folded,
     main,
     onTabs: false,
-    side: stackOfPanes(place.side),
+    side: stackOfPanes(place.side, null, place.split?.includes("side")),
     zoomed: null,
   };
 }

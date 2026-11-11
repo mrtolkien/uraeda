@@ -127,6 +127,9 @@ The rules that make a pane work everywhere:
   while the pane has the focus, so two panes may both have `j`. The frame's `h` `l` `j` `k` are
   fallbacks: a pane may declare them too, for columns or rows, and return `false` at its edge so the
   focus moves on.
+- **A page read at a glance splits its stacks**: `definePlace(page, panes, { split: ["main"] })`
+  shows all of a stack's panes at once, one under the other, until the human makes them tabs, as
+  Home does. Most pages leave their stacks as tabs.
 - **`closes`** says the human may close it. A place's subject never closes.
 - **`kind` is unique** across the app: `definePane` throws on a second one. Name it after its
   screen, `session-changes`.

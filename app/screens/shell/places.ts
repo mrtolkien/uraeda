@@ -52,7 +52,7 @@ export const PLACES: ReadonlyArray<Place> = [
     pages: ["decisions", "decision", "decisions-check", "constitution"],
     to: { page: "decisions" },
   },
-  { icon: "git-branch", key: "g", label: "Git", pages: ["git"], to: { page: "git" } },
+  { icon: "git-branch", key: "c", label: "Git", pages: ["git"], to: { page: "git" } },
   {
     icon: "clock",
     key: "j",

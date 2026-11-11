@@ -13,11 +13,12 @@ export const isIconName = (name: string): name is IconName =>
   Object.hasOwn(LUCIDE, name) || Object.hasOwn(MARKS, name) || Object.hasOwn(STROKED_MARKS, name);
 
 /**
- * The icon of a name read at run time, as a decision's frontmatter gives one: `fallback` for a
- * name the app does not carry.
+ * The icon of a name read at run time, as a decision's frontmatter gives one, or the server's
+ * name of an agent's mark, `uraeda:harness-claude`: `fallback` for a name the app does not carry.
  */
 export function iconNamed(name: string | null | undefined, fallback: IconName = "file-text") {
-  return name != null && isIconName(name) ? name : fallback;
+  const bare = name?.replace(/^uraeda:(harness-)?/, "");
+  return bare != null && isIconName(bare) ? bare : fallback;
 }
 
 /** The SVG of an icon in one colour, at its size. */

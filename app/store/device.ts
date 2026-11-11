@@ -29,6 +29,8 @@ export type DeviceKeys = {
   [declared: `declared:${string}`]: { version: number; declarations: Declarations };
   /** The frame: the side stack's width and fold, and the rail's fold (`app/ui/layout/`). */
   frame: { rail?: boolean; side?: boolean; sideWidth?: number };
+  /** How the priorities show, as columns or one list (`app/screens/priorities/`). */
+  "priorities.view": "columns" | "list";
 };
 
 /** The values of a device, by the names of `Keys`. */

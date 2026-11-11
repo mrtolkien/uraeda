@@ -5747,3 +5747,93 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   index, and said nothing of a list's cursor and scroll, nor of an absent repository: all fixed.
 - **Where**: `app/ui/layout/panes.tsx`, `specs/ui/panes.md`, `specs/ui/components.md`,
   `app/store/README.md`.
+
+## R269: A place may show its stacks split from the start, and Home's both are
+
+- **Decision**: `definePlace(page, panes, { split })` names the stacks that show all their panes at
+  once until the human makes them tabs: `Place.split`, which `layoutOf` reads. Home splits both:
+  Needs you and In progress in the main stack, the inbox, Priorities now, and Usage in the side one.
+  On a phone, one pane at a time, the bar at the foot switching, as every place.
+- **Rationale**: Home is read at a glance, "what needs them, what runs, what is next": as tabs, it
+  showed Needs you alone, and the rest one key away each. The layout already drew a split stack;
+  only a place could not ask for one.
+- **Alternatives considered**: one Home pane drawing every part: a second frame inside a pane, which
+  the panes guide forbids, and no part could move to the other stack (task 66).
+- **Where**: `app/ui/layout/{layout.ts,panes.tsx}`, `app/screens/home/index.tsx`.
+
+## R270: Git's place is `g c`, and `g g` is a list's first row again
+
+- **Decision**: the Git place's key is `c` (`g c`, `Space c`), not `g`.
+- **Rationale**: `g g` is every list's "first row" (`listKeys`, as in Vim and the React UI), and the
+  shell's `g g` for Git made the registry throw "A key means two things" as soon as a list was drawn
+  in a pane: the priorities page could not open. `c` was free after `g` and `Space`.
+- **If wrong**: another letter in `PLACES`; never `g`.
+- **Where**: `app/screens/shell/places.ts`.
+
+## R271: The priorities' sections each own a key scope; `H` `L` send a row across them
+
+- **Decision**: each section (Ongoing, Now, Next, Later, Blocked while it holds any) is a
+  `DragOrder` (Ongoing a `List`) in a `KeyScope` of kind `pane` of its own, on while it has the
+  pane's focus, so their `j` `k` `m` `a` never clash. `h` `l` cross the columns, and return `false`
+  past the last, so the frame crosses the stacks; in one list, `j` `k` past a section's end go on
+  into the next, from a scope beside the sections', whose keys run only where a section's did
+  nothing. `H` `L` send the row under the cursor to the section before, at its end, or after, at its
+  start: carried across the line between them. By touch, the proposal's pane has "Move it to the top
+  of" Now, Next, Later, Blocked. One cursor shows at a time: entering a section lets the others' go.
+  A narrow stack, a phone's or the side's, shows one list; `v` and the switch are for a wide one,
+  the choice kept on the device (`DeviceKeys["priorities.view"]`).
+- **Rationale**: `DragOrder` orders one list, and Now, Next, and Later are three: a drag between
+  columns would need a second component for a rare move. `H` `L` say where the row lands by a rule
+  that reads aloud.
+- **Where**: `app/screens/priorities/{Priorities,Section}.tsx`, `app/store/device.ts`.
+
+## R272: A reorder is one `sent` value of the whole order, written in the order made
+
+- **Decision**: the page shows the server's order with the human's moves over it (`createOrder`,
+  over `sent`): a move shows at once, is sent once as `proposals.move`, after the moves before it,
+  and a refusal puts the rows back and says why under the section it was made in ("The priorities
+  changed elsewhere, and show as they are now: move it again."). A move names the proposal by its id
+  in the order before it (`next-2`), and its place in the file among the section's lines, the
+  running ones counted (`fileIndex`); its hash is the one the last write answered until the record
+  shows it, so a second move sent before the record caught up is not refused as a conflict.
+- **Seen failing**: with every move sent twice, `a reorder is saved once, in the order shown` failed
+  (two `proposals.move`); with a refusal swallowed, the refused test waited for its words in vain.
+  The checks' app's posts were first refused: a post is listed only for a name in `open`'s
+  `host.handlers`, and granted in the folder's `nsh.json`.
+- **Where**: `app/screens/priorities/{moves,order}.ts`, `app/screens/priorities/__checks__/`.
+
+## R273: A proposal's address shows its line, until task 38's pane takes its place
+
+- **Decision**: `/priorities/<key>` shows the proposal as its line reads, `proposal-summary`, the
+  subject in the main stack, with the priorities in the side one: where it stands, its words, its
+  nested lines, its file's path, "Open its feature" or "Open its file", and the moves to another
+  section. A key no longer there says so, with the way back. Task 38 joins without a change here: a
+  kind of pane named `proposal`, with the arguments `{ repo, key }`, declared anywhere, takes the
+  summary's place in its kind's stack (`kindOf` at the place's call).
+- **Rationale**: the priorities record gives the line's spans, not a document's tree: the document
+  renderer has nothing to draw until the proposal's file is read, which is task 38's record.
+- **Where**: `app/screens/priorities/{index,Proposal}.tsx`.
+
+## R274: Home is five panes, and leaves Continue all, Recent, and Setup out
+
+- **Decision**: Needs you is the server's `NeedsYouList`, this repository's first, then the others',
+  each card naming its reason as its state and the server's words under its title, with the features
+  whose problems stop the workflow first; In progress is the features in flight that wait on an
+  agent, the ones at work first, then the chats at work; the inbox's pane puts its field first
+  (Enter adds a note, `a` reaches it), then its three latest notes; Priorities now is Now's first
+  five that do not run; Usage lists each agent under its mark, each account by name with every
+  window, "5h 58% left - reset 15:08", a window nearly gone in the danger's colour, "b · signed
+  out", "c · no folder". Left out: Continue all, whose rule (`continuedByAll`) is the Node server's
+  and has no field in the protocol to read, so the button would guess, against the stack decision;
+  Recent, the merged features, which carry no date to order by; the Setup pane and the banners of
+  drops, which the new page and task 50 own.
+- **If wrong**: Continue all needs `FeatureStatus.continuable` from the server, then a button in
+  Needs you's pane.
+- **Where**: `app/screens/home/`.
+
+## R275: Usage has one reading of the record, the sidebar's and Home's
+
+- **Decision**: `usageByAgent` in `app/screens/shell/usage.ts`, beside the sidebar's `usageLines`,
+  with the same `leftOf` and `resetWords`; `iconNamed` reads the server's names of agents' marks,
+  `uraeda:harness-claude`, which drew nothing before.
+- **Where**: `app/screens/shell/usage.ts`, `app/ui/controls/Icon.tsx`.

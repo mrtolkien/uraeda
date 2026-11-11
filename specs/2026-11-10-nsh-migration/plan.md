@@ -2496,12 +2496,27 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions, also:** Agent, with its accounts (task 62).
 - **Tests:** `a reorder is saved once, in the order shown`.
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): home and priorities`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names, and
+      `a refused reorder puts the rows back and     says why under them`.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(nsh-migration): home and priorities`.
+
+**As built** (rulings R269 to R275):
+
+- Home (`app/screens/home/`): the panes `home-needs-you` and `home-in-progress` in the main stack,
+  `home-inbox`, `home-now`, and `home-usage` in the side one, both split from the start
+  (`definePlace(page, panes, { split })`, new). Extensions' `homePane`s (task 51) join the side
+  stack's place in `index.tsx`.
+- Priorities (`app/screens/priorities/`): the pane `priorities` (`{ repo, open? }`);
+  `/priorities/<key>` shows `proposal-summary` in the main stack and the priorities in the side one.
+  **Task 38** declares a kind of pane named `proposal`, with the arguments `{ repo, key }`, and it
+  takes the summary's place, with no change to these files.
+- Git's place is `g c`: `g g` is every list's first row.
+- `usageByAgent` (Home's Usage) is beside `usageLines` in `app/screens/shell/usage.ts`; `iconNamed`
+  reads `uraeda:harness-<mark>`.
 
 ## Task 38: Proposals, and starting work
 

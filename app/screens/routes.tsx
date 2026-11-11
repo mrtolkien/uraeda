@@ -9,6 +9,8 @@
 // Task 36: the shell's own pages ("Nothing here", a repository's gates).
 import "./shell/panes";
 // Task 37: Home and priorities.
+import "./home";
+import "./priorities";
 // Task 38: Proposals, and starting work.
 // Task 39: Inbox and triage.
 // Task 40: The feature page.

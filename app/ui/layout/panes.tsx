@@ -60,7 +60,10 @@ export type PaneKind<Args extends PaneArgs> = ((args: Args) => PaneRef) & {
 export type Placed = PaneRef | { readonly pane: PaneRef; readonly stack: StackName };
 
 const kinds = new Map<string, PaneSpec<PaneArgs>>();
-const places = new Map<string, (route: Route) => ReadonlyArray<Placed>>();
+const places = new Map<
+  string,
+  { panes: (route: Route) => ReadonlyArray<Placed>; split?: ReadonlyArray<StackName> }
+>();
 
 /**
  * Declares a kind of pane, once, at a module's top level. Throws when another kind took its name:
@@ -88,28 +91,34 @@ export const kindOf = (pane: PaneRef): PaneSpec<PaneArgs> | undefined => kinds.g
 /**
  * Declares the panes a page shows, in order: each in its kind's stack unless given one. The first
  * main pane is the page's subject, focused as it opens. Called once per page, at a module's top
- * level.
+ * level. `split` names the stacks that show all their panes at once, as a page read at a glance
+ * does, until the human makes them tabs.
  */
 export function definePlace<P extends Route["page"]>(
   page: P,
   panes: (route: RouteOf<P>) => ReadonlyArray<Placed>,
+  options: { split?: ReadonlyArray<StackName> } = {},
 ) {
   if (places.has(page)) {
     throw new Error(`The page "${page}" has two places`);
   }
-  places.set(page, panes as (route: Route) => ReadonlyArray<Placed>);
+  places.set(page, {
+    panes: panes as (route: Route) => ReadonlyArray<Placed>,
+    split: options.split,
+  });
 }
 
 /** The panes of a route, by their default stacks: none for a page no screen declared. */
 export function placeOf(route: Route): Place {
-  const placed = places.get(route.page)?.(route) ?? [];
+  const declared = places.get(route.page);
+  const placed = declared?.panes(route) ?? [];
   const main: Array<PaneRef> = [];
   const side: Array<PaneRef> = [];
   for (const one of placed) {
     const [pane, stack] = "pane" in one ? [one.pane, one.stack] : [one, kindOf(one)?.stack];
     (stack === "side" ? side : main).push(pane);
   }
-  return { main, side };
+  return declared?.split === undefined ? { main, side } : { main, side, split: declared.split };
 }
 
 /** The title of a pane, as its tab says it. */
