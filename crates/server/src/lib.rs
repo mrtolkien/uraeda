@@ -28,6 +28,7 @@ mod http;
 pub mod live;
 pub mod mcp;
 pub mod preview;
+mod process;
 mod records;
 mod run;
 pub mod runner;

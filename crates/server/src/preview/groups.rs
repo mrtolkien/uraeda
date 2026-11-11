@@ -11,8 +11,8 @@ use std::sync::{Mutex, PoisonError};
 
 use serde::{Deserialize, Serialize};
 
-use super::command::{Signal, signal_group};
 use crate::env::Environment;
+use crate::process::{Signal, signal_group};
 use crate::shared::Shared;
 
 /// The record's file, in the data folder's `run/`.

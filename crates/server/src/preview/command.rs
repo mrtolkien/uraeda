@@ -12,6 +12,7 @@ use tokio::sync::watch;
 
 use super::groups::Groups;
 use crate::env::Environment;
+use crate::process::{Signal, lead_group, signal_group};
 
 /// How long a stopped command has to exit before it is killed.
 const KILL: Duration = Duration::from_secs(5);
@@ -21,39 +22,6 @@ const OUTPUT: Duration = Duration::from_secs(2);
 
 /// How many lines of a command's output are kept.
 const LINES_KEPT: usize = 50;
-
-/// What a group is sent.
-#[derive(Clone, Copy)]
-pub(super) enum Signal {
-    /// Asks the processes to end.
-    Terminate,
-    /// Ends them.
-    Kill,
-}
-
-/// Sends a signal to the process group led by `leader`: the command, and everything it started.
-/// Nothing happens when the group is gone.
-#[cfg(unix)]
-pub(super) fn signal_group(leader: u32, signal: Signal) {
-    let Ok(group) = libc::pid_t::try_from(leader) else {
-        return;
-    };
-    let signal = match signal {
-        Signal::Terminate => libc::SIGTERM,
-        Signal::Kill => libc::SIGKILL,
-    };
-    // A group of id 0 or 1 would be the server's own, or every process.
-    if group > 1 {
-        // SAFETY: `kill` takes no pointer; a negative id names the process group.
-        unsafe {
-            libc::kill(-group, signal);
-        }
-    }
-}
-
-/// Without unix there is no process group: the command runs to its end.
-#[cfg(not(unix))]
-pub(super) fn signal_group(_leader: u32, _signal: Signal) {}
 
 /// What starts a run.
 pub(super) struct Start<'a> {
@@ -92,8 +60,7 @@ impl Run {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        #[cfg(unix)]
-        std::os::unix::process::CommandExt::process_group(&mut command, 0);
+        lead_group(&mut command);
         let mut child = tokio::process::Command::from(command)
             .spawn()
             .map_err(|error| error.to_string())?;
