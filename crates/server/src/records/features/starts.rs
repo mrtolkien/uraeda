@@ -9,23 +9,26 @@ mod steps;
 use std::path::Path;
 use std::sync::Arc;
 
+use uraeda_core::actions::start::StartProgress;
 use uraeda_core::api::{self, TextStart};
 use uraeda_core::view::{PlannedView, StartedView};
 use uraeda_core::workspace::Kind;
 use uraeda_protocol::{
     ChangeFromNote, ChangeStart, ChangeStartProposal, ChangeStarted, ChatImage, FeatureStart,
-    FeatureStartText, RunOptions, StartKind, StartPlan, WriteName,
+    FeatureStartText, RunOptions, SessionPick, StartKind, StartPlan, Trigger, WriteName,
 };
 
 pub(super) use self::queued::Starts;
-use self::queued::{Run, Start};
+use self::queued::{Landed, Run, Start, Then};
 
 use super::messages::{Subject, run_message};
 use super::{messages, options};
 use crate::files::chat_images::ChatImages;
 use crate::live::{Call, Fault, Registry, locked};
 use crate::records::repositories;
+use crate::records::sessions::runs::{self, First};
 use crate::records::writing::{Write, write};
+use crate::runner::{Runner, picks};
 use crate::shared::Shared;
 
 /// Registers the actions that start a feature or a change.
@@ -103,9 +106,8 @@ struct Plannable {
 
 /// Plans a start and queues it, one plan at a time for a repository, so a folder or a slug a
 /// start still in the queue planned is taken. It answers once queued, with the plan: a refusal
-/// of the start stays in the queue's record.
-// TASK 15: the messages sent to the planned folder while its start lands are kept, shown in its
-// write, and sent to its session once it landed.
+/// of the start stays in the queue's record. The messages sent to the planned folder while its
+/// start lands are kept, and sent to its session once it landed.
 fn planned(
     call: &Call,
     repo: &str,
@@ -140,16 +142,65 @@ fn planned(
         slug: Some(planned.slug.clone()),
     };
     let (run, folder) = (run(&planned), planned.folder.clone());
+    // The messages sent to it meanwhile wait for it: a session made for them runs on the pick
+    // of the step its start begins with.
+    let runner = Runner::find(shared);
+    let main = root.to_string_lossy().into_owned();
+    let begins = match start.kind {
+        Kind::Feature => "discovery",
+        Kind::Change => "build",
+    };
+    if let Some(runner) = &runner {
+        runner.open_start(&main, &folder, begins);
+    }
+    let dropping = (runner.clone(), main.clone(), folder.clone());
     let refused = move |root: &Path| {
+        let (runner, main, folder) = &dropping;
+        if let Some(runner) = runner {
+            runner.drop_start(main, folder);
+        }
         if kept {
-            forget(&store, root, &folder);
+            forget(&store, root, folder);
         }
     };
-    let queued = queued::queue(shared, repo, queued, move |root, on_step| {
+    let then = move |_: &StartedView| {
+        if let Some(runner) = &runner {
+            send_kept(runner, &main, &folder);
+        }
+        None
+    };
+    let running = move |root: &Path, on_step: &dyn Fn(StartProgress)| {
         run(root, on_step).inspect_err(|_| refused(root))
-    });
-    queued?;
+    };
+    queued::queue(shared, repo, queued, running, then)?;
     Ok(plan_of(planned, start.kind))
+}
+
+/// Sends the messages kept for a started folder, in order, to the session they were kept for:
+/// a run its step starts anew goes to a new session, which the next messages follow. One that
+/// cannot be sent is printed, with the ones after it, as a started change's first run is not
+/// refused.
+fn send_kept(runner: &Runner, root: &str, folder: &str) {
+    let Some((mut session, messages)) = runner.take_kept(root, folder) else {
+        return;
+    };
+    // The start lands on the write queue's own thread: an agent's process starts where the
+    // server's runtime is.
+    let _runtime = runner.entered();
+    for message in messages {
+        let sent = runner.store().session(&session).map_err(Fault::from);
+        let sent = sent.and_then(|row| {
+            let row = row.ok_or_else(|| Fault::refused(format!("no session {session}")))?;
+            runner.send(&row, message)
+        });
+        match sent {
+            Ok(went) => session = went.session,
+            Err(fault) => {
+                let why = fault.message();
+                return eprintln!("uraeda: a message to {folder} was not sent: {why}");
+            }
+        }
+    }
 }
 
 /// The action `feature.start`: starts a proposal file as a feature, or as a change, as the core
@@ -234,13 +285,15 @@ fn forget(store: &options::Store, root: &Path, folder: &str) {
 }
 
 /// Queues a change's start, which answers once it landed: a refusal is its call's alone, and
-/// leaves the queue's record. Its slug, when named, is taken while it is in the queue.
+/// leaves the queue's record. Its slug, when named, is taken while it is in the queue. Once it
+/// ran, `then` starts its agent.
 fn landed(
     call: &Call,
     repo: &str,
     slug: Option<String>,
     run: impl Run,
-) -> Result<StartedView, Fault> {
+    then: impl Then,
+) -> Result<Landed, Fault> {
     let start = Start {
         name: None,
         label: "Starting a change".to_owned(),
@@ -249,40 +302,133 @@ fn landed(
         branch: None,
         slug,
     };
-    queued::queue(call.shared(), repo, start, run)?.answered()
+    queued::queue(call.shared(), repo, start, run, then)?.answered()
 }
 
-/// A change started: its own run options kept, and its first run sent.
-fn change_started(
+/// What follows a change that started: its own run options kept, then its first run sent to a
+/// session made for it, on its build step's pick. It gives that session: none when no run was
+/// sent, and the change's page offers the message unsent. Once the change exists, options that
+/// cannot be kept, or a run that cannot be sent, are printed, not refused.
+fn first_run(shared: &Shared, repo: &str, options: Option<RunOptions>) -> impl Then + use<> {
+    let (shared, repo) = (shared.clone(), repo.to_owned());
+    move |started: &StartedView| {
+        let folder = &started.folder;
+        let store = shared.get::<options::Store>();
+        if let (Some(options), Ok(root)) = (options, repositories::path(&shared, &repo))
+            && let Err(fault) = store.set(&root, folder, options)
+        {
+            let why = fault.message();
+            eprintln!("uraeda: {folder} started, but its run options were not kept: {why}");
+        }
+        let sent = runs::send(&shared, &repo, folder, Trigger::Start, First::default());
+        sent.unwrap_or_else(|fault| {
+            let why = fault.message();
+            eprintln!("uraeda: {folder} started, but its first run was not sent: {why}");
+            None
+        })
+    }
+}
+
+/// Refuses run options whose build step a new session could not run on, an agent off, a model
+/// its agent does not list, an effort the model does not take, before the change starts: once
+/// committed, a first run that cannot be sent is only printed. A build step the options leave
+/// to the settings is never refused here.
+fn check_build(shared: &Shared, repo: &str, options: &RunOptions) -> Result<(), Fault> {
+    if !options.steps.iter().any(|step| step.step == "build") {
+        return Ok(());
+    }
+    let Some(runner) = Runner::find(shared) else {
+        return Ok(());
+    };
+    let root = runner.root_of(repo)?;
+    let resolved = options::over(shared, options.clone());
+    let fallback = runner.new_session_runtime(&root, None).unwrap_or_default();
+    let map = picks::to_map(&resolved, &fallback);
+    let Some(build) = map.step("build") else {
+        return Ok(());
+    };
+    let pick = SessionPick {
+        runtime: Some(build.runtime.clone()),
+        model: build.model.clone(),
+        effort: build.effort.clone(),
+    };
+    runner.new_session_pick(&root, &pick).map(|_| ())
+}
+
+/// What a started change answers.
+fn change_started(landed: Landed) -> ChangeStarted {
+    ChangeStarted {
+        folder: landed.started.folder,
+        session: landed.session,
+    }
+}
+
+/// The core's refusals of a taken name: a record, a branch, or a folder, or the worktree's
+/// folder. The dated folder is the name, whatever letters its slug holds.
+fn taken_name(message: &str) -> Option<&str> {
+    let name = match message.strip_prefix("cannot create the worktree: .worktrees/") {
+        Some(rest) => rest.strip_suffix(" exists")?,
+        None => {
+            let (name, _) = message.split_once(" exists: ")?;
+            let name = name.strip_prefix("specs/done/").unwrap_or(name);
+            name.strip_suffix(".md").unwrap_or(name)
+        }
+    };
+    let dated = name.len() > 11
+        && name
+            .bytes()
+            .take(10)
+            .enumerate()
+            .all(|(at, byte)| match at {
+                4 | 7 => byte == b'-',
+                _ => byte.is_ascii_digit(),
+            })
+        && name.as_bytes()[10] == b'-'
+        && !name.contains(|letter: char| letter.is_whitespace() || letter == '/');
+    dated.then_some(name)
+}
+
+/// Starts the change of a text and a slug for a session that becomes it: a taken slug is
+/// refused in the card's words. The session's own run follows its move, so the start sends
+/// none.
+pub(crate) fn start_typed_change(
     call: &Call,
     repo: &str,
-    started: StartedView,
-    options: Option<RunOptions>,
-) -> Result<ChangeStarted, Fault> {
-    // Once the change exists, options that cannot be kept are printed, not refused.
-    let root = repositories::path(call.shared(), repo)?;
-    let store = call.shared().get::<options::Store>();
-    if let Some(options) = options
-        && let Err(fault) = store.set(&root, &started.folder, options)
-    {
-        let (folder, why) = (&started.folder, fault.message());
-        eprintln!("uraeda: {folder} started, but its run options were not kept: {why}");
-    }
-    // TASK 15: `change.start`, `change.startProposal`, and `change.fromNote` send the started
-    // change's first run to a session made for it, on its build step's pick, and answer that
-    // session: none when no run was sent. Run options whose build step no new session could
-    // run on are refused before the start.
-    Ok(ChangeStarted {
-        folder: started.folder,
-        session: None,
-    })
+    text: String,
+    slug: Option<String>,
+) -> Result<StartedView, Fault> {
+    let typed = Typed {
+        text,
+        images: Vec::new(),
+        line: None,
+        kind: Kind::Change,
+        discovery: None,
+    };
+    let named = slug.clone();
+    let landed = landed(
+        call,
+        repo,
+        slug,
+        move |root, on_step| api::start_text(root, &typed.start(), named.as_deref(), None, on_step),
+        |_: &StartedView| None,
+    );
+    landed
+        .map(|landed| landed.started)
+        .map_err(|fault| match taken_name(fault.message()) {
+            Some(name) => Fault::refused(format!(
+                "A branch or folder named {name} exists: pick another slug"
+            )),
+            None => fault,
+        })
 }
 
 /// The action `change.start`: starts a change typed as a text.
 fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault> {
-    // Options the store would refuse are refused before the change starts.
+    // Options the store would refuse, or whose build step no new session could run on, are
+    // refused before the change starts.
     if let Some(options) = &input.options {
         options::check(options.clone())?;
+        check_build(call.shared(), &input.repo, options)?;
     }
     let typed = Typed {
         text: input.text,
@@ -292,19 +438,21 @@ fn typed_change(call: &Call, input: ChangeStart) -> Result<ChangeStarted, Fault>
         discovery: None,
     };
     let slug = input.slug.clone();
-    let started = landed(call, &input.repo, input.slug, move |root, on_step| {
+    let run = move |root: &Path, on_step: &dyn Fn(StartProgress)| {
         api::start_text(root, &typed.start(), slug.as_deref(), None, on_step)
-    })?;
-    change_started(call, &input.repo, started, input.options)
+    };
+    let then = first_run(call.shared(), &input.repo, input.options);
+    landed(call, &input.repo, input.slug, run, then).map(change_started)
 }
 
 /// The action `change.startProposal`: starts a proposal file as a change.
 fn proposal_as_change(call: &Call, input: ChangeStartProposal) -> Result<ChangeStarted, Fault> {
     let (proposal, slug) = (input.proposal, input.slug.clone());
-    let started = landed(call, &input.repo, input.slug, move |root, on_step| {
+    let run = move |root: &Path, on_step: &dyn Fn(StartProgress)| {
         api::start_feature(root, &proposal, slug.as_deref(), Kind::Change, on_step)
-    })?;
-    change_started(call, &input.repo, started, None)
+    };
+    let then = first_run(call.shared(), &input.repo, None);
+    landed(call, &input.repo, input.slug, run, then).map(change_started)
 }
 
 /// The action `change.fromNote`: starts a change from a note of the inbox, as from a typed text
@@ -322,9 +470,11 @@ fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault>
         discovery: None,
     };
     let slug = input.slug.clone();
-    let started = landed(call, &input.repo, input.slug, move |root, on_step| {
+    let run = move |root: &Path, on_step: &dyn Fn(StartProgress)| {
         api::start_text(root, &typed.start(), slug.as_deref(), None, on_step)
-    })?;
+    };
+    // Its first run follows the note's removal, whose commit it would otherwise start under.
+    let started = landed(call, &input.repo, input.slug, run, |_: &StartedView| None)?.started;
     let removed = write(call.shared(), &input.repo, Write::of_lists(), |root| {
         Ok(api::remove_note_and_commit(root, &input.note, &input.hash)?)
     });
@@ -332,5 +482,9 @@ fn from_note(call: &Call, input: ChangeFromNote) -> Result<ChangeStarted, Fault>
         let (folder, why) = (&started.folder, fault.message());
         eprintln!("uraeda: {folder} started, but its note stayed in the inbox: {why}");
     }
-    change_started(call, &input.repo, started, None)
+    let session = first_run(call.shared(), &input.repo, None)(&started);
+    Ok(ChangeStarted {
+        folder: started.folder,
+        session,
+    })
 }

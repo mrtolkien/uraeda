@@ -11,6 +11,7 @@ use super::repositories::{self, Repository};
 use super::status;
 use crate::live::Registry;
 use crate::records::views::word;
+use crate::runner::Runner;
 use crate::shared::Shared;
 
 /// What a refused action tells.
@@ -21,33 +22,86 @@ pub(super) fn register(registry: &Registry) {
     registry.record::<NeedsYouList>(|shared, ()| Ok(list(shared)));
 }
 
-/// Every listed repository's items that need the human. A repository whose folder is gone, or
-/// that cannot be read, is left out.
-///
-/// TEMPORARY: features only. A chat whose turn was refused an action is an ask too, which the
-/// sessions bring (task 15).
+/// Every listed repository's items that need the human: its features, then its chats. A
+/// repository whose folder is gone, or that cannot be read, is left out.
 fn list(shared: &Shared) -> NeedsYouList {
     let repositories = repositories::all(shared).into_iter();
     let there = repositories.filter(|repository| !repository.missing);
-    let rows = there.flat_map(|repository| rows_of(&repository).unwrap_or_default());
+    let rows = there.flat_map(|repository| {
+        let features = rows_of(shared, &repository).unwrap_or_default();
+        features.into_iter().chain(chats_of(shared, &repository))
+    });
     NeedsYouList {
         rows: rows.collect(),
     }
 }
 
+/// The chats of one repository whose latest turn was refused an action: archived ones are put
+/// away.
+fn chats_of(shared: &Shared, repository: &Repository) -> Vec<NeedsYouRow> {
+    let Some(runner) = Runner::find(shared) else {
+        return Vec::new();
+    };
+    let chats = runner.chat_statuses(&repository.path.to_string_lossy());
+    let blocked = chats
+        .into_iter()
+        .filter(|(_, _, status)| status.reason == Some(StatusReason::Blocked));
+    let rows = blocked.map(|(row, latest, _)| {
+        let name = &repository.name;
+        let id = format!("{name}/sessions/{}", row.id);
+        let title = row
+            .title
+            .clone()
+            .unwrap_or_else(|| "New session".to_owned());
+        let turn = latest.map(|turn| turn.to_string()).unwrap_or_default();
+        NeedsYouRow {
+            key: format!("{id}:blocked:{turn}"),
+            repository: name.clone(),
+            folder: None,
+            href: format!("/r/{name}/sessions/{}", row.id),
+            label: title.clone(),
+            title,
+            message: REFUSED.to_owned(),
+            reason: NeedsYouReason::Blocked,
+            id,
+        }
+    });
+    rows.collect()
+}
+
+/// The turn a feature's ask follows, for its key: its status's, but when its step asks, the
+/// followed session's latest turn not sent at `catch-up`. A catch-up that ended at the pull
+/// request only brought back the review it asked before; one that stopped or was refused asks.
+fn asked_by(shared: &Shared, status: &FeatureStatus) -> String {
+    let own = || status.turn.clone().unwrap_or_default();
+    let (Some(session), Some(runner)) = (&status.session, Runner::find(shared)) else {
+        return own();
+    };
+    if status.reason != Some(StatusReason::Step) {
+        return own();
+    }
+    let turns = runner.store().turns(session).unwrap_or_default();
+    let turns: Vec<_> = turns
+        .into_iter()
+        .filter(|turn| turn.step.as_deref() != Some("catch-up"))
+        .collect();
+    let latest = crate::runner::latest_of(&turns, None);
+    latest.map(|turn| turn.id.to_string()).unwrap_or_default()
+}
+
 /// The features in flight of one repository that need the human.
-fn rows_of(repository: &Repository) -> Result<Vec<NeedsYouRow>, ApiError> {
+fn rows_of(shared: &Shared, repository: &Repository) -> Result<Vec<NeedsYouRow>, ApiError> {
     let features = api::read_workspace(&repository.path)?.features.into_iter();
     let in_flight =
         features.filter(|feature| !matches!(feature.step.name.as_str(), "done" | "none"));
     Ok(in_flight
-        .filter_map(|feature| row(repository, &feature))
+        .filter_map(|feature| row(shared, repository, &feature))
         .collect())
 }
 
 /// A feature's row, when its status asks something of the human.
-fn row(repository: &Repository, feature: &FeatureView) -> Option<NeedsYouRow> {
-    let status = status::of(feature);
+fn row(shared: &Shared, repository: &Repository, feature: &FeatureView) -> Option<NeedsYouRow> {
+    let status = status::of(shared, &repository.path, feature);
     let reason = reason(&status, &feature.step.name)?;
     let id = format!("{}/{}", repository.name, feature.folder);
     // The key holds the turn the status follows, so a run that ends at the same gate notifies
@@ -58,7 +112,7 @@ fn row(repository: &Repository, feature: &FeatureView) -> Option<NeedsYouRow> {
         &feature.step.name,
         feature.step.file.as_deref().unwrap_or_default(),
         &status.reason.as_ref().map(word).unwrap_or_default(),
-        status.turn.as_deref().unwrap_or_default(),
+        &asked_by(shared, &status),
     ]
     .join(":");
     let label = repositories::label(repository, &feature.folder);

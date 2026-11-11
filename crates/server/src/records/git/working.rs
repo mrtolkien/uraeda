@@ -6,25 +6,21 @@ use std::path::Path;
 use crate::live::Fault;
 use crate::shared::Shared;
 
-/// Why the main checkout's writes are refused while a chat's agent works in it.
-const CHAT_WORKS: &str = "An agent works in this checkout: wait for its turn to end.";
-
-/// Why a feature's writes are refused while its agent works.
-const FEATURE_WORKS: &str = "An agent is working on this feature. Stop it first, or wait for it.";
+use crate::runner::{Runner, refusals};
 
 /// Whether a chat's agent works in a repository's main checkout: a session without a feature
 /// has a turn running, starting, or queued.
-///
-/// TEMPORARY: no session runs yet, so no agent works: the sessions answer (task 15).
-pub(super) fn chat(_: &Shared, _repository: &Path) -> bool {
-    false
+pub(super) fn chat(shared: &Shared, repository: &Path) -> bool {
+    let runner = Runner::find(shared);
+    runner.is_some_and(|runner| runner.chat_working(&repository.to_string_lossy()))
 }
 
 /// The folders of a repository's features whose agent works.
-///
-/// TEMPORARY: no session runs yet, so no agent works: the sessions answer (task 15).
-pub(super) fn folders(_: &Shared, _repository: &Path) -> Vec<String> {
-    Vec::new()
+pub(super) fn folders(shared: &Shared, repository: &Path) -> Vec<String> {
+    let runner = Runner::find(shared);
+    runner.map_or_else(Vec::new, |runner| {
+        runner.working(&repository.to_string_lossy())
+    })
 }
 
 /// The checkouts a write of the page writes.
@@ -65,11 +61,11 @@ impl Touches {
 /// `refused` while an agent works in one of them.
 pub(super) fn writable(shared: &Shared, repository: &Path, touches: &Touches) -> Result<(), Fault> {
     if touches.main && chat(shared, repository) {
-        return Err(Fault::refused(CHAT_WORKS));
+        return Err(Fault::refused(refusals::CHAT_WORKS));
     }
     let works = |folder: &String| folders(shared, repository).contains(folder);
     if touches.folder.as_ref().is_some_and(works) {
-        return Err(Fault::refused(FEATURE_WORKS));
+        return Err(Fault::refused(refusals::WORKING));
     }
     Ok(())
 }

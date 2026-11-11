@@ -24,7 +24,10 @@ pub(super) fn register(registry: &Registry) {
             UndoDirection::Undo => Direction::Undo,
             UndoDirection::Redo => Direction::Redo,
         };
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        // Each file it writes back may be a feature's, which an agent at work on it refuses.
+        let files = change.files.iter();
+        let saving = files.fold(Write::saving(), |saving, file| saving.on_path(&file.path));
+        write(call.shared(), &input.repo, saving, |repo| {
             let commit = undo::apply_change(repo, &change, direction, &input.subject)?;
             Ok(UndoApplied { commit })
         })

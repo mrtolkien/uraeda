@@ -13,6 +13,7 @@ pub(super) use text::{Run, Subject, run_message};
 
 use crate::live::{Fault, Registry};
 use crate::records::repositories;
+use crate::runner::{Runner, picks};
 use crate::shared::Shared;
 
 /// Why a feature without a branch gets no message.
@@ -74,6 +75,22 @@ fn workflow(shared: &Shared, args: WorkflowMessageArgs) -> Result<Option<Workflo
     }))
 }
 
+/// The workflow's message of a feature for a trigger, as its record reads it: what the server
+/// sends by itself, as a started change's first run.
+pub(crate) fn workflow_message(
+    shared: &Shared,
+    repo: &str,
+    folder: &str,
+    trigger: Trigger,
+) -> Result<Option<WorkflowMessage>, Fault> {
+    let args = WorkflowMessageArgs {
+        repo: repo.to_owned(),
+        folder: folder.to_owned(),
+        trigger,
+    };
+    workflow(shared, args)
+}
+
 /// The message of a feature's step, from `reference`: the comments message with `comments`.
 fn of_step(
     feature: &FeatureView,
@@ -106,7 +123,8 @@ fn recommended(shared: &Shared, args: ItemArgs) -> Result<Option<RecommendedMess
     let Ok((next, feature)) = read else {
         return Ok(None);
     };
-    Ok(Some(recommend(&feature, &next)))
+    let agent = unavailable(shared, &repository.path, &args.id);
+    Ok(Some(recommend(&feature, &next, agent.as_deref())))
 }
 
 /// No message, and why.
@@ -120,19 +138,32 @@ fn none(reason: &str) -> RecommendedMessage {
     }
 }
 
-/// The one workflow message that applies to a feature now: nothing without its branch; the
-/// step's own while it waits on the agent, the comments message for changes requested on its
-/// pull request; else the comments message while its pull request is open or a draft, and its
-/// state known.
-fn recommend(feature: &FeatureView, next: &NextView) -> RecommendedMessage {
+/// Why the runtime a feature's message goes to cannot take it: its latest session's, which its
+/// run goes to, or a new session's. None while it is on in the repository, and available.
+fn unavailable(shared: &Shared, root: &std::path::Path, folder: &str) -> Option<String> {
+    let runner = Runner::find(shared)?;
+    let root = root.to_string_lossy();
+    let latest = runner.store().latest_session(&root, folder).ok().flatten();
+    let takes = picks::message_runtime(&runner, &root, latest.as_ref(), None);
+    takes.err().map(|fault| fault.message().to_owned())
+}
+
+/// The one workflow message that applies to a feature now: nothing without its branch, or
+/// while its agent cannot take it, `unavailable` saying why; the step's own while it waits on
+/// the agent, the comments message for changes requested on its pull request; else the
+/// comments message while its pull request is open or a draft, and its state known.
+pub(crate) fn recommend(
+    feature: &FeatureView,
+    next: &NextView,
+    unavailable: Option<&str>,
+) -> RecommendedMessage {
     let step = &next.step;
     let Some(branch) = &next.branch else {
         return none(NO_BRANCH);
     };
-    // TASK 15: `RecommendedMessage` reads whether the runtime of the feature's latest session,
-    // or of a new one, takes the message: without it, or while it is off, no message is
-    // recommended, and the reason says why. Until the runtimes exist, an agent is taken as
-    // available.
+    if let Some(unavailable) = unavailable {
+        return none(unavailable);
+    }
     let message = |name: String, reference: &str, trigger: Trigger| RecommendedMessage {
         name: Some(name),
         reason: None,

@@ -38,7 +38,8 @@ fn comments(registry: &Registry) {
             removed: decision.removed,
         });
         let (folder, file, text) = (&input.folder, &input.file, &input.text);
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             recorded(repo, undo::review(repo, folder, file), || {
                 api::add_comment(repo, folder, file, lines, text, decision)
             })
@@ -46,7 +47,8 @@ fn comments(registry: &Registry) {
     });
     registry.action::<ReviewEdit>(|call, input| {
         let (folder, file) = (&input.folder, &input.file);
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             recorded(repo, undo::review(repo, folder, file), || {
                 api::edit_comment(repo, folder, file, input.number, &input.text)
             })
@@ -54,7 +56,8 @@ fn comments(registry: &Registry) {
     });
     registry.action::<ReviewRemove>(|call, input| {
         let (folder, file) = (&input.folder, &input.file);
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             recorded(repo, undo::review(repo, folder, file), || {
                 api::remove_comment(repo, folder, file, input.number)
             })
@@ -62,7 +65,8 @@ fn comments(registry: &Registry) {
     });
     registry.action::<ReviewStartOver>(|call, input| {
         let (folder, file) = (&input.folder, &input.file);
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             recorded(repo, undo::review(repo, folder, file), || {
                 api::start_over(repo, folder, file)
             })

@@ -14,6 +14,7 @@ use crate::git::{
     GitSaveConflict, GitStage, GitSummary, GitUnstage,
 };
 use crate::previews::{Preview, PreviewRestart, Story, StoryHref};
+use crate::sessions;
 use crate::typescript::Types;
 use crate::workspace;
 use crate::writing;
@@ -132,7 +133,7 @@ fn add(kind: &str, entries: &mut Vec<Entry>, entry: Entry) {
 #[must_use]
 pub fn catalog() -> Catalog {
     let domains = [
-        devices, workspace, features, writing, git, previews, extensions,
+        devices, workspace, features, writing, git, previews, extensions, sessions,
     ];
     domains
         .into_iter()
@@ -302,4 +303,31 @@ fn extensions(catalog: Catalog) -> Catalog {
         .action::<extensions::ExtensionsReportPageProblem>()
         .action::<extensions::ExtensionsSetOn>()
         .action::<extensions::ExtensionsSetSetting>()
+}
+
+/// The sessions (task 15): the runtimes, a session, its turns and their transcripts, the
+/// sidebar's list, and what sends, stops, allows, and moves.
+fn sessions(catalog: Catalog) -> Catalog {
+    catalog
+        .record::<sessions::Agent>()
+        .record::<sessions::Session>()
+        .record::<sessions::SessionList>()
+        .record::<sessions::SessionSearch>()
+        .record::<sessions::Turn>()
+        .record::<sessions::TurnLog>()
+        .action::<sessions::AgentRefreshModels>()
+        .action::<sessions::FeatureContinueAll>()
+        .action::<sessions::SessionAllow>()
+        .action::<sessions::SessionAllowAll>()
+        .action::<sessions::SessionArchive>()
+        .action::<sessions::SessionDismiss>()
+        .action::<sessions::SessionNew>()
+        .action::<sessions::SessionNewChat>()
+        .action::<sessions::SessionRename>()
+        .action::<sessions::SessionSeen>()
+        .action::<sessions::SessionSend>()
+        .action::<sessions::SessionSetEffort>()
+        .action::<sessions::SessionStop>()
+        .action::<sessions::SessionTakeBack>()
+        .action::<sessions::SessionToChange>()
 }

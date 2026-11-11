@@ -34,6 +34,7 @@ use repository::{Landed, Queue};
 
 use crate::live::{Bus, Fault, Registry};
 use crate::records::repositories;
+use crate::runner::{Runner, refusals};
 use crate::shared::Shared;
 
 /// What a committing write commits, which the next commit of the same waits for.
@@ -64,6 +65,9 @@ pub(crate) struct Write {
     seen: bool,
     /// For a start, its steps as it is queued.
     steps: Option<Vec<StartStep>>,
+    /// The features whose files it writes, by their folders: refused while an agent works on
+    /// one of them.
+    guarded: Vec<String>,
 }
 
 impl Default for Write {
@@ -77,6 +81,7 @@ impl Default for Write {
             file: None,
             seen: true,
             steps: None,
+            guarded: Vec::new(),
         }
     }
 }
@@ -93,8 +98,26 @@ impl Write {
         Write {
             keys: vec![Key::Feature(folder.to_owned())],
             folder: Some(folder.to_owned()),
+            guarded: vec![folder.to_owned()],
             ..Write::default()
         }
+    }
+
+    /// The write saves files of a feature or a change, by its folder: it is refused while an
+    /// agent works on it.
+    pub(crate) fn on_feature(mut self, folder: &str) -> Write {
+        self.guarded.push(folder.to_owned());
+        self
+    }
+
+    /// The write saves the file at a path from the top level: a feature's when it is under
+    /// `specs/<folder>/`, a change's under `specs/changes/<folder>/`, refused while an agent
+    /// works on it.
+    pub(crate) fn on_path(mut self, path: &str) -> Write {
+        let folder = uraeda_core::workspace::path_folder(path);
+        self.guarded
+            .extend(folder.map(|(_, folder, _)| folder.to_owned()));
+        self
     }
 
     /// A write that commits files of the default branch's lists: it waits for their queued
@@ -194,9 +217,8 @@ impl Write {
 ///
 /// # Errors
 ///
-/// `refused` for a repository the list does not hold, and whatever `run` fails with.
-// TASK 15: a write of a feature's files is refused while its agent works on it. Each caller
-// knows the folder or the path it writes: the sessions answer, before the turn is taken.
+/// `refused` for a repository the list does not hold, for a write of a feature's files while
+/// its agent works on it, before the turn is taken, and whatever `run` fails with.
 pub(crate) fn write<T>(
     shared: &Shared,
     repository: &str,
@@ -204,9 +226,27 @@ pub(crate) fn write<T>(
     run: impl FnOnce(&Path) -> Result<T, Fault>,
 ) -> Result<T, Fault> {
     let path = repositories::path(shared, repository)?;
+    working(shared, &path, &write.guarded)?;
     let queue = shared.get::<Queues>().open(shared, &path);
     let _turn = queue.turn(repository, write);
     run(&path)
+}
+
+/// Refuses a write of the files of one of `folders` while an agent works on it: a session of
+/// that change or feature has a turn running, starting, or queued.
+///
+/// # Errors
+///
+/// `refused`, in the words every such write is refused with.
+pub(crate) fn working(shared: &Shared, root: &Path, folders: &[String]) -> Result<(), Fault> {
+    let Some(runner) = Runner::find(shared).filter(|_| !folders.is_empty()) else {
+        return Ok(());
+    };
+    let working = runner.working(&root.to_string_lossy());
+    match folders.iter().any(|folder| working.contains(folder)) {
+        true => Err(Fault::refused(refusals::WORKING)),
+        false => Ok(()),
+    }
 }
 
 /// Queues a write of its own to the repository listed as `repository`: `land` runs on the
@@ -240,6 +280,26 @@ pub(crate) fn land<T: Send + 'static>(
         id,
         answered,
     })
+}
+
+/// Waits until the commits queued for a feature's files landed, those queued meanwhile too: a
+/// message to its agent waits for them, and a review's findings answer once committed.
+///
+/// # Errors
+///
+/// `hook`, with what it printed, when one of them was refused meanwhile: the core put its files
+/// back.
+pub(crate) fn settled(shared: &Shared, repository: &str, folder: &str) -> Result<(), Fault> {
+    let path = repositories::path(shared, repository)?;
+    let Some(queue) = shared.get::<Queues>().found(&path) else {
+        return Ok(());
+    };
+    // It may wait as long as the hooks run: its connection's next call need not.
+    crate::live::placed();
+    match queue.settled(&[Key::Feature(folder.to_owned())]) {
+        None => Ok(()),
+        Some(output) => Err(Fault::new(uraeda_protocol::ErrorCode::Hook, output)),
+    }
 }
 
 /// A write of its own, queued: what waits for its landing.

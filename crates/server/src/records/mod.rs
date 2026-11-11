@@ -32,15 +32,17 @@
 //!   `pulls.rs`, which asks `gh` for them.
 
 mod extensions;
-mod features;
+pub(crate) mod features;
 mod git;
 mod previews;
 mod pulls;
+mod sessions;
 mod views;
 pub(crate) mod watch;
 mod workspace;
 pub(crate) mod writing;
 
+pub(crate) use views::word;
 pub(crate) use workspace::repositories;
 pub(crate) use workspace::settings;
 
@@ -61,6 +63,7 @@ const DOMAINS: &[Register] = &[
     previews::register,
     extensions::register,
     pulls::register,
+    sessions::register,
 ];
 
 /// What a domain says once the server wrote to a repository: it gets the bus and the

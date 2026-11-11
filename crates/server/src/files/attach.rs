@@ -164,15 +164,17 @@ fn scope(paths: &[&str]) -> Vec<String> {
     paths.iter().map(|path| (*path).to_owned()).collect()
 }
 
-/// Refuses a write to a feature while an agent works on it, before the body is read.
-// TASK 15: the sessions answer whether an agent works on the feature a path is of, as for every
-// write of writing (R65). Until they exist, no agent works on any feature.
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "the seam's shape, for the rule that joins it"
-)]
-fn writable(_: &Shared, _: &Path, _: &str) -> Result<(), String> {
-    Ok(())
+/// Refuses a write to a feature while an agent works on it, before the body is read: the
+/// file at `path` is a feature's under `specs/<folder>/`, a change's under
+/// `specs/changes/<folder>/`.
+fn writable(shared: &Shared, root: &Path, path: &str) -> Result<(), String> {
+    let folder = uraeda_core::workspace::path_folder(path);
+    let folders: Vec<String> = folder
+        .map(|(_, folder, _)| folder.to_owned())
+        .into_iter()
+        .collect();
+    let refused = |fault: crate::live::Fault| format!("refused: {}", fault.message());
+    writing::working(shared, root, &folders).map_err(refused)
 }
 
 /// A body read to its end was over the limit.

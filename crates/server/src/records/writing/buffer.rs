@@ -15,10 +15,15 @@ pub(super) fn register(registry: &Registry) {
         Ok(sent(api::read_buffer(&repo, &args.path)?))
     });
     registry.action::<BufferSave>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
-            let hash = api::save_buffer(repo, &input.path, &input.text, &input.hash)?;
-            Ok(Saved { hash })
-        })
+        write(
+            call.shared(),
+            &input.repo,
+            Write::saving().on_path(&input.path),
+            |repo| {
+                let hash = api::save_buffer(repo, &input.path, &input.text, &input.hash)?;
+                Ok(Saved { hash })
+            },
+        )
     });
 }
 

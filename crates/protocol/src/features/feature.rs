@@ -6,6 +6,7 @@ use ts_rs::TS;
 
 use super::ItemArgs;
 use crate::registry::Record;
+use crate::sessions::{FeatureAgent, FeatureTokens};
 use crate::shared::{FeatureStatus, FeatureView, RunOptions, WriteName};
 
 /// A feature or a change, by its folder. Its value is `null` when no feature has that folder.
@@ -28,6 +29,10 @@ pub struct Feature {
     pub runtime: Option<String>,
     /// What a session of it made without a pick runs on: none at a step no agent runs.
     pub new_pick: Option<NewPick>,
+    /// Its sessions' time at work: none before a turn of them started.
+    pub agent: Option<FeatureAgent>,
+    /// Its sessions' tokens, their sub-sessions' included: none before a turn has counts.
+    pub tokens: Option<FeatureTokens>,
     /// What the core reads of it.
     #[serde(flatten)]
     pub feature: FeatureView,

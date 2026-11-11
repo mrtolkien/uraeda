@@ -5,6 +5,42 @@
 export type Protocol = 1;
 
 /**
+ * The agent runtimes sessions run on, in the order they registered: the first one on is the one
+ * a new session runs on until another is picked.
+ */
+export type Agent = { runtimes: Array<RuntimeRecord>, };
+
+/**
+ * Which runtimes: on or off as one repository has them, or as every repository does.
+ */
+export type AgentArgs = { 
+/**
+ * The repository's name in the list: none for the settings, outside any repository.
+ */
+repo: string | null, };
+
+/**
+ * A model the agent lists for the account.
+ */
+export type AgentModel = { 
+/**
+ * The agent's id, which a session stores as its model.
+ */
+id: string, 
+/**
+ * Its name for people.
+ */
+name: string, 
+/**
+ * The agent's line about it.
+ */
+description: string | null, 
+/**
+ * The efforts it takes, in the agent's order: empty for none.
+ */
+efforts: Array<ModelEffort>, };
+
+/**
  * Every feature's branch changes, without their files, read at once for the sidebar's cards.
  */
 export type AllBranchChanges = { 
@@ -175,6 +211,35 @@ option: string,
  * none.
  */
 change: DecisionChange, };
+
+/**
+ * What an agent can do, which a client offers and nothing more.
+ */
+export type Capabilities = { 
+/**
+ * The agent asks before an action, instead of skipping it.
+ */
+approvals: boolean, 
+/**
+ * The agent opens the images sent with a message, by their paths.
+ */
+images: boolean, 
+/**
+ * A message sent during a turn waits for the next one.
+ */
+queue: boolean, 
+/**
+ * A message sent during a turn joins it.
+ */
+steer: boolean, 
+/**
+ * The agent reports its sub-agents and their tools.
+ */
+subagents: boolean, 
+/**
+ * A message not read yet can be taken back.
+ */
+takeBack: boolean, };
 
 /**
  * What a branch behind the default branch catches up with, at the step `catch-up`.
@@ -421,6 +486,11 @@ blocks: Array<number>, };
  * A kind of automatic run, each with its switch in the settings.
  */
 export type ContinueKind = "catch-up" | "limit" | "restart";
+
+/**
+ * What Continue all could not continue.
+ */
+export type ContinuedAll = { refused: Array<RefusedRun>, };
 
 export type Criterion = { 
 /**
@@ -689,6 +759,19 @@ importance: string,
 row: number, };
 
 /**
+ * A file a session's agent edited.
+ */
+export type EditedFile = { 
+/**
+ * Its path, from the session's directory.
+ */
+id: string, 
+/**
+ * How many of its edits completed.
+ */
+edits: number, };
+
+/**
  * What an `error` is about.
  */
 export type ErrorCode = "not-signed-in" | "bad-message" | "unknown-record" | "unknown-action" | "bad-args" | "bad-input" | "refused" | "conflict" | "hook" | "internal";
@@ -943,6 +1026,14 @@ runtime: string | null,
  */
 newPick: NewPick | null, 
 /**
+ * Its sessions' time at work: none before a turn of them started.
+ */
+agent: FeatureAgent | null, 
+/**
+ * Its sessions' tokens, their sub-sessions' included: none before a turn has counts.
+ */
+tokens: FeatureTokens | null, 
+/**
  * `feature` or `change`.
  */
 kind: string, 
@@ -1015,6 +1106,12 @@ leftBranch: string | null,
  * Its branch's open pull request; else, once finished, its record's, read as open.
  */
 pullRequest: PullRequestView | null, };
+
+/**
+ * A feature's agent time: the seconds its ended turns ran, and the start of the one running
+ * now, which a client counts to the present.
+ */
+export type FeatureAgent = { seconds: number, runningSince: number | null, };
 
 /**
  * A feature's count of changed files and of lines, as a card shows them.
@@ -1197,6 +1294,20 @@ turn: string | null,
  * When that turn's run continues by itself, while it waits.
  */
 wait: Wait | null, };
+
+/**
+ * A feature's tokens, over its sessions' turns: what the model read for the first time, cache
+ * writes included, and what it wrote.
+ */
+export type FeatureTokens = { input: number, output: number, 
+/**
+ * Whether a turn done before the first counted one has no counts.
+ */
+partial: boolean, 
+/**
+ * The first counted turn's start.
+ */
+since: number, };
 
 /**
  * A field of a decision that differs between two versions: its `title`, or a frontmatter key.
@@ -2497,6 +2608,56 @@ hash: string,
 prioritiesHash: string, };
 
 /**
+ * A line of a turn's transcript, whatever the agent. Its `id` is its place in its turn's log,
+ * which names it for good.
+ */
+export type Item = { "kind": "message", id: string, 
+/**
+ * The message's own id, which `session.takeBack` names.
+ */
+message: string, at: number, origin: MessageOrigin, 
+/**
+ * Whether the agent read it.
+ */
+read: boolean, text: string, 
+/**
+ * The chat's opening line, shown above the human's text.
+ */
+opening: string | null, images: Array<ChatImage>, } | { "kind": "text", id: string, streaming: boolean, text: string, } | { "kind": "tool", id: string, 
+/**
+ * The tool call's own id.
+ */
+call: string, 
+/**
+ * `Bash`, `Read`, ...
+ */
+name: string, toolKind: ToolKind, 
+/**
+ * The command, the path from the session's directory, the address, or the pattern.
+ */
+target: string | null, 
+/**
+ * The tool call of the sub-agent that runs it.
+ */
+parent: string | null, 
+/**
+ * What the sub-agent it starts is for, when it starts one.
+ */
+subagent: string | null, status: ToolStatus, 
+/**
+ * Its result's text, cut to its first 4,000 characters.
+ */
+output: string | null, 
+/**
+ * How long it took, once it ended, in milliseconds.
+ */
+durationMs: number | null, } | { "kind": "thought", id: string, 
+/**
+ * The tool call of the sub-agent that thought it.
+ */
+parent: string | null, text: string | null, durationMs: number, } | { "kind": "system", id: string, text: string, } | { "kind": "denial", id: string, tool: string, target: string | null, rule: string | null, allowed: boolean, };
+
+/**
  * Which thing of a repository: a feature, a workflow file, a proposal file.
  */
 export type ItemArgs = { 
@@ -2633,6 +2794,11 @@ title: string,
 block: number, };
 
 /**
+ * A session made.
+ */
+export type Made = { session: string, };
+
+/**
  * The feature or change a proposal of the priorities links, once its step is `done`: merged, its
  * line left for `ura clean` to remove.
  */
@@ -2645,6 +2811,11 @@ change: boolean,
  * Its pull request, from its record's `pull-request`.
  */
 pullRequest: PullRequestView | null, };
+
+/**
+ * Who sent a message to the agent.
+ */
+export type MessageOrigin = "human" | "workflow";
 
 /**
  * A paragraph that embeds an HTML mockup.
@@ -2697,6 +2868,27 @@ block: number,
  * The story it names, when it is a story link.
  */
 story: StoryTarget | null, };
+
+/**
+ * The model and the effort an agent runs on when none is picked, by their ids.
+ */
+export type ModelDefaults = { model: string | null, effort: string | null, };
+
+/**
+ * An effort a model takes: the agent's id for it, and its name for people.
+ */
+export type ModelEffort = { id: string, name: string, };
+
+/**
+ * The models a runtime lists, in the agent's order, and what the agent runs on when none is
+ * picked.
+ */
+export type ModelList = { defaults: ModelDefaults, models: Array<AgentModel>, };
+
+/**
+ * The change a session became.
+ */
+export type MovedToChange = { folder: string, };
 
 /**
  * Every item, of every listed repository, that needs the human.
@@ -3482,6 +3674,19 @@ export type Recorded = { change: UndoChange, };
 export type Refusal = "client-too-old" | "server-too-old" | "not-signed-in";
 
 /**
+ * A run Continue all could not continue, and why.
+ */
+export type RefusedRun = { 
+/**
+ * The feature's folder.
+ */
+id: string, 
+/**
+ * Its slug.
+ */
+name: string, reason: string, };
+
+/**
  * The listed repositories, the most recently opened first.
  */
 export type Repositories = { 
@@ -3564,6 +3769,11 @@ home: string,
  * Its folder no longer holds a git repository.
  */
 missing: boolean, };
+
+/**
+ * The turn that tries the allowed actions again.
+ */
+export type Retried = { turn: string, };
 
 /**
  * An answer of `## Your review` to a comment of the last review:
@@ -3826,6 +4036,48 @@ export type RunningFeature = { folder: string,
 change: boolean, step: StepView, };
 
 /**
+ * A runtime: what its sessions show, what it can do, and its usage.
+ */
+export type RuntimeRecord = { 
+/**
+ * The name it is registered as, which its sessions store as their `agent`.
+ */
+id: string, 
+/**
+ * Its name for people: `Claude Code`.
+ */
+name: string, 
+/**
+ * Its extension's title, which its refusals name it by.
+ */
+title: string, 
+/**
+ * The icon of its mark, a name of the app's icon set.
+ */
+icon: string, 
+/**
+ * Whether it worked at its last check.
+ */
+available: boolean, 
+/**
+ * Its version at its last check.
+ */
+version: string | null, 
+/**
+ * Whether it is on in the repository asked about.
+ */
+isOn: boolean, capabilities: Capabilities, 
+/**
+ * Its last model list, kept through a refresh that failed: none before one, or for a
+ * runtime that lists none.
+ */
+models: ModelList | null, 
+/**
+ * Its usage windows, each from the freshest report of an open process: none before one.
+ */
+usage: Array<UsageWindow>, };
+
+/**
  * What a save answers: the hash of the text as written, which the next save takes.
  */
 export type Saved = { hash: string, };
@@ -3863,6 +4115,29 @@ section: string, title: string,
 context: string | null, proposals: Array<ProposalItem>, };
 
 /**
+ * Where a message went: its session, which a workflow run's may have been made for it, and its
+ * turn. A message kept while its feature's start lands has no turn yet.
+ */
+export type Sent = { session: string, turn: string | null, };
+
+/**
+ * The workflow's message, which starts a feature's step.
+ */
+export type SentWorkflow = { 
+/**
+ * What sending it counts as.
+ */
+trigger: Trigger, 
+/**
+ * The step it was read at: once the feature moved on, it runs as a chat.
+ */
+step?: string | null, 
+/**
+ * Always start a new session of the change or the feature.
+ */
+fresh?: boolean | null, };
+
+/**
  * What a server sends.
  */
 export type ServerMessage = { "type": "welcome", protocol: number, epoch: string, } | { "type": "refused", reason: Refusal, protocol: number, } | { "type": "data", id: number, seq: number, value: JsonValue, } | { "type": "change", id: number, seq: number, ops: Array<Op>, } | { "type": "result", id: number, output: JsonValue, } | { "type": "error", id?: number | null, code: ErrorCode, message: string, };
@@ -3885,9 +4160,357 @@ openBrowser: Setting<boolean>,
 port: Setting<number>, };
 
 /**
+ * A session: a feature's, a change's, or a chat. Its value is `null` for an id that is no
+ * session's of the repository.
+ */
+export type Session = { id: string, 
+/**
+ * The runtime it runs on, by the name it is registered as.
+ */
+agent: string, 
+/**
+ * Its change's or feature's folder: none for a chat.
+ */
+folder: string | null, 
+/**
+ * The session whose run started it, for a sub-session.
+ */
+parent: string | null, 
+/**
+ * A sub-session's role in its parent's run.
+ */
+role: SubSessionRole | null, 
+/**
+ * The title the human or its first message gave it: none for a feature's session.
+ */
+name: string | null, 
+/**
+ * What it shows as: its name, its feature's title, or `New session`.
+ */
+title: string, 
+/**
+ * Where it works: `branch <name>`, or `main checkout, branch <name>`.
+ */
+place: string, 
+/**
+ * The model picked, by the agent's id: none for the agent's default.
+ */
+model: string | null, 
+/**
+ * The effort picked, by the agent's id: none for the agent's default.
+ */
+effort: string | null, 
+/**
+ * The model the agent last said it runs on, by its name for people.
+ */
+ranModel: string | null, 
+/**
+ * The effort the agent last said it runs on, by its name for people.
+ */
+ranEffort: string | null, startedAt: number, archived: boolean, 
+/**
+ * Its automatic continues in a row.
+ */
+continues: number, status: SessionStatus, 
+/**
+ * The status in words, like `Needs you`.
+ */
+statusLabel: string, statusReason: StatusReason | null, 
+/**
+ * When its run continues by itself, while it waits.
+ */
+wait: Wait | null, 
+/**
+ * The turn its status follows, which Dismiss names.
+ */
+statusTurn: string | null, 
+/**
+ * How many blocked actions of its latest turn "Allow all" would allow.
+ */
+allowable: number, 
+/**
+ * Whether its latest turn ended after the human last saw it.
+ */
+unseen: boolean, 
+/**
+ * How many background commands of its run still run.
+ */
+backgroundCommands: number, 
+/**
+ * The files its agent edited, in the order of their first edit.
+ */
+edited: Array<EditedFile>, 
+/**
+ * The sessions its runs started, the first started first.
+ */
+subSessions: Array<SubSession>, 
+/**
+ * Its turns' ids, the oldest first: each is a [`Turn`].
+ */
+turns: Array<string>, };
+
+/**
+ * Allows one blocked action: the session's process opens again with its rule, and a turn of
+ * its own asks the agent to try again.
+ */
+export type SessionAllow = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, 
+/**
+ * The turn the action was blocked in.
+ */
+turn: string, 
+/**
+ * The blocked action's item, by its `id`.
+ */
+denial: string, };
+
+/**
+ * Allows every blocked action of the session's latest turn that has a rule, in one turn.
+ */
+export type SessionAllowAll = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, };
+
+/**
+ * Archives a chat, or brings it back.
+ */
+export type SessionArchive = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, archived: boolean, };
+
+/**
+ * Which session, or which turn, of a repository.
+ */
+export type SessionArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The session's id, or the turn's.
+ */
+id: string, };
+
+/**
+ * Dismisses a failed or stopped turn: it no longer asks for the human.
+ */
+export type SessionDismiss = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, turn: string, };
+
+/**
+ * The sessions of a repository, what needs the human first, then the last updated. A
+ * sub-session is listed by its parent, not here.
+ */
+export type SessionList = { rows: Array<SessionRow>, };
+
+/**
+ * Makes a new session of a change or a feature, which becomes its latest: its runs go to it.
+ */
+export type SessionNew = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The change's or the feature's folder.
+ */
+folder: string, 
+/**
+ * The runtime, by the name it is registered as: the first one on when left out.
+ */
+runtime?: string | null, 
+/**
+ * A model the runtime lists.
+ */
+model?: string | null, 
+/**
+ * An effort the model takes.
+ */
+effort?: string | null, };
+
+/**
+ * Makes a new chat, without a feature, titled by its first message.
+ */
+export type SessionNewChat = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The runtime, by the name it is registered as: the first one on when left out.
+ */
+runtime?: string | null, 
+/**
+ * A model the runtime lists.
+ */
+model?: string | null, 
+/**
+ * An effort the model takes.
+ */
+effort?: string | null, };
+
+/**
+ * Renames a session, by the title's first line that is not blank.
+ */
+export type SessionRename = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, title: string, };
+
+/**
+ * A session's row in the sidebar.
+ */
+export type SessionRow = { id: string, agent: string, folder: string | null, title: string, archived: boolean, 
+/**
+ * Whether a chat is done: idle, and seen since its last turn ended.
+ */
+done: boolean, status: SessionStatus, statusLabel: string, 
+/**
+ * When its run continues by itself, while it waits.
+ */
+wait: Wait | null, 
+/**
+ * How many sub-agents of its running turn work.
+ */
+subagents: number, backgroundCommands: number, startedAt: number, updatedAt: number, };
+
+/**
+ * The sessions whose title, folder, or messages hold a text, whatever its case, with every
+ * session of the features whose title holds it.
+ */
+export type SessionSearch = { rows: Array<SessionRow>, };
+
+/**
+ * Which search of a repository's sessions.
+ */
+export type SessionSearchArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * What to look for: every session, as [`SessionList`], for a blank one.
+ */
+query: string, };
+
+/**
+ * Records that the human saw the session.
+ */
+export type SessionSeen = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, };
+
+/**
+ * Sends a message: to a session, or to a feature, whose session is made with its first
+ * message. Idle, the session starts a turn. During one, the human's message joins it, and the
+ * workflow's waits for the next. A workflow run goes to the session its step's options give,
+ * which may be a new one.
+ */
+export type SessionSend = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The session to send to.
+ */
+session?: string | null, 
+/**
+ * Or the change or the feature, by its folder.
+ */
+folder?: string | null, 
+/**
+ * With `folder`: a new session of it, made with this message.
+ */
+newSession?: boolean | null, text: string, 
+/**
+ * Its chat images, as their upload answered them.
+ */
+images?: Array<ChatImage> | null, workflow?: SentWorkflow | null, 
+/**
+ * The runtime, by the name it is registered as: the first one on when left out.
+ */
+runtime?: string | null, 
+/**
+ * A model the runtime lists.
+ */
+model?: string | null, 
+/**
+ * An effort the model takes.
+ */
+effort?: string | null, };
+
+/**
+ * Changes the effort a session runs on, from its next turn.
+ */
+export type SessionSetEffort = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, 
+/**
+ * The effort, by the agent's id: none for the agent's default.
+ */
+effort: string | null, };
+
+/**
  * A session's or a feature's status, in the sidebar and its view.
  */
 export type SessionStatus = "working" | "needs-you" | "attention" | "unread" | "idle";
+
+/**
+ * Stops the session's running turn and the turns waiting after it, or its run's wait to
+ * continue. Its sub-sessions stop too.
+ */
+export type SessionStop = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, };
+
+/**
+ * Takes back a message the agent has not read.
+ */
+export type SessionTakeBack = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, 
+/**
+ * The message's own id.
+ */
+message: string, };
+
+/**
+ * Makes a chat the change of a text: the change starts, the session moves to it, and its first
+ * run goes to the session.
+ */
+export type SessionToChange = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, session: string, 
+/**
+ * The change's proposal, as typed.
+ */
+text: string, 
+/**
+ * Its slug: the one the core proposes when none is given.
+ */
+slug?: string | null, };
 
 /**
  * A setting: its value in force, the file's, and where the one in force comes from.
@@ -4601,6 +5224,75 @@ path: string,
  */
 export: string, };
 
+/**
+ * A session a workflow run started for one of its sub-agents, as its parent lists it.
+ */
+export type SubSession = { id: string, 
+/**
+ * The session that started it.
+ */
+parent: string, role: SubSessionRole, 
+/**
+ * What it works on: its task, or what it reviews.
+ */
+about: string, 
+/**
+ * Its runtime, by the name it is registered as.
+ */
+agent: string, 
+/**
+ * Its model's name for people: `Default` on the agent's own, before it said.
+ */
+model: string, 
+/**
+ * Its effort's name for people: none on the model's default.
+ */
+effort: string | null, startedAt: number, 
+/**
+ * When its latest turn ended: none while it works.
+ */
+endedAt: number | null, state: SubSessionState, 
+/**
+ * Its tokens, as of its last change of state: none before its agent reported any.
+ */
+usage: TokenUse | null, };
+
+/**
+ * A sub-session's role in its parent's run.
+ */
+export type SubSessionRole = "implementer" | "reviewer";
+
+/**
+ * Where a sub-session stands, from its latest turn.
+ */
+export type SubSessionState = "working" | "done" | "failed" | "stopped";
+
+/**
+ * A sub-agent at work in a running turn.
+ */
+export type Subagent = { 
+/**
+ * Its tool call's id.
+ */
+id: string, description: string, 
+/**
+ * The sub-agent that started it: none when the main agent did.
+ */
+parent: string | null, startedAt: number, 
+/**
+ * Its own tool calls so far, the sub-agents it started included.
+ */
+calls: number, 
+/**
+ * The last of its tool calls: none before the first.
+ */
+latest: SubagentCall | null, };
+
+/**
+ * A sub-agent's tool call, in short.
+ */
+export type SubagentCall = { toolKind: ToolKind, target: string | null, };
+
 export type TaskItem = { number: number, title: string, headingBlock: number, steps: Array<StepItem>, done: number, total: number, };
 
 /**
@@ -4755,9 +5447,105 @@ files: Array<ThemeFile>, };
 export type TierChoice = { value: string, planReview: boolean, };
 
 /**
+ * Tokens read for the first time, cache writes included, and tokens written.
+ */
+export type TokenUse = { input: number, output: number, };
+
+/**
+ * What a tool call does, in the Agent Client Protocol's words.
+ */
+export type ToolKind = "read" | "edit" | "delete" | "move" | "search" | "execute" | "think" | "fetch" | "other";
+
+/**
+ * Where a tool call is.
+ */
+export type ToolStatus = "in-progress" | "completed" | "failed";
+
+/**
  * What started a workflow turn, which its message tells the agent.
  */
 export type Trigger = "answers" | "approval" | "catch-up" | "changes" | "comments" | "proposal" | "start" | "manual" | "next-step";
+
+/**
+ * A turn of a session, without its transcript. Its value is `null` for an id that is no
+ * turn's of the repository.
+ */
+export type Turn = { id: string, session: string, kind: TurnKind, state: TurnState, 
+/**
+ * Why it failed or stopped.
+ */
+reason: string | null, 
+/**
+ * A workflow turn's step when it started.
+ */
+step: string | null, 
+/**
+ * What started a workflow turn.
+ */
+trigger: Trigger | null, 
+/**
+ * An allow turn's rules, a line each.
+ */
+allowed: string | null, startedAt: number | null, endedAt: number | null, 
+/**
+ * Whether the human dismissed its failure or its stop.
+ */
+dismissed: boolean, 
+/**
+ * What it does now, while it runs on this server.
+ */
+activity: TurnActivity | null, 
+/**
+ * Its sub-agents at work, in the order they started, while it runs on this server.
+ */
+subagents: Array<Subagent>, 
+/**
+ * How many pages its transcript has, of [`TURN_PAGE`] items each: each is a [`TurnLog`].
+ */
+pages: number, };
+
+/**
+ * What a running turn does now, like `Thinking` or `Writing spec.md`, and since when nothing
+ * new showed.
+ */
+export type TurnActivity = { label: string, since: number, };
+
+/**
+ * Why a turn runs.
+ */
+export type TurnKind = "workflow" | "chat" | "allow";
+
+/**
+ * A page of a turn's transcript: its items, in order. Its value is `null` for a turn that is
+ * none of the repository's.
+ *
+ * A page is never read again for a piece of a reply: a text being written grows by an `append`
+ * at `["items", <id>, "text"]`. A new item, and an item whose state changed, as a tool call
+ * that ended, reads its own page again, and no other.
+ */
+export type TurnLog = { items: Array<Item>, };
+
+/**
+ * Which page of a turn's transcript.
+ */
+export type TurnLogArgs = { 
+/**
+ * The repository's name in the list.
+ */
+repo: string, 
+/**
+ * The turn's id.
+ */
+turn: string, 
+/**
+ * The page, from 0.
+ */
+page: number, };
+
+/**
+ * Where a turn is.
+ */
+export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
 
 /**
  * What `undo.apply` answers: the commit the files' checkout is at now.
@@ -4791,6 +5579,19 @@ export type UndoDirection = "undo" | "redo";
  * `null` on the side where it did not exist.
  */
 export type UndoFile = { path: string, before: string | null, after: string | null, };
+
+/**
+ * One usage window a runtime reports, like five hours or a week.
+ */
+export type UsageWindow = { id: string, label: string, 
+/**
+ * When it resets, in ISO 8601, as the agent gave it.
+ */
+resetsAt: string, 
+/**
+ * The share used, from 0 to 1.
+ */
+used: number, };
 
 /**
  * The verdict of a round's block, by its phrase.
@@ -5036,6 +5837,7 @@ export type WritesDismiss = { repo: string, id: string, };
 
 /** Every record, by the name a `sub` gives: its arguments, and its whole value. */
 export type Records = {
+  Agent: { args: AgentArgs; value: Agent };
   AllBranchChanges: { args: RepositoryArgs; value: AllBranchChanges };
   BranchChanges: { args: ItemArgs; value: BranchChanges };
   BranchDecision: { args: ItemArgs; value: BranchDecision | null };
@@ -5061,11 +5863,16 @@ export type Records = {
   ProposalHints: { args: null; value: ProposalHints };
   RecommendedMessage: { args: ItemArgs; value: RecommendedMessage | null };
   Repositories: { args: null; value: Repositories };
+  Session: { args: SessionArgs; value: Session | null };
+  SessionList: { args: RepositoryArgs; value: SessionList };
+  SessionSearch: { args: SessionSearchArgs; value: SessionSearch };
   Settings: { args: null; value: Settings };
   SlugProposal: { args: SlugProposalArgs; value: SlugProposal };
   Story: { args: StoryArgs; value: Story };
   StoryHref: { args: StoryHrefArgs; value: StoryHref };
   Themes: { args: null; value: Themes };
+  Turn: { args: SessionArgs; value: Turn | null };
+  TurnLog: { args: TurnLogArgs; value: TurnLog | null };
   WorkflowFile: { args: ItemArgs; value: FileView | null };
   WorkflowMessage: { args: WorkflowMessageArgs; value: WorkflowMessage | null };
   Workspace: { args: RepositoryArgs; value: Workspace };
@@ -5074,6 +5881,7 @@ export type Records = {
 
 /** Every action, by the name a `call` gives: its input, and its output. */
 export type Actions = {
+  "agent.refreshModels": { input: null; output: null };
   "answer.save": { input: AnswerSave; output: null };
   "answers.submit": { input: AnswersSubmit; output: null };
   "buffer.save": { input: BufferSave; output: Saved };
@@ -5092,6 +5900,7 @@ export type Actions = {
   "extensions.reportPageProblem": { input: ExtensionsReportPageProblem; output: null };
   "extensions.setOn": { input: ExtensionsSetOn; output: null };
   "extensions.setSetting": { input: ExtensionsSetSetting; output: null };
+  "feature.continueAll": { input: RepositoryArgs; output: ContinuedAll };
   "feature.drop": { input: FeatureDrop; output: Dropped };
   "feature.fixLinks": { input: FeatureFixLinks; output: null };
   "feature.promote": { input: FeaturePromote; output: PromotedView };
@@ -5149,6 +5958,19 @@ export type Actions = {
   "review.remove": { input: ReviewRemove; output: Recorded };
   "review.requestChanges": { input: ReviewRequestChanges; output: null };
   "review.startOver": { input: ReviewStartOver; output: Recorded };
+  "session.allow": { input: SessionAllow; output: Retried };
+  "session.allowAll": { input: SessionAllowAll; output: Retried };
+  "session.archive": { input: SessionArchive; output: null };
+  "session.dismiss": { input: SessionDismiss; output: null };
+  "session.new": { input: SessionNew; output: Made };
+  "session.newChat": { input: SessionNewChat; output: Made };
+  "session.rename": { input: SessionRename; output: null };
+  "session.seen": { input: SessionSeen; output: null };
+  "session.send": { input: SessionSend; output: Sent };
+  "session.setEffort": { input: SessionSetEffort; output: null };
+  "session.stop": { input: SessionStop; output: null };
+  "session.takeBack": { input: SessionTakeBack; output: null };
+  "session.toChange": { input: SessionToChange; output: MovedToChange };
   "settings.addHost": { input: SettingsAddHost; output: null };
   "settings.editHost": { input: SettingsEditHost; output: null };
   "settings.removeHost": { input: SettingsRemoveHost; output: null };

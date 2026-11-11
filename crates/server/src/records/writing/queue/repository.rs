@@ -198,6 +198,29 @@ impl Queue {
         }
     }
 
+    /// Waits until the commits queued for `keys` landed or were refused, those queued meanwhile
+    /// too: what the first one refused meanwhile printed, none when they all landed. A message
+    /// to a feature's agent waits for it, so the agent never starts on a file written but not
+    /// committed yet.
+    pub(super) fn settled(&self, keys: &[Key]) -> Option<String> {
+        let refused = |state: &State| -> Vec<String> {
+            let of = |entry: &&Entry| {
+                entry.write.state == WriteState::Refused
+                    && entry.keys.iter().any(|key| keys.contains(key))
+            };
+            let refused = state.entries.iter().filter(of);
+            refused.map(|entry| entry.write.id.clone()).collect()
+        };
+        let state = self.state();
+        let before = refused(&state);
+        let state = self.wait(state, |state| state.pending(keys));
+        let new = refused(&state)
+            .into_iter()
+            .find(|id| !before.contains(id))?;
+        let entry = state.entries.iter().find(|entry| entry.write.id == new)?;
+        Some(entry.write.output.clone().unwrap_or_default())
+    }
+
     /// Removes a refused write from the record: one still landing stays.
     pub(super) fn dismiss(&self, id: &str) {
         let mut state = self.state();

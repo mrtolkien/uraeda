@@ -27,7 +27,8 @@ pub(super) fn register(registry: &Registry) {
 /// A feature's round: its answers and notes, saved, and its submit, which commits.
 fn answers(registry: &Registry) {
     registry.action::<AnswerSave>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(&input.folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             let (folder, question) = (&input.folder, &input.question);
             let (letters, comment) = (&input.letters, &input.comment);
             api::save_answer(repo, folder, question, letters, comment, &input.previous)?;
@@ -35,7 +36,8 @@ fn answers(registry: &Registry) {
         })
     });
     registry.action::<NotesSave>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(&input.folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             api::save_notes(repo, &input.folder, &input.notes, &input.previous)?;
             Ok(())
         })
@@ -56,13 +58,15 @@ fn answers(registry: &Registry) {
 /// The comments on a round's settled points: none commits, and a removal can be undone.
 fn settled(registry: &Registry) {
     registry.action::<SettledAddComment>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(&input.folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             api::add_settled_comment(repo, &input.folder, &input.subject, &input.text)?;
             Ok(())
         })
     });
     registry.action::<SettledEdit>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(&input.folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             let (folder, subject) = (&input.folder, &input.subject);
             let (text, previous) = (&input.text, &input.previous);
             api::edit_settled_comment(repo, folder, input.number, subject, text, previous)?;
@@ -70,7 +74,8 @@ fn settled(registry: &Registry) {
         })
     });
     registry.action::<SettledRemove>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
+        let saving = Write::saving().on_feature(&input.folder);
+        write(call.shared(), &input.repo, saving, |repo| {
             let (folder, subject) = (&input.folder, &input.subject);
             recorded(repo, undo::round(repo, folder), || {
                 api::remove_settled_comment(repo, folder, input.number, subject, &input.previous)

@@ -10,20 +10,33 @@ use crate::live::Registry;
 /// Registers the actions `text.save`, `text.discovery`, and `text.commit`.
 pub(super) fn register(registry: &Registry) {
     registry.action::<TextSave>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
-            let hash = api::save_text(repo, &input.path, &input.text, &input.hash)?;
-            Ok(Saved { hash })
-        })
+        write(
+            call.shared(),
+            &input.repo,
+            Write::saving().on_path(&input.path),
+            |repo| {
+                let hash = api::save_text(repo, &input.path, &input.text, &input.hash)?;
+                Ok(Saved { hash })
+            },
+        )
     });
     registry.action::<TextDiscovery>(|call, input| {
-        write(call.shared(), &input.repo, Write::saving(), |repo| {
-            let set = api::set_discovery(repo, &input.path, &input.level, &input.hash)?;
-            Ok(Saved { hash: set.hash })
-        })
+        write(
+            call.shared(),
+            &input.repo,
+            Write::saving().on_path(&input.path),
+            |repo| {
+                let set = api::set_discovery(repo, &input.path, &input.level, &input.hash)?;
+                Ok(Saved { hash: set.hash })
+            },
+        )
     });
     registry.action::<TextCommit>(|call, input| {
         // A proposal file's commit takes the priorities and the inbox along when they changed.
-        let commit = Write::of_lists().file(&input.path).named(input.write);
+        let commit = Write::of_lists()
+            .file(&input.path)
+            .named(input.write)
+            .on_path(&input.path);
         write(call.shared(), &input.repo, commit, |repo| {
             api::commit_text(repo, &input.path)?;
             Ok(())

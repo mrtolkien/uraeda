@@ -81,6 +81,7 @@ const DOMAINS: &[Mount] = &[
     mcp::mount,
     preview::mount,
     extensions::mount,
+    runner::serve,
 ];
 
 /// The data folder `ura serve` keeps its files in by default: the core's data folder, with

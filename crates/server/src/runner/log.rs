@@ -114,12 +114,61 @@ pub(super) fn add(
         Event::Text { .. } => (None, None, Some(0)),
         _ => (None, None, None),
     };
+    let item = match starts_line(db, turn, seq, event, text)? {
+        true => Some(lines(db, turn)?),
+        false => None,
+    };
     db.prepare_cached(
-        "INSERT INTO events (turn_id, seq, at, type, data, text_start, text_bytes)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO events (turn_id, seq, at, type, data, text_start, text_bytes, item)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
     )?
-    .execute((turn, seq, at, kind, data.to_string(), start, bytes))?;
+    .execute((turn, seq, at, kind, data.to_string(), start, bytes, item))?;
     Ok(Appended { seq, text })
+}
+
+/// Whether an event starts a line of the transcript, which a page counts: a message, a tool
+/// call, a thought, a line, a blocked action, the first piece of a text, a whole text no piece
+/// came before, and the first skipped line of its turn. Every other event changes a line that
+/// is there, or shows nothing.
+fn starts_line(
+    db: &Connection,
+    turn: i64,
+    seq: u64,
+    event: &Event,
+    text: Option<Growth>,
+) -> rusqlite::Result<bool> {
+    Ok(match event {
+        Event::Message { .. }
+        | Event::ToolStart { .. }
+        | Event::Thought { .. }
+        | Event::Notice { .. }
+        | Event::Retry { .. }
+        | Event::Denial { .. } => true,
+        Event::TextDelta { .. } => text.is_some_and(|text| text.start == seq),
+        // A whole text ends the pieces before it, and is a line of its own without them.
+        Event::Text { .. } => {
+            let last: Option<Option<u64>> = db
+                .prepare_cached(
+                    "SELECT text_start FROM events
+                     WHERE turn_id = ?1 AND text_bytes IS NOT NULL ORDER BY seq DESC LIMIT 1",
+                )?
+                .query_row([turn], |row| row.get(0))
+                .optional()?;
+            !matches!(last, Some(Some(_)))
+        }
+        Event::Skipped => !db
+            .prepare_cached("SELECT 1 FROM events WHERE turn_id = ?1 AND type = 'skipped'")?
+            .exists([turn])?,
+        _ => false,
+    })
+}
+
+/// How many lines a turn's transcript has: the number of its next one.
+pub(super) fn lines(db: &Connection, turn: i64) -> rusqlite::Result<u64> {
+    db.prepare_cached(
+        "SELECT COALESCE(MAX(item) + 1, 0) FROM events WHERE turn_id = ?1 AND item IS NOT NULL",
+    )?
+    .query_row([turn], |row| row.get(0))
 }
 
 /// The text a piece at `seq` grows: the one of the turn's last piece, unless a whole text ended

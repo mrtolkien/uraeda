@@ -3425,3 +3425,194 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: each departure is a ruling, so the final review reads them all in one place, and the
   human can send one back.
 - **Where**: the plan's [global constraints](plan.md#global-constraints), and every task from 27 on.
+## T15.1: A transcript is read by pages of 100 lines, and a reply grows by appends
+
+- **Decision**: the sessions' records are cut so that a client subscribes to what it draws, and no
+  event reads a turn again.
+  - `Session { repo, id }` is what a session is, its status, and its turns' ids. It changes when a
+    turn starts or ends, when its run's options or its sub-sessions change, never with an event of a
+    reply.
+  - `Turn { repo, id }` is a turn's state, what it does now, `activity`, its sub-agents at work,
+    `subagents`, and `pages`, how many pages its transcript has. Its activity and its sub-agents are
+    the manager's memory of the running turn, not a read of its log.
+  - `TurnLog { repo, turn, page }` is one page: at most 100 items, `TURN_PAGE`. An item's `id` is
+    the place in the log of the event that started it, a text, which never changes (R27).
+  - **A piece of a reply is an `append`**: `store.append`, then
+    `bus.append::<TurnLog>(&args, &["items", <id>, "text"], at, text)`, with the page and the text's
+    first place kept in memory while the text is written. No read, of anything.
+  - **A new line, and a line that changed otherwise**, a tool call that ended, a message read, a
+    blocked action allowed, says `changed` for its own page: the engine reads that page, 100 lines
+    at most, and sends the difference. A new page says `changed` for the `Turn`.
+  - **A page is found through an index**: the store's schema is at step 2, where an event that
+    starts a line says which one, `item`, from 0 in its turn. A page reads its own events, then the
+    few later ones that changed a line of it: the messages' and the blocked actions' by their kind,
+    through the new index by kind, the tool calls' ends until every call of the page ended, and the
+    rest of a text still written as the page ended. The events already stored are numbered by the
+    step itself, by the same rule.
+  - A message taken back leaves its page, as in the Node server, and the 4,000 characters a tool's
+    output and a thought are cut to are the page reader's (R70).
+- **Rationale**: the UI draws a session of 20,000 messages and a long reply at 8.3 ms a frame. With
+  the whole log in one record, each tool call would read and compare the turn. A page bounds the
+  read whatever the turn's length, and a piece costs one row and one message.
+- **How it was checked**: `a_streaming_reply_reaches_a_subscriber_as_appends` reads the raw changes:
+  one `insert` for the first piece, then only `append`s at that line's text.
+  `a_transcript_reads_by_pages_each_with_what_later_changed_its_lines` writes 102 lines over two
+  pages, and `a_store_written_before_its_lines_were_numbered_reads_by_the_same_pages` takes the
+  store back to schema 1 and opens it. Measured by hand, with the ignored test
+  `a_long_reply_of_20000_pieces_streams_to_a_subscriber`: 20,000 pieces, from the agent to a
+  subscriber that applied them all, in 5.7 s in a debug build, 280 µs a piece.
+- **If wrong**: `PAGE` is one constant of `runner/page.rs`, with `TURN_PAGE` of the protocol. A
+  session of thousands of turns lists as many ids in `Session.turns`: a page of turns is the same
+  cut, one level up. The log's activities are stored, one row each, for a thought's time.
+- **Where**: `crates/protocol/src/sessions.rs`, `crates/server/src/runner/{page,log,schema}.rs`,
+  `runner/transcript.rs`, `records/sessions/turn.rs`. Tasks 43, 44, and 53.
+
+## T15.2: The manager is plain functions behind one lock, and a process's events are a task's
+
+- **Decision**: `runner::Runner::of(&shared)` is how every domain reaches the sessions. Its methods
+  are plain functions, called on a blocking thread, as handlers are (R46, R97).
+  - What it keeps in memory, the sessions in use, their processes, their turns, the continues'
+    timers, is one `State` behind one lock, held for a few statements and never across a read of the
+    core or a call of a runtime. A session's sends and turn starts take that session's own lock, one
+    after another, and say `live::placed()` once they have it (R92).
+  - A process's events are read by a task, which records each on a blocking thread, in order: a rule
+    is asked of a runtime where tokio is, and a task ends with the runtime, where a thread blocked
+    on a stream would hold a test's end for ever.
+  - What follows a turn's end and may read git, the continuer's decision and the step chain, runs on
+    a thread of its own, with the session's changes held until it decided, as the Node server held
+    them: a run that waits to continue never reads as asking.
+  - A timer is a task that waits, then acts on a blocking thread. A signal to a process is sent by
+    the task itself.
+  - `Runner::entered()` makes a thread one of the server's runtime: a start's landing, on the write
+    queue's own thread, sends its first run there.
+- **Rationale**: the Node manager was one thread, with awaits. Here nearly everything it calls
+  blocks: the store, the core, a runtime. Futures all the way would box each of them.
+- **If wrong**: an action that waits for a process to open holds a blocking thread for as long,
+  bounded by the 20 seconds a closing process gets.
+- **Where**: `crates/server/src/runner/{manager,live,processes,running,transcript,send}.rs`.
+
+## T15.3: A queued workflow turn that starts as a chat has its log written again
+
+- **Decision**: `Store::retype_queued` rewrites the log of a turn still queued: the one time a log
+  changes, before its turn started. A workflow message queued behind a turn is checked again as it
+  starts. When it no longer applies it runs as a chat: its message becomes the human's, with the
+  chat's opening, in place of the workflow's line, and the line saying so follows it.
+- **Rationale**: the Node store changed the two items in place. A log is only added to (R69), and a
+  message's place before the line that explains it cannot be said by an event after both.
+- **If wrong**: a turn that started is never rewritten: the statement changes nothing unless the
+  turn is `queued`.
+- **Where**: `crates/server/src/runner/{turns,send}.rs`.
+
+## T15.4: A message to a feature waits for its queued commits, and is kept only for a start
+
+- **Decision**: `session.send` to a change or a feature waits, in its call, until the commits queued
+  for that folder landed: `records::writing::settled`. A commit refused meanwhile refuses the
+  message, `The commit it waited for was refused.` A message sent to a feature whose start still
+  lands is kept in memory, answered with its session and no turn, and sent once the start landed, as
+  the start's last step.
+- **Rationale**: the Node server kept both kinds, answered at once, and gave a message back through
+  an `unsent` write of the queue when its commit was refused. A call that waits says the same with
+  no second path: its answer is the refusal, and the composer still holds the text. A start is
+  different: its folder cannot be read yet, and its page opens on the message.
+- **If wrong**: a send behind slow hooks is answered as late as they run. It says `live::placed()`
+  first, so its connection's next calls do not wait (R92). A kept message that cannot be sent once
+  the start landed is printed, not returned: `QueuedWrite` has no `unsent`.
+- **Where**: `crates/server/src/records/sessions/actions.rs`, `records/writing/queue.rs`,
+  `records/features/starts.rs`, `runner/starts.rs`.
+
+## T15.5: A write of a feature's files is refused where the queue takes it
+
+- **Decision**: `Write` names the features whose files it writes: `Write::of_feature(folder)` by
+  itself, a save with `.on_feature(folder)` or `.on_path(path)`. `records::writing::write` refuses
+  it before its turn while a session of one of them has a turn running, starting, or queued,
+  `An agent is working on this feature. Stop it first, or wait for it.` The uploads ask the same
+  function, the Git page's guard asks the sessions for the chats and the folders at work, and
+  `repositories.remove` is refused while any session of the repository works.
+- **Rationale**: R65 left one check before each `write`. In the queue it is one rule, and a handler
+  only says what it writes. A write of its own, `land`, is not checked: a start, a review's
+  findings, and a promotion land while their own agent works, or hold their folder themselves.
+- **Where**: `crates/server/src/records/writing/{queue,text,buffer,undo,rounds,review}.rs`,
+  `files/attach.rs`, `records/git/working.rs`, `records/workspace/repositories.rs`.
+
+## T15.6: The runtimes are checked as the server starts, every minute, and a second after a change
+
+- **Decision**: `runner::serve`, the last of `DOMAINS`, starts the manager: the turns a server left
+  running or queued are stopped, `Stopped: the server stopped while it ran.`, the agents' tools are
+  given to `/mcp`, the chat images no message holds are cleaned, every runtime is asked its version,
+  the continues are armed, and the pull requests behind the default branch are caught up. The check
+  runs again every 60 seconds, and one second after a runtime registered, left, or was turned on or
+  off: one that came back continues the runs a restart cut.
+- **Rationale**: an extension's runtime registers after the start, in the background (R111), and a
+  session on it would be refused as not available until the next minute's check. The second's wait
+  leaves whoever registered it the first check, as the registry's own tests do.
+- **A test of the registry changed with it**: `a_runtimes_status_and_models_follow_what_it_answers`
+  asserted that a runtime it had just registered was not asked yet, and that its own check was the
+  one to find it. On a server whose sessions check too, both depend on which thread ran first: it
+  failed once in three full runs. It now reads each check's outcome from the status alone.
+- **If wrong**: `CHECK_EVERY` and `CHECK_AFTER_CHANGE` are in `runner/mod.rs`.
+- **Where**: `crates/server/src/runner/{mod,manager}.rs`, `crates/server/src/lib.rs`.
+
+## T15.7: What the sessions' actions answer, and where a turn's live facts are
+
+- **Decision**: the shapes, where fate's did not carry over (R52, R63).
+  - `session.send` answers `{ session, turn }`, the session it went to, which a workflow run's may
+    have been made for it, and no turn for a message kept for a start. `session.new` and
+    `session.newChat` answer `{ session }`, `session.toChange` `{ folder }`, `session.allow` and
+    `session.allowAll` `{ turn }`, and the others nothing. `feature.continueAll` takes `{ repo }`
+    and answers `ContinuedAll { refused }`.
+  - `session.allow` names a blocked action by its item's `id`, `denial`, in its `turn`.
+  - `Agent { repo }` takes a repository's name, or none: `isOn` is for that repository.
+  - The sub-agents of a running turn are on `Turn`, with their calls so far, and a row of
+    `SessionList` has their count: fate sent them on the session, read from the log at each event.
+  - `Feature` gains `agent` and `tokens`, and its `status` follows its sessions first, as the
+    workspace's features and `NeedsYouList` do, which also lists the chats refused an action.
+  - A time is a number of milliseconds since 1970, but `Wait.at`, already RFC 3339.
+- **Where**: `crates/protocol/src/sessions.rs`, `crates/server/src/records/sessions/`. Tasks 43, 44,
+  37, and 50.
+
+## T15.8: The agents' tools are futures over the manager, and a review's findings land in the queue
+
+- **Decision**: `runner::reviews::Tools` is the `mcp::Runner` (R76). `run_agent` and `review` start
+  their sub-sessions on blocking threads, then wait for them as futures: a call dropped gives the
+  wait up, and leaves the sub-session working, as the Node server's abort did. A parent's turn that
+  halts stops its sub-sessions and ends its calls. A command reviewer is a `runtimes::Child`, ended
+  when its review is dropped. The findings are written as a write of the queue,
+  `Committing a review's findings`, and the tool answers once their commit landed: a hook's refusal
+  answers `not committed:` with what it printed, and the same review asked again writes them again
+  without running a reviewer.
+- **Where**: `crates/server/src/runner/{sub_sessions,reviews}.rs`.
+
+## T15.9: A start has a third step, its agent's, and three tests say what the sessions made true
+
+- **Decision**: a start's write shows `Start the agent with your message` after its branch: a
+  change's first run is sent there, to a session made for it, and a feature's kept messages. A
+  change from a note sends its first run after the note left the inbox, outside the step. Three
+  tests of earlier tasks were changed with it, each failing because of what this task was asked to
+  build:
+  - `a_start_answers_once_planned_and_lands_in_the_queue_with_its_steps` lists the third step.
+  - `a_tool_the_sessions_have_not_filled_answers_a_clear_error` is now
+    `a_tool_called_for_no_workflow_session_answers_a_clear_error`: on a started server the tools are
+    always filled.
+  - `recommended_message_answers_its_shape` registers the fake runtime: a message is recommended
+    only to an agent that takes it.
+- **Where**: `crates/server/src/records/features/starts/`, `crates/server/tests/{mcp,features}`.
+
+## T15.10: What the sessions leave to later tasks
+
+- **Decision**: built, and not exercised by a test of the server, since nothing gives their input
+  yet, or left as named:
+  - **The catcher** runs on each change of a repository's files, each feature's turn that ends done,
+    and each change of the settings. It reads the pull requests the core last knew: until `pulls.ts`
+    is ported, no feature is at `catch-up`, and it sends nothing.
+  - **The step chain** starts the next step's run as a step's run ends done. The fixture has no step
+    an agent's run moves on from.
+  - **A preview's warm-up** starts the preview of a folder that waits for the human with a story, as
+    a turn ends done and as the server starts (R83). Its linked stories still compile at their first
+    read: `preview/warm.rs` keeps the mark for task 51.
+  - **A kept message that cannot be sent**, and run options that cannot be kept for a started
+    change, are printed. The Node server gave the first back to the composer, and sent the second's
+    first run on the options' own pick.
+  - `a_repositorys_events_reach_the_extensions_that_listen` timed out once in a full run while other
+    builds ran, and passed alone and in the two runs after.
+- **Where**: `crates/server/src/runner/{catch_ups,chain}.rs`, `crates/server/src/preview/mod.rs`.
+  Tasks 20, 51, and the fixer of the pull requests' refresh.

@@ -53,9 +53,8 @@ impl Mcp {
         self.tokens.revoke(token);
     }
 
-    /// Gives the endpoint what runs its tools: the sessions, as they start.
-    // TASK 15: the sessions call it with their `Runner`. Until then both tools answer that no
-    // agent runs yet.
+    /// Gives the endpoint what runs its tools: the sessions, as they start. Until then both
+    /// tools answer that no agent runs yet.
     pub fn serve(&self, runner: Arc<dyn Runner>) {
         *self.runner.write().unwrap_or_else(PoisonError::into_inner) = Some(runner);
     }

@@ -22,6 +22,9 @@ mod starts;
 mod undo;
 mod views;
 
+pub(crate) use messages::{recommend, workflow_message};
+pub(crate) use options::run_options;
+pub(crate) use starts::start_typed_change;
 use uraeda_core::watch::Changes;
 use uraeda_protocol::Feature;
 
@@ -29,9 +32,8 @@ use crate::Failure;
 use crate::live::{Bus, Registry};
 use crate::shared::Shared;
 
-/// Registers the features' records and actions.
-// TASK 15: `feature.continueAll`, with its answer `ContinuedAll`, is not declared: it only sends
-// runs.
+/// Registers the features' records and actions. `feature.continueAll` only sends runs: the
+/// sessions register it.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
     shared.provide(options::Store::new(shared.data_dir()));
     shared.provide(starts::Starts::default());

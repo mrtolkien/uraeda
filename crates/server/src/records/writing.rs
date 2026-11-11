@@ -16,7 +16,7 @@ pub(crate) mod undo;
 use uraeda_core::watch::Changes;
 use uraeda_protocol::Buffer;
 
-pub(crate) use queue::{Landing, Queued, Write, land, write};
+pub(crate) use queue::{Landing, Queued, Write, land, settled, working, write};
 
 use crate::Failure;
 use crate::live::{Bus, Registry};

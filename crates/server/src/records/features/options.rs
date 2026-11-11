@@ -131,9 +131,23 @@ pub(super) fn pair(shared: &Shared, root: &Path, folder: &str) -> RunOptionsPair
     }
 }
 
+/// The run options a feature's next run starts on: its own over the settings', as they are now.
+pub(crate) fn run_options(shared: &Shared, root: &Path, folder: &str) -> core::RunOptions {
+    let own = shared.get::<Store>().own(root, folder);
+    core::merge_run_options(&defaults(shared), &given(own))
+}
+
 /// The settings' run options in force, which a feature's own are read over.
 fn defaults(shared: &Shared) -> core::RunOptions {
     given(settings::current(shared).runs.options)
+}
+
+/// Options checked and normalized as the store keeps them, over the settings' as they are now:
+/// what a feature with those options would run on, for options not kept yet. Options the store
+/// would refuse set nothing.
+pub(super) fn over(shared: &Shared, options: RunOptions) -> core::RunOptions {
+    let own = normalized(options).unwrap_or_default();
+    core::merge_run_options(&defaults(shared), &given(own))
 }
 
 /// Refuses run options the store would refuse, before anything is written for them.

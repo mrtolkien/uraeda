@@ -20,7 +20,7 @@ pub(super) fn sent<View: Serialize, Sent: DeserializeOwned>(view: &View) -> Resu
 }
 
 /// A word of the protocol, as it is written in JSON: `pull-request`.
-pub(super) fn word<Word: Serialize>(word: &Word) -> String {
+pub(crate) fn word<Word: Serialize>(word: &Word) -> String {
     let json = serde_json::to_value(word).unwrap_or_default();
     json.as_str().unwrap_or_default().to_owned()
 }

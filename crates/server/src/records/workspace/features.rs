@@ -37,7 +37,9 @@ fn workspace(shared: &Shared, args: RepositoryArgs) -> Result<Workspace, Fault> 
         no_specs,
         setup,
     } = api::read_workspace(&repository.path)?;
-    let features = features.iter().map(|view| feature(&repository, view));
+    let features = features
+        .iter()
+        .map(|view| feature(shared, &repository, view));
     Ok(Workspace {
         root,
         default_branch,
@@ -54,11 +56,15 @@ fn workspace(shared: &Shared, args: RepositoryArgs) -> Result<Workspace, Fault> 
 }
 
 /// A feature of a workspace: the core's view, its name in the list's entry, and its status.
-fn feature(repository: &Repository, view: &FeatureView) -> Result<WorkspaceFeature, Fault> {
+fn feature(
+    shared: &Shared,
+    repository: &Repository,
+    view: &FeatureView,
+) -> Result<WorkspaceFeature, Fault> {
     Ok(WorkspaceFeature {
         id: view.folder.clone(),
         label: repositories::label(repository, &view.folder),
-        status: status::of(view),
+        status: status::of(shared, &repository.path, view),
         feature: views::sent(view)?,
     })
 }

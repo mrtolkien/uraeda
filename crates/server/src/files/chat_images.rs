@@ -123,3 +123,37 @@ fn uuid() -> String {
         &hex[20..]
     )
 }
+
+/// How long an image no message holds is kept, for a composer to send it.
+const UNSENT_KEPT: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Deletes the chat images no message holds, unless written in the last day: a composer may
+/// hold one, not sent yet. A file that cannot be read or deleted is left for the next start,
+/// and a cleanup that fails never stops the server.
+pub(crate) fn clean(shared: &Shared) {
+    let held = match shared.get::<crate::runner::Store>().images_in_use() {
+        Ok(held) => held,
+        Err(error) => return eprintln!("uraeda: the chat images were not cleaned: {error}"),
+    };
+    let images = ChatImages::of(shared);
+    let Ok(files) = std::fs::read_dir(&images.dir) else {
+        return;
+    };
+    let now = shared.now();
+    for file in files.flatten() {
+        let Ok(id) = file.file_name().into_string() else {
+            continue;
+        };
+        if !is_id(&id) || held.contains(&id) {
+            continue;
+        }
+        let written = file.metadata().and_then(|file| file.modified());
+        let old = written.is_ok_and(|written| {
+            now.duration_since(written)
+                .is_ok_and(|age| age >= UNSENT_KEPT)
+        });
+        if old {
+            let _ = images.remove(&id);
+        }
+    }
+}

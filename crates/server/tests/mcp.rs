@@ -312,18 +312,20 @@ async fn the_endpoint_speaks_mcp_for_a_client_of_tools() {
     assert_eq!(large.status, 413);
 }
 
-// The tools that run agents are the sessions': until they are filled, a call says so, as a
-// tool's error, where an agent reads it.
+// The tools that run agents are the sessions', filled as the server starts: a call for a
+// session that is no workflow session of a feature says so, as a tool's error, where an agent
+// reads it.
 #[tokio::test]
-async fn a_tool_the_sessions_have_not_filled_answers_a_clear_error() {
+async fn a_tool_called_for_no_workflow_session_answers_a_clear_error() {
     let server = support::server().await;
     let token = server.shared().get::<Mcp>().issue("session-1");
 
-    for (name, arguments) in [
-        ("run_agent", task()),
+    for (name, arguments, does) in [
+        ("run_agent", task(), "starts implementers"),
         (
             "review",
             json!({ "reviewed": "branch", "base": "main", "head": "HEAD" }),
+            "runs reviews",
         ),
     ] {
         let message = json!({
@@ -332,7 +334,7 @@ async fn a_tool_the_sessions_have_not_filled_answers_a_clear_error() {
             "params": { "name": name, "arguments": arguments },
         });
         let mut stream = Stream::open(&server, &token, &message).await;
-        let text = format!("`{name}` is not available: this server runs no agent yet.");
+        let text = format!("Only a workflow session of a feature {does}.");
         let answer = json!({
             "id": 7,
             "jsonrpc": "2.0",

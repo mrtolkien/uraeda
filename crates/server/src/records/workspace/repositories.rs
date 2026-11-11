@@ -19,6 +19,7 @@ pub(crate) use uraeda_core::repositories::Repository;
 
 use super::folders;
 use crate::live::{Bus, Call, Fault, Registry, locked};
+use crate::runner::Runner;
 use crate::shared::Shared;
 
 /// What is told each time the list changes.
@@ -220,10 +221,19 @@ fn open(call: &Call, input: RepositoriesOpen) -> Result<(), Fault> {
 }
 
 /// The action `repositories.remove`: takes a repository off the list, and leaves its folder and
-/// its sessions as they are.
-// TASK 15: nothing refuses it while an agent works in the repository yet: the sessions say so.
+/// its sessions as they are. Refused while an agent works in it: its run would show nowhere.
 fn remove(call: &Call, input: RepositoriesRemove) -> Result<(), Fault> {
     let shared = call.shared();
+    let listed = locked(&shared.get::<List>().read).rows.clone();
+    let row = listed.into_iter().find(|row| row.name == input.name);
+    let busy = row
+        .zip(Runner::find(shared))
+        .is_some_and(|(row, runner)| runner.busy(&row.path.to_string_lossy()));
+    if busy {
+        let name = &input.name;
+        let refusal = format!("An agent is working in {name}: stop it first.");
+        return Err(Fault::refused(refusal));
+    }
     repositories::remove(shared.data_dir(), &input.name)?;
     reload(shared);
     Ok(())

@@ -3,9 +3,9 @@
 //! once per run of its preview, shared by every ask, and counts as ended once it passes its
 //! time.
 
-// TASK 15 and TASK 51: the previews of the folders that wait for the human start as the server
-// starts, and a feature's as its turn ends done, each with its linked stories compiled ahead
-// (ruling R83). `Runner::view` and `Runner::compiled` are what a warm-up calls.
+// TASK 51: the previews of the folders that wait for the human start as the server starts, and
+// a feature's as its turn ends done (`preview::warm_waiting`), but their linked stories still
+// compile at their first read (ruling R83): `Runner::compiled` is what compiles one ahead.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};

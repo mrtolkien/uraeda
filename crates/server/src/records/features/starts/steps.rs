@@ -17,10 +17,12 @@ const COMMIT: usize = 0;
 /// The branch and its worktree.
 const BRANCH: usize = 1;
 
+/// The agent's start, with the start's first run or the messages kept for its folder.
+const AGENT: usize = 2;
+
 /// The steps of a start: the commit on the default branch, then the branch and its worktree,
-/// whose name is unknown before a typed change's start runs.
-// TASK 15: a third step, "Start the agent with your message", which sends the start's first
-// run, or the messages kept for its folder while it landed.
+/// whose name is unknown before a typed change's start runs, then the agent, which gets the
+/// start's first run, or the messages kept for its folder while it landed.
 pub(super) fn of(default_branch: &str, branch: Option<&str>) -> Vec<StartStep> {
     let branching = match branch {
         Some(branch) => format!("Make the branch {branch} and its worktree"),
@@ -34,7 +36,8 @@ pub(super) fn of(default_branch: &str, branch: Option<&str>) -> Vec<StartStep> {
         seconds: None,
         output: None,
     };
-    [committing, branching].map(waiting).into()
+    let starting = "Start the agent with your message".to_owned();
+    [committing, branching, starting].map(waiting).into()
 }
 
 /// The steps of a start as it lands, each change shown in its write. The core's steps move them
@@ -88,6 +91,11 @@ impl<'a> Progress<'a> {
             StartProgress::Output(line) => self.printed(&line),
             StartProgress::Done => {}
         }
+    }
+
+    /// The start ran: its agent starts.
+    pub(super) fn agent(&self) {
+        self.to(AGENT);
     }
 
     /// Every step done.

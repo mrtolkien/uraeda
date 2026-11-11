@@ -226,6 +226,55 @@ pub fn sweep(shared: &Shared) {
     previews.runner.sweep(shared, &kept);
 }
 
+/// Starts a folder's preview ahead of any page, as its feature's turn ends done, when its file
+/// then waits for the human and embeds a story, and once its preview folder has its
+/// dependencies, `node_modules`: without them it would only fail, and its stories show the
+/// failure. One that failed starts again. The sweep keeps it up while the folder waits. It reads
+/// files: call it from a blocking thread.
+pub(crate) fn warm_waiting(shared: &Shared, repository: &str, folder: &str) {
+    let Some(previews) = shared.find::<Previews>() else {
+        return;
+    };
+    if !checkout::waits_with_a_story(shared, repository, folder) {
+        return;
+    }
+    let Some(checkout) = checkout::runnable(shared, &previews, repository, folder) else {
+        return;
+    };
+    if !checkout
+        .dir
+        .join(&checkout.folder)
+        .join("node_modules")
+        .is_dir()
+    {
+        return;
+    }
+    let reader = Reader {
+        repository: repository.to_owned(),
+        folder: folder.to_owned(),
+        story: None,
+    };
+    let failed = previews.runner.state(&checkout.base);
+    match failed {
+        Some(State::Failed { .. }) => previews.restart(shared, &checkout, reader),
+        _ => previews.view(shared, &checkout, reader),
+    };
+}
+
+/// Starts the previews of every listed repository's folders that wait for the human with a
+/// story, as the server starts, one after the other: see [`warm_waiting`].
+pub(crate) fn warm_all_waiting(shared: &Shared) {
+    let listed = crate::records::repositories::all(shared);
+    for repository in listed.into_iter().filter(|repository| !repository.missing) {
+        let Ok(workspace) = uraeda_core::api::read_workspace(&repository.path) else {
+            continue;
+        };
+        for feature in workspace.features {
+            warm_waiting(shared, &repository.name, &feature.folder);
+        }
+    }
+}
+
 /// A repository's files or commits changed: the records of its running previews are read again,
 /// which starts one again when its checkout's code version moved.
 pub fn files_changed(shared: &Shared, repository: &str) {

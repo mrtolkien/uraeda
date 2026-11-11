@@ -1199,9 +1199,11 @@ What the sessions (task 15) rely on:
 
 **Files:**
 
-- Create: `crates/server/src/runner/{manager,status,continuer}.rs`,
-  `crates/server/src/records/sessions.rs`
-- Test: `crates/server/tests/sessions.rs`
+- Create:
+  `crates/server/src/runner/{manager,live,processes,running,transcript,send,edits,picks, message,status,reads,continuer,chain,sub_sessions,reviews,starts,catch_ups}.rs`,
+  the store's writes beside task 11's, `runner/{turns,waits,session_edits,page}.rs`,
+  `crates/server/src/records/sessions/`, `crates/protocol/src/sessions.rs`
+- Test: `crates/server/tests/sessions.rs` and `sessions/{messages,pages,tools,escalation,seams}.rs`
 
 **Interfaces:**
 
@@ -1224,7 +1226,16 @@ What the sessions (task 15) rely on:
 - Produces: records Agent, Session, SessionList, SessionSearch, Turn, TurnLog; actions `session.*`
   and `agent.refreshModels`; turn states and session statuses as
   [`events.ts`](/packages/server/src/runner/events.ts) and `status.ts` name them; automatic
-  continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says.
+  continues, as the [run lifecycle](../decisions/run-lifecycle.md) decision says. As built (rulings
+  T15.1 to T15.10):
+  - `Session { repo, id }`, `Turn { repo, id }`, `TurnLog { repo, turn, page }`, pages of 100 items,
+    each with an `id`, `SessionList { repo }`, `SessionSearch { repo, query }`, and
+    `Agent { repo }`. A reply grows as an `append` at `["items", <id>, "text"]` of its page.
+  - `runner::Runner::of(&shared)`, the sessions' manager, which `runner::serve`, the last of
+    `DOMAINS`, starts; `runner::Sessions` is its state, `shared.get::<Sessions>()`.
+  - The store at schema 2, with `Store::page`, `pages`, `page_of`, `blocked`, `edited_files`, and
+    the turns', sessions', and continues' writes.
+  - `records::writing::settled`, `working`, `Write::on_feature`, and `Write::on_path`.
 - **Starts the catch-up runs on the pull requests' refresh** (ruling R120), which
   [`records/pulls.rs`](/crates/server/src/records/pulls.rs) runs: it asks `gh` for each listed
   repository as the server starts, as a repository joins the list, after a burst of the watcher that
@@ -1248,15 +1259,20 @@ What the sessions (task 15) rely on:
   - `feature.promote`: the change's sessions moved to the feature, and its first run.
   - The writes of this domain are not refused while an agent works on their feature.
 
-- [ ] **Step 1: Write the failing tests**, on the fake runtime
+- [x] **Step 1: Write the failing tests**, on the fake runtime
   - `a streaming reply reaches a subscriber as appends`: no `Set` of the whole log.
   - `a session survives a server restart, and continues when the decision says so`.
   - `stopping a turn ends it as stopped`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** `TurnLog` changes through `Bus::append`. Port the continuer's rules as
+  - Also: a cut run that asks when its continue is off; a message steered or queued, taken back, and
+    a blocked action allowed then tried again; `run_agent` and `review` through `/mcp`; an
+    unanswered interrupt or close followed by signals at 10 second steps; a restart that never
+    continues an imported run; a transcript by pages; and one test per seam closed.
+- [x] **Step 2: Run them**. Expected: FAIL. Seen: `no action is session.newChat`.
+- [x] **Step 3: Implement.** `TurnLog` changes through `Bus::append`. Port the continuer's rules as
       they are.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): sessions and their turns`.
+- [x] **Step 4: Run the task's validation**. Expected: PASS. Two tests of the runtimes' registry
+      fail as they did before: they expect its names without the Codex built-in.
+- [x] **Step 5: Commit**: `feat(nsh-migration): sessions and their turns`.
 
 ## Task 16: Files, uploads, and the agents' MCP endpoint
 

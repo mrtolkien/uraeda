@@ -84,7 +84,11 @@ async fn a_start_answers_once_planned_and_lands_in_the_queue_with_its_steps() {
     let labels: Vec<&Value> = labels.iter().map(|step| &step["label"]).collect();
     let branching = format!("Make the branch {folder} and its worktree");
     let committing = "Commit the proposal on main, running your hooks";
-    assert_eq!(labels, [&json!(committing), &json!(branching)]);
+    let starting = "Start the agent with your message";
+    assert_eq!(
+        labels,
+        [&json!(committing), &json!(branching), &json!(starting)]
+    );
     assert_eq!(write["folder"], folder);
     // Its folder is taken from then on: a second start of it is refused.
     let mut again = start;

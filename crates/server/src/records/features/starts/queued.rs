@@ -102,17 +102,28 @@ impl<F> Run for F where
 {
 }
 
+/// What a start made, and the session its first run went to: none when no run was sent.
+pub(super) struct Landed {
+    pub started: StartedView,
+    pub session: Option<String>,
+}
+
+/// What follows a start that ran, as its last step: its first run, or the messages kept for
+/// its folder while it landed. It gives the session a first run went to.
+pub(super) trait Then: FnOnce(&StartedView) -> Option<String> + Send + 'static {}
+
+impl<F> Then for F where F: FnOnce(&StartedView) -> Option<String> + Send + 'static {}
+
 /// Queues a start behind the writes queued before it, with its steps in its write. The lists'
 /// writes wait for it until its commit landed, and its feature's until it ended. It commits
-/// within its landing, with the hooks.
-// TASK 15: once it ran, a start sends its first run, or the messages kept for its folder while
-// it landed, as its last step.
+/// within its landing, with the hooks. Once it ran, `then` starts its agent, as its last step.
 pub(super) fn queue(
     shared: &Shared,
     repo: &str,
     start: Start,
     run: impl Run,
-) -> Result<Queued<StartedView>, Fault> {
+    then: impl Then,
+) -> Result<Queued<Landed>, Fault> {
     let root = repositories::path(shared, repo)?;
     let default = api::read_workspace(&root)?.default_branch;
     let default = default.as_deref().unwrap_or("the default branch");
@@ -134,8 +145,10 @@ pub(super) fn queue(
         let progress = Progress::begun(steps, landing, &clock);
         match run(root, &|step| progress.step(step)) {
             Ok(started) => {
+                progress.agent();
+                let session = then(&started);
                 progress.done();
-                Ok(started)
+                Ok(Landed { started, session })
             }
             Err(refusal) => {
                 let fault = Fault::from(refusal);

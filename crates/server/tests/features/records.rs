@@ -362,7 +362,16 @@ async fn workflow_message_answers_its_shape() {
 
 #[tokio::test]
 async fn recommended_message_answers_its_shape() {
-    let (_repo, server) = served().await;
+    // A message is recommended only to an agent that takes it: the fake stands for one.
+    let repo = fixture_repo(REPO);
+    let only_fake = "[extensions.claude]\non = []\n\n[extensions.codex]\non = []\n";
+    let setup = crate::support::setup().config("config.toml", only_fake);
+    let server = setup.folder(repo.path()).start().await;
+    let fake = std::sync::Arc::new(uraeda_server::runtimes::fake::Fake::new());
+    drop(uraeda_server::runtimes::register(server.shared(), "fake", fake).expect("the fake"));
+    let runtimes = server.shared().get::<uraeda_server::runtimes::Runtimes>();
+    let checked = tokio::task::spawn_blocking(move || runtimes.check());
+    checked.await.expect("the runtimes are checked");
 
     let value = of_item(&server, "RecommendedMessage", AGENT).await;
 

@@ -592,10 +592,10 @@ async fn a_runtimes_status_and_models_follow_what_it_answers() {
     let fake = Fake::new();
     let registered = runtimes::register(server.shared(), "fake", Arc::new(fake.clone())).unwrap();
     let unchecked = Status::default();
-    assert_eq!(registry.status("fake"), unchecked, "not asked yet");
 
-    let found = check(&registry).await;
-    assert!(found.changed && found.back);
+    // The sessions check the runtimes too, as the server starts and after a change: what a
+    // check finds is read from the status, whoever asked first.
+    check(&registry).await;
     let available = Status {
         available: true,
         version: Some("0.0.0 (fake agent)".to_owned()),
@@ -627,8 +627,7 @@ async fn a_runtimes_status_and_models_follow_what_it_answers() {
         fake.installed = false;
         fake.models_fail = true;
     });
-    let found = check(&registry).await;
-    assert!(found.changed && !found.back);
+    check(&registry).await;
     assert_eq!(registry.status("fake"), unchecked);
     assert_eq!(fake.model_asks(), 2, "asked a moment ago");
 

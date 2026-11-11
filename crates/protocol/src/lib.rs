@@ -12,6 +12,7 @@ mod git;
 mod message;
 mod previews;
 mod registry;
+mod sessions;
 mod shared;
 mod typescript;
 mod workspace;
@@ -35,6 +36,7 @@ pub use previews::{
     StoryState,
 };
 pub use registry::{Action, Catalog, Record, Wire, catalog};
+pub use sessions::*;
 pub use shared::*;
 pub use typescript::typescript;
 pub use workspace::*;

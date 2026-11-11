@@ -139,7 +139,7 @@ pub(super) fn insert(db: &Connection, session: &Session) -> rusqlite::Result<()>
 }
 
 /// A session, from its row.
-fn session(row: &Row) -> rusqlite::Result<Session> {
+pub(super) fn session(row: &Row) -> rusqlite::Result<Session> {
     let at = |column: &str| row.get::<_, Option<i64>>(column).map(|at| at.map(time));
     Ok(Session {
         id: row.get("id")?,

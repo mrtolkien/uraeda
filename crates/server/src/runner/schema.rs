@@ -71,8 +71,40 @@ CREATE TABLE events (
 CREATE INDEX events_of_texts ON events (turn_id, seq) WHERE text_bytes IS NOT NULL;
 ";
 
+/// The second step: an event that starts a line of the transcript says which one, `item`, from 0
+/// in its turn, so a page of a transcript is found without reading the turn. The events
+/// already there are numbered by the same rule as [`log`](super::log) numbers a new one: a
+/// message, a tool call, a thought, a line, a blocked action, the first piece of a text, a whole
+/// text no piece came before, and the first skipped line of a turn.
+///
+/// And an index by an event's kind, for what reads one kind of a turn: its blocked actions, its
+/// last text.
+const ITEMS: &str = "
+ALTER TABLE events ADD COLUMN item INTEGER;
+CREATE INDEX events_of_items ON events (turn_id, item) WHERE item IS NOT NULL;
+CREATE INDEX events_by_type ON events (turn_id, type, seq);
+UPDATE events SET item = numbered.item FROM (
+  SELECT turn_id, seq, starts,
+    SUM(starts) OVER (PARTITION BY turn_id ORDER BY seq) - 1 AS item
+  FROM (
+    SELECT e.turn_id, e.seq, CASE
+      WHEN e.type IN ('message', 'toolStart', 'thought', 'notice', 'retry', 'denial') THEN 1
+      WHEN e.type = 'textDelta' AND e.text_start = e.seq THEN 1
+      WHEN e.type = 'text' AND COALESCE(
+        (SELECT p.text_start IS NULL FROM events p
+         WHERE p.turn_id = e.turn_id AND p.seq < e.seq AND p.text_bytes IS NOT NULL
+         ORDER BY p.seq DESC LIMIT 1), 1) THEN 1
+      WHEN e.type = 'skipped' AND NOT EXISTS (
+        SELECT 1 FROM events s
+        WHERE s.turn_id = e.turn_id AND s.seq < e.seq AND s.type = 'skipped') THEN 1
+      ELSE 0 END AS starts
+    FROM events e)
+) AS numbered
+WHERE numbered.turn_id = events.turn_id AND numbered.seq = events.seq AND numbered.starts = 1;
+";
+
 /// The schema's steps, in order: the store's number is how many it has taken.
-const STEPS: &[&str] = &[FIRST];
+const STEPS: &[&str] = &[FIRST, ITEMS];
 
 /// The number of the schema this version reads and writes.
 pub(super) fn known() -> u32 {

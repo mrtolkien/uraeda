@@ -213,7 +213,7 @@ pub(super) fn insert(db: &Connection, turn: &Turn, id: Option<i64>) -> rusqlite:
 }
 
 /// A turn, from its row.
-fn turn(row: &Row) -> rusqlite::Result<Turn> {
+pub(super) fn turn(row: &Row) -> rusqlite::Result<Turn> {
     let at = |column: &str| row.get::<_, Option<i64>>(column).map(|at| at.map(time));
     Ok(Turn {
         id: row.get("id")?,
