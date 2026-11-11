@@ -45,7 +45,8 @@ declare module "uraeda/server" {
 
   /**
    * A request to a route: its method, its path as the route was registered, without a
-   * repository's `/r/<name>`, its query, its headers, and its body.
+   * repository's `/r/<name>`, its query, its headers, and its body. Its headers hold no
+   * `Cookie` and no `Authorization`: the client's credentials are Uraeda's alone.
    */
   export interface RouteRequest {
     arrayBuffer(): Promise<ArrayBuffer>;
@@ -60,7 +61,11 @@ declare module "uraeda/server" {
     readonly url: string;
   }
 
-  /** What a route answers: a `Response`, a text, or any other value, sent as JSON. */
+  /**
+   * What a route answers: a `Response`, a text, or any other value, sent as JSON. A
+   * `Set-Cookie`, a `Set-Cookie2`, or a `Clear-Site-Data` it holds is left out: Uraeda's origin
+   * keeps its own cookies.
+   */
   export type RouteAnswer = Response | string | unknown;
 
   /**

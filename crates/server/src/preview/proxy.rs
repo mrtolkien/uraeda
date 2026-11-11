@@ -16,7 +16,7 @@ use percent_encoding::percent_decode_str;
 
 use super::runner::{NOT_RUNNING, State as Preview};
 use super::{Previews, upstream};
-use crate::http::Routes;
+use crate::http::{Routes, foreign};
 use crate::shared::Shared;
 
 /// The proxy's routes, as mounted: a preview's base without its slash, with it, and what is
@@ -42,14 +42,6 @@ const HOP_BY_HOP: [&str; 9] = [
     "transfer-encoding",
     "upgrade",
 ];
-
-/// The preview's headers that would reach Uraeda's own origin: its cookies, and site data
-/// clearing.
-const OWN_ORIGIN: [&str; 3] = ["clear-site-data", "set-cookie", "set-cookie2"];
-
-/// Uraeda's credentials, never sent to a preview: every cookie on Uraeda's origin is Uraeda's,
-/// as the preview's own `Set-Cookie` never reaches it.
-const CREDENTIALS: [&str; 2] = ["authorization", "cookie"];
 
 /// Storybook's channel, at the root of its own address.
 const CHANNEL: &str = "/storybook-server-channel";
@@ -159,7 +151,7 @@ fn for_preview(port: u16, target: &str, asked: &Request, leave_out: &[&str]) -> 
     *request.uri_mut() = target.parse().ok()?;
     for (name, value) in asked.headers() {
         let kept = !not_passed(asked.headers(), name)
-            && !CREDENTIALS.contains(&name.as_str())
+            && !foreign::credential(name)
             && !leave_out.contains(&name.as_str())
             && name != header::HOST;
         if kept {
@@ -190,9 +182,9 @@ async fn forward(port: u16, request: ForPreview) -> Response {
 /// origin.
 fn relayed(response: hyper::Response<Incoming>) -> Response {
     let (mut parts, body) = response.into_parts();
-    let own = |name: &HeaderName| OWN_ORIGIN.contains(&name.as_str());
     let all = parts.headers.keys();
-    let left_out = all.filter(|&name| not_passed(&parts.headers, name) || own(name));
+    let left_out =
+        all.filter(|&name| not_passed(&parts.headers, name) || foreign::reaches_origin(name));
     for name in left_out.cloned().collect::<Vec<_>>() {
         parts.headers.remove(&name);
     }

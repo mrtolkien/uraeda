@@ -5571,3 +5571,21 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Seen failing**: `a_write_is_refused_when_an_agent_started_while_it_waited`, the save answering
   as written.
 - **Where**: `crates/server/src/records/writing/queue.rs`.
+
+## T95.4: Code that is not the server's gets no credential and sets no cookie, by one rule
+
+- **Decision**: `crate::http::foreign` holds the rule the previews' proxy kept for itself: a
+  request's `Authorization` and `Cookie` never reach code that is not the server's own, and an
+  answer's `Set-Cookie`, `Set-Cookie2`, and `Clear-Site-Data` never come back. The previews' proxy
+  and the extensions' routes both use it. The server has no other credential header: the host token
+  travels as `Authorization: Bearer`, and the frame secret in the path. The API's declarations say
+  it. An extension's route path is cut after `/r/<name>`, the first part after `/r/`, so a
+  repository may be named `x`.
+- **Rationale**: an extension's route got the owner's session cookie and a device's 30-day token,
+  and could set or clear the owner's session (findings 01, 3): it could then act as that client,
+  beyond its own API. The path was cut at the first `/x/` of the whole path (finding 5).
+- **Seen failing**: `a_route_gets_no_credential_and_sets_no_cookie`, first with 404 "echo has no
+  route /x/x/echo/headers", then, with the path fixed and the filters taken out, with the session's
+  cookie in the headers the extension echoed.
+- **Where**: `crates/server/src/http/foreign.rs`, `crates/server/src/extensions/routes.rs`,
+  `crates/server/src/preview/proxy.rs`, `fixtures/extensions/echo/server.ts`.

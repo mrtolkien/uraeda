@@ -36,4 +36,20 @@ export default function activate(api: ServerApi) {
       }),
     "GET",
   );
+  // What reached it: its path and every header, answered with headers of its own.
+  api.route(
+    "/x/echo/headers",
+    (request) =>
+      Response.json(
+        { headers: Object.fromEntries(request.headers.entries()), path: request.path },
+        {
+          headers: {
+            "clear-site-data": '"cookies"',
+            "set-cookie": "uraeda=taken; Path=/",
+            "x-echo": "kept",
+          },
+        },
+      ),
+    "GET",
+  );
 }

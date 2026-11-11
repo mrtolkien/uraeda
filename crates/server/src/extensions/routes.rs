@@ -2,7 +2,8 @@
 //! repository, and under a repository's `/r/<name>`, where its extension is on. An extension
 //! names its paths as it loads, so the server mounts the two prefixes, and the extension's VM
 //! finds the route. Both are closed like every route of the server: the session check asks
-//! for a sign-in, and the guard refuses a request another site sent.
+//! for a sign-in, and the guard refuses a request another site sent. The extension's code gets
+//! no credential of the client's, and sets no cookie of the owner's ([`foreign`]).
 
 use axum::body::{Body, to_bytes};
 use axum::extract::{Path, Request, State};
@@ -15,7 +16,7 @@ use serde_json::{Map, Value, json};
 
 use super::vm::{CALL, CallError};
 use super::{Extensions, runtime};
-use crate::http::Routes;
+use crate::http::{Routes, foreign};
 use crate::records::repositories;
 use crate::shared::Shared;
 
@@ -51,12 +52,11 @@ async fn in_repository(
         let message = format!("No repository named “{name}”");
         return (StatusCode::NOT_FOUND, message).into_response();
     }
-    // The route's own path: what follows the repository's prefix, as the request sent it.
+    // The route's own path: what follows `/r/<name>`, as the request sent it. The name is one
+    // part of the path, which may be `x` too.
     let whole = request.uri().path();
-    let path = whole
-        .find("/x/")
-        .map_or(whole, |at| &whole[at..])
-        .to_owned();
+    let after = whole.strip_prefix("/r/").unwrap_or(whole);
+    let path = after.find('/').map_or(after, |at| &after[at..]).to_owned();
     answer(shared, extension, Some(name), path, request).await
 }
 
@@ -85,7 +85,12 @@ async fn answer(
         let message = "The body is over 10 MB".to_owned();
         return text(StatusCode::PAYLOAD_TOO_LARGE, message);
     };
-    let headers = parts.headers.iter().map(|(name, value)| {
+    // The extension acts as itself: the client's credentials never reach its code.
+    let headers = parts
+        .headers
+        .iter()
+        .filter(|(name, _)| !foreign::credential(name));
+    let headers = headers.map(|(name, value)| {
         let value = String::from_utf8_lossy(value.as_bytes()).into_owned();
         json!([name.as_str(), value])
     });
@@ -146,6 +151,8 @@ fn response(sent: &Value) -> Response {
         let value = header[1]
             .as_str()
             .and_then(|value| HeaderValue::from_str(value).ok());
+        // Nor can it set or clear the owner's cookies.
+        let name = name.filter(|name| !foreign::reaches_origin(name));
         if let (Some(name), Some(value)) = (name, value) {
             response.headers_mut().insert(name, value);
         }

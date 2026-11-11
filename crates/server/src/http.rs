@@ -1,5 +1,6 @@
 //! The server's HTTP: the routes its domains mount, behind the rules every request passes.
 
+pub(crate) mod foreign;
 pub(crate) mod open;
 pub(crate) mod socket;
 

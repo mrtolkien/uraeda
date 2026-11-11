@@ -175,6 +175,37 @@ async fn an_extensions_record_and_action_answer_through_the_protocol() {
     server.stop().await;
 }
 
+// An extension's route is the extension's code, which acts only as its own: the client's
+// credentials never reach it, and it cannot set or clear the owner's cookies. Its path is cut
+// after the repository's prefix, even for a repository named `x`.
+#[tokio::test]
+async fn a_route_gets_no_credential_and_sets_no_cookie() {
+    let repo = fixture_repo("x");
+    let server = started(&repo, &["echo"]).await;
+    let cookie = server.sign_in().await;
+    let asked = |path: &str| server.get(path).header("x-asked", "yes");
+
+    let by_cookie = asked("/r/x/x/echo/headers").cookie(&cookie).send().await;
+    let device = server.pair("Phone").await;
+    let by_token = asked("/x/echo/headers").bearer(&device).send().await;
+
+    for answer in [&by_cookie, &by_token] {
+        assert_eq!(answer.status, 200, "{}", answer.text());
+        let headers = &answer.json()["headers"];
+        assert_eq!(
+            headers["x-asked"], "yes",
+            "the request's own headers reach it"
+        );
+        assert_eq!(headers["cookie"], Value::Null, "{headers}");
+        assert_eq!(headers["authorization"], Value::Null, "{headers}");
+        assert_eq!(answer.header("x-echo"), Some("kept"));
+        assert_eq!(answer.header("set-cookie"), None);
+        assert_eq!(answer.header("clear-site-data"), None);
+    }
+    assert_eq!(by_cookie.json()["path"], "/x/echo/headers");
+    server.stop().await;
+}
+
 // The extensions decision: an extension reloads on change, with no restart of the owner's.
 // The version before it is unloaded first, with what it started: here a child process.
 #[tokio::test]
