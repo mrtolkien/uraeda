@@ -72,25 +72,49 @@ function tabOf(pane: PaneRef, current: boolean, onPress: () => void): PaneTab {
 }
 
 /**
- * About how wide a tab is drawn, in points. Titles are in the interface's monospace font, whose
- * characters are six tenths of its size wide.
+ * About how wide a tab is drawn, in points, with its title or, `compact`, its icon alone. Titles
+ * are in the interface's monospace font, whose characters are a little over six tenths of its
+ * size wide.
  */
-function tabWidth(tab: PaneTab) {
-  const character = tokens.type.size * 0.6;
+function tabWidth(tab: PaneTab, compact: boolean) {
+  const character = tokens.type.size * 0.62;
   const words = tab.title.length + (tab.more === undefined ? 0 : tab.more.length + 1);
   const icon = tab.icon === undefined ? 0 : 16 + 6;
-  return tokens.pane.titlePadding[0] + tokens.pane.titlePadding[1] + icon + words * character + 1;
+  const padding = tokens.pane.titlePadding[0] + tokens.pane.titlePadding[1] + 1;
+  return compact && tab.icon !== undefined ? padding + 16 : padding + icon + words * character;
 }
 
 /**
- * The tabs as they fit in `room` points, `extra` of them taken by what follows them: past it, the
- * tabs not shown keep their icons alone, so the row never runs past its pane.
+ * The tabs as they fit in `room` points, `extra` of them taken by what follows them. The shown
+ * tab keeps its title; then the others keep theirs, nearest to it first, while the row fits; past
+ * that a tab draws its icon alone, its title in its tip and to screen readers, so the row never
+ * runs past its pane.
  */
 export function fitted(tabs: ReadonlyArray<PaneTab>, room: number, extra: number) {
-  const wanted = tabs.reduce((sum, tab) => sum + tabWidth(tab), 0) + extra;
-  return room === 0 || wanted <= room - 16
-    ? tabs
-    : tabs.map((tab) => (tab.current ? tab : { ...tab, compact: true }));
+  const free = room - 16 - extra;
+  const whole = tabs.reduce((sum, tab) => sum + tabWidth(tab, false), 0);
+  if (room === 0 || whole <= free) {
+    return tabs;
+  }
+  const shown = Math.max(
+    0,
+    tabs.findIndex((tab) => tab.current),
+  );
+  const named = new Set([shown]);
+  let width = tabs.reduce((sum, tab, at) => sum + tabWidth(tab, !named.has(at)), 0);
+  const nearest = tabs
+    .map((_, at) => at)
+    .filter((at) => at !== shown)
+    .sort((a, b) => Math.abs(a - shown) - Math.abs(b - shown) || a - b);
+  for (const at of nearest) {
+    const more = tabWidth(tabs[at], false) - tabWidth(tabs[at], true);
+    if (width + more > free) {
+      break;
+    }
+    named.add(at);
+    width += more;
+  }
+  return tabs.map((tab, at) => (named.has(at) ? tab : { ...tab, compact: true }));
 }
 
 /** What the keys do on the tabs, beside them, while the focus is there. */

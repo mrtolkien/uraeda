@@ -23,7 +23,7 @@ export function light({ dark, role }: Source) {
     runningGlow: dark
       ? `0 0 10px ${alpha(role.lightRunning, 0.6)}, 0 0 2px ${role.lightRunning}`
       : `0 2px 8px ${alpha(role.lightRunning, 0.4)}`,
-    runningWidth: dark ? 1 : 2,
+    runningWidth: 2,
     runningMotion: choices["light.running.motion"],
     /** A pane that waits on the human: a colour, never a lamp. */
     needs: role.needsYou,

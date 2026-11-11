@@ -22,6 +22,7 @@ import {
   sync,
   zoom,
 } from "./layout";
+import { fitted } from "./Stack";
 
 const pane = (kind: string, closes = true): PaneRef => ({
   args: {},
@@ -211,6 +212,24 @@ test("a narrow window's one stack, and back", () => {
 /** The frame's page, at a desktop's width. */
 const page = (width = 1400) =>
   open("./__checks__/layout.tsx", { clock: {}, height: 800, platform: "linux", width });
+
+test("a stack's tabs keep their titles while they fit, the shown one's nearest first", () => {
+  const tab = (title: string, current = false) => ({
+    current,
+    icon: () => null,
+    title,
+  });
+  const tabs = [tab("Activity"), tab("Changes", true), tab("Agents"), tab("Plan")];
+  const titled = (room: number) =>
+    fitted(tabs, room, 0)
+      .filter((one) => one.compact !== true)
+      .map((one) => one.title);
+  expect(titled(0)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
+  expect(titled(560)).toEqual(["Activity", "Changes", "Agents", "Plan"]);
+  expect(titled(420)).toEqual(["Activity", "Changes", "Agents"]);
+  expect(titled(330)).toEqual(["Activity", "Changes"]);
+  expect(titled(120)).toEqual(["Changes"]);
+});
 
 test("l crosses into the side stack and h comes back", async () => {
   const app = await page();

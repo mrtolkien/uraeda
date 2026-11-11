@@ -133,7 +133,8 @@ export function Card(props: CardProps) {
       height="raised"
       onPress={props.onPress}
       running={props.state?.running}
-      style={{ borderColor: props.selected === true ? tokens.light.focus : undefined }}
+      // Only a selected card sets its border: an unset colour given here is drawn black on GTK.
+      style={props.selected === true ? { borderColor: tokens.light.focus } : undefined}
       testID={props.testID}
     >
       <If when={props.selected === true}>

@@ -223,11 +223,13 @@ export function DragOrder(props: DragOrderProps) {
           </View>
         )}
       </Each>
-      <View style={{ minHeight: tokens.space.row, paddingHorizontal: 8, paddingTop: 4 }}>
-        <Text testID="drag-said" tone="faint">
-          {said()}
-        </Text>
-      </View>
+      <If when={said() !== ""}>
+        <View style={{ minHeight: tokens.space.row, paddingHorizontal: 8, paddingTop: 4 }}>
+          <Text testID="drag-said" tone="faint">
+            {said()}
+          </Text>
+        </View>
+      </If>
     </View>
   );
 }

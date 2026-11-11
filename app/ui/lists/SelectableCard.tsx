@@ -50,15 +50,18 @@ export function SelectableCard(props: SelectableCardProps) {
     >
       <Surface
         height="raised"
-        style={{
-          alignSelf: "stretch",
-          borderColor: props.selected ? tokens.light.focus : undefined,
-          borderStyle: off() ? "dashed" : "solid",
-          flex: 1,
-          gap: 2,
-          paddingHorizontal: 10,
-          paddingVertical: 8,
-        }}
+        style={[
+          {
+            alignSelf: "stretch",
+            borderStyle: off() ? "dashed" : "solid",
+            flex: 1,
+            gap: 2,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+          },
+          // Only a selected card sets its border: an unset colour is drawn black on GTK.
+          props.selected === true ? { borderColor: tokens.light.focus } : null,
+        ]}
       >
         <If when={props.selected}>
           <Bar />

@@ -4637,3 +4637,42 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the editor's differ by that empty line, which this task left alone.
 - **Where**: [`trail.wgsl.ts`](/app/ui/text/trail.wgsl.ts), [`Trail.tsx`](/app/ui/text/Trail.tsx),
   [`shaders.rs`](/crates/app/tests/shaders.rs).
+
+## T96.4: A narrow window's bar, a stack's tabs, and what the gallery's pictures showed
+
+- **Decision**:
+  - **The bottom bar's tiles are as wide as their words**, and share what is left, while every word
+    fits; past that, as six or more panes on a phone, each tile keeps its icon alone, and the shown
+    one keeps its word too. Five equal tiles at 390 points left 78 each, and cut "Transcript", while
+    the five words need about 350 together: sized by their words, all five read whole. When even
+    that does not fit, a cut word reads worse than none: the icons, with the shown pane named, say
+    where the human is, and each tile keeps its title for screen readers. A scrolling row was not
+    taken: it hides panes off the edge with nothing to say they are there.
+  - **A stack's tabs keep their titles while they fit**, the shown one first, then the others,
+    nearest to it first; the rest draw their icon alone, with their title in a tip and to screen
+    readers. The rule was all or nothing: one title too many put every other tab to its icon. At the
+    side stack's default width, 386 points, the gallery's `Activity · 12`, `Changes · 4`, and
+    `Agents` with the fold need about 450: the shown tab keeps its title, and the next one needs 15
+    points more than there is, so the gallery's picture is as before. The width of a character is
+    taken at 0.62 of the size, as Monaspace draws it, not 0.6.
+  - **The folded side rail draws a pane that waits on the human in `light.needs`**: `IconButton`
+    takes a `colour` at rest. The rail passed `danger`, which only reddens a button under the
+    pointer.
+  - **A run's line is 2 points in both themes**: at 1 point in the dark theme, with a glow that GTK
+    draws faintly, it read as a grey edge.
+  - **A card sets its border only when selected**: `Card` and `SelectableCard` passed
+    `borderColor: undefined` otherwise, which overrode the surface's border, and GTK drew it black:
+    every card had a black top edge, in both themes, which ate half of the run's line. Measured: 0
+    black pixels in the cards' pictures now, 7972 before in the light one.
+  - **`DragOrder` draws its line of words only once it has said something.**
+  - The table's pictures, retaken after its column was widened, read whole at both widths.
+- **Rationale**: each seen in `target/shots/gallery/` after `just gallery-shots`, in both themes, at
+  1400 and 390 wide, before and after. The test of the tabs' rule failed under the old rule
+  (`expected ["Activity","Changes","Agents","Plan"] to equal ["Activity","Changes","Agents"]`).
+- **If wrong**: the bar's fallback, icons with the shown pane's word, is in no picture: the
+  gallery's narrow frame has five panes, which fit.
+- **Where**: [`bars.tsx`](/app/ui/layout/bars.tsx), [`Stack.tsx`](/app/ui/layout/Stack.tsx),
+  [`Pane.tsx`](/app/ui/surfaces/Pane.tsx), [`SideRail.tsx`](/app/ui/layout/SideRail.tsx),
+  [`IconButton.tsx`](/app/ui/controls/IconButton.tsx), [`light.ts`](/app/ui/tokens/light.ts),
+  [`Card.tsx`](/app/ui/lists/Card.tsx), [`SelectableCard.tsx`](/app/ui/lists/SelectableCard.tsx),
+  [`DragOrder.tsx`](/app/ui/lists/DragOrder.tsx), [`layout.test.ts`](/app/ui/layout/layout.test.ts).

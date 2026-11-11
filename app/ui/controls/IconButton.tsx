@@ -13,6 +13,8 @@ import { Tooltip } from "../surfaces";
 import { tokens } from "../tokens";
 
 export type IconButtonProps = PressProps & {
+  /** Its icon's colour at rest, for a state it marks: a pane that waits on the human. */
+  colour?: string;
   /** Red under the pointer, for what removes. */
   danger?: boolean;
   icon: IconName;
@@ -55,7 +57,7 @@ export function IconButton(props: IconButtonProps) {
     if (props.selected === true || press.state() === "hover" || press.state() === "focus") {
       return toneOf(variant());
     }
-    return tokens.role.inkQuiet;
+    return props.colour ?? tokens.role.inkQuiet;
   };
   if (props.keys !== undefined && props.state === undefined) {
     registerKey({

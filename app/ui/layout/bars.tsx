@@ -1,8 +1,8 @@
 // The phone's two bars, on a narrow window: at the top the places, as a terminal's tab line, with
 // the sidebar's toggle on its far left; at the foot the panes of the one stack, as tiles of glass,
-// an icon over a word each, the shown one in the accent. Both are the frame's, as the rail and the
+// an icon over a word each, the shown one in the accent, or icons alone where the words do not fit. Both are the frame's, as the rail and the
 // status line are on a wider window.
-import { View } from "nsh";
+import { signal, View } from "nsh";
 import type { PaneRef, Stack } from "./layout";
 import { kindOf, titleOf } from "./panes";
 import type { RailPlace } from "./Rail";
@@ -92,12 +92,25 @@ export function NavBar(props: { onSidebar?: () => void; places: ReadonlyArray<Ra
   );
 }
 
-/** The bottom bar: a tile per pane of the one stack, an icon over its word, pressed to show it. */
+/** About how wide a tile's word is drawn, with the room around it, in points. */
+const wordWidth = (title: string) => title.length * tokens.type.under * 0.62 + 12;
+
+/**
+ * The bottom bar: a tile per pane of the one stack, an icon over its word, pressed to show it.
+ * Each tile is as wide as its word, and the bar shares what is left. When the words do not all fit,
+ * as five panes on a phone, the tiles keep their icons, and only the shown one keeps its word: a
+ * cut word reads worse than none, and the icon still names a pane to screen readers.
+ */
 export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }) {
+  const room = signal(0);
+  const worded = () =>
+    room() === 0 ||
+    props.stack.panes.reduce((sum, pane) => sum + wordWidth(titleOf(pane)), 0) <= room();
   return (
     <Surface
       glass
       height="raised"
+      onLayout={(event) => room.set(event.bounds.size.width)}
       style={{ flexDirection: "row", height: tokens.control.touch + 8 }}
       testID="bottom-bar"
     >
@@ -111,6 +124,7 @@ export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }
             return markOf(pane()).needs === true ? tokens.light.needs : tokens.role.inkQuiet;
           };
           const icon = kindOf(pane())?.icon ?? "square";
+          const word = () => worded() || current();
           return (
             <View
               accessibilityLabel={titleOf(pane())}
@@ -119,16 +133,20 @@ export function BottomBar(props: { onShow: (key: string) => void; stack: Stack }
               role="tab"
               style={{
                 alignItems: "center",
-                flex: 1,
+                flexBasis: word() ? wordWidth(titleOf(pane())) : tokens.control.touch,
+                flexGrow: 1,
+                flexShrink: word() ? 0 : 1,
                 gap: 1,
                 justifyContent: "center",
                 minWidth: 0,
               }}
             >
               <Icon colour={colour()} name={icon} />
-              <Text bold={current()} colour={colour()} lines={1} size="under">
-                {titleOf(pane())}
-              </Text>
+              <If when={word()}>
+                <Text bold={current()} colour={colour()} lines={1} size="under">
+                  {titleOf(pane())}
+                </Text>
+              </If>
               <If when={markOf(pane()).running === true && !current()}>
                 <View
                   style={{

@@ -11,11 +11,12 @@
 // of a bar, which would draw again with each of its frames.
 import { type JSX, type StyleProp, Text, View, type ViewStyle } from "nsh";
 import { Surface } from "./Surface";
+import { Tooltip } from "./Tooltip";
 import { alpha, tokens } from "../tokens";
 
 /** One title on a pane's edge: the pane's own, or one tab of a stack. */
 export type PaneTab = {
-  /** Its icon alone, its title said to screen readers only: a tab that does not fit beside the others. */
+  /** Its icon alone, its title in its tip and to screen readers: a tab that does not fit beside the others. */
   compact?: boolean;
   /** The tab shown: it fills with light while the pane has the focus. */
   current: boolean;
@@ -85,7 +86,7 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
     }
     return props.tone ?? tokens.role.inkQuiet;
   };
-  return (
+  const title = (
     <View
       accessibilityLabel={props.many || props.tab.compact === true ? props.tab.title : undefined}
       onPress={props.tab.onPress}
@@ -154,6 +155,8 @@ function Title(props: { lit: boolean; many: boolean; tab: PaneTab; tone?: string
       </View>
     </View>
   );
+  // A tab drawn as its icon alone says its title in a tip, beside what screen readers hear.
+  return props.tab.compact === true ? <Tooltip text={props.tab.title}>{title}</Tooltip> : title;
 }
 
 export function Pane(props: PaneProps) {

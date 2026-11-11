@@ -24,7 +24,7 @@ export function SideRail(props: { layout: Layout; onShow: (key: string) => void 
       <Each key={(pane: PaneRef) => pane.key} of={props.layout.side.panes}>
         {(pane) => (
           <IconButton
-            danger={markOf(pane()).needs === true}
+            colour={markOf(pane()).needs === true ? tokens.light.needs : undefined}
             icon={kindOf(pane())?.icon ?? "square"}
             label={titleOf(pane())}
             onPress={() => props.onShow(pane().key)}
