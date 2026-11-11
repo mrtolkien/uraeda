@@ -606,7 +606,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   runs prints the config folder's secret, and nothing of a project's `.env`.
 - **If wrong**: a later task that starts a process with `Command::new` gives it the process's
   environment, without the secrets. The crate's documentation names the rule; no lint does. The
-  core's `git` is such a process: T99.13 says how it gets them.
+  core's `git` is such a process: R96 says how it gets them.
 - **Where**: task 4, `crates/server/src/env.rs`, and the tests
   `secrets_come_from_the_config_folders_env_only` and, for the folder `ura serve` runs in,
   `serve_runs_until_it_is_stopped_and_a_second_start_hands_over`. Tasks 7, 12 to 15, and 18.
@@ -782,7 +782,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - `registry.action::<A>(run)`, with `run: Fn(&Call, A::Input) -> Result<A::Output, Fault>`. A
     `Call` has `shared()`, `bus()`, and `caller()`, the identity sign-in checked. Calls run at the
     same time. A connection's own start in the order it sent them, each once the one before took its
-    place in the write queue or ended (T99.9).
+    place in the write queue or ended (R92).
   - A handler is not `async`. The engine runs it on one of tokio's blocking threads, so it calls the
     core, git, files, and SQLite as they are. `live::wait(future)` runs a future to its end from
     there, for a queue's turn or a message to a task.
@@ -872,7 +872,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     the `Bus`, and registers in its own `mount`, as sign-in for its devices.
   - A domain that is only records and actions is a file of `crates/server/src/records/`, with a
     function `register(&Shared, &Registry) -> Result<(), Failure>`, its line `mod <domain>;` in
-    `records/mod.rs`, and its line in `DOMAINS` there, which calls it (T99.3).
+    `records/mod.rs`, and its line in `DOMAINS` there, which calls it (R86).
   - `every_declared_record_and_action_is_served_and_no_other` compares `catalog()` with the
     `Registry` of a started server, both ways. A name declared before its handler exists goes in the
     test's `NOT_BUILT`, empty today. The test fails for a name that is there and served, so the list
@@ -967,9 +967,9 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   every records domain registered, and stopped by `Server::stop`.
   - **A repository's files**: the core's `watch` runs for each listed repository whose folder is
     there, and follows the list. After each burst it calls each function of `FILES_CHANGED`, of
-    shape `fn(&Shared, &str, &Changes)` since the join (T99.10), `fn(&Bus, ..)` before it: the
-    server's shared state, the repository's name, and the core's `Changes`, which names features,
-    files, and flags, not paths. A domain adds one line there.
+    shape `fn(&Shared, &str, &Changes)` since the join (R93), `fn(&Bus, ..)` before it: the server's
+    shared state, the repository's name, and the core's `Changes`, which names features, files, and
+    flags, not paths. A domain adds one line there.
   - **The config folder**: after each change of `config.toml` or of the themes folder it calls each
     function of `CONFIG_CHANGED`, of shape `fn(&Shared)`.
   - **The list**: a change of `repositories.json`, by `ura add` or by hand, reads the list again.
@@ -1093,7 +1093,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     `BranchChanges` is `BranchChangesView`, inside the record `BranchChanges { changes, failed }`.
   - An optional field is sent as `null`, never left out, as the core writes it.
   - The seventeen types the workspace's domain declares too were copied word for word until the
-    join, which gave each one declaration, in `crates/protocol/src/shared/` (T99.1).
+    join, which gave each one declaration, in `crates/protocol/src/shared/` (R84).
 - **Rationale**: the tasks of the wave cannot use each other's code, and two types of one name must
   be the same text for the catalog to take both. Copied by a script from the core's source, the
   mirror cannot differ from the core by a typing mistake, and each record's contract test reads the
@@ -1108,8 +1108,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 
 - **Decision**: until the write queue (task 9) was joined, `records/features/turn.rs` gave one
   writer per repository: a lock by main checkout, taken by every action of this domain that wrote.
-  The join replaced it with the queue's `write` and `land` (T99.6 to T99.8), and what follows
-  describes the stand-in.
+  The join replaced it with the queue's `write` and `land` (R89 to R91), and what follows describes
+  the stand-in.
   - A start answers once it landed, and a refusal is the call's `error`. The Node server answered
     `feature.start` once the core planned it, and ran the start in its queue, where the record
     `WriteQueue` showed its steps and its refusal. Without that record a start that failed after its
@@ -1133,13 +1133,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - `RecommendedMessage` takes an agent as available.
   - The starts keep and send no message, and the `change.*` starts answer `session: null`: the
     change's page offers its message unsent. Since the join a start is a write of the queue, and a
-    feature's answers once planned (T99.8). `feature.drop` and `feature.promote` hold, archive, and
+    feature's answers once planned (R91). `feature.drop` and `feature.promote` hold, archive, and
     move no session, and no write is refused while an agent works.
   - A typed start with images was refused until the join: the uploads (task 16) keep an image's
-    bytes, and a start reads them from their store since (T99.12). `change.fromNote` reads a note
+    bytes, and a start reads them from their store since (R95). `change.fromNote` reads a note
     file's images from the repository, and takes them.
   - Nothing called `files_changed` and `config_changed` until the one watcher (task 7) was joined
-    (T99.10): a record followed this domain's own actions only.
+    (R93): a record followed this domain's own actions only.
 - **Rationale**: the plan builds the sessions, the uploads, and the watcher in other tasks.
 - **Where**: task 8, `crates/server/src/records/features/`. Tasks 15 and 16, and the join.
 
@@ -1175,7 +1175,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   - Every record and action names its repository, `repo`, by its name in the list. An action that
     commits takes `write`, `{ href, label }`, the name the write queue shows its commit under.
   - `QueuedWrite` has no `queued`, and `WriteFailure` no `unsent`: nothing sets them before kept
-    messages are ported (task 15). `steps` came with the starts, at the join (T99.8). A new field
+    messages are ported (task 15). `steps` came with the starts, at the join (R91). A new field
     keeps the protocol's version.
 - **Rationale**: fate answered a mutation with its whole record, which was how a page saw its own
   write. Here the subscription brings it, so an answer that repeated it would send a spec twice. The
@@ -1221,11 +1221,11 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**:
   - The queue kept the order writes reached it in, not the order a client sent them in: the engine
     started each call on a task of its own, so two calls sent back to back could reach the queue in
-    either order. The join made a connection's calls reach it in the order sent (T99.9).
+    either order. The join made a connection's calls reach it in the order sent (R92).
   - `cargo fmt` did not see a module declared inside `domains! { }`: the join made them plain `mod`
-    lines (T99.3).
+    lines (R86).
   - Git and the hooks the core runs got the server process's environment, without the config
-    folder's `.env`, since the core starts them itself: the join gives them its variables (T99.13).
+    folder's `.env`, since the core starts them itself: the join gives them its variables (R96).
 - **Where**: task 9, `crates/server/src/records/writing/queue.rs` and `queue/repository.rs`. The
   join of wave 6, and tasks 8, 10, 15, and 16.
 
@@ -1237,13 +1237,13 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     sessions. Each handler of writing knows the folder or the path it writes, so the refusal is one
     check before its `write`.
   - **A landing of its own, and its steps** (`add`, `enqueue`, `update`, `free`, `inTurn`): a
-    start's write. Built at the join, as `writing::land` (T99.7) and the starts (T99.8).
+    start's write. Built at the join, as `writing::land` (R90) and the starts (R91).
   - **Kept messages** (`unsent`, `waits`, `settled`, and `queued` on a write): sessions.
   - **Git's own writes** (`arrive`, `background`, and `landed`): task 10's actions and the fetcher.
-    Built at the join (T99.7); `arrive` is the order of a connection's calls (T99.9).
+    Built at the join (R90); `arrive` is the order of a connection's calls (R92).
   - **A repository leaving the list**: its queue stays open until the server stops.
   - **The other domains' records**: a write here said `Buffer` and `WriteQueue` only. Since the
-    join, the queue tells every domain after each write and each landing (T99.6).
+    join, the queue tells every domain after each write and each landing (R89).
 - **Rationale**: each is a few lines beside the code that calls it, and a seam nobody calls cannot
   be tested.
 - **Where**: `crates/server/src/records/writing/queue/repository.rs`. The join of wave 6, and tasks
@@ -1268,8 +1268,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     `git.commit` is `GitCommitStaged`, since `GitCommit` is the record. Every action answers
     nothing, and the records show what it changed, but `git.saveConflict`, which answers the file
     with its new hash.
-  - **Every write takes `write`**, the name the queue's record shows it under, since the join
-    (T99.7): the page's own name when none is given.
+  - **Every write takes `write`**, the name the queue's record shows it under, since the join (R90):
+    the page's own name when none is given.
 - **Rationale**: an `id` that is always `git` says nothing, and one that packs four arguments is
   parsed on both sides. With ids on the items, staging one file sends one field, not every file of
   every group.
@@ -1284,7 +1284,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `crates/server/src/records/git/writes.rs`.
   - **One writer per repository**: until the join, `queue::in_turn`, a lock per main checkout, which
     kept no record, so git's output went nowhere. Since the join each write lands in the write
-    queue, under its name, with git's output (T99.7).
+    queue, under its name, with git's output (R90).
   - **The checkout's guard is written, and nobody works yet.** A write is refused while an agent
     works in a checkout it writes, checked as it lands: the main checkout's for a chat, a feature's
     worktree for its agent, both for a worktree's removal and a feature's cleaning. `working::chat`
@@ -1324,7 +1324,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **How it was checked**: `a_repository_of_the_list_is_fetched_as_the_server_starts` fails without
   the fetcher's start. The 5 minutes have no test: the round is the one the start runs.
 - **Since the join**: a repository that joins the list once the server runs is fetched as it joins,
-  where its watcher starts (T99.10).
+  where its watcher starts (R93).
 - **Where**: task 10, `crates/server/src/records/git/fetcher.rs`.
 
 ## R69: The session store is three tables, and a transcript is a log of events
@@ -1546,19 +1546,19 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Decision**: what of the Node server's file routes is not ported as it was.
   - `GET /r/:name/mockups/<path>` served the file at `<path>`, to a signed-in request only, until
     the join: the Node server's path starts with the frame secret, which task 18 owned. Since the
-    join the path is `/mockups/<secret>/<path>`, open to its frame (T99.11).
+    join the path is `/mockups/<secret>/<path>`, open to its frame (R94).
   - `GET /raw/*` and `GET /mockups/*` without `/r/:name`, which sent a link from before repositories
     had names to the most recently opened one, are not ported: compatibility may break.
   - `DELETE /r/:name/chat-images/:id` deleted an image without asking whether a sent message holds
-    it, until the join: the session store answers since (T99.12). The refusal of an upload to a
-    feature an agent works on, `files::attach::writable`, waits for the sessions (task 15).
+    it, until the join: the session store answers since (R95). The refusal of an upload to a feature
+    an agent works on, `files::attach::writable`, waits for the sessions (task 15).
   - What a path may read is the core's rule alone, `api::read_raw` and `api::read_image`: nothing
     outside the repository, hidden, untracked, or behind a symlink. The server opens no file of a
     repository itself.
 - **Rationale**: R36 says the guard's frame check waits for task 18, and both tasks are built at the
   same time. One home for the containment rule is what `ura lsp` and the server share.
 - **Since the join**: every answer but a mockup's and a preview's carries
-  `X-Frame-Options: SAMEORIGIN`, from a layer of `http::router` (T99.11).
+  `X-Frame-Options: SAMEORIGIN`, from a layer of `http::router` (R94).
 - **Where**: task 16, `crates/server/src/files/`, and the tests
   `a_raw_path_cannot_leave_its_repository` and
   `a_mockup_is_served_sandboxed_and_only_from_a_mockups_folder`. Tasks 11, 15, and 18.
@@ -1602,7 +1602,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   guard, the session check, and the proxy must read it alike. With `Open::Anyone`, the route would
   have answered 404 where every other closed route answers 401.
 - **Since the join**: the mockups' route is listed in `OPEN` as `Open::Frame`, and reads the secret
-  from `preview::frame_secret` (T99.11).
+  from `preview::frame_secret` (R94).
 - **Where**: task 18, `crates/server/src/preview/{mod,frames}.rs`, `guard.rs`, `sign_in/check.rs`,
   and the test `a_preview_path_without_its_secret_is_refused`. Tasks 16 and 49.
 
@@ -1633,7 +1633,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     theirs under the new address;
   - when `preview::files_changed(&Shared, repository)` is called, for the repository's running
     previews: a commit outside `specs/` then starts one again at the new code. The one watcher calls
-    it after each burst (T99.10). A commit under `specs/` keeps it.
+    it after each burst (R93). A commit under `specs/` keeps it.
   - A preview stopped for 30 minutes without a view tells nobody: a read would start it again. Its
     frame then answers 503, and `preview.restart` starts it. A held subscription is not a view.
   - A preview whose folder's file waits for the human, and embeds a story, is kept up, as today.
@@ -1689,7 +1689,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   the compile takes. `Runner::view` and `Runner::compiled` are what a warm-up calls.
 - **Where**: tasks 15 and 51.
 
-## T99.1: A type two domains use is declared once, in the protocol's `shared/`
+## R84: A type two domains use is declared once, in the protocol's `shared/`
 
 - **Decision**: how the join of wave 6 gave each protocol type one declaration.
   - `crates/protocol/src/shared/` holds the types more than one domain declares a record or an
@@ -1716,7 +1716,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/protocol/src/shared.rs` and `shared/`, `crates/protocol/src/registry.rs`,
   `app/store/protocol.d.ts`. Tasks 15, 20, 23, and the screens.
 
-## T99.2: Every domain finds a repository through the workspace's list
+## R85: Every domain finds a repository through the workspace's list
 
 - **Decision**: `records::repositories::find` (R55) is the only lookup of a repository by its name,
   and `records::repositories::path(&Shared, name) -> Result<PathBuf, Fault>` gives its main checkout
@@ -1738,7 +1738,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `a_repository_that_is_not_listed_or_is_gone_serves_no_file` and
   `a_repository_the_list_lacks_is_refused` expect the one text.
 
-## T99.3: The records' domains are plain `mod` lines and a list, so `cargo fmt` formats them
+## R86: The records' domains are plain `mod` lines and a list, so `cargo fmt` formats them
 
 - **Decision**: `records/mod.rs` declares each domain with a plain `mod <domain>;` and names its
   `register` in the list `DOMAINS`, in the order they register. The macro `domains! { }`, which did
@@ -1748,7 +1748,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   domain left out of `DOMAINS` fails the lint, since nothing calls its `register`.
 - **Where**: `crates/server/src/records/mod.rs`. Tasks 15, 17, and 20, which add a domain.
 
-## T99.4: What every records domain needs of another has one home in `records/`
+## R87: What every records domain needs of another has one home in `records/`
 
 - **Decision**: the helpers the domains of wave 6 each wrote for themselves are one function each.
   - `records::views::sent` turns a view of the core into the protocol's type, and `word` gives a
@@ -1767,7 +1767,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/{views.rs,workspace/status.rs,writing/undo.rs}`,
   `records/workspace/settings/options.rs`, `live/mod.rs`. Tasks 15, 17, and 20.
 
-## T99.5: The server's tests share one fixture repository and one client of `/live`
+## R88: The server's tests share one fixture repository and one client of `/live`
 
 - **Decision**: `crates/server/tests/support/` holds what the domains' tests each wrote.
   - `support::fixture(path)` and `fixture_text(path)` give a path and a text of `fixtures/`, and
@@ -1787,7 +1787,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   their hook's log included, so the override is gone and `TestRepo` stays as it is.
 - **Where**: `crates/server/tests/support/{fixture,live}.rs`. Tasks 15, 17, and 20.
 
-## T99.6: Every write goes through the write queue, which tells every domain's records
+## R89: Every write goes through the write queue, which tells every domain's records
 
 - **Decision**: `records::writing::write` (R64) is the one way a handler writes to a repository. The
   features' lock per repository is gone, and the uploads' writes take the queue's turn too.
@@ -1821,7 +1821,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `records/features/{lists,moves,feature,starts,changed}.rs`, `files/attach.rs`, `live/bus.rs`.
   Tasks 15, 17, and 20.
 
-## T99.7: A write of its own lands on the queue's thread, as git's writes do
+## R90: A write of its own lands on the queue's thread, as git's writes do
 
 - **Decision**: what R65 left of the Node queue for git, `add`, `enqueue`, `background`, and
   `landed`, is `records::writing::land`.
@@ -1854,7 +1854,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/writing/{queue.rs,queue/repository.rs}`,
   `records/git/{writes,fetcher}.rs`, `crates/protocol/src/git.rs`. Tasks 15 and 46.
 
-## T99.8: A start is a write of the queue, with its steps, and a feature's answers once planned
+## R91: A start is a write of the queue, with its steps, and a feature's answers once planned
 
 - **Decision**: the starts run as the Node server's did, in place of R60's stand-in.
   - **A feature's start answers once planned.** `feature.start` and `feature.startText` plan the
@@ -1898,7 +1898,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   `records/features/feature.rs`, `crates/protocol/src/{writing.rs,features/starts.rs}`. Tasks 15,
   38, and 50.
 
-## T99.9: A connection's calls reach the write queue in the order it sent them
+## R92: A connection's calls reach the write queue in the order it sent them
 
 - **Decision**: two rules, one in the engine and one in the queue.
   - **In the engine**, a connection's calls start one after another: each once the call before it
@@ -1930,7 +1930,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/live/{order,subscription}.rs`,
   `crates/server/src/records/writing/queue/repository.rs`. Tasks 15, 17, and 23.
 
-## T99.10: The one watcher calls every domain, and tells who starts or stops with a repository
+## R93: The one watcher calls every domain, and tells who starts or stops with a repository
 
 - **Decision**: `records/watch.rs` holds four lists, one line per domain in each.
   - `FILES_CHANGED`, of shape `fn(&Shared, &str, &Changes)`: the workspace, the features, writing,
@@ -1959,7 +1959,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/records/watch.rs`, each domain's `files_changed`,
   `records/git/fetcher.rs`, `records/previews.rs`. Tasks 15, 17, and 20, which add their line.
 
-## T99.11: A mockup's path carries the frame secret, and every other answer refuses a frame
+## R94: A mockup's path carries the frame secret, and every other answer refuses a frame
 
 - **Decision**: what R77 and R79 left to the join.
   - `GET /r/<name>/mockups/<secret>/<path>` serves a file of a `mockups/` folder, sandboxed, when
@@ -1982,7 +1982,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/files/{mod,raw}.rs`, `sign_in/check.rs`, `http.rs`,
   `contracts/protocol.md`. Tasks 41 and 49, which frame them.
 
-## T99.12: The chat images have one store, which the sessions' store answers for
+## R95: The chat images have one store, which the sessions' store answers for
 
 - **Decision**: what the files, the features, and the session store each held of a chat image.
   - `Store::holds_image(id)` says whether a message of any session holds an image, taken back or
@@ -1994,8 +1994,8 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
     before anything is planned, with the Node server's text, `This image is gone: add it again.`
   - The folder's name and what an image's id is are `files::chat_images::FOLDER` and `is_id`: the
     importer copies with them, in place of its own.
-  - The upload's answer for an undo is the undo's own `UndoChange` (T99.4), and a chat image is the
-    protocol's `ChatImage` (T99.1).
+  - The upload's answer for an undo is the undo's own `UndoChange` (R87), and a chat image is the
+    protocol's `ChatImage` (R84).
 - **How it was checked**: `a_chat_image_a_sent_message_holds_is_never_deleted` got 204 for an image
   a message of the store held, and `a_typed_start_takes_the_images_uploaded_for_it` was refused,
   `A start cannot take images yet`.
@@ -2004,7 +2004,7 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Where**: `crates/server/src/runner/log.rs`, `files/{images,chat_images}.rs`,
   `records/features/starts.rs`, `runner/import.rs`. Task 15.
 
-## T99.13: The core's git runs in the server's environment, the config folder's `.env` included
+## R96: The core's git runs in the server's environment, the config folder's `.env` included
 
 - **Decision**: `Environment::added()` gives the variables the config folder's `.env` adds to the
   environment the server started in, the ones that one left unset or empty. The server gives them to

@@ -30,6 +30,8 @@ use crate::live::{Bus, Registry};
 use crate::shared::Shared;
 
 /// Registers the features' records and actions.
+// TASK 15: `feature.continueAll`, with its answer `ContinuedAll`, is not declared: it only sends
+// runs.
 pub(super) fn register(shared: &Shared, registry: &Registry) -> Result<(), Failure> {
     shared.provide(options::Store::new(shared.data_dir()));
     shared.provide(starts::Starts::default());

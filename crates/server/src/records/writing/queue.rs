@@ -195,6 +195,8 @@ impl Write {
 /// # Errors
 ///
 /// `refused` for a repository the list does not hold, and whatever `run` fails with.
+// TASK 15: a write of a feature's files is refused while its agent works on it. Each caller
+// knows the folder or the path it writes: the sessions answer, before the turn is taken.
 pub(crate) fn write<T>(
     shared: &Shared,
     repository: &str,

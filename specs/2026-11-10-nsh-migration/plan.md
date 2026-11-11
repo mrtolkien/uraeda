@@ -137,7 +137,7 @@ in `app/.nsh/`, which `vp check` reads.
 Tasks 7 to 10 each port the records and mutations of one domain from
 [`packages/server/src/fate/`](/packages/server/src/fate/), keeping their names, and call the core
 function the binding wraps today. Each adds its line `mod <domain>;` and its line in `DOMAINS` to
-`records/mod.rs` (ruling T99.3), and removes its names from `NOT_BUILT` in
+`records/mod.rs` (ruling R86), and removes its names from `NOT_BUILT` in
 `crates/server/tests/live.rs` if they are there.
 
 - Consumes: `Registry`, `Bus`, `Fault`, `Call` (task 6, whose section and
@@ -411,6 +411,7 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 4. Task 4, alone.
 5. Tasks 5, 6: sign-in and the live engine, in separate modules.
 6. Tasks 7, 8, 9, 10, 11, 16, 18: one module each, each adding its lines to the record registry.
+   Then [their join](#the-join-of-wave-6), alone.
 7. Task 12, alone: the runtimes and the extension VM implement its contract.
 8. Tasks 13, 14, 17: two runtimes and the extension VM.
 9. Tasks 15, 19.
@@ -435,6 +436,55 @@ The risky tasks, each reviewed on its own, are 5, 11, 17, 19, and 61.
 27. Tasks 57, 58: browser behaviour, and extension pages, in separate files.
 28. Tasks 59, 60.
 29. Task 61, alone.
+
+### The join of wave 6
+
+The seven tasks of wave 6 were built without seeing each other, each with a copy of what it needed
+of another, marked `JOIN(wave 6)`. The join gave each rule one home, and built what the stand-ins
+dropped. Rulings R84 to R96 say what was decided. What later tasks use:
+
+- **A repository by its name**:
+  `records::repositories::find(&Shared, name) -> Result<Repository, Fault>`, and
+  `records::repositories::path(&Shared, name) -> Result<PathBuf, Fault>` for its main checkout
+  alone. With them `all`, `label`, `reload`, and `on_change`.
+- **A write to a repository**, every one of them, through the write queue:
+  - `records::writing::write(&Shared, repository, Write, run) -> Result<T, Fault>`, with
+    `run: FnOnce(&Path) -> Result<T, Fault>`, in the repository's turn, on the caller's thread. The
+    commits it defers land behind it.
+  - `records::writing::land(&Shared, repository, Write, land) -> Result<Queued<T>, Fault>`, with
+    `land: FnOnce(&Path, &Landing) -> Result<T, Fault> + Send + 'static`, on the queue's thread, in
+    its place among the queued writes. `Queued::landed()` waits and leaves a refusal in the record;
+    `Queued::answered()` waits and takes it out. `Landing` has `printed(line)`, `steps(steps)`, and
+    `free_lists()`.
+  - `Write::saving()`, `of_feature(folder)`, `of_lists()`, `of_main()`, and `unseen()`, with
+    `.and_feature(folder)`, `.file(name)`, `.named(Option<WriteName>)`, `.or_named(label, href)`,
+    and `.steps(steps)`.
+  - The queue tells every domain after each write and each landing: an action says nothing more on
+    the bus for what it wrote in a repository.
+- **A domain's lines**, one each:
+  - in `records/mod.rs`: `mod <domain>;`, its `register` in `DOMAINS`, and its
+    `written(&Bus, repository)` in `WRITTEN`, which says every record of that repository it serves
+    changed;
+  - in `records/watch.rs`: `FILES_CHANGED` for `fn(&Shared, &str, &Changes)`, `CONFIG_CHANGED` for
+    `fn(&Shared)`, and `REPOSITORY_JOINED` and `REPOSITORY_LEFT` for `fn(&Shared, &str)`.
+- **The bus**: `Bus::changed_where::<R>(|args| ..)`, beside `changed` and `changed_all`.
+- **The order of a connection's calls**: a call starts once the one before it took its place in the
+  write queue or ended. An action that waits long without writing calls `live::placed()` first.
+- **The protocol's shared types**, in `crates/protocol/src/shared/`: `RepositoryArgs`, the feature's
+  view and status, the run options, `UndoChange`, `WriteName`, and `ChatImage`.
+- **Other helpers**: `records::views::sent`, `records::workspace::status::of`,
+  `records::settings::current` and `settings::options::{sent, given}`,
+  `records::writing::undo::sent`, `live::locked`, `Store::holds_image`, `Environment::added`.
+- **The tests' support**, `crates/server/tests/support/`: `fixture(path)`, `fixture_text(path)`,
+  `fixture_repo(name)`, `Hook`, `read`, `call`, `Held`, `Live`, `idle(&server, repo)`, and
+  `writes(&queue)`.
+
+Left for later tasks, each marked `TASK 15:`, `TASK 20:`, `TASK 51:`, or `TEMPORARY:` where it goes:
+a feature's status from its sessions, the refusal of a write while an agent works, a start's first
+run and kept messages, `feature.continueAll`, the MCP endpoint's `Runner`, the sandbox's locked
+list, and the previews' warm-ups.
+
+- [x] **Done**: thirteen rulings, R84 to R96, each with its commit.
 
 ---
 
@@ -717,7 +767,7 @@ fallback written under it, and later tasks build on the fallback.
     domain mounted after `live::mount`, the first of `DOMAINS`.
   - `records/mod.rs`: the list of the domains that are only records and actions, each a line
     `mod <domain>;` and a line in `DOMAINS`, for a file with
-    `register(&Shared, &Registry) -> Result<(), Failure>` (ruling T99.3).
+    `register(&Shared, &Registry) -> Result<(), Failure>` (ruling R86).
   - `Connection`, a client's side of the engine with no socket, for a test that sets the clock.
   - Sequence numbers per record, shared by its subscribers, and `Resume`.
   - Updates of one record are sent at most once per 16 ms; the latest wins.
@@ -759,7 +809,7 @@ Follows [what every records task does](#what-every-records-task-does).
     burst of changes in a repository, with the core's `Changes`; to `CONFIG_CHANGED`, for
     `fn(&Shared)`, called after each change of the settings file or the themes folder; or to
     `REPOSITORY_JOINED` and `REPOSITORY_LEFT`, for `fn(&Shared, &str)`, called as a repository joins
-    or leaves the list (ruling T99.10).
+    or leaves the list (ruling R93).
   - A record of one repository takes `{ repo }`, the repository's name. A protocol type named
     `…View` is the core's view, turned with `views::sent`.
   - A feature's status is `workspace/status.rs`, from the step alone until the sessions (task 15).
@@ -788,7 +838,7 @@ Follows [what every records task does](#what-every-records-task-does).
     `FileWritten { path, change }`: the hash to write over next, the proposal file to open, and the
     change an undo writes back, an `UndoChange`.
   - A feature's start answers `StartPlan` once planned, and lands as a write of the queue, with its
-    steps; a change's answers `ChangeStarted` once it landed (ruling T99.8).
+    steps; a change's answers `ChangeStarted` once it landed (ruling R91).
   - `Trigger`, what starts a workflow turn, and the workflow's message text,
     `records/features/messages/text.rs`, which the sessions' runs use.
   - A feature's own run options, `records/features/options.rs`, kept in `run-options.json` of the
@@ -818,7 +868,7 @@ Follows [what every records task does](#what-every-records-task-does).
   which the one watcher calls.
 - **Left to later tasks** (ruling R65): the refusal of a feature's write while its agent works, and
   the messages kept for a write, for task 15. The join built what starts and git use of the queue
-  (rulings T99.6 to T99.8).
+  (rulings R89 to R91).
 - [x] **Done**: `feat(nsh-migration): records of writing`
 
 ## Task 10: Records: git
@@ -832,8 +882,8 @@ Follows [what every records task does](#what-every-records-task-does).
 - **As built** (rulings R66 to R68): every record and action takes `repo`, the repository's name; a
   diff is asked with `{ repo, folder, commit, path, whole }`; the items of the page's lists carry an
   `id`; an action answers nothing but `git.saveConflict`; the fetcher runs as the server starts and
-  every 5 minutes. A write lands in the write queue, under its `write` (ruling T99.7). Nobody works
-  in a checkout until task 15 answers `git/working.rs`'s two functions, marked `TEMPORARY:`.
+  every 5 minutes. A write lands in the write queue, under its `write` (ruling R90). Nobody works in
+  a checkout until task 15 answers `git/working.rs`'s two functions, marked `TEMPORARY:`.
 - [x] **Done**: `feat(nsh-migration): records of git`
 
 ## Task 11: The session store, and its import
@@ -975,7 +1025,7 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
     `Mcp::revoke(token)` as it closes.
   - `files::attach::writable`, which refuses an upload to a feature an agent works on, marked
     `TASK 15`. The session store already answers whether a sent message holds a chat image,
-    `Store::holds_image` (ruling T99.12).
+    `Store::holds_image` (ruling R95).
   - The cleanup of the chat images no message holds, a day after they were written, as
     `ChatImages.clean` does as the Node server starts: `files::chat_images` has no such function
     yet.
@@ -1020,7 +1070,7 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
 - Produces, under `/r/:name`, each closed: `GET /raw/*`, `GET /images/*`, `GET` and
   `DELETE /chat-images/:id`, `POST /attach`, `POST /inbox/note-image`, as
   [`files.ts`](/packages/server/src/files.ts) and `attach.ts` have them; and
-  `GET /mockups/<secret>/*`, open to a path with the frame secret, as `Open::Frame` (ruling T99.11).
+  `GET /mockups/<secret>/*`, open to a path with the frame secret, as `Open::Frame` (ruling R94).
 - Produces `/mcp`, open to the session check and closed by its own per-process tokens, as `mcp/` has
   it (ruling R75): `shared.get::<Mcp>()` with `issue(session)`, `revoke(token)`, and
   `serve(runner)`, the trait `mcp::Runner` for the tools `run_agent` and `review`, which task 15
@@ -1095,7 +1145,7 @@ As task 13, for Codex: `crates/server/src/runtimes/codex.rs` and `codex_rpc.rs`,
     previews and mockups alike, and `Open::Frame` in `sign_in::OPEN`, for a route open with it.
   - `preview::files_changed(&Shared, repository)`, which the one watcher calls after each burst;
     `preview::repository_removed(&Shared, name)`, which it calls as a repository leaves the list
-    (ruling T99.10); and `preview::sweep(&Shared)`.
+    (ruling R93); and `preview::sweep(&Shared)`.
 
 - [x] **Step 1: Write the failing tests**: `the server stops every preview command when it stops`
       (the stack decision's rule); `a preview path without its secret is refused`.

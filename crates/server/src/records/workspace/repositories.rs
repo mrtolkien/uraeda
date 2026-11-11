@@ -199,6 +199,8 @@ fn record(shared: &Shared) -> Repositories {
 
 /// The action `repositories.add`: lists the git repository holding a typed folder, or opens it
 /// when it is listed, and answers its name.
+// TASK 20: the sandbox's locked list refuses the list's three actions and the folder
+// suggestions.
 fn add(call: &Call, input: RepositoriesAdd) -> Result<RepositoriesAdded, Fault> {
     let shared = call.shared();
     let folder = folders::typed(&input.folder, folders::home(shared).as_deref())?;
@@ -219,7 +221,7 @@ fn open(call: &Call, input: RepositoriesOpen) -> Result<(), Fault> {
 
 /// The action `repositories.remove`: takes a repository off the list, and leaves its folder and
 /// its sessions as they are.
-// Nothing refuses it while an agent works in the repository yet: the sessions say so (task 15).
+// TASK 15: nothing refuses it while an agent works in the repository yet: the sessions say so.
 fn remove(call: &Call, input: RepositoriesRemove) -> Result<(), Fault> {
     let shared = call.shared();
     repositories::remove(shared.data_dir(), &input.name)?;
