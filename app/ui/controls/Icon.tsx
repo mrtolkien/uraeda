@@ -45,11 +45,28 @@ export type IconProps = {
   testID?: string;
 };
 
+/**
+ * The picture of each icon drawn so far, by name, colour, and size: a list's row is bound again
+ * as it scrolls, and builds the same few pictures over and over.
+ */
+const pictures = new Map<string, string>();
+
+/** The `src` of an icon in one colour, at its size. */
+function pictureOf(name: IconName, colour: string, size: number): string {
+  const key = `${name} ${colour} ${size}`;
+  let src = pictures.get(key);
+  if (src === undefined) {
+    src = `data:image/svg+xml,${encodeURIComponent(svgOf(name, colour, size))}`;
+    pictures.set(key, src);
+  }
+  return src;
+}
+
 export function Icon(props: IconProps) {
   const size = () => props.size ?? tokens.control.icon;
   return (
     <Image
-      src={`data:image/svg+xml,${encodeURIComponent(svgOf(props.name, props.colour ?? tokens.role.inkQuiet, size()))}`}
+      src={pictureOf(props.name, props.colour ?? tokens.role.inkQuiet, size())}
       style={[{ flexShrink: 0, height: size(), width: size() }, props.style]}
       testID={props.testID}
     />

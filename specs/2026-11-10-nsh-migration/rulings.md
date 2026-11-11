@@ -4676,3 +4676,35 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`IconButton.tsx`](/app/ui/controls/IconButton.tsx), [`light.ts`](/app/ui/tokens/light.ts),
   [`Card.tsx`](/app/ui/lists/Card.tsx), [`SelectableCard.tsx`](/app/ui/lists/SelectableCard.tsx),
   [`DragOrder.tsx`](/app/ui/lists/DragOrder.tsx), [`layout.test.ts`](/app/ui/layout/layout.test.ts).
+
+## T96.5: A list's row costs a view less, and an icon's picture is built once
+
+- **Decision**: two changes to what every row of a list costs, kept because they measured better.
+  - **`Line` draws its words as one `Text` with `flex: 1`**, where a `View` held the `Text`: one
+    view less per row.
+  - **`Icon` keeps each picture it built**, by name, colour, and size: an icon's `src` is an SVG,
+    made and URI-encoded in TSX, and a row of a list scrolled fast is bound again on every frame,
+    which built the same two pictures for each of its cells, every frame.
+- **Rationale**: `just lists-frames`, the 20,000 rows scrolling 900 points a frame for 30 s on the
+  hidden display, in software, the medians of its seconds at 60 frames a second:
+
+  | Run           | Load    | Frame, mean | Frame, p95 | Painting | TSX     | Engine  | Snapshot |
+  | ------------- | ------- | ----------- | ---------- | -------- | ------- | ------- | -------- |
+  | Before, busy  | 9 to 18 | 9.29 ms     | 10.85 ms   | 5.29 ms  |         |         |          |
+  | Before, quiet | 3 to 5  | 7.44 ms     | 7.99 ms    | 4.42 ms  | 1.57 ms | 3.02 ms | 1.15 ms  |
+  | After         | 5 to 9  | 7.25 ms     | 7.75 ms    | 4.29 ms  | 1.50 ms | 2.91 ms | 1.04 ms  |
+
+  The first run of the baseline was taken while other agents' builds loaded the machine, and a
+  second one was taken once it was quiet, so the comparison holds; the run after the change had the
+  higher load of the two. Every column went down a little. On a quiet machine the list is within the
+  frame budget already: the 95th percentile of each second is 7.6 to 8.1 ms after, 7.8 to 8.4 ms
+  before, where ruling R175 measured 8.1 to 9.5 ms under load.
+
+- **What else was read, and not changed**: Native Shell's `docs/dev/scrolling-and-lists.md` and
+  `performance.md`. Painting is most of the frame, and it is GTK drawing the whole window in
+  software each frame, glyphs first: nothing a row holds is a shadow, a layer of opacity, or a
+  surface; the selected row's bar has a glow, on one row. The row's border is its rule, one line. At
+  900 points a frame every cell is bound again on every frame, which no real scroll does.
+- **If wrong**: the busy run had seconds of 6 to 11 frames, every 7 to 8 s, with painting at 40 to
+  105 ms; the quiet runs had none, so they were the machine's, as R175 found.
+- **Where**: [`Line.tsx`](/app/ui/lists/Line.tsx), [`Icon.tsx`](/app/ui/controls/Icon.tsx).
