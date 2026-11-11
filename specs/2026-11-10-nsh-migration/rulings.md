@@ -4581,3 +4581,31 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   [`TextField.tsx`](/app/ui/text/TextField.tsx),
   [`vim_bridge/api.rs`](/crates/app/src/vim_bridge/api.rs) (moved out of `vim_bridge.rs`, which had
   reached 507 lines), [`text.test.tsx`](/app/ui/text/text.test.tsx).
+
+## T96.2: No row of a field's editor wraps again on GTK
+
+- **Decision**: `TextEditor` ([`vim_bridge.rs`](/crates/app/src/vim_bridge.rs)) draws the editor in
+  a view of the Tailwind class `whitespace-nowrap`, which Native Shell's texts inherit, and gives
+  the editor's `placeholder` part `whitespace-normal`, so a long placeholder still wraps.
+- **Rationale**: the cause, found on the hidden display with a page of fields at fixed widths from
+  385 to 390 points. The editor wraps its rows itself (`nsh-base/src/editor/display.rs`,
+  `wrap_line`): it breaks after a space, keeps that space at the end of the row, and checks only
+  what is not blank against the width, as CSS and Pango let a line's last space hang. Each row is
+  then one `Text`, absolutely placed in a row as wide as the editor (`view.rs`, `row_view`). Native
+  Shell's text on GTK wraps a line whose trailing space passes its box: a plain `Text` holding
+  `Run the tests again, then open the pull ` broke before `pull` in boxes of 364, 366, and 370
+  points, and not in 373, while the same words without the space never broke. So in the composer,
+  whose rows were 364 to 368 points wide at the gallery's widths, the first row fit by the editor's
+  measure, broke again on GTK, and its second line, `pull`, was drawn over the second row,
+  `request.`. A fixed width did not cure it because every width where the words fit and the space
+  does not shows it: 385.5 to 388 points for this message, a band for any other. The editor's own
+  wrap is right, so its rows' texts must never wrap: one class does it.
+- **Not used**: the editor's `line` part's style, which would have given every row's text room past
+  the wrap: a row sets its decorations' `inline_style` after its part's, so the part's style never
+  shows (`view.rs`, `row_view`), which is a second report upstream's.
+- **If wrong**: a test would need the pixels of a GTK window, so none was written; the gallery's
+  composer, `just gallery-shots field`, shows the case, and the field's pictures were looked at in
+  both themes, at 1400 and 390 wide. Upstream, the fix is in either place: the GTK backend's text
+  lets trailing whitespace hang, as Pango and CSS do, or the editor's rows never wrap. Until one is
+  released, the class stays.
+- **Where**: [`vim_bridge.rs`](/crates/app/src/vim_bridge.rs), `Field::view`.

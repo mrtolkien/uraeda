@@ -18,8 +18,8 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use nsh_base::editor::{
-    Editor, EditorApi, EditorCommand, EditorDecoration, EditorEdit, EditorPosition, EditorRange,
-    EditorScrollBeyond, EditorSelection, editor,
+    Editor, EditorApi, EditorClasses, EditorCommand, EditorDecoration, EditorEdit, EditorPosition,
+    EditorRange, EditorScrollBeyond, EditorSelection, editor,
 };
 use nsh_core::keymap::When;
 use nsh_core::prelude::*;
@@ -113,11 +113,25 @@ impl Field {
     }
 
     fn view(&self) -> impl IntoElement + use<> {
+        // The editor wraps its rows itself, and a row keeps the space it broke after. Native Shell's
+        // text on GTK wraps a line whose trailing space passes its box, where CSS and Pango let it
+        // hang: a row that fits but for that space broke again, its last word drawn over the next
+        // row. So no row's text wraps; the placeholder, one text, still does. Ruling T96.2.
+        let mut classes = EditorClasses::default();
+        classes.placeholder = Some("whitespace-normal".into());
+        view()
+            .app_class(Some(SharedString::from("whitespace-nowrap")))
+            .w_full()
+            .child(self.editor(classes))
+    }
+
+    fn editor(&self, classes: EditorClasses) -> impl IntoElement + use<> {
         let props = self.props;
         let (block, changed, selected) = (self.clone(), self.clone(), self.clone());
         let (focus, blur) = (self.clone(), self.clone());
         editor()
             .component_ref(&self.ed)
+            .classes(classes)
             .value(move || Some(props.value.get()))
             .language("markdown")
             .soft_wrap(true)
