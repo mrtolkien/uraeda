@@ -73,3 +73,27 @@ test("a value the storage refuses stays for the run, and the device says it is f
   await Storage.getItem("theme");
   expect(device.full()).toBe(false);
 });
+
+test("a write that settles after a newer one of its key does not decide whether the device is full", async () => {
+  // A storage whose writes settle when the test says, in any order.
+  const pending: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+  const storage = {
+    keys: async () => [],
+    getItem: async () => null,
+    setItem: () =>
+      new Promise<void>((resolve, reject) => {
+        pending.push({ resolve, reject });
+      }),
+    removeItem: async () => {},
+  };
+  const device = deviceStore<Keys>(storage);
+  await device.load();
+  // A draft past the limit, then trimmed: the trimmed one is kept first, the long one refused after.
+  device.set("unsaved:inbox", { text: "far too long" });
+  device.set("unsaved:inbox", { text: "short" });
+  pending[1]?.resolve();
+  await Promise.resolve();
+  pending[0]?.reject(new Error("full"));
+  await new Promise<void>((done) => setTimeout(done, 0));
+  expect(device.full()).toBe(false);
+});

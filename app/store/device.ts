@@ -42,7 +42,10 @@ export type DeviceStore<Keys> = {
    * A value set meanwhile wins over the one kept.
    */
   load(): Promise<void>;
-  /** Keeps `value` under `key`, or nothing with `undefined`: read back at once, written after. */
+  /**
+   * Keeps `value` under `key`, or nothing with `undefined`: read back at once, written after. Only
+   * the latest write of a key says whether the device is full, whichever settles first.
+   */
   set<K extends keyof Keys & string>(key: K, value: Keys[K] | undefined): void;
 };
 
@@ -55,13 +58,19 @@ function parse(stored: string): unknown {
   }
 }
 
-/** A store of the values `Keys` names, over the app's storage. */
-export function deviceStore<Keys>(): DeviceStore<Keys> {
+/** What the store needs of a storage: Native Shell's `Storage`, or a test's. */
+export type DeviceStorage = Pick<typeof Storage, "keys" | "getItem" | "setItem" | "removeItem">;
+
+/** A store of the values `Keys` names, over the app's storage, or `storage`. */
+export function deviceStore<Keys>(storage: DeviceStorage = Storage): DeviceStore<Keys> {
   const values = new Map<string, Signal<unknown>>();
   /** The keys set since the store was made, which `load` leaves as they are. */
   const written = new Set<string>();
   /** The keys whose last value the storage refused. */
   const refused = new Set<string>();
+  /** The number of the latest write of each key: an older write's settling decides nothing. */
+  const latest = new Map<string, number>();
+  let writes = 0;
   const full = signal(false);
 
   function cell(key: string): Signal<unknown> {
@@ -73,7 +82,8 @@ export function deviceStore<Keys>(): DeviceStore<Keys> {
     return value;
   }
 
-  function wrote(key: string, kept: boolean) {
+  function wrote(key: string, write: number, kept: boolean) {
+    if (latest.get(key) !== write) return;
     if (kept) {
       refused.delete(key);
     } else {
@@ -88,10 +98,10 @@ export function deviceStore<Keys>(): DeviceStore<Keys> {
       return cell(key)() as Keys[K] | undefined;
     },
     async load() {
-      const keys = await Storage.keys();
+      const keys = await storage.keys();
       await Promise.all(
         keys.map(async (key) => {
-          const stored = await Storage.getItem(key);
+          const stored = await storage.getItem(key);
           if (stored !== null && !written.has(key)) {
             cell(key).set(parse(stored));
           }
@@ -102,10 +112,12 @@ export function deviceStore<Keys>(): DeviceStore<Keys> {
       written.add(key);
       cell(key).set(value);
       const write =
-        value === undefined ? Storage.removeItem(key) : Storage.setItem(key, JSON.stringify(value));
+        value === undefined ? storage.removeItem(key) : storage.setItem(key, JSON.stringify(value));
+      const number = ++writes;
+      latest.set(key, number);
       write.then(
-        () => wrote(key, true),
-        () => wrote(key, false),
+        () => wrote(key, number, true),
+        () => wrote(key, number, false),
       );
     },
   };
