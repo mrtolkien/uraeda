@@ -148,6 +148,14 @@ all = { level = "warn", priority = -1 }
 allow_attributes_without_reason = "warn"
 too_many_lines = "warn"
 
+# A dev build keeps only what a backtrace needs, a file and a line in the workspace's own code:
+# full debug information was 70% of each 1.25 GB test binary, and the linker holds it in memory.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 codegen-units = 1
 lto = true
