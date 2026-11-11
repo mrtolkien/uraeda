@@ -165,9 +165,14 @@ export function Card(props: CardProps) {
         >
           <Each of={props.facts ?? []}>
             {(fact) => (
-              <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
-                <Icon name={fact().icon} size={14} />
-                <Text tone={fact().tone ?? "ink"}>{fact().label}</Text>
+              // A fact longer than the card wraps under its icon's line, as a failed run's words.
+              <View
+                style={{ alignItems: "flex-start", flexDirection: "row", flexShrink: 1, gap: 6 }}
+              >
+                <Icon name={fact().icon} size={14} style={{ marginTop: 5 }} />
+                <Text style={{ flexShrink: 1 }} tone={fact().tone ?? "ink"}>
+                  {fact().label}
+                </Text>
               </View>
             )}
           </Each>

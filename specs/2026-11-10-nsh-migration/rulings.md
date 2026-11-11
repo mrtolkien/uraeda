@@ -5941,3 +5941,83 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   "A key means two things in Inbox: "u" is bound twice, to Undo and to Undo". Seen in the inbox's
   Undo, by driving the app with its keys.
 - **Where**: `app/ui/controls/Banner.tsx`.
+
+## T40.1: The feature page is five panes, its subject and steps in the main stack
+
+- **Decision**: `/f/<folder>` declares five panes, in this order: `feature-overview` ("Overview":
+  the title and its facts, the status, what stops it, **Next** with the one main action, the message
+  a continue sends, what a merge left, the check's notes, and Drop) and `feature-steps` ("Steps":
+  each stage of its history with its times, its files and mockups under it) in the main stack;
+  `feature-sessions` (a card per session), `feature-decisions` ("Decisions": what it touches in the
+  ledger), and `feature-figures` ("Figures": what it produced and cost, and its branch, worktree,
+  folder, and pull request) in the side stack. On a narrow window the frame folds them into one
+  stack in that order: what to do, where it is, who works, what it touches, what it cost.
+- **Rationale**: the main stack holds the subject, where the feature stands and its files; the side
+  stack holds companions read beside it. Sessions come first there, as what works on the feature now
+  is what the human checks most while it runs. The old page stacked every part in one column, with a
+  column of figures and links beside it and a bar of sheets on a phone: the frame's two stacks and
+  their tabs replace all three.
+- **If wrong**: the order is `definePlace("feature", ...)`'s list in
+  `app/screens/feature/panes.tsx`, and task 66's moves let the human keep another.
+- **Where**: `app/screens/feature/`.
+
+## T40.2: "Next"'s continue starts the run from the page, its message readable above it
+
+- **Decision**: when the agent's step has a recommended message, **Next**'s main action, labelled
+  with the message's name ("Continue, write the plan"), sends it with `session.send` (`folder`,
+  `text`, `workflow: { trigger, step }`), then opens the session it went to. The message is shown
+  whole, folded under **Next** ("The message it sends"). The button is the pane's one main action,
+  breathes, and takes `n`; no field is involved, so Enter never starts a run. The old page opened
+  the session with the message unsent in its composer. Marked `TASK 38:` in `Overview.tsx`: the
+  start dialog, with the run's options at full size, replaces this plain start.
+- **Rationale**: the task asks for a plain start until the start dialog lands. A press of a labelled
+  button after the message can be read is deliberate (rule 2); a detour through a composer only to
+  press Send again is a second step that decides nothing.
+- **If wrong**: `run` in `Overview.tsx` navigates to the session page instead of sending, once task
+  43's composer takes a message to offer.
+- **Where**: `app/screens/feature/{Overview,next}.ts*`.
+
+## T40.3: The decisions a live feature touches are read from its branch's changed files
+
+- **Decision**: the Decisions pane of a merged feature lists `History.decisions`, which the core
+  fills for a done item only. Before the merge it lists the files under `specs/decisions/` that
+  `BranchChanges` names, "new" when the ledger (`Ledger`) has no decision of that name, "changed"
+  otherwise, with the ledger's title and icon.
+- **Rationale**: the old page showed decisions only in a done feature's record. The ledger a branch
+  touches is what the human reviews before the merge. `BranchChanges` lists the first 50 changed
+  files: a branch that changes more misses some.
+- **If wrong**: the core's `history` computes the decisions for a live feature too, and the pane
+  reads `History.decisions` alone.
+- **Where**: `app/screens/feature/Decisions.tsx`.
+
+## T40.4: What the old feature page did that this one leaves out, and why
+
+- **Decision**: left out: **Rename** (the sidebar card's settings, `item.settings`, belong to the
+  sidebar's own task), **Postpone** (its message was written in the React UI's TSX: the workflow's
+  text belongs to the server, which has no such message yet), the record of a done feature drawn in
+  the page (its `record.md` is listed under Merged in Steps, and opens in task 41's panes), the
+  picker of sessions on `s` (the Sessions pane's cursor and `Enter` replace it), and the phone's bar
+  of sheets (the frame's tabs replace it). Times are read in the device's zone, as the shell's usage
+  lines are: no record gives the server's zone but `Jobs`.
+- **If wrong**: each is a button of the Overview's foot, beside Drop, once its action exists.
+- **Where**: `app/screens/feature/`.
+
+## T40.5: Git's go key is `g c`, and `g g` a list's first row
+
+- **Decision**: the rail's Git place goes by `g c` and `Space c`, where task 36 gave it `g g` and
+  `Space g`.
+- **Rationale**: every list declares `g g` for its first row (`app/ui/lists/keys.ts`, the keyboard
+  guide's table), in the scope of its pane, which meets the shell's: the registry threw "A key means
+  two things in Sessions: "g g" is bound twice, to Git and to first row" as the first pane with a
+  list was drawn, and the page stopped. The guide's own go keys gave `c`, commit, to the page Git
+  replaced, and `/commit` still opens it.
+- **If wrong**: a pane's key shadows the shell's in the registry, and Git takes `g g` back.
+- **Where**: `app/screens/shell/places.ts`.
+
+## T40.6: A card's fact wraps under its icon's line
+
+- **Decision**: a fact of `Card` shrinks to the card's width, its words wrapping, its icon on the
+  first line. It was a row that did not shrink: in the side stack, a session's "Last run: Build,
+  running for 5 s" was cut at the card's edge, and a failed run's words, the reason the human opens
+  it, would have been too.
+- **Where**: `app/ui/lists/Card.tsx`.

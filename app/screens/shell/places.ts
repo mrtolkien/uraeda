@@ -52,6 +52,7 @@ export const PLACES: ReadonlyArray<Place> = [
     pages: ["decisions", "decision", "decisions-check", "constitution"],
     to: { page: "decisions" },
   },
+  // `g c`, as "commit" was before the Git page: `g g` is a list's first row (`specs/ui/keyboard.md`).
   { icon: "git-branch", key: "c", label: "Git", pages: ["git"], to: { page: "git" } },
   {
     icon: "clock",

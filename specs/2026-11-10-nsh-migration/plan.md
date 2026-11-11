@@ -2591,14 +2591,29 @@ Follows [what every screen task does](#what-every-screen-task-does).
 - **Records and actions:** Feature, Ledger, History, WorkflowMessage, RecommendedMessage;
   `feature.*`
 - **Routes:** `/f/<folder>`, `/f/<folder>/runs/<id>`
-- **Tests:** none.
+- **Tests:** none named; one added, `app/screens/feature/feature.test.tsx`,
+  `every pane of the feature page draws, and the keys reach each` (a key that means two things
+  throws only once its pane is drawn).
 
-- [ ] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
-- [ ] **Step 2: Write the tests** this task names.
-- [ ] **Step 3: Build the screens**, as the shared step 3 says.
-- [ ] **Step 4: Review each screen in the running app**, as the shared step 4 says.
-- [ ] **Step 5: Run the task's validation**. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(nsh-migration): the feature page`.
+- [x] **Step 1: Read the old screens and their guide**, as the shared step 1 says.
+- [x] **Step 2: Write the tests** this task names.
+- [x] **Step 3: Build the screens**, as the shared step 3 says.
+- [x] **Step 4: Review each screen in the running app**, as the shared step 4 says.
+- [x] **Step 5: Run the task's validation**. Expected: PASS. `just task-app`: 103 tests passed.
+- [x] **Step 6: Commit**: `feat(nsh-migration): the feature page`.
+
+**As built** (rulings T40.1 to T40.6):
+
+- `app/screens/feature/panes.tsx` declares `feature-overview` and `feature-steps` (main),
+  `feature-sessions`, `feature-decisions`, and `feature-figures` (side), each with
+  `{ folder, repo }`, and `definePlace("feature", ...)` in that order. `/f/<folder>/runs/<id>` is
+  the session page's, as task 24 parses it: no pane of this task.
+- Seams left: `TASK 38:` in `Overview.tsx`, where **Next**'s continue sends the recommended message
+  with `session.send` (the start dialog replaces it); `TASK 44:` in `Steps.tsx`, where the run map
+  takes the Steps pane's place. A workflow file opens by `navigate({ page: "file", folder, name })`
+  and a mockup by `page: "mockup"`: task 41 declares their panes.
+- Keys: `n` the next action (Overview), `m` and `f` its folds, `S` a new session, `Enter` on a card,
+  a step's file, or a decision. Git's go key became `g c` (T40.5).
 
 ## Task 41: Workflow files
 

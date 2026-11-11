@@ -15,6 +15,7 @@ import "./priorities";
 // Task 39: Inbox and triage.
 import "./triage";
 // Task 40: The feature page.
+import "./feature/panes";
 // Task 41: Workflow files.
 // Task 42: Rounds and reviews.
 // Task 43: Sessions.
