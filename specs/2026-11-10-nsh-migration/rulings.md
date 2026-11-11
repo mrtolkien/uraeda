@@ -3270,3 +3270,141 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **Rationale**: an extension's page imports `uraeda/ui` in an engine of its own, with no storage of
   the app's.
 - **Where**: `app/ui/theme.ts`, `app/ui/tokens/index.ts`, `app/store/device.ts`.
+
+## R139: The registry binds in Native Shell's keymap exactly the keys that work now
+
+- **Decision**: `registerKey` is the only way a shortcut is declared, and `listenKeys`, in
+  [`registry.tsx`](/app/ui/keys/registry.tsx), is the one caller of Native Shell's `keymap`. At any
+  time it holds one binding for the first key of every shortcut that works now, and, while a
+  sequence waits, one more set over them: every key that types, Backspace, Escape, and Ctrl+K.
+- **What Native Shell gives for keys**, read in its source at the pin (`nsh-core/src/keymap.rs`,
+  `nsh-js/src/keymap.rs`, `nsh-base/src/keys.rs`, `docs/dev/linux.md`) and run on GTK:
+  - `keymap.bind(keystroke, handler, { when, repeat })`, one keystroke a binding, or a record of
+    them in one call. The platform matches the key itself and takes it from everything else: the
+    focused view, scrolling, Escape going back. The handler gets the keystroke's text, and nothing
+    else: no target, no repeat flag, and no way to give the key back.
+  - Among bindings of one keystroke, the newest that may fire wins. Native Shell's own controls (a
+    tree, a slider, a select) bind their keys as they take the focus, so they win over a page's.
+  - `when`: by default not in a text field for a key that edits text, `"notEditing"` never in one,
+    `"always"` before the field. `repeat`: off, a held key fires once.
+  - A key is named by the key of the US layout that types it without Shift: `?` is `shift+/`. GTK
+    matches it on any layout. Ctrl+Q, Alt+F4, and F11 cannot be bound.
+  - A binding made in a component or an effect is undone with it.
+  - The focus: `focusable`, `onFocus`, `onBlur`, and a ref's `focus()`. On GTK a new field gets no
+    focus by itself, `autoFocus` or not: the key map and the picker focus theirs.
+  - An input's `onKeyPress` reports what was typed in it. `Overlay`'s `onCancel` is Escape and the
+    phone's Back, when no binding took Escape.
+  - The test driver presses real keys, `app.keyboard.press("shift+/")`, headless and on GTK.
+- **What it does not give**: a sequence of keys (its parser refuses one by name), a handler for
+  every key, the element a key was pressed on, and a key handed back after a handler declined it. At
+  the pin `Input` is exported from `nsh/base`, where the website says `nsh`.
+- **What follows**:
+  - **A key is written as it is typed**, as the React registry's: `j`, `J`, `?`, `ArrowDown`,
+    `mod+k`, `g h`. [`token.ts`](/app/ui/keys/token.ts) alone turns one into Native Shell's
+    keystroke, and a key no keyboard gives fails as it is declared.
+  - **Each key is bound once and left alone while it stays wanted**, so a control that bound its own
+    keys after the page keeps them. Native Shell undoes an effect's bindings when it runs again,
+    which would make every key the newest at each change: the effect only says what is wanted, and
+    the bindings are made right after it, outside it.
+  - **A text field gets its keys first**: every binding is `"notEditing"`. A layer's owner asks for
+    a key around its own field with `inField`, as the picker's arrows and Enter, and a key that
+    types can never ask.
+  - **A held key runs again only where the binding says `repeat`**, as a key that moves. In the
+    React UI every key repeated, a held `d` deleting row after row.
+  - **A pending sequence hears the keys that type, not the named ones.** Enter or an arrow, pressed
+    while a menu waits, goes to who has it, and the menu still waits: the React UI ended the
+    sequence there, which needs a handler for every key. The menu shows 300 ms after the last key,
+    so nothing waits unseen for longer.
+  - **A bound key is taken even where its binding's guard refuses**, and a fallback is the only way
+    on.
+- **Rationale**: one listener is the keyboard decision's first rule, and the newest-wins rule makes
+  how often a key is bound a behaviour, not a detail.
+- **Alternatives considered**: binding every key that types at all times, with one handler: it takes
+  Space and the letters from every control with keys of its own. Binding in the effect, as Native
+  Shell's pages show: the registry's keys would take a focused control's at every change.
+- **If wrong**: a key declared while a control with the same key has the focus is the newer one, and
+  wins. Nothing built here does that.
+- **Where**: [`registry.tsx`](/app/ui/keys/registry.tsx), [`token.ts`](/app/ui/keys/token.ts), and
+  the tests of [`keys.test.ts`](/app/ui/keys/keys.test.ts) that open
+  [`__checks__/keys.tsx`](/app/ui/keys/__checks__/keys.tsx).
+
+## R140: The sequence matcher stays in TSX
+
+- **Decision**: [`sequence.ts`](/app/ui/keys/sequence.ts), the state machine of the sequences, and
+  [`store.ts`](/app/ui/keys/store.ts), which finds the keys that are on, are TSX, in the component
+  library, not behind `uraeda/native`.
+- **Measured** under `nsh test`, in the interpreter, over 66 bindings (25 single keys, 25 of the
+  leader, 12 of `g`, 4 of a group), while other builds ran on the machine: one step of the machine,
+  26.5 µs; a whole key, finding what is on and running it, 185 µs; binding and removing the 98 keys
+  a pending sequence hears, 120 µs, without GTK's part; declaring the 66 keys at once, with every
+  check, 9 ms.
+- **Rationale**: it runs once a key press, over a few dozen rows, a fifth of a millisecond at the
+  most. The plan keeps a key state machine out of a screen: this is a library file, which no screen
+  holds, and a call into Rust for each key would cost a crossing to save microseconds.
+- **If wrong**: a page that declares hundreds of keys pays for the checks as it mounts. They compare
+  the keys before the scopes, so a key that shares nothing with another costs little.
+- **Where**: `app/ui/keys/`.
+
+## R141: A key is declared in a scope, and scopes say what is on together
+
+- **Decision**: every key is in a scope, and five kinds of scope say when keys are on together.
+  - **The shell**: the registry's own, for a key declared outside every `KeyScope`.
+  - **A page** (the default): on while it is mounted.
+  - **A pane**: on while its `on` says it has the focus. Two panes of one parent are never on
+    together, so each has its own `j`, and a key of a pane may not be the page's too.
+  - **A selection**: on while it holds. Its keys run before the page's and the shell's and may reuse
+    them, as the keyboard decision allows, and its `run` returns `false` to give one back.
+  - **A layer**: an open overlay. Only the newest open layer's keys are on, its own with the scopes
+    in it: the page's and the shell's are off under it, and it may reuse any of them.
+- **The rules**, each failing as the key is declared, in every build:
+  - a key bound twice where both can be on, but for one fallback beside the key's own binding;
+  - a key that is also the start of a sequence, a selection's included;
+  - a key no keyboard gives, a sequence through a group [`groups.ts`](/app/ui/keys/groups.ts) does
+    not name, a key that types asking for `inField`, a sequence asking for `repeat`, and a
+    selection's fallback.
+- **What changed from the React registry**:
+  - A layer was found by reading the page (`dialog[open]`, `aria-expanded`), and its owner heard its
+    own keys outside the registry, on an allowlist. A layer now declares itself, and its keys are
+    the registry's.
+  - The status line's hints under a layer are the layer's own, so `hintInLayer` is gone.
+  - A guard, `when`, takes no target: Native Shell names none. A pane's `on` says where the focus
+    is.
+  - A control that keeps Space says so with `keepSpace(kept)`, where the page was asked
+    (`[role="checkbox"]`).
+  - No key is rebound by a setting or a device: the React UI had none.
+- **Rationale**: the screens need a `j` per pane and a layer's own Escape, and a clash must fail
+  where the key is written, not when two views happen to be shown.
+- **Alternatives considered**: any `on` on any scope, with the clashes checked as scopes turn on:
+  the failure would come at a key press in one state of one page, where a test may never go.
+- **Where**: [`store.ts`](/app/ui/keys/store.ts), and `KeyScope`, `keyScope`, and `keepSpace` in
+  [`registry.tsx`](/app/ui/keys/registry.tsx).
+
+## R142: What task 32 built otherwise than its plan, and the seams it leaves
+
+- **Decision**:
+  - **More files than the five named**, each small: `token`, `sequence`, `store`, `leader`,
+    `keyMap`, `pickerSearch`, `groups`, and `look` are `.ts`, with no view in them; `registry`,
+    `LeaderMenu`, `KeyMap`, `KeyPicker`, `KeysHost`, and `parts` are `.tsx`.
+  - **`KeysHost`** is mounted once around the app. It hears the keys, draws the leader's menu, and
+    owns the key map with `?` and `Space ?`. The rest of the leader's tree is declared where its
+    actions are: the places, Find, New, and the UI's keys by the app's shell.
+  - **The picker is the component alone.** What it lists, and the one host that opens it over a
+    kind, need records, which `app/ui/` does not hold.
+  - **The structural test is Rust**, `no_file_but_the_registry_listens_for_a_key` in
+    [`crates/app/tests/keys.rs`](/crates/app/tests/keys.rs): a test under `nsh test` reads no file
+    unless `nsh.json` grants the app that right. A file whose keys are no shortcut, as the text
+    field's own, adds its line to that test's list.
+  - **The views are drawn with plain elements**, with every colour and size in
+    [`look.ts`](/app/ui/keys/look.ts) and three parts in [`parts.tsx`](/app/ui/keys/parts.tsx), read
+    from the samples' values. Marked `TASK 28:` there: `look()` reads `tokens`, `KeyCap` becomes
+    `Kbd`, `Words` becomes `Text`, and `Panel` becomes `Overlay` or `Sheet`, which bring the glass
+    and the motion out: a layer rises as it comes, and goes at once. No icon is drawn: the names are
+    in the specs for `Icon`.
+  - **Marked `TASK 30:`**: the key map's search and the picker's filter are Native Shell's `Input`
+    until the shared text field exists.
+  - **Marked `TASK 33:`**: `isNarrow` in `look.ts` becomes the layout shell's `width`.
+  - **Not built**: the focus going back where it was as a layer closes. Native Shell does not say
+    what has the focus, so the surface that opens a layer keeps it.
+- **Rationale**: the tokens, the surfaces, and the controls were built beside this task, and one
+  small file to switch is cheaper than a second look to keep.
+- **Where**: `app/ui/keys/`, [`crates/app/tests/keys.rs`](/crates/app/tests/keys.rs).

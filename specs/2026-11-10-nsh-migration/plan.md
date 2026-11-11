@@ -1959,22 +1959,61 @@ ported, beyond accounts and jobs.
 
 **Files:**
 
-- Create: `app/ui/keys/{registry,sequence,LeaderMenu,KeyPicker,KeyMap}.tsx`
-- Test: `app/ui/keys/keys.test.ts`
+- Create: `app/ui/keys/`: `registry.tsx`, `store.ts`, `token.ts`, `sequence.ts`, `leader.ts`,
+  `groups.ts`, `keyMap.ts`, `pickerSearch.ts`, `KeysHost.tsx`, `LeaderMenu.tsx`, `KeyMap.tsx`,
+  `KeyPicker.tsx`, `look.ts`, `parts.tsx`, and the tests' page, `__checks__/keys.tsx`
+- Test: `app/ui/keys/keys.test.ts`, and `crates/app/tests/keys.rs` for the structural rule
 
 **Interfaces:**
 
-- Produces: `registerKey(spec)`, the only way a shortcut is declared; sequences of keys, which NSH
-  does not have; the leader menu on Space; the key picker; the key map. All follow the keyboard
-  decision and [the keyboard guide](/specs/ui/keyboard.md).
+- Produces, as built (rulings R139 to R142), all from `app/ui/keys/registry.tsx` unless named:
+  - `registerKey(spec: KeySpec | ReadonlyArray<KeySpec>, scope?: Scope): () => void`, the only way a
+    shortcut is declared. Called as a component renders, it lasts as long as the component, in the
+    scope of the nearest `KeyScope` around it, the shell's without one. It throws where a key would
+    mean two things, or could never run.
+  - `type KeySpec = { keys, label, run, fallback?, hint?, hintLabel?, hintPress?, icon?, inField?, repeat?, when? }`.
+    `keys` is one key as it is typed, or several for a sequence: `"j"`, `"J"`, `"?"`, `"ArrowDown"`,
+    `"shift+ArrowDown"`, `"mod+k"`, `"g h"`, `"space n n"`. `run` returns `false` when it did
+    nothing, and a `fallback` of the key then runs. `repeat` runs it again while the key is held.
+    `inField` hears it in a text field too, never for a key that types. `when` is a guard, read as
+    the key comes.
+  - `<KeyScope name kind? on?>`, and `keyScope({ name, kind?, on? }, parent?): Scope` for a
+    component that passes its scope to `registerKey` itself. `kind` is `"page"` (the default),
+    `"pane"` with `on` saying it has the focus, `"selection"` with `on` saying it holds, or
+    `"layer"` for an open overlay, which owns the keys while it is mounted.
+  - `<KeysHost place?>`, from `KeysHost.tsx`: mounted once, around the app. It hears the keys, draws
+    the leader's menu, and owns the key map and its keys, `?` and `Space ?`. A change of `place`,
+    the page's address, ends a sequence that waited.
+  - For the status line: `keyHints(): ReadonlyArray<StatusHint>`, a signal's read of
+    `{ keys, label, press }`, the hints of what is on, the leader's, the key map's, and the folds'
+    first; and `pressKeys(keys)`, which a press on a hint or a menu's row calls.
+  - `keysOn()`, every key that is on, for the key map; `singleKeys`, the signal the shell writes
+    from the setting; `pendingKeys()`, the sequence that waits; `endKeys()`; and `keepSpace(kept)`,
+    for a control that Space ticks or picks.
+  - `KeyPicker`, from `KeyPicker.tsx`: `items`, `title`, `onPick`, `onClose`, and `preview?`,
+    `start?`, `isLoading?`, `placeholder?`, `onCursor?`. Its sources, and the host that opens it
+    over a kind, are the shell's.
+  - `GROUPS`, in `groups.ts`: a feature whose sequence goes through a new group of the leader's menu
+    adds its line.
+  - The seams, marked in the code: `TASK 28:` in `look.ts` and `parts.tsx`, for the tokens, `Kbd`,
+    `Text`, `Icon`, and the overlay's surface; `TASK 30:` in `KeyMap.tsx` and `KeyPicker.tsx`, for
+    the shared text field; `TASK 33:` in `look.ts`, for the width.
+  - For task 33: a side column's keys go in a `pane` scope whose `on` is the column's focus, the
+    page's own movement keys in a `pane` beside it, and `h l column` is a `hint` of the key that
+    crosses.
+  - A file that hears keys which are no shortcut, as the text field's own, adds its line to
+    `ALLOWED` in `crates/app/tests/keys.rs`.
 
-- [ ] **Step 1: Write the failing tests**: `a key means one thing on a page` (two registrations of
+- [x] **Step 1: Write the failing tests**: `a key means one thing on a page` (two registrations of
       one key in one scope fail); `a sequence waits for its second key, then gives up`;
-      `single-key     shortcuts can be switched off, and a chord then opens the leader menu`.
-- [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement.** A text field with the focus gets keys first.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the key registry and the leader menu`.
+      `single-key     shortcuts can be switched off, and a chord then opens the leader menu`;
+      `a text field with the focus gets keys first`;
+      `a key registered by a view goes when the view goes`.
+- [x] **Step 2: Run them**. Expected: FAIL. They failed with `Could not resolve './store'`.
+- [x] **Step 3: Implement.** A text field with the focus gets keys first.
+- [x] **Step 4: Run the task's validation**: `just task-app`, and `just task uraeda-app` for the
+      structural test. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the key registry and the leader menu`.
 
 ## Task 33: The layout shell
 
