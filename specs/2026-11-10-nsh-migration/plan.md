@@ -1683,23 +1683,38 @@ ported, beyond accounts and jobs.
 **Files:**
 
 - Create: `app/store/{routes,history,device}.ts`
-- Test: `app/store/routes.test.ts`
+- Test: `app/store/routes.test.ts`, `app/store/device.test.ts`
 
 **Interfaces:**
 
-- Produces:
-  - `type Route`, `parseRoute(path): Route`, `pathOf(route): string`, with the paths of
-    [`routeTable.ts`](/packages/web/src/routeTable.ts) unchanged, so old links keep working.
-  - `navigate(route)`, `back()`, `route: Signal<Route>`, and per-entry scroll and leave guard, as
-    `routeHistory.ts` keeps them.
-  - `device.get(key)`, `device.set(key, value)`: per-device choices, on NSH's storage.
+- Produces, as built (rulings R126 to R128). Each name is exported from its own file: task 23 writes
+  `app/store/index.ts`.
+  - From `routes.ts`: `type Route`, a page (`route.page`, with the page's own fields) and the rest
+    of its address, `repo?`, `query?`, and `hash?`; `type RouteOf<P>`, the route of the page `P`;
+    `parseRoute(address): Route` and `pathOf(route): string`, on a whole address, its query and hash
+    included, with the paths of [`routeTable.ts`](/packages/web/src/routeTable.ts) unchanged, so old
+    links keep working. An address from before a page moved parses to the page where it is now:
+    there is no `moved`, `run`, or `first-run` page.
+  - From `history.ts`: `route: Accessor<Route>`, a signal only the history writes;
+    `navigate(route, kept?)`, in the repository of the page shown unless the route names one;
+    `redirect(route)`; `back(): boolean`, `false` on the visit the app started on; `entry(): Entry`,
+    the visit shown, with its `id`, `from`, and `kept`; `keep(values, id?)`; `positions()`, with
+    `at(name)` and `keep(name, offset)`, a visit's scroll positions; `openOverlay(label, route?)`;
+    `setLeaveGuard(guard)`.
+  - The seam for task 57, in `history.ts`: `type HistoryAdapter`, `bindHistory(adapter)`,
+    `entryAt(address)`, and `memoryHistory(start)`, the app's own stack, which is what the history
+    uses until another adapter is bound.
+  - From `device.ts`: `device.get(key)` and `device.set(key, value)`, at once, from memory;
+    `device.load()`, which reads NSH's storage once, before the app is mounted; `device.full()`;
+    `type DeviceKeys`, the one table of the keys, where a feature adds its line; and
+    `deviceStore<Keys>()`, a store over a table of a test's own.
 
-- [ ] **Step 1: Write the failing test** `every old path parses to its route and back`, on the paths
+- [x] **Step 1: Write the failing test** `every old path parses to its route and back`, on the paths
       of the old route table's tests.
-- [ ] **Step 2: Run it**. Expected: FAIL.
-- [ ] **Step 3: Implement.** No browser API here: task 57 binds the history to the browser's.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): routes and per-device storage`.
+- [x] **Step 2: Run it**. Expected: FAIL.
+- [x] **Step 3: Implement.** No browser API here: task 57 binds the history to the browser's.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): routes and per-device storage`.
 
 ## Task 25: The design language's samples
 
@@ -2559,7 +2574,8 @@ here: iOS and macOS are the human's, later.
 
 **Interfaces:**
 
-- Consumes: `route`, `navigate`, `back` (task 24).
+- Consumes: `route`, `navigate`, `back`, and the seam `HistoryAdapter`, `bindHistory`, `entryAt`
+  (task 24).
 - Produces: the browser's address and history bound to the app's routes; `Glass` drawn with the
   browser's backdrop blur; `WebFrame` as a frame; browser notifications; the page's title with the
   count of what needs the owner; the web app manifest.

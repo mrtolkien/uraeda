@@ -2923,3 +2923,91 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
   consumes, and the sessions are the longest task of the server. Task 23, the client store, still
   waits for the sandbox of task 20, which its tests run on.
 - **Where**: the plan's [waves](plan.md#waves), 9 to 11.
+
+## R126: A route is a page with the rest of its address, and an old address is resolved as it is read
+
+- **Decision**: `Route` is the React UI's union of pages, each with `repo`, `query`, and `hash`
+  beside its own fields, all three optional, and `parseRoute` and `pathOf` take and write a whole
+  address. Three pages of the old union went: `moved` and `run`, which only redirected, and
+  `first-run`, which no address named. `/commit`, `/chats/<id>`, `/chats/new`, `/changes/new`,
+  `/f/<folder>/runs/<id>`, and a Storybook address without `?story=` now parse to the page where it
+  is, with the query and the hash the old redirects kept. The New page's `kind` is absent when the
+  address names none, and a story's page holds its `story`. The table stays in TSX.
+- **Rationale**: the old pages read the repository, the query, and the hash from the browser's
+  location, which the app does not have: a screen now gets them from the one signal `route`. A
+  redirect drawn by a component needed a screen for each old address, and showed the old address
+  until it ran. Read as it is parsed, an old link opens its page at once, and the history writes the
+  page's address in its place. The New page asked the location whether `?kind=` was named, to leave
+  the choice open on a phone: the absent `kind` says it. Parsing an address is a split and a table
+  lookup, once per navigation, so it is not the heavy logic the plan keeps in Rust: the test of 67
+  addresses, each parsed twice and written once, runs in 8 ms in NSH's interpreter.
+- **Alternatives considered**: `parseRoute(path, search)` and `parseLocation`, as the old table had,
+  with the query and the hash in signals of their own: three signals to keep in step, and a
+  `navigate` that takes a string.
+- **If wrong**: a repository's path without a repository (`repo` absent) and a decision as a branch
+  has it still need what the server knows, so the screens of tasks 36 and 45 redirect them, with
+  `redirect`.
+- **Where**: `app/store/routes.ts`, and the rows of `app/store/routes.test.ts`.
+
+## R127: The history's visits live in an adapter, the app's own stack unless the browser's is bound
+
+- **Decision**: the history keeps the visit shown and its rules: who is asked before a page is left,
+  what a visit keeps, and what stays in a repository. The visits themselves are in a
+  `HistoryAdapter` of five functions, `start`, `push`, `replace`, `back`, and `listen`.
+  `memoryHistory` is the default, and the Linux app's. Task 57 writes the browser's and calls
+  `bindHistory`: `push` and `replace` are `pushState` and `replaceState` with the entry as the state
+  and `pathOf(entry.route)` as the address, `back` is `history.back()`, `listen` hears `popstate`,
+  and `start` is the state's entry or `entryAt` of the location.
+- **What changed from `routeHistory.ts`**:
+  - `route` is an `Accessor`, not a `Signal` with a `set`: only the history writes it.
+  - `navigate(route)` opens the page in the repository of the one shown, as `navigateHere` did.
+  - A visit's `from` is the route it was opened from, set by every `navigate`, where the old callers
+    passed a path by hand. `back()` answers `false` without it, as `openedInApp` said.
+  - The scroll positions are named, `positions().at("page")`, since NSH has no window that scrolls:
+    a page starts its `Scroll` at one (`contentOffset`) and keeps it when the scroll comes to rest
+    (`onScrollEnd`). No timer, and no list of savers. The `opener` position went with the window's
+    scroll.
+  - Back asks as the old `LeaveGuard` did, after the adapter moved: the visit left is pushed back
+    above the one reached, and stays shown while the human is asked. So the browser's Back button
+    and the app's `back()` take one path, and the adapter decides nothing.
+  - Nothing is asked when the address stays the same but for its hash, which replaces `openAnchor`,
+    and when an overlay closes.
+  - `keep(values, id)` replaces `selectOnArrival`, and tells who reads `entry()`.
+- **Rationale**: the plan asks for no browser API here and a history task 57 can bind. With the
+  rules on one side and the stack on the other, the rules are tested once, on the memory stack, and
+  the browser's adapter holds none.
+- **Alternatives considered**: NSH's `createNavStack` and `NavStack`, which keep every page of the
+  stack mounted, for a phone's native stack: the app's pages are addressed, and one is drawn at a
+  time.
+- **If wrong**: there is no `forward`. The browser's Forward button arrives through `listen`, and
+  the Linux app has no key for it yet.
+- **Where**: `app/store/history.ts`, and task 57.
+
+## R128: The device's values are read once, then answered from memory, and their keys are one table
+
+- **Decision**: `device.load()` reads every entry of NSH's `Storage` once, before the app is
+  mounted, and `device.get` and `device.set` then answer at once: `get` is a signal's read, and
+  `set` writes the storage after. Values are JSON. The keys are the type `DeviceKeys` in
+  `app/store/device.ts`, one line per value, where a feature adds its own: it is empty until the
+  first does. `deviceStore<Keys>()` makes a store over another table, for tests.
+- **What NSH's storage does**, read in its source at the pin (`nsh-core/src/storage.rs`,
+  `nsh-engine/src/storage.rs`, `nsh-platform-web/src/storage.rs`, `nsh-testing/src/storage.rs`):
+  - In TSX every call returns a promise, and calls run in order. In Rust they are synchronous. The
+    entries are in memory once read, on every platform.
+  - On GTK: the file `$XDG_DATA_HOME/dev.uraeda.app/storage.json`, one JSON object, written whole to
+    a temporary file and renamed, on a thread of its own. A file that does not parse is set aside as
+    `storage.json.corrupt`, and the app starts empty.
+  - On the web: the browser's `localStorage`, each entry under `nsh:dev.uraeda.app:<key>`. When the
+    browser refuses a write, NSH logs it and keeps the entry in memory.
+  - Everywhere: 5 MB of keys and values, counted in Rust. `setItem` past it rejects with the code
+    `ERR_NSH_QUOTA_EXCEEDED`, and keeps what it held.
+  - Under `nsh test`: memory. A test file's own engine starts empty, and an app a test opens starts
+    with `open`'s `storage`, read back with `app.storage()`.
+- **Rationale**: a theme read through a promise draws the default first, then the choice. One read
+  at the start costs a call per entry, all from memory. One table makes a name taken twice a compile
+  error, where keys declared beside each feature would collide only when both run. A refused value
+  stays for the run and `device.full()` says so, as the old `unsaved.ts` kept text in memory when
+  `localStorage` was full.
+- **Alternatives considered**: a synchronous read through `uraeda/native`, on Rust's `Storage`: a
+  second path to keep on the web build, for one read at the start.
+- **Where**: `app/store/device.ts`, `app/store/device.test.ts`.
