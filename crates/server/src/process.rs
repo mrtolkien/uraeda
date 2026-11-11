@@ -11,10 +11,23 @@ use std::process::Command;
 /// What a group is sent.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Signal {
-    /// Asks the processes to end.
+    /// Interrupts them, as Ctrl-C does: `SIGINT`.
+    Interrupt,
+    /// Asks the processes to end: `SIGTERM`.
     Terminate,
-    /// Ends them.
+    /// Ends them: `SIGKILL`.
     Kill,
+}
+
+impl Signal {
+    /// The signal's name, as the adapter of an extension's runtime takes it: `SIGTERM`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Signal::Interrupt => "SIGINT",
+            Signal::Terminate => "SIGTERM",
+            Signal::Kill => "SIGKILL",
+        }
+    }
 }
 
 /// Makes the command lead a process group of its own once it starts, which [`signal_group`]
@@ -36,6 +49,7 @@ pub(crate) fn signal_group(leader: u32, signal: Signal) {
         return;
     };
     let signal = match signal {
+        Signal::Interrupt => libc::SIGINT,
         Signal::Terminate => libc::SIGTERM,
         Signal::Kill => libc::SIGKILL,
     };

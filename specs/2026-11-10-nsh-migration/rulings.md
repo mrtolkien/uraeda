@@ -2027,3 +2027,183 @@ The low-impact choices made while planning [the plan](plan.md), inside the limit
 - **If wrong**: the variables are the process's, not a server's: two servers in one process, as
   tests run without `nextest` would have, share the last one's. `ura` never sets them.
 - **Where**: `crates/core/src/git/process.rs`, `crates/server/src/{env,start}.rs`. Tasks 13 to 15.
+
+## R97: A runtime is asked on a blocking thread, and its process is told from anywhere
+
+- **Decision**: `runtimes::Runtime` and `runtimes::AgentProcess` are the adapter of
+  [`extension-api.ts`](/packages/server/src/extension-api.ts), method for method, with one rule for
+  where each runs.
+  - **A `Runtime`'s methods are plain functions, called on a blocking thread**, a handler's or
+    `spawn_blocking`'s: `open`, `has_session`, `allow_rule`, `version`, `models`, and
+    `review_message`. They may read the disk, start a process, or wait for another thread, as a
+    runtime in an extension's VM does for its answer. One that waits bounds its own wait: `version`
+    within 5 seconds, `models` within 10, a VM's call within 10. `live::wait(future)` awaits from
+    one, and tokio is there.
+  - **An `AgentProcess`'s methods return at once, from any thread or task**, and never fail: `send`,
+    `interrupt`, `kill`, `take_back`, `set_effort`, and `close` write to the agent, or tell the task
+    or the VM that does. On a process that exited each does nothing. What the agent made of it comes
+    back as events.
+  - **`open` never fails.** A command that is missing, or a session the agent does not start, is the
+    process's `exit`, with `missing`, or an `init` with its `problem`.
+  - **Beside the plan's list**: `kind` and `icon`, which the adapter has and the record of a runtime
+    shows; `review_message(&ReviewAsk) -> Option<ReviewMessage>`, the agent's own review; `models`
+    answers `Ok(None)` for a runtime that lists none; `set_effort` answers whether the process took
+    it, `false` for a runtime that is reopened instead. `name`, `kind`, and `icon` give a `String`.
+  - **The one error type** is `RuntimeError`: `Taken(name)` from the registry, and `Failed(words)`
+    from `models`.
+  - **What crosses is the adapter's JSON**: `Options`, `Outgoing`, and `ReviewAsk` are written as
+    the adapter names them (`nativeId`, `tools` left out, `"none"`, or `{ url, token }`), and
+    `Capabilities`, `ModelList`, and `ReviewMessage` are read from it. `Signal::name()` is `SIGINT`,
+    `SIGTERM`, or `SIGKILL`. `Tools` prints without its token.
+- **Rationale**: R46 made handlers plain functions because nearly everything they call blocks, and
+  the same holds here: Claude Code's `has_session` reads a folder, its `open` makes folders and
+  links, and a VM's answer is a wait on its thread. The sessions already write the store from a
+  blocking thread. A process's methods are the Node adapter's, which returned nothing and waited for
+  nothing: the agent's protocol is the only place an answer comes from.
+- **Alternatives considered**: futures for everything a VM answers: callable from a task, but a
+  blocking read inside one is the trap R46 names, and three implementers would box each answer.
+- **If wrong**: a `Runtime` method called from a task blocks one of the server's threads, for up to
+  its own bound. A VM's proxy that waits with tokio's `blocking_recv` panics there, which the first
+  test shows.
+- **Where**: task 12, `crates/server/src/runtimes/{mod,options}.rs`. Tasks 13, 14, 15, and 17.
+
+## R98: A process's events are one stream with no limit, ended by one `exit`
+
+- **Decision**: `runtimes::events()` gives an `Emitter` and an `Events`.
+  - A runtime writes with `Emitter::send(event) -> bool`, from the task that reads its agent's
+    output or from a VM's thread. It never waits. An `exit` is the last event: it closes the stream,
+    and what is sent after it is dropped.
+  - The one reader takes the stream once, `AgentProcess::events(&mut self)`, and reads with
+    `next().await` in a task or `blocking_next()` on a blocking thread.
+  - **The stream always ends with exactly one `exit`.** When every `Emitter` is gone without one, as
+    for a VM that was stopped, the reader gets an `exit` with no code, then nothing.
+  - **No back-pressure.** The stream has no limit: the Node runtimes read stdout as it comes
+    "whether or not the events are", since Claude Code loses its last lines when read slowly.
+- **Rationale**: a reader that must handle "ended without an exit" beside "exited" would handle it
+  three times, once per implementer's idea of a silent end. An event is small, and the reader writes
+  one SQLite row per event, faster than any agent prints.
+- **If wrong**: a reader that stops reading lets a process's events pile up in memory until it is
+  closed. A limit would go in `events()`, the one place the channel is made.
+- **Where**: task 12, `crates/server/src/runtimes/events.rs`, and the test
+  `a_stream_ends_with_one_exit_whatever_its_runtime_did`. Tasks 13, 14, 15, and 17.
+
+## R99: A blocked action is a denial of its turn's result: no agent waits on a request
+
+- **Decision**: the contract has no permission request. The brief's "a permission request that waits
+  for its answer", and task 13's test of that name, are this flow, which the Node runner has and the
+  port keeps:
+  - An agent runs with the least permission that lets a step finish, and never asks while it runs:
+    Claude Code in its `auto` mode, Codex with its own reviewer. An action its permissions block is
+    skipped, and named in the `denials` of the turn's `result`.
+  - The denial waits in the transcript for the human. Their yes is `Runtime::allow_rule(&denial)`,
+    the narrowest rule for that action, none when no rule allows it alone; then a process opened
+    with the rule in `Options::allowed`, for that process only; then a message that asks again.
+  - `Capabilities::approvals` stays, `false` for every built-in, as in the Node adapter.
+  - The fake plays it with a `try` step: blocked, and a denial of the result, unless the process was
+    opened with its rule.
+- **Rationale**: the plan asks for a port. `AgentEvent` has no request, the React UI draws none, and
+  Codex's requests to its client are refused at once. A request an agent waits on is a feature of
+  its own: a new event, an answer on `AgentProcess`, and a screen.
+- **If wrong**: an agent that asks is added as an event `permission`, a method
+  `AgentProcess::answer(id, allow)`, and `approvals: true`, without changing what exists.
+- **Where**: task 12, `crates/server/src/runtimes/mod.rs`, and the test
+  `a_blocked_action_is_a_denial_of_its_result_until_its_rule_is_allowed`. Tasks 13 and 15.
+
+## R100: An agent's process is a `runtimes::Child`, and the group's rule has one home
+
+- **Decision**: `crates/server/src/process.rs` holds what a command the server runs shares: `Signal`
+  (`Interrupt`, `Terminate`, `Kill`), `lead_group(&mut Command)`, and
+  `signal_group(leader, signal)`. The previews use it, where they had their own.
+  - `runtimes::Child::spawn(&Shared, Spawn { program, args, cwd, env })` starts an agent's process:
+    `shared.environment().command(program)` with its own variables, its three streams piped, leading
+    a group of its own. It never fails: a command that cannot start is a `Child` with no output
+    whose exit says why, `missing` for a command not found, and
+    `The session's directory is gone: <cwd>` for a folder that is gone.
+  - `lines()` gives stdout's lines, read as they come, blank ones left out; `write(&Value)` one JSON
+    line to stdin, without waiting; `end_input()` closes stdin; `signal(Signal)` reaches the whole
+    group; `exited().await` gives the `exit` event once both outputs closed, with the last 20 lines
+    of stderr; `end_short()` ends a short process done with, as one that lists models; `leader()` is
+    the group's id.
+  - **The group ends with its leader.** As the leader exits, its group is killed, so a command the
+    agent left running never holds its output open, as the previews do (R82). The Node runner waited
+    for the output to close by itself.
+  - **The server stops them.** `runtimes::mount` registers the stop work `agents`: every process
+    still running is sent `SIGTERM`, then `SIGKILL` 5 seconds later, and waited for. It runs after
+    the sessions' own stop work, registered later (task 15), which closes each process its way
+    first. A stopping server starts no process: its `Child` exits with `The server is stopping.`
+  - **No record of the groups in a file**, as the previews keep: a killed server's agents end by
+    themselves when their stdin closes.
+- **Rationale**: tasks 13 and 14 both port `child.ts`, at the same time. The stack decision says the
+  server MUST stop the commands it runs: one helper keeps that from being two.
+- **How it was checked**: with the signal sent to the leader alone, three tests fail, each finding
+  the `sleep` the shell started; without the stop work,
+  `the_server_stops_every_agent_process_when_it_stops` does.
+- **If wrong**: an agent that outlives its stdin's end after a server was killed is found by
+  recording its group as `preview/groups.rs` does.
+- **Where**: task 12, `crates/server/src/process.rs`, `runtimes/child.rs`, `preview/command.rs`, and
+  `crates/server/tests/runtimes/child.rs`. Tasks 13 and 14.
+
+## R101: The registry is `Runtimes`, and a runtime is on where its extension is
+
+- **Decision**: `runtimes::mount`, in `DOMAINS` after the store, provides `Runtimes`, a handle cheap
+  to clone: `shared.get::<Runtimes>()`.
+  - `runtimes::register(&shared, name, Arc<dyn Runtime>) -> Result<Registered, RuntimeError>`
+    registers under the extension's name, refused as `Taken` for a name in use.
+    `Registered::remove()` takes it away; dropping the `Registered` leaves it, as a built-in's for
+    the server's life.
+  - It reads: `get(name)`, `names()` in registration order, `status(name)`, `models(name)`.
+    `check()` asks every runtime's version, and `refresh_models(&[names])` their models, at most
+    once a minute each and given up after 15 seconds: both wait, so they are called on a blocking
+    thread. A registration asks its models at once, in the background. A name removed keeps its
+    status for the next runtime of that name. `on_change(listener)` and `changed()` tell who shows
+    them.
+  - **Where a runtime is on is the core's rule**: `is_on(name, repository)`, `on_in(repository)`,
+    and `title(name)` read the config folder with `uraeda_core::extensions`, by the repository's
+    name in the list. A built-in turned off is off without any code of its runtime: `claude`,
+    `codex`, and `fake` are built-in extensions already. A name that is no extension's is on
+    everywhere.
+  - **Not here**: the skill folders of the extensions on in a repository, `Options::skills`, which
+    depend on which extensions loaded (task 17); and the refusals of a session whose runtime is off
+    or unavailable, which are the sessions' words (task 15).
+  - `Capabilities`, `ModelList`, `ModelDefaults`, `AgentModel`, and `ModelEffort` are declared in
+    the protocol's `shared/runtime.rs`, with the adapter's JSON: the record of a runtime sends them
+    as they are (task 15). No record uses them yet, so the client's types are unchanged.
+- **Rationale**: the Node registry was given three functions by the extensions' loader. The core
+  already answers where an extension is on, so the registry needs no one to tell it, and tasks 13,
+  14, and 17 only register.
+- **If wrong**: `is_on` reads `config.toml` at each call. A cache goes behind `Runtimes`, cleared by
+  the watcher's `CONFIG_CHANGED`.
+- **Where**: task 12, `crates/server/src/runtimes/registry.rs`,
+  `crates/protocol/src/shared/runtime.rs`. Tasks 13, 14, 15, and 17.
+
+## R102: The fake plays JSON scripts of events, waits, and blocked actions
+
+- **Decision**: `runtimes::fake::Fake` is the Node server's `FakeAdapter`, with its script format.
+  - **A script is a JSON array**, and a step is an event as a runtime sends it, the Node fake's own
+    format; `{ "wait": 400 }`, milliseconds on tokio's clock, where the Node fake took a function
+    that waited; or `{ "try": { "id", "tool", "input" } }` (R99). In Rust it is a
+    `Script(Vec<Step>)`, read with `serde_json::from_value` or `Script::parse`, and `Step::run` adds
+    what JSON cannot say: work of the test's own in the process's directory.
+  - `Script::reply(text, over)` is a reply streamed word by word over a time, then whole: the
+    sandbox's canned reply, and a reply of 20,000 pieces.
+  - **A message plays the next scripted turn**, `fake.script(..)`, else the turn `fake.fallback(..)`
+    gives for it, else nothing: the test then says each event with `fake.emit(event)`. A turn is the
+    message's `accepted`, the steps, then a successful `result` unless a step ends the turn with a
+    `result` or an `exit`.
+  - **It reacts as the Node fake does.** An interrupt drops the steps not played and ends the turn
+    with an interrupted `result`, keeping the process. A close plays what was written, without its
+    waits, then exits with code 0. A kill drops everything and exits with 130, 143, or 137.
+    `fake.set(|fake| ..)` makes it ignore each, lists other models, or uninstalls it.
+  - **Where it differs**: a take-back cancels a message whose turn has not begun, and sends its
+    `cancelled`, where the Node fake only recorded it; a process nobody holds is killed; its name is
+    `Fake agent`, where the Node fake took Claude Code's; `reports_runs_on` is the sandbox agent's
+    `runsOn`, as a switch.
+  - `fake.opens()`, `sent()`, `taken_back()`, `interrupts()`, `closes()`, `kills()`, `efforts()`,
+    `model_asks()`, and `running()` say what it saw.
+- **Rationale**: task 20's sandbox reuses the Node samples, which are arrays of events. A wait as
+  data plays on tokio's paused clock, so no test sleeps.
+- **How it was checked**: with an interrupt that drops nothing,
+  `the_fake_runtime_plays_its_script_and_stops_when_told` and
+  `an_interrupted_process_plays_its_next_message` fail.
+- **Where**: task 12, `crates/server/src/runtimes/fake.rs` and `fake/`, and
+  `crates/server/tests/runtimes.rs`. Tasks 15, 17, and 20.

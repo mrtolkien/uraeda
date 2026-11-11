@@ -32,6 +32,7 @@ mod process;
 mod records;
 mod run;
 pub mod runner;
+pub mod runtimes;
 pub mod secret;
 mod shared;
 pub mod sign_in;
@@ -72,6 +73,7 @@ const DOMAINS: &[Mount] = &[
     live::mount,
     sign_in::mount,
     runner::mount,
+    runtimes::mount,
     http::open::mount,
     http::socket::mount,
     files::mount,

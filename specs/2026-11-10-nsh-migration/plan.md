@@ -944,23 +944,45 @@ Follows [what every records task does](#what-every-records-task-does).
 
 **Files:**
 
-- Create: `crates/server/src/runtimes/{mod,fake}.rs`
-- Test: `crates/server/tests/runtimes.rs`
+- Create: `crates/server/src/runtimes/{mod,options,events,registry,child,fake}.rs`,
+  `crates/server/src/runtimes/fake/{script,process}.rs`, `crates/server/src/process.rs`,
+  `crates/protocol/src/shared/runtime.rs`
+- Test: `crates/server/tests/runtimes.rs`, `crates/server/tests/runtimes/child.rs`
 
 **Interfaces:**
 
 - Consumes: `Event` (task 11).
-- Produces: `trait Runtime` with `name`, `capabilities`, `open(Options) -> Box<dyn AgentProcess>`,
-  `has_session`, `allow_rule`, `version`, `models`; and `trait AgentProcess` with `events`, `send`,
-  `interrupt`, `kill`, `take_back`, `set_effort`, `close`. These mirror the adapter of
-  [`extension-api.ts`](/packages/server/src/extension-api.ts), so a VM extension can implement the
-  same contract in task 17. The fake runtime plays a script of events, for tests and the sandbox.
+- Produces, in `uraeda_server::runtimes` (rulings R97 to R102):
+  - `trait Runtime` with `name`, `kind`, `icon`, `capabilities`,
+    `open(Options) -> Box<dyn AgentProcess>`, `has_session`, `allow_rule`, `version`, `models`, and
+    `review_message`: plain functions, called on a blocking thread.
+  - `trait AgentProcess` with `events`, `send`, `interrupt`, `kill`, `take_back`, `set_effort`, and
+    `close`: each returns at once, from any thread.
+  - These mirror the adapter of [`extension-api.ts`](/packages/server/src/extension-api.ts), with
+    its JSON, so a VM extension implements the same contract in task 17.
+  - `events() -> (Emitter, Events)`: a process's events, with no limit, ended by one `exit`.
+  - `Runtimes`, the registry, `shared.get::<Runtimes>()`, and
+    `register(&shared, name, runtime) -> Result<Registered, RuntimeError>`.
+  - `Child::spawn(&shared, Spawn)`: an agent's process, in the server's environment, leading a group
+    that ends with it and with the server.
+  - `fake::Fake`, which plays `fake::Script`s of events, waits, and blocked actions, for tests and
+    the sandbox.
+  - A blocked action is a denial of its turn's `result`, allowed by a rule and a reopened process:
+    the contract has no permission request (ruling R99).
 
-- [ ] **Step 1: Write the failing test** `the fake runtime plays its script, and stops when told`.
-- [ ] **Step 2: Run it**. Expected: FAIL.
-- [ ] **Step 3: Implement** the traits and the fake.
-- [ ] **Step 4: Run the task's validation**. Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(nsh-migration): the runtime contract and a fake runtime`.
+- [x] **Step 1: Write the failing test** `the fake runtime plays its script, and stops when told`.
+  - Also: `an interrupted process plays its next message`;
+    `a kill ends the process with its signal's code and leaves no task`;
+    `a message the agent has not read is taken back`;
+    `a blocked action is a denial of its result until its rule is allowed`;
+    `a very long reply streams in order and whole`;
+    `a stream ends with one exit whatever its runtime did`; the registry's three; and, for an
+    agent's process, its lines both ways, a command that cannot start, a signal that reaches
+    everything it started, and the server's stop.
+- [x] **Step 2: Run it**. Expected: FAIL.
+- [x] **Step 3: Implement** the traits and the fake.
+- [x] **Step 4: Run the task's validation**. Expected: PASS.
+- [x] **Step 5: Commit**: `feat(nsh-migration): the runtime contract and a fake runtime`.
 
 ## Task 13: The Claude runtime
 
@@ -980,11 +1002,12 @@ Follows [what every records task does](#what-every-records-task-does).
 - [ ] **Step 1: Write the failing tests**:
       `a recorded stream becomes the same events as the Node     runner made`, on streams recorded
       from the real CLIs, compared with the events the Node code produces for them; and
-      `a permission request waits for an answer`.
+      `a permission request waits for an answer`: a blocked action is a denial of its turn's
+      `result`, which runs once its rule is in `Options::allowed` (ruling R99).
 - [ ] **Step 2: Run them**. Expected: FAIL.
-- [ ] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts) and
-      `child.ts`, or `codex.ts` and `codex-rpc.ts`. A child process leads its own process group and
-      is killed when its session closes or the server stops.
+- [ ] **Step 3: Implement**, porting [`claude.ts`](/packages/server/src/runner/claude.ts), or
+      `codex.ts` and `codex-rpc.ts`. `child.ts` is ported already, as `runtimes::Child` (ruling
+      R100): a child process leads its own process group, which ends with it and with the server.
 - [ ] **Step 4: Run the task's validation**, then one manual run against the real CLI, noted in the
       commit's body. Expected: PASS.
 - [ ] **Step 5: Commit**: `feat(nsh-migration): the claude runtime`, or `the codex runtime`.

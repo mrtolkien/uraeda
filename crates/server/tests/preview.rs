@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use serde_json::{Value, json};
-use support::{Live, TestRepo, TestResponse, TestServer, fixture};
+use support::{Live, TestRepo, TestResponse, TestServer, fixture, gone, group_members};
 use tempfile::TempDir;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -180,22 +180,6 @@ async fn ready(records: &mut Records, id: u32) -> String {
     preview["base"].as_str().unwrap().to_owned()
 }
 
-/// The processes of a process group that still run, zombies left out, as `ps` lists them.
-fn group_members(group: u32) -> Vec<u32> {
-    let listed = Command::new("ps")
-        .args(["-eo", "pid=,pgid=,stat="])
-        .output()
-        .unwrap();
-    let listed = String::from_utf8(listed.stdout).unwrap();
-    let rows = listed.lines().filter_map(|line| {
-        let mut cells = line.split_whitespace();
-        let (pid, pgid, stat) = (cells.next()?, cells.next()?, cells.next()?);
-        let runs = pgid.parse() == Ok(group) && !stat.starts_with('Z');
-        runs.then(|| pid.parse().unwrap())
-    });
-    rows.collect()
-}
-
 /// The process group of a process.
 fn group_of(pid: u32) -> u32 {
     let listed = Command::new("ps")
@@ -204,18 +188,6 @@ fn group_of(pid: u32) -> u32 {
         .unwrap();
     let listed = String::from_utf8(listed.stdout).unwrap();
     listed.trim().parse().expect("a running process's group")
-}
-
-/// Waits until no process of the group runs: the processes left once the wait is over.
-async fn gone(group: u32) -> Vec<u32> {
-    let deadline = tokio::time::Instant::now() + PATIENCE;
-    loop {
-        let left = group_members(group);
-        if left.is_empty() || tokio::time::Instant::now() > deadline {
-            return left;
-        }
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    }
 }
 
 /// A frame's read: a sandboxed frame sends `Origin: null`, and no cookie.

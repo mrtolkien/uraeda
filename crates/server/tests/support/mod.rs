@@ -13,7 +13,8 @@
 //!
 //! Beside it: `fixture_repo(name)`, the git repository built from `fixtures/repo/`, `Hook`, its
 //! pre-commit hook as a test holds it, and `read`, `call`, `Held`, `Live`, and `idle`, which read
-//! records and call actions over `/live`: see `live.rs`.
+//! records and call actions over `/live`: see `live.rs`; and `group_members` and `gone`, the
+//! processes of a group a test's server started.
 
 #![allow(
     dead_code,
@@ -28,6 +29,7 @@ mod client;
 mod fixture;
 mod hook;
 mod live;
+mod process;
 mod request;
 
 use std::fs;
@@ -43,6 +45,7 @@ pub use client::TestClient;
 pub use fixture::{fixture, fixture_repo, fixture_text};
 pub use hook::Hook;
 pub use live::{Held, Live, Refused, call, idle, read, writes};
+pub use process::{gone, group_members};
 pub use repo::TestRepo;
 pub use request::{TestRequest, TestResponse};
 
